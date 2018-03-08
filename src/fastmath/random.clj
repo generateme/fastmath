@@ -486,6 +486,21 @@ See [[brand]].")
 (def ^{:metadoc/categories #{:noise}} make-billow-noise (gen-noise-function Billow/noise))
 (def ^{:metadoc/categories #{:noise}} make-ridgedmulti-noise (gen-noise-function RidgedMulti/noise))
 
+(defn make-random-noise-fn
+  "Create random noise function from all possible options."
+  []
+  (let [cfg {:seed (irand)
+             :noise-type (rand-nth (keys noise-types))
+             :interpolation (rand-nth (keys interpolations))
+             :octaves (irand 1 10)
+             :lacunarity (drand 1.5 2.5)
+             :gain (drand 0.2 0.8)
+             :normalize? true}]
+    (rand-nth [(make-single-noise cfg)
+               (make-fbm-noise cfg)
+               (make-billow-noise cfg)
+               (make-ridgedmulti-noise cfg)])))
+
 (add-examples make-single-noise
   (example "Usage"
     (let [n (make-single-noise {:interpolation :linear})]

@@ -6,7 +6,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [metadoc "0.0.2"]]
+                 [metadoc "0.0.3-SNAPSHOT"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
   :scm {:name "git"
