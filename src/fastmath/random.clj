@@ -440,9 +440,10 @@ See [[brand]].")
   6 octaves, Hermite interpolation (cubic, h01)."
   {:metadoc/categories #{:noise}
    :metadoc/examples [(example-session "Usage"
-                                       (vnoise 3.3)
-                                       (vnoise 3.3 1.1)
-                                       (vnoise 3.3 0.0 -0.1))]}
+                        (vnoise 3.3)
+                        (vnoise 3.3 1.1)
+                        (vnoise 3.3 0.0 -0.1))
+                      (example-image "2d noise" "images/n/vnoise.jpg")]}
   (^double [^double x] (FBM/noise value-noise-config x))
   (^double [^double x ^double y] (FBM/noise value-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise value-noise-config x y z)))
@@ -453,9 +454,10 @@ See [[brand]].")
   6 octaves, quintic interpolation."
   {:metadoc/categories #{:noise}
    :metadoc/examples [(example-session "Usage"
-                                       (noise 3.3)
-                                       (noise 3.3 1.1)
-                                       (noise 3.3 0.0 -0.1))]}
+                        (noise 3.3)
+                        (noise 3.3 1.1)
+                        (noise 3.3 0.0 -0.1))
+                      (example-image "2d noise" "images/n/noise.jpg")]}
   (^double [^double x] (FBM/noise perlin-noise-config x))
   (^double [^double x ^double y] (FBM/noise perlin-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise perlin-noise-config x y z)))
@@ -464,9 +466,10 @@ See [[brand]].")
   "Create Simplex noise. 6 octaves."
   {:metadoc/categories #{:noise}
    :metadoc/examples [(example-session "Usage"
-                                       (simplex 3.3)
-                                       (simplex 3.3 1.1)
-                                       (simplex 3.3 0.0 -0.1))]}
+                        (simplex 3.3)
+                        (simplex 3.3 1.1)
+                        (simplex 3.3 0.0 -0.1))
+                      (example-image "2d noise" "images/n/simplex.jpg")]}
   (^double [^double x] (FBM/noise simplex-noise-config x))
   (^double [^double x ^double y] (FBM/noise simplex-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise simplex-noise-config x y z)))
@@ -486,16 +489,24 @@ See [[brand]].")
 (def ^{:metadoc/categories #{:noise}} make-billow-noise (gen-noise-function Billow/noise))
 (def ^{:metadoc/categories #{:noise}} make-ridgedmulti-noise (gen-noise-function RidgedMulti/noise))
 
+(defn make-random-noise-cfg
+  "Create random noise configuration."
+  {:metadoc/categories #{:noise}
+   :metadoc/examples [(example "Random configuration" (make-random-noise-cfg))]}
+  []
+  {:seed (irand)
+   :noise-type (rand-nth (keys noise-types))
+   :interpolation (rand-nth (keys interpolations))
+   :octaves (irand 1 10)
+   :lacunarity (drand 1.5 2.5)
+   :gain (drand 0.2 0.8)
+   :normalize? true})
+
 (defn make-random-noise-fn
   "Create random noise function from all possible options."
+  {:metadoc/categories #{:noise}}
   []
-  (let [cfg {:seed (irand)
-             :noise-type (rand-nth (keys noise-types))
-             :interpolation (rand-nth (keys interpolations))
-             :octaves (irand 1 10)
-             :lacunarity (drand 1.5 2.5)
-             :gain (drand 0.2 0.8)
-             :normalize? true}]
+  (let [cfg (make-random-noise-cfg)]
     (rand-nth [(make-single-noise cfg)
                (make-fbm-noise cfg)
                (make-billow-noise cfg)
@@ -540,10 +551,11 @@ See [[brand]].")
   Returns double value from [0,1] range"
   {:metadoc/categories #{:noise}
    :metadoc/examples [(example-session "Example calls"
-                                       (discrete-noise 123 444)
-                                       (discrete-noise 123 444)
-                                       (discrete-noise 123 445)
-                                       (discrete-noise 123))]}
+                        (discrete-noise 123 444)
+                        (discrete-noise 123 444)
+                        (discrete-noise 123 445)
+                        (discrete-noise 123))
+                      (example-image "Draw noise for [0-180] range." "images/n/discrete_noise.jpg")]}
   (^double [^long X ^long Y]
    (let [X (unchecked-int X)
          Y (unchecked-int Y)
@@ -555,3 +567,5 @@ See [[brand]].")
    (discrete-noise X 0)))
 
 ;;
+
+(def noise-fn-list `(noise vnoise simplex))

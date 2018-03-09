@@ -2,6 +2,12 @@
 
 Fast primitive based math library
 
+## Installation
+
+```clojure
+[generateme/fastmath "0.1.0-SNAPSHOT"]
+```
+
 ## Documentation
 
 HERE

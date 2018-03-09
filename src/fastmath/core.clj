@@ -715,7 +715,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   (mlerp start stop (* 0.5 (- 1.0 (cos (* t PI))))))
 
 (defn smooth-interpolation
-  "Smoothstep based interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[smooth-interpolation]]."
+  "Smoothstep based interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[cos-interpolation]]."
   {:metadoc/categories #{:conv}
    :metadoc/examples [(example "Example" (smooth-interpolation 0.0 1.0 0.123))]}
   ^double [^double start ^double stop ^double t]
@@ -735,8 +735,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml)."
   {:metadoc/categories #{:conv}
    :metadoc/examples [(example "x from range." (smoothstep 100 200 120))
-              (example "corner case (< x edge0)" (smoothstep 100 200 50))
-              (example "corner case (> x edge1)" (smoothstep 100 200 250))]}
+                      (example "corner case (< x edge0)" (smoothstep 100 200 50))
+                      (example "corner case (> x edge1)" (smoothstep 100 200 250))]}
   ^double [^double edge0 ^double edge1 ^double x]
   (let [t (cnorm x edge0 edge1)]
     (* t t (- 3.0 (* 2.0 t)))))
@@ -748,8 +748,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.cc/documentation/math/ofMath/#!show_ofWrap)."
   {:metadoc/categories #{:conv}
    :metadoc/examples [(example "Example 1" (wrap 0 -1 1))
-              (example "Example 2 (value outside range)" (wrap -1.1 -1 1.5))
-              (example "Example 3 (reversed range)" (wrap 0.7 0.5 1.0))]}
+                      (example "Example 2 (value outside range)" (wrap -1.1 -1 1.5))
+                      (example "Example 3 (reversed range)" (wrap 0.7 0.5 1.0))]}
   ^double [^double start ^double stop ^double value]
   (let [p (> start stop)
         from (if p stop start)
@@ -959,18 +959,23 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;;;;; Add images
 
-(defmacro ^:private add-image-examples
-  [xs]
-  `(do
-     ~@(for [x xs]
-         `(add-examples ~x
-            (example-image ~(str "Plot of " x) ~(str "images/m/" x ".png"))))))
+(def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
+                       sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
+                       qsin qcos exp log log10 ln sqrt cbrt qexp qsqrt rqsqrt
+                       erf erfc inv-erf inv-erfc sinc log2 qlog
+                       sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
+                       frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
+                       signum sgn))
 
-(add-image-examples [sin cos tan cot sec csc asin acos atan acot asec acsc
-                     sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
-                     qsin qcos exp log log10 ln sqrt cbrt qexp qsqrt rqsqrt
-                     erf erfc inv-erf inv-erfc sinc log2 qlog
-                     sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
-                     frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
-                     signum sgn
-                     quad-interpolation smooth-interpolation wrap lerp cos-interpolation])
+(def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))
+
+(def fn-list (concat single-list interp-list))
+
+(defmacro ^:private add-image-examples
+  []
+  `(do
+     ~@(for [x fn-list]
+         `(add-examples ~x
+            (example-image ~(str "Plot of " (name x)) ~(str "images/m/" (name x) ".png"))))))
+
+(add-image-examples)

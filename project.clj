@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
+                 ;; [de.sciss/jwave "1.0.3"]
                  [metadoc "0.0.3-SNAPSHOT"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
@@ -16,8 +17,7 @@
                              [cider/cider-nrepl "0.17.0-SNAPSHOT"]
                              [lein-codox "0.10.3"]]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  ;; [clojure2d "0.0.7-SNAPSHOT"]
-                                  ]
+                                  [clojure2d "0.1.0-SNAPSHOT"]]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"

@@ -8,29 +8,9 @@
 
   Complex number is represented as `Vec2` type (from [[clojure2d.math.vector]] namespace).
 
-  To create complex number use [[complex]], [[vec2]] or [[->Vec2]].
-
-  Graphs are generated with following snippet using Clojure2d lib (where `f` is complex function).
-  
-  ```
-  (defn generate-complex-graph
-    [f canvas]
-    (let [w (width canvas)
-          h (height canvas)]
-      (set-stroke canvas 1.5)
-      (set-color canvas :white 60)
-      (dotimes [x w]
-        (dotimes [y h]
-          (let [xx (m/norm x 0 w (- m/PI) m/PI)
-                yy (m/norm y 0 h (- m/PI) m/PI)
-                res (f (c/complex xx yy))
-                resx (m/norm (res 0) (- m/PI) m/PI 0 w)
-                resy (m/norm (res 1) (- m/PI) m/PI 0 h)]
-            (point canvas resx resy))))))
-  ```
-  "
+  To create complex number use [[complex]], [[vec2]] or [[->Vec2]]."
   {:metadoc/categories {:trig "Trigonometry"
-                :pow "Power / logarithm"}}
+                        :pow "Power / logarithm"}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v] 
             [metadoc.examples :refer :all])
@@ -278,11 +258,13 @@
 
 ;;
 
-(defmacro ^:private add-image-examples
-  [xs]
-  `(do
-     ~@(for [x xs]
-         `(add-examples ~x
-                        (example-image ~(str "Plot of " x) ~(str "images/c/" x ".jpg"))))))
+(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal))
 
-(add-image-examples [atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal])
+(defmacro ^:private add-image-examples
+  []
+  `(do
+     ~@(for [x fn-list]
+         `(add-examples ~x
+            (example-image ~(str "Plot of " (name x)) ~(str "images/c/" (name x) ".jpg"))))))
+
+(add-image-examples)
