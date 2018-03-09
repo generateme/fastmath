@@ -10,7 +10,7 @@ Fast primitive based math library
 
 ## Documentation
 
-HERE
+[HERE](https://generateme.github.io/fastmath/index.html)
 
 ## Content
 
