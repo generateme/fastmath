@@ -47,25 +47,26 @@
   * [[fastmath.vector]] contains vector (2,3,4 dim. + double array + clojure vector) protocol and implementations.
   * [[fastmath.complex]] contains complex number operations."
   {:metadoc/categories {:trig "Trigonometry"
-                :pow "Powers / logarithms"
-                :conv "Conversions"
-                :err "Error"
-                :dist "Distance"
-                :round "Rounding"
-                :sign "Sign"
-                :stat "Statistics"
-                :bitwise "Bitwise"
-                :mod "Mod"
-                :compare "Comparison"
-                :prim "Primitive"
-                :bool "Boolean"}}
+                        :pow "Powers / logarithms"
+                        :conv "Conversions"
+                        :err "Error"
+                        :dist "Distance"
+                        :round "Rounding"
+                        :sign "Sign"
+                        :stat "Statistics"
+                        :bitwise "Bitwise"
+                        :mod "Mod"
+                        :compare "Comparison"
+                        :prim "Primitive"
+                        :special "Special functions"
+                        :bool "Boolean"}}
   (:require [metadoc.examples :refer :all])
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd?])
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [clojure.lang Numbers]
-           [org.apache.commons.math3.special Erf]))
+           [org.apache.commons.math3.special Erf Gamma Beta]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -92,6 +93,8 @@
 (defmacro ^:private fastmath-proxy [& rest] `(javaclass-proxy "net.jafama.FastMath" ~@rest))
 (defmacro ^:private primitivemath-proxy [& rest] `(javaclass-proxy "fastmath.java.PrimitiveMath" ~@rest))
 (defmacro ^:private erf-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Erf" ~@rest))
+(defmacro ^:private gamma-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Gamma" ~@rest))
+(defmacro ^:private beta-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Beta" ~@rest))
 
 (defmacro ^:private variadic-proxy
   "Creates left-associative variadic forms for any operator.
@@ -233,6 +236,8 @@
 
 (def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 
+(def ^:const ^double ^{:doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
+
 (def ^:const ^double ^{:doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
                                    (if (not== 1.0 (+ 1.0 (* d 0.5)))
@@ -320,6 +325,16 @@
 (erf-proxy :one ^{:doc "Complementary error function." :metadoc/categories #{:err}} erfc)
 (erf-proxy :one ^{:doc "Inverse [[erf]]." :metadoc/categories #{:err}} inv-erf erfInv)
 (erf-proxy :one ^{:doc "Inverse [[erfc]]." :metadoc/categories #{:err}} inv-erfc erfcInv)
+
+;; Gamma
+
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\Gamma(x)\\\\)" :metadoc/categories #{:special}} gamma gamma)
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories #{:special}} log-gamma logGamma)
+(gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories #{:special}} dgamma digamma)
+
+;; Beta
+
+(beta-proxy :two ^{:doc "Logarithm of Beta function." :metadoc/categories #{:special}} log-beta logBeta)
 
 ;; Sinc
 (defn sinc
@@ -965,7 +980,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                        erf erfc inv-erf inv-erfc sinc log2 qlog
                        sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
                        frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
-                       signum sgn))
+                       signum sgn
+                       gamma log-gamma dgamma))
 
 (def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))
 

@@ -363,7 +363,7 @@ See [[brand]].")
             :default drand
             :gaussian grand)
         gf (case s
-             1 drand
+             1 g
              2 (partial v/generate-vec2 g)
              3 (partial v/generate-vec3 g)
              4 (partial v/generate-vec4 g))]
@@ -378,7 +378,13 @@ See [[brand]].")
 
 
 (defmulti
-  ^{:doc "Create Sequence generator. See [[gen-list]] for names."
+  ^{:doc "Create Sequence generator. See [[gen-list]] for names. Parameter `size` describes number of dimensions (1-4).
+
+Values are from following values:
+
+* `:halton`, `:sobol`, `:default` - range `[0-1]`
+* `:gaussian` - from `N(0,1)` distribution
+* `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)" 
     :metadoc/categories #{:gen}}
   make-sequence-generator (fn [gen size] gen))
 (defmethod make-sequence-generator :halton [gen size] (commons-math-generators gen size))
@@ -391,7 +397,12 @@ See [[brand]].")
   (example "Usage (2d)" (let [gen (make-sequence-generator :halton 2)]
                           (take 5 (gen))))
   (example "Usage (1d)" (let [gen (make-sequence-generator :sobol 1)]
-                          (take 5 (gen)))))
+                          (take 5 (gen))))
+  (example-image "Halton plot (1000 samples)" "images/r/halton.jpg")
+  (example-image "Sobol plot (1000 samples)" "images/r/sobol.jpg")
+  (example-image "Sphere plot (1000 samples)" "images/r/sphere.jpg")
+  (example-image "Gaussian plot (1000 samples)" "images/r/gaussian.jpg")
+  (example-image "Default plot (1000 samples)" "images/r/default.jpg"))
 
 ;; ## Noise
 
@@ -503,31 +514,42 @@ See [[brand]].")
    :normalize? true})
 
 (defn make-random-noise-fn
-  "Create random noise function from all possible options."
-  {:metadoc/categories #{:noise}}
-  []
-  (let [cfg (make-random-noise-cfg)]
-    (rand-nth [(make-single-noise cfg)
-               (make-fbm-noise cfg)
-               (make-billow-noise cfg)
-               (make-ridgedmulti-noise cfg)])))
+  "Create random noise function from all possible options.
+
+  Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
+  {:metadoc/categories #{:noise}
+   :metadoc/examples [(example-session "Create function"
+                        (make-random-noise-fn)
+                        (make-random-noise-fn (make-random-noise-cfg)))
+                      (example-image "One" "images/n/random1.jpg")
+                      (example-image "Two" "images/n/random2.jpg")
+                      (example-image "Three" "images/n/random3.jpg")]}
+  ([cfg]
+   (rand-nth [(make-single-noise cfg)
+              (make-fbm-noise cfg)
+              (make-billow-noise cfg)
+              (make-ridgedmulti-noise cfg)]))
+  ([] (make-random-noise-fn (make-random-noise-cfg))))
 
 (add-examples make-single-noise
   (example "Usage"
     (let [n (make-single-noise {:interpolation :linear})]
-      (n 0.5 1.1 -1.3))))
+      (n 0.5 1.1 -1.3)))
+  (example-image "2d noise" "images/n/single.jpg"))
 
 (add-examples make-fbm-noise
   (example "Usage"
     (let [n (make-fbm-noise {:interpolation :linear
                              :noise-type :value})]
-      (n 0.5 1.1 -1.3))))
+      (n 0.5 1.1 -1.3)))
+  (example-image "2d noise" "images/n/fbm.jpg"))
 
 (add-examples make-billow-noise
   (example "Usage"
-    (let [n (make-billow-noise {:seed (irand)
+    (let [n (make-billow-noise {:seed 12345
                                 :interpolation :none})]
-      (n 0.5 1.1 -1.3))))
+      (n 0.5 1.1 -1.3)))
+  (example-image "2d noise" "images/n/billow.jpg"))
 
 (add-examples make-ridgedmulti-noise
   (example "Usage"
@@ -535,7 +557,8 @@ See [[brand]].")
                                      :lacunarity 2.1
                                      :gain 0.7
                                      :noise-type :simplex})]
-      (n 0.5 1.1 -1.3))))
+      (n 0.5 1.1 -1.3)))
+  (example-image "2d noise" "images/n/ridgedmulti.jpg"))
 
 
 ;; ### Discrete noise
@@ -568,4 +591,3 @@ See [[brand]].")
 
 ;;
 
-(def noise-fn-list `(noise vnoise simplex))
