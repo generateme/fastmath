@@ -7,7 +7,7 @@
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  ;; [de.sciss/jwave "1.0.3"]
-                 [metadoc "0.0.3-SNAPSHOT"]]
+                 [metadoc "0.1.0-SNAPSHOT"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
   :scm {:name "git"
