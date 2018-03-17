@@ -34,7 +34,8 @@
                         :dist "Distance / length"
                         :op "Operations"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all])
+            [metadoc.examples :refer :all]
+            [clojure.string :as s])
   (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential]
            [clojure.core Vec]))
 
@@ -154,7 +155,9 @@
 ;; Array Vector
 (deftype ArrayVec [^doubles array]
   Object
-  (toString [_] (str (vec array)))
+  (toString [_] (str "#arrayvec " (if (> (alength array) 10)
+                                    (str "[" (s/join " " (take 10 array)) "...]")
+                                    (vec array))))
   (equals [_ v]
     (let [s (alength array)]
       (bool-and (== s (count v))
@@ -211,7 +214,7 @@
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
   Object
-  (toString [_] (str "[" x ", " y "]"))
+  (toString [_] (str "#vec2 [" x ", " y "]"))
   (equals [_ v]
     (and (instance? Vec2 v)
          (let [^Vec2 v v]
@@ -303,7 +306,7 @@
 ;; Create Vec3 and add all necessary protocols
 (deftype Vec3 [^double x ^double y ^double z]
   Object
-  (toString [_] (str "[" x ", " y ", " z "]"))
+  (toString [_] (str "#vec3 [" x ", " y ", " z "]"))
   (equals [_ v]
     (and (instance? Vec3 v)
          (let [^Vec3 v v]
@@ -471,7 +474,7 @@
 ;; Create Vec4 and add all necessary protocols
 (deftype Vec4 [^double x ^double y ^double z ^double w]
   Object
-  (toString [_] (str "[" x ", " y ", " z ", " w "]"))
+  (toString [_] (str "#vec4 [" x ", " y ", " z ", " w "]"))
   (equals [_ v]
     (and (instance? Vec4 v)
          (let [^Vec4 v v]
@@ -825,6 +828,17 @@
    :metadoc/examples [(example "Usage" (array->vec4 (double-array [11 22 33 44 55])))]} 
   [^doubles a]
   (Vec4. (aget a 0) (aget a 1) (aget a 2) (aget a 3)))
+
+;;
+
+(defmethod print-method Vec2 [v ^java.io.Writer w] (.write w (str v)))
+(defmethod print-dup Vec2 [v w] (print-method v w))
+
+(defmethod print-method Vec3 [v ^java.io.Writer w] (.write w (str v)))
+(defmethod print-dup Vec3 [v w] (print-method v w))
+
+(defmethod print-method Vec4 [^Vec4 v ^java.io.Writer w] (.write w (str v)))
+(defmethod print-dup Vec4 [v w] (print-method v w))
 
 ;;
 

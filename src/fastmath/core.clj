@@ -778,12 +778,27 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
            (* cycle)
            (- value)))))
 
-;; gcd SO version
-(defn gcd
-  "Greatest common divisor."
-  {:metadoc/examples [(example "Example" {:test-value 113} (gcd 226 339))]}
-  ^long [^long a ^long b] 
-  (if (zero? b) a (recur b (mod a b))))
+;; gcd  version
+(defn gcd ^long [^long a ^long b]
+  "Fast binary GCD (Stein's algorithm)"
+  {:metadoc/categories #{:mod}
+   :metadoc/examples [(example-session "Usage"
+                        (gcd 340 440)
+                        (gcd (* 123 5544331) (* 123 123))
+                        (gcd -234 -432))]}
+  (letfn [(local-gcd ^long [^long a ^long b]
+            (cond
+              (== a b) a
+              (zero? a) b
+              (zero? b) a
+              (bool-and (even? a) (even? b)) (<< (gcd (>> a 1) (>> b 1)) 1)
+              (bool-and (even? a) (odd? b)) (recur (>> a 1) b)
+              (bool-and (odd? a) (even? b)) (recur a (>> b 1))
+              (bool-and (odd? a) (odd? a)) (if (> a b)
+                                             (recur (>> (- a b) 1) b)
+                                             (recur (>> (- b a) 1) a))))]
+    (local-gcd (iabs a) (iabs b))))
+
 
 (defn med
   "Median of three values. See [[median]]."
