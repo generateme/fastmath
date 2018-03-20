@@ -193,4 +193,4 @@
   (is (m/approx-eq (angle-between v2-in1 v2-in2) (- (relative-angle-between v2-in1 v2-in2))))
   (is (not (aligned? v2-in1 v2-in2)))
   (is (aligned? v2-in1 (add (vec2 0.0000001 -0.0000001) (mult v2-in1 0.555))))
-  (is (= (sub v2-in1) (faceforward v2-in1 v2-in2))))
+  (is (= v2-in1 (faceforward v2-in1 v2-in2))))
