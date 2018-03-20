@@ -18,7 +18,8 @@
                              [cider/cider-nrepl "0.17.0-SNAPSHOT"]
                              [lein-codox "0.10.3"]]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  [clojure2d "0.1.0-SNAPSHOT"]]
+                                  [clojure2d "0.1.0-SNAPSHOT"]
+                                  [criterium "0.4.4"]]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"
