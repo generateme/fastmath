@@ -30,7 +30,7 @@
     (irandom rng))
   ```
 
-  For conveniency default RNG (`:jdk`) with following functions are created: [[irand]], [[lrand]], [[frand]], [[drand]], [[grand]], [[brand]].
+  For conveniency default RNG (`:mesenne`) with following functions are created: [[irand]], [[lrand]], [[frand]], [[drand]], [[grand]], [[brand]].
 
   Each prefix denotes returned type:
 
@@ -95,17 +95,25 @@
   ##### Discrete Noise
 
   [[discrete-noise]] is a 1d or 2d hash function for given integers. Returns double from `[0,1]` range.
+
+  #### Distribution
+
+  
   "
   {:metadoc/categories {:rand "Random number generation"
-                :noise "Noise functions"
-                :gen "Random sequence generation"}}
+                        :noise "Noise functions"
+                        :gen "Random sequence generation"
+                        :dist "Distributions"}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [metadoc.examples :refer :all])
+            [metadoc.examples :refer :all]
+            [criterium.core :as crit])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
-            RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator]
-           [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]))
+            RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
+            EmpiricalDistribution]
+           [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]
+           [org.apache.commons.math3.distribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution LevyDistribution WeibullDistribution]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -274,16 +282,16 @@ See [[brand]].")
 
 ;; ### Default RNG
 
-(def ^{:doc "JDK default RNG"
+(def ^{:doc "Default RNG - Mersenne Twister"
        :metadoc/categories #{:rand}
        :metadoc/examples [(example-session "Usage"
-                    (set-seed! default-rng 111)
-                    (irandom default-rng)
-                    (set-seed! default-rng 999)
-                    (irandom default-rng)
-                    (set-seed! default-rng 111)
-                    (irandom default-rng))]}
-  default-rng (make-rng :jdk))
+                            (set-seed! default-rng 111)
+                            (irandom default-rng)
+                            (set-seed! default-rng 999)
+                            (irandom default-rng)
+                            (set-seed! default-rng 111)
+                            (irandom default-rng))]}
+  default-rng (make-rng :mersenne))
 
 (def ^{:doc "Random float number with JDK RNG."
        :metadoc/categories #{:rand}
@@ -589,5 +597,83 @@ Values are from following values:
   (^double [^long X]
    (discrete-noise X 0)))
 
-;;
+;; Distribution
 
+(defprotocol DistributionProto
+  (^{:metadoc/categories #{:dist}} cdf [d v] [d v1 v2] "Cumulative probability.")
+  (^{:metadoc/categories #{:dist}} pdf [d v] "Density")
+  (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
+  (^{:metadoc/categories #{:dist}} mean [d] "Mean")
+  (^{:metadoc/categories #{:dist}} variance [d] "Variance")
+  (^{:metadoc/categories #{:dist}} lower-bound [d] "Lower value")
+  (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value")
+  (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
+  (^{:metadoc/categories #{:dist}} ->seq [d] "Returns sequence of random samples."))
+
+(extend RealDistribution
+  DistributionProto
+  {:cdf (fn
+          ([^RealDistribution d ^double v] (.cumulativeProbability d v))
+          ([^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+   :pdf (fn [^RealDistribution d ^double v] (.density d v))
+   :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :mean (fn [^RealDistribution d] (.getNumericalMean d))
+   :variance (fn [^RealDistribution d] (.getNumericalVariance d))
+   :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
+   :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))
+   :sample (fn [^RealDistribution d] (.sample d))
+   :->seq (fn [d] (repeatedly #(sample d)))}
+  RNGProto
+  {:drandom (fn [^RealDistribution d] (.sample d))
+   :frandom (comp float drandom)
+   :lrandom (comp long drandom)
+   :irandom (comp int drandom)
+   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed))})
+
+(defmulti
+  ^{:doc "Create distribution object."
+    :metadoc/categories #{:dist}
+    :metadoc/examples [(example-image "PDFs: Levy" "images/d/levy.jpg")
+                       (example-image "PDFs: Beta" "images/d/beta.jpg")
+                       (example-image "PDFs: Cauchy" "images/d/cauchy.jpg")
+                       (example-image "PDFs: Chi-Squared" "images/d/chi-squared.jpg")
+                       (example-image "PDFs: Empirical" "images/d/empirical.jpg")
+                       (example-image "PDFs: Weibull" "images/d/weibull.jpg")]}
+  real-distribution (fn ([k _] k) ([k] k)))
+
+(defmethod real-distribution :levy
+  ([_ {:keys [mu c rng] :or {mu 0.0 c 1.0 rng default-rng}}]
+   (LevyDistribution. rng mu c))
+  ([_] (real-distribution :levy {})))
+
+(defmethod real-distribution :beta
+  ([_ {:keys [^double alpha ^double beta ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (BetaDistribution. rng alpha beta inverse-cumm-accuracy))
+  ([_] (real-distribution :beta {})))
+
+(defmethod real-distribution :cauchy
+  ([_ {:keys [^double mean ^double scale ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {mean 0.0 scale 1.0 rng default-rng inverse-cumm-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (CauchyDistribution. rng mean scale inverse-cumm-accuracy))
+  ([_] (real-distribution :cauchy {})))
+
+(defmethod real-distribution :chi-squared
+  ([_ {:keys [^double degrees-of-freedom ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ChiSquaredDistribution. rng degrees-of-freedom inverse-cumm-accuracy))
+  ([_] (real-distribution :chi-squared {})))
+
+(defmethod real-distribution :empirical
+  ([_ {:keys [^long bin-count ^RandomGenerator rng data]
+       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT rng default-rng}}]
+   (let [^EmpiricalDistribution d (EmpiricalDistribution. bin-count rng)]
+     (.load d (m/seq->double-array data))
+     d))
+  ([_] (real-distribution :empirical {})))
+
+(defmethod real-distribution :weibull
+  ([_ {:keys [^double alpha ^double beta ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
+  ([_] (real-distribution :weibull {})))

@@ -4,11 +4,13 @@
 ;; Implementation based on Apache Commons Math
 
 (ns fastmath.complex
-  "Complex numbers functions. Based on Apache Commons Math.
+  "Complex numbers functions.
 
   Complex number is represented as `Vec2` type (from [[clojure2d.math.vector]] namespace).
 
-  To create complex number use [[complex]], [[vec2]] or [[->Vec2]]."
+  To create complex number use [[complex]], [[vec2]] or [[->Vec2]].
+
+  Implementation based on Apache Commons Math." 
   {:metadoc/categories {:trig "Trigonometry"
                         :pow "Power / logarithm"}}
   (:require [fastmath.core :as m]

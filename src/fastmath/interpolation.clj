@@ -14,16 +14,21 @@
   #### 1d interpolation
 
   You provide two sequences:
+  
   * `xs` - x axis coorditanes, strictly monotonic (increasing)
   * `ys` - function values
 
+  See [[kriging-spline-interpolator]]
+  
   #### 2d interpolation
 
   This is grid based interpolation.
   
   * `xs` - x axis coordinates, strictly monotonic (increasing)
   * `ys` - y axis coordinates, strictly monotonic (increasing)
-  * `vs` - sequence of sequences of values (2d array) for all possible pairs.
+  * `vs` - sequence of sequences of values (2d array) for all possible pairs. Array is column-wise: `[ [first column] [second column] ...]`.
+
+  See [[cubic-2d-interpolator]]
   "
   {:metadoc/categories {:smile "Smile interpolators"
                         :comm "Apache Commons Math interpolators"
@@ -110,7 +115,7 @@
     `(defn ~n ~doc
        [~xs ~ys]
        (let [~cl (new ~clazz)
-             ~interp (.interpolate ~cl (double-array ~xs) (double-array ~ys))]
+             ~interp (.interpolate ~cl (m/seq->double-array ~xs) (m/seq->double-array ~ys))]
          (fn [~x] (.value ~interp ~x))))))
 
 (apache-commons-interpolator akima-spline-interpolator
@@ -139,7 +144,7 @@ Source: Apache Commons Math." #{:comm :d1}
 
   Source: Apache Commons Math."
   [^LoessInterpolator obj xs ys]
-  (let [^UnivariateFunction interp (.interpolate obj (double-array xs) (double-array ys))]
+  (let [^UnivariateFunction interp (.interpolate obj (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.value interp x))))
 
 (defn loess-interpolator
@@ -177,9 +182,9 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d1}}
   [xs ys elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 1 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
-        xin (into-array (map double-array (map vector xs)))
-        ^MultivariateFunction f (.interpolate interp xin (double-array ys))]
-    (fn ^double [^double x] (.value f (double-array 1 x)))))
+        xin (into-array (map m/seq->double-array (map vector xs)))
+        ^MultivariateFunction f (.interpolate interp xin (m/seq->double-array ys))]
+    (fn ^double [^double x] (.value f (m/seq->double-array 1 x)))))
 
 (defn cubic-spline-interpolator
   "Cubic spline interpolation.
@@ -187,16 +192,19 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d1}}
   [xs ys]
-  (let [^Interpolation interp (CubicSplineInterpolation1D. (double-array xs) (double-array ys))]
+  (let [^Interpolation interp (CubicSplineInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
 (defn kriging-spline-interpolator
   "Kriging interpolation.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}}
+  {:metadoc/categories #{:smile :d1}
+   :metadoc/examples [(example "Usage" {:test-value -0.07}
+                        (let [interpolator (kriging-spline-interpolator [2 5 9 10 11] [0.4 1.0 -1.0 -0.5 0.0])]
+                          (m/approx (interpolator 7.0))))]}
   [xs ys]
-  (let [^Interpolation interp (KrigingInterpolation1D. (double-array xs) (double-array ys))]
+  (let [^Interpolation interp (KrigingInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
 (defn linear-smile-interpolator
@@ -205,7 +213,7 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d1}}
   [xs ys]
-  (let [^Interpolation interp (LinearInterpolation. (double-array xs) (double-array ys))]
+  (let [^Interpolation interp (LinearInterpolation. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
 (defn rbf-interpolator
@@ -215,7 +223,7 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:smile :d1}}
   ([xs ys rbf-fn normalize?]
    (let [rbf-obj (make-rbf-obj rbf-fn)
-         ^Interpolation interp (RBFInterpolation1D. (double-array xs) (double-array ys) rbf-obj normalize?)]
+         ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([xs ys rbf-fn]
    (rbf-interpolator xs ys rbf-fn false)))
@@ -226,10 +234,10 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d1}}
   ([xs ys]
-   (let [^Interpolation interp (ShepardInterpolation1D. (double-array xs) (double-array ys))]
+   (let [^Interpolation interp (ShepardInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
      (fn ^double [^double x] (.interpolate interp x))))
   ([xs ys p]
-   (let [^Interpolation interp (ShepardInterpolation1D. (double-array xs) (double-array ys) p)]
+   (let [^Interpolation interp (ShepardInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) p)]
      (fn ^double [^double x] (.interpolate interp x)))))
 
 ;;; 2d
@@ -243,9 +251,9 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d2}}
   [xs ys vs]
   (let [^BivariateGridInterpolator cl (BicubicInterpolator.)
-        ^BivariateFunction interp (.interpolate cl (double-array xs)
-                                                (double-array ys)
-                                                (into-array (map double-array vs)))]
+        ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
+                                                (m/seq->double-array ys)
+                                                (into-array (map m/seq->double-array vs)))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
 (defn piecewise-bicubic-interpolator
@@ -257,9 +265,9 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d2}}
   [xs ys vs]
   (let [^BivariateGridInterpolator cl (PiecewiseBicubicSplineInterpolator.)
-        ^BivariateFunction interp (.interpolate cl (double-array xs)
-                                                (double-array ys)
-                                                (into-array (map double-array vs)))]
+        ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
+                                                (m/seq->double-array ys)
+                                                (into-array (map m/seq->double-array vs)))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
 (defn microsphere-2d-projection-interpolator
@@ -271,11 +279,11 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d2}}
   [xs ys vs elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 2 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
-        xyin (into-array (map double-array (for [x xs
-                                                 y ys]
-                                             [x y])))
-        ^MultivariateFunction f (.interpolate interp xyin (double-array (flatten vs)))]
-    (fn ^double [^double x ^double y] (.value f (double-array [x y])))))
+        xyin (into-array (map m/seq->double-array (for [x xs
+                                                        y ys]
+                                                    [x y])))
+        ^MultivariateFunction f (.interpolate interp xyin (m/seq->double-array (flatten vs)))]
+    (fn ^double [^double x ^double y] (.value f (m/seq->double-array [x y])))))
 
 
 (defn bilinear-interpolator
@@ -286,9 +294,9 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
-  (let [^Interpolation2D interp (BilinearInterpolation. (double-array xs)
-                                                        (double-array ys)
-                                                        (into-array (map double-array vs)))]
+  (let [^Interpolation2D interp (BilinearInterpolation. (m/seq->double-array xs)
+                                                        (m/seq->double-array ys)
+                                                        (into-array (map m/seq->double-array vs)))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (defn bicubic-smile-interpolator
@@ -299,9 +307,9 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
-  (let [^Interpolation2D interp (BicubicInterpolation. (double-array xs)
-                                                       (double-array ys)
-                                                       (into-array (map double-array vs)))]
+  (let [^Interpolation2D interp (BicubicInterpolation. (m/seq->double-array xs)
+                                                       (m/seq->double-array ys)
+                                                       (into-array (map m/seq->double-array vs)))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (defn cubic-2d-interpolator
@@ -310,11 +318,23 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d2}}
+  {:metadoc/categories #{:smile :d2}
+   :metadoc/examples [(example "Usage" {:test-value 4.68}
+                        (let [interpolator (cubic-2d-interpolator [2 5 9] [2 3 10] [[4 0 2]
+                                                                                    [-1 2 -2]
+                                                                                    [-2 0 1]])]
+                          (m/approx (interpolator 5.0 5.0))))
+                      (example "Array layout"
+                        (let [intrp (cubic-2d-interpolator [2 5] [1 6] [[-1 -2]
+                                                                        [3 4]])]
+                          [(intrp 2 1)
+                           (intrp 2 6)
+                           (intrp 5 1)
+                           (intrp 5 6)]))]}
   [xs ys vs]
-  (let [^Interpolation2D interp (CubicSplineInterpolation2D. (double-array xs)
-                                                             (double-array ys)
-                                                             (into-array (map double-array vs)))]
+  (let [^Interpolation2D interp (CubicSplineInterpolation2D. (m/seq->double-array xs)
+                                                             (m/seq->double-array ys)
+                                                             (into-array (map m/seq->double-array vs)))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (def ^:private interpolators-list-symbol

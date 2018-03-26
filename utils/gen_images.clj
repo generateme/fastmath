@@ -266,3 +266,55 @@
 (draw-interpolation-2d :bilinear (i/bilinear-interpolator xs ys vs))
 (draw-interpolation-2d :bicubic-smile (i/bicubic-smile-interpolator xs ys vs))
 (draw-interpolation-2d :cubic-2d (i/cubic-2d-interpolator xs ys vs))
+
+;;
+
+(defn draw-distribution
+  "Draw real distribution."
+  [a b s distr-name & distr]
+  (let [canvas (canvas 200 200)
+        p (for [d distr]
+            (for [x (range 1 200)]
+              (let [xx (m/norm x 0 200 a b)
+                    y (- 200 (* s (r/pdf d xx)))]
+                (v/vec2 x y))))]
+    (with-canvas [c canvas]
+      (set-background c bg-color)
+      (doseq [[p col] (map vector p [:white
+                                     (color 102 190 141)
+                                     (color 258 164 88)
+                                     (color 244 77 81)])] 
+        (set-color c col)
+        (path c p)))
+    (save-canvas canvas "d" (name distr-name))))
+
+(draw-distribution 0 3 200 :levy
+                   (r/real-distribution :levy {:c 0.5})
+                   (r/real-distribution :levy {:c 1})
+                   (r/real-distribution :levy {:c 2}))
+
+(draw-distribution 0.0001 1 50 :beta
+                   (r/real-distribution :beta {:alpha 2 :beta 5})
+                   (r/real-distribution :beta {:alpha 0.5 :beta 0.5})
+                   (r/real-distribution :beta {:alpha 2.5 :beta 2}))
+
+(draw-distribution -4 4 250 :cauchy
+                   (r/real-distribution :cauchy {})
+                   (r/real-distribution :cauchy {:mean 0.5 :scale 3.0})
+                   (r/real-distribution :cauchy {:scale 0.5}))
+
+(draw-distribution 0 8 250 :chi-squared
+                   (r/real-distribution :chi-squared {:degrees-of-freedom 1})
+                   (r/real-distribution :chi-squared {:degrees-of-freedom 5})
+                   (r/real-distribution :chi-squared {:degrees-of-freedom 9}))
+
+(draw-distribution -1.1 1.1 60 :empirical
+                   (r/real-distribution :empirical {:bin-count 10
+                                                    :data (repeatedly 10000 #(m/sin (r/drand 0 m/TWO_PI)))})
+                   (r/real-distribution :empirical {:bin-count 15
+                                                    :data (repeatedly 10000 #(* (r/drand -1 1) (r/drand -1 1) (r/drand -1 1)))}))
+
+(draw-distribution 0.0001 2.5 50 :weibull
+                   (r/real-distribution :weibull {:alpha 0.5 :beta 1.0})
+                   (r/real-distribution :weibull {:alpha 1.5 :beta 1.0})
+                   (r/real-distribution :weibull {:alpha 5.0 :beta 1.0}))

@@ -34,7 +34,7 @@
                         :dist "Distance / length"
                         :op "Operations"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all]
+            [metadoc.examples :refer :all] 
             [clojure.string :as s])
   (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential]
            [clojure.core Vec]))
@@ -141,7 +141,7 @@
    :is-zero? #(every? clojure.core/zero? %)
    :is-near-zero? #(every? near-zero? %)})
 
-(defn- aevery?
+(defn- aevery
   "Array version of every"
   [^doubles array pred]
   (let [s (alength array)]
@@ -159,14 +159,7 @@
                                     (str "[" (s/join " " (take 10 array)) "...]")
                                     (vec array))))
   (equals [_ v]
-    (let [s (alength array)]
-      (bool-and (== s (count v))
-                (loop [idx (unchecked-long 0)]
-                  (if (< idx s)
-                    (if (== (aget array idx) ^double (v idx))
-                      (recur (inc idx))
-                      false)
-                    true)))))
+    (smile.math.Math/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON))
   Sequential
   Seqable
   (seq [_] (seq array))
@@ -179,22 +172,30 @@
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
   (applyf [_ f] (ArrayVec. (amap array idx ret ^double (f (aget array idx)))))
-  (magsq [_] (areduce array idx ret (double 0.0) (+ ret (m/sq (aget array idx)))))
+  (magsq [_] (smile.math.Math/dot array array))
   (mag [v1] (m/sqrt (magsq v1)))
-  (dot [_ v2] (areduce array idx ret (double 0.0) (+ ret (* (aget array idx) ^double (v2 idx)))))
+  (dot [_ v2] (smile.math.Math/dot array ^doubles (.array ^ArrayVec v2)))
   (add [v] v)
-  (add [_ v2] (ArrayVec. (amap array idx ret (+ (aget array idx) ^double (v2 idx)))))
+  (add [_ v2] (let [b (double-array array)]
+                (smile.math.Math/plus b ^doubles (.array ^ArrayVec v2))
+                (ArrayVec. b)))
   (sub [_] (ArrayVec. (amap array idx ret (- (aget array idx)))))
-  (sub [v1 v2] (ArrayVec. (amap array idx ret (- (aget array idx) ^double (v2 idx)))))
-  (mult [_ v] (ArrayVec. (amap array idx ret (* (aget array idx) ^double v))))
+  (sub [_ v2] (let [b (double-array array)]
+                (smile.math.Math/minus b ^doubles (.array ^ArrayVec v2))
+                (ArrayVec. b)))
+  (mult [_ v] (let [b (double-array array)]
+                (smile.math.Math/scale ^double v b)
+                (ArrayVec. b)))
   (emult [_ v2] (ArrayVec. (amap array idx ret (* (aget array idx) ^double (v2 idx)))))
-  (div [_ v] (ArrayVec. (amap array idx ret (/ (aget array idx) ^double v))))
+  (div [av v] (mult av (/ ^double v)))
   (abs [_] (ArrayVec. (amap array idx ret (m/abs (aget array idx)))))
-  (mx [_] (areduce array idx ret (Double/MIN_VALUE) (max ret (aget array idx))))
-  (mn [_] (areduce array idx ret (Double/MAX_VALUE) (min ret (aget array idx))))
+  (mx [_] (smile.math.Math/max array))
+  (mn [_] (smile.math.Math/min array))
+  (maxdim [_] (smile.math.Math/whichMax array))
+  (mindim [_] (smile.math.Math/whichMin array))
   (emx [_ v2] (ArrayVec. (amap array idx ret (max (aget array idx) ^double (v2 idx)))))
   (emn [_ v2] (ArrayVec. (amap array idx ret (min (aget array idx) ^double (v2 idx)))))
-  (sum [_] (areduce array idx ret (double 0.0) (+ ret (aget array idx))))
+  (sum [_] (smile.math.Math/sum array))
   (heading [v1] (let [v (double-array (alength array) 0.0)]
                   (aset v 0 1.0)
                   (angle-between v1 (ArrayVec. v))))
@@ -208,8 +209,8 @@
   (einterpolate [_ v2 v f]
     (ArrayVec. (amap array idx ret ^double (f (aget array idx) (v2 idx) (v idx)))))
   (econstrain [_ val1 val2] (ArrayVec. (amap array idx ret ^double (m/constrain ^double (aget array idx) ^double val1 ^double val2))))
-  (is-zero? [_] (aevery? array #(zero? ^double %)))
-  (is-near-zero? [_] (aevery? array near-zero?)))
+  (is-zero? [_] (aevery array #(zero? ^double %)))
+  (is-near-zero? [_] (aevery array near-zero?)))
 
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]

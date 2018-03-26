@@ -82,7 +82,7 @@ public final class NoiseConfig {
         double mx = Double.MIN_VALUE;
     
         for (int i=0; i<256; i++) {
-            valueLUT[i] = rng.nextDouble()*2.0-1.0;
+            valueLUT[i] = Math.pow(rng.nextDouble(),0.5) * (rng.nextBoolean() ? -1.0 : 1.0);
             mn = min(mn,valueLUT[i]);
             mx = max(mx,valueLUT[i]);
         }

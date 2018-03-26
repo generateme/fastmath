@@ -53,7 +53,6 @@
                         :dist "Distance"
                         :round "Rounding"
                         :sign "Sign"
-                        :stat "Statistics"
                         :bitwise "Bitwise"
                         :mod "Mod"
                         :compare "Comparison"
@@ -345,6 +344,13 @@
     (if (< x 1.0e-5) 1.0
         (/ (FastMath/sin x) x))))
 
+;;
+(defn sigmoid
+  "Sigmoid function"
+  {:metadoc/categories #{:pow}}
+  ^double [^double x]
+  (/ (inc (exp (- x)))))
+
 (def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
 (def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
 (def ^:const ^double ^{:doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
@@ -421,7 +427,17 @@
   (example-session "Compare [[sqrt]] and [[qsqrt]]." (sqrt 23.123) (qsqrt 23.123)))
 
 (defn hypot
-  "Hypot as \\\\(\\sqrt{x^2+y^2}\\\\) or \\\\(\\sqrt{x^2+y^2+z^2}\\\\)"
+  "Hypot.
+  See also [[hypot-sqrt]]."
+  {:metadoc/categories #{:dist}}
+  (^double [^double x ^double y]
+   (FastMath/hypot x y))
+  (^double [^double x ^double y ^double z]
+   (FastMath/hypot x y z)))
+
+(defn hypot-sqrt
+  "Hypot, sqrt version: \\\\(\\sqrt{x^2+y^2}\\\\) or \\\\(\\sqrt{x^2+y^2+z^2}\\\\).
+  Should be faster than [[hypot]]."
   {:metadoc/categories #{:dist}}
   (^double [^double x ^double y]
    (sqrt (+ (* x x) (* y y))))
@@ -799,166 +815,18 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                                              (recur (>> (- b a) 1) a))))]
     (local-gcd (iabs a) (iabs b))))
 
-
-(defn med
-  "Median of three values. See [[median]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Median of [7 1 4]" (med 7 1 4))]}
-  ^double [^double a ^double b ^double c]
-  (max (min a b) (min (max a b) c)))
-
-;; ### Statistics
-;;
-;; Whole code is taken from public GIST: https://gist.github.com/scottdw/2960070
-;;
-;; * `mode`
-;; * `quantile`
-;; * `median`
-;; * `mean`
-;; * `standard-deviation` 
-;; * `median-absolute-deviation`
-;; * `lower-adjacent-value`, `upper-adjacent-value`
-;; * `k-means`
-;;
-;; Additionally you can gather all statistics into one map by calling `stats-map` functions
 ;;
 
-(defn mode
-  "Find the value that appears most often in a dataset `vs`."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Example" (mode [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Return last element when every element appears equally." (mode [5 1 2 3 4]))]}
-  [vs]
-  (let [fs (frequencies vs)]
-    (first (last (sort-by second fs)))))
+(def ^:const double-array-type (Class/forName "[D"))
 
-(defn quantile
-  "Calculate p-quantile (percentile) of a `vs`."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Quantile 0.25" (quantile 0.25 [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Quantile 0.5 (median)" (quantile 0.5 [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Quantile 0.75" (quantile 0.75 [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Quantile 0.9" (quantile 0.9 [1 2 3 -1 -1 2 -1 11 111]))]}
-  (^double [^double p vs]
-   (let [svs (sort vs)
-         s (count vs)
-         k (constrain (unchecked-int (floor (* p s))) 0 (dec s))]
-     (nth svs k))))
-
-(defn median
-  "Calculate median of a list. See [[med]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Median (percentile 50%)." (median [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "For three elements use faster [[med]]." (median [7 1 4]))]}
-  (^double [vs] (quantile 0.5 vs)))
-
-(defn mean
-  "Calculate mean of a list"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Mean (average value)" (mean [1 2 3 -1 -1 2 -1 11 111]))]}
-  (^double [vs] (/ ^double (reduce clojure.core/+ vs) (count vs))))
-
-(defn standard-deviation
-  "Calculate standard deviation of a list"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Std. dev." (standard-deviation [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
-   (standard-deviation vs (mean vs)))
-  ([vs ^double u]
-   (sqrt (/ ^double (reduce clojure.core/+ (map #(pow (- ^double % u) 2) vs)) (count vs)))))
-
-(defn median-absolute-deviation 
-  "Calculate MAD"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "MAD" (median-absolute-deviation [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
-   (median-absolute-deviation vs (median vs)))
-  ([vs ^double m]
-   (median (map #(abs (- ^double % m)) vs))))
-
-(defn lower-adjacent-value
-  "Lower adjacent value (LAV)."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "LAV" (lower-adjacent-value [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
-   (let [q1 (quantile 0.25 vs)
-         m (median vs)
-         q3 (quantile 0.75 vs)]
-     (lower-adjacent-value (sort vs) m (- q3 q1))))
-  ([svs ^double m ^double qd]
-   (let [l (- m qd)]
-     (first (filter (partial clojure.core/< l) svs)))))
-
-(defn upper-adjacent-value
-  "Upper adjacent value (UAV)."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "UAV" (upper-adjacent-value [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
-   (let [q1 (quantile 0.25 vs)
-         m (median vs)
-         q3 (quantile 0.75 vs)]
-     (upper-adjacent-value (reverse (sort vs)) m (- q3 q1))))
-  ([rsvs ^double m ^double qd]
-   (let [l (+ m qd)]
-     (first (filter #(< ^double % l) rsvs)))))
-
-(defn stats-map
-  "Calculate several statistics from the list and return as map."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Stats" (stats-map [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Select keys" (stats-map [:Mean :Q1 :Q3] [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
-   (let [sz (count vs)
-         svs (sort vs)
-         rsvs (reverse svs)
-         mn (first svs)
-         mx (first rsvs)
-         ^double sm (reduce clojure.core/+ vs)
-         u (/ sm sz)
-         mdn (median vs)
-         q1 (quantile 0.25 vs)
-         q3 (quantile 0.75 vs)
-         sd (standard-deviation vs u)
-         mad (median-absolute-deviation vs mdn)
-         qd (- q3 q1)
-         lav (lower-adjacent-value svs mdn qd)
-         uav (upper-adjacent-value rsvs mdn qd)]
-     {:Size sz
-      :Min mn
-      :Max mx
-      :Mean u
-      :Median mdn
-      :Mode (mode vs)
-      :Q1 q1
-      :Q3 q3
-      :Total sm
-      :SD sd
-      :MAD mad
-      :LAV lav
-      :UAV uav}))
-  ([ks vs]
-   (zipmap ks (map (stats-map vs) ks))))
-
-(defn- closest-mean-fn
-  [means]
-  (fn [^double v] (reduce (partial min-key #(sq (- v ^double %))) means)))
-
-;; `(k-means 4 '(1 2 3 -1 -1 2 -1 11 111)) => (-1.0 2.0 11.0 111.0)`
-(defn k-means
-  "k-means clustering"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Reduce to 4 values." (k-means 4 [1 2 3 -1 -1 2 -1 11 111]))]}
-  [^long k vs]
-  (let [vs (map double vs)
-        svs (set vs)]
-    (if (> k (count svs))
-      (sort svs)
-      (loop [mns (sort (take k (shuffle svs)))
-             pmns (repeat k Double/NaN)]
-        (if (= mns pmns)
-          mns
-          (recur (sort (map mean (vals (group-by (closest-mean-fn mns) vs)))) mns))))))
-
+(defn seq->double-array
+  "Convert sequence to double-array.
+  If sequence is double-array do nothing."
+  {:metadoc/examples [(example "Convert" (seq->double-array [1 2 3]))]}
+  ^doubles [vs]
+  (if (= (type vs) double-array-type)
+    vs
+    (double-array vs)))
 
 ;; ## Copy of primitive math machinery
 ;;
@@ -995,7 +863,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                        erf erfc inv-erf inv-erfc sinc log2 qlog
                        sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
                        frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
-                       signum sgn
+                       signum sgn sigmoid
                        gamma log-gamma dgamma))
 
 (def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))

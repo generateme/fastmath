@@ -7,6 +7,8 @@
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [com.github.haifengl/smile-interpolation "1.5.1"]
+                 [com.github.haifengl/smile-math "1.5.1"]
+                 [org.slf4j/slf4j-simple "1.7.25"]
                  ;; [de.sciss/jwave "1.0.3"]
                  [metadoc "0.1.0-SNAPSHOT"]]
   :resource-path "resources/"
