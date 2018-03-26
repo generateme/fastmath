@@ -35,10 +35,6 @@
 
   Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Most of them are macros. Some of them are wrapped in Clojure functions. Almost all operates on primitive `double` and returns `double` (with an exception [[round]] or [[qround]] which returns `long`).
 
-  #### Statistics
-
-  Statistic functions are taken from this [GIST](https://gist.github.com/scottdw/2960070)
-
   #### Other functions
 
   Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing.

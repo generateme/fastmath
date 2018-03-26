@@ -677,3 +677,4 @@ Values are from following values:
        :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
   ([_] (real-distribution :weibull {})))
+
