@@ -98,7 +98,7 @@
 
   #### Distribution
 
-  Various real and integer distributions."
+  Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions."
   {:metadoc/categories {:rand "Random number generation"
                         :noise "Noise functions"
                         :gen "Random sequence generation"
@@ -112,7 +112,7 @@
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]
-           [org.apache.commons.math3.distribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]))
+           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -159,33 +159,49 @@
          (+ mn (next-random-value-gaussian r diff))))))
 
 (defprotocol RNGProto
-  "Defines set of random functions for different RNGs returning primitive values."
+  "Defines set of random functions for different RNGs or distributions returning primitive values."
   (^{:metadoc/categories #{:rand}}
    irandom [t] [t mx] [t mn mx]
-   "Random integer from uniform distribution.
+   "Random integer.
+
+For RNGs:
 As default returns random integer from full integer range. 
 When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
 
-See [[irand]].")
+See [[irand]].
+
+For distributions, just returns random integer (call without parameters).")
   (^{:metadoc/categories #{:rand}}
    drandom [t] [t mx] [t mn mx]
-   "Random double from uniform distribution.
+   "Random double.
+
+For RNGs:
 As default returns random double from `[0,1)` range.
 When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
 
-See [[drand]].")
+See [[drand]].
+
+For distributions, just returns random double (call without parameters).")
   (^{:metadoc/categories #{:rand}} lrandom [t] [t mx] [t mn mx]
-   "Random long from uniform distribution.
+   "Random long.
+
+For RNGs:
 As default returns random long from full long range. 
 When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
 
-See [[lrand]].")
+See [[lrand]].
+
+For distributions, just returns random long (call without parameters).")
   (^{:metadoc/categories #{:rand}} frandom [t] [t mx] [t mn mx]
-   "Random float from uniform distribution.
+   "Random float.
+
+For RNGs:
 As default returns random float from `[0,1)` range.
 When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
 
-See [[frand]].")
+See [[frand]].
+
+For distributions, just returns random float (call without parameters).")
   (^{:metadoc/categories #{:rand}} grandom [t] [t std] [t mean std]
    "Random double from gaussian distribution.
 As default returns random double from `N(0,1)`. 
@@ -197,7 +213,7 @@ See [[grand]].")
 Returns true or false with equal probability. You can set probability for `true` setting `thr` (from `[0-1]` range).
 
 See [[brand]].")
-  (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG itself."))
+  (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG or distribution itself."))
 
 ;; Extend RandomGenerator interface with functions created by macro `next-random-value-fn`. This way all RNG classes are enriched with new, more convenient functions.
 ;;
@@ -292,19 +308,19 @@ See [[brand]].")
                             (irandom default-rng))]}
   default-rng (make-rng :mersenne))
 
-(def ^{:doc "Random float number with JDK RNG."
+(def ^{:doc "Random float number with Mersenne Twister RNG."
        :metadoc/categories #{:rand}
        :metadoc/examples [(example-session "Usage" (frand) (frand 10) (frand 10 20))]}
   frand (partial frandom default-rng))
 
-(def ^{:doc "Random boolean with JDK RNG."
+(def ^{:doc "Random boolean with Mersenne Twister RNG."
        :metadoc/categories #{:rand}
        :metadoc/examples [(example-session "Usage" (brand) (brand 0.1))
-                  (example "Count number of `true` values with probability 0.15" (count (filter true? (repeatedly 100000 #(brand 0.15)))))]} 
+                          (example "Count number of `true` values with probability 0.15" (count (filter true? (repeatedly 100000 #(brand 0.15)))))]} 
   brand (partial brandom default-rng))
 
 (defn drand
-  "Random double number with JDK RNG."
+  "Random double number with Mersenne Twister RNG."
   {:metadoc/categories #{:rand}
    :metadoc/examples [(example-session "Usage" (drand) (drand 10) (drand 10 20))]}
   (^double [] (drandom default-rng))
@@ -312,7 +328,7 @@ See [[brand]].")
   (^double [mn mx] (drandom default-rng mn mx)))
 
 (defn grand
-  "Random gaussian double number with JDK RNG."
+  "Random gaussian double number with Mersenne Twister RNG."
   {:metadoc/categories #{:rand}
    :metadoc/examples [(example-session "Usage" (grand) (grand 10) (grand 10 20))]}
   (^double [] (grandom default-rng))
@@ -320,7 +336,7 @@ See [[brand]].")
   (^double [mean stddev] (grandom default-rng mean stddev)))
 
 (defn irand
-  "Random integer number with JDK RNG."
+  "Random integer number with Mersenne Twister RNG."
   {:metadoc/categories #{:rand}
    :metadoc/examples [(example-session "Usage" (irand) (irand 10) (irand 10 20))]}
   (^long [] (irandom default-rng))
@@ -328,7 +344,7 @@ See [[brand]].")
   (^long [mn mx] (irandom default-rng mn mx)))
 
 (defn lrand
-  "Random long number with JDK RNG."
+  "Random long number with Mersenne Twister RNG."
   {:metadoc/categories #{:rand}
    :metadoc/examples [(example-session "Usage" (lrand) (lrand 10) (lrand 10 20))]}
   (^long [] (lrandom default-rng))
@@ -363,7 +379,7 @@ See [[brand]].")
     #(repeatedly gf)))
 
 (defn- random-generators
-  "Random JDK generators"
+  "Random generators"
   [gen ^long size]
   (let [s (m/constrain size 1 4)
         g (case gen
@@ -599,8 +615,10 @@ Values are from following values:
 ;; Distribution
 
 (defprotocol DistributionProto
+  "Get information from distributions."
   (^{:metadoc/categories #{:dist}} cdf [d v] [d v1 v2] "Cumulative probability.")
   (^{:metadoc/categories #{:dist}} pdf [d v] "Density")
+  (^{:metadoc/categories #{:dist}} lpdf [d v] "Log density")
   (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
   (^{:metadoc/categories #{:dist}} mean [d] "Mean")
   (^{:metadoc/categories #{:dist}} variance [d] "Variance")
@@ -615,6 +633,7 @@ Values are from following values:
           ([^RealDistribution d ^double v] (.cumulativeProbability d v))
           ([^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
    :pdf (fn [^RealDistribution d ^double v] (.density d v))
+   :lpdf (fn [^AbstractRealDistribution d ^double v] (.logDensity d v))
    :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
    :mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
@@ -624,10 +643,10 @@ Values are from following values:
    :->seq (fn [d] (repeatedly #(sample d)))}
   RNGProto
   {:drandom (fn [^RealDistribution d] (.sample d))
-   :frandom (comp float drandom)
-   :lrandom (comp long drandom)
-   :irandom (comp int drandom)
-   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed))})
+   :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
+   :lrandom (fn [^RealDistribution d] (unchecked-long (.sample d)))
+   :irandom (fn [^RealDistribution d] (unchecked-int (.sample d)))
+   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (defmulti
   ^{:doc "Create distribution object."
@@ -703,3 +722,21 @@ Values are from following values:
    (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
   ([_] (real-distribution :weibull {})))
 
+
+;;
+
+(add-examples cdf (example-session "Usage" (cdf (real-distribution :gamma) 1) (cdf (real-distribution :gamma) 1 4)))
+(add-examples pdf (example "Usage" (pdf (real-distribution :gamma) 1)))
+(add-examples lpdf (example "Usage" (lpdf (real-distribution :gamma) 1)))
+(add-examples icdf (example "Usage" (icdf (real-distribution :gamma) 0.5)))
+(add-examples mean (example "Usage" (mean (real-distribution :gamma))))
+(add-examples variance (example "Usage" (variance (real-distribution :gamma))))
+(add-examples lower-bound (example "Usage" (lower-bound (real-distribution :gamma))))
+(add-examples upper-bound (example "Usage" (upper-bound (real-distribution :gamma))))
+(add-examples sample (example "Random value from distribution" (sample (real-distribution :gamma))))
+(add-examples ->seq (example "Sequence of random values from distribution" (take 5 (->seq (real-distribution :gamma)))))
+
+(add-examples drandom (example "Double random value from distribution" (drandom (real-distribution :gamma))))
+(add-examples irandom (example "Integer random value from distribution (sample cast to `int`)" (irandom (real-distribution :gamma))))
+(add-examples frandom (example "Float random value from distribution (sample cast to `float`)" (frandom (real-distribution :gamma))))
+(add-examples lrandom (example "Long random value from distribution (sample cast to `long`)" (lrandom (real-distribution :gamma))))

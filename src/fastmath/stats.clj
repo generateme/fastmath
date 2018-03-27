@@ -5,7 +5,50 @@
   * Correlation / covariance of two sequences.
   * Outliers
 
-  All functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences."
+  All functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences.
+
+  ### Descriptive statistics
+
+  All in one function [[stats-map]] contains:
+
+  * `:Size` - size of the samples, `(count ...)`
+  * `:Min` - [[minimum]] value
+  * `:Max` - [[maximum]] value
+  * `:Mean` - [[mean]]/average
+  * `:Median` - [[median]], see also: [[median-3]]
+  * `:Mode` - [[mode]], see also: [[modes]]
+  * `:Q1` - first quartile, use: [[percentile]], [[quartile]]
+  * `:Q3` - third quartile, use: [[percentile]], [[quartile]]
+  * `:Total` - [[sum]] of all samples
+  * `:SD` - standard deviation of population, corrected sample standard deviation, use: [[population-stddev]]
+  * `:MAD` - [[median-absolute-deviation]]
+  * `:LAV` - lower adjacent value, use: [[adjacent-values]]
+  * `:UAV` - upper adjacent value, use: [[adjacent-values]]
+  * `:IQR` - interquartile range, `(- q3 q1)`
+  * `:LOF` - lower outer fence, `(- q1 (* 3.0 iqr))`
+  * `:UOF` - upper outer fence, `(+ q3 (* 3.0 iqr))`
+  * `:LIF` - lower inner fence, `(- q1 (* 1.5 iqr))`
+  * `:UIF` - upper inner fence, `(+ q3 (* 1.5 iqr))`
+  * `:Outliers` - number of [[outliers]], samples which are outside outer fences
+  * `:Kurtosis` - [[kurtosis]]
+  * `:Skewness` - [[skewness]]
+  * `:SecMoment` - second central moment, use: [[second-moment]]
+
+  Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)
+
+  ### Correlation / Covariance / Divergence
+
+  * [[covariance]]
+  * [[correlation]]
+  * [[pearson-correlation]]
+  * [[spearman-correlation]]
+  * [[kendall-correlation]]
+  * [[kullback-leibler-divergence]]
+  * [[jensen-shannon-divergence]]
+
+  ### Other
+
+  Normalize samples to have mean=0 and standard deviation = 1 with [[standardize]]."
   {:metadoc/categories {:stat "Descriptive statistics"
                         :corr "Correlation"}}
   (:require [metadoc.examples :refer :all]
@@ -64,7 +107,7 @@
   
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
   
   See also [[quantile]]."
   {:metadoc/categories #{:stat}
@@ -96,7 +139,7 @@
   
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
   
   See also [[percentile]]."
   {:metadoc/categories #{:stat}
@@ -369,14 +412,14 @@
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
   {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Spearman's correclation of uniform and gaussian distribution samples." (spearman-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+   :metadoc/examples [(example "Spearman's correlation of uniform and gaussian distribution samples." (spearman-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
   [vs1 vs2]
   (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
   {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Pearson's correclation of uniform and gaussian distribution samples." (pearson-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+   :metadoc/examples [(example "Pearson's correlation of uniform and gaussian distribution samples." (pearson-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
   [vs1 vs2]
   (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
