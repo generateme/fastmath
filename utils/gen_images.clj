@@ -315,6 +315,22 @@
                                                     :data (repeatedly 10000 #(* (r/drand -1 1) (r/drand -1 1) (r/drand -1 1)))}))
 
 (draw-distribution 0.0001 2.5 50 :weibull
+                   (r/real-distribution :weibull)
                    (r/real-distribution :weibull {:alpha 0.5 :beta 1.0})
-                   (r/real-distribution :weibull {:alpha 1.5 :beta 1.0})
                    (r/real-distribution :weibull {:alpha 5.0 :beta 1.0}))
+
+(draw-distribution 0 3 100 :exponential
+                   (r/real-distribution :exponential)
+                   (r/real-distribution :exponential {:mean 0.5})
+                   (r/real-distribution :exponential {:mean 1.5}))
+
+(draw-distribution 0 3 200 :f
+                   (r/real-distribution :f)
+                   (r/real-distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 5})
+                   (r/real-distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 1}))
+
+
+(draw-distribution 0 20 300 :gamma
+                   (r/real-distribution :gamma)
+                   (r/real-distribution :gamma {:shape 1 :scale 2})
+                   (r/real-distribution :gamma {:shape  :scale 0.5}))

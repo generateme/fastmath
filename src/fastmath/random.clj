@@ -98,8 +98,7 @@
 
   #### Distribution
 
-  
-  "
+  Various real and integer distributions."
   {:metadoc/categories {:rand "Random number generation"
                         :noise "Noise functions"
                         :gen "Random sequence generation"
@@ -113,7 +112,7 @@
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]
-           [org.apache.commons.math3.distribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution LevyDistribution WeibullDistribution]))
+           [org.apache.commons.math3.distribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -672,9 +671,35 @@ Values are from following values:
      d))
   ([_] (real-distribution :empirical {})))
 
+(defmethod real-distribution :enumerated
+  ([_ {:keys [data probabilities ^RandomGenerator rng]
+       :or {rng default-rng}}]
+   (if probabilities
+     (EnumeratedRealDistribution. rng (m/seq->double-array data) (m/seq->double-array probabilities))
+     (EnumeratedRealDistribution. rng (m/seq->double-array data))))
+  ([_] (real-distribution :enumerated {})))
+
+(defmethod real-distribution :exponential
+  ([_ {:keys [^double mean ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {mean 1 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ExponentialDistribution. rng mean inverse-cumm-accuracy))
+  ([_] (real-distribution :exponential {})))
+
+(defmethod real-distribution :f
+  ([_ {:keys [^double numerator-degrees-of-freedom ^double denominator-degrees-of-freedom ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {numerator-degrees-of-freedom 1.0 denominator-degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (FDistribution. rng numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-cumm-accuracy))
+  ([_] (real-distribution :f {})))
+
+(defmethod real-distribution :gamma
+  ([_ {:keys [^double shape ^double scale ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {shape 2.0 scale 2.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (GammaDistribution. rng shape scale inverse-cumm-accuracy))
+  ([_] (real-distribution :gamma {})))
+
 (defmethod real-distribution :weibull
   ([_ {:keys [^double alpha ^double beta ^RandomGenerator rng ^double inverse-cumm-accuracy]
-       :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+       :or {alpha 2.0 beta 1.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
   ([_] (real-distribution :weibull {})))
 
