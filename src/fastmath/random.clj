@@ -98,8 +98,7 @@
                         :dist "Distributions"}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [metadoc.examples :refer :all]
-            [criterium.core :as crit])
+            [metadoc.examples :refer :all])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
