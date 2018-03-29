@@ -1,12 +1,3 @@
-;; # Namespace scope
-;;
-;; Namespaces defines:
-;;
-;; * random functions based on various RNG + default bindings based on default Java RNG
-;; * int, long, float, double, gaussian and boolean random functions
-;; * basic perlin noise (see `joise` namespace for several more noise functions)
-;; * discrete noise function
-
 (ns fastmath.random
   "Various random and noise functions.
 
@@ -98,7 +89,11 @@
 
   #### Distribution
 
-  Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions."
+  Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions.
+
+  To create disctribution call [[distribution]] multimethod with name as a keyword and map as parameters. List of parameters for each distribution below:
+
+  * `:beta` - "
   {:metadoc/categories {:rand "Random number generation"
                         :noise "Noise functions"
                         :gen "Random sequence generation"
@@ -112,7 +107,8 @@
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]
-           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]))
+           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]
+           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -247,11 +243,11 @@ See [[brand]].")
 ;; List of randomizers
 (def ^{:metadoc/categories #{:rand}
        :doc "List of all possible RNGs."
-       :metadoc/examples [(example "Contains" rng-list)]}
-  rng-list [:mersenne :isaac :well512a :well1024a :well19937a :well19937c :well44497a :well44497b :jdk])
+       :metadoc/examples [(example "Contains" rngs-list)]}
+  rngs-list [:mersenne :isaac :well512a :well1024a :well19937a :well19937c :well44497a :well44497b :jdk])
 
 (defmulti make-rng
-  "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rng-list]] for names."
+  "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
   {:metadoc/categories #{:rand}}
   (fn [m & _] m))
 
@@ -395,13 +391,13 @@ See [[brand]].")
 ;; Sequence creators
 
 (def ^{:doc "List of random sequence generator. See [[make-sequence-generator]]."
-       :metadoc/examples [(example "Generator names." gen-list)]
+       :metadoc/examples [(example "Generator names." sequence-generators-list)]
        :metadoc/categories #{:gen}}
-  gen-list [:halton :sobol :sphere :gaussian :uniform])
+  sequence-generators-list [:halton :sobol :sphere :gaussian :uniform])
 
 
 (defmulti
-  ^{:doc "Create Sequence generator. See [[gen-list]] for names. Parameter `size` describes number of dimensions (1-4).
+  ^{:doc "Create Sequence generator. See [[sequence-generators-list]] for names. Parameter `size` describes number of dimensions (1-4).
 
 Values are from following values:
 
@@ -620,12 +616,15 @@ Values are from following values:
   (^{:metadoc/categories #{:dist}} pdf [d v] "Density")
   (^{:metadoc/categories #{:dist}} lpdf [d v] "Log density")
   (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
+  (^{:metadoc/categories #{:dist}} probability [d v] "Probability (PMF)")
   (^{:metadoc/categories #{:dist}} mean [d] "Mean")
   (^{:metadoc/categories #{:dist}} variance [d] "Variance")
   (^{:metadoc/categories #{:dist}} lower-bound [d] "Lower value")
   (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value")
   (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
-  (^{:metadoc/categories #{:dist}} ->seq [d] "Returns sequence of random samples."))
+  (^{:metadoc/categories #{:dist}} ->seq [d] "Returns sequence of random samples.")
+  (^{:metadoc/categories #{:dist}} log-likelihood [d vs] "Log likelihood of samples")
+  (^{:metadoc/categories #{:dist}} likelihood [d vs] "likelihood of samples"))
 
 (extend RealDistribution
   DistributionProto
@@ -635,12 +634,15 @@ Values are from following values:
    :pdf (fn [^RealDistribution d ^double v] (.density d v))
    :lpdf (fn [^AbstractRealDistribution d ^double v] (.logDensity d v))
    :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :probability (fn [^RealDistribution d ^double p] (.probability d p))
    :mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
    :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
    :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))
    :sample (fn [^RealDistribution d] (.sample d))
-   :->seq (fn [d] (repeatedly #(sample d)))}
+   :->seq (fn [d] (repeatedly #(sample d)))
+   :log-likelihood (fn [^RealDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
+   :likelihood #(m/exp (log-likelihood %1 %2))}
   RNGProto
   {:drandom (fn [^RealDistribution d] (.sample d))
    :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
@@ -648,95 +650,237 @@ Values are from following values:
    :irandom (fn [^RealDistribution d] (unchecked-int (.sample d)))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
+(extend IntegerDistribution
+  DistributionProto
+  {:cdf (fn
+          ([^IntegerDistribution d ^double v] (.cumulativeProbability d v))
+          ([^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+   :icdf (fn [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :pdf (fn [^IntegerDistribution d ^double p] (.probability d p))
+   :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d p))
+   :probability (fn [^IntegerDistribution d ^double p] (.probability d p))
+   :mean (fn [^IntegerDistribution d] (.getNumericalMean d))
+   :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
+   :lower-bound (fn [^IntegerDistribution d] (.getSupportLowerBound d))
+   :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))
+   :sample (fn [^IntegerDistribution d] (.sample d))
+   :->seq (fn [d] (repeatedly #(sample d)))
+   :log-likelihood (fn [^IntegerDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
+   :likelihood #(m/exp (log-likelihood %1 %2))}
+  RNGProto
+  {:drandom (fn [^IntegerDistribution d] (unchecked-double (.sample d)))
+   :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
+   :lrandom (fn [^IntegerDistribution d] (unchecked-long (.sample d)))
+   :irandom (fn [^IntegerDistribution d] (.sample d))
+   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+
+(def ^{:doc "List of distributions."
+       :metadoc/categories #{:dist}
+       :metadoc/examples [(example-session "Number and list of distributions" distributions-list (count distributions-list))]}
+  distributions-list
+  (into (sorted-set) [:levy :beta :cauchy :chi-squared :empirical :enumerated-real :exponential
+                      :f :gumbel :gamma :laplace :logistic :log-normal :nakagami :normal :pareto :t
+                      :triangular :uniform-real :weibull
+                      :binomial :enumerated-int :geometric :hypergeometric :pascal :poisson :uniform-int :zipf]))
+
 (defmulti
   ^{:doc "Create distribution object."
     :metadoc/categories #{:dist}
-    :metadoc/examples [(example-image "PDFs: Levy" "images/d/levy.jpg")
-                       (example-image "PDFs: Beta" "images/d/beta.jpg")
-                       (example-image "PDFs: Cauchy" "images/d/cauchy.jpg")
-                       (example-image "PDFs: Chi-Squared" "images/d/chi-squared.jpg")
-                       (example-image "PDFs: Empirical" "images/d/empirical.jpg")
-                       (example-image "PDFs: Weibull" "images/d/weibull.jpg")]}
-  real-distribution (fn ([k _] k) ([k] k)))
+    :metadoc/examples (for [n distributions-list]
+                        (example-image (str "PDFs of " (name n)) (str "images/d/" (name n) ".jpg")))}
+  distribution (fn ([k _] k) ([k] k)))
 
-(defmethod real-distribution :levy
+(defmethod distribution :levy
   ([_ {:keys [mu c rng] :or {mu 0.0 c 1.0 rng default-rng}}]
    (LevyDistribution. rng mu c))
-  ([_] (real-distribution :levy {})))
+  ([_] (distribution :levy {})))
 
-(defmethod real-distribution :beta
+(defmethod distribution :beta
   ([_ {:keys [^double alpha ^double beta ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (BetaDistribution. rng alpha beta inverse-cumm-accuracy))
-  ([_] (real-distribution :beta {})))
+  ([_] (distribution :beta {})))
 
-(defmethod real-distribution :cauchy
+(defmethod distribution :cauchy
   ([_ {:keys [^double mean ^double scale ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {mean 0.0 scale 1.0 rng default-rng inverse-cumm-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (CauchyDistribution. rng mean scale inverse-cumm-accuracy))
-  ([_] (real-distribution :cauchy {})))
+  ([_] (distribution :cauchy {})))
 
-(defmethod real-distribution :chi-squared
+(defmethod distribution :chi-squared
   ([_ {:keys [^double degrees-of-freedom ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (ChiSquaredDistribution. rng degrees-of-freedom inverse-cumm-accuracy))
-  ([_] (real-distribution :chi-squared {})))
+  ([_] (distribution :chi-squared {})))
 
-(defmethod real-distribution :empirical
+(defmethod distribution :empirical
   ([_ {:keys [^long bin-count ^RandomGenerator rng data]
        :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT rng default-rng}}]
    (let [^EmpiricalDistribution d (EmpiricalDistribution. bin-count rng)]
      (.load d (m/seq->double-array data))
      d))
-  ([_] (real-distribution :empirical {})))
+  ([_] (distribution :empirical {})))
 
-(defmethod real-distribution :enumerated
+(defmethod distribution :enumerated-real
   ([_ {:keys [data probabilities ^RandomGenerator rng]
        :or {rng default-rng}}]
    (if probabilities
      (EnumeratedRealDistribution. rng (m/seq->double-array data) (m/seq->double-array probabilities))
      (EnumeratedRealDistribution. rng (m/seq->double-array data))))
-  ([_] (real-distribution :enumerated {})))
+  ([_] (distribution :enumerated-real {})))
 
-(defmethod real-distribution :exponential
+(defmethod distribution :exponential
   ([_ {:keys [^double mean ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {mean 1 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (ExponentialDistribution. rng mean inverse-cumm-accuracy))
-  ([_] (real-distribution :exponential {})))
+  ([_] (distribution :exponential {})))
 
-(defmethod real-distribution :f
+(defmethod distribution :f
   ([_ {:keys [^double numerator-degrees-of-freedom ^double denominator-degrees-of-freedom ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {numerator-degrees-of-freedom 1.0 denominator-degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (FDistribution. rng numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-cumm-accuracy))
-  ([_] (real-distribution :f {})))
+  ([_] (distribution :f {})))
 
-(defmethod real-distribution :gamma
+(defmethod distribution :gamma
   ([_ {:keys [^double shape ^double scale ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {shape 2.0 scale 2.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (GammaDistribution. rng shape scale inverse-cumm-accuracy))
-  ([_] (real-distribution :gamma {})))
+  ([_] (distribution :gamma {})))
 
-(defmethod real-distribution :weibull
+(defmethod distribution :gumbel
+  ([_ {:keys [^double mu ^double beta ^RandomGenerator rng]
+       :or {mu 1.0 beta 2.0 rng default-rng}}]
+   (GumbelDistribution. rng mu beta))
+  ([_] (distribution :gumbel {})))
+
+(defmethod distribution :laplace
+  ([_ {:keys [^double mu ^double beta ^RandomGenerator rng]
+       :or {mu 1.0 beta 2.0 rng default-rng}}]
+   (LaplaceDistribution. rng mu beta))
+  ([_] (distribution :laplace {})))
+
+(defmethod distribution :logistic
+  ([_ {:keys [^double mu ^double s ^RandomGenerator rng]
+       :or {mu 1.0 s 2.0 rng default-rng}}]
+   (LogisticDistribution. rng mu s))
+  ([_] (distribution :logistic {})))
+
+(defmethod distribution :log-normal
+  ([_ {:keys [^double scale ^double shape ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {scale 1.0 shape 1.0 rng default-rng inverse-cumm-accuracy LogNormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (LogNormalDistribution. rng scale shape inverse-cumm-accuracy))
+  ([_] (distribution :log-normal {})))
+
+(defmethod distribution :nakagami
+  ([_ {:keys [^double mu ^double omega ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {mu 1.0 omega 1.0 rng default-rng inverse-cumm-accuracy NakagamiDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (NakagamiDistribution. rng mu omega inverse-cumm-accuracy))
+  ([_] (distribution :nakagami {})))
+
+(defmethod distribution :normal
+  ([_ {:keys [^double mu ^double sd ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {mu 0.0 sd 1.0 rng default-rng inverse-cumm-accuracy NormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (NormalDistribution. rng mu sd inverse-cumm-accuracy))
+  ([_] (distribution :normal {})))
+
+(defmethod distribution :pareto
+  ([_ {:keys [^double scale ^double shape ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {scale 1.0 shape 1.0 rng default-rng inverse-cumm-accuracy ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ParetoDistribution. rng scale shape inverse-cumm-accuracy))
+  ([_] (distribution :pareto {})))
+
+(defmethod distribution :t
+  ([_ {:keys [^double degrees-of-freedom ^RandomGenerator rng ^double inverse-cumm-accuracy]
+       :or {degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (TDistribution. rng degrees-of-freedom inverse-cumm-accuracy))
+  ([_] (distribution :t {})))
+
+(defmethod distribution :triangular
+  ([_ {:keys [^double a ^double b ^double c ^RandomGenerator rng]
+       :or {a -1.0 b 0.0 c 1.0 rng default-rng}}]
+   (TriangularDistribution. rng a b c))
+  ([_] (distribution :triangular {})))
+
+(defmethod distribution :uniform-real
+  ([_ {:keys [^double lower ^double upper ^RandomGenerator rng]
+       :or {lower 0.0 upper 1.0 rng default-rng}}]
+   (UniformRealDistribution. rng lower upper))
+  ([_] (distribution :uniform-real {})))
+
+(defmethod distribution :weibull
   ([_ {:keys [^double alpha ^double beta ^RandomGenerator rng ^double inverse-cumm-accuracy]
        :or {alpha 2.0 beta 1.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
    (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
-  ([_] (real-distribution :weibull {})))
+  ([_] (distribution :weibull {})))
+
+
+;; integer
+
+(defmethod distribution :binomial
+  ([_ {:keys [^int trials ^double p ^RandomGenerator rng]
+       :or {trials 20.0 p 0.5 rng default-rng}}]
+   (BinomialDistribution. rng trials p))
+  ([_] (distribution :binomial {})))
+
+(defmethod distribution :enumerated-int
+  ([_ {:keys [data probabilities ^RandomGenerator rng]
+       :or {rng default-rng}}]
+   (EnumeratedIntegerDistribution. rng (int-array data) (m/seq->double-array probabilities)))
+  ([_] (distribution :enumerated-int {})))
+
+(defmethod distribution :geometric
+  ([_ {:keys [^double p ^RandomGenerator rng]
+       :or {p 0.5 rng default-rng}}]
+   (GeometricDistribution. rng p))
+  ([_] (distribution :geometric {})))
+
+(defmethod distribution :hypergeometric
+  ([_ {:keys [^int population-size ^int number-of-successes ^int sample-size ^RandomGenerator rng]
+       :or {population-size 100 number-of-successes 50 sample-size 25 rng default-rng}}]
+   (HypergeometricDistribution. rng population-size number-of-successes sample-size))
+  ([_] (distribution :hypergeometric {})))
+
+(defmethod distribution :pascal
+  ([_ {:keys [^int r ^double p ^RandomGenerator rng]
+       :or {r 5 p 0.5 rng default-rng}}]
+   (PascalDistribution. rng r p))
+  ([_] (distribution :pascal {})))
+
+(defmethod distribution :poisson
+  ([_ {:keys [^double p ^double epsilon ^int max-iterations ^RandomGenerator rng]
+       :or {p 0.5 epsilon PoissonDistribution/DEFAULT_EPSILON max-iterations PoissonDistribution/DEFAULT_MAX_ITERATIONS rng default-rng}}]
+   (PoissonDistribution. rng p epsilon max-iterations))
+  ([_] (distribution :poisson {})))
+
+(defmethod distribution :uniform-int
+  ([_ {:keys [^int lower ^int upper ^RandomGenerator rng]
+       :or {lower 0 upper Integer/MAX_VALUE rng default-rng}}]
+   (UniformIntegerDistribution. rng lower upper))
+  ([_] (distribution :uniform-int {})))
+
+(defmethod distribution :zipf
+  ([_ {:keys [^int number-of-elements ^double exponent ^RandomGenerator rng]
+       :or {number-of-elements 100 exponent 3 rng default-rng}}]
+   (ZipfDistribution. rng number-of-elements exponent))
+  ([_] (distribution :zipf {})))
 
 
 ;;
 
-(add-examples cdf (example-session "Usage" (cdf (real-distribution :gamma) 1) (cdf (real-distribution :gamma) 1 4)))
-(add-examples pdf (example "Usage" (pdf (real-distribution :gamma) 1)))
-(add-examples lpdf (example "Usage" (lpdf (real-distribution :gamma) 1)))
-(add-examples icdf (example "Usage" (icdf (real-distribution :gamma) 0.5)))
-(add-examples mean (example "Usage" (mean (real-distribution :gamma))))
-(add-examples variance (example "Usage" (variance (real-distribution :gamma))))
-(add-examples lower-bound (example "Usage" (lower-bound (real-distribution :gamma))))
-(add-examples upper-bound (example "Usage" (upper-bound (real-distribution :gamma))))
-(add-examples sample (example "Random value from distribution" (sample (real-distribution :gamma))))
-(add-examples ->seq (example "Sequence of random values from distribution" (take 5 (->seq (real-distribution :gamma)))))
+(add-examples cdf (example-session "Usage" (cdf (distribution :gamma) 1) (cdf (distribution :gamma) 1 4)))
+(add-examples pdf (example "Usage" (pdf (distribution :gamma) 1)))
+(add-examples lpdf (example "Usage" (lpdf (distribution :gamma) 1)))
+(add-examples icdf (example "Usage" (icdf (distribution :gamma) 0.5)))
+(add-examples mean (example "Usage" (mean (distribution :gamma))))
+(add-examples variance (example "Usage" (variance (distribution :gamma))))
+(add-examples lower-bound (example "Usage" (lower-bound (distribution :gamma))))
+(add-examples upper-bound (example "Usage" (upper-bound (distribution :gamma))))
+(add-examples sample (example "Random value from distribution" (sample (distribution :gamma))))
+(add-examples ->seq (example "Sequence of random values from distribution" (take 5 (->seq (distribution :gamma)))))
+(add-examples log-likelihood (example "Usage" (log-likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
+(add-examples likelihood (example "Usage" (likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
 
-(add-examples drandom (example "Double random value from distribution" (drandom (real-distribution :gamma))))
-(add-examples irandom (example "Integer random value from distribution (sample cast to `int`)" (irandom (real-distribution :gamma))))
-(add-examples frandom (example "Float random value from distribution (sample cast to `float`)" (frandom (real-distribution :gamma))))
-(add-examples lrandom (example "Long random value from distribution (sample cast to `long`)" (lrandom (real-distribution :gamma))))
+(add-examples drandom (example "Double random value from distribution" (drandom (distribution :gamma))))
+(add-examples irandom (example "Integer random value from distribution (sample cast to `int`)" (irandom (distribution :gamma))))
+(add-examples frandom (example "Float random value from distribution (sample cast to `float`)" (frandom (distribution :gamma))))
+(add-examples lrandom (example "Long random value from distribution (sample cast to `long`)" (lrandom (distribution :gamma))))

@@ -289,48 +289,140 @@
     (save-canvas canvas "d" (name distr-name))))
 
 (draw-distribution 0 3 200 :levy
-                   (r/real-distribution :levy {:c 0.5})
-                   (r/real-distribution :levy {:c 1})
-                   (r/real-distribution :levy {:c 2}))
+                   (r/distribution :levy {:c 0.5})
+                   (r/distribution :levy {:c 1})
+                   (r/distribution :levy {:c 2}))
 
 (draw-distribution 0.0001 1 50 :beta
-                   (r/real-distribution :beta {:alpha 2 :beta 5})
-                   (r/real-distribution :beta {:alpha 0.5 :beta 0.5})
-                   (r/real-distribution :beta {:alpha 2.5 :beta 2}))
+                   (r/distribution :beta {:alpha 2 :beta 5})
+                   (r/distribution :beta {:alpha 0.5 :beta 0.5})
+                   (r/distribution :beta {:alpha 2.5 :beta 2}))
 
 (draw-distribution -4 4 250 :cauchy
-                   (r/real-distribution :cauchy {})
-                   (r/real-distribution :cauchy {:mean 0.5 :scale 3.0})
-                   (r/real-distribution :cauchy {:scale 0.5}))
+                   (r/distribution :cauchy {})
+                   (r/distribution :cauchy {:mean 0.5 :scale 3.0})
+                   (r/distribution :cauchy {:scale 0.5}))
 
 (draw-distribution 0 8 250 :chi-squared
-                   (r/real-distribution :chi-squared {:degrees-of-freedom 1})
-                   (r/real-distribution :chi-squared {:degrees-of-freedom 5})
-                   (r/real-distribution :chi-squared {:degrees-of-freedom 9}))
+                   (r/distribution :chi-squared {:degrees-of-freedom 1})
+                   (r/distribution :chi-squared {:degrees-of-freedom 5})
+                   (r/distribution :chi-squared {:degrees-of-freedom 9}))
 
 (draw-distribution -1.1 1.1 60 :empirical
-                   (r/real-distribution :empirical {:bin-count 10
+                   (r/distribution :empirical {:bin-count 10
                                                     :data (repeatedly 10000 #(m/sin (r/drand 0 m/TWO_PI)))})
-                   (r/real-distribution :empirical {:bin-count 15
+                   (r/distribution :empirical {:bin-count 15
                                                     :data (repeatedly 10000 #(* (r/drand -1 1) (r/drand -1 1) (r/drand -1 1)))}))
 
 (draw-distribution 0.0001 2.5 50 :weibull
-                   (r/real-distribution :weibull)
-                   (r/real-distribution :weibull {:alpha 0.5 :beta 1.0})
-                   (r/real-distribution :weibull {:alpha 5.0 :beta 1.0}))
+                   (r/distribution :weibull)
+                   (r/distribution :weibull {:alpha 0.5 :beta 1.0})
+                   (r/distribution :weibull {:alpha 5.0 :beta 1.0}))
 
 (draw-distribution 0 3 100 :exponential
-                   (r/real-distribution :exponential)
-                   (r/real-distribution :exponential {:mean 0.5})
-                   (r/real-distribution :exponential {:mean 1.5}))
+                   (r/distribution :exponential)
+                   (r/distribution :exponential {:mean 0.5})
+                   (r/distribution :exponential {:mean 1.5}))
 
 (draw-distribution 0 3 200 :f
-                   (r/real-distribution :f)
-                   (r/real-distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 5})
-                   (r/real-distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 1}))
-
+                   (r/distribution :f)
+                   (r/distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 5})
+                   (r/distribution :f {:denominator-degrees-of-freedom 5 :numerator-degrees-of-freedom 1}))
 
 (draw-distribution 0 20 300 :gamma
-                   (r/real-distribution :gamma)
-                   (r/real-distribution :gamma {:shape 1 :scale 2})
-                   (r/real-distribution :gamma {:shape  :scale 0.5}))
+                   (r/distribution :gamma)
+                   (r/distribution :gamma {:shape 1 :scale 2})
+                   (r/distribution :gamma {:shape  :scale 0.5}))
+
+(draw-distribution 0 23 600 :binomial
+                   (r/distribution :binomial)
+                   (r/distribution :binomial {:trials 20 :p 0.9})
+                   (r/distribution :binomial {:trials 10 :p 0.4}))
+
+(draw-distribution 0 10 300 :geometric
+                   (r/distribution :geometric)
+                   (r/distribution :geometric {:p 0.9})
+                   (r/distribution :geometric {:p 0.1}))
+
+(draw-distribution 0 31 600 :hypergeometric
+                   (r/distribution :hypergeometric)
+                   (r/distribution :hypergeometric {:population-size 500 :number-of-successes 100 :sample-size 25})
+                   (r/distribution :hypergeometric {:population-size 500 :number-of-successes 400 :sample-size 30}))
+
+(draw-distribution 0 32 300 :pascal
+                   (r/distribution :pascal)
+                   (r/distribution :pascal {:r 30 :p 0.6})
+                   (r/distribution :pascal {:r 1 :p 0.5}))
+
+(draw-distribution 0 6 200 :poisson
+                   (r/distribution :poisson)
+                   (r/distribution :poisson {:p 0.1})
+                   (r/distribution :poisson {:p 0.9}))
+
+(draw-distribution 0 9 150 :uniform-int
+                   (r/distribution :uniform-int {:lower 2 :upper 5})
+                   (r/distribution :uniform-int {:lower 1 :upper 2})
+                   (r/distribution :uniform-int {:lower 7 :upper 7}))
+
+(draw-distribution 0 10 160 :zipf
+                   (r/distribution :zipf)
+                   (r/distribution :zipf {:exponent 1 :number-of-elements 10})
+                   (r/distribution :zipf {:exponent 10}))
+
+(draw-distribution -5 10 460 :gumbel
+                   (r/distribution :gumbel)
+                   (r/distribution :gumbel {:mu 0.5 :beta 2.0})
+                   (r/distribution :gumbel {:mu 3.0 :beta 1.0}))
+
+(draw-distribution -10 10 300 :laplace
+                   (r/distribution :laplace)
+                   (r/distribution :laplace {:mu 0.5 :beta 1.0})
+                   (r/distribution :laplace {:mu 3.0 :beta 2.5}))
+
+(draw-distribution -10 10 460 :logistic
+                   (r/distribution :logistic)
+                   (r/distribution :logistic {:mu 0.5 :s 2.0})
+                   (r/distribution :logistic {:mu 3.0 :s 1.0}))
+
+(draw-distribution -0.1 10 460 :log-normal
+                   (r/distribution :log-normal)
+                   (r/distribution :log-normal {:scale 1.0 :shape 0.5})
+                   (r/distribution :log-normal {:scale 0.5 :shape 1.0}))
+
+(draw-distribution 0 3 100 :nakagami
+                   (r/distribution :nakagami)
+                   (r/distribution :nakagami {:mu 5.0 :omega 1.0})
+                   (r/distribution :nakagami {:mu 0.5 :omega 1.0}))
+
+(draw-distribution -5 5 200 :normal
+                   (r/distribution :normal)
+                   (r/distribution :normal {:mu 0.0 :sd 0.5})
+                   (r/distribution :normal {:mu 1.0 :sd 2.0}))
+
+(draw-distribution 0 5 40 :pareto
+                   (r/distribution :pareto)
+                   (r/distribution :pareto {:scale 2.0 :shape 0.5})
+                   (r/distribution :pareto {:scale 0.5 :shape 2.0}))
+
+(draw-distribution -4 4 500 :t
+                   (r/distribution :t)
+                   (r/distribution :t {:degrees-of-freedom 3})
+                   (r/distribution :t {:degrees-of-freedom 5}))
+
+(draw-distribution -2 2 100 :triangular
+                   (r/distribution :triangular)
+                   (r/distribution :triangular {:a -1.5 :b 1.0 :c 1.5})
+                   (r/distribution :triangular {:a -1.0 :b -0.8 :c 1.0}))
+
+(draw-distribution 0 9 150 :uniform-real
+                   (r/distribution :uniform-real {:lower 2 :upper 5})
+                   (r/distribution :uniform-real {:lower 0.5 :upper 2.2})
+                   (r/distribution :uniform-real {:lower 6.1 :upper 7.1}))
+
+(draw-distribution -10 10 860 :enumerated-real
+                   (r/distribution :enumerated-real {:data (repeatedly 10000 #(int (* 10 (m/sin (r/drand 0 m/TWO_PI)))))}))
+
+
+(draw-distribution -10 10 360 :enumerated-int
+                   (r/distribution :enumerated-int {:data [-4.0 0 3 4 5]
+                                                    :probabilities [0.1 0.5 0.2 0.05 0.15]}))

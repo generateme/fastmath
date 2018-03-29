@@ -2,6 +2,7 @@
   "1d, 2d interpolation functions.
 
   See more:
+  
   * [Apache Commons Math](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/analysis/interpolation/package-summary.html)
   * [Smile Interpolation](http://haifengl.github.io/smile/api/java/smile/interpolation/package-summary.html)
 
@@ -98,8 +99,8 @@
 
 (def ^{:doc "Radial Basis function names"
        :metadoc/categories #{:rbf}
-       :metadoc/examples [(example "List of names" rbf-list)]}
-  rbf-list [:gaussian :inverse-multiquadratic :multiquadratic :thinplate])
+       :metadoc/examples [(example "List of names" rbfs-list)]}
+  rbfs-list [:gaussian :inverse-multiquadratic :multiquadratic :thinplate])
 
 ;; 1d
 
