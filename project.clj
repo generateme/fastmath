@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "0.1.0-SNAPSHOT"
+(defproject generateme/fastmath "0.1.0-RC1"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -14,7 +14,7 @@
   :resource-path "resources/"
   :java-source-paths ["src"]
   :scm {:name "git"
-        ::url "https://github.com/generateme/fastmath/"}
+        :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}
              :dev {:plugins [[refactor-nrepl "2.4.0-SNAPSHOT"]
                              [cider/cider-nrepl "0.17.0-SNAPSHOT"]

@@ -85,12 +85,12 @@
                                                (* x x (m/log (/ x scale)))
                                                0.0))))
 
-(defn make-rbf-obj
+(defn rbf-obj
   "Create RBF Smile object.
 
   Used to pass to Smile constructors/functions."
   {:metadoc/categories #{:rbf}
-   :metadoc/examples [(example "Usage" (let [^RadialBasisFunction rbf-obj (make-rbf-obj (rbf :thinplate))]
+   :metadoc/examples [(example "Usage" (let [^RadialBasisFunction rbf-obj (rbf-obj (rbf :thinplate))]
                                          (.f rbf-obj 0.5)))]}
   [rbf-fn]
   (reify RadialBasisFunction
@@ -223,7 +223,7 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
   ([xs ys rbf-fn normalize?]
-   (let [rbf-obj (make-rbf-obj rbf-fn)
+   (let [rbf-obj (rbf-obj rbf-fn)
          ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([xs ys rbf-fn]
