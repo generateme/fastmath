@@ -22,6 +22,7 @@
   * `:Total` - [[sum]] of all samples
   * `:SD` - standard deviation of population, corrected sample standard deviation, use: [[population-stddev]]
   * `:MAD` - [[median-absolute-deviation]]
+  * `:SEM` - standard error of mean
   * `:LAV` - lower adjacent value, use: [[adjacent-values]]
   * `:UAV` - upper adjacent value, use: [[adjacent-values]]
   * `:IQR` - interquartile range, `(- q3 q1)`
@@ -375,6 +376,7 @@
       :Total sm
       :SD sd
       :MAD mad
+      :SEM (/ sd (m/sqrt sz))
       :LAV lav
       :UAV uav
       :IQR iqr

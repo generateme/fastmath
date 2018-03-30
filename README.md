@@ -5,7 +5,7 @@ Fast primitive based math library
 ## Installation
 
 ```clojure
-[generateme/fastmath "0.1.0-RC2"]
+[generateme/fastmath "0.1.0-RC3"]
 ```
 
 ## Documentation
