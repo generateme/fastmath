@@ -96,11 +96,10 @@
   (reify RadialBasisFunction
     (^double f [_ ^double x] (rbf-fn x))))
 
-
 (def ^{:doc "Radial Basis function names"
        :metadoc/categories #{:rbf}
-       :metadoc/examples [(example "List of names" rbfs-list)]}
-  rbfs-list [:gaussian :inverse-multiquadratic :multiquadratic :thinplate])
+       :metadoc/examples [(example "List of names" (sort rbfs-list))]}
+  rbfs-list (keys (methods rbf)))
 
 ;; 1d
 
@@ -120,19 +119,19 @@
          (fn [~x] (.value ~interp ~x))))))
 
 (apache-commons-interpolator akima-spline-interpolator
-                             "Create cubic spline interpolator using Akima algorithm.
+  "Create cubic spline interpolator using Akima algorithm.
   Minimum number of points: 5
 
   xs[n] < xs[n+1] for all n.
 
 Source: Apache Commons Math." #{:comm :d1}
-                             AkimaSplineInterpolator)
+  AkimaSplineInterpolator)
 
 (apache-commons-interpolator divided-difference-interpolator
-                             "Create Divided Difference Algorithm for interpolation.
+  "Create Divided Difference Algorithm for interpolation.
 
 Source: Apache Commons Math." #{:comm :d1}
-                             DividedDifferenceInterpolator)
+  DividedDifferenceInterpolator)
 
 (apache-commons-interpolator linear-interpolator
                              "Create Divided Difference Algorithm for inqterpolation.
@@ -183,9 +182,9 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d1}}
   [xs ys elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 1 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
-        xin (into-array (map m/seq->double-array (map vector xs)))
+        xin (m/seq->double-double-array (map vector xs))
         ^MultivariateFunction f (.interpolate interp xin (m/seq->double-array ys))]
-    (fn ^double [^double x] (.value f (m/seq->double-array 1 x)))))
+    (fn ^double [^double x] (.value f (double-array 1 x)))))
 
 (defn cubic-spline-interpolator
   "Cubic spline interpolation.
@@ -254,7 +253,7 @@ Source: Apache Commons Math." #{:comm :d1}
   (let [^BivariateGridInterpolator cl (BicubicInterpolator.)
         ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
                                                 (m/seq->double-array ys)
-                                                (into-array (map m/seq->double-array vs)))]
+                                                (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
 (defn piecewise-bicubic-interpolator
@@ -268,7 +267,7 @@ Source: Apache Commons Math." #{:comm :d1}
   (let [^BivariateGridInterpolator cl (PiecewiseBicubicSplineInterpolator.)
         ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
                                                 (m/seq->double-array ys)
-                                                (into-array (map m/seq->double-array vs)))]
+                                                (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
 (defn microsphere-2d-projection-interpolator
@@ -280,9 +279,9 @@ Source: Apache Commons Math." #{:comm :d1}
   {:metadoc/categories #{:comm :d2}}
   [xs ys vs elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 2 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
-        xyin (into-array (map m/seq->double-array (for [x xs
-                                                        y ys]
-                                                    [x y])))
+        xyin (m/seq->double-double-array (for [x xs
+                                               y ys]
+                                           [x y]))
         ^MultivariateFunction f (.interpolate interp xyin (m/seq->double-array (flatten vs)))]
     (fn ^double [^double x ^double y] (.value f (m/seq->double-array [x y])))))
 
@@ -297,7 +296,7 @@ Source: Apache Commons Math." #{:comm :d1}
   [xs ys vs]
   (let [^Interpolation2D interp (BilinearInterpolation. (m/seq->double-array xs)
                                                         (m/seq->double-array ys)
-                                                        (into-array (map m/seq->double-array vs)))]
+                                                        (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (defn bicubic-smile-interpolator
@@ -310,7 +309,7 @@ Source: Apache Commons Math." #{:comm :d1}
   [xs ys vs]
   (let [^Interpolation2D interp (BicubicInterpolation. (m/seq->double-array xs)
                                                        (m/seq->double-array ys)
-                                                       (into-array (map m/seq->double-array vs)))]
+                                                       (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (defn cubic-2d-interpolator
@@ -335,7 +334,7 @@ Source: Apache Commons Math." #{:comm :d1}
   [xs ys vs]
   (let [^Interpolation2D interp (CubicSplineInterpolation2D. (m/seq->double-array xs)
                                                              (m/seq->double-array ys)
-                                                             (into-array (map m/seq->double-array vs)))]
+                                                             (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (def ^:private interpolators-list-symbol

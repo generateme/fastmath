@@ -20,7 +20,6 @@
   ([c prefix n]
    (save-canvas c prefix n ".jpg")))
 
-
 (defn symbol->fn
   "Convert symbol to function"
   [s] (eval `(fn [x#] (~s x#))))
@@ -70,8 +69,8 @@
   [canvas f]
   (let [w (width canvas)
         h (height canvas)]
-    (set-stroke canvas 1.5)
-    (set-color canvas :white 30)
+    ;; (set-stroke canvas 1.5)
+    (set-color canvas :white 20)
     (dotimes [x w]
       (dotimes [y h]
         (let [xx (m/norm x 0 w (- m/PI) m/PI)
@@ -79,16 +78,37 @@
               res (f (c/complex xx yy))
               resx (m/norm (res 0) (- m/PI) m/PI 0 w)
               resy (m/norm (res 1) (- m/PI) m/PI 0 h)]
-          (point canvas resx resy)))))
+          (rect canvas resx resy 1 1)))))
   canvas)
 
-(binding [*jpeg-image-quality* 0.85]
+(defn generate-complex-graph2
+  "Generate graph for complex fn."
+  [canvas f]
+  (let [w (width canvas)
+        h (height canvas)]
+    (dotimes [x w]
+      (dotimes [y h]
+        (let [xx (m/norm x 0 w (- m/PI) m/PI)
+              yy (m/norm y 0 h (- m/PI) m/PI)
+              res (f (c/complex xx yy))
+              arg (m/norm (c/arg res) (- m/PI) m/PI 0 255)
+              mag (m/cnorm (c/abs res) (- m/PI) m/PI 0.0 255.0)]
+          (set-color canvas (from-HSB (v/vec4 arg 255 mag 255)))
+          (rect canvas x y 1 1)))))
+  canvas)
+
+
+(binding [*jpeg-image-quality* 0.9]
   (doseq [s c/fn-list]
     (let [n (name s)
           f (symbol->fn s)
-          c (with-canvas-> (canvas 200 200)
-              (set-background bg-color)
-              (generate-complex-graph f))]
+          can (canvas 200 200 :low)
+          c (with-canvas [c can]
+              (set-background c bg-color)
+              (generate-complex-graph2 c f)
+              (if-not (= n "identity")
+                (generate-complex-graph c f)
+                c))]
       (save-canvas c "c" n))))
 
 ;; random/noise
@@ -233,7 +253,7 @@
 (draw-interpolation :rbf-multiquadratic (i/rbf-interpolator xs ys (i/rbf :multiquadratic 120)))
 (draw-interpolation :rbf-thinplate (i/rbf-interpolator xs ys (i/rbf :thinplate 80)))
 
-(draw-interpolation :microsphere (i/microsphere-projection-interpolator xs ys 8 0.9 0.0000001 1 1.5 false 1))
+(draw-interpolation :microsphere (i/microsphere-projection-interpolator xs ys 8 0.9 0.000001 0 1.5 false 1))
 
 ;; draw 2d interpolation
 

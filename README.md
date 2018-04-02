@@ -28,6 +28,7 @@ Fast primitive based math library
 * Statistics
 * Plenty of constant values
 * 1d, 2d interpolations
+* Wavelets 1d and 2d transformations
 
 Almost all functions optimized to work on `double` and `long` primitives
 
@@ -37,6 +38,7 @@ Almost all functions optimized to work on `double` and `long` primitives
 * [SMILE 1.5.1](http://haifengl.github.io/smile/) - Apache 2.0 Licence
 * [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
+* [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence
 
 ## TODO
 

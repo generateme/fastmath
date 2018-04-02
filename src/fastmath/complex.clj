@@ -10,7 +10,18 @@
 
   To create complex number use [[complex]], [[vec2]] or [[->Vec2]].
 
-  Implementation based on Apache Commons Math." 
+  Simplified implementation based on Apache Commons Math. Functions don't check NaNs or INF values.
+
+  Graphs are generated as follows, background is based on:
+
+  * argument as HUE
+  * absolute value as BRIGHTNESS
+
+  with transformed points painted white.
+  
+  Complex plane (identity) looks as follows:
+
+  ![identity](images/c/identity.jpg)" 
   {:metadoc/categories {:trig "Trigonometry"
                         :pow "Power / logarithm"}}
   (:require [fastmath.core :as m]
@@ -62,9 +73,11 @@
 (defn reciprocal
   "\\\\(\\frac{1}{z}\\\\)"
   {:metadoc/examples [(example "Reciprocal of real" (reciprocal TWO))
-              (example "Reciprocal of complex" (reciprocal (complex 0 2)))]}
+                      (example "Reciprocal of complex" (reciprocal (complex 0 2)))]}
   [z]
   (div ONE z))
+
+;; [[../../docs/images/c/reciprocal.jpg]]
 
 (defn mult
   "Multiply two complex numbers."
@@ -86,14 +99,16 @@
 (defn sq
   "Square complex number. \\\\(z^2\\\\)"
   {:metadoc/examples [(example "Square." (sq (complex 1 2)))
-              (example "\\\\(i^2\\\\)" (sq I))]}
+                      (example "\\\\(i^2\\\\)" (sq I))]}
   [z]
   (mult z z))
+
+;; [[../../docs/images/c/sq.jpg]]
 
 (defn sqrt
   "Sqrt of complex number. \\\\(\\sqrt{z}\\\\)"
   {:metadoc/examples [(example "Square root of real." (sqrt (complex 2 0)))
-              (example "Square root of complex." (sqrt (complex 2 2)))]}
+                      (example "Square root of complex." (sqrt (complex 2 2)))]}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)
@@ -101,6 +116,8 @@
         xx (m/sqrt (+ l x))
         yy (* (m/signum y) (m/sqrt (- l x)))]
     (Vec2. (* m/SQRT2_2 xx) (* m/SQRT2_2 yy))))
+
+;; [[../../docs/images/c/sqrt.jpg]]
 
 (defn sqrt1z
   "\\\\(\\sqrt{1-z^2}\\\\)"
@@ -111,6 +128,8 @@
        (sub ONE)
        (sqrt)))
 
+;; [[../../docs/images/c/sqrt1z.jpg]]
+
 (defn cos
   "cos"
   {:metadoc/categories #{:trig}
@@ -120,6 +139,8 @@
         y (.y z)]
     (Vec2. (* (m/cos x) (m/cosh y))
            (* (- (m/sin x)) (m/sinh y)))))
+
+;; [[../../docs/images/c/cos.jpg]]
 
 (defn sin
   "sin"
@@ -143,6 +164,8 @@
     (Vec2. (* (m/cosh x) (m/cos y))
            (* (m/sinh x) (m/sin y)))))
 
+;; [[../../docs/images/c/cosh.jpg]]
+
 (defn sinh
   "sinh"
   {:metadoc/categories #{:trig}
@@ -152,6 +175,8 @@
         y (.y z)]
     (Vec2. (* (m/sinh x) (m/cos y))
            (* (m/cosh x) (m/sin y)))))
+
+;; [[../../docs/images/c/sinh.jpg]]
 
 (defn tan
   "tan"
@@ -164,6 +189,8 @@
     (Vec2. (/ (m/sin aa) cc)
            (/ (m/sinh bb) cc))))
 
+;; [[../../docs/images/c/tan.jpg]]
+
 (defn tanh
   "tanh"
   {:metadoc/categories #{:trig}
@@ -175,6 +202,8 @@
     (Vec2. (/ (m/sinh aa) cc)
            (/ (m/sin bb) cc))))
 
+;; [[../../docs/images/c/tanh.jpg]]
+
 (defn sec
   "secant"
   {:metadoc/categories #{:trig}
@@ -184,6 +213,8 @@
               (m/cosh (* 2.0 (.y z))))]
     (Vec2. (/ (* 2.0 (m/cos (.x z)) (m/cosh (.y z))) cc)
            (/ (* 2.0 (m/sin (.x z)) (m/sinh (.y z))) cc))))
+
+;; [[../../docs/images/c/sec.jpg]]
 
 (defn csc
   "cosecant"
@@ -195,6 +226,7 @@
     (Vec2. (/ (* 2.0 (m/cosh (.y z)) (m/sin (.x z))) cc)
            (/ (* 2.0 (m/cos (.x z)) (m/sinh (.y z))) cc))))
 
+;; [[../../docs/images/c/csc.jpg]]
 
 (defn exp
   "exp"
@@ -207,6 +239,8 @@
     (Vec2. (* e (m/cos y))
            (* e (m/sin y)))))
 
+;; [[../../docs/images/c/exp.jpg]]
+
 (defn log
   "log"
   {:metadoc/categories #{:pow}
@@ -215,6 +249,8 @@
   [^Vec2 z]
   (Vec2. (m/log (abs z))
          (m/atan2 (.y z) (.x z))))
+
+;; [[../../docs/images/c/log.jpg]]
 
 (defn acos
   "acos"
@@ -227,6 +263,8 @@
        (log)
        (mult I-)))
 
+;; [[../../docs/images/c/acos.jpg]]
+
 (defn asin
   "asin"
   {:metadoc/categories #{:trig}
@@ -237,6 +275,8 @@
        (log)
        (mult I-)))
 
+;; [[../../docs/images/c/asin.jpg]]
+
 (defn atan
   "atan"
   {:metadoc/categories #{:trig}
@@ -246,6 +286,8 @@
        (div (add I z))
        (log)
        (mult (div I TWO ))))
+
+;; [[../../docs/images/c/atan.jpg]]
 
 (defn pow
   "Power. \\\\(z_1^{z_2}\\\\)"
@@ -260,7 +302,7 @@
 
 ;;
 
-(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal))
+(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal identity))
 
 (defmacro ^:private add-image-examples
   []

@@ -237,12 +237,6 @@ See [[brand]].")
      (new ~cl (int arg#))
      (new ~cl)))
 
-;; List of randomizers
-(def ^{:metadoc/categories #{:rand}
-       :doc "List of all possible RNGs."
-       :metadoc/examples [(example "Contains" rngs-list)]}
-  rngs-list [:mersenne :isaac :well512a :well1024a :well19937a :well19937c :well44497a :well44497b :jdk])
-
 (defmulti rng
   "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
   {:metadoc/categories #{:rand}}
@@ -264,8 +258,15 @@ See [[brand]].")
   (create-object-with-seed Well44497a seed))
 (defmethod rng :well44497b [m & [seed]]
   (create-object-with-seed Well44497b seed))
-(defmethod rng :default [m & [seed]]
+(defmethod rng :jdk [m & [seed]]
   (create-object-with-seed JDKRandomGenerator seed))
+
+;; List of randomizers
+(def ^{:metadoc/categories #{:rand}
+       :doc "List of all possible RNGs."
+       :metadoc/examples [(example "Contains" (sort rngs-list))]}
+  rngs-list (remove #{:default} (keys (methods rng))))
+
 
 (add-examples rng
   (example-session "Creating" (rng :mersenne) (rng :isaac 1234))
@@ -387,12 +388,6 @@ See [[brand]].")
 
 ;; Sequence creators
 
-(def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
-       :metadoc/examples [(example "Generator names." sequence-generators-list)]
-       :metadoc/categories #{:gen}}
-  sequence-generators-list [:halton :sobol :sphere :gaussian :uniform])
-
-
 (defmulti
   ^{:doc "Create Sequence generator. See [[sequence-generators-list]] for names. Parameter `size` describes number of dimensions (1-4).
 
@@ -408,6 +403,11 @@ Values are from following values:
 (defmethod sequence-generator :sphere [gen size] (commons-math-generators gen size))
 (defmethod sequence-generator :gaussian [gen size] (random-generators gen size))
 (defmethod sequence-generator :default [gen size] (random-generators gen size))
+
+(def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
+       :metadoc/examples [(example "Generator names." (sort sequence-generators-list))]
+       :metadoc/categories #{:gen}}
+  sequence-generators-list (keys (methods sequence-generator)))
 
 (add-examples sequence-generator
   (example "Usage (2d)" (let [gen (sequence-generator :halton 2)]
@@ -671,15 +671,6 @@ Values are from following values:
    :irandom (fn [^IntegerDistribution d] (.sample d))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
-(def ^{:doc "List of distributions."
-       :metadoc/categories #{:dist}
-       :metadoc/examples [(example-session "Number and list of distributions" distributions-list (count distributions-list))]}
-  distributions-list
-  (into (sorted-set) [:beta :cauchy :chi-squared :empirical :enumerated-real :exponential
-                      :f :gumbel :gamma :laplace :levy :logistic :log-normal :nakagami :normal :pareto :t
-                      :triangular :uniform-real :weibull
-                      :binomial :enumerated-int :geometric :hypergeometric :pascal :poisson :uniform-int :zipf]))
-
 (defmulti
   ^{:doc "Create distribution object.
 
@@ -726,11 +717,9 @@ The rest parameters goes as follows:
 * `:zipf` - `:number-of-elements` (default: 100) and `:exponent` (default: 3.0)
 "
     :metadoc/categories #{:dist}
-    :metadoc/examples (cons (example-session "Usage"
-                              (distribution :beta)
-                              (distribution :beta {:alpha 1.0 :beta 1.0}))
-                            (for [n distributions-list]
-                              (example-image (str "PDFs of " (name n)) (str "images/d/" (name n) ".jpg"))))}
+    :metadoc/examples [(example-session "Usage"
+                         (distribution :beta)
+                         (distribution :beta {:alpha 1.0 :beta 1.0}))]}
   distribution (fn ([k _] k) ([k] k)))
 
 (defmethod distribution :beta
@@ -906,6 +895,14 @@ The rest parameters goes as follows:
    (ZipfDistribution. rng number-of-elements exponent))
   ([_] (distribution :zipf {})))
 
+(def ^{:doc "List of distributions."
+       :metadoc/categories #{:dist}
+       :metadoc/examples [(example-session "Number and list of distributions" distributions-list (count distributions-list))]}
+  distributions-list
+  (into (sorted-set) (keys (methods distribution))))
+
+(doseq [n distributions-list]
+  (add-examples distribution (example-image (str "PDFs of " (name n)) (str "images/d/" (name n) ".jpg"))))
 
 ;;
 

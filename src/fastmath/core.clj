@@ -814,15 +814,44 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;;
 
 (def ^:const double-array-type (Class/forName "[D"))
+(def ^:const double-double-array-type (Class/forName "[[D"))
+
+(def ^{:doc "Convert double array into sequence.
+
+  Alias for `seq`."} double-array->seq seq)
 
 (defn seq->double-array
   "Convert sequence to double-array.
-  If sequence is double-array do nothing."
-  {:metadoc/examples [(example "Convert" (seq->double-array [1 2 3]))]}
+  
+  If sequence is double-array do not convert."
+  {:metadoc/examples [(example-session "Convert"
+                        (seq->double-array [1 2 3])
+                        (seq (seq->double-array [1 2 3]))
+                        (double-array->seq (seq->double-array [1 2 3])))]}
   ^doubles [vs]
   (if (= (type vs) double-array-type)
     vs
     (double-array vs)))
+
+(declare seq->double-double-array)
+
+(defn double-double-array->seq
+  "Convert double array of double arrays into sequence of sequences."
+  {:metadoc/examples [(example "Convert" (double-double-array->seq (seq->double-double-array [[4 3 2] (double-array [1 2 3])])))]}
+  [res]
+  (seq (map seq res)))
+
+(defn seq->double-double-array
+  "Convert sequence to double-array of double-arrays.
+  
+  If sequence is double-array of double-arrays do not convert"
+  {:metadoc/examples [(example-session "Convert"
+                        (seq->double-double-array [[1 2] [3 4]])
+                        (double-double-array->seq (seq->double-double-array [[1 2] [3 4]])))]}
+  #^"[[D" [vss]
+  (if (= (type vss) double-double-array-type)
+    vss
+    (into-array (map seq->double-array vss))))
 
 ;; ## Copy of primitive math machinery
 ;;
