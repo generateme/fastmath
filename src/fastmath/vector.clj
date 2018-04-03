@@ -16,7 +16,7 @@
       * Vec2 - 2d vector, creator [[vec2]]
       * Vec3 - 3d vector, creator [[vec3]]
       * Vec4 - 4d vector, creator [[vec4]]
-      * ArrayVec - fixed size vector, n-dimensional, creator [[arrayvec]]
+      * ArrayVec - fixed size vector as double array, n-dimensional, creator [[arrayvec]]
   * Variable size:
       * Clojure's PersistentVector, creator `[]`.
 
@@ -28,7 +28,9 @@
   * `Sequencial`
   * `IFn`
   * `Counted`
-  * `equals` and `toString` from `Object`"
+  * `equals` and `toString` from `Object`
+
+  That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
   {:metadoc/categories {:gen "Creators"
                         :geom "Geometric"
                         :dist "Distance / length"
@@ -568,7 +570,22 @@
 (defn vec2
   "Make 2d vector"
   {:metadoc/categories #{:gen}
-   :metadoc/examples [(example "Usage" (vec2 0.5 -0.5))]} 
+   :metadoc/examples [(example "Usage" (vec2 0.5 -0.5))
+                      (example "Destructuring"
+                        (let [[^double x ^double y] (vec2 4.3 2.2)]
+                          (+ x y)))
+                      (example "As function"
+                        [((vec2 11 22) 0) ((vec2 11 22) 1)])
+                      (example-session "As sequence"
+                        (map #(* 2.0 ^double %) (vec2 1 2))
+                        (reduce clojure.core/+ (vec2 6 4))
+                        (cons 6.0 (vec2 3 4))
+                        (first (vec2 3 4))
+                        (second (vec2 3 4))
+                        (last (vec2 3 4))
+                        (nth (vec2 3 4) 1)
+                        (filter clojure.core/neg? (vec2 -1 2)))
+                      (example "Count" (count (vec2 4 3)))]} 
   [x y] (Vec2. x y))
 
 (defn vec3
@@ -860,7 +877,9 @@
 (add-examples abs (example "Usage" (abs (array-vec [-1 2 -2 1]))))
 (add-examples add (example "Usage" (add (vec2 1 2) (vec2 -1 -2))))
 (add-examples applyf (example "Usage" (applyf [5 3] (fn [v] (m/sin v)))))
+(add-examples approx (example-session "Usage" (approx (vec2 (m/sin -1) (m/cos 1))) (approx (vec2 (m/sin -1) (m/cos 1)) 6)))
 (add-examples div (example "Usage" (div [5 4 3 5] 4.0)))
+(add-examples mult (example "Usage" (mult (vec4 5 4 3 5) 4.0)))
 (add-examples dot (example "Usage" (dot (vec4 1 0 0 0) (vec4 -1 0 -1 0))))
 (add-examples econstrain (example "Usage" (econstrain (vec3 2 0 -2) -1 1)))
 (add-examples emn (example "Usage" (emn [-1 2] [1 -2])))
