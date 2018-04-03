@@ -61,6 +61,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [clojure.lang Numbers]
+           [org.apache.commons.math3.util Precision]
            [org.apache.commons.math3.special Erf Gamma Beta]))
 
 (set! *warn-on-reflection* true)
@@ -500,11 +501,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Round `v` to specified (default: 2) decimal places. Be aware of `double` number accuracy."
   {:metadoc/categories #{:round}
    :metadoc/examples [(example "Default rounding (2 digits)." (approx 1.232323))
-              (example "Rounding up to 4 digits. You can see `double` accuracy errors." (approx 1.232323 4))]}
-  (^double [^double v] (/ (FastMath/round (* 100.0 v)) 100.0))
-  (^double [^double v ^long digits]
-   (let [sc (pow 10.0 digits)]
-     (/ (FastMath/round (* sc v)) sc))))
+                      (example "Rounding up to 4 digits." (approx 1.232323 4))]}
+  (^double [^double v] (Precision/round v (int 2)))
+  (^double [^double v ^long digits] (Precision/round v (int digits))))
 
 (defn approx-eq
   "Checks equality approximately. See [[approx]]."
@@ -687,21 +686,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Make [[norm]] function for given range. Resulting function accepts `double` value (with optional target `[dstart,dstop]` range) and returns `double`."
   {:metadoc/categories #{:conv}
    :metadoc/examples [(example "Make cos() normalizer from [-1.0,1.0] to [0.0, 1.0]." (let [norm-cos (make-norm -1.0 1.0 0.0 1.0)]
-                                                                                (norm-cos (cos 2.0))))
-              (example "Make normalizer from [0,255] to any range." (let [norm-0-255 (make-norm 0 255)]
-                                                                      [(norm-0-255 123 -10 -20)
-                                                                       (norm-0-255 123 20 10)]))]}
+                                                                                        (norm-cos (cos 2.0))))
+                      (example "Make normalizer from [0,255] to any range." (let [norm-0-255 (make-norm 0 255)]
+                                                                              [(norm-0-255 123 -10 -20)
+                                                                               (norm-0-255 123 20 10)]))]}
   ([^double start ^double stop]
-   (let [r (- stop start)]
-     (fn ^double [^double v ^double dstart ^double dstop]
-       (let [vn (/ (- v start) r)]
-         (+ dstart (* (- dstop dstart) vn))))))
+   (fn ^double [^double v ^double dstart ^double dstop]
+     (PrimitiveMath/norm v start stop dstart dstop)))
   ([^double start ^double stop ^double dstart ^double dstop]
-   (let [r (- stop start)
-         d (- dstop dstart)]
-     (fn ^double [^double v]
-       (let [vn (/ (- v start) r)]
-         (+ dstart (* d vn)))))))
+   (fn ^double [^double v]
+     (PrimitiveMath/norm v start stop dstart dstop))))
 
 (defn cnorm
   "Constrained version of norm. Result of [[norm]] is applied to [[constrain]] to `[0,1]` or `[start2,stop2]` ranges."

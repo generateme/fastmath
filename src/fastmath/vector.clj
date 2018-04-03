@@ -52,6 +52,7 @@
   "Vector operations"
   (^{:metadoc/categories #{:gen}} to-vec [v] "Convert to Clojure primitive vector `Vec`.")
   (^{:metadoc/categories #{:op}} applyf [v f] "Apply function to all vector values (like map).")
+  (^{:metadoc/categories #{:op}} approx [v] [v d] "Round to 2 (or `d`) decimal places")
   (^{:metadoc/categories #{:dist :geom}} magsq [v1] "Length of the vector squared.")
   (^{:metadoc/categories #{:dist :geom}} mag [v1] "length of the vector.")
   (^{:metadoc/categories #{:geom}} dot [v1 v2] "Dot product of two vectors.")
@@ -106,6 +107,9 @@
   VectorProto
   {:to-vec #(apply conj (vector-of :double) %1)
    :applyf #(mapv %2 %1)
+   :approx (fn
+             ([v] (map m/approx v))
+             ([v d] (map #(m/approx ^double % d) v)))
    :magsq (fn [v] (reduce #(+ ^double %1 (* ^double %2 ^double %2)) (double 0) v))
    :mag #(m/sqrt (magsq %))
    :dot #(reduce clojure.core/+ (map clojure.core/* %1 %2))
@@ -172,6 +176,8 @@
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
   (applyf [_ f] (ArrayVec. (amap array idx ret ^double (f (aget array idx)))))
+  (approx [_] (ArrayVec. (amap array idx ret ^double (m/approx (aget array idx)))))
+  (approx [_ d] (ArrayVec. (amap array idx ret ^double (m/approx (aget array idx) d))))
   (magsq [_] (smile.math.Math/dot array array))
   (mag [v1] (m/sqrt (magsq v1)))
   (dot [_ v2] (smile.math.Math/dot array ^doubles (.array ^ArrayVec v2)))
@@ -235,6 +241,8 @@
   VectorProto
   (to-vec [_] (vector-of :double x y))
   (applyf [_ f] (Vec2. (f x) (f y)))
+  (approx [_] (Vec2. (m/approx x) (m/approx y)))
+  (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
   (magsq [_] (+ (* x x) (* y y)))
   (mag [_] (m/hypot x y))
   (dot [_ v2] 
@@ -329,6 +337,8 @@
   VectorProto
   (to-vec [_] (vector-of :double x y z))
   (applyf [_ f] (Vec3. (f x) (f y) (f z)))
+  (approx [_] (Vec3. (m/approx x) (m/approx y) (m/approx z)))
+  (approx [_ d] (Vec3. (m/approx x d) (m/approx y d) (m/approx z d)))
   (magsq [_] (+ (* x x) (* y y) (* z z)))
   (mag [_] (m/hypot x y z))
   (dot [_ v2]
@@ -499,6 +509,8 @@
   VectorProto
   (to-vec [_] (vector-of :double x y z w))
   (applyf [_ f] (Vec4. (f x) (f y) (f z) (f w)))
+  (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
+  (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
   (magsq [_] (+ (* x x) (* y y) (* z z) (* w w)))
   (mag [v1] (m/sqrt (magsq v1)))
   (dot [_ v2]

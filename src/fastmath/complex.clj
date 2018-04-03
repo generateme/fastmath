@@ -223,7 +223,7 @@
   [^Vec2 z]
   (let [cc (- (m/cos (* 2.0 (.x z)))
               (m/cosh (* 2.0 (.y z))))]
-    (Vec2. (/ (* 2.0 (m/cosh (.y z)) (m/sin (.x z))) cc)
+    (Vec2. (- (/ (* 2.0 (m/cosh (.y z)) (m/sin (.x z))) cc))
            (/ (* 2.0 (m/cos (.x z)) (m/sinh (.y z))) cc))))
 
 ;; [[../../docs/images/c/csc.jpg]]
