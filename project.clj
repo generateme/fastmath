@@ -13,7 +13,7 @@
                  [metadoc "0.1.0-RC1"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
-  :javac-options ["-target" "1.7" "-source" "1.7"]
+  :javac-options ["-target" "1.8" "-source" "1.8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}

@@ -7,7 +7,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ## Installation
 
 ```clojure
-[generateme/fastmath "0.1.0-RC3"]
+[generateme/fastmath "0.1.0"]
 ```
 
 ## Documentation
@@ -103,6 +103,10 @@ Almost all functions optimized to work on `double` and `long` primitives
 * [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
 * [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence
+
+## Java
+
+Java classes are compiled for java 1.8
 
 ## TODO
 
