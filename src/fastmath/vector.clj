@@ -53,7 +53,7 @@
 (defprotocol VectorProto
   "Vector operations"
   (^{:metadoc/categories #{:gen}} to-vec [v] "Convert to Clojure primitive vector `Vec`.")
-  (^{:metadoc/categories #{:op}} applyf [v f] "Apply function to all vector values (like map).")
+  (^{:metadoc/categories #{:op}} applyf [v f] "Apply function to all vector values (like map but returns the same type).")
   (^{:metadoc/categories #{:op}} approx [v] [v d] "Round to 2 (or `d`) decimal places")
   (^{:metadoc/categories #{:dist :geom}} magsq [v1] "Length of the vector squared.")
   (^{:metadoc/categories #{:dist :geom}} mag [v1] "length of the vector.")

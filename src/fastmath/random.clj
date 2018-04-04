@@ -206,7 +206,8 @@ See [[grand]].")
 Returns true or false with equal probability. You can set probability for `true` setting `thr` (from `[0-1]` range).
 
 See [[brand]].")
-  (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG or distribution itself."))
+  (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG or distribution itself.")
+  (^{:metadoc/categories #{:rand}} ->seq [t] "Returns sequence of random samples."))
 
 ;; Extend RandomGenerator interface with functions created by macro `next-random-value-fn`. This way all RNG classes are enriched with new, more convenient functions.
 ;;
@@ -227,7 +228,8 @@ See [[brand]].")
               ([t ^double thr] (< (next-random-value-double t) thr)))
    :set-seed! #(do
                  (.setSeed ^RandomGenerator %1 (long %2))
-                 %1)})
+                 %1)
+   :->seq (fn [^RandomGenerator t] (repeatedly #(next-random-value-double t)))})
 
 ;; Helper macro which creates RNG object of given class and/or seed.
 (defmacro ^:private create-object-with-seed
@@ -619,7 +621,6 @@ Values are from following values:
   (^{:metadoc/categories #{:dist}} lower-bound [d] "Lower value")
   (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value")
   (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
-  (^{:metadoc/categories #{:dist}} ->seq [d] "Returns sequence of random samples.")
   (^{:metadoc/categories #{:dist}} log-likelihood [d vs] "Log likelihood of samples")
   (^{:metadoc/categories #{:dist}} likelihood [d vs] "Likelihood of samples"))
 
@@ -637,7 +638,6 @@ Values are from following values:
    :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
    :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))
    :sample (fn [^RealDistribution d] (.sample d))
-   :->seq (fn [d] (repeatedly #(sample d)))
    :log-likelihood (fn [^RealDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
    :likelihood #(m/exp (log-likelihood %1 %2))}
   RNGProto
@@ -645,6 +645,7 @@ Values are from following values:
    :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^RealDistribution d] (unchecked-long (.sample d)))
    :irandom (fn [^RealDistribution d] (unchecked-int (.sample d)))
+   :->seq (fn [^RealDistribution d] (repeatedly #(.sample d)))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (extend IntegerDistribution
@@ -661,7 +662,6 @@ Values are from following values:
    :lower-bound (fn [^IntegerDistribution d] (.getSupportLowerBound d))
    :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))
    :sample (fn [^IntegerDistribution d] (.sample d))
-   :->seq (fn [d] (repeatedly #(sample d)))
    :log-likelihood (fn [^IntegerDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
    :likelihood #(m/exp (log-likelihood %1 %2))}
   RNGProto
@@ -669,7 +669,8 @@ Values are from following values:
    :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^IntegerDistribution d] (unchecked-long (.sample d)))
    :irandom (fn [^IntegerDistribution d] (.sample d))
-   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+   :->seq (fn [^IntegerDistribution d] (repeatedly #(.sample d)))
+   :set-seed! (fn [^IntegerDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (defmulti
   ^{:doc "Create distribution object.

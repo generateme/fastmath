@@ -7,6 +7,7 @@
             [fastmath.complex :as c]
             [fastmath.random :as r]
             [fastmath.vector :as v]
+            [fastmath.transform :as t]
             [fastmath.interpolation :as i]))
 
 ;; core
@@ -446,3 +447,42 @@
 (draw-distribution -10 10 360 :enumerated-int
                    (r/distribution :enumerated-int {:data [-4.0 0 3 4 5]
                                                     :probabilities [0.1 0.5 0.2 0.05 0.15]}))
+
+
+;; denoise
+
+(let [c (canvas 512 200)
+      s (for [x (range 512)]
+          (let [xx (m/norm x 0 512 0 m/TWO_PI)]
+            (+ (m/sin xx) (r/randval 0.0 (r/grand 0 0.1)))))
+      ss (t/denoise (t/transformer :packet :daubechies-5) s false)
+      p1 (map v/vec2 (range 512) (map #(+ 100 (* 70.0 %)) s))
+      p2 (map v/vec2 (range 512) (map #(+ 100 (* 70.0 %)) ss))] 
+  (with-canvas-> c
+    (set-background bg-color)
+    (set-color 180 200 200)
+    (path p1)
+    (set-stroke 1.8)
+    (set-color :black)
+    (path p2))
+  (save-canvas c "t" "denoise"))
+
+;; compressed
+
+(let [c (canvas 512 200)
+      s (for [x (range 512)]
+          (let [xx (m/norm x 0 512 0 m/TWO_PI)]
+            (+ (m/sin xx) (r/randval 0.0 (r/grand 0 0.1)))))
+      tr (t/transformer :packet :haar)
+      ss (t/reverse-1d tr (t/compress 5 (t/forward-1d tr s)))
+      p1 (map v/vec2 (range 512) (map #(+ 100 (* 70.0 %)) s))
+      p2 (map v/vec2 (range 512) (map #(+ 100 (* 70.0 %)) ss))] 
+  (with-canvas-> c
+    (set-background bg-color)
+    (set-color 180 200 200)
+    (path p1)
+    (set-stroke 2)
+    (set-color :black)
+    (path p2))
+  (save-canvas c "t" "compress"))
+

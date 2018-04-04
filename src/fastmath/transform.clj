@@ -1,14 +1,32 @@
-(ns fastmath.wavelet
-  "Wavelet transformations.
+(ns fastmath.transform
+  "Transforms.
 
+  See [[transformer]] and [[TransformProto]] for details.
+  
+  #### Wavelet
+  
   Based on [JWave](https://github.com/cscheiblich/JWave/) library.
 
-  Be aware that some of the wavelet types doesn't work properly. `:battle-23`, `:cdf-53`, `:cdf-97`."
-  {:metadoc/categories {:w "Wavelet"}}
+  Be aware that some of the wavelet types doesn't work properly. `:battle-23`, `:cdf-53`, `:cdf-97`.
+
+  #### Cos/Sin/Hadamard
+
+  Orthogonal or standard fast sine/cosine/hadamard 1d transforms.
+
+  #### Fourier
+
+  DFT."
+  {:metadoc/categories {:w "Transform"
+                        :p "Process"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all])
-  (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition BasicTransform]
-           [jwave.exceptions JWaveFailure]))
+            [metadoc.examples :refer :all]
+            [fastmath.stats :as stat]
+            [fastmath.vector :as v])
+  (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
+            BasicTransform DiscreteFourierTransform]
+           [jwave.exceptions JWaveFailure]
+           [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer
+            DstNormalization DctNormalization TransformType]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -107,14 +125,25 @@
 (defmulti
   ^{:doc "Create transform object for given wavelet.
 
-  You can use:
+  #### Wavelets
 
   * `:fast` for 1d or 2d Fast Wavelet Transform. Size of data should be power of `2`.
   * `:packet` for 1d or 2d Wavelet Packet Transform. Size of data should be power of `2`.
   * `:decomposed-fast` for 1d Fast Wavelet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
   * `:decomposed-packet` for 1d Wavelet Packet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
 
-  Second argument is wavelet name as key. See [[wavelets-list]] for all supported names."
+  Second argument is wavelet name as key. See [[wavelets-list]] for all supported names.
+
+  #### Sine/Cosine/Hadamard
+
+  * `:standard` for 1d `:sine`, `:cosine`, `:hadamard`.
+  * `:orthogonal` for 1d `:sine`, `:cosine`.
+
+  Note that `:sine` and `:cosine` require first element to be equal `0`. Size of data should be power of 2.
+
+  #### Fourier
+
+  * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."
     :metadoc/categories #{:w}
     :metadoc/examples [(example "Usage" (transformer :packet :discrete-mayer))]}
   transformer (fn [t w] t))
@@ -123,6 +152,16 @@
 (defmethod transformer :packet [_ w] (WaveletPacketTransform. (wavelet w)))
 (defmethod transformer :decomposed-fast [_ w] (AncientEgyptianDecomposition. (transformer :fast w)))
 (defmethod transformer :decomposed-packet [_ w] (AncientEgyptianDecomposition. (transformer :packet w)))
+
+(defmethod transformer :standard [_ t] (cond
+                                         (= t :sine) (FastSineTransformer. DstNormalization/STANDARD_DST_I)
+                                         (= t :cosine) (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
+                                         (= t :hadamard) (FastHadamardTransformer.)
+                                         (= t :dft) (DiscreteFourierTransform.)))
+
+(defmethod transformer :orthogonal [_ t] (cond
+                                           (= t :sine) (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
+                                           (= t :cosine) (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)))
 
 (defprotocol TransformProto
   "Transformer functions."
@@ -138,11 +177,19 @@
    :forward-2d (fn [^BasicTransform t xss] (.forward t (m/seq->double-double-array xss)))
    :reverse-2d (fn [^BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))})
 
+(extend RealTransformer
+  TransformProto
+  {:forward-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/FORWARD))
+   :reverse-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/INVERSE))})
+
 (add-examples forward-1d
   (example-session "Usage"
     (seq (forward-1d (transformer :packet :haar-orthogonal) [-1 8 7 6]))
     (seq (forward-1d (transformer :fast :haar-orthogonal) [-1 8 7 6]))
-    (seq (forward-1d (transformer :decomposed-fast :haar-orthogonal) [10 -1 8 7 6]))))
+    (seq (forward-1d (transformer :decomposed-fast :haar-orthogonal) [10 -1 8 7 6]))
+    (seq (forward-1d (transformer :orthogonal :sine) [0 -1 8 7]))
+    (seq (forward-1d (transformer :standard :hadamard) [-1 8 7 6]))
+    (seq (forward-1d (transformer :standard :dft) [-1 8 7 6]))))
 
 (add-examples reverse-1d
   (example-session "Usage"
@@ -151,7 +198,13 @@
     (let [t (transformer :fast :haar-orthogonal)]
       (seq (reverse-1d t (forward-1d t [-1 8 7 6]))))
     (let [t (transformer :decomposed-fast :haar-orthogonal)]
-      (seq (reverse-1d t (forward-1d t [10 -1 8 7 6]))))))
+      (seq (reverse-1d t (forward-1d t [10 -1 8 7 6]))))
+    (let [t (transformer :orthogonal :sine)]
+      (seq (reverse-1d t (forward-1d t [0 8 7 6]))))
+    (let [t (transformer :standard :hadamard)]
+      (seq (reverse-1d t (forward-1d t [-1 8 7 6]))))
+    (let [t (transformer :standard :dft)]
+      (seq (reverse-1d t (forward-1d t [-1 8 7 6]))))))
 
 (add-examples forward-2d
   (example-session "Usage"
@@ -169,7 +222,7 @@
 
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
-  {:metadoc/categories #{:w}
+  {:metadoc/categories #{:p}
    :metadoc/examples [(example "Compress 1d"
                         (let [t (transformer :fast :symlet-5)]
                           (->> [1 2 3 4]
@@ -183,6 +236,43 @@
                                (forward-2d t)
                                (compress 0.5)
                                (reverse-2d t)
-                               (m/double-double-array->seq))))]}
-  [^double mag xs]
-  (.compress (jwave.compressions.CompressorMagnitude. mag) xs))
+                               (m/double-double-array->seq))))
+                      (example-image "Disturbed sin compressed using :haar wavelet. `mag=5`."
+                        "images/t/compress.jpg")]}
+  ([^double mag xs]
+   (.compress (jwave.compressions.CompressorMagnitude. mag) xs)))
+
+(defn denoise
+  "Adaptive denoising of time series (1d).
+
+  Use on transformed sequences or call with transformer object.
+
+  SMILE implementation of WaveletShrinkage denoise function."
+  {:metadoc/categories #{:p}
+   :metadoc/examples [(example "Denoise signal"
+                        (let [t (transformer :packet :haar)]
+                          (v/approx (vec (denoise t [1 2 3 4 5 6.5 7.5 8] true)))))
+                      (example-image "Disturbed sin denoised with `(t/denoise (t/transformer :packet :daubechies-5) s false)`"
+                        "images/t/denoise.jpg")]}
+  ([xs soft?]
+   (let [t (double-array xs)
+         n (alength t)
+         nh (>> n 1)
+         wc (double-array nh)]
+     (System/arraycopy t nh wc 0 nh)
+     (let [error (/ (stat/median-absolute-deviation wc) 0.6745)
+           lambda (* error (m/sqrt (* 2.0 (m/log n))))]
+       (if soft?
+         (dotimes [i (- n 2)]
+           (let [i2 (+ i 2)
+                 v (aget t i2)]
+             (aset-double t i2 (* (m/signum v) (max (- (m/abs v) lambda) 0.0)))))
+         (dotimes [i (- n 2)]
+           (let [i2 (+ i 2)
+                 v (aget t i2)]
+             (when (< (m/abs v) lambda) (aset-double t i2 0.0)))))
+       t)))
+  ([trans xs soft?]
+   (let [v (forward-1d trans xs)]
+     (reverse-1d trans (denoise v soft?))))
+  ([xs] (denoise xs false)))

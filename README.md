@@ -1,6 +1,8 @@
 # fastmath
 
-Fast primitive based math library
+Fast and primitive based math library.
+
+Originally it was a part of generative art/glich [Clojure2d](https://github.com/Clojure2D/clojure2d) library.
 
 ## Installation
 
@@ -14,21 +16,83 @@ Fast primitive based math library
 
 ## Content
 
-* [PrimitiveMath](https://github.com/ztellman/primitive-math) - Zach Tellmeans' code enhanced
-* [FastMath](https://github.com/jeffhain/jafama) bindings
-* Processing-like math functions
-* Vector operations protocol and implementations:
-  * 2d (`Vec2`), 3d (`Vec3`) and 4d (`Vec4`) vector types.
-  * ArrayVector for fixed length long vectors
-  * Clojure vector []
-* Complex number functions
-* Random numbers, sequences
-* Random distributions
-* Various noises (value, gradient, simplex, discrete)
-* Statistics
-* Plenty of constant values
-* 1d, 2d interpolations
-* Wavelets 1d and 2d transformations
+### [PrimitiveMath](https://github.com/ztellman/primitive-math)
+
+Code adopted from Zach Tellmeans' library.
+
+```
+[* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? bool-and bool-or bool-xor bool-not << >> >>> not==]
+```
+
+### Math functions
+
+* Trigonometric functions
+* Power: log, ln, logb, exp, pow, sqrt
+* Rounding functions: round, floor, ceil, trunc, frac, approx + other
+* Normalizations: norm  wrap, constrain
+* Interpolations: lerp, cos-interpolation, smooth-interpolation, quad-interpolation, smoothstep
+* Special functions: erf, beta, gamma + other
+* Distance: dist, hypot
+* Sign: sgn, signum, abs
+* Other: gcd
+
+Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) or [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html)
+
+### Vector operations protocol and implementations
+
+* 2d (`Vec2`), 3d (`Vec3`) and 4d (`Vec4`) vector types.
+* ArrayVector for fixed length long vectors (fixed sized double-array)
+* Clojure vector
+
+With following groups of functions:
+
+* Basic linear operations: add, mult, div, sub, dot, cross, hadamard product
+* mag, magsq, heading, angle-between, limit, normalize
+* rotations (2d,3d)
+* translations (2d, 3d)
+* various distances
+* centroid, interpolations
+* and other
+
+### Complex number functions
+
+* primitive operations: mult, div, add, sub
+* abs, arg, conjugate, reciprocal, neg
+* atan, asin, acos, csc, sec, tanh, tan, sinh, sin, cosh, cos
+* log, exp, pow
+* sqrt, sq, sqrt1z
+
+### Random numbers
+
+* Collection of random number generators
+* Collection of distributions (count: 28)
+* Random generator functions for each primitive type (drand - double, lrand - long, frand - float, irand - int)
+* Additional RNG functions: brand - true/false, grand - gaussian distributed double
+* Random sequences: from distribution, halton, sobol, sphere, uniform
+
+### Noise
+
+* 4 noise types: value, gradient, simplex, discrete
+* 3 noise blends: fbm, ridgedmulti, billow
+* Ready to use fbm functions: noise (perlin), vnoise (value noise), simplex
+
+### Statistics
+
+* Descriptive statistics: size, min, max, mode, mean, median, percentiles, kurtosis, skewness, IQR, LAV, UAV and other
+* Correlations
+
+### Interpolations
+
+1d, 2d interpolations
+
+### Transforms
+
+* Wavelets: 1d, 2d (haar, biorthogonal, symlet, coiflet, daubechies, legendre)
+* 1d Fast Sine, Cosine and Hadamard
+
+### Other
+
+Plenty of constant values
 
 Almost all functions optimized to work on `double` and `long` primitives
 
@@ -44,10 +108,11 @@ Almost all functions optimized to work on `double` and `long` primitives
 
 * Change images to plots with axes
 * More tests
+* Move vector fields and signal processing from Clojure2d/extra
 
 ## How To Help
 
-If you see place of improvement, I'm accepting PRs
+If you see place of improvement, I'm accepting PRs.
 
 ## Licence
 
