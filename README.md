@@ -7,7 +7,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ## Installation
 
 ```clojure
-[generateme/fastmath "0.1.0"]
+[generateme/fastmath "0.1.1"]
 ```
 
 ## Documentation
