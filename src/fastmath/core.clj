@@ -62,7 +62,7 @@
            [fastmath.java PrimitiveMath]
            [clojure.lang Numbers]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Erf Gamma Beta]))
+           [org.apache.commons.math3.special Erf Gamma Beta BesselJ]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -75,13 +75,16 @@
    (let [cf (str class "/" name)
          f (symbol cf)
          x (symbol "x")
-         y (symbol "y") 
+         y (symbol "y")
+         z (symbol "z")
          doc (or (:doc (meta alt-name)) (str cf " function wrapped in macro."))
          arity-1 `([~x] (list '~f ~x))
-         arity-2 `([~x ~y] (list '~f ~x ~y))]
+         arity-2 `([~x ~y] (list '~f ~x ~y))
+         arity-3 `([~x ~y ~z] (list '~f ~x ~y ~z))]
      (condp = arity
        :two `(defmacro ~alt-name ~doc ~arity-2)
        :onetwo `(defmacro ~alt-name ~doc ~arity-1 ~arity-2)
+       :three `(defmacro ~alt-name ~doc ~arity-3)
        `(defmacro ~alt-name ~doc ~arity-1))))
   ([class arity name]
    `(javaclass-proxy ~class ~arity ~name ~name)))
@@ -91,6 +94,7 @@
 (defmacro ^:private erf-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Erf" ~@rest))
 (defmacro ^:private gamma-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Gamma" ~@rest))
 (defmacro ^:private beta-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.Beta" ~@rest))
+(defmacro ^:private besselj-proxy [& rest] `(javaclass-proxy "org.apache.commons.math3.special.BesselJ" ~@rest))
 
 (defmacro ^:private variadic-proxy
   "Creates left-associative variadic forms for any operator.
@@ -233,6 +237,8 @@
 (def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 
 (def ^:const ^double ^{:doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
+(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} GAMMA Gamma/LANCZOS_G)
+
 
 (def ^:const ^double ^{:doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
@@ -294,6 +300,8 @@
 ;; Alias for natural logarithm
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} ln log)
 
+(fastmath-proxy :one ^{:metadoc/categories #{:pow}} log1p)
+
 ;; Roots (square and cubic)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories #{:pow}} sqrt)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt[3]{x}\\\\)" :metadoc/categories #{:pow}} cbrt)
@@ -326,11 +334,20 @@
 
 (gamma-proxy :one ^{:doc "Gamma function \\\\(\\Gamma(x)\\\\)" :metadoc/categories #{:special}} gamma gamma)
 (gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories #{:special}} log-gamma logGamma)
-(gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories #{:special}} dgamma digamma)
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(1+x)\\\\)" :metadoc/categories #{:special}} log-gamma-1p logGamma1p)
+(gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories #{:special}} digamma)
+(gamma-proxy :one ^{:doc "Derivative of [[digamma]]." :metadoc/categories #{:special}} trigamma)
+(gamma-proxy :one ^{:doc "\\\\(\\frac{1}{\\Gamma(1+x)}\\\\)." :metadoc/categories #{:special}} inv-gamma-1pm1 invGamma1pm1)
+(gamma-proxy :two ^{:doc "Regularized `gamma` P" :metadoc/categories #{:special}} regularized-gamma-p regularizedGammaP)
+(gamma-proxy :two ^{:doc "Regularized `gamma` Q" :metadoc/categories #{:special}} regularized-gamma-q regularizedGammaQ)
 
 ;; Beta
 
 (beta-proxy :two ^{:doc "Logarithm of Beta function." :metadoc/categories #{:special}} log-beta logBeta)
+(beta-proxy :three ^{:doc "Regularized `Beta`." :metadoc/categories #{:special}} regularized-beta regularizedBeta)
+
+;; BesselJ
+(besselj-proxy :two ^{:doc "Bessel J function value for given order and argument." :metadoc/categories #{:special}} bessel-j value)
 
 ;; Sinc
 (defn sinc
@@ -533,18 +550,32 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;; `(low-2-exp TWO_PI) => 2` \\(2^2\eq 4\leq 6.28\\)  
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
-  "Find greatest exponent (power of 2) which is lower than `x`. See [[high-2-exp]]."
+  "Find greatest exponent (power of 2) which is lower or equal `x`. See [[high-2-exp]]."
   {:metadoc/categories #{:pow}
    :metadoc/examples [(example "Result 4 means, that \\\\(2^4=16\\\\) is lower than 23.11. Next exponent (5) gives greater value (32)." (low-2-exp 23.11))
-              (example "For `x` less than 1.0 gives negative exponent." (low-2-exp 0.11))]}
+                      (example "For `x` less than 1.0 gives negative exponent." (low-2-exp 0.11))]}
   ^long [^double x] (-> x log2 floor unchecked-long))
 
 (defn high-2-exp
-  "Find lowest exponent (power of 2) which is greater than `x`. See [[low-2-exp]]."
+  "Find lowest exponent (power of 2) which is greater or equal `x`. See [[low-2-exp]]."
   {:metadoc/categories #{:pow}
    :metadoc/examples [(example "Result 5 means, that \\\\(2^5=32\\\\) is greater than 23.11. Lower exponent (4) gives lower value (16)." (high-2-exp 23.11))
-              (example "For `x` less than 1.0 gives negative exponent." (high-2-exp 0.11))]}
+                      (example "For `x` less than 1.0 gives negative exponent." (high-2-exp 0.11))]}
   ^long [^double v] (-> v log2 ceil unchecked-long))
+
+(defn low-exp
+  "Find greatest exponent for base `b` which is lower or equal `x`. See also [[high-exp]]."
+  {:metadoc/categories #{:pow}
+   :metadoc/examples [(example "Result `1` means, that \\\\(9^1=9\\\\) is lower than `23.11`. Next exponent `2` gives greater value `82`." (low-exp 9 23.11))
+                      (example "For `x` less than `1.0` gives negative exponent." (low-exp 10 0.011))]}
+  ^long [^double b ^double x] (->> x (logb b) floor unchecked-long))
+
+(defn high-exp
+  "Find lowest exponent for base `b` which is higher or equal`x`. See also [[low-exp]]."
+  {:metadoc/categories #{:pow}
+   :metadoc/examples [(example "Result `2` means, that \\\\(9^2=81\\\\) is greater than `23.11`. Lower exponent `1` gives lower value `9`." (high-exp 9 23.11))
+                      (example "For `x` less than 1.0 gives negative exponent." (high-exp 10 0.011))]}
+  ^long [^double b ^double x] (->> x (logb b) ceil unchecked-long))
 
 (defn round-up-pow2
   "Round long to the next power of 2"
@@ -878,12 +909,12 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
                        sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
-                       qsin qcos exp log log10 ln sqrt cbrt qexp qsqrt rqsqrt
+                       qsin qcos exp log log10 ln log1p sqrt cbrt qexp qsqrt rqsqrt
                        erf erfc inv-erf inv-erfc sinc log2 qlog
                        sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
                        frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
                        signum sgn sigmoid
-                       gamma log-gamma dgamma))
+                       gamma log-gamma digamma log-gamma-1p trigamma inv-gamma-1pm1))
 
 (def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))
 

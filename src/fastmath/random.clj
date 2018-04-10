@@ -207,7 +207,7 @@ Returns true or false with equal probability. You can set probability for `true`
 
 See [[brand]].")
   (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG or distribution itself.")
-  (^{:metadoc/categories #{:rand}} ->seq [t] "Returns sequence of random samples."))
+  (^{:metadoc/categories #{:rand}} ->seq [t] [t n] "Returns sequence of random samples limited to optional `n` values."))
 
 ;; Extend RandomGenerator interface with functions created by macro `next-random-value-fn`. This way all RNG classes are enriched with new, more convenient functions.
 ;;
@@ -229,7 +229,9 @@ See [[brand]].")
    :set-seed! #(do
                  (.setSeed ^RandomGenerator %1 (long %2))
                  %1)
-   :->seq (fn [^RandomGenerator t] (repeatedly #(next-random-value-double t)))})
+   :->seq (fn
+            ([^RandomGenerator t] (repeatedly #(next-random-value-double t)))
+            ([^RandomGenerator t n] (repeatedly n #(next-random-value-double t))))})
 
 ;; Helper macro which creates RNG object of given class and/or seed.
 (defmacro ^:private create-object-with-seed
@@ -645,7 +647,9 @@ Values are from following values:
    :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^RealDistribution d] (unchecked-long (.sample d)))
    :irandom (fn [^RealDistribution d] (unchecked-int (.sample d)))
-   :->seq (fn [^RealDistribution d] (repeatedly #(.sample d)))
+   :->seq (fn
+            ([^RealDistribution d] (repeatedly #(.sample d)))
+            ([^RealDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (extend IntegerDistribution
@@ -669,7 +673,9 @@ Values are from following values:
    :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^IntegerDistribution d] (unchecked-long (.sample d)))
    :irandom (fn [^IntegerDistribution d] (.sample d))
-   :->seq (fn [^IntegerDistribution d] (repeatedly #(.sample d)))
+   :->seq (fn
+            ([^IntegerDistribution d] (repeatedly #(.sample d)))
+            ([^IntegerDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^IntegerDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (defmulti
@@ -916,7 +922,7 @@ The rest parameters goes as follows:
 (add-examples lower-bound (example "Usage" (lower-bound (distribution :gamma))))
 (add-examples upper-bound (example "Usage" (upper-bound (distribution :gamma))))
 (add-examples sample (example "Random value from distribution" (sample (distribution :gamma))))
-(add-examples ->seq (example "Sequence of random values from distribution" (take 5 (->seq (distribution :gamma)))))
+(add-examples ->seq (example "Sequence of random values from distribution" (->seq (distribution :gamma) 5)))
 (add-examples log-likelihood (example "Usage" (log-likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
 (add-examples likelihood (example "Usage" (likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
 

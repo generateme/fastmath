@@ -104,6 +104,16 @@ Almost all functions optimized to work on `double` and `long` primitives
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
 * [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence
 
+## Alternatives
+
+Since this library is only JVM version, you can check following Clojure/ClojureScript libraries as replacement
+
+* [PrimitiveMath](https://github.com/ztellman/primitive-math) - for primitive operators
+* [Kixi stats](https://github.com/MastodonC/kixi.stats) - for pure clj(s) statistics/distributions (tends to be 2-10x slower)
+* [thi.ng](http://thi.ng/) - for vectors, general math, noise, complex numbers, transforms (fourier)
+* [vectorz-clj](https://github.com/mikera/vectorz-clj) - fast vector operations
+* [Incanter](https://github.com/incanter/incanter) - statistics/distributions/probability
+
 ## Java
 
 Java classes are compiled for java 1.8

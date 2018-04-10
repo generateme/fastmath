@@ -242,14 +242,18 @@
   Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
 
   * LAV is smallest value which is greater or equal to the LIF = `(- Q1 (* 1.5 IQR))`.
-  * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`."
+  * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
+
+  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:stat}
    :metadoc/examples [(example "[LAV, UAV]" (adjacent-values [1 2 3 -1 -1 2 -1 11 111]))
                       (example "Gaussian distribution [LAV, UAV]" (adjacent-values (repeatedly 1000000 r/grand)))]}
   ([vs]
+   (adjacent-values vs :legacy))
+  ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         q1 (percentile avs 25.0)
-         q3 (percentile avs 75.0)]
+         q1 (percentile avs 25.0 estimation-strategy)
+         q3 (percentile avs 75.0 estimation-strategy)]
      (adjacent-values avs q1 q3)))
   ([vs ^double q1 ^double q3]
    (let [avs (double-array vs)
@@ -268,14 +272,18 @@
   * LOF (Lower Outer Fence) equals `(- Q1 (* 3.0 IQR))`.
   * UOF (Upper Outer Fence) equals `(+ Q3 (* 3.0 IQR))`.
 
-  Returns sequence."
+  Returns sequence.
+
+  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:stat}
    :metadoc/examples [(example "Outliers" (outliers [1 2 3 -1 -1 2 -1 11 111]))
                       (example "Gaussian distribution outliers" (outliers (repeatedly 3000000 r/grand)))]}
   ([vs]
+   (outliers vs :legacy))
+  ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         q1 (percentile avs 25.0)
-         q3 (percentile avs 75.0)]
+         q1 (percentile avs 25.0 estimation-strategy)
+         q3 (percentile avs 75.0 estimation-strategy)]
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
    (let [avs (double-array vs)
@@ -346,11 +354,13 @@
     (.evaluate k (m/seq->double-array vs))))
 
 (defn stats-map
-  "Calculate several statistics from the list and return as map."
+  "Calculate several statistics from the list and return as map.
+
+  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Stats" (stats-map [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Select keys" (stats-map [:Mean :Q1 :Q3] [1 2 3 -1 -1 2 -1 11 111]))]}
-  ([vs]
+   :metadoc/examples [(example "Stats" (stats-map [1 2 3 -1 -1 2 -1 11 111]))]}
+  ([vs] (stats-map vs :legacy))
+  ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
          sz (alength avs)
          mn (smile.math.Math/min avs)
@@ -358,8 +368,8 @@
          sm (smile.math.Math/sum avs)
          u (/ sm sz)
          mdn (median avs)
-         q1 (percentile avs 25.0)
-         q3 (percentile avs 75.0)
+         q1 (percentile avs 25.0 estimation-strategy)
+         q3 (percentile avs 75.0 estimation-strategy)
          iqr (- q3 q1)
          sd (population-stddev avs)
          mad (median-absolute-deviation avs)
@@ -387,9 +397,7 @@
       :Outliers outliers
       :Kurtosis (kurtosis avs)
       :Skewness (skewness avs)
-      :SecMoment (second-moment avs)}))
-  ([ks vs]
-   (zipmap ks (map (stats-map vs) ks))))
+      :SecMoment (second-moment avs)})))
 
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."

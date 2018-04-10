@@ -42,9 +42,11 @@
         (set-color :white 130) 
         (set-stroke 1.5))
     (dotimes [x 400]
-      (let [xx (m/norm x 0 400 a b) 
-            y (m/norm (f xx) b a 0 200)]
-        (point canvas (* 0.5 x) y))))
+      (try
+        (let [xx (m/norm x 0 400 a b) 
+              y (m/norm (f xx) b a 0 200)]
+          (point canvas (* 0.5 x) y))
+        (catch Exception e ))))
   canvas)
 
 (doseq [s m/single-list]
