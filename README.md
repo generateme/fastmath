@@ -24,7 +24,7 @@ Dev version
 
 ### [PrimitiveMath](https://github.com/ztellman/primitive-math)
 
-Code adopted from Zach Tellmeans' library.
+Code adopted from Zach Tellmans' library.
 
 ```
 [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? bool-and bool-or bool-xor bool-not << >> >>> not==]
