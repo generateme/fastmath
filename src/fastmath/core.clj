@@ -838,6 +838,20 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;;
 
+(defn sample
+  "Sample function `f` and return sequence of values.
+
+  `range-min` defaults to 0.0, `range-max` to 1.0."
+  ([f ^long number-of-values]
+   (sample f 0.0 1.0 number-of-values))
+  ([f ^double range-min ^double range-max ^long number-of-values]
+   (let [n- (dec number-of-values)]
+     (->> (range number-of-values)
+          (map #(norm % 0.0 n- range-min range-max))
+          (map f)))))
+
+;;
+
 (def ^:const double-array-type (Class/forName "[D"))
 (def ^:const double-double-array-type (Class/forName "[[D"))
 

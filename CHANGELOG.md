@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 * easings namespace
+* `sample` function
 
 ### Changed
 
