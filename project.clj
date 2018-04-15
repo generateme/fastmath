@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "0.1.1"
+(defproject generateme/fastmath "0.1.2-SNAPSHOT"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -10,7 +10,7 @@
                  [com.github.haifengl/smile-math "1.5.1"]
                  [org.slf4j/slf4j-simple "1.7.25"]
                  [de.sciss/jwave "1.0.3"]
-                 [metadoc "0.1.0-RC1"]]
+                 [metadoc "0.2.0"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
   :javac-options ["-target" "1.8" "-source" "1.8"]
@@ -21,12 +21,16 @@
                              [cider/cider-nrepl "0.17.0-SNAPSHOT"]
                              [com.jakemccrary/lein-test-refresh "0.22.0"]
                              [lein-codox "0.10.3"]]
+                   :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
                                   [clojure2d "0.1.0-SNAPSHOT"]
-                                  [criterium "0.4.4"]]
+                                  [criterium "0.4.4"]
+                                  [incanter/incanter-charts "1.9.2"]
+                                  [incanter/incanter-core "1.9.2"]]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"
+                           :source-paths ["src"]
                            :source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                            :exclude-vars nil
                            :doc-paths ["docs/tutorials/"]

@@ -54,36 +54,81 @@
 (defmulti rbf
   "Create Radial Basis Function
 
-  Optional parameter: scaling factor."
+  Optional parameter `scale`.
+
+  `:polyharmonic` has also exponent `k` parameter."
   {:metadoc/categories #{:rbf}
    :metadoc/examples [(example "Usage" (let [rbf-fn (rbf :multiquadratic 3.0)]
                                          (rbf-fn 0.5)))]}
   (fn [n & _] n))
 
+(defmethod rbf :linear
+  ([_] (fn ^double [^double x] x))
+  ([_ ^double scale] (fn ^double [^double x] (* scale x))))
+
 (defmethod rbf :gaussian
-  ([_] (fn ^double [^double x] (m/exp (* 0.5 x x))))
+  ([_] (fn ^double [^double x] (m/exp (- (* x x)))))
   ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (m/exp (/ (* 0.5 x x) s2))))))
-
-(defmethod rbf :inverse-multiquadratic
-  ([_] (fn ^double [^double x] (/ (m/sqrt (inc (* x x))))))
-  ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (/ (m/sqrt (+ (* x x) s2)))))))
-
+                       (fn ^double [^double x] (m/exp (- (* s2 x x)))))))
 
 (defmethod rbf :multiquadratic
   ([_] (fn ^double [^double x] (m/sqrt (inc (* x x)))))
   ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (m/sqrt (+ (* x x) s2))))))
+                       (fn ^double [^double x] (m/sqrt (inc (* s2 x x)))))))
+
+(defmethod rbf :inverse-multiquadratic
+  ([_] (fn ^double [^double x] (/ (m/sqrt (inc (* x x))))))
+  ([_ ^double scale] (let [s2 (* scale scale)]
+                       (fn ^double [^double x] (/ (m/sqrt (inc (* s2 x x))))))))
+
+(defmethod rbf :inverse-quadratic
+  ([_] (fn ^double [^double x] (/ (inc (* x x)))))
+  ([_ ^double scale] (let [s2 (* scale scale)]
+                       (fn ^double [^double x] (/ (inc (* s2 x x)))))))
+
+(defmethod rbf :polyharmonic
+  ([_ ^long k] (rbf :polyharmonic k 1.0))
+  ([_ ^long k ^double scale] (if (even? k)
+                               (fn ^double [^double x]
+                                 (if (pos? x)
+                                   (let [sx (* scale x)] 
+                                     (* (m/log sx) (m/pow sx k)))
+                                   0.0))
+                               (fn ^double [^double x] (m/pow (* scale x) k)))))
 
 
 (defmethod rbf :thinplate
   ([_] (fn ^double [^double x] (if (pos? x)
                                  (* x x (m/log x))
                                  0.0)))
-  ([_ ^double scale] (fn ^double [^double x] (if (pos? x)
-                                               (* x x (m/log (/ x scale)))
-                                               0.0))))
+  ([_ ^double scale]
+   (let [s2 (* scale scale)]
+     (fn ^double [^double x] (if (pos? x)
+                               (* s2 x x (m/log (* x scale)))
+                               0.0)))))
+
+(defmethod rbf :wendland
+  ([_] (rbf :wendland 4.0))
+  ([_ ^double scale] (let [rr (/ scale)]
+                       (fn ^double [^double x]
+                         (let [xrr (* x rr)]
+                           (if (< xrr 1.0)
+                             (* (m/pow (- 1.0 xrr) 4.0)
+                                (inc (* 4.0 xrr)))
+                             0.0))))))
+
+(defmethod rbf :wu
+  ([_] (rbf :wu 2.0))
+  ([_ ^double scale] (let [rr (/ scale)]
+                       (fn ^double [^double x]
+                         (let [xrr (* x rr)]
+                           (if (< xrr 1.0)
+                             (let [xrr2 (* xrr xrr)
+                                   xrr3 (* xrr xrr2)]
+                               (* (m/pow (- 1.0 xrr) 4.0)
+                                  (+ 4.0 (* 16.0 xrr) (* 12.0 xrr2) (* 3.0 xrr3))))
+                             0.0))))))
+
 
 (defn rbf-obj
   "Create RBF Smile object.
@@ -118,7 +163,7 @@
              ~interp (.interpolate ~cl (m/seq->double-array ~xs) (m/seq->double-array ~ys))]
          (fn [~x] (.value ~interp ~x))))))
 
-(apache-commons-interpolator akima-spline-interpolator
+(apache-commons-interpolator akima-spline
   "Create cubic spline interpolator using Akima algorithm.
   Minimum number of points: 5
 
@@ -127,17 +172,17 @@
 Source: Apache Commons Math." #{:comm :d1}
   AkimaSplineInterpolator)
 
-(apache-commons-interpolator divided-difference-interpolator
+(apache-commons-interpolator divided-difference
   "Create Divided Difference Algorithm for interpolation.
 
 Source: Apache Commons Math." #{:comm :d1}
   DividedDifferenceInterpolator)
 
-(apache-commons-interpolator linear-interpolator
-                             "Create Divided Difference Algorithm for inqterpolation.
+(apache-commons-interpolator linear
+  "Create Divided Difference Algorithm for inqterpolation.
 
 Source: Apache Commons Math." #{:comm :d1}
-                             LinearInterpolator)
+  LinearInterpolator)
 
 (defn- loess-interpolator-with-obj 
   "Create Loess function based on created object.
@@ -147,7 +192,7 @@ Source: Apache Commons Math." #{:comm :d1}
   (let [^UnivariateFunction interp (.interpolate obj (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.value interp x))))
 
-(defn loess-interpolator
+(defn loess
   "Local Regression Algorithm
 
   * bandwidth: 0.2-1.0 (optimal: 0.25-0.5, default: 0.3)
@@ -162,20 +207,20 @@ Source: Apache Commons Math." #{:comm :d1}
   ([xs ys bandwidth robustness-iters accuracy]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters accuracy) xs ys)))
 
-(apache-commons-interpolator neville-interpolator
+(apache-commons-interpolator neville
                              "Neville algorithm
 
 Source: Apache Commons Math." #{:comm :d1}
                              NevilleInterpolator)
 
-(apache-commons-interpolator spline-interpolator
+(apache-commons-interpolator spline
                              "Cubic spline interpolation
 
 Source: Apache Commons Math." #{:comm :d1}
                              SplineInterpolator)
 
 
-(defn microsphere-projection-interpolator
+(defn microsphere-projection
   "Microsphere projection interpolator - 1d version
 
   Source: Apache Commons Math."
@@ -186,7 +231,7 @@ Source: Apache Commons Math." #{:comm :d1}
         ^MultivariateFunction f (.interpolate interp xin (m/seq->double-array ys))]
     (fn ^double [^double x] (.value f (double-array 1 x)))))
 
-(defn cubic-spline-interpolator
+(defn cubic-spline
   "Cubic spline interpolation.
 
   Source: Smile."
@@ -195,19 +240,19 @@ Source: Apache Commons Math." #{:comm :d1}
   (let [^Interpolation interp (CubicSplineInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
-(defn kriging-spline-interpolator
+(defn kriging-spline
   "Kriging interpolation.
 
   Source: Smile."
   {:metadoc/categories #{:smile :d1}
    :metadoc/examples [(example "Usage" {:test-value -0.07}
-                        (let [interpolator (kriging-spline-interpolator [2 5 9 10 11] [0.4 1.0 -1.0 -0.5 0.0])]
+                        (let [interpolator (kriging-spline [2 5 9 10 11] [0.4 1.0 -1.0 -0.5 0.0])]
                           (m/approx (interpolator 7.0))))]}
   [xs ys]
   (let [^Interpolation interp (KrigingInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
-(defn linear-smile-interpolator
+(defn linear-smile
   "Linear interpolation from Smile library.
 
   Source: Smile."
@@ -228,7 +273,7 @@ Source: Apache Commons Math." #{:comm :d1}
   ([xs ys rbf-fn]
    (rbf-interpolator xs ys rbf-fn false)))
 
-(defn shepard-interpolator
+(defn shepard
   "Shepard interpolation.
 
   Source: Smile."
@@ -242,7 +287,7 @@ Source: Apache Commons Math." #{:comm :d1}
 
 ;;; 2d
 
-(defn bicubic-interpolator
+(defn bicubic
   "Bicubic 2d.
 
   Grid based.
@@ -256,7 +301,7 @@ Source: Apache Commons Math." #{:comm :d1}
                                                 (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
-(defn piecewise-bicubic-interpolator
+(defn piecewise-bicubic
   "Piecewise bicubic 2d.
 
   Grid based.
@@ -270,7 +315,7 @@ Source: Apache Commons Math." #{:comm :d1}
                                                 (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.value interp x y))))
 
-(defn microsphere-2d-projection-interpolator
+(defn microsphere-2d-projection
   "Microsphere projection interpolator - 2d version
 
   Grid based.
@@ -286,7 +331,7 @@ Source: Apache Commons Math." #{:comm :d1}
     (fn ^double [^double x ^double y] (.value f (m/seq->double-array [x y])))))
 
 
-(defn bilinear-interpolator
+(defn bilinear
   "Bilinear 2d.
 
   Grid based.
@@ -299,7 +344,7 @@ Source: Apache Commons Math." #{:comm :d1}
                                                         (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
-(defn bicubic-smile-interpolator
+(defn bicubic-smile
   "Bicubic 2d.
 
   Grid based.
@@ -312,7 +357,7 @@ Source: Apache Commons Math." #{:comm :d1}
                                                        (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
-(defn cubic-2d-interpolator
+(defn cubic-2d
   "Cubic spline 2d.
 
   Grid based.
@@ -320,13 +365,13 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d2}
    :metadoc/examples [(example "Usage" {:test-value 4.68}
-                        (let [interpolator (cubic-2d-interpolator [2 5 9] [2 3 10] [[4 0 2]
-                                                                                    [-1 2 -2]
-                                                                                    [-2 0 1]])]
+                        (let [interpolator (cubic-2d [2 5 9] [2 3 10] [[4 0 2]
+                                                                       [-1 2 -2]
+                                                                       [-2 0 1]])]
                           (m/approx (interpolator 5.0 5.0))))
                       (example "Array layout"
-                        (let [intrp (cubic-2d-interpolator [2 5] [1 6] [[-1 -2]
-                                                                        [3 4]])]
+                        (let [intrp (cubic-2d [2 5] [1 6] [[-1 -2]
+                                                           [3 4]])]
                           [(intrp 2 1)
                            (intrp 2 6)
                            (intrp 5 1)
@@ -337,64 +382,26 @@ Source: Apache Commons Math." #{:comm :d1}
                                                              (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
-(def ^:private interpolators-list-symbol
-  '{:akima akima-spline-interpolator
-    :divided-diff divided-difference-interpolator
-    :linear linear-interpolator
-    :loess loess-interpolator
-    :neville neville-interpolator
-    :spline spline-interpolator
-    :cubic-spline cubic-spline-interpolator
-    :kriging kriging-spline-interpolator
-    :linear-smile linear-smile-interpolator
-    :rbf rbf-interpolator
-    :shepard shepard-interpolator
-    :microsphere microsphere-projection-interpolator
-    :bicubic bicubic-interpolator
-    :piecewise-bicubic piecewise-bicubic-interpolator
-    :microsphere-2d microsphere-2d-projection-interpolator
-    :bilinear bilinear-interpolator
-    :bicubic-smile bicubic-smile-interpolator
-    :cubic-2d cubic-2d-interpolator})
-
 (def ^{:doc "Map of interpolation functions"
        :metadoc/categories #{:smile :comm}
        :metadoc/examples [(example "List of names" (keys interpolators-list))]}
-  interpolators-list interpolators-list-symbol)
-
-;; Examples
-
-(def ^:const ^:private descr "Interpolation plot.")
-
-(defmacro ^:private add-interpolator-examples
-  []
-  `(do
-     ~@(for [[n f] interpolators-list-symbol
-             :when (not (or
-                         (= :rbf n)
-                         (= :microsphere n)))]
-         `(add-examples ~f
-            (example-image descr ~(str "images/i/" (name n) ".jpg"))))))
-
-(add-interpolator-examples)
-
-(add-examples rbf-interpolator
-  (example-image "With Gaussian RBF (scale=120)" "images/i/rbf-gaussian.jpg")
-  (example-image "With Multiquadratic RBF (scale=120)" "images/i/rbf-multiquadratic.jpg")
-  (example-image "With Inverse Multiquadratic RBF (scale=80)" "images/i/rbf-imultiquadratic.jpg")
-  (example-image "With ThinPlate RBF (scale=80)" "images/i/rbf-thinplate.jpg"))
-
-(add-examples loess-interpolator
-  (example-image "Loess, bandwidth=0.2, robustness-iters=1" "images/i/loess-02-1.jpg")
-  (example-image "Loess, bandwidth=0.7, robustness-iters=4" "images/i/loess-07-4.jpg"))
-
-(add-examples shepard-interpolator
-  (example-image "Shepard, p=5" "images/i/shepard-5.jpg")
-  (example-image "Shepard, p=0.9" "images/i/shepard-09.jpg"))
-
-(add-examples microsphere-projection-interpolator
-  (example "Usage" {:evaluate? false} (microsphere-projection-interpolator xs ys 8 0.9 0.0000001 1 1.5 false 1))
-  (example-image "Plot of above settings." "images/i/microsphere.jpg"))
-
+  interpolators-list {:akima akima-spline
+                      :divided-diff divided-difference
+                      :linear linear
+                      :loess loess
+                      :neville neville
+                      :spline spline
+                      :cubic-spline cubic-spline
+                      :kriging kriging-spline
+                      :linear-smile linear-smile
+                      :rbf rbf-interpolator
+                      :shepard shepard
+                      :microsphere microsphere-projection
+                      :bicubic bicubic
+                      :piecewise-bicubic piecewise-bicubic
+                      :microsphere-2d microsphere-2d-projection
+                      :bilinear bilinear
+                      :bicubic-smile bicubic-smile
+                      :cubic-2d cubic-2d})
 
 ;; TODO Multivariate

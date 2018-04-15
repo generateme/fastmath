@@ -10,6 +10,12 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 [generateme/fastmath "0.1.1"]
 ```
 
+Dev version
+
+```clojure
+[generateme/fastmath "0.1.2-SNAPSHOT"]
+```
+
 ## Documentation
 
 [HERE](https://generateme.github.io/fastmath/index.html)
@@ -84,6 +90,10 @@ With following groups of functions:
 ### Interpolations
 
 1d, 2d interpolations
+
+### Easings
+
+Several easing functions (in, out, in-out)
 
 ### Transforms
 

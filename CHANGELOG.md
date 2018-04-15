@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.1.2-SNAPSHOT]
+
+### Added
+
+* easings namespace
+
+### Changed
+
+* interpolator have shorter names now (without `-interpolator` suffix, one exception is `rbf-interpolator`)
+
 ## [0.1.1]
 
 ### Added
