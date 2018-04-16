@@ -2,7 +2,8 @@
   "Easing functions.
 
   List of all are in [[easings-list]]."
-  {:metadoc/categories {:back "Anticipatory easings"
+  {:metadoc/categories {:lin "Linear"
+                        :back "Anticipatory easings"
                         :bounce "Bounce"
                         :circle "Circular"
                         :cubic "Cubic"
@@ -36,6 +37,15 @@
   (let [fname (str "images/e/" (first opts) ".png")]
     (i/save (c/function-plot f 0.0 1.0 :y-label "easing value") (str "docs/" fname) :width 500 :height 250)
     fname))
+
+;;
+
+(defn linear
+  "Linear easing (identity)"
+  {:metadoc/categories #{:lin}
+   :metadoc/examples [(example "Usage" {:test-value 0.5} (linear 0.5))
+                      (example-snippet "Plot" save-graph :image linear)]}
+  ^double [^double t] t)
 
 (defn back-in
   "BackIn easing.
