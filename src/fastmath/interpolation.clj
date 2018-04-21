@@ -42,6 +42,7 @@
            [org.apache.commons.math3.analysis.interpolation BicubicInterpolator PiecewiseBicubicSplineInterpolator BivariateGridInterpolator]
            [org.apache.commons.math3.analysis.interpolation MultivariateInterpolator]
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction BivariateFunction]
+           [org.apache.commons.math3.analysis.function StepFunction]
            [smile.interpolation Interpolation AbstractInterpolation CubicSplineInterpolation1D KrigingInterpolation1D LinearInterpolation RBFInterpolation1D ShepardInterpolation1D]
            [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]
            [smile.math.rbf RadialBasisFunction]))
@@ -365,34 +366,55 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile."
   {:metadoc/categories #{:smile :d2}
    :metadoc/examples [(example "Usage" {:test-value 4.68}
-                        (let [interpolator (cubic-2d [2 5 9] [2 3 10] [[4 0 2]
-                                                                       [-1 2 -2]
-                                                                       [-2 0 1]])]
-                          (m/approx (interpolator 5.0 5.0))))
+                               (let [interpolator (cubic-2d [2 5 9] [2 3 10] [[4 0 2]
+                                                                              [-1 2 -2]
+                                                                              [-2 0 1]])]
+                                 (m/approx (interpolator 5.0 5.0))))
                       (example "Array layout"
-                        (let [intrp (cubic-2d [2 5] [1 6] [[-1 -2]
-                                                           [3 4]])]
-                          [(intrp 2 1)
-                           (intrp 2 6)
-                           (intrp 5 1)
-                           (intrp 5 6)]))]}
+                               (let [intrp (cubic-2d [2 5] [1 6] [[-1 -2]
+                                                                  [3 4]])]
+                                 [(intrp 2 1)
+                                  (intrp 2 6)
+                                  (intrp 5 1)
+                                  (intrp 5 6)]))]}
   [xs ys vs]
   (let [^Interpolation2D interp (CubicSplineInterpolation2D. (m/seq->double-array xs)
                                                              (m/seq->double-array ys)
                                                              (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
+(defn step-after
+  "Step function."
+  {:metadoc/categories #{:comm :d1}}
+  [xs ys]
+  (let [^StepFunction sf (StepFunction. (m/seq->double-array xs)
+                                        (m/seq->double-array ys))]
+    (fn ^double [^double x] (.value sf x))))
+
+(defn step-before
+  "Step function."
+  {:metadoc/categories #{:comm :d1}}
+  [xs ys]
+  (let [x (m/seq->double-array xs)
+        y (m/seq->double-array ys)
+        l (dec (alength x))]
+    (fn ^double [^double v]
+      (let [b (java.util.Arrays/binarySearch ^doubles x v)
+            i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
+        (aget ^doubles y i)))))
+
+
 (def ^{:doc "Map of interpolation functions"
        :metadoc/categories #{:smile :comm}
        :metadoc/examples [(example "List of names" (keys interpolators-list))]}
   interpolators-list {:akima akima-spline
-                      :divided-diff divided-difference
+                      :divided-difference divided-difference
                       :linear linear
                       :loess loess
                       :neville neville
                       :spline spline
                       :cubic-spline cubic-spline
-                      :kriging kriging-spline
+                      :kriging-spline kriging-spline
                       :linear-smile linear-smile
                       :rbf rbf-interpolator
                       :shepard shepard
@@ -402,6 +424,9 @@ Source: Apache Commons Math." #{:comm :d1}
                       :microsphere-2d microsphere-2d-projection
                       :bilinear bilinear
                       :bicubic-smile bicubic-smile
-                      :cubic-2d cubic-2d})
+                      :cubic-2d cubic-2d
+                      :step-after step-after
+                      :step-before step-before})
 
 ;; TODO Multivariate
+

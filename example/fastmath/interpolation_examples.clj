@@ -67,12 +67,18 @@
   (example-snippet "Neville plot" save-interpolation :image neville 0.65 6.5))
 
 (add-examples divided-difference
-  (example-snippet "Divided Difference plot" save-interpolation :image divided-difference 0.65 6.5))
+              (example-snippet "Divided Difference plot" save-interpolation :image divided-difference 0.65 6.5))
+
+(add-examples step-after
+              (example-snippet "Step function plot" save-interpolation :image step-after 0 7))
+
+(add-examples step-before
+              (example-snippet "Step function plot" save-interpolation :image step-before 0 7))
 
 (add-examples loess
-  (example-snippet "Loess plot" save-interpolation :image loess 0.69 6.22)
-  (example-snippet "Loess plot, bandwidth=0.7, robustness-iters=4" save-interpolation :image (fn [xs ys] (loess xs ys 0.7 4)) 0.69 6.22)
-  (example-snippet "Loess plot, bandwidth=0.2, robustness-iters=1" save-interpolation :image (fn [xs ys] (loess xs ys 0.2 1)) 0.69 6.22))
+              (example-snippet "Loess plot" save-interpolation :image loess 0.69 6.22)
+              (example-snippet "Loess plot, bandwidth=0.7, robustness-iters=4" save-interpolation :image (fn [xs ys] (loess xs ys 0.7 4)) 0.69 6.22)
+              (example-snippet "Loess plot, bandwidth=0.2, robustness-iters=1" save-interpolation :image (fn [xs ys] (loess xs ys 0.2 1)) 0.69 6.22))
 
 (add-examples microsphere-projection
   (example-snippet "Microsphere projection plot" save-interpolation :image (fn [xs ys] (microsphere-projection xs ys 4 0.5 0.0000001 0.1 2.5 false 0.1)) 0 7))
