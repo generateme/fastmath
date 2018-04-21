@@ -10,7 +10,8 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 
-* interpolator have shorter names now (without `-interpolator` suffix, one exception is `rbf-interpolator`)
+* interpolator have shorter names now (without `-interpolator` suffix)
+* rbf functions are moved to separate namespace
 
 ## [0.1.1]
 

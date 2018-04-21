@@ -33,119 +33,23 @@
   "
   {:metadoc/categories {:smile "Smile interpolators"
                         :comm "Apache Commons Math interpolators"
-                        :rbf "Radial Basis Function"
                         :d1 "1d interpolation"
                         :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all])
+            [metadoc.examples :refer :all]
+            [fastmath.rbf :as rbf])
   (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator UnivariatePeriodicInterpolator MicrosphereProjectionInterpolator UnivariateInterpolator]
            [org.apache.commons.math3.analysis.interpolation BicubicInterpolator PiecewiseBicubicSplineInterpolator BivariateGridInterpolator]
            [org.apache.commons.math3.analysis.interpolation MultivariateInterpolator]
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction BivariateFunction]
            [org.apache.commons.math3.analysis.function StepFunction]
            [smile.interpolation Interpolation AbstractInterpolation CubicSplineInterpolation1D KrigingInterpolation1D LinearInterpolation RBFInterpolation1D ShepardInterpolation1D]
-           [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]
-           [smile.math.rbf RadialBasisFunction]))
+           [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]           ))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-;; RBF
-(defmulti rbf
-  "Create Radial Basis Function
-
-  Optional parameter `scale`.
-
-  `:polyharmonic` has also exponent `k` parameter."
-  {:metadoc/categories #{:rbf}
-   :metadoc/examples [(example "Usage" (let [rbf-fn (rbf :multiquadratic 3.0)]
-                                         (rbf-fn 0.5)))]}
-  (fn [n & _] n))
-
-(defmethod rbf :linear
-  ([_] (fn ^double [^double x] x))
-  ([_ ^double scale] (fn ^double [^double x] (* scale x))))
-
-(defmethod rbf :gaussian
-  ([_] (fn ^double [^double x] (m/exp (- (* x x)))))
-  ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (m/exp (- (* s2 x x)))))))
-
-(defmethod rbf :multiquadratic
-  ([_] (fn ^double [^double x] (m/sqrt (inc (* x x)))))
-  ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (m/sqrt (inc (* s2 x x)))))))
-
-(defmethod rbf :inverse-multiquadratic
-  ([_] (fn ^double [^double x] (/ (m/sqrt (inc (* x x))))))
-  ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (/ (m/sqrt (inc (* s2 x x))))))))
-
-(defmethod rbf :inverse-quadratic
-  ([_] (fn ^double [^double x] (/ (inc (* x x)))))
-  ([_ ^double scale] (let [s2 (* scale scale)]
-                       (fn ^double [^double x] (/ (inc (* s2 x x)))))))
-
-(defmethod rbf :polyharmonic
-  ([_ ^long k] (rbf :polyharmonic k 1.0))
-  ([_ ^long k ^double scale] (if (even? k)
-                               (fn ^double [^double x]
-                                 (if (pos? x)
-                                   (let [sx (* scale x)] 
-                                     (* (m/log sx) (m/pow sx k)))
-                                   0.0))
-                               (fn ^double [^double x] (m/pow (* scale x) k)))))
-
-
-(defmethod rbf :thinplate
-  ([_] (fn ^double [^double x] (if (pos? x)
-                                 (* x x (m/log x))
-                                 0.0)))
-  ([_ ^double scale]
-   (let [s2 (* scale scale)]
-     (fn ^double [^double x] (if (pos? x)
-                               (* s2 x x (m/log (* x scale)))
-                               0.0)))))
-
-(defmethod rbf :wendland
-  ([_] (rbf :wendland 4.0))
-  ([_ ^double scale] (let [rr (/ scale)]
-                       (fn ^double [^double x]
-                         (let [xrr (* x rr)]
-                           (if (< xrr 1.0)
-                             (* (m/pow (- 1.0 xrr) 4.0)
-                                (inc (* 4.0 xrr)))
-                             0.0))))))
-
-(defmethod rbf :wu
-  ([_] (rbf :wu 2.0))
-  ([_ ^double scale] (let [rr (/ scale)]
-                       (fn ^double [^double x]
-                         (let [xrr (* x rr)]
-                           (if (< xrr 1.0)
-                             (let [xrr2 (* xrr xrr)
-                                   xrr3 (* xrr xrr2)]
-                               (* (m/pow (- 1.0 xrr) 4.0)
-                                  (+ 4.0 (* 16.0 xrr) (* 12.0 xrr2) (* 3.0 xrr3))))
-                             0.0))))))
-
-
-(defn rbf-obj
-  "Create RBF Smile object.
-
-  Used to pass to Smile constructors/functions."
-  {:metadoc/categories #{:rbf}
-   :metadoc/examples [(example "Usage" (let [^RadialBasisFunction rbf-obj (rbf-obj (rbf :thinplate))]
-                                         (.f rbf-obj 0.5)))]}
-  [rbf-fn]
-  (reify RadialBasisFunction
-    (^double f [_ ^double x] (rbf-fn x))))
-
-(def ^{:doc "Radial Basis function names"
-       :metadoc/categories #{:rbf}
-       :metadoc/examples [(example "List of names" (sort rbfs-list))]}
-  rbfs-list (keys (methods rbf)))
 
 ;; 1d
 
@@ -262,17 +166,17 @@ Source: Apache Commons Math." #{:comm :d1}
   (let [^Interpolation interp (LinearInterpolation. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
-(defn rbf-interpolator
+(defn rbf
   "RBF (Radial Basis Function) interpolation.
 
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
   ([xs ys rbf-fn normalize?]
-   (let [rbf-obj (rbf-obj rbf-fn)
+   (let [rbf-obj (rbf/rbf-obj rbf-fn)
          ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([xs ys rbf-fn]
-   (rbf-interpolator xs ys rbf-fn false)))
+   (rbf xs ys rbf-fn false)))
 
 (defn shepard
   "Shepard interpolation.
@@ -404,29 +308,33 @@ Source: Apache Commons Math." #{:comm :d1}
         (aget ^doubles y i)))))
 
 
-(def ^{:doc "Map of interpolation functions"
-       :metadoc/categories #{:smile :comm}
-       :metadoc/examples [(example "List of names" (keys interpolators-list))]}
-  interpolators-list {:akima akima-spline
-                      :divided-difference divided-difference
-                      :linear linear
-                      :loess loess
-                      :neville neville
-                      :spline spline
-                      :cubic-spline cubic-spline
-                      :kriging-spline kriging-spline
-                      :linear-smile linear-smile
-                      :rbf rbf-interpolator
-                      :shepard shepard
-                      :microsphere microsphere-projection
-                      :bicubic bicubic
-                      :piecewise-bicubic piecewise-bicubic
-                      :microsphere-2d microsphere-2d-projection
-                      :bilinear bilinear
-                      :bicubic-smile bicubic-smile
-                      :cubic-2d cubic-2d
-                      :step-after step-after
-                      :step-before step-before})
+(def ^{:doc "Map of 1d interpolation functions"
+       :metadoc/categories #{:smile :comm :d1}
+       :metadoc/examples [(example "List of names" (keys interpolators-1d-list))]}
+  interpolators-1d-list {:akima akima-spline
+                         :divided-difference divided-difference
+                         :linear linear
+                         :loess loess
+                         :neville neville
+                         :spline spline
+                         :cubic-spline cubic-spline
+                         :kriging-spline kriging-spline
+                         :linear-smile linear-smile
+                         :rbf rbf
+                         :shepard shepard
+                         :microsphere microsphere-projection
+                         :step-after step-after
+                         :step-before step-before})
+
+(def ^{:doc "Map of 2d interpolation functions"
+       :metadoc/categories #{:smile :comm :d2}
+       :metadoc/examples [(example "List of names" (keys interpolators-1d-list))]}
+  interpolators-2d-list {:bicubic bicubic
+                         :piecewise-bicubic piecewise-bicubic
+                         :microsphere-2d microsphere-2d-projection
+                         :bilinear bilinear
+                         :bicubic-smile bicubic-smile
+                         :cubic-2d cubic-2d})
 
 ;; TODO Multivariate
 

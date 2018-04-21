@@ -3,6 +3,7 @@
             [incanter.charts :as c]
             [fastmath.core :as m]
             [metadoc.examples :refer :all]
+            [fastmath.rbf :as rbf]
             [incanter.core :as i]))
 
 (defsnippet fastmath.interpolation save-graph
@@ -12,17 +13,17 @@
     (incanter.core/save (c/function-plot f x1 x2 :y-label "value") (str "docs/" fname) :width 250 :height 250)
     fname))
 
-(add-examples rbf
-  (example-snippet "Linear" save-graph :image (rbf :linear) -2.0 2.0)
-  (example-snippet "Gaussian" save-graph :image (rbf :gaussian) -2.0 2.0)
-  (example-snippet "Multiquadratic" save-graph :image (rbf :multiquadratic) -3.0 3.0)
-  (example-snippet "Inverse multiquadratic" save-graph :image (rbf :inverse-multiquadratic) -3.0 3.0)
-  (example-snippet "Inverse quadratic" save-graph :image (rbf :inverse-quadratic) -3.0 3.0)
-  (example-snippet "Thinplate" save-graph :image (rbf :thinplate) -1.0 3.0)
-  (example-snippet "Polyharmonic 3" save-graph :image (rbf :polyharmonic 3) -3.0 3.0)
-  (example-snippet "Polyharmonic 4" save-graph :image (rbf :polyharmonic 4) -3.0 3.0)
-  (example-snippet "Wendland" save-graph :image (rbf :wendland) -3.0 3.0)
-  (example-snippet "Wu" save-graph :image (rbf :wu) -3.0 3.0))
+(comment add-examples rbf
+         (example-snippet "Linear" save-graph :image (rbf/rbf :linear) -2.0 2.0)
+         (example-snippet "Gaussian" save-graph :image (rbf/rbf :gaussian) -2.0 2.0)
+         (example-snippet "Multiquadratic" save-graph :image (rbf/rbf :multiquadratic) -3.0 3.0)
+         (example-snippet "Inverse multiquadratic" save-graph :image (rbf :inverse-multiquadratic) -3.0 3.0)
+         (example-snippet "Inverse quadratic" save-graph :image (rbf :inverse-quadratic) -3.0 3.0)
+         (example-snippet "Thinplate" save-graph :image (rbf :thinplate) -1.0 3.0)
+         (example-snippet "Polyharmonic 3" save-graph :image (rbf :polyharmonic 3) -3.0 3.0)
+         (example-snippet "Polyharmonic 4" save-graph :image (rbf :polyharmonic 4) -3.0 3.0)
+         (example-snippet "Wendland" save-graph :image (rbf :wendland) -3.0 3.0)
+         (example-snippet "Wu" save-graph :image (rbf :wu) -3.0 3.0))
 
 
 (comment incanter.core/view (c/function-plot (rbf :polyharmonic 2) -3.0 3.0 :y-label "value") :width 250 :height 250)
@@ -83,20 +84,20 @@
 (add-examples microsphere-projection
   (example-snippet "Microsphere projection plot" save-interpolation :image (fn [xs ys] (microsphere-projection xs ys 4 0.5 0.0000001 0.1 2.5 false 0.1)) 0 7))
 
-(add-examples rbf-interpolator
-  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :linear))) 0 7)
-  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :gaussian))) 0 7)
-  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :multiquadratic))) 0 7)
-  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :inverse-multiquadratic))) 0 7)
-  (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :inverse-quadratic))) 0 7)
-  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :thinplate))) 0 7)
-  (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :polyharmonic 3))) 0 7)
-  (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :polyharmonic 4))) 0 7)
-  (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :wendland))) 0 7)
-  (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf-interpolator xs ys (rbf :wu))) 0 7))
+(add-examples rbf
+  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :linear))) 0 7)
+  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :gaussian))) 0 7)
+  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :multiquadratic))) 0 7)
+  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :inverse-multiquadratic))) 0 7)
+  (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :inverse-quadratic))) 0 7)
+  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :thinplate))) 0 7)
+  (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :polyharmonic 3))) 0 7)
+  (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :polyharmonic 4))) 0 7)
+  (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :wendland))) 0 7)
+  (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :wu))) 0 7))
 
 
-(comment let [f (fn [xs ys] (rbf-interpolator xs ys (rbf :wu 2)))
+(comment let [f (fn [xs ys] (rbf xs ys (rbf/rbf :wu 2)))
               xs [0.69 1.73 2.0 2.28 3.46 4.18 4.84 5.18 5.53 5.87 6.22]
               ft (fn [^double x] (m/sin (* x (* 0.5 (m/cos (inc x))))))
               ys (map ft xs)
