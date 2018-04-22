@@ -100,13 +100,13 @@ Source: Apache Commons Math." #{:comm :d1}
 (defn loess
   "Local Regression Algorithm
 
-  * bandwidth: 0.2-1.0 (optimal: 0.25-0.5, default: 0.3)
+  * bandwidth: 0.2-1.0 (optimal: 0.25-0.5, default: 0.4)
   * robustness-iters: 0-4 (optimal: 0, default: 2)
   * accuracy: double (default: 1e-12)
 
   Source: Apache Commons Math."
   {:metadoc/categories #{:comm :d1}}
-  ([xs ys] (loess-interpolator-with-obj (LoessInterpolator.) xs ys))
+  ([xs ys] (loess-interpolator-with-obj (LoessInterpolator. 0.4 2) xs ys))
   ([bandwidth robustness-iters xs ys]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters) xs ys))
   ([bandwidth robustness-iters accuracy xs ys]
@@ -176,7 +176,7 @@ Source: Apache Commons Math." #{:comm :d1}
          ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([rbf-fn xs ys]
-   (rbf xs ys rbf-fn false)))
+   (rbf rbf-fn false xs ys)))
 
 (defn shepard
   "Shepard interpolation.
