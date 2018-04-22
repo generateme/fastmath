@@ -52,8 +52,8 @@
 
 (add-examples shepard
   (example-snippet "Shepard plot" save-interpolation :image shepard 0 7)
-  (example-snippet "Shepard plot, p=5" save-interpolation :image (fn [xs ys] (shepard xs ys 5)) 0 7)
-  (example-snippet "Shepard plot, p=0.9" save-interpolation :image (fn [xs ys] (shepard xs ys 0.9)) 0 7))
+  (example-snippet "Shepard plot, p=5" save-interpolation :image (fn [xs ys] (shepard 5 xs ys)) 0 7)
+  (example-snippet "Shepard plot, p=0.9" save-interpolation :image (fn [xs ys] (shepard 0.9 xs ys)) 0 7))
 
 (add-examples kriging-spline
   (example-snippet "Kriging spline plot" save-interpolation :image kriging-spline 0 7))
@@ -77,24 +77,24 @@
               (example-snippet "Step function plot" save-interpolation :image step-before 0 7))
 
 (add-examples loess
-              (example-snippet "Loess plot" save-interpolation :image loess 0.69 6.22)
-              (example-snippet "Loess plot, bandwidth=0.7, robustness-iters=4" save-interpolation :image (fn [xs ys] (loess xs ys 0.7 4)) 0.69 6.22)
-              (example-snippet "Loess plot, bandwidth=0.2, robustness-iters=1" save-interpolation :image (fn [xs ys] (loess xs ys 0.2 1)) 0.69 6.22))
+  (example-snippet "Loess plot" save-interpolation :image loess 0.69 6.22)
+  (example-snippet "Loess plot, bandwidth=0.7, robustness-iters=4" save-interpolation :image (fn [xs ys] (loess 0.7 4 xs ys)) 0.69 6.22)
+  (example-snippet "Loess plot, bandwidth=0.2, robustness-iters=1" save-interpolation :image (fn [xs ys] (loess 0.2 1 xs ys)) 0.69 6.22))
 
 (add-examples microsphere-projection
-  (example-snippet "Microsphere projection plot" save-interpolation :image (fn [xs ys] (microsphere-projection xs ys 4 0.5 0.0000001 0.1 2.5 false 0.1)) 0 7))
+  (example-snippet "Microsphere projection plot" save-interpolation :image (fn [xs ys] (microsphere-projection 4 0.5 0.0000001 0.1 2.5 false 0.1 xs ys)) 0 7))
 
 (add-examples rbf
-  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :linear))) 0 7)
-  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :gaussian))) 0 7)
-  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :multiquadratic))) 0 7)
-  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :inverse-multiquadratic))) 0 7)
-  (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :inverse-quadratic))) 0 7)
-  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :thinplate))) 0 7)
-  (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :polyharmonic 3))) 0 7)
-  (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :polyharmonic 4))) 0 7)
-  (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :wendland))) 0 7)
-  (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf xs ys (rbf/rbf :wu))) 0 7))
+  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :linear) xs ys)) 0 7)
+  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :gaussian) xs ys)) 0 7)
+  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :multiquadratic) xs ys)) 0 7)
+  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :inverse-multiquadratic) xs ys)) 0 7)
+  (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :inverse-quadratic) xs ys)) 0 7)
+  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :thinplate) xs ys)) 0 7)
+  (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :polyharmonic 3) xs ys)) 0 7)
+  (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :polyharmonic 4) xs ys)) 0 7)
+  (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :wendland) xs ys)) 0 7)
+  (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf (rbf/rbf :wu) xs ys)) 0 7))
 
 
 (comment let [f (fn [xs ys] (rbf xs ys (rbf/rbf :wu 2)))

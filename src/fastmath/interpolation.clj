@@ -107,9 +107,9 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Apache Commons Math."
   {:metadoc/categories #{:comm :d1}}
   ([xs ys] (loess-interpolator-with-obj (LoessInterpolator.) xs ys))
-  ([xs ys ^double bandwidth ^long robustness-iters]
+  ([bandwidth robustness-iters xs ys]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters) xs ys))
-  ([xs ys bandwidth robustness-iters accuracy]
+  ([bandwidth robustness-iters accuracy xs ys]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters accuracy) xs ys)))
 
 (apache-commons-interpolator neville
@@ -130,7 +130,7 @@ Source: Apache Commons Math." #{:comm :d1}
 
   Source: Apache Commons Math."
   {:metadoc/categories #{:comm :d1}}
-  [xs ys elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
+  [elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance xs ys]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 1 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
         xin (m/seq->double-double-array (map vector xs))
         ^MultivariateFunction f (.interpolate interp xin (m/seq->double-array ys))]
@@ -171,11 +171,11 @@ Source: Apache Commons Math." #{:comm :d1}
 
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
-  ([xs ys rbf-fn normalize?]
+  ([rbf-fn normalize? xs ys]
    (let [rbf-obj (rbf/rbf-obj rbf-fn)
          ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
-  ([xs ys rbf-fn]
+  ([rbf-fn xs ys]
    (rbf xs ys rbf-fn false)))
 
 (defn shepard
@@ -186,9 +186,29 @@ Source: Apache Commons Math." #{:comm :d1}
   ([xs ys]
    (let [^Interpolation interp (ShepardInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
      (fn ^double [^double x] (.interpolate interp x))))
-  ([xs ys p]
+  ([p xs ys]
    (let [^Interpolation interp (ShepardInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) p)]
      (fn ^double [^double x] (.interpolate interp x)))))
+
+(defn step-after
+  "Step function."
+  {:metadoc/categories #{:comm :d1}}
+  [xs ys]
+  (let [^StepFunction sf (StepFunction. (m/seq->double-array xs)
+                                        (m/seq->double-array ys))]
+    (fn ^double [^double x] (.value sf x))))
+
+(defn step-before
+  "Step function."
+  {:metadoc/categories #{:comm :d1}}
+  [xs ys]
+  (let [x (m/seq->double-array xs)
+        y (m/seq->double-array ys)
+        l (dec (alength x))]
+    (fn ^double [^double v]
+      (let [b (java.util.Arrays/binarySearch ^doubles x v)
+            i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
+        (aget ^doubles y i)))))
 
 ;;; 2d
 
@@ -227,7 +247,7 @@ Source: Apache Commons Math." #{:comm :d1}
   
   Source: Apache Commons Math."
   {:metadoc/categories #{:comm :d2}}
-  [xs ys vs elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance]
+  [elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance xs ys vs]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 2 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
         xyin (m/seq->double-double-array (for [x xs
                                                y ys]
@@ -286,27 +306,6 @@ Source: Apache Commons Math." #{:comm :d1}
                                                              (m/seq->double-array ys)
                                                              (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
-
-(defn step-after
-  "Step function."
-  {:metadoc/categories #{:comm :d1}}
-  [xs ys]
-  (let [^StepFunction sf (StepFunction. (m/seq->double-array xs)
-                                        (m/seq->double-array ys))]
-    (fn ^double [^double x] (.value sf x))))
-
-(defn step-before
-  "Step function."
-  {:metadoc/categories #{:comm :d1}}
-  [xs ys]
-  (let [x (m/seq->double-array xs)
-        y (m/seq->double-array ys)
-        l (dec (alength x))]
-    (fn ^double [^double v]
-      (let [b (java.util.Arrays/binarySearch ^doubles x v)
-            i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
-        (aget ^doubles y i)))))
-
 
 (def ^{:doc "Map of 1d interpolation functions"
        :metadoc/categories #{:smile :comm :d1}
