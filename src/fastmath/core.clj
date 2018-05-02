@@ -591,10 +591,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
     (bit-or v (>> v 32))
     (inc v)))
 
-(defn next-float-up
+(defn next-double
   "Next double value. Optional value `delta` sets step amount."
-  {:metadoc/examples [(example "Next double." (next-float-up 1234.56789))
-              (example "Next double with delta." (next-float-up 1234.56789 1000))]}
+  {:metadoc/examples [(example "Next double." (next-double 1234.56789))
+                      (example "Next double with delta." (next-double 1234.56789 1000))]}
   (^double [^double v]
    (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
      (Double/longBitsToDouble (if (neg? v) (dec ui) (inc ui)))))
@@ -602,10 +602,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
    (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
      (Double/longBitsToDouble (if (neg? v) (- ui delta) (+ ui delta))))))
 
-(defn next-float-down
+(defn prev-double
   "Previous double value. Optional value `delta` sets step amount."
-  {:metadoc/examples [(example "Prev. double." (next-float-down 1234.56789))
-              (example "Prev. double with delta." (next-float-down 1234.56789 1000))]}
+  {:metadoc/examples [(example "Prev. double." (prev-double 1234.56789))
+                      (example "Prev. double with delta." (prev-double 1234.56789 1000))]}
   (^double [^double v]
    (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
      (Double/longBitsToDouble (if (pos? v) (dec ui) (inc ui)))))
@@ -926,7 +926,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                        qsin qcos exp log log10 ln log1p sqrt cbrt qexp qsqrt rqsqrt
                        erf erfc inv-erf inv-erfc sinc log2 qlog
                        sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
-                       frac sfrac low-2-exp high-2-exp round-up-pow2 next-float-up next-float-down
+                       frac sfrac low-2-exp high-2-exp round-up-pow2 next-double prev-double
                        signum sgn sigmoid
                        gamma log-gamma digamma log-gamma-1p trigamma inv-gamma-1pm1))
 

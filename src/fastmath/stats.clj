@@ -318,6 +318,14 @@
     (smile.math.Math/max ^doubles vs)
     (reduce clojure.core/max vs)))
 
+(defn extent
+  "Return extent (min, max) values from sequence"
+  {:metadoc/categories #{:stat}}
+  [vs]
+  (let [^double fv (first vs)]
+    (reduce (fn [[^double mn ^double mx] ^double v]
+              [(min mn v) (max mx v)]) [fv fv] (rest vs))))
+
 (defn sum
   "Sum of all `vs` values."
   {:metadoc/categories #{:stat}

@@ -15,8 +15,8 @@
   (is (= -0.342225 (m/sfrac -3.342225))))
 
 (deftest round-up-down
-  (is (> (m/next-float-up 4.44) 4.44))
-  (is (< (m/next-float-down 4.44) 4.44))
+  (is (> (m/next-double 4.44) 4.44))
+  (is (< (m/prev-double 4.44) 4.44))
   (is (= (m/round-up-pow2 1023) 1024))
   (is (= (m/round-up-pow2 1024) 1024))
   (is (= (m/round-up-pow2 1025) 2048)))

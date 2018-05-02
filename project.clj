@@ -10,7 +10,7 @@
                  [com.github.haifengl/smile-math "1.5.1"]
                  [org.slf4j/slf4j-simple "1.7.25"]
                  [de.sciss/jwave "1.0.3"]
-                 [metadoc "0.2.0"]
+                 [metadoc "0.2.1"]
                  [incanter/incanter-charts "1.9.2"]
                  [incanter/incanter-core "1.9.2"]]
   :resource-path "resources/"

@@ -7,12 +7,15 @@ All notable changes to this project will be documented in this file. This change
 
 * easings namespace
 * `sample` function
+* extent stat ([min,max] pair)
 
 ### Changed
 
 * interpolator have shorter names now (without `-interpolator` suffix)
 * rbf functions are moved to separate namespace
 * changed parameters order in interpolators (xs and ys are last)
+* next-float-up -> next-double
+* next-float-down -> prev-double
 
 ## [0.1.1]
 
