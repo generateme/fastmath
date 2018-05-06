@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 * easings namespace
 * `sample` function
 * extent stat ([min,max] pair)
+* histgram
 
 ### Changed
 

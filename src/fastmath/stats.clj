@@ -49,12 +49,12 @@
 
   ### Other
 
-  Normalize samples to have mean=0 and standard deviation = 1 with [[standardize]]."
+  Normalize samples to have mean=0 and standard deviation = 1 with [[standardize]].
+
+  [[histogram]] to count samples in evenly spaced ranges."
   {:metadoc/categories {:stat "Descriptive statistics"
                         :corr "Correlation"}}
-  (:require [metadoc.examples :refer :all]
-            [fastmath.core :as m]
-            [fastmath.random :as r])
+  (:require [fastmath.core :as m])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
@@ -68,9 +68,7 @@
   "Find the value that appears most often in a dataset `vs`.
 
   See also [[modes]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Example" (mode [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Returns lowest value when every element appears equally." (mode [5 1 2 3 4]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [m (StatUtils/mode (m/seq->double-array vs))]
     (aget ^doubles m 0)))
@@ -81,15 +79,13 @@
   Returns sequence with all most appearing values in increasing order.
 
   See also [[mode]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Example" (modes [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Returns lowest value when every element appears equally." (modes [5 5 1 1 2 3 4 4]))]}
+  {:metadoc/categories #{:stat}}
   [vs]
   (seq ^doubles (StatUtils/mode (m/seq->double-array vs))))
 
 (def
   ^{:metadoc/categories #{:stat}
-    :metadoc/examples [(example "List of estimation strategies for percentile" (keys estimation-strategies-list))]}
+    :docs "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
   estimation-strategies-list {:legacy Percentile$EstimationType/LEGACY
                               :r1 Percentile$EstimationType/R_1
                               :r2 Percentile$EstimationType/R_2
@@ -111,22 +107,7 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
   
   See also [[quantile]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Percentile 25%" (percentile [1 2 3 -1 -1 2 -1 11 111] 25.0))
-                      (example "Percentile 50% (median)" (percentile [1 2 3 -1 -1 2 -1 11 111] 50.0))
-                      (example "Percentile 75%" (percentile [1 2 3 -1 -1 2 -1 11 111] 75.0))
-                      (example "Percentile 90%" (percentile [1 2 3 -1 -1 2 -1 11 111] 90.0))
-                      (example-session "Various estimation strategies."
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :legacy)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r1)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r2)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r3)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r4)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r5)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r6)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r7)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r8)
-                                       (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r9))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs ^double p] 
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
@@ -143,22 +124,7 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
   
   See also [[percentile]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Quantile 0.25" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.25))
-                      (example "Quantile 0.5 (median)" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.5))
-                      (example "Quantile 0.75" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.75))
-                      (example "Quantile 0.9" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.9))
-                      (example-session "Various estimation strategies."
-                                       (quantile [1 11 111 1111] 0.7 :legacy)
-                                       (quantile [1 11 111 1111] 0.7 :r1)
-                                       (quantile [1 11 111 1111] 0.7 :r2)
-                                       (quantile [1 11 111 1111] 0.7 :r3)
-                                       (quantile [1 11 111 1111] 0.7 :r4)
-                                       (quantile [1 11 111 1111] 0.7 :r5)
-                                       (quantile [1 11 111 1111] 0.7 :r6)
-                                       (quantile [1 11 111 1111] 0.7 :r7)
-                                       (quantile [1 11 111 1111] 0.7 :r8)
-                                       (quantile [1 11 111 1111] 0.7 :r9))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs ^double p]
    (percentile vs (m/constrain (* p 100.0) 0.0 100.0)))
   (^double [vs ^double p estimation-strategy]
@@ -166,31 +132,26 @@
 
 (defn median
   "Calculate median of a list. See [[median-3]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Median (percentile 50%)." (median [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "For three elements use faster [[median-3]]." (median [7 1 4]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (percentile vs 50.0))
 
 (defn median-3
   "Median of three values. See [[median]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Median of [7 1 4]" (median-3 7 1 4))]}
+  {:metadoc/categories #{:stat}}
   ^double [^double a ^double b ^double c]
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
   "Calculate mean of a list"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Mean (average value)" (mean [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs] (StatUtils/mean (m/seq->double-array vs))))
 
 (defn population-variance
   "Calculate population variance of a list.
 
   See [[variance]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Population variance" (population-variance [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs]
    (StatUtils/populationVariance (m/seq->double-array vs)))
   (^double [vs ^double u]
@@ -200,8 +161,7 @@
   "Calculate variance of a list.
 
   See [[population-variance]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Variance." (variance [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs]
    (StatUtils/variance (m/seq->double-array vs)))
   (^double [vs ^double u]
@@ -211,8 +171,7 @@
   "Calculate population standard deviation of a list.
 
   See [[stddev]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Population standard deviation." (population-stddev [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs]
    (m/sqrt (population-variance vs)))
   (^double [vs u]
@@ -222,8 +181,7 @@
   "Calculate population standard deviation of a list.
 
   See [[population-stddev]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Standard deviation." (stddev [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   (^double [vs]
    (m/sqrt (variance vs)))
   (^double [vs u]
@@ -231,8 +189,7 @@
 
 (defn median-absolute-deviation 
   "Calculate MAD"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "MAD" (median-absolute-deviation [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (smile.math.Math/mad (double-array vs)))
 
@@ -245,9 +202,7 @@
   * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "[LAV, UAV]" (adjacent-values [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Gaussian distribution [LAV, UAV]" (adjacent-values (repeatedly 1000000 r/grand)))]}
+  {:metadoc/categories #{:stat}}
   ([vs]
    (adjacent-values vs :legacy))
   ([vs estimation-strategy]
@@ -275,9 +230,7 @@
   Returns sequence.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Outliers" (outliers [1 2 3 -1 -1 2 -1 11 111]))
-                      (example "Gaussian distribution outliers" (outliers (repeatedly 3000000 r/grand)))]}
+  {:metadoc/categories #{:stat}}
   ([vs]
    (outliers vs :legacy))
   ([vs estimation-strategy]
@@ -295,15 +248,9 @@
                 (bool-or (< v lof-thr)
                          (> v uof-thr))) avs))))
 
-(let [avs (double-array [1 2 3 -1 -1 2 -1 11 111])
-      q1 (percentile avs 25.0)
-      q3 (percentile avs 75.0)]
-  [q1 q3 (adjacent-values avs q1 q3)])
-
 (defn minimum
   "Minimum value from sequence."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Minimum value" (minimum [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.Math/min ^doubles vs)
@@ -311,8 +258,7 @@
 
 (defn maximum
   "Maximum value from sequence."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Maximum value" (maximum [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.Math/max ^doubles vs)
@@ -328,8 +274,7 @@
 
 (defn sum
   "Sum of all `vs` values."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Sum" (sum [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.Math/sum ^doubles vs)
@@ -337,8 +282,7 @@
 
 (defn kurtosis
   "Calculate kurtosis from sequence."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Kurtosis" (kurtosis [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [^Kurtosis k (Kurtosis.)]
     (.evaluate k (m/seq->double-array vs))))
@@ -347,16 +291,14 @@
   "Calculate second moment from sequence.
 
   It's a sum of squared deviations from the sample mean"
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Second Moment" (second-moment [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [^SecondMoment k (SecondMoment.)]
     (.evaluate k (m/seq->double-array vs))))
 
 (defn skewness
   "Calculate kurtosis from sequence."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Skewness" (skewness [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [^Skewness k (Skewness.)]
     (.evaluate k (m/seq->double-array vs))))
@@ -365,8 +307,7 @@
   "Calculate several statistics from the list and return as map.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}
-   :metadoc/examples [(example "Stats" (stats-map [1 2 3 -1 -1 2 -1 11 111]))]}
+  {:metadoc/categories #{:stat}}
   ([vs] (stats-map vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
@@ -409,58 +350,79 @@
 
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."
-  {:metadoc/examples [(example "Standardize" (standardize [1 2 3 -1 -1 2 -1 11 111]))]}
   [vs]
   (seq ^doubles (StatUtils/normalize (m/seq->double-array vs))))
 
 (defn covariance
   "Covariance of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Covariance of uniform and gaussian distribution samples." (covariance (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (smile.math.Math/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn correlation
   "Correlation of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Correlation of uniform and gaussian distribution samples." (correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (smile.math.Math/cor (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Spearman's correlation of uniform and gaussian distribution samples." (spearman-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Pearson's correlation of uniform and gaussian distribution samples." (pearson-correlation (repeatedly 100000 r/grand) (repeatedly 100000 r/drand)))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn kendall-correlation
   "Kendall's correlation of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Kendall's correlation of uniform and gaussian distribution samples." (kendall-correlation (repeatedly 100 r/grand) (repeatedly 100 r/drand)))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Kullback-Leibler divergence." (kullback-leibler-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100))))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (smile.math.Math/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
-  {:metadoc/categories #{:corr}
-   :metadoc/examples [(example "Jensen-Shannon divergence" (jensen-shannon-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100))))]}
+  {:metadoc/categories #{:corr}}
   [vs1 vs2]
   (smile.math.Math/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+
+;;
+
+(defn histogram
+  "Calculate histogram.
+
+  Returns map with keys:
+
+  * `:size` - number of bins
+  * `:step` - distance between bins
+  * `:bins` - list of pairs of range lower value and number of hits"
+  {:metadoc/categories #{:stat}}
+  ([vs bins] (histogram vs bins (extent vs)))
+  ([vs ^long bins [^double mn ^double mx]]
+   (let [diff (- mx mn)
+         step (/ diff bins)
+         search-array (double-array (map #(+ mn (* ^long % step)) (range bins)))
+         buff (long-array bins)
+         mx+ (m/next-double mx)]
+     
+     (doseq [^double v vs] ;; sprawdzić czy się mieści w domenie
+       (when (<= mn v mx+)
+         (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
+               ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
+           (fastmath.java.Array/inc ^longs buff pos))))
+
+     {:size bins
+      :step step
+      :bins (map vector search-array buff)})))
 
 ;; TODO - replace with native (SMILE or Apache Commens) algorithms
 
@@ -471,7 +433,6 @@
 ;; `(k-means 4 '(1 2 3 -1 -1 2 -1 11 111)) => (-1.0 2.0 11.0 111.0)`
 (defn k-means
   "k-means clustering"
-  {:metadoc/examples [(example "Reduce to 4 values." (k-means 4 [1 2 3 -1 -1 2 -1 11 111]))]}
   [^long k vs]
   (let [vs (map double vs)
         svs (set vs)]
