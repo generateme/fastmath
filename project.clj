@@ -20,7 +20,7 @@
         :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}
              :dev {:plugins [[refactor-nrepl "2.4.0-SNAPSHOT"]
-                             [cider/cider-nrepl "0.17.0-SNAPSHOT"]
+                             [cider/cider-nrepl "0.17.0"]
                              [com.jakemccrary/lein-test-refresh "0.22.0"]
                              [lein-codox "0.10.3"]]
                    :source-paths ["example"]

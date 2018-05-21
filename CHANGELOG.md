@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file. This change
 * `sample` function
 * extent stat ([min,max] pair)
 * histgram
+* vector fields functions moved from clojure2d
 
 ### Changed
 
