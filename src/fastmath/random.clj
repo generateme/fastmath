@@ -97,8 +97,7 @@
                         :gen "Random sequence generation"
                         :dist "Distributions"}}
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v]
-            [metadoc.examples :refer :all])
+            [fastmath.vector :as v])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -267,84 +266,47 @@ See [[brand]].")
 
 ;; List of randomizers
 (def ^{:metadoc/categories #{:rand}
-       :doc "List of all possible RNGs."
-       :metadoc/examples [(example "Contains" (sort rngs-list))]}
+       :doc "List of all possible RNGs."}
   rngs-list (remove #{:default} (keys (methods rng))))
-
-
-(add-examples rng
-  (example-session "Creating" (rng :mersenne) (rng :isaac 1234))
-  (example "Using" (irandom (rng :mersenne 999) 15 25)))
-
-(defsnippet rngproto-snippet
-  "Show [[RNGProto]] methods."
-  (let [rng (rng :well44497b)]
-    (f rng)))
-
-(add-examples irandom (example-snippet "integer" rngproto-snippet irandom))
-(add-examples lrandom (example-snippet "long" rngproto-snippet lrandom))
-(add-examples drandom (example-snippet "double" rngproto-snippet drandom))
-(add-examples frandom (example-snippet "float" rngproto-snippet frandom))
-(add-examples grandom (example-snippet "gaussian double" rngproto-snippet grandom))
-(add-examples brandom (example-snippet "boolean" rngproto-snippet brandom))
-
-(add-examples set-seed!
-  (example "Set seed for the RNG object" {:test-value 10} (let [rng (rng :isaac)]
-                                                            (set-seed! rng 1234)
-                                                            (irandom rng 10 15))))
 
 ;; ### Default RNG
 
 (def ^{:doc "Default RNG - Mersenne Twister"
-       :metadoc/categories #{:rand}
-       :metadoc/examples [(example-session "Usage"
-                            (set-seed! default-rng 111)
-                            (irandom default-rng)
-                            (set-seed! default-rng 999)
-                            (irandom default-rng)
-                            (set-seed! default-rng 111)
-                            (irandom default-rng))]}
+       :metadoc/categories #{:rand}}
   default-rng (rng :mersenne))
 
 (def ^{:doc "Random float number with Mersenne Twister RNG."
-       :metadoc/categories #{:rand}
-       :metadoc/examples [(example-session "Usage" (frand) (frand 10) (frand 10 20))]}
+       :metadoc/categories #{:rand}}
   frand (partial frandom default-rng))
 
 (def ^{:doc "Random boolean with Mersenne Twister RNG."
-       :metadoc/categories #{:rand}
-       :metadoc/examples [(example-session "Usage" (brand) (brand 0.1))
-                          (example "Count number of `true` values with probability 0.15" (count (filter true? (repeatedly 100000 #(brand 0.15)))))]} 
+       :metadoc/categories #{:rand}} 
   brand (partial brandom default-rng))
 
 (defn drand
   "Random double number with Mersenne Twister RNG."
-  {:metadoc/categories #{:rand}
-   :metadoc/examples [(example-session "Usage" (drand) (drand 10) (drand 10 20))]}
+  {:metadoc/categories #{:rand}}
   (^double [] (drandom default-rng))
   (^double [mx] (drandom default-rng mx))
   (^double [mn mx] (drandom default-rng mn mx)))
 
 (defn grand
   "Random gaussian double number with Mersenne Twister RNG."
-  {:metadoc/categories #{:rand}
-   :metadoc/examples [(example-session "Usage" (grand) (grand 10) (grand 10 20))]}
+  {:metadoc/categories #{:rand}}
   (^double [] (grandom default-rng))
   (^double [stddev] (grandom default-rng stddev))
   (^double [mean stddev] (grandom default-rng mean stddev)))
 
 (defn irand
   "Random integer number with Mersenne Twister RNG."
-  {:metadoc/categories #{:rand}
-   :metadoc/examples [(example-session "Usage" (irand) (irand 10) (irand 10 20))]}
+  {:metadoc/categories #{:rand}}
   (^long [] (irandom default-rng))
   (^long [mx] (irandom default-rng mx))
   (^long [mn mx] (irandom default-rng mn mx)))
 
 (defn lrand
   "Random long number with Mersenne Twister RNG."
-  {:metadoc/categories #{:rand}
-   :metadoc/examples [(example-session "Usage" (lrand) (lrand 10) (lrand 10 20))]}
+  {:metadoc/categories #{:rand}}
   (^long [] (lrandom default-rng))
   (^long [mx] (lrandom default-rng mx))
   (^long [mn mx] (lrandom default-rng mn mx)))
@@ -356,10 +318,6 @@ See [[brand]].")
    `(if (brandom default-rng) ~v1 ~v2))
   ([prob v1 v2]
    `(if (brandom default-rng ~prob) ~v1 ~v2)))
-
-(add-examples randval
-  (example-session "Usage" (randval :val-one :val-two) (randval 0.001 :low-probability :high-probability))
-  (example "Check probability of nil (should return value around 1000)." (count (filter nil? (repeatedly 1000000 #(randval 0.001 nil 101))))))
 
 (defn- commons-math-generators
   "Generators from commons math"
@@ -409,34 +367,20 @@ Values are from following values:
 (defmethod sequence-generator :default [gen size] (random-generators gen size))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
-       :metadoc/examples [(example "Generator names." (sort sequence-generators-list))]
        :metadoc/categories #{:gen}}
   sequence-generators-list (keys (methods sequence-generator)))
-
-(add-examples sequence-generator
-  (example "Usage (2d)" (let [gen (sequence-generator :halton 2)]
-                          (take 5 (gen))))
-  (example "Usage (1d)" (let [gen (sequence-generator :sobol 1)]
-                          (take 5 (gen))))
-  (example-image "Halton plot (1000 samples)" "images/r/halton.jpg")
-  (example-image "Sobol plot (1000 samples)" "images/r/sobol.jpg")
-  (example-image "Sphere plot (1000 samples)" "images/r/sphere.jpg")
-  (example-image "Gaussian plot (1000 samples)" "images/r/gaussian.jpg")
-  (example-image "Default plot (1000 samples)" "images/r/default.jpg"))
 
 ;; ## Noise
 
 (def ^{:doc "List of possible noise interpolations as a map of names and values."
-       :metadoc/categories #{:noise}
-       :metadoc/examples [(example "List of names (keys)" (keys interpolations))]}
+       :metadoc/categories #{:noise}}
   interpolations {:none NoiseConfig/INTERPOLATE_NONE
                   :linear NoiseConfig/INTERPOLATE_LINEAR
                   :hermite NoiseConfig/INTERPOLATE_HERMITE
                   :quintic NoiseConfig/INTERPOLATE_QUINTIC})
 
 (def ^{:doc "List of possible noise types as a map of names and values."
-       :metadoc/categories #{:noise}
-       :metadoc/examples [(example "List of names (keys)" (keys noise-types))]}
+       :metadoc/categories #{:noise}}
   noise-types {:value NoiseConfig/NOISE_VALUE
                :gradient NoiseConfig/NOISE_GRADIENT
                :simplex NoiseConfig/NOISE_SIMPLEX})
@@ -469,12 +413,7 @@ Values are from following values:
   "Value Noise.
 
   6 octaves, Hermite interpolation (cubic, h01)."
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example-session "Usage"
-                        (vnoise 3.3)
-                        (vnoise 3.3 1.1)
-                        (vnoise 3.3 0.0 -0.1))
-                      (example-image "2d noise" "images/n/vnoise.jpg")]}
+  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise value-noise-config x))
   (^double [^double x ^double y] (FBM/noise value-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise value-noise-config x y z)))
@@ -483,24 +422,14 @@ Values are from following values:
   "Create improved Perlin Noise.
 
   6 octaves, quintic interpolation."
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example-session "Usage"
-                        (noise 3.3)
-                        (noise 3.3 1.1)
-                        (noise 3.3 0.0 -0.1))
-                      (example-image "2d noise" "images/n/noise.jpg")]}
+  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise perlin-noise-config x))
   (^double [^double x ^double y] (FBM/noise perlin-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise perlin-noise-config x y z)))
 
 (defn simplex
   "Create Simplex noise. 6 octaves."
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example-session "Usage"
-                        (simplex 3.3)
-                        (simplex 3.3 1.1)
-                        (simplex 3.3 0.0 -0.1))
-                      (example-image "2d noise" "images/n/simplex.jpg")]}
+  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise simplex-noise-config x))
   (^double [^double x ^double y] (FBM/noise simplex-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise simplex-noise-config x y z)))
@@ -522,8 +451,7 @@ Values are from following values:
 
 (defn random-noise-cfg
   "Create random noise configuration."
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example "Random configuration" (random-noise-cfg))]}
+  {:metadoc/categories #{:noise}}
   []
   {:seed (irand)
    :noise-type (rand-nth (keys noise-types))
@@ -537,48 +465,14 @@ Values are from following values:
   "Create random noise function from all possible options.
 
   Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example-session "Create function"
-                        (random-noise-fn)
-                        (random-noise-fn (random-noise-cfg)))
-                      (example-image "One" "images/n/random1.jpg")
-                      (example-image "Two" "images/n/random2.jpg")
-                      (example-image "Three" "images/n/random3.jpg")]}
+  {:metadoc/categories #{:noise}}
   ([cfg]
-   (rand-nth [(single-noise cfg)
-              (fbm-noise cfg)
-              (billow-noise cfg)
-              (ridgedmulti-noise cfg)]))
+   (let [cfg (merge (random-noise-cfg) cfg)]
+     (rand-nth [(single-noise cfg)
+                (fbm-noise cfg)
+                (billow-noise cfg)
+                (ridgedmulti-noise cfg)])))
   ([] (random-noise-fn (random-noise-cfg))))
-
-(add-examples single-noise
-  (example "Usage"
-    (let [n (single-noise {:interpolation :linear})]
-      (n 0.5 1.1 -1.3)))
-  (example-image "2d noise" "images/n/single.jpg"))
-
-(add-examples fbm-noise
-  (example "Usage"
-    (let [n (fbm-noise {:interpolation :linear
-                        :noise-type :value})]
-      (n 0.5 1.1 -1.3)))
-  (example-image "2d noise" "images/n/fbm.jpg"))
-
-(add-examples billow-noise
-  (example "Usage"
-    (let [n (billow-noise {:seed 12345
-                           :interpolation :none})]
-      (n 0.5 1.1 -1.3)))
-  (example-image "2d noise" "images/n/billow.jpg"))
-
-(add-examples ridgedmulti-noise
-  (example "Usage"
-    (let [n (ridgedmulti-noise {:octaves 3
-                                :lacunarity 2.1
-                                :gain 0.7
-                                :noise-type :simplex})]
-      (n 0.5 1.1 -1.3)))
-  (example-image "2d noise" "images/n/ridgedmulti.jpg"))
 
 
 ;; ### Discrete noise
@@ -592,13 +486,7 @@ Values are from following values:
   * Y (long, optional)
 
   Returns double value from [0,1] range"
-  {:metadoc/categories #{:noise}
-   :metadoc/examples [(example-session "Example calls"
-                        (discrete-noise 123 444)
-                        (discrete-noise 123 444)
-                        (discrete-noise 123 445)
-                        (discrete-noise 123))
-                      (example-image "Draw noise for [0-180] range." "images/n/discrete_noise.jpg")]}
+  {:metadoc/categories #{:noise}}
   (^double [^long X ^long Y]
    (let [X (unchecked-int X)
          Y (unchecked-int Y)
@@ -723,10 +611,7 @@ The rest parameters goes as follows:
 * `:uniform-int` - `:lower` (default: 0) and `:upper` (default: `Integer/MAX_VALUE`)
 * `:zipf` - `:number-of-elements` (default: 100) and `:exponent` (default: 3.0)
 "
-    :metadoc/categories #{:dist}
-    :metadoc/examples [(example-session "Usage"
-                         (distribution :beta)
-                         (distribution :beta {:alpha 1.0 :beta 1.0}))]}
+    :metadoc/categories #{:dist}}
   distribution (fn ([k _] k) ([k] k)))
 
 (defmethod distribution :beta
@@ -903,30 +788,6 @@ The rest parameters goes as follows:
   ([_] (distribution :zipf {})))
 
 (def ^{:doc "List of distributions."
-       :metadoc/categories #{:dist}
-       :metadoc/examples [(example-session "Number and list of distributions" distributions-list (count distributions-list))]}
+       :metadoc/categories #{:dist}}
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
-
-(doseq [n distributions-list]
-  (add-examples distribution (example-image (str "PDFs of " (name n)) (str "images/d/" (name n) ".jpg"))))
-
-;;
-
-(add-examples cdf (example-session "Usage" (cdf (distribution :gamma) 1) (cdf (distribution :gamma) 1 4)))
-(add-examples pdf (example "Usage" (pdf (distribution :gamma) 1)))
-(add-examples lpdf (example "Usage" (lpdf (distribution :gamma) 1)))
-(add-examples icdf (example "Usage" (icdf (distribution :gamma) 0.5)))
-(add-examples mean (example "Usage" (mean (distribution :gamma))))
-(add-examples variance (example "Usage" (variance (distribution :gamma))))
-(add-examples lower-bound (example "Usage" (lower-bound (distribution :gamma))))
-(add-examples upper-bound (example "Usage" (upper-bound (distribution :gamma))))
-(add-examples sample (example "Random value from distribution" (sample (distribution :gamma))))
-(add-examples ->seq (example "Sequence of random values from distribution" (->seq (distribution :gamma) 5)))
-(add-examples log-likelihood (example "Usage" (log-likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
-(add-examples likelihood (example "Usage" (likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
-
-(add-examples drandom (example "Double random value from distribution" (drandom (distribution :gamma))))
-(add-examples irandom (example "Integer random value from distribution (sample cast to `int`)" (irandom (distribution :gamma))))
-(add-examples frandom (example "Float random value from distribution (sample cast to `float`)" (frandom (distribution :gamma))))
-(add-examples lrandom (example "Long random value from distribution (sample cast to `long`)" (lrandom (distribution :gamma))))

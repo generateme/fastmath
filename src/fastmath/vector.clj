@@ -36,7 +36,6 @@
                         :dist "Distance / length"
                         :op "Operations"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all] 
             [clojure.string :as s])
   (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential]
            [clojure.core Vec]))
@@ -569,58 +568,25 @@
 
 (defn vec2
   "Make 2d vector"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example "Usage" (vec2 0.5 -0.5))
-                      (example "Destructuring"
-                        (let [[^double x ^double y] (vec2 4.3 2.2)]
-                          (+ x y)))
-                      (example "As function"
-                        [((vec2 11 22) 0) ((vec2 11 22) 1)])
-                      (example-session "As sequence"
-                        (map #(* 2.0 ^double %) (vec2 1 2))
-                        (reduce clojure.core/+ (vec2 6 4))
-                        (cons 6.0 (vec2 3 4))
-                        (first (vec2 3 4))
-                        (second (vec2 3 4))
-                        (last (vec2 3 4))
-                        (nth (vec2 3 4) 1)
-                        (filter clojure.core/neg? (vec2 -1 2)))
-                      (example "Count" (count (vec2 4 3)))]} 
+  {:metadoc/categories #{:gen}} 
   [x y] (Vec2. x y))
 
 (defn vec3
   "Make Vec2 vector"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage"
-                        (vec3 0.5 -0.5 1.0)
-                        (let [v (vec2 1 2)]
-                          (vec3 v -1.0)))]} 
+  {:metadoc/categories #{:gen}} 
   ([x y z] (Vec3. x y z))
   ([^Vec2 v z] (Vec3. (.x v) (.y v) z)))
 
 (defn vec4
   "Make Vec4 vector"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage"
-                        (vec4 0.5 -0.5 1.0 -1.0)
-                        (let [v (vec2 1 2)]
-                          (vec4 v -1.0 0.1))
-                        (let [v (vec3 0 1 2)]
-                          (vec4 v 0.1)))]} 
+  {:metadoc/categories #{:gen}} 
   ([x y z w] (Vec4. x y z w))
   ([^Vec3 v w] (Vec4. (.x v) (.y v) (.z v) w))
   ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w)))
 
 (defn array-vec
   "Make ArrayVec type based on provided sequence `xs`."
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage"
-                        (array-vec [1 2 3 4 5 6 7])
-                        (array-vec (range 0.0 1.0 0.25)))
-                      (example-session "Operations"
-                        (nth (array-vec [9 8 7 6]) 2)
-                        (count (array-vec (range 0.1 1.0 0.05)))
-                        (seq (array-vec [1 2])))]} 
+  {:metadoc/categories #{:gen}} 
   [xs]
   (ArrayVec. (double-array xs)))
 
@@ -628,72 +594,50 @@
 
 (defn ediv
   "Element-wise division of two vectors."
-  {:metadoc/categories #{:op}
-   :metadoc/examples [(example "Usage" (ediv (vec2 1 3) (vec2 2 4)))]} 
+  {:metadoc/categories #{:op}} 
   [v1 v2]
   (emult v1 (reciprocal v2)))
 
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
-  {:metadoc/categories #{:op}
-   :metadoc/examples [(example-session "Usage"
-                        (average-vectors [[1 2] [0 1] [3 4] [1 2] [4 -1]])
-                        (average-vectors (vec2 0 0) [(vec2 1 1) (vec2 1 1) (vec2 1 1)]))]} 
+  {:metadoc/categories #{:op}} 
   ([init vs]
    (div (reduce add init vs) (inc (count vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
 
 (defn dist
   "Euclidean distance between vectors"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (mag (sub v1 v2)))
 
 (defn dist-sq
   "Squared Euclidean distance between vectors"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-sq (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-sq [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (magsq (sub v1 v2)))
 
 (defn dist-abs
   "Manhattan distance between vectors"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-abs (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-abs [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (sum (abs (sub v1 v2))))
 
 (defn dist-cheb
   "Chebyshev distance between 2d vectors"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-cheb (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-cheb [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (mx (abs (sub v1 v2))))
 
 (defn dist-discrete
   "Discrete distance between 2d vectors"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-discrete (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-discrete [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (sum (applyf (sub v1 v2) #(if (zero? ^double %) 0.0 1.0))))
 
 (defn dist-canberra
   "Canberra distance"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-canberra (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-canberra [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (let [num (abs (sub v1 v2))
         denom (applyf (add (abs v1) (abs v2)) #(if (zero? ^double %) 0.0 (/ ^double %)))]
@@ -701,10 +645,7 @@
 
 (defn dist-emd
   "Earth Mover's Distance"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-emd (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-emd [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (first (reduce #(let [[^double s ^double l] %1
                         [^double a ^double b] %2
@@ -713,16 +654,12 @@
 
 (defn dist-cos
   "Cosine distance"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (dist-cos (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-                        (dist-cos [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5]))]} 
+  {:metadoc/categories #{:dist}} 
   [v1 v2]
   (- 1.0 (/ ^double (dot v1 v2) (* ^double (mag v1) ^double (mag v2)))))
 
 ;; List of distance fn
-(def ^{:metadoc/categories #{:dist}
-       :metadoc/examples [(example "List of distances" (sort (keys distances)))]}
+(def ^{:metadoc/categories #{:dist}}
   distances {:euclid dist
              :euclid-sq dist-sq
              :abs dist-abs
@@ -734,8 +671,7 @@
 
 (defn normalize
   "Normalize vector (set length = 1.0)"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example "Usage" (normalize (vec2 1.0 -1.0)))]} 
+  {:metadoc/categories #{:dist}} 
   [v]
   (let [^double m (mag v)]
     (if (zero? m)
@@ -744,19 +680,13 @@
 
 (defn set-mag
   "Set length of the vector"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (set-mag (vec2 0.22 0.22) (m/sqrt 2.0))
-                        (set-mag (vec2 1.0 1.0) 0.0))]} 
+  {:metadoc/categories #{:dist}} 
   [v len]
   (mult (normalize v) len))
 
 (defn limit
   "Limit length of the vector by given value"
-  {:metadoc/categories #{:dist}
-   :metadoc/examples [(example-session "Usage"
-                        (limit (vec3 1.0 1.0 1.0) 1.0)
-                        (limit (vec3 1.0 1.0 1.0) 2.0))]} 
+  {:metadoc/categories #{:dist}} 
   [v ^double len]
   (if (> ^double (magsq v) (* len len))
     (set-mag v len)
@@ -766,10 +696,7 @@
   "Angle between two vectors
 
   See also [[relative-angle-between]]."
-  {:metadoc/categories #{:geom}
-   :metadoc/examples [(example-session "Usage"
-                        (m/degrees (angle-between (vec3 1.0 0.0 0.0) (vec3 0.0 1.0 0.0)))
-                        (m/degrees (angle-between (vec (repeatedly 50 rand)) (vec (repeatedly 50 rand)))))]} 
+  {:metadoc/categories #{:geom}} 
   ^double [v1 v2]
   (if (or (is-zero? v1) (is-zero? v2))
     0
@@ -784,28 +711,19 @@
   "Angle between two vectors relative to each other.
 
   See also [[angle-between]]."
-  {:metadoc/categories #{:geom}
-   :metadoc/examples [(example-session "Usage"
-                        (m/degrees (relative-angle-between (vec3 1.0 0.0 0.0) (vec3 0.0 1.0 0.0)))
-                        (m/degrees (relative-angle-between (vec (repeatedly 50 rand)) (vec (repeatedly 50 rand)))))]} 
+  {:metadoc/categories #{:geom}} 
   ^double [v1 v2]
   (- ^double (heading v2) ^double (heading v1)))
 
 (defn aligned?
   "Are vectors aligned (have the same direction)?"
-  {:metadoc/categories #{:geom}
-   :metadoc/examples [(example-session "Usage"
-                        (aligned? (vec2 1.0 1.0) (vec2 2.0 2.000001))
-                        (aligned? (vec2 1.0 1.0) (vec2 2.0 2.00001)))]} 
+  {:metadoc/categories #{:geom}} 
   [v1 v2]
   (< (angle-between v1 v2) TOLERANCE))
 
 (defn faceforward
   "Flip normal `n` to match the same direction as `v`."
-  {:metadoc/categories #{:geom}
-   :metadoc/examples [(example-session "Usage"
-                        (faceforward (vec2 1.0 1.0) (vec2 -1.0 -3.0))
-                        (faceforward (vec2 1.0 1.0) (vec2 1.0 0.0)))]} 
+  {:metadoc/categories #{:geom}} 
   [n v]
   (if (neg? ^double (dot n v)) 
     (sub n)
@@ -813,8 +731,7 @@
 
 (defn generate-vec2
   "Generate Vec2 with fn(s)"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage" (generate-vec2 (constantly 2)) (generate-vec2 rand (constantly 1)))]} 
+  {:metadoc/categories #{:gen}} 
   ([f1 f2]
    (Vec2. (f1) (f2)))
   ([f]
@@ -822,8 +739,7 @@
 
 (defn generate-vec3
   "Generate Vec3 with fn(s)"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage" (generate-vec3 rand) (generate-vec3 rand (constantly 1) (constantly 2)))]} 
+  {:metadoc/categories #{:gen}} 
   ([f1 f2 f3]
    (Vec3. (f1) (f2) (f3)))
   ([f]
@@ -831,8 +747,7 @@
 
 (defn generate-vec4
   "Generate Vec4 with fn(s)"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example-session "Usage" (generate-vec4 rand) (generate-vec4 rand rand (constantly 1) (constantly 2)))]} 
+  {:metadoc/categories #{:gen}} 
   ([f1 f2 f3 f4]
    (Vec4. (f1) (f2) (f3) (f4)))
   ([f]
@@ -840,22 +755,19 @@
 
 (defn array->vec2
   "Doubles array to Vec2"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example "Usage" (array->vec2 (double-array [11 22 33 44 55])))]} 
+  {:metadoc/categories #{:gen}} 
   [^doubles a]
   (Vec2. (aget a 0) (aget a 1)))
 
 (defn array->vec3
   "Doubles array to Vec3"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example "Usage" (array->vec3 (double-array [11 22 33 44 55])))]} 
+  {:metadoc/categories #{:gen}} 
   [^doubles a]
   (Vec3. (aget a 0) (aget a 1) (aget a 2)))
 
 (defn array->vec4
   "Doubles array to Vec4"
-  {:metadoc/categories #{:gen}
-   :metadoc/examples [(example "Usage" (array->vec4 (double-array [11 22 33 44 55])))]} 
+  {:metadoc/categories #{:gen}} 
   [^doubles a]
   (Vec4. (aget a 0) (aget a 1) (aget a 2) (aget a 3)))
 
@@ -872,106 +784,3 @@
 
 ;;
 
-(add-examples mag (example "Length of the vector" {:test-value (m/sqrt 2.0)} (mag (vec2 1 1))))
-(add-examples magsq (example "Length of the vector, squared" {:test-value 10.0} (magsq [1 2 1 2])))
-(add-examples abs (example "Usage" (abs (array-vec [-1 2 -2 1]))))
-(add-examples add (example "Usage" (add (vec2 1 2) (vec2 -1 -2))))
-(add-examples applyf (example "Usage" (applyf [5 3] (fn [v] (m/sin v)))))
-(add-examples approx (example-session "Usage" (approx (vec2 (m/sin -1) (m/cos 1))) (approx (vec2 (m/sin -1) (m/cos 1)) 6)))
-(add-examples div (example "Usage" (div [5 4 3 5] 4.0)))
-(add-examples mult (example "Usage" (mult (vec4 5 4 3 5) 4.0)))
-(add-examples dot (example "Usage" (dot (vec4 1 0 0 0) (vec4 -1 0 -1 0))))
-(add-examples econstrain (example "Usage" (econstrain (vec3 2 0 -2) -1 1)))
-(add-examples emn (example "Usage" (emn [-1 2] [1 -2])))
-(add-examples emx (example "Usage" (emx [-1 2] [1 -2])))
-(add-examples emult (example "Usage" (emult (vec3 1 2 3) (vec3 9 9 9))))
-(add-examples is-near-zero? (example-session "Usage" (is-near-zero? [0 0.0000001]) (is-near-zero? [0 0.000001])))
-(add-examples is-zero? (example-session "Usage" (is-zero? [0 0.0000001]) (is-zero? [0 0.0])))
-(add-examples mn (example "Usage" (mn (vec4 -1 -2 3 4))))
-(add-examples mx (example "Usage" (mx (vec4 -1 -2 3 4))))
-(add-examples permute (example "Usage" (permute (vec4 1 2 3 4) (vec4 0 3 2 1))))
-(add-examples reciprocal (example "Usage" (reciprocal (vec3 1 2 5))))
-(add-examples sub (example "Usage" (sub (vec2 1 2) (vec2 -1 -2))))
-(add-examples sum (example "Usage" (sum (vec (range 1000)))))
-
-(add-examples transform
-  (example-session "Usage"
-    (transform (vec2 1 1) (vec2 -1 -1) (vec2 1.0 0.0) (vec2 0.0 1.0))
-    (transform (vec3 1 1 1) (vec3 -1 -1 0) (vec3 1.0 0.0 1.0) (vec3 0.0 1.0 0.0) (vec3 0.0 1.0 1.0))))
-
-(add-examples rotate
-  (example-session "Usage"
-    (rotate (vec2 1 2) (m/radians 90))
-    (rotate (vec3 1 2 3) (m/radians 90) 0 0)))
-
-(add-examples perpendicular
-  (example-session "Usage"
-    (perpendicular (vec2 -4 0))
-    (perpendicular (vec3 1.0 0.0 0.0) (vec3 0.0 -1.0 0.0))))
-
-(add-examples maxdim
-  (example-session "Usage"
-    (let [v (vec (repeatedly 100 (fn [] (- (int (rand-int 200)) 100))))
-          mdim (maxdim v)]
-      [mdim (v mdim)])
-    (maxdim (vec3 1 2 3))))
-
-(add-examples mindim
-  (example-session "Usage"
-    (let [v (vec (repeatedly 100 (fn [] (- (int (rand-int 200)) 100))))
-          mdim (mindim v)]
-      [mdim (v mdim)])
-    (mindim (vec3 1 2 3))))
-
-(add-examples heading
-  (example-session "Usage"
-    (m/degrees (heading (vec2 1.0 1.0)))
-    (m/degrees (heading (vec3 1.0 0.0 1.0)))
-    (m/degrees (heading (vec4 1.0 -1.0 1.0 -1.0)))
-    (heading [1 2 3 4 5 6 7 8 9])
-    (heading (array-vec [1 2 3 4 5 6 7 8 9]))))
-
-(add-examples from-polar
-  (example-session "Usage"
-    (from-polar (vec2 1.0 (m/radians 90)))
-    (from-polar (vec3 1.0 (m/radians 90) (m/radians 45)))))
-
-(add-examples from-polar
-  (example-session "Usage"
-    (to-polar (vec2 1.0 1.0))
-    (to-polar (vec3 1.0 0.0 1.0))))
-
-(add-examples interpolate
-  (example-session "Usage"
-    (interpolate (vec2 -1 -1) (vec2 1 1) 0.25)
-    (interpolate (vec2 -1 -1) (vec2 1 1) 0.25 m/smooth-interpolation)))
-
-(add-examples einterpolate
-  (example-session "Usage"
-    (einterpolate (vec2 -1 -1) (vec2 1 1) (vec2 0.25 0.75))
-    (einterpolate (vec2 -1 -1) (vec2 1 1) (vec2 0.25 0.75) m/smooth-interpolation)))
-
-(add-examples axis-rotate
-  (example-session "Usage"
-    (axis-rotate (vec3 1.0 0.0 0.0) m/HALF_PI (vec3 0.0 1.0 0.0))
-    (axis-rotate (vec3 1.0 0.0 0.0) m/HALF_PI (vec3 0.0 1.0 0.0) (vec3 1.0 1.0 1.0))))
-
-(add-examples base-from
-  (example-session "Usage"
-    (base-from (vec3 0.1 1.0 -1.0))
-    (base-from (vec2 1.0 0.0))))
-
-(add-examples cross
-  (example-session "Usage"
-    (cross (vec3 1 2 3)
-           (vec3 4 3 2))
-    (cross (vec2 1 2)
-           (vec2 -1 2))))
-
-(add-examples to-vec
-  (example-session "Check types"
-    (type (to-vec [1 2 3]))
-    (type (to-vec (vec2 1 2)))
-    (type (to-vec (vec3 1 2 3)))
-    (type (to-vec (vec4 1 2 3 4)))
-    (type (to-vec (array-vec 1)))))

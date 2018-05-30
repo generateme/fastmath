@@ -1,4 +1,7 @@
 (ns fastmath.fields
+  ""
+  {:metadoc/categories {:comp "Compose fields"
+                        :cr "Create fields"}}
   (:require [fastmath.core :as m]
             [fastmath.complex :as c]
             [fastmath.random :refer :all]
@@ -9,39 +12,55 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-(defmulti configuration (fn [key & _] key))
-(defmethod configuration :default
+(defmulti parametrization
+  "Return random parametrization map for given field.
+
+  Optinally you can pass part of the parametrization. In this case function will add remaining keys with randomly generated values.
+
+  If field doesn't have parametrization, empty map will be returned.
+  
+  See [[field]]."
+  {:metadoc/categories #{:cr}}
+  (fn [key & _] key))
+(defmethod parametrization :default
   ([_ _] {})
   ([_] {}))
 
-(defmulti field (fn [key & _] key))
+(defmulti field
+  "Return vector field for given name and options: amount (scaling factor) and parametrization.
+
+  Default scaling factor is 1.0, default parametrization is random.
+
+  Resulting function operates on [[Vec2]] type."
+  {:metadoc/categories #{:cr}}
+  (fn [key & _] key))
 (defmethod field :default
   ([_ s _] (fn [v] (v/mult v s)))
   ([_ s] (fn [v] (v/mult v s)))
   ([_] identity))
 
-(defmacro make-config-method
-  "Add new multimethod for variation configuration"
+(defmacro ^:private make-config-method
+  "Add new multimethod for variation parametrization"
   [sym m]
   (let [k (keyword sym)]
-    `(defmethod configuration ~k
+    `(defmethod parametrization ~k
        ([k# p#] (merge ~m p#))
        ([k#] ~m))))
 
-(defmacro make-var-method
+(defmacro ^:private make-field-method
   "Add new multimethod for variation factory function and store variation fn in global list."
   [sym t]
   (let [k (keyword sym)
         m (symbol (str "make-" sym))]
     `(do (defmethod field ~k
-           ([k# a# p#] (~m a# (configuration ~k p#)))
-           ([k# a#] (~m a# (configuration ~k)))
-           ([k#] (~m 1.0 (configuration ~k))))
+           ([k# a# p#] (~m a# (parametrization ~k p#)))
+           ([k# a#] (~m a# (parametrization ~k)))
+           ([k#] (~m 1.0 (parametrization ~k))))
          ~(if (= t :regular)
-            `(register-regular-var ~k)
-            `(register-random-var ~k)))))
+            `(register-regular-field ~k)
+            `(register-random-field ~k)))))
 
-;; Locally used random function for some configuration parameters. Mostly used to avoid `0` value.
+;; Locally used random function for some parametrization parameters. Mostly used to avoid `0` value.
 (defn- srandom
   "Symetric random from [-mx -mn] and [mn mx]"
   ^double  [^double mn ^double mx]
@@ -74,16 +93,16 @@
 
 ;; Two atoms to store variation names. One for non-random functions and second for random.
 
-(def ^:private regular-var (atom [:default]))
-(def ^:private random-var (atom []))
+(def ^:private regular-field (atom [:default]))
+(def ^:private random-field (atom []))
 
-(defn- register-var
+(defn- register-field
   "Add `name` to the atom `what`"
   [what name]
   (swap! what conj name))
 
-(def register-random-var (partial register-var random-var))
-(def register-regular-var (partial register-var regular-var))
+(def ^:private register-random-field (partial register-field random-field))
+(def ^:private register-regular-field (partial register-field regular-field))
 
 ;; ## A
 
@@ -99,7 +118,7 @@
       (if (zero? cosr) zerov
           (Vec2. (* amount sinr)
                  (* amount (/ (m/sq sinr) cosr)))))))
-(make-var-method arch :random)
+(make-field-method arch :random)
 
 ;; ### Asteria
 (make-config-method asteria {:alpha (drand -5 5)})
@@ -131,7 +150,7 @@
                       (* sina yy))
                    (+ (- (* sina nx))
                       (* cosa yy)))))))))
-(make-var-method asteria :random)
+(make-field-method asteria :random)
 
 ;; ### Atan
 
@@ -151,7 +170,7 @@
                  (.y v))
         (Vec2. (* norm (m/atan (* stretch (.x v))))
                (* norm (m/atan (* stretch (.y v)))))))))
-(make-var-method atan :regular)
+(make-field-method atan :regular)
 
 ;; ### Auger
 
@@ -173,7 +192,7 @@
           xx (* amount (+ x (* sym (- dx x))))
           yy (* amount dy)]
       (Vec2. xx yy))))
-(make-var-method auger :regular)
+(make-field-method auger :regular)
 
 ;; ## B
 
@@ -212,7 +231,7 @@
                     (+ (* alt pi-bcn) (rem (+ pre-sigma bca-bcn) pi-bcn))
                     (+ (* alt pi-bcn) (rem (- pre-sigma bca-bcn) pi-bcn)))]
         (bseries-calc amount tau sigma)))))
-(make-var-method bcollide :regular)
+(make-field-method bcollide :regular)
 
 ;; ### bMod
 
@@ -234,7 +253,7 @@
                   (- (rem (+ pre-tau radius rd) r2) radius)
                   pre-tau)]
         (bseries-calc amount tau sigma)))))
-(make-var-method bmod :regular)
+(make-field-method bmod :regular)
 
 ;; ### bSplit
 
@@ -248,7 +267,7 @@
     (let [xx (+ x (.x v))]      
       (Vec2. (* (/ amount (m/tan xx)) (m/cos (+ y (.y v))))
              (* (/ amount (m/sin xx)) (- y (.y v)))))))
-(make-var-method bsplit :regular)
+(make-field-method bsplit :regular)
 
 ;; ### bSwirl
 
@@ -266,7 +285,7 @@
           pre-sigma (- m/PI ^double (v/heading v+) ^double (v/heading v-))
           sigma (+ pre-sigma (* tau out) (/ in tau))]
       (bseries-calc amount tau sigma))))
-(make-var-method bswirl :regular)
+(make-field-method bswirl :regular)
 
 ;; ### bTransform
 
@@ -291,7 +310,7 @@
             sigma (+ (/ pre-sigma power)
                      (* mp (m/floor (* power (drand)))))]
         (bseries-calc amount tau sigma)))))
-(make-var-method btransform :random)
+(make-field-method btransform :random)
 
 ;; ### BWraps7
 
@@ -334,7 +353,7 @@
                   vx (+ (.x C) (* c (.x L)) (* s (.y L)))
                   vy (+ (.y C) (* -1.0 s (.x L)) (* c (.y L)))]
               (v/mult (Vec2. vx vy) amount))))))))
-(make-var-method bwraps7 :regular)
+(make-field-method bwraps7 :regular)
 
 ;; ### Barycentroid
 
@@ -359,7 +378,7 @@
             vm (* (m/signum vv) (m/sqrt (+ (* vv vv) (m/sq (.y v)))))]
         (Vec2. (* amount um)
                (* amount vm))))))
-(make-var-method barycentroid :regular)
+(make-field-method barycentroid :regular)
 
 ;; ### Bent
 
@@ -371,7 +390,7 @@
           ny (if (neg? (.y v)) (* (.y v) 0.5) (.y v))]
       (Vec2. (* amount nx)
              (* amount ny)))))
-(make-var-method bent :regular)
+(make-field-method bent :regular)
 
 (make-config-method bent2 {:x (srandom 0.5 2.0)
                            :y (srandom 0.5 2.0)})
@@ -384,7 +403,7 @@
           ny (if (neg? (.y v)) (* (.y v) y) (.y v))]
       (Vec2. (* amount nx)
              (* amount ny)))))
-(make-var-method bent2 :regular)
+(make-field-method bent2 :regular)
 
 ;; ### Bipolar
 
@@ -412,7 +431,7 @@
           (Vec2. 0.0 0.0)
           (Vec2. (* amount m/M_2_PI 0.25 (m/log (/ f g)))
                  (* amount m/M_2_PI y)))))))
-(make-var-method bipolar :regular)
+(make-field-method bipolar :regular)
 
 ;; ### Blade
 
@@ -425,7 +444,7 @@
           cosr (m/cos r)]
       (Vec2. (* amount (.x v) (+ cosr sinr))
              (* amount (.x v) (- cosr sinr))))))
-(make-var-method blade :random)
+(make-field-method blade :random)
 
 (defn- make-blade2
   "Blade2"
@@ -436,7 +455,7 @@
           cosr (m/cos r)]
       (Vec2. (* amount (.x v) (+ cosr sinr))
              (* amount (.y v) (- cosr sinr))))))
-(make-var-method blade2 :random)
+(make-field-method blade2 :random)
 
 ;; ### Blob
 
@@ -460,7 +479,7 @@
                     (* r))]
         (Vec2. (* amount rr (m/sin a))
                (* amount rr (m/cos a)))))))
-(make-var-method blob :regular)
+(make-field-method blob :regular)
 
 ;; ### Blocky
 
@@ -486,7 +505,7 @@
             by (m/safe-sqrt (- 1.0 (m/sq ay)))]
         (Vec2. (* vv (m/atan2 ax bx) r x)
                (* vv (m/atan2 ay by) r y))))))
-(make-var-method blocky :regular)
+(make-field-method blocky :regular)
 
 ;; ### Blur Circle
 
@@ -513,7 +532,7 @@
           sa (m/sin a)
           ca (m/cos a)]
       (Vec2. (* r ca) (* r sa)))))
-(make-var-method blurcircle :random)
+(make-field-method blurcircle :random)
 
 ;; ### Blur
 (defn- make-blur
@@ -525,7 +544,7 @@
           cr (m/cos r)
           r2 (drand amount)]
       (Vec2. (* r2 cr) (* r2 sr)))))
-(make-var-method blur :random)
+(make-field-method blur :random)
 
 ;; ### Blur pixelize
 
@@ -547,7 +566,7 @@
                      (v/mult scale)))
           (v/add half)
           (v/mult av)))))
-(make-var-method blurpixelize :random)
+(make-field-method blurpixelize :random)
 
 ;; ### BlurZoom
 
@@ -566,7 +585,7 @@
           (v/mult (inc (drand length)))
           (v/add xy-)
           (v/mult amount)))))
-(make-var-method blurzoom :random)
+(make-field-method blurzoom :random)
 
 ;; ### Boarders
 
@@ -596,7 +615,7 @@
                           (* amount (+ hoffsety roundy 0.25)))
                    (Vec2. (* amount (- (+ hoffsetx roundx) (/ (* 0.25 offsetx) offsety)))
                           (* amount (- (+ hoffsety roundy) 0.25)))))))))
-(make-var-method boarders :random)
+(make-field-method boarders :random)
 
 (make-config-method boarders2 {:c (drand -1.2 1.2)
                                :left (drand -1.2 1.2)
@@ -636,7 +655,7 @@
                             (* amount (+ coffsety roundy cl)))
                      (Vec2. (* amount (- (+ coffsetx roundx) (/ (* cl offsetx) offsety)))
                             (* amount (- (+ coffsety roundy) cl))))))))))
-(make-var-method boarders2 :random)
+(make-field-method boarders2 :random)
 
 ;; ### Bubble
 
@@ -645,7 +664,7 @@
   [^double amount _]
   (fn [v]
     (v/mult v (/ amount (inc (* 0.25 ^double (v/mag v)))))))
-(make-var-method bubble :regular)
+(make-field-method bubble :regular)
 
 ;; ### Butterfly
 
@@ -659,7 +678,7 @@
                                (+ m/EPSILON (m/sq (.x v)) (m/sq y2)))))]
         (Vec2. (* r (.x v))
                (* r y2))))))
-(make-var-method butterfly :regular)
+(make-field-method butterfly :regular)
 
 ;; ### BesselJ
 
@@ -669,7 +688,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount ^double (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
            (* amount ^double (v/heading v)))))
-(make-var-method besselj :regular)
+(make-field-method besselj :regular)
 
 ;; ### Beta
 
@@ -679,7 +698,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount (m/log-beta (+ m/EPSILON (m/abs (.x v))) (+ m/EPSILON (m/abs (.y v)))))
            (* amount ^double (v/heading v)))))
-(make-var-method beta :regular)
+(make-field-method beta :regular)
 
 ;; ## C
 
@@ -716,7 +735,7 @@
             ang2 (* fac ai lnr2 (+ (* spread2 (drand)) offset2))]
         (Vec2. (* ri (m/cos ang2))
                (* ri (m/sin ang2)))))))
-(make-var-method cpow3 :random)
+(make-field-method cpow3 :random)
 
 ;; ### CPow
 
@@ -739,7 +758,7 @@
             m (* amount (m/exp (- (* vc lnr)
                                   (* vd a))))]
         (Vec2. (* m (m/cos ang)) (* m (m/sin ang)))))))
-(make-var-method cpow :random)
+(make-field-method cpow :random)
 
 ;; ### Cell
 
@@ -770,7 +789,7 @@
             (v/mult size)
             (v/add dxy)
             (v/emult av))))))
-(make-var-method cell :regular)
+(make-field-method cell :regular)
 
 ;; ### Checks
 
@@ -794,7 +813,7 @@
         (-> v
             (v/add dxy)
             (v/mult amount))))))
-(make-var-method checks :random)
+(make-field-method checks :random)
 
 ;; ### Chunk
 
@@ -819,7 +838,7 @@
       (if mode
         (if-not (pos? r) v zerov)
         (if (pos? r) v zerov)))))
-(make-var-method chunk :regular)
+(make-field-method chunk :regular)
 
 ;; ### Circle blur
 
@@ -831,7 +850,7 @@
           a (drand m/TWO_PI)]
       (Vec2. (* amount (m/cos a) rad)
              (* amount (m/sin a) rad)))))
-(make-var-method circleblur :random)
+(make-field-method circleblur :random)
 
 ;; ### CircleRand
 
@@ -870,7 +889,7 @@
                 (v/mult Sc)
                 (v/add XY)
                 (v/mult amount))))))))
-(make-var-method circlerand :random)
+(make-field-method circlerand :random)
 
 ;; ### CircleLinear
 
@@ -941,7 +960,7 @@
                     (* Sc)
                     (+ (.y XY))
                     (* amount)))))))
-(make-var-method circlelinear :regular)
+(make-field-method circlelinear :regular)
 
 ;; ### Clifford
 
@@ -956,7 +975,7 @@
   (fn [^Vec2 v]
     (v/mult (Vec2. (+ (m/sin (* a (.y v))) (* c (m/cos (* a (.x v)))))
                    (+ (m/sin (* b (.x v))) (* d (m/cos (* b (.y v)))))) amount)))
-(make-var-method clifford :regular)
+(make-field-method clifford :regular)
 
 ;; ### Conic
 
@@ -971,7 +990,7 @@
           ct (* (.x v) magr)
           r (* (/ (* (* amount (- (drand) holes)) eccentricity) (inc (* eccentricity ct))) magr)]
       (v/mult v r))))
-(make-var-method conic :random)
+(make-field-method conic :random)
 
 ;; ### Cot
 
@@ -986,7 +1005,7 @@
           cotden (/ (- cotcosh cotcos))]
       (Vec2. (* amount cotden cotsin)
              (* amount cotden -1.0 cotsinh)))))
-(make-var-method cot :regular)
+(make-field-method cot :regular)
 
 ;; ### Cosine
 
@@ -997,7 +1016,7 @@
     (let [r (* m/PI (.x v))]
       (Vec2. (* amount (m/cos r) (m/cosh (.y v)))
              (- (* amount (m/sin r) (m/sinh (.y v))))))))
-(make-var-method cosine :regular)
+(make-field-method cosine :regular)
 
 ;; ### Curl
 
@@ -1013,7 +1032,7 @@
           r (/ amount (+ (m/sq re) (m/sq im)))]
       (Vec2. (* r (+ (* (.x v) re) (* (.y v) im)))
              (* r (- (* (.y v) re) (* (.x v) im)))))))
-(make-var-method curl :regular)
+(make-field-method curl :regular)
 
 ;; ### Curve
 
@@ -1039,7 +1058,7 @@
             (v/emult amp)
             (v/add v)
             (v/mult amount))))))
-(make-var-method curve :regular)
+(make-field-method curve :regular)
 
 ;; ### Cross
 
@@ -1050,7 +1069,7 @@
     (let [s (- (m/sq (.x v)) (m/sq (.y v)))
           r (* amount (m/sqrt (/ 1.0 (+ m/EPSILON (* s s)))))]
       (Vec2. (* (.x v) r) (* (.y v) r)))))
-(make-var-method cross :regular)
+(make-field-method cross :regular)
 
 ;; ### CSin
 
@@ -1064,7 +1083,7 @@
       (v/mult (->> v
                    (c/mult s-cx)
                    (c/sin)) amount))))
-(make-var-method csin :regular)
+(make-field-method csin :regular)
 
 ;; ### Cayley transform
 
@@ -1076,7 +1095,7 @@
       zerov
       (c/div (c/add v c/I-)
              (c/add v c/I)))))
-(make-var-method cayley :regular)
+(make-field-method cayley :regular)
 
 ;; ### Cylinder
 
@@ -1085,7 +1104,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (v/mult (Vec2. (m/sin (.x v)) (.y v)) amount)))
-(make-var-method cylinder :regular)
+(make-field-method cylinder :regular)
 
 ;; ## D
 
@@ -1102,7 +1121,7 @@
           cosr (m/cos length)]
       (Vec2. (* amount sina cosr)
              (* amount cosa sinr)))))
-(make-var-method diamond :regular)
+(make-field-method diamond :regular)
 
 ;; ### Disc
 
@@ -1116,7 +1135,7 @@
             cosr (m/cos rpi)
             r (* api ^double (v/heading v))]
         (Vec2. (* r sinr) (* r cosr))))))
-(make-var-method disc :regular)
+(make-field-method disc :regular)
 
 (make-config-method disc2 {:rot (drand -3 3)
                            :twist (drand -6 6)})
@@ -1136,7 +1155,7 @@
             r (/ (* amount ^double (v/heading v)) m/PI)]
         (Vec2. (* r (+ cosadd sinr))
                (* r (+ sinadd cosr)))))))
-(make-var-method disc2 :regular)
+(make-field-method disc2 :regular)
 
 ;; ## E
 
@@ -1157,7 +1176,7 @@
             snv (if (pos? (.y v)) (- snv) snv)]
         (Vec2. (* w (m/cosh a2) (m/cos a1))
                (* w (m/sinh a2) snv))))))
-(make-var-method edisc :regular)
+(make-field-method edisc :regular)
 
 
 ;; ### eMod
@@ -1188,7 +1207,7 @@
             xx (* amount (m/cosh mu) (m/cos nu))
             yy (* amount (m/sinh mu) (m/sin nu))]
         (Vec2. xx yy)))))
-(make-var-method emod :regular)
+(make-field-method emod :regular)
 
 ;; ### Ennepers
 
@@ -1201,7 +1220,7 @@
           x (+ (- (.x v) (* 0.3333333 sx (.x v))) (* (.x v) sy))
           y (+ (- (.y v) (* 0.3333333 sy (.y v))) (* (.y v) sx))]
       (Vec2. (* amount x) (* amount y)))))
-(make-var-method ennepers :regular)
+(make-field-method ennepers :regular)
 
 ;; ### Erf
 
@@ -1211,7 +1230,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount (m/erf (.x v) (.y v)))
            (* amount ^double (v/heading v)))))
-(make-var-method erf :regular)
+(make-field-method erf :regular)
 
 ;; ### Elliptic
 
@@ -1229,7 +1248,7 @@
             x (* -a (m/atan2 a b)) 
             y (randval (* -a l) (- (* -a l)))]
         (Vec2. x y)))))
-(make-var-method elliptic :random)
+(make-field-method elliptic :random)
 
 ;; ### Escher
 
@@ -1251,7 +1270,7 @@
                  (* vd lnr))]
         (Vec2. (* m (m/cos n))
                (* m (m/sin n)))))))
-(make-var-method escher :regular)
+(make-field-method escher :regular)
 
 ;; ### Ex
 
@@ -1268,7 +1287,7 @@
           ar (* amount r)]
       (Vec2. (* ar (+ m0 m1))
              (* ar (- m0 m1))))))
-(make-var-method ex :regular)
+(make-field-method ex :regular)
 
 ;; ### Exp
 
@@ -1279,7 +1298,7 @@
     (let [e (* amount (m/exp (.x v)))]
       (Vec2. (* e (m/cos (.y v)))
              (* e (m/sin (.y v)))))))
-(make-var-method exp :regular)
+(make-field-method exp :regular)
 
 ;; ### Exponential
 
@@ -1291,7 +1310,7 @@
           r (* m/PI (.y v))]
       (Vec2. (* e (m/cos r))
              (* e (m/sin r))))))
-(make-var-method exponential :regular)
+(make-field-method exponential :regular)
 
 ;; ### Eyefish
 
@@ -1301,7 +1320,7 @@
   (fn [^Vec2 v]
     (let [r (/ (* amount 4.0) (inc ^double (v/mag v)))]
       (Vec2. (* r (.x v)) (* r (.y v))))))
-(make-var-method eyefish :regular)
+(make-field-method eyefish :regular)
 
 ;; ## F
 
@@ -1324,7 +1343,7 @@
                 (+ angle dx2))]
         (Vec2. (* r (m/cos a))
                (* r (m/sin a)))))))
-(make-var-method fan :regular)
+(make-field-method fan :regular)
 
 (make-config-method fan2 {:x (drand -1 1)
                           :y (drand -1 1)})
@@ -1344,7 +1363,7 @@
               (+ angle dx2))]
       (Vec2. (* amount r (m/sin a))
              (* amount r (m/cos a))))))
-(make-var-method fan2 :regular)
+(make-field-method fan2 :regular)
 
 ;; ### Fisheye
 
@@ -1354,7 +1373,7 @@
   (fn [^Vec2 v]
     (let [r (/ (* amount 4.0) (inc ^double (v/mag v)))]
       (Vec2. (* r (.y v)) (* r (.x v))))))
-(make-var-method fisheye :regular)
+(make-field-method fisheye :regular)
 
 ;; ### Flower
 
@@ -1369,7 +1388,7 @@
           d (/ 1.0 (+ m/EPSILON ^double (v/mag v)))
           r (* amount (- (drand) holes) (m/cos (* petals theta)) d)]
       (v/mult v r))))
-(make-var-method flower :random)
+(make-field-method flower :random)
 
 ;; ### Foci
 
@@ -1385,7 +1404,7 @@
           tmp (/ amount (if (zero? tmp) m/EPSILON tmp))]
       (Vec2. (* tmp (- expx expnx))
              (* tmp sy)))))
-(make-var-method foci :regular)
+(make-field-method foci :regular)
 
 ;; ## G
 
@@ -1397,7 +1416,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount (m/log-gamma (v/mag v)))
            (* amount ^double (v/heading v)))))
-(make-var-method gamma :regular)
+(make-field-method gamma :regular)
 
 ;; ### GaussianBlur
 
@@ -1408,7 +1427,7 @@
     (let [a (drand m/TWO_PI)
           r (* amount (+ (drand) (drand) (drand) (drand) -2.0))]
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
-(make-var-method gaussianblur :random)
+(make-field-method gaussianblur :random)
 
 ;; ### GDOffs
 
@@ -1421,9 +1440,9 @@
                             :gamma (drand -5 5)
                             :square brand})
 
-(def ^:const ^double agdod-- 0.1)
-(def ^:const ^double agdoa-- 2.0)
-(def ^:const ^double agdoc-- 1.0)
+(def ^:const ^:private ^double agdod-- 0.1)
+(def ^:const ^:private ^double agdoa-- 2.0)
+(def ^:const ^:private ^double agdoc-- 1.0)
 
 (defn- fclp ^double [^double a] (if (neg? a) (- (rem (m/abs a) 1.0)) (rem (m/abs a) 1.0)))
 (defn- fscl ^double [^double a] (fclp (* 0.5 (inc a))))
@@ -1452,7 +1471,7 @@
                          (flip (flip in-y (fosc in-y 4.0) osc-x) (fosc (fclp (* gdob in-y)) 4.0) osc-x))
                   (Vec2. (flip (flip in-x (fosc in-x 4.0) osc-x) (fosc (fclp (* gdob in-x)) 4.0) osc-x)
                          (flip (flip in-y (fosc in-y 4.0) osc-y) (fosc (fclp (* gdob in-y)) 4.0) osc-y))) amount)))))
-(make-var-method gdoffs :regular)
+(make-field-method gdoffs :regular)
 
 ;; ## H
 ;;
@@ -1468,7 +1487,7 @@
           sr (m/sin rt)
           cr (m/cos rt)]
       (Vec2. (* amount r sr) (- (* amount r cr))))))
-(make-var-method heart :regular)
+(make-field-method heart :regular)
 
 ;; ### Handkerchief
 
@@ -1480,7 +1499,7 @@
           ^double r (v/mag v)]
       (Vec2. (* amount (* r (m/sin (+ angle r))))
              (* amount (* r (m/cos (- angle r))))))))
-(make-var-method handkerchief :regular)
+(make-field-method handkerchief :regular)
 
 ;; ### Hemisphere
 
@@ -1491,7 +1510,7 @@
     (let [r (/ amount (m/sqrt (inc ^double (v/magsq v))))]
       (Vec2. (* r (.x v))
              (* r (.y v))))))
-(make-var-method hemisphere :regular)
+(make-field-method hemisphere :regular)
 
 ;; ### Hole2
 
@@ -1526,7 +1545,7 @@
                (* amount r))]
       (Vec2. (* r (m/cos theta))
              (* r (m/sin theta))))))
-(make-var-method hole2 :regular)
+(make-field-method hole2 :regular)
 
 ;; ### Horseshoe
 
@@ -1539,7 +1558,7 @@
           cosa (/ (.y v) r)]
       (Vec2. (* amount (- (* sina (.x v)) (* cosa (.y v))))
              (* amount (+ (* cosa (.x v)) (* sina (.y v))))))))
-(make-var-method horseshoe :regular)
+(make-field-method horseshoe :regular)
 
 ;; ### Hyperbolic
 
@@ -1551,7 +1570,7 @@
           theta (v/heading v)]
       (Vec2. (/ (m/sin theta) r)
              (* (m/cos theta) r)))))
-(make-var-method hyperbolic :regular)
+(make-field-method hyperbolic :regular)
 
 ;;; ### Hypershift
 
@@ -1569,7 +1588,7 @@
             r (/ (* amount scale) (+ (* x x) (* y y)))]
         (Vec2. (+ shift (* r x))
                (* r y stretch))))))
-(make-var-method hypershift :regular)
+(make-field-method hypershift :regular)
 
 ;; ## I
 
@@ -1585,7 +1604,7 @@
                                    (/ (.y v) (inc (.y v)))) amount)
       :else (v/mult (Vec2. (/ (.x v) (inc (.x v)))
                            (/ (inc (.y v)))) amount))))
-(make-var-method invtree :random)
+(make-field-method invtree :random)
 
 
 ;; ## J
@@ -1599,7 +1618,7 @@
     (let [a (+ (* 0.5 ^double (v/heading v)) (* m/PI (lrand 2)))
           r (* amount (m/sqrt (v/mag v)))]
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
-(make-var-method julia :random)
+(make-field-method julia :random)
 
 (defn- make-julia2
   "Julia with different angle calc"
@@ -1608,7 +1627,7 @@
     (let [a (+ (* 0.5 (m/atan2 (.x v) (.y v))) (* m/PI (lrand 2)))
           r (* amount (m/sqrt (v/mag v)))]
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
-(make-var-method julia2 :random)
+(make-field-method julia2 :random)
 
 ;; ### JuliaC
 
@@ -1630,7 +1649,7 @@
                                      (* arg im))))]
         (Vec2. (* mod2 (m/cos a))
                (* mod2 (m/sin a)))))))
-(make-var-method juliac :random)
+(make-field-method juliac :random)
 
 ;; ### JuliaN
 
@@ -1647,7 +1666,7 @@
       (let [a (/ (+ ^double (v/heading v) (* m/TWO_PI (double (irand abspower)))) power)
             r (* amount (m/pow (v/magsq v) cpower))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
-(make-var-method julian :random)
+(make-field-method julian :random)
 
 ;; ### JuliaScope
 
@@ -1667,7 +1686,7 @@
                 (/ (- (* m/TWO_PI rnd) ^double (v/heading v)) power))
             r (* amount (m/pow (v/magsq v) cpower))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
-(make-var-method juliascope :random)
+(make-field-method juliascope :random)
 
 
 ;; ### JuliaQ
@@ -1686,7 +1705,7 @@
                  (* inv-power-2pi (double (irand))))
             r (* amount (m/pow (v/magsq v) half-inv-power))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
-(make-var-method juliaq :random)
+(make-field-method juliaq :random)
 
 ;; ## L
 
@@ -1713,7 +1732,7 @@
         (let [nr (* amount (inc (/ space rr)))]
           (Vec2. (+ (* nr xx) x)
                  (- (* nr yy) y)))))))
-(make-var-method lazysusan :regular)
+(make-field-method lazysusan :regular)
 
 ;; ### LogApo
 
@@ -1726,7 +1745,7 @@
     (fn [v]
       (Vec2. (* amount denom (m/log (v/magsq v)))
              (* amount ^double (v/heading v))))))
-(make-var-method logapo :regular)
+(make-field-method logapo :regular)
 
 ;; ### Log
 
@@ -1736,7 +1755,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount 0.5 (m/log (v/magsq v)))
            (* amount ^double (v/heading v)))))
-(make-var-method log :regular)
+(make-field-method log :regular)
 
 ;; ### Loonie
 
@@ -1750,7 +1769,7 @@
           (let [r (* amount (m/sqrt (dec (/ w2 r2))))]
             (v/mult v r))
           (v/mult v amount))))))
-(make-var-method loonie :regular)
+(make-field-method loonie :regular)
 
 ;; ## M
 
@@ -1773,7 +1792,7 @@
                        (> (.y v) y) (+ (- y) (rem (+ (.y v) y) yr))
                        (< (.y v) (- y)) (- y (rem (- y (.y v)) yr))
                        :else (.y v))) amount))))
-(make-var-method modulus :regular)
+(make-field-method modulus :regular)
 
 
 ;; ## N
@@ -1798,7 +1817,7 @@
             phi (if (> phi hb) (- phi b) phi)
             amp (/ (+ circle (* corners (dec (/ 1.0 (+ (m/cos phi) m/EPSILON))))) (+ r-factor m/EPSILON))]
         (v/mult v (* amount amp))))))
-(make-var-method ngon :regular)
+(make-field-method ngon :regular)
 
 ;; ### Noise
 
@@ -1810,7 +1829,7 @@
           r (drand amount)]
       (Vec2. (* r (m/cos a))
              (* r (m/sin a))))))
-(make-var-method noise :random)
+(make-field-method noise :random)
 
 ;; ## P
 
@@ -1825,7 +1844,7 @@
           ^double aux (v/mag nv)]
       (Vec2. (* amount m/M_1_PI ^double (v/heading nv))
              (* amount (- aux 0.5))))))
-(make-var-method panorama1 :regular)
+(make-field-method panorama1 :regular)
 
 ;; ### Panorama2
 
@@ -1838,7 +1857,7 @@
           ^double aux (v/mag nv)]
       (Vec2. (* amount m/M_1_PI ^double (v/heading nv))
              (* amount (- aux 0.5))))))
-(make-var-method panorama2 :regular)
+(make-field-method panorama2 :regular)
 
 ;; ### Parabola
 
@@ -1854,7 +1873,7 @@
           cr (m/cos r)]
       (Vec2. (* amount height sr sr (drand))
              (* amount width cr (drand))))))
-(make-var-method parabola :random)
+(make-field-method parabola :random)
 
 
 ;; ### Perlin
@@ -1868,7 +1887,7 @@
   [amount {:keys [seed octaves scale]}]
   (let [n (fbm-noise {:seed seed :octaves octaves})]
     (make-noise-variation amount scale n)))
-(make-var-method perlin :regular)
+(make-field-method perlin :regular)
 
 (make-config-method perlin2 {:seed (irand)
                              :scale (srandom 0.1 1.5)
@@ -1879,7 +1898,7 @@
   [^double amount {:keys [^int seed ^int octaves ^double scale]}]
   (let [n (fbm-noise {:seed seed :octaves octaves})]
     (make-noise-variation2 amount scale n)))
-(make-var-method perlin2 :regular)
+(make-field-method perlin2 :regular)
 
 
 ;; ### Petal
@@ -1893,7 +1912,7 @@
           by (m/pow (* (m/sin (.x v)) (m/cos (.y v))) 3.0)]
       (Vec2. (* amount a bx)
              (* amount a by)))))
-(make-var-method petal :regular)
+(make-field-method petal :regular)
 
 ;; ### Pie
 
@@ -1915,7 +1934,7 @@
           r (* amount (drand))]
       (Vec2. (* r (m/cos a))
              (* r (m/sin a))))))
-(make-var-method pie :random)
+(make-field-method pie :random)
 
 ;; ### PDJ
 
@@ -1930,7 +1949,7 @@
   (fn [^Vec2 v]
     (Vec2. (* amount (- (m/sin (* a (.y v))) (m/cos (* b (.x v)))))
            (* amount (- (m/sin (* c (.x v))) (m/cos (* d (.y v))))))))
-(make-var-method pdj :regular)
+(make-field-method pdj :regular)
 
 ;; ### Perspective
 
@@ -1947,7 +1966,7 @@
       (let [t (/ amount (- dist (* (.y v) vsin)))]
         (Vec2. (* t dist (.x v))
                (* t vfcos (.y v)))))))
-(make-var-method perspective :regular)
+(make-field-method perspective :regular)
 
 ;; ### Phoenix julia
 
@@ -1972,7 +1991,7 @@
             r (* amount (m/pow (v/magsq v) c-n))]
         (Vec2. (* r cosa)
                (* r sina))))))
-(make-var-method phoenix-julia :random)
+(make-field-method phoenix-julia :random)
 
 ;; ### Polar
 
@@ -1983,7 +2002,7 @@
     (let [ny (dec ^double (v/mag v))]
       (Vec2. (* amount ^double (v/heading v) m/M_1_PI)
              (* amount ny)))))
-(make-var-method polar :regular)
+(make-field-method polar :regular)
 
 (defn- make-polar2
   "Polar2"
@@ -1991,7 +2010,7 @@
   (let [p2v (/ amount m/PI)
         p2v2 (* 0.5 p2v)]
     (fn [^Vec2 v] (Vec2. (* p2v ^double (v/heading v)) (* p2v2 (m/log (v/magsq v)))))))
-(make-var-method polar2 :regular)
+(make-field-method polar2 :regular)
 
 ;; ### PowBlock
 
@@ -2014,7 +2033,7 @@
             ran (+ (* numerator (+ (* theta deneps) (* root m/TWO_PI (m/floor (drand denominator)) deneps))))]
         (Vec2. (* r2 (m/cos ran))
                (* r2 (m/sin ran)))))))
-(make-var-method powblock :random)
+(make-field-method powblock :random)
 
 ;; ### Power
 
@@ -2027,7 +2046,7 @@
           ca (m/cos theta)
           pow (* amount (m/pow (v/mag v) sa))]
       (Vec2. (* pow ca) (* pow sa)))))
-(make-var-method power :regular)
+(make-field-method power :regular)
 
 ;; ### Popcorn2
 
@@ -2054,7 +2073,7 @@
                   (+ (.y v))
                   (* amount))]
       (Vec2. xx yy))))
-(make-var-method popcorn2 :regular)
+(make-field-method popcorn2 :regular)
 
 ;; ### Pressure Wave
 
@@ -2069,7 +2088,7 @@
     (fn [^Vec2 v]
       (Vec2. (* amount (+ (.x v) (* ipwx (m/sin (* pwx (.x v))))))
              (* amount (+ (.y v) (* ipwy (m/sin (* pwy (.y v))))))))))
-(make-var-method pressure-wave :regular)
+(make-field-method pressure-wave :regular)
 
 ;; ## R
 
@@ -2102,7 +2121,7 @@
             rad2 (* rad2 a3)]
         (Vec2. (* amount (+ bx (* rad2 (m/cos angle2)) (* dist a1)))
                (* amount (+ by (* rad2 (m/sin angle2)) (* dist a2))))))))
-(make-var-method r-circleblur :random)
+(make-field-method r-circleblur :random)
 
 
 ;; ### Radial Blur
@@ -2121,7 +2140,7 @@
             rz (dec (* zoom rnd-g))]
         (Vec2. (+ (* rz (.x v)) (* ra (m/cos alpha)))
                (+ (* rz (.y v)) (* ra (m/sin alpha))))))))
-(make-var-method radialblur :random)
+(make-field-method radialblur :random)
 
 ;; ### Rational3
 
@@ -2152,7 +2171,7 @@
           r3den (/ amount (+ (* br br) (* bi bi)))]
       (Vec2. (* r3den (+ (* tr br) (* ti bi)))
              (* r3den (- (* ti br) (* tr bi)))))))
-(make-var-method rational3 :regular)
+(make-field-method rational3 :regular)
 
 ;; ### Rays
 
@@ -2165,7 +2184,7 @@
           tanr (* amount r (m/tan ang))]
       (Vec2. (* tanr (m/cos (.x v)))
              (* tanr (m/sin (.y v)))))))
-(make-var-method rays :random)
+(make-field-method rays :random)
 
 (defn- make-rays1
   "Rays1"
@@ -2177,7 +2196,7 @@
             r (* amount u t)]
         (Vec2. (/ r (.x v))
                (/ r (.y v)))))))
-(make-var-method rays1 :regular)
+(make-field-method rays1 :regular)
 
 (defn- make-rays2
   "Rays2"
@@ -2189,7 +2208,7 @@
             r (* a10 t u)]
         (Vec2. (/ r (.x v))
                (/ r (.y v)))))))
-(make-var-method rays2 :regular)
+(make-field-method rays2 :regular)
 
 (defn- make-rays3
   "Rays3"
@@ -2202,7 +2221,7 @@
             r (* a10 t u)]
         (Vec2. (/ (* r (m/cos t)) (.x v))
                (/ (* r (m/tan t)) (.y v)))))))
-(make-var-method rays3 :regular)
+(make-field-method rays3 :regular)
 
 ;; ### Rectangles
 
@@ -2231,7 +2250,7 @@
                            inc
                            (* y)
                            (- (.y v))))))))
-(make-var-method rectangles :regular)
+(make-field-method rectangles :regular)
 
 ;; ### Rhodonea
 
@@ -2345,7 +2364,7 @@
             5 v
             6 (Vec2. 0.0 0.0)
             ))))))
-(make-var-method rhodonea :random)
+(make-field-method rhodonea :random)
 
 ;; ### Rings
 
@@ -2363,7 +2382,7 @@
             rr (+ (- r (* dx2 (double (int (* (+ r dx) rdx))))) (* r dx-))]
         (Vec2. (* rr (/ (.x v) r))
                (* rr (/ (.y v) r)))))))
-(make-var-method rings :regular)
+(make-field-method rings :regular)
 
 (make-config-method rings2 {:val (drand -1.0 1.0)})
 
@@ -2375,7 +2394,7 @@
       (let [^double l (v/mag v)
             r (* amount (- 2.0 (* dx (inc (/ (* 2.0 (double (int (* 0.5 (inc (/ l dx)))))) l)))))]
         (v/mult v r)))))
-(make-var-method rings2 :regular)
+(make-field-method rings2 :regular)
 
 ;; ### Ripple
 
@@ -2420,7 +2439,7 @@
             v2 (- (* ny d2) centery)]
         (Vec2. (* amount is (m/lerp u1 u2 p))
                (* amount is (m/lerp v1 v2 p)))))))
-(make-var-method ripple :regular)
+(make-field-method ripple :regular)
 
 ;; ### Rippled
 
@@ -2431,7 +2450,7 @@
     (let [d (+ m/EPSILON ^double (v/magsq v))]
       (Vec2. (* (* (m/tanh d) (* 2.0 (.x v))) (/ amount 2.0))
              (* (* (m/cos d) (* 2.0 (.y v))) (/ amount 2.0))))))
-(make-var-method rippled :regular)
+(make-field-method rippled :regular)
 
 ;; ### Round Sphere
 
@@ -2444,7 +2463,7 @@
             re (/ (+ s (/ d)))
             ad (/ amount d)]
         (v/mult v (* amount ad re))))))
-(make-var-method roundspher :regular)
+(make-field-method roundspher :regular)
 
 ;; ## S
 
@@ -2462,7 +2481,7 @@
                 (+ m/EPSILON))
           r (/ 1.0 d)]
       (v/mult v r))))
-(make-var-method scry :regular)
+(make-field-method scry :regular)
 
 ;; ### Sech
 
@@ -2480,7 +2499,7 @@
           den (/ 2.0 d)]
       (Vec2. (* amount den cn cnh)
              (* (- amount) den sn snh)))))
-(make-var-method sech :regular)
+(make-field-method sech :regular)
 
 ;; ### Shreadrad
 
@@ -2502,7 +2521,7 @@
             zang (- (* sa (+ ixang (* width (- xang ixang)))) m/PI sa2sw)]
         (Vec2. (* amount rad (m/cos zang))
                (* amount rad (m/sin zang)))))))
-(make-var-method shreadrad :regular)
+(make-field-method shreadrad :regular)
 
 ;; ### Sinusoidal
 
@@ -2511,7 +2530,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (Vec2. (* amount (m/sin (.x v))) (* amount (m/sin (.y v))))))
-(make-var-method sinusoidal :regular)
+(make-field-method sinusoidal :regular)
 
 ;; ### Secant
 
@@ -2523,7 +2542,7 @@
           cr (* amount (m/cos r))
           icr (/ 1.0 (if (zero? cr) m/EPSILON cr))]
       (Vec2. (* amount (.x v)) icr))))
-(make-var-method secant :regular)
+(make-field-method secant :regular)
 
 (defn- make-secant2
   "Secant2"
@@ -2536,7 +2555,7 @@
                (* amount (inc cr))
                (* amount (dec cr)))]
       (Vec2. (* amount (.x v)) ny))))
-(make-var-method secant2 :regular)
+(make-field-method secant2 :regular)
 
 ;; ### Spherical
 
@@ -2545,7 +2564,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (v/mult v (/ amount (+ m/EPSILON ^double (v/magsq v))))))
-(make-var-method spherical :regular)
+(make-field-method spherical :regular)
 
 ;; ### Spiral
 
@@ -2561,7 +2580,7 @@
           cosr (m/cos r)]
       (Vec2. (* amount revr (+ cosa sinr))
              (* amount revr (- sina cosr))))))
-(make-var-method spiral :regular)
+(make-field-method spiral :regular)
 
 ;; ### Split
 
@@ -2578,7 +2597,7 @@
            (if (pos? (m/cos (* (.y v) ysplit)))
              (* amount (.x v))
              (- (* amount (.x v)))))))
-(make-var-method split :regular)
+(make-field-method split :regular)
 
 ;; ### Splits
 
@@ -2595,7 +2614,7 @@
            (if (pos? (.y v))
              (* amount (+ (.y v) y))
              (* amount (- (.y v) y))))))
-(make-var-method splits :regular)
+(make-field-method splits :regular)
 
 ;; ### Square
 
@@ -2605,7 +2624,7 @@
   (fn [v]
     (Vec2. (* amount (drand -0.5 0.5))
            (* amount (drand -0.5 0.5)))))
-(make-var-method square :random)
+(make-field-method square :random)
 
 ;; ### Squirrel
 
@@ -2620,7 +2639,7 @@
                        (* b (m/sq (.y v)))))]
       (Vec2. (* amount (m/cos u) (m/tan (.x v)))
              (* amount (m/sin u) (m/tan (.y v)))))))
-(make-var-method squirrel :regular)
+(make-field-method squirrel :regular)
 
 ;; ### STwin
 
@@ -2641,7 +2660,7 @@
           result (/ (* x2-y2 (m/sin (* m/TWO_PI distort (+ x y)))) div)]
       (Vec2. (+ (* amount (.x v)) result)
              (+ (* amount (.y v)) result)))))
-(make-var-method stwin :regular)
+(make-field-method stwin :regular)
 
 ;; ### Supershape
 
@@ -2666,7 +2685,7 @@
             ^double mag (v/mag v)
             r (/ (* (* amount (- (+ (drand rnd) (* (- 1.0 rnd) mag)) holes)) (m/pow (+ t1 t2) pneg1-n1)) mag)]
         (v/mult v r)))))
-(make-var-method supershape :random)
+(make-field-method supershape :random)
 
 ;; ### Swirl
 
@@ -2679,7 +2698,7 @@
           c2 (m/cos r)]
       (Vec2. (* amount (- (* c1 (.x v)) (* c2 (.y v))))
              (* amount (+ (* c2 (.x v)) (* c1 (.y v))))))))
-(make-var-method swirl :regular)
+(make-field-method swirl :regular)
 
 ;; ## T
 
@@ -2693,7 +2712,7 @@
           id (/ 1.0 (if (zero? d) m/EPSILON d))]
       (Vec2. (* amount (m/sin (.x v)) id)
              (* amount (m/tan (.y v)))))))
-(make-var-method tangent :regular)
+(make-field-method tangent :regular)
 
 ;; ### Twintrian
 
@@ -2706,7 +2725,7 @@
           diff (+ (m/cos r) (m/log10 (m/sq sinr)))]
       (Vec2. (* amount diff (.x v))
              (* amount (.x v) (- diff (* m/PI sinr)))))))
-(make-var-method twintrian :random)
+(make-field-method twintrian :random)
 
 
 ;; ### Taurus
@@ -2729,7 +2748,7 @@
             irsy (+ ir sy)]
         (Vec2. (* amount cx irsy)
                (* amount sx irsy))))))
-(make-var-method taurus :regular)
+(make-field-method taurus :regular)
 
 ;; ### Trade
 
@@ -2756,7 +2775,7 @@
         (if (<= rm rr)
           (v/mult res amount)
           (v/mult v amount))))))
-(make-var-method trade :regular)
+(make-field-method trade :regular)
 
 ;; ## V
 
@@ -2803,7 +2822,7 @@
             x (+ x (* local-amp cos-tot2))
             y (+ y (* local-amp sin-tot2))]
         (Vec2. (* amount x) (* amount y))))))
-(make-var-method vibration :regular)
+(make-field-method vibration :regular)
 
 (make-config-method vibration2 {:dir (drand m/TWO_PI)
                                 :angle (drand m/TWO_PI)
@@ -2893,7 +2912,7 @@
             y (+ y (* local-amp sin-tot))]
         (Vec2. (* amount x)
                (* amount y))))))
-(make-var-method vibration2 :regular)
+(make-field-method vibration2 :regular)
 
 ;; ### Voron
 
@@ -2938,7 +2957,7 @@
                                           currl))) (VoronResType. 20.0 0.0 0.0) Ks)]
       (Vec2. (* amount (+ (.X0 res) (* k (- (.x v) (.X0 res)))))
              (* amount (+ (.Y0 res) (* k (- (.y v) (.Y0 res)))))))))
-(make-var-method voron :regular)
+(make-field-method voron :regular)
 
 ;; ### Waves
 
@@ -2965,7 +2984,7 @@
                   (* coeff11)
                   (+ (.y v))
                   (* amount))))))
-(make-var-method waves :regular)
+(make-field-method waves :regular)
 
 ;; ### Wedge
 
@@ -2987,7 +3006,7 @@
             r (* amount (+ r hole))]
         (Vec2. (* r (m/cos a))
                (* r (m/sin a)))))))
-(make-var-method wedge :regular)
+(make-field-method wedge :regular)
 
 
 ;; ## Additional variations
@@ -3007,7 +3026,7 @@
                         (m/tan)
                         (m/log)
                         (* 1.25))) amount)))
-(make-var-method miller :regular)
+(make-field-method miller :regular)
 
 (defn- make-millerrev
   "Millerrev"
@@ -3020,7 +3039,7 @@
                        (m/atan)
                        (* 2.5)
                        (- (* 0.625 m/PI)))) amount)))
-(make-var-method millerrev :regular)
+(make-field-method millerrev :regular)
 
 ;; ### Foucaut
 
@@ -3038,117 +3057,89 @@
                   (* amount))
           yy (* amount m/SQRTPI (m/tan k))]
       (Vec2. xx yy))))
-(make-var-method foucaut :regular)
+(make-field-method foucaut :regular)
 
 ;; ## Lists
 
 ;; List of variations based on RNG
-(def variation-list-random @random-var)
+(def fields-list-random @random-field)
 
 ;; List of variations not random
-(def variation-list-not-random @regular-var)
+(def fields-list-not-random @regular-field)
 
 ;; list of all variations defined in the file
-(def variation-list (concat variation-list-random variation-list-not-random))
+(def fields-list (concat fields-list-random fields-list-not-random))
 
 ;; ## Function arithmetic
 ;;
-;; Using following functions you can create various combination of the functions and derive another ones. Configuration schema goes as follows:
-;;
-;; Each variation is described by 
-;;
-;; * `{:type :variation :name NAME :amount AMOUNT :config CONFIG}` where
-;;   * NAME is variation name (keyword)
-;;   * AMOUNT is scaling factor
-;;   * CONFIG is variation configuration
-;; * `{:type :operation :name OPERATION :amount AMOUNT :var1 VAR1 :var2 VAR2} where
-;;   * OPERATION is one of the operations (see below)
-;;   * AMOUNT is scaling factor
-;;   * VAR1 and VAR2 two variations to combine
-;; * `{:type :operation :name :derivative :amount AMOUNT :var VAR :step STEP} where
-;;   * AMOUNT is scaling factor
-;;   * VAR variation, subject to calculate derivative
-;;   * STEP dx and dy value
-;;
-;; Possible OPERATIONs are:
-;;
-;; * `:add` - sum of two variations
-;; * `:mult` - multiplication
-;; * `:comp` - composition
-;;
-;; Configuration form a tree and is base for creating new variation function
-;;
-;; To get random configuration call `make-random-configuration`
-;; `=> {:type :operation, :name :add, :var1 {:type :variation, :name :hemisphere, :amount 0.7030921730331494, :config {}}, :var2 {:type :variation, :name :secant2, :amount -0.969787677636873, :config {}}, :amount 0.5977715611790528}`
-;;
-;; If you want to keep structure and operations and change only variation configs, step (for derivative) and amount call `randomize-parametrization`
-;;
-;; `(def c (make-random-configuration 1))`
-;; `(randomize-parametrization c)`
-;; `=> {:type :operation, :name :add, :var1 {:type :variation, :name :stwin, :amount 1.931203996559876, :config {:distort -1.9879093574070819, :multiplier -1.1430930986892986}}, :var2 {:type :variation, :name :miller, :amount 1.2175172903222724, :config {}}, :amount 0.3175892398498681}`
-;; `(randomize-parametrization c)`
-;; `=> {:type :operation, :name :add, :var1 {:type :variation, :name :stwin, :amount 0.9983039843886115, :config {:distort 1.336493697754337, :multiplier -1.2367301725837616}}, :var2 {:type :variation, :name :miller, :amount -1.6972368966112605, :config {}}, :amount 0.37098305837196743}`
-;;
-;; To create variation function based on configuration call `make-combination` function and pass configuration. 
-
-;; Set below to true if you want to avoid variations based on RNG
-(def ^:dynamic *skip-random-variations* false)
+(def ^{:dynamic true
+       :doc "When random configuration for [[combine]] is used. Skip vector fields which are random."
+       :metadoc/categories #{:comp}}
+  *skip-random-fields* false)
 
 (defn derivative
-  "Calculate derivative of fn using a step."
-  ([f ^double amount ^double a]
-   (let [^Vec2 d (Vec2. a a)]
+  "Calculate derivative of fn using `h` (default: `1.0e-6`) as a step."
+  {:metadoc/categories #{:comp}}
+  ([f ^double amount ^double h]
+   (let [^Vec2 d (Vec2. h h)]
      (fn [^Vec2 v]
        (let [v1 (f v)
              v2 (f (v/add v d))]
-         (v/mult (v/div (v/sub v2 v1) a) amount)))))
-  ([f amount]
-   (derivative f amount 0.001))
+         (v/mult (v/div (v/sub v2 v1) h) amount)))))
+  ([f ^double h]
+   (derivative f 1.0 h))
   ([f]
-   (derivative f 1.0 0.001)))
+   (derivative f 1.0 1.0e-6)))
 
 (defn composition
-  ""
-  [f1 f2 amount]
-  (fn [v] (v/mult (f1 (f2 v)) amount)))
+  "Compose two vector fields."
+  {:metadoc/categories #{:comp}}
+  ([f1 f2 ^double amount]
+   (fn [v] (v/mult (f1 (f2 v)) amount)))
+  ([f1 f2] (composition f1 f2 1.0)))
 
 (defn sum
-  ""
-  [f1 f2 amount]
-  (fn [v] (v/mult (v/add (f1 v) (f2 v)) amount)))
+  "Add two vector fields."
+  {:metadoc/categories #{:comp}}
+  ([f1 f2 ^double amount]
+   (fn [v] (v/mult (v/add (f1 v) (f2 v)) amount)))
+  ([f1 f2] (sum f1 f2 1.0)))
 
 (defn multiplication
-  ""
-  [f1 f2 amount]
-  (fn [v] (v/mult (v/emult (f1 v) (f2 v)) amount)))
+  "Multiply two vector fields (as a element-wise multiplication of results)."
+  {:metadoc/categories #{:comp}}
+  ([f1 f2 ^double amount]
+   (fn [v] (v/mult (v/emult (f1 v) (f2 v)) amount)))
+  ([f1 f2] (multiplication f1 f2 1.0)))
 
 (defn- build-random-variation-step
-  "Create variation configuration"
+  "Create variation parametrization"
   []
-  (let [n (rand-nth (if *skip-random-variations* variation-list-not-random variation-list))]
-    {:type :variation :name n :amount 1.0 :config (configuration n)}))
+  (let [n (rand-nth (if *skip-random-fields* fields-list-not-random fields-list))]
+    {:type :variation :name n :amount 1.0 :config (parametrization n)}))
 
-(defn- build-random-configuration-step
-  "Create configuration tree"
+(defn- build-random-parametrization-step
+  "Create parametrization tree"
   ([f1 f2]
-   (let [operand (rand-nth [:comp :add :comp :add :comp :mult :comp])]
+   (let [operand (rand-nth [:comp :add :comp :add :comp :mult :comp :comp :comp])]
      {:type :operation :name operand :var1 f1 :var2 f2}))
   ([f]
    (randval 0.1 f
             (randval 0.1
                      {:type :operation :name :deriv :var f}
-                     (build-random-configuration-step f (build-random-variation-step)))))
+                     (build-random-parametrization-step f (build-random-variation-step)))))
   ([]
-   (build-random-configuration-step (build-random-variation-step) (build-random-variation-step))))
+   (build-random-parametrization-step (build-random-variation-step) (build-random-variation-step))))
 
-(defn randomize-parametrization
-  "Randomize parametrization: amounts, step (for derivative) and variation config. Keep structure untouched."
+(defn randomize-configuration
+  "Randomize values for given configuration. Keeps structure untouched."
+  {:metadoc/categories #{:comp}}
   ([f]
    (if (= (:type f) :variation)
-     (assoc f :amount 1.0 :config (configuration (:name f) {}))
+     (assoc f :amount 1.0 :config (parametrization (:name f) {}))
      (let [name (:name f)]
        (if (= name :deriv)
-         (assoc f :amount 1.0 :step (m/sq (drand 0.01 1.0)) :var (randomize-parametrization (:var f)))
+         (assoc f :amount 1.0 :step (m/sq (drand 0.01 1.0)) :var (randomize-configuration (:var f)))
          (let [amount1 (if (= name :comp) 1.0 (drand -2.0 2.0))
                amount2 (if (= name :comp) 1.0 (drand -2.0 2.0)) 
                amount (case name
@@ -3156,29 +3147,56 @@
                         :mult (/ 1.0 (* amount1 amount2))
                         :comp 1.0)]
            (assoc f :amount amount
-                  :var1 (assoc (randomize-parametrization (:var1 f)) :amount amount1)
-                  :var2 (assoc (randomize-parametrization (:var2 f)) :amount amount2))))))))
+                  :var1 (assoc (randomize-configuration (:var1 f)) :amount amount1)
+                  :var2 (assoc (randomize-configuration (:var2 f)) :amount amount2))))))))
 
-(defn make-random-configuration
-  "Create random configuration. Optionally with depth passed (0 = only root is created)."
-  ([] (make-random-configuration (lrand 5)))
-  ([depth] (make-random-configuration depth (build-random-variation-step)))
+(defn random-configuration
+  "Create random configuration for [[combine]] function. Optionally with depth (0 = only root is created).
+
+  See [[combine]] for structure."
+  {:metadoc/categories #{:comp}}
+  ([] (random-configuration (lrand 5)))
+  ([depth] (random-configuration depth (build-random-variation-step)))
   ([^long depth f]
    (if (pos? depth)
-     (make-random-configuration (dec depth) (randomize-parametrization (build-random-configuration-step f)))
+     (random-configuration (dec depth) (randomize-configuration (build-random-parametrization-step f)))
      f)))
 
-(defn make-combination
-  "Parse configuration and return new variation function."
+(defn combine
+  "Create composite vector field function based on configuration (default random).
+
+  Configuration is a tree structure where nodes are one of the following
+
+  * `{:type :variation :name NAME :amount AMOUNT :config CONFIG}` where
+      * NAME is variation name (keyword)
+      * AMOUNT is scaling factor
+      * CONFIG is variation parametrization
+  * `{:type :operation :name OPERATION :amount AMOUNT :var1 VAR1 :var2 VAR2}` where
+      * OPERATION is one of the operations (see below)
+      * AMOUNT is scaling factor
+      * VAR1 and VAR2 two variations to combine
+  * `{:type :operation :name :derivative :amount AMOUNT :var VAR :step STEP}` where
+      * AMOUNT is scaling factor
+      * VAR variation, subject to calculate derivative
+      * STEP dx and dy value
+
+  Possible OPERATIONs are:
+
+  * `:add` - sum of two variations
+  * `:mult` - multiplication
+  * `:comp` - composition
+
+  See [[random-configuration]] for example."
+  {:metadoc/categories #{:comp}}
   ([{:keys [type name amount config var step var1 var2]}]
    (if (= type :variation)
      (field name amount config)
      (if (= name :deriv)
-       (derivative (make-combination var) amount step)
-       (let [v1 (make-combination var1)
-             v2 (make-combination var2)]
+       (derivative (combine var) amount step)
+       (let [v1 (combine var1)
+             v2 (combine var2)]
          (case name
            :comp (composition v1 v2 amount)
            :add (sum v1 v2 amount)
            :mult (multiplication v1 v2 amount))))))
-  ([] (make-combination (make-random-configuration))))
+  ([] (combine (random-configuration))))

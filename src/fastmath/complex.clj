@@ -25,8 +25,7 @@
   {:metadoc/categories {:trig "Trigonometry"
                         :pow "Power / logarithm"}}
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v] 
-            [metadoc.examples :refer :all])
+            [fastmath.vector :as v])
   (:import [fastmath.vector Vec2]))
 
 (set! *warn-on-reflection* true)
@@ -41,24 +40,21 @@
 
 (defn complex
   "Create complex number. Represented as `Vec2`."
-  {:metadoc/examples [(example "New complex number." (complex 2 -1))]}
   [a b]
   (Vec2. a b))
 
-(def ^{:doc "Absolute value" :metadoc/examples [(example "Abs" (abs (complex 1 -3)))]} abs v/mag)
-(def ^{:doc "Sum of two complex numbers." :metadoc/examples [(example "Sum" (add I ONE))]} add v/add)
-(def ^{:doc "Subtraction of two complex numbers." :metadoc/examples [(example "Subtract" (sub ONE I-))]} sub v/sub)
-(def ^{:doc "Argument (angle) of complex number." :metadoc/examples [(example "Argument" (m/degrees (arg I-)))]} arg v/heading)
+(def ^{:doc "Absolute value"} abs v/mag)
+(def ^{:doc "Sum of two complex numbers."} add v/add)
+(def ^{:doc "Subtraction of two complex numbers."} sub v/sub)
+(def ^{:doc "Argument (angle) of complex number."} arg v/heading)
 
 (defn conjugate
   "Complex conjugate. \\\\(\\bar{z}\\\\)"
-  {:metadoc/examples [(example "Conjugate" (conjugate I))]}
   [^Vec2 z]
   (Vec2. (.x z) (- (.y z))))
 
 (defn div
   "Divide two complex numbers."
-  {:metadoc/examples [(example "Divide" (div (complex 1 2) (complex 3 4)))]}
   [^Vec2 z1 ^Vec2 z2]
   (let [a (.x z1)
         b (.y z1)
@@ -72,8 +68,6 @@
 
 (defn reciprocal
   "\\\\(\\frac{1}{z}\\\\)"
-  {:metadoc/examples [(example "Reciprocal of real" (reciprocal TWO))
-                      (example "Reciprocal of complex" (reciprocal (complex 0 2)))]}
   [z]
   (div ONE z))
 
@@ -81,7 +75,6 @@
 
 (defn mult
   "Multiply two complex numbers."
-  {:metadoc/examples [(example "Multiply" (mult (complex 1 2) (complex 3 4)))]}
   [^Vec2 z1 ^Vec2 z2]
   (let [a (.x z1)
         b (.y z1)
@@ -92,14 +85,11 @@
 
 (defn neg
   "Negate complex number. \\\\(-z\\\\)"
-  {:metadoc/examples [(example "Negate." (neg (complex 1 2)))]}
   [z]
   (v/sub z))
 
 (defn sq
   "Square complex number. \\\\(z^2\\\\)"
-  {:metadoc/examples [(example "Square." (sq (complex 1 2)))
-                      (example "\\\\(i^2\\\\)" (sq I))]}
   [z]
   (mult z z))
 
@@ -107,8 +97,6 @@
 
 (defn sqrt
   "Sqrt of complex number. \\\\(\\sqrt{z}\\\\)"
-  {:metadoc/examples [(example "Square root of real." (sqrt (complex 2 0)))
-                      (example "Square root of complex." (sqrt (complex 2 2)))]}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)
@@ -121,7 +109,6 @@
 
 (defn sqrt1z
   "\\\\(\\sqrt{1-z^2}\\\\)"
-  {:metadoc/examples [(example "Example 1" (sqrt1z (complex 2 3)))]}
   [z]
   (->> z
        (mult z)
@@ -132,8 +119,7 @@
 
 (defn cos
   "cos"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "cos(z)" (cos (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -144,8 +130,7 @@
 
 (defn sin
   "sin"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "sin(z)" (sin (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -156,8 +141,7 @@
 
 (defn cosh
   "cosh"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "cosh(z)" (cosh (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -168,8 +152,7 @@
 
 (defn sinh
   "sinh"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "sinh(z)" (sinh (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -180,8 +163,7 @@
 
 (defn tan
   "tan"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "tan(z)" (tan (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [aa (* 2.0 (.x z))
         bb (* 2.0 (.y z))
@@ -193,8 +175,7 @@
 
 (defn tanh
   "tanh"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "tanh(z)" (tanh (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [aa (* 2.0 (.x z))
         bb (* 2.0 (.y z))
@@ -206,8 +187,7 @@
 
 (defn sec
   "secant"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "sec(z)" (sec (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [cc (+ (m/cos (* 2.0 (.x z)))
               (m/cosh (* 2.0 (.y z))))]
@@ -218,8 +198,7 @@
 
 (defn csc
   "cosecant"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "csc(z)" (csc (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [cc (- (m/cos (* 2.0 (.x z)))
               (m/cosh (* 2.0 (.y z))))]
@@ -230,9 +209,7 @@
 
 (defn exp
   "exp"
-  {:metadoc/categories #{:pow}
-   :metadoc/examples [(example "exp(z)" (exp (complex 2 -1)))
-                      (example "\\\\(e^{i\\pi}+1\\\\)" (add (exp (complex 0 m/PI)) ONE))]}
+  {:metadoc/categories #{:pow}}
   [^Vec2 z]
   (let [e (m/exp (.x z))
         y (.y z)]
@@ -243,9 +220,7 @@
 
 (defn log
   "log"
-  {:metadoc/categories #{:pow}
-   :metadoc/examples [(example "log(z)" (log (complex 2 -1)))
-                      (example "log(e)" (log (complex m/E 0)))]}
+  {:metadoc/categories #{:pow}}
   [^Vec2 z]
   (Vec2. (m/log (abs z))
          (m/atan2 (.y z) (.x z))))
@@ -254,8 +229,7 @@
 
 (defn acos
   "acos"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "acos(z)" (acos (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
        (mult I)
@@ -267,8 +241,7 @@
 
 (defn asin
   "asin"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "asin(z)" (asin (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
        (add (mult I z))
@@ -279,8 +252,7 @@
 
 (defn atan
   "atan"
-  {:metadoc/categories #{:trig}
-   :metadoc/examples [(example "atan(z)" (atan (complex 2 -1)))]}
+  {:metadoc/categories #{:trig}}
   [z]
   (->> (sub I z)
        (div (add I z))
@@ -291,24 +263,10 @@
 
 (defn pow
   "Power. \\\\(z_1^{z_2}\\\\)"
-  {:metadoc/categories #{:pow}
-   :metadoc/examples [(example "\\\\(\\sqrt{2}\\\\)" (pow TWO (complex 0.5 0.0)))
-                      (example "Complex power" (pow (complex 1 2) (complex 3 4)))]}
+  {:metadoc/categories #{:pow}}
   [z1 z2]
   (->> z1
        (log)
        (mult z2)
        (exp)))
 
-;;
-
-(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal identity))
-
-(defmacro ^:private add-image-examples
-  []
-  `(do
-     ~@(for [x fn-list]
-         `(add-examples ~x
-            (example-image ~(str "Plot of " (name x)) ~(str "images/c/" (name x) ".jpg"))))))
-
-(add-image-examples)

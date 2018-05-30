@@ -488,3 +488,46 @@
     (path p2))
   (save-canvas c "t" "compress"))
 
+
+
+
+;;;
+
+
+;;;;; Add images
+
+(def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
+                       sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
+                       qsin qcos exp log log10 ln log1p sqrt cbrt qexp qsqrt rqsqrt
+                       erf erfc inv-erf inv-erfc sinc log2 qlog
+                       sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
+                       frac sfrac low-2-exp high-2-exp round-up-pow2 next-double prev-double
+                       signum sgn sigmoid
+                       gamma log-gamma digamma log-gamma-1p trigamma inv-gamma-1pm1))
+
+(def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))
+
+(def fn-list (concat single-list interp-list))
+
+(defmacro ^:private add-image-examples
+  []
+  `(do
+     ~@(for [x fn-list]
+         `(add-examples ~x
+                        (example-image ~(str "Plot of " (name x)) ~(str "images/m/" (name x) ".png"))))))
+
+(add-image-examples)
+
+
+;;
+
+(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal identity))
+
+(defmacro ^:private add-image-examples
+  []
+  `(do
+     ~@(for [x fn-list]
+         `(add-examples ~x
+                        (example-image ~(str "Plot of " (name x)) ~(str "images/c/" (name x) ".jpg"))))))
+
+(add-image-examples)

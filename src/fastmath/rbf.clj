@@ -22,9 +22,6 @@
   {:metadoc/categories #{:rbf}}
   (fn [n & _] n))
 
-(comment    :metadoc/examples [(example "Usage" (let [rbf-fn (rbf :multiquadratic 3.0)]
-                                                  (rbf-fn 0.5)))])
-
 (defmethod rbf :linear
   ([_] (fn ^double [^double x] x))
   ([_ ^double scale] (fn ^double [^double x] (* scale x))))
@@ -106,6 +103,3 @@
        :metadoc/categories #{:rbf}}
   rbfs-list (keys (methods rbf)))
 
-(comment :metadoc/examples [(example "Usage" (let [^RadialBasisFunction rbf-obj (rbf-obj (rbf :thinplate))]
-                                               (.f rbf-obj 0.5)))]
-         :metadoc/examples [(example "List of names" (sort rbfs-list))])

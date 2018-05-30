@@ -36,7 +36,6 @@
                         :d1 "1d interpolation"
                         :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
-            [metadoc.examples :refer :all]
             [fastmath.rbf :as rbf])
   (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator UnivariatePeriodicInterpolator MicrosphereProjectionInterpolator UnivariateInterpolator]
            [org.apache.commons.math3.analysis.interpolation BicubicInterpolator PiecewiseBicubicSplineInterpolator BivariateGridInterpolator]
@@ -149,10 +148,7 @@ Source: Apache Commons Math." #{:comm :d1}
   "Kriging interpolation.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}
-   :metadoc/examples [(example "Usage" {:test-value -0.07}
-                        (let [interpolator (kriging-spline [2 5 9 10 11] [0.4 1.0 -1.0 -0.5 0.0])]
-                          (m/approx (interpolator 7.0))))]}
+  {:metadoc/categories #{:smile :d1}}
   [xs ys]
   (let [^Interpolation interp (KrigingInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
@@ -288,19 +284,7 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d2}
-   :metadoc/examples [(example "Usage" {:test-value 4.68}
-                               (let [interpolator (cubic-2d [2 5 9] [2 3 10] [[4 0 2]
-                                                                              [-1 2 -2]
-                                                                              [-2 0 1]])]
-                                 (m/approx (interpolator 5.0 5.0))))
-                      (example "Array layout"
-                               (let [intrp (cubic-2d [2 5] [1 6] [[-1 -2]
-                                                                  [3 4]])]
-                                 [(intrp 2 1)
-                                  (intrp 2 6)
-                                  (intrp 5 1)
-                                  (intrp 5 6)]))]}
+  {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
   (let [^Interpolation2D interp (CubicSplineInterpolation2D. (m/seq->double-array xs)
                                                              (m/seq->double-array ys)
@@ -308,8 +292,7 @@ Source: Apache Commons Math." #{:comm :d1}
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
 (def ^{:doc "Map of 1d interpolation functions"
-       :metadoc/categories #{:smile :comm :d1}
-       :metadoc/examples [(example "List of names" (keys interpolators-1d-list))]}
+       :metadoc/categories #{:smile :comm :d1}}
   interpolators-1d-list {:akima akima-spline
                          :divided-difference divided-difference
                          :linear linear
@@ -326,8 +309,7 @@ Source: Apache Commons Math." #{:comm :d1}
                          :step-before step-before})
 
 (def ^{:doc "Map of 2d interpolation functions"
-       :metadoc/categories #{:smile :comm :d2}
-       :metadoc/examples [(example "List of names" (keys interpolators-1d-list))]}
+       :metadoc/categories #{:smile :comm :d2}}
   interpolators-2d-list {:bicubic bicubic
                          :piecewise-bicubic piecewise-bicubic
                          :microsphere-2d microsphere-2d-projection
