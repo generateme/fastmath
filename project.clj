@@ -9,8 +9,7 @@
                  [com.github.haifengl/smile-interpolation "1.5.1"]
                  [com.github.haifengl/smile-math "1.5.1"]
                  [org.slf4j/slf4j-simple "1.7.25"]
-                 [de.sciss/jwave "1.0.3"]
-                 [metadoc "0.2.2"]]
+                 [de.sciss/jwave "1.0.3"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
   :javac-options ["-target" "1.8" "-source" "1.8"]
@@ -20,13 +19,14 @@
              :dev {:plugins [[refactor-nrepl "2.4.0-SNAPSHOT"]
                              [cider/cider-nrepl "0.18.0-SNAPSHOT"]
                              [com.jakemccrary/lein-test-refresh "0.22.0"]
-                             [lein-codox "0.10.3"]
-                             [incanter/incanter-charts "1.9.2"]
-                             [incanter/incanter-core "1.9.2"]]
+                             [lein-codox "0.10.3"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
                                   [clojure2d "0.1.0-SNAPSHOT"]
-                                  [criterium "0.4.4"]]
+                                  [criterium "0.4.4"]
+                                  [incanter/incanter-charts "1.9.2"]
+                                  [incanter/incanter-core "1.9.2"]
+                                  [metadoc "0.2.2"]]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"

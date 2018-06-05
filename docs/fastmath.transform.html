@@ -47,7 +47,7 @@
 <ul>
   <li><code>:standard</code> <code>:dft</code> - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part.</li>
 </ul></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(transformer :packet :discrete-mayer)
-;;=&gt; jwave.transforms.WaveletPacketTransform@16aef60e</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L122">view source</a></div></div><div class="public anchor" id="var-TransformProto"><h3>TransformProto</h3><h4 class="type">protocol</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Transformer functions.</p></div></div><div class="members"><h4>members</h4><div class="inner"><div class="public anchor" id="var-forward-1d"><h3>forward-1d</h3><div class="usage"><code>(forward-1d t xs)</code></div><div class="doc"><div class="markdown"><p>Forward transform of sequence or array. Returns double array.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(seq (forward-1d (transformer :packet :haar-orthogonal) [-1 8 7 6]))
+;;=&gt; jwave.transforms.WaveletPacketTransform@3f9f11e6</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L122">view source</a></div></div><div class="public anchor" id="var-TransformProto"><h3>TransformProto</h3><h4 class="type">protocol</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Transformer functions.</p></div></div><div class="members"><h4>members</h4><div class="inner"><div class="public anchor" id="var-forward-1d"><h3>forward-1d</h3><div class="usage"><code>(forward-1d t xs)</code></div><div class="doc"><div class="markdown"><p>Forward transform of sequence or array. Returns double array.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(seq (forward-1d (transformer :packet :haar-orthogonal) [-1 8 7 6]))
 ;;=&gt; (20.0 -6.0 -8.0 -10.0)
 (seq (forward-1d (transformer :fast :haar-orthogonal) [-1 8 7 6]))
 ;;=&gt; (20.0 -6.0 -9.0 1.0)
@@ -95,36 +95,37 @@
 ;;=&gt;  (6.999999999999999 5.999999999999997))</code></pre></div></div></div></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L162">view source</a></div></div><div class="public anchor" id="var-wavelet"><h3>wavelet</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Create wavelet object.</p>
 <p>Shouldn’t be used directly</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(wavelet :haar)
 ;;=&gt; Haar</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L36">view source</a></div></div><div class="public anchor" id="var-wavelets-list"><h3>wavelets-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of all possible wavelets.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of wavelets</p></blockquote><pre><code class="hljs clojure">(sort wavelets-list)
-;;=&gt; (:battle-23 :biorthogonal-11 :biorthogonal-13
-;;=&gt;             :biorthogonal-15 :biorthogonal-22
-;;=&gt;             :biorthogonal-24 :biorthogonal-26
-;;=&gt;             :biorthogonal-28 :biorthogonal-31
-;;=&gt;             :biorthogonal-33 :biorthogonal-35
-;;=&gt;             :biorthogonal-37 :biorthogonal-39
-;;=&gt;             :biorthogonal-44 :biorthogonal-55
-;;=&gt;             :biorthogonal-68 :cdf-53
-;;=&gt;             :cdf-97 :coiflet-1
-;;=&gt;             :coiflet-2 :coiflet-3
-;;=&gt;             :coiflet-4 :coiflet-5
-;;=&gt;             :daubechies-10 :daubechies-11
-;;=&gt;             :daubechies-12 :daubechies-13
-;;=&gt;             :daubechies-14 :daubechies-15
-;;=&gt;             :daubechies-16 :daubechies-17
-;;=&gt;             :daubechies-18 :daubechies-19
-;;=&gt;             :daubechies-2 :daubechies-20
-;;=&gt;             :daubechies-3 :daubechies-4
-;;=&gt;             :daubechies-5 :daubechies-6
-;;=&gt;             :daubechies-7 :daubechies-8
-;;=&gt;             :daubechies-9 :discrete-mayer
-;;=&gt;             :haar :haar-orthogonal
-;;=&gt;             :legendre-1 :legendre-2
-;;=&gt;             :legendre-3 :symlet-10
-;;=&gt;             :symlet-11 :symlet-12
-;;=&gt;             :symlet-13 :symlet-14
-;;=&gt;             :symlet-15 :symlet-16
-;;=&gt;             :symlet-17 :symlet-18
-;;=&gt;             :symlet-19 :symlet-2
-;;=&gt;             :symlet-20 :symlet-3
-;;=&gt;             :symlet-4 :symlet-5
-;;=&gt;             :symlet-6 :symlet-7
-;;=&gt;             :symlet-8 :symlet-9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L118">view source</a></div></div></div></body></html>
+;;=&gt; (:battle-23
+;;=&gt;  :biorthogonal-11 :biorthogonal-13
+;;=&gt;  :biorthogonal-15 :biorthogonal-22
+;;=&gt;  :biorthogonal-24 :biorthogonal-26
+;;=&gt;  :biorthogonal-28 :biorthogonal-31
+;;=&gt;  :biorthogonal-33 :biorthogonal-35
+;;=&gt;  :biorthogonal-37 :biorthogonal-39
+;;=&gt;  :biorthogonal-44 :biorthogonal-55
+;;=&gt;  :biorthogonal-68 :cdf-53
+;;=&gt;  :cdf-97 :coiflet-1
+;;=&gt;  :coiflet-2 :coiflet-3
+;;=&gt;  :coiflet-4 :coiflet-5
+;;=&gt;  :daubechies-10 :daubechies-11
+;;=&gt;  :daubechies-12 :daubechies-13
+;;=&gt;  :daubechies-14 :daubechies-15
+;;=&gt;  :daubechies-16 :daubechies-17
+;;=&gt;  :daubechies-18 :daubechies-19
+;;=&gt;  :daubechies-2 :daubechies-20
+;;=&gt;  :daubechies-3 :daubechies-4
+;;=&gt;  :daubechies-5 :daubechies-6
+;;=&gt;  :daubechies-7 :daubechies-8
+;;=&gt;  :daubechies-9 :discrete-mayer
+;;=&gt;  :haar :haar-orthogonal
+;;=&gt;  :legendre-1 :legendre-2
+;;=&gt;  :legendre-3 :symlet-10
+;;=&gt;  :symlet-11 :symlet-12
+;;=&gt;  :symlet-13 :symlet-14
+;;=&gt;  :symlet-15 :symlet-16
+;;=&gt;  :symlet-17 :symlet-18
+;;=&gt;  :symlet-19 :symlet-2
+;;=&gt;  :symlet-20 :symlet-3
+;;=&gt;  :symlet-4 :symlet-5
+;;=&gt;  :symlet-6 :symlet-7
+;;=&gt;  :symlet-8 :symlet-9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/transform.clj#L118">view source</a></div></div></div></body></html>

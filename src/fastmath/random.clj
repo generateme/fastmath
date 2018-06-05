@@ -102,7 +102,7 @@
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution]
-           [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise]
+           [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
 
@@ -477,9 +477,7 @@ Values are from following values:
 
 ;; ### Discrete noise
 
-(def ^:private ^:const ^double AM (/ 2147483647.0))
-
-(defn discrete-noise
+(defmacro discrete-noise
   "Discrete noise. Parameters:
 
   * X (long)
@@ -487,15 +485,10 @@ Values are from following values:
 
   Returns double value from [0,1] range"
   {:metadoc/categories #{:noise}}
-  (^double [^long X ^long Y]
-   (let [X (unchecked-int X)
-         Y (unchecked-int Y)
-         n (unchecked-add-int X (unchecked-multiply-int Y 57))
-         nn (unchecked-int (bit-xor n (<< n 13)))
-         nnn (unchecked-add-int 1376312589 (unchecked-multiply-int nn (unchecked-add-int 789221 (unchecked-multiply-int nn (unchecked-multiply-int nn 15731)))))]
-     (* AM (unchecked-int (bit-and 0x7fffffff nnn)))))
-  (^double [^long X]
-   (discrete-noise X 0)))
+  ([X Y]
+   `(Discrete/value ~X ~Y))
+  ([X]
+   `(discrete-noise ~X 0)))
 
 ;; Distribution
 

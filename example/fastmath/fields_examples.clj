@@ -23,8 +23,58 @@
                      (field-multiplication (v/vec2 0.5 0.3)))))
 
 (add-examples derivative
-  (example "Usage" (let [f (derivative (field :sinusoidal) 0.00000001)]
+  (example "Usage" (let [f (derivative (field :sinusoidal) 1.0e-8)]
                      (f (v/vec2 0.0 0.0)))))
+
+(add-examples grad-x
+  (example "Usage" (let [f (grad-x (field :sinusoidal) 1.0e-8)]
+                     (f (v/vec2 0.0 0.0)))))
+
+(add-examples grad-y
+  (example "Usage" (let [f (grad-y (field :sinusoidal) 1.0e-8)]
+                     (f (v/vec2 0.0 0.0)))))
+
+(add-examples jacobian
+  (example "Usage" (let [f (jacobian (field :sinusoidal) 1.0e-8)]
+                     (f (v/vec2 0.0 0.0)))))
+
+(add-examples divergence
+  (example "Usage" (let [f (divergence (field :sinusoidal) 1.0e-8)]
+                     (f (v/vec2 0.0 0.0)))))
+
+(add-examples magnitude
+  (example "Usage" (let [f (magnitude (field :sinusoidal))]
+                     (f (v/vec2 m/HALF_PI m/HALF_PI)))))
+
+(add-examples heading
+  (example "Usage" (let [f (heading (field :sinusoidal))]
+                     (m/degrees (f (v/vec2 m/HALF_PI m/HALF_PI))))))
+
+(add-examples cross
+  (example "Usage" (let [f (cross (field :swirl))]
+                     (f (v/vec2 1 1))))
+  (example "Usage (two fields)" (let [f (cross (field :sinusoidal) (field :swirl))]
+                                  (f (v/vec2 1 1)))))
+
+
+(add-examples dot
+  (example "Usage" (let [f (dot (field :swirl))]
+                     (f (v/vec2 1 1))))
+  (example "Usage (two fields)" (let [f (dot (field :sinusoidal) (field :swirl))]
+                                  (f (v/vec2 1 1)))))
+
+(add-examples angle-between
+  (example "Usage" (let [f (angle-between (field :swirl))]
+                     (f (v/vec2 1 1))))
+  (example "Usage (two fields)" (let [f (angle-between (field :sinusoidal) (field :swirl))]
+                                  (f (v/vec2 1 1)))))
+
+
+(add-examples scalar->vector-field
+  (example "Usage" (let [f (scalar->vector-field v/heading (field :sinusoidal))]
+                     (v/applyf (f (v/vec2 m/HALF_PI m/HALF_PI)) m/degrees)))
+  (example "Usage (two fields)" (let [f (scalar->vector-field v/heading (field :sinusoidal) (field :julia))]
+                                  (v/applyf (f (v/vec2 m/HALF_PI m/HALF_PI)) m/degrees))))
 
 (add-examples parametrization
   (example "Get random parametrization for given field" (parametrization :auger))
@@ -48,7 +98,6 @@
 (add-examples fields-list-not-random
   (example "List of all vector fields which are not random." (sort fields-list-not-random)))
 
-
 ;;
 
 (add-examples combine
@@ -68,3 +117,4 @@
   (example "Usage" (let [conf {:type :variation, :name :blocky, :amount 1.0, :config {:x -1.4, :y 0.9, :mp 2.6}}]
                      [(randomize-configuration conf)
                       (randomize-configuration conf)])))
+

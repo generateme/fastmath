@@ -100,6 +100,10 @@ Several easing functions (in, out, in-out)
 * Wavelets: 1d, 2d (haar, biorthogonal, symlet, coiflet, daubechies, legendre)
 * 1d Fast Sine, Cosine and Hadamard
 
+### Vector fields
+
+Great collection (100+) of R^2->R^2 functions.
+
 ### Other
 
 Plenty of constant values

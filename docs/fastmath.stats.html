@@ -68,13 +68,13 @@
   <li><code>:step</code> - distance between bins</li>
   <li><code>:bins</code> - list of pairs of range lower value and number of hits</li>
 </ul></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>3 bins from uniform distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 1000 rand) 3)
-;;=&gt; {:bins ([4.7847199254136275E-4 348]
-;;=&gt;         [0.3333077565067 320]
-;;=&gt;         [0.6661370410208587 332]),
+;;=&gt; {:bins ([8.938628242470825E-4 341]
+;;=&gt;         [0.3337257906220818 328]
+;;=&gt;         [0.6665577184199165 331]),
 ;;=&gt;  :size 3,
-;;=&gt;  :step 0.33282928451415866}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
+;;=&gt;  :step 0.3328319277978347}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
 ;;=&gt; {:bins
-;;=&gt;  ([0.1 1359] [0.23333333333333334 1305] [0.3666666666666667 1401]),
+;;=&gt;  ([0.1 1297] [0.23333333333333334 1338] [0.3666666666666667 1303]),
 ;;=&gt;  :size 3,
 ;;=&gt;  :step 0.13333333333333333}</code></pre></div><div><blockquote><p>5 bins from normal distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 r/grand) 5)
 ;;=&gt; {:bins ([-3.9488932738004707 81]
