@@ -32,7 +32,6 @@
                            :output-path "docs/"
                            :source-paths ["src"]
                            :source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
-                           :exclude-vars nil
                            :doc-paths ["docs/tutorials/"]
                            :writer metadoc.writers.codox/write-docs
                            :html {:transforms [[:head] [:append [:script {:type "text/javascript",

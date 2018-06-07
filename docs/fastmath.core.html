@@ -195,13 +195,13 @@
 (sample sq 1 5 5)
 ;;=&gt; (1.0 4.0 9.0 16.0 25.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L719">view source</a></div></div><div class="public anchor" id="var-sec"><h3>sec</h3><div class="usage"><code>(sec v)</code></div><div class="doc"><div class="markdown"><p>Secant</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Plot of sec</p></blockquote><img src="images/m/sec.png" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L237">view source</a></div></div><div class="public anchor" id="var-sech"><h3>sech</h3><div class="usage"><code>(sech v)</code></div><div class="doc"><div class="markdown"><p>Hyperbolic secant</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Plot of sech</p></blockquote><img src="images/m/sech.png" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L248">view source</a></div></div><div class="public anchor" id="var-seq-.3Edouble-array"><h3>seq-&gt;double-array</h3><div class="usage"><code>(seq-&gt;double-array vs)</code></div><div class="doc"><div class="markdown"><p>Convert sequence to double-array.</p>
 <p>If sequence is double-array do not convert.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Convert</p></blockquote><pre><code class="hljs clojure">(seq-&gt;double-array [1 2 3])
-;;=&gt; [D@42585d45
+;;=&gt; [D@5d58beef
 (seq (seq-&gt;double-array [1 2 3]))
 ;;=&gt; (1.0 2.0 3.0)
 (double-array-&gt;seq (seq-&gt;double-array [1 2 3]))
 ;;=&gt; (1.0 2.0 3.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L742">view source</a></div></div><div class="public anchor" id="var-seq-.3Edouble-double-array"><h3>seq-&gt;double-double-array</h3><div class="usage"><code>(seq-&gt;double-double-array vss)</code></div><div class="doc"><div class="markdown"><p>Convert sequence to double-array of double-arrays.</p>
 <p>If sequence is double-array of double-arrays do not convert</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Convert</p></blockquote><pre><code class="hljs clojure">(seq-&gt;double-double-array [[1 2] [3 4]])
-;;=&gt; [[D@5d58beef
+;;=&gt; [[D@51394772
 (double-double-array-&gt;seq (seq-&gt;double-double-array [[1 2] [3 4]]))
 ;;=&gt; ((1.0 2.0) (3.0 4.0))</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L758">view source</a></div></div><div class="public anchor" id="var-sfrac"><h3>sfrac</h3><div class="usage"><code>(sfrac v)</code></div><div class="doc"><div class="markdown"><p>Fractional part, always returns values from -1.0 to 1.0 (exclusive). See <a href="fastmath.core.html#var-frac">frac</a> for unsigned version.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Examples</p></blockquote><pre><code class="hljs clojure">(sfrac 0.555)
 ;;=&gt; 0.555
