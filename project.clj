@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "0.1.2-SNAPSHOT"
+(defproject generateme/fastmath "1.0.0"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -26,7 +26,7 @@
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]
-                                  [metadoc "0.2.2"]]
+                                  [metadoc "0.2.3"]]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"

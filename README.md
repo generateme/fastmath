@@ -7,13 +7,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ## Installation
 
 ```clojure
-[generateme/fastmath "0.1.1"]
-```
-
-Dev version
-
-```clojure
-[generateme/fastmath "0.1.2-SNAPSHOT"]
+[generateme/fastmath "1.0.0"]
 ```
 
 ## Documentation
@@ -136,7 +130,7 @@ Java classes are compiled for java 1.8
 
 * Change images to plots with axes
 * More tests
-* Move vector fields and signal processing from Clojure2d/extra
+* Move vector fields
 
 ## How To Help
 
