@@ -21,7 +21,7 @@
     (irandom rng))
   ```
 
-  For conveniency default RNG (`:mesenne`) with following functions are created: [[irand]], [[lrand]], [[frand]], [[drand]], [[grand]], [[brand]].
+  For conveniency default RNG (`:jdk`) with following functions are created: [[irand]], [[lrand]], [[frand]], [[drand]], [[grand]], [[brand]].
 
   Each prefix denotes returned type:
 
@@ -263,6 +263,8 @@ See [[brand]].")
   (create-object-with-seed Well44497b seed))
 (defmethod rng :jdk [m & [seed]]
   (create-object-with-seed JDKRandomGenerator seed))
+(defmethod rng :default [m & [seed]]
+  (rng :jdk seed))
 
 ;; List of randomizers
 (def ^{:metadoc/categories #{:rand}
@@ -271,9 +273,9 @@ See [[brand]].")
 
 ;; ### Default RNG
 
-(def ^{:doc "Default RNG - Mersenne Twister"
+(def ^{:doc "Default RNG - JDK"
        :metadoc/categories #{:rand}}
-  default-rng (rng :mersenne))
+  default-rng (rng :jdk))
 
 (def ^{:doc "Random float number with Mersenne Twister RNG."
        :metadoc/categories #{:rand}}

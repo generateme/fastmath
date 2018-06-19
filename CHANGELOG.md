@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.0.1]
+
+### Added
+
+* :default (:jdk) rng is added
+
+### Fixed
+
+* MersenneTwister is not synchronized, default RNG is :jdk now
+
 ## [1.0.0]
 
 ### Added

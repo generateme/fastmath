@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.0.0"
+(defproject generateme/fastmath "1.0.1"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
