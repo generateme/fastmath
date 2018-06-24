@@ -42,6 +42,10 @@
   (example "Usage" (let [f (divergence (field :sinusoidal) 1.0e-8)]
                      (f (v/vec2 0.0 0.0)))))
 
+(add-examples curl
+  (example "Usage" (let [f (curl (field :swirl) 1.0e-8)]
+                     (f (v/vec2 0.0 0.0)))))
+
 (add-examples magnitude
   (example "Usage" (let [f (magnitude (field :sinusoidal))]
                      (f (v/vec2 m/HALF_PI m/HALF_PI)))))

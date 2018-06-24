@@ -3170,7 +3170,9 @@
             (* (.x gyv) (.y gxv))))))))
 
 (defn divergence
-  "Divergence of the field"
+  "Divergence of the field.
+
+  See: https://youtu.be/rB83DpBJQsE?t=855"
   {:metadoc/categories #{:sc}}
   ([f] (divergence f 1.0e-6))
   ([f ^double h]
@@ -3180,6 +3182,20 @@
        (let [^Vec2 gxv (gx v)
              ^Vec2 gyv (gy v)]
          (+ (.x gxv) (.y gyv)))))))
+
+(defn curl
+  "Curl (2d version) of the field.
+
+  See: https://youtu.be/rB83DpBJQsE?t=855"
+  {:metadoc/categories #{:sc}}
+  ([f] (curl f 1.0e-6))
+  ([f ^double h]
+   (let [gx (grad-x f h)
+         gy (grad-y f h)]
+     (fn ^double [v]
+       (let [^Vec2 gxv (gx v)
+             ^Vec2 gyv (gy v)]
+         (- (.x gyv) (.y gxv)))))))
 
 (defn magnitude
   "Magnitude of the vectors from field."

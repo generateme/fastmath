@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.0.2]
+
+### Added
+
+* curl for 2d vector fields
+
 ## [1.0.1]
 
 ### Added
