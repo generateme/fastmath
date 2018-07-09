@@ -1479,7 +1479,7 @@
                             :center-x (drand -1 1)
                             :center-y (drand -1 1)
                             :gamma (drand -5 5)
-                            :square brand})
+                            :square (brand)})
 
 (def ^:const ^:private ^double agdod-- 0.1)
 (def ^:const ^:private ^double agdoa-- 2.0)

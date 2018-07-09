@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.0.2"
+(defproject generateme/fastmath "1.0.3"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -22,7 +22,7 @@
                              [lein-codox "0.10.3"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  [clojure2d "0.1.0-SNAPSHOT"]
+                                  [clojure2d "1.0.0-RC2"]
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]

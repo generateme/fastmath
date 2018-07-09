@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.0.3]
+
+### Fixed
+
+* `norm` when domain is a point, returns range start when value is less or equal domain, range end otherwise
+* small fix in one field
+
 ## [1.0.2]
 
 ### Added
