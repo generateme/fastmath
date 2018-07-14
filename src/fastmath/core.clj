@@ -11,7 +11,7 @@
 (ns fastmath.core
   "Collection of fast math functions and plethora of constants known from other math libraries.
 
-  #### Primitive math operators
+  ### Primitive math operators
 
   Based on [Primitive Math by Zach Tellman](https://github.com/ztellman/primitive-math) several operators are introduced and replace `clojure.core` functions. All operators are macros and can't be used as functions. List includes:
 
@@ -31,11 +31,11 @@
   To turn on primitive math on your namespace call [[use-primitive-operators]].
   To turn off and revert original versions call [[unuse-primitive-operators]]
 
-  #### Fast Math
+  ### Fast Math
 
   Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Most of them are macros. Some of them are wrapped in Clojure functions. Almost all operates on primitive `double` and returns `double` (with an exception [[round]] or [[qround]] which returns `long`).
 
-  #### Other functions
+  ### Other functions
 
   Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing.
 
@@ -746,9 +746,11 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ^doubles [vs]
   (if (= (type vs) double-array-type)
     vs
-    (double-array vs)))
-
-(declare seq->double-double-array)
+    (if (seqable? vs)
+      (double-array vs)
+      (let [arr (double-array 1)] ;; not a sequence? maybe number...
+        (aset arr 0 (double vs))
+        arr))))
 
 (defn double-double-array->seq
   "Convert double array of double arrays into sequence of sequences."

@@ -131,7 +131,7 @@
    (percentile vs (m/constrain (* p 100.0) 0.0 100.0) estimation-strategy)))
 
 (defn median
-  "Calculate median of a list. See [[median-3]]."
+  "Calculate median of `vs`. See [[median-3]]."
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (percentile vs 50.0))
@@ -143,12 +143,12 @@
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
-  "Calculate mean of a list"
+  "Calculate mean of `vs`"
   {:metadoc/categories #{:stat}}
   (^double [vs] (StatUtils/mean (m/seq->double-array vs))))
 
 (defn population-variance
-  "Calculate population variance of a list.
+  "Calculate population variance of `vs`.
 
   See [[variance]]."
   {:metadoc/categories #{:stat}}
@@ -158,7 +158,7 @@
    (StatUtils/populationVariance (m/seq->double-array vs) u)))
 
 (defn variance
-  "Calculate variance of a list.
+  "Calculate variance of `vs`.
 
   See [[population-variance]]."
   {:metadoc/categories #{:stat}}
@@ -168,7 +168,7 @@
    (StatUtils/variance (m/seq->double-array vs) u)))
 
 (defn population-stddev
-  "Calculate population standard deviation of a list.
+  "Calculate population standard deviation of `vs`.
 
   See [[stddev]]."
   {:metadoc/categories #{:stat}}
@@ -178,7 +178,7 @@
    (m/sqrt (population-variance vs u))))
 
 (defn stddev
-  "Calculate population standard deviation of a list.
+  "Calculate standard deviation of `vs`.
 
   See [[population-stddev]]."
   {:metadoc/categories #{:stat}}
@@ -304,7 +304,7 @@
     (.evaluate k (m/seq->double-array vs))))
 
 (defn stats-map
-  "Calculate several statistics from the list and return as map.
+  "Calculate several statistics of `vs` and return as map.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:stat}}
@@ -423,23 +423,3 @@
      {:size bins
       :step step
       :bins (map vector search-array buff)})))
-
-;; TODO - replace with native (SMILE or Apache Commens) algorithms
-
-(defn- closest-mean-fn
-  [means]
-  (fn [^double v] (reduce (partial min-key #(m/sq (- v ^double %))) means)))
-
-;; `(k-means 4 '(1 2 3 -1 -1 2 -1 11 111)) => (-1.0 2.0 11.0 111.0)`
-(defn k-means
-  "k-means clustering"
-  [^long k vs]
-  (let [vs (map double vs)
-        svs (set vs)]
-    (if (> k (count svs))
-      (sort svs)
-      (loop [mns (sort (take k (shuffle svs)))
-             pmns (repeat k Double/NaN)]
-        (if (= mns pmns)
-          mns
-          (recur (sort (map mean (vals (group-by (closest-mean-fn mns) vs)))) mns))))))

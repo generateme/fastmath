@@ -3,17 +3,17 @@
 
   See [[transformer]] and [[TransformProto]] for details.
   
-  #### Wavelet
+  ### Wavelet
   
   Based on [JWave](https://github.com/cscheiblich/JWave/) library.
 
   Be aware that some of the wavelet types doesn't work properly. `:battle-23`, `:cdf-53`, `:cdf-97`.
 
-  #### Cos/Sin/Hadamard
+  ### Cos/Sin/Hadamard
 
   Orthogonal or standard fast sine/cosine/hadamard 1d transforms.
 
-  #### Fourier
+  ### Fourier
 
   DFT."
   {:metadoc/categories {:w "Transform"

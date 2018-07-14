@@ -194,7 +194,8 @@
   (example-session "Convert"
     (seq->double-array [1 2 3])
     (seq (seq->double-array [1 2 3]))
-    (double-array->seq (seq->double-array [1 2 3]))))
+    (double-array->seq (seq->double-array [1 2 3])))
+  (example "Also works on number (treated as one element list)." (seq (seq->double-array 1))))
 
 (add-examples double-double-array->seq
   (example "Convert" (double-double-array->seq (seq->double-double-array [[4 3 2] (double-array [1 2 3])]))))
@@ -202,8 +203,8 @@
 (add-examples seq->double-double-array
   (example-session "Convert"
     (seq->double-double-array [[1 2] [3 4]])
-    (double-double-array->seq (seq->double-double-array [[1 2] [3 4]]))))
-
+    (double-double-array->seq (seq->double-double-array [[1 2] [3 4]])))
+  (example "Also works on seq of numbers" (seq (second (seq->double-double-array [1 2 3])))))
 
 (def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
                        sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch

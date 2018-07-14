@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.0.3"
+(defproject generateme/fastmath "1.1.0"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -7,7 +7,7 @@
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [com.github.haifengl/smile-interpolation "1.5.1"]
-                 [com.github.haifengl/smile-math "1.5.1"]
+                 [com.github.haifengl/smile-core "1.5.1"]
                  [org.slf4j/slf4j-simple "1.7.25"]
                  [de.sciss/jwave "1.0.3"]]
   :resource-path "resources/"
@@ -22,7 +22,7 @@
                              [lein-codox "0.10.3"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  [clojure2d "1.0.0-RC2"]
+                                  [clojure2d "1.0.0"]
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]

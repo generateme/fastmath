@@ -5,7 +5,7 @@
 
   Names are taken from fractal flames world where such fields are call `variations`. Most implementations are taken from [JWildfire](http://jwildfire.org/) software.
 
-  ## Creation
+  ### Creation
 
   To create vector field call [[field]] multimethod with name of the field as keyword.
 
@@ -13,7 +13,7 @@
 
   Additionally you can provide `amount` parameter which is scaling factor for vector field (default: `1.0`).
 
-  ## Derived fields
+  ### Derived fields
 
   You can use several method to derive new vector field from the other one(s). Possible options are:
 
@@ -23,7 +23,7 @@
   * [[composition]] - composition of the fields
   * [[angles]] - angles of the field vectors
 
-  ## Scalar fields
+  ### Scalar fields
 
   You can derive scalar fields from given vector field(s):
 
@@ -33,7 +33,7 @@
   * [[dot]] - dot product
   * [[angle-between]] - angle between vectors from fields.
 
-  ## Combinations
+  ### Combinations
 
   The other option is to create vector field using some of the above possibilities. Combination is a tree of field operations with parametrizations. Functions:
 

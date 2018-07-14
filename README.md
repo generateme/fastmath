@@ -7,7 +7,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ## Installation
 
 ```clojure
-[generateme/fastmath "1.0.3"]
+[generateme/fastmath "1.1.0"]
 ```
 
 ## Documentation
@@ -97,6 +97,10 @@ Several easing functions (in, out, in-out)
 ### Vector fields
 
 Great collection (100+) of R^2->R^2 functions.
+
+### Clustering
+
+SMILE bindings for clustering
 
 ### Other
 

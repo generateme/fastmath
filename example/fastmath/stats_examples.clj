@@ -90,8 +90,6 @@
 (add-examples kullback-leibler-divergence (example "Kullback-Leibler divergence." (kullback-leibler-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100)))))
 (add-examples jensen-shannon-divergence (example "Jensen-Shannon divergence" (jensen-shannon-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100)))))
 
-(add-examples k-means (example "Reduce to 4 values." (k-means 4 [1 2 3 -1 -1 2 -1 11 111])))
-
 (add-examples histogram
   (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
   (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))

@@ -3,7 +3,7 @@
 
   Namespace defines various random number generators (RNGs), different types of random functions, sequence generators and noise functions.
 
-  #### RNGs
+  ### RNGs
 
   You can use a selection of various RNGs defined in [Apache Commons Math](http://commons.apache.org/proper/commons-math/apidocs/org/apache/commons/math3/random/package-summary.html) library.
 
@@ -34,7 +34,7 @@
 
   Check individual function for parameters description.
 
-  #### Random Vector Sequences
+  ### Random Vector Sequences
 
   Couple of functions to generate sequences of numbers or vectors.
   You can generate sequence of `double`, [[Vec2]], [[Vec3]] or [[Vec4]] types. Just pass the size to creator function.
@@ -50,7 +50,7 @@
 
   After creation you get function equivalent to `repeatedly`.
 
-  #### Noise
+  ### Noise
 
   List of continuous noise functions (1d, 2d and 3d):
 
@@ -83,11 +83,11 @@
   * [[vnoise]] - Value Noise (as in Processing, 6 octaves, hermite interpolation)
   * [[simplex]] - Simpled Noise (6 octaves)
 
-  ##### Discrete Noise
+  #### Discrete Noise
 
   [[discrete-noise]] is a 1d or 2d hash function for given integers. Returns double from `[0,1]` range.
 
-  #### Distribution
+  ### Distribution
 
   Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions.
 
