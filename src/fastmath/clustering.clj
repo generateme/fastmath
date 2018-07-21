@@ -268,7 +268,7 @@
   Empty clusters are skipped."
   [clustered-data]
   (let [mvector? (satisfies? v/VectorProto (first (:data clustered-data))) ;;required to fix missing representative
-        mseqable? (seqable? (first (:data clustered-data)))]
+        mseqable? (sequential? (first (:data clustered-data)))]
     (for [[k lst] (group-by first (map vector (:clustering clustered-data) (:data clustered-data)))
           :let [d (map second lst)
                 outliers? (== k outlier-id)

@@ -404,7 +404,9 @@
 
   * `:size` - number of bins
   * `:step` - distance between bins
-  * `:bins` - list of pairs of range lower value and number of hits"
+  * `:bins` - list of pairs of range lower value and number of hits
+  * `:min` - min value
+  * `:max` - max value"
   {:metadoc/categories #{:stat}}
   ([vs bins] (histogram vs bins (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
@@ -422,4 +424,6 @@
 
      {:size bins
       :step step
+      :min mn
+      :max mx
       :bins (map vector search-array buff)})))
