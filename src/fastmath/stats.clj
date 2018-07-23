@@ -404,9 +404,10 @@
 
   * `:size` - number of bins
   * `:step` - distance between bins
-  * `:bins` - list of pairs of range lower value and number of hits
+  * `:bins` - list of triples of range lower value, number of hits and ratio of used samples
   * `:min` - min value
-  * `:max` - max value"
+  * `:max` - max value
+  * `:samples` - number of used samples"
   {:metadoc/categories #{:stat}}
   ([vs bins] (histogram vs bins (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
@@ -414,9 +415,12 @@
          step (/ diff bins)
          search-array (double-array (map #(+ mn (* ^long % step)) (range bins)))
          buff (long-array bins)
-         mx+ (m/next-double mx)]
+         mx+ (m/next-double mx)
+         vs- (filter #(<= mn ^double % mx+) vs)
+         samples (count vs-)
+         samplesd (double samples)]
      
-     (doseq [^double v vs] ;; sprawdzić czy się mieści w domenie
+     (doseq [^double v vs-] 
        (when (<= mn v mx+)
          (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
                ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
@@ -424,6 +428,7 @@
 
      {:size bins
       :step step
+      :samples samples
       :min mn
       :max mx
-      :bins (map vector search-array buff)})))
+      :bins (map #(vector %1 %2 (/ ^long %2 samplesd)) search-array buff)})))
