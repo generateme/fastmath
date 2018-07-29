@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.1.2]
+
+### Added
+
+* estimators for number of bins in histogram
+* kernel-density function
+
 ## [1.1.1]
 
 ### Changed

@@ -1,7 +1,8 @@
 (ns fastmath.stats-examples
   (:require [metadoc.examples :refer :all]
             [fastmath.stats :refer :all]
-            [fastmath.random :as r]))
+            [fastmath.random :as r]
+            [fastmath.core :as m]))
 
 (add-examples mode
   (example "Example" (mode [1 2 3 -1 -1 2 -1 11 111]))
@@ -12,7 +13,7 @@
   (example "Returns lowest value when every element appears equally." (modes [5 5 1 1 2 3 4 4])))
 
 (add-examples estimation-strategies-list
-  (example "List of estimation strategies for percentile" (keys estimation-strategies-list)))
+  (example "List of estimation strategies for percentile" (sort (keys estimation-strategies-list))))
 
 (add-examples percentile
   (example "Percentile 25%" (percentile [1 2 3 -1 -1 2 -1 11 111] 25.0))
@@ -64,6 +65,9 @@
   (example "[LAV, UAV]" (adjacent-values [1 2 3 -1 -1 2 -1 11 111]))
   (example "Gaussian distribution [LAV, UAV]" (adjacent-values (repeatedly 1000000 r/grand))))
 
+(add-examples iqr
+  (example "IQR" (iqr (repeatedly 100000 r/grand))))
+
 (add-examples outliers
   (example "Outliers" (outliers [1 2 3 -1 -1 2 -1 11 111]))
   (example "Gaussian distribution outliers" (outliers (repeatedly 3000000 r/grand))))
@@ -90,7 +94,24 @@
 (add-examples kullback-leibler-divergence (example "Kullback-Leibler divergence." (kullback-leibler-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100)))))
 (add-examples jensen-shannon-divergence (example "Jensen-Shannon divergence" (jensen-shannon-divergence (repeatedly 100 #(r/irand 100)) (repeatedly 100 #(r/irand 100)))))
 
+(add-examples estimate-bins
+  (let [d (r/distribution :log-normal)
+        vs (repeatedly 1000 #(r/drandom d))]
+    (example-session "Estimate number of bins for various methods. `vs` contains 1000 random samples from Log-Normal distribution."
+      (estimate-bins vs :sqrt)
+      (estimate-bins vs :sturges)
+      (estimate-bins vs :rice)
+      (estimate-bins vs :doane)
+      (estimate-bins vs :scott)
+      (estimate-bins vs :freedman-diaconis))))
+
 (add-examples histogram
   (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
   (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))
-  (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5)))
+  (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5))
+  (example "Estimate number of bins" (:size (histogram (repeatedly 10000 r/grand))))
+  (example "Estimate number of bins, Rice rule" (:size (histogram (repeatedly 10000 r/grand) :rice))))
+
+(add-examples kernel-density
+  (example (let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
+             (map (comp m/approx kd) (range -5 15)))))

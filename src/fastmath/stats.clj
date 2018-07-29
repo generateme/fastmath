@@ -58,7 +58,8 @@
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
-           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]))
+           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
+           [smile.stat.distribution KernelDensity]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -191,7 +192,17 @@
   "Calculate MAD"
   {:metadoc/categories #{:stat}}
   ^double [vs]
-  (smile.math.Math/mad (double-array vs)))
+  (smile.math.Math/mad (m/seq->double-array vs)))
+
+(defn iqr
+  "Interquartile range."
+  {:metadoc/categories #{:stat}}
+  (^double [vs] (iqr vs :legacy))
+  (^double [vs estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         q1 (percentile avs 25.0 estimation-strategy)
+         q3 (percentile avs 75.0 estimation-strategy)]
+     (- q3 q1))))
 
 (defn adjacent-values
   "Lower and upper adjacent values (LAV and UAV).
@@ -211,7 +222,7 @@
          q3 (percentile avs 75.0 estimation-strategy)]
      (adjacent-values avs q1 q3)))
   ([vs ^double q1 ^double q3]
-   (let [avs (double-array vs)
+   (let [avs (m/seq->double-array vs)
          iqr (* 1.5 (- q3 q1))
          lav-thr (- q1 iqr)
          uav-thr (+ q3 iqr)]
@@ -239,7 +250,7 @@
          q3 (percentile avs 75.0 estimation-strategy)]
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
-   (let [avs (double-array vs)
+   (let [avs (m/seq->double-array vs)
          iqr (* 3.0 (- q3 q1))
          lof-thr (- q1 iqr)
          uof-thr (+ q3 iqr)]
@@ -397,6 +408,40 @@
 
 ;;
 
+(defn- scott-fd-helper
+  "Calculate number of bins based on width of the bin."
+  ^double [vvs ^double h]
+  (let [h (if (< h m/EPSILON) (median-absolute-deviation vvs) h)]
+    (if (pos? h)
+      (let [[^double mn ^double mx] (extent vvs)]
+        (m/ceil (/ (- mx mn) h)))
+      1.0)))
+
+(defn estimate-bins
+  "Estimate number of bins for histogram.
+
+  Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default)."
+  {:metadoc/categories #{:stat}}
+  ([vs] (estimate-bins vs :freedman-diaconis))
+  ([vs method]
+   (let [n (count vs)]
+     (int (condp = method
+            :sqrt (m/sqrt n)
+            :sturges (inc (m/ceil (m/log2 n)))
+            :rice (m/ceil (* 2.0 (m/cbrt n)))
+            :doane (+ (inc (m/log2 n))
+                      (m/log2 (inc (/ (m/abs (skewness vs))
+                                      (m/sqrt (/ (* 6.0 (- n 2.0))
+                                                 (* (inc n) (+ n 3.0))))))))
+            :scott (let [vvs (m/seq->double-array vs)
+                         h (/ (* 3.5 (stddev vs))
+                              (m/cbrt n))]
+                     (scott-fd-helper vvs h))
+            :freedman-diaconis (let [vvs (m/seq->double-array vs)
+                                     h (/ (* 2.0 (iqr vvs))
+                                          (m/cbrt n))]
+                                 (scott-fd-helper vvs h)))))))
+
 (defn histogram
   "Calculate histogram.
 
@@ -407,9 +452,14 @@
   * `:bins` - list of triples of range lower value, number of hits and ratio of used samples
   * `:min` - min value
   * `:max` - max value
-  * `:samples` - number of used samples"
+  * `:samples` - number of used samples
+
+  For estimation methods check [[estimate-bins]]."
   {:metadoc/categories #{:stat}}
-  ([vs bins] (histogram vs bins (extent vs)))
+  ([vs] (histogram vs :freedman-diaconis))
+  ([vs bins-or-estimate-method] (histogram vs (if (keyword? bins-or-estimate-method)
+                                                (estimate-bins vs bins-or-estimate-method)
+                                                bins-or-estimate-method) (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
    (let [diff (- mx mn)
          step (/ diff bins)
@@ -421,10 +471,9 @@
          samplesd (double samples)]
      
      (doseq [^double v vs-] 
-       (when (<= mn v mx+)
-         (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
-               ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
-           (fastmath.java.Array/inc ^longs buff pos))))
+       (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
+             ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
+         (fastmath.java.Array/inc ^longs buff pos)))
 
      {:size bins
       :step step
@@ -432,3 +481,15 @@
       :min mn
       :max mx
       :bins (map #(vector %1 %2 (/ ^long %2 samplesd)) search-array buff)})))
+
+;;
+
+(defn kernel-density
+  "Creates kernel density function for given series `vs` and optional bandwidth `h`."
+  {:metadoc/categories #{:stat}}
+  ([vs ^double h]
+   (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs) h)]
+     (fn [x] (.p k x))))
+  ([vs]
+   (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs))]
+     (fn [x] (.p k x)))))
