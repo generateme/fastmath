@@ -721,11 +721,18 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
   `range-min` defaults to 0.0, `range-max` to 1.0.
 
-  Range is inclusive."
-  ([f ^long number-of-values]
-   (sample f 0.0 1.0 number-of-values))
-  ([f ^double range-min ^double range-max ^long number-of-values]
-   (let [n- (dec number-of-values)]
+  Range is inclusive.
+
+  When optional `domain?` is set to true (default: false) function returns pairs `[x,(f x)]`."
+  ([f number-of-values]
+   (sample f 0.0 1.0 number-of-values false))
+  ([f ^long number-of-values domain?]
+   (sample f 0.0 1.0 number-of-values domain?))
+  ([f range-min range-max number-of-values]
+   (sample f range-min range-max number-of-values false))
+  ([f range-min range-max number-of-values domain?]
+   (let [n- (dec ^long number-of-values)
+         f (if domain? #(vector % (f %)) f)]
      (->> (range number-of-values)
           (map #(norm % 0.0 n- range-min range-max))
           (map f)))))

@@ -69,6 +69,8 @@
            [smile.vq NeuralGas]
            [clojure.lang IFn]))
 
+(set! *warn-on-reflection* false)
+
 (def ^:const ^{:doc "Id of the cluster which contain outliers."} outlier-id Clustering/OUTLIER)
 
 (defrecord ClusteringResult [type data clustering sizes clusters predict representatives info obj]

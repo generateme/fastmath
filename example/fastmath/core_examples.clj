@@ -185,7 +185,11 @@
     (gcd -234 -432)))
 
 (add-examples sample
-  (example-session "Usage" (sample identity 10) (sample identity -11 22 5) (sample sq 1 5 5)))
+  (example-session "Usage"
+    (sample identity 10)
+    (sample identity -11 22 5)
+    (sample sq 1 5 5)
+    (sample sq 1 5 5 true)))
 
 (add-examples double-array->seq
   (example "Convert" (double-array->seq (seq->double-array [4 3 2]))))
