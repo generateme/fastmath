@@ -184,6 +184,13 @@
     (gcd (* 123 5544331) (* 123 123))
     (gcd -234 -432)))
 
+(add-examples lcm
+  (example-session "Usage"
+    (lcm 340 440)
+    (lcm (* 123 331) (* 123 123))
+    (lcm 331 (* 123 123))
+    (lcm -234 -432)))
+
 (add-examples sample
   (example-session "Usage"
     (sample identity 10)

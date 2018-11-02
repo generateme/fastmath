@@ -1,9 +1,29 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [1.1.3]
+## [1.1.4]
+
+### Added
+
+* `lcm` - least common multiplier
+* Vec types implement `Reversible` `Indexed` `ILookup`
+* negative values for some constants (`PI`, `E` etc.)
+
+### Fixed
+
+* `GAMMA` constant name clash
 
 ### Changed
+
+* `stats-map` returns list of outliers rather than number of outliers
+
+### Removed
+
+* `:bessel` vector field removed (hard to limit input range)
+
+## [1.1.3]
+
+### Added
 
 * `sample` can now return pairs of `[x,(f x)]`.
 

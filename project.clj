@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.1.3"
+(defproject generateme/fastmath "1.1.4"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -6,8 +6,8 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [com.github.haifengl/smile-interpolation "1.5.1"]
-                 [com.github.haifengl/smile-core "1.5.1"]
+                 [com.github.haifengl/smile-interpolation "1.5.2"]
+                 [com.github.haifengl/smile-core "1.5.2"]
                  [org.slf4j/slf4j-simple "1.7.25"]
                  [de.sciss/jwave "1.0.3"]]
   :resource-path "resources/"
@@ -16,13 +16,13 @@
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}
-             :dev {:plugins [[refactor-nrepl "2.4.0-SNAPSHOT"]
-                             [cider/cider-nrepl "0.18.0-SNAPSHOT"]
-                             [com.jakemccrary/lein-test-refresh "0.22.0"]
-                             [lein-codox "0.10.3"]]
+             :dev {:plugins [[refactor-nrepl "2.4.0"]
+                             [cider/cider-nrepl "0.19.0-SNAPSHOT"]
+                             [com.jakemccrary/lein-test-refresh "0.23.0"]
+                             [lein-codox "0.10.5"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  [clojure2d "1.0.0"]
+                                  [clojure2d "1.0.2"]
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]

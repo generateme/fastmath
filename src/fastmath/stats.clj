@@ -30,7 +30,7 @@
   * `:UOF` - upper outer fence, `(+ q3 (* 3.0 iqr))`
   * `:LIF` - lower inner fence, `(- q1 (* 1.5 iqr))`
   * `:UIF` - upper inner fence, `(+ q3 (* 1.5 iqr))`
-  * `:Outliers` - number of [[outliers]], samples which are outside outer fences
+  * `:Outliers` - list of [[outliers]], samples which are outside outer fences
   * `:Kurtosis` - [[kurtosis]]
   * `:Skewness` - [[skewness]]
   * `:SecMoment` - second central moment, use: [[second-moment]]
@@ -59,7 +59,8 @@
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
            [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
-           [smile.stat.distribution KernelDensity]))
+           [smile.stat.distribution KernelDensity]
+           [org.apache.commons.math3.stat.inference TestUtils]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -333,8 +334,7 @@
          iqr (- q3 q1)
          sd (population-stddev avs)
          mad (median-absolute-deviation avs)
-         [lav uav] (adjacent-values avs q1 q3)
-         outliers (count (outliers avs q1 q3))]
+         [lav uav] (adjacent-values avs q1 q3)]
      {:Size sz
       :Min mn
       :Max mx
@@ -354,7 +354,7 @@
       :UOF (+ q3 (* 3.0 iqr))
       :LIF (- q1 (* 1.5 iqr))
       :UIF (+ q3 (* 1.5 iqr))
-      :Outliers outliers
+      :Outliers (outliers avs q1 q3)
       :Kurtosis (kurtosis avs)
       :Skewness (skewness avs)
       :SecMoment (second-moment avs)})))
@@ -493,3 +493,14 @@
   ([vs]
    (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs))]
      (fn [x] (.p k x)))))
+
+;;;;;;;;;;;;;;
+;; tests
+
+(comment defn t-test
+         ""
+         [sample1 sample2]
+         (TestUtils/t (m/seq->double-array sample1) (m/seq->double-array sample2)))
+
+(comment t-test [30.02 29.99 30.11 29.97 30.01 29.99]
+         [29.89 29.93 29.72 29.98 30.02 29.98])
