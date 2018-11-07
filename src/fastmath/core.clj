@@ -203,8 +203,7 @@
 (def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 
 (def ^:const ^double ^{:doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
-(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} GAMMA Gamma/LANCZOS_G)
-
+(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} LANCHOS_G Gamma/LANCZOS_G)
 
 (def ^:const ^double ^{:doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
