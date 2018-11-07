@@ -196,14 +196,22 @@
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (/ PI 2.0))
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{3}\\\\)"} THIRD_PI (/ PI 3.0))
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (/ PI 4.0))
-(def ^:const ^double ^{:doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (* PI 2.0))
+(def ^:const ^double ^{:doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (+ PI PI))
 (def ^:const ^double ^{:doc "Alias for [[TWO_PI]]"} TAU TWO_PI)
 (def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} E Math/E)
+
+(def ^:const ^double ^{:doc "Value of \\\\(\\-pi\\\\)"} -PI (- Math/PI))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (/ -PI 2.0))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI 3.0))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (/ -PI 4.0))
+(def ^:const ^double ^{:doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (+ -PI -PI))
+(def ^:const ^double ^{:doc "Alias for [[TWO_PI-]]"} -TAU -TWO_PI)
+(def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} -E (- Math/E))
 
 (def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 
 (def ^:const ^double ^{:doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
-(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} LANCHOS_G Gamma/LANCZOS_G)
+(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
 
 (def ^:const ^double ^{:doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
@@ -530,6 +538,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;; \\(\sqrt{3}\\)
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{3}\\\\)"} SQRT3 (sqrt 3.0))
+(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{2}\\\\)"} SQRT3_2 (* 0.5 (sqrt 3.0)))
+(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{3}\\\\)"} SQRT3_3 (/ (sqrt 3.0) 3.0))
 
 ;; \\(\sqrt{5}\\)
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{5}\\\\)" }SQRT5 (sqrt 5.0))
@@ -696,22 +706,31 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
            (* cycle)
            (- value)))))
 
-;; gcd  version
+;; gcd 
+
+(defn- gcd-
+  "Input is unsigned!"
+  ^long [^long a ^long b]
+  (cond
+    (== a b) a
+    (zero? a) b
+    (zero? b) a
+    (bool-and (even? a) (even? b)) (<< (gcd- (>> a 1) (>> b 1)) 1)
+    (bool-and (even? a) (odd? b)) (recur (>> a 1) b)
+    (bool-and (odd? a) (even? b)) (recur a (>> b 1))
+    (bool-and (odd? a) (odd? a)) (if (> a b)
+                                   (recur (>> (- a b) 1) b)
+                                   (recur (>> (- b a) 1) a))))
+
 (defn gcd ^long [^long a ^long b]
-  "Fast binary GCD (Stein's algorithm)"
+  "Fast binary greatest common divisor (Stein's algorithm)"
   {:metadoc/categories #{:mod}}
-  (letfn [(local-gcd ^long [^long a ^long b]
-            (cond
-              (== a b) a
-              (zero? a) b
-              (zero? b) a
-              (bool-and (even? a) (even? b)) (<< (gcd (>> a 1) (>> b 1)) 1)
-              (bool-and (even? a) (odd? b)) (recur (>> a 1) b)
-              (bool-and (odd? a) (even? b)) (recur a (>> b 1))
-              (bool-and (odd? a) (odd? a)) (if (> a b)
-                                             (recur (>> (- a b) 1) b)
-                                             (recur (>> (- b a) 1) a))))]
-    (local-gcd (iabs a) (iabs b))))
+  (gcd- (iabs a) (iabs b)))
+
+(defn lcm ^long [^long a ^long b]
+  "Fast binary least common multiplier."
+  {:metadoc/categories #{:mod}}
+  (/ (* a b) (gcd- (iabs a) (iabs b))))
 
 ;;
 

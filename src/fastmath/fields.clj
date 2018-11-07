@@ -723,13 +723,13 @@
 
 ;; ### BesselJ
 
-(defn- make-besselj
-  "Bessel"
-  [^double amount _]
-  (fn [^Vec2 v]
-    (Vec2. (* amount ^double (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
-           (* amount ^double (v/heading v)))))
-(make-field-method besselj :regular)
+(comment defn- make-besselj
+         "Bessel"
+         [^double amount _]
+         (fn [^Vec2 v]
+           (Vec2. (* amount ^double (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
+                  (* amount ^double (v/heading v)))))
+(comment make-field-method besselj :regular)
 
 ;; ### Beta
 
@@ -1646,7 +1646,6 @@
       :else (v/mult (Vec2. (/ (.x v) (inc (.x v)))
                            (/ (inc (.y v)))) amount))))
 (make-field-method invtree :random)
-
 
 ;; ## J
 

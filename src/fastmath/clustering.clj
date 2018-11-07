@@ -64,7 +64,7 @@
             [fastmath.vector :as v]
             [clojure.string :as s]
             [fastmath.stats :as stat])
-  (:import [smile.clustering Clustering KMeans GMeans XMeans DeterministicAnnealing DENCLUE CLARANS DBScan MEC]
+  (:import [smile.clustering Clustering KMeans GMeans XMeans DeterministicAnnealing DENCLUE CLARANS DBSCAN MEC]
            [smile.math.distance ChebyshevDistance EuclideanDistance ManhattanDistance CorrelationDistance JensenShannonDistance]
            [smile.vq NeuralGas]
            [clojure.lang IFn]))
@@ -97,7 +97,7 @@
                                    :neural-gas ['NeuralGas 'centroids 'distortion]
                                    :denclue ['DENCLUE nil 'getSigma]
                                    :clarans ['CLARANS 'medoids 'distortion 'getMaxNeighbor 'getNumLocalMinima]
-                                   :dbscan ['DBScan nil 'getMinPts 'getRadius]
+                                   :dbscan ['DBSCAN nil 'getMinPts 'getRadius]
                                    :mec ['MEC nil 'entropy]})
 
 (def ^{:doc "List of clustering methods."} clustering-methods-list (keys clustering-classes))
@@ -236,7 +236,7 @@
   * min-pts - minimum number of neighbors
   * radius - the neighborhood radius
 
-  See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/DBScan.html)"
+  See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/DBSCAN.html)"
   ([data min-pts radius] (dbscan data :euclidean min-pts radius))
   ([data dist min-pts ^double radius] (clustering :dbscan data (distances dist) (int min-pts) radius)))
 

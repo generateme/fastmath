@@ -28,6 +28,9 @@
   * `Sequencial`
   * `IFn`
   * `Counted`
+  * `Reversible`
+  * `Indexed`
+  * `ILookup`
   * `equals` and `toString` from `Object`
 
   That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
@@ -36,8 +39,9 @@
                         :dist "Distance / length"
                         :op "Operations"}}
   (:require [fastmath.core :as m]
-            [clojure.string :as s])
-  (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential]
+            [clojure.string :as s]
+            [fastmath.vector :as v])
+  (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential Reversible Indexed ILookup]
            [clojure.core Vec]))
 
 (set! *warn-on-reflection* true)
@@ -168,6 +172,12 @@
   Sequential
   Seqable
   (seq [_] (seq array))
+  Indexed
+  (nth [v id] (v id))
+  (nth [v id not-found] (or (v id) not-found))
+  ILookup
+  (valAt [v id] (v id))
+  (valAt [v id not-found] (or (v id) not-found))
   IFn
   (invoke [_ n]
     (aget array ^long n))
@@ -231,6 +241,14 @@
   Sequential
   Seqable
   (seq [_] (list x y))
+  Reversible
+  (rseq [_] (list y x))
+  Indexed
+  (nth [v id] (v id))
+  (nth [v id not-found] (or (v id) not-found))
+  ILookup
+  (valAt [v id] (v id))
+  (valAt [v id not-found] (or (v id) not-found))
   Counted
   (count [_] 2)
   IFn
@@ -326,6 +344,14 @@
   Sequential
   Seqable
   (seq [_] (list x y z))
+  Reversible
+  (rseq [_] (list z y x))
+  Indexed
+  (nth [v id] (v id))
+  (nth [v id not-found] (or (v id) not-found))
+  ILookup
+  (valAt [v id] (v id))
+  (valAt [v id not-found] (or (v id) not-found))
   Counted
   (count [_] 3)
   IFn
@@ -497,6 +523,14 @@
   Sequential
   Seqable
   (seq [_] (list x y z w))
+  Reversible
+  (rseq [_] (list w z y x))
+  Indexed
+  (nth [v id] (v id))
+  (nth [v id not-found] (or (v id) not-found))
+  ILookup
+  (valAt [v id] (v id))
+  (valAt [v id not-found] (or (v id) not-found))
   Counted
   (count [_] 4)
   IFn
@@ -783,4 +817,3 @@
 (defmethod print-dup Vec4 [v w] (print-method v w))
 
 ;;
-
