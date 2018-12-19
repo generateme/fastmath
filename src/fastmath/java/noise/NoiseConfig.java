@@ -13,6 +13,7 @@ public final class NoiseConfig {
     public final static int NOISE_VALUE = 0;
     public final static int NOISE_GRADIENT = 1;
     public final static int NOISE_SIMPLEX = 2;
+    public final static int NOISE_CELLULAR = 3;
     
     public final static double[] GRAD1dX = {2.0, -2.0};
     
@@ -45,6 +46,7 @@ public final class NoiseConfig {
 
     public int[] perm, perm12;
     public double[] valueLUT;
+    public double[] cell2dX, cell2dY;
 
     public NoiseConfig(int seed, int noise_type, int interpolate_type, int octaves, double lacunarity, double gain, boolean normalize) {
         this.seed = seed;
@@ -76,22 +78,31 @@ public final class NoiseConfig {
             perm12[i] = perm12[i + 256] = perm[i] % 12;
         }
 
-        valueLUT = new double[256];
+        valueLUT = makeLUT(rng, 0.5);
+        cell2dX = makeLUT(rng, 1.0);
+        cell2dY = makeLUT(rng, 1.0);
+    }
+
+    private double[] makeLUT(Random rng, double power) {
+        double[] lut = new double[256];
 
         double mn = Double.MAX_VALUE;
         double mx = Double.MIN_VALUE;
     
         for (int i=0; i<256; i++) {
-            valueLUT[i] = Math.pow(rng.nextDouble(),0.5) * (rng.nextBoolean() ? -1.0 : 1.0);
-            mn = min(mn,valueLUT[i]);
-            mx = max(mx,valueLUT[i]);
+            double v = Math.pow(rng.nextDouble(), power) * (rng.nextBoolean() ? -1.0 : 1.0);
+            lut[i] = v;
+            mn = min(mn,v);
+            mx = max(mx,v);
         }
         
         for(int i=0; i<256;i++) {
-            valueLUT[i] = norm(valueLUT[i],mn,mx,-1.0,1.0);
+            lut[i] = norm(lut[i],mn,mx,-1.0,1.0);
         }
-    }
 
+        return lut;
+    }
+    
     private void calcFractalBounding() {
         double amp = 1.0;
         double ampf = 1.0;
