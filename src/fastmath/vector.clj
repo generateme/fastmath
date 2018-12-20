@@ -169,6 +169,8 @@
                                     (vec array))))
   (equals [_ v]
     (smile.math.Math/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON))
+  (hashCode [_]
+    (java.util.Arrays/hashCode array))
   Sequential
   Seqable
   (seq [_] (seq array))
@@ -229,6 +231,17 @@
   (is-zero? [_] (aevery array #(zero? ^double %)))
   (is-near-zero? [_] (aevery array near-zero?)))
 
+(defn- dhash-code
+  "double hashcode"
+  (^long [^long state ^double a]
+   (let [abits (Double/doubleToLongBits a)
+         elt (bit-xor abits (>>> abits 32))]
+     (+ elt (* 31 state))))
+  (^long [^double a]
+   (let [abits (Double/doubleToLongBits a)
+         elt (bit-xor abits (>>> abits 32))]
+     (+ elt 31))))
+
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
   Object
@@ -238,6 +251,8 @@
          (let [^Vec2 v v]
            (bool-and (== x (.x v))
                      (== y (.y v))))))
+  (hashCode [_]
+    (unchecked-int (dhash-code (dhash-code x) y)))
   Sequential
   Seqable
   (seq [_] (list x y))
@@ -341,6 +356,8 @@
            (bool-and (== x (.x v))
                      (== y (.y v))
                      (== z (.z v))))))
+  (hashCode [_]
+    (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)))
   Sequential
   Seqable
   (seq [_] (list x y z))
@@ -520,6 +537,8 @@
                      (== y (.y v))
                      (== z (.z v))
                      (== w (.w v))))))
+  (hashCode [_]
+    (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)))
   Sequential
   Seqable
   (seq [_] (list x y z w))

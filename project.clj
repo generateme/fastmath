@@ -1,9 +1,9 @@
-(defproject generateme/fastmath "1.1.4"
+(defproject generateme/fastmath "1.2.0"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
             :url "http://unlicense.org"}
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  :dependencies [[org.clojure/clojure "1.10.0"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
                  [com.github.haifengl/smile-interpolation "1.5.2"]

@@ -37,18 +37,20 @@
   ### Random Vector Sequences
 
   Couple of functions to generate sequences of numbers or vectors.
-  You can generate sequence of `double`, [[Vec2]], [[Vec3]] or [[Vec4]] types. Just pass the size to creator function.
 
   To create generator call [[sequence-generator]] with generator name and vector size [1,4].
   Following generators are available:
 
   * `:halton` - Halton low-discrepancy sequence; range [0,1]
   * `:sobol` - Sobol low-discrepancy sequence; range [0,1]
+  * `:r2` - R2 low-discrepancy sequence; range [0,1], [more...](http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
   * `:sphere` - uniformly random distributed on unit sphere
   * `:gaussian` - gaussian distributed (mean=0, stddev=1)
   * `:default` - uniformly random; range:[0,1]
 
-  After creation you get function equivalent to `repeatedly`.
+  `:halton`, `:sobol` and `:r2` can be also randomly jittered according to this [article](http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/). Call [[jittered-sequence-generator]].
+  
+  After creation you get lazy sequence
 
   ### Noise
 
@@ -102,6 +104,7 @@
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution]
+           [fastmath.java R2]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
@@ -321,52 +324,101 @@ See [[brand]].")
   ([prob v1 v2]
    `(if (brandom default-rng ~prob) ~v1 ~v2)))
 
-(defn- commons-math-generators
-  "Generators from commons math"
-  [gen ^long size]
-  (let [s (m/constrain size 1 4)
-        ^RandomVectorGenerator g (case gen
+;; generators
+
+(defn- rv-generators
+  "Generators from commons math and custom classes."
+  [seq-generator ^long dimensions]
+  (let [s (case seq-generator
+            :halton (m/constrain dimensions 1 40)
+            :sobol (m/constrain dimensions 1 1000)
+            :r2 (m/constrain dimensions 1 4)
+            dimensions)
+        ^RandomVectorGenerator g (case seq-generator
                                    :halton (HaltonSequenceGenerator. s)
                                    :sobol (SobolSequenceGenerator. s)
-                                   :sphere (UnitSphereRandomVectorGenerator. s))
-        gf (case s
-             1 #(aget (.nextVector g) 0)
-             2 #(v/array->vec2 (.nextVector g))
-             3 #(v/array->vec3 (.nextVector g))
-             4 #(v/array->vec4 (.nextVector g)))]
-    #(repeatedly gf)))
+                                   :sphere (UnitSphereRandomVectorGenerator. s)
+                                   :r2 (R2. s))]
+    (repeatedly (case s
+                  1 #(aget (.nextVector g) 0)
+                  2 #(v/array->vec2 (.nextVector g))
+                  3 #(v/array->vec3 (.nextVector g))
+                  4 #(v/array->vec4 (.nextVector g))
+                  #(vec (.nextVector g))))))
+
+;; R2
+;; http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
 
 (defn- random-generators
   "Random generators"
-  [gen ^long size]
-  (let [s (m/constrain size 1 4)
-        g (case gen
+  [seq-generator ^long dimensions]
+  (let [g (case seq-generator
             :default drand
-            :gaussian grand)
-        gf (case s
-             1 g
-             2 (partial v/generate-vec2 g)
-             3 (partial v/generate-vec3 g)
-             4 (partial v/generate-vec4 g))]
-    #(repeatedly gf)))
+            :gaussian grand)]
+    (repeatedly (case dimensions
+                  1 g
+                  2 (partial v/generate-vec2 g)
+                  3 (partial v/generate-vec3 g)
+                  4 (partial v/generate-vec4 g)
+                  #(vec (repeatedly dimensions g))))))
+
+;; jittering
+;; http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/
+
+(defn- jitter-generator
+  "Generate random jitter"
+  [seq-generator dimensions ^double jitter]
+  (let [[^double d0 ^double i0 ^double f ^double p] (case seq-generator
+                                                      :r2 [0.76 0.7 0.25 -0.5]
+                                                      :halton [0.9 0.7 0.25 -0.5]
+                                                      :sobol [0.16 0.58 0.4 -0.2]
+                                                      [0.5 0.5 0.25 -0.5])
+        c (* jitter m/SQRTPI d0 f)
+        g (random-generators :default dimensions)]
+    (map (fn [v ^long i]
+           (v/mult v (* c (m/pow (- (inc i) i0) p)))) g (range))))
 
 ;; Sequence creators
 
 (defmulti
-  ^{:doc "Create Sequence generator. See [[sequence-generators-list]] for names. Parameter `size` describes number of dimensions (1-4).
+  ^{:doc "Create Sequence generator. See [[sequence-generators-list]] for names.
 
-Values are from following values:
+Values:
 
-* `:halton`, `:sobol`, `:default` - range `[0-1]`
+* `:r2`, `:halton`, `:sobol`, `:default` - range `[0-1] for each dimension`
 * `:gaussian` - from `N(0,1)` distribution
-* `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)" 
+* `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)
+
+Possible dimensions:
+
+* `:r2` - 1-4
+* `:halton` - 1-40
+* `:sobol` - 1-1000
+* the rest - 1+
+
+See also [[jittered-sequence-generator]]."
     :metadoc/categories #{:gen}}
-  sequence-generator (fn [gen size] gen))
-(defmethod sequence-generator :halton [gen size] (commons-math-generators gen size))
-(defmethod sequence-generator :sobol [gen size] (commons-math-generators gen size))
-(defmethod sequence-generator :sphere [gen size] (commons-math-generators gen size))
-(defmethod sequence-generator :gaussian [gen size] (random-generators gen size))
-(defmethod sequence-generator :default [gen size] (random-generators gen size))
+  sequence-generator (fn [seq-generator dimensions] seq-generator))
+(defmethod sequence-generator :halton [seq-generator dimensions] (rv-generators seq-generator dimensions))
+(defmethod sequence-generator :sobol [seq-generator dimensions] (rv-generators seq-generator dimensions))
+(defmethod sequence-generator :r2 [seq-generator dimensions] (rv-generators seq-generator dimensions))
+(defmethod sequence-generator :sphere [seq-generator dimensions] (rv-generators seq-generator dimensions))
+(defmethod sequence-generator :gaussian [seq-generator dimensions] (random-generators seq-generator dimensions))
+(defmethod sequence-generator :default [seq-generator dimensions] (random-generators seq-generator dimensions))
+
+(defn jittered-sequence-generator
+  "Create jittered sequence generator.
+
+  Suitable for `:r2`, `:sobol` and `:halton` sequences.
+
+  `jitter` parameter range is from `0` (no jitter) to `1` (full jitter).
+
+  See also [[sequence-generator]]."
+  [seq-generator dimensions jitter]
+  (let [s (sequence-generator seq-generator dimensions)
+        j (jitter-generator seq-generator dimensions jitter)]
+    (map (fn [v vj]
+           (v/applyf (v/add v vj) m/frac)) s j)))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
        :metadoc/categories #{:gen}}

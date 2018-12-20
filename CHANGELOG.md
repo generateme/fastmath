@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.2.0]
+
+### Added
+
+* Various grid operations
+* hashCode for vectors
+
+### Changed
+
+* Breaking: sequence generator creatators return lazy sequence now (instead of function returning sequence)
+
 ## [1.1.4]
 
 ### Added

@@ -56,14 +56,21 @@
 
 (add-examples sequence-generator
   (example "Usage (2d)" (let [gen (sequence-generator :halton 2)]
-                          (take 5 (gen))))
+                          (take 5 gen)))
   (example "Usage (1d)" (let [gen (sequence-generator :sobol 1)]
-                          (take 5 (gen))))
+                          (take 5 gen)))
+  (example "Usage (10d)" (second (sequence-generator :halton 10)))
+  (example "Usage, R2 sequence" (take 5 (sequence-generator :r2 3)))
   (example-image "Halton plot (1000 samples)" "images/r/halton.jpg")
   (example-image "Sobol plot (1000 samples)" "images/r/sobol.jpg")
   (example-image "Sphere plot (1000 samples)" "images/r/sphere.jpg")
   (example-image "Gaussian plot (1000 samples)" "images/r/gaussian.jpg")
   (example-image "Default plot (1000 samples)" "images/r/default.jpg"))
+
+(add-examples jittered-sequence-generator
+  (example (let [gen1 (jittered-sequence-generator :r2 2 0.5)
+                 gen2 (jittered-sequence-generator :r2 2 0.5)]
+             [(first gen1) (first gen2)])))
 
 (add-examples interpolations (example "List of names (keys)" (keys interpolations)))
 (add-examples noise-types (example "List of names (keys)" (keys noise-types)))
