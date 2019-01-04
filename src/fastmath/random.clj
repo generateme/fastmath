@@ -418,7 +418,7 @@ See also [[jittered-sequence-generator]]."
   (let [s (sequence-generator seq-generator dimensions)
         j (jitter-generator seq-generator dimensions jitter)]
     (map (fn [v vj]
-           (v/applyf (v/add v vj) m/frac)) s j)))
+           (v/fmap (v/add v vj) m/frac)) s j)))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
        :metadoc/categories #{:gen}}

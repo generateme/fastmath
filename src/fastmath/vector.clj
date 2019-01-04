@@ -16,7 +16,7 @@
       * Vec2 - 2d vector, creator [[vec2]]
       * Vec3 - 3d vector, creator [[vec3]]
       * Vec4 - 4d vector, creator [[vec4]]
-      * ArrayVec - fixed size vector as double array, n-dimensional, creator [[arrayvec]]
+      * ArrayVec - fixed size vector as double array, n-dimensional, creator [[array-vec]]
   * Variable size:
       * Clojure's PersistentVector, creator `[]`.
 
@@ -32,16 +32,19 @@
   * `Indexed`
   * `ILookup`
   * `equals` and `toString` from `Object`
+  * `IPersistentVector`
+  * `clojure.core.matrix.protocols`
 
   That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
   {:metadoc/categories {:gen "Creators"
                         :geom "Geometric"
                         :dist "Distance / length"
-                        :op "Operations"}}
+                        :op "Operations"
+                        :mop "Math operations"}}
   (:require [fastmath.core :as m]
             [clojure.string :as s]
-            [fastmath.vector :as v])
-  (:import [clojure.lang Counted IFn PersistentVector Seqable Sequential Reversible Indexed ILookup]
+            [clojure.core.matrix.protocols :as mat])
+  (:import [clojure.lang Counted IFn PersistentVector IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup]
            [clojure.core Vec]))
 
 (set! *warn-on-reflection* true)
@@ -56,7 +59,8 @@
 (defprotocol VectorProto
   "Vector operations"
   (^{:metadoc/categories #{:gen}} to-vec [v] "Convert to Clojure primitive vector `Vec`.")
-  (^{:metadoc/categories #{:op}} applyf [v f] "Apply function to all vector values (like map but returns the same type).")
+  (^{:metadoc/categories #{:gen}} as-vec [v] [v xs] "Create vector from sequence as given type.")
+  (^{:metadoc/categories #{:op}} fmap [v f] "Apply function to all vector values (like map but returns the same type).")
   (^{:metadoc/categories #{:op}} approx [v] [v d] "Round to 2 (or `d`) decimal places")
   (^{:metadoc/categories #{:dist :geom}} magsq [v1] "Length of the vector squared.")
   (^{:metadoc/categories #{:dist :geom}} mag [v1] "length of the vector.")
@@ -64,9 +68,8 @@
   (^{:metadoc/categories #{:op}} add [v1] [v1 v2] "Sum of two vectors.")
   (^{:metadoc/categories #{:op}} sub [v1] [v1 v2] "Subtraction of two vectors.")
   (^{:metadoc/categories #{:op}} mult [v1 v] "Multiply vector by number `v`.")
-  (^{:metadoc/categories #{:op}} emult [v1 v] "Element-wise vector multiplication (Hadamard product).")
-  (^{:metadoc/categories #{:op}} div [v1 v] "Divide vector by number `v`")
-  (^{:metadoc/categories #{:op}} abs [v1] "Absolute value of vector elements")
+  (^{:metadoc/categories #{:op}} emult [v1 v2] "Element-wise vector multiplication (Hadamard product).")
+  (^{:metadoc/categories #{:mop}} abs [v1] "Absolute value of vector elements")
   (^{:metadoc/categories #{:op}} mx [v1] "Maximum value of vector elements")
   (^{:metadoc/categories #{:op}} mn [v1] "Minimum value of vector elements")
   (^{:metadoc/categories #{:op}} emx [v1 v2] "Element-wise max from two vectors.")
@@ -93,6 +96,7 @@
 
 (declare angle-between)
 (declare normalize)
+(declare div)
 
 (defn- find-idx-reducer-fn 
   "Helper function for reduce to find index for maximum/minimum value in vector."
@@ -111,11 +115,14 @@
 (extend PersistentVector
   VectorProto
   {:to-vec #(apply conj (vector-of :double) %1)
-   :applyf #(mapv %2 %1)
+   :as-vec (fn
+             ([v xs] (vec (take (count v) xs)))
+             ([v] (as-vec v (repeat 0.0))))
+   :fmap #(mapv %2 %1)
    :approx (fn
              ([v] (map m/approx v))
              ([v d] (map #(m/approx ^double % d) v)))
-   :magsq (fn [v] (reduce #(+ ^double %1 (* ^double %2 ^double %2)) (double 0) v))
+   :magsq (fn [v] (reduce #(+ ^double %1 (* ^double %2 ^double %2)) 0.0 v))
    :mag #(m/sqrt (magsq %))
    :dot #(reduce clojure.core/+ (map clojure.core/* %1 %2))
    :add (fn
@@ -124,9 +131,8 @@
    :sub (fn
           ([v] (mapv clojure.core/- v))
           ([v1 v2] (mapv clojure.core/- v1 v2)))
-   :mult (fn [v1 v] (mapv #(clojure.core/* (double %) ^double v) v1))
+   :mult (fn [v1 v] (mapv #(clojure.core/* ^double % ^double v) v1))
    :emult #(mapv clojure.core/* %1 %2)
-   :div #(mult %1 (/ (double %2)))
    :abs #(mapv m/abs %)
    :mx #(reduce clojure.core/max %)
    :mn #(reduce clojure.core/min %)
@@ -168,7 +174,8 @@
                                     (str "[" (s/join " " (take 10 array)) "...]")
                                     (vec array))))
   (equals [_ v]
-    (smile.math.Math/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON))
+    (bool-and (instance? ArrayVec v)
+              (smile.math.Math/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON)))
   (hashCode [_]
     (java.util.Arrays/hashCode array))
   Sequential
@@ -185,10 +192,16 @@
     (aget array ^long n))
   Counted
   (count [_] (alength array))
+  IPersistentVector
+  (length [_] (alength array))
+  IPersistentCollection
+  (equiv [v1 v2] (.equals v1 v2))
   VectorProto
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
-  (applyf [_ f] (ArrayVec. (amap array idx ret ^double (f (aget array idx)))))
+  (as-vec [v xs] (ArrayVec. (double-array (take (count v) xs))))
+  (as-vec [v] (as-vec v (repeat 0.0)))
+  (fmap [_ f] (ArrayVec. (amap array idx ret ^double (f (aget array idx)))))
   (approx [_] (ArrayVec. (amap array idx ret ^double (m/approx (aget array idx)))))
   (approx [_ d] (ArrayVec. (amap array idx ret ^double (m/approx (aget array idx) d))))
   (magsq [_] (smile.math.Math/dot array array))
@@ -206,7 +219,6 @@
                 (smile.math.Math/scale ^double v b)
                 (ArrayVec. b)))
   (emult [_ v2] (ArrayVec. (amap array idx ret (* (aget array idx) ^double (v2 idx)))))
-  (div [av v] (mult av (/ ^double v)))
   (abs [_] (ArrayVec. (amap array idx ret (m/abs (aget array idx)))))
   (mx [_] (smile.math.Math/max array))
   (mn [_] (smile.math.Math/min array))
@@ -247,10 +259,10 @@
   Object
   (toString [_] (str "#vec2 [" x ", " y "]"))
   (equals [_ v]
-    (and (instance? Vec2 v)
-         (let [^Vec2 v v]
-           (bool-and (== x (.x v))
-                     (== y (.y v))))))
+    (bool-and (instance? Vec2 v)
+              (let [^Vec2 v v]
+                (bool-and (== x (.x v))
+                          (== y (.y v))))))
   (hashCode [_]
     (unchecked-int (dhash-code (dhash-code x) y)))
   Sequential
@@ -272,9 +284,15 @@
       0 x
       1 y
       nil))
+  IPersistentVector
+  (length [_] 2)
+  IPersistentCollection
+  (equiv [v1 v2] (.equals v1 v2))
   VectorProto
   (to-vec [_] (vector-of :double x y))
-  (applyf [_ f] (Vec2. (f x) (f y)))
+  (as-vec [_ [x y]] (Vec2. x y))
+  (as-vec [_] (Vec2. 0.0 0.0))
+  (fmap [_ f] (Vec2. (f x) (f y)))
   (approx [_] (Vec2. (m/approx x) (m/approx y)))
   (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
   (magsq [_] (+ (* x x) (* y y)))
@@ -290,8 +308,6 @@
   (mult [_ v] (Vec2. (* x ^double v) (* y ^double v)))
   (emult [_ v] 
     (let [^Vec2 v v] (Vec2. (* x (.x v)) (* y (.y v)))))
-  (div [_ v] 
-    (let [v1 (/ 1.0 ^double v)] (Vec2. (* x v1) (* y v1))))
   (abs [_] (Vec2. (m/abs x) (m/abs y)))
   (mx [_] (max x y))
   (mn [_] (min x y))
@@ -351,11 +367,11 @@
   Object
   (toString [_] (str "#vec3 [" x ", " y ", " z "]"))
   (equals [_ v]
-    (and (instance? Vec3 v)
-         (let [^Vec3 v v]
-           (bool-and (== x (.x v))
-                     (== y (.y v))
-                     (== z (.z v))))))
+    (bool-and (instance? Vec3 v)
+              (let [^Vec3 v v]
+                (bool-and (== x (.x v))
+                          (== y (.y v))
+                          (== z (.z v))))))
   (hashCode [_]
     (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)))
   Sequential
@@ -378,9 +394,15 @@
       1 y
       2 z
       nil))
+  IPersistentVector
+  (length [_] 3)
+  IPersistentCollection
+  (equiv [v1 v2] (.equals v1 v2))
   VectorProto
   (to-vec [_] (vector-of :double x y z))
-  (applyf [_ f] (Vec3. (f x) (f y) (f z)))
+  (as-vec [_ [x y z]] (Vec3. x y z))
+  (as-vec [_] (Vec3. 0.0 0.0 0.0))
+  (fmap [_ f] (Vec3. (f x) (f y) (f z)))
   (approx [_] (Vec3. (m/approx x) (m/approx y) (m/approx z)))
   (approx [_ d] (Vec3. (m/approx x d) (m/approx y d) (m/approx z d)))
   (magsq [_] (+ (* x x) (* y y) (* z z)))
@@ -396,8 +418,6 @@
   (mult [_ v] (Vec3. (* x ^double v) (* y ^double v) (* z ^double v)))
   (emult [_ v] 
     (let [^Vec3 v v] (Vec3. (* x (.x v)) (* y (.y v)) (* z (.z v)))))
-  (div [_ v] 
-    (let [v1 (/ 1.0 ^double v)] (Vec3. (* x v1) (*  y v1) (* z v1))))
   (abs [_] (Vec3. (m/abs x) (m/abs y) (m/abs z)))
   (mx [_] (max x y z))
   (mn [_] (min x y z))
@@ -560,9 +580,15 @@
       2 z
       3 w
       nil))
+  IPersistentVector
+  (length [_] 4)
+  IPersistentCollection
+  (equiv [v1 v2] (.equals v1 v2))
   VectorProto
   (to-vec [_] (vector-of :double x y z w))
-  (applyf [_ f] (Vec4. (f x) (f y) (f z) (f w)))
+  (as-vec [_ [x y z w]] (Vec4. x y z w))
+  (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
+  (fmap [_ f] (Vec4. (f x) (f y) (f z) (f w)))
   (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
   (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
   (magsq [_] (+ (* x x) (* y y) (* z z) (* w w)))
@@ -578,8 +604,6 @@
   (mult [_ v] (Vec4. (* x ^double v) (* y ^double v) (* z ^double v) (* w ^double v)))
   (emult [_ v]
     (let [^Vec4 v v] (Vec4. (* x (.x v)) (* y (.y v)) (* z (.z v)) (* w (.w v)))))
-  (div [_ v]
-    (let [v1 (/ 1.0 ^double v)] (Vec4. (* x v1) (* y v1) (* z v1) (* w v1))))
   (abs [_] (Vec4. (m/abs x) (m/abs y) (m/abs z) (m/abs w)))
   (mx [_] (max x y z w))
   (mn [_] (min x y z w))
@@ -617,25 +641,32 @@
   (is-near-zero? [_] (bool-and (near-zero? x) (near-zero? y) (near-zero? z) (near-zero? w)))
   (heading [v1] (angle-between v1 (Vec4. 1 0 0 0))))
 
+;;
+
+(def ^{:deprecated "v1.3.0" :metadoc/categories #{:op} :doc "Same as [[fmap]]. Deprecated."} applyf fmap)
+
 ;; creators
 
 (defn vec2
-  "Make 2d vector"
+  "Make 2d vector."
   {:metadoc/categories #{:gen}} 
-  [x y] (Vec2. x y))
+  ([x y] (Vec2. x y))
+  ([] (Vec2. 0.0 0.0)))
 
 (defn vec3
   "Make Vec2 vector"
   {:metadoc/categories #{:gen}} 
   ([x y z] (Vec3. x y z))
-  ([^Vec2 v z] (Vec3. (.x v) (.y v) z)))
+  ([^Vec2 v z] (Vec3. (.x v) (.y v) z))
+  ([] (Vec3. 0.0 0.0 0.0)))
 
 (defn vec4
   "Make Vec4 vector"
   {:metadoc/categories #{:gen}} 
   ([x y z w] (Vec4. x y z w))
   ([^Vec3 v w] (Vec4. (.x v) (.y v) (.z v) w))
-  ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w)))
+  ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w))
+  ([] (Vec4. 0.0 0.0 0.0 0.0)))
 
 (defn array-vec
   "Make ArrayVec type based on provided sequence `xs`."
@@ -643,13 +674,51 @@
   [xs]
   (ArrayVec. (double-array xs)))
 
+(defn make-vector
+  "Returns fixed size vector for given number of dimensions.
+
+  Proper type is used."
+  {:metadoc/categories #{:gen}} 
+  ([dims xs] (as-vec (make-vector dims) xs))
+  ([^long dims]
+   (when (pos? dims)
+     (case dims
+       2 (vec2)
+       3 (vec3)
+       4 (vec4)
+       (array-vec dims)))))
+
 ;; ## Common vector functions
+
+(defn div
+  "Vector division or reciprocal."
+  {:metadoc/categories #{:op}}
+  ([v1 ^double v] (mult v1 (/ v)))
+  ([v1] (reciprocal v1)))
 
 (defn ediv
   "Element-wise division of two vectors."
   {:metadoc/categories #{:op}} 
   [v1 v2]
   (emult v1 (reciprocal v2)))
+
+(defn zero-count
+  "Count zeros in vector"
+  {:metadoc/categories #{:op}}
+  [v]
+  (count (filter #(zero? ^double %) v)))
+
+(defn clamp
+  "Clamp elements."
+  {:metadoc/categories #{:op}}
+  ([v ^double mn ^double mx] (fmap v #(m/constrain ^double % mn mx)))
+  ([v] (clamp v 0 Double/MAX_VALUE)))
+
+(defn nonzero-count
+  "Count non zero velues in vector"
+  {:metadoc/categories #{:op}}
+  [v]
+  (count (remove #(zero? ^double %) v)))
 
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
@@ -686,14 +755,14 @@
   "Discrete distance between 2d vectors"
   {:metadoc/categories #{:dist}} 
   [v1 v2]
-  (sum (applyf (sub v1 v2) #(if (zero? ^double %) 0.0 1.0))))
+  (sum (fmap (sub v1 v2) #(if (zero? ^double %) 0.0 1.0))))
 
 (defn dist-canberra
   "Canberra distance"
   {:metadoc/categories #{:dist}} 
   [v1 v2]
   (let [num (abs (sub v1 v2))
-        denom (applyf (add (abs v1) (abs v2)) #(if (zero? ^double %) 0.0 (/ ^double %)))]
+        denom (fmap (add (abs v1) (abs v2)) #(if (zero? ^double %) 0.0 (/ ^double %)))]
     (sum (emult num denom))))
 
 (defn dist-emd
@@ -824,6 +893,25 @@
   [^doubles a]
   (Vec4. (aget a 0) (aget a 1) (aget a 2) (aget a 3)))
 
+;; primitive functions
+
+(defmacro ^:private primitive-ops
+  "Generate primitive functions operating on vectors"
+  [fns]
+  (let [v (symbol "vector")]
+    `(do ~@(for [f fns
+                 :let [nm (with-meta (symbol (name f)) {:metadoc/categories #{:mop}})
+                       doc (str "Apply " nm " to vector elements.")
+                       wfn (if (:macro (meta (resolve f))) `(fn [v#] (~f v#)) f)]] ;; wrap macro into function
+             `(defn ~nm ~doc
+                [~v]
+                (fmap ~v ~wfn))))))
+
+(primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
+                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/csch
+                m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p
+                m/radians m/degrees m/sinc m/sigmoid
+                m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 ;;
 
 (defmethod print-method Vec2 [v ^java.io.Writer w] (.write w (str v)))
@@ -836,3 +924,158 @@
 (defmethod print-dup Vec4 [v w] (print-method v w))
 
 ;;
+
+;; core.matrix protocols
+
+(defn- new-matrix-impl 
+  "Return matrix as vector."
+  [^long cols ^long rows]
+  (cond
+    (== 1 cols) (make-vector rows)
+    (== 1 rows) (make-vector cols)
+    :else nil))
+
+(defmacro ^:private extend-protocol-for-types
+  [p xs m]
+  (let [mp (gensym "fnmap")]
+    `(let [~mp ~m]
+       ~@(for [t xs]
+           `(extend ~t ~p ~mp)))))
+
+(extend-protocol-for-types mat/PImplementation [Vec2 Vec3 Vec4 ArrayVec]
+                           {:implementation-key (constantly :fastmath)
+                            :make-vector (fn [_ d] (make-vector d))
+                            :new-matrix (fn [_ r c] (new-matrix-impl r c))
+                            :new-matrix-nd (fn [_ shape] (make-vector (first shape)))
+                            :supports-dimensionality? (fn [_ ^long dims] (== dims 1))
+                            :construct-matrix as-vec})
+
+(extend-protocol mat/PImplementation
+  Vec2 (mat/meta-info [v] {:doc (str "Fastmath 2d vector: " v)})
+  Vec3 (mat/meta-info [v] {:doc (str "Fastmath 3d vector: " v)})
+  Vec4 (mat/meta-info [v] {:doc (str "Fastmath 4d vector: " v)})
+  ArrayVec (mat/meta-info [v] {:doc "Fastmath double array vector"}))
+
+(extend-protocol-for-types mat/PDimensionInfo [Vec2 Vec3 Vec4 ArrayVec]
+                           {:dimensionality (constantly 1)
+                            :is-scalar? (constantly false)
+                            :is-vector? (constantly true)
+                            :dimension-count (fn [v ^long dim] (when (== 0 dim) (count v)))
+                            :get-shape #(vector (count %))})
+
+(extend-protocol-for-types mat/PIndexedAccess [Vec2 Vec3 Vec4 ArrayVec] 
+                           {:get-1d (fn [m row] (m row))})
+
+(extend-protocol-for-types mat/PIndexedSetting [Vec2 Vec3 Vec4] 
+                           {:is-mutable? (constantly false)})
+
+(extend-protocol mat/PIndexedSetting
+  Vec2 (mat/set-1d [^Vec2 m ^long row ^double v] (case row
+                                                   0 (Vec2. v (.y m))
+                                                   1 (Vec2. (.x m) v)
+                                                   m))
+  Vec3 (mat/set-1d [^Vec3 m ^long row ^double v] (case row
+                                                   0 (Vec3. v (.y m) (.z m))
+                                                   1 (Vec3. (.x m) v (.z m))
+                                                   2 (Vec3. (.x m) (.y m) v)
+                                                   m))
+  Vec4 (mat/set-1d [^Vec4 m ^long row ^double v] (case row
+                                                   0 (Vec4. v (.y m) (.z m) (.w m))
+                                                   1 (Vec4. (.x m) v (.z m) (.w m))
+                                                   2 (Vec4. (.x m) (.y m) v (.w m)) 
+                                                   3 (Vec4. (.x m) (.y m) (.z m) v)
+                                                   m))
+  ArrayVec
+  (mat/set-1d [^ArrayVec m ^long row ^double v]
+    (let [^doubles a (aclone ^doubles (.array m))]
+      (aset a row v)
+      (ArrayVec. a)))
+  (mat/is-mutable? [_] true))
+
+(extend-protocol mat/PIndexedSettingMutable
+  ArrayVec
+  (mat/set-1d! [^ArrayVec m ^long row ^double v]
+    (aset ^doubles (.array m) row v)
+    m))
+
+(extend-protocol mat/PMatrixCloning
+  ArrayVec (mat/clone [^ArrayVec m] (ArrayVec. (aclone ^doubles (.array m)))))
+
+(extend-protocol-for-types mat/PTypeInfo [Vec2 Vec3 Vec4 ArrayVec] {:element-type (constantly Double/TYPE)})
+(extend-protocol-for-types mat/PArrayMetrics [Vec2 Vec3 Vec4 ArrayVec] {:nonzero-count nonzero-count})
+(extend-protocol-for-types mat/PConversion [Vec2 Vec3 Vec4 ArrayVec] {:convert-to-nested-vectors vector})
+(extend-protocol-for-types mat/PZeroCount [Vec2 Vec3 Vec4 ArrayVec] {:zero-count zero-count})
+(extend-protocol-for-types mat/PDoubleArrayOutput [Vec2 Vec3 Vec4]
+                           {:to-double-array double-array
+                            :as-double-array (constantly nil)})
+
+(extend-protocol mat/PDoubleArrayOutput
+  ArrayVec
+  (mat/to-double-array [^ArrayVec m] (aclone ^doubles (.array m)))
+  (mat/as-double-array [^ArrayVec m] (.array m)))
+
+(extend-protocol-for-types mat/PValueEquality [Vec2 Vec3 Vec4 ArrayVec] {:value-equals =})
+(extend-protocol-for-types mat/PMatrixEquality [Vec2 Vec3 Vec4 ArrayVec] {:matrix-equals =})
+(extend-protocol-for-types mat/PMatrixEqualityEpsilon [Vec2 Vec3 Vec4 ArrayVec]
+                           {:matrix-equals-epsilon (fn [m a ^double eps]
+                                                     (and (= (type m) (type a))
+                                                          (every? #(< (m/abs ^double %) eps) (abs (sub m a)))))})
+
+(extend-protocol-for-types mat/PMatrixProducts [Vec2 Vec3 Vec4 ArrayVec] {:inner-product dot})
+(extend-protocol-for-types mat/PMatrixMultiply [Vec2 Vec3 Vec4 ArrayVec] {:element-multiply emult})
+(extend-protocol-for-types mat/PAddScaled [Vec2 Vec3 Vec4 ArrayVec] {:add-scaled #(add %1 (mult %2 %3))})
+(extend-protocol-for-types mat/PMatrixDivide [Vec2 Vec3 Vec4 ArrayVec] {:element-divide div})
+(extend-protocol-for-types mat/PMatrixScaling [Vec2 Vec3 Vec4 ArrayVec] {:scale mult})
+(extend-protocol-for-types mat/PMatrixAdd [Vec2 Vec3 Vec4 ArrayVec] {:matrix-add add :matrix-sub sub})
+(extend-protocol-for-types mat/PLerp [Vec2 Vec3 Vec4 ArrayVec] {:lerp interpolate})
+(extend-protocol-for-types mat/POrder [Vec2 Vec3 Vec4 ArrayVec] {:order permute})
+(extend-protocol-for-types mat/PNumerical [Vec2 Vec3 Vec4 ArrayVec] {:numerical? (constantly true)})
+
+(extend-protocol-for-types mat/PVectorOps [Vec2 Vec3 Vec4 ArrayVec]
+                           {:vector-dot dot
+                            :length mag
+                            :length-squared magsq
+                            :normalise normalize})
+
+(extend-protocol-for-types mat/PVectorCross [Vec2 Vec3 Vec4 ArrayVec] {:cross-product cross})
+(extend-protocol-for-types mat/PVectorDistance [Vec2 Vec3 Vec4 ArrayVec] {:distance dist})
+(extend-protocol-for-types mat/PVectorView [Vec2 Vec3 Vec4 ArrayVec] {:as-vector identity})
+(extend-protocol-for-types mat/PVectorisable [Vec2 Vec3 Vec4 ArrayVec] {:to-vector identity})
+(extend-protocol-for-types mat/PNegation [Vec2 Vec3 Vec4 ArrayVec] {:negate sub})
+(extend-protocol-for-types mat/PSummable [Vec2 Vec3 Vec4 ArrayVec] {:element-sum sum})
+(extend-protocol-for-types mat/PExponent [Vec2 Vec3 Vec4 ArrayVec]
+                           {:element-pow (fn [m exponent] (fmap m #(m/pow % exponent)))})
+(extend-protocol-for-types mat/PSquare [Vec2 Vec3 Vec4 ArrayVec] {:square sq})
+(extend-protocol-for-types mat/PLogistic [Vec2 Vec3 Vec4 ArrayVec] {:logistic sigmoid})
+(extend-protocol-for-types mat/PSoftplus [Vec2 Vec3 Vec4 ArrayVec] {:softplus (comp log1p exp)})
+(extend-protocol-for-types mat/PReLU [Vec2 Vec3 Vec4 ArrayVec] {:relu (fn [m] (fmap m #(max 0.0 ^double %)))})
+(extend-protocol-for-types mat/PSoftmax [Vec2 Vec3 Vec4 ArrayVec] {:softmax #(let [e (exp %)] (div e (sum e)))})
+(extend-protocol-for-types mat/PMathsFunctions [Vec2 Vec3 Vec4 ArrayVec]
+                           {:abs abs :acos acos :asin asin :atan atan
+                            :cbrt cbrt :ceil ceil :cos cos :cosh cosh
+                            :exp exp :floor floor :log log :log10 log10
+                            :round round :signum signum :sin sin :sinh sinh
+                            :sqrt sqrt :tan tan :tanh tanh :to-degrees degrees :to-radians radians})
+(extend-protocol-for-types mat/PElementCount [Vec2 Vec3 Vec4 ArrayVec] {:element-count count})
+(extend-protocol-for-types mat/PElementMinMax [Vec2 Vec3 Vec4 ArrayVec] {:element-min mn
+                                                                         :element-max mx
+                                                                         :element-clamp clamp})
+(extend-protocol-for-types mat/PCompare [Vec2 Vec3 Vec4 ArrayVec]
+                           {:element-compare #(signum (sub %1 %2))
+                            :element-if (fn [m a b]
+                                          (let [aa (if (vector? a) a (constantly a))
+                                                bb (if (vector? b) b (constantly b))]
+                                            (as-vec m (map-indexed (fn [idx ^double v]
+                                                                     (if (pos? v) (aa idx) (bb idx))) m))))
+                            :element-lt (fn [m ^double a] (fmap m #(if (< ^double % a) 1 0)))
+                            :element-le (fn [m ^double a] (fmap m #(if (<= ^double % a) 1 0)))
+                            :element-gt (fn [m ^double a] (fmap m #(if (> ^double % a) 1 0)))
+                            :element-ge (fn [m ^double a] (fmap m #(if (>= ^double % a) 1 0)))
+                            :element-ne (fn [m ^double a] (fmap m #(if (not== ^double % a) 1 0)))
+                            :element-eq (fn [m ^double a] (fmap m #(if (== ^double % a) 1 0)))})
+
+(extend-protocol-for-types mat/PFunctionalOperations [Vec2 Vec3 Vec4 ArrayVec]
+                           {:element-seq identity})
+
+;;
+
