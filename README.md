@@ -7,7 +7,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ## Installation
 
 ```clojure
-[generateme/fastmath "1.1.4"]
+[generateme/fastmath "1.2.0"]
 ```
 
 ## Documentation
@@ -68,7 +68,7 @@ With following groups of functions:
 * Collection of distributions (count: 28)
 * Random generator functions for each primitive type (drand - double, lrand - long, frand - float, irand - int)
 * Additional RNG functions: brand - true/false, grand - gaussian distributed double
-* Random sequences: from distribution, halton, sobol, sphere, uniform
+* Random sequences: from distribution, halton, sobol, R2, sphere, uniform
 
 ### Noise
 
@@ -101,6 +101,10 @@ Great collection (100+) of R^2->R^2 functions.
 ### Clustering
 
 SMILE bindings for clustering
+
+### Grids
+
+Hexagonal, squared, triangular, rhomboidal grid functions
 
 ### Other
 
