@@ -1,13 +1,11 @@
 (ns fastmath.clustering-example
   (:require [fastmath.clustering :refer :all]
             [metadoc.examples :refer :all]
-            [fastmath.random :as r]))
+            [fastmath.random :as r]
+            [fastmath.distance :as d]))
 
 (add-examples clustering-methods-list
   (example "List of methods" clustering-methods-list))
-
-(add-examples distances-list
-  (example "List of distances" distances-list))
 
 (add-examples k-means
   (example (k-means [1 2 3 -1 -1 2 -1 11 111] 4))
@@ -40,7 +38,7 @@
     (map (fn [m] (dissoc m :data)) (regroup (denclue (repeatedly 1000 #(r/randval 0.1 (r/drand) (r/drand 5 6))) 1 10)))))
 
 (add-examples clarans
-  (example (dissoc (clarans (repeatedly 1000 #(r/randval 0.1 (r/irand -10 10) (r/irand 100 150))) :chebyshev 2) :data :clustering :obj :predict)))
+  (example (dissoc (clarans (repeatedly 1000 #(r/randval 0.1 (r/irand -10 10) (r/irand 100 150))) d/chebyshev 2) :data :clustering :obj :predict)))
 
 (add-examples dbscan
   (example "3d vectors" (dissoc (dbscan (repeatedly 5000 #(vector (r/randval 0.1 (r/irand -10 10) (r/irand 100 150))
@@ -49,7 +47,7 @@
 
 (add-examples mec
   (example "2d vectors" (dissoc (mec (repeatedly 5000 #(vector (r/randval 0.1 (r/irand -10 10) (r/irand 100 150))
-                                                               (r/randval (r/irand -10 10) (r/irand 100 150)))) :manhattan 8 20) :data :clustering :obj :predict)))
+                                                               (r/randval (r/irand -10 10) (r/irand 100 150)))) d/manhattan 8 20) :data :clustering :obj :predict)))
 
 (add-examples regroup
   (example-session "Result of clustering with regrouping"

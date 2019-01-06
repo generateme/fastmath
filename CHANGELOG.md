@@ -1,6 +1,20 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.3.0]
+
+### Added
+
+* `make-vector` returns vector for given number of dimensions and optional sequence. 
+* vectors implements now `IPersistentVector` to work with `vector?`
+* core.matrix protocols for vectors
+* math functions can operate on vectors now (like [[sin]] etc.)
+* new functions for vectors `clamp`, `zero-count`, `nonzero-count`, `as-vec`
+
+### Changed
+
+* use `fmap` instead of `applyf` (now deprecated)
+
 ## [1.2.0]
 
 ### Added

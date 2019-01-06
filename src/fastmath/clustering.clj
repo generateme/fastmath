@@ -21,11 +21,7 @@
 
   ### Distances
 
-  Some of the methods use distance functions, currently supported are:
-
-  * `:euclidean`
-  * `:manhattan`
-  * `:chebyshev`
+  Some of the methods use distance functions, use [[fastmath.distance]] namespace to create one.
   
   ### Output
 
@@ -43,7 +39,7 @@
 
   Cluster id is a integer ranging from 0 to the number of clusters minus 1. Some methods mark outliers with [[outlier-id]].
   
-  Record acts as function and can qualify additonal sample by calling `:predict` function, for example (`data` is sequence of 3d samples):
+  Record acts as function and can qualify additonal sample by calling `:predict` function (or just call [[predict]]), for example (`data` is sequence of 3d samples):
 
   ```clojure
   (let [cl (k-means data 10)] (cl [0 1 2]))
@@ -63,9 +59,10 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [clojure.string :as s]
-            [fastmath.stats :as stat])
-  (:import [smile.clustering Clustering KMeans GMeans XMeans DeterministicAnnealing DENCLUE CLARANS DBSCAN MEC]
-           [smile.math.distance ChebyshevDistance EuclideanDistance ManhattanDistance CorrelationDistance JensenShannonDistance]
+            [fastmath.stats :as stat]
+            [fastmath.distance :as d])
+  (:import [smile.clustering PartitionClustering Clustering KMeans GMeans XMeans DeterministicAnnealing
+            DENCLUE CLARANS DBSCAN MEC]
            [smile.vq NeuralGas]
            [clojure.lang IFn]))
 
@@ -77,15 +74,20 @@
   IFn
   (invoke [_ in] (predict in)))
 
+(defn predict
+  "Predict cluster for given vector"
+  [^ClusteringResult cluster in]
+  ((.predict cluster) in))
+
 (defn- structurize 
   "Pack result of the clustering function into the structure"
   [type data in repr info]
   (->ClusteringResult type
                       data
-                      (seq (.getClusterLabel in))
-                      (seq (.getClusterSize in))
-                      (.getNumClusters in)
-                      (fn [x] (.predict in (m/seq->double-array x)))
+                      (seq (.getClusterLabel ^PartitionClustering in))
+                      (seq (.getClusterSize ^PartitionClustering in))
+                      (.getNumClusters ^PartitionClustering in)
+                      (fn [x] (.predict ^PartitionClustering in (m/seq->double-array x)))
                       (when repr (m/double-double-array->seq (repr in)))
                       (into {} (map (fn [[k v]] [k (v in)]) info))
                       in))
@@ -102,12 +104,6 @@
 
 (def ^{:doc "List of clustering methods."} clustering-methods-list (keys clustering-classes))
 
-(def ^:private distances {:chebyshev (ChebyshevDistance.)
-                          :euclidean (EuclideanDistance.)
-                          :manhattan (ManhattanDistance.)})
-
-(def ^{:doc "List of distances used in some clustring methods."} distances-list (keys distances))
-
 (defn- symbol->keyword
   "Convert java method into the keyword."
   [s]
@@ -120,8 +116,9 @@
   "Analyze clustering method and pack into the structure."
   [clustering-method data & params]
   (let [[nm repr & rest] (clustering-classes clustering-method)
-        repr (when repr `(fn [obj#] (. obj# ~repr)))
-        info (mapv #(vector (symbol->keyword %) `(fn [obj#] (. obj# ~%))) rest)]
+        obj (gensym "obj")
+        repr (when repr `(fn [~obj] (. ~obj ~repr)))
+        info (mapv #(vector (symbol->keyword %) `(fn [~obj] (. ~obj ~%))) rest)]
     `(structurize ~clustering-method ~data (new ~nm (m/seq->double-double-array ~data) ~@params) ~repr ~info)))
 
 (defn k-means
@@ -221,10 +218,10 @@
   * num-local - the number of local minima to search for
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/CLARANS.html)"
-  ([data clusters] (clarans data :euclidean clusters))
-  ([data dist clusters] (clustering :clarans data (distances dist) clusters))
-  ([data dist clusters max-neighbor] (clustering :clarans data (distances dist) clusters max-neighbor))
-  ([data dist clusters max-neighbor num-local] (clustering :clarans data (distances dist) clusters max-neighbor num-local)))
+  ([data clusters] (clarans data (d/distance :euclidean) clusters))
+  ([data dist clusters] (clustering :clarans data dist clusters))
+  ([data dist clusters max-neighbor] (clustering :clarans data dist clusters max-neighbor))
+  ([data dist clusters max-neighbor num-local] (clustering :clarans data dist clusters max-neighbor num-local)))
 
 (defn dbscan
   "Density-Based Spatial Clustering of Applications with Noise algorithm.
@@ -237,8 +234,8 @@
   * radius - the neighborhood radius
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/DBSCAN.html)"
-  ([data min-pts radius] (dbscan data :euclidean min-pts radius))
-  ([data dist min-pts ^double radius] (clustering :dbscan data (distances dist) (int min-pts) radius)))
+  ([data min-pts radius] (dbscan data (d/distance :euclidean) min-pts radius))
+  ([data dist min-pts ^double radius] (clustering :dbscan data dist (int min-pts) radius)))
 
 (defn mec
   "Nonparametric Minimum Conditional Entropy Clustering algorithm.
@@ -251,11 +248,11 @@
   * radius - the neighborhood radius
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/MEC.html)"
-  ([data max-clusters radius] (mec data :euclidean max-clusters radius))
-  ([data dist max-clusters ^double radius] (clustering :mec data (distances dist) max-clusters radius)))
+  ([data max-clusters radius] (mec data (d/distance :euclidean) max-clusters radius))
+  ([data dist max-clusters ^double radius] (clustering :mec data dist max-clusters radius)))
 
 (defn regroup
-  "Transform clusterig result into list of clusters as separate maps.
+  "Transform clustering result into list of clusters as separate maps.
 
   Every map contain:
 

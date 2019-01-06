@@ -377,7 +377,7 @@
         (v/mult v amount)
         (let [^Vec2 C (-> v
                           (v/div cellsize)
-                          (v/applyf m/floor)
+                          (v/fmap m/floor)
                           (v/add (Vec2. 0.5 0.5))
                           (v/mult cellsize))
               L (v/sub v C)]
@@ -601,7 +601,7 @@
     (fn [v]
       (-> v
           (v/mult inv-size)
-          (v/applyf m/floor)
+          (v/fmap m/floor)
           (v/add (-> (v/generate-vec2 drand)
                      (v/sub half)
                      (v/mult scale)))
@@ -813,7 +813,7 @@
     (fn [v]
       (let [^Vec2 xy (-> v
                          (v/mult inv-cell-size)
-                         (v/applyf m/floor))
+                         (v/fmap m/floor))
             dxy (-> v
                     (v/sub (v/mult xy size)))
             newxy (if-not (neg? (.y xy))
@@ -912,10 +912,10 @@
               ^Vec2 MN (-> XY
                            (v/mult 0.5)
                            (v/div Sc)
-                           (v/applyf m/floor))
+                           (v/fmap m/floor))
               XY (v/sub XY (-> MN
                                (v/mult 2.0)
-                               (v/applyf #(inc ^double %))
+                               (v/fmap #(inc ^double %))
                                (v/mult Sc)))]
           (if (bool-and (< iter 60)
                         (bool-or (> (discrete-noise (+ Seed (.x MN)) (.y MN)) Dens)
@@ -926,7 +926,7 @@
             (recur (inc iter))
             (-> MN
                 (v/mult 2.0)
-                (v/applyf #(inc ^double %))
+                (v/fmap #(inc ^double %))
                 (v/mult Sc)
                 (v/add XY)
                 (v/mult amount))))))))
@@ -1095,7 +1095,7 @@
             (v/emult rv)
             (v/mult -1.0)
             (v/emult len)
-            (v/applyf #(m/exp %))
+            (v/fmap #(m/exp %))
             (v/emult amp)
             (v/add v)
             (v/mult amount))))))

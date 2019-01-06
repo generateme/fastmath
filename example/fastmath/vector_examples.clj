@@ -4,7 +4,7 @@
             [fastmath.core :as m]))
 
 (add-examples vec2
-  (example "Usage" (vec2 0.5 -0.5))
+  (example-session "Usage" (vec2 0.5 -0.5) (vec2))
   (example "Destructuring"
     (let [[^double x ^double y] (vec2 4.3 2.2)]
       (+ x y)))
@@ -23,12 +23,14 @@
 
 (add-examples vec3
   (example-session "Usage"
+    (vec3)
     (vec3 0.5 -0.5 1.0)
     (let [v (vec2 1 2)]
       (vec3 v -1.0))))
 
 (add-examples vec4
   (example-session "Usage"
+    (vec4)
     (vec4 0.5 -0.5 1.0 -1.0)
     (let [v (vec2 1 2)]
       (vec4 v -1.0 0.1))
@@ -38,7 +40,8 @@
 (add-examples array-vec
   (example-session "Usage"
     (array-vec [1 2 3 4 5 6 7])
-    (array-vec (range 0.0 1.0 0.25)))
+    (array-vec (range 0.0 1.0 0.25))
+    (array-vec 11))
   (example-session "Operations"
     (nth (array-vec [9 8 7 6]) 2)
     (count (array-vec (range 0.1 1.0 0.05)))
@@ -141,8 +144,11 @@
 (add-examples abs (example "Usage" (abs (array-vec [-1 2 -2 1]))))
 (add-examples add (example "Usage" (add (vec2 1 2) (vec2 -1 -2))))
 (add-examples applyf (example "Usage" (applyf [5 3] (fn [v] (m/sin v)))))
+(add-examples fmap (example "Usage" (fmap [5 3] (fn [v] (m/sin v)))))
 (add-examples approx (example-session "Usage" (approx (vec2 (m/sin -1) (m/cos 1))) (approx (vec2 (m/sin -1) (m/cos 1)) 6)))
-(add-examples div (example "Usage" (div [5 4 3 5] 4.0)))
+(add-examples div
+  (example "Usage" (div [5 4 3 5] 4.0))
+  (example "Applied to vector is reciprocal" (div [1 2 4 -5])))
 (add-examples mult (example "Usage" (mult (vec4 5 4 3 5) 4.0)))
 (add-examples dot (example "Usage" (dot (vec4 1 0 0 0) (vec4 -1 0 -1 0))))
 (add-examples econstrain (example "Usage" (econstrain (vec3 2 0 -2) -1 1)))
@@ -200,7 +206,7 @@
     (from-polar (vec2 1.0 (m/radians 90)))
     (from-polar (vec3 1.0 (m/radians 90) (m/radians 45)))))
 
-(add-examples from-polar
+(add-examples to-polar
   (example-session "Usage"
     (to-polar (vec2 1.0 1.0))
     (to-polar (vec3 1.0 0.0 1.0))))
@@ -239,3 +245,46 @@
     (type (to-vec (vec3 1 2 3)))
     (type (to-vec (vec4 1 2 3 4)))
     (type (to-vec (array-vec 1)))))
+
+(add-examples as-vec
+  (example-session "Create vectors"
+    (as-vec [1 2 3])
+    (as-vec [3 2 3] (repeat -10))
+    (as-vec (vec3 1 2 3) (repeat -10))
+    (as-vec (array-vec [1 1 11 2 3]) (repeat -10))))
+
+(add-examples clamp
+  (example-session "Clamp"
+    (clamp [-1 -2 -3 1 2 3])
+    (clamp [-1 -2 -3 1 2 3] -2.5 2.5)))
+
+(add-examples make-vector
+  (example-session "Usage"
+    (make-vector 2)
+    (make-vector 2 (cycle [1 2 3]))
+    (make-vector 3)
+    (make-vector 3 (cycle [1 2 3]))
+    (make-vector 4)
+    (make-vector 4 (cycle [1 2 3]))
+    (make-vector 6)
+    (make-vector 6 (cycle [1 2 3]))
+    (type (make-vector 6))))
+
+(add-examples nonzero-count
+  (example (nonzero-count [1 2 3 -1 0 2 0 0])))
+
+(add-examples zero-count
+  (example (zero-count [1 2 3 -1 0 2 0 0])))
+
+;;
+
+(defmacro math-ops
+  [ops]
+  `(do ~@(for [op ops]
+           `(add-examples ~op (example (~op (vec4 0.5 -1.5 2.1 0.0)))))))
+
+(math-ops [sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh
+           cot sec csc acot asec acsc coth sech csch acoth asech csch
+           sq safe-sqrt sqrt cbrt exp log log10 log2 ln log1p
+           radians degrees sinc sigmoid
+           floor ceil round rint trunc frac sfrac signum sgn])
