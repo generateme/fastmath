@@ -7,9 +7,11 @@
             [fastmath.stats :as stat]
             [fastmath.distance :as dist])
   (:import [clojure.lang IFn]
-           [smile.classification SoftClassifier KNN KNN$Trainer AdaBoost AdaBoost$Trainer FLD SVM QDA LDA RandomForest LogisticRegression]
+           [smile.classification SoftClassifier KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer LDA$Trainer RandomForest$Trainer LogisticRegression ClassifierTrainer]
            [smile.math.distance EuclideanDistance]
-           [smile.validation Fallout FDR FMeasure Precision Recall Sensitivity Specificity ClassificationMeasure]))
+           [smile.validation Accuracy Fallout FDR FMeasure Precision Recall Sensitivity Specificity ClassificationMeasure Validation]))
+
+(set! *warn-on-reflection* false)
 
 (defprotocol ClassificationProto
   (predict [_ v] [_ v posteriori?])
@@ -17,33 +19,47 @@
   (train [_ x y])
   (data [_])
   (labels [_])
-  (validate [_ x y] [_ x y measures]))
+  (validate [_ tx ty] [_ tx ty measures])
+  (loocv [_] [_ measures] [_ tx ty] [_ tx ty measures])
+  (cv [_ k] [_ k measures] [_ k tx ty] [_ k tx ty measures])
+  (bootstrap [_ k] [_ k measures] [_ k tx ty] [_ k tx ty measures]))
 
-(defn- prepare-data-smile
-  ([x y labels labels->int]
+(defmulti ^:private prepare-data (fn [k & _] k))
+
+(defmethod prepare-data :smile
+  ([_ x y labels labels->int]
    [(m/seq->double-double-array x) (int-array (map labels->int y)) labels labels->int])
-  ([x y]
+  ([_ x y]
    (let [ydata (map vector (sort (distinct y)) (range))
          labels (mapv first ydata)
          labels->int (into {} ydata)]
-     (prepare-data-smile x y labels labels->int))))
+     (prepare-data :smile x y labels labels->int))))
 
-(def ^:private measures {:fallout (Fallout.)
-                         :fdr (FDR.)
-                         :fscore (FMeasure.)
-                         :precision (Precision.)
-                         :recall (Recall.)
-                         :sensitivity (Sensitivity.)
-                         :specificity (Specificity.)})
+(def ^:private measure-objs {:accuracy (Accuracy.)
+                             :fallout (Fallout.)
+                             :fdr (FDR.)
+                             :fscore (FMeasure.)
+                             :precision (Precision.)
+                             :recall (Recall.)
+                             :sensitivity (Sensitivity.)
+                             :specificity (Specificity.)})
+
+(def ^:const ^:private classification-measure-class (Class/forName "smile.validation.ClassificationMeasure"))
+
+(defn- measures->array
+  [measures]
+  (into-array classification-measure-class (map measure-objs measures)))
 
 (defn- validate-smile
-  [alg y-truth y-pred]
-  (when-let [m (measures alg)]
-    (.measure m y-truth y-pred)))
+  [measure y-truth y-pred]
+  (when-let [m (measure-objs measure)]
+    (.measure ^ClassificationMeasure m y-truth y-pred)))
 
-(defn- trainer-smile
-  [classifier x y]
-  (let [[data int-labels labels labels->int] (prepare-data-smile x y)
+(defmulti ^:private trainer (fn [k c x y] k))
+
+(defmethod trainer :smile
+  [_ ^ClassifierTrainer classifier x y]
+  (let [[data int-labels labels labels->int] (prepare-data :smile x y)
         trainer (.train classifier data int-labels)
         predict-raw #(.predict trainer (m/seq->double-array %))
         predict-fn (comp labels predict-raw)
@@ -62,12 +78,12 @@
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
       (predict-all [_ vs] (map predict-fn vs))
       (predict-all [_ vs posteriori?] (if posteriori? (map predict-fn-posteriori vs) (map predict-fn vs)))
-      (train [_ x y] (trainer-smile classifier x y))
+      (train [_ x y] (trainer :smile classifier x y))
       (data [_] x)
       (labels [_] labels)
 
       (validate [_ tx ty]
-        (let [[test-data test-int-labels] (prepare-data-smile tx ty labels labels->int)
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)
               result (map predict-raw test-data)
               invalid (->> (map vector x test-int-labels result)
                            (filter (fn [[_ a b]] (not= a b))))
@@ -84,15 +100,75 @@
         (let [v (validate cl tx ty)
               truth (get-in v [:raw :truth])
               predictions (get-in v [:raw :predictions])]
-          (reduce (fn [c m] (update c :stats assoc m (validate-smile m truth predictions))) v measures))))))
+          (reduce (fn [c m] (update c :stats assoc m (validate-smile m truth predictions))) v measures)))
+
+      (loocv [_] (Validation/loocv classifier data int-labels))
+      (loocv [_ measures] (into {} (map vector measures (Validation/loocv classifier data int-labels (measures->array measures)))))
+      (loocv [_ tx ty]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (Validation/loocv classifier test-data test-int-labels)))
+      (loocv [_ tx ty measures]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (into {} (map vector measures (Validation/loocv classifier test-data test-int-labels (measures->array measures))))))
+
+      (cv [_ k] (Validation/cv k classifier data int-labels))
+      (cv [_ k measures] (into {} (map vector measures (Validation/cv k classifier data int-labels (measures->array measures)))))
+      (cv [_ k tx ty]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (Validation/cv k classifier test-data test-int-labels)))
+      (cv [_ k tx ty measures]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (into {} (map vector measures (Validation/cv k classifier test-data test-int-labels (measures->array measures))))))
+
+      (bootstrap [_ k] (Validation/bootstrap k classifier data int-labels))
+      (bootstrap [_ k measures] (m/double-double-array->seq (Validation/bootstrap k classifier data int-labels (measures->array measures))))
+      (bootstrap [_ k tx ty]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (Validation/bootstrap k classifier test-data test-int-labels)))
+      (bootstrap [_ k tx ty measures]
+        (let [[test-data test-int-labels] (prepare-data :smile tx ty labels labels->int)]
+          (m/double-double-array->seq (Validation/bootstrap k classifier test-data test-int-labels (measures->array measures)))))
+
+      )))
 
 (defn knn
-  ([x y distance k] (trainer-smile (KNN$Trainer. distance k) x y))
+  ([x y distance k] (trainer :smile (KNN$Trainer. distance k) x y))
   ([x y k] (knn x y (EuclideanDistance.) k))
   ([x y] (knn x y 1)))
 
 (defn ada-boost
-  ([x y] (trainer-smile (AdaBoost$Trainer.))))
+  ([x y] (trainer :smile (AdaBoost$Trainer.) x y))
+  ([x y number-of-trees] (let [^AdaBoost$Trainer t (AdaBoost$Trainer.)]
+                           (trainer :smile (.setNumTrees t number-of-trees) x y)))
+  ([x y number-of-trees max-nodes] (let [^AdaBoost$Trainer t (AdaBoost$Trainer.)]
+                                     (trainer :smile (-> t (.setNumTrees number-of-trees)
+                                                         (.setMaxNodes max-nodes)) x y))))
+
+(defn fld
+  ([x y] (trainer :smile (FLD$Trainer.) x y))
+  ([x y dimensionality] (let [^FLD$Trainer t (FLD$Trainer.)]
+                          (trainer :smile (.setDimension t dimensionality) x y)))
+  ([x y dimensionality tolerance] (let [^FLD$Trainer t (FLD$Trainer.)]
+                                    (trainer :smile (-> t (.setDimension dimensionality)
+                                                        (.setTolerance tolerance)) x y))))
+
+(defn qda
+  ([x y] (trainer :smile (QDA$Trainer.) x y))
+  ([x y priori] (let [^QDA$Trainer t (QDA$Trainer.)]
+                  (trainer :smile (.setPriori t (m/seq->double-array priori)) x y)))
+  ([x y priori tolerance] (let [^QDA$Trainer t (QDA$Trainer.)]
+                            (trainer :smile (-> t (.setPriori (m/seq->double-array priori))
+                                                (.setTolerance tolerance)) x y))))
+
+
+(defn lda
+  ([x y] (trainer :smile (LDA$Trainer.) x y))
+  ([x y priori] (let [^LDA$Trainer t (LDA$Trainer.)]
+                  (trainer :smile (.setPriori t (m/seq->double-array priori)) x y)))
+  ([x y priori tolerance] (let [^LDA$Trainer t (LDA$Trainer.)]
+                            (trainer :smile (-> t (.setPriori (m/seq->double-array priori))
+                                                (.setTolerance tolerance)) x y))))
+
 
 (def iris-data (->> (io/resource "iris.csv")
                     (io/reader)
@@ -115,12 +191,20 @@
      :test-labels lt}))
 
 (def knn-cl (knn (:data split) (:labels split) 3))
-(def adaboost-cl (knn (:data split) (:labels split)))
+(def adaboost-cl (ada-boost (:data split) (:labels split) 30 10))
+(def fld-cl (fld (:data split) (:labels split)))
+(def qda-cl (qda (:data split) (:labels split) [0.05 0.05 0.9]))
+(def lda-cl (lda (:data split) (:labels split)))
 
-(labels adaboost-cl)
+(bootstrap knn-cl 2 [:accuracy])
 
 (validate knn-cl (:test-data split) (:test-labels split))
-(validate adaboost-cl (:test-data split) (:test-labels split) [:recall])
+(validate adaboost-cl (:test-data split) (:test-labels split))
+(validate qda-cl (:test-data split) (:test-labels split))
+(validate lda-cl (:test-data split) (:test-labels split))
+
+(type (object-array [1 2]))
+;; => [Ljava.lang.Object;
 
 (defn prepare-data [in]
   {:data (m/seq->double-double-array (map first in))
