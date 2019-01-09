@@ -764,18 +764,31 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
   Alias for `seq`."} double-array->seq seq)
 
+(defmacro ^:private seq->any-array
+  [primitive-type]
+  (let [atype (symbol (str primitive-type "-array"))
+        clazz (symbol (str atype "-type"))
+        fname (symbol (str "seq->" atype))
+        docs (str "Convert sequence to " atype ".")]
+    `(defn ~fname ~docs [vs#]
+       (cond
+         (nil? vs#) nil
+         (= (type vs#) ~clazz) vs#
+         (seqable? vs#) (~atype vs#)
+         :else (let [arr# (~atype 1)] 
+                 (aset arr# 0 (~primitive-type vs#))
+                 arr#)))))
+
 (defn seq->double-array
-  "Convert sequence to double-array.
-  
-  If sequence is double-array do not convert."
+  "Convert sequence to double array."
   ^doubles [vs]
-  (if (= (type vs) double-array-type)
-    vs
-    (if (seqable? vs)
-      (double-array vs)
-      (let [arr (double-array 1)] ;; not a sequence? maybe number...
-        (aset arr 0 (double vs))
-        arr))))
+  (cond
+    (nil? vs) nil
+    (= (type vs) double-double-array-type) vs
+    (seqable? vs) (double-array vs)
+    :else (let [arr (double-array 1)] 
+            (aset arr 0 (double vs))
+            arr)))
 
 (defn double-double-array->seq
   "Convert double array of double arrays into sequence of sequences."
@@ -787,9 +800,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   
   If sequence is double-array of double-arrays do not convert"
   #^"[[D" [vss]
-  (if (= (type vss) double-double-array-type)
-    vss
-    (into-array (map seq->double-array vss))))
+  (cond
+    (nil? vss) nil
+    (= (type vss) double-double-array-type) vss
+    :else (into-array (map seq->double-array vss))))
 
 ;; ## Copy of primitive math machinery
 ;;

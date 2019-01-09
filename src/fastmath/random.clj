@@ -683,7 +683,7 @@ The rest parameters goes as follows:
   ([_ {:keys [^long bin-count ^RandomGenerator rng data]
        :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT rng default-rng}}]
    (let [^EmpiricalDistribution d (EmpiricalDistribution. bin-count rng)]
-     (.load d (m/seq->double-array data))
+     (.load d ^doubles (m/seq->double-array data))
      d))
   ([_] (distribution :empirical {})))
 
@@ -692,7 +692,7 @@ The rest parameters goes as follows:
        :or {rng default-rng}}]
    (if probabilities
      (EnumeratedRealDistribution. rng (m/seq->double-array data) (m/seq->double-array probabilities))
-     (EnumeratedRealDistribution. rng (m/seq->double-array data))))
+     (EnumeratedRealDistribution. rng ^doubles (m/seq->double-array data))))
   ([_] (distribution :enumerated-real {})))
 
 (defmethod distribution :exponential

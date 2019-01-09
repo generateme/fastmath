@@ -11,7 +11,8 @@
                  [com.github.haifengl/smile-netlib "1.5.2"]
                  [org.slf4j/slf4j-nop "1.7.25"]
                  [de.sciss/jwave "1.0.3"]
-                 [net.mikera/core.matrix "0.62.0"]]
+                 [net.mikera/core.matrix "0.62.0"]
+                 [clj-boost "0.0.3"]]
   :exclusions [[org.slf4j/slf4j-simple :extension "jar"]]
   :resource-path "resources/"
   :java-source-paths ["src"]
@@ -30,6 +31,10 @@
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]
                                   [metadoc "0.2.3"]]
+                   :exclusions [[org.slf4j/slf4j-simple :extension "jar"]
+                                [ml.dmlc/xgboost4j  :extension "pom"]
+                                [asm :extension "jar"]]
+                   :resource-paths ["resources/" "lib/xgboost4j-0.81-criteo-20180821_2.11-win64.jar"]
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"

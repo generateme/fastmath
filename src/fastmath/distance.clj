@@ -6,7 +6,7 @@
             [fastmath.vector :as v])
   (:import [clojure.lang IFn]
            [org.apache.commons.math3.ml.distance DistanceMeasure CanberraDistance EarthMoversDistance]
-           [smile.math.distance Distance EuclideanDistance ManhattanDistance ChebyshevDistance
+           [smile.math.distance Distance Metric EuclideanDistance ManhattanDistance ChebyshevDistance
             CorrelationDistance JensenShannonDistance MahalanobisDistance MinkowskiDistance]))
 
 (set! *warn-on-reflection* true)
@@ -18,7 +18,7 @@
   [^Distance dst]
   (reify
     IFn (invoke [d x y] (dist d x y))
-    Distance (d [_ x y] (.d dst ^doubles x ^doubles y))
+    Metric Distance (d [_ x y] (.d dst ^doubles x ^doubles y))
     DistanceMeasure (compute [_ x y] (.d dst x y))
     DistProto (dist [_ v1 v2] (.d dst (double-array v1) (double-array v2)))))
 
@@ -26,7 +26,7 @@
   [^DistanceMeasure dst]
   (reify
     IFn (invoke [d x y] (dist d x y))
-    Distance (d [_ x y] (.compute dst x y))
+    Metric Distance (d [_ x y] (.compute dst x y))
     DistanceMeasure (compute [_ x y] (.compute dst x y))
     DistProto (dist [_ v1 v2] (.compute dst (double-array v1) (double-array v2)))))
 
@@ -34,7 +34,7 @@
   [f]
   (reify
     IFn (invoke [_ x y] (f x y))
-    Distance (d [_ x y] (f x y))
+    Metric Distance (d [_ x y] (f x y))
     DistanceMeasure (compute [_ x y] (f x y))
     DistProto (dist [_ v1 v2] (f v1 v2))))
 
