@@ -5,7 +5,8 @@
             [metadoc.examples :refer :all]
             [fastmath.classification :refer :all]
             [fastmath.rbf :as rbf]
-            [fastmath.distance :as dist]))
+            [fastmath.distance :as dist]
+            [fastmath.kernel.mercer :as mercer]))
 
 (def iris-data (->> (io/resource "iris.csv")
                     (io/reader)
@@ -47,6 +48,11 @@
   (example-session "Usage"
     (backend (knn train-data train-labels))
     (backend (xgboost train-data train-labels))))
+
+(add-examples model-raw
+  (example-session "Usage"
+    (model-raw (knn train-data train-labels))
+    (model-raw (xgboost train-data train-labels))))
 
 (add-examples data
   (example-session "Usage"
@@ -154,9 +160,14 @@
 (add-examples knn
   (example (let [cl (knn train-data train-labels)]
              (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-  (example "Different distance "(let [cl (knn {:distance dist/cosine} train-data train-labels)]
+  (example "Different distance" (let [cl (knn {:distance dist/cosine} train-data train-labels)]
                                   (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
+(add-examples svm
+  (example (let [cl (svm train-data train-labels)]
+             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+  (example "Different kernel" (let [cl (svm {:kernel (mercer/kernel :gaussian 1) :epochs 10} train-data train-labels)]
+                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples xgboost
   (example-session "Usage"
@@ -168,3 +179,4 @@
                                 :alpha 0.5}
                        :rounds 2} train-data train-labels test-data test-labels)]
       (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+

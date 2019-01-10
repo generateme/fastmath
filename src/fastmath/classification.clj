@@ -51,21 +51,24 @@
             [fastmath.distance :as dist]
             [fastmath.rbf :as rbf]
             [clj-boost.core :as xgboost]
-            [fastmath.stats :as stat])
+            [fastmath.stats :as stat]
+            [fastmath.kernel.mercer :as mercer])
   (:import [clojure.lang IFn]
-           [smile.classification SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
+           [smile.classification Classifier SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
             LDA$Trainer DecisionTree$Trainer DecisionTree$SplitRule GradientTreeBoost$Trainer
             LogisticRegression$Trainer Maxent$Trainer NaiveBayes$Trainer NaiveBayes$Model
             NeuralNetwork$Trainer NeuralNetwork$ErrorFunction NeuralNetwork$ActivationFunction
-            RBFNetwork$Trainer RDA$Trainer RandomForest$Trainer]
+            RBFNetwork$Trainer RDA$Trainer RandomForest$Trainer SVM$Trainer SVM$Multiclass]
            [smile.math.distance EuclideanDistance]
            [smile.math.rbf RadialBasisFunction]
+           [smile.math.kernel MercerKernel]
            [smile.validation Bootstrap]))
 
 (set! *warn-on-reflection* false)
 
 (defprotocol ClassificationProto
   (backend [_] "Return name of backend library")
+  (model-raw [_] "Return trained model as a backend class.")
   (predict [_ v] [_ v posteriori?] "Predict class for given vector. With posteriori probabilities when required.")
   (predict-all [_ vs] [_ v posteriori?] "Predict classes for given sequence of vectors. With posteriori probabilities when required.")
   (train [_ x y] [_ x y tx ty] "Train another set of data for given classifier. Test data are optional.")
@@ -115,13 +118,14 @@
 
        ClassificationProto
        (backend [_] :xgboost)
+       (model-raw [_] model)
        
        (predict [c v] (c v))
        (predict [c v posteriori?] (c v posteriori?))
-       (predict-all [_ vs] (map prob->label (seq (.predict model (xgboost/dmatrix vs)))))
+       (predict-all [_ vs] (map prob->label (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs)))))
        (predict-all [c vs posteriori?] (if posteriori?
                                          (mapv (comp #(vector (prob->label %) %) seq)
-                                               (seq (.predict model (xgboost/dmatrix vs))))
+                                               (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs))))
                                          (predict-all c vs)))
        
        (train [c x y] (train c x y nil nil))
@@ -138,11 +142,11 @@
   (let [[labels labels->int] (labels-converters y)
         [data int-labels] (prepare-data :smile x y labels->int)
         classifier-raw (.train trainer data int-labels)
-        predict-raw #(.predict classifier-raw (m/seq->double-array %))
+        predict-raw #(.predict ^Classifier classifier-raw (m/seq->double-array %))
         predict-fn (comp labels predict-raw)
         predict-fn-posteriori (if (instance? SoftClassifier classifier-raw)
                                 #(let [posteriori (double-array (count labels))]
-                                   [(labels (.predict classifier-raw (m/seq->double-array %) posteriori)) (seq posteriori)])
+                                   [(labels (.predict ^SoftClassifier classifier-raw (m/seq->double-array %) posteriori)) (seq posteriori)])
                                 predict-fn)]
     (reify
       
@@ -152,6 +156,7 @@
 
       ClassificationProto
       (backend [_] :smile)
+      (model-raw [_] classifier-raw)
       
       (predict [_ v] (predict-fn v))
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
@@ -301,6 +306,24 @@
         (.setNodeSize node-size))))
 
 (wrap-classifier :xgboost xgboost xgboost-params xgboost-params)
+
+(def ^:private multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
+                                      :one-vs-all SVM$Multiclass/ONE_VS_ALL})
+
+(def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strtegies-list (keys multiclass-strategies))
+
+(wrap-classifier :smile svm {:keys [^MercerKernel kernel ^double c-or-cp ^double cn strategy-for-multiclass class-weights tolerance ^int epochs]
+                             :or {kernel (mercer/kernel :linear) c-or-cp 1.0 cn 1.0 strategy-for-multiclass :one-vs-one tolerance 1.0e-3 epochs 2}}
+  (let [cn (or cn c-or-cp)
+        classes-no (count (distinct y))
+        ^SVM$Multiclass ms (or (multiclass-strategies strategy-for-multiclass) SVM$Multiclass/ONE_VS_ONE)
+        t (if (== 2 classes-no)
+            (SVM$Trainer. kernel c-or-cp cn)
+            (if class-weights
+              (SVM$Trainer. kernel c-or-cp (double-array class-weights) ms)
+              (SVM$Trainer. kernel c-or-cp classes-no ms)))]
+    (-> (.setTolerance t tolerance)
+        (.setNumEpochs epochs))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; validation metrics
