@@ -96,7 +96,23 @@
              (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples loocv
-  (example (:stats (loocv (knn train-data train-labels)))))
+  (example (loocv (knn train-data train-labels))))
+
+(add-examples cv
+  (example-session "Usage"
+    (cv (knn train-data train-labels))
+    (cv (knn train-data train-labels) 100)
+    (cv (knn train-data train-labels) 4)
+    (cv (knn train-data train-labels) 1)))
+
+(add-examples bootstrap
+  (example-session "Usage"
+    (select-keys (bootstrap (knn train-data train-labels)) [:accuracy])
+    (select-keys (bootstrap (fld train-data train-labels)) [:accuracy])
+    (bootstrap (decision-tree train-data train-labels) 4)
+    (select-keys (bootstrap (knn train-data train-labels) 500) [:accuracy])
+    (bootstrap (neural-net {:layers [100 50]} train-data train-labels) 5)))
+
 
 (add-examples gradient-tree-boost
   (example (let [cl (gradient-tree-boost train-data train-labels)]
@@ -152,6 +168,3 @@
                                 :alpha 0.5}
                        :rounds 2} train-data train-labels test-data test-labels)]
       (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
-
-
-

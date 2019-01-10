@@ -1,8 +1,6 @@
 pom.xml
 pom.xml.asc
-*.jar
 *.class
-/lib/
 /classes/
 /target/
 /checkouts/

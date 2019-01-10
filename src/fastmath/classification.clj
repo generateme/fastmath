@@ -12,7 +12,7 @@
   
   * create and train by calling classifier with parameters, train data and optional test data.
   * validate data by calling [[test]] or [[validate]].
-  * cross validate
+  * cross validate [[cv]], [[loocv]], [[bootstrap]]
   * repeat or [[predict]]
 
   Classifier parameters are map of values specific for given algorithm. Check documentation in backend library to find documentation. Classifier can be retrained using [[train]]. New instance will be created.
@@ -41,12 +41,17 @@
 
   ### Cross validation
 
-  Currently leave-one-out algorithm is implemented."
+  Currently leave-one-out algorithm is implemented.
+
+  ### Examples
+
+  Iris database is used."
   (:refer-clojure :exclude [test])
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
             [fastmath.rbf :as rbf]
-            [clj-boost.core :as xgboost])
+            [clj-boost.core :as xgboost]
+            [fastmath.stats :as stat])
   (:import [clojure.lang IFn]
            [smile.classification SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
             LDA$Trainer DecisionTree$Trainer DecisionTree$SplitRule GradientTreeBoost$Trainer
@@ -54,7 +59,8 @@
             NeuralNetwork$Trainer NeuralNetwork$ErrorFunction NeuralNetwork$ActivationFunction
             RBFNetwork$Trainer RDA$Trainer RandomForest$Trainer]
            [smile.math.distance EuclideanDistance]
-           [smile.math.rbf RadialBasisFunction]))
+           [smile.math.rbf RadialBasisFunction]
+           [smile.validation Bootstrap]))
 
 (set! *warn-on-reflection* false)
 
@@ -70,12 +76,12 @@
 (defn- labels-converters
   "Convert y into label->int and int->label functions."
   [y]
-  (let [ydata (map vector (sort (distinct y)) (range))]
+  (let [ydata (mapv vector (sort (distinct y)) (range))]
     [(mapv first ydata) (into {} ydata)]))
 
 (defmulti ^:private prepare-data (fn [k & _] k))
-(defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array x) (int-array (map labels->int y))])
-(defmethod prepare-data :xgboost [_ x y labels->int] (xgboost/dmatrix x (map labels->int y)))
+(defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array x) (int-array (mapv labels->int y))])
+(defmethod prepare-data :xgboost [_ x y labels->int] (xgboost/dmatrix x (mapv labels->int y)))
 
 (declare validate)
 
@@ -114,8 +120,8 @@
        (predict [c v posteriori?] (c v posteriori?))
        (predict-all [_ vs] (map prob->label (seq (.predict model (xgboost/dmatrix vs)))))
        (predict-all [c vs posteriori?] (if posteriori?
-                                         (map (comp #(vector (prob->label %) %) seq)
-                                              (seq (.predict model (xgboost/dmatrix vs))))
+                                         (mapv (comp #(vector (prob->label %) %) seq)
+                                               (seq (.predict model (xgboost/dmatrix vs))))
                                          (predict-all c vs)))
        
        (train [c x y] (train c x y nil nil))
@@ -274,8 +280,8 @@
   (let [cl (RBFNetwork$Trainer. distance)]
     (-> (cond
           (nil? rbf) cl
-          (seqable? rbf) (.setRBF cl (into-array RadialBasisFunction (map rbf/rbf-obj rbf)))
-          :else (.setRBF cl (rbf/rbf-obj rbf) number-of-basis))
+          (seqable? rbf) (.setRBF cl (into-array RadialBasisFunction rbf))
+          :else (.setRBF cl rbf number-of-basis))
         (.setNormalized normalize?))))
 
 (wrap-classifier :smile rda {:keys [alpha priori tolerance]
@@ -301,7 +307,7 @@
 
 (defn accuracy
   "Calculate accuracy for real and predicted sequences."
-  [t p] (double (/ (count (filter (partial apply =) (map vector t p)))
+  [t p] (double (/ (count (filter (partial apply =) (mapv vector t p)))
                    (count t))))
 
 (defn validate
@@ -309,31 +315,84 @@
   ([model] (test model))
   ([model tx ty]
    (let [pred (predict-all model tx)
-         invalid (->> (map vector tx ty pred)
+         invalid (->> (mapv vector tx ty pred)
                       (filter #(apply not= (rest %))))
          invalid-cnt (count invalid)]
      {:truth ty
       :prediction pred
       :invalid {:count invalid-cnt
                 :data (map first invalid)
-                :truth (map #(nth % 2) invalid)
-                :prediction (map second invalid)}
+                :prediction (map #(nth % 2) invalid)
+                :truth (map second invalid)}
       :stats {:accuracy (double (- 1.0 (/ invalid-cnt (count ty))))}})))
 
 (defn- drop-nth [coll n]
   (keep-indexed #(if (not= %1 n) %2) coll))
 
+(defn- process-chunks
+  [model predict-fn data labels mapcat? id]
+  (let [tdata (if mapcat? (mapcat identity (drop-nth data id)) (drop-nth data id))
+        tlabels (if mapcat? (mapcat identity (drop-nth labels id)) (drop-nth labels id))
+        value (nth data id)
+        mtrain (train model tdata tlabels)]
+    (predict-fn mtrain value)))
+
+(def ^:dynamic ^{:doc "When `true` provide data used to test."}
+  *cross-validation-debug* false)
+
 (defn loocv
   "Leave-one-out cross validation of a classification model."
   ([model]
    (let [[data labels] (data model)
-         plabels (map #(let [tdata (drop-nth data %)
-                             tlabels (drop-nth labels %)
-                             value (nth data %)
-                             mtrain (train model tdata tlabels)]
-                         (predict mtrain value)) (range (count data)))]
-     {:truth labels
-      :prediction plabels
-      :stats {:accuracy (accuracy labels plabels)}})))
+         plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
+         stats {:accuracy (accuracy labels plabels)}]
+     (if *cross-validation-debug*
+       (merge stats {:data data :truth labels :prediction plabels})
+       stats))))
 
+(defn- slice [data ids] (mapv (partial nth data) ids))
 
+(defn cv
+  "Cross validation of a classification model.
+
+  k defaults to 10% of data count."
+  ([model]
+   (cv model  (* 0.1 (count (first (data model))))))
+  ([model k]
+   (let [[data labels] (data model)
+         dsize (count data)
+         chunksize (max 2 (min (* 0.75 dsize) (/ dsize k)))
+         ids (shuffle (range dsize))
+         sdata (slice data ids)
+         slabels (slice labels ids)
+         psdata (partition-all chunksize sdata)
+         plabels (mapcat (partial process-chunks model predict-all
+                                  psdata (partition-all chunksize slabels) true) (range (count psdata)))
+         stats {:accuracy (accuracy slabels plabels)}]
+     (if *cross-validation-debug*
+       (merge stats {:data sdata :truth slabels :prediction plabels})
+       stats))))
+
+(defn bootstrap
+  "Perform k-round bootstrap validation.
+
+  k defaults to 10
+
+  Returns map where `:accuracy` is average accuracy from every round. `:boostrap` contains every round statistics."
+  ([model] (bootstrap model 10))
+  ([model k]
+   (let [[data labels] (data model)
+         ^Bootstrap bootstrap (Bootstrap. (count data) k)
+         all (for [[train-ids test-ids] (map vector (.-train bootstrap) (.-test bootstrap))
+                   :let [sdata (slice data train-ids)
+                         slabels (slice labels train-ids)
+                         test-labels-true (slice labels test-ids)
+                         test-data (slice data test-ids)
+                         m (train model sdata slabels)
+                         test-labels-pred (predict-all m test-data)
+                         stats {:accuracy (accuracy test-labels-true test-labels-pred)}]]
+               (if *cross-validation-debug*
+                 (merge stats {:data test-data :truth test-labels-true :prediction test-labels-pred})
+                 stats))
+         avg (stat/mean (map :accuracy all))]
+     {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))})))

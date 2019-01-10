@@ -84,20 +84,20 @@
   <li><code>:samples</code> - number of used samples</li>
 </ul>
 <p>For estimation methods check <a href="fastmath.stats.html#var-estimate-bins">estimate-bins</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>3 bins from uniform distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 1000 rand) 3)
-;;=&gt; {:bins ([9.435484265495342E-4 329 0.329]
-;;=&gt;         [0.33374743383250566 348 0.348]
-;;=&gt;         [0.6665513192384618 323 0.323]),
-;;=&gt;  :max 0.999355204644418,
-;;=&gt;  :min 9.435484265495342E-4,
+;;=&gt; {:bins ([0.002312887000101793 350 0.35]
+;;=&gt;         [0.33382007160913646 331 0.331]
+;;=&gt;         [0.6653272562181711 319 0.319]),
+;;=&gt;  :max 0.9968344408272057,
+;;=&gt;  :min 0.002312887000101793,
 ;;=&gt;  :samples 1000,
 ;;=&gt;  :size 3,
-;;=&gt;  :step 0.3328038854059561}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
-;;=&gt; {:bins ([0.1 1288 0.32706957846622653]
-;;=&gt;         [0.23333333333333334 1365 0.34662265109192486]
-;;=&gt;         [0.3666666666666667 1285 0.32630777044184867]),
+;;=&gt;  :step 0.33150718460903467}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
+;;=&gt; {:bins ([0.1 1312 0.3214898309237932]
+;;=&gt;         [0.23333333333333334 1404 0.34403332516540064]
+;;=&gt;         [0.3666666666666667 1365 0.3344768439108062]),
 ;;=&gt;  :max 0.5,
 ;;=&gt;  :min 0.1,
-;;=&gt;  :samples 3938,
+;;=&gt;  :samples 4081,
 ;;=&gt;  :size 3,
 ;;=&gt;  :step 0.13333333333333333}</code></pre></div><div><blockquote><p>5 bins from normal distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 r/grand) 5)
 ;;=&gt; {:bins ([-3.8255442971705595 103 0.0103]

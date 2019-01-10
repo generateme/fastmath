@@ -10,6 +10,12 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 [generateme/fastmath "1.2.0"]
 ```
 
+### Development version
+
+```clojure
+[generateme/fastmath "1.3.0-SNAPSHOT"]
+```
+
 ## Documentation
 
 [HERE](https://generateme.github.io/fastmath/index.html)
@@ -101,6 +107,10 @@ Great collection (100+) of R^2->R^2 functions.
 ### Clustering
 
 SMILE bindings for clustering
+
+### Classifcations (dev version)
+
+SMILE and XGBoost classification bindings
 
 ### Grids
 

@@ -168,8 +168,7 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
   ([rbf-fn normalize? xs ys]
-   (let [rbf-obj (rbf/rbf-obj rbf-fn)
-         ^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-obj normalize?)]
+   (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-fn normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([rbf-fn xs ys]
    (rbf rbf-fn false xs ys)))
