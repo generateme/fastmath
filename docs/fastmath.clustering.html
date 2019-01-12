@@ -60,9 +60,9 @@
         :data :clustering
         :obj :predict)
 ;;=&gt; {:clusters 2,
-;;=&gt;  :info {:distortion 11480.0, :maxneighbor 100, :numlocalminima 4},
-;;=&gt;  :representatives ((124.0) (0.0)),
-;;=&gt;  :sizes (904 96),
+;;=&gt;  :info {:distortion 11929.0, :maxneighbor 100, :numlocalminima 8},
+;;=&gt;  :representatives ((0.0) (124.0)),
+;;=&gt;  :sizes (87 913),
 ;;=&gt;  :type :clarans}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L206">view source</a></div></div><div class="public anchor" id="var-clustering-methods-list"><h3>clustering-methods-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of clustering methods.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of methods</p></blockquote><pre><code class="hljs clojure">clustering-methods-list
 ;;=&gt; (:dbscan :k-means :mec
 ;;=&gt;          :clarans :g-means
@@ -89,7 +89,7 @@
 ;;=&gt; {:clusters 8,
 ;;=&gt;  :info {:minpts 10.0, :radius 20.0},
 ;;=&gt;  :representatives nil,
-;;=&gt;  :sizes (1113 1119 1144 133 1089 142 132 128 0),
+;;=&gt;  :sizes (1069 1151 1130 1170 99 127 137 117 0),
 ;;=&gt;  :type :dbscan}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L226">view source</a></div></div><div class="public anchor" id="var-denclue"><h3>denclue</h3><div class="usage"><code>(denclue data sigma m)</code></div><div class="doc"><div class="markdown"><p>DENsity CLUstering algorithm.</p>
 <p>Input:</p>
 <ul>
@@ -101,7 +101,7 @@
  (denclue (repeatedly 100 (fn* [] (r/randval (r/drand) (r/drand 5 6))))
           1
           10))
-;;=&gt; [2 (54 46) nil]
+;;=&gt; [2 (44 56) nil]
 (map
  (fn [m] (dissoc m :data))
  (regroup
@@ -111,12 +111,12 @@
            10)))
 ;;=&gt; ({:key 0,
 ;;=&gt;   :outliers? false,
-;;=&gt;   :representative (5.483185195774614),
-;;=&gt;   :size 901}
+;;=&gt;   :representative (5.497033956431152),
+;;=&gt;   :size 908}
 ;;=&gt;  {:key 1,
 ;;=&gt;   :outliers? false,
-;;=&gt;   :representative (0.46308767259049693),
-;;=&gt;   :size 99})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L194">view source</a></div></div><div class="public anchor" id="var-deterministic-annealing"><h3>deterministic-annealing</h3><div class="usage"><code>(deterministic-annealing data max-clusters)</code><code>(deterministic-annealing data max-clusters alpha)</code></div><div class="doc"><div class="markdown"><p>Deterministic Annealing algorithm.</p>
+;;=&gt;   :representative (0.4913047043749233),
+;;=&gt;   :size 92})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L194">view source</a></div></div><div class="public anchor" id="var-deterministic-annealing"><h3>deterministic-annealing</h3><div class="usage"><code>(deterministic-annealing data max-clusters)</code><code>(deterministic-annealing data max-clusters alpha)</code></div><div class="doc"><div class="markdown"><p>Deterministic Annealing algorithm.</p>
 <p>Input:</p>
 <ul>
   <li>data - sequence of samples</li>
@@ -132,12 +132,12 @@
          (regroup)))
 ;;=&gt; ({:key 1,
 ;;=&gt;   :outliers? false,
-;;=&gt;   :representative (2.475784643108879 4.976538744016479),
-;;=&gt;   :size 517}
+;;=&gt;   :representative (2.4010738305883077 5.017815014116985),
+;;=&gt;   :size 497}
 ;;=&gt;  {:key 0,
 ;;=&gt;   :outliers? false,
-;;=&gt;   :representative (2.548159788479335 0.04760661454227614),
-;;=&gt;   :size 483})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L161">view source</a></div></div><div class="public anchor" id="var-g-means"><h3>g-means</h3><div class="usage"><code>(g-means data max-clusters)</code></div><div class="doc"><div class="markdown"><p>G-Means algorithm.</p>
+;;=&gt;   :representative (2.531519256790867 -0.029482447721922118),
+;;=&gt;   :size 503})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L161">view source</a></div></div><div class="public anchor" id="var-g-means"><h3>g-means</h3><div class="usage"><code>(g-means data max-clusters)</code></div><div class="doc"><div class="markdown"><p>G-Means algorithm.</p>
 <p>Input:</p>
 <ul>
   <li>data - sequence of samples</li>
@@ -146,7 +146,7 @@
 <p>See more in <a href="https://haifengl.github.io/smile/api/java/smile/clustering/GMeans.html">SMILE doc</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Expect 2 clusters, uniform distribution.</p></blockquote><pre><code class="hljs clojure">((juxt :clusters :sizes :representatives)
  (g-means (repeatedly 100 (fn* [] (r/randval (r/drand) (r/drand 5 6))))
           4))
-;;=&gt; [2 (52 48) ((0.4910458749055373) (5.466737044140385))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L139">view source</a></div></div><div class="public anchor" id="var-k-means"><h3>k-means</h3><div class="usage"><code>(k-means data clusters)</code><code>(k-means data clusters max-iter)</code><code>(k-means data clusters max-iter runs)</code></div><div class="doc"><div class="markdown"><p>K-Means++ algorithm.</p>
+;;=&gt; [2 (52 48) ((5.5084177713685385) (0.5248821951058661))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L139">view source</a></div></div><div class="public anchor" id="var-k-means"><h3>k-means</h3><div class="usage"><code>(k-means data clusters)</code><code>(k-means data clusters max-iter)</code><code>(k-means data clusters max-iter runs)</code></div><div class="doc"><div class="markdown"><p>K-Means++ algorithm.</p>
 <p>Input:</p>
 <ul>
   <li>data - sequence of samples</li>
@@ -161,11 +161,11 @@
 ;;=&gt;   :data [1 2 3 -1 -1 2 -1 11 111],
 ;;=&gt;   :info {:distortion 2.0000000000000004},
 ;;=&gt;   :obj
-;;=&gt;   #object[smile.clustering.KMeans 0x12bdd5ee "K-Means distortion: 2,00000\r\nClusters of 9 data points of dimension 1:\r\n  0\t    1 (11.1%)\r\n  1\t    1 (11.1%)\r\n  2\t    3 (33.3%)\r\n  3\t    4 (44.4%)\r\n"],
-;;=&gt;   :predict #<fn@50816c9b fastmath.clustering="" tructurize[fn]="">,
+;;=&gt;   #object[smile.clustering.KMeans 0x935e431 "K-Means distortion: 2,00000\r\nClusters of 9 data points of dimension 1:\r\n  0\t    1 (11.1%)\r\n  1\t    1 (11.1%)\r\n  2\t    3 (33.3%)\r\n  3\t    4 (44.4%)\r\n"],
+;;=&gt;   :predict #<fn@6108efa9 fastmath.clustering="" tructurize[fn]="">,
 ;;=&gt;   :representatives ((111.0) (11.0) (-1.0) (2.0)),
 ;;=&gt;   :sizes (1 1 3 4),
-;;=&gt;   :type :k-means}</fn@50816c9b></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p></blockquote><pre><code class="hljs clojure">(regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 4))
+;;=&gt;   :type :k-means}</fn@6108efa9></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p></blockquote><pre><code class="hljs clojure">(regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 4))
 ;;=&gt; ({:data (1 2 3 2),
 ;;=&gt;   :key 2,
 ;;=&gt;   :outliers? false,
@@ -202,10 +202,10 @@
              20)
         :data :clustering
         :obj :predict)
-;;=&gt; {:clusters 5,
-;;=&gt;  :info {:entropy 263.83787219133376},
+;;=&gt; {:clusters 4,
+;;=&gt;  :info {:entropy 0.0},
 ;;=&gt;  :representatives nil,
-;;=&gt;  :sizes (2197 1031 247 256 1269),
+;;=&gt;  :sizes (251 2266 275 2208),
 ;;=&gt;  :type :mec}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L240">view source</a></div></div><div class="public anchor" id="var-neural-gas"><h3>neural-gas</h3><div class="usage"><code>(neural-gas data clusters)</code><code>(neural-gas data clusters lambda-i lambda-f eps-i eps-f steps)</code></div><div class="doc"><div class="markdown"><p>Neural Gas algorithm.</p>
 <p>Input:</p>
 <ul>
@@ -227,14 +227,14 @@
 ;;=&gt;   :data [1 2 3 -1 -1 2 -1 11 111],
 ;;=&gt;   :info {:distortion 100.21135606663056},
 ;;=&gt;   :obj
-;;=&gt;   #object[smile.vq.NeuralGas 0x20426fd6 "Neural Gas distortion: 100,21136\r\nClusters of 9 data points of dimension 1:\r\n  0\t    1 (11.1%)\r\n  1\t    1 (11.1%)\r\n  2\t    7 (77.8%)\r\n  3\t    0 ( 0.0%)\r\n"],
-;;=&gt;   :predict #<fn@5aafcc66 fastmath.clustering="" tructurize[fn]="">,
+;;=&gt;   #object[smile.vq.NeuralGas 0x65376750 "Neural Gas distortion: 100,21136\r\nClusters of 9 data points of dimension 1:\r\n  0\t    1 (11.1%)\r\n  1\t    1 (11.1%)\r\n  2\t    7 (77.8%)\r\n  3\t    0 ( 0.0%)\r\n"],
+;;=&gt;   :predict #<fn@6c5815e5 fastmath.clustering="" tructurize[fn]="">,
 ;;=&gt;   :representatives ((9.498429886559977)
 ;;=&gt;                     (102.02680736489556)
 ;;=&gt;                     (0.6767057694246992)
 ;;=&gt;                     (38.047386026088205)),
 ;;=&gt;   :sizes (1 1 7 0),
-;;=&gt;   :type :neural-gas}</fn@5aafcc66></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p></blockquote><pre><code class="hljs clojure">(regroup (neural-gas [1 2 3 -1 -1 2 -1 11 111] 4))
+;;=&gt;   :type :neural-gas}</fn@6c5815e5></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p></blockquote><pre><code class="hljs clojure">(regroup (neural-gas [1 2 3 -1 -1 2 -1 11 111] 4))
 ;;=&gt; ({:data (1 2 3 -1 -1 2 -1),
 ;;=&gt;   :key 2,
 ;;=&gt;   :outliers? false,
@@ -266,8 +266,8 @@
 ;;=&gt;   :data [1 2 3 -1 -1 2 -1 11 111],
 ;;=&gt;   :info {:distortion 0.0},
 ;;=&gt;   :obj
-;;=&gt;   #object[smile.clustering.KMeans 0x669254b6 "K-Means distortion: 0,00000\r\nClusters of 9 data points of dimension 1:\r\n  0\t    3 (33.3%)\r\n  1\t    1 (11.1%)\r\n  2\t    1 (11.1%)\r\n  3\t    2 (22.2%)\r\n  4\t    1 (11.1%)\r\n  5\t    1 (11.1%)\r\n  6\t    0 ( 0.0%)\r\n"],
-;;=&gt;   :predict #<fn@50703792 fastmath.clustering="" tructurize[fn]="">,
+;;=&gt;   #object[smile.clustering.KMeans 0x729737db "K-Means distortion: 0,00000\r\nClusters of 9 data points of dimension 1:\r\n  0\t    3 (33.3%)\r\n  1\t    1 (11.1%)\r\n  2\t    1 (11.1%)\r\n  3\t    2 (22.2%)\r\n  4\t    1 (11.1%)\r\n  5\t    1 (11.1%)\r\n  6\t    0 ( 0.0%)\r\n"],
+;;=&gt;   :predict #<fn@2cc0bda5 fastmath.clustering="" tructurize[fn]="">,
 ;;=&gt;   :representatives ((-1.0) (111.0) (11.0) (2.0) (3.0) (1.0) (##NaN)),
 ;;=&gt;   :sizes (3 1 1 2 1 1 0),
 ;;=&gt;   :type :k-means}
@@ -287,7 +287,7 @@
 ;;=&gt;   :representative (111.0),
 ;;=&gt;   :size 1})
 (count (regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 7)))
-;;=&gt; 6</fn@50703792></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L254">view source</a></div></div><div class="public anchor" id="var-x-means"><h3>x-means</h3><div class="usage"><code>(x-means data max-clusters)</code></div><div class="doc"><div class="markdown"><p>X-Means algorithm.</p>
+;;=&gt; 6</fn@2cc0bda5></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L254">view source</a></div></div><div class="public anchor" id="var-x-means"><h3>x-means</h3><div class="usage"><code>(x-means data max-clusters)</code></div><div class="doc"><div class="markdown"><p>X-Means algorithm.</p>
 <p>Input:</p>
 <ul>
   <li>data - sequence of samples</li>
@@ -297,4 +297,4 @@
  (x-means (repeatedly 10000
                       (fn* [] (r/randval (r/grand) (r/grand 5 1.0))))
           4))
-;;=&gt; [2 (4980 5020) ((5.003644747540941) (-0.027305191217895895))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L150">view source</a></div></div></div></body></html>
+;;=&gt; [2 (4981 5019) ((4.992786086565766) (-0.006560772652289895))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L150">view source</a></div></div></div></body></html>

@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file. This change
 * core.matrix protocols for vectors
 * math functions can operate on vectors now (like [[sin]] etc.)
 * new functions for vectors `clamp`, `zero-count`, `nonzero-count`, `as-vec`
-* classification bindings to SMILE and XGBoost
+* classification bindings for SMILE, XGBoost and LIBLINEAR
 
 ### Changed
 

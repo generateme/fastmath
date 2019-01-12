@@ -44,16 +44,24 @@
   
   ### XGBoost
   
-  XGBoost is backed by [clj-boost](https://gitlab.com/alanmarazzi/clj-boost/tree/master). 
-  XGBoost uses only `multi:softprob` objective currently. See [documentation](https://xgboost.readthedocs.io/en/latest/parameter.html#parameters-for-tree-booster) for parameters. By default `:early-stopping` is set to `20` and `:round` is set to `10`.
+  XGBoost is backed by [clj-boost](https://gitlab.com/alanmarazzi/clj-boost/tree/master).
+
+  For:
+
+  * multiclass classification use `multi:softprob` objective (default).
+  * binary classification use `binary-logistic` objective.
+
+  See [documentation](https://xgboost.readthedocs.io/en/latest/parameter.html#parameters-for-tree-booster) for parameters.
+
+  By default `:early-stopping` is set to `20` and `:round` is set to `10`.
 
   Native cross validation is a map with keys
 
   * `:nfold` - number of folds (default: 10)
   * `:rounds` - number of boosting iterations (default: 3)
-  * `:metrics` - metrics to evaluate goodness (default: `[\"merror\", \"mlogloss\"]`)
+  * `:metrics` - metrics to evaluate goodness (default: `[\"merror\", \"mlogloss\"]` or `[\"error\", \"logloss\"]`)
 
-  Note: `\"merror\" = 1.0 - accuracy`
+  Note: `\"(m)error\" = 1.0 - accuracy`
   
   see [more](https://gitlab.com/alanmarazzi/clj-boost/tree/master)
   
@@ -105,7 +113,8 @@
 (defn- labels-converters
   "Convert y into label->int and int->label functions."
   [y]
-  (let [ydata (mapv vector (sort (distinct y)) (range))]
+  (let [sort-fn (if (instance? Comparable (first y)) sort identity)
+        ydata (mapv vector (sort-fn (distinct y)) (range))]
     [(mapv first ydata) (into {} ydata)]))
 
 (defn- liblinear-to-features
@@ -172,33 +181,44 @@
        (data [_ native?] (if native? data [x y]))
        (labels [_] labels)))))
 
+
+
 (defmethod classifier :xgboost
   ([_ booster-params x y tx ty] (classifier :xgboost booster-params x y tx ty nil))
   ([_ booster-params x y tx ty booster]
    (let [[labels labels->int] (labels-converters y)
          data (prepare-data :xgboost x y labels->int)
          test-data (when tx (prepare-data :xgboost tx ty labels->int))
+         binary? (= "binary:logistic" (get-in booster-params [:params :objective]))
 
          ;; to clean-up
          booster-params (if-not (contains? booster-params :rounds) (assoc booster-params :rounds 10) booster-params)
          booster-params (if-not (contains? booster-params :early-stopping) (assoc booster-params :early-stopping 20) booster-params)
+         booster-params (if-not binary?
+                          (-> booster-params
+                              (assoc-in [:params :num_class] (count labels))
+                              (assoc-in [:params :objective] "multi:softprob"))
+                          booster-params)
+         
          booster-params (-> (dissoc booster-params :booster :watches)
-                            (assoc-in [:watches :train] data)
-                            ;; (assoc-in [:params :num_class] (count labels))
-                            ;; (assoc-in [:params :objective] "multi:softprob")
-                            (assoc-in [:params :objective] "binary:logistic")
-                            )
+                            (assoc-in [:watches :train] data))
+         
          booster-params (if (and tx ty) (assoc-in booster-params [:watches :test] test-data) booster-params)
          booster-params (if booster (assoc booster-params :booster booster) booster-params)
 
          model (xgboost/fit data booster-params)
          res-range (range (count labels))
-         prob->label #(labels (apply max-key (vec %) res-range))]
+         prob->label (if binary?
+                       #(if (< (first %) 0.5) (labels 0) (labels 1))
+                       #(labels (apply max-key (vec %) res-range)))
+         prob-map (if binary?
+                    #(if (< % 0.5) (- 1.0 %) %)
+                    identity)]
      (reify
        IFn
        (invoke [_ v]  (prob->label (xgboost/predict model (xgboost/dmatrix [v]))))
        (invoke [c v posteriori?] (if posteriori? (let [r (-> (xgboost/predict model (xgboost/dmatrix [v])))]
-                                                   [(prob->label r) r]) (c v)))
+                                                   [(prob->label r) (map prob-map r)]) (c v)))
 
        ClassificationProto
        (backend [_] :xgboost)
@@ -208,12 +228,12 @@
        (predict [c v posteriori?] (c v posteriori?))
        (predict-all [_ vs] (map prob->label (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs)))))
        (predict-all [c vs posteriori?] (if posteriori?
-                                         (mapv (comp #(vector (prob->label %) %) seq)
+                                         (mapv (comp #(vector (prob->label %) (map prob-map %)) seq)
                                                (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs))))
                                          (predict-all c vs)))
        (cv-native [c] (cv-native c {}))
        (cv-native [_ {:keys [nfold rounds metrics]
-                      :or {nfold 10 rounds 3 metrics ["merror", "mlogloss"]}}]
+                      :or {nfold 10 rounds 3 metrics (if binary? ["error", "logloss"] ["merror", "mlogloss"])}}]
          (xgboost/cross-validation data {:nfold nfold :rounds rounds :metrics metrics :params (booster-params :params)}))
        
        (train [c x y] (train c x y nil nil))

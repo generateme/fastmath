@@ -1,5 +1,6 @@
 (ns codrna-classification
   (:require [fastmath.classification :as cl]
+            [clj-boost.core :as xgboost]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
             [clojure.string :as s]))
@@ -31,14 +32,23 @@
 (def knn-cl (cl/knn (:data training-data) (:labels training-data)))
 (def vknn (cl/validate knn-cl (:data test-data) (:labels test-data)))
 
-(def xgboost-cl (cl/xgboost (:data training-data) (:labels training-data) (:data test-data) (:labels test-data)))
+(def xgboost-cl (cl/xgboost {:params {:objective "binary:gistic"}} (:data training-data) (:labels training-data) (:data test-data) (:labels test-data)))
 (def vknn (cl/validate xgboost-cl))
 
 (def ll-cl (cl/liblinear {:solver :l1r-lr} (:data training-data) (:labels training-data) (:data test-data) (:labels test-data)))
 (def vknn (cl/validate ll-cl))
 
+(xgboost/predict (cl/model-native xgboost-cl) (xgboost/dmatrix [(vec (first (:data test-data)))]))
 
-(cl/cv-native ll-cl)
+(xgboost-cl (first (:data test-data)) true)
+
+
+
+(last (:labels test-data))
+
+(cl/labels xgboost-cl)
+
+(cl/cv-native xgboost-cl)
 
 (:stats vknn)
 
