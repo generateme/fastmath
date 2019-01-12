@@ -22,6 +22,10 @@
   * only doubles as input data
   * categories can be any type
 
+  ### Cross validation
+
+  Every classifier exposes it's own cross validation method with configuratin [[cv-native]]. Additionally three Clojure level methods are defined: [[cv]], [[loocv]] and [[bootstrap]].
+  
   ### SMILE
 
   [documentation](https://haifengl.github.io/smile/classification.html)
@@ -32,20 +36,39 @@
   * maxent
   * Online classifiers
   * General Naive Bayes
-  * SVM
+
+  Native cross validation config is a map with keys:
+
+  * `:k` - number of folds (default: 10)
+  * `:type` - type of cross validation, one of `:cv` (default), `:loocv` and `:bootstrap`
   
   ### XGBoost
   
   XGBoost is backed by [clj-boost](https://gitlab.com/alanmarazzi/clj-boost/tree/master). 
   XGBoost uses only `multi:softprob` objective currently. See [documentation](https://xgboost.readthedocs.io/en/latest/parameter.html#parameters-for-tree-booster) for parameters. By default `:early-stopping` is set to `20` and `:round` is set to `10`.
 
-  ### Cross validation
+  Native cross validation is a map with keys
 
-  Currently leave-one-out algorithm is implemented.
+  * `:nfold` - number of folds (default: 10)
+  * `:rounds` - number of boosting iterations (default: 3)
+  * `:metrics` - metrics to evaluate goodness (default: `[\"merror\", \"mlogloss\"]`)
 
+  Note: `\"merror\" = 1.0 - accuracy`
+  
+  see [more](https://gitlab.com/alanmarazzi/clj-boost/tree/master)
+  
+  ### Liblinear
+
+  https://github.com/bwaldvogel/liblinear-java
+
+  Native cross validation expects a number as number of folds (default: 10)
+  
   ### Examples
 
   Iris database is used."
+  {:metadoc/categories {:cl "Classification"
+                        :vd "Validation"
+                        :dt "Data operation"}}
   (:refer-clojure :exclude [test])
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
@@ -62,19 +85,22 @@
            [smile.math.distance EuclideanDistance]
            [smile.math.rbf RadialBasisFunction]
            [smile.math.kernel MercerKernel]
-           [smile.validation Bootstrap]))
+           [smile.validation Bootstrap Validation]
+
+           [de.bwaldvogel.liblinear Problem Feature FeatureNode Linear Model Parameter SolverType]))
 
 (set! *warn-on-reflection* false)
 
 (defprotocol ClassificationProto
   (backend [_] "Return name of backend library")
-  (model-raw [_] "Return trained model as a backend class.")
-  (predict [_ v] [_ v posteriori?] "Predict class for given vector. With posteriori probabilities when required.")
-  (predict-all [_ vs] [_ v posteriori?] "Predict classes for given sequence of vectors. With posteriori probabilities when required.")
-  (train [_ x y] [_ x y tx ty] "Train another set of data for given classifier. Test data are optional.")
-  (data [_] [_ native?] "Return data. Transformed data for backend libarary are returned when `native?` is true.")
-  (labels [_]  "Return labels.")
-  (test [_] [_ tx ty] "Validate data using given model and provided test data. Same as [[validate]]."))
+  (^{:metadoc/categories #{:cl}} model-native [_] "Return trained model as a backend class.")
+  (^{:metadoc/categories #{:cl}} predict [_ v] [_ v posteriori?] "Predict class for given vector. With posteriori probabilities when required.")
+  (^{:metadoc/categories #{:cl}} predict-all [_ vs] [_ v posteriori?] "Predict classes for given sequence of vectors. With posteriori probabilities when required.")
+  (^{:metadoc/categories #{:cl}} train [_ x y] [_ x y tx ty] "Train another set of data for given classifier. Test data are optional.")
+  (^{:metadoc/categories #{:dt}} data [_] [_ native?] "Return data. Transformed data for backend libarary are returned when `native?` is true.")
+  (^{:metadoc/categories #{:dt}} labels [_]  "Return labels.")
+  (^{:metadoc/categories #{:vd}} test [_] [_ tx ty] "Validate data using given model and provided test data. Same as [[validate]].")
+  (^{:metadoc/categories #{:vd}} cv-native [_] [_ params] "Call native implementation of cross-validation"))
 
 (defn- labels-converters
   "Convert y into label->int and int->label functions."
@@ -82,13 +108,69 @@
   (let [ydata (mapv vector (sort (distinct y)) (range))]
     [(mapv first ydata) (into {} ydata)]))
 
+(defn- liblinear-to-features
+  [fs]
+  (into-array Feature (map-indexed (fn [id v]
+                                     (FeatureNode. (inc id) v)) fs)))
+
 (defmulti ^:private prepare-data (fn [k & _] k))
 (defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array x) (int-array (mapv labels->int y))])
 (defmethod prepare-data :xgboost [_ x y labels->int] (xgboost/dmatrix x (mapv labels->int y)))
+(defmethod prepare-data :liblinear [_ x y bias labels->int]
+  (let [x (if-not (pos? bias) x
+                  (map #(conj (vec %) bias) x))
+        fa (into-array (map liblinear-to-features x))
+        problem (Problem.)]
+    (set! (.-x problem) fa)
+    (set! (.-y problem) (double-array (map labels->int y)))
+    (set! (.-n problem) (count (first x)))
+    (set! (.-l problem) (count y))
+    (set! (.-bias problem) bias)
+    problem))
 
 (declare validate)
+(declare accuracy)
 
 (defmulti ^:private classifier (fn [k & _] k))
+
+(defmethod classifier :liblinear
+  ([_ params x y tx ty bias]
+   (let [[labels labels->int] (labels-converters y)
+         data (prepare-data :liblinear x y (or bias -1) labels->int)
+         ^Model model (Linear/train data params)]
+     (reify
+       IFn
+       (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
+       (invoke [c v posteriori?] (let [buff (double-array (count labels))]
+                                   (if posteriori?
+                                     [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
+                                     (c v))))
+
+       ClassificationProto
+       (backend [_] :liblinear)
+       (model-native [_] model)
+
+       (predict [c v] (c v))
+       (predict [c v posteriori?] (c v posteriori?))
+       (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
+       (predict-all [c vs posteriori?] (if posteriori?
+                                         (map #(c % true) vs)
+                                         (predict-all c vs)))
+
+       (cv-native [c] (cv-native c 10))
+       (cv-native [_ k]
+         (let [target (double-array (count x))]
+           (Linear/crossValidation data params (or k 10) target)
+           {:accuracy (accuracy y (map (comp labels int) target))}))
+
+       (train [c x y] (train c x y nil nil))
+       (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias))
+       (test [c] (when (and tx ty) (validate c tx ty)))
+       (test [c tx ty] (validate c tx ty))
+       
+       (data [_] [x y])
+       (data [_ native?] (if native? data [x y]))
+       (labels [_] labels)))))
 
 (defmethod classifier :xgboost
   ([_ booster-params x y tx ty] (classifier :xgboost booster-params x y tx ty nil))
@@ -97,13 +179,15 @@
          data (prepare-data :xgboost x y labels->int)
          test-data (when tx (prepare-data :xgboost tx ty labels->int))
 
-         ;; to fix
+         ;; to clean-up
          booster-params (if-not (contains? booster-params :rounds) (assoc booster-params :rounds 10) booster-params)
          booster-params (if-not (contains? booster-params :early-stopping) (assoc booster-params :early-stopping 20) booster-params)
          booster-params (-> (dissoc booster-params :booster :watches)
                             (assoc-in [:watches :train] data)
-                            (assoc-in [:params :num_class] (count labels))
-                            (assoc-in [:params :objective] "multi:softprob"))
+                            ;; (assoc-in [:params :num_class] (count labels))
+                            ;; (assoc-in [:params :objective] "multi:softprob")
+                            (assoc-in [:params :objective] "binary:logistic")
+                            )
          booster-params (if (and tx ty) (assoc-in booster-params [:watches :test] test-data) booster-params)
          booster-params (if booster (assoc booster-params :booster booster) booster-params)
 
@@ -118,7 +202,7 @@
 
        ClassificationProto
        (backend [_] :xgboost)
-       (model-raw [_] model)
+       (model-native [_] model)
        
        (predict [c v] (c v))
        (predict [c v posteriori?] (c v posteriori?))
@@ -127,6 +211,10 @@
                                          (mapv (comp #(vector (prob->label %) %) seq)
                                                (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs))))
                                          (predict-all c vs)))
+       (cv-native [c] (cv-native c {}))
+       (cv-native [_ {:keys [nfold rounds metrics]
+                      :or {nfold 10 rounds 3 metrics ["merror", "mlogloss"]}}]
+         (xgboost/cross-validation data {:nfold nfold :rounds rounds :metrics metrics :params (booster-params :params)}))
        
        (train [c x y] (train c x y nil nil))
        (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty model))
@@ -156,12 +244,19 @@
 
       ClassificationProto
       (backend [_] :smile)
-      (model-raw [_] classifier-raw)
+      (model-native [_] classifier-raw)
       
       (predict [_ v] (predict-fn v))
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
       (predict-all [_ vs] (map predict-fn vs))
       (predict-all [_ vs posteriori?] (if posteriori? (map predict-fn-posteriori vs) (map predict-fn vs)))
+      (cv-native [c] (cv-native c {}))
+      (cv-native [_ {:keys [k type] :or {k 10 type :cv}}]
+        (case type
+          :cv {:accuracy (Validation/cv k trainer data int-labels)}
+          :loocv {:accuracy (Validation/loocv trainer data int-labels)}
+          :bootstrap (let [b (Validation/bootstrap k trainer data int-labels)]
+                       {:accuracy (stat/mean b) :bootstrap (vec b)})))
       
       (train [c x y] (train c x y nil nil))
       (train [_ x y tx ty] (classifier :smile trainer x y tx ty))
@@ -174,14 +269,15 @@
 
 (defmacro ^:private wrap-classifier
   {:style/indent 3}
-  [typ clname parameter instance]
+  [typ clname parameter instance & r]
   (let [[x y tx ty params] (map symbol ["x" "y" "tx" "ty" "params"])
         doc (str clname " classifier. Backend library: " (name typ))]
     `(defn ~clname ~doc
+       {:metadoc/categories #{:cl}}
        ([~x ~y] (~clname {} ~x ~y nil nil))
        ([~params ~x ~y] (~clname ~params ~x ~y nil nil))
        ([~x ~y ~tx ~ty] (~clname {} ~x ~y ~tx ~ty))
-       ([~parameter ~x ~y ~tx ~ty] (classifier ~typ ~instance ~x ~y ~tx ~ty)))))
+       ([~parameter ~x ~y ~tx ~ty] (classifier ~typ ~instance ~x ~y ~tx ~ty ~@r)))))
 
 (wrap-classifier :smile knn {:keys [distance k]
                              :or {distance (EuclideanDistance.) k 1}}
@@ -310,7 +406,7 @@
 (def ^:private multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
                                       :one-vs-all SVM$Multiclass/ONE_VS_ALL})
 
-(def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strtegies-list (keys multiclass-strategies))
+(def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strategies-list (keys multiclass-strategies))
 
 (wrap-classifier :smile svm {:keys [^MercerKernel kernel ^double c-or-cp ^double cn strategy-for-multiclass class-weights tolerance ^int epochs]
                              :or {kernel (mercer/kernel :linear) c-or-cp 1.0 cn 1.0 strategy-for-multiclass :one-vs-one tolerance 1.0e-3 epochs 2}}
@@ -325,16 +421,36 @@
     (-> (.setTolerance t tolerance)
         (.setNumEpochs epochs))))
 
+(def ^:private liblinear-solvers {:l2r-lr SolverType/L2R_LR
+                                  :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL
+                                  :l2r-l2loss-svc SolverType/L2R_L2LOSS_SVC
+                                  :l2r-l1loss-svc-dual SolverType/L2R_L1LOSS_SVC_DUAL
+                                  :mcsvm-cs SolverType/MCSVM_CS
+                                  :l1r-l2loss-svc SolverType/L1R_L2LOSS_SVC
+                                  :l1r-lr SolverType/L1R_LR
+                                  :l2r-lr-dual SolverType/L2R_LR_DUAL})
+
+(def ^{:doc "List of [[liblinear]] solvers."} liblinear-solver-list (keys liblinear-solvers))
+
+(wrap-classifier :liblinear liblinear {:keys [solver bias ^double C ^double eps ^int max-iters ^double p weights]
+                                       :or {solver :l2r-l2loss-svc-dual bias -1 C 1.0 eps 0.01 max-iters 1000 p 0.1}}
+  (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
+    (if weights
+      (do (.setWeight par (double-array weights) (int-array (range (count weights)))) par)
+      par)) bias)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; validation metrics
 
 (defn accuracy
   "Calculate accuracy for real and predicted sequences."
+  {:metadoc/categories #{:vd}}
   [t p] (double (/ (count (filter (partial apply =) (mapv vector t p)))
                    (count t))))
 
 (defn validate
   "Validate data against trained classifier. Same as [[test]]."
+  {:metadoc/categories #{:vd}}
   ([model] (test model))
   ([model tx ty]
    (let [pred (predict-all model tx)
@@ -365,6 +481,7 @@
 
 (defn loocv
   "Leave-one-out cross validation of a classification model."
+  {:metadoc/categories #{:vd}}
   ([model]
    (let [[data labels] (data model)
          plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
@@ -379,6 +496,7 @@
   "Cross validation of a classification model.
 
   k defaults to 10% of data count."
+  {:metadoc/categories #{:vd}}
   ([model]
    (cv model  (* 0.1 (count (first (data model))))))
   ([model k]
@@ -402,6 +520,7 @@
   k defaults to 10
 
   Returns map where `:accuracy` is average accuracy from every round. `:boostrap` contains every round statistics."
+  {:metadoc/categories #{:vd}}
   ([model] (bootstrap model 10))
   ([model k]
    (let [[data labels] (data model)
@@ -419,3 +538,12 @@
                  stats))
          avg (stat/mean (map :accuracy all))]
      {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))})))
+
+(defn confusion-map
+  "Create confusion map where keys are pairs of `[truth-label, prediction-label]`"
+  {:metadoc/categories #{:vd}}
+  [t p]
+  (reduce (fn [m tpv]
+            (if (contains? m tpv)
+              (update m tpv inc)
+              (assoc m tpv 1))) {} (map vector t p)))

@@ -46,13 +46,14 @@
 
 (add-examples backend
   (example-session "Usage"
-    (backend (knn train-data train-labels))
-    (backend (xgboost train-data train-labels))))
+    (backend (knn test-data test-labels))
+    (backend (xgboost test-data test-labels))
+    (backend (liblinear test-data test-labels))))
 
-(add-examples model-raw
+(add-examples model-native
   (example-session "Usage"
-    (model-raw (knn train-data train-labels))
-    (model-raw (xgboost train-data train-labels))))
+    (model-native (knn train-data train-labels))
+    (model-native (xgboost train-data train-labels))))
 
 (add-examples data
   (example-session "Usage"
@@ -110,6 +111,14 @@
     (cv (knn train-data train-labels) 100)
     (cv (knn train-data train-labels) 4)
     (cv (knn train-data train-labels) 1)))
+
+(add-examples cv-native
+  (example-session "Usage"
+    (cv-native (knn test-data test-labels))
+    (cv-native (knn test-data test-labels) {:type :loocv})
+    (cv-native (knn test-data test-labels) {:type :bootstrap})
+    (cv-native (xgboost test-data test-labels))
+    (cv-native (liblinear test-data test-labels))))
 
 (add-examples bootstrap
   (example-session "Usage"
@@ -180,3 +189,17 @@
                        :rounds 2} train-data train-labels test-data test-labels)]
       (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
+(add-examples liblinear
+  (example (let [cl (liblinear train-data train-labels)]
+             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+  (example "Different solver" (let [cl (liblinear {:solver :l1r-lr :C 0.5} train-data train-labels)]
+                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+
+
+(add-examples confusion-map
+  (example (let [cl (knn train-data train-labels)
+                 pred (predict-all cl test-data)]
+             (confusion-map test-labels pred))))
+
+(add-examples liblinear-solver-list (example "Names" liblinear-solver-list))
+(add-examples multiclass-strategies-list (example "Names" multiclass-strategies-list))

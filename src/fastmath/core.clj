@@ -803,7 +803,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   (cond
     (nil? vss) nil
     (= (type vss) double-double-array-type) vss
-    :else (into-array (map seq->double-array vss))))
+    :else (into-array (mapv seq->double-array vss))))
 
 ;; ## Copy of primitive math machinery
 ;;

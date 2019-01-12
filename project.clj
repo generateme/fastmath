@@ -12,7 +12,8 @@
                  [org.slf4j/slf4j-nop "1.7.25"]
                  [de.sciss/jwave "1.0.3"]
                  [net.mikera/core.matrix "0.62.0"]
-                 [clj-boost "0.0.3"]]
+                 [clj-boost "0.0.4"]
+                 [de.bwaldvogel/liblinear "2.21"]]
   :exclusions [[org.slf4j/slf4j-simple]]
   :resource-path "resources/"
   :java-source-paths ["src"]
