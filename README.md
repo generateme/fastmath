@@ -110,7 +110,16 @@ SMILE bindings for clustering
 
 ### Classifcations (dev version)
 
-SMILE and XGBoost classification bindings
+SMILE, LIBLINEAR and XGBoost classification bindings
+
+#### Windows
+
+To enable XGBoost under Windows please add following lines to your lein profile:
+
+```clojure
+:exclusions [[org.slf4j/slf4j-simple] [ml.dmlc/xgboost4j] [asm]]
+:resource-paths ["resources/" "lib/xgboost4j-0.81-criteo-20180821_2.11-win64.jar"]
+```
 
 ### Grids
 
