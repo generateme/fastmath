@@ -119,8 +119,7 @@
 
 (defn- liblinear-to-features
   [fs]
-  (into-array Feature (map-indexed (fn [id v]
-                                     (FeatureNode. (inc id) v)) fs)))
+  (into-array Feature (map-indexed (fn [id v] (FeatureNode. (inc id) v)) fs)))
 
 (defmulti ^:private prepare-data (fn [k & _] k))
 (defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array x) (int-array (mapv labels->int y))])
@@ -142,50 +141,71 @@
 
 (defmulti ^:private classifier (fn [k & _] k))
 
+(defrecord LibLinearClassifier [x y tx ty bias model labels labels->int data params backend]
+  IFn
+  (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
+  (invoke [c v posteriori?] (let [buff (double-array (count labels))]
+                              (if posteriori?
+                                [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
+                                (c v))))
+  ClassificationProto
+  (predict [c v] (c v))
+  (predict [c v posteriori?] (c v posteriori?))
+  (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
+  (predict-all [c vs posteriori?] (if posteriori?
+                                    (map #(c % true) vs)
+                                    (predict-all c vs)))
+  (cv-native [c] (cv-native c 10))
+  (cv-native [_ k]
+    (let [target (double-array (count x))]
+      (Linear/crossValidation data params (or k 10) target)
+      {:accuracy (accuracy y (map (comp labels int) target))}))
+  (train [c x y] (train c x y nil nil))
+  (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias)))
+
 (defmethod classifier :liblinear
-  ([_ params x y tx ty bias]
-   (let [[labels labels->int] (labels-converters y)
-         data (prepare-data :liblinear x y (or bias -1) labels->int)
-         ^Model model (Linear/train data params)]
-     (reify
-       IFn
-       (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
-       (invoke [c v posteriori?] (let [buff (double-array (count labels))]
-                                   (if posteriori?
-                                     [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
-                                     (c v))))
+  [_ params x y tx ty label-map bias]
+  (let [[labels labels->int] (labels-converters y)
+        data (prepare-data :liblinear x y (or bias -1) labels->int)
+        ^Model model (Linear/train data params)]
+    (->LibLinearClassifier x y tx ty bias model labels labels->int data params :liblinear)
+    (reify
+      IFn
+      (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
+      (invoke [c v posteriori?] (let [buff (double-array (count labels))]
+                                  (if posteriori?
+                                    [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
+                                    (c v))))
 
-       ClassificationProto
-       (backend [_] :liblinear)
-       (model-native [_] model)
+      ClassificationProto
+      (backend [_] :liblinear)
+      (model-native [_] model)
 
-       (predict [c v] (c v))
-       (predict [c v posteriori?] (c v posteriori?))
-       (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
-       (predict-all [c vs posteriori?] (if posteriori?
-                                         (map #(c % true) vs)
-                                         (predict-all c vs)))
+      (predict [c v] (c v))
+      (predict [c v posteriori?] (c v posteriori?))
+      (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
+      (predict-all [c vs posteriori?] (if posteriori?
+                                        (map #(c % true) vs)
+                                        (predict-all c vs)))
 
-       (cv-native [c] (cv-native c 10))
-       (cv-native [_ k]
-         (let [target (double-array (count x))]
-           (Linear/crossValidation data params (or k 10) target)
-           {:accuracy (accuracy y (map (comp labels int) target))}))
+      (cv-native [c] (cv-native c 10))
+      (cv-native [_ k]
+        (let [target (double-array (count x))]
+          (Linear/crossValidation data params (or k 10) target)
+          {:accuracy (accuracy y (map (comp labels int) target))}))
 
-       (train [c x y] (train c x y nil nil))
-       (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias))
-       (test [c] (when (and tx ty) (validate c tx ty)))
-       (test [c tx ty] (validate c tx ty))
-       
-       (data [_] [x y])
-       (data [_ native?] (if native? data [x y]))
-       (labels [_] labels)))))
-
-
+      (train [c x y] (train c x y nil nil))
+      (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias))
+      (test [c] (when (and tx ty) (validate c tx ty)))
+      (test [c tx ty] (validate c tx ty))
+      
+      (data [_] [x y])
+      (data [_ native?] (if native? data [x y]))
+      (labels [_] labels))))
 
 (defmethod classifier :xgboost
-  ([_ booster-params x y tx ty] (classifier :xgboost booster-params x y tx ty nil))
-  ([_ booster-params x y tx ty booster]
+  ([_ booster-params x y tx ty label-map] (classifier :xgboost booster-params x y tx ty label-map nil))
+  ([_ booster-params x y tx ty label-map booster]
    (let [[labels labels->int] (labels-converters y)
          data (prepare-data :xgboost x y labels->int)
          test-data (when tx (prepare-data :xgboost tx ty labels->int))
@@ -212,7 +232,7 @@
                        #(if (< (first %) 0.5) (labels 0) (labels 1))
                        #(labels (apply max-key (vec %) res-range)))
          prob-map (if binary?
-                    #(if (< % 0.5) (- 1.0 %) %)
+                    #(vector (- 1.0 %) %)
                     identity)]
      (reify
        IFn
@@ -246,7 +266,7 @@
        (labels [_] labels)))))
 
 (defmethod classifier :smile
-  [_ ^ClassifierTrainer trainer x y tx ty]
+  [_ ^ClassifierTrainer trainer x y tx ty label-map]
   (let [[labels labels->int] (labels-converters y)
         [data int-labels] (prepare-data :smile x y labels->int)
         classifier-raw (.train trainer data int-labels)
@@ -290,14 +310,16 @@
 (defmacro ^:private wrap-classifier
   {:style/indent 3}
   [typ clname parameter instance & r]
-  (let [[x y tx ty params] (map symbol ["x" "y" "tx" "ty" "params"])
-        doc (str clname " classifier. Backend library: " (name typ))]
+  (let [[x y tx ty params all] (map symbol ["x" "y" "tx" "ty" "params" "all"])
+        doc (str clname " classifier. Backend library: " (name typ))
+        parameter (if (map? parameter) (assoc parameter :as all) parameter)
+        label-map-getter (if (map? parameter) `(:label-map ~all) `(:label-map ~parameter))]
     `(defn ~clname ~doc
        {:metadoc/categories #{:cl}}
        ([~x ~y] (~clname {} ~x ~y nil nil))
        ([~params ~x ~y] (~clname ~params ~x ~y nil nil))
        ([~x ~y ~tx ~ty] (~clname {} ~x ~y ~tx ~ty))
-       ([~parameter ~x ~y ~tx ~ty] (classifier ~typ ~instance ~x ~y ~tx ~ty ~@r)))))
+       ([~parameter ~x ~y ~tx ~ty] (classifier ~typ ~instance ~x ~y ~tx ~ty ~label-map-getter ~@r)))))
 
 (wrap-classifier :smile knn {:keys [distance k]
                              :or {distance (EuclideanDistance.) k 1}}
