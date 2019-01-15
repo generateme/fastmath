@@ -70,7 +70,7 @@
   <li><code>:angles</code> - vector field from angles</li>
 </ul>
 <p>See <a href="fastmath.fields.html#var-random-configuration">random-configuration</a> for example.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Create random combination</p></blockquote><pre><code class="hljs clojure">(let [f (combine)] (f (v/vec2 -0.5 0.5)))
-;;=&gt; [0.9848870441216524 -0.3309021043797443]</code></pre></div><div><blockquote><p>Create combination for given configuration</p></blockquote><pre><code class="hljs clojure">(let [conf {:type :operation,
+;;=&gt; [-1.1211586946125367 -0.920543356200604]</code></pre></div><div><blockquote><p>Create combination for given configuration</p></blockquote><pre><code class="hljs clojure">(let [conf {:type :operation,
             :name :comp,
             :var1 {:type :variation,
                    :name :blocky,
@@ -99,22 +99,22 @@
 ;;=&gt; 1.5302948024685854</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L3229">view source</a></div></div><div class="public anchor" id="var-field"><h3>field</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Return vector field for given name and options: amount (scaling factor) and parametrization.</p>
 <p>Default scaling factor is 1.0, default parametrization is random.</p>
 <p>Resulting function operates on <a href="null">Vec2</a> type.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Get vector field by name</p></blockquote><pre><code class="hljs clojure">(field :sinusoidal)
-;;=&gt; fastmath.fields$make_sinusoidal$fn__33938@3031bd04
+;;=&gt; fastmath.fields$make_sinusoidal$fn__33938@7998eb53
 ((field :sinusoidal) (v/vec2 m/HALF_PI m/HALF_PI))
 ;;=&gt; [1.0 1.0]</code></pre></div><div><blockquote><p>Get vector field by name and scale</p></blockquote><pre><code class="hljs clojure">(field :sinusoidal 0.5)
-;;=&gt; fastmath.fields$make_sinusoidal$fn__33938@2641182e
+;;=&gt; fastmath.fields$make_sinusoidal$fn__33938@5adc5b3a
 ((field :sinusoidal 0.5) (v/vec2 m/HALF_PI m/HALF_PI))
 ;;=&gt; [0.5 0.5]</code></pre></div><div><blockquote><p>Apply parametrization</p></blockquote><pre><code class="hljs clojure">(let [params (parametrization :cpow3)
       f (field :cpow3 1.0 params)]
   {:parametrization params, :value (f (v/vec2 -1.0 1.0))})
-;;=&gt; {:parametrization {:a -1.4853702264552702,
-;;=&gt;                    :discrete-spread -0.4577268414999014,
-;;=&gt;                    :divisor 0.3438182712158131,
-;;=&gt;                    :offset2 1.8908090304946548,
-;;=&gt;                    :r 1.7033271400604844,
-;;=&gt;                    :spread 0.7006102585596524,
-;;=&gt;                    :spread2 0.44463031359859473},
-;;=&gt;  :value [0.002454093257193156 0.00227261439295099]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L70">view source</a></div></div><div class="public anchor" id="var-fields-list"><h3>fields-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of all vector field names.</p></blockquote><pre><code class="hljs clojure">(sort fields-list)
+;;=&gt; {:parametrization {:a -0.03560038377912589,
+;;=&gt;                    :discrete-spread -1.654611166221926,
+;;=&gt;                    :divisor -0.7636605025679863,
+;;=&gt;                    :offset2 0.8954855310551642,
+;;=&gt;                    :r 0.9039140310233824,
+;;=&gt;                    :spread 1.550453332985708,
+;;=&gt;                    :spread2 -0.9693645203690613},
+;;=&gt;  :value [0.7541590469324954 -0.23823406449143233]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L70">view source</a></div></div><div class="public anchor" id="var-fields-list"><h3>fields-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of all vector field names.</p></blockquote><pre><code class="hljs clojure">(sort fields-list)
 ;;=&gt; (:arch
 ;;=&gt;  :asteria :atan
 ;;=&gt;  :auger :barycentroid
@@ -276,89 +276,62 @@
 <p>Optinally you can pass part of the parametrization. In this case function will add remaining keys with randomly generated values.</p>
 <p>If field doesn’t have parametrization, empty map will be returned.</p>
 <p>See <a href="fastmath.fields.html#var-field">field</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Get random parametrization for given field</p></blockquote><pre><code class="hljs clojure">(parametrization :auger)
-;;=&gt; {:freq -4.664636691642182,
-;;=&gt;  :scale -1.9944098819076232,
-;;=&gt;  :sym -0.6934417296467723,
-;;=&gt;  :weight -0.19239097632591706}</code></pre></div><div><blockquote><p>Add lacking fields</p></blockquote><pre><code class="hljs clojure">(parametrization :auger {:scale 1.0, :freq 1.0})
+;;=&gt; {:freq -3.141766474572625,
+;;=&gt;  :scale -0.7642548391222411,
+;;=&gt;  :sym 0.15424959692393125,
+;;=&gt;  :weight -0.9231425089005589}</code></pre></div><div><blockquote><p>Add lacking fields</p></blockquote><pre><code class="hljs clojure">(parametrization :auger {:scale 1.0, :freq 1.0})
 ;;=&gt; {:freq 1.0,
 ;;=&gt;  :scale 1.0,
-;;=&gt;  :sym 0.06459027093622582,
-;;=&gt;  :weight -0.3959359042848545}</code></pre></div><div><blockquote><p>Returns empty map when field doesn’t have parametrization</p></blockquote><pre><code class="hljs clojure">(parametrization :sinusoidal)
+;;=&gt;  :sym 1.580935890996713,
+;;=&gt;  :weight -0.37053561740095775}</code></pre></div><div><blockquote><p>Returns empty map when field doesn’t have parametrization</p></blockquote><pre><code class="hljs clojure">(parametrization :sinusoidal)
 ;;=&gt; {}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L56">view source</a></div></div><div class="public anchor" id="var-random-configuration"><h3>random-configuration</h3><div class="usage"><code>(random-configuration)</code><code>(random-configuration depth)</code><code>(random-configuration depth f)</code></div><div class="doc"><div class="markdown"><p>Create random configuration for <a href="fastmath.fields.html#var-combine">combine</a> function. Optionally with depth (0 = only root is created).</p>
 <p>See <a href="fastmath.fields.html#var-combine">combine</a> for structure.</p>
 <p>Bind <code>*skip-random-fields*</code> to true to exclude fields which are random.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Generate random configuration</p></blockquote><pre><code class="hljs clojure">(random-configuration)
 ;;=&gt; {:amount 1.0,
-;;=&gt;  :name :angles,
-;;=&gt;  :type :operation,
-;;=&gt;  :var1
-;;=&gt;  {:amount 1.0,
-;;=&gt;   :name :comp,
-;;=&gt;   :type :operation,
-;;=&gt;   :var1
-;;=&gt;   {:amount 1.0,
-;;=&gt;    :name :comp,
-;;=&gt;    :type :operation,
-;;=&gt;    :var1
-;;=&gt;    {:amount 1.0,
-;;=&gt;     :name :comp,
-;;=&gt;     :type :operation,
-;;=&gt;     :var1 {:amount 1.0, :config {}, :name :tangent, :type :variation},
-;;=&gt;     :var2 {:amount 1.0, :config {}, :name :heart, :type :variation}},
-;;=&gt;    :var2 {:amount 1.0,
-;;=&gt;           :config
-;;=&gt;           {:octaves 2, :scale -1.4485853335147605, :seed 1991039846},
-;;=&gt;           :name :perlin2,
-;;=&gt;           :type :variation}},
-;;=&gt;   :var2 {:amount 1.0,
-;;=&gt;          :config {:a -1.8146799969651402,
-;;=&gt;                   :discrete-spread 1.4332603598359681,
-;;=&gt;                   :divisor 1.4604458721930345,
-;;=&gt;                   :offset2 -0.4088770200186156,
-;;=&gt;                   :r -1.0145920055133009,
-;;=&gt;                   :spread 0.5028698264113378,
-;;=&gt;                   :spread2 -1.541436796516464},
-;;=&gt;          :name :cpow3,
-;;=&gt;          :type :variation}},
-;;=&gt;  :var2 {:amount 1.0, :config {}, :name :swirl, :type :variation}}</code></pre></div><div><blockquote><p>One node configuration</p></blockquote><pre><code class="hljs clojure">(random-configuration 0)
-;;=&gt; {:amount 1.0,
-;;=&gt;  :config {:a 0.055045322784227135,
-;;=&gt;           :discrete-spread -1.7766095805905604,
-;;=&gt;           :divisor -0.6084809614763336,
-;;=&gt;           :offset2 -0.45434350292590864,
-;;=&gt;           :r -0.10183573741407104,
-;;=&gt;           :spread -1.0890874426749302,
-;;=&gt;           :spread2 0.43729191338347384},
-;;=&gt;  :name :cpow3,
-;;=&gt;  :type :variation}</code></pre></div><div><blockquote><p>Configuration with depth 2</p></blockquote><pre><code class="hljs clojure">(random-configuration 2)
-;;=&gt; {:amount 1.0,
-;;=&gt;  :name :angles,
+;;=&gt;  :name :comp,
 ;;=&gt;  :type :operation,
 ;;=&gt;  :var1 {:amount 1.0,
-;;=&gt;         :name :deriv,
-;;=&gt;         :step 0.22683847585569422,
+;;=&gt;         :config {:a -1.0667324526281496,
+;;=&gt;                  :b 1.2889408628205885,
+;;=&gt;                  :c -1.9510462354055176,
+;;=&gt;                  :d -0.3114737304016524},
+;;=&gt;         :name :clifford,
+;;=&gt;         :type :variation},
+;;=&gt;  :var2 {:amount 1.0, :config {}, :name :spherical, :type :variation}}</code></pre></div><div><blockquote><p>One node configuration</p></blockquote><pre><code class="hljs clojure">(random-configuration 0)
+;;=&gt; {:amount 1.0, :config {}, :name :invtree, :type :variation}</code></pre></div><div><blockquote><p>Configuration with depth 2</p></blockquote><pre><code class="hljs clojure">(random-configuration 2)
+;;=&gt; {:amount 1.0,
+;;=&gt;  :name :comp,
+;;=&gt;  :type :operation,
+;;=&gt;  :var1 {:amount 1.0,
+;;=&gt;         :name :comp,
 ;;=&gt;         :type :operation,
-;;=&gt;         :var {:amount 1.0, :config {}, :name :ex, :type :variation}},
+;;=&gt;         :var1 {:amount 1.0,
+;;=&gt;                :config {:shift 0.4657754172504256,
+;;=&gt;                         :stretch -1.9864186105022745},
+;;=&gt;                :name :hypershift,
+;;=&gt;                :type :variation},
+;;=&gt;         :var2
+;;=&gt;         {:amount 1.0, :config {}, :name :spherical, :type :variation}},
 ;;=&gt;  :var2 {:amount 1.0,
-;;=&gt;         :config {:angle 2.2680909182364477,
-;;=&gt;                  :count 2.8748487920726875,
-;;=&gt;                  :hole 0.1778126214387843,
-;;=&gt;                  :swirl -0.40476681608356024},
-;;=&gt;         :name :wedge,
+;;=&gt;         :config {:xamp -1.310223437503125,
+;;=&gt;                  :xlength 1.4942560590405236,
+;;=&gt;                  :yamp 0.42237443583514134,
+;;=&gt;                  :ylength 0.8936079698625499},
+;;=&gt;         :name :curve,
 ;;=&gt;         :type :variation}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L3311">view source</a></div></div><div class="public anchor" id="var-randomize-configuration"><h3>randomize-configuration</h3><div class="usage"><code>(randomize-configuration f)</code></div><div class="doc"><div class="markdown"><p>Randomize values for given configuration. Keeps structure untouched.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [conf {:type :variation,
             :name :blocky,
             :amount 1.0,
             :config {:x -1.4, :y 0.9, :mp 2.6}}]
   [(randomize-configuration conf) (randomize-configuration conf)])
 ;;=&gt; [{:amount 1.0,
-;;=&gt;   :config {:mp -4.444669299284229,
-;;=&gt;            :x -1.4528960883906143,
-;;=&gt;            :y -0.6533024084884648},
+;;=&gt;   :config {:mp 2.0460681042668587,
+;;=&gt;            :x -0.7283769258583972,
+;;=&gt;            :y 0.757874578574087},
 ;;=&gt;   :name :blocky,
 ;;=&gt;   :type :variation}
 ;;=&gt;  {:amount 1.0,
-;;=&gt;   :config {:mp -3.2170148201997044,
-;;=&gt;            :x -0.8279744049040484,
-;;=&gt;            :y -1.3785164226294717},
+;;=&gt;   :config
+;;=&gt;   {:mp 2.2389813523628734, :x -0.5389114518655, :y -1.1777063796523453},
 ;;=&gt;   :name :blocky,
 ;;=&gt;   :type :variation}]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L3292">view source</a></div></div><div class="public anchor" id="var-scalar-.3Evector-field"><h3>scalar-&gt;vector-field</h3><div class="usage"><code>(scalar-&gt;vector-field scalar f)</code><code>(scalar-&gt;vector-field scalar f1 f2)</code></div><div class="doc"><div class="markdown"><p>Returns vector field build from scalar fields of the input vector and result of the vector field.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [f (scalar-&gt;vector-field v/heading (field :sinusoidal))]
   (v/applyf (f (v/vec2 m/HALF_PI m/HALF_PI)) m/degrees))

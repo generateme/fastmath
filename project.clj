@@ -32,8 +32,11 @@
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]
                                   [metadoc "0.2.3"]]
+                   
+                   ;; for Windows uncomment below lines
                    ;; :exclusions [[org.slf4j/slf4j-simple] [ml.dmlc/xgboost4j] [asm]]
                    ;; :resource-paths ["resources/" "lib/xgboost4j-0.81-criteo-20180821_2.11-win64.jar"]
+
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"
