@@ -70,6 +70,7 @@
 (def euclidean-sq (distance :euclidean-sq))
 (def discrete (distance :discrete))
 (def cosine (distance :cosine))
+(def jensen-shannon (distance :jensen-shannon))
 
 ;;
 
