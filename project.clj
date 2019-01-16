@@ -22,7 +22,7 @@
         :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}
              :dev {:plugins [[refactor-nrepl "2.4.0"]
-                             [cider/cider-nrepl "0.20.0-SNAPSHOT"]
+                             [cider/cider-nrepl "0.20.0"]
                              [com.jakemccrary/lein-test-refresh "0.23.0"]
                              [lein-codox "0.10.5"]]
                    :source-paths ["example"]
@@ -31,7 +31,8 @@
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]
-                                  [metadoc "0.2.3"]]
+                                  [metadoc "0.2.4"]]
+                   :exclusions [[asm]]
                    ;; :exclusions [[org.slf4j/slf4j-simple] [ml.dmlc/xgboost4j] [asm]]
                    ;; :resource-paths ["resources/" "lib/xgboost4j-0.81-criteo-20180821_2.11-win64.jar"]
                    :codox {:themes [:rdash]
