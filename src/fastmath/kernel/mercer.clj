@@ -33,4 +33,6 @@
     (gen-smile (PolynomialKernel. degree scale offset))))
 (defmethod kernel :thinplate [_ & [sigma]] (gen-smile (ThinPlateSplineKernel. sigma)))
 
+
 (def ^{:doc "List of kernel names."} kernel-names (sort (keys (methods kernel))))
+

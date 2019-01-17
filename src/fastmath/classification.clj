@@ -29,7 +29,7 @@
   ### SMILE
 
   [documentation](https://haifengl.github.io/smile/classification.html)
-
+  
   What is missed:
 
   * other types than doubles (attributes)
@@ -168,7 +168,7 @@
   (let [[labels labels->int] (labels-converters y)
         data (prepare-data :liblinear x y (or bias -1) labels->int)
         ^Model model (Linear/train data params)]
-    (->LibLinearClassifier x y tx ty bias model labels labels->int data params :liblinear)
+    ;; (->LibLinearClassifier x y tx ty bias model labels labels->int data params :liblinear)
     (reify
       IFn
       (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
@@ -195,7 +195,7 @@
           {:accuracy (accuracy y (map (comp labels int) target))}))
 
       (train [c x y] (train c x y nil nil))
-      (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias))
+      (train [_ x y tx ty] (classifier :liblinear params x y tx ty label-map bias))
       (test [c] (when (and tx ty) (validate c tx ty)))
       (test [c tx ty] (validate c tx ty))
       
@@ -257,7 +257,7 @@
          (xgboost/cross-validation data {:nfold nfold :rounds rounds :metrics metrics :params (booster-params :params)}))
        
        (train [c x y] (train c x y nil nil))
-       (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty model))
+       (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty label-map model))
        (test [c] (when (and tx ty) (validate c tx ty)))
        (test [c tx ty] (validate c tx ty))
        
@@ -299,7 +299,7 @@
                        {:accuracy (stat/mean b) :bootstrap (vec b)})))
       
       (train [c x y] (train c x y nil nil))
-      (train [_ x y tx ty] (classifier :smile trainer x y tx ty))
+      (train [_ x y tx ty] (classifier :smile trainer x y tx ty label-map))
       (test [c] (when (and tx ty) (validate c tx ty)))
       (test [c tx ty] (validate c tx ty))
       
@@ -476,10 +476,10 @@
 
 (wrap-classifier :liblinear liblinear {:keys [solver bias ^double C ^double eps ^int max-iters ^double p weights]
                                        :or {solver :l2r-l2loss-svc-dual bias -1 C 1.0 eps 0.01 max-iters 1000 p 0.1}}
-  (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
-    (if weights
-      (do (.setWeight par (double-array weights) (int-array (range (count weights)))) par)
-      par)) bias)
+                 (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
+                   (if weights
+                     (do (.setWeight par (double-array weights) (int-array (range (count weights)))) par)
+                     par)) bias)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; validation metrics

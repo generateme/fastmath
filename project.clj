@@ -33,8 +33,12 @@
                                   [incanter/incanter-core "1.9.2"]
                                   [metadoc "0.2.4"]]
                    :exclusions [[asm]]
+
+                   :jvm-opts ["-Xmx4096m"]
+                   
                    ;; :exclusions [[org.slf4j/slf4j-simple] [ml.dmlc/xgboost4j] [asm]]
                    ;; :resource-paths ["resources/" "lib/xgboost4j-0.81-criteo-20180821_2.11-win64.jar"]
+
                    :codox {:themes [:rdash]
                            :metadata {:doc/format :markdown}
                            :output-path "docs/"

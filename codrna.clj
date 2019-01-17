@@ -29,6 +29,10 @@
 (def training-data (process-data "cod-rna.txt" 8))
 (def test-data (process-data "cod-rna-test.txt" 8))
 
+(def ttt (cl/lasvm (take 10000 (:data training-data)) (take 10000 (:labels training-data))))
+
+(.valueOf ttt (double-array (first (:data test-data))))
+
 (def knn-cl (cl/knn (:data training-data) (:labels training-data)))
 (def vknn (cl/validate knn-cl (:data test-data) (:labels test-data)))
 
