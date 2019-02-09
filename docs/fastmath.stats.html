@@ -13,13 +13,15 @@
   <li><code>:Size</code> - size of the samples, <code>(count ...)</code></li>
   <li><code>:Min</code> - <a href="fastmath.stats.html#var-minimum">minimum</a> value</li>
   <li><code>:Max</code> - <a href="fastmath.stats.html#var-maximum">maximum</a> value</li>
+  <li><code>:Range</code> - range of values</li>
   <li><code>:Mean</code> - <a href="fastmath.stats.html#var-mean">mean</a>/average</li>
   <li><code>:Median</code> - <a href="fastmath.stats.html#var-median">median</a>, see also: <a href="fastmath.stats.html#var-median-3">median-3</a></li>
   <li><code>:Mode</code> - <a href="fastmath.stats.html#var-mode">mode</a>, see also: <a href="fastmath.stats.html#var-modes">modes</a></li>
   <li><code>:Q1</code> - first quartile, use: <a href="fastmath.stats.html#var-percentile">percentile</a>, <a href="null">quartile</a></li>
   <li><code>:Q3</code> - third quartile, use: <a href="fastmath.stats.html#var-percentile">percentile</a>, <a href="null">quartile</a></li>
   <li><code>:Total</code> - <a href="fastmath.stats.html#var-sum">sum</a> of all samples</li>
-  <li><code>:SD</code> - standard deviation of population, corrected sample standard deviation, use: <a href="fastmath.stats.html#var-population-stddev">population-stddev</a></li>
+  <li><code>:SD</code> - sample standard deviation</li>
+  <li><code>:Variance</code> - variance</li>
   <li><code>:MAD</code> - <a href="fastmath.stats.html#var-median-absolute-deviation">median-absolute-deviation</a></li>
   <li><code>:SEM</code> - standard error of mean</li>
   <li><code>:LAV</code> - lower adjacent value, use: <a href="fastmath.stats.html#var-adjacent-values">adjacent-values</a></li>
@@ -55,11 +57,11 @@
 </ul>
 <p>Optional <code>estimation-strategy</code> argument can be set to change quantile calculations estimation type. See <a href="null">estimation-strategies</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>[LAV, UAV]</p></blockquote><pre><code class="hljs clojure">(adjacent-values [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; [-1.0 11.0]</code></pre></div><div><blockquote><p>Gaussian distribution [LAV, UAV]</p></blockquote><pre><code class="hljs clojure">(adjacent-values (repeatedly 1000000 r/grand))
-;;=&gt; [-2.7000857687493234 2.6996610841795916]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L208">view source</a></div></div><div class="public anchor" id="var-correlation"><h3>correlation</h3><div class="usage"><code>(correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
+;;=&gt; [-2.7000857687493234 2.6996610841795916]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L210">view source</a></div></div><div class="public anchor" id="var-correlation"><h3>correlation</h3><div class="usage"><code>(correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
              (repeatedly 100000 (partial r/drand -10.0 -5.0)))
-;;=&gt; 0.006795338600909702</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L373">view source</a></div></div><div class="public anchor" id="var-covariance"><h3>covariance</h3><div class="usage"><code>(covariance vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Covariance of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Covariance of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(covariance (repeatedly 100000 (partial r/grand 1.0 10.0))
+;;=&gt; 0.006795338600909702</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L377">view source</a></div></div><div class="public anchor" id="var-covariance"><h3>covariance</h3><div class="usage"><code>(covariance vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Covariance of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Covariance of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(covariance (repeatedly 100000 (partial r/grand 1.0 10.0))
             (repeatedly 100000 (partial r/drand -10.0 -5.0)))
-;;=&gt; -0.0014607954878506206</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L367">view source</a></div></div><div class="public anchor" id="var-estimate-bins"><h3>estimate-bins</h3><div class="usage"><code>(estimate-bins vs)</code><code>(estimate-bins vs method)</code></div><div class="doc"><div class="markdown"><p>Estimate number of bins for histogram.</p>
+;;=&gt; -0.0014607954878506206</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L371">view source</a></div></div><div class="public anchor" id="var-estimate-bins"><h3>estimate-bins</h3><div class="usage"><code>(estimate-bins vs)</code><code>(estimate-bins vs method)</code></div><div class="doc"><div class="markdown"><p>Estimate number of bins for histogram.</p>
 <p>Possible methods are: <code>:sqrt</code> <code>:sturges</code> <code>:rice</code> <code>:doane</code> <code>:scott</code> <code>:freedman-diaconis</code> (default).</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Estimate number of bins for various methods. <code>vs</code> contains 1000 random samples from Log-Normal distribution.</p></blockquote><pre><code class="hljs clojure">(estimate-bins vs :sqrt)
 ;;=&gt; 31
 (estimate-bins vs :sturges)
@@ -71,9 +73,9 @@
 (estimate-bins vs :scott)
 ;;=&gt; 53
 (estimate-bins vs :freedman-diaconis)
-;;=&gt; 170</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L420">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p></blockquote><pre><code class="hljs clojure">(sort (keys estimation-strategies-list))
-;;=&gt; (:legacy :r1 :r2 :r3 :r4 :r5 :r6 :r7 :r8 :r9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L88">view source</a></div></div><div class="public anchor" id="var-extent"><h3>extent</h3><div class="usage"><code>(extent vs)</code></div><div class="doc"><div class="markdown"><p>Return extent (min, max) values from sequence</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>min/max from gaussian distribution</p></blockquote><pre><code class="hljs clojure">(extent (repeatedly 100000 r/grand))
-;;=&gt; [-4.284832010490651 4.5215900810413405]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L279">view source</a></div></div><div class="public anchor" id="var-histogram"><h3>histogram</h3><div class="usage"><code>(histogram vs)</code><code>(histogram vs bins-or-estimate-method)</code><code>(histogram vs bins [mn mx])</code></div><div class="doc"><div class="markdown"><p>Calculate histogram.</p>
+;;=&gt; 170</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L424">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p></blockquote><pre><code class="hljs clojure">(sort (keys estimation-strategies-list))
+;;=&gt; (:legacy :r1 :r2 :r3 :r4 :r5 :r6 :r7 :r8 :r9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L90">view source</a></div></div><div class="public anchor" id="var-extent"><h3>extent</h3><div class="usage"><code>(extent vs)</code></div><div class="doc"><div class="markdown"><p>Return extent (min, max) values from sequence</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>min/max from gaussian distribution</p></blockquote><pre><code class="hljs clojure">(extent (repeatedly 100000 r/grand))
+;;=&gt; [-4.284832010490651 4.5215900810413405]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L281">view source</a></div></div><div class="public anchor" id="var-histogram"><h3>histogram</h3><div class="usage"><code>(histogram vs)</code><code>(histogram vs bins-or-estimate-method)</code><code>(histogram vs bins [mn mx])</code></div><div class="doc"><div class="markdown"><p>Calculate histogram.</p>
 <p>Returns map with keys:</p>
 <ul>
   <li><code>:size</code> - number of bins</li>
@@ -84,20 +86,20 @@
   <li><code>:samples</code> - number of used samples</li>
 </ul>
 <p>For estimation methods check <a href="fastmath.stats.html#var-estimate-bins">estimate-bins</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>3 bins from uniform distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 1000 rand) 3)
-;;=&gt; {:bins ([0.001254220834424502 359 0.359]
-;;=&gt;         [0.3339005946608477 319 0.319]
-;;=&gt;         [0.6665469684872709 322 0.322]),
-;;=&gt;  :max 0.999193342313694,
-;;=&gt;  :min 0.001254220834424502,
+;;=&gt; {:bins ([7.646695192380371E-4 317 0.317]
+;;=&gt;         [0.33371965748363 318 0.318]
+;;=&gt;         [0.6666746454480219 365 0.365]),
+;;=&gt;  :max 0.9996296334124138,
+;;=&gt;  :min 7.646695192380371E-4,
 ;;=&gt;  :samples 1000,
 ;;=&gt;  :size 3,
-;;=&gt;  :step 0.3326463738264232}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
-;;=&gt; {:bins ([0.1 1358 0.33899151273090367]
-;;=&gt;         [0.23333333333333334 1318 0.3290064902646031]
-;;=&gt;         [0.3666666666666667 1330 0.3320019970044933]),
+;;=&gt;  :step 0.33295498796439194}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
+;;=&gt; {:bins ([0.1 1393 0.34488734835355284]
+;;=&gt;         [0.23333333333333334 1355 0.33547907897994556]
+;;=&gt;         [0.3666666666666667 1291 0.3196335726665016]),
 ;;=&gt;  :max 0.5,
 ;;=&gt;  :min 0.1,
-;;=&gt;  :samples 4006,
+;;=&gt;  :samples 4039,
 ;;=&gt;  :size 3,
 ;;=&gt;  :step 0.13333333333333333}</code></pre></div><div><blockquote><p>5 bins from normal distribution.</p></blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 r/grand) 5)
 ;;=&gt; {:bins ([-3.8255442971705595 103 0.0103]
@@ -111,12 +113,12 @@
 ;;=&gt;  :size 5,
 ;;=&gt;  :step 1.506064781845698}</code></pre></div><div><blockquote><p>Estimate number of bins</p></blockquote><pre><code class="hljs clojure">(:size (histogram (repeatedly 10000 r/grand)))
 ;;=&gt; 60</code></pre></div><div><blockquote><p>Estimate number of bins, Rice rule</p></blockquote><pre><code class="hljs clojure">(:size (histogram (repeatedly 10000 r/grand) :rice))
-;;=&gt; 44</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L445">view source</a></div></div><div class="public anchor" id="var-iqr"><h3>iqr</h3><div class="usage"><code>(iqr vs)</code><code>(iqr vs estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Interquartile range.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>IQR</p></blockquote><pre><code class="hljs clojure">(iqr (repeatedly 100000 r/grand))
-;;=&gt; 1.3507826440294717</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L198">view source</a></div></div><div class="public anchor" id="var-jensen-shannon-divergence"><h3>jensen-shannon-divergence</h3><div class="usage"><code>(jensen-shannon-divergence vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Jensen-Shannon divergence of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Jensen-Shannon divergence</p></blockquote><pre><code class="hljs clojure">(jensen-shannon-divergence (repeatedly 100 (fn* [] (r/irand 100)))
+;;=&gt; 44</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L449">view source</a></div></div><div class="public anchor" id="var-iqr"><h3>iqr</h3><div class="usage"><code>(iqr vs)</code><code>(iqr vs estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Interquartile range.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>IQR</p></blockquote><pre><code class="hljs clojure">(iqr (repeatedly 100000 r/grand))
+;;=&gt; 1.3507826440294717</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L200">view source</a></div></div><div class="public anchor" id="var-jensen-shannon-divergence"><h3>jensen-shannon-divergence</h3><div class="usage"><code>(jensen-shannon-divergence vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Jensen-Shannon divergence of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Jensen-Shannon divergence</p></blockquote><pre><code class="hljs clojure">(jensen-shannon-divergence (repeatedly 100 (fn* [] (r/irand 100)))
                            (repeatedly 100 (fn* [] (r/irand 100))))
-;;=&gt; 503.4132904781968</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L403">view source</a></div></div><div class="public anchor" id="var-kendall-correlation"><h3>kendall-correlation</h3><div class="usage"><code>(kendall-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Kendall’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kendall’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(kendall-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
+;;=&gt; 503.4132904781968</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L407">view source</a></div></div><div class="public anchor" id="var-kendall-correlation"><h3>kendall-correlation</h3><div class="usage"><code>(kendall-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Kendall’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kendall’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(kendall-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
                      (repeatedly 100000 (partial r/drand -10.0 -5.0)))
-;;=&gt; -7.439226392263922E-4</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L391">view source</a></div></div><div class="public anchor" id="var-kernel-density"><h3>kernel-density</h3><div class="usage"><code>(kernel-density vs h)</code><code>(kernel-density vs)</code></div><div class="doc"><div class="markdown"><p>Creates kernel density function for given series <code>vs</code> and optional bandwidth <code>h</code>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
+;;=&gt; -7.439226392263922E-4</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L395">view source</a></div></div><div class="public anchor" id="var-kernel-density"><h3>kernel-density</h3><div class="usage"><code>(kernel-density vs h)</code><code>(kernel-density vs)</code></div><div class="doc"><div class="markdown"><p>Creates kernel density function for given series <code>vs</code> and optional bandwidth <code>h</code>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
   (map (comp m/approx kd) (range -5 15)))
 ;;=&gt; (0.0
 ;;=&gt;  0.0
@@ -137,28 +139,28 @@
 ;;=&gt;  0.12
 ;;=&gt;  0.03
 ;;=&gt;  0.0
-;;=&gt;  0.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L487">view source</a></div></div><div class="public anchor" id="var-kullback-leibler-divergence"><h3>kullback-leibler-divergence</h3><div class="usage"><code>(kullback-leibler-divergence vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Kullback-Leibler divergence of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kullback-Leibler divergence.</p></blockquote><pre><code class="hljs clojure">(kullback-leibler-divergence (repeatedly 100 (fn* [] (r/irand 100)))
+;;=&gt;  0.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L491">view source</a></div></div><div class="public anchor" id="var-kullback-leibler-divergence"><h3>kullback-leibler-divergence</h3><div class="usage"><code>(kullback-leibler-divergence vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Kullback-Leibler divergence of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kullback-Leibler divergence.</p></blockquote><pre><code class="hljs clojure">(kullback-leibler-divergence (repeatedly 100 (fn* [] (r/irand 100)))
                              (repeatedly 100 (fn* [] (r/irand 100))))
-;;=&gt; 2199.662874529706</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L397">view source</a></div></div><div class="public anchor" id="var-kurtosis"><h3>kurtosis</h3><div class="usage"><code>(kurtosis vs)</code></div><div class="doc"><div class="markdown"><p>Calculate kurtosis from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kurtosis</p></blockquote><pre><code class="hljs clojure">(kurtosis [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 8.732515263272099</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L295">view source</a></div></div><div class="public anchor" id="var-maximum"><h3>maximum</h3><div class="usage"><code>(maximum vs)</code></div><div class="doc"><div class="markdown"><p>Maximum value from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Maximum value</p></blockquote><pre><code class="hljs clojure">(maximum [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 111.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L271">view source</a></div></div><div class="public anchor" id="var-mean"><h3>mean</h3><div class="usage"><code>(mean vs)</code></div><div class="doc"><div class="markdown"><p>Calculate mean of <code>vs</code></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Mean (average value)</p></blockquote><pre><code class="hljs clojure">(mean [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 14.111111111111109</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L147">view source</a></div></div><div class="public anchor" id="var-median"><h3>median</h3><div class="usage"><code>(median vs)</code></div><div class="doc"><div class="markdown"><p>Calculate median of <code>vs</code>. See <a href="fastmath.stats.html#var-median-3">median-3</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Median (percentile 50%).</p></blockquote><pre><code class="hljs clojure">(median [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 2199.662874529706</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L401">view source</a></div></div><div class="public anchor" id="var-kurtosis"><h3>kurtosis</h3><div class="usage"><code>(kurtosis vs)</code></div><div class="doc"><div class="markdown"><p>Calculate kurtosis from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Kurtosis</p></blockquote><pre><code class="hljs clojure">(kurtosis [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 8.732515263272099</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L297">view source</a></div></div><div class="public anchor" id="var-maximum"><h3>maximum</h3><div class="usage"><code>(maximum vs)</code></div><div class="doc"><div class="markdown"><p>Maximum value from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Maximum value</p></blockquote><pre><code class="hljs clojure">(maximum [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 111.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L273">view source</a></div></div><div class="public anchor" id="var-mean"><h3>mean</h3><div class="usage"><code>(mean vs)</code></div><div class="doc"><div class="markdown"><p>Calculate mean of <code>vs</code></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Mean (average value)</p></blockquote><pre><code class="hljs clojure">(mean [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 14.111111111111109</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L149">view source</a></div></div><div class="public anchor" id="var-median"><h3>median</h3><div class="usage"><code>(median vs)</code></div><div class="doc"><div class="markdown"><p>Calculate median of <code>vs</code>. See <a href="fastmath.stats.html#var-median-3">median-3</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Median (percentile 50%).</p></blockquote><pre><code class="hljs clojure">(median [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; 2.0</code></pre></div><div><blockquote><p>For three elements use faster <a href="fastmath.stats.html#var-median-3">median-3</a>.</p></blockquote><pre><code class="hljs clojure">(median [7 1 4])
-;;=&gt; 4.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L135">view source</a></div></div><div class="public anchor" id="var-median-3"><h3>median-3</h3><div class="usage"><code>(median-3 a b c)</code></div><div class="doc"><div class="markdown"><p>Median of three values. See <a href="fastmath.stats.html#var-median">median</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Median of [7 1 4]</p></blockquote><pre><code class="hljs clojure">(median-3 7 1 4)
-;;=&gt; 4.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L141">view source</a></div></div><div class="public anchor" id="var-median-absolute-deviation"><h3>median-absolute-deviation</h3><div class="usage"><code>(median-absolute-deviation vs)</code></div><div class="doc"><div class="markdown"><p>Calculate MAD</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>MAD</p></blockquote><pre><code class="hljs clojure">(median-absolute-deviation [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 3.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L192">view source</a></div></div><div class="public anchor" id="var-minimum"><h3>minimum</h3><div class="usage"><code>(minimum vs)</code></div><div class="doc"><div class="markdown"><p>Minimum value from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Minimum value</p></blockquote><pre><code class="hljs clojure">(minimum [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; -1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L263">view source</a></div></div><div class="public anchor" id="var-mode"><h3>mode</h3><div class="usage"><code>(mode vs)</code></div><div class="doc"><div class="markdown"><p>Find the value that appears most often in a dataset <code>vs</code>.</p>
+;;=&gt; 4.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L137">view source</a></div></div><div class="public anchor" id="var-median-3"><h3>median-3</h3><div class="usage"><code>(median-3 a b c)</code></div><div class="doc"><div class="markdown"><p>Median of three values. See <a href="fastmath.stats.html#var-median">median</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Median of [7 1 4]</p></blockquote><pre><code class="hljs clojure">(median-3 7 1 4)
+;;=&gt; 4.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L143">view source</a></div></div><div class="public anchor" id="var-median-absolute-deviation"><h3>median-absolute-deviation</h3><div class="usage"><code>(median-absolute-deviation vs)</code></div><div class="doc"><div class="markdown"><p>Calculate MAD</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>MAD</p></blockquote><pre><code class="hljs clojure">(median-absolute-deviation [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 3.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L194">view source</a></div></div><div class="public anchor" id="var-minimum"><h3>minimum</h3><div class="usage"><code>(minimum vs)</code></div><div class="doc"><div class="markdown"><p>Minimum value from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Minimum value</p></blockquote><pre><code class="hljs clojure">(minimum [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; -1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L265">view source</a></div></div><div class="public anchor" id="var-mode"><h3>mode</h3><div class="usage"><code>(mode vs)</code></div><div class="doc"><div class="markdown"><p>Find the value that appears most often in a dataset <code>vs</code>.</p>
 <p>See also <a href="fastmath.stats.html#var-modes">modes</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Example</p></blockquote><pre><code class="hljs clojure">(mode [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; -1.0</code></pre></div><div><blockquote><p>Returns lowest value when every element appears equally.</p></blockquote><pre><code class="hljs clojure">(mode [5 1 2 3 4])
-;;=&gt; 1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L69">view source</a></div></div><div class="public anchor" id="var-modes"><h3>modes</h3><div class="usage"><code>(modes vs)</code></div><div class="doc"><div class="markdown"><p>Find the values that appears most often in a dataset <code>vs</code>.</p>
+;;=&gt; 1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L71">view source</a></div></div><div class="public anchor" id="var-modes"><h3>modes</h3><div class="usage"><code>(modes vs)</code></div><div class="doc"><div class="markdown"><p>Find the values that appears most often in a dataset <code>vs</code>.</p>
 <p>Returns sequence with all most appearing values in increasing order.</p>
 <p>See also <a href="fastmath.stats.html#var-mode">mode</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Example</p></blockquote><pre><code class="hljs clojure">(modes [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; (-1.0)</code></pre></div><div><blockquote><p>Returns lowest value when every element appears equally.</p></blockquote><pre><code class="hljs clojure">(modes [5 5 1 1 2 3 4 4])
-;;=&gt; (1.0 4.0 5.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L78">view source</a></div></div><div class="public anchor" id="var-outliers"><h3>outliers</h3><div class="usage"><code>(outliers vs)</code><code>(outliers vs estimation-strategy)</code><code>(outliers vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Find outliers defined as values outside outer fences.</p>
+;;=&gt; (1.0 4.0 5.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L80">view source</a></div></div><div class="public anchor" id="var-outliers"><h3>outliers</h3><div class="usage"><code>(outliers vs)</code><code>(outliers vs estimation-strategy)</code><code>(outliers vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Find outliers defined as values outside outer fences.</p>
 <p>Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is <code>(- Q3 Q1)</code>.</p>
 <ul>
-  <li>LOF (Lower Outer Fence) equals <code>(- Q1 (* 3.0 IQR))</code>.</li>
-  <li>UOF (Upper Outer Fence) equals <code>(+ Q3 (* 3.0 IQR))</code>.</li>
+  <li>LIF (Lower Outer Fence) equals <code>(- Q1 (* 1.5 IQR))</code>.</li>
+  <li>UIF (Upper Outer Fence) equals <code>(+ Q3 (* 1.5 IQR))</code>.</li>
 </ul>
 <p>Returns sequence.</p>
 <p>Optional <code>estimation-strategy</code> argument can be set to change quantile calculations estimation type. See <a href="null">estimation-strategies</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Outliers</p></blockquote><pre><code class="hljs clojure">(outliers [1 2 3 -1 -1 2 -1 11 111])
@@ -166,14 +168,1006 @@
 ;;=&gt; (-4.864618557049428
 ;;=&gt;  -4.780633031723624
 ;;=&gt;  -4.7376202235271165
-;;=&gt;  4.728896589466469
-;;=&gt;  4.744055356963435
-;;=&gt;  4.747383207352102
-;;=&gt;  4.769288560936935
-;;=&gt;  4.909931823383421
-;;=&gt;  5.043073126955698)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L234">view source</a></div></div><div class="public anchor" id="var-pearson-correlation"><h3>pearson-correlation</h3><div class="usage"><code>(pearson-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Pearson’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Pearson’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(pearson-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
+;;=&gt;  -4.644115369206518
+;;=&gt;  -4.618840593194672
+;;=&gt;  -4.593887889360738
+;;=&gt;  -4.586185357784577
+;;=&gt;  -4.558848211855354
+;;=&gt;  -4.551969354230075
+;;=&gt;  -4.4906768826675085
+;;=&gt;  -4.475308425641453
+;;=&gt;  -4.473961126693301
+;;=&gt;  -4.4537082198639695
+;;=&gt;  -4.42171685587022
+;;=&gt;  -4.41887863811723
+;;=&gt;  -4.413420751286653
+;;=&gt;  -4.412713480308896
+;;=&gt;  -4.363345663591865
+;;=&gt;  -4.359153831891941
+;;=&gt;  -4.322714690453202
+;;=&gt;  -4.309827885769101
+;;=&gt;  -4.308777150781347
+;;=&gt;  -4.304228021708055
+;;=&gt;  -4.30395892586775
+;;=&gt;  -4.3024122906079745
+;;=&gt;  -4.2987958614167905
+;;=&gt;  -4.287240939066191
+;;=&gt;  -4.273366090621879
+;;=&gt;  -4.267473203142155
+;;=&gt;  -4.264006171269543
+;;=&gt;  -4.262372487574978
+;;=&gt;  -4.261918993822534
+;;=&gt;  -4.258167400449574
+;;=&gt;  -4.25785085047697
+;;=&gt;  -4.257659616641514
+;;=&gt;  -4.2449623866198065
+;;=&gt;  -4.238346180334453
+;;=&gt;  -4.234709817215714
+;;=&gt;  -4.228168875347708
+;;=&gt;  -4.227395270229169
+;;=&gt;  -4.225866821597299
+;;=&gt;  -4.219585743406213
+;;=&gt;  -4.2142408294219145
+;;=&gt;  -4.206287087926667
+;;=&gt;  -4.20507652696761
+;;=&gt;  -4.198909889340602
+;;=&gt;  -4.19699814310756
+;;=&gt;  -4.190941822509145
+;;=&gt;  -4.188041915585418
+;;=&gt;  -4.187856546937003
+;;=&gt;  -4.187513721756005
+;;=&gt;  -4.183601668806248
+;;=&gt;  -4.180543732325243
+;;=&gt;  -4.180108419607517
+;;=&gt;  -4.163041058888336
+;;=&gt;  -4.1607541688066885
+;;=&gt;  -4.1490950232685595
+;;=&gt;  -4.148640911297966
+;;=&gt;  -4.148499578282316
+;;=&gt;  -4.145455777610248
+;;=&gt;  -4.145220952460219
+;;=&gt;  -4.124599977945826
+;;=&gt;  -4.116485226195253
+;;=&gt;  -4.105075973971957
+;;=&gt;  -4.104392208882228
+;;=&gt;  -4.103582804665487
+;;=&gt;  -4.103576196153702
+;;=&gt;  -4.102872414231344
+;;=&gt;  -4.102062403080889
+;;=&gt;  -4.099476490527309
+;;=&gt;  -4.096637197934659
+;;=&gt;  -4.095755019628796
+;;=&gt;  -4.095184710090748
+;;=&gt;  -4.091844062763165
+;;=&gt;  -4.085500393662532
+;;=&gt;  -4.084663768060016
+;;=&gt;  -4.083370071451077
+;;=&gt;  -4.079850129232324
+;;=&gt;  -4.076931146735512
+;;=&gt;  -4.075396927747026
+;;=&gt;  -4.074281396710717
+;;=&gt;  -4.073354554015091
+;;=&gt;  -4.070091038911389
+;;=&gt;  -4.069454611415691
+;;=&gt;  -4.060892446816254
+;;=&gt;  -4.051097046981202
+;;=&gt;  -4.044336907011207
+;;=&gt;  -4.041976144248179
+;;=&gt;  -4.034797965367644
+;;=&gt;  -4.0300412390890346
+;;=&gt;  -4.028836324480787
+;;=&gt;  -4.027807667900002
+;;=&gt;  -4.0273823830612585
+;;=&gt;  -4.024260096471285
+;;=&gt;  -4.024071763350012
+;;=&gt;  -4.023751206559727
+;;=&gt;  -4.015872897953079
+;;=&gt;  -4.012518991160877
+;;=&gt;  -4.012056629832236
+;;=&gt;  -4.003096446472881
+;;=&gt;  -4.00189005017223
+;;=&gt;  -3.998920340382677
+;;=&gt;  -3.99826727241263
+;;=&gt;  -3.9982288882213677
+;;=&gt;  -3.9980871342315574
+;;=&gt;  -3.9961529782505694
+;;=&gt;  -3.9957489679833684
+;;=&gt;  -3.9948045245427126
+;;=&gt;  -3.9907147596035997
+;;=&gt;  -3.98950109997643
+;;=&gt;  -3.989472512492243
+;;=&gt;  -3.989145838864186
+;;=&gt;  -3.9877405178770275
+;;=&gt;  -3.985893220272808
+;;=&gt;  -3.984903367696031
+;;=&gt;  -3.9820522411512482
+;;=&gt;  -3.9788423808553057
+;;=&gt;  -3.9769045283611897
+;;=&gt;  -3.976258441648217
+;;=&gt;  -3.9754786523467804
+;;=&gt;  -3.9734884700063637
+;;=&gt;  -3.9726147347681477
+;;=&gt;  -3.970067404885007
+;;=&gt;  -3.9687944789374625
+;;=&gt;  -3.9685690853702034
+;;=&gt;  -3.9681701723533562
+;;=&gt;  -3.967862431827053
+;;=&gt;  -3.9676087367387725
+;;=&gt;  -3.965457396838044
+;;=&gt;  -3.963338671710944
+;;=&gt;  -3.9626349853845935
+;;=&gt;  -3.961167742230991
+;;=&gt;  -3.960627313846753
+;;=&gt;  -3.9556458070972798
+;;=&gt;  -3.95411094124661
+;;=&gt;  -3.953666578256414
+;;=&gt;  -3.948349700732439
+;;=&gt;  -3.9466852951056177
+;;=&gt;  -3.9451402767158847
+;;=&gt;  -3.944996455773319
+;;=&gt;  -3.9380743832302922
+;;=&gt;  -3.9350954329206522
+;;=&gt;  -3.9331411834765695
+;;=&gt;  -3.932578649736749
+;;=&gt;  -3.9309129874254034
+;;=&gt;  -3.9298799502374044
+;;=&gt;  -3.924902969006958
+;;=&gt;  -3.9209713313829866
+;;=&gt;  -3.91837676820787
+;;=&gt;  -3.917871923240266
+;;=&gt;  -3.917684528692268
+;;=&gt;  -3.9137971181876643
+;;=&gt;  -3.9096376156795682
+;;=&gt;  -3.909497294525319
+;;=&gt;  -3.908020127968985
+;;=&gt;  -3.904775136688994
+;;=&gt;  -3.900453919832471
+;;=&gt;  -3.8982297486055644
+;;=&gt;  -3.893951592543951
+;;=&gt;  -3.8931060540524873
+;;=&gt;  -3.8920293607392114
+;;=&gt;  -3.886333404675153
+;;=&gt;  -3.8860678156553297
+;;=&gt;  -3.8850618899295886
+;;=&gt;  -3.884593065592212
+;;=&gt;  -3.8825859766558235
+;;=&gt;  -3.8812060600310017
+;;=&gt;  -3.880953747197901
+;;=&gt;  -3.8747212284542116
+;;=&gt;  -3.874570734536853
+;;=&gt;  -3.8737358284539045
+;;=&gt;  -3.873574227852192
+;;=&gt;  -3.8714240566776894
+;;=&gt;  -3.8703300540713714
+;;=&gt;  -3.8700118298281265
+;;=&gt;  -3.8697627911600847
+;;=&gt;  -3.8680335584669248
+;;=&gt;  -3.8662345812834764
+;;=&gt;  -3.8659643074097434
+;;=&gt;  -3.8658902367137835
+;;=&gt;  -3.8638632540223448
+;;=&gt;  -3.8615625932730615
+;;=&gt;  -3.8605213773734475
+;;=&gt;  -3.860092746853278
+;;=&gt;  -3.860014630992133
+;;=&gt;  -3.859367752804585
+;;=&gt;  -3.855821065970181
+;;=&gt;  -3.8553674652145324
+;;=&gt;  -3.8549100305769706
+;;=&gt;  -3.8546096124458744
+;;=&gt;  -3.8536723654914056
+;;=&gt;  -3.8503198625187096
+;;=&gt;  -3.8492548955846346
+;;=&gt;  -3.848925626518424
+;;=&gt;  -3.8473429321251853
+;;=&gt;  -3.847226116476303
+;;=&gt;  -3.847063274810756
+;;=&gt;  -3.843694444835305
+;;=&gt;  -3.8411243997162394
+;;=&gt;  -3.8407066336895612
+;;=&gt;  -3.8405361393201023
+;;=&gt;  -3.839129874163162
+;;=&gt;  -3.838132876654175
+;;=&gt;  -3.8379795921795212
+;;=&gt;  -3.834999089539653
+;;=&gt;  -3.83455046987054
+;;=&gt;  -3.8334086244749273
+;;=&gt;  -3.833328343346732
+;;=&gt;  -3.8298617800628922
+;;=&gt;  -3.829409074297976
+;;=&gt;  -3.8267136745125914
+;;=&gt;  -3.8264265649887297
+;;=&gt;  -3.8257025196676677
+;;=&gt;  -3.824977613088853
+;;=&gt;  -3.824911062235443
+;;=&gt;  -3.8235311523655358
+;;=&gt;  -3.8211569728600256
+;;=&gt;  -3.820585818023772
+;;=&gt;  -3.8182029730726317
+;;=&gt;  -3.815909014092634
+;;=&gt;  -3.814937627591842
+;;=&gt;  -3.8138109011635035
+;;=&gt;  -3.813407624082124
+;;=&gt;  -3.8097099689675304
+;;=&gt;  -3.808118680592539
+;;=&gt;  -3.8071928630451426
+;;=&gt;  -3.804651564027459
+;;=&gt;  -3.8041633268832338
+;;=&gt;  -3.803106515487094
+;;=&gt;  -3.7995501623058963
+;;=&gt;  -3.7992370709193053
+;;=&gt;  -3.7973191183361608
+;;=&gt;  -3.7968697023392846
+;;=&gt;  -3.7958090205186577
+;;=&gt;  -3.7947929910019154
+;;=&gt;  -3.793537432309249
+;;=&gt;  -3.792624711498151
+;;=&gt;  -3.792354366995871
+;;=&gt;  -3.7922596068509864
+;;=&gt;  -3.7911788441410303
+;;=&gt;  -3.79064100573841
+;;=&gt;  -3.7901206980876476
+;;=&gt;  -3.788623283539847
+;;=&gt;  -3.787204923110429
+;;=&gt;  -3.7854143268842715
+;;=&gt;  -3.784769241750765
+;;=&gt;  -3.7843570438877974
+;;=&gt;  -3.783146801199265
+;;=&gt;  -3.7828160117917418
+;;=&gt;  -3.782718649419201
+;;=&gt;  -3.7826157133527243
+;;=&gt;  -3.7813430154847953
+;;=&gt;  -3.7807726354813496
+;;=&gt;  -3.780728268342875
+;;=&gt;  -3.7805082644509103
+;;=&gt;  -3.7804768258304287
+;;=&gt;  -3.778403142679267
+;;=&gt;  -3.7783543012271585
+;;=&gt;  -3.776489904292622
+;;=&gt;  -3.7759088163555665
+;;=&gt;  -3.7747578037694267
+;;=&gt;  -3.7716738774766974
+;;=&gt;  -3.769751493950011
+;;=&gt;  -3.766174712730359
+;;=&gt;  -3.765561158163416
+;;=&gt;  -3.7648427909747566
+;;=&gt;  -3.7647911816285484
+;;=&gt;  -3.762914010317666
+;;=&gt;  -3.7624204357100104
+;;=&gt;  -3.759320672635686
+;;=&gt;  -3.7559479495699537
+;;=&gt;  -3.755423264692121
+;;=&gt;  -3.755204451557092
+;;=&gt;  -3.7546343508630846
+;;=&gt;  -3.7544731370337954
+;;=&gt;  -3.7533304501367475
+;;=&gt;  -3.7516057201565713
+;;=&gt;  -3.751049559671207
+;;=&gt;  -3.748102145226111
+;;=&gt;  -3.746457415291823
+;;=&gt;  -3.7459321342483243
+;;=&gt;  -3.7441583689139293
+;;=&gt;  -3.742814465452261
+;;=&gt;  -3.742504132950398
+;;=&gt;  -3.7407856681206977
+;;=&gt;  -3.738454353999876
+;;=&gt;  -3.7373528430953886
+;;=&gt;  -3.7370380488515127
+;;=&gt;  -3.736846954491693
+;;=&gt;  -3.7328905234497283
+;;=&gt;  -3.73201013186353
+;;=&gt;  -3.73159749857123
+;;=&gt;  -3.731139532178601
+;;=&gt;  -3.729803778338881
+;;=&gt;  -3.7297957135148905
+;;=&gt;  -3.7292190621213526
+;;=&gt;  -3.7291132452567783
+;;=&gt;  -3.727667336739702
+;;=&gt;  -3.7273827057050597
+;;=&gt;  -3.723600932716947
+;;=&gt;  -3.7227309734163114
+;;=&gt;  -3.722439880201678
+;;=&gt;  -3.721951841241697
+;;=&gt;  -3.7208268236307562
+;;=&gt;  -3.7201274277406315
+;;=&gt;  -3.7196894702759185
+;;=&gt;  -3.718449952412379
+;;=&gt;  -3.717689783078894
+;;=&gt;  -3.7161825552953727
+;;=&gt;  -3.7160529614689137
+;;=&gt;  -3.716052917900829
+;;=&gt;  -3.7124293344027617
+;;=&gt;  -3.7092701213361323
+;;=&gt;  -3.7088931078311025
+;;=&gt;  -3.7085288194942203
+;;=&gt;  -3.708046713480252
+;;=&gt;  -3.70796555945307
+;;=&gt;  -3.707043977515887
+;;=&gt;  -3.706636810176617
+;;=&gt;  -3.7063555185989085
+;;=&gt;  -3.7054484857174077
+;;=&gt;  -3.705142727004665
+;;=&gt;  -3.705017248552025
+;;=&gt;  -3.7048051358502945
+;;=&gt;  -3.703650420328167
+;;=&gt;  -3.702963410431655
+;;=&gt;  -3.701987808516928
+;;=&gt;  -3.7003018970454655
+;;=&gt;  -3.6995733466683918
+;;=&gt;  -3.6989210648441704
+;;=&gt;  -3.6985979797432393
+;;=&gt;  -3.697538502369114
+;;=&gt;  -3.697324323221713
+;;=&gt;  -3.696562041849838
+;;=&gt;  -3.6963540960647916
+;;=&gt;  -3.6949168804864283
+;;=&gt;  -3.694178459870892
+;;=&gt;  -3.6939770104740055
+;;=&gt;  -3.693963639547079
+;;=&gt;  -3.693737365406771
+;;=&gt;  -3.6926232671867085
+;;=&gt;  -3.6917353501037655
+;;=&gt;  -3.6915317731285726
+;;=&gt;  -3.6902577645131163
+;;=&gt;  -3.690071081666159
+;;=&gt;  -3.6892171822693647
+;;=&gt;  -3.68793562356909
+;;=&gt;  -3.687599277866427
+;;=&gt;  -3.68677369365599
+;;=&gt;  -3.6854482840132965
+;;=&gt;  -3.684682584706529
+;;=&gt;  -3.6843417859402403
+;;=&gt;  -3.6838522125735835
+;;=&gt;  -3.6822587869704386
+;;=&gt;  -3.6812708656447537
+;;=&gt;  -3.6805764581715366
+;;=&gt;  -3.6798286757144054
+;;=&gt;  -3.6774656365793486
+;;=&gt;  -3.6771838328202437
+;;=&gt;  -3.6769346707888664
+;;=&gt;  -3.6767008833963772
+;;=&gt;  -3.6751362881091647
+;;=&gt;  -3.6745155624576373
+;;=&gt;  -3.6744457043756458
+;;=&gt;  -3.674252092500562
+;;=&gt;  -3.674135828427081
+;;=&gt;  -3.6725446271653865
+;;=&gt;  -3.672207889431949
+;;=&gt;  -3.6721372958728713
+;;=&gt;  -3.671789351477981
+;;=&gt;  -3.6707516885716647
+;;=&gt;  -3.6705674063047913
+;;=&gt;  -3.668503433701586
+;;=&gt;  -3.66532830641419
+;;=&gt;  -3.663847899252116
+;;=&gt;  -3.6633188317474525
+;;=&gt;  -3.662938003790052
+;;=&gt;  -3.662821982198779
+;;=&gt;  -3.662626386615752
+;;=&gt;  -3.662372838347837
+;;=&gt;  -3.6619862828560708
+;;=&gt;  -3.6611637031722672
+;;=&gt;  -3.661124472806077
+;;=&gt;  -3.6610405112067146
+;;=&gt;  -3.6601203981377726
+;;=&gt;  -3.659303348431717
+;;=&gt;  -3.658924426868847
+;;=&gt;  -3.6587923055664313
+;;=&gt;  -3.657920480938206
+;;=&gt;  -3.657845737882745
+;;=&gt;  -3.65780236945033
+;;=&gt;  -3.6564801937147804
+;;=&gt;  -3.6551352942851336
+;;=&gt;  -3.654780256388506
+;;=&gt;  -3.653297836046129
+;;=&gt;  -3.6506558574066967
+;;=&gt;  -3.6494748015009604
+;;=&gt;  -3.6485924491825865
+;;=&gt;  -3.647524537428646
+;;=&gt;  -3.6468319707340457
+;;=&gt;  -3.646224618372912
+;;=&gt;  -3.645683447905108
+;;=&gt;  -3.6430522872246502
+;;=&gt;  -3.6424350778493157
+;;=&gt;  -3.641193397665438
+;;=&gt;  -3.6409256424713594
+;;=&gt;  -3.6394942905800063
+;;=&gt;  -3.639356737256544
+;;=&gt;  -3.6391445486334164
+;;=&gt;  -3.6385437147083426
+;;=&gt;  -3.638517846413763
+;;=&gt;  -3.6384885088738
+;;=&gt;  -3.6382932289290206
+;;=&gt;  -3.6371155913450646
+;;=&gt;  -3.6368927338993653
+;;=&gt;  -3.636857858575219
+;;=&gt;  -3.636070918592667
+;;=&gt;  -3.635777075580994
+;;=&gt;  -3.6356871948474767
+;;=&gt;  -3.635606773605057
+;;=&gt;  -3.6355229788343326
+;;=&gt;  -3.6350706389558995
+;;=&gt;  -3.634661095851968
+;;=&gt;  -3.632460184967267
+;;=&gt;  -3.631578124569985
+;;=&gt;  -3.6311964875860667
+;;=&gt;  -3.6308280934426262
+;;=&gt;  -3.630546966312914
+;;=&gt;  -3.628760134352396
+;;=&gt;  -3.6284321937700463
+;;=&gt;  -3.6269193957803827
+;;=&gt;  -3.6256181374684306
+;;=&gt;  -3.6254658916753764
+;;=&gt;  -3.624822628184229
+;;=&gt;  -3.624435074337942
+;;=&gt;  -3.6231054907540683
+;;=&gt;  -3.6223669836060903
+;;=&gt;  -3.6218842259508643
+;;=&gt;  -3.62151129430057
+;;=&gt;  -3.621436225111607
+;;=&gt;  -3.6209537044870914
+;;=&gt;  -3.6207739286994016
+;;=&gt;  -3.6199932219930644
+;;=&gt;  -3.619701982567102
+;;=&gt;  -3.619610710794256
+;;=&gt;  -3.6189699818702064
+;;=&gt;  -3.618036591927223
+;;=&gt;  -3.6170924987180197
+;;=&gt;  -3.6170672543345717
+;;=&gt;  -3.616330432396697
+;;=&gt;  -3.6162196558554722
+;;=&gt;  -3.6160258488453496
+;;=&gt;  -3.6159899546469156
+;;=&gt;  -3.6157753119603293
+;;=&gt;  -3.6156321238450175
+;;=&gt;  -3.6137289058525366
+;;=&gt;  -3.6133192661546474
+;;=&gt;  -3.6129713309736147
+;;=&gt;  -3.6120899068110917
+;;=&gt;  -3.6120853274996025
+;;=&gt;  -3.6113723850478565
+;;=&gt;  -3.609989323026722
+;;=&gt;  -3.609796016213619
+;;=&gt;  -3.6086560061277426
+;;=&gt;  -3.60822397201436
+;;=&gt;  -3.607859460709699
+;;=&gt;  -3.606708680066725
+;;=&gt;  -3.606597470394229
+;;=&gt;  -3.606218300333943
+;;=&gt;  -3.6055496323771004
+;;=&gt;  -3.6052622126943454
+;;=&gt;  -3.6046257079833683
+;;=&gt;  -3.6042163646629315
+;;=&gt;  -3.6041724494832
+;;=&gt;  -3.6041664622825116
+;;=&gt;  -3.603458780826882
+;;=&gt;  -3.6019299969684235
+;;=&gt;  -3.6018253847399135
+;;=&gt;  -3.601585649654978
+;;=&gt;  -3.601167118829925
+;;=&gt;  -3.6004807943263426
+;;=&gt;  -3.600406963545338
+;;=&gt;  -3.599264379592558
+;;=&gt;  -3.5989078533830696
+;;=&gt;  -3.5981603173707066
+;;=&gt;  -3.5980015120275
+;;=&gt;  -3.5967001230200455
+;;=&gt;  -3.596646416845292
+;;=&gt;  -3.5964271875894536
+;;=&gt;  -3.5951220145061518
+;;=&gt;  -3.593380087963057
+;;=&gt;  -3.593354651146931
+;;=&gt;  -3.592932642415288
+;;=&gt;  -3.5927653295659847
+;;=&gt;  -3.5919880973925298
+;;=&gt;  -3.5916322170501878
+;;=&gt;  -3.5914530869749335
+;;=&gt;  -3.591175205021749
+;;=&gt;  -3.590629379968282
+;;=&gt;  -3.590563364077457
+;;=&gt;  -3.5902838913868833
+;;=&gt;  -3.588106799456412
+;;=&gt;  -3.588030696927876
+;;=&gt;  -3.587715978626676
+;;=&gt;  -3.5876773663357677
+;;=&gt;  -3.5870717154583174
+;;=&gt;  -3.585202380589059
+;;=&gt;  -3.584839544095676
+;;=&gt;  -3.583890047199825
+;;=&gt;  -3.5837197749660716
+;;=&gt;  -3.583376737834664
+;;=&gt;  -3.5833242605617297
+;;=&gt;  -3.582307522697845
+;;=&gt;  -3.5822493953384233
+;;=&gt;  -3.5818780976677194
+;;=&gt;  -3.5815711849336003
+;;=&gt;  -3.5807493133045436
+;;=&gt;  -3.579614755040769
+;;=&gt;  -3.5792726820812706
+;;=&gt;  -3.5788328553259623
+;;=&gt;  -3.578785385354103
+;;=&gt;  -3.5786798966714217
+;;=&gt;  -3.578274838444263
+;;=&gt;  -3.578172094504925
+;;=&gt;  -3.577451978897757
+;;=&gt;  -3.577356903825142
+;;=&gt;  -3.576660983176073
+;;=&gt;  -3.5752713755988768
+;;=&gt;  -3.575239454746613
+;;=&gt;  -3.5746834557835743
+;;=&gt;  -3.574618938255806
+;;=&gt;  -3.5744079053491555
+;;=&gt;  -3.5743903977687106
+;;=&gt;  -3.574282307860747
+;;=&gt;  -3.5738044311696897
+;;=&gt;  -3.572879929243476
+;;=&gt;  -3.570755041152191
+;;=&gt;  -3.570008617105475
+;;=&gt;  -3.5692556443706427
+;;=&gt;  -3.5692193249187976
+;;=&gt;  -3.5690602963376903
+;;=&gt;  -3.566343729983188
+;;=&gt;  -3.5659315913820344
+;;=&gt;  -3.5659310259945745
+;;=&gt;  -3.565281130530355
+;;=&gt;  -3.5649880726747067
+;;=&gt;  -3.564612412578119
+;;=&gt;  -3.5641504864922458
+;;=&gt;  -3.563790857117209
+;;=&gt;  -3.563679055306649
+;;=&gt;  -3.563625285117241
+;;=&gt;  -3.5633226542672363
+;;=&gt;  -3.5627308545294274
+;;=&gt;  -3.562509703040273
+;;=&gt;  -3.560531308836453
+;;=&gt;  -3.5598929643303996
+;;=&gt;  -3.557872900618553
+;;=&gt;  -3.557309286841583
+;;=&gt;  -3.5564818744382714
+;;=&gt;  -3.5562783744438735
+;;=&gt;  -3.555689231463331
+;;=&gt;  -3.5556287959185755
+;;=&gt;  -3.555545512083622
+;;=&gt;  -3.5552335064588347
+;;=&gt;  -3.5549693990165543
+;;=&gt;  -3.5541408745247383
+;;=&gt;  -3.553494219349438
+;;=&gt;  -3.5531427483198126
+;;=&gt;  -3.552900245946257
+;;=&gt;  -3.552808787713411
+;;=&gt;  -3.5522671330430367
+;;=&gt;  -3.5516251986348486
+;;=&gt;  -3.550932450140073
+;;=&gt;  -3.550852513763314
+;;=&gt;  -3.5507190394297976
+;;=&gt;  -3.550425710199574
+;;=&gt;  -3.5500015587679474
+;;=&gt;  -3.5496884247604044
+;;=&gt;  -3.5496884077947266
+;;=&gt;  -3.548494879656627
+;;=&gt;  -3.5481000023070006
+;;=&gt;  -3.547730913852798
+;;=&gt;  -3.5469041065717266
+;;=&gt;  -3.5468682482446385
+;;=&gt;  -3.5465909118912533
+;;=&gt;  -3.545780764855527
+;;=&gt;  -3.544532168252613
+;;=&gt;  -3.5439558737844226
+;;=&gt;  -3.5437331815791513
+;;=&gt;  -3.543692843384847
+;;=&gt;  -3.543401694450586
+;;=&gt;  -3.5432836564304444
+;;=&gt;  -3.543220529708584
+;;=&gt;  -3.5416828450761373
+;;=&gt;  -3.541366131112855
+;;=&gt;  -3.5408042020945683
+;;=&gt;  -3.5405706731966085
+;;=&gt;  -3.5402199207074094
+;;=&gt;  -3.5401343451364067
+;;=&gt;  -3.5396217064997257
+;;=&gt;  -3.5387731619035048
+;;=&gt;  -3.5387150127201954
+;;=&gt;  -3.5385592254947595
+;;=&gt;  -3.5385364896900806
+;;=&gt;  -3.5384924913806035
+;;=&gt;  -3.537908571656602
+;;=&gt;  -3.5376591305086316
+;;=&gt;  -3.5366955384354735
+;;=&gt;  -3.5362763341017214
+;;=&gt;  -3.5357989199754525
+;;=&gt;  -3.5357443572269287
+;;=&gt;  -3.535201319484478
+;;=&gt;  -3.5350955361918945
+;;=&gt;  -3.5340940889748924
+;;=&gt;  -3.53362806295736
+;;=&gt;  -3.5326513008398552
+;;=&gt;  -3.5322495826387814
+;;=&gt;  -3.532140282087343
+;;=&gt;  -3.5308896858034826
+;;=&gt;  -3.530626594136662
+;;=&gt;  -3.530222847795935
+;;=&gt;  -3.5298225917315755
+;;=&gt;  -3.5294106022579315
+;;=&gt;  -3.5293615460551195
+;;=&gt;  -3.5289997030352436
+;;=&gt;  -3.528933067948364
+;;=&gt;  -3.5289139341053013
+;;=&gt;  -3.528680297426049
+;;=&gt;  -3.5284307664709242
+;;=&gt;  -3.527989021026306
+;;=&gt;  -3.5276222550242635
+;;=&gt;  -3.5270062132228666
+;;=&gt;  -3.5269252591357363
+;;=&gt;  -3.5259107608596514
+;;=&gt;  -3.52589970173426
+;;=&gt;  -3.5257390636019865
+;;=&gt;  -3.5253864499787357
+;;=&gt;  -3.524870762558625
+;;=&gt;  -3.5245820834268833
+;;=&gt;  -3.5245482944296787
+;;=&gt;  -3.5245353708862286
+;;=&gt;  -3.5245342516063403
+;;=&gt;  -3.5242399796686796
+;;=&gt;  -3.524062194333286
+;;=&gt;  -3.522797772264837
+;;=&gt;  -3.5224783540207403
+;;=&gt;  -3.522194045507896
+;;=&gt;  -3.52157473821604
+;;=&gt;  -3.521292172423608
+;;=&gt;  -3.5210355030447995
+;;=&gt;  -3.5209355991777134
+;;=&gt;  -3.520848301296967
+;;=&gt;  -3.52084457869754
+;;=&gt;  -3.5207116208936675
+;;=&gt;  -3.51931251220647
+;;=&gt;  -3.517848255528501
+;;=&gt;  -3.5176074862793727
+;;=&gt;  -3.516978868196865
+;;=&gt;  -3.5167953784996646
+;;=&gt;  -3.516409737052488
+;;=&gt;  -3.5153319950689705
+;;=&gt;  -3.5152803272428557
+;;=&gt;  -3.5146541364234234
+;;=&gt;  -3.514191840687337
+;;=&gt;  -3.5140489090711964
+;;=&gt;  -3.513904193632328
+;;=&gt;  -3.513488996668965
+;;=&gt;  -3.5134067833110296
+;;=&gt;  -3.512983456664708
+;;=&gt;  -3.512829911726297
+;;=&gt;  -3.5125140122867857
+;;=&gt;  -3.512001324428902
+;;=&gt;  -3.5113953940200218
+;;=&gt;  -3.511363099567538
+;;=&gt;  -3.5106435938882887
+;;=&gt;  -3.5104706711129565
+;;=&gt;  -3.5100907768721807
+;;=&gt;  -3.5097791993480754
+;;=&gt;  -3.509358939915586
+;;=&gt;  -3.509011018795328
+;;=&gt;  -3.5086339984513475
+;;=&gt;  -3.508104546698067
+;;=&gt;  -3.5074921315684717
+;;=&gt;  -3.5073611189528613
+;;=&gt;  -3.506544121786288
+;;=&gt;  -3.506410782734803
+;;=&gt;  -3.505942718653552
+;;=&gt;  -3.505913241741926
+;;=&gt;  -3.505454074915534
+;;=&gt;  -3.505417037080861
+;;=&gt;  -3.5050062252759564
+;;=&gt;  -3.5047183861455222
+;;=&gt;  -3.5042465164704604
+;;=&gt;  -3.503704769929263
+;;=&gt;  -3.5030539395567546
+;;=&gt;  -3.5025258605830394
+;;=&gt;  -3.5019148097802844
+;;=&gt;  -3.500569071392093
+;;=&gt;  -3.500102650128385
+;;=&gt;  -3.4998190856652664
+;;=&gt;  -3.499741753776522
+;;=&gt;  -3.49849460641632
+;;=&gt;  -3.4980974764839616
+;;=&gt;  -3.497921763381444
+;;=&gt;  -3.497504436117013
+;;=&gt;  -3.4972573035761148
+;;=&gt;  -3.4958833610259683
+;;=&gt;  -3.495503151392372
+;;=&gt;  -3.4953796692402577
+;;=&gt;  -3.495151303582106
+;;=&gt;  -3.4949918015132306
+;;=&gt;  -3.4943832042570566
+;;=&gt;  -3.4941863562904962
+;;=&gt;  -3.4941551875623578
+;;=&gt;  -3.4939464947551966
+;;=&gt;  -3.4939012535159266
+;;=&gt;  -3.493847820412872
+;;=&gt;  -3.4937744809481606
+;;=&gt;  -3.4937445055733063
+;;=&gt;  -3.4933823818505463
+;;=&gt;  -3.492633842836181
+;;=&gt;  -3.492028749914294
+;;=&gt;  -3.491994924034395
+;;=&gt;  -3.4914524208708997
+;;=&gt;  -3.491132389804726
+;;=&gt;  -3.490739071647858
+;;=&gt;  -3.49065234325475
+;;=&gt;  -3.4898154611638943
+;;=&gt;  -3.489276130107298
+;;=&gt;  -3.489245288774722
+;;=&gt;  -3.4889994162035154
+;;=&gt;  -3.488368109267729
+;;=&gt;  -3.4881595967506827
+;;=&gt;  -3.4879519653855753
+;;=&gt;  -3.487926848488063
+;;=&gt;  -3.48786780563009
+;;=&gt;  -3.48770072459926
+;;=&gt;  -3.4876302340033978
+;;=&gt;  -3.4873072278131145
+;;=&gt;  -3.4868699027915038
+;;=&gt;  -3.486264351876429
+;;=&gt;  -3.485289801775445
+;;=&gt;  -3.4834479950704607
+;;=&gt;  -3.4820856130751787
+;;=&gt;  -3.481167554638382
+;;=&gt;  -3.480322285837529
+;;=&gt;  -3.4799490285542176
+;;=&gt;  -3.479779582979233
+;;=&gt;  -3.479754441198121
+;;=&gt;  -3.479621699103113
+;;=&gt;  -3.4785392217839655
+;;=&gt;  -3.4782855919583113
+;;=&gt;  -3.4782365510318405
+;;=&gt;  -3.4778740870099627
+;;=&gt;  -3.477860825811772
+;;=&gt;  -3.476516448135907
+;;=&gt;  -3.4756528757306984
+;;=&gt;  -3.4754328632945346
+;;=&gt;  -3.4749265785460564
+;;=&gt;  -3.4746791267421573
+;;=&gt;  -3.4746781116647414
+;;=&gt;  -3.474634669153362
+;;=&gt;  -3.4745154510281546
+;;=&gt;  -3.474184734042111
+;;=&gt;  -3.4741593036121277
+;;=&gt;  -3.4740861815371296
+;;=&gt;  -3.474019263308093
+;;=&gt;  -3.473092453170491
+;;=&gt;  -3.4722556631829216
+;;=&gt;  -3.4721726276514073
+;;=&gt;  -3.4712185832022473
+;;=&gt;  -3.4711806262968046
+;;=&gt;  -3.4708788174118483
+;;=&gt;  -3.470480319400043
+;;=&gt;  -3.4699297858423086
+;;=&gt;  -3.4698983083937986
+;;=&gt;  -3.469695572168687
+;;=&gt;  -3.4690935654135386
+;;=&gt;  -3.469036572451992
+;;=&gt;  -3.4690319541367303
+;;=&gt;  -3.4689766277186895
+;;=&gt;  -3.46834952698083
+;;=&gt;  -3.4670687708892345
+;;=&gt;  -3.4669636382707223
+;;=&gt;  -3.4659717983229656
+;;=&gt;  -3.4657494875712236
+;;=&gt;  -3.4657193887611637
+;;=&gt;  -3.464676673478938
+;;=&gt;  -3.4644911377723666
+;;=&gt;  -3.4642549772652984
+;;=&gt;  -3.4642090255261437
+;;=&gt;  -3.4638350440414882
+;;=&gt;  -3.4631450874746688
+;;=&gt;  -3.4627790925047917
+;;=&gt;  -3.462526343610468
+;;=&gt;  -3.4621352162511814
+;;=&gt;  -3.462099708287326
+;;=&gt;  -3.4620432349932044
+;;=&gt;  -3.4617611150885588
+;;=&gt;  -3.4613781734517217
+;;=&gt;  -3.461246531688093
+;;=&gt;  -3.4611851249202332
+;;=&gt;  -3.4609645905807462
+;;=&gt;  -3.460887030144792
+;;=&gt;  -3.4607455931044573
+;;=&gt;  -3.4605659898270615
+;;=&gt;  -3.4605589736742686
+;;=&gt;  -3.460425641119509
+;;=&gt;  -3.4596936398414
+;;=&gt;  -3.4594443894528615
+;;=&gt;  -3.4589472685536196
+;;=&gt;  -3.458240106108446
+;;=&gt;  -3.457928545302297
+;;=&gt;  -3.457610307988081
+;;=&gt;  -3.4572179507379253
+;;=&gt;  -3.456743707243069
+;;=&gt;  -3.456523486210066
+;;=&gt;  -3.456484871741896
+;;=&gt;  -3.456378226636356
+;;=&gt;  -3.456300358972447
+;;=&gt;  -3.4560665603161342
+;;=&gt;  -3.455618184691159
+;;=&gt;  -3.455371765433206
+;;=&gt;  -3.45387502647475
+;;=&gt;  -3.453859596560734
+;;=&gt;  -3.452980405837502
+;;=&gt;  -3.4519333255449154
+;;=&gt;  -3.451819208961453
+;;=&gt;  -3.4517688524549306
+;;=&gt;  -3.451508180029087
+;;=&gt;  -3.451504280888117
+;;=&gt;  -3.4514712921314485
+;;=&gt;  -3.4513857355333784
+;;=&gt;  -3.4512508294966926
+;;=&gt;  -3.449649124645948
+;;=&gt;  -3.449174151347506
+;;=&gt;  -3.4490475477352946
+;;=&gt;  -3.4488421346332068
+;;=&gt;  -3.4486674911561317
+;;=&gt;  -3.4484166963434655
+;;=&gt;  -3.4481159399803105
+;;=&gt;  -3.447874977784264
+;;=&gt;  -3.4478307695257024
+;;=&gt;  -3.4475848607877735
+;;=&gt;  -3.447281203771434
+;;=&gt;  -3.447280892289091
+;;=&gt;  -3.44697319149869
+;;=&gt;  -3.4466803003309434
+;;=&gt;  -3.4466491226152427
+;;=&gt;  -3.446092060605352
+;;=&gt;  -3.4460683490699946
+;;=&gt;  -3.4457131646488577
+;;=&gt;  -3.4451896810394116
+;;=&gt;  -3.4447991602991257
+;;=&gt;  -3.4442472693642023
+;;=&gt;  -3.4435805376380055
+;;=&gt;  -3.443392385311079
+;;=&gt;  -3.4433288255624914
+;;=&gt;  -3.4430979213727486
+;;=&gt;  -3.4430297179125278
+;;=&gt;  -3.442998971472254
+;;=&gt;  -3.4429358807481667
+;;=&gt;  -3.442445074826076
+;;=&gt;  -3.442334550520897
+;;=&gt;  -3.4421910933284696
+;;=&gt;  -3.4416137897058996
+;;=&gt;  -3.441185404532259
+;;=&gt;  -3.4406555814302253
+;;=&gt;  -3.4404953163309093
+;;=&gt;  -3.440353427242855
+;;=&gt;  -3.4401505707204283
+;;=&gt;  -3.439636250862256
+;;=&gt;  -3.439429708978413
+;;=&gt;  -3.439392827639359
+;;=&gt;  -3.439219130773864
+;;=&gt;  -3.4388539534924902
+;;=&gt;  -3.4382166580243614
+;;=&gt;  -3.4378969420059367
+;;=&gt;  -3.437788712655229
+;;=&gt;  -3.437539593400759
+;;=&gt;  -3.437350490401188
+;;=&gt;  -3.436852150631133
+;;=&gt;  -3.4367852855655805
+;;=&gt;  -3.436659436421579
+;;=&gt;  -3.436302176359342
+;;=&gt;  -3.4362747720363287
+;;=&gt;  -3.436240240461832
+;;=&gt;  -3.4356841950132258
+;;=&gt;  -3.4352661228448085
+;;=&gt;  -3.4350229398024217
+;;=&gt;  -3.4346578877586826
+;;=&gt;  -3.4345891239745256
+;;=&gt;  -3.4342331969309887
+;;=&gt;  -3.433749684773958
+;;=&gt;  -3.4336294261401594
+;;=&gt;  -3.43357895430437
+;;=&gt;  -3.4334856294855207
+;;=&gt;  -3.4334105927004885
+;;=&gt;  -3.43300304750789
+;;=&gt;  -3.4324705951204773
+;;=&gt;  -3.4323447935290776
+;;=&gt;  -3.4314501530243247
+;;=&gt;  -3.4313823988248906
+;;=&gt;  -3.4303481485014173
+;;=&gt;  -3.430135775605844
+;;=&gt;  -3.4300624925947174
+;;=&gt;  -3.4298866112812005
+;;=&gt;  -3.4297898632391326
+;;=&gt;  -3.4297421420865315
+;;=&gt;  -3.4296188219536474
+;;=&gt;  -3.4293202465920043
+;;=&gt;  -3.42921675744978
+;;=&gt;  -3.4290653986524697
+;;=&gt;  -3.4283514791068153
+;;=&gt;  -3.4281631379968975
+;;=&gt;  -3.427862472530837
+;;=&gt;  -3.427480174937254
+;;=&gt;  -3.427381562287546
+;;=&gt;  -3.4270382581554477
+;;=&gt;  -3.4267245595897493
+;;=&gt;  -3.4258559161256015
+;;=&gt;  -3.425783040241394
+;;=&gt;  -3.425725020062497
+;;=&gt;  -3.425509293074043
+;;=&gt;  -3.4251558430005504
+;;=&gt;  -3.4248661773784566
+;;=&gt;  -3.4248102872311366
+;;=&gt;  -3.424461396979565
+;;=&gt;  -3.423991376649553
+;;=&gt;  -3.4238006256594082
+;;=&gt;  -3.423508181517589
+;;=&gt;  -3.4231113985004735
+;;=&gt;  -3.4224857357376495
+;;=&gt;  -3.422404996977886
+;;=&gt;  -3.422331244557957
+;;=&gt;  -3.4220502626423785
+;;=&gt;  -3.4216891864703203
+;;=&gt;  -3.4215555214593145
+;;=&gt;  -3.421398674109284
+;;=&gt;  -3.4212322066988357
+;;=&gt;  -3.4211743189730166
+;;=&gt;  -3.4210895124345218
+;;=&gt;  -3.4196452947875
+;;=&gt;  -3.4194866215888946
+;;=&gt;  -3.419445155676753
+;;=&gt;  -3.4190878761758876
+;;=&gt;  -3.418873149793643
+;;=&gt;  -3.418774954043969
+;;=&gt;  -3.418727985522087
+;;=&gt;  -3.418419051995687
+;;=&gt;  -3.417915826844932
+;;=&gt;  -3.41761004483741
+;;=&gt;  -3.4174144453737205
+;;=&gt;  -3.41721959305077
+;;=&gt;  -3.4170692860940424
+;;=&gt;  -3.4159007919937934
+;;=&gt;  -3.415860102158556
+;;=&gt;  -3.415756301853327
+;;=&gt;  -3.415734988017612
+;;=&gt;  -3.4153420920892765
+;;=&gt;  -3.4150830732557087
+;;=&gt;  -3.415062492682167
+;;=&gt;  -3.413969961209771
+;;=&gt;  -3.4133315862896314
+;;=&gt;  -3.413197923278112
+;;=&gt;  -3.4128069732150026
+;;=&gt;  -3.412299783630074
+;;=&gt;  -3.411989512626235
+;;=&gt;  -3.4119443726434056
+;;=&gt;  -3.41193549513502
+;;=&gt;  -3.411829745078734
+;;=&gt;  -3.4116602908673075
+;;=&gt;  -3.4115467156003
+;;=&gt;  -3.4114153663381352
+;;=&gt;  -3.411375353185179
+;;=&gt;  -3.4113227238090853
+;;=&gt;  -3.4106774806102065
+;;=&gt;  -3.4106236002581425
+;;=&gt;  -3.410366042996447
+;;=&gt;  -3.410211341067047
+;;=&gt;  -3.409470568116618
+;;=&gt;  -3.4094159247661864
+;;=&gt;  -3.409103349383575
+;;=&gt;  -3.4090506818173747
+;;=&gt;  -3.408924315598247
+;;=&gt;  -3.4084325944022105
+;;=&gt;  -3.408334132159307
+;;=&gt;  -3.4082351937404383
+;;=&gt;  -3.4081467783701407
+;;=&gt;  -3.4080177063514125
+;;=&gt;  -3.4067007615503146
+;;=&gt;  -3.406563428083731
+;;=&gt;  -3.406088612123939
+;;=&gt;  -3.4059718095372125
+;;=&gt;  -3.4057962790200356
+;;=&gt;  -3.4052340089307966
+;;=&gt;  -3.4045055993565914
+;;=&gt;  -3.404261533296755
+;;=&gt;  -3.4039085408114462
+;;=&gt;  -3.4034435911598218
+;;=&gt;  ...)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L236">view source</a></div></div><div class="public anchor" id="var-pearson-correlation"><h3>pearson-correlation</h3><div class="usage"><code>(pearson-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Pearson’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Pearson’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(pearson-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
                      (repeatedly 100000 (partial r/drand -10.0 -5.0)))
-;;=&gt; 0.007076444050676723</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L385">view source</a></div></div><div class="public anchor" id="var-percentile"><h3>percentile</h3><div class="usage"><code>(percentile vs p)</code><code>(percentile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate percentile of a <code>vs</code>.</p>
+;;=&gt; 0.007076444050676723</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L389">view source</a></div></div><div class="public anchor" id="var-percentile"><h3>percentile</h3><div class="usage"><code>(percentile vs p)</code><code>(percentile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate percentile of a <code>vs</code>.</p>
 <p>Percentile <code>p</code> is from range 0-100.</p>
 <p>See <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html">docs</a>.</p>
 <p>Optionally you can provide <code>estimation-strategy</code> to change interpolation methods for selecting values. Default is <code>:legacy</code>. See more <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html">here</a></p>
@@ -200,11 +1194,11 @@
 (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r8)
 ;;=&gt; 37.66666666666675
 (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r9)
-;;=&gt; 34.75000000000007</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L102">view source</a></div></div><div class="public anchor" id="var-population-stddev"><h3>population-stddev</h3><div class="usage"><code>(population-stddev vs)</code><code>(population-stddev vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate population standard deviation of <code>vs</code>.</p>
+;;=&gt; 34.75000000000007</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L104">view source</a></div></div><div class="public anchor" id="var-population-stddev"><h3>population-stddev</h3><div class="usage"><code>(population-stddev vs)</code><code>(population-stddev vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate population standard deviation of <code>vs</code>.</p>
 <p>See <a href="fastmath.stats.html#var-stddev">stddev</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Population standard deviation.</p></blockquote><pre><code class="hljs clojure">(population-stddev [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 34.4333315406403</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L172">view source</a></div></div><div class="public anchor" id="var-population-variance"><h3>population-variance</h3><div class="usage"><code>(population-variance vs)</code><code>(population-variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate population variance of <code>vs</code>.</p>
+;;=&gt; 34.4333315406403</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L174">view source</a></div></div><div class="public anchor" id="var-population-variance"><h3>population-variance</h3><div class="usage"><code>(population-variance vs)</code><code>(population-variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate population variance of <code>vs</code>.</p>
 <p>See <a href="fastmath.stats.html#var-variance">variance</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Population variance</p></blockquote><pre><code class="hljs clojure">(population-variance [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 1185.6543209876543</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L152">view source</a></div></div><div class="public anchor" id="var-quantile"><h3>quantile</h3><div class="usage"><code>(quantile vs p)</code><code>(quantile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate quantile of a <code>vs</code>.</p>
+;;=&gt; 1185.6543209876543</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L154">view source</a></div></div><div class="public anchor" id="var-quantile"><h3>quantile</h3><div class="usage"><code>(quantile vs p)</code><code>(quantile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate quantile of a <code>vs</code>.</p>
 <p>Percentile <code>p</code> is from range 0.0-1.0.</p>
 <p>See <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html">docs</a> for interpolation strategy.</p>
 <p>Optionally you can provide <code>estimation-strategy</code> to change interpolation methods for selecting values. Default is <code>:legacy</code>. See more <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html">here</a></p>
@@ -231,12 +1225,12 @@
 (quantile [1 11 111 1111] 0.7 :r8)
 ;;=&gt; 477.66666666666623
 (quantile [1 11 111 1111] 0.7 :r9)
-;;=&gt; 460.99999999999966</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L119">view source</a></div></div><div class="public anchor" id="var-second-moment"><h3>second-moment</h3><div class="usage"><code>(second-moment vs)</code></div><div class="doc"><div class="markdown"><p>Calculate second moment from sequence.</p>
+;;=&gt; 460.99999999999966</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L121">view source</a></div></div><div class="public anchor" id="var-second-moment"><h3>second-moment</h3><div class="usage"><code>(second-moment vs)</code></div><div class="doc"><div class="markdown"><p>Calculate second moment from sequence.</p>
 <p>It’s a sum of squared deviations from the sample mean</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Second Moment</p></blockquote><pre><code class="hljs clojure">(second-moment [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 10670.888888888889</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L302">view source</a></div></div><div class="public anchor" id="var-skewness"><h3>skewness</h3><div class="usage"><code>(skewness vs)</code></div><div class="doc"><div class="markdown"><p>Calculate kurtosis from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Skewness</p></blockquote><pre><code class="hljs clojure">(skewness [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 2.94268445417954</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L311">view source</a></div></div><div class="public anchor" id="var-spearman-correlation"><h3>spearman-correlation</h3><div class="usage"><code>(spearman-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Spearman’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Spearsman’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(spearman-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
+;;=&gt; 10670.888888888889</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L304">view source</a></div></div><div class="public anchor" id="var-skewness"><h3>skewness</h3><div class="usage"><code>(skewness vs)</code></div><div class="doc"><div class="markdown"><p>Calculate kurtosis from sequence.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Skewness</p></blockquote><pre><code class="hljs clojure">(skewness [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 2.94268445417954</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L313">view source</a></div></div><div class="public anchor" id="var-spearman-correlation"><h3>spearman-correlation</h3><div class="usage"><code>(spearman-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Spearman’s correlation of two sequences.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Spearsman’s correlation of uniform and gaussian distribution samples.</p></blockquote><pre><code class="hljs clojure">(spearman-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
                       (repeatedly 100000 (partial r/drand -10.0 -5.0)))
-;;=&gt; 6.338276569602102E-4</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L379">view source</a></div></div><div class="public anchor" id="var-standardize"><h3>standardize</h3><div class="usage"><code>(standardize vs)</code></div><div class="doc"><div class="markdown"><p>Normalize samples to have mean = 0 and stddev = 1.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Standardize</p></blockquote><pre><code class="hljs clojure">(standardize [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 6.338276569602102E-4</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L383">view source</a></div></div><div class="public anchor" id="var-standardize"><h3>standardize</h3><div class="usage"><code>(standardize vs)</code></div><div class="doc"><div class="markdown"><p>Normalize samples to have mean = 0 and stddev = 1.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Standardize</p></blockquote><pre><code class="hljs clojure">(standardize [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; (-0.3589915220998317
 ;;=&gt;  -0.33161081278713267
 ;;=&gt;  -0.30423010347443363
@@ -245,7 +1239,7 @@
 ;;=&gt;  -0.33161081278713267
 ;;=&gt;  -0.4137529407252298
 ;;=&gt;  -0.08518442897284138
-;;=&gt;  2.652886502297062)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L362">view source</a></div></div><div class="public anchor" id="var-stats-map"><h3>stats-map</h3><div class="usage"><code>(stats-map vs)</code><code>(stats-map vs estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate several statistics of <code>vs</code> and return as map.</p>
+;;=&gt;  2.652886502297062)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L366">view source</a></div></div><div class="public anchor" id="var-stats-map"><h3>stats-map</h3><div class="usage"><code>(stats-map vs)</code><code>(stats-map vs estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate several statistics of <code>vs</code> and return as map.</p>
 <p>Optional <code>estimation-strategy</code> argument can be set to change quantile calculations estimation type. See <a href="null">estimation-strategies</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Stats</p></blockquote><pre><code class="hljs clojure">(stats-map [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; {:IQR 8.0,
 ;;=&gt;  :Kurtosis 8.732515263272099,
@@ -261,17 +1255,19 @@
 ;;=&gt;  :Outliers (111.0),
 ;;=&gt;  :Q1 -1.0,
 ;;=&gt;  :Q3 7.0,
-;;=&gt;  :SD 34.4333315406403,
-;;=&gt;  :SEM 11.477777180213435,
+;;=&gt;  :Range 112.0,
+;;=&gt;  :SD 36.522063346847084,
+;;=&gt;  :SEM 12.174021115615695,
 ;;=&gt;  :SecMoment 10670.888888888889,
 ;;=&gt;  :Size 9,
 ;;=&gt;  :Skewness 2.94268445417954,
 ;;=&gt;  :Total 127.0,
 ;;=&gt;  :UAV 11.0,
 ;;=&gt;  :UIF 19.0,
-;;=&gt;  :UOF 31.0}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L318">view source</a></div></div><div class="public anchor" id="var-stddev"><h3>stddev</h3><div class="usage"><code>(stddev vs)</code><code>(stddev vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate standard deviation of <code>vs</code>.</p>
+;;=&gt;  :UOF 31.0,
+;;=&gt;  :Variance 1333.8611111111113}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L320">view source</a></div></div><div class="public anchor" id="var-stddev"><h3>stddev</h3><div class="usage"><code>(stddev vs)</code><code>(stddev vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate standard deviation of <code>vs</code>.</p>
 <p>See <a href="fastmath.stats.html#var-population-stddev">population-stddev</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Standard deviation.</p></blockquote><pre><code class="hljs clojure">(stddev [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 36.522063346847084</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L182">view source</a></div></div><div class="public anchor" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum vs)</code></div><div class="doc"><div class="markdown"><p>Sum of all <code>vs</code> values.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Sum</p></blockquote><pre><code class="hljs clojure">(sum [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 127.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L287">view source</a></div></div><div class="public anchor" id="var-variance"><h3>variance</h3><div class="usage"><code>(variance vs)</code><code>(variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate variance of <code>vs</code>.</p>
+;;=&gt; 36.522063346847084</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L184">view source</a></div></div><div class="public anchor" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum vs)</code></div><div class="doc"><div class="markdown"><p>Sum of all <code>vs</code> values.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Sum</p></blockquote><pre><code class="hljs clojure">(sum [1 2 3 -1 -1 2 -1 11 111])
+;;=&gt; 127.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L289">view source</a></div></div><div class="public anchor" id="var-variance"><h3>variance</h3><div class="usage"><code>(variance vs)</code><code>(variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate variance of <code>vs</code>.</p>
 <p>See <a href="fastmath.stats.html#var-population-variance">population-variance</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Variance.</p></blockquote><pre><code class="hljs clojure">(variance [1 2 3 -1 -1 2 -1 11 111])
-;;=&gt; 1333.861111111111</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L162">view source</a></div></div></div></body></html>
+;;=&gt; 1333.861111111111</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L164">view source</a></div></div></div></body></html>

@@ -62,176 +62,173 @@
 ;;=&gt; (:linear :logistic-sigmoid :soft-max)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L402">view source</a></div></div><div class="public anchor" id="var-ada-boost"><h3>ada-boost</h3><div class="usage"><code>(ada-boost x y)</code><code>(ada-boost params x y)</code><code>(ada-boost x y tx ty)</code><code>(ada-boost {:keys [number-of-trees max-nodes], :or {number-of-trees 500, max-nodes 2}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>ada-boost classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (ada-boost train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
+;;=&gt;            :data ([6.3 2.8 5.1 1.5] [6.7 3 5 1.7] [7.2 3 5.8 1.6]),
+;;=&gt;            :prediction ("versicolor" "virginica" "versicolor"),
+;;=&gt;            :truth ("virginica" "versicolor" "virginica")},
 ;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L328">view source</a></div></div><div class="public anchor" id="var-bayes-models-list"><h3>bayes-models-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of <a href="fastmath.classification.html#var-naive-bayes">naive-bayes</a> models.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">bayes-models-list
 ;;=&gt; (:multinomial :bernoulli :polyaurn)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L382">view source</a></div></div><div class="public anchor" id="var-bootstrap"><h3>bootstrap</h3><div class="usage"><code>(bootstrap model)</code><code>(bootstrap model k)</code></div><div class="doc"><div class="markdown"><p>Perform k-round bootstrap validation.</p>
 <p>k defaults to 10</p>
 <p>Returns map where <code>:accuracy</code> is average accuracy from every round. <code>:boostrap</code> contains every round statistics.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(select-keys (bootstrap (knn train-data train-labels)) [:accuracy])
-;;=&gt; {:accuracy 0.950848920488683}
+;;=&gt; {:accuracy 0.9426375811797827}
 (select-keys (bootstrap (fld train-data train-labels)) [:accuracy])
-;;=&gt; {:accuracy 0.9704601089178813}
+;;=&gt; {:accuracy 0.958966179247697}
 (bootstrap (decision-tree train-data train-labels) 4)
-;;=&gt; {:accuracy 0.9759001161440186,
-;;=&gt;  :bootstrap {0 {:accuracy 1.0},
+;;=&gt; {:accuracy 0.9403277791010933,
+;;=&gt;  :bootstrap {0 {:accuracy 0.9459459459459459},
 ;;=&gt;              1 {:accuracy 0.951219512195122},
-;;=&gt;              2 {:accuracy 1.0},
+;;=&gt;              2 {:accuracy 0.9117647058823529},
 ;;=&gt;              3 {:accuracy 0.9523809523809524}}}
 (select-keys (bootstrap (knn train-data train-labels) 500) [:accuracy])
-;;=&gt; {:accuracy 0.966425479101225}
+;;=&gt; {:accuracy 0.9477566307672722}
 (bootstrap (neural-net {:layers [100 50]} train-data train-labels) 5)
-;;=&gt; {:accuracy 0.9210155499629183,
-;;=&gt;  :bootstrap {0 {:accuracy 0.7894736842105263},
-;;=&gt;              1 {:accuracy 0.9459459459459459},
-;;=&gt;              2 {:accuracy 0.8974358974358974},
-;;=&gt;              3 {:accuracy 0.9722222222222222},
+;;=&gt; {:accuracy 0.9407709328761961,
+;;=&gt;  :bootstrap {0 {:accuracy 0.9210526315789473},
+;;=&gt;              1 {:accuracy 0.972972972972973},
+;;=&gt;              2 {:accuracy 0.9487179487179487},
+;;=&gt;              3 {:accuracy 0.861111111111111},
 ;;=&gt;              4 {:accuracy 1.0}}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L559">view source</a></div></div><div class="public anchor" id="var-ClassificationProto"><h3>ClassificationProto</h3><h4 class="type">protocol</h4><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="members"><h4>members</h4><div class="inner"><div class="public anchor" id="var-backend"><h3>backend</h3><div class="usage"><code>(backend _)</code></div><div class="doc"><div class="markdown"><p>Return name of backend library</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(backend (knn test-data test-labels))
 ;;=&gt; :smile
 (backend (xgboost test-data test-labels))
 ;;=&gt; :xgboost
 (backend (liblinear test-data test-labels))
 ;;=&gt; :liblinear</code></pre></div></div></div><div class="public anchor" id="var-cv-native"><h3>cv-native</h3><div class="usage"><code>(cv-native _)</code><code>(cv-native _ params)</code></div><div class="doc"><div class="markdown"><p>Call native implementation of cross-validation</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(cv-native (knn test-data test-labels))
-;;=&gt; {:accuracy 0.8888888888888888}
+;;=&gt; {:accuracy 0.9777777777777777}
 (cv-native (knn test-data test-labels) {:type :loocv})
-;;=&gt; {:accuracy 0.9111111111111111}
+;;=&gt; {:accuracy 0.9777777777777777}
 (cv-native (knn test-data test-labels) {:type :bootstrap})
-;;=&gt; {:accuracy 0.9075919814619505,
-;;=&gt;  :bootstrap [0.9333333333333333 0.8823529411764706 0.8571428571428571
-;;=&gt;              0.9230769230769231 0.8666666666666667 1.0
-;;=&gt;              0.9444444444444444 0.8421052631578947 0.9444444444444444
-;;=&gt;              0.8823529411764706]}
+;;=&gt; {:accuracy 0.9368420674612625,
+;;=&gt;  :bootstrap [1.0 0.9411764705882353 0.8571428571428571
+;;=&gt;              0.9230769230769231 0.9333333333333333 0.9333333333333333
+;;=&gt;              0.9444444444444444 0.8947368421052632 1.0
+;;=&gt;              0.9411764705882353]}
 (cv-native (xgboost test-data test-labels))
-;;=&gt; ({:cv-test-merror 0.125,
-;;=&gt;   :cv-test-mlogloss 0.85005,
-;;=&gt;   :cv-train-merror 0.043902,
-;;=&gt;   :cv-train-mlogloss 0.782693}
-;;=&gt;  {:cv-test-merror 0.125,
-;;=&gt;   :cv-test-mlogloss 0.681615,
-;;=&gt;   :cv-train-merror 0.043902,
-;;=&gt;   :cv-train-mlogloss 0.585119}
-;;=&gt;  {:cv-test-merror 0.125,
-;;=&gt;   :cv-test-mlogloss 0.597529,
-;;=&gt;   :cv-train-merror 0.043902,
-;;=&gt;   :cv-train-mlogloss 0.451471})
+;;=&gt; ({:cv-test-merror 0.05,
+;;=&gt;   :cv-test-mlogloss 0.785652,
+;;=&gt;   :cv-train-merror 0.021951,
+;;=&gt;   :cv-train-mlogloss 0.768685}
+;;=&gt;  {:cv-test-merror 0.05,
+;;=&gt;   :cv-test-mlogloss 0.592295,
+;;=&gt;   :cv-train-merror 0.021951,
+;;=&gt;   :cv-train-mlogloss 0.56335}
+;;=&gt;  {:cv-test-merror 0.05,
+;;=&gt;   :cv-test-mlogloss 0.468176,
+;;=&gt;   :cv-train-merror 0.021951,
+;;=&gt;   :cv-train-mlogloss 0.425358})
 (cv-native (liblinear test-data test-labels))
-;;=&gt; {:accuracy 0.9555555555555556}</code></pre></div></div></div><div class="public anchor" id="var-data"><h3>data</h3><div class="usage"><code>(data _)</code><code>(data _ native?)</code></div><div class="doc"><div class="markdown"><p>Return data. Transformed data for backend libarary are returned when <code>native?</code> is true.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(data (knn [[1 2] [3 2]] [0 1]))
+;;=&gt; {:accuracy 0.9333333333333333}</code></pre></div></div></div><div class="public anchor" id="var-data"><h3>data</h3><div class="usage"><code>(data _)</code><code>(data _ native?)</code></div><div class="doc"><div class="markdown"><p>Return data. Transformed data for backend libarary are returned when <code>native?</code> is true.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(data (knn [[1 2] [3 2]] [0 1]))
 ;;=&gt; [[[1 2] [3 2]] [0 1]]
 (data (knn [[1 2] [3 2]] [0 1]) true)
 ;;=&gt; [[[1.0 2.0] [3.0 2.0]] [0 1]]</code></pre></div></div></div><div class="public anchor" id="var-labels"><h3>labels</h3><div class="usage"><code>(labels _)</code></div><div class="doc"><div class="markdown"><p>Return labels.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(labels (knn train-data train-labels))
 ;;=&gt; ["setosa" "versicolor" "virginica"]</code></pre></div></div></div><div class="public anchor" id="var-model-native"><h3>model-native</h3><div class="usage"><code>(model-native _)</code></div><div class="doc"><div class="markdown"><p>Return trained model as a backend class.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(model-native (knn train-data train-labels))
-;;=&gt; smile.classification.KNN@156d4d63
+;;=&gt; smile.classification.KNN@3dc7abda
 (model-native (xgboost train-data train-labels))
-;;=&gt; ml.dmlc.xgboost4j.java.Booster@e0ce4da</code></pre></div></div></div><div class="public anchor" id="var-predict"><h3>predict</h3><div class="usage"><code>(predict _ v)</code><code>(predict _ v posteriori?)</code></div><div class="doc"><div class="markdown"><p>Predict class for given vector. With posteriori probabilities when required.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(predict (knn train-data train-labels) [1 2 3 4])
+;;=&gt; ml.dmlc.xgboost4j.java.Booster@405df511</code></pre></div></div></div><div class="public anchor" id="var-predict"><h3>predict</h3><div class="usage"><code>(predict _ v)</code><code>(predict _ v posteriori?)</code></div><div class="doc"><div class="markdown"><p>Predict class for given vector. With posteriori probabilities when required.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(predict (knn train-data train-labels) [1 2 3 4])
 ;;=&gt; virginica
 (predict (ada-boost train-data train-labels) [1 2 3 4] true)
 ;;=&gt; ["virginica"
-;;=&gt;  (0.06482781881090098 0.40631456506330843 0.5288576161257906)]</code></pre></div></div></div><div class="public anchor" id="var-predict-all"><h3>predict-all</h3><div class="usage"><code>(predict-all _ vs)</code><code>(predict-all _ v posteriori?)</code></div><div class="doc"><div class="markdown"><p>Predict classes for given sequence of vectors. With posteriori probabilities when required.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(predict-all (knn train-data train-labels) (take 3 test-data))
-;;=&gt; ("virginica" "versicolor" "virginica")
+;;=&gt;  (0.09875910249700122 0.41888000071729514 0.48236089678570365)]</code></pre></div></div></div><div class="public anchor" id="var-predict-all"><h3>predict-all</h3><div class="usage"><code>(predict-all _ vs)</code><code>(predict-all _ v posteriori?)</code></div><div class="doc"><div class="markdown"><p>Predict classes for given sequence of vectors. With posteriori probabilities when required.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(predict-all (knn train-data train-labels) (take 3 test-data))
+;;=&gt; ("virginica" "virginica" "versicolor")
 (predict-all (ada-boost train-data train-labels)
              (take 3 test-data)
              true)
-;;=&gt; (["virginica"
-;;=&gt;   (0.0011734542663824367 0.4423266219624528 0.5564999237711648)]
-;;=&gt;  ["versicolor"
-;;=&gt;   (0.012495721208226916 0.5683332156458811 0.41917106314589203)]
-;;=&gt;  ["virginica"
-;;=&gt;   (0.0036592599898020626 0.3475632795047238 0.648777460505474)])</code></pre></div></div></div><div class="public anchor" id="var-test"><h3>test</h3><div class="usage"><code>(test _)</code><code>(test _ tx ty)</code></div><div class="doc"><div class="markdown"><p>Validate data using given model and provided test data. Same as <a href="fastmath.classification.html#var-validate">validate</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Use data provided during training</p></blockquote><pre><code class="hljs clojure">(test (knn train-data train-labels test-data test-labels))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
+;;=&gt; (["virginica" (0.0 0.42576428711137604 0.5742357128886241)]
+;;=&gt;  ["virginica" (0.0 0.4443096435201355 0.5556903564798645)]
+;;=&gt;  ["versicolor" (0.0 0.5378430431097431 0.4621569568902569)])</code></pre></div></div></div><div class="public anchor" id="var-test"><h3>test</h3><div class="usage"><code>(test _)</code><code>(test _ tx ty)</code></div><div class="doc"><div class="markdown"><p>Validate data using given model and provided test data. Same as <a href="fastmath.classification.html#var-validate">validate</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Use data provided during training</p></blockquote><pre><code class="hljs clojure">(test (knn train-data train-labels test-data test-labels))
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
 ;;=&gt;  :prediction ("virginica"
-;;=&gt;               "versicolor"
-;;=&gt;               "virginica"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
 ;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
-;;=&gt;               "setosa"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
 ;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "versicolor"
-;;=&gt;               "virginica"
 ;;=&gt;               "setosa"
 ;;=&gt;               "setosa"
-;;=&gt;               "versicolor"
-;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
+;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
+;;=&gt;               "setosa"
+;;=&gt;               "setosa"
+;;=&gt;               "virginica"
+;;=&gt;               "setosa"
+;;=&gt;               "virginica"
+;;=&gt;               "virginica"
+;;=&gt;               "virginica"
+;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"),
-;;=&gt;  :stats {:accuracy 0.9333333333333333},
+;;=&gt;               "versicolor"),
+;;=&gt;  :stats {:accuracy 0.9777777777777777},
 ;;=&gt;  :truth ("virginica"
-;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "versicolor"
-;;=&gt;          "versicolor"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "versicolor"
-;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "setosa"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
 ;;=&gt;          "setosa"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "setosa"
 ;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
 ;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "virginica"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa")}</code></pre></div><div><blockquote><p>No test data provided</p></blockquote><pre><code class="hljs clojure">(test (knn train-data train-labels))
+;;=&gt;          "versicolor")}</code></pre></div><div><blockquote><p>No test data provided</p></blockquote><pre><code class="hljs clojure">(test (knn train-data train-labels))
 ;;=&gt; nil</code></pre></div><div><blockquote><p>Test other data</p></blockquote><pre><code class="hljs clojure">(test (knn train-data train-labels)
       [[1 2 3 4] [6 4 3 2]]
       ["setosa" "setosa"])
@@ -242,94 +239,85 @@
 ;;=&gt;  :prediction ("virginica" "versicolor"),
 ;;=&gt;  :stats {:accuracy 0.0},
 ;;=&gt;  :truth ["setosa" "setosa"]}</code></pre></div></div></div><div class="public anchor" id="var-train"><h3>train</h3><div class="usage"><code>(train _ x y)</code><code>(train _ x y tx ty)</code></div><div class="doc"><div class="markdown"><p>Train another set of data for given classifier. Test data are optional.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Train new data</p></blockquote><pre><code class="hljs clojure">(train (knn train-data train-labels) test-data test-labels)
-;;=&gt; fastmath.classification$eval20205$fn$reify__20218@37b0f891</code></pre></div></div></div></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L102">view source</a></div></div><div class="public anchor" id="var-confusion-map"><h3>confusion-map</h3><div class="usage"><code>(confusion-map t p)</code></div><div class="doc"><div class="markdown"><p>Create confusion map where keys are pairs of <code>[truth-label, prediction-label]</code></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (knn train-data train-labels)
+;;=&gt; fastmath.classification$eval20205$fn$reify__20218@76e179ec</code></pre></div></div></div></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L102">view source</a></div></div><div class="public anchor" id="var-confusion-map"><h3>confusion-map</h3><div class="usage"><code>(confusion-map t p)</code></div><div class="doc"><div class="markdown"><p>Create confusion map where keys are pairs of <code>[truth-label, prediction-label]</code></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (knn train-data train-labels)
       pred (predict-all cl test-data)]
   (confusion-map test-labels pred))
-;;=&gt; {["setosa" "setosa"] 14,
-;;=&gt;  ["versicolor" "versicolor"] 10,
-;;=&gt;  ["versicolor" "virginica"] 2,
+;;=&gt; {["setosa" "setosa"] 12,
+;;=&gt;  ["versicolor" "versicolor"] 18,
 ;;=&gt;  ["virginica" "versicolor"] 1,
-;;=&gt;  ["virginica" "virginica"] 18}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L584">view source</a></div></div><div class="public anchor" id="var-cv"><h3>cv</h3><div class="usage"><code>(cv model)</code><code>(cv model k)</code></div><div class="doc"><div class="markdown"><p>Cross validation of a classification model.</p>
+;;=&gt;  ["virginica" "virginica"] 14}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L584">view source</a></div></div><div class="public anchor" id="var-cv"><h3>cv</h3><div class="usage"><code>(cv model)</code><code>(cv model k)</code></div><div class="doc"><div class="markdown"><p>Cross validation of a classification model.</p>
 <p>k defaults to 10% of data count.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(cv (knn train-data train-labels))
-;;=&gt; {:accuracy 0.9619047619047619}
+;;=&gt; {:accuracy 0.9523809523809524}
 (cv (knn train-data train-labels) 100)
-;;=&gt; {:accuracy 0.9714285714285714}
+;;=&gt; {:accuracy 0.9523809523809524}
 (cv (knn train-data train-labels) 4)
-;;=&gt; {:accuracy 0.980952380952381}
+;;=&gt; {:accuracy 0.9523809523809524}
 (cv (knn train-data train-labels) 1)
-;;=&gt; {:accuracy 0.9238095238095237}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L537">view source</a></div></div><div class="public anchor" id="var-decision-tree"><h3>decision-tree</h3><div class="usage"><code>(decision-tree x y)</code><code>(decision-tree params x y)</code><code>(decision-tree x y tx ty)</code><code>(decision-tree {:keys [max-nodes node-size split-rule], :or {max-nodes 100, node-size 1, split-rule :gini}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>decision-tree classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (decision-tree train-data train-labels)]
+;;=&gt; {:accuracy 0.942857142857143}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L537">view source</a></div></div><div class="public anchor" id="var-decision-tree"><h3>decision-tree</h3><div class="usage"><code>(decision-tree x y)</code><code>(decision-tree params x y)</code><code>(decision-tree x y tx ty)</code><code>(decision-tree {:keys [max-nodes node-size split-rule], :or {max-nodes 100, node-size 1, split-rule :gini}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>decision-tree classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (decision-tree train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid
-;;=&gt;  {:count 4,
-;;=&gt;   :data
-;;=&gt;   ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [4.9 2.4 3.3 1] [6 2.2 5 1.5]),
-;;=&gt;   :prediction ("virginica" "virginica" "virginica" "versicolor"),
-;;=&gt;   :truth ("versicolor" "versicolor" "versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9111111111111111}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L358">view source</a></div></div><div class="public anchor" id="var-error-functions-list"><h3>error-functions-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of error functions for <a href="fastmath.classification.html#var-neural-net">neural-net</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">error-functions-list
+;;=&gt; {:invalid {:count 3,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5] [6.7 3 5 1.7] [7.2 3 5.8 1.6]),
+;;=&gt;            :prediction ("versicolor" "virginica" "versicolor"),
+;;=&gt;            :truth ("virginica" "versicolor" "virginica")},
+;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L358">view source</a></div></div><div class="public anchor" id="var-error-functions-list"><h3>error-functions-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of error functions for <a href="fastmath.classification.html#var-neural-net">neural-net</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">error-functions-list
 ;;=&gt; (:least-mean-squares :cross-entropy)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L396">view source</a></div></div><div class="public anchor" id="var-fld"><h3>fld</h3><div class="usage"><code>(fld x y)</code><code>(fld params x y)</code><code>(fld x y tx ty)</code><code>(fld {:keys [dimensionality tolerance], :or {dimensionality -1, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>fld classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (fld train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([6 2.7 5.1 1.6] [6 3 4.8 1.8] [6.2 2.8 4.8 1.8]),
-;;=&gt;            :prediction ("virginica" "versicolor" "versicolor"),
-;;=&gt;            :truth ("versicolor" "virginica" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L334">view source</a></div></div><div class="public anchor" id="var-gradient-tree-boost"><h3>gradient-tree-boost</h3><div class="usage"><code>(gradient-tree-boost x y)</code><code>(gradient-tree-boost params x y)</code><code>(gradient-tree-boost x y tx ty)</code><code>(gradient-tree-boost {:keys [number-of-trees shrinkage max-nodes subsample], :or {number-of-trees 500, shrinkage 0.005, max-nodes 6, subsample 0.7}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>gradient-tree-boost classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (gradient-tree-boost train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L364">view source</a></div></div><div class="public anchor" id="var-knn"><h3>knn</h3><div class="usage"><code>(knn x y)</code><code>(knn params x y)</code><code>(knn x y tx ty)</code><code>(knn {:keys [distance k], :or {distance (EuclideanDistance.), k 1}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>knn classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (knn train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div><div><blockquote><p>Different distance</p></blockquote><pre><code class="hljs clojure">(let [cl (knn {:distance dist/cosine} train-data train-labels)]
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.7 3 5 1.7]),
+;;=&gt;            :prediction ("virginica"),
+;;=&gt;            :truth ("versicolor")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L334">view source</a></div></div><div class="public anchor" id="var-gradient-tree-boost"><h3>gradient-tree-boost</h3><div class="usage"><code>(gradient-tree-boost x y)</code><code>(gradient-tree-boost params x y)</code><code>(gradient-tree-boost x y tx ty)</code><code>(gradient-tree-boost {:keys [number-of-trees shrinkage max-nodes subsample], :or {number-of-trees 500, shrinkage 0.005, max-nodes 6, subsample 0.7}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>gradient-tree-boost classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (gradient-tree-boost train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([6 2.7 5.1 1.6] [7.9 3.8 6.4 2]),
-;;=&gt;            :prediction ("virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L324">view source</a></div></div><div class="public anchor" id="var-lda"><h3>lda</h3><div class="usage"><code>(lda x y)</code><code>(lda params x y)</code><code>(lda x y tx ty)</code><code>(lda {:keys [priori tolerance], :or {priori nil, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>lda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (lda train-data train-labels)]
+;;=&gt;            :data ([6.3 2.8 5.1 1.5] [6.7 3 5 1.7]),
+;;=&gt;            :prediction ("versicolor" "virginica"),
+;;=&gt;            :truth ("virginica" "versicolor")},
+;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L364">view source</a></div></div><div class="public anchor" id="var-knn"><h3>knn</h3><div class="usage"><code>(knn x y)</code><code>(knn params x y)</code><code>(knn x y tx ty)</code><code>(knn {:keys [distance k], :or {distance (EuclideanDistance.), k 1}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>knn classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (knn train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 9,
-;;=&gt;            :data ([5.7 2.5 5 2]
-;;=&gt;                   [4.5 2.3 1.3 0.3]
-;;=&gt;                   [5.9 3.2 4.8 1.8]
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div><div><blockquote><p>Different distance</p></blockquote><pre><code class="hljs clojure">(let [cl (knn {:distance dist/cosine} train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 3,
+;;=&gt;            :data ([7.2 3.2 6 1.8] [6.3 2.8 5.1 1.5] [7.2 3 5.8 1.6]),
+;;=&gt;            :prediction ("versicolor" "versicolor" "versicolor"),
+;;=&gt;            :truth ("virginica" "virginica" "virginica")},
+;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L324">view source</a></div></div><div class="public anchor" id="var-lda"><h3>lda</h3><div class="usage"><code>(lda x y)</code><code>(lda params x y)</code><code>(lda x y tx ty)</code><code>(lda {:keys [priori tolerance], :or {priori nil, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>lda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (lda train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 7,
+;;=&gt;            :data ([7.2 3.2 6 1.8]
+;;=&gt;                   [6.3 2.8 5.1 1.5]
+;;=&gt;                   [5.6 3 4.5 1.5]
 ;;=&gt;                   [7.7 2.8 6.7 2]
+;;=&gt;                   [6.7 3 5 1.7]
 ;;=&gt;                   [6.7 2.5 5.8 1.8]
-;;=&gt;                   [6.2 2.8 4.8 1.8]
-;;=&gt;                   [6.3 2.7 4.9 1.8]
-;;=&gt;                   [6 2.2 5 1.5]
-;;=&gt;                   [6.4 3.2 4.5 1.5]),
+;;=&gt;                   [7.2 3 5.8 1.6]),
 ;;=&gt;            :prediction ("versicolor"
 ;;=&gt;                         "versicolor"
 ;;=&gt;                         "virginica"
 ;;=&gt;                         "versicolor"
+;;=&gt;                         "virginica"
 ;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "virginica"),
+;;=&gt;                         "versicolor"),
 ;;=&gt;            :truth ("virginica"
-;;=&gt;                    "setosa"
+;;=&gt;                    "virginica"
 ;;=&gt;                    "versicolor"
 ;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
 ;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "versicolor")},
-;;=&gt;  :stats {:accuracy 0.8}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L346">view source</a></div></div><div class="public anchor" id="var-liblinear"><h3>liblinear</h3><div class="usage"><code>(liblinear x y)</code><code>(liblinear params x y)</code><code>(liblinear x y tx ty)</code><code>(liblinear {:keys [solver bias C eps max-iters p weights], :or {solver :l2r-l2loss-svc-dual, bias -1, C 1.0, eps 0.01, max-iters 1000, p 0.1}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>liblinear classifier. Backend library: liblinear</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (liblinear train-data train-labels)]
+;;=&gt;                    "virginica")},
+;;=&gt;  :stats {:accuracy 0.8444444444444443}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L346">view source</a></div></div><div class="public anchor" id="var-liblinear"><h3>liblinear</h3><div class="usage"><code>(liblinear x y)</code><code>(liblinear params x y)</code><code>(liblinear x y tx ty)</code><code>(liblinear {:keys [solver bias C eps max-iters p weights], :or {solver :l2r-l2loss-svc-dual, bias -1, C 1.0, eps 0.01, max-iters 1000, p 0.1}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>liblinear classifier. Backend library: liblinear</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (liblinear train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [7.9 3.8 6.4 2]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
+;;=&gt;            :data ([6.3 2.8 5.1 1.5] [5.6 3 4.5 1.5] [7.2 3 5.8 1.6]),
+;;=&gt;            :prediction ("versicolor" "virginica" "versicolor"),
+;;=&gt;            :truth ("virginica" "versicolor" "virginica")},
 ;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div><div><blockquote><p>Different solver</p></blockquote><pre><code class="hljs clojure">(let [cl (liblinear {:solver :l1r-lr, :C 0.5} train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6]),
+;;=&gt;            :data ([5.6 3 4.5 1.5] [6.7 3 5 1.7]),
 ;;=&gt;            :prediction ("virginica" "virginica"),
 ;;=&gt;            :truth ("versicolor" "versicolor")},
 ;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L477">view source</a></div></div><div class="public anchor" id="var-liblinear-solver-list"><h3>liblinear-solver-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of <a href="fastmath.classification.html#var-liblinear">liblinear</a> solvers.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">liblinear-solver-list
@@ -338,403 +326,375 @@
 ;;=&gt;          :mcsvm-cs :l1r-l2loss-svc
 ;;=&gt;          :l1r-lr :l2r-lr-dual)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L475">view source</a></div></div><div class="public anchor" id="var-logistic-regression"><h3>logistic-regression</h3><div class="usage"><code>(logistic-regression x y)</code><code>(logistic-regression params x y)</code><code>(logistic-regression x y tx ty)</code><code>(logistic-regression {:keys [lambda tolerance max-iterations], :or {lambda 0.0, tolerance 1.0E-5, max-iterations 500}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>logistic-regression classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (logistic-regression train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6]),
-;;=&gt;            :prediction ("virginica" "virginica"),
-;;=&gt;            :truth ("versicolor" "versicolor")},
-;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L371">view source</a></div></div><div class="public anchor" id="var-loocv"><h3>loocv</h3><div class="usage"><code>(loocv model)</code></div><div class="doc"><div class="markdown"><p>Leave-one-out cross validation of a classification model.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(loocv (knn train-data train-labels))
-;;=&gt; {:accuracy 0.9714285714285714}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L524">view source</a></div></div><div class="public anchor" id="var-multiclass-strategies-list"><h3>multiclass-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of multiclass strategies for <a href="fastmath.classification.html#var-svm">svm</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">multiclass-strategies-list
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L371">view source</a></div></div><div class="public anchor" id="var-loocv"><h3>loocv</h3><div class="usage"><code>(loocv model)</code></div><div class="doc"><div class="markdown"><p>Leave-one-out cross validation of a classification model.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(loocv (knn train-data train-labels))
+;;=&gt; {:accuracy 0.9523809523809524}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L524">view source</a></div></div><div class="public anchor" id="var-multiclass-strategies-list"><h3>multiclass-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of multiclass strategies for <a href="fastmath.classification.html#var-svm">svm</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">multiclass-strategies-list
 ;;=&gt; (:one-vs-one :one-vs-all)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L451">view source</a></div></div><div class="public anchor" id="var-naive-bayes"><h3>naive-bayes</h3><div class="usage"><code>(naive-bayes x y)</code><code>(naive-bayes params x y)</code><code>(naive-bayes x y tx ty)</code><code>(naive-bayes {:keys [model priori sigma], :or {model :bernoulli, sigma 1.0}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>naive-bayes classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (naive-bayes train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 33,
-;;=&gt;            :data ([5.7 2.5 5 2]
-;;=&gt;                   [6.3 3.4 5.6 2.4]
-;;=&gt;                   [5.2 3.4 1.4 0.2]
-;;=&gt;                   [4.5 2.3 1.3 0.3]
-;;=&gt;                   [5.4 3.9 1.7 0.4]
-;;=&gt;                   [5.1 3.4 1.5 0.2]
-;;=&gt;                   [6.5 3.2 5.1 2]
-;;=&gt;                   [6.7 3 5.2 2.3]
-;;=&gt;                   [7.7 2.8 6.7 2]
-;;=&gt;                   [4.8 3 1.4 0.1]
-;;=&gt;                   [4.9 3 1.4 0.2]
-;;=&gt;                   [6.7 2.5 5.8 1.8]
-;;=&gt;                   [5.6 2.8 4.9 2]
-;;=&gt;                   [6.3 2.9 5.6 1.8]
-;;=&gt;                   [6 3 4.8 1.8]
-;;=&gt;                   [7.6 3 6.6 2.1]
-;;=&gt;                   [6.2 2.8 4.8 1.8]
-;;=&gt;                   [6.3 2.7 4.9 1.8]
-;;=&gt;                   [5.4 3.7 1.5 0.2]
-;;=&gt;                   [5 3.3 1.4 0.2]
-;;=&gt;                   [6.5 3 5.2 2]
-;;=&gt;                   [7.9 3.8 6.4 2]
-;;=&gt;                   [6 2.2 5 1.5]
-;;=&gt;                   [5 3.5 1.3 0.3]
-;;=&gt;                   [5.3 3.7 1.5 0.2]
+;;=&gt;            :data ([6.7 3.1 5.6 2.4]
 ;;=&gt;                   [7.2 3.2 6 1.8]
-;;=&gt;                   [5.8 4 1.2 0.2]
-;;=&gt;                   [6.4 2.8 5.6 2.2]
-;;=&gt;                   [6.7 3.1 5.6 2.4]
-;;=&gt;                   [6.9 3.1 5.1 2.3]
-;;=&gt;                   [4.9 3.1 1.5 0.1]
-;;=&gt;                   [4.7 3.2 1.3 0.2]
-;;=&gt;                   [5.2 4.1 1.5 0.1]),
-;;=&gt;            :prediction ("versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"),
-;;=&gt;            :truth ("virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa")},
-;;=&gt;  :stats {:accuracy 0.2666666666666667}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L384">view source</a></div></div><div class="public anchor" id="var-neural-net"><h3>neural-net</h3><div class="usage"><code>(neural-net x y)</code><code>(neural-net params x y)</code><code>(neural-net x y tx ty)</code><code>(neural-net {:keys [error-function activation-function layers learning-rate momentum weight-decay number-of-epochs], :or {error-function :cross-entropy, learning-rate 0.1, momentum 0.0, weight-decay 0.0, number-of-epochs 25}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>neural-net classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (neural-net {:layers [100 100]} train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 1,
-;;=&gt;            :data ([6 2.7 5.1 1.6]),
-;;=&gt;            :prediction ("virginica"),
-;;=&gt;            :truth ("versicolor")},
-;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div><div><blockquote><p>Bad model</p></blockquote><pre><code class="hljs clojure">(let [cl (neural-net {:layers [3 3 3], :number-of-epochs 3}
-                     train-data
-                     train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 33,
-;;=&gt;            :data ([5.7 2.5 5 2]
-;;=&gt;                   [6.3 3.4 5.6 2.4]
-;;=&gt;                   [5.2 3.4 1.4 0.2]
-;;=&gt;                   [4.5 2.3 1.3 0.3]
-;;=&gt;                   [5.4 3.9 1.7 0.4]
-;;=&gt;                   [5.1 3.4 1.5 0.2]
-;;=&gt;                   [6.5 3.2 5.1 2]
-;;=&gt;                   [6.7 3 5.2 2.3]
+;;=&gt;                   [6.3 2.8 5.1 1.5]
+;;=&gt;                   [5.6 3 4.5 1.5]
+;;=&gt;                   [6.2 2.9 4.3 1.3]
+;;=&gt;                   [5.8 2.7 3.9 1.2]
+;;=&gt;                   [5.7 2.8 4.5 1.3]
+;;=&gt;                   [5.5 2.4 3.7 1]
+;;=&gt;                   [5 2 3.5 1]
+;;=&gt;                   [7.2 3.6 6.1 2.5]
 ;;=&gt;                   [7.7 2.8 6.7 2]
-;;=&gt;                   [4.8 3 1.4 0.1]
-;;=&gt;                   [4.9 3 1.4 0.2]
-;;=&gt;                   [6.7 2.5 5.8 1.8]
 ;;=&gt;                   [5.6 2.8 4.9 2]
-;;=&gt;                   [6.3 2.9 5.6 1.8]
-;;=&gt;                   [6 3 4.8 1.8]
-;;=&gt;                   [7.6 3 6.6 2.1]
-;;=&gt;                   [6.2 2.8 4.8 1.8]
-;;=&gt;                   [6.3 2.7 4.9 1.8]
-;;=&gt;                   [5.4 3.7 1.5 0.2]
-;;=&gt;                   [5 3.3 1.4 0.2]
-;;=&gt;                   [6.5 3 5.2 2]
-;;=&gt;                   [7.9 3.8 6.4 2]
-;;=&gt;                   [6 2.2 5 1.5]
-;;=&gt;                   [5 3.5 1.3 0.3]
-;;=&gt;                   [5.3 3.7 1.5 0.2]
-;;=&gt;                   [7.2 3.2 6 1.8]
-;;=&gt;                   [5.8 4 1.2 0.2]
+;;=&gt;                   [5.7 2.6 3.5 1]
 ;;=&gt;                   [6.4 2.8 5.6 2.2]
-;;=&gt;                   [6.7 3.1 5.6 2.4]
+;;=&gt;                   [6.1 2.8 4 1.3]
+;;=&gt;                   [5.8 2.6 4 1.2]
 ;;=&gt;                   [6.9 3.1 5.1 2.3]
-;;=&gt;                   [4.9 3.1 1.5 0.1]
-;;=&gt;                   [4.7 3.2 1.3 0.2]
-;;=&gt;                   [5.2 4.1 1.5 0.1]),
-;;=&gt;            :prediction ("versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"),
-;;=&gt;            :truth ("virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa"
-;;=&gt;                    "setosa")},
-;;=&gt;  :stats {:accuracy 0.2666666666666667}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L404">view source</a></div></div><div class="public anchor" id="var-qda"><h3>qda</h3><div class="usage"><code>(qda x y)</code><code>(qda params x y)</code><code>(qda x y tx ty)</code><code>(qda {:keys [priori tolerance], :or {priori nil, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>qda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (qda train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6]),
-;;=&gt;            :prediction ("virginica" "virginica"),
-;;=&gt;            :truth ("versicolor" "versicolor")},
-;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L340">view source</a></div></div><div class="public anchor" id="var-random-forest"><h3>random-forest</h3><div class="usage"><code>(random-forest x y)</code><code>(random-forest params x y)</code><code>(random-forest x y tx ty)</code><code>(random-forest {:keys [number-of-trees split-rule mtry node-size max-nodes subsample], :or {number-of-trees 500, split-rule :gini, node-size 1, max-nodes 100, subsample 1.0}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>random-forest classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (random-forest train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L436">view source</a></div></div><div class="public anchor" id="var-rbf-network"><h3>rbf-network</h3><div class="usage"><code>(rbf-network x y)</code><code>(rbf-network params x y)</code><code>(rbf-network x y tx ty)</code><code>(rbf-network {:keys [distance rbf number-of-basis normalize?], :or {distance dist/euclidean, number-of-basis 10, normalize? false}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>rbf-network classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (rbf-network train-data train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 1,
-;;=&gt;            :data ([6 2.7 5.1 1.6]),
-;;=&gt;            :prediction ("virginica"),
-;;=&gt;            :truth ("versicolor")},
-;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div><div><blockquote><p>Custom rbfs</p></blockquote><pre><code class="hljs clojure">(let [cl (rbf-network {:rbf (take 5
-                                  (cycle [(rbf/rbf :linear)
-                                          (rbf/rbf :wendland)]))}
-                      train-data
-                      train-labels)]
-  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 7,
-;;=&gt;            :data ([5.7 2.5 5 2]
-;;=&gt;                   [5.6 2.8 4.9 2]
-;;=&gt;                   [6 3 4.8 1.8]
-;;=&gt;                   [6.2 2.8 4.8 1.8]
+;;=&gt;                   [6.4 2.9 4.3 1.3]
+;;=&gt;                   [6.3 2.5 5 1.9]
+;;=&gt;                   [5.5 2.3 4 1.3]
+;;=&gt;                   [5.7 2.8 4.1 1.3]
+;;=&gt;                   [7.1 3 5.9 2.1]
+;;=&gt;                   [6.7 3 5 1.7]
 ;;=&gt;                   [6.3 2.7 4.9 1.8]
-;;=&gt;                   [6.9 3.1 4.9 1.5]
-;;=&gt;                   [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "virginica"
-;;=&gt;                         "versicolor"),
+;;=&gt;                   [6.8 3 5.5 2.1]
+;;=&gt;                   [6.7 2.5 5.8 1.8]
+;;=&gt;                   [7.2 3 5.8 1.6]
+;;=&gt;                   [6.7 3.1 4.7 1.5]
+;;=&gt;                   [6 2.9 4.5 1.5]
+;;=&gt;                   [5.6 2.7 4.2 1.3]
+;;=&gt;                   [5.6 3 4.1 1.3]
+;;=&gt;                   [6.1 3 4.9 1.8]
+;;=&gt;                   [6.2 2.2 4.5 1.5]),
+;;=&gt;            :prediction ("setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"),
 ;;=&gt;            :truth ("virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
 ;;=&gt;                    "virginica"
 ;;=&gt;                    "virginica"
 ;;=&gt;                    "virginica"
 ;;=&gt;                    "virginica"
 ;;=&gt;                    "versicolor"
-;;=&gt;                    "virginica")},
-;;=&gt;  :stats {:accuracy 0.8444444444444443}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L421">view source</a></div></div><div class="public anchor" id="var-rda"><h3>rda</h3><div class="usage"><code>(rda x y)</code><code>(rda params x y)</code><code>(rda x y tx ty)</code><code>(rda {:keys [alpha priori tolerance], :or {alpha 0.9, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>rda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (rda train-data train-labels)]
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor")},
+;;=&gt;  :stats {:accuracy 0.2666666666666667}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L384">view source</a></div></div><div class="public anchor" id="var-neural-net"><h3>neural-net</h3><div class="usage"><code>(neural-net x y)</code><code>(neural-net params x y)</code><code>(neural-net x y tx ty)</code><code>(neural-net {:keys [error-function activation-function layers learning-rate momentum weight-decay number-of-epochs], :or {error-function :cross-entropy, learning-rate 0.1, momentum 0.0, weight-decay 0.0, number-of-epochs 25}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>neural-net classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (neural-net {:layers [100 100]} train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 0, :data (), :prediction (), :truth ()},
+;;=&gt;  :stats {:accuracy 1.0}}</code></pre></div><div><blockquote><p>Bad model</p></blockquote><pre><code class="hljs clojure">(let [cl (neural-net {:layers [3 3 3], :number-of-epochs 3}
+                     train-data
+                     train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 33,
+;;=&gt;            :data ([6.7 3.1 5.6 2.4]
+;;=&gt;                   [7.2 3.2 6 1.8]
+;;=&gt;                   [6.3 2.8 5.1 1.5]
+;;=&gt;                   [5.6 3 4.5 1.5]
+;;=&gt;                   [6.2 2.9 4.3 1.3]
+;;=&gt;                   [5.8 2.7 3.9 1.2]
+;;=&gt;                   [5.7 2.8 4.5 1.3]
+;;=&gt;                   [5.5 2.4 3.7 1]
+;;=&gt;                   [5 2 3.5 1]
+;;=&gt;                   [7.2 3.6 6.1 2.5]
+;;=&gt;                   [7.7 2.8 6.7 2]
+;;=&gt;                   [5.6 2.8 4.9 2]
+;;=&gt;                   [5.7 2.6 3.5 1]
+;;=&gt;                   [6.4 2.8 5.6 2.2]
+;;=&gt;                   [6.1 2.8 4 1.3]
+;;=&gt;                   [5.8 2.6 4 1.2]
+;;=&gt;                   [6.9 3.1 5.1 2.3]
+;;=&gt;                   [6.4 2.9 4.3 1.3]
+;;=&gt;                   [6.3 2.5 5 1.9]
+;;=&gt;                   [5.5 2.3 4 1.3]
+;;=&gt;                   [5.7 2.8 4.1 1.3]
+;;=&gt;                   [7.1 3 5.9 2.1]
+;;=&gt;                   [6.7 3 5 1.7]
+;;=&gt;                   [6.3 2.7 4.9 1.8]
+;;=&gt;                   [6.8 3 5.5 2.1]
+;;=&gt;                   [6.7 2.5 5.8 1.8]
+;;=&gt;                   [7.2 3 5.8 1.6]
+;;=&gt;                   [6.7 3.1 4.7 1.5]
+;;=&gt;                   [6 2.9 4.5 1.5]
+;;=&gt;                   [5.6 2.7 4.2 1.3]
+;;=&gt;                   [5.6 3 4.1 1.3]
+;;=&gt;                   [6.1 3 4.9 1.8]
+;;=&gt;                   [6.2 2.2 4.5 1.5]),
+;;=&gt;            :prediction ("setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"
+;;=&gt;                         "setosa"),
+;;=&gt;            :truth ("virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "virginica"
+;;=&gt;                    "versicolor")},
+;;=&gt;  :stats {:accuracy 0.2666666666666667}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L404">view source</a></div></div><div class="public anchor" id="var-qda"><h3>qda</h3><div class="usage"><code>(qda x y)</code><code>(qda params x y)</code><code>(qda x y tx ty)</code><code>(qda {:keys [priori tolerance], :or {priori nil, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>qda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (qda train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L340">view source</a></div></div><div class="public anchor" id="var-random-forest"><h3>random-forest</h3><div class="usage"><code>(random-forest x y)</code><code>(random-forest params x y)</code><code>(random-forest x y tx ty)</code><code>(random-forest {:keys [number-of-trees split-rule mtry node-size max-nodes subsample], :or {number-of-trees 500, split-rule :gini, node-size 1, max-nodes 100, subsample 1.0}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>random-forest classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (random-forest train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
 ;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L430">view source</a></div></div><div class="public anchor" id="var-split-rules-list"><h3>split-rules-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of split rules for <a href="null">decision tree</a> and <a href="fastmath.classification.html#var-random-forest">random-forest</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">split-rules-list
+;;=&gt;            :data ([6.3 2.8 5.1 1.5] [6.7 3 5 1.7]),
+;;=&gt;            :prediction ("versicolor" "virginica"),
+;;=&gt;            :truth ("virginica" "versicolor")},
+;;=&gt;  :stats {:accuracy 0.9555555555555556}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L436">view source</a></div></div><div class="public anchor" id="var-rbf-network"><h3>rbf-network</h3><div class="usage"><code>(rbf-network x y)</code><code>(rbf-network params x y)</code><code>(rbf-network x y tx ty)</code><code>(rbf-network {:keys [distance rbf number-of-basis normalize?], :or {distance dist/euclidean, number-of-basis 10, normalize? false}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>rbf-network classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (rbf-network train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 0, :data (), :prediction (), :truth ()},
+;;=&gt;  :stats {:accuracy 1.0}}</code></pre></div><div><blockquote><p>Custom rbfs</p></blockquote><pre><code class="hljs clojure">(let [cl (rbf-network {:rbf (take 5
+                                  (cycle [(rbf/rbf :linear)
+                                          (rbf/rbf :wendland)]))}
+                      train-data
+                      train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid
+;;=&gt;  {:count 4,
+;;=&gt;   :data
+;;=&gt;   ([5.6 2.8 4.9 2] [6.7 3 5 1.7] [6.3 2.7 4.9 1.8] [6.1 3 4.9 1.8]),
+;;=&gt;   :prediction ("versicolor" "virginica" "versicolor" "versicolor"),
+;;=&gt;   :truth ("virginica" "versicolor" "virginica" "virginica")},
+;;=&gt;  :stats {:accuracy 0.9111111111111111}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L421">view source</a></div></div><div class="public anchor" id="var-rda"><h3>rda</h3><div class="usage"><code>(rda x y)</code><code>(rda params x y)</code><code>(rda x y tx ty)</code><code>(rda {:keys [alpha priori tolerance], :or {alpha 0.9, tolerance 1.0E-4}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>rda classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (rda train-data train-labels)]
+  (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L430">view source</a></div></div><div class="public anchor" id="var-split-rules-list"><h3>split-rules-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of split rules for <a href="null">decision tree</a> and <a href="fastmath.classification.html#var-random-forest">random-forest</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Names</p></blockquote><pre><code class="hljs clojure">split-rules-list
 ;;=&gt; (:gini :entropy :classification-error)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L356">view source</a></div></div><div class="public anchor" id="var-svm"><h3>svm</h3><div class="usage"><code>(svm x y)</code><code>(svm params x y)</code><code>(svm x y tx ty)</code><code>(svm {:keys [kernel c-or-cp cn strategy-for-multiclass class-weights tolerance epochs], :or {kernel (mercer/kernel :linear), c-or-cp 1.0, cn 1.0, strategy-for-multiclass :one-vs-one, tolerance 0.001, epochs 2}, :as all} x y tx ty)</code></div><div class="doc"><div class="markdown"><p>svm classifier. Backend library: smile</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (svm train-data train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([6 2.7 5.1 1.6] [6 3 4.8 1.8] [6.2 2.8 4.8 1.8]),
-;;=&gt;            :prediction ("virginica" "versicolor" "versicolor"),
-;;=&gt;            :truth ("versicolor" "virginica" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div><div><blockquote><p>Different kernel</p></blockquote><pre><code class="hljs clojure">(let [cl (svm {:kernel (mercer/kernel :gaussian 1), :epochs 10}
+;;=&gt; {:invalid {:count 0, :data (), :prediction (), :truth ()},
+;;=&gt;  :stats {:accuracy 1.0}}</code></pre></div><div><blockquote><p>Different kernel</p></blockquote><pre><code class="hljs clojure">(let [cl (svm {:kernel (mercer/kernel :gaussian 1), :epochs 10}
               train-data
               train-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([6 2.7 5.1 1.6] [6 3 4.8 1.8] [6.2 2.8 4.8 1.8]),
-;;=&gt;            :prediction ("virginica" "versicolor" "versicolor"),
-;;=&gt;            :truth ("versicolor" "virginica" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L453">view source</a></div></div><div class="public anchor" id="var-validate"><h3>validate</h3><div class="usage"><code>(validate model)</code><code>(validate model tx ty)</code></div><div class="doc"><div class="markdown"><p>Validate data against trained classifier. Same as <a href="fastmath.classification.html#var-test">test</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Use data provided during training</p></blockquote><pre><code class="hljs clojure">(validate (qda train-data train-labels test-data test-labels))
-;;=&gt; {:invalid {:count 2,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6]),
-;;=&gt;            :prediction ("virginica" "virginica"),
-;;=&gt;            :truth ("versicolor" "versicolor")},
+;;=&gt; {:invalid {:count 0, :data (), :prediction (), :truth ()},
+;;=&gt;  :stats {:accuracy 1.0}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L453">view source</a></div></div><div class="public anchor" id="var-validate"><h3>validate</h3><div class="usage"><code>(validate model)</code><code>(validate model tx ty)</code></div><div class="doc"><div class="markdown"><p>Validate data against trained classifier. Same as <a href="fastmath.classification.html#var-test">test</a>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Use data provided during training</p></blockquote><pre><code class="hljs clojure">(validate (qda train-data train-labels test-data test-labels))
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.3 2.8 5.1 1.5]),
+;;=&gt;            :prediction ("versicolor"),
+;;=&gt;            :truth ("virginica")},
 ;;=&gt;  :prediction ("virginica"
-;;=&gt;               "versicolor"
-;;=&gt;               "virginica"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
 ;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
-;;=&gt;               "setosa"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
 ;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
-;;=&gt;               "versicolor"
-;;=&gt;               "virginica"
 ;;=&gt;               "setosa"
 ;;=&gt;               "setosa"
-;;=&gt;               "versicolor"
-;;=&gt;               "versicolor"
-;;=&gt;               "virginica"
-;;=&gt;               "virginica"
 ;;=&gt;               "virginica"
 ;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
+;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
+;;=&gt;               "setosa"
 ;;=&gt;               "virginica"
+;;=&gt;               "versicolor"
+;;=&gt;               "setosa"
+;;=&gt;               "setosa"
+;;=&gt;               "virginica"
+;;=&gt;               "setosa"
+;;=&gt;               "virginica"
+;;=&gt;               "virginica"
+;;=&gt;               "virginica"
+;;=&gt;               "setosa"
+;;=&gt;               "versicolor"
+;;=&gt;               "versicolor"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "versicolor"
 ;;=&gt;               "virginica"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"
-;;=&gt;               "setosa"),
-;;=&gt;  :stats {:accuracy 0.9555555555555556},
+;;=&gt;               "versicolor"),
+;;=&gt;  :stats {:accuracy 0.9777777777777777},
 ;;=&gt;  :truth ("virginica"
-;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "versicolor"
-;;=&gt;          "versicolor"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "versicolor"
-;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
-;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
-;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
 ;;=&gt;          "virginica"
 ;;=&gt;          "setosa"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
 ;;=&gt;          "setosa"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "setosa"
 ;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
 ;;=&gt;          "virginica"
+;;=&gt;          "versicolor"
+;;=&gt;          "setosa"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "virginica"
+;;=&gt;          "virginica"
+;;=&gt;          "virginica"
+;;=&gt;          "setosa"
+;;=&gt;          "versicolor"
+;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "versicolor"
 ;;=&gt;          "virginica"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa"
-;;=&gt;          "setosa")}</code></pre></div><div><blockquote><p>No test data provided</p></blockquote><pre><code class="hljs clojure">(validate (qda train-data train-labels))
+;;=&gt;          "versicolor")}</code></pre></div><div><blockquote><p>No test data provided</p></blockquote><pre><code class="hljs clojure">(validate (qda train-data train-labels))
 ;;=&gt; nil</code></pre></div><div><blockquote><p>Test other data</p></blockquote><pre><code class="hljs clojure">(validate (qda train-data train-labels)
           [[1 2 3 4] [6 4 3 2]]
           ["virginica" "setosa"])
 ;;=&gt; {:invalid {:count 1,
 ;;=&gt;            :data ([6 4 3 2]),
-;;=&gt;            :prediction ("virginica"),
+;;=&gt;            :prediction ("versicolor"),
 ;;=&gt;            :truth ("setosa")},
-;;=&gt;  :prediction ("virginica" "virginica"),
+;;=&gt;  :prediction ("virginica" "versicolor"),
 ;;=&gt;  :stats {:accuracy 0.5},
 ;;=&gt;  :truth ["virginica" "setosa"]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L493">view source</a></div></div><div class="public anchor" id="var-xgboost"><h3>xgboost</h3><div class="usage"><code>(xgboost x y)</code><code>(xgboost params x y)</code><code>(xgboost x y tx ty)</code><code>(xgboost xgboost-params x y tx ty)</code></div><div class="doc"><div class="markdown"><p>xgboost classifier. Backend library: xgboost</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [cl (xgboost train-data train-labels test-data test-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 3,
-;;=&gt;            :data ([5.9 3.2 4.8 1.8] [6 2.7 5.1 1.6] [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("virginica" "virginica" "versicolor"),
-;;=&gt;            :truth ("versicolor" "versicolor" "virginica")},
-;;=&gt;  :stats {:accuracy 0.9333333333333333}}
+;;=&gt; {:invalid {:count 1,
+;;=&gt;            :data ([6.7 3 5 1.7]),
+;;=&gt;            :prediction ("virginica"),
+;;=&gt;            :truth ("versicolor")},
+;;=&gt;  :stats {:accuracy 0.9777777777777777}}
 (let [cl (xgboost {:params {:eta 0.999,
                             :max_depth 1,
                             :grow_policy "lossguide",
@@ -745,26 +705,95 @@
                   test-data
                   test-labels)]
   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-;;=&gt; {:invalid {:count 7,
-;;=&gt;            :data ([5.7 2.5 5 2]
-;;=&gt;                   [6 2.7 5.1 1.6]
-;;=&gt;                   [5.6 2.8 4.9 2]
-;;=&gt;                   [6 3 4.8 1.8]
-;;=&gt;                   [6.2 2.8 4.8 1.8]
-;;=&gt;                   [6.3 2.7 4.9 1.8]
-;;=&gt;                   [6 2.2 5 1.5]),
-;;=&gt;            :prediction ("versicolor"
+;;=&gt; {:invalid {:count 30,
+;;=&gt;            :data ([5.6 3 4.5 1.5]
+;;=&gt;                   [6.2 2.9 4.3 1.3]
+;;=&gt;                   [5.8 2.7 3.9 1.2]
+;;=&gt;                   [5.7 2.8 4.5 1.3]
+;;=&gt;                   [5.8 4 1.2 0.2]
+;;=&gt;                   [5.5 2.4 3.7 1]
+;;=&gt;                   [5 3 1.6 0.2]
+;;=&gt;                   [5 2 3.5 1]
+;;=&gt;                   [5.4 3.7 1.5 0.2]
+;;=&gt;                   [5 3.4 1.5 0.2]
+;;=&gt;                   [4.7 3.2 1.6 0.2]
+;;=&gt;                   [5.7 2.6 3.5 1]
+;;=&gt;                   [6.1 2.8 4 1.3]
+;;=&gt;                   [4.6 3.4 1.4 0.3]
+;;=&gt;                   [5.8 2.6 4 1.2]
+;;=&gt;                   [6.4 2.9 4.3 1.3]
+;;=&gt;                   [4.4 3.2 1.3 0.2]
+;;=&gt;                   [5.5 2.3 4 1.3]
+;;=&gt;                   [5.7 2.8 4.1 1.3]
+;;=&gt;                   [5.1 3.8 1.9 0.4]
+;;=&gt;                   [6.7 3 5 1.7]
+;;=&gt;                   [4.7 3.2 1.3 0.2]
+;;=&gt;                   [4.8 3.1 1.6 0.2]
+;;=&gt;                   [4.9 3 1.4 0.2]
+;;=&gt;                   [4.8 3.4 1.9 0.2]
+;;=&gt;                   [6.7 3.1 4.7 1.5]
+;;=&gt;                   [6 2.9 4.5 1.5]
+;;=&gt;                   [5.6 2.7 4.2 1.3]
+;;=&gt;                   [5.6 3 4.1 1.3]
+;;=&gt;                   [6.2 2.2 4.5 1.5]),
+;;=&gt;            :prediction ("virginica"
 ;;=&gt;                         "virginica"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"
-;;=&gt;                         "versicolor"),
-;;=&gt;            :truth ("virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"
+;;=&gt;                         "virginica"),
+;;=&gt;            :truth ("versicolor"
 ;;=&gt;                    "versicolor"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica"
-;;=&gt;                    "virginica")},
-;;=&gt;  :stats {:accuracy 0.8444444444444443}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L446">view source</a></div></div></div></body></html>
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "setosa"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "setosa"
+;;=&gt;                    "setosa"
+;;=&gt;                    "setosa"
+;;=&gt;                    "setosa"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor"
+;;=&gt;                    "versicolor")},
+;;=&gt;  :stats {:accuracy 0.33333333333333326}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/classification.clj#L446">view source</a></div></div></div></body></html>
