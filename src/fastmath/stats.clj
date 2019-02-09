@@ -14,13 +14,15 @@
   * `:Size` - size of the samples, `(count ...)`
   * `:Min` - [[minimum]] value
   * `:Max` - [[maximum]] value
+  * `:Range` - range of values
   * `:Mean` - [[mean]]/average
   * `:Median` - [[median]], see also: [[median-3]]
   * `:Mode` - [[mode]], see also: [[modes]]
   * `:Q1` - first quartile, use: [[percentile]], [[quartile]]
   * `:Q3` - third quartile, use: [[percentile]], [[quartile]]
   * `:Total` - [[sum]] of all samples
-  * `:SD` - standard deviation of population, corrected sample standard deviation, use: [[population-stddev]]
+  * `:SD` - sample standard deviation
+  * `:Variance` - variance
   * `:MAD` - [[median-absolute-deviation]]
   * `:SEM` - standard error of mean
   * `:LAV` - lower adjacent value, use: [[adjacent-values]]
@@ -236,8 +238,8 @@
 
   Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
 
-  * LOF (Lower Outer Fence) equals `(- Q1 (* 3.0 IQR))`.
-  * UOF (Upper Outer Fence) equals `(+ Q3 (* 3.0 IQR))`.
+  * LIF (Lower Outer Fence) equals `(- Q1 (* 1.5 IQR))`.
+  * UIF (Upper Outer Fence) equals `(+ Q3 (* 1.5 IQR))`.
 
   Returns sequence.
 
@@ -252,7 +254,7 @@
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
    (let [avs (m/seq->double-array vs)
-         iqr (* 3.0 (- q3 q1))
+         iqr (* 1.5 (- q3 q1))
          lof-thr (- q1 iqr)
          uof-thr (+ q3 iqr)]
      (java.util.Arrays/sort avs)
@@ -332,12 +334,13 @@
          q1 (percentile avs 25.0 estimation-strategy)
          q3 (percentile avs 75.0 estimation-strategy)
          iqr (- q3 q1)
-         sd (population-stddev avs)
+         sd (stddev avs)
          mad (median-absolute-deviation avs)
          [lav uav] (adjacent-values avs q1 q3)]
      {:Size sz
       :Min mn
       :Max mx
+      :Range (- mx mn)
       :Mean u
       :Median mdn
       :Mode (mode avs)
@@ -345,6 +348,7 @@
       :Q3 q3
       :Total sm
       :SD sd
+      :Variance (* sd sd)
       :MAD mad
       :SEM (/ sd (m/sqrt sz))
       :LAV lav

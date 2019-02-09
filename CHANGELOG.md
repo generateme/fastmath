@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file. This change
 
 * use `fmap` instead of `applyf` (now deprecated)
 * rbf function already implements Smile interface
+* outliers are samples which are outside inner fence instead of outer fence
 
 ### Removed
 
