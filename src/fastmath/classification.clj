@@ -291,7 +291,7 @@
       (predict-all [_ vs] (map predict-fn vs))
       (predict-all [_ vs posteriori?] (if posteriori? (map predict-fn-posteriori vs) (map predict-fn vs)))
       (cv-native [c] (cv-native c {}))
-      (cv-native [_ {:keys [k type] :or {k 10 type :cv}}]
+      (cv-native [_ {:keys [^int k type] :or {k 10 type :cv}}]
         (case type
           :cv {:accuracy (Validation/cv k trainer data int-labels)}
           :loocv {:accuracy (Validation/loocv trainer data int-labels)}
@@ -349,9 +349,9 @@
       (.setPriori (m/seq->double-array priori))
       (.setTolerance tolerance)))
 
-(def ^:private split-rules {:gini DecisionTree$SplitRule/GINI
-                            :entropy DecisionTree$SplitRule/ENTROPY
-                            :classification-error DecisionTree$SplitRule/CLASSIFICATION_ERROR})
+(def split-rules {:gini DecisionTree$SplitRule/GINI
+                  :entropy DecisionTree$SplitRule/ENTROPY
+                  :classification-error DecisionTree$SplitRule/CLASSIFICATION_ERROR})
 
 (def ^{:doc "List of split rules for [[decision tree]] and [[random-forest]]"} split-rules-list (keys split-rules))
 
@@ -375,9 +375,9 @@
       (.setTolerance tolerance)
       (.setMaxNumIteration max-iterations)))
 
-(def ^:private bayes-models {:multinomial NaiveBayes$Model/MULTINOMIAL
-                             :bernoulli NaiveBayes$Model/BERNOULLI
-                             :polyaurn NaiveBayes$Model/POLYAURN})
+(def bayes-models {:multinomial NaiveBayes$Model/MULTINOMIAL
+                   :bernoulli NaiveBayes$Model/BERNOULLI
+                   :polyaurn NaiveBayes$Model/POLYAURN})
 
 (def ^{:doc "List of [[naive-bayes]] models."} bayes-models-list (keys bayes-models))
 
@@ -390,14 +390,14 @@
         (.setSmooth sigma)
         (.setPriori (m/seq->double-array priori)))))
 
-(def ^:private error-functions {:least-mean-squares NeuralNetwork$ErrorFunction/LEAST_MEAN_SQUARES
-                                :cross-entropy NeuralNetwork$ErrorFunction/CROSS_ENTROPY})
+(def error-functions {:least-mean-squares NeuralNetwork$ErrorFunction/LEAST_MEAN_SQUARES
+                      :cross-entropy NeuralNetwork$ErrorFunction/CROSS_ENTROPY})
 
 (def ^{:doc "List of error functions for [[neural-net]]."} error-functions-list (keys error-functions))
 
-(def ^:private activation-functions {:linear NeuralNetwork$ActivationFunction/LINEAR
-                                     :logistic-sigmoid NeuralNetwork$ActivationFunction/LOGISTIC_SIGMOID
-                                     :soft-max NeuralNetwork$ActivationFunction/SOFTMAX})
+(def activation-functions {:linear NeuralNetwork$ActivationFunction/LINEAR
+                           :logistic-sigmoid NeuralNetwork$ActivationFunction/LOGISTIC_SIGMOID
+                           :soft-max NeuralNetwork$ActivationFunction/SOFTMAX})
 
 (def ^{:doc "List of activation functions for [[neural-net]]."} activation-functions-list (keys activation-functions))
 
@@ -406,7 +406,7 @@
      :or {error-function :cross-entropy learning-rate 0.1 momentum 0.0 weight-decay 0.0 number-of-epochs 25}}
   (let [layers (into-array Integer/TYPE (cons (count (first x)) (conj (vec layers) (count (distinct y)))))
         ef (or (error-functions error-function) NeuralNetwork$ErrorFunction/CROSS_ENTROPY)]
-    (-> (if activation-function
+    (-> (if-not activation-function
           (NeuralNetwork$Trainer. ef layers)
           (NeuralNetwork$Trainer.
            ef (or (activation-functions activation-function)
@@ -423,7 +423,7 @@
   (let [cl (RBFNetwork$Trainer. distance)]
     (-> (cond
           (nil? rbf) cl
-          (seqable? rbf) (.setRBF cl (into-array RadialBasisFunction rbf))
+          (sequential? rbf) (.setRBF cl (into-array RadialBasisFunction rbf))
           :else (.setRBF cl rbf number-of-basis))
         (.setNormalized normalize?))))
 
@@ -445,8 +445,8 @@
 
 (wrap-classifier :xgboost xgboost xgboost-params xgboost-params)
 
-(def ^:private multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
-                                      :one-vs-all SVM$Multiclass/ONE_VS_ALL})
+(def multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
+                            :one-vs-all SVM$Multiclass/ONE_VS_ALL})
 
 (def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strategies-list (keys multiclass-strategies))
 
@@ -463,14 +463,14 @@
     (-> (.setTolerance t tolerance)
         (.setNumEpochs epochs))))
 
-(def ^:private liblinear-solvers {:l2r-lr SolverType/L2R_LR
-                                  :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL
-                                  :l2r-l2loss-svc SolverType/L2R_L2LOSS_SVC
-                                  :l2r-l1loss-svc-dual SolverType/L2R_L1LOSS_SVC_DUAL
-                                  :mcsvm-cs SolverType/MCSVM_CS
-                                  :l1r-l2loss-svc SolverType/L1R_L2LOSS_SVC
-                                  :l1r-lr SolverType/L1R_LR
-                                  :l2r-lr-dual SolverType/L2R_LR_DUAL})
+(def liblinear-solvers {:l2r-lr SolverType/L2R_LR
+                        :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL
+                        :l2r-l2loss-svc SolverType/L2R_L2LOSS_SVC
+                        :l2r-l1loss-svc-dual SolverType/L2R_L1LOSS_SVC_DUAL
+                        :mcsvm-cs SolverType/MCSVM_CS
+                        :l1r-l2loss-svc SolverType/L1R_L2LOSS_SVC
+                        :l1r-lr SolverType/L1R_LR
+                        :l2r-lr-dual SolverType/L2R_LR_DUAL})
 
 (def ^{:doc "List of [[liblinear]] solvers."} liblinear-solver-list (keys liblinear-solvers))
 
