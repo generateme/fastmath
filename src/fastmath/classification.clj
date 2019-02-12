@@ -375,9 +375,9 @@
       (.setTolerance tolerance)
       (.setMaxNumIteration max-iterations)))
 
-(def bayes-models {:multinomial NaiveBayes$Model/MULTINOMIAL
-                   :bernoulli NaiveBayes$Model/BERNOULLI
-                   :polyaurn NaiveBayes$Model/POLYAURN})
+(def ^:private bayes-models {:multinomial NaiveBayes$Model/MULTINOMIAL
+                             :bernoulli NaiveBayes$Model/BERNOULLI
+                             :polyaurn NaiveBayes$Model/POLYAURN})
 
 (def ^{:doc "List of [[naive-bayes]] models."} bayes-models-list (keys bayes-models))
 
@@ -390,14 +390,14 @@
         (.setSmooth sigma)
         (.setPriori (m/seq->double-array priori)))))
 
-(def error-functions {:least-mean-squares NeuralNetwork$ErrorFunction/LEAST_MEAN_SQUARES
-                      :cross-entropy NeuralNetwork$ErrorFunction/CROSS_ENTROPY})
+(def ^:private error-functions {:least-mean-squares NeuralNetwork$ErrorFunction/LEAST_MEAN_SQUARES
+                                :cross-entropy NeuralNetwork$ErrorFunction/CROSS_ENTROPY})
 
 (def ^{:doc "List of error functions for [[neural-net]]."} error-functions-list (keys error-functions))
 
-(def activation-functions {:linear NeuralNetwork$ActivationFunction/LINEAR
-                           :logistic-sigmoid NeuralNetwork$ActivationFunction/LOGISTIC_SIGMOID
-                           :soft-max NeuralNetwork$ActivationFunction/SOFTMAX})
+(def ^:private activation-functions {:linear NeuralNetwork$ActivationFunction/LINEAR
+                                     :logistic-sigmoid NeuralNetwork$ActivationFunction/LOGISTIC_SIGMOID
+                                     :soft-max NeuralNetwork$ActivationFunction/SOFTMAX})
 
 (def ^{:doc "List of activation functions for [[neural-net]]."} activation-functions-list (keys activation-functions))
 
@@ -445,8 +445,8 @@
 
 (wrap-classifier :xgboost xgboost xgboost-params xgboost-params)
 
-(def multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
-                            :one-vs-all SVM$Multiclass/ONE_VS_ALL})
+(def ^:private multiclass-strategies {:one-vs-one SVM$Multiclass/ONE_VS_ONE
+                                      :one-vs-all SVM$Multiclass/ONE_VS_ALL})
 
 (def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strategies-list (keys multiclass-strategies))
 
@@ -463,14 +463,14 @@
     (-> (.setTolerance t tolerance)
         (.setNumEpochs epochs))))
 
-(def liblinear-solvers {:l2r-lr SolverType/L2R_LR
-                        :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL
-                        :l2r-l2loss-svc SolverType/L2R_L2LOSS_SVC
-                        :l2r-l1loss-svc-dual SolverType/L2R_L1LOSS_SVC_DUAL
-                        :mcsvm-cs SolverType/MCSVM_CS
-                        :l1r-l2loss-svc SolverType/L1R_L2LOSS_SVC
-                        :l1r-lr SolverType/L1R_LR
-                        :l2r-lr-dual SolverType/L2R_LR_DUAL})
+(def ^:private liblinear-solvers {:l2r-lr SolverType/L2R_LR
+                                  :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL
+                                  :l2r-l2loss-svc SolverType/L2R_L2LOSS_SVC
+                                  :l2r-l1loss-svc-dual SolverType/L2R_L1LOSS_SVC_DUAL
+                                  :mcsvm-cs SolverType/MCSVM_CS
+                                  :l1r-l2loss-svc SolverType/L1R_L2LOSS_SVC
+                                  :l1r-lr SolverType/L1R_LR
+                                  :l2r-lr-dual SolverType/L2R_LR_DUAL})
 
 (def ^{:doc "List of [[liblinear]] solvers."} liblinear-solver-list (keys liblinear-solvers))
 
