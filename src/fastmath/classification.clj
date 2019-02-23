@@ -167,23 +167,23 @@
   [_ params x y tx ty label-map bias]
   (let [[labels labels->int] (labels-converters y)
         data (prepare-data :liblinear x y (or bias -1) labels->int)
-        ^Model model (Linear/train data params)]
+        ^Model model (delay (Linear/train data params))]
     ;; (->LibLinearClassifier x y tx ty bias model labels labels->int data params :liblinear)
     (reify
       IFn
-      (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
+      (invoke [_ v] (labels (int (Linear/predict @model (liblinear-to-features v)))))
       (invoke [c v posteriori?] (let [buff (double-array (count labels))]
                                   (if posteriori?
-                                    [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
+                                    [(labels (int (Linear/predictProbability @model (liblinear-to-features v) buff))) (vec buff)]
                                     (c v))))
 
       ClassificationProto
       (backend [_] :liblinear)
-      (model-native [_] model)
+      (model-native [_] @model)
 
       (predict [c v] (c v))
       (predict [c v posteriori?] (c v posteriori?))
-      (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
+      (predict-all [_ vs] (map (comp labels int #(Linear/predict @model (liblinear-to-features %))) vs))
       (predict-all [c vs posteriori?] (if posteriori?
                                         (map #(c % true) vs)
                                         (predict-all c vs)))
@@ -226,7 +226,7 @@
          booster-params (if (and tx ty) (assoc-in booster-params [:watches :test] test-data) booster-params)
          booster-params (if booster (assoc booster-params :booster booster) booster-params)
 
-         model (xgboost/fit data booster-params)
+         model (delay (xgboost/fit data booster-params))
          res-range (range (count labels))
          prob->label (if binary?
                        #(if (< (first %) 0.5) (labels 0) (labels 1))
@@ -236,20 +236,20 @@
                     identity)]
      (reify
        IFn
-       (invoke [_ v]  (prob->label (xgboost/predict model (xgboost/dmatrix [v]))))
-       (invoke [c v posteriori?] (if posteriori? (let [r (-> (xgboost/predict model (xgboost/dmatrix [v])))]
+       (invoke [_ v]  (prob->label (xgboost/predict @model (xgboost/dmatrix [v]))))
+       (invoke [c v posteriori?] (if posteriori? (let [r (-> (xgboost/predict @model (xgboost/dmatrix [v])))]
                                                    [(prob->label r) (map prob-map r)]) (c v)))
 
        ClassificationProto
        (backend [_] :xgboost)
-       (model-native [_] model)
+       (model-native [_] @model)
        
        (predict [c v] (c v))
        (predict [c v posteriori?] (c v posteriori?))
-       (predict-all [_ vs] (map prob->label (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs)))))
+       (predict-all [_ vs] (map prob->label (seq (.predict ^ml.dmlc.xgboost4j.java.Booster @model (xgboost/dmatrix vs)))))
        (predict-all [c vs posteriori?] (if posteriori?
                                          (mapv (comp #(vector (prob->label %) (map prob-map %)) seq)
-                                               (seq (.predict ^ml.dmlc.xgboost4j.java.Booster model (xgboost/dmatrix vs))))
+                                               (seq (.predict ^ml.dmlc.xgboost4j.java.Booster @model (xgboost/dmatrix vs))))
                                          (predict-all c vs)))
        (cv-native [c] (cv-native c {}))
        (cv-native [_ {:keys [nfold rounds metrics]
@@ -257,7 +257,7 @@
          (xgboost/cross-validation data {:nfold nfold :rounds rounds :metrics metrics :params (booster-params :params)}))
        
        (train [c x y] (train c x y nil nil))
-       (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty label-map model))
+       (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty label-map @model))
        (test [c] (when (and tx ty) (validate c tx ty)))
        (test [c tx ty] (validate c tx ty))
        
@@ -269,12 +269,12 @@
   [_ ^ClassifierTrainer trainer x y tx ty label-map]
   (let [[labels labels->int] (labels-converters y)
         [data int-labels] (prepare-data :smile x y labels->int)
-        classifier-raw (.train trainer data int-labels)
-        predict-raw #(.predict ^Classifier classifier-raw (m/seq->double-array %))
+        classifier-raw (delay (.train trainer data int-labels))
+        predict-raw #(.predict ^Classifier @classifier-raw (m/seq->double-array %))
         predict-fn (comp labels predict-raw)
         predict-fn-posteriori (if (instance? SoftClassifier classifier-raw)
                                 #(let [posteriori (double-array (count labels))]
-                                   [(labels (.predict ^SoftClassifier classifier-raw (m/seq->double-array %) posteriori)) (seq posteriori)])
+                                   [(labels (.predict ^SoftClassifier @classifier-raw (m/seq->double-array %) posteriori)) (seq posteriori)])
                                 predict-fn)]
     (reify
       
@@ -284,7 +284,7 @@
 
       ClassificationProto
       (backend [_] :smile)
-      (model-native [_] classifier-raw)
+      (model-native [_] @classifier-raw)
       
       (predict [_ v] (predict-fn v))
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
@@ -589,4 +589,86 @@
             (if (contains? m tpv)
               (update m tpv inc)
               (assoc m tpv 1))) {} (map vector t p)))
+
+
+;; binary classification statistics
+
+(defn- binary-confusion
+  [t p]
+  (cond
+    (and t p) :tp
+    (and t (not p)) :fn
+    (and (not t) p) :fp
+    :else :tn))
+
+(defn- binary-confusion-val
+  [t p tv fv]
+  (cond
+    (and (= t tv) (= p tv)) :tp
+    (and (= t tv) (= p fv)) :fn
+    (and (= t fv) (= p tv)) :fp
+    :else :tn))
+
+(defn binary-measures-all
+  "https://en.wikipedia.org/wiki/Precision_and_recall"
+  [truth prediction]
+  (let [{:keys [^double tp ^double fp ^double fn ^double tn] :as details} (frequencies (map binary-confusion truth prediction))
+        cp (+ tp fn)
+        cn (+ fp tn)
+        total (+ cp cn)
+        pcp (+ tp fp)
+        pcn (+ fn tn)
+        ppv (/ tp pcp)
+        npv (/ tn pcn)
+        tpr (/ tp cp)
+        fpr (/ fp cn)
+        tnr (- 1.0 fpr)
+        fnr (- 1.0 tpr)
+        lr+ (/ tpr fpr)
+        lr- (/ fnr tnr)
+        f-beta (clojure.core/fn [beta] (let [b2 (* beta beta)]
+                                         (* (inc b2) (/ (* ppv tpr)
+                                                        (+ ppv tpr)))))
+        f1-score (f-beta 1.0)]
+    (merge details {:cp cp
+                    :cn cn
+                    :pcp pcp
+                    :pcn pcn
+                    :total total
+                    :tpr tpr
+                    :recall tpr
+                    :sensitivity tpr
+                    :hit-rate tpr
+                    :fnr fnr
+                    :miss-rate fnr
+                    :fpr fpr
+                    :fall-out fpr
+                    :tnr tnr
+                    :specificity tnr
+                    :selectivity tnr
+                    :prevalence (/ cp total)
+                    :accuracy (/ (+ tp tn) total)
+                    :ppv ppv
+                    :precision ppv
+                    :fdr (- 1.0 ppv)
+                    :npv npv
+                    :for (- 1.0 npv)
+                    :lr+ lr+
+                    :lr- lr-
+                    :dor (/ lr+ lr-)
+                    :f-measure f1-score
+                    :f1-score f1-score
+                    :f-beta f-beta
+                    :mcc (/ (- (* tp tn) (* fp fn))
+                            (m/sqrt (* (+ tp fp)
+                                       (+ tp fn)
+                                       (+ tn fp)
+                                       (+ tn fn))))
+                    :bm (dec (+ tpr tnr))
+                    :mk (dec (+ ppv npv))})))
+
+(defn binary-measures
+  [truth prediction]
+  (select-keys (binary-measures-all truth prediction)
+               [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance]))
 
