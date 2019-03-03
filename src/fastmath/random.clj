@@ -491,12 +491,14 @@ See also [[jittered-sequence-generator]]."
 (defmacro ^:private gen-noise-function
   "Generate various noise for static function"
   [method]
-  `(fn [cfg#]
-     (let [ncfg# (noise-config cfg#)]
-       (fn
-         ([x#] (~method ncfg# x#))
-         ([x# y#] (~method ncfg# x# y#))
-         ([x# y# z#] (~method ncfg# x# y# z#))))))
+  `(fn gen-noise-name#
+     ([] (gen-noise-name# {}))
+     ([cfg#]
+      (let [ncfg# (noise-config cfg#)]
+        (fn
+          (^double [x#] (~method ncfg# x#))
+          (^double [x# y#] (~method ncfg# x# y#))
+          (^double [x# y# z#] (~method ncfg# x# y# z#)))))))
 
 (def ^{:metadoc/categories #{:noise}} single-noise (gen-noise-function Noise/noise))
 (def ^{:metadoc/categories #{:noise}} fbm-noise (gen-noise-function FBM/noise))
