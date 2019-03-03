@@ -219,7 +219,7 @@
 
 (def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
                        sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
-                       qsin qcos exp log log10 ln log1p sqrt cbrt qexp qsqrt rqsqrt
+                       qsin qcos exp log log10 ln log1p expm1 sqrt cbrt qexp qsqrt rqsqrt
                        erf erfc inv-erf inv-erfc sinc log2 qlog
                        sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
                        frac sfrac low-2-exp high-2-exp round-up-pow2 next-double prev-double

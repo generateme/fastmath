@@ -268,6 +268,7 @@
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} ln log)
 
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} log1p)
+(fastmath-proxy :one ^{:metadoc/categories #{:pow}} expm1)
 
 ;; Roots (square and cubic)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories #{:pow}} sqrt)
