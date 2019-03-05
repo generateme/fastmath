@@ -22,12 +22,12 @@
         :url "https://github.com/generateme/fastmath/"}
   :profiles {:uberjar {:aot :all}
              :dev {:plugins [[refactor-nrepl "2.4.0"]
-                             [cider/cider-nrepl "0.21.0"]
+                             [cider/cider-nrepl "0.21.1"]
                              [com.jakemccrary/lein-test-refresh "0.23.0"]
                              [lein-codox "0.10.5"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
-                                  [clojure2d "1.0.2"]
+                                  ;; [clojure2d "1.0.2"]
                                   [criterium "0.4.4"]
                                   [incanter/incanter-charts "1.9.2"]
                                   [incanter/incanter-core "1.9.2"]
