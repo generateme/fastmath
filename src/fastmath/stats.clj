@@ -427,24 +427,26 @@
   Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default)."
   {:metadoc/categories #{:stat}}
   ([vs] (estimate-bins vs :freedman-diaconis))
-  ([vs method]
-   (let [n (count vs)]
-     (int (condp = method
-            :sqrt (m/sqrt n)
-            :sturges (inc (m/ceil (m/log2 n)))
-            :rice (m/ceil (* 2.0 (m/cbrt n)))
-            :doane (+ (inc (m/log2 n))
-                      (m/log2 (inc (/ (m/abs (skewness vs))
-                                      (m/sqrt (/ (* 6.0 (- n 2.0))
-                                                 (* (inc n) (+ n 3.0))))))))
-            :scott (let [vvs (m/seq->double-array vs)
-                         h (/ (* 3.5 (stddev vs))
-                              (m/cbrt n))]
-                     (scott-fd-helper vvs h))
-            :freedman-diaconis (let [vvs (m/seq->double-array vs)
-                                     h (/ (* 2.0 (iqr vvs))
-                                          (m/cbrt n))]
-                                 (scott-fd-helper vvs h)))))))
+  ([vs bins-or-estimate-method]
+   (if-not (keyword? bins-or-estimate-method)
+     (or bins-or-estimate-method (estimate-bins vs))
+     (let [n (count vs)]
+       (int (condp = bins-or-estimate-method
+              :sqrt (m/sqrt n)
+              :sturges (inc (m/ceil (m/log2 n)))
+              :rice (m/ceil (* 2.0 (m/cbrt n)))
+              :doane (+ (inc (m/log2 n))
+                        (m/log2 (inc (/ (m/abs (skewness vs))
+                                        (m/sqrt (/ (* 6.0 (- n 2.0))
+                                                   (* (inc n) (+ n 3.0))))))))
+              :scott (let [vvs (m/seq->double-array vs)
+                           h (/ (* 3.5 (stddev vs))
+                                (m/cbrt n))]
+                       (scott-fd-helper vvs h))
+              (let [vvs (m/seq->double-array vs)
+                    h (/ (* 2.0 (iqr vvs))
+                         (m/cbrt n))]
+                (scott-fd-helper vvs h))))))))
 
 (defn histogram
   "Calculate histogram.
@@ -461,9 +463,7 @@
   For estimation methods check [[estimate-bins]]."
   {:metadoc/categories #{:stat}}
   ([vs] (histogram vs :freedman-diaconis))
-  ([vs bins-or-estimate-method] (histogram vs (if (keyword? bins-or-estimate-method)
-                                                (estimate-bins vs bins-or-estimate-method)
-                                                bins-or-estimate-method) (extent vs)))
+  ([vs bins-or-estimate-method] (histogram vs (estimate-bins vs bins-or-estimate-method) (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
    (let [diff (- mx mn)
          step (/ diff bins)
