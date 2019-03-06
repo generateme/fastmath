@@ -47,6 +47,7 @@
   "Common grid conversion functions."
   (coords->cell [g coords] "Converts 2d space coordinates to cell coordinates.")
   (cell->anchor [g cell] "Converts cell coordinates to anchor coordinates.")
+  (coords->mid [g coords] "Converts 2d space into cell midpoint.")
   (grid-type [g] "Returns type of the cell.")
   (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))
 
@@ -55,9 +56,14 @@
   [g coords]
   (cell->anchor g (coords->cell g coords)))
 
+(defn cell->mid
+  "Converts cell coordinates to mid point"
+  [g cell]
+  (coords->mid g (cell->anchor g cell)))
+
 (defn- grid-obj
   "Create grid object."
-  ([typ {:keys [from-cell to-cell vertices anchor]} ^double size ^Vec2 sv]
+  ([typ {:keys [from-cell to-cell to-mid vertices anchor]} ^double size ^Vec2 sv]
    (let [nm (subs (str typ) 1)
          tostr (str nm ", size=" size)
          anchor (or anchor coords->anchor)]
@@ -65,6 +71,7 @@
        GridProto
        (coords->cell [_ [^double x ^double y]] (to-cell size (- x (.x sv)) (- y (.y sv))))
        (cell->anchor [_ [^double q ^double r]] (v/add sv (from-cell size q r)))
+       (coords->mid [g coords] (to-mid size (anchor g coords)))
        (corners [g coords] (vertices size (anchor g coords)))
        (corners [g coords scale] (vertices (* ^double scale size) (anchor g coords)))
        (grid-type [_] typ)
@@ -84,6 +91,12 @@
   "Square 2d coords to cell coords."
   [^double size ^double x ^double y]
   (Vec2. (m/floor (/ x size)) (m/floor (/ y size))))
+
+(defn- square-pixel->mid
+  "Mid point of cell"
+  [^double size v]
+  (let [s2 (/ size 2.0)]
+    (v/add v (Vec2. s2 s2))))
 
 (defn- square-corners
   "Square shape."
@@ -162,6 +175,8 @@
 (def ^{:doc "Function which returns vertices for flat topped hexagon for given size and coordinates."}
   flat-hex-corners (partial hex-corners flat-topped-sc))
 
+(defn- hex->mid [_ v] v)
+
 ;; shifted square
 
 (defn- shifted-square->pixel
@@ -189,6 +204,12 @@
     (v/vec2 (m/floor (/ (+ (* fy hs)
                            (- x (* yy hs))) size))
             yy)))
+
+(defn- rhombus-pixel->mid
+  [^double size v]
+  (let [hs (/ size 2.0)
+        qs (/ size 4.0)]
+    (v/add v (Vec2. qs hs))))
 
 (defn- rhombus-corners
   "Rhombus vertices."
@@ -236,6 +257,12 @@
       (v/vec2 (+ x (/ size 2.0)) (+ y size))]))
   ([size [x y down?]] (triangle-corners size x y down?)))
 
+(defn- triangle-pixel->mid
+  [^double size [^double x ^double y ^long down?]]
+  (if (zero? down?)
+    (v/vec2 x (+ y (/ (+ size size) 3.0)))
+    (v/vec2 (+ x (/ size 2.0)) (+ y (/ size 3.0)))))
+
 (defn- coords->triangle-anchor
   "2d coordinates to triangle anchor with cell information (even or odd)."
   [g coords]
@@ -244,23 +271,23 @@
 
 ;;
 
-(defn- grid-type-fns
-  "Return functions for grid calculations."
-  [type]
-  (case type
-    :square {:from-cell square->pixel :to-cell pixel->square :vertices square-corners}
-    :pointy-hex {:from-cell pointy-hex->pixel :to-cell pixel->pointy-hex :vertices pointy-hex-corners}
-    :flat-hex {:from-cell flat-hex->pixel :to-cell pixel->flat-hex :vertices flat-hex-corners}
-    :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :vertices square-corners}
-    :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :vertices rhombus-corners}
-    :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :vertices triangle-corners :anchor coords->triangle-anchor}
-    {:from-cell square->pixel :to-cell pixel->square :vertices square-corners}))
+(def ^:private grid-type-fns
+  {:square {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners}
+   :pointy-hex {:from-cell pointy-hex->pixel :to-cell pixel->pointy-hex :to-mid hex->mid :vertices pointy-hex-corners}
+   :flat-hex {:from-cell flat-hex->pixel :to-cell pixel->flat-hex :to-mid hex->mid :vertices flat-hex-corners}
+   :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :to-mid square-pixel->mid :vertices square-corners}
+   :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :to-mid rhombus-pixel->mid :vertices rhombus-corners}
+   :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :to-mid triangle-pixel->mid :vertices triangle-corners :anchor coords->triangle-anchor}})
+
+(def ^:private grid-type-fns-default {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners})
 
 (defn grid
   "Create grid for given type, size and optional translating vector."
   ([type ^double size ^double sx ^double sy]
    (let [sv (Vec2. sx sy)
-         fp (grid-type-fns type)]
+         size (if (or (= type :pointy-hex)
+                      (= type :flat-hex)) (/ size 2.0) size)
+         fp (get grid-type-fns type grid-type-fns-default)]
      (grid-obj type fp size sv)))
   ([type ^double size] (grid type size 0.0 0.0))
   ([type] (grid type 10.0))
