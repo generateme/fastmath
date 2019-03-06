@@ -427,11 +427,11 @@
   Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default)."
   {:metadoc/categories #{:stat}}
   ([vs] (estimate-bins vs :freedman-diaconis))
-  ([vs method]
-   (if-not (keyword? method)
-     (or method (estimate-bins vs))
+  ([vs bins-or-estimate-method]
+   (if-not (keyword? bins-or-estimate-method)
+     (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
-       (int (condp = method
+       (int (condp = bins-or-estimate-method
               :sqrt (m/sqrt n)
               :sturges (inc (m/ceil (m/log2 n)))
               :rice (m/ceil (* 2.0 (m/cbrt n)))
@@ -443,10 +443,10 @@
                            h (/ (* 3.5 (stddev vs))
                                 (m/cbrt n))]
                        (scott-fd-helper vvs h))
-              :freedman-diaconis (let [vvs (m/seq->double-array vs)
-                                       h (/ (* 2.0 (iqr vvs))
-                                            (m/cbrt n))]
-                                   (scott-fd-helper vvs h))))))))
+              (let [vvs (m/seq->double-array vs)
+                    h (/ (* 2.0 (iqr vvs))
+                         (m/cbrt n))]
+                (scott-fd-helper vvs h))))))))
 
 (defn histogram
   "Calculate histogram.

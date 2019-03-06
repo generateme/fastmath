@@ -996,7 +996,7 @@
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/csch
-                m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p
+                m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/radians m/degrees m/sinc m/sigmoid
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 ;;
