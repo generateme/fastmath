@@ -55,8 +55,11 @@
 
   [[histogram]] to count samples in evenly spaced ranges."
   {:metadoc/categories {:stat "Descriptive statistics"
-                        :corr "Correlation"}}
-  (:require [fastmath.core :as m])
+                        :corr "Correlation"
+                        :extent "Extents"}}
+  (:require [fastmath.core :as m]
+            [fastmath.random :as r]
+            [fastmath.stats :as stats])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
@@ -197,14 +200,46 @@
   ^double [vs]
   (smile.math.Math/mad (m/seq->double-array vs)))
 
+(defn sem
+  "Standard error of mean"
+  {:metadoc/categories #{:stat}}
+  ^double [vs]
+  (let [s (stddev vs)]
+    (/ s (m/sqrt (count vs)))))
+
+(defmacro ^:private build-extent
+  [nm mid ext]
+  `(defn ~nm
+     ~(str mid " +/- " ext)
+     {:metadoc/categories #{:extent}}
+     [vs#]
+     (let [vs# (m/seq->double-array vs#)
+           m# (~mid vs#)
+           s# (~ext vs#)]
+       [(- m# s#) (+ m# s#) m#])))
+
+(build-extent stddev-extent mean stddev)
+(build-extent mad-extent median median-absolute-deviation)
+(build-extent sem-extent mean sem)
+
+(defn percentile-extent
+  "Return percentile range."
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-extent vs 25.0))
+  ([vs ^double p] (percentile-extent vs p (- 100.0 p)))
+  ([vs p1 p2] (percentile-extent vs p1 p2 :legacy))
+  ([vs ^double p1 ^double p2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)]
+     [(percentile avs p1 estimation-strategy)
+      (percentile avs p2 estimation-strategy)
+      (median avs)])))
+
 (defn iqr
   "Interquartile range."
   {:metadoc/categories #{:stat}}
   (^double [vs] (iqr vs :legacy))
   (^double [vs estimation-strategy]
-   (let [avs (m/seq->double-array vs)
-         q1 (percentile avs 25.0 estimation-strategy)
-         q3 (percentile avs 75.0 estimation-strategy)]
+   (let [[^double q1 ^double q3] (percentile-extent vs 25.0 75.0 estimation-strategy)]
      (- q3 q1))))
 
 (defn adjacent-values
@@ -216,7 +251,7 @@
   * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:extent}}
   ([vs]
    (adjacent-values vs :legacy))
   ([vs estimation-strategy]
@@ -231,7 +266,8 @@
          uav-thr (+ q3 iqr)]
      (java.util.Arrays/sort avs)
      [(first (filter #(>= (double %) lav-thr) avs))
-      (last (filter #(<= (double %) uav-thr) avs))])))
+      (last (filter #(<= (double %) uav-thr) avs))
+      (median vs)])))
 
 (defn outliers
   "Find outliers defined as values outside outer fences.
@@ -280,11 +316,11 @@
 
 (defn extent
   "Return extent (min, max) values from sequence"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:extent}}
   [vs]
   (let [^double fv (first vs)]
-    (reduce (fn [[^double mn ^double mx] ^double v]
-              [(min mn v) (max mx v)]) [fv fv] (rest vs))))
+    (conj (reduce (fn [[^double mn ^double mx] ^double v]
+                    [(min mn v) (max mx v)]) [fv fv] (rest vs)) (mean vs))))
 
 (defn sum
   "Sum of all `vs` values."
@@ -316,6 +352,39 @@
   ^double [vs]
   (let [^Skewness k (Skewness.)]
     (.evaluate k (m/seq->double-array vs))))
+
+(defn ci
+  "T-student based confidence interval for given data. Alpha value defaults to 0.98."
+  {:metadoc/categories #{:extent}}
+  ([vs] (ci vs 0.98))
+  ([vs ^double alpha]
+   (let [vsa (m/seq->double-array vs)
+         cnt (count vs)
+         dist (r/distribution :t {:degrees-of-freedom (dec cnt)})
+         ^double crit-val (r/icdf dist (- 1.0 (* 0.5 (- 1.0 alpha))))
+         mean-ci (/ (* crit-val (stddev vsa)) (m/sqrt cnt))
+         mn (mean vsa)]
+     [(- mn mean-ci) (+ mn mean-ci) mn])))
+
+;; https://ocw.mit.edu/courses/mathematics/18-05-introduction-to-probability-and-statistics-spring-2014/readings/MIT18_05S14_Reading24.pdf
+(defn bootstrap-ci
+  "Bootstrap method to calculate confidence interval.
+
+  Alpha defaults to 0.98, samples to 1000.
+  Last parameter is statistical function used to measure, default to mean."
+  {:metadoc/categories #{:extent}}
+  ([vs] (bootstrap-ci vs 0.98))
+  ([vs alpha] (bootstrap-ci vs alpha 1000))
+  ([vs alpha samples] (bootstrap-ci vs alpha samples mean))
+  ([vs ^double alpha ^long samples stat-fn]
+   (let [vsa (m/seq->double-array vs)
+         cnt (count vs)
+         dist (r/distribution :enumerated-real {:data vsa})
+         ^double m (stat-fn vsa)
+         deltas (m/seq->double-array (repeatedly samples #(- ^double (stat-fn (r/->seq dist cnt)) m)))
+         q1 (quantile deltas alpha)
+         q2 (quantile deltas (- 1.0 alpha))]
+     [(- m q1) (- m q2) m])))
 
 (defn stats-map
   "Calculate several statistics of `vs` and return as map.
