@@ -205,6 +205,67 @@ Source: Apache Commons Math." #{:comm :d1}
             i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
         (aget ^doubles y i)))))
 
+;; monotonic
+
+(defn monotone
+  "Monotone interpolation"
+  {:metadoc/categories #{:d1}}
+  [xs ys]
+  (assert (and (seq xs) (seq ys)) "Sequences can't be empty.")
+  (let [cntx (count xs)
+        cnty (count ys)]
+    (assert (and (> cntx 1) (> cnty 1)
+                 (== cntx cnty)) "Sequnces have to be equal sizes and minimum 2 values each.")
+    (assert (apply clojure.core/< xs) "x values have to be strictly monotonic")
+    
+    (let [^double fx (first xs)
+          ^double lx (last xs)
+          ^double fy (first ys)
+          ^double ly (last ys)
+          d (mapv (fn [[^double x1 ^double x2] [^double y1 ^double y2]]
+                    (/ (- y2 y1) (- x2 x1))) (partition 2 1 xs) (partition 2 1 ys))
+          m (vec (conj (map (fn [[^double d1 ^double d2]]
+                              (if d2 (* 0.5 (+ d1 d2)) d1)) (partition-all 2 1 d)) (first d)))
+          stop (- cntx 2)
+          m (m/seq->double-array (loop [idx (int 0)
+                                        ^double mi (m 0)
+                                        ^double mi+ (m 1)
+                                        ms []]
+                                   (if (== idx stop) (conj ms mi mi+)
+                                       (let [^double di (d idx)
+                                             mi++ (m (+ idx 2))]
+                                         (if (zero? di)
+                                           (recur (inc idx) 0 mi++ (conj ms 0))
+                                           (let [a (/ mi di)
+                                                 b (/ mi+ di)
+                                                 h (m/hypot-sqrt a b)]
+                                             (if (> h 9.0)
+                                               (let [t (/ 3.0 h)]
+                                                 (recur (inc idx) (* t b di) mi++ (conj ms (* t a di))))
+                                               (recur (inc idx) mi+ mi++ (conj ms mi)))))))))
+          xs (m/seq->double-array xs)
+          ys (m/seq->double-array ys)]
+      (fn ^double [^double v]
+        (cond
+          (Double/isNaN v) v
+          (<= v fx) fy
+          (>= v lx) ly
+          :else (let [b (java.util.Arrays/binarySearch ^doubles xs v) 
+                      i (if (neg? b) b)]
+                  (if-not (neg? b)
+                    (aget ys b)
+                    (let [i (dec (- (inc b)))
+                          mxi (aget xs i)
+                          h (- (aget xs (inc i)) mxi)
+                          t (/ (- v mxi) h)]
+                      (+ (* (m/sq (- 1.0 t))
+                            (+ (* h t (aget m i))
+                               (* (inc (+ t t)) (aget ys i))))
+                         (* t t (+ (* h (dec t) (aget m (inc i)))
+                                   (* (- 3.0 t t) (aget ys (inc i))))))))))))))
+
+
+
 ;;; 2d
 
 (defn bicubic
@@ -305,7 +366,8 @@ Source: Apache Commons Math." #{:comm :d1}
                          :shepard shepard
                          :microsphere microsphere-projection
                          :step-after step-after
-                         :step-before step-before})
+                         :step-before step-before
+                         :monotone monotone})
 
 (def ^{:doc "Map of 2d interpolation functions"
        :metadoc/categories #{:smile :comm :d2}}

@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file. This change
 * new functions for vectors `clamp`, `zero-count`, `nonzero-count`, `as-vec`
 * classification bindings for SMILE, XGBoost and LIBLINEAR
 * `expm1` function
+* monotone interpolation
+* various extent stats funcions
 
 ### Changed
 
