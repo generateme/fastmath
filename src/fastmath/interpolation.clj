@@ -206,6 +206,7 @@ Source: Apache Commons Math." #{:comm :d1}
         (aget ^doubles y i)))))
 
 ;; monotonic
+;; https://gist.github.com/lecho/7627739
 
 (defn monotone
   "Monotone interpolation"

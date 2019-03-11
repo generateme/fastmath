@@ -14,12 +14,14 @@ All notable changes to this project will be documented in this file. This change
 * `expm1` function
 * monotone interpolation
 * various extent stats funcions
+* `haversine` and `haversine-dist` (distance)
 
 ### Changed
 
 * use `fmap` instead of `applyf` (now deprecated)
 * rbf function already implements Smile interface
 * outliers are samples which are outside inner fence instead of outer fence
+* Vectors are associative now
 
 ### Removed
 

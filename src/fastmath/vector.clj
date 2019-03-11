@@ -36,6 +36,7 @@
   * `ILookup`
   * `equals` and `toString` from `Object`
   * `IPersistentVector`
+  * `Associative`
   * `clojure.core.matrix.protocols`
 
   That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
@@ -47,7 +48,8 @@
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [clojure.core.matrix.protocols :as mat])
-  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup]
+  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup
+            Associative MapEntry]
            [clojure.core Vec]))
 
 (set! *warn-on-reflection* true)
@@ -56,7 +58,6 @@
 
 ;; Tolerance (epsilon), used in `is-near-zero?` fn
 (def ^:const ^{:doc "Tolerance used in [[is-near-zero?]]. Values less than this value are treated as zero."} ^double TOLERANCE 1.0e-6)
-
 
 ;; ## Vector definitions
 
@@ -286,6 +287,13 @@
   ILookup
   (valAt [v id] (v id))
   (valAt [v id not-found] (or (v id) not-found))
+  Associative
+  (containsKey [v id] (< (alength array) (unchecked-int id)))
+  (assoc [v k vl] (let [^ArrayVec v v
+                        arr (aclone ^doubles (.array v))]
+                    (aset arr (unchecked-int k) ^double vl)
+                    (ArrayVec. arr)))
+  (entryAt [v k] (MapEntry. k (v k)))
   IFn
   (invoke [_ n]
     (aget array ^long n))
@@ -363,6 +371,13 @@
   ILookup
   (valAt [v id] (v id))
   (valAt [v id not-found] (or (v id) not-found))
+  Associative
+  (containsKey [v id] (#{0 1} id))
+  (assoc [v k vl] (case (unchecked-int k)
+                    0 (Vec2. vl y)
+                    1 (Vec2. x vl)
+                    vl))
+  (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 2)
   IFn
@@ -472,6 +487,14 @@
   ILookup
   (valAt [v id] (v id))
   (valAt [v id not-found] (or (v id) not-found))
+  Associative
+  (containsKey [v id] (#{0 1 2} id))
+  (assoc [v k vl] (case (unchecked-int k)
+                    0 (Vec3. vl y z)
+                    1 (Vec3. x vl z)
+                    2 (Vec3. x y vl)
+                    vl))
+  (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 3)
   IFn
@@ -657,6 +680,15 @@
   ILookup
   (valAt [v id] (v id))
   (valAt [v id not-found] (or (v id) not-found))
+  Associative
+  (containsKey [v id] (#{0 1 2 3} id))
+  (assoc [v k vl] (case (unchecked-int k)
+                    0 (Vec4. vl y z w)
+                    1 (Vec4. x vl z w)
+                    2 (Vec4. x y vl w)
+                    3 (Vec4. x y z vl)
+                    vl))
+  (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 4)
   IFn

@@ -260,6 +260,22 @@
 (defn ^{:doc "Area hyperbolic secant" :metadoc/categories #{:trig}} asech ^double [^double v] (FastMath/acosh (/ v)))
 (defn ^{:doc "Area hyperbolic cosecant" :metadoc/categories #{:trig}} acsch ^double [^double v] (FastMath/asinh (/ v)))
 
+;; haversine
+
+(defn ^{:doc "Haversine formula" :metadoc/categories #{:trig}} haversine
+  (^double [^double v] (* 0.5 (- 1.0 (FastMath/cos v))))
+  (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
+   (haversine lat1 lon1 lat2 lon2))
+  (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
+   (+ (haversine (- lat2 lat1))
+      (* (FastMath/cos lat1)
+         (FastMath/cos lat2)
+         (haversine (- lon2 lon1))))))
+
+(defn ^{:doc "Haversine distance `d` for `r=1`" :metadoc/categories #{:trig}} haversine-dist
+  (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
+   (* 2 (FastMath/asin (FastMath/sqrt (haversine lat1 lon1 lat2 lon2))))))
+
 ;; exp and log
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} exp)
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} log)
