@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file. This change
 * monotone interpolation
 * various extent stats funcions
 * `haversine` and `haversine-dist` (distance)
+* predicates `nan?`, `inf?`, `valid-double?`, `invalid-double?`, `between?`
+* calculate intervals for set of values `co-intervals` (same as R's function). Also `group-by-intervals`.
 
 ### Changed
 
