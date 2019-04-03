@@ -69,8 +69,8 @@
   (example "IQR" (iqr (repeatedly 100000 r/grand))))
 
 (add-examples outliers
-  (example "Outliers" (outliers [1 2 3 -1 -1 2 -1 11 111]))
-  (example "Gaussian distribution outliers" (outliers (repeatedly 3000000 r/grand))))
+              (example "Outliers" (outliers [1 2 3 -1 -1 2 -1 11 111]))
+              (example "Gaussian distribution outliers" (count (outliers (repeatedly 3000000 r/grand)))))
 
 (add-examples minimum (example "Minimum value" (minimum [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples maximum (example "Maximum value" (maximum [1 2 3 -1 -1 2 -1 11 111])))
