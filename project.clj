@@ -24,7 +24,7 @@
              :dev {:plugins [[refactor-nrepl "2.4.0"]
                              [cider/cider-nrepl "0.21.1"]
                              [com.jakemccrary/lein-test-refresh "0.23.0"]
-                             [lein-codox "0.10.5"]]
+                             [lein-codox "0.10.6"]]
                    :source-paths ["example"]
                    :dependencies [[codox-theme-rdash "0.1.2"]
                                   ;; [clojure2d "1.0.2"]
