@@ -723,6 +723,75 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
            (* cycle)
            (- value)))))
 
+;;
+
+(defn nan?
+  "Check if number is NaN"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (Double/isNaN v))
+
+(defn inf?
+  "Check if number is infinite"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (Double/isInfinite v))
+
+(defn invalid-double?
+  "Check if number is invalid"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (not (Double/isFinite v)))
+
+(defn valid-double?
+  "Check if number is invalid"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (Double/isFinite v))
+
+(defn between?
+  "Check if given number is within the range."
+  {:metadoc/categories #{:bool :compare}}
+  ([[^double x ^double y] ^double v] (<= x v y))
+  ([^double x ^double y ^double v] (<= x v y)))
+
+(defn co-intervals
+  "Divide sequence to overlaping intervals containing similar number of values. Same as R's `co.intervals()`"
+  ([data] (co-intervals data 6))
+  ([data number] (co-intervals data number 0.5))
+  ([data ^long number ^double overlap]
+   (let [o- (- 1.0 overlap)
+         x (vec (sort (remove invalid-double? data)))
+         n (count x)
+         n- (dec n)
+         r (/ n (+ (* number o-) overlap))
+         ii-mult (*  o- r)
+         ii (mapv #(* ^long % ii-mult) (range number))
+         x1 (map #(x (round %)) ii)
+         xr (map #(x (min n- (round (+ r ^double %)))) ii)
+         diffs (filter #(pos? ^double %) (mapv (fn [[^double x ^double y]] (- y x)) (partition 2 1 x)))
+         eps (* 0.5 (double (if (seq diffs) (reduce #(min ^double %1 ^double %2) diffs) 0.0)))]
+     (for [[[^double px ^double cx] [^double py ^double cy]] (map vector
+                                                                  (partition 2 1 (conj x1 (dec ^double (first x1))))
+                                                                  (partition 2 1 (conj xr (dec ^double (first xr)))))
+           :when (or (pos? (- cx px))
+                     (pos? (- cy py)))]
+       [(- cx eps) (+ cy eps)]))))
+
+(defn- find-interval
+  [intervals v]
+  (some #(if (between? % v) % false) intervals))
+
+(defn group-by-intervals
+  "Group sequence of values into given intervals"
+  ([coll] (group-by-intervals (co-intervals coll) coll))
+  ([intervals coll]
+   (reduce (fn [m ^double v]
+             (if-let [interval (find-interval intervals v)]
+               (if (contains? m interval)
+                 (update m interval conj v)
+                 (assoc m interval [v]))
+               m)) {} coll)))
 ;; gcd 
 
 (defn- gcd-
@@ -739,14 +808,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                                    (recur (>> (- a b) 1) b)
                                    (recur (>> (- b a) 1) a))))
 
-(defn gcd ^long [^long a ^long b]
+(defn gcd
   "Fast binary greatest common divisor (Stein's algorithm)"
   {:metadoc/categories #{:mod}}
+  ^long [^long a ^long b]
   (gcd- (iabs a) (iabs b)))
 
-(defn lcm ^long [^long a ^long b]
+(defn lcm
   "Fast binary least common multiplier."
   {:metadoc/categories #{:mod}}
+  ^long [^long a ^long b]
   (/ (* a b) (gcd- (iabs a) (iabs b))))
 
 ;;

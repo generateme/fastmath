@@ -45,15 +45,16 @@
 (add-examples bayes-models-list (example "Names" bayes-models-list))
 
 (add-examples backend
-  (example-session "Usage"
-    (backend (knn test-data test-labels))
-    (backend (xgboost test-data test-labels))
-    (backend (liblinear test-data test-labels))))
+              (example-session "Usage"
+                               (backend (knn test-data test-labels))
+                               #_    (backend (xgboost test-data test-labels))
+                               (backend (liblinear test-data test-labels))))
 
 (add-examples model-native
-  (example-session "Usage"
-    (model-native (knn train-data train-labels))
-    (model-native (xgboost train-data train-labels))))
+              (example-session "Usage"
+                               (model-native (knn train-data train-labels))
+                               #_(model-native (xgboost train-data train-labels))
+                               ))
 
 (add-examples data
   (example-session "Usage"
@@ -113,12 +114,12 @@
     (cv (knn train-data train-labels) 1)))
 
 (add-examples cv-native
-  (example-session "Usage"
-    (cv-native (knn test-data test-labels))
-    (cv-native (knn test-data test-labels) {:type :loocv})
-    (cv-native (knn test-data test-labels) {:type :bootstrap})
-    (cv-native (xgboost test-data test-labels))
-    (cv-native (liblinear test-data test-labels))))
+              (example-session "Usage"
+                               (cv-native (knn test-data test-labels))
+                               (cv-native (knn test-data test-labels) {:type :loocv})
+                               (cv-native (knn test-data test-labels) {:type :bootstrap})
+                               #_    (cv-native (xgboost test-data test-labels))
+                               (cv-native (liblinear test-data test-labels))))
 
 (add-examples bootstrap
   (example-session "Usage"
@@ -173,27 +174,27 @@
                                   (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples svm
-  (example (let [cl (svm train-data train-labels)]
-             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-  (example "Different kernel" (let [cl (svm {:kernel (mercer/kernel :gaussian 1) :epochs 10} train-data train-labels)]
-                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+              (example (let [cl (svm train-data train-labels)]
+                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+              (example "Different kernel" (let [cl (svm {:kernel (mercer/kernel :gaussian 1) :epochs 10} train-data train-labels)]
+                                            (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
-(add-examples xgboost
-  (example-session "Usage"
-    (let [cl (xgboost train-data train-labels test-data test-labels)]
-      (select-keys (validate cl test-data test-labels) [:invalid :stats]))
-    (let [cl (xgboost {:params {:eta 0.999
-                                :max_depth 1
-                                :grow_policy "lossguide"
-                                :alpha 0.5}
-                       :rounds 2} train-data train-labels test-data test-labels)]
-      (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+#_(add-examples xgboost
+                (example-session "Usage"
+                                 (let [cl (xgboost train-data train-labels test-data test-labels)]
+                                   (select-keys (validate cl test-data test-labels) [:invalid :stats]))
+                                 (let [cl (xgboost {:params {:eta 0.999
+                                                             :max_depth 1
+                                                             :grow_policy "lossguide"
+                                                             :alpha 0.5}
+                                                    :rounds 2} train-data train-labels test-data test-labels)]
+                                   (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples liblinear
-  (example (let [cl (liblinear train-data train-labels)]
-             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-  (example "Different solver" (let [cl (liblinear {:solver :l1r-lr :C 0.5} train-data train-labels)]
-                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+              (example (let [cl (liblinear train-data train-labels)]
+                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+              (example "Different solver" (let [cl (liblinear {:solver :l1r-lr :C 0.5} train-data train-labels)]
+                                            (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 
 (add-examples confusion-map

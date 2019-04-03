@@ -10,11 +10,13 @@ All notable changes to this project will be documented in this file. This change
 * core.matrix protocols for vectors
 * math functions can operate on vectors now (like [[sin]] etc.)
 * new functions for vectors `clamp`, `zero-count`, `nonzero-count`, `as-vec`
-* classification bindings for SMILE, XGBoost and LIBLINEAR
+* classification bindings for SMILE, ~~XGBoost~~ and LIBLINEAR
 * `expm1` function
 * monotone interpolation
 * various extent stats funcions
 * `haversine` and `haversine-dist` (distance)
+* predicates `nan?`, `inf?`, `valid-double?`, `invalid-double?`, `between?`
+* calculate intervals for set of values `co-intervals` (same as R's function). Also `group-by-intervals`.
 
 ### Changed
 
