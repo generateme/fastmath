@@ -570,6 +570,186 @@
 ;;;;;;;;;;;;;;
 ;; tests
 
+
+(defn- cohens-d-with-correct
+  "Cohen's d effect size for two groups"
+  ^double [group1 group2 ^double correct]
+  (let [group1 (m/seq->double-array group1)
+        group2 (m/seq->double-array group2)
+        diff (- (mean group1) (mean group2))
+        var1 (variance group1)
+        var2 (variance group2)
+        n1 (alength group1)
+        n2 (alength group2)
+        pooled-var (/ (+ (* n1 var1) (* n2 var2)) (+ n1 n2 correct))]
+    (/ diff (m/sqrt pooled-var))))
+
+(defn cohens-d-orig
+  "Original version of Cohen's d effect size for two groups"
+  {:metadoc/categories #{:stat}}
+  ^double [group1 group2]
+  (cohens-d-with-correct group1 group2 -2.0))
+
+(defn cohens-d
+  "Cohen's d effect size for two groups"
+  {:metadoc/categories #{:stat}}
+  ^double [group1 group2]
+  (cohens-d-with-correct group1 group2 0.0))
+
+(defn glass-delta
+  "Glass's delta effect size for two groups"
+  {:metadoc/categories #{:stat}}
+  ^double [group1 group2]
+  (let [group2 (m/seq->double-array group2)]
+    (/ (- (mean group1) (mean group2)) (stddev group2))))
+
+(defn hedges-g
+  "Hedges's g effect size for two groups"
+  {:metadoc/categories #{:stat}}
+  ^double [group1 group2]
+  (let [group1 (m/seq->double-array group1)
+        group2 (m/seq->double-array group2)
+        diff (- (mean group1) (mean group2))
+        var1 (variance group1)
+        var2 (variance group2)
+        n1 (dec (alength group1))
+        n2 (dec (alength group2))
+        pooled-var (/ (+ (* n1 var1) (* n2 var2)) (+ n1 n2 -2.0))]
+    (/ diff (m/sqrt pooled-var))))
+
+(defn hedges-g*
+  "Less biased Hedges's g effect size for two groups"
+  {:metadoc/categories #{:stat}}
+  ^double [group1 group2]
+  (let [j (- 1.0 (/ 3.0 (- (* 4.0 (+ (count group1) (count group2))) 9.0)))]
+    (* j (hedges-g group1 group2))))
+
+(defn- rank
+  [vs]
+  (let [m (into {} (map (fn [[k v]]
+                          [k (/ ^double (reduce #(+ ^double %1 ^double %2) (map (comp #(inc ^double %) first) v))
+                                (count v))]) (group-by second (map-indexed vector (sort vs)))))]
+    (map m vs)))
+
+(defn ameasure
+  "Vargha-Delaney A measure for two populations a and b"
+  ^double [group1 group2]
+  (let [m (count group1)
+        n (count group2)
+        ^double r1 (reduce #(+ ^double %1 ^double %2) (take m (rank (concat group1 group2))))]
+    (/ (- (+ r1 r1) (* m (inc m)))
+       (* 2.0 m n))))
+
+(defn cliffs-delta
+  "Cliff's delta effect size"
+  ^double [group1 group2]
+  (/ ^double (reduce #(+ ^double %1 ^double %2)
+                     (for [^double a group1
+                           ^double b group2]
+                       (m/signum (- a b))))
+     (* (count group1) (count group2))))
+
+#_(let [a1 (repeatedly 100 rand)
+        a2 (repeatedly 1000 #(+ (rand) (rand)))]
+    [(cohens-d a1 a2)
+     (cohens-d-orig a1 a2)
+     (glass-delta a1 a2)
+     (hedges-g a1 a2)
+     (hedges-g* a1 a2)
+     (ameasure a1 a2)
+     (cliffs-delta a1 a2)])
+
+
+;;;
+
+;; binary classification statistics
+
+(defn- binary-confusion
+  [t p]
+  (cond
+    (and t p) :tp
+    (and t (not p)) :fn
+    (and (not t) p) :fp
+    :else :tn))
+
+(defn- binary-confusion-val
+  [tv fv t p]
+  (cond
+    (and (= t tv) (= p tv)) :tp
+    (and (= t tv) (= p fv)) :fn
+    (and (= t fv) (= p tv)) :fp
+    :else :tn))
+
+(defn binary-measures-all
+  "https://en.wikipedia.org/wiki/Precision_and_recall"
+  ([truth prediction] (binary-measures-all truth prediction nil nil))
+  ([truth prediction true-value false-value]
+   (let [confusion (if (and (nil? true-value) (nil? false-value))
+                     binary-confusion
+                     (partial binary-confusion-val true-value false-value))
+         {:keys [^double tp ^double fp ^double fn ^double tn] :as details} (merge {:tp 0.0 :fn 0.0 :fp 0.0 :tn 0.0}
+                                                                                 (frequencies (map confusion truth prediction)))
+         cp (+ tp fn)
+         cn (+ fp tn)
+         total (+ cp cn)
+         pcp (+ tp fp)
+         pcn (+ fn tn)
+         ppv (/ tp pcp)
+         npv (/ tn pcn)
+         tpr (/ tp cp)
+         fpr (/ fp cn)
+         tnr (- 1.0 fpr)
+         fnr (- 1.0 tpr)
+         lr+ (/ tpr fpr)
+         lr- (/ fnr tnr)
+         f-beta (clojure.core/fn [^double beta] (let [b2 (* beta beta)]
+                                                  (* (inc b2) (/ (* ppv tpr)
+                                                                 (+ ppv tpr)))))
+         f1-score (f-beta 1.0)]
+     (merge details {:cp cp
+                     :cn cn
+                     :pcp pcp
+                     :pcn pcn
+                     :total total
+                     :tpr tpr
+                     :recall tpr
+                     :sensitivity tpr
+                     :hit-rate tpr
+                     :fnr fnr
+                     :miss-rate fnr
+                     :fpr fpr
+                     :fall-out fpr
+                     :tnr tnr
+                     :specificity tnr
+                     :selectivity tnr
+                     :prevalence (/ cp total)
+                     :accuracy (/ (+ tp tn) total)
+                     :ppv ppv
+                     :precision ppv
+                     :fdr (- 1.0 ppv)
+                     :npv npv
+                     :for (- 1.0 npv)
+                     :lr+ lr+
+                     :lr- lr-
+                     :dor (/ lr+ lr-)
+                     :f-measure f1-score
+                     :f1-score f1-score
+                     :f-beta f-beta
+                     :mcc (/ (- (* tp tn) (* fp fn))
+                             (m/sqrt (* (+ tp fp)
+                                        (+ tp fn)
+                                        (+ tn fp)
+                                        (+ tn fn))))
+                     :bm (dec (+ tpr tnr))
+                     :mk (dec (+ ppv npv))}))))
+
+(defn binary-measures
+  ([truth prediction] (binary-measures truth prediction nil nil))
+  ([truth prediction true-value false-value]
+   (select-keys (binary-measures-all truth prediction true-value false-value)
+                [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance])))
+
+
 (comment defn t-test
          ""
          [sample1 sample2]
@@ -577,3 +757,4 @@
 
 (comment t-test [30.02 29.99 30.11 29.97 30.01 29.99]
          [29.89 29.93 29.72 29.98 30.02 29.98])
+
