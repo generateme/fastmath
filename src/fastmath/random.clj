@@ -797,7 +797,9 @@ The rest parameters goes as follows:
 (defmethod distribution :enumerated-int
   ([_ {:keys [data probabilities ^RandomGenerator rng]
        :or {rng default-rng}}]
-   (EnumeratedIntegerDistribution. rng (int-array data) (m/seq->double-array probabilities)))
+   (if probabilities
+     (EnumeratedIntegerDistribution. rng (int-array data) (m/seq->double-array probabilities))
+     (EnumeratedIntegerDistribution. rng (int-array data))))
   ([_] (distribution :enumerated-int {})))
 
 (defmethod distribution :geometric
