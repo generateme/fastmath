@@ -342,7 +342,13 @@
   "Sigmoid function"
   {:metadoc/categories #{:pow}}
   ^double [^double x]
-  (/ (inc (exp (- x)))))
+  (/ (inc (FastMath/exp (- x)))))
+
+(defn logit
+  "Logit function"
+  {:metadoc/categories #{:pow}}
+  ^double [^double x]
+  (FastMath/log (/ x (- 1.0 x))))
 
 (def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
 (def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))

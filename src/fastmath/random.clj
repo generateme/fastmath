@@ -917,3 +917,8 @@ The rest parameters goes as follows:
        :metadoc/categories #{:dist}}
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
+
+(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
+           :metadoc/categories #{:dist}}
+  default-normal (distribution :normal))
+
