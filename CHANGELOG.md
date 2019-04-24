@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file. This change
 * `haversine` and `haversine-dist` (distance)
 * predicates `nan?`, `inf?`, `valid-double?`, `invalid-double?`, `between?`
 * calculate intervals for set of values `co-intervals` (same as R's function). Also `group-by-intervals`.
+* various kernel-density methods and `kernel-density-ci` for kernel density with confidence interval
+* various effect size functions
+* binary measures like fn, tp, etc... (around 30 statistics)
+* multivariate normal distribution added
 
 ### Changed
 
@@ -24,6 +28,8 @@ All notable changes to this project will be documented in this file. This change
 * rbf function already implements Smile interface
 * outliers are samples which are outside inner fence instead of outer fence
 * Vectors are associative now
+* [breaking] `kernel-density` is now multimethod
+* [breaking] `histogram` `:bins` contain starting point and sample counts only
 
 ### Removed
 

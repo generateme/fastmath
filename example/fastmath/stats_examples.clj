@@ -106,12 +106,12 @@
       (estimate-bins vs :freedman-diaconis))))
 
 (add-examples histogram
-  (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
-  (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))
-  (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5))
-  (example "Estimate number of bins" (:size (histogram (repeatedly 10000 r/grand))))
-  (example "Estimate number of bins, Rice rule" (:size (histogram (repeatedly 10000 r/grand) :rice))))
+              (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
+              (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))
+              (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5))
+              (example "Estimate number of bins" (:size (histogram (repeatedly 10000 r/grand))))
+              (example "Estimate number of bins, Rice rule" (:size (histogram (repeatedly 10000 r/grand) :rice))))
 
-(add-examples kernel-density
-  (example (let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
-             (map (comp m/approx kd) (range -5 15)))))
+#_(add-examples kernel-density
+                (example (let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
+                           (map (comp m/approx kd) (range -5 15)))))

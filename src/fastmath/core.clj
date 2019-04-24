@@ -737,6 +737,18 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   [^double v]
   (Double/isInfinite v))
 
+(defn pos-inf?
+  "Check if number is positively infinite"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (== v ##Inf))
+
+(defn neg-inf?
+  "Check if number is negatively infinite"
+  {:metadoc/categories #{:bool :compare}}
+  [^double v]
+  (== v ##-Inf))
+
 (defn invalid-double?
   "Check if number is invalid"
   {:metadoc/categories #{:bool :compare}}

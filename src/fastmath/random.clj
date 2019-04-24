@@ -103,10 +103,10 @@
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
-            EmpiricalDistribution]
+            EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
-           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution]
+           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
 
 (set! *warn-on-reflection* true)
@@ -269,6 +269,11 @@ See [[brand]].")
 (defmethod rng :default [m & [seed]]
   (rng :jdk seed))
 
+(defn synced-rng
+  "Create synchronized RNG for given name and optional seed. Wraps [[rng]] method."
+  ([m] (SynchronizedRandomGenerator. (rng m)))
+  ([m seed] (SynchronizedRandomGenerator. (rng m seed))))
+
 ;; List of randomizers
 (def ^{:metadoc/categories #{:rand}
        :doc "List of all possible RNGs."}
@@ -323,6 +328,13 @@ See [[brand]].")
    `(if (brandom default-rng) ~v1 ~v2))
   ([prob v1 v2]
    `(if (brandom default-rng ~prob) ~v1 ~v2)))
+
+(defn flip
+  "Returns 1 with given probability, 0 otherwise"
+  (^long [p]
+   (randval p 1 0))
+  (^long []
+   (randval 0.5 1 0)))
 
 ;; generators
 
@@ -555,13 +567,19 @@ See also [[jittered-sequence-generator]]."
   (^{:metadoc/categories #{:dist}} lpdf [d v] "Log density")
   (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
   (^{:metadoc/categories #{:dist}} probability [d v] "Probability (PMF)")
+  (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
+  (^{:metadoc/categories #{:dist}} dimensions [d] "Returns dimensions"))
+
+(defprotocol UnivariateDistributionProto
   (^{:metadoc/categories #{:dist}} mean [d] "Mean")
   (^{:metadoc/categories #{:dist}} variance [d] "Variance")
   (^{:metadoc/categories #{:dist}} lower-bound [d] "Lower value")
-  (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value")
-  (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
-  (^{:metadoc/categories #{:dist}} log-likelihood [d vs] "Log likelihood of samples")
-  (^{:metadoc/categories #{:dist}} likelihood [d vs] "Likelihood of samples"))
+  (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value"))
+
+(defprotocol MultivariateDistributionProto
+  "Get information from distributions."
+  (^{:metadoc/categories #{:dist}} means [d] "Mean")
+  (^{:metadoc/categories #{:dist}} covariance [d] "Variance"))
 
 (extend RealDistribution
   DistributionProto
@@ -572,13 +590,13 @@ See also [[jittered-sequence-generator]]."
    :lpdf (fn [^AbstractRealDistribution d ^double v] (.logDensity d v))
    :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
    :probability (fn [^RealDistribution d ^double p] (.probability d p))
-   :mean (fn [^RealDistribution d] (.getNumericalMean d))
+   :sample (fn [^RealDistribution d] (.sample d))
+   :dimensions (fn [_] 1)}
+  UnivariateDistributionProto
+  {:mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
    :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))
-   :sample (fn [^RealDistribution d] (.sample d))
-   :log-likelihood (fn [^RealDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
-   :likelihood #(m/exp (log-likelihood %1 %2))}
+   :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))}
   RNGProto
   {:drandom (fn [^RealDistribution d] (.sample d))
    :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
@@ -598,13 +616,13 @@ See also [[jittered-sequence-generator]]."
    :pdf (fn [^IntegerDistribution d ^double p] (.probability d p))
    :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d p))
    :probability (fn [^IntegerDistribution d ^double p] (.probability d p))
-   :mean (fn [^IntegerDistribution d] (.getNumericalMean d))
+   :sample (fn [^IntegerDistribution d] (.sample d))
+   :dimensions (fn [_] 1)}
+  UnivariateDistributionProto
+  {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
    :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
    :lower-bound (fn [^IntegerDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))
-   :sample (fn [^IntegerDistribution d] (.sample d))
-   :log-likelihood (fn [^IntegerDistribution d vs] (reduce clojure.core/+ (map #(lpdf d %) vs)))
-   :likelihood #(m/exp (log-likelihood %1 %2))}
+   :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))}
   RNGProto
   {:drandom (fn [^IntegerDistribution d] (unchecked-double (.sample d)))
    :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
@@ -614,6 +632,44 @@ See also [[jittered-sequence-generator]]."
             ([^IntegerDistribution d] (repeatedly #(.sample d)))
             ([^IntegerDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^IntegerDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+
+(extend MultivariateNormalDistribution
+  DistributionProto
+  {:pdf (fn [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
+   :lpdf (fn [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
+   :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
+   :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))}
+  MultivariateDistributionProto
+  {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
+   :covariance (fn [^MultivariateNormalDistribution d]
+                 (let [^org.apache.commons.math3.linear.Array2DRowRealMatrix cv (.getCovariances d)]
+                   (m/double-double-array->seq (.getDataRef cv))))}
+  RNGProto
+  {:drandom (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
+   :frandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-float (.sample d)))
+   :lrandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-long (.sample d)))
+   :irandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-int (.sample d)))
+   :->seq (fn
+            ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
+            ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
+   :set-seed! (fn [^MultivariateNormalDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+
+(defn observe
+  "Log of probability/density of the value. Alias for [[lpdf]]."
+  ^double [d ^double v]
+  (lpdf d v))
+
+(defn log-likelihood
+  "Log likelihood of samples"
+  [d vs]
+  (reduce #(if (m/inf? ^double %1)
+             (reduced %1)
+             (+ ^double %1 ^double %2)) (map #(lpdf d %) vs)))
+
+(defn likelihood
+  "Likelihood of samples"
+  [d vs]
+  (m/exp (log-likelihood d vs)))
 
 (defmulti
   ^{:doc "Create distribution object.
@@ -652,6 +708,7 @@ The rest parameters goes as follows:
 #### Integer distributions
 
 * `:binomial` - `:trials` (default: 20) and `:p` (default: 0.5)
+* `:bernoulli` - `:p` (default: 0.5) 
 * `:enumerated-int` - `:data` and `:probabilities` as a sequences
 * `:geometric` - `:p` (default: 0.5)
 * `:hypergeometric` - `:population-size` (default: 100), `:number-of-successes` (default: 50) and `:sample-size` (default: 25)
@@ -794,6 +851,12 @@ The rest parameters goes as follows:
    (BinomialDistribution. rng trials p))
   ([_] (distribution :binomial {})))
 
+(defmethod distribution :bernoulli
+  ([_ {:keys [^double p rng]
+       :or {p 0.5 rng default-rng}}]
+   (BinomialDistribution. rng 1 p))
+  ([_] (distribution :bernoulli {})))
+
 (defmethod distribution :enumerated-int
   ([_ {:keys [data probabilities ^RandomGenerator rng]
        :or {rng default-rng}}]
@@ -837,6 +900,18 @@ The rest parameters goes as follows:
        :or {number-of-elements 100 exponent 3.0 rng default-rng}}]
    (ZipfDistribution. rng number-of-elements exponent))
   ([_] (distribution :zipf {})))
+
+(defmethod distribution :multi-normal
+  ([_ {:keys [means covariances rng]
+       :or {rng default-rng}}]
+   (let [covariances (if-not covariances
+                       [[1.0 0.0] [0.0 1.0]]
+                       covariances)
+         means (if-not means (repeat (count (first covariances)) 0.0) means)]
+     (assert (= (count means) (count (first covariances)))
+             "Means and covariances sizes do not match.")
+     (MultivariateNormalDistribution. rng (m/seq->double-array means) (m/seq->double-double-array covariances))))
+  ([_] (distribution :multi-normal {})))
 
 (def ^{:doc "List of distributions."
        :metadoc/categories #{:dist}}
