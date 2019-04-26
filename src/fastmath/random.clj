@@ -379,16 +379,18 @@ See [[brand]].")
 
 (defn- jitter-generator
   "Generate random jitter"
-  [seq-generator dimensions ^double jitter]
+  [seq-generator ^long dimensions ^double jitter]
   (let [[^double d0 ^double i0 ^double f ^double p] (case seq-generator
                                                       :r2 [0.76 0.7 0.25 -0.5]
                                                       :halton [0.9 0.7 0.25 -0.5]
                                                       :sobol [0.16 0.58 0.4 -0.2]
                                                       [0.5 0.5 0.25 -0.5])
         c (* jitter m/SQRTPI d0 f)
-        g (random-generators :default dimensions)]
-    (map (fn [v ^long i]
-           (v/mult v (* c (m/pow (- (inc i) i0) p)))) g (range))))
+        g (random-generators :default dimensions)
+        mod-fn (if (== dimensions 1)
+                 (fn [^long i ^double v] (* v c (m/pow (- (inc i) i0) p)))
+                 (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))))]
+    (map-indexed mod-fn g)))
 
 ;; Sequence creators
 
@@ -426,11 +428,13 @@ See also [[jittered-sequence-generator]]."
   `jitter` parameter range is from `0` (no jitter) to `1` (full jitter).
 
   See also [[sequence-generator]]."
-  [seq-generator dimensions jitter]
+  [seq-generator ^long dimensions jitter]
   (let [s (sequence-generator seq-generator dimensions)
-        j (jitter-generator seq-generator dimensions jitter)]
-    (map (fn [v vj]
-           (v/fmap (v/add v vj) m/frac)) s j)))
+        j (jitter-generator seq-generator dimensions jitter)
+        mod-fn (if (== dimensions 1)
+                 (fn [^double v ^double vj] (m/frac (+ v vj)))
+                 (fn [v vj] (v/fmap (v/add v vj) m/frac)))]
+    (map mod-fn s j)))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
        :metadoc/categories #{:gen}}

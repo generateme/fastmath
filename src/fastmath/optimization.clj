@@ -3,16 +3,17 @@
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
            [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds InitialGuess PointValuePair]
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction]
-           [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer])
+           [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer])
   (:require [fastmath.core :as m]
-            [fastmath.random :as r]))
+            [fastmath.random :as r]
+            [fastmath.vector :as v]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa})
+(def ^:private multivariate-set #{:bobyqa :powell})
 
 (defn- brent
   [{:keys [^double rel ^double abs]
@@ -26,14 +27,15 @@
    (let [number-of-points (or number-of-points (/ (+ 3 (* 3 dim)) 2))]
      (BOBYQAOptimizer. number-of-points initial-radius stopping-radius))))
 
+(defn- powell
+  [{:keys [^double rel ^double abs]
+    :or {rel 1.0e-6  abs 1.0e-10}}]
+  (PowellOptimizer. rel abs))
+
 (def ^:private optimizers
   {:brent brent
-   :bobyqa bobyqa})
-
-(defn- optimizer
-  [config]
-  ((optimizers (:method config)) config))
-
+   :bobyqa bobyqa
+   :powell powell})
 
 (defn- wrap-univariate-function [f] (UnivariateObjectiveFunction. (reify UnivariateFunction
                                                                     (value [_ x] (f x)))))
@@ -41,8 +43,8 @@
 (defn- wrap-multivariate-function [f] (ObjectiveFunction. (reify MultivariateFunction
                                                             (value [_ xs] (apply f xs)))))
 
-(defn- evals [evals] (if evals (MaxEval. evals) (MaxEval/unlimited)))
-(defn- iters [iters] (if iters (MaxIter. iters) (MaxIter/unlimited)))
+(defn- wrap-evals [evals] (if evals (MaxEval. evals) (MaxEval/unlimited)))
+(defn- wrap-iters [iters] (if iters (MaxIter. iters) (MaxIter/unlimited)))
 
 (defn- infer-lo-high
   [lo high]
@@ -50,28 +52,41 @@
    (or high (- 1.0 m/EPSILON))])
 
 (defn- search-interval
-  [[lo high init]]
+  [[lo high] init]
   (let [[lo high] (infer-lo-high lo high)]
     (if init
       (SearchInterval. lo high init)
       (SearchInterval. lo high))))
 
-(defn- bounds-and-guess
+(defn- ensure-bounds-as-vectors
   [bounds]
-  (let [[lo high init] (map #(if (sequential? %) % [%]) bounds)
-        sb (SimpleBounds. (double-array lo) (double-array high))]
-    [sb (InitialGuess. (double-array (if init init (map (fn [^double l ^double h]
-                                                          (* 0.5 (+ l h))) lo high))))]))
+  (map #(if (sequential? %) (vec %) [%]) bounds))
 
-(defn- bounds
-  [{:keys [bounds method]}]
+(defn- multi-bounds
+  [bounds]
+  (let [[lo high] (ensure-bounds-as-vectors bounds)]
+    (SimpleBounds. (double-array lo) (double-array high))))
+
+(defn- initial-guess
+  [bounds initial]
+  (InitialGuess. (double-array (if initial (if (sequential? initial) initial [initial])
+                                   (let [[lo high] (ensure-bounds-as-vectors bounds)]
+                                     (map (fn [^double l ^double h] (* 0.5 (+ l h))) lo high))))))
+
+(defn- wrap-bounds
+  [method bounds initial]
+  (when (and bounds (multivariate-set method))
+    (multi-bounds bounds)))
+
+(defn wrap-initial
+  [method bounds initial]
   (if (univariate-set method)
-    (search-interval bounds)
-    (bounds-and-guess bounds)))
+    (search-interval bounds initial)
+    (initial-guess bounds initial)))
 
 (defn- wrap-function
-  [f config]
-  (if (univariate-set (:method config))
+  [method f config]
+  (if (univariate-set method)
     (wrap-univariate-function f)
     (wrap-multivariate-function f)))
 
@@ -84,46 +99,106 @@
                      [(seq (.getPointRef res)) (.getValue res)])
     res))
 
-(defn optimize
-  ([method f] (optimize method f {}))
-  ([method f {:keys [max-evals max-iters goal stats?] :as config}]
-   (let [[lo] (:bounds config)
-         config (assoc config :method method :dim (if (and lo (sequential? lo))
-                                                    (count lo) 1))
-         evals (evals max-evals)
-         iters (iters max-iters)
-         goal (if (= goal :maximize) GoalType/MAXIMIZE GoalType/MINIMIZE)
-         bounds (bounds config)
-         f (wrap-function f config)
-         ^BaseOptimizer optimizer (optimizer config)
-         res (parse-result (.optimize optimizer (into-array OptimizationData (flatten [evals iters goal bounds f]))))]
-     (if-not stats?
-       res
-       {:result res
-        :evaluations (.getEvaluations optimizer)
-        :iterations (.getIterations optimizer)}))))
+(defn optimizer
+  [method f {:keys [max-evals max-iters goal initial bounds stats?] :as config}]
+  (assert (or (not (nil? bounds))
+              (not (nil? initial))) "Provide search bounds or initial.")
+  (let [lo (if initial initial (first bounds))
+        config (assoc config :dim (if (and lo (sequential? lo))
+                                    (count lo) 1))
+        
+        b (wrap-bounds method bounds initial)
+        base-opt-data [(wrap-evals max-evals)
+                       (wrap-iters max-iters)
+                       (if (= goal :maximize) GoalType/MAXIMIZE GoalType/MINIMIZE)
+                       (wrap-function method f config)]
+        base-opt-data (if (and b (not (#{:powell} method))) (conj base-opt-data b) base-opt-data) 
+        
+        builder (optimizers method)        
+        ^BaseOptimizer optimizer (builder config)]
+    
+    (fn [init] (let [res (->> (conj base-opt-data (wrap-initial method bounds init))
+                             (into-array OptimizationData)
+                             (.optimize optimizer)
+                             (parse-result))]
+                (if-not stats?
+                  res
+                  {:result res
+                   :evaluations (.getEvaluations optimizer)
+                   :iterations (.getIterations optimizer)})))))
 
-(defn minimize
-  ([method f config] (optimize method f (assoc config :goal :minimize)))
-  ([method f] (minimize method f {})))
+(defn minimizer [method f config] (optimizer method f (assoc config :goal :minimize)))
+(defn maximizer [method f config] (optimizer method f (assoc config :goal :maximize)))
 
-(defn maximize
-  ([method f config] (optimize method f (assoc config :goal :maximize)))
-  ([method f] (maximize method f {})))
+(defmacro ^:private with-optimizer [opt m f c] `((~opt ~m ~f ~c) (:initial ~c)))
 
+(defn optimize [method f config] (with-optimizer optimizer method f config))
+(defn minimize [method f config] (with-optimizer minimizer method f config))
+(defn maximize [method f config] (with-optimizer maximizer method f config))
 
-(time (maximize :brent #(m/cos %) {:bounds [-3 3]}))
+(defn- goal-comparator
+  [goal]
+  (if (= goal :minimize)
+    #(< ^double %1 ^double %2)
+    #(> ^double %1 ^double %2)))
 
+(defn- generate-points
+  [f [lo high] goal N n]
+  (let [^long dim (if (sequential? lo) (count lo) 1)
+        N (max 10 ^int N)
+        n (max 10 (m/floor (* ^double n N)))
+        gen (r/jittered-sequence-generator (if (<= dim 4) :r2 :sobol) dim 0.2)
+        inter (if (== dim 1) m/lerp v/einterpolate)
+        genf (if (== dim 1) f (partial apply f))]
+    (->> (take N gen)
+         (map #(let [p (inter lo high %)]
+                 [(genf p) p]))
+         (sort-by first (goal-comparator goal))
+         (take n)
+         (map second))))
 
-(defn s2d ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
-                                           (* 0.01 (m/abs (+ 10.0 x)))))
+(defn- scan-and-
+  "For cheap functions, scan domain and bruteforcely search for set of minimal values, then use part of this values as initial points for parallel optimization.
+
+  Additional parameters in config:
+
+  * N - number of points to scan per dimension (default: 10, minumum 10)
+  * n - fraction of total points N) used for optimization (default: 0.1, minimum 10)"
+  [optimizer goal method f {:keys [bounds ^int N ^double n]
+                            :or {N 10 n 0.1}
+                            :as config}]
+  (assert (not (nil? bounds)) "Provide search bounds.")
+  (let [goal (or goal (get config :goal :minimize))
+        samples (generate-points f bounds goal N n)
+        opt (repeatedly (count samples) #(optimizer method f config))
+        ^int tk (get config :take 1)
+        taker (if (> tk 1) (partial take tk) first)]
+    (->> (pmap #(%1 %2) opt samples)
+         (sort-by second (goal-comparator goal))
+         (taker))))
+
+(def scan-and-optimize (partial scan-and- optimizer nil))
+(def scan-and-minimize (partial scan-and- minimizer :minimize))
+(def scan-and-maximize (partial scan-and- maximizer :maximize))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn bfn6 ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
+                                            (* 0.01 (m/abs (+ 10.0 x)))))
 
 (defn h ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11))
                                          (m/sq (+ x (* y y) -7))))
 
-(defn d5 [a b c d e] (reduce #(+ %1 (m/sq %2)) 0.0 [a b c d e]))
+(defn d5 [a b c d e] (reduce #(+ ^double %1 (m/sq %2)) 0.0 [a b c d e]))
 
-(first (sort-by first (take 100000 (map #(vector (s2d %1 %2) %1 %2) (repeatedly #(r/drand -15 -5)) (repeatedly #(r/drand -3 3))))))
+(time (scan-and-maximize :bobyqa bfn6 {:bounds [[-15 -3] [15 3]] :N 100 :n 0.2}))
+
+(minimize :powell bfn6 {:bounds [[-15 -3] [15 3]] :initial [-13.217532309719662 0.9280007414397415]})
+
+(time (scan-and-optimize :powell #(m/cos %) {:bounds [-3 3] :initial -2 :N 100 :n 0.2 :goal :maximize}))
+
+
 ;; => [1.9210981963566007 -5.751481824637489 0.3304425131054902]
 
-(time (minimize :bobyqa d5 {:bounds [[-5 -5 -5 -5 -5] [5 5 5 5 5]] :stats? true}))
+
+
