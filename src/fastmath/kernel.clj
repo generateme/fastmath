@@ -1,8 +1,10 @@
 (ns fastmath.kernel
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [cljplot.build :as b])
   (:import [smile.math.rbf RadialBasisFunction]
+           [smile.math.kernel MercerKernel]
            [clojure.lang IFn]))
 
 (set! *warn-on-reflection* true)
@@ -246,48 +248,48 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;
-;; Mattern kernels / Covariance kernels
+;; Various kernels
 
-(defn rbf->mercer
-  "Treat RBF kernel as Mercer kernel for given distance."
-  ([rbf-kernel] (rbf->mercer rbf-kernel d/euclidean))
+(defn rbf->kernel
+  "Treat RBF kernel as Kernel kernel for given distance."
+  ([rbf-kernel] (rbf->kernel rbf-kernel d/euclidean))
   ([rbf-kernel distance]
    (fn [x y] (rbf-kernel (distance x y)))))
 
 ;; http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/
 
-(defmulti mercer (fn [k & _] k))
+(defmulti kernel (fn [k & _] k))
 
-(defmethod mercer :linear
+(defmethod kernel :linear
   ([_] (fn [x y] (v/dot x y)))
   ([_ ^double alpha] (fn [x y] (* alpha ^double (v/dot x y)))))
 
-(defmethod mercer :polynomial
+(defmethod kernel :polynomial
   ([_] (fn [x y] (m/sq (v/dot x y))))
   ([_ ^double alpha ^double c ^double d] (fn [x y] (m/pow (+ c (* alpha ^double (v/dot x y))) d))))
 
-(defmethod mercer :gaussian
-  ([_] (mercer :gaussian 1.0))
-  ([_ sigma] (mercer :gaussian sigma d/euclidean))
+(defmethod kernel :gaussian
+  ([_] (kernel :gaussian 1.0))
+  ([_ sigma] (kernel :gaussian sigma d/euclidean))
   ([_ ^double sigma distance]
    (let [s2r  (/ (* sigma sigma))]
      (fn [x y] (m/exp (* -0.5 s2r (m/sq (distance x y))))))))
 
-(defmethod mercer :exponential
-  ([_] (mercer :exponential 1.0))
-  ([_ sigma] (mercer :exponential sigma d/euclidean))
+(defmethod kernel :exponential
+  ([_] (kernel :exponential 1.0))
+  ([_ sigma] (kernel :exponential sigma d/euclidean))
   ([_ ^double sigma distance]
    (let [s2r (/ (* sigma sigma))]
      (fn [x y] (m/exp (* -0.5 s2r ^double (distance x y)))))))
 
-(defmethod mercer :laplacian
-  ([_] (mercer :laplacian 1.0))
-  ([_ sigma] (mercer :laplacian sigma d/euclidean))
+(defmethod kernel :laplacian
+  ([_] (kernel :laplacian 1.0))
+  ([_ sigma] (kernel :laplacian sigma d/euclidean))
   ([_ ^double sigma distance] (fn [x y] (m/exp (- (/ ^double (distance x y) sigma))))))
 
-(defmethod mercer :anova
-  ([_] (mercer :anova 1.0))
-  ([_ ^double sigma] (mercer :anova sigma 1.0 1.0))
+(defmethod kernel :anova
+  ([_] (kernel :anova 1.0))
+  ([_ ^double sigma] (kernel :anova sigma 1.0 1.0))
   ([_ ^double sigma ^double k ^double d]
    (let [powk #(m/pow ^double % k)
          powd #(m/pow ^double % d)]
@@ -302,36 +304,36 @@
              (v/sum)))))))
 
 
-(defmethod mercer :hyperbolic-tangent
-  ([_] (mercer :hyperbolic-tangent 1.0))
-  ([_ ^double alpha] (mercer :hyperbolic-tangent alpha 0.0))
+(defmethod kernel :hyperbolic-tangent
+  ([_] (kernel :hyperbolic-tangent 1.0))
+  ([_ ^double alpha] (kernel :hyperbolic-tangent alpha 0.0))
   ([_ ^double alpha ^double c]
    (fn [x y] (m/tanh (+ c (* alpha ^double (v/dot x y)))))))
 
-(defmethod mercer :rational-quadratic
-  ([_] (mercer :rational-quadratic 1.0))
-  ([_ ^double c] (mercer :rational-quadratic c d/euclidean))
+(defmethod kernel :rational-quadratic
+  ([_] (kernel :rational-quadratic 1.0))
+  ([_ ^double c] (kernel :rational-quadratic c d/euclidean))
   ([_ ^double c distance]
    (fn [x y] (let [d (m/sq (distance x y))]
               (- 1.0 (/ d (+ d c)))))))
 
-(defmethod mercer :multiquadratic
-  ([_] (mercer :multiquadratic 1.0))
-  ([_ ^double c] (mercer :multiquadratic c d/euclidean))
+(defmethod kernel :multiquadratic
+  ([_] (kernel :multiquadratic 1.0))
+  ([_ ^double c] (kernel :multiquadratic c d/euclidean))
   ([_ ^double c distance]
    (fn [x y] (let [d (m/sq (distance x y))]
               (m/sqrt (+ d (* c c)))))))
 
-(defmethod mercer :inverse-multiquadratic
-  ([_] (mercer :inverse-multiquadratic 1.0))
-  ([_ ^double c] (mercer :inverse-multiquadratic c d/euclidean))
+(defmethod kernel :inverse-multiquadratic
+  ([_] (kernel :inverse-multiquadratic 1.0))
+  ([_ ^double c] (kernel :inverse-multiquadratic c d/euclidean))
   ([_ ^double c distance]
    (fn [x y] (let [d (m/sq (distance x y))]
               (/ (m/sqrt (+ d (* c c))))))))
 
-(defmethod mercer :circular
-  ([_] (mercer :circular 1.0))
-  ([_ ^double sigma] (mercer :circular sigma d/euclidean))
+(defmethod kernel :circular
+  ([_] (kernel :circular 1.0))
+  ([_ ^double sigma] (kernel :circular sigma d/euclidean))
   ([_ ^double sigma distance]
    (fn [x y] (let [^double d (distance x y)]
               (if (>= d sigma) 0.0
@@ -339,21 +341,152 @@
                     (* 0.6366197723675814 (- (m/acos ds)
                                              (* ds (m/sqrt (- 1.0 (* ds ds))))))))))))
 
-(defmethod mercer :spherical
-  ([_] (mercer :spherical 1.0))
-  ([_ ^double sigma] (mercer :spherical sigma d/euclidean))
+(defmethod kernel :spherical
+  ([_] (kernel :spherical 1.0))
+  ([_ ^double sigma] (kernel :spherical sigma d/euclidean))
   ([_ ^double sigma distance]
    (fn [x y] (let [^double d (distance x y)]
               (if (>= d sigma) 0.0
                   (let [ds (/ d sigma)]
                     (+ (- 1.0 (* 1.5 ds)) (* 0.5 ds ds ds))))))))
 
-(defmethod mercer :wave
-  ([_] (mercer :wave 1.0))
-  ([_ ^double sigma] (mercer :wave sigma d/euclidean))
+(defmethod kernel :wave
+  ([_] (kernel :wave 1.0))
+  ([_ ^double sigma] (kernel :wave sigma d/euclidean))
   ([_ ^double sigma distance]
    (fn [x y] (let [^double d (distance x y)]
-              (* (/ sigma d) (m/sin (/ d sigma)))))))
+              (if (zero? d) 0.0
+                  (* (/ sigma d) (m/sin (/ d sigma))))))))
+
+(defmethod kernel :power
+  ([_] (kernel :power 2.0))
+  ([_ d] (kernel :power d d/euclidean))
+  ([_ ^double d distance]
+   (fn [x y] (- (m/pow (distance x y) d)))))
+
+(defmethod kernel :log
+  ([_] (kernel :log 2.0))
+  ([_ d] (kernel :log d d/euclidean))
+  ([_ ^double d distance]
+   (fn [x y] (- (m/log1p (m/pow (distance x y) d))))))
+
+(defmethod kernel :spline
+  [_] (fn [x y]
+        (reduce #(* ^double %1 ^double %2) 1.0 (map (fn [^double xi ^double yi]
+                                                      (let [xiyi (* xi yi)
+                                                            m (min xi yi)
+                                                            m2 (* m m)]
+                                                        (inc (+ xiyi
+                                                                (* xiyi m)
+                                                                (* -0.5 (+ xi yi) m2)
+                                                                (* m/THIRD m2 m))))) x y))))
+
+(defmethod kernel :bessel
+  ([_] (kernel :bessel 2.0))
+  ([_ sigma] (kernel :bessel sigma 2.0))
+  ([_ sigma n] (kernel :bessel sigma n -1.0))
+  ([_ sigma n v] (kernel :bessel sigma n v d/euclidean))
+  ([_ sigma n v distance]
+   (fn [x y] (let [^double d (distance x y)
+                  v+ (inc ^double v)]
+              (/ (m/bessel-j v+ (* ^double sigma d))
+                 (m/pow d (- (* ^double n v+))))))))
+
+(defmethod kernel :cauchy
+  ([_] (kernel :cauchy 1.0))
+  ([_ ^double sigma] (kernel :cauchy sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y] (/ (inc (m/sq (/ ^double (distance x y) sigma)))))))
+
+(defmethod kernel :chi-square-pd
+  [_] (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
+                                                             (/ (* 2.0 xi yi)
+                                                                (+ xi yi))) x y))))
+
+(defmethod kernel :chi-square-cpd
+  [_] (fn [x y] (- 1.0 ^double (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
+                                                                            (/ (m/sq (- xi yi))
+                                                                               (* 0.5 (+ xi yi)))) x y)))))
+
+(defmethod kernel :histogram
+  [_] (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
+                                                             (min xi yi)) x y))))
+
+(defmethod kernel :generalized-histogram
+  ([_] (kernel :generalized-histogram 1.0 1.0))
+  ([_ ^double alpha ^double beta]
+   (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
+                                                          (min (m/pow (m/abs xi) alpha)
+                                                               (m/pow (m/abs yi) beta))) x y)))))
+
+(defmethod kernel :generalized-t-student
+  ([_] (kernel :generalized-t-student 1.0))
+  ([_ ^double d] (kernel :generalized-t-student d d/euclidean))
+  ([_ ^double d distance]
+   (fn [x y] (/ (inc (m/pow (distance x y) d))))))
+
+(defmethod kernel :dirichlet
+  ([_] (kernel :dirichlet 1.0))
+  ([_ ^double N]
+   (let [N5 (+ 0.5 N)]
+     (fn [x y] (reduce #(* ^double %1 ^double %2) 1.0 (map (fn [^double xi ^double yi]
+                                                            (let [delta (- xi yi)
+                                                                  num (m/sin (* N5 delta))
+                                                                  den (* 2.0 (m/sin (* 0.5 delta)))]
+                                                              (/ num den))) x y))))))
+
+(defmethod kernel :hellinger
+  ([_] (fn [x y] (v/dot (v/safe-sqrt x)
+                       (v/safe-sqrt y)))))
+
+(defmethod kernel :pearson
+  ([_] (kernel :pearson 1.0 1.0))
+  ([_ ^double sigma ^double omega]
+   (let [c (/ (* 2.0 (m/sqrt (dec (m/pow 2.0 (/ omega))))) sigma)]
+     (fn [x y] (let [^double xx (v/sum (v/sq x))
+                    ^double yy (v/sum (v/sq y))
+                    ^double xy (v/sum (v/emult x y))
+                    m (* c (m/sqrt (+ (* -2.0 xy) xx yy)))]
+                (/ (m/pow (inc (* m m)) omega)))))))
+
+(defmethod kernel :thin-plate
+  ([_] (kernel :thin-plate 1.0))
+  ([_ sigma] (kernel :thin-plate sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y]
+     (let [ds (/ ^double (distance x y) sigma)]
+       (* (m/sq ds) (m/log ds))))))
+
+(defn smile-mercer
+  "Create RBF Smile object.
+
+  Used to pass to Smile constructors/functions."
+  {:metadoc/categories #{:kernel}}
+  [k]
+  (reify
+    MercerKernel (k [_ x y] (k x y))
+    IFn (invoke ^double [_ x y] (k x y))))
+
+;; kernel manipulation functions
+
+(defn exp
+  ([k] (exp k 1.0))
+  ([k ^double t]
+   (fn [x y] (m/exp (* t ^double (k x y))))))
+
+(defn approx [k] (comp float k))
+
+(defn- zero-vec [c] (vec (repeat c 0.0)))
+(def zero-vec-m (memoize zero-vec))
+
+;; doesn't work well
+(defn cpd->pd
+  [k]
+  (fn [x y] (let [zero (zero-vec-m (count x))]
+             (float (* 0.5 (+ ^double (k zero zero)
+                              (- ^double (k x y)
+                                 ^double (k x zero)
+                                 ^double (k zero y))))))))
 
 
 
