@@ -36,7 +36,7 @@
                         :d1 "1d interpolation"
                         :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
-            [fastmath.rbf :as rbf])
+            [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator UnivariatePeriodicInterpolator MicrosphereProjectionInterpolator UnivariateInterpolator]
            [org.apache.commons.math3.analysis.interpolation BicubicInterpolator PiecewiseBicubicSplineInterpolator BivariateGridInterpolator]
            [org.apache.commons.math3.analysis.interpolation MultivariateInterpolator]
@@ -168,7 +168,7 @@ Source: Apache Commons Math." #{:comm :d1}
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
   ([rbf-fn normalize? xs ys]
-   (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) rbf-fn normalize?)]
+   (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) (k/smile-rbf rbf-fn) normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
   ([rbf-fn xs ys]
    (rbf rbf-fn false xs ys)))

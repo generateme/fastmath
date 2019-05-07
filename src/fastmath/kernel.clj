@@ -1,8 +1,7 @@
 (ns fastmath.kernel
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
-            [fastmath.vector :as v]
-            [cljplot.build :as b])
+            [fastmath.vector :as v])
   (:import [smile.math.rbf RadialBasisFunction]
            [smile.math.kernel MercerKernel]
            [clojure.lang IFn]))
@@ -100,7 +99,7 @@
 
 (emit-simple-rbf :poisson-2 (m/bessel-j 0 xs))
 (emit-simple-rbf :poisson-3 (* 0.7978845608028654 (m/sinc xs)))
-(emit-simple-rbf :poisson-4 (/ (m/bessel-j 1 xs) xs))
+(emit-simple-rbf :poisson-4 (if (zero? (m/approx xs)) 0.5 (/ (m/bessel-j 1 xs) xs)))
 
 ;; page 35
 ;; also http://evoq-eval.siam.org/Portals/0/Publications/SIURO/Vol4/Choosing_Basis_Functions_and_Shape_Parameters.pdf
@@ -127,8 +126,8 @@
   ([_] (rbf :thin-plate 1.0))
   ([_ scale] (rbf :thin-plate 1.0 scale))
   ([_ ^double beta ^double scale] (if (== beta 1.0)
-                                    (make-scaled-x scale (* xs xs (m/log xs)))
-                                    (make-scaled-x scale (* (m/pow (* xs xs) beta) (m/log xs))))))
+                                    (make-scaled-x scale (if-not (pos? xs) 0.0 (* xs xs (m/log xs))))
+                                    (make-scaled-x scale (if-not (pos? xs) 0.0 (* (m/pow (* xs xs) beta) (m/log xs)))))))
 
 ;; https://www.researchgate.net/profile/Zongmin_Wu/publication/246909840_Multivariate_compactly_supported_positive_definite_radial_functions/links/542247e30cf26120b7a0209b/Multivariate-compactly-supported-positive-definite-radial-functions.pdf
 ;; page 9
@@ -257,6 +256,8 @@
    (fn [x y] (rbf-kernel (distance x y)))))
 
 ;; http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/
+;; Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective
+;; http://www.jmlr.org/papers/volume2/genton01a/genton01a.pdf
 
 (defmulti kernel (fn [k & _] k))
 
@@ -355,7 +356,7 @@
   ([_ ^double sigma] (kernel :wave sigma d/euclidean))
   ([_ ^double sigma distance]
    (fn [x y] (let [^double d (distance x y)]
-              (if (zero? d) 0.0
+              (if (zero? d) 1.0
                   (* (/ sigma d) (m/sin (/ d sigma))))))))
 
 (defmethod kernel :power
@@ -455,7 +456,43 @@
   ([_ ^double sigma distance]
    (fn [x y]
      (let [ds (/ ^double (distance x y) sigma)]
-       (* (m/sq ds) (m/log ds))))))
+       (if-not (pos? ds) 0.0 (* (m/sq ds) (m/log ds)))))))
+
+(defmethod kernel :mattern-12
+  ([_] (kernel :mattern-12 1.0))
+  ([_ ^double sigma] (kernel :mattern-12 sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y] (m/exp (- (/ ^double (distance x y) sigma))))))
+
+(defmethod kernel :mattern-32
+  ([_] (kernel :mattern-32 1.0))
+  ([_ ^double sigma] (kernel :mattern-32 sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y] (let [d (/ (* m/SQRT3 ^double (distance x y)) sigma)]
+              (* (inc d) (m/exp (- d)))))))
+
+(defmethod kernel :mattern-52
+  ([_] (kernel :mattern-52 1.0))
+  ([_ ^double sigma] (kernel :mattern-52 sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y] (let [d (/ (* m/SQRT5 ^double (distance x y)) sigma)]
+              (* (inc (+ d (* d d m/THIRD))) (m/exp (- d)))))))
+
+
+(defmethod kernel :hyperbolic-secant
+  ([_] (kernel :hyperbolic-secant 1.0))
+  ([_ ^double sigma] (kernel :hyperbolic-secant sigma d/euclidean))
+  ([_ ^double sigma distance]
+   (fn [x y] (let [d (* sigma ^double (distance x y))]
+              (+ (/ 2.0 (m/exp d)) (m/exp (- d)))))))
+
+(defmethod kernel :scalar-functions
+  ([_ f] (kernel :scalar-functions f f))
+  ([_ f1 f2] (fn [x y] (* ^double (f1 x) ^double (f2 y)))))
+
+(defmethod kernel :variance-function
+  ([_ h] (fn [x y] (* 0.25 (- ^double (h (v/add x y)) ^double (h (v/sub x y)))))))
+
 
 (defn smile-mercer
   "Create RBF Smile object.
@@ -469,12 +506,42 @@
 
 ;; kernel manipulation functions
 
+(defn kernel->rbf
+  ([k] (kernel->rbf k m/EPSILON))
+  ([k center]
+   (let [c (vector center)]
+     (fn [x] (k [x] c)))))
+
 (defn exp
   ([k] (exp k 1.0))
   ([k ^double t]
    (fn [x y] (m/exp (* t ^double (k x y))))))
 
 (defn approx [k] (comp float k))
+
+(defn scale
+  [k ^double scale]
+  (fn [x y] (* scale ^double (k x y))))
+
+(defn mult
+  ([k1] k1)
+  ([k1 k2] (fn [x y] (* ^double (k1 x y) ^double (k2 x y))))
+  ([k1 k2 k3] (fn [x y] (* ^double (k1 x y) ^double (k2 x y) ^double (k3 x y))))
+  ([k1 k2 k3 & r]
+   (let [k (mult k1 k2 k3)]
+     (if-not (seq r) k
+             (apply mult k r)))))
+
+(defn wadd
+  ([kernels] (wadd (repeat (count kernels) 1.0) kernels))
+  ([weights kernels]
+   (fn [x y] (reduce #(+ ^double %1 ^double %2)
+                    (map (fn [^double w k] (* w ^double (k x y))) weights kernels)))))
+
+(defn fields
+  ([k f] (fields f f))
+  ([k f1 f2]
+   (fn [x y] (k (f1 x) (f2 y)))))
 
 (defn- zero-vec [c] (vec (repeat c 0.0)))
 (def zero-vec-m (memoize zero-vec))
@@ -490,3 +557,38 @@
 
 
 
+;;;;;;;;; density
+
+(defonce ^:private ^:const ^double gaussian-factor (/ (m/sqrt m/TWO_PI)))
+
+(defn density-uniform [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
+(defn density-gaussian [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
+(defn density-triangular [^double x] (let [absx (m/abs x)]
+                                       (if (<= absx 1.0) (- 1.0 absx) 0.0)))
+(defn density-epanechnikov [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
+(defn density-quartic [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
+(defn density-triweight
+  [^double x]
+  (if (<= (m/abs x) 1.0)
+    (let [v (- 1.0 (* x x))]
+      (* 1.09375 v v v)) 0.0))
+
+(defn density-tricube
+  [^double x]
+  (let [absx (m/abs x)]
+    (if (<= absx 1.0)
+      (let [v (- 1.0 (* absx absx absx))]
+        (* 0.8875 v v v)) 0.0)))
+
+(defn density-cosine [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
+(defn density-logistic [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
+(defn density-sigmoid [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
+(defn density-silverman
+  [^double x]
+  (let [xx (/ (m/abs x) m/SQRT2)]
+    (* 0.5 (m/exp (- xx)) (m/sin (+ xx m/QUARTER_PI)))))
+
+;; experimental
+(defn density-laplace [^double x] (* 0.5 (m/exp (- (m/abs x)))))
+(defn density-wigner [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
+(defn density-cauchy [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))

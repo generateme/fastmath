@@ -21,11 +21,12 @@ All notable changes to this project will be documented in this file. This change
 * various effect size functions
 * binary measures like fn, tp, etc... (around 30 statistics)
 * multivariate normal distribution added
+* gaussian processes reimplemented
+* kernels consolidated in one namespace
 
 ### Changed
 
 * use `fmap` instead of `applyf` (now deprecated)
-* rbf function already implements Smile interface
 * outliers are samples which are outside inner fence instead of outer fence
 * Vectors are associative now
 * [breaking] `kernel-density` is now multimethod
@@ -34,6 +35,7 @@ All notable changes to this project will be documented in this file. This change
 ### Removed
 
 * rbf-obj converter
+* rbf and mercer namespaces (use fastmath.kernel instead)
 
 ## [1.2.0]
 

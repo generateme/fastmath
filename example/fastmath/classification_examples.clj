@@ -4,9 +4,8 @@
             [clojure.data.csv :as csv]
             [metadoc.examples :refer :all]
             [fastmath.classification :refer :all]
-            [fastmath.rbf :as rbf]
             [fastmath.distance :as dist]
-            [fastmath.kernel.mercer :as mercer]))
+            [fastmath.kernel :as k]))
 
 (def iris-data (->> (io/resource "iris.csv")
                     (io/reader)
@@ -153,10 +152,10 @@
              (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples rbf-network
-  (example (let [cl (rbf-network train-data train-labels)]
-             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-  (example "Custom rbfs" (let [cl (rbf-network {:rbf (take 5 (cycle [(rbf/rbf :linear) (rbf/rbf :wendland)]))} train-data train-labels)]
-                           (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+              (example (let [cl (rbf-network train-data train-labels)]
+                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+              (example "Custom rbfs" (let [cl (rbf-network {:rbf (take 5 (cycle [(k/rbf :linear) (k/rbf :wendland-20)]))} train-data train-labels)]
+                                       (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 
 (add-examples rda
@@ -176,7 +175,7 @@
 (add-examples svm
               (example (let [cl (svm train-data train-labels)]
                          (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-              (example "Different kernel" (let [cl (svm {:kernel (mercer/kernel :gaussian 1) :epochs 10} train-data train-labels)]
+              (example "Different kernel" (let [cl (svm {:kernel (k/kernel :gaussian 1) :epochs 10} train-data train-labels)]
                                             (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 #_(add-examples xgboost

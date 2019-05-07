@@ -1,18 +1,15 @@
 (ns fastmath.regression
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
-            [fastmath.rbf :as rbf]
             [fastmath.stats :as stat]
-            [fastmath.kernel.mercer :as mercer])
+            [fastmath.kernel :as k])
   (:refer-clojure :exclude [test])
   (:import [clojure.lang IFn]
            [smile.regression Regression RegressionTrainer OLS$Trainer RLS$Trainer LASSO$Trainer RidgeRegression$Trainer
             RBFNetwork$Trainer SVR$Trainer RegressionTree$Trainer RandomForest$Trainer GradientTreeBoost$Trainer
             GradientTreeBoost$Loss GaussianProcessRegression$Trainer
             NeuralNetwork$Trainer NeuralNetwork$ActivationFunction]
-           [smile.validation Validation RegressionMeasure MeanAbsoluteDeviation MSE RMSE RSS]
-           [smile.math.rbf RadialBasisFunction]
-           [smile.math.kernel MercerKernel]))
+           [smile.validation Validation RegressionMeasure MeanAbsoluteDeviation MSE RMSE RSS]))
 
 (defprotocol RegressionProto
   (backend [_])
@@ -93,23 +90,23 @@
 
 (wrap-regression :smile rbf-network {:keys [distance rbf number-of-basis normalize?]
                                      :or {distance dist/euclidean number-of-basis 10 normalize? false}}
-  (let [cl (RBFNetwork$Trainer. distance)]
-    (-> (cond
-          (nil? rbf) cl
-          (sequential? rbf) (.setRBF cl (into-array RadialBasisFunction rbf))
-          :else (.setRBF cl rbf number-of-basis))
-        (.setNormalized normalize?))))
+                 (let [cl (RBFNetwork$Trainer. distance)]
+                   (-> (cond
+                         (nil? rbf) cl
+                         (sequential? rbf) (.setRBF cl (into-array smile.math.rbf.RadialBasisFunction (map k/smile-rbf rbf)))
+                         :else (.setRBF cl (k/smile-rbf rbf) number-of-basis))
+                       (.setNormalized normalize?))))
 
-(wrap-regression :smile svr {:keys [^MercerKernel kernel C eps tolerance]
-                             :or {kernel (mercer/kernel :linear) C 1.0 eps 0.001 tolerance 1.0e-3}}
-  (-> (SVR$Trainer. kernel eps C)
-      (.setTolerance tolerance)))
+(wrap-regression :smile svr {:keys [kernel C eps tolerance]
+                             :or {kernel (k/kernel :linear) C 1.0 eps 0.001 tolerance 1.0e-3}}
+                 (-> (SVR$Trainer. (k/smile-mercer kernel) eps C)
+                     (.setTolerance tolerance)))
 
 (wrap-regression :smile regression-tree {:keys [^int max-nodes node-size]
                                          :or {max-nodes 100 node-size 2}}
-  (let [features (count (first x))]
-    (-> (RegressionTree$Trainer. features max-nodes)
-        (.setNodeSize node-size))))
+                 (let [features (count (first x))]
+                   (-> (RegressionTree$Trainer. features max-nodes)
+                       (.setNodeSize node-size))))
 
 (wrap-regression :smile random-forest {:keys [number-of-trees mtry node-size max-nodes subsample]
                                        :or {number-of-trees 500 node-size 2 max-nodes 100 subsample 1.0}}
@@ -135,9 +132,9 @@
       (.setShrinkage shrinkage)
       (.setSamplingRates subsample)))
 
-(wrap-regression :smile gaussian-process {:keys [^MercerKernel kernel lambda]
-                                          :or {kernel (mercer/kernel :linear) lambda 0.5}}
-  (-> (GaussianProcessRegression$Trainer. kernel lambda)))
+(wrap-regression :smile gaussian-process {:keys [kernel lambda]
+                                          :or {kernel (k/kernel :gaussian) lambda 0.5}}
+                 (-> (GaussianProcessRegression$Trainer. (k/smile-mercer kernel) lambda)))
 
 (def activation-functions {:logistic-sigmoid NeuralNetwork$ActivationFunction/LOGISTIC_SIGMOID
                            :tanh NeuralNetwork$ActivationFunction/TANH})

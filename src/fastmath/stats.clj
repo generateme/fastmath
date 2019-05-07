@@ -60,7 +60,8 @@
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.stats :as stats]
-            [fastmath.random :as rnd])
+            [fastmath.random :as rnd]
+            [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
@@ -558,40 +559,6 @@
 
 ;;
 
-(defonce ^:private ^:const ^double gaussian-factor (/ (m/sqrt m/TWO_PI)))
-
-(defn- kde-uniform  ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
-(defn- kde-gaussian ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
-(defn- kde-triangular ^double [^double x] (let [absx (m/abs x)]
-                                            (if (<= absx 1.0) (- 1.0 absx) 0.0)))
-(defn- kde-epanechnikov ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
-(defn- kde-quartic ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
-(defn- kde-triweight
-  ^double [^double x]
-  (if (<= (m/abs x) 1.0)
-    (let [v (- 1.0 (* x x))]
-      (* 1.09375 v v v)) 0.0))
-
-(defn- kde-tricube
-  ^double [^double x]
-  (let [absx (m/abs x)]
-    (if (<= absx 1.0)
-      (let [v (- 1.0 (* absx absx absx))]
-        (* 0.8875 v v v)) 0.0)))
-
-(defn- kde-cosine ^double [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
-(defn- kde-logistic ^double [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
-(defn- kde-sigmoid ^double [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
-(defn- kde-silverman
-  ^double [^double x]
-  (let [xx (/ (m/abs x) m/SQRT2)]
-    (* 0.5 (m/exp (- xx)) (m/sin (+ xx m/QUARTER_PI)))))
-
-;; experimental
-(defn- kde-laplace ^double [^double x] (* 0.5 (m/exp (- (m/abs x)))))
-(defn- kde-wigner ^double [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
-(defn- kde-cauchy ^double [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
-
 (defn- nrd
   ^double [data]
   (let [sd (stats/stddev data)
@@ -635,7 +602,7 @@
 (defmacro ^:private make-kernel-density-fns
   [lst]
   `(do ~@(for [v (eval lst)
-               :let [n (symbol (str "kde-" (name v)))]]
+               :let [n (symbol (str "k/density-" (name v)))]]
            `(defmethod kernel-density ~v
               ([k# vs#] (first (kde vs# ~n)))
               ([k# vs# h#] (first (kde vs# ~n h#)))
@@ -654,8 +621,6 @@
 
 (defmethod kernel-density :default [_ & r] (apply kernel-density :smile r))
 
-(defonce ^:private gaussian01 (r/distribution :normal))
-
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
 
@@ -664,7 +629,7 @@
   ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
   ([method data bandwidth ^double alpha]
    (if (contains? kde-integral method)
-     (let [^double za (r/icdf gaussian01 (- 1.0 (* 0.5 (or alpha 0.05))))
+     (let [^double za (r/icdf r/default-normal (- 1.0 (* 0.5 (or alpha 0.05))))
            [kde-f ^double factor] (kernel-density method data bandwidth true)]
        (fn [^double x]
          (let [^double fx (kde-f x)

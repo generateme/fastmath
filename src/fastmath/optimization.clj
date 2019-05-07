@@ -8,6 +8,10 @@
             [fastmath.random :as r]
             [fastmath.vector :as v]))
 
+;; TODO
+;;
+;; add Nelder-Mead
+
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -182,20 +186,21 @@
 (def scan-and-maximize (partial scan-and- maximizer :maximize))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+#_(do
 
-(defn bfn6 ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
-                                            (* 0.01 (m/abs (+ 10.0 x)))))
+    (defn bfn6 ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
+                                                (* 0.01 (m/abs (+ 10.0 x)))))
 
-(defn h ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11))
-                                         (m/sq (+ x (* y y) -7))))
+    (defn h ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11))
+                                             (m/sq (+ x (* y y) -7))))
 
-(defn d5 [a b c d e] (reduce #(+ ^double %1 (m/sq %2)) 0.0 [a b c d e]))
+    (defn d5 [a b c d e] (reduce #(+ ^double %1 (m/sq %2)) 0.0 [a b c d e]))
 
-(time (scan-and-maximize :bobyqa bfn6 {:bounds [[-15 -3] [15 3]] :N 100 :n 0.2}))
+    (time (scan-and-maximize :bobyqa bfn6 {:bounds [[-15 -3] [15 3]] :N 100 :n 0.2}))
 
-(minimize :powell bfn6 {:bounds [[-15 -3] [15 3]] :initial [-13.217532309719662 0.9280007414397415]})
+    (minimize :powell bfn6 {:bounds [[-15 -3] [15 3]] :initial [-13.217532309719662 0.9280007414397415]})
 
-(time (scan-and-optimize :powell #(m/cos %) {:bounds [-3 3] :initial -2 :N 100 :n 0.2 :goal :maximize}))
+    (time (scan-and-optimize :powell #(m/cos %) {:bounds [-3 3] :initial -2 :N 100 :n 0.2 :goal :maximize})))
 
 
 ;; => [1.9210981963566007 -5.751481824637489 0.3304425131054902]

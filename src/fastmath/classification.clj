@@ -82,10 +82,9 @@
   (:refer-clojure :exclude [test])
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
-            [fastmath.rbf :as rbf]
+            [fastmath.kernel :as k]
             ;; [clj-boost.core :as xgboost]
-            [fastmath.stats :as stat]
-            [fastmath.kernel.mercer :as mercer])
+            [fastmath.stats :as stat])
   (:import [clojure.lang IFn]
            [smile.classification Classifier SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
             LDA$Trainer DecisionTree$Trainer DecisionTree$SplitRule GradientTreeBoost$Trainer
@@ -93,10 +92,7 @@
             NeuralNetwork$Trainer NeuralNetwork$ErrorFunction NeuralNetwork$ActivationFunction
             RBFNetwork$Trainer RDA$Trainer RandomForest$Trainer SVM$Trainer SVM$Multiclass]
            [smile.math.distance EuclideanDistance]
-           [smile.math.rbf RadialBasisFunction]
-           [smile.math.kernel MercerKernel]
            [smile.validation Bootstrap Validation]
-
            [de.bwaldvogel.liblinear Problem Feature FeatureNode Linear Model Parameter SolverType]))
 
 (set! *warn-on-reflection* false)
@@ -325,7 +321,7 @@
 
 (wrap-classifier :smile knn {:keys [distance k]
                              :or {distance (EuclideanDistance.) k 1}}
-  (KNN$Trainer. distance k))
+                 (KNN$Trainer. distance k))
 
 (wrap-classifier :smile ada-boost {:keys [number-of-trees max-nodes]
                                    :or {number-of-trees 500 max-nodes 2}}
@@ -422,12 +418,12 @@
 
 (wrap-classifier :smile rbf-network {:keys [distance rbf number-of-basis normalize?]
                                      :or {distance dist/euclidean number-of-basis 10 normalize? false}}
-  (let [cl (RBFNetwork$Trainer. distance)]
-    (-> (cond
-          (nil? rbf) cl
-          (sequential? rbf) (.setRBF cl (into-array RadialBasisFunction rbf))
-          :else (.setRBF cl rbf number-of-basis))
-        (.setNormalized normalize?))))
+                 (let [cl (RBFNetwork$Trainer. distance)]
+                   (-> (cond
+                         (nil? rbf) cl
+                         (sequential? rbf) (.setRBF cl (into-array smile.math.rbf.RadialBasisFunction (map k/smile-rbf rbf)))
+                         :else (.setRBF cl (k/smile-rbf rbf) number-of-basis))
+                       (.setNormalized normalize?))))
 
 (wrap-classifier :smile rda {:keys [alpha priori tolerance]
                              :or {alpha 0.9 tolerance 1.0e-4}}
@@ -452,18 +448,19 @@
 
 (def ^{:doc "List of multiclass strategies for [[svm]]"} multiclass-strategies-list (keys multiclass-strategies))
 
-(wrap-classifier :smile svm {:keys [^MercerKernel kernel ^double c-or-cp ^double cn strategy-for-multiclass class-weights tolerance ^int epochs]
-                             :or {kernel (mercer/kernel :linear) c-or-cp 1.0 cn 1.0 strategy-for-multiclass :one-vs-one tolerance 1.0e-3 epochs 2}}
-  (let [cn (or cn c-or-cp)
-        classes-no (count (distinct y))
-        ^SVM$Multiclass ms (or (multiclass-strategies strategy-for-multiclass) SVM$Multiclass/ONE_VS_ONE)
-        t (if (== 2 classes-no)
-            (SVM$Trainer. kernel c-or-cp cn)
-            (if class-weights
-              (SVM$Trainer. kernel c-or-cp (double-array class-weights) ms)
-              (SVM$Trainer. kernel c-or-cp classes-no ms)))]
-    (-> (.setTolerance t tolerance)
-        (.setNumEpochs epochs))))
+(wrap-classifier :smile svm {:keys [kernel ^double c-or-cp ^double cn strategy-for-multiclass class-weights tolerance ^int epochs]
+                             :or {kernel (k/kernel :linear) c-or-cp 1.0 cn 1.0 strategy-for-multiclass :one-vs-one tolerance 1.0e-3 epochs 2}}
+                 (let [kernel (k/smile-mercer kernel)
+                       cn (or cn c-or-cp)
+                       classes-no (count (distinct y))
+                       ^SVM$Multiclass ms (or (multiclass-strategies strategy-for-multiclass) SVM$Multiclass/ONE_VS_ONE)
+                       t (if (== 2 classes-no)
+                           (SVM$Trainer. kernel c-or-cp cn)
+                           (if class-weights
+                             (SVM$Trainer. kernel c-or-cp (double-array class-weights) ms)
+                             (SVM$Trainer. kernel c-or-cp classes-no ms)))]
+                   (-> (.setTolerance t tolerance)
+                       (.setNumEpochs epochs))))
 
 (def ^:private liblinear-solvers {:l2r-lr SolverType/L2R_LR
                                   :l2r-l2loss-svc-dual SolverType/L2R_L2LOSS_SVC_DUAL

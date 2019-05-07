@@ -281,8 +281,8 @@ See [[brand]].")
 
 ;; ### Default RNG
 
-(def ^{:doc "Default RNG - JDK"
-       :metadoc/categories #{:rand}}
+(defonce ^{:doc "Default RNG - JDK"
+           :metadoc/categories #{:rand}}
   default-rng (rng :jdk))
 
 (def ^{:doc "Random float number with Mersenne Twister RNG."

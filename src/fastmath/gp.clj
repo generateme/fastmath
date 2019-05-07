@@ -2,7 +2,7 @@
   "Gaussian Process
 
   Based on: https://www.cs.ubc.ca/~nando/540-2013/lectures/gp.py"
-  (:require [fastmath.kernel.mercer :as k]
+  (:require [fastmath.kernel :as k]
             [fastmath.core :as m]
             [fastmath.stats :as stats]
             [fastmath.random :as r])
