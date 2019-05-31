@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.3.0-SNAPSHOT"
+(defproject generateme/fastmath "1.4.0-SNAPSHOT"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -13,7 +13,7 @@
                  [de.sciss/jwave "1.0.3"]
                  [net.mikera/core.matrix "0.62.0"]
                  ;; [clj-boost "0.0.4"]
-                 [de.bwaldvogel/liblinear "2.21"]]
+                 [de.bwaldvogel/liblinear "2.30"]]
   :exclusions [[org.slf4j/slf4j-simple]]
   :resource-path "resources/"
   :java-source-paths ["src"]

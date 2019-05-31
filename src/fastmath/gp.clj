@@ -5,7 +5,8 @@
   (:require [fastmath.kernel :as k]
             [fastmath.core :as m]
             [fastmath.stats :as stats]
-            [fastmath.random :as r])
+            [fastmath.random :as r]
+            [fastmath.vector :as v])
   (:import [org.apache.commons.math3.linear MatrixUtils CholeskyDecomposition Array2DRowRealMatrix ArrayRealVector RealMatrix]))
 
 (set! *warn-on-reflection* true)
@@ -24,11 +25,12 @@
 
 (defn- ensure-vectors
   [xs]
-  (if (sequential? (first xs)) xs (map vector xs)))
+  (if (sequential? (first xs)) xs (mapv vector xs)))
 
 (defprotocol GPProto
   (prior-samples [gp X] "Draw samples from prior for given X")
-  (predict [gp X] [gp X stddev?] "Predict means and stddev for given vector X")
+  (predict-all [gp X] [gp X stddev?] "Predict means and stddev for given vector of X")
+  (predict [gp X] [gp X stddev?] "Predict means and stddev for given x value")
   (posterior-samples [gp X] [gp X stddev?] "Draw samples from posterior for given X"))
 
 (defn gaussian-process
@@ -59,8 +61,8 @@
                ^RealMatrix Lp (.getL ^CholeskyDecomposition (CholeskyDecomposition. (.add cov diag)))]
            (seq (.operate Lp (m/seq->double-array (repeatedly (count xs) r/grand))))))
        
-       (predict [gp xtest] (predict gp xtest false))
-       (predict [_ xtest stddev?]
+       (predict-all [gp xtest] (predict-all gp xtest false))
+       (predict-all [_ xtest stddev?]
          (let [xtest (ensure-vectors xtest)
                ^RealMatrix cov (kernel-cov-matrix kernel kscale xs xtest)
                cov-v (mapv #(.getColumnVector cov %) (range (.getColumnDimension cov)))]
@@ -74,6 +76,17 @@
                                    (range (count xtest))
                                    (map #(.dotProduct ^ArrayRealVector % ^ArrayRealVector %) cov-v))]
                    [mu stddev]))))))
+       
+       (predict [gp xval] (predict gp xval false))
+       (predict [_ xval stddev?]
+         (let [xtest (if (sequential? xval) xval [xval])
+               cov-vector (double-array (map #(* kscale ^double (kernel xtest %)) xs))]
+           (let [mu (+ ymean ^double (v/dot cov-vector (.getDataRef ^ArrayRealVector alpha)))]
+             (if-not stddev?
+               mu
+               (let [cov-v (MatrixUtils/createRealVector cov-vector)]
+                 (MatrixUtils/solveLowerTriangularSystem L cov-v)
+                 [mu (m/safe-sqrt (- 1.0 (.dotProduct cov-v cov-v)))])))))
 
        (posterior-samples [gp xtest] (posterior-samples gp xtest false))
        (posterior-samples [_ xtest stddev?]
@@ -99,3 +112,8 @@
               gp (gaussian-process (repeatedly 10 (partial r/drand -10 10))
                                    (repeatedly 10 (partial r/grand 0.2)))]
           (posterior-samples gp (map #(m/norm % 0 (dec N) -5.0 5.0) (range N)) true)))
+
+;; bayesian optimization with GP
+
+;;
+
