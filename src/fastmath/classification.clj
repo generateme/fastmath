@@ -42,7 +42,7 @@
   * `:k` - number of folds (default: 10)
   * `:type` - type of cross validation, one of `:cv` (default), `:loocv` and `:bootstrap`
   
-  ### XGBoost
+  ### ~XGBoost~
 
   **TURNED OFF**
   
@@ -83,8 +83,7 @@
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
             [fastmath.kernel :as k]
-            ;; [clj-boost.core :as xgboost]
-            [fastmath.stats :as stat])
+            [fastmath.stats :as stats])
   (:import [clojure.lang IFn]
            [smile.classification Classifier SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
             LDA$Trainer DecisionTree$Trainer DecisionTree$SplitRule GradientTreeBoost$Trainer
@@ -100,13 +99,12 @@
 (defprotocol ClassificationProto
   (backend [_] "Return name of backend library")
   (^{:metadoc/categories #{:cl}} model-native [_] "Return trained model as a backend class.")
+  (^{:metadoc/categories #{:dt}} data-native [_] [_ native?] "Return data transformed for backend library.")
   (^{:metadoc/categories #{:cl}} predict [_ v] [_ v posteriori?] "Predict class for given vector. With posteriori probabilities when required.")
   (^{:metadoc/categories #{:cl}} predict-all [_ vs] [_ v posteriori?] "Predict classes for given sequence of vectors. With posteriori probabilities when required.")
-  (^{:metadoc/categories #{:cl}} train [_ x y] [_ x y tx ty] "Train another set of data for given classifier. Test data are optional.")
-  (^{:metadoc/categories #{:dt}} data [_] [_ native?] "Return data. Transformed data for backend libarary are returned when `native?` is true.")
+  (^{:metadoc/categories #{:cl}} train [_] [_ x y] "Train another set of data for given classifier or force training already given data.")
   (^{:metadoc/categories #{:dt}} labels [_]  "Return labels.")
-  (^{:metadoc/categories #{:vd}} test [_] [_ tx ty] "Validate data using given model and provided test data. Same as [[validate]].")
-  (^{:metadoc/categories #{:vd}} cv-native [_] [_ params] "Call native implementation of cross-validation"))
+  (^{:metadoc/categories #{:vd}} cv [_] [_ params] "Cross-validation"))
 
 (defn- labels-converters
   "Convert y into label->int and int->label functions."
@@ -119,11 +117,16 @@
   [fs]
   (into-array Feature (map-indexed (fn [id v] (FeatureNode. (inc id) v)) fs)))
 
+(defn- ensure-vectors
+  [xs]
+  (if (sequential? (first xs)) xs (mapv vector xs)))
+
 (defmulti ^:private prepare-data (fn [k & _] k))
-(defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array x) (int-array (mapv labels->int y))])
-#_(defmethod prepare-data :xgboost [_ x y labels->int] (xgboost/dmatrix x (mapv labels->int y)))
+(defmethod prepare-data :smile [_ x y labels->int] [(m/seq->double-double-array (ensure-vectors x))
+                                                    (int-array (mapv labels->int y))])
 (defmethod prepare-data :liblinear [_ x y bias labels->int]
-  (let [x (if-not (pos? bias) x
+  (let [x (ensure-vectors x)
+        x (if-not (pos? bias) x
                   (map #(conj (vec %) bias) x))
         fa (into-array (map liblinear-to-features x))
         problem (Problem.)]
@@ -134,39 +137,15 @@
     (set! (.-bias problem) bias)
     problem))
 
-(declare validate)
-(declare accuracy)
-
 (defmulti ^:private classifier (fn [k & _] k))
 
-(comment defrecord LibLinearClassifier [x y tx ty bias model labels labels->int data params backend]
-         IFn
-         (invoke [_ v] (labels (int (Linear/predict model (liblinear-to-features v)))))
-         (invoke [c v posteriori?] (let [buff (double-array (count labels))]
-                                     (if posteriori?
-                                       [(labels (int (Linear/predictProbability model (liblinear-to-features v) buff))) (vec buff)]
-                                       (c v))))
-         ClassificationProto
-         (predict [c v] (c v))
-         (predict [c v posteriori?] (c v posteriori?))
-         (predict-all [_ vs] (map (comp labels int #(Linear/predict model (liblinear-to-features %))) vs))
-         (predict-all [c vs posteriori?] (if posteriori?
-                                           (map #(c % true) vs)
-                                           (predict-all c vs)))
-         (cv-native [c] (cv-native c 10))
-         (cv-native [_ k]
-                    (let [target (double-array (count x))]
-                      (Linear/crossValidation data params (or k 10) target)
-                      {:accuracy (accuracy y (map (comp labels int) target))}))
-         (train [c x y] (train c x y nil nil))
-         (train [_ x y tx ty] (classifier :liblinear params x y tx ty bias)))
+(declare accuracy)
 
 (defmethod classifier :liblinear
-  [_ params x y tx ty label-map bias]
+  [_ params x y bias]
   (let [[labels labels->int] (labels-converters y)
         data (prepare-data :liblinear x y (or bias -1) labels->int)
         ^Model model (delay (Linear/train data params))]
-    ;; (->LibLinearClassifier x y tx ty bias model labels labels->int data params :liblinear)
     (reify
       IFn
       (invoke [_ v] (labels (int (Linear/predict @model (liblinear-to-features v)))))
@@ -178,6 +157,7 @@
       ClassificationProto
       (backend [_] :liblinear)
       (model-native [_] @model)
+      (data-native [_] [data labels])
 
       (predict [c v] (c v))
       (predict [c v posteriori?] (c v posteriori?))
@@ -186,87 +166,20 @@
                                         (map #(c % true) vs)
                                         (predict-all c vs)))
 
-      (cv-native [c] (cv-native c 10))
-      (cv-native [_ k]
+      (cv [c] (cv c 10))
+      (cv [_ k]
         (let [target (double-array (count x))]
           (Linear/crossValidation data params (or k 10) target)
           {:accuracy (accuracy y (map (comp labels int) target))}))
 
-      (train [c x y] (train c x y nil nil))
-      (train [_ x y tx ty] (classifier :liblinear params x y tx ty label-map bias))
-      (test [c] (when (and tx ty) (validate c tx ty)))
-      (test [c tx ty] (validate c tx ty))
-      
-      (data [_] [x y])
-      (data [_ native?] (if native? data [x y]))
+      (train [c] (do (deref model) c))
+      (train [_ x y] (train (classifier :liblinear params x y bias)))
       (labels [_] labels))))
 
-#_(defmethod classifier :xgboost
-    ([_ booster-params x y tx ty label-map] (classifier :xgboost booster-params x y tx ty label-map nil))
-    ([_ booster-params x y tx ty label-map booster]
-     (let [[labels labels->int] (labels-converters y)
-           data (prepare-data :xgboost x y labels->int)
-           test-data (when tx (prepare-data :xgboost tx ty labels->int))
-           binary? (= "binary:logistic" (get-in booster-params [:params :objective]))
-
-           ;; to clean-up
-           booster-params (if-not (contains? booster-params :rounds) (assoc booster-params :rounds 10) booster-params)
-           booster-params (if-not (contains? booster-params :early-stopping) (assoc booster-params :early-stopping 20) booster-params)
-           booster-params (if-not binary?
-                            (-> booster-params
-                                (assoc-in [:params :num_class] (count labels))
-                                (assoc-in [:params :objective] "multi:softprob"))
-                            booster-params)
-           
-           booster-params (-> (dissoc booster-params :booster :watches)
-                              (assoc-in [:watches :train] data))
-           
-           booster-params (if (and tx ty) (assoc-in booster-params [:watches :test] test-data) booster-params)
-           booster-params (if booster (assoc booster-params :booster booster) booster-params)
-
-           model (delay (xgboost/fit data booster-params))
-           res-range (range (count labels))
-           prob->label (if binary?
-                         #(if (< (first %) 0.5) (labels 0) (labels 1))
-                         #(labels (apply max-key (vec %) res-range)))
-           prob-map (if binary?
-                      #(vector (- 1.0 %) %)
-                      identity)]
-       (reify
-         IFn
-         (invoke [_ v]  (prob->label (xgboost/predict @model (xgboost/dmatrix [v]))))
-         (invoke [c v posteriori?] (if posteriori? (let [r (-> (xgboost/predict @model (xgboost/dmatrix [v])))]
-                                                     [(prob->label r) (map prob-map r)]) (c v)))
-
-         ClassificationProto
-         (backend [_] :xgboost)
-         (model-native [_] @model)
-         
-         (predict [c v] (c v))
-         (predict [c v posteriori?] (c v posteriori?))
-         (predict-all [_ vs] (map prob->label (seq (.predict ^ml.dmlc.xgboost4j.java.Booster @model (xgboost/dmatrix vs)))))
-         (predict-all [c vs posteriori?] (if posteriori?
-                                           (mapv (comp #(vector (prob->label %) (map prob-map %)) seq)
-                                                 (seq (.predict ^ml.dmlc.xgboost4j.java.Booster @model (xgboost/dmatrix vs))))
-                                           (predict-all c vs)))
-         (cv-native [c] (cv-native c {}))
-         (cv-native [_ {:keys [nfold rounds metrics]
-                        :or {nfold 10 rounds 3 metrics (if binary? ["error", "logloss"] ["merror", "mlogloss"])}}]
-           (xgboost/cross-validation data {:nfold nfold :rounds rounds :metrics metrics :params (booster-params :params)}))
-         
-         (train [c x y] (train c x y nil nil))
-         (train [_ x y tx ty] (classifier :xgboost booster-params x y tx ty label-map @model))
-         (test [c] (when (and tx ty) (validate c tx ty)))
-         (test [c tx ty] (validate c tx ty))
-         
-         (data [_] [x y])
-         (data [_ native?] (if native? data [x y]))
-         (labels [_] labels)))))
-
 (defmethod classifier :smile
-  [_ ^ClassifierTrainer trainer x y tx ty label-map]
+  [_ ^ClassifierTrainer trainer x y]
   (let [[labels labels->int] (labels-converters y)
-        [data int-labels] (prepare-data :smile x y labels->int)
+        [data int-labels :as internal-data] (prepare-data :smile x y labels->int)
         classifier-raw (delay (.train trainer data int-labels))
         predict-raw #(.predict ^Classifier @classifier-raw (m/seq->double-array %))
         predict-fn (comp labels predict-raw)
@@ -283,45 +196,38 @@
       ClassificationProto
       (backend [_] :smile)
       (model-native [_] @classifier-raw)
+      (data-native [_] internal-data)
       
       (predict [_ v] (predict-fn v))
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
       (predict-all [_ vs] (map predict-fn vs))
       (predict-all [_ vs posteriori?] (if posteriori? (map predict-fn-posteriori vs) (map predict-fn vs)))
-      (cv-native [c] (cv-native c {}))
-      (cv-native [_ {:keys [^int k type] :or {k 10 type :cv}}]
+      (cv [c] (cv c {}))
+      (cv [_ {:keys [^int k type] :or {k 10 type :cv}}]
         (case type
           :cv {:accuracy (Validation/cv k trainer data int-labels)}
           :loocv {:accuracy (Validation/loocv trainer data int-labels)}
           :bootstrap (let [b (Validation/bootstrap k trainer data int-labels)]
-                       {:accuracy (stat/mean b) :bootstrap (vec b)})))
+                       {:accuracy {:mean (stats/mean b)
+                                   :stddev (stats/stddev b)}})))
       
-      (train [c x y] (train c x y nil nil))
-      (train [_ x y tx ty] (classifier :smile trainer x y tx ty label-map))
-      (test [c] (when (and tx ty) (validate c tx ty)))
-      (test [c tx ty] (validate c tx ty))
-      
-      (data [_] [x y])
-      (data [_ native?] (if native? [data int-labels] [x y]))
+      (train [c] (do (deref classifier-raw) c))
+      (train [_ x y] (train (classifier :smile trainer x y)))
       (labels [_] labels))))
 
 (defmacro ^:private wrap-classifier
   {:style/indent 3}
   [typ clname parameter instance & r]
-  (let [[x y tx ty params all] (map symbol ["x" "y" "tx" "ty" "params" "all"])
-        doc (str clname " classifier. Backend library: " (name typ))
-        parameter (if (map? parameter) (assoc parameter :as all) parameter)
-        label-map-getter (if (map? parameter) `(:label-map ~all) `(:label-map ~parameter))]
+  (let [[x y] (map symbol ["x" "y"])
+        doc (str clname " classifier. Backend library: " (name typ))]
     `(defn ~clname ~doc
        {:metadoc/categories #{:cl}}
-       ([~x ~y] (~clname {} ~x ~y nil nil))
-       ([~params ~x ~y] (~clname ~params ~x ~y nil nil))
-       ([~x ~y ~tx ~ty] (~clname {} ~x ~y ~tx ~ty))
-       ([~parameter ~x ~y ~tx ~ty] (classifier ~typ ~instance ~x ~y ~tx ~ty (or ~label-map-getter identity) ~@r)))))
+       ([~x ~y] (~clname {} ~x ~y))
+       ([~parameter ~x ~y] (classifier ~typ ~instance ~x ~y ~@r)))))
 
 (wrap-classifier :smile knn {:keys [distance k]
                              :or {distance (EuclideanDistance.) k 1}}
-                 (KNN$Trainer. distance k))
+  (KNN$Trainer. distance k))
 
 (wrap-classifier :smile ada-boost {:keys [number-of-trees max-nodes]
                                    :or {number-of-trees 500 max-nodes 2}}
@@ -347,9 +253,9 @@
       (.setPriori (m/seq->double-array priori))
       (.setTolerance tolerance)))
 
-(def split-rules {:gini DecisionTree$SplitRule/GINI
-                  :entropy DecisionTree$SplitRule/ENTROPY
-                  :classification-error DecisionTree$SplitRule/CLASSIFICATION_ERROR})
+(def ^:private split-rules {:gini DecisionTree$SplitRule/GINI
+                            :entropy DecisionTree$SplitRule/ENTROPY
+                            :classification-error DecisionTree$SplitRule/CLASSIFICATION_ERROR})
 
 (def ^{:doc "List of split rules for [[decision tree]] and [[random-forest]]"} split-rules-list (keys split-rules))
 
@@ -382,7 +288,7 @@
 (wrap-classifier :smile naive-bayes {:keys [model priori sigma]
                                      :or {model :bernoulli sigma 1.0}}
   (let [classes (count (distinct y))
-        independent-variables (count (first x))
+        independent-variables (if (sequential? (first x)) (count (first x)) 1)
         model (or (bayes-models model) NaiveBayes$Model/BERNOULLI)]
     (-> (NaiveBayes$Trainer. model classes independent-variables)
         (.setSmooth sigma)
@@ -402,7 +308,9 @@
 (wrap-classifier :smile neural-net
     {:keys [error-function activation-function layers learning-rate momentum weight-decay number-of-epochs]
      :or {error-function :cross-entropy learning-rate 0.1 momentum 0.0 weight-decay 0.0 number-of-epochs 25}}
-  (let [layers (into-array Integer/TYPE (cons (count (first x)) (conj (vec layers) (count (distinct y)))))
+  (let [fl (if (sequential? (first x)) (count (first x)) 1) ;; first layer - input
+        mid (if (seq layers) (vec layers) [(inc fl)]) ;; mid layer, if empty, insert artificial
+        layers (into-array Integer/TYPE (cons fl (conj mid (count (distinct y)))))
         ef (or (error-functions error-function) NeuralNetwork$ErrorFunction/CROSS_ENTROPY)]
     (-> (if-not activation-function
           (NeuralNetwork$Trainer. ef layers)
@@ -416,14 +324,18 @@
         (.setWeightDecay weight-decay)
         (.setNumEpochs number-of-epochs))))
 
+(let [cl (neural-net (range 0 100 2) (concat (repeat 5 :b) (repeat 10 :a) (repeat 10 :c) (repeat 25 :b)))]
+  (cv cl))
+
+
 (wrap-classifier :smile rbf-network {:keys [distance rbf number-of-basis normalize?]
                                      :or {distance dist/euclidean number-of-basis 10 normalize? false}}
-                 (let [cl (RBFNetwork$Trainer. distance)]
-                   (-> (cond
-                         (nil? rbf) cl
-                         (sequential? rbf) (.setRBF cl (into-array smile.math.rbf.RadialBasisFunction (map k/smile-rbf rbf)))
-                         :else (.setRBF cl (k/smile-rbf rbf) number-of-basis))
-                       (.setNormalized normalize?))))
+  (let [cl (RBFNetwork$Trainer. distance)]
+    (-> (cond
+          (nil? rbf) cl
+          (sequential? rbf) (.setRBF cl (into-array smile.math.rbf.RadialBasisFunction (map k/smile-rbf rbf)))
+          :else (.setRBF cl (k/smile-rbf rbf) number-of-basis))
+        (.setNormalized normalize?))))
 
 (wrap-classifier :smile rda {:keys [alpha priori tolerance]
                              :or {alpha 0.9 tolerance 1.0e-4}}
@@ -433,13 +345,13 @@
 
 (wrap-classifier :smile random-forest {:keys [number-of-trees split-rule mtry node-size max-nodes subsample]
                                        :or {number-of-trees 500 split-rule :gini node-size 1 max-nodes 100 subsample 1.0}}
-                 (let [mtry (or mtry (m/floor (m/sqrt (count (first x)))))]
-                   (-> (RandomForest$Trainer. number-of-trees)
-                       (.setSplitRule (or (split-rules split-rule) DecisionTree$SplitRule/GINI))
-                       (.setNumRandomFeatures mtry)
-                       (.setMaxNodes max-nodes)
-                       (.setSamplingRates subsample)
-                       (.setNodeSize node-size))))
+  (let [mtry (or mtry (if (sequential? (first x)) (m/floor (m/sqrt (count (first x)))) 1))]
+    (-> (RandomForest$Trainer. number-of-trees)
+        (.setSplitRule (or (split-rules split-rule) DecisionTree$SplitRule/GINI))
+        (.setNumRandomFeatures mtry)
+        (.setMaxNodes max-nodes)
+        (.setSamplingRates subsample)
+        (.setNodeSize node-size))))
 
 #_(wrap-classifier :xgboost xgboost xgboost-params xgboost-params)
 
@@ -471,6 +383,10 @@
                                   :l1r-lr SolverType/L1R_LR
                                   :l2r-lr-dual SolverType/L2R_LR_DUAL})
 
+#_(let [cl (liblinear {:solver :mcsvm-cs} (range 0 100 2) (concat (repeat 5 :b) (repeat 10 :a) (repeat 10 :c) (repeat 25 :b)))]
+    (predict-all cl (map vector (range 20))))
+
+
 (def ^{:doc "List of [[liblinear]] solvers."} liblinear-solver-list (keys liblinear-solvers))
 
 (wrap-classifier :liblinear liblinear {:keys [solver bias ^double C ^double eps ^int max-iters ^double p weights]
@@ -498,8 +414,7 @@
          invalid (->> (mapv vector tx ty pred)
                       (filter #(apply not= (rest %))))
          invalid-cnt (count invalid)]
-     {:truth ty
-      :prediction pred
+     {:prediction pred
       :invalid {:count invalid-cnt
                 :data (map first invalid)
                 :prediction (map #(nth % 2) invalid)
