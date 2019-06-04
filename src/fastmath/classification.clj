@@ -6,16 +6,16 @@
   * features - sequence of sequences of numbers
   * categories - sequence of any values
 
-  When needed you can split input data into training data and test data. Test data are optional.
-  
   ### Workflow
   
-  * create and train by calling classifier with parameters, train data and optional test data.
-  * validate data by calling [[test]] or [[validate]].
-  * cross validate [[cv]], [[loocv]], [[bootstrap]]
+  * create classifier with parameters
+  * cross validate [[cv]]
   * repeat or [[predict]]
+  * to validate model against test data, call [[validate]]
 
   Classifier parameters are map of values specific for given algorithm. Check documentation in backend library to find documentation. Classifier can be retrained using [[train]]. New instance will be created.
+
+  Classifier training is delayed to the actual use. To force training, call [[train]] or [[predict]].
   
   ### Implementation notes
 
@@ -24,7 +24,9 @@
 
   ### Cross validation
 
-  Every classifier exposes it's own cross validation method with configuratin [[cv-native]]. Additionally three Clojure level methods are defined: [[cv]], [[loocv]] and [[bootstrap]].
+  Every classifier exposes it's own cross validation method with configuration [[cv]].
+
+  ~~Additionally three Clojure level methods are defined: [[cv]], [[loocv]] and [[bootstrap]].~~
   
   ### SMILE
 
@@ -41,31 +43,6 @@
 
   * `:k` - number of folds (default: 10)
   * `:type` - type of cross validation, one of `:cv` (default), `:loocv` and `:bootstrap`
-  
-  ### ~XGBoost~
-
-  **TURNED OFF**
-  
-  XGBoost is backed by [clj-boost](https://gitlab.com/alanmarazzi/clj-boost/tree/master).
-
-  For:
-
-  * multiclass classification use `multi:softprob` objective (default).
-  * binary classification use `binary-logistic` objective.
-
-  See [documentation](https://xgboost.readthedocs.io/en/latest/parameter.html#parameters-for-tree-booster) for parameters.
-
-  By default `:early-stopping` is set to `20` and `:round` is set to `10`.
-
-  Native cross validation is a map with keys
-
-  * `:nfold` - number of folds (default: 10)
-  * `:rounds` - number of boosting iterations (default: 3)
-  * `:metrics` - metrics to evaluate goodness (default: `[\"merror\", \"mlogloss\"]` or `[\"error\", \"logloss\"]`)
-
-  Note: `\"(m)error\" = 1.0 - accuracy`
-  
-  see [more](https://gitlab.com/alanmarazzi/clj-boost/tree/master)
   
   ### Liblinear
 
@@ -95,6 +72,8 @@
            [de.bwaldvogel.liblinear Problem Feature FeatureNode Linear Model Parameter SolverType]))
 
 (set! *warn-on-reflection* false)
+(set! *unchecked-math* :warn-on-boxed)
+(m/use-primitive-operators)
 
 (defprotocol ClassificationProto
   (backend [_] "Return name of backend library")
@@ -115,7 +94,7 @@
 
 (defn- liblinear-to-features
   [fs]
-  (into-array Feature (map-indexed (fn [id v] (FeatureNode. (inc id) v)) fs)))
+  (into-array Feature (map-indexed (fn [^long id v] (FeatureNode. (inc id) v)) fs)))
 
 (defn- ensure-vectors
   [xs]
@@ -126,7 +105,7 @@
                                                     (int-array (mapv labels->int y))])
 (defmethod prepare-data :liblinear [_ x y bias labels->int]
   (let [x (ensure-vectors x)
-        x (if-not (pos? bias) x
+        x (if-not (pos? (double bias)) x
                   (map #(conj (vec %) bias) x))
         fa (into-array (map liblinear-to-features x))
         problem (Problem.)]
@@ -139,7 +118,11 @@
 
 (defmulti ^:private classifier (fn [k & _] k))
 
-(declare accuracy)
+(defn accuracy
+  "Calculate accuracy for real and predicted sequences."
+  {:metadoc/categories #{:vd}}
+  [t p] (/ (count (filter (partial apply =) (mapv vector t p)))
+           (double (count t))))
 
 (defmethod classifier :liblinear
   [_ params x y bias]
@@ -183,10 +166,10 @@
         classifier-raw (delay (.train trainer data int-labels))
         predict-raw #(.predict ^Classifier @classifier-raw (m/seq->double-array %))
         predict-fn (comp labels predict-raw)
-        predict-fn-posteriori (if (instance? SoftClassifier classifier-raw)
-                                #(let [posteriori (double-array (count labels))]
-                                   [(labels (.predict ^SoftClassifier @classifier-raw (m/seq->double-array %) posteriori)) (seq posteriori)])
-                                predict-fn)]
+        predict-fn-posteriori #(let [posteriori (double-array (count labels))]
+                                 [(labels (.predict ^SoftClassifier @classifier-raw (m/seq->double-array %) posteriori))
+                                  (zipmap labels posteriori)])]
+    
     (reify
       
       IFn
@@ -235,7 +218,7 @@
       (.setNumTrees number-of-trees)
       (.setMaxNodes max-nodes)))
 
-(wrap-classifier :smile fld {:keys [dimensionality tolerance]
+(wrap-classifier :smile fld {:keys [^long dimensionality tolerance]
                              :or {dimensionality -1 tolerance 1.0e-4}}
   (let [^FLD$Trainer t (FLD$Trainer.)]
     (-> (if-not (pos? dimensionality) t (.setDimension t dimensionality))
@@ -259,7 +242,7 @@
 
 (def ^{:doc "List of split rules for [[decision tree]] and [[random-forest]]"} split-rules-list (keys split-rules))
 
-(wrap-classifier :smile decision-tree {:keys [max-nodes node-size split-rule]
+(wrap-classifier :smile decision-tree {:keys [max-nodes ^long node-size split-rule]
                                        :or {max-nodes 100 node-size 1 split-rule :gini}}
   (let [t (-> (DecisionTree$Trainer. max-nodes)
               (.setSplitRule (or (split-rules split-rule) DecisionTree$SplitRule/GINI)))]
@@ -308,7 +291,7 @@
 (wrap-classifier :smile neural-net
     {:keys [error-function activation-function layers learning-rate momentum weight-decay number-of-epochs]
      :or {error-function :cross-entropy learning-rate 0.1 momentum 0.0 weight-decay 0.0 number-of-epochs 25}}
-  (let [fl (if (sequential? (first x)) (count (first x)) 1) ;; first layer - input
+  (let [fl (int (if (sequential? (first x)) (count (first x)) 1)) ;; first layer - input
         mid (if (seq layers) (vec layers) [(inc fl)]) ;; mid layer, if empty, insert artificial
         layers (into-array Integer/TYPE (cons fl (conj mid (count (distinct y)))))
         ef (or (error-functions error-function) NeuralNetwork$ErrorFunction/CROSS_ENTROPY)]
@@ -323,10 +306,6 @@
         (.setMomentum momentum)
         (.setWeightDecay weight-decay)
         (.setNumEpochs number-of-epochs))))
-
-(let [cl (neural-net (range 0 100 2) (concat (repeat 5 :b) (repeat 10 :a) (repeat 10 :c) (repeat 25 :b)))]
-  (cv cl))
-
 
 (wrap-classifier :smile rbf-network {:keys [distance rbf number-of-basis normalize?]
                                      :or {distance dist/euclidean number-of-basis 10 normalize? false}}
@@ -383,125 +362,116 @@
                                   :l1r-lr SolverType/L1R_LR
                                   :l2r-lr-dual SolverType/L2R_LR_DUAL})
 
-#_(let [cl (liblinear {:solver :mcsvm-cs} (range 0 100 2) (concat (repeat 5 :b) (repeat 10 :a) (repeat 10 :c) (repeat 25 :b)))]
-    (predict-all cl (map vector (range 20))))
-
-
 (def ^{:doc "List of [[liblinear]] solvers."} liblinear-solver-list (keys liblinear-solvers))
 
 (wrap-classifier :liblinear liblinear {:keys [solver bias ^double C ^double eps ^int max-iters ^double p weights]
                                        :or {solver :l2r-l2loss-svc-dual bias -1 C 1.0 eps 0.01 max-iters 1000 p 0.1}}
-                 (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
-                   (if weights
-                     (do (.setWeight par (double-array weights) (int-array (range (count weights)))) par)
-                     par)) bias)
+  (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
+    (if weights
+      (do (.setWeights par (double-array weights) (int-array (range (count weights)))) par)
+      par)) bias)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; validation metrics
 
-(defn accuracy
-  "Calculate accuracy for real and predicted sequences."
-  {:metadoc/categories #{:vd}}
-  [t p] (double (/ (count (filter (partial apply =) (mapv vector t p)))
-                   (count t))))
-
 (defn validate
   "Validate data against trained classifier. Same as [[test]]."
   {:metadoc/categories #{:vd}}
-  ([model] (test model))
-  ([model tx ty]
-   (let [pred (predict-all model tx)
-         invalid (->> (mapv vector tx ty pred)
-                      (filter #(apply not= (rest %))))
-         invalid-cnt (count invalid)]
-     {:prediction pred
-      :invalid {:count invalid-cnt
-                :data (map first invalid)
-                :prediction (map #(nth % 2) invalid)
-                :truth (map second invalid)}
-      :stats {:accuracy (double (- 1.0 (/ invalid-cnt (count ty))))}})))
+  [model tx ty]
+  (let [pred (predict-all model tx)
+        invalid (->> (mapv vector tx ty pred)
+                     (filter #(apply not= (rest %))))
+        invalid-cnt (count invalid)]
+    {:prediction pred
+     :invalid {:count invalid-cnt
+               :data (map first invalid)
+               :prediction (map #(nth % 2) invalid)
+               :truth (map second invalid)}
+     :stats {:accuracy (double (- 1.0 (/ invalid-cnt (double (count ty)))))}}))
 
-(defn- drop-nth [coll n]
-  (keep-indexed #(if (not= %1 n) %2) coll))
+#_(do
 
-(defn- process-chunks
-  [model predict-fn data labels mapcat? id]
-  (let [tdata (if mapcat? (mapcat identity (drop-nth data id)) (drop-nth data id))
-        tlabels (if mapcat? (mapcat identity (drop-nth labels id)) (drop-nth labels id))
-        value (nth data id)
-        mtrain (train model tdata tlabels)]
-    (predict-fn mtrain value)))
+    (defn- drop-nth [coll n]
+      (keep-indexed #(if (not= %1 n) %2) coll))
 
-(def ^:dynamic ^{:doc "When `true` provide data used to test."}
-  *cross-validation-debug* false)
+    (defn- process-chunks
+      [model predict-fn data labels mapcat? id]
+      (let [tdata (if mapcat? (mapcat identity (drop-nth data id)) (drop-nth data id))
+            tlabels (if mapcat? (mapcat identity (drop-nth labels id)) (drop-nth labels id))
+            value (nth data id)
+            mtrain (train model tdata tlabels)]
+        (predict-fn mtrain value)))
 
-(defn loocv
-  "Leave-one-out cross validation of a classification model."
-  {:metadoc/categories #{:vd}}
-  ([model]
-   (let [[data labels] (data model)
-         plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
-         stats {:accuracy (accuracy labels plabels)}]
-     (if *cross-validation-debug*
-       (merge stats {:data data :truth labels :prediction plabels})
-       stats))))
+    (def ^:dynamic ^{:doc "When `true` provide data used to test."}
+      *cross-validation-debug* false)
 
-(defn- slice [data ids] (mapv (partial nth data) ids))
+    (defn loocv
+      "Leave-one-out cross validation of a classification model."
+      {:metadoc/categories #{:vd}}
+      ([model]
+       (let [[data labels] (data model)
+             plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
+             stats {:accuracy (accuracy labels plabels)}]
+         (if *cross-validation-debug*
+           (merge stats {:data data :truth labels :prediction plabels})
+           stats))))
 
-(defn cv
-  "Cross validation of a classification model.
+    (defn- slice [data ids] (mapv (partial nth data) ids))
+
+    (defn cv
+      "Cross validation of a classification model.
 
   k defaults to 10% of data count."
-  {:metadoc/categories #{:vd}}
-  ([model]
-   (cv model  (* 0.1 (count (first (data model))))))
-  ([model k]
-   (let [[data labels] (data model)
-         dsize (count data)
-         chunksize (max 2 (min (* 0.75 dsize) (/ dsize k)))
-         ids (shuffle (range dsize))
-         sdata (slice data ids)
-         slabels (slice labels ids)
-         psdata (partition-all chunksize sdata)
-         plabels (mapcat (partial process-chunks model predict-all
-                                  psdata (partition-all chunksize slabels) true) (range (count psdata)))
-         stats {:accuracy (accuracy slabels plabels)}]
-     (if *cross-validation-debug*
-       (merge stats {:data sdata :truth slabels :prediction plabels})
-       stats))))
+      {:metadoc/categories #{:vd}}
+      ([model]
+       (cv model  (* 0.1 (count (first (data model))))))
+      ([model k]
+       (let [[data labels] (data model)
+             dsize (count data)
+             chunksize (max 2 (min (* 0.75 dsize) (/ dsize k)))
+             ids (shuffle (range dsize))
+             sdata (slice data ids)
+             slabels (slice labels ids)
+             psdata (partition-all chunksize sdata)
+             plabels (mapcat (partial process-chunks model predict-all
+                                      psdata (partition-all chunksize slabels) true) (range (count psdata)))
+             stats {:accuracy (accuracy slabels plabels)}]
+         (if *cross-validation-debug*
+           (merge stats {:data sdata :truth slabels :prediction plabels})
+           stats))))
 
-(defn bootstrap
-  "Perform k-round bootstrap validation.
+    (defn bootstrap
+      "Perform k-round bootstrap validation.
 
   k defaults to 10
 
   Returns map where `:accuracy` is average accuracy from every round. `:boostrap` contains every round statistics."
-  {:metadoc/categories #{:vd}}
-  ([model] (bootstrap model 10))
-  ([model k]
-   (let [[data labels] (data model)
-         ^Bootstrap bootstrap (Bootstrap. (count data) k)
-         all (for [[train-ids test-ids] (map vector (.-train bootstrap) (.-test bootstrap))
-                   :let [sdata (slice data train-ids)
-                         slabels (slice labels train-ids)
-                         test-labels-true (slice labels test-ids)
-                         test-data (slice data test-ids)
-                         m (train model sdata slabels)
-                         test-labels-pred (predict-all m test-data)
-                         stats {:accuracy (accuracy test-labels-true test-labels-pred)}]]
-               (if *cross-validation-debug*
-                 (merge stats {:data test-data :truth test-labels-true :prediction test-labels-pred})
-                 stats))
-         avg (stat/mean (map :accuracy all))]
-     {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))})))
+      {:metadoc/categories #{:vd}}
+      ([model] (bootstrap model 10))
+      ([model k]
+       (let [[data labels] (data model)
+             ^Bootstrap bootstrap (Bootstrap. (count data) k)
+             all (for [[train-ids test-ids] (map vector (.-train bootstrap) (.-test bootstrap))
+                       :let [sdata (slice data train-ids)
+                             slabels (slice labels train-ids)
+                             test-labels-true (slice labels test-ids)
+                             test-data (slice data test-ids)
+                             m (train model sdata slabels)
+                             test-labels-pred (predict-all m test-data)
+                             stats {:accuracy (accuracy test-labels-true test-labels-pred)}]]
+                   (if *cross-validation-debug*
+                     (merge stats {:data test-data :truth test-labels-true :prediction test-labels-pred})
+                     stats))
+             avg (stat/mean (map :accuracy all))]
+         {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))}))))
 
 (defn confusion-map
-  "Create confusion map where keys are pairs of `[truth-label, prediction-label]`"
+  "Create confusion map where keys are pairs of `[truth-label prediction-label]`"
   {:metadoc/categories #{:vd}}
   [t p]
   (reduce (fn [m tpv]
             (if (contains? m tpv)
-              (update m tpv inc)
+              (update m tpv clojure.core/inc)
               (assoc m tpv 1))) {} (map vector t p)))
 
 

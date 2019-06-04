@@ -87,17 +87,17 @@
        (intrp 5 6)])))
 
 (add-examples rbf
-              (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf (k/rbf :linear) xs ys)) 0 7)
-              (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf (k/rbf :gaussian) xs ys)) 0 7)
-              (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :multiquadratic) xs ys)) 0 7)
-              (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-multiquadratic) xs ys)) 0 7)
-              ;; (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-quadratic) xs ys)) 0 7)
-              (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf (k/rbf :thinplate) xs ys)) 0 7)
-              ;; (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 3) xs ys)) 0 7)
-              ;; (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 4) xs ys)) 0 7)
-              ;; (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wendland) xs ys)) 0 7)
-              ;; (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wu) xs ys)) 0 7)
-              )
+  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf (k/rbf :linear) xs ys)) 0 7)
+  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf (k/rbf :gaussian) xs ys)) 0 7)
+  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :multiquadratic) xs ys)) 0 7)
+  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-multiquadratic) xs ys)) 0 7)
+  ;; (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-quadratic) xs ys)) 0 7)
+  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf (k/rbf :thin-plate) xs ys)) 0 7)
+  ;; (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 3) xs ys)) 0 7)
+  ;; (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 4) xs ys)) 0 7)
+  ;; (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wendland) xs ys)) 0 7)
+  ;; (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wu) xs ys)) 0 7)
+  )
 
 
 (add-examples interpolators-1d-list

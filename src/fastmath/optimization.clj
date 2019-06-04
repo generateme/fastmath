@@ -8,7 +8,8 @@
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
-            [fastmath.gp :as gp]))
+            [fastmath.kernel :as k]
+            [fastmath.regression :as gp]))
 
 ;; TODO
 ;;
@@ -115,7 +116,7 @@
 
 (defn- mid-point
   [bounds]
-  (map (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds))
+  (mapv (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds))
 
 (defn- initial-guess
   [bounds initial ^MultivariateFunctionMappingAdapter mfma]
@@ -124,7 +125,7 @@
                               (mid-point bounds)))]
     (InitialGuess. (if mfma (.boundedToUnbounded mfma guess) guess))))
 
-(defn wrap-initial
+(defn- wrap-initial
   [method bounds initial mfma]
   (if (univariate-set method)
     (search-interval bounds initial)
@@ -215,15 +216,16 @@
     #(> ^double %1 ^double %2)))
 
 (defn- generate-points
-  [method f bounds goal N n]
+  [method f bounds goal N n jitter]
   (let [dim (find-dimensions bounds)
         [lo high inter genf] (if (= method :brent)
                                [(first bounds) (second bounds) m/lerp f]
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
         N (max 10 ^int N)
         n (max 10 (m/floor (* ^double n N)))
-        gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim 0.2)]
-    (->> (take N (if (= method :brent) gen (map vector gen)))
+        gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim jitter)]
+    (->> (take N (if (and (not= method :bernt)
+                          (== dim 1)) (map vector gen) gen))
          (map #(let [p (inter lo high %)]
                  [(genf p) p]))
          (sort-by first (goal-comparator goal))
@@ -237,12 +239,12 @@
 
   * N - number of points to scan per dimension (default: 10, minumum 10)
   * n - fraction of total points N) used for optimization (default: 0.1, minimum 10)"
-  [optimizer goal method f {:keys [bounds ^int N ^double n]
-                            :or {N 10 n 0.1}
+  [optimizer goal method f {:keys [bounds ^int N ^double n ^double jitter]
+                            :or {N 10 n 0.1 jitter 0.25}
                             :as config}]
   (assert (not (nil? bounds)) "Provide search bounds.")
   (let [goal (or goal (get config :goal :minimize))
-        samples (generate-points method f bounds goal N n)
+        samples (generate-points method f bounds goal N n jitter)
         opt (repeatedly (count samples) #(optimizer method f config))
         ^int tk (get config :take 1)
         taker (if (> tk 1) (partial take tk) first)]
@@ -250,7 +252,7 @@
          (sort-by second (goal-comparator goal))
          (taker))))
 
-(def scan-and-optimize (partial scan-and- optimizer nil))
+(def scan-and-optimize (partial scan-and- optimizer))
 (def scan-and-minimize (partial scan-and- minimizer :minimize))
 (def scan-and-maximize (partial scan-and- maximizer :maximize))
 
@@ -282,12 +284,12 @@
     (let [[^double mean ^double stddev] (gp/predict gp x true)]
       (r/cdf r/default-normal (/ (- mean y-max xi) stddev)))))
 
-(defn gen-sequence
+(defn- gen-sequence
   [init-points bounds jitter]
   (let [dims (count bounds)
         int-fn (if (== dims 1)
                  #(vector (m/lerp (ffirst bounds) (second (first bounds)) %))
-                 #(v/einterpolate (map first bounds) (map second bounds) %))]
+                 #(v/einterpolate (mapv first bounds) (mapv second bounds) %))]
     (->> (r/jittered-sequence-generator (if (< dims 5) :r2 :sobol) dims jitter)
          (take init-points)
          (map int-fn))))
@@ -300,57 +302,52 @@
     [pts (map f pts)]))
 
 (defn bayesian-step-fn
-  [f util-fn warm-up bounds gp-params jitter]
-  (let [optimizer (if (== 1 (count bounds)) :cmaes :bobyqa)]
-    (fn [[gp xs ys [cbx cby :as curr]]]
-      (let [wseq (gen-sequence warm-up bounds jitter)
-            bx (first (reduce (fn [[bx by :as b] pt]
-                                (let [curr (util-fn gp pt cby)]
-                                  (if (> curr by)
-                                    [pt curr]
-                                    b))) [cbx Double/MIN_VALUE] wseq))
-            bx (first (opt/maximize optimizer (fn [& r] (util-fn gp r cby)) {:bounds opt-bounds :initial bx}))
-            by (f bx)
-            nxs (conj xs bx)
-            nys (conj ys by)]
-        [(gp/gaussian-process nxs nys gp-params) nxs nys (if (> by cby) [bx by] curr)]))))
+  [f util-fn warm-up bounds gp jitter optimizer]
+  (fn [[curr-gp xs ys [cbx ^double cby :as curr]]]
+    (let [bx (first (scan-and-maximize optimizer (fn [& r] (util-fn curr-gp r cby) ) {:N warm-up :n 0.02 
+                                                                                     :bounds bounds :jitter jitter}))
+          ^double by (f bx)
+          nxs (conj xs bx)
+          nys (conj ys by)]
+      [(gp nxs nys) nxs nys (if (> by cby) [bx by] curr)])))
 
 (defn bayesian-optimization
-  [f {:keys [warm-up init-points bounds utility-function utility-param kernel kernel-scale jitter]
+  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kernel-scale jitter noise optimizer]
       :or {kernel-scale 1.0
-           kernel (kk/kernel :gaussian)
+           kernel (k/kernel :mattern-52)
            warm-up 5000
            init-points 3
-           utility-function :ucb
-           utility-param (if (#{:ei :poi} utility-function) 0.0 2.576)
-           jitter 0.7}}]
-  (let [[xs ys] (initial-values f init-points bounds jitter)
-        curr-max (first (sort-by second > (map vector xs ys)))
-        util-fn (gp/utility-function utility-function utility-param)
-        gp-params {:normalize? true :kernel kernel :kscale kernel-scale}
-        step-fn (bayesian-step-fn f util-fn warm-up bounds gp-params jitter)]
-    (iterate step-fn [(gp/gaussian-process xs ys gp-params) xs ys curr-max])))
-
+           utility-function-type :ucb
+           utility-param (if (#{:ei :poi} utility-function-type) 0.0 2.576)
+           jitter 0.25}}]
+  (let [optimizer (or optimizer (if (== 1 (count bounds)) :cmaes :bobyqa))
+        f (partial apply f)
+        [xs ys] (initial-values f init-points bounds jitter)
+        curr-max (first (sort-by second clojure.core/> (map vector xs ys)))
+        util-fn (utility-function utility-function-type utility-param)
+        gp (partial gp/gaussian-process+ {:normalize? true :kernel kernel :kscale kernel-scale :noise noise})
+        step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer)]
+    (iterate step-fn [(gp xs ys) xs ys curr-max])))
 
 ;; tests
 
-(defn target-1d ^double [^double x]
-  (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4)))
+#_(defn target-1d ^double [^double x]
+    (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4)))
 
-(defn target-2d-schweel
-  ^double [^double x ^double y]
-  (- (* 418.9829 2.0)
-     (+ (* x (m/sin (m/sqrt (m/abs x))))
-        (* y (m/sin (m/sqrt (m/abs y)))))))
+#_(defn target-2d-schweel
+    ^double [^double x ^double y]
+    (- (* 418.9829 2.0)
+       (+ (* x (m/sin (m/sqrt (m/abs x))))
+          (* y (m/sin (m/sqrt (m/abs y)))))))
 
-(let [f (minimizer :nelder-mead target-2d-schweel {:bounds [[-500 500]
-                                                            [-500 500]] :bounded? true :stats? true})]
-  (f (v/generate-vec2 #(r/drand -500 500))))
+#_(let [f (minimizer :nelder-mead target-2d-schweel {:bounds [[-500 500]
+                                                              [-500 500]] :bounded? true :stats? true})]
+    (f (v/generate-vec2 #(r/drand -500 500))))
 
-(scan-and-minimize :cmaes target-2d-schweel {:bounds [[-500 500]
-                                                      [-500 500]] :N 100 :bounded? true})
+#_(scan-and-minimize :cmaes target-2d-schweel {:bounds [[-500 500]
+                                                        [-500 500]] :N 100 :bounded? true})
 
-(scan-and-minimize :nelder-mead target-1d {:bounds [[-0.5 2.5]]})
+#_(scan-and-minimize :nelder-mead target-1d {:bounds [[-0.5 2.5]]})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #_(do

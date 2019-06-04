@@ -13,7 +13,7 @@
                     (drop 1)
                     (map (fn [v]
                            (let [[x y z w nm] (map read-string v)]
-                             [[x y z w] (str nm)])))))
+                             [[x y z w] (keyword (str nm))])))))
 
 (def split
   (let [split-point (* 0.7 (count iris-data))
@@ -33,7 +33,7 @@
 (def test-labels (:test-labels split))
 
 (add-examples accuracy
-  (example (accuracy [1 2 3 4 1 2 3 4] [1 2 4 4 2 4 4 3])))
+  (example (accuracy [1 2 3 4 1 2 3 4] [1 2 4 4 2 4 4 4])))
 
 (add-examples activation-functions-list (example "Names" activation-functions-list))
 
@@ -44,21 +44,17 @@
 (add-examples bayes-models-list (example "Names" bayes-models-list))
 
 (add-examples backend
-              (example-session "Usage"
-                               (backend (knn test-data test-labels))
-                               #_    (backend (xgboost test-data test-labels))
-                               (backend (liblinear test-data test-labels))))
+  (example-session "Usage"
+    (backend (knn test-data test-labels))
+    (backend (liblinear test-data test-labels))))
 
 (add-examples model-native
-              (example-session "Usage"
-                               (model-native (knn train-data train-labels))
-                               #_(model-native (xgboost train-data train-labels))
-                               ))
-
-(add-examples data
   (example-session "Usage"
-    (data (knn [[1 2] [3 2]] [0 1]))
-    (data (knn [[1 2] [3 2]] [0 1]) true)))
+    (model-native (knn train-data train-labels))
+    (model-native (liblinear train-data train-labels))))
+
+(add-examples data-native
+  (example "Usage" (data-native (knn [[1 2] [3 2]] [0 1]))))
 
 (add-examples labels
   (example (labels (knn train-data train-labels))))
@@ -73,18 +69,12 @@
     (predict-all (knn train-data train-labels) (take 3 test-data))
     (predict-all (ada-boost train-data train-labels) (take 3 test-data) true)))
 
-(add-examples test
-  (example "Use data provided during training" (test (knn train-data train-labels test-data test-labels)))
-  (example "No test data provided" (test (knn train-data train-labels)))
-  (example "Test other data" (test (knn train-data train-labels) [[1 2 3 4] [6 4 3 2]] ["setosa" "setosa"])))
-
 (add-examples validate
-  (example "Use data provided during training" (validate (qda train-data train-labels test-data test-labels)))
-  (example "No test data provided" (validate (qda train-data train-labels)))
-  (example "Test other data" (validate (qda train-data train-labels) [[1 2 3 4] [6 4 3 2]] ["virginica" "setosa"])))
+  (example "Use data provided during training" (validate (qda train-data train-labels) test-data test-labels))
+  (example "Test other data" (validate (qda train-data train-labels) [[1 2 3 4] [6 4 3 2]] [:virginica :setosa])))
 
 (add-examples train
-  (example "Train new data" (train (knn train-data train-labels) test-data test-labels)))
+  (example "Train new data" (train (knn train-data train-labels))))
 
 (add-examples decision-tree
   (example (let [cl (decision-tree train-data train-labels)]
@@ -102,32 +92,23 @@
   (example (let [cl (logistic-regression train-data train-labels)]
              (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
-(add-examples loocv
-  (example (loocv (knn train-data train-labels))))
+#_(add-examples loocv
+    (example (loocv (knn train-data train-labels))))
 
 (add-examples cv
   (example-session "Usage"
     (cv (knn train-data train-labels))
-    (cv (knn train-data train-labels) 100)
-    (cv (knn train-data train-labels) 4)
-    (cv (knn train-data train-labels) 1)))
+    (cv (knn test-data test-labels) {:type :loocv})
+    (cv (knn test-data test-labels) {:type :bootstrap})
+    (cv (liblinear test-data test-labels))))
 
-(add-examples cv-native
-              (example-session "Usage"
-                               (cv-native (knn test-data test-labels))
-                               (cv-native (knn test-data test-labels) {:type :loocv})
-                               (cv-native (knn test-data test-labels) {:type :bootstrap})
-                               #_    (cv-native (xgboost test-data test-labels))
-                               (cv-native (liblinear test-data test-labels))))
-
-(add-examples bootstrap
-  (example-session "Usage"
-    (select-keys (bootstrap (knn train-data train-labels)) [:accuracy])
-    (select-keys (bootstrap (fld train-data train-labels)) [:accuracy])
-    (bootstrap (decision-tree train-data train-labels) 4)
-    (select-keys (bootstrap (knn train-data train-labels) 500) [:accuracy])
-    (bootstrap (neural-net {:layers [100 50]} train-data train-labels) 5)))
-
+#_(add-examples bootstrap
+    (example-session "Usage"
+      (select-keys (bootstrap (knn train-data train-labels)) [:accuracy])
+      (select-keys (bootstrap (fld train-data train-labels)) [:accuracy])
+      (bootstrap (decision-tree train-data train-labels) 4)
+      (select-keys (bootstrap (knn train-data train-labels) 500) [:accuracy])
+      (bootstrap (neural-net {:layers [100 50]} train-data train-labels) 5)))
 
 (add-examples gradient-tree-boost
   (example (let [cl (gradient-tree-boost train-data train-labels)]
@@ -152,10 +133,10 @@
              (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples rbf-network
-              (example (let [cl (rbf-network train-data train-labels)]
-                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-              (example "Custom rbfs" (let [cl (rbf-network {:rbf (take 5 (cycle [(k/rbf :linear) (k/rbf :wendland-20)]))} train-data train-labels)]
-                                       (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+  (example (let [cl (rbf-network train-data train-labels)]
+             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+  (example "Custom rbfs" (let [cl (rbf-network {:rbf (take 5 (cycle [(k/rbf :linear) (k/rbf :wendland-20)]))} train-data train-labels)]
+                           (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 
 (add-examples rda
@@ -173,10 +154,10 @@
                                   (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples svm
-              (example (let [cl (svm train-data train-labels)]
-                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-              (example "Different kernel" (let [cl (svm {:kernel (k/kernel :gaussian 1) :epochs 10} train-data train-labels)]
-                                            (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+  (example (let [cl (svm train-data train-labels)]
+             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+  (example "Different kernel" (let [cl (svm {:kernel (k/kernel :gaussian 0.15) :epochs 10} train-data train-labels)]
+                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 #_(add-examples xgboost
                 (example-session "Usage"
@@ -190,14 +171,14 @@
                                    (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 (add-examples liblinear
-              (example (let [cl (liblinear train-data train-labels)]
-                         (select-keys (validate cl test-data test-labels) [:invalid :stats])))
-              (example "Different solver" (let [cl (liblinear {:solver :l1r-lr :C 0.5} train-data train-labels)]
-                                            (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
+  (example (let [cl (liblinear train-data train-labels)]
+             (select-keys (validate cl test-data test-labels) [:invalid :stats])))
+  (example "Different solver" (let [cl (liblinear {:solver :l1r-lr :C 10} train-data train-labels)]
+                                (select-keys (validate cl test-data test-labels) [:invalid :stats]))))
 
 
 (add-examples confusion-map
-  (example (let [cl (knn train-data train-labels)
+  (example (let [cl (liblinear {:solver :l1r-lr :C 10} train-data train-labels)
                  pred (predict-all cl test-data)]
              (confusion-map test-labels pred))))
 
