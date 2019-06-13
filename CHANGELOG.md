@@ -1,7 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [1.3.0]
+## [1.4.0 SNAPSHOT]
+
+### Added
+
+* `optimization` package with various optimization methods
+
+### Changed
+
+* [breaking] `classification` and `regression` refactored
+* [breaking] `kernel-density` moved to `kernel` namespace
+
+## [1.3.0 SNAPSHOT]
 
 ### Added
 

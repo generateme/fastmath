@@ -1,9 +1,12 @@
 (ns fastmath.kernel
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.stats :as stats]
+            [fastmath.random :as r])
   (:import [smile.math.rbf RadialBasisFunction]
            [smile.math.kernel MercerKernel]
+           [smile.stat.distribution KernelDensity]
            [clojure.lang IFn]))
 
 (set! *warn-on-reflection* true)
@@ -561,34 +564,116 @@
 
 (defonce ^:private ^:const ^double gaussian-factor (/ (m/sqrt m/TWO_PI)))
 
-(defn density-uniform [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
-(defn density-gaussian [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
-(defn density-triangular [^double x] (let [absx (m/abs x)]
-                                       (if (<= absx 1.0) (- 1.0 absx) 0.0)))
-(defn density-epanechnikov [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
-(defn density-quartic [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
-(defn density-triweight
-  [^double x]
+(defn- density-uniform ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
+(defn- density-gaussian ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
+(defn- density-triangular ^double [^double x] (let [absx (m/abs x)]
+                                                (if (<= absx 1.0) (- 1.0 absx) 0.0)))
+(defn- density-epanechnikov ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
+(defn- density-quartic ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
+(defn- density-triweight
+  ^double [^double x]
   (if (<= (m/abs x) 1.0)
     (let [v (- 1.0 (* x x))]
       (* 1.09375 v v v)) 0.0))
 
-(defn density-tricube
-  [^double x]
+(defn- density-tricube
+  ^double [^double x]
   (let [absx (m/abs x)]
     (if (<= absx 1.0)
       (let [v (- 1.0 (* absx absx absx))]
         (* 0.8875 v v v)) 0.0)))
 
-(defn density-cosine [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
-(defn density-logistic [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
-(defn density-sigmoid [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
-(defn density-silverman
-  [^double x]
+(defn- density-cosine ^double [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
+(defn- density-logistic ^double [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
+(defn- density-sigmoid ^double [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
+(defn- density-silverman
+  ^double [^double x]
   (let [xx (/ (m/abs x) m/SQRT2)]
     (* 0.5 (m/exp (- xx)) (m/sin (+ xx m/QUARTER_PI)))))
 
 ;; experimental
-(defn density-laplace [^double x] (* 0.5 (m/exp (- (m/abs x)))))
-(defn density-wigner [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
-(defn density-cauchy [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
+(defn- density-laplace ^double [^double x] (* 0.5 (m/exp (- (m/abs x)))))
+(defn- density-wigner ^double [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
+(defn- density-cauchy ^double [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
+
+;;
+
+(defn- nrd
+  ^double [data]
+  (let [sd (stats/stddev data)
+        iqr (stats/iqr data)]
+    (* 1.06 (min sd (/ iqr 1.34)) (m/pow (alength ^doubles data) -0.2))))
+
+(defn- kde
+  "Return kernel density estimation function"
+  ([data k] (kde data k nil))
+  ([data k h]
+   (let [data (let [a (m/seq->double-array data)] (java.util.Arrays/sort a) a)
+         h (double (or h (nrd data)))
+         hrev (/ h)
+         span (* 6.0 h)
+         factor (/ (* (alength data) h))]
+     [(fn [^double x]
+        (let [start (java.util.Arrays/binarySearch data (- x span))
+              ^int start (if (neg? start) (dec (- start)) start)
+              end (java.util.Arrays/binarySearch data (+ x span))
+              ^int end (if (neg? end) (dec (- end)) end)
+              ^doubles xs (java.util.Arrays/copyOfRange data start end)]
+          (* factor (double (areduce xs i sum (double 0.0)
+                                     (+ sum ^double (k (* hrev (- x ^double (aget xs i))))))))))
+      factor h])))
+
+(defonce ^:private kde-integral
+  {:uniform 0.5
+   :triangular m/TWO_THIRD
+   :epanechnikov 0.6
+   :quartic (/ 5.0 7.0)
+   :triweight (/ 350.0 429.0)
+   :tricube (/ 175.0 247.0)
+   :gaussian (* 0.5 (/ m/SQRTPI))
+   :cosine (* 0.0625 m/PI m/PI)
+   :logistic m/SIXTH
+   :sigmoid (/ 2.0 (* m/PI m/PI))
+   :silverman (* 0.0625 3.0 m/SQRT2)})
+
+(defmulti kernel-density (fn [k & _] k))
+
+(defmacro ^:private make-kernel-density-fns
+  [lst]
+  `(do ~@(for [v (eval lst)
+               :let [n (symbol (str "density-" (name v)))]]
+           `(defmethod kernel-density ~v
+              ([k# vs#] (first (kde vs# ~n)))
+              ([k# vs# h#] (first (kde vs# ~n h#)))
+              ([k# vs# h# all?#] (let [kded# (kde vs# ~n h#)]
+                                   (if all?# kded# (first kded#))))))))
+
+(make-kernel-density-fns (concat (keys kde-integral) [:wigner :laplace :cauchy]))
+
+(defmethod kernel-density :smile
+  ([_ vs h] (if h
+              (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs) h)]
+                (fn [x] (.p k x)))
+              (kernel-density :smile vs)))
+  ([_ vs] (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs))]
+            (fn [x] (.p k x)))))
+
+(defmethod kernel-density :default [_ & r] (apply kernel-density :smile r))
+
+(defn kernel-density-ci
+  "Create function which returns confidence intervals for given kde method.
+
+  Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html"
+  ([method data] (kernel-density-ci method data nil))
+  ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
+  ([method data bandwidth ^double alpha]
+   (if (contains? kde-integral method)
+     (let [^double za (r/icdf r/default-normal (- 1.0 (* 0.5 (or alpha 0.05))))
+           [kde-f ^double factor] (kernel-density method data bandwidth true)]
+       (fn [^double x]
+         (let [^double fx (kde-f x)
+               band (* za (m/sqrt (* factor ^double (kde-integral method) fx)))]
+           [fx (- fx band) (+ fx band)])))
+     (let [kde-f (kernel-density method data bandwidth)]
+       (fn [x] (let [fx (kde-f x)]
+                [fx fx fx]))))))

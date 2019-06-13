@@ -13,7 +13,7 @@ Originally it was a part of generative art/glich [Clojure2d](https://github.com/
 ### Development version
 
 ```clojure
-[generateme/fastmath "1.3.0-SNAPSHOT"]
+[generateme/fastmath "1.4.0-SNAPSHOT"]
 ```
 
 ## Documentation
