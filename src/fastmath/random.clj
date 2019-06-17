@@ -248,25 +248,25 @@ See [[brand]].")
   {:metadoc/categories #{:rand}}
   (fn [m & _] m))
 
-(defmethod rng :mersenne [m & [seed]]
+(defmethod rng :mersenne [_ & [seed]]
   (create-object-with-seed MersenneTwister seed))
-(defmethod rng :isaac [m & [seed]]
+(defmethod rng :isaac [_ & [seed]]
   (create-object-with-seed ISAACRandom seed))
-(defmethod rng :well512a [m & [seed]]
+(defmethod rng :well512a [_ & [seed]]
   (create-object-with-seed Well512a seed))
-(defmethod rng :well1024a [m & [seed]]
+(defmethod rng :well1024a [_ & [seed]]
   (create-object-with-seed Well1024a seed))
-(defmethod rng :well19937a [m & [seed]]
+(defmethod rng :well19937a [_ & [seed]]
   (create-object-with-seed Well19937a seed))
-(defmethod rng :well19937c [m & [seed]]
+(defmethod rng :well19937c [_ & [seed]]
   (create-object-with-seed Well19937c seed))
-(defmethod rng :well44497a [m & [seed]]
+(defmethod rng :well44497a [_ & [seed]]
   (create-object-with-seed Well44497a seed))
-(defmethod rng :well44497b [m & [seed]]
+(defmethod rng :well44497b [_ & [seed]]
   (create-object-with-seed Well44497b seed))
-(defmethod rng :jdk [m & [seed]]
+(defmethod rng :jdk [_ & [seed]]
   (create-object-with-seed JDKRandomGenerator seed))
-(defmethod rng :default [m & [seed]]
+(defmethod rng :default [_ & [seed]]
   (rng :jdk seed))
 
 (defn synced-rng
@@ -412,7 +412,7 @@ Possible dimensions:
 
 See also [[jittered-sequence-generator]]."
     :metadoc/categories #{:gen}}
-  sequence-generator (fn [seq-generator dimensions] seq-generator))
+  sequence-generator (fn [seq-generator _] seq-generator))
 (defmethod sequence-generator :halton [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :sobol [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :r2 [seq-generator dimensions] (rv-generators seq-generator dimensions))

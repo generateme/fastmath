@@ -183,7 +183,7 @@
 (defn eq 
   "Primitive math equality function for doubles. See [[==]]."
   {:metadoc/categories #{:compare}}
-  ([^double a] true)
+  ([_] true)
   ([^double a ^double b]
    (== a b))
   ([^double a ^double b ^double c]
@@ -613,7 +613,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ^double [^double value]
   (cond (pos? value) 1.0
         (neg? value) -1.0
-        true 0.0))
+        :else 0.0))
 
 (defn sgn
   "Return -1 when `value` is negative, 1 otherwise. See also [[signum]].

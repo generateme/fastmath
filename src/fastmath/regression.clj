@@ -213,13 +213,13 @@
        (predict [gp xval] (predict gp xval false))
        (predict [_ xval stddev?]
          (let [xtest (if (sequential? xval) xval [xval])
-               cov-vector (double-array (map #(* kscale ^double (kernel xtest %)) xs))]
-           (let [mu (+ ymean ^double (v/dot cov-vector (.getDataRef ^ArrayRealVector alpha)))]
-             (if-not stddev?
-               mu
-               (let [cov-v (MatrixUtils/createRealVector cov-vector)]
-                 (MatrixUtils/solveLowerTriangularSystem L cov-v)
-                 [mu (m/safe-sqrt (- 1.0 (.dotProduct cov-v cov-v)))])))))
+               cov-vector (double-array (map #(* kscale ^double (kernel xtest %)) xs))
+               mu (+ ymean ^double (v/dot cov-vector (.getDataRef ^ArrayRealVector alpha)))]
+           (if-not stddev?
+             mu
+             (let [cov-v (MatrixUtils/createRealVector cov-vector)]
+               (MatrixUtils/solveLowerTriangularSystem L cov-v)
+               [mu (m/safe-sqrt (- 1.0 (.dotProduct cov-v cov-v)))]))))
        (predict-all [gp xtest] (predict-all gp xtest false))
        (predict-all [gp xtest stddev?]
          (map #(predict gp % stddev?) xtest))

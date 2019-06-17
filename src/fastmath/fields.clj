@@ -152,7 +152,7 @@
 (defn- make-arch
   "Arch"
   [^double amount _]
-  (fn [^Vec2 v]
+  (fn [_]
     (let [ang (* amount (drand m/PI))
           sinr (m/sin ang)
           cosr (m/cos ang)]
@@ -553,7 +553,7 @@
 (defn- make-blurcircle
   "Blur circle"
   [^double amount _]
-  (fn [^Vec2 v]
+  (fn [_]
     (let [x (drand -1.0 1.0)
           y (drand -1.0 1.0)
           absx (m/abs x)
@@ -579,7 +579,7 @@
 (defn- make-blur
   "Blur"
   [^double amount _]
-  (fn [^Vec2 v]
+  (fn [_]
     (let [r (drand m/TWO_PI)
           sr (m/sin r)
           cr (m/cos r)
@@ -671,8 +671,8 @@
         cc (if (zero? cc) m/EPSILON cc)
         cl (if (zero? cl) m/EPSILON cl)
         cr (if (zero? cr) m/EPSILON cr)
-        cl (* c cl)
-        cr (+ c (* c cr))]
+        cl (* cc cl)
+        cr (+ cc (* cc cr))]
     (fn [^Vec2 v]
       (let [roundx (m/rint (.x v))
             roundy (m/rint (.y v))
@@ -870,12 +870,12 @@
   "Chunk, by zephyrtronium https://zephyrtronium.deviantart.com/art/Chunk-Apophysis-Plugin-Pack-182375397"
   [^double amount {:keys [^double a ^double b ^double c ^double d ^double e ^double f mode]}]
   (fn [^Vec2 v]
-    (let [r (+ (* a (m/sq (.x v)))
-               (* b (.x v) (.y v))
-               (* c (m/sq (.y v)))
-               (* d (.x v))
-               (* e (.y v))
-               f)]
+    (let [r (+ (* amount a (m/sq (.x v)))
+               (* amount b (.x v) (.y v))
+               (* amount c (m/sq (.y v)))
+               (* amount d (.x v))
+               (* amount e (.y v))
+               (* amount f))]
       (if mode
         (if-not (pos? r) v zerov)
         (if (pos? r) v zerov)))))
@@ -905,7 +905,7 @@
   "Circle Rand http://eralex61.deviantart.com/art/Circles-Plugins-126273412"
   [^double amount {:keys [^double Sc ^double Dens ^double X ^double Y ^double Seed]}]
   (let [xy (Vec2. X Y)] 
-    (fn [v]
+    (fn [_]
       (loop [iter (int 0)]
         (let [XY (-> (v/generate-vec2 #(drand -1.0 1.0))
                      (v/emult xy))
@@ -939,13 +939,11 @@
                                   :Dens1 (drand 1)
                                   :Dens2 (drand 1)
                                   :Reverse (drand -1 1)
-                                  :X (drand 20)
-                                  :Y (drand 20)
                                   :Seed (irand Integer/MAX_VALUE)})
 
 (defn- make-circlelinear
   "CircleLinear by eralex, http://eralex61.deviantart.com/art/Circles-Plugins-126273412"
-  [^double amount {:keys [^double Sc ^double K ^double Dens1 ^double Dens2 ^double Reverse ^double X ^double Y ^double Seed]}]
+  [^double amount {:keys [^double Sc ^double K ^double Dens1 ^double Dens2 ^double Reverse ^double Seed]}]
   (let [dd (* Dens1 Dens2)]
     (fn [^Vec2 v]
       (let [M (->> Sc
@@ -1134,8 +1132,8 @@
   (fn [^Vec2 v]
     (if (== (.y v) -1.0)
       zerov
-      (c/div (c/add v c/I-)
-             (c/add v c/I)))))
+      (v/mult (c/div (c/add v c/I-)
+                     (c/add v c/I)) amount))))
 (make-field-method cayley :regular)
 
 ;; ### Cylinder
@@ -1464,7 +1462,7 @@
 (defn- make-gaussianblur
   "Gaussian"
   [^double amount _]
-  (fn [v]
+  (fn [_]
     (let [a (drand m/TWO_PI)
           r (* amount (+ (drand) (drand) (drand) (drand) -2.0))]
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
@@ -1584,8 +1582,8 @@
           r1 (if inside
                (/ amount r)
                (* amount r))]
-      (Vec2. (* r (m/cos theta))
-             (* r (m/sin theta))))))
+      (Vec2. (* r1 (m/cos theta))
+             (* r1 (m/sin theta))))))
 (make-field-method hole2 :regular)
 
 ;; ### Horseshoe
@@ -1609,8 +1607,8 @@
   (fn [^Vec2 v]
     (let [r (+ m/EPSILON ^double (v/mag v))
           theta (v/heading v)]
-      (Vec2. (/ (m/sin theta) r)
-             (* (m/cos theta) r)))))
+      (Vec2. (* amount (/ (m/sin theta) r))
+             (* amount (m/cos theta) r)))))
 (make-field-method hyperbolic :regular)
 
 ;;; ### Hypershift
@@ -1864,7 +1862,7 @@
 (defn- make-noise
   "Noise"
   [^double amount _]
-  (fn [v]
+  (fn [_]
     (let [a (drand m/TWO_PI)
           r (drand amount)]
       (Vec2. (* r (m/cos a))
@@ -1963,7 +1961,7 @@
 (defn- make-pie
   "pie from jwildfire"
   [^double amount {:keys [^double slices ^double rotation ^double thickness]}]
-  (fn [^Vec2 v]
+  (fn [_]
     (let [sl (double (m/round (+ 0.5 (* slices (drand)))))
           a (-> thickness
                 (* (drand))
@@ -2419,7 +2417,7 @@
         dx- (- 1.0 dx)]
     (fn [^Vec2 v]
       (let [^double r (v/mag v)
-            rr (+ (- r (* dx2 (double (int (* (+ r dx) rdx))))) (* r dx-))]
+            rr (* amount (+ (- r (* dx2 (double (int (* (+ r dx) rdx))))) (* r dx-)))]
         (Vec2. (* rr (/ (.x v) r))
                (* rr (/ (.y v) r)))))))
 (make-field-method rings :regular)
@@ -2592,8 +2590,8 @@
           cr (m/cos r)
           icr (/ 1.0 (if (zero? cr) m/EPSILON cr))
           ny (if (neg? cr)
-               (* amount (inc cr))
-               (* amount (dec cr)))]
+               (* amount (inc icr))
+               (* amount (dec icr)))]
       (Vec2. (* amount (.x v)) ny))))
 (make-field-method secant2 :regular)
 
@@ -2661,7 +2659,7 @@
 (defn- make-square
   "Square"
   [^double amount _]
-  (fn [v]
+  (fn [_]
     (Vec2. (* amount (drand -0.5 0.5))
            (* amount (drand -0.5 0.5)))))
 (make-field-method square :random)
@@ -2772,12 +2770,11 @@
 
 (make-config-method taurus {:r (drand -5.0 5.0)
                             :n (drand -5.0 5.0)
-                            :inv (drand -2.0 2.0)
-                            :sor (drand -2.0 2.0)})
+                            :inv (drand -2.0 2.0)})
 
 (defn- make-taurus
   "Taurus"
-  [^double amount {:keys [^double r ^double n ^double inv ^double sor]}]
+  [^double amount {:keys [^double r ^double n ^double inv]}]
   (let [rinv (* r inv)
         revinv (- 1.0 inv)]
     (fn [^Vec2 v]

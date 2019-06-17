@@ -498,7 +498,7 @@
 
 
 (defn smile-mercer
-  "Create RBF Smile object.
+  "Create Smile Mercer Kernel object
 
   Used to pass to Smile constructors/functions."
   {:metadoc/categories #{:kernel}}
@@ -542,7 +542,7 @@
                     (map (fn [^double w k] (* w ^double (k x y))) weights kernels)))))
 
 (defn fields
-  ([k f] (fields f f))
+  ([k f] (fields k f f))
   ([k f1 f2]
    (fn [x y] (k (f1 x) (f2 y)))))
 

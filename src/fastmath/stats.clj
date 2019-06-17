@@ -539,9 +539,7 @@
          diff (- mx mn)
          step (/ diff bins)
          search-array (double-array (map #(+ mn (* ^long % step)) (range bins)))
-         buff (long-array bins)
-         samples (count vs)
-         samplesd (double samples)]
+         buff (long-array bins)]
      
      (doseq [^double v vs] 
        (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
@@ -550,7 +548,7 @@
 
      {:size bins
       :step step
-      :samples samples
+      :samples (count vs)
       :min mn
       :max mx
       :bins (map vector search-array buff)})))

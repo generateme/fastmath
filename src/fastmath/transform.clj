@@ -19,8 +19,7 @@
   {:metadoc/categories {:w "Transform"
                         :p "Process"}}
   (:require [fastmath.core :as m]
-            [fastmath.stats :as stat]
-            [fastmath.vector :as v])
+            [fastmath.stats :as stat])
   (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
             BasicTransform DiscreteFourierTransform]
            [jwave.exceptions JWaveFailure]
@@ -142,7 +141,7 @@
 
   * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."
     :metadoc/categories #{:w}}
-  transformer (fn [t w] t))
+  transformer (fn [t _] t))
 
 (defmethod transformer :fast [_ w] (FastWaveletTransform. (wavelet w)))
 (defmethod transformer :packet [_ w] (WaveletPacketTransform. (wavelet w)))

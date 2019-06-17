@@ -251,8 +251,7 @@ Source: Apache Commons Math." #{:comm :d1}
           (Double/isNaN v) v
           (<= v fx) fy
           (>= v lx) ly
-          :else (let [b (java.util.Arrays/binarySearch ^doubles xs v) 
-                      i (if (neg? b) b)]
+          :else (let [b (java.util.Arrays/binarySearch ^doubles xs v)]
                   (if-not (neg? b)
                     (aget ys b)
                     (let [i (dec (- (inc b)))

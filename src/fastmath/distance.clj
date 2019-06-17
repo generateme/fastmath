@@ -39,7 +39,7 @@
     DistProto (dist [_ v1 v2] (f v1 v2))))
 
 (defmulti distance "Create distance object."
-  (fn [k & r] k))
+  (fn [k & _] k))
 
 (defmethod distance :euclidean [_ & _] (gen-smile (EuclideanDistance.)))
 (defmethod distance :manhattan [_ & _] (gen-smile (ManhattanDistance.)))
