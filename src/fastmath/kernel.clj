@@ -362,6 +362,16 @@
               (if (zero? d) 1.0
                   (* (/ sigma d) (m/sin (/ d sigma))))))))
 
+(defmethod kernel :periodic
+  ([_] (kernel :periodic 1.0))
+  ([_ sigma] (kernel :periodic sigma 1.0))
+  ([_ sigma periodicity] (kernel :periodic sigma periodicity d/euclidean))
+  ([_ ^double sigma ^double periodicity distance]
+   (let [p (/ m/PI periodicity)
+         s2 (* sigma sigma)]
+     (fn [x y] (let [^double d (distance x y)]
+                (m/exp (/ (* -2.0 (m/sq (m/sin (* p d)))) s2)))))))
+
 (defmethod kernel :power
   ([_] (kernel :power 2.0))
   ([_ d] (kernel :power d d/euclidean))

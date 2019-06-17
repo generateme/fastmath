@@ -13,6 +13,7 @@
   ### Types
 
   * Fixed size (custom types):
+      * Number - 1d vector
       * Vec2 - 2d vector, creator [[vec2]]
       * Vec3 - 3d vector, creator [[vec3]]
       * Vec4 - 4d vector, creator [[vec4]]
@@ -347,6 +348,46 @@
    (let [abits (Double/doubleToLongBits a)
          elt (bit-xor abits (>>> abits 32))]
      (+ elt 31))))
+
+(extend-type Number
+  VectorProto
+  (to-vec [v] (vector-of :double (double v)))
+  (as-vec
+    ([_] 0.0)
+    ([_ xs] (double (first xs))))
+  (fmap [v f] (f v))
+  (approx
+    ([v] (m/approx v))
+    ([v d] (m/approx v d)))
+  (magsq [v] (m/abs v))
+  (mag [v] (m/sq v))
+  (dot [v1 v2] (* (double v1) (double v2)))
+  (add
+    ([v] v)
+    ([v1 v2] (+ (double v1) (double v2))))
+  (sub
+    ([v] v)
+    ([v1 v2] (- (double v1) (double v2))))
+  (mult [v1 ^double v] (* (double v1) v))
+  (emult [v1 v2] (* (double v1) (double v2)))
+  (abs [v] (m/abs v))
+  (mx [v] v)
+  (mn [v] v)
+  (emx [v1 v2] (max (double v1) (double v2)))
+  (emn [v1 v2] (max (double v1) (double v2)))
+  (maxdim [_] 0)
+  (mindim [_] 0)
+  (sum [v] v)
+  (reciprocal [v] (/ (double v)))
+  (interpolate
+    ([v1 v2 t f] (f v1 v2 t))
+    ([v1 v2 t] (m/lerp v1 v2 t)))
+  (einterpolate
+    ([v1 v2 t f] (f v1 v2 t))
+    ([v1 v2 t] (m/lerp v1 v2 t)))
+  (econstrain [v val1 val2] (m/constrain (double v) (double val1) (double val2)))
+  (is-zero? [v] (zero? (double v)))
+  (is-near-zero? [v] (zero? (m/abs (- (double v) m/EPSILON)))))
 
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
