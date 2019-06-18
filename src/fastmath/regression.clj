@@ -205,6 +205,10 @@
      (MatrixUtils/solveLowerTriangularSystem L ys)
      
      (reify
+       IFn
+       (invoke [gp v] (predict gp v))
+       (invoke [gp v stddev?] (predict gp v stddev?))
+
        RegressionProto
        (backend [_] :fastmath)
        (predict [gp xval] (predict gp xval false))
