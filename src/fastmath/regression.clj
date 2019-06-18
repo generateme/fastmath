@@ -46,14 +46,11 @@
   [_ ^RegressionTrainer trainer x y]
   (let [data-x (m/seq->double-double-array (ensure-vectors x))
         data-y (m/seq->double-array y)
-        regression-raw (delay (.train trainer data-x data-y))
-        predict-fn #(if (sequential? (first %))
-                      (seq (.predict ^Regression @regression-raw (m/seq->double-double-array %)))
-                      (.predict ^Regression @regression-raw (m/seq->double-array %)))]
+        regression-raw (delay (.train trainer data-x data-y))]
     (reify
       IFn
-      (invoke [_ v] (predict-fn v))
-      (invoke [_ v _] (predict-fn v))
+      (invoke [r v] (predict r v))
+      (invoke [r v _] (predict r v))
 
       RegressionProto
       (backend [_] :smile)
