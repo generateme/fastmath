@@ -320,13 +320,13 @@
        :util-best bx})))
 
 (defn bayesian-optimization
-  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kernel-scale jitter noise optimizer normalize?]
-      :or {kernel-scale 1.0
+  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer normalize?]
+      :or {kscale 1.0
            kernel (k/kernel :mattern-52)
            warm-up (* ^int (count bounds) 1000)
            init-points 3
            utility-function-type :ucb
-           utility-param (if (#{:ei :poi} utility-function-type) 0.0 2.576)
+           utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)
            jitter 0.25
            normalize? true}}]
   (let [optimizer (or optimizer (if (== 1 (count bounds)) :cmaes :powell))
@@ -334,7 +334,7 @@
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
-        gp (partial gp/gaussian-process+ {:normalize? normalize? :kernel kernel :kscale kernel-scale :noise noise})
+        gp (partial gp/gaussian-process+ {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
         step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer)]
     (rest (iterate step-fn {:x maxx
                             :y maxy
