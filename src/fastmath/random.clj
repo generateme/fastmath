@@ -106,6 +106,7 @@
             EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
+           [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
 
@@ -593,9 +594,9 @@ See also [[jittered-sequence-generator]]."
    :pdf (fn [^RealDistribution d ^double v] (.density d v))
    :lpdf (fn [^AbstractRealDistribution d ^double v] (.logDensity d v))
    :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :probability (fn [^RealDistribution d ^double p] (.probability d p))
+   :probability (fn [^RealDistribution d ^double p] (.density d p))
    :sample (fn [^RealDistribution d] (.sample d))
-   :dimensions (fn [_] 1)}
+   :dimensions (constantly 1)}
   UnivariateDistributionProto
   {:mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
@@ -611,6 +612,29 @@ See also [[jittered-sequence-generator]]."
             ([^RealDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
+(extend Distribution
+  DistributionProto
+  {:cdf (fn
+          ([^Distribution d ^double v] (.cdf d v))
+          ([^Distribution d ^double v1 ^double v2] (- (.cdf d v2) (.cdf d v1))))
+   :pdf (fn [^Distribution d ^double v] (.p d v))
+   :lpdf (fn [^Distribution d ^double v] (.logp d v))
+   :icdf (fn [^Distribution d ^double p] (.quantile d p))
+   :probability (fn [^Distribution d ^double v] (.p d v))
+   :sample (fn [^Distribution d] (.rand d))
+   :dimensions (constantly 1)}
+  UnivariateDistributionProto
+  {:mean (fn [^Distribution d] (.mean d))
+   :variance (fn [^Distribution d] (.var d))}
+  RNGProto
+  {:drandom (fn [^Distribution d] (.rand d))
+   :frandom (fn [^Distribution d] (unchecked-float (.rand d)))
+   :lrandom (fn [^Distribution d] (unchecked-long (.rand d)))
+   :irandom (fn [^Distribution d] (unchecked-int (.rand d)))
+   :->seq (fn
+            ([^Distribution d] (repeatedly #(.rand d)))
+            ([^Distribution d n] (repeatedly n #(.rand d))))})
+
 (extend IntegerDistribution
   DistributionProto
   {:cdf (fn
@@ -621,7 +645,7 @@ See also [[jittered-sequence-generator]]."
    :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d p))
    :probability (fn [^IntegerDistribution d ^double p] (.probability d p))
    :sample (fn [^IntegerDistribution d] (.sample d))
-   :dimensions (fn [_] 1)}
+   :dimensions (constantly 1)}
   UnivariateDistributionProto
   {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
    :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
@@ -665,14 +689,14 @@ See also [[jittered-sequence-generator]]."
 
 (defn log-likelihood
   "Log likelihood of samples"
-  [d vs]
+  ^double [d vs]
   (reduce #(if (m/inf? ^double %1)
              (reduced %1)
              (+ ^double %1 ^double %2)) (map #(lpdf d %) vs)))
 
 (defn likelihood
   "Likelihood of samples"
-  [d vs]
+  ^double [d vs]
   (m/exp (log-likelihood d vs)))
 
 (defmulti
@@ -689,7 +713,7 @@ The rest parameters goes as follows:
 #### Real distributions
 
 * `:beta` - `:alpha` (default: 2.0) and `:beta` (default: 5.0)
-* `:cauchy` - `:mean` (default: 0.0) and `:scale` (default: 1.0)
+* `:cauchy` - `:median` (default: 0.0) and `:scale` (default: 1.0)
 * `:chi-squared` - `:degrees-of-freedom` (default: 1.0)
 * `:empirical` - `:bean-count` (default: 1000) and `:data` as a sequence
 * `:enumerated-real` - `:data` as a sequence and `:probabilities` as a optional sequence
@@ -731,9 +755,9 @@ The rest parameters goes as follows:
   ([_] (distribution :beta {})))
 
 (defmethod distribution :cauchy
-  ([_ {:keys [^double mean ^double scale rng ^double inverse-cumm-accuracy]
-       :or {mean 0.0 scale 1.0 rng default-rng inverse-cumm-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (CauchyDistribution. rng mean scale inverse-cumm-accuracy))
+  ([_ {:keys [^double median ^double scale rng ^double inverse-cumm-accuracy]
+       :or {median 0.0 scale 1.0 rng default-rng inverse-cumm-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (CauchyDistribution. rng median scale inverse-cumm-accuracy))
   ([_] (distribution :cauchy {})))
 
 (defmethod distribution :chi-squared
@@ -855,6 +879,12 @@ The rest parameters goes as follows:
    (BinomialDistribution. rng trials p))
   ([_] (distribution :binomial {})))
 
+(defmethod distribution :negative-binomial
+  ([_ {:keys [^double r ^double p]
+       :or {r 20.0 p 0.5}}]
+   (NegativeBinomialDistribution. r p))
+  ([_] (distribution :negative-binomial {})))
+
 (defmethod distribution :bernoulli
   ([_ {:keys [^double p rng]
        :or {p 0.5 rng default-rng}}]
@@ -925,8 +955,3 @@ The rest parameters goes as follows:
 (defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
            :metadoc/categories #{:dist}}
   default-normal (distribution :normal))
-
-
-;;
-
-

@@ -1,27 +1,24 @@
 (ns fastmath.optimization
-  (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction]
+  (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
            [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds SimpleValueChecker InitialGuess PointValuePair]
-           [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction]
+           [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction MultivariateVectorFunction]
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
-           [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma])
+           [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
+           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula])
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
             [fastmath.regression :as gp]))
 
-;; TODO
-;;
-;; add Nelder-Mead
-
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes})
-(def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex})
+(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient})
+(def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
 
 (defn- brent
   [{:keys [^double rel ^double abs]
@@ -70,13 +67,23 @@
     :or {rel 1.0e-6  abs 1.0e-10}}]
   (SimplexOptimizer. rel abs))
 
+(defn- non-linear-gradient
+  [{:keys [^double rel ^double abs ^double bracketing-range formula]
+    :or {rel 1.0e-8 abs 1.0e-8 bracketing-range 1.0e-8 formula :polak-ribiere}}]
+  (let [checker (SimpleValueChecker. rel abs)]
+    (NonLinearConjugateGradientOptimizer. (if (= formula :polak-ribiere)
+                                            NonLinearConjugateGradientOptimizer$Formula/POLAK_RIBIERE
+                                            NonLinearConjugateGradientOptimizer$Formula/FLETCHER_REEVES)
+                                          checker, rel abs bracketing-range)))
+
 (def ^:private optimizers
   {:brent brent
    :bobyqa bobyqa
    :powell powell
    :nelder-mead simplex
    :multidirectional-simplex simplex
-   :cmaes cmaes})
+   :cmaes cmaes
+   :gradient non-linear-gradient})
 
 (defn- wrap-univariate-function [f] (UnivariateObjectiveFunction. (reify UnivariateFunction
                                                                     (value [_ x] (f x)))))
@@ -88,6 +95,22 @@
 (defn- wrap-multivariate-function [f] (ObjectiveFunction. (multivariate-function f)))
 
 (defn- wrap-objective-function [f] (ObjectiveFunction. f))
+
+(defn- multivariate-gradient [^MultivariateFunction f ^double step]
+  "Calculate gradient numerically."
+  (let [step2 (+ step step)]
+    (reify MultivariateVectorFunction
+      (value [_ xs]
+        (double-array (map-indexed (fn [^long id ^double x]
+                                     (let [a (aclone ^doubles xs)
+                                           v1 (do (aset a id (+ x step))
+                                                  (.value f a))
+                                           v2 (do (aset a id (- x step))
+                                                  (.value f a))]
+                                       (/ (- v1 v2) step2))) xs))))))
+
+(defn- wrap-objective-function-gradient [f ^double step]
+  (ObjectiveFunctionGradient. (multivariate-gradient f step)))
 
 (defn- wrap-evals [evals] (if evals (MaxEval. evals) (MaxEval/unlimited)))
 (defn- wrap-iters [iters] (if iters (MaxIter. iters) (MaxIter/unlimited)))
@@ -153,7 +176,7 @@
   (if (sequential? (first bounds)) (count bounds) 1))
 
 (defn optimizer
-  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded?] :as config}]
+  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-size] :as config}]
   (assert (not (nil? bounds)) "Provide bounds")
   (let [dim (find-dimensions bounds)
         config (assoc config :dim dim)
@@ -180,6 +203,9 @@
         base-opt-data (case method
                         :nelder-mead (conj base-opt-data (nelder-mead config))
                         :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
+                        ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
+                        :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
+                                                                                        (or gradient-size 0.01)))
                         :cmaes (conj base-opt-data
                                      (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
                                      (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))
@@ -341,8 +367,6 @@
                             :xs xs
                             :ys ys}))))
 
-
-
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
         bounds [[2 4] [-3 3]]
         bo (bayesian-optimization f {:bounds bounds
@@ -363,14 +387,14 @@
        (+ (* x (m/sin (m/sqrt (m/abs x))))
           (* y (m/sin (m/sqrt (m/abs y)))))))
 
-#_(let [f (minimizer :nelder-mead target-2d-schweel {:bounds [[-500 500]
-                                                              [-500 500]] :bounded? true :stats? true})]
+#_(let [f (minimizer :nelder-mea target-2d-schweel {:bounds [[-500 500]
+                                                             [-500 500]] :bounded? false :stats? true})]
     (f (v/generate-vec2 #(r/drand -500 500))))
 
 #_(scan-and-minimize :cmaes target-2d-schweel {:bounds [[-500 500]
                                                         [-500 500]] :N 100 :bounded? true})
 
-#_(scan-and-minimize :nelder-mead target-1d {:bounds [[-0.5 2.5]]})
+#_(scan-and-minimize :gradient target-1d {:bounds [[-0.5 2.5]] :gradient-step 0.1})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 #_(do

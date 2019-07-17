@@ -59,8 +59,7 @@
                         :extent "Extents"}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
-            [fastmath.stats :as stats]
-            [fastmath.random :as rnd])
+            [fastmath.stats :as stats])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
@@ -111,7 +110,7 @@
   
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
   
   See also [[quantile]]."
   {:metadoc/categories #{:stat}}
@@ -119,23 +118,56 @@
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
    (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
-     (.evaluate perc (m/seq->double-array vs) p ))))
+     (.evaluate perc (m/seq->double-array vs) p))))
+
+(defn percentiles
+  "Calculate percentiles of a `vs`.
+
+  Percentiles are sequence of values from range 0-100.
+  
+  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
+
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  
+  See also [[quantile]]."
+  {:metadoc/categories #{:stat}}
+  ([vs ps] (percentiles vs ps nil))
+  ([vs ps estimation-strategy]
+   (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
+     (.setData perc (m/seq->double-array vs))
+     (mapv (fn [^double p] (.evaluate perc p)) ps))))
 
 (defn quantile
   "Calculate quantile of a `vs`.
 
-  Percentile `p` is from range 0.0-1.0.
+  Quantile `q` is from range 0.0-1.0.
   
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
   
   See also [[percentile]]."
   {:metadoc/categories #{:stat}}
-  (^double [vs ^double p]
-   (percentile vs (m/constrain (* p 100.0) 0.0 100.0)))
-  (^double [vs ^double p estimation-strategy]
-   (percentile vs (m/constrain (* p 100.0) 0.0 100.0) estimation-strategy)))
+  (^double [vs ^double q]
+   (percentile vs (m/constrain (* q 100.0) 0.0 100.0)))
+  (^double [vs ^double q estimation-strategy]
+   (percentile vs (m/constrain (* q 100.0) 0.0 100.0) estimation-strategy)))
+
+(defn quantiles
+  "Calculate quantiles of a `vs`.
+
+  Quantilizes is sequence with values from range 0.0-1.0.
+  
+  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
+
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  
+  See also [[percentiles]]."
+  {:metadoc/categories #{:stat}}
+  ([vs qs]
+   (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs)))
+  ([vs qs estimation-strategy]
+   (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs) estimation-strategy)))
 
 (defn median
   "Calculate median of `vs`. See [[median-3]]."
@@ -385,6 +417,16 @@
          q1 (quantile deltas alpha)
          q2 (quantile deltas (- 1.0 alpha))]
      [(- m q1) (- m q2) m])))
+
+(defn bootstrap
+  "Generate set of samples of given size from provided data.
+
+  Default `size` is 50, number of samples defaults to 1000"
+  ([vs] (bootstrap vs 50))
+  ([vs size] (bootstrap vs size 1000))
+  ([vs size samples]
+   (let [dist (r/distribution :enumerated-real {:data vs})]
+     (repeatedly size #(r/->seq dist samples)))))
 
 (defn stats-map
   "Calculate several statistics of `vs` and return as map.
