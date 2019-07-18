@@ -808,7 +808,7 @@ The rest parameters goes as follows:
 
 (defmethod distribution :laplace
   ([_ {:keys [^double mu ^double beta rng]
-       :or {mu 1.0 beta 2.0 rng default-rng}}]
+       :or {mu 0.0 beta 1.0 rng default-rng}}]
    (LaplaceDistribution. rng mu beta))
   ([_] (distribution :laplace {})))
 
@@ -819,7 +819,7 @@ The rest parameters goes as follows:
 
 (defmethod distribution :logistic
   ([_ {:keys [^double mu ^double s rng]
-       :or {mu 1.0 s 2.0 rng default-rng}}]
+       :or {mu 0.0 s 1.0 rng default-rng}}]
    (LogisticDistribution. rng mu s))
   ([_] (distribution :logistic {})))
 

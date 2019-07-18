@@ -321,14 +321,14 @@
          q3 (percentile avs 75.0 estimation-strategy)]
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
-   (let [avs (m/seq->double-array vs)
+   (let [;;avs (m/seq->double-array vs)
          iqr (* 1.5 (- q3 q1))
          lof-thr (- q1 iqr)
          uof-thr (+ q3 iqr)]
-     (java.util.Arrays/sort avs)
+     ;; (java.util.Arrays/sort avs)
      (filter #(let [v (double %)]
                 (bool-or (< v lof-thr)
-                         (> v uof-thr))) avs))))
+                         (> v uof-thr))) vs))))
 
 (defn minimum
   "Minimum value from sequence."
