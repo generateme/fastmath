@@ -286,6 +286,11 @@
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} log1p)
 (fastmath-proxy :one ^{:metadoc/categories #{:pow}} expm1)
 
+(defn
+  ^{:doc "log(1+exp(x))"
+    :metadoc/categories #{:pow}}
+  log1pexp ^double [^double x] (log1p (exp x)))
+
 ;; Roots (square and cubic)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories #{:pow}} sqrt)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt[3]{x}\\\\)" :metadoc/categories #{:pow}} cbrt)

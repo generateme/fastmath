@@ -105,6 +105,7 @@
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
+           [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
@@ -573,7 +574,8 @@ See also [[jittered-sequence-generator]]."
   (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
   (^{:metadoc/categories #{:dist}} probability [d v] "Probability (PMF)")
   (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
-  (^{:metadoc/categories #{:dist}} dimensions [d] "Returns dimensions"))
+  (^{:metadoc/categories #{:dist}} dimensions [d] "Returns dimensions")
+  (^{:metadoc/categories #{:dist}} source-object [d] "Returns Java object from backend library"))
 
 (defprotocol UnivariateDistributionProto
   (^{:metadoc/categories #{:dist}} mean [d] "Mean")
@@ -586,6 +588,7 @@ See also [[jittered-sequence-generator]]."
   (^{:metadoc/categories #{:dist}} means [d] "Mean")
   (^{:metadoc/categories #{:dist}} covariance [d] "Variance"))
 
+;; apache commons math
 (extend RealDistribution
   DistributionProto
   {:cdf (fn
@@ -596,7 +599,8 @@ See also [[jittered-sequence-generator]]."
    :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
    :probability (fn [^RealDistribution d ^double p] (.density d p))
    :sample (fn [^RealDistribution d] (.sample d))
-   :dimensions (constantly 1)}
+   :dimensions (constantly 1)
+   :source-object identity} 
   UnivariateDistributionProto
   {:mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
@@ -612,6 +616,63 @@ See also [[jittered-sequence-generator]]."
             ([^RealDistribution d n] (repeatedly n #(.sample d))))
    :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
+;; ssj
+
+(defn- reify-continuous-ssj
+  [^ContinuousDistribution d ^RandomGenerator rng]
+  (reify
+    DistributionProto
+    (pdf [_ v] (.density d v))
+    (lpdf [_ v] (m/log (.density d v)))
+    (cdf [_ v] (.cdf d v))
+    (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
+    (icdf [_ v] (.inverseF d v))
+    (probability [_ v] (.density d v))
+    (sample [_] (.inverseF d (drandom rng)))
+    (dimensions [_] 1)
+    (source-object [_] d)
+    UnivariateDistributionProto
+    (mean [_] (.getMean d))
+    (variance [_] (.getVariance d))
+    (lower-bound [_] (.getXinf d))
+    (upper-bound [_] (.getXsup d))
+    RNGProto
+    (drandom [_] (.inverseF d (drandom rng)))
+    (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
+    (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
+    (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
+    (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
+    (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
+    (set-seed! [d seed] (set-seed! rng seed) d)))
+
+(defn- reify-integer-ssj
+  [^DiscreteDistributionInt d ^RandomGenerator rng]
+  (reify
+    DistributionProto
+    (pdf [_ v] (.prob d v))
+    (lpdf [_ v] (m/log (.prob d v)))
+    (cdf [_ v] (.cdf d ^double v))
+    (cdf [_ v1 v2] (- (.cdf d ^double v2) (.cdf d ^double v1)))
+    (icdf [_ v] (.inverseF d v))
+    (probability [_ v] (.prob d v))
+    (sample [_] (.inverseF d (drandom rng)))
+    (dimensions [_] 1)
+    (source-object [_] d)
+    UnivariateDistributionProto
+    (mean [_] (.getMean d))
+    (variance [_] (.getVariance d))
+    (lower-bound [_] (.getXinf d))
+    (upper-bound [_] (.getXsup d))
+    RNGProto
+    (drandom [_] (.inverseF d (drandom rng)))
+    (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
+    (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
+    (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
+    (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
+    (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
+    (set-seed! [d seed] (set-seed! rng seed) d)))
+
+;; smile
 (extend Distribution
   DistributionProto
   {:cdf (fn
@@ -622,7 +683,8 @@ See also [[jittered-sequence-generator]]."
    :icdf (fn [^Distribution d ^double p] (.quantile d p))
    :probability (fn [^Distribution d ^double v] (.p d v))
    :sample (fn [^Distribution d] (.rand d))
-   :dimensions (constantly 1)}
+   :dimensions (constantly 1)
+   :source-object identity}  
   UnivariateDistributionProto
   {:mean (fn [^Distribution d] (.mean d))
    :variance (fn [^Distribution d] (.var d))}
@@ -645,7 +707,8 @@ See also [[jittered-sequence-generator]]."
    :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d p))
    :probability (fn [^IntegerDistribution d ^double p] (.probability d p))
    :sample (fn [^IntegerDistribution d] (.sample d))
-   :dimensions (constantly 1)}
+   :dimensions (constantly 1)
+   :source-object identity}
   UnivariateDistributionProto
   {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
    :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
@@ -666,7 +729,8 @@ See also [[jittered-sequence-generator]]."
   {:pdf (fn [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
    :lpdf (fn [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
    :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
-   :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))}
+   :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))
+   :source-object identity}
   MultivariateDistributionProto
   {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
    :covariance (fn [^MultivariateNormalDistribution d]
@@ -748,23 +812,72 @@ The rest parameters goes as follows:
     :metadoc/categories #{:dist}}
   distribution (fn ([k _] k) ([k] k)))
 
-(defmethod distribution :beta
-  ([_ {:keys [^double alpha ^double beta rng ^double inverse-cumm-accuracy]
-       :or {alpha 2.0 beta 5.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (BetaDistribution. rng alpha beta inverse-cumm-accuracy))
-  ([_] (distribution :beta {})))
+(defmacro ^:private make-acm-distr
+  [nm obj ks vs]
+  (let [rnd (symbol "rnd")
+        or-map (zipmap ks vs)] 
+    `(defmethod distribution ~nm
+       ([n# {:keys [~@(conj ks rnd)]
+             :or ~or-map}]
+        (let [^RandomGenerator r# (or ~rnd (rng :jvm))]
+          (new ~obj r# ~@ks)))
+       ([n#] (distribution ~nm {})))))
 
-(defmethod distribution :cauchy
-  ([_ {:keys [^double median ^double scale rng ^double inverse-cumm-accuracy]
-       :or {median 0.0 scale 1.0 rng default-rng inverse-cumm-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (CauchyDistribution. rng median scale inverse-cumm-accuracy))
-  ([_] (distribution :cauchy {})))
+(make-acm-distr :beta BetaDistribution
+                [alpha beta inverse-cumm-accuracy]
+                [2.0 5.0 BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
-(defmethod distribution :chi-squared
-  ([_ {:keys [^double degrees-of-freedom rng ^double inverse-cumm-accuracy]
-       :or {degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (ChiSquaredDistribution. rng degrees-of-freedom inverse-cumm-accuracy))
-  ([_] (distribution :chi-squared {})))
+(make-acm-distr :cauchy CauchyDistribution
+                [median scale inverse-cumm-accuracy]
+                [0.0 1.0 CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :chi-squared ChiSquaredDistribution
+                [degrees-of-freedom inverse-cumm-accuracy]
+                [1.0 ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :exponential ExponentialDistribution
+                [mean inverse-cumm-accuracy]
+                [1.0 ExponentialDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :f FDistribution
+                [numerator-degrees-of-freedom denominator-degrees-of-freedom inverser-cumm-accuracy]
+                [1.0 1.0 FDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :gamma GammaDistribution
+                [shape scale inverse-cumm-accuracy]
+                [2.0 2.0 GammaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :gumbel GumbelDistribution [mu beta] [1.0 2.0])
+(make-acm-distr :laplace LaplaceDistribution [mu beta] [0.0 1.0])
+(make-acm-distr :levy LevyDistribution [mu c] [0.0 1.0])
+(make-acm-distr :logistic LogisticDistribution [mu s] [0.0 1.0])
+
+(make-acm-distr :log-normal LogNormalDistribution
+                [scale shape inverse-cumm-accuracy]
+                [1.0 1.0 LogNormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :nakagami NakagamiDistribution
+                [mu omega inverse-cumm-accuracy]
+                [1.0 1.0 NakagamiDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :normal NormalDistribution
+                [mu sd inverse-cumm-accuracy]
+                [0.0 1.0 NormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :pareto ParetoDistribution
+                [scale shape inverse-cumm-accuracy]
+                [1.0 1.0 ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :t TDistribution
+                [degrees-of-freedom inverser-cumm-accuracy]
+                [1.0 TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
+
+(make-acm-distr :triangular TriangularDistribution [a b c] [-1.0 0.0 1.0])
+(make-acm-distr :uniform-real UniformRealDistribution [^double lower ^double upper] [0.0 1.0])
+
+(make-acm-distr :weibull WeibullDistribution
+                [alpha beta inverse-cumm-accuracy]
+                [2.0 1.0 WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (defmethod distribution :empirical
   ([_ {:keys [^long bin-count ^RandomGenerator rng data]
@@ -782,102 +895,7 @@ The rest parameters goes as follows:
      (EnumeratedRealDistribution. rng ^doubles (m/seq->double-array data))))
   ([_] (distribution :enumerated-real {})))
 
-(defmethod distribution :exponential
-  ([_ {:keys [^double mean rng ^double inverse-cumm-accuracy]
-       :or {mean 1 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (ExponentialDistribution. rng mean inverse-cumm-accuracy))
-  ([_] (distribution :exponential {})))
-
-(defmethod distribution :f
-  ([_ {:keys [^double numerator-degrees-of-freedom ^double denominator-degrees-of-freedom rng ^double inverse-cumm-accuracy]
-       :or {numerator-degrees-of-freedom 1.0 denominator-degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (FDistribution. rng numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-cumm-accuracy))
-  ([_] (distribution :f {})))
-
-(defmethod distribution :gamma
-  ([_ {:keys [^double shape ^double scale rng ^double inverse-cumm-accuracy]
-       :or {shape 2.0 scale 2.0 rng default-rng inverse-cumm-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (GammaDistribution. rng shape scale inverse-cumm-accuracy))
-  ([_] (distribution :gamma {})))
-
-(defmethod distribution :gumbel
-  ([_ {:keys [^double mu ^double beta rng]
-       :or {mu 1.0 beta 2.0 rng default-rng}}]
-   (GumbelDistribution. rng mu beta))
-  ([_] (distribution :gumbel {})))
-
-(defmethod distribution :laplace
-  ([_ {:keys [^double mu ^double beta rng]
-       :or {mu 0.0 beta 1.0 rng default-rng}}]
-   (LaplaceDistribution. rng mu beta))
-  ([_] (distribution :laplace {})))
-
-(defmethod distribution :levy
-  ([_ {:keys [^double mu ^double c rng] :or {mu 0.0 c 1.0 rng default-rng}}]
-   (LevyDistribution. rng mu c))
-  ([_] (distribution :levy {})))
-
-(defmethod distribution :logistic
-  ([_ {:keys [^double mu ^double s rng]
-       :or {mu 0.0 s 1.0 rng default-rng}}]
-   (LogisticDistribution. rng mu s))
-  ([_] (distribution :logistic {})))
-
-(defmethod distribution :log-normal
-  ([_ {:keys [^double scale ^double shape rng ^double inverse-cumm-accuracy]
-       :or {scale 1.0 shape 1.0 rng default-rng inverse-cumm-accuracy LogNormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (LogNormalDistribution. rng scale shape inverse-cumm-accuracy))
-  ([_] (distribution :log-normal {})))
-
-(defmethod distribution :nakagami
-  ([_ {:keys [^double mu ^double omega rng ^double inverse-cumm-accuracy]
-       :or {mu 1.0 omega 1.0 rng default-rng inverse-cumm-accuracy NakagamiDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (NakagamiDistribution. rng mu omega inverse-cumm-accuracy))
-  ([_] (distribution :nakagami {})))
-
-(defmethod distribution :normal
-  ([_ {:keys [^double mu ^double sd rng ^double inverse-cumm-accuracy]
-       :or {mu 0.0 sd 1.0 rng default-rng inverse-cumm-accuracy NormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (NormalDistribution. rng mu sd inverse-cumm-accuracy))
-  ([_] (distribution :normal {})))
-
-(defmethod distribution :pareto
-  ([_ {:keys [^double scale ^double shape rng ^double inverse-cumm-accuracy]
-       :or {scale 1.0 shape 1.0 rng default-rng inverse-cumm-accuracy ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (ParetoDistribution. rng scale shape inverse-cumm-accuracy))
-  ([_] (distribution :pareto {})))
-
-(defmethod distribution :t
-  ([_ {:keys [^double degrees-of-freedom rng ^double inverse-cumm-accuracy]
-       :or {degrees-of-freedom 1.0 rng default-rng inverse-cumm-accuracy TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (TDistribution. rng degrees-of-freedom inverse-cumm-accuracy))
-  ([_] (distribution :t {})))
-
-(defmethod distribution :triangular
-  ([_ {:keys [^double a ^double b ^double c rng]
-       :or {a -1.0 b 0.0 c 1.0 rng default-rng}}]
-   (TriangularDistribution. rng a b c))
-  ([_] (distribution :triangular {})))
-
-(defmethod distribution :uniform-real
-  ([_ {:keys [^double lower ^double upper rng]
-       :or {lower 0.0 upper 1.0 rng default-rng}}]
-   (UniformRealDistribution. ^RandomGenerator rng lower upper))
-  ([_] (distribution :uniform-real {})))
-
-(defmethod distribution :weibull
-  ([_ {:keys [^double alpha ^double beta rng ^double inverse-cumm-accuracy]
-       :or {alpha 2.0 beta 1.0 rng default-rng inverse-cumm-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
-   (WeibullDistribution. rng alpha beta inverse-cumm-accuracy))
-  ([_] (distribution :weibull {})))
-
 ;; integer
-
-(defmethod distribution :binomial
-  ([_ {:keys [^int trials ^double p rng]
-       :or {trials 20 p 0.5 rng default-rng}}]
-   (BinomialDistribution. rng trials p))
-  ([_] (distribution :binomial {})))
 
 (defmethod distribution :negative-binomial
   ([_ {:keys [^double r ^double p]
@@ -899,41 +917,69 @@ The rest parameters goes as follows:
      (EnumeratedIntegerDistribution. rng (int-array data))))
   ([_] (distribution :enumerated-int {})))
 
-(defmethod distribution :geometric
-  ([_ {:keys [^double p rng]
-       :or {p 0.5 rng default-rng}}]
-   (GeometricDistribution. rng p))
-  ([_] (distribution :geometric {})))
+(make-acm-distr :binomial BinomialDistribution [trials p] [20 0.5])
+(make-acm-distr :geometric GeometricDistribution [p] [0.5])
+(make-acm-distr :hypergeometric HypergeometricDistribution
+                [population-size number-of-successes sample-size] [100 50 25])
+(make-acm-distr :pascal PascalDistribution [r p] [5 0.5])
+(make-acm-distr :poisson PoissonDistribution
+                [p epsilon max-iterations]
+                [0.5 PoissonDistribution/DEFAULT_EPSILON PoissonDistribution/DEFAULT_MAX_ITERATIONS])
+(make-acm-distr :uniform-int UniformIntegerDistribution [lower upper] [0 Integer/MAX_VALUE])
+(make-acm-distr :zipf ZipfDistribution [number-of-elements exponent] [100 3.0])
 
-(defmethod distribution :hypergeometric
-  ([_ {:keys [^int population-size ^int number-of-successes ^int sample-size rng]
-       :or {population-size 100 number-of-successes 50 sample-size 25 rng default-rng}}]
-   (HypergeometricDistribution. rng population-size number-of-successes sample-size))
-  ([_] (distribution :hypergeometric {})))
+;; ssj
 
-(defmethod distribution :pascal
-  ([_ {:keys [^int r ^double p rng]
-       :or {r 5 p 0.5 rng default-rng}}]
-   (PascalDistribution. rng r p))
-  ([_] (distribution :pascal {})))
+(defmacro ^:private make-ssj-distr
+  [rf nm obj ks vs]
+  (let [rnd (symbol "rnd")
+        or-map (zipmap ks vs)]
+    `(defmethod distribution ~nm
+       ([n# {:keys [~@(conj ks rnd)]
+             :or ~or-map}]
+        (let [^RandomGenerator r# (or ~rnd (rng :jvm))]
+          (~rf (new ~obj ~@ks) r#)))
+       ([n#] (distribution ~nm {})))))
 
-(defmethod distribution :poisson
-  ([_ {:keys [^double p ^double epsilon ^int max-iterations rng]
-       :or {p 0.5 epsilon PoissonDistribution/DEFAULT_EPSILON max-iterations PoissonDistribution/DEFAULT_MAX_ITERATIONS rng default-rng}}]
-   (PoissonDistribution. rng p epsilon max-iterations))
-  ([_] (distribution :poisson {})))
+(defmacro ^:private make-ssjc-distr
+  [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj ~nm ~obj ~ks ~vs))
+(defmacro ^:private make-ssji-distr
+  [nm obj ks vs] `(make-ssj-distr reify-integer-ssj ~nm ~obj ~ks ~vs))
 
-(defmethod distribution :uniform-int
-  ([_ {:keys [^int lower ^int upper rng]
-       :or {lower 0 upper Integer/MAX_VALUE rng default-rng}}]
-   (UniformIntegerDistribution. rng lower upper))
-  ([_] (distribution :uniform-int {})))
 
-(defmethod distribution :zipf
-  ([_ {:keys [^int number-of-elements ^double exponent rng]
-       :or {number-of-elements 100 exponent 3.0 rng default-rng}}]
-   (ZipfDistribution. rng number-of-elements exponent))
-  ([_] (distribution :zipf {})))
+(make-ssjc-distr :anderson-darling AndersonDarlingDistQuick [n] [1.0])
+(make-ssjc-distr :inverse-gamma InverseGammaDist [alpha beta] [2.0 1.0])
+(make-ssjc-distr :chi ChiDist [nu] [1.0])
+(make-ssjc-distr :chi-squared-noncentral ChiSquareNoncentralDist [nu lambda] [1.0 1.0])
+(make-ssjc-distr :cramer-von-mises CramerVonMisesDist [n] [1.0])
+(make-ssjc-distr :erlang ErlangDist [k lambda] [1 1])
+(make-ssjc-distr :fatigue-life FatigueLifeDist [mu beta gamma] [0.0 1.0 1.0])
+(make-ssjc-distr :folded-normal FoldedNormalDist [mu sigma] [0.0 1.0])
+(make-ssjc-distr :frechet FrechetDist [alpha beta delta] [1.0 1.0 0.0])
+(make-ssjc-distr :hyperbolic-secant HyperbolicSecantDist [mu sigma] [0.0 1.0])
+(make-ssjc-distr :inverse-gaussian InverseGaussianDist [mu lambda] [1.0 1.0])
+(make-ssjc-distr :hypo-exponential-equal HypoExponentialDistEqual [n k h] [1.0 1.0 1.0])
+(make-ssjc-distr :johnson-sb JohnsonSBDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
+(make-ssjc-distr :johnson-sl JohnsonSLDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
+(make-ssjc-distr :johnson-su JohnsonSUDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
+(make-ssjc-distr :kolmogorov-smirnov KolmogorovSmirnovDistQuick [n] [1.0])
+(make-ssjc-distr :kolmogorov-smirnov+ KolmogorovSmirnovPlusDist [n] [1.0])
+(make-ssji-distr :logarithmic LogarithmicDist [theta] [0.5])
+(make-ssjc-distr :log-logistic LoglogisticDist [alpha beta] [3.0 1.0])
+(make-ssjc-distr :normal-inverse-gaussian NormalInverseGaussianDist [alpha beta mu delta] [1.0 0.0 0.0 1.0])
+(make-ssjc-distr :pearson-6 Pearson6Dist [alpha1 alpha2 beta] [1.0 1.0 1.0])
+(make-ssjc-distr :power PowerDist [a b c] [0.0 1.0 2.0])
+(make-ssjc-distr :rayleigh RayleighDist [a beta] [0.0 1.0])
+(make-ssjc-distr :watson-gd WatsonGDist [n] [2.0])
+(make-ssjc-distr :watson-ud WatsonUDist [n] [2.0])
+
+(defmethod distribution :hypo-exponential
+  ([_ {:keys [lambdas rnd]
+       :or {lambdas [1.0]}}]
+   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or rnd (rng :jvb))))
+  ([_] (distribution :hypo-exponential {})))
+
+;;
 
 (defmethod distribution :multi-normal
   ([_ {:keys [means covariances rng]
