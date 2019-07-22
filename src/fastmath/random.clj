@@ -793,7 +793,7 @@ The rest parameters goes as follows:
 * `:normal` - `:mu` (default: 0.0) and `:sd` (default: 1.0)
 * `:pareto` - `:scale` (default: 1.0) and `:shape` (default: 1.0)
 * `:t` - `:degrees-of-freedom` (default: 1.0)
-* `:triangular` - `:a` (default: -1.0), `:b` (default: 0.0) and `:c` (default: 1.0)
+* `:triangular` - `:a` (default: -1.0), `:c` (default: 0.0) and `:b` (default: 1.0)
 * `:uniform-real` - `:lower` (default: 0.0) and `:upper` (default: 1.0)
 * `:weibull` - `:alpha` (default: 2.0) and `:beta` (default: 1.0)
 
@@ -814,12 +814,12 @@ The rest parameters goes as follows:
 
 (defmacro ^:private make-acm-distr
   [nm obj ks vs]
-  (let [rnd (symbol "rnd")
-        or-map (zipmap ks vs)] 
+  (let [or-map (zipmap ks vs)] 
     `(defmethod distribution ~nm
-       ([n# {:keys [~@(conj ks rnd)]
-             :or ~or-map}]
-        (let [^RandomGenerator r# (or ~rnd (rng :jvm))]
+       ([n# {:keys [~@ks]
+             :or ~or-map
+             :as all#}]
+        (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
           (new ~obj r# ~@ks)))
        ([n#] (distribution ~nm {})))))
 
@@ -872,7 +872,7 @@ The rest parameters goes as follows:
                 [degrees-of-freedom inverser-cumm-accuracy]
                 [1.0 TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
-(make-acm-distr :triangular TriangularDistribution [a b c] [-1.0 0.0 1.0])
+(make-acm-distr :triangular TriangularDistribution [a c b] [-1.0 0.0 1.0])
 (make-acm-distr :uniform-real UniformRealDistribution [^double lower ^double upper] [0.0 1.0])
 
 (make-acm-distr :weibull WeibullDistribution
@@ -880,19 +880,22 @@ The rest parameters goes as follows:
                 [2.0 1.0 WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (defmethod distribution :empirical
-  ([_ {:keys [^long bin-count ^RandomGenerator rng data]
-       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT rng default-rng}}]
-   (let [^EmpiricalDistribution d (EmpiricalDistribution. bin-count rng)]
+  ([_ {:keys [^long bin-count data]
+       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT}
+       :as all}]
+   (let [^RandomGenerator r (or (:rng all) (rng :jvm))
+         ^EmpiricalDistribution d (EmpiricalDistribution. bin-count r)]
      (.load d ^doubles (m/seq->double-array data))
      d))
   ([_] (distribution :empirical {})))
 
 (defmethod distribution :enumerated-real
-  ([_ {:keys [data probabilities ^RandomGenerator rng]
-       :or {rng default-rng}}]
-   (if probabilities
-     (EnumeratedRealDistribution. rng (m/seq->double-array data) (m/seq->double-array probabilities))
-     (EnumeratedRealDistribution. rng ^doubles (m/seq->double-array data))))
+  ([_ {:keys [data probabilities]
+       :as all}]
+   (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
+     (if probabilities
+       (EnumeratedRealDistribution. r (m/seq->double-array data) (m/seq->double-array probabilities))
+       (EnumeratedRealDistribution. r ^doubles (m/seq->double-array data)))))
   ([_] (distribution :enumerated-real {})))
 
 ;; integer
@@ -904,17 +907,19 @@ The rest parameters goes as follows:
   ([_] (distribution :negative-binomial {})))
 
 (defmethod distribution :bernoulli
-  ([_ {:keys [^double p rng]
-       :or {p 0.5 rng default-rng}}]
-   (BinomialDistribution. rng 1 p))
+  ([_ {:keys [^double p]
+       :or {p 0.5}
+       :as all}]
+   (BinomialDistribution. (or (:rng all) (rng :jvm)) 1 p))
   ([_] (distribution :bernoulli {})))
 
 (defmethod distribution :enumerated-int
-  ([_ {:keys [data probabilities ^RandomGenerator rng]
-       :or {rng default-rng}}]
-   (if probabilities
-     (EnumeratedIntegerDistribution. rng (int-array data) (m/seq->double-array probabilities))
-     (EnumeratedIntegerDistribution. rng (int-array data))))
+  ([_ {:keys [data probabilities]
+       :as all}]
+   (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
+     (if probabilities
+       (EnumeratedIntegerDistribution. r (int-array data) (m/seq->double-array probabilities))
+       (EnumeratedIntegerDistribution. r (int-array data)))))
   ([_] (distribution :enumerated-int {})))
 
 (make-acm-distr :binomial BinomialDistribution [trials p] [20 0.5])
@@ -932,12 +937,12 @@ The rest parameters goes as follows:
 
 (defmacro ^:private make-ssj-distr
   [rf nm obj ks vs]
-  (let [rnd (symbol "rnd")
-        or-map (zipmap ks vs)]
+  (let [or-map (zipmap ks vs)]
     `(defmethod distribution ~nm
-       ([n# {:keys [~@(conj ks rnd)]
-             :or ~or-map}]
-        (let [^RandomGenerator r# (or ~rnd (rng :jvm))]
+       ([n# {:keys [~@ks]
+             :or ~or-map
+             :as all#}]
+        (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
           (~rf (new ~obj ~@ks) r#)))
        ([n#] (distribution ~nm {})))))
 
@@ -958,7 +963,7 @@ The rest parameters goes as follows:
 (make-ssjc-distr :frechet FrechetDist [alpha beta delta] [1.0 1.0 0.0])
 (make-ssjc-distr :hyperbolic-secant HyperbolicSecantDist [mu sigma] [0.0 1.0])
 (make-ssjc-distr :inverse-gaussian InverseGaussianDist [mu lambda] [1.0 1.0])
-(make-ssjc-distr :hypo-exponential-equal HypoExponentialDistEqual [n k h] [1.0 1.0 1.0])
+(make-ssjc-distr :hypoexponential-equal HypoExponentialDistEqual [n k h] [1.0 1.0 1.0])
 (make-ssjc-distr :johnson-sb JohnsonSBDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
 (make-ssjc-distr :johnson-sl JohnsonSLDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
 (make-ssjc-distr :johnson-su JohnsonSUDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
@@ -970,27 +975,27 @@ The rest parameters goes as follows:
 (make-ssjc-distr :pearson-6 Pearson6Dist [alpha1 alpha2 beta] [1.0 1.0 1.0])
 (make-ssjc-distr :power PowerDist [a b c] [0.0 1.0 2.0])
 (make-ssjc-distr :rayleigh RayleighDist [a beta] [0.0 1.0])
-(make-ssjc-distr :watson-gd WatsonGDist [n] [2.0])
-(make-ssjc-distr :watson-ud WatsonUDist [n] [2.0])
+(make-ssjc-distr :watson-g WatsonGDist [n] [2.0])
+(make-ssjc-distr :watson-u WatsonUDist [n] [2.0])
 
-(defmethod distribution :hypo-exponential
-  ([_ {:keys [lambdas rnd]
-       :or {lambdas [1.0]}}]
-   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or rnd (rng :jvb))))
-  ([_] (distribution :hypo-exponential {})))
+(defmethod distribution :hypoexponential
+  ([_ {:keys [lambdas]
+       :or {lambdas [1.0]}
+       :as all}]
+   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or (:rng all) (rng :jvm))))
+  ([_] (distribution :hypoexponential {})))
 
 ;;
 
 (defmethod distribution :multi-normal
-  ([_ {:keys [means covariances rng]
-       :or {rng default-rng}}]
+  ([_ {:keys [means covariances] :as all}]
    (let [covariances (if-not covariances
                        [[1.0 0.0] [0.0 1.0]]
                        covariances)
          means (if-not means (repeat (count (first covariances)) 0.0) means)]
      (assert (= (count means) (count (first covariances)))
              "Means and covariances sizes do not match.")
-     (MultivariateNormalDistribution. rng (m/seq->double-array means) (m/seq->double-double-array covariances))))
+     (MultivariateNormalDistribution. (or (:rng all) (rng :jvm)) (m/seq->double-array means) (m/seq->double-double-array covariances))))
   ([_] (distribution :multi-normal {})))
 
 (def ^{:doc "List of distributions."

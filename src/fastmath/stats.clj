@@ -421,12 +421,12 @@
 (defn bootstrap
   "Generate set of samples of given size from provided data.
 
-  Default `size` is 50, number of samples defaults to 1000"
+  Default `samples` is 50, number of `size` defaults to 1000"
   ([vs] (bootstrap vs 50))
-  ([vs size] (bootstrap vs size 1000))
-  ([vs size samples]
+  ([vs samples] (bootstrap vs samples 1000))
+  ([vs samples size]
    (let [dist (r/distribution :enumerated-real {:data vs})]
-     (repeatedly size #(r/->seq dist samples)))))
+     (repeatedly samples #(r/->seq dist size)))))
 
 (defn stats-map
   "Calculate several statistics of `vs` and return as map.
