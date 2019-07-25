@@ -277,7 +277,10 @@
     (bool-and (instance? ArrayVec v)
               (smile.math.Math/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON)))
   (hashCode [_]
-    (java.util.Arrays/hashCode array))
+    (mix-collection-hash (java.util.Arrays/hashCode array) (alength array)))
+  clojure.lang.IHashEq 
+  (hasheq [_]
+    (mix-collection-hash (java.util.Arrays/hashCode array) (alength array)))
   Sequential
   Seqable
   (seq [_] (seq array))
@@ -399,7 +402,10 @@
                 (bool-and (== x (.x v))
                           (== y (.y v))))))
   (hashCode [_]
-    (unchecked-int (dhash-code (dhash-code x) y)))
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
+  clojure.lang.IHashEq 
+  (hasheq [_]
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
   Sequential
   Seqable
   (seq [_] (list x y))
@@ -515,7 +521,10 @@
                           (== y (.y v))
                           (== z (.z v))))))
   (hashCode [_]
-    (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)))
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
+  clojure.lang.IHashEq 
+  (hasheq [_]
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
   Sequential
   Seqable
   (seq [_] (list x y z))
@@ -708,7 +717,10 @@
                      (== z (.z v))
                      (== w (.w v))))))
   (hashCode [_]
-    (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)))
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
+  clojure.lang.IHashEq 
+  (hasheq [_]
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
   Sequential
   Seqable
   (seq [_] (list x y z w))
