@@ -985,6 +985,53 @@ The rest parameters goes as follows:
    (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or (:rng all) (rng :jvm))))
   ([_] (distribution :hypoexponential {})))
 
+(defmethod distribution :reciprocal-sqrt
+  ([_ {:keys [^double a]
+       :or {a 0.5}
+       :as all}]
+   (let [f (* 2.0 (m/sqrt a))
+         icdf-fn (fn [^double x]
+                   (cond
+                     (zero? x) a
+                     :else (m/sq (* 0.5 (+ x f)))))
+         ^double b (icdf-fn 1.0)
+         m (* (/ 2.0 3.0) (- (m/pow b 1.5) (m/pow a 1.5)))
+         m1 (* 15.0 m m)
+         m2 (* -10.0 m)
+         v (* (/ 2.0 15.0)
+              (- (* (m/sqrt b)
+                    (+ m1 (* m2 b) (* 3.0 b b)))
+                 (* (m/sqrt a)
+                    (+ m1 (* m2 a) (* 3.0 a a)))))
+         r (or (:rng all) (rng :jvm))]
+     (reify
+       DistributionProto
+       (pdf [_ v] (if (<= a ^double v b) (/ (m/sqrt v)) 0.0))
+       (lpdf [d v] (m/log (pdf d v)))
+       (cdf [_ v] (cond
+                    (< ^double v a) 0.0
+                    (> ^double v b) 1.0
+                    :else (- (* 2.0 (m/sqrt ^double v)) f)))
+       (cdf [d v1 v2] (- ^double (cdf d v2) ^double (cdf d v1)))
+       (icdf [_ v] (icdf-fn v))
+       (probability [d v] (pdf d v))
+       (sample [d] (icdf-fn (drandom r)))
+       (dimensions [_] 1)
+       (source-object [d] d)
+       UnivariateDistributionProto
+       (mean [_] m)
+       (variance [_] v)
+       (lower-bound [_] a)
+       (upper-bound [_] b)
+       RNGProto
+       (drandom [_] (icdf-fn (drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (drandom r))))
+       (set-seed! [d seed] (set-seed! r seed) d)))))
+
 ;;
 
 (defmethod distribution :multi-normal
