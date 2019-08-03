@@ -176,7 +176,7 @@
   (if (sequential? (first bounds)) (count bounds) 1))
 
 (defn optimizer
-  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-size] :as config}]
+  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h] :as config}]
   (assert (not (nil? bounds)) "Provide bounds")
   (let [dim (find-dimensions bounds)
         config (assoc config :dim dim)
@@ -205,7 +205,7 @@
                         :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
                         ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
                         :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
-                                                                                        (or gradient-size 0.01)))
+                                                                                        (or gradient-h 0.01)))
                         :cmaes (conj base-opt-data
                                      (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
                                      (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))

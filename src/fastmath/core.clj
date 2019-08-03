@@ -866,6 +866,38 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
           (map #(norm % 0.0 n- range-min range-max))
           (map f)))))
 
+;; rank/order
+
+(defn rank
+  ([vs] (rank vs :average))
+  ([vs ties]
+   (let [indexed-sorted-map (group-by second (map-indexed (fn [^long idx v] [(inc idx) v]) (sort vs)))]
+     (if (#{:first :last :random} ties)
+       (let [tie-sort (case ties
+                        :first (partial sort-by first clojure.core/<)
+                        :last (partial sort-by first clojure.core/>)
+                        :random shuffle)
+             sorted2-map (into {} (map (fn [[k v]] [k (tie-sort v)]) indexed-sorted-map))]
+         (first (reduce (fn [[res curr] v]
+                          (let [lst (curr v)]
+                            [(conj res (ffirst lst))
+                             (assoc curr v (rest lst))])) [[] sorted2-map] vs)))
+       (let [tie-fn (case ties
+                      :min ffirst
+                      :max (comp first last)
+                      (fn [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
+             m (into {} (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map))]
+         (map m vs))))))
+
+(defn order
+  ([vs] (order vs false))
+  ([vs decreasing?]
+   (->> (map-indexed vector vs)
+        (sort-by second (if decreasing?
+                          clojure.core/>
+                          clojure.core/<))
+        (map (comp #(inc ^long %) first)))))
+
 ;;
 
 (def ^:const double-array-type (Class/forName "[D"))

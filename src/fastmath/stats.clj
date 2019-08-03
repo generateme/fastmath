@@ -360,7 +360,7 @@
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.Math/sum ^doubles vs)
-    (reduce clojure.core/+ vs)))
+    (reduce (fn [^double x ^double y] (+ x y)) 0.0 vs)))
 
 (defn kurtosis
   "Calculate kurtosis from sequence."
@@ -482,43 +482,58 @@
 (defn covariance
   "Covariance of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (smile.math.Math/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
+
+(defn covariance-matrix
+  "Generate covariance matrix from seq of seqs. Row order."
+  {:metadoc/categories #{:corr}}
+  [vss]
+  (let [avss (map-indexed (fn [id v] [id (m/seq->double-array v)]) vss)
+        cache (atom {})]
+    (for [[id1 ^doubles a] avss]
+      (mapv (fn [[id2 ^doubles b]]
+              (let [key (sort [id1 id2])]
+                (if (contains? @cache key)
+                  (@cache key)
+                  (let [cov (smile.math.Math/cov a b)]
+                    (swap! cache assoc key cov)
+                    cov)))) avss))))
 
 (defn correlation
   "Correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (smile.math.Math/cor (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn kendall-correlation
   "Kendall's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (smile.math.Math/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
   {:metadoc/categories #{:corr}}
-  [vs1 vs2]
+  ^double [vs1 vs2]
   (smile.math.Math/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 ;;
@@ -653,19 +668,12 @@
   (let [j (- 1.0 (/ 3.0 (- (* 4.0 (+ (count group1) (count group2))) 9.0)))]
     (* j (hedges-g group1 group2))))
 
-(defn- rank
-  [vs]
-  (let [m (into {} (map (fn [[k v]]
-                          [k (/ ^double (reduce #(+ ^double %1 ^double %2) (map (comp #(inc ^double %) first) v))
-                                (count v))]) (group-by second (map-indexed vector (sort vs)))))]
-    (map m vs)))
-
 (defn ameasure
   "Vargha-Delaney A measure for two populations a and b"
   ^double [group1 group2]
   (let [m (count group1)
         n (count group2)
-        ^double r1 (reduce #(+ ^double %1 ^double %2) (take m (rank (concat group1 group2))))]
+        ^double r1 (reduce #(+ ^double %1 ^double %2) (take m (m/rank (concat group1 group2))))]
     (/ (- (+ r1 r1) (* m (inc m)))
        (* 2.0 m n))))
 
@@ -778,12 +786,106 @@
    (select-keys (binary-measures-all truth prediction true-value false-value)
                 [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance])))
 
+;; tests
 
-(comment defn t-test
-         ""
-         [sample1 sample2]
-         (TestUtils/t (m/seq->double-array sample1) (m/seq->double-array sample2)))
+;; t-test, reimplementation of R version
 
-(comment t-test [30.02 29.99 30.11 29.97 30.01 29.99]
-         [29.89 29.93 29.72 29.98 30.02 29.98])
+(defn- ttest-two-sided
+  [^double tstat ^double alpha ^double df]
+  (let [d (r/distribution :t {:degrees-of-freedom df})
+        p (* 2.0 ^double (r/cdf d (- (m/abs tstat))))
+        ^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
+    {:p-value p
+     :confidence-intervals [(- tstat cint) (+ tstat cint)]}))
 
+(defn- ttest-less
+  [^double tstat ^double alpha ^double df]
+  (let [d (r/distribution :t {:degrees-of-freedom df})]
+    {:p-value (r/cdf d tstat)
+     :confidence-intervals [##-Inf (+ tstat ^double (r/icdf d (- 1.0 alpha)))]}))
+
+(defn- ttest-greater
+  [^double tstat ^double alpha ^double df]
+  (let [d (r/distribution :t {:degrees-of-freedom df})]
+    {:p-value (- 1.0 ^double (r/cdf d tstat))
+     :confidence-intervals [(- tstat ^double (r/icdf d (- 1.0 alpha))) ##Inf]}))
+
+(defn- ttest-sides-fn
+  [sides]
+  (case sides
+    :one-sided-less ttest-less
+    :one-sided ttest-less
+    :one-sided-greater ttest-greater
+    ttest-two-sided))
+
+(defn- ttest-update-ci
+  [^double mu ^double stderr [^double l ^double r]]
+  [(+ mu (* l stderr))
+   (+ mu (* r stderr))])
+
+(defn ttest-one-sample
+  ([xs] (ttest-one-sample xs {}))
+  ([xs {:keys [^double alpha sides ^double mu]
+        :or {alpha 0.05 sides :two-sided mu 0.0}}]
+   (let [axs (m/seq->double-array xs)
+         n (alength axs)
+         m (mean axs)
+         v (variance axs)
+         stderr (m/sqrt (/ v n))]
+     (assert (> stderr (* 10.0 m/MACHINE-EPSILON (m/abs m))) "Constant data, can't perform test.")
+     (let [df (dec n)
+           tstat (/ (- m mu) stderr)
+           pvals (-> ((ttest-sides-fn sides) tstat alpha df)
+                     (update :confidence-intervals (partial ttest-update-ci mu stderr)))] 
+       (merge pvals {:estimated-mu m
+                     :df df
+                     :t tstat
+                     :test-type sides})))))
+
+(defn- ttest-equal-variances
+  [^double nx ^double ny ^double vx ^double vy]
+  (let [df (- (+ nx ny) 2.0)
+        v (/ (+ (* vx (dec nx))
+                (* vy (dec ny))) df)]
+    [df (m/sqrt (* v (+ (/ 1.0 nx)
+                        (/ 1.0 ny))))]))
+
+(defn- ttest-not-equal-variances
+  [^double nx ^double ny ^double vx ^double vy]
+  (let [stderrx (m/sqrt (/ vx nx))
+        stderry (m/sqrt (/ vy ny))
+        stderr (m/hypot-sqrt stderrx stderry)
+        df (/ (m/sq (m/sq stderr))
+              (+ (/ (m/sq (m/sq stderrx)) (dec nx))
+                 (/ (m/sq (m/sq stderry)) (dec ny))))]
+    [df stderr]))
+
+(defn ttest-two-samples
+  [xs ys {:keys [^double alpha sides ^double mu paired? equal-variances?]
+          :or {alpha 0.05 sides :two-sided mu 0.0 paired? false equal-variances? false}
+          :as params}]
+  (let [nx (count xs)
+        ny (count ys)]
+    (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
+                (and (not equal-variances?)
+                     (> nx 1) (> ny 1))) "Not enough observations.")
+    (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal.")) 
+    (if paired? (-> (ttest-one-sample (map (fn [^double x ^double y] (- x y)) xs ys) params)
+                    (assoc :paired? true))
+        (let [axs (m/seq->double-array xs)
+              ays (m/seq->double-array ys)
+              mx (mean axs)
+              my (mean ays)
+              vx (variance axs)
+              vy (variance ays)
+              [df ^double stderr] (if equal-variances?
+                                    (ttest-equal-variances nx ny vx vy)
+                                    (ttest-not-equal-variances nx ny vx vy))
+              tstat (/ (- mx my mu) stderr)
+              pvals (-> ((ttest-sides-fn sides) tstat alpha df)
+                        (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
+          (merge pvals {:estimated-mu [mx my]
+                        :df df
+                        :t tstat
+                        :test-type sides
+                        :paired? false})))))
