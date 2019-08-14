@@ -58,8 +58,7 @@
                         :corr "Correlation"
                         :extent "Extents"}}
   (:require [fastmath.core :as m]
-            [fastmath.random :as r]
-            [fastmath.stats :as stats])
+            [fastmath.random :as r])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]

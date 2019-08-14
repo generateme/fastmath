@@ -1,13 +1,12 @@
 (ns fastmath.kernel
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
-            [fastmath.vector :as v]
-            [fastmath.stats :as stats]
-            [fastmath.random :as r])
+            [fastmath.vector :as v])
   (:import [smile.math.rbf RadialBasisFunction]
            [smile.math.kernel MercerKernel]
            [smile.stat.distribution KernelDensity]
-           [clojure.lang IFn]))
+           [clojure.lang IFn]
+           [org.apache.commons.math3.distribution NormalDistribution]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -610,8 +609,10 @@
 
 (defn- nrd
   ^double [data]
-  (let [sd (stats/stddev data)
-        iqr (stats/iqr data)]
+  (let [adata (m/seq->double-array data)
+        sd (smile.math.Math/sd adata)
+        iqr (- (smile.math.Math/q3 adata)
+               (smile.math.Math/q1 adata))]
     (* 1.06 (min sd (/ iqr 1.34)) (m/pow (alength ^doubles data) -0.2))))
 
 (defn- kde
@@ -670,6 +671,8 @@
 
 (defmethod kernel-density :default [_ & r] (apply kernel-density :smile r))
 
+(defonce ^:private ^NormalDistribution local-normal (NormalDistribution.))
+
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
 
@@ -678,7 +681,7 @@
   ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
   ([method data bandwidth ^double alpha]
    (if (contains? kde-integral method)
-     (let [^double za (r/icdf r/default-normal (- 1.0 (* 0.5 (or alpha 0.05))))
+     (let [za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
            [kde-f ^double factor] (kernel-density method data bandwidth true)]
        (fn [^double x]
          (let [^double fx (kde-f x)

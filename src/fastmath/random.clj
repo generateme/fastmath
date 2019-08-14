@@ -99,13 +99,15 @@
                         :gen "Random sequence generation"
                         :dist "Distributions"}}
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
            [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
+           [umontreal.ssj.probdistmulti DirichletDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
@@ -329,7 +331,11 @@ See [[brand]].")
   ([v1 v2]
    `(if (brandom default-rng) ~v1 ~v2))
   ([prob v1 v2]
-   `(if (brandom default-rng ~prob) ~v1 ~v2)))
+   `(if (brandom default-rng ~prob) ~v1 ~v2))
+  ([prob]
+   `(brandom default-rng ~prob))
+  ([]
+   `(brandom default-rng)))
 
 (defn flip
   "Returns 1 with given probability, 0 otherwise"
@@ -337,6 +343,11 @@ See [[brand]].")
    (randval p 1 0))
   (^long []
    (randval 0.5 1 0)))
+
+(defn flipb
+  "Returns true with given probability, false otherwise"
+  ([p] (randval p))
+  ([] (randval)))
 
 ;; generators
 
@@ -575,7 +586,8 @@ See also [[jittered-sequence-generator]]."
   (^{:metadoc/categories #{:dist}} probability [d v] "Probability (PMF)")
   (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
   (^{:metadoc/categories #{:dist}} dimensions [d] "Returns dimensions")
-  (^{:metadoc/categories #{:dist}} source-object [d] "Returns Java object from backend library"))
+  (^{:metadoc/categories #{:dist}} source-object [d] "Returns Java object from backend library")
+  (^{:metadoc/categories #{:dist}} continuous? [d] "true if distributions supports real values"))
 
 (defprotocol UnivariateDistributionProto
   (^{:metadoc/categories #{:dist}} mean [d] "Mean")
@@ -600,7 +612,8 @@ See also [[jittered-sequence-generator]]."
    :probability (fn [^RealDistribution d ^double p] (.density d p))
    :sample (fn [^RealDistribution d] (.sample d))
    :dimensions (constantly 1)
-   :source-object identity} 
+   :source-object identity
+   :continuous? (constantly true)} 
   UnivariateDistributionProto
   {:mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
@@ -631,6 +644,7 @@ See also [[jittered-sequence-generator]]."
     (sample [_] (.inverseF d (drandom rng)))
     (dimensions [_] 1)
     (source-object [_] d)
+    (continuous? [_] true)
     UnivariateDistributionProto
     (mean [_] (.getMean d))
     (variance [_] (.getVariance d))
@@ -649,15 +663,16 @@ See also [[jittered-sequence-generator]]."
   [^DiscreteDistributionInt d ^RandomGenerator rng]
   (reify
     DistributionProto
-    (pdf [_ v] (.prob d v))
-    (lpdf [_ v] (m/log (.prob d v)))
-    (cdf [_ v] (.cdf d ^double v))
-    (cdf [_ v1 v2] (- (.cdf d ^double v2) (.cdf d ^double v1)))
+    (pdf [_ v] (.prob d (m/floor v)))
+    (lpdf [_ v] (m/log (.prob d (m/floor v))))
+    (cdf [_ v] (.cdf d (m/floor v)))
+    (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
     (icdf [_ v] (.inverseF d v))
-    (probability [_ v] (.prob d v))
+    (probability [_ v] (.prob d (m/floor v)))
     (sample [_] (.inverseF d (drandom rng)))
     (dimensions [_] 1)
     (source-object [_] d)
+    (continuous? [_] false)
     UnivariateDistributionProto
     (mean [_] (.getMean d))
     (variance [_] (.getVariance d))
@@ -673,18 +688,19 @@ See also [[jittered-sequence-generator]]."
     (set-seed! [d seed] (set-seed! rng seed) d)))
 
 ;; smile
-(extend Distribution
+(extend DiscreteDistribution
   DistributionProto
   {:cdf (fn
-          ([^Distribution d ^double v] (.cdf d v))
-          ([^Distribution d ^double v1 ^double v2] (- (.cdf d v2) (.cdf d v1))))
-   :pdf (fn [^Distribution d ^double v] (.p d v))
-   :lpdf (fn [^Distribution d ^double v] (.logp d v))
+          ([^Distribution d ^double v] (.cdf d (m/floor v)))
+          ([^Distribution d ^double v1 ^double v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1)))))
+   :pdf (fn [^Distribution d ^double v] (.p d (m/floor v)))
+   :lpdf (fn [^Distribution d ^double v] (.logp d (m/floor v)))
    :icdf (fn [^Distribution d ^double p] (.quantile d p))
-   :probability (fn [^Distribution d ^double v] (.p d v))
+   :probability (fn [^Distribution d ^double v] (.p d (m/floor v)))
    :sample (fn [^Distribution d] (.rand d))
    :dimensions (constantly 1)
-   :source-object identity}  
+   :source-object identity
+   :continuous? (constantly false)}  
   UnivariateDistributionProto
   {:mean (fn [^Distribution d] (.mean d))
    :variance (fn [^Distribution d] (.var d))}
@@ -700,15 +716,16 @@ See also [[jittered-sequence-generator]]."
 (extend IntegerDistribution
   DistributionProto
   {:cdf (fn
-          ([^IntegerDistribution d ^double v] (.cumulativeProbability d v))
-          ([^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+          ([^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
+          ([^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
    :icdf (fn [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :pdf (fn [^IntegerDistribution d ^double p] (.probability d p))
-   :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d p))
-   :probability (fn [^IntegerDistribution d ^double p] (.probability d p))
+   :pdf (fn [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
+   :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d (m/floor p)))
+   :probability (fn [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
    :sample (fn [^IntegerDistribution d] (.sample d))
    :dimensions (constantly 1)
-   :source-object identity}
+   :source-object identity
+   :continuous? (constantly false)}
   UnivariateDistributionProto
   {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
    :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
@@ -730,7 +747,8 @@ See also [[jittered-sequence-generator]]."
    :lpdf (fn [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
    :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
    :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))
-   :source-object identity}
+   :source-object identity
+   :continuous? (constantly true)}
   MultivariateDistributionProto
   {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
    :covariance (fn [^MultivariateNormalDistribution d]
@@ -753,10 +771,10 @@ See also [[jittered-sequence-generator]]."
 
 (defn log-likelihood
   "Log likelihood of samples"
-  ^double [d vs]
+  ^double [d vs] 
   (reduce #(if (m/inf? ^double %1)
              (reduced %1)
-             (+ ^double %1 ^double %2)) (map #(lpdf d %) vs)))
+             (+ ^double %1 ^double %2)) 0.0 (map #(lpdf d %) vs)))
 
 (defn likelihood
   "Likelihood of samples"
@@ -1018,6 +1036,7 @@ The rest parameters goes as follows:
        (sample [d] (icdf-fn (drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
+       (continuous? [_] true)
        UnivariateDistributionProto
        (mean [_] m)
        (variance [_] v)
@@ -1045,6 +1064,150 @@ The rest parameters goes as follows:
      (MultivariateNormalDistribution. (or (:rng all) (rng :jvm)) (m/seq->double-array means) (m/seq->double-double-array covariances))))
   ([_] (distribution :multi-normal {})))
 
+(defonce ^:const ^:private ^double zero+epsilon (m/next-double 0.0))
+(defonce ^:const ^:private ^double one-epsilon (m/prev-double 1.0))
+
+(defn- dirichlet-rev-log-beta
+  ^double [alpha]
+  (let [d (m/log-gamma (reduce m/fast+ alpha))
+        ^double n (reduce m/fast+ (map #(m/log-gamma %) alpha))]
+    (- d n)))
+
+(defn- dirichlet-lpdf
+  ^double [alpha- values ^double lbeta]
+  (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x]
+                                          (* ai (m/log x))) alpha- values))]
+    (+ lbeta p)))
+
+(defmethod distribution :dirichlet
+  ([_ {:keys [alpha] :as all}]
+   (let [alpha (cond
+                 (nil? alpha) (double-array [1])
+                 (seqable? alpha) (m/seq->double-array alpha)
+                 (integer? alpha) (double-array alpha 1.0)
+                 :else (double-array [1]))
+         r (or (:rng all) (rng :jvm))
+         sampler (mapv #(distribution :gamma {:shape % :scale 1.0 :rng r}) alpha)
+
+         lbeta (dirichlet-rev-log-beta alpha)
+         alpha- (map clojure.core/dec alpha)
+         
+         m (delay (seq (DirichletDist/getMean alpha)))
+         cv (delay (mapv vec (DirichletDist/getCovariance alpha)))
+         dim (count alpha)]
+     (reify
+       DistributionProto
+       (pdf [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
+       (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
+       (probability [d v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
+       (sample [_] (let [samples (mapv #(sample %) sampler)
+                         ^double s (v/sum samples)]
+                     (mapv (fn [^double s] (cond
+                                            (zero? s) zero+epsilon
+                                            (== s 1.0) one-epsilon
+                                            :else s))
+                           (if (> s 1.0e-30)
+                             (v/div samples (v/sum samples))
+                             (let [a (int-array dim)]
+                               (aset ^ints a (irand dim) 1)
+                               a)))))
+       (dimensions [_] dim)
+       (source-object [this] this)
+       (continuous? [_] true)
+       MultivariateDistributionProto
+       (means [_] @m)
+       (covariance [_] @cv)
+       RNGProto
+       RNGProto
+       (drandom [d] (sample d))
+       (frandom [d] (mapv unchecked-float (sample d)))
+       (lrandom [d] (mapv unchecked-long (sample d)))
+       (irandom [d] (mapv unchecked-int (sample d)))
+       (->seq [d] (repeatedly #(sample d)))
+       (->seq [d n] (repeatedly n #(sample d)))
+       (set-seed! [d seed] (set-seed! r seed) d)))) 
+  ([_] (distribution :dirichlet {})))
+
+;; 
+
+(defmethod distribution :continuous-distribution
+  ([_ {:keys [data kernel h bin-count probabilities]
+       :or {kernel :smile}
+       :as all}]
+   (let [d (m/seq->double-array data)]
+     (java.util.Arrays/sort d)
+     (let [r (or (:rng all) (rng :jvm)) 
+           kde (if h
+                 (k/kernel-density kernel d h)
+                 (k/kernel-density kernel d))
+           ^RealDistribution enumerated (distribution :enumerated-real {:data d :probabilities probabilities :rng r})
+           ^RealDistribution empirical (distribution :empirical (if-not bin-count
+                                                                  {:data d}
+                                                                  {:data d :bin-count bin-count}))]
+       (reify
+         DistributionProto
+         (pdf [_ v] (kde v))
+         (lpdf [_ v] (m/log (kde v)))
+         (cdf [_ v] (.cumulativeProbability enumerated ^double v))
+         (cdf [_ v1 v2] (.cumulativeProbability enumerated ^double v1 ^double v2))
+         (icdf [_ v] (.inverseCumulativeProbability empirical v))
+         (probability [_ v] (kde v))
+         (sample [_] (.sample enumerated))
+         (dimensions [_] 1)
+         (source-object [d] {:enumerated enumerated
+                             :empirical empirical})
+         (continuous? [_] true)
+         UnivariateDistributionProto
+         (mean [_] (mean enumerated))
+         (variance [_] (variance enumerated))
+         (lower-bound [_] (lower-bound enumerated))
+         (upper-bound [_] (upper-bound enumerated))
+         RNGProto
+         (drandom [_] (drandom enumerated))
+         (frandom [_] (frandom enumerated))
+         (lrandom [_] (lrandom enumerated))
+         (irandom [_] (irandom enumerated))
+         (->seq [_] (->seq enumerated))
+         (->seq [_ n] (->seq enumerated n))
+         (set-seed! [d seed] (set-seed! r seed) d))))))
+
+(defmethod distribution :integer-discrete-distribution [_ d]
+  (distribution :enumerated-int (update d :data #(map (fn [^double v]
+                                                        (int (m/floor v))) %))))
+
+(defmethod distribution :real-discrete-distribution [_ d]
+  (distribution :enumerated-real d))
+
+(defmethod distribution :categorical-distribution
+  ([_ {:keys [data probabilities]
+       :as all}]
+   (let [r (or (:rng all) (rng :jvm))
+         
+         ^clojure.lang.ILookup unique (vec (distinct data))
+         ^clojure.lang.ILookup dict (zipmap unique (range (count unique)))
+         
+         ^AbstractIntegerDistribution enumerated (distribution :enumerated-int {:data (map dict data) :probabilities probabilities :rng r})]
+     (reify
+       DistributionProto
+       (pdf [_ v] (.probability enumerated (.valAt dict v -1)))
+       (lpdf [_ v] (.logProbability enumerated (.valAt dict v -1)))
+       (cdf [_ v] (.cumulativeProbability enumerated (.valAt dict v -1)))
+       (icdf [_ v] (.valAt unique (.inverseCumulativeProbability enumerated ^double v)))
+       (probability [_ v] (.probability enumerated (.valAt dict v -1)))
+       (sample [_] (.valAt unique (.sample enumerated)))
+       (dimensions [_] 1)
+       (source-object [d] enumerated)
+       (continuous? [_] false)
+       UnivariateDistributionProto
+       (mean [_] (mean enumerated))
+       (variance [_] (variance enumerated))
+       RNGProto
+       (->seq [_] (map #(.valAt unique %) (->seq enumerated)))
+       (->seq [_ n] (map #(.valAt unique %) (->seq enumerated n)))
+       (set-seed! [d seed] (set-seed! r seed) d)))))
+
+;;
+
 (def ^{:doc "List of distributions."
        :metadoc/categories #{:dist}}
   distributions-list
@@ -1053,3 +1216,5 @@ The rest parameters goes as follows:
 (defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
            :metadoc/categories #{:dist}}
   default-normal (distribution :normal))
+
+(type (zipmap [:a] [:b]))

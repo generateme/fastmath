@@ -179,6 +179,12 @@
 (variadic-predicate-proxy ^{:doc "Equality. See also [[eq]] for function version." :metadoc/categories #{:compare}} == eq)
 (variadic-predicate-proxy ^{:metadoc/categories #{:compare}} not== neq)
 
+(defn fast+ {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (+ a b))
+(defn fast- {:inline (fn [x y] `(- ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (- a b))
+(defn fast* {:inline (fn [x y] `(* ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (* a b))
+(defn fast-max {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (max a b))
+(defn fast-min {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (min a b))
+
 ;; Primitive math eq
 (defn eq 
   "Primitive math equality function for doubles. See [[==]]."
@@ -738,37 +744,43 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn nan?
   "Check if number is NaN"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(Double/isNaN ~v)) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
   (Double/isNaN v))
 
 (defn inf?
   "Check if number is infinite"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(Double/isInfinite ~v)) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
   (Double/isInfinite v))
 
 (defn pos-inf?
   "Check if number is positively infinite"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(== ~v ##Inf)) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
   (== v ##Inf))
 
 (defn neg-inf?
   "Check if number is negatively infinite"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(== ~v ##-Inf)) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
   (== v ##-Inf))
 
 (defn invalid-double?
   "Check if number is invalid"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(bool-not (Double/isFinite ~v))) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
-  (not (Double/isFinite v)))
+  (bool-not (Double/isFinite v)))
 
 (defn valid-double?
   "Check if number is invalid"
-  {:metadoc/categories #{:bool :compare}}
+  {:inline (fn [v] `(Double/isFinite ~v)) :inline-arities #{1}
+   :metadoc/categories #{:bool :compare}}
   [^double v]
   (Double/isFinite v))
 
@@ -926,8 +938,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Convert sequence to double array."
   ^doubles [vs]
   (cond
+    (= (type vs) double-array-type) vs
     (nil? vs) nil
-    (= (type vs) double-double-array-type) vs
     (seqable? vs) (double-array vs)
     :else (let [arr (double-array 1)] 
             (aset arr 0 (double vs))
@@ -943,9 +955,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   
   If sequence is double-array of double-arrays do not convert"
   #^"[[D" [vss]
-  (cond
-    (nil? vss) nil
+  (cond 
     (= (type vss) double-double-array-type) vss
+    (nil? vss) nil
     :else (into-array (mapv seq->double-array vss))))
 
 ;; ## Copy of primitive math machinery

@@ -6,13 +6,20 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 * `optimization` package with various optimization methods
+* BayesianOptimization
 * NegativeBinomial distribution
+* bunch of SSJ based distributions
 * bootstrap datasets
+* t-test
 
 ### Changed
 
 * [breaking] `classification` and `regression` refactored
 * [breaking] `kernel-density` moved to `kernel` namespace
+
+### Fixed
+
+* m/seq->double-array didn't recognize array type properly
 
 ## [1.3.0 SNAPSHOT]
 
