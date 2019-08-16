@@ -764,7 +764,7 @@ See also [[jittered-sequence-generator]]."
             ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
    :set-seed! (fn [^MultivariateNormalDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
-(defn observe
+(defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
   ^double [d ^double v]
   (lpdf d v))
@@ -772,9 +772,14 @@ See also [[jittered-sequence-generator]]."
 (defn log-likelihood
   "Log likelihood of samples"
   ^double [d vs] 
-  (reduce #(if (m/inf? ^double %1)
-             (reduced %1)
-             (+ ^double %1 ^double %2)) 0.0 (map #(lpdf d %) vs)))
+  (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
+                                     (reduced s)
+                                     (+ s v))) 0.0 (map #(lpdf d %) vs)))
+
+(defmacro observe
+  "Log likelihood of samples. Alias for [[log-likelihood]]."
+  [d vs]
+  `(log-likelihood ~d ~vs))
 
 (defn likelihood
   "Likelihood of samples"
@@ -1055,9 +1060,13 @@ The rest parameters goes as follows:
 
 (defmethod distribution :multi-normal
   ([_ {:keys [means covariances] :as all}]
-   (let [covariances (if-not covariances
-                       [[1.0 0.0] [0.0 1.0]]
-                       covariances)
+   (let [covariances (cond
+                       (and means (not covariances)) (for [id (range (count means))
+                                                           :let [a (double-array (count means))]]
+                                                       (do (aset a id 1.0)
+                                                           a))
+                       (not covariances) [[1.0 0.0] [0.0 1.0]]
+                       :else covariances)
          means (if-not means (repeat (count (first covariances)) 0.0) means)]
      (assert (= (count means) (count (first covariances)))
              "Means and covariances sizes do not match.")
@@ -1075,9 +1084,11 @@ The rest parameters goes as follows:
 
 (defn- dirichlet-lpdf
   ^double [alpha- values ^double lbeta]
-  (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x]
-                                          (* ai (m/log x))) alpha- values))]
-    (+ lbeta p)))
+  (if (every? #(< 0.0 ^double % 1.0) values)
+    (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x] 
+                                            (* ai (m/log x))) alpha- values))]
+      (+ lbeta p))
+    ##-Inf))
 
 (defmethod distribution :dirichlet
   ([_ {:keys [alpha] :as all}]
@@ -1100,14 +1111,14 @@ The rest parameters goes as follows:
        (pdf [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
        (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
        (probability [d v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
-       (sample [_] (let [samples (mapv #(sample %) sampler)
+       (sample [_] (let [samples (map #(sample %) sampler)
                          ^double s (v/sum samples)]
-                     (mapv (fn [^double s] (cond
-                                            (zero? s) zero+epsilon
-                                            (== s 1.0) one-epsilon
-                                            :else s))
-                           (if (> s 1.0e-30)
-                             (v/div samples (v/sum samples))
+                     (mapv (fn [^double v] (cond
+                                            (zero? v) zero+epsilon
+                                            (== v 1.0) one-epsilon
+                                            :else v))
+                           (if (> s 1.0e-6)
+                             (v/div samples s)
                              (let [a (int-array dim)]
                                (aset ^ints a (irand dim) 1)
                                a)))))
