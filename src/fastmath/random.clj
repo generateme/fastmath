@@ -600,6 +600,11 @@ See also [[jittered-sequence-generator]]."
   (^{:metadoc/categories #{:dist}} means [d] "Mean")
   (^{:metadoc/categories #{:dist}} covariance [d] "Variance"))
 
+(defprotocol DistributionIdProto
+  "Get name and parameter names from distribution"
+  (^{:metadoc/categories #{:dist}} distr-id [d] "Distribution id as keyword")
+  (^{:metadoc/categories #{:dist}} parameter-names [d] "List of parameter names"))
+
 ;; apache commons math
 (extend RealDistribution
   DistributionProto
@@ -632,60 +637,68 @@ See also [[jittered-sequence-generator]]."
 ;; ssj
 
 (defn- reify-continuous-ssj
-  [^ContinuousDistribution d ^RandomGenerator rng]
-  (reify
-    DistributionProto
-    (pdf [_ v] (.density d v))
-    (lpdf [_ v] (m/log (.density d v)))
-    (cdf [_ v] (.cdf d v))
-    (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
-    (icdf [_ v] (.inverseF d v))
-    (probability [_ v] (.density d v))
-    (sample [_] (.inverseF d (drandom rng)))
-    (dimensions [_] 1)
-    (source-object [_] d)
-    (continuous? [_] true)
-    UnivariateDistributionProto
-    (mean [_] (.getMean d))
-    (variance [_] (.getVariance d))
-    (lower-bound [_] (.getXinf d))
-    (upper-bound [_] (.getXsup d))
-    RNGProto
-    (drandom [_] (.inverseF d (drandom rng)))
-    (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
-    (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
-    (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
-    (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
-    (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
-    (set-seed! [d seed] (set-seed! rng seed) d)))
+  [^ContinuousDistribution d ^RandomGenerator rng nm & ks]
+  (let [kss (vec (conj ks :rng))]
+    (reify
+      DistributionProto
+      (pdf [_ v] (.density d v))
+      (lpdf [_ v] (m/log (.density d v)))
+      (cdf [_ v] (.cdf d v))
+      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
+      (icdf [_ v] (.inverseF d v))
+      (probability [_ v] (.density d v))
+      (sample [_] (.inverseF d (drandom rng)))
+      (dimensions [_] 1)
+      (source-object [_] d)
+      (continuous? [_] true)
+      DistributionIdProto
+      (distr-id [_] nm)
+      (parameter-names [_] kss)
+      UnivariateDistributionProto
+      (mean [_] (.getMean d))
+      (variance [_] (.getVariance d))
+      (lower-bound [_] (.getXinf d))
+      (upper-bound [_] (.getXsup d))
+      RNGProto
+      (drandom [_] (.inverseF d (drandom rng)))
+      (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
+      (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
+      (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
+      (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
+      (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
+      (set-seed! [d seed] (set-seed! rng seed) d))))
 
 (defn- reify-integer-ssj
-  [^DiscreteDistributionInt d ^RandomGenerator rng]
-  (reify
-    DistributionProto
-    (pdf [_ v] (.prob d (m/floor v)))
-    (lpdf [_ v] (m/log (.prob d (m/floor v))))
-    (cdf [_ v] (.cdf d (m/floor v)))
-    (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
-    (icdf [_ v] (.inverseF d v))
-    (probability [_ v] (.prob d (m/floor v)))
-    (sample [_] (.inverseF d (drandom rng)))
-    (dimensions [_] 1)
-    (source-object [_] d)
-    (continuous? [_] false)
-    UnivariateDistributionProto
-    (mean [_] (.getMean d))
-    (variance [_] (.getVariance d))
-    (lower-bound [_] (.getXinf d))
-    (upper-bound [_] (.getXsup d))
-    RNGProto
-    (drandom [_] (.inverseF d (drandom rng)))
-    (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
-    (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
-    (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
-    (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
-    (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
-    (set-seed! [d seed] (set-seed! rng seed) d)))
+  [^DiscreteDistributionInt d ^RandomGenerator rng nm & ks]
+  (let [kss (vec (conj ks :rng))]
+    (reify
+      DistributionProto
+      (pdf [_ v] (.prob d (m/floor v)))
+      (lpdf [_ v] (m/log (.prob d (m/floor v))))
+      (cdf [_ v] (.cdf d (m/floor v)))
+      (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
+      (icdf [_ v] (.inverseF d v))
+      (probability [_ v] (.prob d (m/floor v)))
+      (sample [_] (.inverseF d (drandom rng)))
+      (dimensions [_] 1)
+      (source-object [_] d)
+      (continuous? [_] false)
+      DistributionIdProto
+      (distr-id [_] nm)
+      (parameter-names [_] kss)
+      UnivariateDistributionProto
+      (mean [_] (.getMean d))
+      (variance [_] (.getVariance d))
+      (lower-bound [_] (.getXinf d))
+      (upper-bound [_] (.getXsup d))
+      RNGProto
+      (drandom [_] (.inverseF d (drandom rng)))
+      (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
+      (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
+      (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
+      (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
+      (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
+      (set-seed! [d seed] (set-seed! rng seed) d))))
 
 ;; smile
 (extend DiscreteDistribution
@@ -838,13 +851,18 @@ The rest parameters goes as follows:
 (defmacro ^:private make-acm-distr
   [nm obj ks vs]
   (let [or-map (zipmap ks vs)] 
-    `(defmethod distribution ~nm
-       ([n# {:keys [~@ks]
-             :or ~or-map
-             :as all#}]
-        (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
-          (new ~obj r# ~@ks)))
-       ([n#] (distribution ~nm {})))))
+    `(do
+       (extend ~obj
+         DistributionIdProto
+         {:distr-id (fn [d#] ~nm)
+          :parameter-names (fn [d#] [~@(conj (map keyword ks) :rng)])})
+       (defmethod distribution ~nm
+         ([n# {:keys [~@ks]
+               :or ~or-map
+               :as all#}]
+          (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
+            (new ~obj r# ~@ks)))
+         ([n#] (distribution ~nm {}))))))
 
 (make-acm-distr :beta BetaDistribution
                 [alpha beta inverse-cumm-accuracy]
@@ -902,9 +920,15 @@ The rest parameters goes as follows:
                 [alpha beta inverse-cumm-accuracy]
                 [2.0 1.0 WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
+(extend EmpiricalDistribution
+  DistributionIdProto
+  {:distr-id (fn [_] :empirical)
+   :parameter-names (fn [_] [:rng :bin-count :data])})
+
 (defmethod distribution :empirical
   ([_ {:keys [^long bin-count data]
-       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT}
+       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT
+            data [1.0]}
        :as all}]
    (let [^RandomGenerator r (or (:rng all) (rng :jvm))
          ^EmpiricalDistribution d (EmpiricalDistribution. bin-count r)]
@@ -912,8 +936,14 @@ The rest parameters goes as follows:
      d))
   ([_] (distribution :empirical {})))
 
+(extend EnumeratedRealDistribution
+  DistributionIdProto
+  {:distr-id (fn [_] :enumerated-real)
+   :parameter-names (fn [_] [:rng :data :probabilities])})
+
 (defmethod distribution :enumerated-real
   ([_ {:keys [data probabilities]
+       :or {data [1.0]}
        :as all}]
    (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
      (if probabilities
@@ -922,6 +952,11 @@ The rest parameters goes as follows:
   ([_] (distribution :enumerated-real {})))
 
 ;; integer
+
+(extend NegativeBinomialDistribution
+  DistributionIdProto
+  {:distr-id (fn [_] :negative-binomial)
+   :parameter-names (fn [_] [:r :p :rng])})
 
 (defmethod distribution :negative-binomial
   ([_ {:keys [^double r ^double p]
@@ -936,8 +971,14 @@ The rest parameters goes as follows:
    (BinomialDistribution. (or (:rng all) (rng :jvm)) 1 p))
   ([_] (distribution :bernoulli {})))
 
+(extend EnumeratedIntegerDistribution
+  DistributionIdProto
+  {:distr-id (fn [_] :enumerated-int)
+   :parameter-names (fn [_] [:data :probabilities :rng])})
+
 (defmethod distribution :enumerated-int
   ([_ {:keys [data probabilities]
+       :or {data [1]}
        :as all}]
    (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
      (if probabilities
@@ -966,14 +1007,13 @@ The rest parameters goes as follows:
              :or ~or-map
              :as all#}]
         (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
-          (~rf (new ~obj ~@ks) r#)))
+          (~rf (new ~obj ~@ks) r# ~nm ~@(map keyword ks))))
        ([n#] (distribution ~nm {})))))
 
 (defmacro ^:private make-ssjc-distr
   [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj ~nm ~obj ~ks ~vs))
 (defmacro ^:private make-ssji-distr
   [nm obj ks vs] `(make-ssj-distr reify-integer-ssj ~nm ~obj ~ks ~vs))
-
 
 (make-ssjc-distr :anderson-darling AndersonDarlingDistQuick [n] [1.0])
 (make-ssjc-distr :inverse-gamma InverseGammaDist [alpha beta] [2.0 1.0])
@@ -1002,10 +1042,10 @@ The rest parameters goes as follows:
 (make-ssjc-distr :watson-u WatsonUDist [n] [2.0])
 
 (defmethod distribution :hypoexponential
-  ([_ {:keys [lambdas]
+  ([k {:keys [lambdas]
        :or {lambdas [1.0]}
        :as all}]
-   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or (:rng all) (rng :jvm))))
+   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or (:rng all) (rng :jvm)) k :lambdas))
   ([_] (distribution :hypoexponential {})))
 
 (defmethod distribution :reciprocal-sqrt
@@ -1042,6 +1082,9 @@ The rest parameters goes as follows:
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
+       DistributionIdProto
+       (distr-id [_] :reciprocal-sqrt)
+       (parameter-names [_] [:a :rng])
        UnivariateDistributionProto
        (mean [_] m)
        (variance [_] v)
@@ -1057,6 +1100,11 @@ The rest parameters goes as follows:
        (set-seed! [d seed] (set-seed! r seed) d)))))
 
 ;;
+
+(extend MultivariateNormalDistribution
+  DistributionIdProto
+  {:distr-id (fn [_] :multi-normal)
+   :parameter-names (fn [_] [:means :covariances :rng])})
 
 (defmethod distribution :multi-normal
   ([_ {:keys [means covariances] :as all}]
@@ -1125,6 +1173,9 @@ The rest parameters goes as follows:
        (dimensions [_] dim)
        (source-object [this] this)
        (continuous? [_] true)
+       DistributionIdProto
+       (distr-id [_] :dirichlet)
+       (parameter-names [_] [:alpha :rng])
        MultivariateDistributionProto
        (means [_] @m)
        (covariance [_] @cv)
@@ -1143,7 +1194,7 @@ The rest parameters goes as follows:
 
 (defmethod distribution :continuous-distribution
   ([_ {:keys [data kernel h bin-count probabilities]
-       :or {kernel :smile}
+       :or {kernel :smile data [-1.0 0.0 1.0]}
        :as all}]
    (let [d (m/seq->double-array data)]
      (java.util.Arrays/sort d)
@@ -1168,6 +1219,9 @@ The rest parameters goes as follows:
          (source-object [d] {:enumerated enumerated
                              :empirical empirical})
          (continuous? [_] true)
+         DistributionIdProto
+         (distr-id [_] :continuous-distribution)
+         (parameter-names [_] [:data :kernel :h :bin-count :probabilities :rng])
          UnivariateDistributionProto
          (mean [_] (mean enumerated))
          (variance [_] (variance enumerated))
@@ -1180,23 +1234,27 @@ The rest parameters goes as follows:
          (irandom [_] (irandom enumerated))
          (->seq [_] (->seq enumerated))
          (->seq [_ n] (->seq enumerated n))
-         (set-seed! [d seed] (set-seed! r seed) d))))))
+         (set-seed! [d seed] (set-seed! r seed) d)))))
+  ([_] (distribution :continuous-distribution {})))
 
-(defmethod distribution :integer-discrete-distribution [_ d]
-  (distribution :enumerated-int (update d :data #(map (fn [^double v]
-                                                        (int (m/floor v))) %))))
+(defmethod distribution :integer-discrete-distribution
+  ([_ d]
+   (distribution :enumerated-int (update d :data #(map (fn [^double v]
+                                                         (int (m/floor v))) %))))
+  ([_] (distribution :enumerated-int)))
 
-(defmethod distribution :real-discrete-distribution [_ d]
-  (distribution :enumerated-real d))
+(defmethod distribution :real-discrete-distribution [_ & d]
+  (apply distribution :enumerated-real d))
 
 (defmethod distribution :categorical-distribution
   ([_ {:keys [data probabilities]
+       :or {data [1]}
        :as all}]
    (let [r (or (:rng all) (rng :jvm))
          
          ^clojure.lang.ILookup unique (vec (distinct data))
          ^clojure.lang.ILookup dict (zipmap unique (range (count unique)))
-         
+
          ^AbstractIntegerDistribution enumerated (distribution :enumerated-int {:data (map dict data) :probabilities probabilities :rng r})]
      (reify
        DistributionProto
@@ -1209,13 +1267,17 @@ The rest parameters goes as follows:
        (dimensions [_] 1)
        (source-object [d] enumerated)
        (continuous? [_] false)
+       DistributionIdProto
+       (distr-id [_] :categorical-distribution)
+       (parameter-names [_] [:data :probabilities :rng])
        UnivariateDistributionProto
        (mean [_] (mean enumerated))
        (variance [_] (variance enumerated))
        RNGProto
        (->seq [_] (map #(.valAt unique %) (->seq enumerated)))
        (->seq [_ n] (map #(.valAt unique %) (->seq enumerated n)))
-       (set-seed! [d seed] (set-seed! r seed) d)))))
+       (set-seed! [d seed] (set-seed! r seed) d))))
+  ([_] (distribution :categorical-distribution {})))
 
 ;;
 
