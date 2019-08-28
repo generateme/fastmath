@@ -779,7 +779,7 @@ See also [[jittered-sequence-generator]]."
 
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
-  ^double [d ^double v]
+  ^double [d v]
   (lpdf d v))
 
 (defn log-likelihood
@@ -1141,10 +1141,12 @@ The rest parameters goes as follows:
 (defmethod distribution :dirichlet
   ([_ {:keys [alpha] :as all}]
    (let [alpha (cond
-                 (nil? alpha) (double-array [1])
-                 (seqable? alpha) (m/seq->double-array alpha)
-                 (integer? alpha) (double-array alpha 1.0)
-                 :else (double-array [1]))
+                 (nil? alpha) (double-array [1 1])
+                 (seqable? alpha) (do (assert (> (count alpha) 1))
+                                      (m/seq->double-array alpha))
+                 (integer? alpha) (do (assert (> (int alpha) 1))
+                                      (double-array alpha 1.0))
+                 :else (double-array [1 1]))
          r (or (:rng all) (rng :jvm))
          sampler (mapv #(distribution :gamma {:shape % :scale 1.0 :rng r}) alpha)
 
@@ -1278,6 +1280,52 @@ The rest parameters goes as follows:
        (->seq [_ n] (map #(.valAt unique %) (->seq enumerated n)))
        (set-seed! [d seed] (set-seed! r seed) d))))
   ([_] (distribution :categorical-distribution {})))
+
+;;
+
+(defonce ^:private ^:const ^double LOG_M_2_PI (m/log m/M_2_PI))
+
+(defmethod distribution :half-cauchy
+  ([_ {:keys [^double scale]
+       :or {scale 1.0}
+       :as all}]
+   (let [ls (m/log scale)
+         lpdf-fn (fn [^double x]
+                   (if (neg? x)
+                     ##-Inf
+                     (- LOG_M_2_PI ls (m/log1p (m/sq (/ x scale))))))
+         icdf-fn (fn [^double p]
+                   (* scale (m/tan (* m/HALF_PI p))))
+         r (or (:rng all) (rng :jvm))]
+     (reify
+       DistributionProto
+       (pdf [_ v] (m/exp (lpdf-fn v)))
+       (lpdf [_ v] (lpdf-fn v))
+       (cdf [_ v] (* m/M_2_PI (m/atan (/ ^double v scale))))
+       (cdf [d v1 v2] (- ^double (cdf d v2) ^double (cdf d v1)))
+       (icdf [_ v] (icdf-fn v))
+       (probability [d v] (m/exp (lpdf-fn v)))
+       (sample [d] (icdf-fn (drandom r)))
+       (dimensions [_] 1)
+       (source-object [d] d)
+       (continuous? [_] true)
+       DistributionIdProto
+       (distr-id [_] :half-cauchy)
+       (parameter-names [_] [:scale :rng])
+       UnivariateDistributionProto
+       (mean [_] ##NaN)
+       (variance [_] ##NaN)
+       (lower-bound [_] 0)
+       (upper-bound [_] ##Inf)
+       RNGProto
+       (drandom [_] (icdf-fn (drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (drandom r))))
+       (set-seed! [d seed] (set-seed! r seed) d))))
+  ([_] (distribution :half-cauchy {})))
 
 ;;
 
