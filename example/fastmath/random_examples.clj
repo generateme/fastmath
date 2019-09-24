@@ -6,8 +6,8 @@
   (example "Contains" (sort rngs-list)))
 
 (add-examples rng
-  (example-session "Creating" (rng :mersenne) (rng :isaac 1234))
-  (example "Using" (irandom (rng :mersenne 999) 15 25)))
+  (example-session "Creation" (rng :mersenne) (rng :isaac 1234))
+  (example "Usage" (irandom (rng :mersenne 999) 15 25)))
 
 (defsnippet rngproto-snippet
   "Show [[RNGProto]] methods."
@@ -51,6 +51,14 @@
   (example-session "Usage" (randval :val-one :val-two) (randval 0.001 :low-probability :high-probability))
   (example "Check probability of nil (should return value around 1000)." (count (filter nil? (repeatedly 1000000 #(randval 0.001 nil 101))))))
 
+(add-examples flip
+  (example-session "Usage" (flip) (flip 0.2) (repeatedly 10 #(flip 0.1))))
+
+(add-examples flipb
+  (example-session "Usage" (flipb) (flipb 0.2) (repeatedly 10 #(flipb 0.1))))
+
+;; generators
+
 (add-examples sequence-generators-list
   (example "Generator names." (sort sequence-generators-list)))
 
@@ -61,16 +69,25 @@
                           (take 5 gen)))
   (example "Usage (10d)" (second (sequence-generator :halton 10)))
   (example "Usage, R2 sequence" (take 5 (sequence-generator :r2 3)))
-  (example-image "Halton plot (1000 samples)" "images/r/halton.jpg")
-  (example-image "Sobol plot (1000 samples)" "images/r/sobol.jpg")
-  (example-image "Sphere plot (1000 samples)" "images/r/sphere.jpg")
-  (example-image "Gaussian plot (1000 samples)" "images/r/gaussian.jpg")
-  (example-image "Default plot (1000 samples)" "images/r/default.jpg"))
+  (example-image "R2 plot (500 samples)" "images/r/r2.jpg")
+  (example-image "Halton plot (500 samples)" "images/r/halton.jpg")
+  (example-image "Sobol plot (500 samples)" "images/r/sobol.jpg")
+  (example-image "Sphere plot (500 samples)" "images/r/sphere.jpg")
+  (example-image "Gaussian plot (500 samples)" "images/r/gaussian.jpg")
+  (example-image "Default plot (500 samples)" "images/r/default.jpg"))
 
 (add-examples jittered-sequence-generator
   (example (let [gen1 (jittered-sequence-generator :r2 2 0.5)
                  gen2 (jittered-sequence-generator :r2 2 0.5)]
-             [(first gen1) (first gen2)])))
+             [(first gen1) (first gen2)]))
+  (example-image "Jittered (0.5) R2 plot (500 samples)" "images/r/jr2.jpg")
+  (example-image "Jittered (0.5) Halton plot (500 samples)" "images/r/jhalton.jpg")
+  (example-image "Jittered (0.5) Sobol plot (500 samples)" "images/r/jsobol.jpg")
+  (example-image "Jittered (0.5) Sphere plot (500 samples)" "images/r/jsphere.jpg")
+  (example-image "Jittered (0.5) Gaussian plot (500 samples)" "images/r/jgaussian.jpg")
+  (example-image "Jittered (0.5) Default plot (500 samples)" "images/r/jdefault.jpg"))
+
+;; noise
 
 (add-examples interpolations (example "List of names (keys)" (keys interpolations)))
 (add-examples noise-types (example "List of names (keys)" (keys noise-types)))
@@ -99,7 +116,7 @@
 (add-examples random-noise-cfg
   (example "Random configuration" (random-noise-cfg)))
 
-(add-examples random-noise-cfg
+(add-examples random-noise-fn
   (example-session "Create function"
     (random-noise-fn)
     (random-noise-fn (random-noise-cfg)))
@@ -152,8 +169,19 @@
 (add-examples distributions-list
   (example-session "Number and list of distributions" distributions-list (count distributions-list)))
 
-(doseq [n distributions-list]
-  (add-examples distribution (example-image (str "PDFs of " (name n)) (str "images/d/" (name n) ".jpg"))))
+(doseq [n (disj distributions-list
+                :categorical-distribution :cramer-von-mises :logarithmic :normal-inverse-gaussian
+                :multi-normal :dirichlet)]
+  (add-examples distribution (example-image (str "PDFs of " (name n)) (str "images/d/pdf-" (name n) ".jpg")))
+  (add-examples distribution (example-image (str "CDFs of " (name n)) (str "images/d/cdf-" (name n) ".jpg")))
+  (add-examples distribution (example-image (str "ICDFs of " (name n)) (str "images/d/icdf-" (name n) ".jpg"))))
+
+(add-examples distribution (example-image "2d multidimensional normal (mean=[0,0], covariances=I)"
+                             (str "images/d/multi-normal.jpg")))
+(add-examples distribution (example-image "2d multidimensional normal (mean=[0,0], covariances=[[1 -1] [-1 2]])"
+                             (str "images/d/multi-normal2.jpg")))
+(add-examples distribution (example-image "2d dirichlet (alpha=[2,0.8])"
+                             (str "images/d/dirichlet.jpg")))
 
 ;;
 

@@ -96,8 +96,9 @@
 
 (defn- wrap-objective-function [f] (ObjectiveFunction. f))
 
-(defn- multivariate-gradient [^MultivariateFunction f ^double step]
+(defn- multivariate-gradient
   "Calculate gradient numerically."
+  [^MultivariateFunction f ^double step] 
   (let [step2 (+ step step)]
     (reify MultivariateVectorFunction
       (value [_ xs]

@@ -1,6 +1,6 @@
 (ns clojure.core.matrix.fastmath
   (:require [clojure.core.matrix.protocols :as mat]
-            [fastmath.vector :refer :all]
+            [fastmath.vector :refer [abs add as-vec clamp cross dist div dot emult fmap interpolate mag magsq make-vector mn mult mx nonzero-count normalize permute sub sum zero-count sq sigmoid log1p exp ceil floor atan cos sin log10 tan log cbrt sqrt cosh asin sinh acos round signum radians degrees tanh]]
             [fastmath.core :as m])
   (:import [fastmath.vector Vec2 Vec3 Vec4 ArrayVec]))
 

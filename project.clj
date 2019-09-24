@@ -6,10 +6,10 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [com.github.haifengl/smile-interpolation "1.5.2" ]
-                 [com.github.haifengl/smile-core "1.5.2"]
-                 [com.github.haifengl/smile-netlib "1.5.2"]
-                 [org.slf4j/slf4j-nop "1.7.25"]
+                 [com.github.haifengl/smile-interpolation "1.5.3" ]
+                 [com.github.haifengl/smile-core "1.5.3"]
+                 [com.github.haifengl/smile-netlib "1.5.3"]
+                 [org.slf4j/slf4j-nop "1.7.28"]
                  [de.sciss/jwave "1.0.3"]
                  [net.mikera/core.matrix "0.62.0"]
                  ;; [clj-boost "0.0.4"]
@@ -21,5 +21,7 @@
   :javac-options ["-target" "1.8" "-source" "1.8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
-  :profiles {:dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"}}
+  :profiles {:dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
+                                 ;; :namespaces [#"^fastmath\."]
+                                 }}
              :uberjar {:aot :all}})

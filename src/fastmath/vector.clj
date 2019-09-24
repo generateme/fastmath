@@ -208,64 +208,64 @@
 
 (defn- aevery
   "Array version of every"
-  [^doubles array pred]
-  (let [s (alength array)]
+  [^doubles arr pred]
+  (let [s (alength arr)]
     (loop [idx (unchecked-long 0)]
       (if (< idx s)
-        (if (pred (aget array idx))
+        (if (pred (aget arr idx))
           (recur (inc idx))
           false)
         true))))
 
 (extend-type (Class/forName "[D")
   VectorProto
-  (to-vec [array] (let [^Vec v (vector-of :double)]
-                    (Vec. (.am v) (alength ^doubles array) (.shift v) (.root v) array (.meta v))))
+  (to-vec [arr] (let [^Vec v (vector-of :double)]
+                  (Vec. (.am v) (alength ^doubles arr) (.shift v) (.root v) arr (.meta v))))
   (as-vec
     ([v xs] (double-array (take (alength ^doubles v) xs)))
     ([v] (as-vec v (repeat 0.0))))
-  (fmap [array f] (amap ^doubles array idx ret ^double (f (aget ^doubles array idx))))
+  (fmap [arr f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx))))
   (approx
-    ([array] (amap ^doubles array idx ret ^double (m/approx (aget ^doubles array idx))))
-    ([array d] (amap ^doubles array idx ret ^double (m/approx (aget ^doubles array idx) d))))
-  (magsq [array] (smile.math.Math/dot ^doubles array ^doubles array))
+    ([arr] (amap ^doubles arr idx ret ^double (m/approx (aget ^doubles arr idx))))
+    ([arr d] (amap ^doubles arr idx ret ^double (m/approx (aget ^doubles arr idx) d))))
+  (magsq [arr] (smile.math.Math/dot ^doubles arr ^doubles arr))
   (mag [v1] (m/sqrt (magsq v1)))
-  (dot [array v2] (smile.math.Math/dot ^doubles array ^doubles v2))
+  (dot [arr v2] (smile.math.Math/dot ^doubles arr ^doubles v2))
   (add
     ([v] v)
-    ([array v2] (let [b (aclone ^doubles array)]
-                  (smile.math.Math/plus b ^doubles v2)
-                  b)))
+    ([arr v2] (let [b (aclone ^doubles arr)]
+                (smile.math.Math/plus b ^doubles v2)
+                b)))
   (sub
-    ([array] (amap ^doubles array idx ret (- (aget ^doubles array idx))))
-    ([array v2] (let [b (aclone ^doubles array)]
-                  (smile.math.Math/minus b ^doubles v2)
-                  b)))
-  (mult [array v] (let [b (aclone ^doubles array)]
-                    (smile.math.Math/scale ^double v ^doubles b)
-                    b))
-  (emult [array v2] (amap ^doubles array idx ret (* (aget ^doubles array idx) ^double (v2 idx))))
-  (abs [array] (amap ^doubles array idx ret (m/abs (aget ^doubles array idx))))
-  (mx [array] (smile.math.Math/max ^doubles array))
-  (mn [array] (smile.math.Math/min ^doubles array))
-  (maxdim [array] (smile.math.Math/whichMax ^doubles array))
-  (mindim [array] (smile.math.Math/whichMin ^doubles array))
-  (emx [array v2] (amap ^doubles array idx ret (max (aget ^doubles array idx) ^double (v2 idx))))
-  (emn [array v2] (amap ^doubles array idx ret (min (aget ^doubles array idx) ^double (v2 idx))))
-  (sum [array] (smile.math.Math/sum ^doubles array))
-  (heading [array] (let [v (double-array (alength ^doubles array) 0.0)]
-                     (aset v 0 1.0)
-                     (angle-between array v)))
-  (reciprocal [array] (amap ^doubles array idx ret (/ (aget ^doubles array idx))))
+    ([arr] (amap ^doubles arr idx ret (- (aget ^doubles arr idx))))
+    ([arr v2] (let [b (aclone ^doubles arr)]
+                (smile.math.Math/minus b ^doubles v2)
+                b)))
+  (mult [arr v] (let [b (aclone ^doubles arr)]
+                  (smile.math.Math/scale ^double v ^doubles b)
+                  b))
+  (emult [arr v2] (amap ^doubles arr idx ret (* (aget ^doubles arr idx) ^double (v2 idx))))
+  (abs [arr] (amap ^doubles arr idx ret (m/abs (aget ^doubles arr idx))))
+  (mx [arr] (smile.math.Math/max ^doubles arr))
+  (mn [arr] (smile.math.Math/min ^doubles arr))
+  (maxdim [arr] (smile.math.Math/whichMax ^doubles arr))
+  (mindim [arr] (smile.math.Math/whichMin ^doubles arr))
+  (emx [arr v2] (amap ^doubles arr idx ret (max (aget ^doubles arr idx) ^double (v2 idx))))
+  (emn [arr v2] (amap ^doubles arr idx ret (min (aget ^doubles arr idx) ^double (v2 idx))))
+  (sum [arr] (smile.math.Math/sum ^doubles arr))
+  (heading [arr] (let [v (double-array (alength ^doubles arr) 0.0)]
+                   (aset v 0 1.0)
+                   (angle-between arr v)))
+  (reciprocal [arr] (amap ^doubles arr idx ret (/ (aget ^doubles arr idx))))
   (interpolate
     ([v1 v2 t] (interpolate v1 v2 t m/lerp))
-    ([array v2 t f] (amap ^doubles array idx ret ^double (f (aget ^doubles array idx) (v2 idx) t))))
+    ([arr v2 t f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (v2 idx) t))))
   (einterpolate
     ([v1 v2 v] (einterpolate v1 v2 v m/lerp))
-    ([array v2 v f] (amap ^doubles array idx ret ^double (f (aget ^doubles array idx) (v2 idx) (v idx)))))
-  (econstrain [array val1 val2] (amap ^doubles array idx ret ^double (m/constrain ^double (aget ^doubles array idx) ^double val1 ^double val2)))
-  (is-zero? [array] (aevery array #(zero? ^double %)))
-  (is-near-zero? [array] (aevery array near-zero?)))
+    ([arr v2 v f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (v2 idx) (v idx)))))
+  (econstrain [arr val1 val2] (amap ^doubles arr idx ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
+  (is-zero? [arr] (aevery arr #(zero? ^double %)))
+  (is-near-zero? [arr] (aevery arr near-zero?)))
 
 ;; Array Vector
 (deftype ArrayVec [^doubles array]

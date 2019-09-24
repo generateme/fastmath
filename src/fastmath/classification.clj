@@ -250,10 +250,10 @@
 
 (wrap-classifier :smile gradient-tree-boost {:keys [number-of-trees shrinkage max-nodes subsample]
                                              :or {number-of-trees 500 shrinkage 0.005 max-nodes 6 subsample 0.7}}
-  (-> (GradientTreeBoost$Trainer. number-of-trees)
-      (.setMaxNodes max-nodes)
-      (.setShrinkage shrinkage)
-      (.setSamplingRates subsample)))
+                 (-> (GradientTreeBoost$Trainer. number-of-trees)
+                     (.setMaxNodes max-nodes)
+                     (.setShrinkage shrinkage)
+                     (.setSamplingRates subsample)))
 
 (wrap-classifier :smile logistic-regression {:keys [lambda tolerance max-iterations]
                                              :or {lambda 0.0 tolerance 1.0e-5 max-iterations 500}}
@@ -324,13 +324,12 @@
 
 (wrap-classifier :smile random-forest {:keys [number-of-trees split-rule mtry node-size max-nodes subsample]
                                        :or {number-of-trees 500 split-rule :gini node-size 1 max-nodes 100 subsample 1.0}}
-  (let [mtry (or mtry (if (sequential? (first x)) (m/floor (m/sqrt (count (first x)))) 1))]
-    (-> (RandomForest$Trainer. number-of-trees)
-        (.setSplitRule (or (split-rules split-rule) DecisionTree$SplitRule/GINI))
-        (.setNumRandomFeatures mtry)
-        (.setMaxNodes max-nodes)
-        (.setSamplingRates subsample)
-        (.setNodeSize node-size))))
+                 (let [mtry (or mtry (if (sequential? (first x)) (m/floor (m/sqrt (count (first x)))) 1))]
+                   (-> (RandomForest$Trainer. ^int mtry ^int number-of-trees)
+                       (.setSplitRule (or (split-rules split-rule) DecisionTree$SplitRule/GINI))
+                       (.setMaxNodes max-nodes)
+                       (.setSamplingRates subsample)
+                       (.setNodeSize node-size))))
 
 #_(wrap-classifier :xgboost xgboost xgboost-params xgboost-params)
 

@@ -28,6 +28,8 @@
   * `>>>` - unsigned bit shift right
   * `not==` - not equal
 
+  Warning: All `bool-` evaluate all parameters.
+  
   To turn on primitive math on your namespace call [[use-primitive-operators]].
   To turn off and revert original versions call [[unuse-primitive-operators]]
 
@@ -37,11 +39,7 @@
 
   ### Other functions
 
-  Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing.
-
-  * For random/noise functions check [[fastmath.random]] namespace.
-  * [[fastmath.vector]] contains vector (2,3,4 dim. + double array + clojure vector) protocol and implementations.
-  * [[fastmath.complex]] contains complex number operations."
+  Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing."
   {:metadoc/categories {:trig "Trigonometry"
                         :pow "Powers / logarithms"
                         :conv "Conversions"
@@ -54,7 +52,11 @@
                         :compare "Comparison"
                         :prim "Primitive"
                         :special "Special functions"
-                        :bool "Boolean"}}
+                        :stat "Statistical"
+                        :bool "Boolean"
+                        :rank "Rank"
+                        :seq "Primitive <-> Seq converters"
+                        :sample "Sampling"}}
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd?])
   (:import [net.jafama FastMath]
@@ -65,6 +67,19 @@
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
+
+;; metadoc sets
+
+(def ^:const ^:private -prim-set- #{:prim})
+(def ^:const ^:private -trig-set- #{:trig})
+(def ^:const ^:private -conv-set- #{:conv})
+(def ^:const ^:private -err-set- #{:err})
+(def ^:const ^:private -pow-set- #{:pow})
+(def ^:const ^:private -bitwise-set- #{:bitwise})
+(def ^:const ^:private -compare-set- #{:compare})
+(def ^:const ^:private -round-set- #{:round})
+(def ^:const ^:private -special-set- #{:special})
+(def ^:const ^:private -mod-set- #{:mod})
 
 ;; ## Macros
 
@@ -141,54 +156,65 @@
 
 ;; ## Basic operations
 
-(variadic-proxy ^{:metadoc/categories #{:primitive}} + add)
-(variadic-proxy ^{:metadoc/categories #{:primitive}} - subtract (fn [x] `(list 'fastmath.java.PrimitiveMath/negate ~x)))
-(variadic-proxy ^{:metadoc/categories #{:primitive}} * multiply)
-(variadic-proxy ^{:metadoc/categories #{:primitive}} / divide (fn [x] `(list 'fastmath.java.PrimitiveMath/reciprocal ~x)))
-(primitivemath-proxy :one ^{:metadoc/categories #{:primitive}} inc)
-(primitivemath-proxy :one ^{:metadoc/categories #{:primitive}} dec)
-(primitivemath-proxy :two ^{:metadoc/categories #{:mod}} rem remainder)
-(primitivemath-proxy :two ^{:metadoc/categories #{:mod}} quot quotient)
-(primitivemath-proxy :two ^{:metadoc/categories #{:mod}} mod modulus)
-(variadic-proxy ^{:metadoc/categories #{:bitwise}} bit-and bitAnd)
-(variadic-proxy ^{:metadoc/categories #{:bitwise}} bit-or bitOr)
-(variadic-proxy ^{:metadoc/categories #{:bitwise}} bit-xor bitXor)
-(primitivemath-proxy :one ^{:metadoc/categories #{:bitwise}} bit-not bitNot)
+(variadic-proxy ^{:metadoc/categories -prim-set-} + add)
+(variadic-proxy ^{:metadoc/categories -prim-set-} - subtract (fn [x] `(list 'fastmath.java.PrimitiveMath/negate ~x)))
+(variadic-proxy ^{:metadoc/categories -prim-set-} * multiply)
+(variadic-proxy ^{:metadoc/categories -prim-set-} / divide (fn [x] `(list 'fastmath.java.PrimitiveMath/reciprocal ~x)))
+(primitivemath-proxy :one ^{:metadoc/categories -prim-set-} inc)
+(primitivemath-proxy :one ^{:metadoc/categories -prim-set-} dec)
+(primitivemath-proxy :two ^{:metadoc/categories -mod-set-} rem remainder)
+(primitivemath-proxy :two ^{:metadoc/categories -mod-set-} quot quotient)
+(primitivemath-proxy :two ^{:metadoc/categories -mod-set-} mod modulus)
+(variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-and bitAnd)
+(variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-or bitOr)
+(variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-xor bitXor)
+(primitivemath-proxy :one ^{:metadoc/categories -bitwise-set-} bit-not bitNot)
 (variadic-proxy ^{:metadoc/categories #{:bool}} bool-and and)
 (variadic-proxy ^{:metadoc/categories #{:bool}} bool-or or)
 (variadic-proxy ^{:metadoc/categories #{:bool}} bool-xor xor)
 (primitivemath-proxy :one ^{:metadoc/categories #{:bool}} bool-not not)
-(variadic-proxy ^{:metadoc/categories #{:stat}} min)
-(variadic-proxy ^{:metadoc/categories #{:stat}} max)
-(primitivemath-proxy :one ^{:metadoc/categories #{:compare}} zero? isZero)
-(primitivemath-proxy :one ^{:metadoc/categories #{:compare}} neg? isNeg)
-(primitivemath-proxy :one ^{:metadoc/categories #{:compare}} pos? isPos)
-(primitivemath-proxy :one ^{:metadoc/categories #{:compare}} even? isEven)
-(primitivemath-proxy :one ^{:metadoc/categories #{:compare}} odd? isOdd)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} << shiftLeft)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} >> shiftRight)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} >>> unsignedShiftRight)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} bit-shift-left shiftLeft)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} bit-shift-right shiftRight)
-(primitivemath-proxy :two ^{:metadoc/categories #{:bitwise}} unsigned-bit-shift-right unsignedShiftRight)
+(variadic-proxy ^{:metadoc/categories -prim-set-} min)
+(variadic-proxy ^{:metadoc/categories -prim-set-} max)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} zero? isZero)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} one? isOne)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} neg? isNeg)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} pos? isPos)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} even? isEven)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} odd? isOdd)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} << shiftLeft)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} >> shiftRight)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} >>> unsignedShiftRight)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-shift-left shiftLeft)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-shift-right shiftRight)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} unsigned-bit-shift-right unsignedShiftRight)
 
-(variadic-predicate-proxy ^{:metadoc/categories #{:compare}} < lt)
-(variadic-predicate-proxy ^{:metadoc/categories #{:compare}} > gt)
-(variadic-predicate-proxy ^{:metadoc/categories #{:compare}} <= lte)
-(variadic-predicate-proxy ^{:metadoc/categories #{:compare}} >= gte)
-(variadic-predicate-proxy ^{:doc "Equality. See also [[eq]] for function version." :metadoc/categories #{:compare}} == eq)
-(variadic-predicate-proxy ^{:metadoc/categories #{:compare}} not== neq)
+(variadic-predicate-proxy ^{:metadoc/categories -compare-set-} < lt)
+(variadic-predicate-proxy ^{:metadoc/categories -compare-set-} > gt)
+(variadic-predicate-proxy ^{:metadoc/categories -compare-set-} <= lte)
+(variadic-predicate-proxy ^{:metadoc/categories -compare-set-} >= gte)
+(variadic-predicate-proxy ^{:doc "Equality. See also [[eq]] for function version." :metadoc/categories -compare-set-} == eq)
+(variadic-predicate-proxy ^{:metadoc/categories -compare-set-} not== neq)
 
-(defn fast+ {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (+ a b))
-(defn fast- {:inline (fn [x y] `(- ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (- a b))
-(defn fast* {:inline (fn [x y] `(* ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (* a b))
-(defn fast-max {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (max a b))
-(defn fast-min {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}} ^double [^double a ^double b] (min a b))
+(defn fast+ {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
+             :doc "Primitive `+` for two arguments as function (not macro)."
+             :metadoc/categories -prim-set-} ^double [^double a ^double b] (+ a b))
+(defn fast- {:inline (fn [x y] `(- ~x ~y)) :inline-arities #{2}
+             :doc "Primitive `-` for two arguments as function (not macro)."
+             :metadoc/categories -prim-set-} ^double [^double a ^double b] (- a b))
+(defn fast* {:inline (fn [x y] `(* ~x ~y)) :inline-arities #{2}
+             :doc "Primitive `*` for two arguments as function (not macro)."
+             :metadoc/categories -prim-set-} ^double [^double a ^double b] (* a b))
+(defn fast-max {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
+                :doc "Primitive `max` for two arguments as function (not macro)."
+                :metadoc/categories -prim-set-} ^double [^double a ^double b] (max a b))
+(defn fast-min {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
+                :doc "Primitive `min` for two arguments as function (not macro)."
+                :metadoc/categories -prim-set-} ^double [^double a ^double b] (min a b))
 
 ;; Primitive math eq
 (defn eq 
   "Primitive math equality function for doubles. See [[==]]."
-  {:metadoc/categories #{:compare}}
+  {:metadoc/categories -compare-set-}
   ([_] true)
   ([^double a ^double b]
    (== a b))
@@ -229,46 +255,46 @@
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH (/ 6.0))
 
 ;; Trigonometry
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} sin)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} cos)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} tan)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} asin)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} acos)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} atan)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} sinh)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} cosh)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} tanh)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} asinh)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} acosh)
-(fastmath-proxy :one ^{:metadoc/categories #{:trig}} atanh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} sin)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} cos)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} tan)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} asin)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} acos)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} atan)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} sinh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} cosh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} tanh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} asinh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} acosh)
+(fastmath-proxy :one ^{:metadoc/categories -trig-set-} atanh)
 
-(fastmath-proxy :one ^{:doc "Fast and less accurate [[sin]]." :metadoc/categories #{:trig}} qsin sinQuick)
-(fastmath-proxy :one ^{:doc "Fast and less accurate [[cos]]." :metadoc/categories #{:trig}} qcos cosQuick)
+(fastmath-proxy :one ^{:doc "Fast and less accurate [[sin]]." :metadoc/categories -trig-set-} qsin sinQuick)
+(fastmath-proxy :one ^{:doc "Fast and less accurate [[cos]]." :metadoc/categories -trig-set-} qcos cosQuick)
 
 ;; Additional trigonometry functions
-(defn ^{:doc "Cotangent" :metadoc/categories #{:trig}} cot ^double [^double v] (FastMath/tan (- HALF_PI v)))
-(defn ^{:doc "Secant" :metadoc/categories #{:trig}} sec ^double [^double v] (/ (FastMath/cos v)))
-(defn ^{:doc "Cosecant" :metadoc/categories #{:trig}} csc ^double [^double v] (/ (FastMath/sin v)))
+(defn ^{:doc "Cotangent" :metadoc/categories -trig-set-} cot ^double [^double v] (FastMath/tan (- HALF_PI v)))
+(defn ^{:doc "Secant" :metadoc/categories -trig-set-} sec ^double [^double v] (/ (FastMath/cos v)))
+(defn ^{:doc "Cosecant" :metadoc/categories -trig-set-} csc ^double [^double v] (/ (FastMath/sin v)))
 
 ;; Additional cyclometric functions
-(defn ^{:doc "Arccotangent" :metadoc/categories #{:trig}} acot ^double [^double v] (- HALF_PI (FastMath/atan v)))
-(defn ^{:doc "Arcsecant" :metadoc/categories #{:trig}} asec ^double [^double v] (FastMath/acos (/ 1.0 v)))
-(defn ^{:doc "Arccosecant" :metadoc/categories #{:trig}} acsc ^double [^double v] (FastMath/asin (/ 1.0 v)))
-(fastmath-proxy :two ^{:metadoc/categories #{:trig}} atan2)
+(defn ^{:doc "Arccotangent" :metadoc/categories -trig-set-} acot ^double [^double v] (- HALF_PI (FastMath/atan v)))
+(defn ^{:doc "Arcsecant" :metadoc/categories -trig-set-} asec ^double [^double v] (FastMath/acos (/ 1.0 v)))
+(defn ^{:doc "Arccosecant" :metadoc/categories -trig-set-} acsc ^double [^double v] (FastMath/asin (/ 1.0 v)))
+(fastmath-proxy :two ^{:metadoc/categories -trig-set-} atan2)
 
 ;; Additional hyperbolic functions
-(defn ^{:doc "Hyperbolic cotangent" :metadoc/categories #{:trig}} coth ^double [^double v] (/ (FastMath/tanh v)))
-(defn ^{:doc "Hyperbolic secant" :metadoc/categories #{:trig}} sech ^double [^double v] (/ (FastMath/cosh v)))
-(defn ^{:doc "Hyperbolic cosecant" :metadoc/categories #{:trig}} csch ^double [^double v] (/ (FastMath/sinh v)))
+(defn ^{:doc "Hyperbolic cotangent" :metadoc/categories -trig-set-} coth ^double [^double v] (/ (FastMath/tanh v)))
+(defn ^{:doc "Hyperbolic secant" :metadoc/categories -trig-set-} sech ^double [^double v] (/ (FastMath/cosh v)))
+(defn ^{:doc "Hyperbolic cosecant" :metadoc/categories -trig-set-} csch ^double [^double v] (/ (FastMath/sinh v)))
 
 ;; Additional inverse hyperbolic functions
-(defn ^{:doc "Area hyperbolic cotangent" :metadoc/categories #{:trig}} acoth ^double [^double v] (FastMath/atanh (/ v)))
-(defn ^{:doc "Area hyperbolic secant" :metadoc/categories #{:trig}} asech ^double [^double v] (FastMath/acosh (/ v)))
-(defn ^{:doc "Area hyperbolic cosecant" :metadoc/categories #{:trig}} acsch ^double [^double v] (FastMath/asinh (/ v)))
+(defn ^{:doc "Area hyperbolic cotangent" :metadoc/categories -trig-set-} acoth ^double [^double v] (FastMath/atanh (/ v)))
+(defn ^{:doc "Area hyperbolic secant" :metadoc/categories -trig-set-} asech ^double [^double v] (FastMath/acosh (/ v)))
+(defn ^{:doc "Area hyperbolic cosecant" :metadoc/categories -trig-set-} acsch ^double [^double v] (FastMath/asinh (/ v)))
 
 ;; haversine
 
-(defn ^{:doc "Haversine formula" :metadoc/categories #{:trig}} haversine
+(defn ^{:doc "Haversine formula" :metadoc/categories -trig-set-} haversine
   (^double [^double v] (* 0.5 (- 1.0 (FastMath/cos v))))
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
    (haversine lat1 lon1 lat2 lon2))
@@ -278,71 +304,73 @@
          (FastMath/cos lat2)
          (haversine (- lon2 lon1))))))
 
-(defn ^{:doc "Haversine distance `d` for `r=1`" :metadoc/categories #{:trig}} haversine-dist
+(defn ^{:doc "Haversine distance `d` for `r=1`" :metadoc/categories -trig-set-} haversine-dist
+  (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
+   (haversine-dist lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
    (* 2 (FastMath/asin (FastMath/sqrt (haversine lat1 lon1 lat2 lon2))))))
 
 ;; exp and log
-(fastmath-proxy :one ^{:metadoc/categories #{:pow}} exp)
-(fastmath-proxy :one ^{:metadoc/categories #{:pow}} log)
-(fastmath-proxy :one ^{:doc "\\\\(\\ln_{10}{x}\\\\)" :metadoc/categories #{:pow}} log10)
+(fastmath-proxy :one ^{:metadoc/categories -pow-set-} exp)
+(fastmath-proxy :one ^{:metadoc/categories -pow-set-} log)
+(fastmath-proxy :one ^{:doc "\\\\(\\ln_{10}{x}\\\\)" :metadoc/categories -pow-set-} log10)
 ;; Alias for natural logarithm
-(fastmath-proxy :one ^{:metadoc/categories #{:pow}} ln log)
+(fastmath-proxy :one ^{:metadoc/categories -pow-set-} ln log)
 
-(fastmath-proxy :one ^{:metadoc/categories #{:pow}} log1p)
-(fastmath-proxy :one ^{:metadoc/categories #{:pow}} expm1)
+(fastmath-proxy :one ^{:metadoc/categories -pow-set-} log1p)
+(fastmath-proxy :one ^{:metadoc/categories -pow-set-} expm1)
 
 (defn
   ^{:doc "log(1+exp(x))"
-    :metadoc/categories #{:pow}}
+    :metadoc/categories -pow-set-}
   log1pexp ^double [^double x] (log1p (exp x)))
 
 ;; Roots (square and cubic)
-(fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories #{:pow}} sqrt)
-(fastmath-proxy :one ^{:doc "\\\\(\\sqrt[3]{x}\\\\)" :metadoc/categories #{:pow}} cbrt)
+(fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories -pow-set-} sqrt)
+(fastmath-proxy :one ^{:doc "\\\\(\\sqrt[3]{x}\\\\)" :metadoc/categories -pow-set-} cbrt)
 
 ;; Quick version of exponential \\(e^x\\)
-(fastmath-proxy :one ^{:doc "Quick and less accurate version of [[exp]]." :metadoc/categories #{:pow}} qexp expQuick)
+(fastmath-proxy :one ^{:doc "Quick and less accurate version of [[exp]]." :metadoc/categories -pow-set-} qexp expQuick)
 
 ;; Radians to degrees (and opposite) conversions
 (def ^:const ^double ^{:doc "\\\\(\\frac{180}{\\pi}\\\\)"} rad-in-deg (/ 180.0 PI))
 (def ^:const ^double ^{:doc "\\\\(\\frac{\\pi}{180}\\\\)"} deg-in-rad (/ PI 180.0))
 (defn ^{:doc "Convert degrees into radians."
-        :metadoc/categories #{:conv}}
+        :metadoc/categories -conv-set-}
   radians ^double [^double deg] (* deg-in-rad deg))
 (defn ^{:doc "Convert radians into degrees."
-        :metadoc/categories #{:conv}}
+        :metadoc/categories -conv-set-}
   degrees ^double [^double rad] (* rad-in-deg rad))
 
 ;; Erf
-(erf-proxy :onetwo ^{:doc "Error function. For two arguments return difference between `(erf x)` and `(erf y)`." :metadoc/categories #{:err}} erf)
-(erf-proxy :one ^{:doc "Complementary error function." :metadoc/categories #{:err}} erfc)
-(erf-proxy :one ^{:doc "Inverse [[erf]]." :metadoc/categories #{:err}} inv-erf erfInv)
-(erf-proxy :one ^{:doc "Inverse [[erfc]]." :metadoc/categories #{:err}} inv-erfc erfcInv)
+(erf-proxy :onetwo ^{:doc "Error function. For two arguments return difference between `(erf x)` and `(erf y)`." :metadoc/categories -err-set-} erf)
+(erf-proxy :one ^{:doc "Complementary error function." :metadoc/categories -err-set-} erfc)
+(erf-proxy :one ^{:doc "Inverse [[erf]]." :metadoc/categories -err-set-} inv-erf erfInv)
+(erf-proxy :one ^{:doc "Inverse [[erfc]]." :metadoc/categories -err-set-} inv-erfc erfcInv)
 
 ;; Gamma
 
-(gamma-proxy :one ^{:doc "Gamma function \\\\(\\Gamma(x)\\\\)" :metadoc/categories #{:special}} gamma gamma)
-(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories #{:special}} log-gamma logGamma)
-(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(1+x)\\\\)" :metadoc/categories #{:special}} log-gamma-1p logGamma1p)
-(gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories #{:special}} digamma)
-(gamma-proxy :one ^{:doc "Derivative of [[digamma]]." :metadoc/categories #{:special}} trigamma)
-(gamma-proxy :one ^{:doc "\\\\(\\frac{1}{\\Gamma(1+x)}\\\\)." :metadoc/categories #{:special}} inv-gamma-1pm1 invGamma1pm1)
-(gamma-proxy :two ^{:doc "Regularized `gamma` P" :metadoc/categories #{:special}} regularized-gamma-p regularizedGammaP)
-(gamma-proxy :two ^{:doc "Regularized `gamma` Q" :metadoc/categories #{:special}} regularized-gamma-q regularizedGammaQ)
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\Gamma(x)\\\\)" :metadoc/categories -special-set-} gamma gamma)
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories -special-set-} log-gamma logGamma)
+(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(1+x)\\\\)" :metadoc/categories -special-set-} log-gamma-1p logGamma1p)
+(gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories -special-set-} digamma)
+(gamma-proxy :one ^{:doc "Derivative of [[digamma]]." :metadoc/categories -special-set-} trigamma)
+(gamma-proxy :one ^{:doc "\\\\(\\frac{1}{\\Gamma(1+x)}\\\\)." :metadoc/categories -special-set-} inv-gamma-1pm1 invGamma1pm1)
+(gamma-proxy :two ^{:doc "Regularized `gamma` P" :metadoc/categories -special-set-} regularized-gamma-p regularizedGammaP)
+(gamma-proxy :two ^{:doc "Regularized `gamma` Q" :metadoc/categories -special-set-} regularized-gamma-q regularizedGammaQ)
 
 ;; Beta
 
-(beta-proxy :two ^{:doc "Logarithm of Beta function." :metadoc/categories #{:special}} log-beta logBeta)
-(beta-proxy :three ^{:doc "Regularized `Beta`." :metadoc/categories #{:special}} regularized-beta regularizedBeta)
+(beta-proxy :two ^{:doc "Logarithm of Beta function." :metadoc/categories -special-set-} log-beta logBeta)
+(beta-proxy :three ^{:doc "Regularized `Beta`." :metadoc/categories -special-set-} regularized-beta regularizedBeta)
 
 ;; BesselJ
-(besselj-proxy :two ^{:doc "Bessel J function value for given order and argument." :metadoc/categories #{:special}} bessel-j value)
+(besselj-proxy :two ^{:doc "Bessel J function value for given order and argument." :metadoc/categories -special-set-} bessel-j value)
 
 ;; Sinc
 (defn sinc
   "Sinc function."
-  {:metadoc/categories #{:trig}}
+  {:metadoc/categories -trig-set-}
   ^double [^double v]
   (let [x (* PI (FastMath/abs v))]
     (if (< x 1.0e-5) 1.0
@@ -351,13 +379,13 @@
 ;;
 (defn sigmoid
   "Sigmoid function"
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^double [^double x]
   (/ (inc (FastMath/exp (- x)))))
 
 (defn logit
   "Logit function"
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^double [^double x]
   (FastMath/log (/ x (- 1.0 x))))
 
@@ -371,7 +399,7 @@
   "Logarithm with base 2.
 
   \\\\(\\ln_2{x}\\\\)"
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^double [^double x]
   (* (FastMath/log x) INV_LN2))
 
@@ -380,12 +408,12 @@
   "Logarithm with base `b`.
 
   \\\\(\\ln_b{x}\\\\)"
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^double [^double b ^double x]
   (/ (FastMath/log x) (FastMath/log b)))
 
 ;; Quick logarithm
-(fastmath-proxy :one ^{:doc "Fast and less accurate version of [[log]]." :metadoc/categories #{:pow}} qlog logQuick)
+(fastmath-proxy :one ^{:doc "Fast and less accurate version of [[log]]." :metadoc/categories -pow-set-} qlog logQuick)
 
 ;; \\(\log_2 e\\)
 (def ^:const ^double ^{:doc "\\\\(\\log_{2}{e}\\\\)"} LOG2E (log2 E))
@@ -394,16 +422,16 @@
 (def ^:const ^double ^{:doc "\\\\(\\log_{10}{e}\\\\)"} LOG10E (log10 E))
 
 ;; Powers (normal, quick)
-(fastmath-proxy :two ^{:metadoc/categories #{:pow}} pow)
-(fastmath-proxy :two ^{:doc "Fast and less accurate version of [[pow]]." :metadoc/categories #{:pow}} qpow powQuick)
+(fastmath-proxy :two ^{:metadoc/categories -pow-set-} pow)
+(fastmath-proxy :two ^{:doc "Fast and less accurate version of [[pow]]." :metadoc/categories -pow-set-} qpow powQuick)
 
 ;; Fast version of power, second parameter should be integer
-(fastmath-proxy :two ^{:doc "Fast version of pow where exponent is integer." :metadoc/categories #{:pow}} fpow powFast)
+(fastmath-proxy :two ^{:doc "Fast version of pow where exponent is integer." :metadoc/categories -pow-set-} fpow powFast)
 
 ;; Square and cubic
-(defn sq "Same as [[pow2]]. \\\\(x^2\\\\)" {:metadoc/categories #{:pow}} ^double [^double x] (* x x))
-(defn pow2 "Same as [[sq]]. \\\\(x^2\\\\)" {:metadoc/categories #{:pow}} ^double [^double x] (* x x))
-(defn pow3 "\\\\(x^3\\\\)" {:metadoc/categories #{:pow}} ^double [^double x] (* x (* x x)))
+(defn sq "Same as [[pow2]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))
+(defn pow2 "Same as [[sq]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))
+(defn pow3 "\\\\(x^3\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x (* x x)))
 
 (defn safe-sqrt
   "Safe sqrt, for value <= 0 result is 0.
@@ -416,13 +444,13 @@
   \\end{array}
   \\\\right.
   \\\\)"
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^double [^double value]
   (if (neg? value) 0.0 (sqrt value)))
 
 ;; Approximated sqrt via binary operations (error 1.0E-2)
-(fastmath-proxy :one ^{:doc "Approximated [[sqrt]] using binary operations with error `1.0E-2`." :metadoc/categories #{:pow}} qsqrt sqrtQuick)
-(fastmath-proxy :one ^{:doc "Inversed version of [[qsqrt]]. Quick and less accurate." :metadoc/categories #{:pow}} rqsqrt invSqrtQuick)
+(fastmath-proxy :one ^{:doc "Approximated [[sqrt]] using binary operations with error `1.0E-2`." :metadoc/categories -pow-set-} qsqrt sqrtQuick)
+(fastmath-proxy :one ^{:doc "Inversed version of [[qsqrt]]. Quick and less accurate." :metadoc/categories -pow-set-} rqsqrt invSqrtQuick)
 
 (defn hypot
   "Hypot.
@@ -456,56 +484,56 @@
   (qsqrt (+ (sq (- x2 x1)) (sq (- y2 y1)))))
 
 ;; Rounding functions
-(defn floor "\\\\(\\lfloor x \\rfloor\\\\). See: [[qfloor]]." {:metadoc/categories #{:round}} ^double [^double x] (FastMath/floor x))
-(defn ceil "\\\\(\\lceil x \\rceil\\\\). See: [[qceil]]." {:metadoc/categories #{:round}} ^double [^double x] (FastMath/ceil x))
+(defn floor "\\\\(\\lfloor x \\rfloor\\\\). See: [[qfloor]]." {:metadoc/categories -round-set-} ^double [^double x] (FastMath/floor x))
+(defn ceil "\\\\(\\lceil x \\rceil\\\\). See: [[qceil]]." {:metadoc/categories -round-set-} ^double [^double x] (FastMath/ceil x))
 (defn ^{:doc "Round to `long`. See: [[rint]], [[qround]]."
-        :metadoc/categories #{:round}} round ^long [^double x] (FastMath/round x))
+        :metadoc/categories -round-set-} round ^long [^double x] (FastMath/round x))
 (defn ^{:doc "Round to `double`. See [[round]], [[qround]]."
-        :metadoc/categories #{:round}} rint ^double [^double x] (FastMath/rint x))
+        :metadoc/categories -round-set-} rint ^double [^double x] (FastMath/rint x))
 
-(primitivemath-proxy :one ^{:doc "Fast version of [[floor]]. Returns `long`. See: [[floor]]." :metadoc/categories #{:round}} qfloor fastFloor)
-(primitivemath-proxy :one ^{:doc "Fast version of [[ceil]]. Returns `long`. See: [[ceil]]." :metadoc/categories #{:round}} qceil fastCeil)
-(primitivemath-proxy :one ^{:doc "Fast version of [[round]]. Returns `long`. See: [[rint]], [[round]]." :metadoc/categories #{:round}} qround fastRound)
+(primitivemath-proxy :one ^{:doc "Fast version of [[floor]]. Returns `long`. See: [[floor]]." :metadoc/categories -round-set-} qfloor fastFloor)
+(primitivemath-proxy :one ^{:doc "Fast version of [[ceil]]. Returns `long`. See: [[ceil]]." :metadoc/categories -round-set-} qceil fastCeil)
+(primitivemath-proxy :one ^{:doc "Fast version of [[round]]. Returns `long`. See: [[rint]], [[round]]." :metadoc/categories -round-set-} qround fastRound)
 
 (fastmath-proxy :two ^{:doc "From `FastMath` doc: returns dividend - divisor * n,
 where n is the mathematical integer closest to dividend/divisor. Returned value in `[-|divisor|/2,|divisor|/2]`"
-                       :metadoc/categories #{:mod}} remainder)
+                       :metadoc/categories -mod-set-} remainder)
 
-(defn abs "\\\\(|x|\\\\) - `double` version. See [[iabs]]." {:metadoc/categories #{:round}} ^double [^double x] (FastMath/abs x))
-(defn iabs "\\\\(|x|\\\\) - `long` version. See [[abs]]." {:metadoc/categories #{:round}} ^long [^long x] (if (neg? x) (- x) x))
+(defn abs "\\\\(|x|\\\\) - `double` version. See [[iabs]]." {:metadoc/categories -round-set-} ^double [^double x] (FastMath/abs x))
+(defn iabs "\\\\(|x|\\\\) - `long` version. See [[abs]]." {:metadoc/categories -round-set-} ^long [^long x] (if (neg? x) (- x) x))
 
 (defn trunc
   "Truncate fractional part, keep sign. Returns `double`."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ^double [^double v] (if (neg? v) (ceil v) (floor v)))
 
 (defn itrunc
   "Truncate fractional part, keep sign. Returns `long`."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ^long [^double v] (if (neg? v) (qceil v) (qfloor v)))
 
 ;; return approximate value
 (defn approx
   "Round `v` to specified (default: 2) decimal places. Be aware of `double` number accuracy."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   (^double [^double v] (Precision/round v (int 2)))
   (^double [^double v ^long digits] (Precision/round v (int digits))))
 
 (defn approx-eq
   "Checks equality approximately. See [[approx]]."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ([^double a ^double b] (== (approx a) (approx b)))
   ([^double a ^double b ^long digits] (== (approx a digits)
                                           (approx b digits))))
 
 (defn frac
   "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ^double [^double v] (abs (- v (unchecked-long v))))
 
 (defn sfrac
   "Fractional part, always returns values from -1.0 to 1.0 (exclusive). See [[frac]] for unsigned version."
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ^double [^double v] (- v (trunc v)))
 
 ;; Find power of 2 exponent for double number where  
@@ -515,27 +543,27 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
   "Find greatest exponent (power of 2) which is lower or equal `x`. See [[high-2-exp]]."
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^long [^double x] (-> x log2 floor unchecked-long))
 
 (defn high-2-exp
   "Find lowest exponent (power of 2) which is greater or equal `x`. See [[low-2-exp]]."
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^long [^double v] (-> v log2 ceil unchecked-long))
 
 (defn low-exp
   "Find greatest exponent for base `b` which is lower or equal `x`. See also [[high-exp]]."
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^long [^double b ^double x] (->> x (logb b) floor unchecked-long))
 
 (defn high-exp
   "Find lowest exponent for base `b` which is higher or equal`x`. See also [[low-exp]]."
-  {:metadoc/categories #{:pow}}
+  {:metadoc/categories -pow-set-}
   ^long [^double b ^double x] (->> x (logb b) ceil unchecked-long))
 
 (defn round-up-pow2
   "Round long to the next power of 2"
-  {:metadoc/categories #{:round}}
+  {:metadoc/categories -round-set-}
   ^long [^long v]
   (as-> (dec v) v
     (bit-or v (>> v 1))
@@ -643,7 +671,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defmacro constrain
   "Clamp `value` to the range `[mn,mx]`."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   [value mn mx]
   `(max (min ~value ~mx) ~mn))
 
@@ -653,7 +681,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
              ([v start stop] `(PrimitiveMath/norm ~v ~start ~stop))
              ([v start1 stop1 start2 stop2] `(PrimitiveMath/norm ~v ~start1 ~stop1 ~start2 ~stop2)))
    :inline-arities #{3 5}
-   :metadoc/categories #{:conv}}
+   :metadoc/categories -conv-set-}
   (^double [^double v ^double start ^double stop] ;; norm
    (PrimitiveMath/norm v start stop))
   ([v start1 stop1 start2 stop2] ;; map
@@ -661,7 +689,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn make-norm
   "Make [[norm]] function for given range. Resulting function accepts `double` value (with optional target `[dstart,dstop]` range) and returns `double`."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ([^double start ^double stop]
    (fn ^double [^double v ^double dstart ^double dstop]
      (PrimitiveMath/norm v start stop dstart dstop)))
@@ -671,7 +699,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn cnorm
   "Constrained version of norm. Result of [[norm]] is applied to [[constrain]] to `[0,1]` or `[start2,stop2]` ranges."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ([v start1 stop1 start2 stop2]
    (constrain (PrimitiveMath/norm v start1 stop1 start2 stop2) ^double start2 ^double stop2))
   (^double [v start stop]
@@ -682,32 +710,32 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;; Linear interpolation between `start` and `stop`.
 (defn lerp
   "Linear interpolation between `start` and `stop` for amount `t`. See also [[mlerp]], [[cos-interpolation]], [[quad-interpolation]] or [[smooth-interpolation]]."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double start ^double stop ^double t]
   (+ start (* t (- stop start))))
 
 (defmacro mlerp
   "[[lerp]] as macro. For inline code. See also [[lerp]], [[cos-interpolation]], [[quad-interpolation]] or [[smooth-interpolation]]."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   [start stop t]
   `(+ ~start (* ~t (- ~stop ~start))))
 
 ;; Cosine interpolation between `start` and `stop`
 (defn cos-interpolation
   "oF interpolateCosine interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[smooth-interpolation]]."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (* 0.5 (- 1.0 (cos (* t PI))))))
 
 (defn smooth-interpolation
   "Smoothstep based interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[cos-interpolation]]."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (* t t (- 3.0 (* 2.0 t)))))
 
 (defn quad-interpolation
   "Quad interpolation. See also [[lerp]]/[[mlerp]], [[cos-interpolation]] or [[smooth-interpolation]]."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (let [t' (* 2.0 t)]
                       (if (< t' 1.0)
@@ -716,7 +744,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn smoothstep
   "GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml)."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double edge0 ^double edge1 ^double x]
   (let [t (cnorm x edge0 edge1)]
     (* t t (- 3.0 (* 2.0 t)))))
@@ -726,7 +754,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;;`(wrap 1.1 -1 1) => -0.8999999999999999`
 (defn wrap
   "Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.cc/documentation/math/ofMath/#!show_ofWrap)."
-  {:metadoc/categories #{:conv}}
+  {:metadoc/categories -conv-set-}
   ^double [^double start ^double stop ^double value]
   (let [p (> start stop)
         from (if p stop start)
@@ -805,7 +833,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
          x1 (map #(x (round %)) ii)
          xr (map #(x (min n- (round (+ r ^double %)))) ii)
          diffs (filter #(pos? ^double %) (mapv (fn [[^double x ^double y]] (- y x)) (partition 2 1 x)))
-         eps (* 0.5 (double (if (seq diffs) (reduce #(min ^double %1 ^double %2) diffs) 0.0)))]
+         eps (* 0.5 (double (if (seq diffs) (reduce fast-min diffs) 0.0)))]
      (for [[[^double px ^double cx] [^double py ^double cy]] (map vector
                                                                   (partition 2 1 (conj x1 (dec ^double (first x1))))
                                                                   (partition 2 1 (conj xr (dec ^double (first xr)))))
@@ -818,7 +846,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   (some #(if (between? % v) % false) intervals))
 
 (defn group-by-intervals
-  "Group sequence of values into given intervals"
+  "Group sequence of values into given intervals.
+
+  If `intervals` are missing, use [[co-intervals]] to find some."
   ([coll] (group-by-intervals (co-intervals coll) coll))
   ([intervals coll]
    (reduce (fn [m ^double v]
@@ -845,13 +875,13 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn gcd
   "Fast binary greatest common divisor (Stein's algorithm)"
-  {:metadoc/categories #{:mod}}
+  {:metadoc/categories -mod-set-}
   ^long [^long a ^long b]
   (gcd- (iabs a) (iabs b)))
 
 (defn lcm
   "Fast binary least common multiplier."
-  {:metadoc/categories #{:mod}}
+  {:metadoc/categories -mod-set-}
   ^long [^long a ^long b]
   (/ (* a b) (gcd- (iabs a) (iabs b))))
 
@@ -865,6 +895,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   Range is inclusive.
 
   When optional `domain?` is set to true (default: false) function returns pairs `[x,(f x)]`."
+  {:metadoc/categories #{:sample}}
   ([f number-of-values]
    (sample f 0.0 1.0 number-of-values false))
   ([f ^long number-of-values domain?]
@@ -881,6 +912,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 ;; rank/order
 
 (defn rank
+  "Sample ranks. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/rank).
+
+  Possible tie strategies: `:average`, `:first`, `:last`, `:random`, `:min`, `:max`"
+  {:metadoc/categories #{:rank}}
   ([vs] (rank vs :average))
   ([vs ties]
    (let [indexed-sorted-map (group-by second (map-indexed (fn [^long idx v] [(inc idx) v]) (sort vs)))]
@@ -902,6 +937,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
          (map m vs))))))
 
 (defn order
+  "Ordering permutation. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/order)"
+  {:metadoc/categories #{:rank}}
   ([vs] (order vs false))
   ([vs decreasing?]
    (->> (map-indexed vector vs)
@@ -917,7 +954,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (def ^{:doc "Convert double array into sequence.
 
-  Alias for `seq`."} double-array->seq seq)
+  Alias for `seq`."
+       :metadoc/categories #{:seq}} double-array->seq seq)
 
 (defmacro ^:private seq->any-array
   [primitive-type]
@@ -935,7 +973,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                  arr#)))))
 
 (defn seq->double-array
-  "Convert sequence to double array."
+  "Convert sequence to double array. Returns input if `vs` is double array already."
+  {:metadoc/categories #{:seq}}
   ^doubles [vs]
   (cond
     (= (type vs) double-array-type) vs
@@ -946,14 +985,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
             arr)))
 
 (defn double-double-array->seq
-  "Convert double array of double arrays into sequence of sequences."
+  "Convert double array of double arrays into sequence of sequences. "
+  {:metadoc/categories #{:seq}}
   [res]
   (seq (map seq res)))
 
 (defn seq->double-double-array
   "Convert sequence to double-array of double-arrays.
   
-  If sequence is double-array of double-arrays do not convert"
+  If sequence is double-array of double-arrays returns `vss`"
+  {:metadoc/categories #{:seq}}
   #^"[[D" [vss]
   (cond 
     (= (type vss) double-double-array-type) vss
@@ -973,6 +1014,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn use-primitive-operators
   "Replaces Clojure's arithmetic and number coercion functions with primitive equivalents.  These are
    defined as macros, so they cannot be used as higher-order functions. This is an idempotent operation. Undo with [[unuse-primitive-operators]]."
+  {:metadoc/categories -prim-set-}
   []
   (when-not (using-primitive-operators?)
     (doseq [v vars-to-exclude]
@@ -981,6 +1023,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn unuse-primitive-operators
   "Undoes the work of [[use-primitive-operators]]. This is idempotent."
+  {:metadoc/categories -prim-set-}
   []
   (when (using-primitive-operators?)
     (doseq [v vars-to-exclude]

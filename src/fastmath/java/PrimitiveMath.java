@@ -90,6 +90,9 @@ public final class PrimitiveMath {
 
     public static boolean isZero(long a) { return a==0L; }
     public static boolean isZero(double a) { return a==0.0; }
+    public static boolean isOne(long a) { return a==1L; }
+    public static boolean isOne(double a) { return a==1.0; }
+
     public static boolean isNeg(long a) { return a<0L; }
     public static boolean isNeg(double a) { return a<0.0; }
     public static boolean isPos(long a) { return a>0L; }

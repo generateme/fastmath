@@ -888,3 +888,58 @@
                         :t tstat
                         :test-type sides
                         :paired? false})))))
+
+;; acf/pacf
+
+(defn acf
+  "Calculate acf for given number of lags or a list of lags"
+  [data lags]
+  (let [vdata (if (vector? data) data (vec data))]
+    (map (fn [lag]
+           (let [v2 (subvec vdata lag)
+                 v1 (subvec vdata 0 (count v2))]
+             (correlation v1 v2))) (if (number? lags)
+                                     (range (inc (int lags)))
+                                     (seq lags)))))
+
+;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l13
+(defn pacf
+  [data ^long lags]
+  (let [acf (vec (acf data lags))
+        phis (reductions (fn [curr ^long id]
+                           (let [phi (/ (- ^double (acf id)
+                                           ^double (reduce m/fast+
+                                                           (map-indexed (fn [^long idx ^double c]
+                                                                          (* c ^double (acf (dec (- id idx))))) curr)))
+                                        (- 1.0
+                                           ^double (reduce m/fast+
+                                                           (map-indexed (fn [^long id ^double c]
+                                                                          (* c ^double (acf (inc id)))) curr))))]
+                             
+                             (conj (mapv (fn [^double p1 ^double p2]
+                                           (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acf 1)] (range 2 (inc lags)))]
+    (conj (map last phis) 0.0)))
+
+(defn- p-acf-ci-value
+  ^double [data ^double alpha]
+  (* (/ (m/sqrt (count data)))
+     ^double (r/icdf r/default-normal (* 0.5 (inc (- 1.0 alpha))))))
+
+(defn pacf-ci
+  ([data lags] (pacf-ci data lags 0.05))
+  ([data ^long lags ^double alpha]
+   (let [pacf-data (rest (pacf data lags))
+         ci (p-acf-ci-value data alpha)]
+     {:ci ci
+      :pacf pacf-data})))
+
+(defn acf-ci
+  ([data lags] (acf-ci data lags 0.05))
+  ([data ^long lags ^double alpha]
+   (let [acf-data (acf data lags)
+         ci (p-acf-ci-value data alpha)]
+     {:ci ci
+      :acf acf-data
+      :cis (map (fn [^double r]
+                  (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
+                                                               (+ acc (* s s))) acf-data))})))

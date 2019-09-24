@@ -45,7 +45,7 @@
                         :vf "Derive vector field from other vector field(s)."}}
   (:require [fastmath.core :as m]
             [fastmath.complex :as c]
-            [fastmath.random :refer :all :exclude [flip]]
+            [fastmath.random :refer [brand discrete-noise drand fbm-noise irand lrand noise randval] :exclude [flip]]
             [fastmath.vector :as v])
   (:import [fastmath.vector Vec2]))
 

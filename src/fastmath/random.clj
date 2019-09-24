@@ -93,14 +93,15 @@
 
   Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions.
 
-  To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."
+  To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."  
   {:metadoc/categories {:rand "Random number generation"
                         :noise "Noise functions"
                         :gen "Random sequence generation"
                         :dist "Distributions"}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.kernel :as k])
+            [fastmath.kernel :as k]
+            [fastmath.protocols.random :as prot])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -116,6 +117,60 @@
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
+
+;; protocol proxies
+
+(defn frandom
+  "Random double number with provided RNG"
+  {:metadoc/categories #{:rand}}
+  (^double [rng] (prot/frandom rng))
+  (^double [rng ^double mx] (prot/frandom rng mx))
+  (^double [rng ^double mn ^double mx] (prot/frandom rng mn mx)))
+
+(defn drandom
+  "Random double number with provided RNG"
+  {:metadoc/categories #{:rand}}
+  (^double [rng] (prot/drandom rng))
+  (^double [rng ^double mx] (prot/drandom rng mx))
+  (^double [rng ^double mn ^double mx] (prot/drandom rng mn mx)))
+
+(defn grandom
+  "Random gaussian double number with provided RNG"
+  {:metadoc/categories #{:rand}}
+  (^double [rng] (prot/grandom rng))
+  (^double [rng ^double stddev] (prot/grandom rng stddev))
+  (^double [rng ^double mean ^double stddev] (prot/grandom rng mean stddev)))
+
+(defn irandom
+  "Random integer number with provided RNG"
+  {:metadoc/categories #{:rand}}
+  (^long [rng] (prot/irandom rng))
+  (^long [rng ^long mx] (prot/irandom rng mx))
+  (^long [rng ^long mn ^long mx] (prot/irandom rng mn mx)))
+
+(defn lrandom
+  "Random long number with provided RNG"
+  {:metadoc/categories #{:rand}}
+  (^long [rng] (prot/lrandom rng))
+  (^long [rng ^long mx] (prot/lrandom rng mx))
+  (^long [rng ^long mn ^long mx] (prot/lrandom rng mn mx)))
+
+(defn brandom
+  "Random boolean with provided RNG"
+  {:metadoc/categories #{:rand}}
+  ([rng] (prot/brandom rng))
+  ([rng ^double p] (prot/brandom rng p)))
+
+(defn set-seed!
+  "Sets seed. Returns `rng`."
+  {:metadoc/categories #{:rand}}
+  ([rng v] (prot/set-seed! rng v)))
+
+(defn ->seq
+  "Returns lazy sequence of random samples (can be limited to optional `n` values)."
+  {:metadoc/categories #{:rand}}
+  ([rng] (prot/->seq rng))
+  ([rng ^long n] (prot/->seq rng n)))
 
 ;; Type hinted functions generating random value
 (defn- next-random-value-long
@@ -157,70 +212,12 @@
      (if (zero? diff) mn
          (+ mn (next-random-value-gaussian r diff))))))
 
-(defprotocol RNGProto
-  "Defines set of random functions for different RNGs or distributions returning primitive values."
-  (^{:metadoc/categories #{:rand}}
-   irandom [t] [t mx] [t mn mx]
-   "Random integer.
-
-For RNGs:
-As default returns random integer from full integer range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
-
-See [[irand]].
-
-For distributions, just returns random integer (call without parameters).")
-  (^{:metadoc/categories #{:rand}}
-   drandom [t] [t mx] [t mn mx]
-   "Random double.
-
-For RNGs:
-As default returns random double from `[0,1)` range.
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
-
-See [[drand]].
-
-For distributions, just returns random double (call without parameters).")
-  (^{:metadoc/categories #{:rand}} lrandom [t] [t mx] [t mn mx]
-   "Random long.
-
-For RNGs:
-As default returns random long from full long range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
-
-See [[lrand]].
-
-For distributions, just returns random long (call without parameters).")
-  (^{:metadoc/categories #{:rand}} frandom [t] [t mx] [t mn mx]
-   "Random float.
-
-For RNGs:
-As default returns random float from `[0,1)` range.
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
-
-See [[frand]].
-
-For distributions, just returns random float (call without parameters).")
-  (^{:metadoc/categories #{:rand}} grandom [t] [t std] [t mean std]
-   "Random double from gaussian distribution.
-As default returns random double from `N(0,1)`. 
-When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`.
-
-See [[grand]].")
-  (^{:metadoc/categories #{:rand}} brandom [t] [t thr]
-   "Boolean random.
-Returns true or false with equal probability. You can set probability for `true` setting `thr` (from `[0-1]` range).
-
-See [[brand]].")
-  (^{:metadoc/categories #{:rand}} set-seed! [t v] "Sets seed. Returns RNG or distribution itself.")
-  (^{:metadoc/categories #{:rand}} ->seq [t] [t n] "Returns sequence of random samples limited to optional `n` values."))
-
 ;; Extend RandomGenerator interface with functions created by macro `next-random-value-fn`. This way all RNG classes are enriched with new, more convenient functions.
 ;;
 ;; Note that `grandom` is under special care due to different [mn mx] range meaning.
 
 (extend RandomGenerator 
-  RNGProto
+  prot/RNGProto
   {:irandom (comp unchecked-int next-random-value-long)
    :lrandom next-random-value-long
    :frandom (comp float next-random-value-double)
@@ -275,12 +272,13 @@ See [[brand]].")
 
 (defn synced-rng
   "Create synchronized RNG for given name and optional seed. Wraps [[rng]] method."
+  {:metadoc/categories #{:rand}}
   ([m] (SynchronizedRandomGenerator. (rng m)))
   ([m seed] (SynchronizedRandomGenerator. (rng m seed))))
 
 ;; List of randomizers
-(def ^{:metadoc/categories #{:rand}
-       :doc "List of all possible RNGs."}
+(defonce ^{:metadoc/categories #{:rand}
+           :doc "List of all possible RNGs."}
   rngs-list (remove #{:default} (keys (methods rng))))
 
 ;; ### Default RNG
@@ -289,53 +287,73 @@ See [[brand]].")
            :metadoc/categories #{:rand}}
   default-rng (rng :jdk))
 
-(def ^{:doc "Random float number with Mersenne Twister RNG."
-       :metadoc/categories #{:rand}}
-  frand (partial frandom default-rng))
+(def ^{:doc "Random boolean with default RNG.
 
-(def ^{:doc "Random boolean with Mersenne Twister RNG."
+Returns true or false with equal probability. You can set `p` probability for `true`"
        :metadoc/categories #{:rand}} 
-  brand (partial brandom default-rng))
+  brand (partial prot/brandom default-rng))
+
+(defn frand
+  "Random double number with default RNG.
+
+  As default returns random float from `[0,1)` range.
+When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
+  {:metadoc/categories #{:rand}}
+  (^double [] (prot/frandom default-rng))
+  (^double [mx] (prot/frandom default-rng mx))
+  (^double [mn mx] (prot/frandom default-rng mn mx)))
 
 (defn drand
-  "Random double number with Mersenne Twister RNG."
+  "Random double number with default RNG.
+
+  As default returns random double from `[0,1)` range.
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
-  (^double [] (drandom default-rng))
-  (^double [mx] (drandom default-rng mx))
-  (^double [mn mx] (drandom default-rng mn mx)))
+  (^double [] (prot/drandom default-rng))
+  (^double [mx] (prot/drandom default-rng mx))
+  (^double [mn mx] (prot/drandom default-rng mn mx)))
 
 (defn grand
-  "Random gaussian double number with Mersenne Twister RNG."
+  "Random gaussian double number with default RNG.
+
+  As default returns random double from `N(0,1)`.
+  When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`."
   {:metadoc/categories #{:rand}}
-  (^double [] (grandom default-rng))
-  (^double [stddev] (grandom default-rng stddev))
-  (^double [mean stddev] (grandom default-rng mean stddev)))
+  (^double [] (prot/grandom default-rng))
+  (^double [stddev] (prot/grandom default-rng stddev))
+  (^double [mean stddev] (prot/grandom default-rng mean stddev)))
 
 (defn irand
-  "Random integer number with Mersenne Twister RNG."
+  "Random integer number with default RNG.
+
+  As default returns random integer from full integer range. 
+When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
-  (^long [] (irandom default-rng))
-  (^long [mx] (irandom default-rng mx))
-  (^long [mn mx] (irandom default-rng mn mx)))
+  (^long [] (prot/irandom default-rng))
+  (^long [mx] (prot/irandom default-rng mx))
+  (^long [mn mx] (prot/irandom default-rng mn mx)))
 
 (defn lrand
-  "Random long number with Mersenne Twister RNG."
+  "Random long number with default RNG.
+
+  As default returns random long from full integer range. 
+When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
-  (^long [] (lrandom default-rng))
-  (^long [mx] (lrandom default-rng mx))
-  (^long [mn mx] (lrandom default-rng mn mx)))
+  (^long [] (prot/lrandom default-rng))
+  (^long [mx] (prot/lrandom default-rng mx))
+  (^long [mn mx] (prot/lrandom default-rng mn mx)))
 
 (defmacro randval
   "Retrun value with given probability (default 0.5)"
   {:metadoc/categories #{:rand}}
   ([v1 v2]
-   `(if (brandom default-rng) ~v1 ~v2))
+   `(if (prot/brandom default-rng) ~v1 ~v2))
   ([prob v1 v2]
-   `(if (brandom default-rng ~prob) ~v1 ~v2))
+   `(if (prot/brandom default-rng ~prob) ~v1 ~v2))
   ([prob]
-   `(brandom default-rng ~prob))
+   `(prot/brandom default-rng ~prob))
   ([]
-   `(brandom default-rng)))
+   `(prot/brandom default-rng)))
 
 (defn flip
   "Returns 1 with given probability, 0 otherwise"
@@ -399,11 +417,8 @@ See [[brand]].")
                                                       :sobol [0.16 0.58 0.4 -0.2]
                                                       [0.5 0.5 0.25 -0.5])
         c (* jitter m/SQRTPI d0 f)
-        g (random-generators :default dimensions)
-        mod-fn (if (== dimensions 1)
-                 (fn [^long i ^double v] (* v c (m/pow (- (inc i) i0) p)))
-                 (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))))]
-    (map-indexed mod-fn g)))
+        g (random-generators :default dimensions)]
+    (map-indexed (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)))
 
 ;; Sequence creators
 
@@ -438,16 +453,23 @@ See also [[jittered-sequence-generator]]."
 
   Suitable for `:r2`, `:sobol` and `:halton` sequences.
 
-  `jitter` parameter range is from `0` (no jitter) to `1` (full jitter).
+  `jitter` parameter range is from `0` (no jitter) to `1` (full jitter). Default: 0.25.
 
   See also [[sequence-generator]]."
-  [seq-generator ^long dimensions jitter]
-  (let [s (sequence-generator seq-generator dimensions)
-        j (jitter-generator seq-generator dimensions jitter)
-        mod-fn (if (== dimensions 1)
-                 (fn [^double v ^double vj] (m/frac (+ v vj)))
-                 (fn [v vj] (v/fmap (v/add v vj) m/frac)))]
-    (map mod-fn s j)))
+  ([seq-generator ^long dimensions] (jittered-sequence-generator seq-generator dimensions 0.25))
+  ([seq-generator ^long dimensions ^double jitter]
+   (let [s (sequence-generator seq-generator dimensions) 
+         [j mod-fn] (if (#{:sphere :gaussian} seq-generator)
+                      (let [j (sequence-generator :gaussian dimensions)
+                            jitter-low (* m/SQRTPI 0.5 0.25 jitter)]
+                        [j (if (m/one? dimensions)
+                             (fn [^double v ^double vj] (+ v (* jitter-low vj)))
+                             (fn [v vj] (v/add v (v/mult vj jitter-low))))])
+                      (let [j (jitter-generator seq-generator dimensions jitter)]
+                        [j (if (m/one? dimensions)
+                             (fn [^double v ^double vj] (m/frac (+ v vj)))
+                             (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
+     (map mod-fn s j))))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
        :metadoc/categories #{:gen}}
@@ -457,10 +479,10 @@ See also [[jittered-sequence-generator]]."
 
 (def ^{:doc "List of possible noise interpolations as a map of names and values."
        :metadoc/categories #{:noise}}
-  interpolations {:none NoiseConfig/INTERPOLATE_NONE
-                  :linear NoiseConfig/INTERPOLATE_LINEAR
-                  :hermite NoiseConfig/INTERPOLATE_HERMITE
-                  :quintic NoiseConfig/INTERPOLATE_QUINTIC})
+  noise-interpolations {:none NoiseConfig/INTERPOLATE_NONE
+                        :linear NoiseConfig/INTERPOLATE_LINEAR
+                        :hermite NoiseConfig/INTERPOLATE_HERMITE
+                        :quintic NoiseConfig/INTERPOLATE_QUINTIC})
 
 (def ^{:doc "List of possible noise types as a map of names and values."
        :metadoc/categories #{:noise}}
@@ -473,7 +495,7 @@ See also [[jittered-sequence-generator]]."
   [{:keys [seed noise-type interpolation octaves lacunarity gain normalize?]}]
   (NoiseConfig. seed
                 (or (noise-types noise-type) NoiseConfig/NOISE_GRADIENT)
-                (or (interpolations interpolation) NoiseConfig/INTERPOLATE_HERMITE)
+                (or (noise-interpolations interpolation) NoiseConfig/INTERPOLATE_HERMITE)
                 octaves lacunarity gain normalize?))
 
 (defn- noise-config
@@ -488,9 +510,9 @@ See also [[jittered-sequence-generator]]."
                              :gain 0.5
                              :normalize? true} cfg))))
 
-(def ^:private perlin-noise-config (noise-config {:interpolation :quintic}))
-(def ^:private simplex-noise-config (noise-config {:noise-type :simplex}))
-(def ^:private value-noise-config (noise-config {:noise-type :value}))
+(defonce ^:private perlin-noise-config (noise-config {:interpolation :quintic}))
+(defonce ^:private simplex-noise-config (noise-config {:noise-type :simplex}))
+(defonce ^:private value-noise-config (noise-config {:noise-type :value}))
 
 (defn vnoise
   "Value Noise.
@@ -502,7 +524,7 @@ See also [[jittered-sequence-generator]]."
   (^double [^double x ^double y ^double z] (FBM/noise value-noise-config x y z)))
 
 (defn noise
-  "Create improved Perlin Noise.
+  "Improved Perlin Noise.
 
   6 octaves, quintic interpolation."
   {:metadoc/categories #{:noise}}
@@ -511,40 +533,55 @@ See also [[jittered-sequence-generator]]."
   (^double [^double x ^double y ^double z] (FBM/noise perlin-noise-config x y z)))
 
 (defn simplex
-  "Create Simplex noise. 6 octaves."
+  "Simplex noise. 6 octaves."
   {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise simplex-noise-config x))
   (^double [^double x ^double y] (FBM/noise simplex-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise simplex-noise-config x y z)))
 
 (defmacro ^:private gen-noise-function
-  "Generate various noise for static function"
-  [method]
-  `(fn gen-noise-name#
-     ([] (gen-noise-name# {}))
-     ([cfg#]
-      (let [ncfg# (noise-config cfg#)]
-        (fn
-          (^double [x#] (~method ncfg# x#))
-          (^double [x# y#] (~method ncfg# x# y#))
-          (^double [x# y# z#] (~method ncfg# x# y# z#)))))))
+  "Generate various noise as static function"
+  [noise-type method]
+  (let [nm (symbol (str noise-type "-noise"))]
+    `(defn ~nm
+       ~(str "Create " noise-type " noise function with optional configuration.")
+       {:metadoc/categories #{:noise}}
+       ([] (~nm {}))
+       ([cfg#]
+        (let [ncfg# (noise-config cfg#)]
+          (fn
+            (^double [x#] (~method ncfg# x#))
+            (^double [x# y#] (~method ncfg# x# y#))
+            (^double [x# y# z#] (~method ncfg# x# y# z#))))))))
 
-(def ^{:metadoc/categories #{:noise}} single-noise (gen-noise-function Noise/noise))
-(def ^{:metadoc/categories #{:noise}} fbm-noise (gen-noise-function FBM/noise))
-(def ^{:metadoc/categories #{:noise}} billow-noise (gen-noise-function Billow/noise))
-(def ^{:metadoc/categories #{:noise}} ridgedmulti-noise (gen-noise-function RidgedMulti/noise))
+(gen-noise-function single Noise/noise)
+(gen-noise-function fbm FBM/noise)
+(gen-noise-function billow Billow/noise)
+(gen-noise-function ridgedmulti RidgedMulti/noise)
+
+(def ^{:doc "List of possible noise generators as a map of names and functions."
+       :metadoc/categories #{:noise}}
+  noise-generators
+  {:fbm fbm-noise
+   :single single-noise
+   :billow billow-noise
+   :ridgemulti ridgedmulti-noise})
 
 (defn random-noise-cfg
-  "Create random noise configuration."
+  "Create random noise configuration.
+
+  Optional map with fixed values."
   {:metadoc/categories #{:noise}}
-  []
-  {:seed (irand)
-   :noise-type (rand-nth (keys noise-types))
-   :interpolation (rand-nth (keys interpolations))
-   :octaves (irand 1 10)
-   :lacunarity (drand 1.5 2.5)
-   :gain (drand 0.2 0.8)
-   :normalize? true})
+  ([pre-config]
+   (merge {:seed (irand)
+           :generator (rand-nth [:single :fbm :billow :ridgemulti])
+           :noise-type (rand-nth (keys noise-types))
+           :interpolation (rand-nth (keys noise-interpolations))
+           :octaves (irand 1 10)
+           :lacunarity (drand 1.5 2.5)
+           :gain (drand 0.2 0.8)
+           :normalize? true} pre-config))
+  ([] (random-noise-cfg nil)))
 
 (defn random-noise-fn
   "Create random noise function from all possible options.
@@ -552,17 +589,15 @@ See also [[jittered-sequence-generator]]."
   Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
   {:metadoc/categories #{:noise}}
   ([cfg]
-   (let [cfg (merge (random-noise-cfg) cfg)]
-     (rand-nth [(single-noise cfg)
-                (fbm-noise cfg)
-                (billow-noise cfg)
-                (ridgedmulti-noise cfg)])))
+   (let [cfg (merge (random-noise-cfg) cfg)
+         gen-fn (noise-generators (get cfg :generator :fbm))]
+     (gen-fn cfg)))
   ([] (random-noise-fn (random-noise-cfg))))
 
 
 ;; ### Discrete noise
 
-(defmacro discrete-noise
+(defn discrete-noise
   "Discrete noise. Parameters:
 
   * X (long)
@@ -570,44 +605,120 @@ See also [[jittered-sequence-generator]]."
 
   Returns double value from [0,1] range"
   {:metadoc/categories #{:noise}}
-  ([X Y]
-   `(Discrete/value ~X ~Y))
-  ([X]
-   `(discrete-noise ~X 0)))
+  (^double [^long X ^long Y] (Discrete/value X Y))
+  (^double [^long X] (Discrete/value X 0)))
 
 ;; Distribution
 
-(defprotocol DistributionProto
-  "Get information from distributions."
-  (^{:metadoc/categories #{:dist}} cdf [d v] [d v1 v2] "Cumulative probability.")
-  (^{:metadoc/categories #{:dist}} pdf [d v] "Density")
-  (^{:metadoc/categories #{:dist}} lpdf [d v] "Log density")
-  (^{:metadoc/categories #{:dist}} icdf [d p] "Inversed cumulative probability")
-  (^{:metadoc/categories #{:dist}} probability [d v] "Probability (PMF)")
-  (^{:metadoc/categories #{:dist}} sample [d] "Returns random sample.")
-  (^{:metadoc/categories #{:dist}} dimensions [d] "Returns dimensions")
-  (^{:metadoc/categories #{:dist}} source-object [d] "Returns Java object from backend library")
-  (^{:metadoc/categories #{:dist}} continuous? [d] "true if distributions supports real values"))
+;; protocol proxies
 
-(defprotocol UnivariateDistributionProto
-  (^{:metadoc/categories #{:dist}} mean [d] "Mean")
-  (^{:metadoc/categories #{:dist}} variance [d] "Variance")
-  (^{:metadoc/categories #{:dist}} lower-bound [d] "Lower value")
-  (^{:metadoc/categories #{:dist}} upper-bound [d] "Higher value"))
+(defn cdf
+  "Cumulative probability."
+  {:metadoc/categories #{:dist}}
+  (^double [d v] (prot/cdf d v))
+  (^double [d v1 v2] (prot/cdf d v1 v2)))
 
-(defprotocol MultivariateDistributionProto
-  "Get information from distributions."
-  (^{:metadoc/categories #{:dist}} means [d] "Mean")
-  (^{:metadoc/categories #{:dist}} covariance [d] "Variance"))
+(defn pdf
+  "Density"
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (prot/pdf d v))
 
-(defprotocol DistributionIdProto
-  "Get name and parameter names from distribution"
-  (^{:metadoc/categories #{:dist}} distr-id [d] "Distribution id as keyword")
-  (^{:metadoc/categories #{:dist}} parameter-names [d] "List of parameter names"))
+(defn lpdf
+  "Log density"
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (prot/lpdf d v))
+
+(defn icdf
+  "Inverse cumulative probability"
+  {:metadoc/categories #{:dist}}
+  [d ^double v] (prot/icdf d v))
+
+(defn probability
+  "Probability (PMF)"
+  ^double [d v] (prot/probability d v))
+
+(defn sample
+  "Random sample"
+  [d] (prot/sample d))
+
+(defn dimensions
+  "Distribution dimensionality"
+  [d] (prot/dimensions d))
+
+(defn source-object
+  "Returns Java or proxy object from backend library (if available)"
+  [d] (prot/source-object d))
+
+(defn continuous?
+  "Does distribution support continuous range?"
+  [d] (prot/continuous? d))
+
+(defn observe1
+  "Log of probability/density of the value. Alias for [[lpdf]]."
+  ^double [d v]
+  (prot/lpdf d v))
+
+(defn log-likelihood
+  "Log likelihood of samples"
+  ^double [d vs] 
+  (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
+                                     (reduced s)
+                                     (+ s v))) 0.0 (map #(prot/lpdf d %) vs)))
+
+(defmacro observe
+  "Log likelihood of samples. Alias for [[log-likelihood]]."
+  [d vs]
+  `(log-likelihood ~d ~vs))
+
+(defn likelihood
+  "Likelihood of samples"
+  ^double [d vs]
+  (m/exp (log-likelihood d vs)))
+
+(defn mean
+  "Distribution mean"
+  ^double [d] (prot/mean d))
+
+(defn means
+  "Distribution means (for multivariate distributions)"
+  [d] (prot/means d))
+
+(defn variance
+  "Distribution variance"
+  ^double [d] (prot/variance d))
+
+(defn covariance
+  "Distribution covariance matrix (for multivariate distributions)"
+  ^double [d] (prot/covariance d))
+
+(defn lower-bound
+  "Distribution lowest supported value"
+  ^double [d] (prot/lower-bound d))
+
+(defn upper-bound
+  "Distribution highest supported value"
+  ^double [d] (prot/upper-bound d))
+
+(defn distribution-id
+  "Distribution identifier as keyword."
+  [d] (prot/distribution-id d))
+
+(defn distribution-parameters
+  "Distribution highest supported value.
+
+  When `all?` is true, technical parameters are included, ie: `:rng` and `:inverser-cumm-accuracy`."
+  ([d] (distribution-parameters d false))
+  ([d all?]
+   (if-not all?
+     (-> (prot/distribution-parameters d)
+         (set)
+         (disj :rng :inverse-cumm-accuracy)
+         (vec))
+     (prot/distribution-parameters d))))
 
 ;; apache commons math
 (extend RealDistribution
-  DistributionProto
+  prot/DistributionProto
   {:cdf (fn
           ([^RealDistribution d ^double v] (.cumulativeProbability d v))
           ([^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
@@ -619,12 +730,12 @@ See also [[jittered-sequence-generator]]."
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly true)} 
-  UnivariateDistributionProto
+  prot/UnivariateDistributionProto
   {:mean (fn [^RealDistribution d] (.getNumericalMean d))
    :variance (fn [^RealDistribution d] (.getNumericalVariance d))
    :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
    :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))}
-  RNGProto
+  prot/RNGProto
   {:drandom (fn [^RealDistribution d] (.sample d))
    :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^RealDistribution d] (unchecked-long (.sample d)))
@@ -640,69 +751,69 @@ See also [[jittered-sequence-generator]]."
   [^ContinuousDistribution d ^RandomGenerator rng nm & ks]
   (let [kss (vec (conj ks :rng))]
     (reify
-      DistributionProto
+      prot/DistributionProto
       (pdf [_ v] (.density d v))
       (lpdf [_ v] (m/log (.density d v)))
       (cdf [_ v] (.cdf d v))
       (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
       (icdf [_ v] (.inverseF d v))
       (probability [_ v] (.density d v))
-      (sample [_] (.inverseF d (drandom rng)))
+      (sample [_] (.inverseF d (prot/drandom rng)))
       (dimensions [_] 1)
       (source-object [_] d)
       (continuous? [_] true)
-      DistributionIdProto
-      (distr-id [_] nm)
-      (parameter-names [_] kss)
-      UnivariateDistributionProto
+      prot/DistributionIdProto
+      (distribution-id [_] nm)
+      (distribution-parameters [_] kss)
+      prot/UnivariateDistributionProto
       (mean [_] (.getMean d))
       (variance [_] (.getVariance d))
       (lower-bound [_] (.getXinf d))
       (upper-bound [_] (.getXsup d))
-      RNGProto
-      (drandom [_] (.inverseF d (drandom rng)))
-      (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
-      (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
-      (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
-      (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
-      (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
-      (set-seed! [d seed] (set-seed! rng seed) d))))
+      prot/RNGProto
+      (drandom [_] (.inverseF d (prot/drandom rng)))
+      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
+      (lrandom [_] (unchecked-long (.inverseF d (prot/drandom rng))))
+      (irandom [_] (unchecked-int (.inverseF d (prot/drandom rng))))
+      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
+      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
+      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
 
 (defn- reify-integer-ssj
   [^DiscreteDistributionInt d ^RandomGenerator rng nm & ks]
   (let [kss (vec (conj ks :rng))]
     (reify
-      DistributionProto
+      prot/DistributionProto
       (pdf [_ v] (.prob d (m/floor v)))
       (lpdf [_ v] (m/log (.prob d (m/floor v))))
       (cdf [_ v] (.cdf d (m/floor v)))
       (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
       (icdf [_ v] (.inverseF d v))
       (probability [_ v] (.prob d (m/floor v)))
-      (sample [_] (.inverseF d (drandom rng)))
+      (sample [_] (.inverseF d (prot/drandom rng)))
       (dimensions [_] 1)
       (source-object [_] d)
       (continuous? [_] false)
-      DistributionIdProto
-      (distr-id [_] nm)
-      (parameter-names [_] kss)
-      UnivariateDistributionProto
+      prot/DistributionIdProto
+      (distribution-id [_] nm)
+      (distribution-parameters [_] kss)
+      prot/UnivariateDistributionProto
       (mean [_] (.getMean d))
       (variance [_] (.getVariance d))
       (lower-bound [_] (.getXinf d))
       (upper-bound [_] (.getXsup d))
-      RNGProto
-      (drandom [_] (.inverseF d (drandom rng)))
-      (frandom [_] (unchecked-float (.inverseF d (drandom rng))))
-      (lrandom [_] (unchecked-long (.inverseF d (drandom rng))))
-      (irandom [_] (unchecked-int (.inverseF d (drandom rng))))
-      (->seq [_] (repeatedly #(.inverseF d (drandom rng))))
-      (->seq [_ n] (repeatedly n #(.inverseF d (drandom rng))))
-      (set-seed! [d seed] (set-seed! rng seed) d))))
+      prot/RNGProto
+      (drandom [_] (.inverseF d (prot/drandom rng)))
+      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
+      (lrandom [_] (unchecked-long (.inverseF d (prot/drandom rng))))
+      (irandom [_] (unchecked-int (.inverseF d (prot/drandom rng))))
+      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
+      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
+      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
 
 ;; smile
 (extend DiscreteDistribution
-  DistributionProto
+  prot/DistributionProto
   {:cdf (fn
           ([^Distribution d ^double v] (.cdf d (m/floor v)))
           ([^Distribution d ^double v1 ^double v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1)))))
@@ -714,10 +825,10 @@ See also [[jittered-sequence-generator]]."
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly false)}  
-  UnivariateDistributionProto
+  prot/UnivariateDistributionProto
   {:mean (fn [^Distribution d] (.mean d))
    :variance (fn [^Distribution d] (.var d))}
-  RNGProto
+  prot/RNGProto
   {:drandom (fn [^Distribution d] (.rand d))
    :frandom (fn [^Distribution d] (unchecked-float (.rand d)))
    :lrandom (fn [^Distribution d] (unchecked-long (.rand d)))
@@ -727,7 +838,7 @@ See also [[jittered-sequence-generator]]."
             ([^Distribution d n] (repeatedly n #(.rand d))))})
 
 (extend IntegerDistribution
-  DistributionProto
+  prot/DistributionProto
   {:cdf (fn
           ([^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
           ([^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
@@ -739,12 +850,12 @@ See also [[jittered-sequence-generator]]."
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly false)}
-  UnivariateDistributionProto
+  prot/UnivariateDistributionProto
   {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
    :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
    :lower-bound (fn [^IntegerDistribution d] (.getSupportLowerBound d))
    :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))}
-  RNGProto
+  prot/RNGProto
   {:drandom (fn [^IntegerDistribution d] (unchecked-double (.sample d)))
    :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn [^IntegerDistribution d] (unchecked-long (.sample d)))
@@ -755,19 +866,19 @@ See also [[jittered-sequence-generator]]."
    :set-seed! (fn [^IntegerDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
 
 (extend MultivariateNormalDistribution
-  DistributionProto
+  prot/DistributionProto
   {:pdf (fn [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
    :lpdf (fn [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
    :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
    :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))
    :source-object identity
    :continuous? (constantly true)}
-  MultivariateDistributionProto
+  prot/MultivariateDistributionProto
   {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
    :covariance (fn [^MultivariateNormalDistribution d]
                  (let [^org.apache.commons.math3.linear.Array2DRowRealMatrix cv (.getCovariances d)]
                    (m/double-double-array->seq (.getDataRef cv))))}
-  RNGProto
+  prot/RNGProto
   {:drandom (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
    :frandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-float (.sample d)))
    :lrandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-long (.sample d)))
@@ -776,28 +887,6 @@ See also [[jittered-sequence-generator]]."
             ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
             ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
    :set-seed! (fn [^MultivariateNormalDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
-
-(defn observe1
-  "Log of probability/density of the value. Alias for [[lpdf]]."
-  ^double [d v]
-  (lpdf d v))
-
-(defn log-likelihood
-  "Log likelihood of samples"
-  ^double [d vs] 
-  (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
-                                     (reduced s)
-                                     (+ s v))) 0.0 (map #(lpdf d %) vs)))
-
-(defmacro observe
-  "Log likelihood of samples. Alias for [[log-likelihood]]."
-  [d vs]
-  `(log-likelihood ~d ~vs))
-
-(defn likelihood
-  "Likelihood of samples"
-  ^double [d vs]
-  (m/exp (log-likelihood d vs)))
 
 (defmulti
   ^{:doc "Create distribution object.
@@ -853,9 +942,9 @@ The rest parameters goes as follows:
   (let [or-map (zipmap ks vs)] 
     `(do
        (extend ~obj
-         DistributionIdProto
-         {:distr-id (fn [d#] ~nm)
-          :parameter-names (fn [d#] [~@(conj (map keyword ks) :rng)])})
+         prot/DistributionIdProto
+         {:distribution-id (fn [d#] ~nm)
+          :distribution-parameters (fn [d#] [~@(conj (map keyword ks) :rng)])})
        (defmethod distribution ~nm
          ([n# {:keys [~@ks]
                :or ~or-map
@@ -881,7 +970,7 @@ The rest parameters goes as follows:
                 [1.0 ExponentialDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (make-acm-distr :f FDistribution
-                [numerator-degrees-of-freedom denominator-degrees-of-freedom inverser-cumm-accuracy]
+                [numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-cumm-accuracy]
                 [1.0 1.0 FDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (make-acm-distr :gamma GammaDistribution
@@ -910,7 +999,7 @@ The rest parameters goes as follows:
                 [1.0 1.0 ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (make-acm-distr :t TDistribution
-                [degrees-of-freedom inverser-cumm-accuracy]
+                [degrees-of-freedom inverse-cumm-accuracy]
                 [1.0 TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (make-acm-distr :triangular TriangularDistribution [a c b] [-1.0 0.0 1.0])
@@ -921,9 +1010,9 @@ The rest parameters goes as follows:
                 [2.0 1.0 WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
 
 (extend EmpiricalDistribution
-  DistributionIdProto
-  {:distr-id (fn [_] :empirical)
-   :parameter-names (fn [_] [:rng :bin-count :data])})
+  prot/DistributionIdProto
+  {:distribution-id (fn [_] :empirical)
+   :distribution-parameters (fn [_] [:rng :bin-count :data])})
 
 (defmethod distribution :empirical
   ([_ {:keys [^long bin-count data]
@@ -937,9 +1026,9 @@ The rest parameters goes as follows:
   ([_] (distribution :empirical {})))
 
 (extend EnumeratedRealDistribution
-  DistributionIdProto
-  {:distr-id (fn [_] :enumerated-real)
-   :parameter-names (fn [_] [:rng :data :probabilities])})
+  prot/DistributionIdProto
+  {:distribution-id (fn [_] :enumerated-real)
+   :distribution-parameters (fn [_] [:rng :data :probabilities])})
 
 (defmethod distribution :enumerated-real
   ([_ {:keys [data probabilities]
@@ -954,9 +1043,9 @@ The rest parameters goes as follows:
 ;; integer
 
 (extend NegativeBinomialDistribution
-  DistributionIdProto
-  {:distr-id (fn [_] :negative-binomial)
-   :parameter-names (fn [_] [:r :p :rng])})
+  prot/DistributionIdProto
+  {:distribution-id (fn [_] :negative-binomial)
+   :distribution-parameters (fn [_] [:r :p :rng])})
 
 (defmethod distribution :negative-binomial
   ([_ {:keys [^double r ^double p]
@@ -972,9 +1061,9 @@ The rest parameters goes as follows:
   ([_] (distribution :bernoulli {})))
 
 (extend EnumeratedIntegerDistribution
-  DistributionIdProto
-  {:distr-id (fn [_] :enumerated-int)
-   :parameter-names (fn [_] [:data :probabilities :rng])})
+  prot/DistributionIdProto
+  {:distribution-id (fn [_] :enumerated-int)
+   :distribution-parameters (fn [_] [:data :probabilities :rng])})
 
 (defmethod distribution :enumerated-int
   ([_ {:keys [data probabilities]
@@ -1068,43 +1157,43 @@ The rest parameters goes as follows:
                     (+ m1 (* m2 a) (* 3.0 a a)))))
          r (or (:rng all) (rng :jvm))]
      (reify
-       DistributionProto
+       prot/DistributionProto
        (pdf [_ v] (if (<= a ^double v b) (/ (m/sqrt v)) 0.0))
-       (lpdf [d v] (m/log (pdf d v)))
+       (lpdf [d v] (m/log (prot/pdf d v)))
        (cdf [_ v] (cond
                     (< ^double v a) 0.0
                     (> ^double v b) 1.0
                     :else (- (* 2.0 (m/sqrt ^double v)) f)))
-       (cdf [d v1 v2] (- ^double (cdf d v2) ^double (cdf d v1)))
+       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn v))
-       (probability [d v] (pdf d v))
-       (sample [d] (icdf-fn (drandom r)))
+       (probability [d v] (prot/pdf d v))
+       (sample [d] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
-       DistributionIdProto
-       (distr-id [_] :reciprocal-sqrt)
-       (parameter-names [_] [:a :rng])
-       UnivariateDistributionProto
+       prot/DistributionIdProto
+       (distribution-id [_] :reciprocal-sqrt)
+       (distribution-parameters [_] [:a :rng])
+       prot/UnivariateDistributionProto
        (mean [_] m)
        (variance [_] v)
        (lower-bound [_] a)
        (upper-bound [_] b)
-       RNGProto
-       (drandom [_] (icdf-fn (drandom r)))
-       (frandom [_] (unchecked-float (icdf-fn (drandom r))))
-       (lrandom [_] (unchecked-long (icdf-fn (drandom r))))
-       (irandom [_] (unchecked-int (icdf-fn (drandom r))))
-       (->seq [_] (repeatedly #(icdf-fn (drandom r))))
-       (->seq [_ n] (repeatedly n #(icdf-fn (drandom r))))
-       (set-seed! [d seed] (set-seed! r seed) d)))))
+       prot/RNGProto
+       (drandom [_] (icdf-fn (prot/drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d)))))
 
 ;;
 
 (extend MultivariateNormalDistribution
-  DistributionIdProto
-  {:distr-id (fn [_] :multi-normal)
-   :parameter-names (fn [_] [:means :covariances :rng])})
+  prot/DistributionIdProto
+  {:distribution-id (fn [_] :multi-normal)
+   :distribution-parameters (fn [_] [:means :covariances :rng])})
 
 (defmethod distribution :multi-normal
   ([_ {:keys [means covariances] :as all}]
@@ -1157,11 +1246,11 @@ The rest parameters goes as follows:
          cv (delay (mapv vec (DirichletDist/getCovariance alpha)))
          dim (count alpha)]
      (reify
-       DistributionProto
+       prot/DistributionProto
        (pdf [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
        (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
        (probability [d v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
-       (sample [_] (let [samples (map #(sample %) sampler)
+       (sample [_] (let [samples (map #(prot/sample %) sampler)
                          ^double s (v/sum samples)]
                      (mapv (fn [^double v] (cond
                                             (zero? v) zero+epsilon
@@ -1175,21 +1264,20 @@ The rest parameters goes as follows:
        (dimensions [_] dim)
        (source-object [this] this)
        (continuous? [_] true)
-       DistributionIdProto
-       (distr-id [_] :dirichlet)
-       (parameter-names [_] [:alpha :rng])
-       MultivariateDistributionProto
+       prot/DistributionIdProto
+       (distribution-id [_] :dirichlet)
+       (distribution-parameters [_] [:alpha :rng])
+       prot/MultivariateDistributionProto
        (means [_] @m)
        (covariance [_] @cv)
-       RNGProto
-       RNGProto
-       (drandom [d] (sample d))
-       (frandom [d] (mapv unchecked-float (sample d)))
-       (lrandom [d] (mapv unchecked-long (sample d)))
-       (irandom [d] (mapv unchecked-int (sample d)))
-       (->seq [d] (repeatedly #(sample d)))
-       (->seq [d n] (repeatedly n #(sample d)))
-       (set-seed! [d seed] (set-seed! r seed) d)))) 
+       prot/RNGProto
+       (drandom [d] (prot/sample d))
+       (frandom [d] (mapv unchecked-float (prot/sample d)))
+       (lrandom [d] (mapv unchecked-long (prot/sample d)))
+       (irandom [d] (mapv unchecked-int (prot/sample d)))
+       (->seq [d] (repeatedly #(prot/sample d)))
+       (->seq [d n] (repeatedly n #(prot/sample d)))
+       (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
   ([_] (distribution :dirichlet {})))
 
 ;; 
@@ -1209,7 +1297,7 @@ The rest parameters goes as follows:
                                                                   {:data d}
                                                                   {:data d :bin-count bin-count}))]
        (reify
-         DistributionProto
+         prot/DistributionProto
          (pdf [_ v] (kde v))
          (lpdf [_ v] (m/log (kde v)))
          (cdf [_ v] (.cumulativeProbability enumerated ^double v))
@@ -1221,22 +1309,22 @@ The rest parameters goes as follows:
          (source-object [d] {:enumerated enumerated
                              :empirical empirical})
          (continuous? [_] true)
-         DistributionIdProto
-         (distr-id [_] :continuous-distribution)
-         (parameter-names [_] [:data :kernel :h :bin-count :probabilities :rng])
-         UnivariateDistributionProto
-         (mean [_] (mean enumerated))
-         (variance [_] (variance enumerated))
-         (lower-bound [_] (lower-bound enumerated))
-         (upper-bound [_] (upper-bound enumerated))
-         RNGProto
-         (drandom [_] (drandom enumerated))
-         (frandom [_] (frandom enumerated))
-         (lrandom [_] (lrandom enumerated))
-         (irandom [_] (irandom enumerated))
-         (->seq [_] (->seq enumerated))
-         (->seq [_ n] (->seq enumerated n))
-         (set-seed! [d seed] (set-seed! r seed) d)))))
+         prot/DistributionIdProto
+         (distribution-id [_] :continuous-distribution)
+         (distribution-parameters [_] [:data :kernel :h :bin-count :probabilities :rng])
+         prot/UnivariateDistributionProto
+         (mean [_] (prot/mean enumerated))
+         (variance [_] (prot/variance enumerated))
+         (lower-bound [_] (prot/lower-bound enumerated))
+         (upper-bound [_] (prot/upper-bound enumerated))
+         prot/RNGProto
+         (drandom [_] (prot/drandom enumerated))
+         (frandom [_] (prot/frandom enumerated))
+         (lrandom [_] (prot/lrandom enumerated))
+         (irandom [_] (prot/irandom enumerated))
+         (->seq [_] (prot/->seq enumerated))
+         (->seq [_ n] (prot/->seq enumerated n))
+         (set-seed! [d seed] (prot/set-seed! r seed) d)))))
   ([_] (distribution :continuous-distribution {})))
 
 (defmethod distribution :integer-discrete-distribution
@@ -1259,7 +1347,7 @@ The rest parameters goes as follows:
 
          ^AbstractIntegerDistribution enumerated (distribution :enumerated-int {:data (map dict data) :probabilities probabilities :rng r})]
      (reify
-       DistributionProto
+       prot/DistributionProto
        (pdf [_ v] (.probability enumerated (.valAt dict v -1)))
        (lpdf [_ v] (.logProbability enumerated (.valAt dict v -1)))
        (cdf [_ v] (.cumulativeProbability enumerated (.valAt dict v -1)))
@@ -1269,16 +1357,16 @@ The rest parameters goes as follows:
        (dimensions [_] 1)
        (source-object [d] enumerated)
        (continuous? [_] false)
-       DistributionIdProto
-       (distr-id [_] :categorical-distribution)
-       (parameter-names [_] [:data :probabilities :rng])
-       UnivariateDistributionProto
-       (mean [_] (mean enumerated))
-       (variance [_] (variance enumerated))
-       RNGProto
-       (->seq [_] (map #(.valAt unique %) (->seq enumerated)))
-       (->seq [_ n] (map #(.valAt unique %) (->seq enumerated n)))
-       (set-seed! [d seed] (set-seed! r seed) d))))
+       prot/DistributionIdProto
+       (distribution-id [_] :categorical-distribution)
+       (distribution-parameters [_] [:data :probabilities :rng])
+       prot/UnivariateDistributionProto
+       (mean [_] ##NaN)
+       (variance [_] ##NaN)
+       prot/RNGProto
+       (->seq [_] (map #(.valAt unique %) (prot/->seq enumerated)))
+       (->seq [_ n] (map #(.valAt unique %) (prot/->seq enumerated n)))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :categorical-distribution {})))
 
 ;;
@@ -1298,33 +1386,33 @@ The rest parameters goes as follows:
                    (* scale (m/tan (* m/HALF_PI p))))
          r (or (:rng all) (rng :jvm))]
      (reify
-       DistributionProto
+       prot/DistributionProto
        (pdf [_ v] (m/exp (lpdf-fn v)))
        (lpdf [_ v] (lpdf-fn v))
        (cdf [_ v] (* m/M_2_PI (m/atan (/ ^double v scale))))
-       (cdf [d v1 v2] (- ^double (cdf d v2) ^double (cdf d v1)))
+       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn v))
        (probability [d v] (m/exp (lpdf-fn v)))
-       (sample [d] (icdf-fn (drandom r)))
+       (sample [d] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
-       DistributionIdProto
-       (distr-id [_] :half-cauchy)
-       (parameter-names [_] [:scale :rng])
-       UnivariateDistributionProto
+       prot/DistributionIdProto
+       (distribution-id [_] :half-cauchy)
+       (distribution-parameters [_] [:scale :rng])
+       prot/UnivariateDistributionProto
        (mean [_] ##NaN)
        (variance [_] ##NaN)
        (lower-bound [_] 0)
        (upper-bound [_] ##Inf)
-       RNGProto
-       (drandom [_] (icdf-fn (drandom r)))
-       (frandom [_] (unchecked-float (icdf-fn (drandom r))))
-       (lrandom [_] (unchecked-long (icdf-fn (drandom r))))
-       (irandom [_] (unchecked-int (icdf-fn (drandom r))))
-       (->seq [_] (repeatedly #(icdf-fn (drandom r))))
-       (->seq [_ n] (repeatedly n #(icdf-fn (drandom r))))
-       (set-seed! [d seed] (set-seed! r seed) d))))
+       prot/RNGProto
+       (drandom [_] (icdf-fn (prot/drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :half-cauchy {})))
 
 ;;
@@ -1337,5 +1425,3 @@ The rest parameters goes as follows:
 (defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
            :metadoc/categories #{:dist}}
   default-normal (distribution :normal))
-
-(type (zipmap [:a] [:b]))

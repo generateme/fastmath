@@ -10,7 +10,8 @@
            [smile.regression Regression RegressionTrainer OLS$Trainer RLS$Trainer LASSO$Trainer RidgeRegression$Trainer
             RBFNetwork$Trainer SVR$Trainer RegressionTree$Trainer RandomForest$Trainer GradientTreeBoost$Trainer
             GradientTreeBoost$Loss GaussianProcessRegression$Trainer
-            NeuralNetwork$Trainer NeuralNetwork$ActivationFunction]
+            NeuralNetwork$Trainer NeuralNetwork$ActivationFunction
+            ElasticNet]
            [smile.validation Validation RegressionMeasure MeanAbsoluteDeviation MSE RMSE RSS]
            [org.apache.commons.math3.linear MatrixUtils CholeskyDecomposition Array2DRowRealMatrix ArrayRealVector RealMatrix]))
 
@@ -98,13 +99,19 @@
 
 (wrap-regression :smile lasso {:keys [lambda tolerance max-iters]
                                :or {lambda 10.0 tolerance 1.0e-3 max-iters 1000}}
-  (-> (LASSO$Trainer. lambda)
-      (.setTolerance tolerance)
-      (.setMaxNumIteration max-iters)))
+                 (-> (LASSO$Trainer. lambda)
+                     (.setTolerance tolerance)
+                     (.setMaxNumIteration max-iters)))
+
+(wrap-regression :smile elastic-net {:keys [lambda1 lambda2 tolerance max-iters]
+                                     :or {lambda1 0.1 lambda2 0.1 tolerance 1.0e-4 max-iters 1000}}
+                 (proxy [RegressionTrainer] []
+                   (train [xx yy]
+                     (ElasticNet. xx yy lambda1 lambda2 tolerance max-iters))))
 
 (wrap-regression :smile ridge {:keys [lambda]
                                :or {lambda 0.1}}
-  (RidgeRegression$Trainer. lambda))
+                 (RidgeRegression$Trainer. lambda))
 
 (wrap-regression :smile rbf-network {:keys [distance rbf number-of-basis normalize?]
                                      :or {distance dist/euclidean number-of-basis 10 normalize? false}}

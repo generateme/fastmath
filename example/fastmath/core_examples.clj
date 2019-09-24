@@ -4,6 +4,39 @@
   (:require [metadoc.examples :refer :all]
             [fastmath.core :refer :all]))
 
+(add-examples atan2
+  (example-session "atan2 values"
+    (degrees (atan2 1 1))
+    (degrees (atan2 0 1))
+    (degrees (atan2 0 -1))))
+
+(add-examples bessel-j
+  (example-session "bessel-j values"
+    (bessel-j 1 1)
+    (bessel-j 0 1)
+    (bessel-j 0 10)))
+
+(add-examples between?
+  (example-session "Examples"
+    {:test-values [true false false true
+                   true false false true]}
+    (between? [1 4] 2)
+    (between? [1 4] 5)
+    (between? [1 4] -2)
+    (between? [1 4] 1)
+    (between? 1 4 2)
+    (between? 1 4 5)
+    (between? 1 4 -2)
+    (between? 1 4 1)))
+
+(add-examples co-intervals
+  (example (co-intervals [1 2 3 1 2 3 4 5 6 1 2 3 4 5 6 7 1 1 1 1 -1]))
+  (example "Higher overlap " (co-intervals [1 2 3 1 2 3 4 5 6 1 2 3 4 5 6 7 1 1 1 1 -1] 5 0.95)))
+
+(add-examples group-by-intervals
+  (example-session "Examples"
+    (group-by-intervals [1 2 3 4 1 2 3 4 5 1 -2])
+    (group-by-intervals [[1 2] [3 4]] [1 2 3 4 1 2 3 4 5 1 -2])))
 
 (add-examples rem
   (example-session "Remainder (compared to `clojure.core` version)."
@@ -217,18 +250,109 @@
     (double-double-array->seq (seq->double-double-array [[1 2] [3 4]])))
   (example "Also works on seq of numbers" (seq (second (seq->double-double-array [1 2 3])))))
 
-(def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc
+(add-examples haversine
+  (example-session "Usage"
+    (haversine 10)
+    (haversine [10 20] [30 10])
+    (haversine 10 20 30 10)))
+
+(add-examples haversine-dist
+  (example-session "Usage"
+    (haversine-dist [10 20] [30 10])
+    (haversine-dist 10 20 30 10)))
+
+(add-examples inf?
+  (example-session "Usage"
+    {:test-values [true true false true false]}
+    (inf? ##Inf)
+    (inf? (/ 0))
+    (inf? 1)
+    (inf? ##-Inf)
+    (inf? ##NaN)))
+
+(add-examples neg-inf?
+  (example-session "Usage"
+    {:test-values [false false false true false]}
+    (neg-inf? ##Inf)
+    (neg-inf? (/ 0))
+    (neg-inf? 1)
+    (neg-inf? ##-Inf)
+    (neg-inf? ##NaN)))
+
+(add-examples pos-inf?
+  (example-session "Usage"
+    {:test-values [true true false false false]}
+    (pos-inf? ##Inf)
+    (pos-inf? (/ 0))
+    (pos-inf? 1)
+    (pos-inf? ##-Inf)
+    (pos-inf? ##NaN)))
+
+(add-examples invalid-double?
+  (example-session "Usage"
+    {:test-values [true true false true true]}
+    (invalid-double? ##Inf)
+    (invalid-double? (/ 0))
+    (invalid-double? 1)
+    (invalid-double? ##-Inf)
+    (invalid-double? ##NaN)))
+
+(add-examples valid-double?
+  (example-session "Usage"
+    {:test-values [false false true false false]}
+    (valid-double? ##Inf)
+    (valid-double? (/ 0))
+    (valid-double? 1)
+    (valid-double? ##-Inf)
+    (valid-double? ##NaN)))
+
+(add-examples nan?
+  (example-session "Usage"
+    {:test-values [false false false false true]}
+    (nan? ##Inf)
+    (nan? (/ 0))
+    (nan? 1)
+    (nan? ##-Inf)
+    (nan? ##NaN)))
+
+(add-examples order
+  (example "Usage" {:test-value '(1 2 5 6 4 7 3 8 10 9)} (order [1 1 3 2 1 1 2 3 4 3]))
+  (example "Reverse order" {:test-value '(9 3 8 10 4 7 1 2 5 6)} (order [1 1 3 2 1 1 2 3 4 3] true)))
+
+(add-examples rank
+  (example-session "Usage" {:test-values ['(4.5 1.5 6.0 1.5 8.0 11.0 3.0 10.0 8.0 4.5 8.0)
+                                          '(4.5 1.5 6.0 1.5 8.0 11.0 3.0 10.0 8.0 4.5 8.0)
+                                          [4 1 6 2 7 11 3 10 8 5 9]
+                                          [5 2 6 1 9 11 3 10 8 4 7]
+                                          '(4 1 6 1 7 11 3 10 7 4 7)
+                                          '(5 2 6 2 9 11 3 10 9 5 9)
+                                          ]}
+    (rank [3 1 4 1 5 9 2 6 5 3 5])
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :average)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :first)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :last)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :min)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :max))
+  (example-session "Random ties"
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :random)))
+
+(def single-list `(sin cos tan cot sec csc asin acos atan acot asec acsc haversine
                        sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
                        qsin qcos exp log log10 ln log1p expm1 sqrt cbrt qexp qsqrt rqsqrt
-                       erf erfc inv-erf inv-erfc sinc log2 qlog
-                       sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc
-                       frac sfrac low-2-exp high-2-exp round-up-pow2 next-double prev-double
-                       signum sgn sigmoid
+                       erf erfc inv-erf inv-erfc sinc log2 qlog log1pexp
+                       sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc itrunc
+                       frac sfrac low-2-exp high-2-exp round-up-pow2
+                       signum sgn sigmoid logit
                        gamma log-gamma digamma log-gamma-1p trigamma inv-gamma-1pm1))
+
+(def double-list `(bessel-j atan2 hypot hypot-sqrt log-beta))
 
 (def interp-list `(quad-interpolation smooth-interpolation wrap lerp cos-interpolation))
 
-(def fn-list (concat single-list interp-list))
+(def fn-list (concat single-list interp-list double-list))
 
 (defmacro ^:private add-image-examples
   []
@@ -237,4 +361,16 @@
          `(add-examples ~x
             (example-image ~(str "Plot of " (name x)) ~(str "images/m/" (name x) ".png"))))))
 
+(defmacro ^:private add-call-examples
+  []
+  `(do
+     ~@(for [x single-list]
+         `(add-examples ~x
+            (example (~x 1.0))))))
+
+(add-call-examples)
 (add-image-examples)
+
+(add-examples erf
+  (example-image "Plort of 2d erf" "images/m/erf2.png"))
+
