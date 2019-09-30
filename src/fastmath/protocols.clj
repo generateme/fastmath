@@ -1,10 +1,11 @@
-(ns fastmath.protocols.random
-  "Set of protocols for fastmath.random namespace.
+(ns fastmath.protocols
+  "Set of protocols for fastmath.
 
   Includes:
 
   * random generator protocol
-  * distribution protocols")
+  * distribution protocols
+  * vector protocol")
 
 (defprotocol RNGProto
   "Defines set of random functions for different RNGs or distributions returning primitive values."
@@ -67,3 +68,43 @@ Returns true or false with equal probability. You can set `p` probability for `t
   "Get name and parameter names from distribution"
   (distribution-id [d] "Distribution id as keyword")
   (distribution-parameters [d] "List of distribution parameter names"))
+
+;; vector
+
+(defprotocol VectorProto
+  "Vector operations"
+  (to-vec [v] "Convert to Clojure primitive vector `Vec`.")
+  (as-vec [v] [v xs] "Create vector from sequence as given type.")
+  (fmap [v f] "Apply function to all vector values (like map but returns the same type).")
+  (approx [v] [v d] "Round to 2 (or `d`) decimal places")
+  (magsq [v1] "Length of the vector squared.")
+  (mag [v1] "length of the vector.")
+  (dot [v1 v2] "Dot product of two vectors.")
+  (add [v1] [v1 v2] "Sum of two vectors.")
+  (sub [v1] [v1 v2] "Subtraction of two vectors.")
+  (mult [v1 v] "Multiply vector by number `v`.")
+  (emult [v1 v2] "Element-wise vector multiplication (Hadamard product).")
+  (abs [v1] "Absolute value of vector elements")
+  (mx [v1] "Maximum value of vector elements")
+  (mn [v1] "Minimum value of vector elements")
+  (emx [v1 v2] "Element-wise max from two vectors.")
+  (emn [v1 v2] "Element-wise min from two vectors.")
+  (maxdim [v] "Index of maximum value.")
+  (mindim [v] "Index of minimum value.")
+  (base-from [v] "List of perpendicular vectors (basis)")
+  (sum [v1] "Sum of elements")
+  (permute [v idxs] "Permute vector elements with given indices.")
+  (reciprocal [v] "Reciprocal of elements.")
+  (interpolate [v1 v2 t f] "Interpolate vectors, optionally set interpolation fn")
+  (einterpolate [v1 v2 v f] "Interpolate vectors element-wise, optionally set interpolation fn")
+  (econstrain [v val1 val2] "Element-wise constrain")
+  (is-zero? [v1] "Is vector zero?")
+  (is-near-zero? [v1] [v1 tol] "Is vector almost zero? (all absolute values of elements are less than `tol` tolerance or `1.0e-6`)")
+  (heading [v1] "Angle between vector and unit vector `[1,0,...]`")
+  (cross [v1 v2] "Cross product")
+  (rotate [v1 angle] [v1 anglex angley anglez] "Rotate vector")
+  (perpendicular [v1] [v1 v2] "Perpendicular vector (only 2d).")
+  (axis-rotate [v1 angle axis] [v1 angle axis pivot] "Rotate around axis, 3d only")
+  (transform [v1 o vx vy] [v1 o vx vy vz] "Transform vector; map point to coordinate system defined by origin, vx and vy (as bases), d and 3d only.")
+  (to-polar [v1] "To polar coordinates (2d, 3d only), first element is length, the rest angle.")
+  (from-polar [v1] "From polar coordinates (2d, 3d only)"))

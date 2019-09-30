@@ -1,6 +1,29 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.5.0]
+
+Cleaned documentation with more usage examples.
+
+### Added
+
+* `demean` function
+* `seq->vec2`, `seq->vec3` and `seq->vec4`
+* `warp-noise`
+
+### Changed
+
+* [possibly breaking] all protocols put in separate namespace, wrapping functions introduced (with type hints where possible)
+* binary measure parameters
+
+### Fixed
+
+* acf calculation
+
+### Removed
+
+* `TOLERANCE` constant in `fastmath.vector`
+
 ## [1.4.0 SNAPSHOT]
 
 ### Added

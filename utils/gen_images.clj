@@ -116,21 +116,24 @@
 (doseq [[nm noise-fn] [[:noise r/noise]
                        [:vnoise r/vnoise]
                        [:simplex r/simplex]
-                       [:random1 (r/random-noise-fn {:generator :fbm :interpolation :linear})]
-                       [:random2 (r/random-noise-fn {:generator :billow})]
-                       [:random3 (r/random-noise-fn {:generator :ridgemulti :octaves 2 :interpolation :linear})]
-                       [:fbm (r/fbm-noise)]
-                       [:billow (r/billow-noise)]
-                       [:ridgedmulti (r/ridgedmulti-noise)]
-                       [:single (r/single-noise)]]]
+                       [:random1 (r/random-noise-fn {:seed 1234 :generator :fbm :interpolation :linear})]
+                       [:random2 (r/random-noise-fn {:seed 1234 :generator :billow})]
+                       [:random3 (r/random-noise-fn {:seed 1234 :generator :ridgemulti :octaves 2})]
+                       [:fbm (r/fbm-noise {:seed 1234})]
+                       [:billow (r/billow-noise {:seed 1234})]
+                       [:ridgedmulti (r/ridgedmulti-noise {:seed 1234})]
+                       [:single (r/single-noise {:seed 1234})]]]
   (save-chart (function2d-chart noise-fn {:x [-2 2] :y [-2 2]}) "n" (name nm) ".jpg"))
 
 (save-chart (function2d-chart r/discrete-noise {:x [-10 10] :y [-10 10]}) "n" "discrete_noise" ".jpg")
+(save-chart (function2d-chart (r/warp-noise-fn) {:x [-2 2] :y [-2 2]}) "n" "warp" ".jpg")
+
+;; distributions
 
 (def pal (reverse (clr/palette-presets :category20)))
 
 (defn distr-chart
-  ([f d pnames ps] (pdf-chart f d pnames ps nil))
+  ([f d pnames ps] (distr-chart f d pnames ps nil))
   ([f d pnames ps domain]
    (let [ff (case f
               :cdf r/cdf
@@ -159,9 +162,9 @@
   ([distr params ps] (save-distr-charts distr params ps nil))
   ([distr params ps domain]
    (binding [c2d/*jpeg-image-quality* 0.75]
-     (save-chart (pdf-chart :pdf distr params ps domain) "d" (str "pdf-" (name distr)) ".jpg")
-     (save-chart (pdf-chart :cdf distr params ps domain) "d" (str "cdf-" (name distr)) ".jpg")
-     (save-chart (pdf-chart :icdf distr params ps [0 0.99]) "d" (str "icdf-" (name distr)) ".jpg"))))
+     (save-chart (distr-chart :pdf distr params ps domain) "d" (str "pdf-" (name distr)) ".jpg")
+     (save-chart (distr-chart :cdf distr params ps domain) "d" (str "cdf-" (name distr)) ".jpg")
+     (save-chart (distr-chart :icdf distr params ps [0 0.99]) "d" (str "icdf-" (name distr)) ".jpg"))))
 
 #_(defn show-distr-charts
     ([distr params ps] (show-distr-charts distr params ps nil))

@@ -62,7 +62,7 @@
 
   First two (`:value` and `:gradient`) can use 4 different interpolation types: `:none`, `:linear`, `:hermite` (cubic) and `:quintic`.
   
-  All can be used as into:
+  All can be combined in following variants:
 
   * Noise - pure noise value, create with [[single-noise]]
   * FBM - fractal brownian motion, create with [[fbm-noise]]
@@ -79,12 +79,18 @@
   * `:gain` - amplitude scaling factor for combined noise, default: 0.5
   * `:normalize?` - should be normalized to `[0,1]` range (true, default) or to `[-1,1]` range (false)
 
-  For usage convenience 3 ready to use functions are prepared. Return is normalized to `[0,1]` range:
+  For usage convenience 3 ready to use functions are prepared. Returning value from `[0,1]` range:
 
   * [[noise]] - Perlin Noise (gradient noise, 6 octaves, quintic interpolation)
   * [[vnoise]] - Value Noise (as in Processing, 6 octaves, hermite interpolation)
-  * [[simplex]] - Simpled Noise (6 octaves)
+  * [[simplex]] - Simplex Noise (6 octaves)
 
+  For random noise generation you can use [[random-noise-cfg]] and [[random-noise-fn]]. Both can be feed with configuration. Additional configuration:
+
+  * `:generator` can be set to one of the noise variants, defaults to `:fbm`
+  * `:warp-scale` - 0.0 - do not warp, >0.0 warp
+  * `:warp-depth` - depth for warp (default 1.0, if warp-scale is positive)
+  
   #### Discrete Noise
 
   [[discrete-noise]] is a 1d or 2d hash function for given integers. Returns double from `[0,1]` range.
@@ -101,7 +107,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
-            [fastmath.protocols.random :as prot])
+            [fastmath.protocols :as prot])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -357,6 +363,7 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
 
 (defn flip
   "Returns 1 with given probability, 0 otherwise"
+  {:metadoc/categories #{:rand}}
   (^long [p]
    (randval p 1 0))
   (^long []
@@ -364,6 +371,7 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
 
 (defn flipb
   "Returns true with given probability, false otherwise"
+  {:metadoc/categories #{:rand}}
   ([p] (randval p))
   ([] (randval)))
 
@@ -559,6 +567,62 @@ See also [[jittered-sequence-generator]]."
 (gen-noise-function billow Billow/noise)
 (gen-noise-function ridgedmulti RidgedMulti/noise)
 
+(defn- make-warp-1d
+  [noise ^double scale ^long depth]
+  (let [warp-noise-1d-proto (fn warp-noise-1d
+                              (^double [^double x ^long depth]
+                               (if (zero? depth)
+                                 (noise x)
+                                 (let [q1 (* scale ^double (warp-noise-1d (+ x depth 0.321) (dec depth)))]
+                                   (noise (+ x q1))))))]
+    (fn [^double x] (warp-noise-1d-proto x depth))))
+
+(defn- make-warp-2d
+  [noise ^double scale ^long depth]
+  (let [warp-noise-2d-proto (fn warp-noise-2d
+                              (^double [^double x ^double y ^long depth]
+                               (if (zero? depth)
+                                 (noise x y)
+                                 (let [q1 (* scale ^double (warp-noise-2d (+ x depth 0.321) (+ y depth 4.987) (dec depth)))
+                                       q2 (* scale ^double (warp-noise-2d (+ x depth 3.591) (+ y depth -2.711) (dec depth)))]
+                                   (noise (+ x q1) (+ y q2))))))]
+    (fn [^double x ^double y] (warp-noise-2d-proto x y depth))))
+
+(defn- make-warp-3d
+  [noise ^double scale ^long depth]
+  (let [warp-noise-3d-proto (fn warp-noise-3d
+                              (^double [^double x ^double y ^double z ^long depth]
+                               (if (zero? depth)
+                                 (noise x y)
+                                 (let [q1 (* scale ^double (warp-noise-3d (+ x depth 0.321) (+ y depth 4.987) (+ z depth 2.12) (dec depth)))
+                                       q2 (* scale ^double (warp-noise-3d (+ x depth 3.591) (+ y depth -2.711) (+ z depth -5.4321) (dec depth)))
+                                       q3 (* scale ^double (warp-noise-3d (+ x depth -1.591) (+ y depth 12.1711) (+ z depth 3.1) (dec depth)))]
+                                   (noise (+ x q1) (+ y q2) (+ z q3))))))]
+    (fn [^double x ^double y ^double z] (warp-noise-3d-proto x y z depth))))
+
+(defn warp-noise-fn
+  "Create warp noise (see [Inigo Quilez article](http://www.iquilezles.org/www/articles/warp/warp.htm)).
+
+  Parameters:
+
+  * noise function, default: vnoise
+  * scale factor, default: 4.0
+  * depth (1 or 2), default 1
+
+  Normalization of warp noise depends on normalization of noise function."
+  {:metadoc/categories #{:noise}}
+  ([noise ^double scale ^long depth]
+   (let [n1 (make-warp-1d noise scale depth)
+         n2 (make-warp-2d noise scale depth)
+         n3 (make-warp-3d noise scale depth)]
+     (fn
+       (^double [^double x] (n1 x))
+       (^double [^double x ^double y] (n2 x y))
+       (^double [^double x ^double y ^double z] (n3 x y z)))))
+  ([noise ^double scale] (warp-noise-fn noise scale 1))
+  ([noise] (warp-noise-fn noise 4.0 1))
+  ([] (warp-noise-fn vnoise 4.0 1)))
+
 (def ^{:doc "List of possible noise generators as a map of names and functions."
        :metadoc/categories #{:noise}}
   noise-generators
@@ -580,6 +644,8 @@ See also [[jittered-sequence-generator]]."
            :octaves (irand 1 10)
            :lacunarity (drand 1.5 2.5)
            :gain (drand 0.2 0.8)
+           :warp-scale (randval 0.8 0.0 (randval 0.5 4.0 (drand 0.1 10)))
+           :warp-depth (randval 0.8 1 (irand 1 4))
            :normalize? true} pre-config))
   ([] (random-noise-cfg nil)))
 
@@ -589,11 +655,13 @@ See also [[jittered-sequence-generator]]."
   Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
   {:metadoc/categories #{:noise}}
   ([cfg]
-   (let [cfg (merge (random-noise-cfg) cfg)
-         gen-fn (noise-generators (get cfg :generator :fbm))]
-     (gen-fn cfg)))
-  ([] (random-noise-fn (random-noise-cfg))))
-
+   (let [cfg (random-noise-cfg cfg)
+         gen-fn (noise-generators (get cfg :generator :fbm))
+         noise (gen-fn cfg)]
+     (if (pos? ^double (:warp-scale cfg))
+       (warp-noise-fn noise (:warp-scale cfg) (:warp-depth cfg))
+       noise)))
+  ([] (random-noise-fn nil)))
 
 ;; ### Discrete noise
 
@@ -635,31 +703,38 @@ See also [[jittered-sequence-generator]]."
 
 (defn probability
   "Probability (PMF)"
+  {:metadoc/categories #{:dist}}
   ^double [d v] (prot/probability d v))
 
 (defn sample
   "Random sample"
+  {:metadoc/categories #{:dist}}
   [d] (prot/sample d))
 
 (defn dimensions
   "Distribution dimensionality"
-  [d] (prot/dimensions d))
+  {:metadoc/categories #{:dist}}
+  ^long [d] (prot/dimensions d))
 
 (defn source-object
   "Returns Java or proxy object from backend library (if available)"
+  {:metadoc/categories #{:dist}}
   [d] (prot/source-object d))
 
 (defn continuous?
-  "Does distribution support continuous range?"
+  "Does distribution support continuous domain?"
+  {:metadoc/categories #{:dist}}
   [d] (prot/continuous? d))
 
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
+  {:metadoc/categories #{:dist}}
   ^double [d v]
   (prot/lpdf d v))
 
 (defn log-likelihood
   "Log likelihood of samples"
+  {:metadoc/categories #{:dist}}
   ^double [d vs] 
   (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
                                      (reduced s)
@@ -667,46 +742,56 @@ See also [[jittered-sequence-generator]]."
 
 (defmacro observe
   "Log likelihood of samples. Alias for [[log-likelihood]]."
+  {:metadoc/categories #{:dist}}
   [d vs]
   `(log-likelihood ~d ~vs))
 
 (defn likelihood
   "Likelihood of samples"
+  {:metadoc/categories #{:dist}}
   ^double [d vs]
   (m/exp (log-likelihood d vs)))
 
 (defn mean
   "Distribution mean"
+  {:metadoc/categories #{:dist}}
   ^double [d] (prot/mean d))
 
 (defn means
   "Distribution means (for multivariate distributions)"
+  {:metadoc/categories #{:dist}}
   [d] (prot/means d))
 
 (defn variance
   "Distribution variance"
+  {:metadoc/categories #{:dist}}
   ^double [d] (prot/variance d))
 
 (defn covariance
   "Distribution covariance matrix (for multivariate distributions)"
-  ^double [d] (prot/covariance d))
+  {:metadoc/categories #{:dist}}
+  [d] (prot/covariance d))
 
 (defn lower-bound
   "Distribution lowest supported value"
+  {:metadoc/categories #{:dist}}
   ^double [d] (prot/lower-bound d))
 
 (defn upper-bound
   "Distribution highest supported value"
+  {:metadoc/categories #{:dist}}
   ^double [d] (prot/upper-bound d))
 
 (defn distribution-id
   "Distribution identifier as keyword."
+  {:metadoc/categories #{:dist}}
   [d] (prot/distribution-id d))
 
 (defn distribution-parameters
   "Distribution highest supported value.
 
   When `all?` is true, technical parameters are included, ie: `:rng` and `:inverser-cumm-accuracy`."
+  {:metadoc/categories #{:dist}}
   ([d] (distribution-parameters d false))
   ([d all?]
    (if-not all?
@@ -891,49 +976,10 @@ See also [[jittered-sequence-generator]]."
 (defmulti
   ^{:doc "Create distribution object.
 
-First parameter is distribution as a `:key`.
-Second parameter is a map with configuration.
-All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`).
+* First parameter is distribution as a `:key`.
+* Second parameter is a map with configuration.
 
-Distributions should be called using [[DistributionProto]] and [[RNGProto]].
-
-The rest parameters goes as follows:
-
-#### Real distributions
-
-* `:beta` - `:alpha` (default: 2.0) and `:beta` (default: 5.0)
-* `:cauchy` - `:median` (default: 0.0) and `:scale` (default: 1.0)
-* `:chi-squared` - `:degrees-of-freedom` (default: 1.0)
-* `:empirical` - `:bean-count` (default: 1000) and `:data` as a sequence
-* `:enumerated-real` - `:data` as a sequence and `:probabilities` as a optional sequence
-* `:exponential` - `:mean` (default: 1.0)
-* `:f` - `:numerator-degrees-of-freedom` (default: 1.0) and `:denominator-degrees-of-freedom` (default: 1.0)
-* `:gamma` - `:shape` (default: 2.0) and `:scale` (default: 2.0)
-* `:gumbel` - `:mu` (default: 1.0) and `:beta` (default: 2.0)
-* `:laplace` - `:mu` (default: 1.0) and `:beta` (default: 2.0)
-* `:levy` - `:mu` (default: 0.0) and `:c` (default: 1.0)
-* `:logistic` - `:mu` (default: 1.0) and `:s` (default: 2.0)
-* `:log-normal` - `:scale` (default: 1.0) and `:shape` (default: 1.0)
-* `:nakagami` - `:mu` (default: 1.0) and `:omega` (default: 1.0)
-* `:normal` - `:mu` (default: 0.0) and `:sd` (default: 1.0)
-* `:pareto` - `:scale` (default: 1.0) and `:shape` (default: 1.0)
-* `:t` - `:degrees-of-freedom` (default: 1.0)
-* `:triangular` - `:a` (default: -1.0), `:c` (default: 0.0) and `:b` (default: 1.0)
-* `:uniform-real` - `:lower` (default: 0.0) and `:upper` (default: 1.0)
-* `:weibull` - `:alpha` (default: 2.0) and `:beta` (default: 1.0)
-
-#### Integer distributions
-
-* `:binomial` - `:trials` (default: 20) and `:p` (default: 0.5)
-* `:bernoulli` - `:p` (default: 0.5) 
-* `:enumerated-int` - `:data` and `:probabilities` as a sequences
-* `:geometric` - `:p` (default: 0.5)
-* `:hypergeometric` - `:population-size` (default: 100), `:number-of-successes` (default: 50) and `:sample-size` (default: 25)
-* `:pascal` - `:r` (default: 5) and `:p` (default: 0.5)
-* `:poisson` - `:p` (default: 0.5), `:epsilon` (default: 1.0e-12), `:max-iterations` (default: 10000000)
-* `:uniform-int` - `:lower` (default: 0) and `:upper` (default: `Integer/MAX_VALUE`)
-* `:zipf` - `:number-of-elements` (default: 100) and `:exponent` (default: 3.0)
-"
+All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."
     :metadoc/categories #{:dist}}
   distribution (fn ([k _] k) ([k] k)))
 
@@ -1186,7 +1232,8 @@ The rest parameters goes as follows:
        (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
        (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
        (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
-       (set-seed! [d seed] (prot/set-seed! r seed) d)))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
+  ([_] (distribution :reciprocal-sqrt {})))
 
 ;;
 
@@ -1251,7 +1298,7 @@ The rest parameters goes as follows:
        (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
        (probability [d v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
        (sample [_] (let [samples (map #(prot/sample %) sampler)
-                         ^double s (v/sum samples)]
+                         s (v/sum samples)]
                      (mapv (fn [^double v] (cond
                                             (zero? v) zero+epsilon
                                             (== v 1.0) one-epsilon

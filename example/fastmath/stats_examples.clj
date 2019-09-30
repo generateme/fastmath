@@ -32,6 +32,9 @@
     (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r8)
     (percentile [1 2 3 -1 -1 2 -1 11 111] 85.0 :r9)))
 
+(add-examples percentiles
+  (example (percentiles [1 2 3 -1 -1 2 -1 11 111] [25 50 75 90])))
+
 (add-examples quantile
   (example "Quantile 0.25" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.25))
   (example "Quantile 0.5 (median)" (quantile [1 2 3 -1 -1 2 -1 11 111] 0.5))
@@ -48,6 +51,9 @@
     (quantile [1 11 111 1111] 0.7 :r7)
     (quantile [1 11 111 1111] 0.7 :r8)
     (quantile [1 11 111 1111] 0.7 :r9)))
+
+(add-examples quantiles
+  (example (quantiles [1 2 3 -1 -1 2 -1 11 111] [0.25 0.5 0.75 0.9])))
 
 (add-examples median
   (example "Median (percentile 50%)." (median [1 2 3 -1 -1 2 -1 11 111]))
@@ -74,12 +80,21 @@
 
 (add-examples minimum (example "Minimum value" (minimum [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples maximum (example "Maximum value" (maximum [1 2 3 -1 -1 2 -1 11 111])))
-(add-examples extent (example "min/max from gaussian distribution" (extent (repeatedly 100000 r/grand))))
+(add-examples extent (example "min/max and mean of gaussian distribution" (extent (repeatedly 100000 r/grand))))
+(add-examples mad-extent (example "median absolute deviation from median for gaussian distribution" (mad-extent (repeatedly 100000 r/grand))))
+(add-examples sem-extent (example "standard error of mean and mean for gaussian distribution" (sem-extent (repeatedly 100000 r/grand))))
+(add-examples stddev-extent (example "standard deviation from mean and mean for gaussian distribution" (stddev-extent (repeatedly 100000 r/grand))))
+(add-examples percentile-extent (example-session "for samples from gaussian distribution"
+                                  (percentile-extent (repeatedly 100000 r/grand))
+                                  (percentile-extent (repeatedly 100000 r/grand) 10)
+                                  (percentile-extent (repeatedly 100000 r/grand) 30 70)))
 (add-examples sum (example "Sum" (sum [1 2 3 -1 -1 2 -1 11 111])))
 
 (add-examples kurtosis (example "Kurtosis" (kurtosis [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples second-moment (example "Second Moment" (second-moment [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples skewness (example "Skewness" (skewness [1 2 3 -1 -1 2 -1 11 111])))
+
+(add-examples sem (example "SEM" (sem [1 2 3 -1 -1 2 -1 11 111])))
 
 (add-examples stats-map (example "Stats" (stats-map [1 2 3 -1 -1 2 -1 11 111])))
 
@@ -106,12 +121,132 @@
       (estimate-bins vs :freedman-diaconis))))
 
 (add-examples histogram
-              (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
-              (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))
-              (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5))
-              (example "Estimate number of bins" (:size (histogram (repeatedly 10000 r/grand))))
-              (example "Estimate number of bins, Rice rule" (:size (histogram (repeatedly 10000 r/grand) :rice))))
+  (example "3 bins from uniform distribution." (histogram (repeatedly 1000 rand) 3))
+  (example "3 bins from uniform distribution for given range." (histogram (repeatedly 10000 rand) 3 [0.1 0.5]))
+  (example "5 bins from normal distribution." (histogram (repeatedly 10000 r/grand) 5))
+  (example "Estimate number of bins" (:size (histogram (repeatedly 10000 r/grand))))
+  (example "Estimate number of bins, Rice rule" (:size (histogram (repeatedly 10000 r/grand) :rice))))
 
-#_(add-examples kernel-density
-                (example (let [kd (kernel-density [0 10 10 10 10 10 10 10 10 0 0 0 0 1 1 1] 1)]
-                           (map (comp m/approx kd) (range -5 15)))))
+(add-examples acf
+  (example-session "Usage"
+    (acf (repeatedly 1000 r/grand) 5)
+    (acf (repeatedly 1000 r/grand) [10 20 100 500])
+    (acf [1 2 3 4 5 4 3 2 1])))
+
+(add-examples acf-ci
+  (example-session "Usage"
+    (acf-ci (repeatedly 1000 r/grand) 3)
+    (acf-ci [1 2 3 4 5 4 3 2 1] 3)))
+
+(add-examples pacf
+  (example-session "Usage"
+    (pacf (repeatedly 1000 r/grand) 10)
+    (pacf [1 2 3 4 5 4 3 2 1])))
+
+(add-examples pacf-ci
+  (example-session "Usage"
+    (pacf-ci (repeatedly 1000 r/grand) 3)
+    (pacf-ci [1 2 3 4 5 4 3 2 1] 3)))
+
+(add-examples ameasure
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (ameasure t c))))
+
+(add-examples cohens-d
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (cohens-d t c))))
+
+(add-examples cohens-d-orig
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (cohens-d-orig t c))))
+
+(add-examples glass-delta
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (glass-delta t c))))
+
+(add-examples cliffs-delta
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (cliffs-delta t c))))
+
+(add-examples hedges-g
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (hedges-g t c))))
+
+(add-examples hedges-g*
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (hedges-g* t c))))
+
+
+(add-examples binary-measures
+  (example (binary-measures [true false true false true false true false]
+                            [true false false true false false false true]))
+  (example "Treat `1` as `true` value." (binary-measures [1 0 1 0 1 0 1 0]
+                                                         [1 0 0 1 0 0 0 1] [1]))
+  (example "Treat `:a` and `:b` as `true` value." (binary-measures [:a :b :c :d :e :f :a :b]
+                                                                   [:a :b :a :b :a :f :d :b] {:a true
+                                                                                              :b true
+                                                                                              :c false})))
+
+(add-examples binary-measures-all
+  (example (binary-measures-all [true false true false true false true false]
+                                [true false false true false false false true]))
+  (example "Treat `1` as `true` value." (binary-measures-all [1 0 1 0 1 0 1 0]
+                                                             [1 0 0 1 0 0 0 1] [1]))
+  (example "Treat `:a` and `:b` as `true` value." (binary-measures-all [:a :b :c :d :e :f :a :b]
+                                                                       [:a :b :a :b :a :f :d :b] {:a true
+                                                                                                  :b true
+                                                                                                  :c false}))
+  (example "F-beta is a function. When `beta` is equal `1.0`, you get `f1-score`."
+    (let [fbeta (:f-beta (binary-measures-all [true false true false true false true false]
+                                              [true false false true false false false true]))]
+      [(fbeta 1.0)
+       (fbeta 2.0)
+       (fbeta 0.5)])))
+
+(add-examples bootstrap
+  (example-session "Usage"
+    (bootstrap [1 2 3 4 1 2 3 1 2 1] 2 20)
+    (let [data [1 2 3 4 1 2 3 1 2 1]
+          fdata (frequencies data)
+          bdata (bootstrap data 5 1000)]
+      {:source fdata
+       :bootstrapped (map frequencies bdata)})))
+
+(add-examples bootstrap-ci
+  (example-session "Usage"
+    (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71])
+    (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8)
+    (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8 100000)
+    (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.98 1000 median)))
+
+(add-examples ci
+  (example-session "Usage"
+    (ci [-5 1 1 1 1 2 2 5 11 71])
+    (ci [-5 1 1 1 1 2 2 5 11 71] 0.8)))
+
+(add-examples covariance-matrix
+  (example (covariance-matrix [[1 2 3 4 5 11] [3 2 3 2 3 4]])))
+
+(add-examples demean
+  (example (demean [-5 1 1 1 1 2 2 5 11 71])))
+
+(add-examples ttest-one-sample
+  (example-session "Usage"
+    (ttest-one-sample [1 2 3 4 5 6 7 8 9 10])
+    (ttest-one-sample [1 2 3 4 5 6 7 8 9 10] {:alpha 0.2})
+    (ttest-one-sample [1 2 3 4 5 6 7 8 9 10] {:sides :one-sided})
+    (ttest-one-sample [1 2 3 4 5 6 7 8 9 10] {:mu 5.0})))
+
+(add-examples ttest-two-samples
+  (example-session "Usage"
+    (ttest-two-samples [1 2 3 4 5 6 7 8 9 10] [7 8 9 10 11 12 13 14 15 16 17 18 19 20])
+    (ttest-two-samples [1 2 3 4 5 6 7 8 9 10] [7 8 9 10 11 12 13 14 15 16 17 18 19 20 200])
+    (ttest-two-samples [1 2 3 4 5 6 7 8 9 10] [7 8 9 10 11 12 13 14 15 16 17 18 19 20] {:equal-variances? true})
+    (ttest-two-samples [1 2 3 4 5 6 7 8 9 10] [200 11 200 11 200 11 200 11 200 11] {:paired? true})))

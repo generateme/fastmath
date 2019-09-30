@@ -1,9 +1,17 @@
 (ns fastmath.stats
   "Statistics functions.
 
-  * Descriptive statistics for sequence.
-  * Correlation / covariance of two sequences.
+  * Descriptive statistics.
+  * Correlation / covariance
   * Outliers
+  * Confidence intervals
+  * Extents
+  * Effect size
+  * Student's t-test
+  * Histogram
+  * ACF/PACF
+  * Bootstrap
+  * Binary measures
 
   All functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences.
 
@@ -37,26 +45,14 @@
   * `:Skewness` - [[skewness]]
   * `:SecMoment` - second central moment, use: [[second-moment]]
 
-  Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)
-
-  ### Correlation / Covariance / Divergence
-
-  * [[covariance]]
-  * [[correlation]]
-  * [[pearson-correlation]]
-  * [[spearman-correlation]]
-  * [[kendall-correlation]]
-  * [[kullback-leibler-divergence]]
-  * [[jensen-shannon-divergence]]
-
-  ### Other
-
-  Normalize samples to have mean=0 and standard deviation = 1 with [[standardize]].
-
-  [[histogram]] to count samples in evenly spaced ranges."
+  Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)"
   {:metadoc/categories {:stat "Descriptive statistics"
                         :corr "Correlation"
-                        :extent "Extents"}}
+                        :extent "Extents"
+                        :time "Time series"
+                        :effect "Effect size"
+                        :test "Hypothesis test"
+                        :norm "Normalize"}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r])
   (:import [org.apache.commons.math3.stat StatUtils]
@@ -241,10 +237,10 @@
 (defmacro ^:private build-extent
   [nm mid ext]
   `(defn ~nm
-     ~(str mid " +/- " ext)
+     ~(str " -/+ " ext " and " mid)
      {:metadoc/categories #{:extent}}
-     [vs#]
-     (let [vs# (m/seq->double-array vs#)
+     [~'vs]
+     (let [vs# (m/seq->double-array ~'vs)
            m# (~mid vs#)
            s# (~ext vs#)]
        [(- m# s#) (+ m# s#) m#])))
@@ -254,7 +250,9 @@
 (build-extent sem-extent mean sem)
 
 (defn percentile-extent
-  "Return percentile range."
+  "Return percentile range and median.
+
+  `p` - calculates extent of `p` and `100-p` (default: `p=25`)"
   {:metadoc/categories #{:extent}}
   ([vs] (percentile-extent vs 25.0))
   ([vs ^double p] (percentile-extent vs p (- 100.0 p)))
@@ -280,6 +278,8 @@
 
   * LAV is smallest value which is greater or equal to the LIF = `(- Q1 (* 1.5 IQR))`.
   * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
+  * third value is a median of samples
+  
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:extent}}
@@ -346,7 +346,7 @@
     (reduce clojure.core/max vs)))
 
 (defn extent
-  "Return extent (min, max) values from sequence"
+  "Return extent (min, max, mean) values from sequence"
   {:metadoc/categories #{:extent}}
   [vs]
   (let [^double fv (first vs)]
@@ -385,7 +385,9 @@
     (.evaluate k (m/seq->double-array vs))))
 
 (defn ci
-  "T-student based confidence interval for given data. Alpha value defaults to 0.98."
+  "T-student based confidence interval for given data. Alpha value defaults to 0.98.
+
+  Last value is mean."
   {:metadoc/categories #{:extent}}
   ([vs] (ci vs 0.98))
   ([vs ^double alpha]
@@ -402,7 +404,9 @@
   "Bootstrap method to calculate confidence interval.
 
   Alpha defaults to 0.98, samples to 1000.
-  Last parameter is statistical function used to measure, default to mean."
+  Last parameter is statistical function used to measure, default: [[mean]].
+
+  Returns ci and statistical function value."
   {:metadoc/categories #{:extent}}
   ([vs] (bootstrap-ci vs 0.98))
   ([vs alpha] (bootstrap-ci vs alpha 1000))
@@ -475,8 +479,17 @@
 
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."
+  {:metadoc/categories #{:norm}}
   [vs]
   (seq ^doubles (StatUtils/normalize (m/seq->double-array vs))))
+
+(defn demean
+  "Subtract mean from sequence"
+  {:metadoc/categories #{:norm}}
+  [vs]
+  (let [m (mean vs)]
+    (map (fn [^double v]
+           (- v m)) vs)))
 
 (defn covariance
   "Covariance of two sequences."
@@ -629,26 +642,26 @@
 
 (defn cohens-d-orig
   "Original version of Cohen's d effect size for two groups"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (cohens-d-with-correct group1 group2 -2.0))
 
 (defn cohens-d
   "Cohen's d effect size for two groups"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (cohens-d-with-correct group1 group2 0.0))
 
 (defn glass-delta
   "Glass's delta effect size for two groups"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (let [group2 (m/seq->double-array group2)]
     (/ (- (mean group1) (mean group2)) (stddev group2))))
 
 (defn hedges-g
   "Hedges's g effect size for two groups"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (let [group1 (m/seq->double-array group1)
         group2 (m/seq->double-array group2)
@@ -662,13 +675,14 @@
 
 (defn hedges-g*
   "Less biased Hedges's g effect size for two groups"
-  {:metadoc/categories #{:stat}}
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (let [j (- 1.0 (/ 3.0 (- (* 4.0 (+ (count group1) (count group2))) 9.0)))]
     (* j (hedges-g group1 group2))))
 
 (defn ameasure
   "Vargha-Delaney A measure for two populations a and b"
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (let [m (count group1)
         n (count group2)
@@ -678,25 +692,13 @@
 
 (defn cliffs-delta
   "Cliff's delta effect size"
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (/ ^double (reduce #(+ ^double %1 ^double %2)
                      (for [^double a group1
                            ^double b group2]
                        (m/signum (- a b))))
      (* (count group1) (count group2))))
-
-#_(let [a1 (repeatedly 100 rand)
-        a2 (repeatedly 1000 #(+ (rand) (rand)))]
-    [(cohens-d a1 a2)
-     (cohens-d-orig a1 a2)
-     (glass-delta a1 a2)
-     (hedges-g a1 a2)
-     (hedges-g* a1 a2)
-     (ameasure a1 a2)
-     (cliffs-delta a1 a2)])
-
-
-;;;
 
 ;; binary classification statistics
 
@@ -708,23 +710,37 @@
     (and (not t) p) :fp
     :else :tn))
 
-(defn- binary-confusion-val
-  [tv fv t p]
-  (cond
-    (and (= t tv) (= p tv)) :tp
-    (and (= t tv) (= p fv)) :fn
-    (and (= t fv) (= p tv)) :fp
-    :else :tn))
+(defn- binary-process-list
+  [xs true-value]
+  (if-not true-value
+    xs
+    (let [f (cond
+              (map? true-value) true-value
+              (seqable? true-value) (partial contains? (set true-value))
+              :else #(= % true-value))]
+      (map f xs))))
 
-(defn binary-measures-all
-  "https://en.wikipedia.org/wiki/Precision_and_recall"
-  ([truth prediction] (binary-measures-all truth prediction nil nil))
-  ([truth prediction true-value false-value]
-   (let [confusion (if (and (nil? true-value) (nil? false-value))
-                     binary-confusion
-                     (partial binary-confusion-val true-value false-value))
+(defn binary-measures-all 
+  "Collection of binary measures.
+
+  * `truth` - list of ground truth values
+  * `prediction` - list of predicted values
+  * `true-value` - optional, what is true in `truth` and `prediction`
+
+  `true-value` can be one of:
+
+  * `nil` - values are treating as booleans
+  * any sequence - values from sequence will be treated as `true`
+  * map - conversion will be done according to provided map (if there is no correspondin key, value is treated as `false`)
+
+  https://en.wikipedia.org/wiki/Precision_and_recall"
+  {:metadoc/categories #{:stat}}
+  ([truth prediction] (binary-measures-all truth prediction nil))
+  ([truth prediction true-value]
+   (let [truth (binary-process-list truth true-value)
+         prediction (binary-process-list prediction true-value)
          {:keys [^double tp ^double fp ^double fn ^double tn] :as details} (merge {:tp 0.0 :fn 0.0 :fp 0.0 :tn 0.0}
-                                                                                 (frequencies (map confusion truth prediction)))
+                                                                                 (frequencies (map binary-confusion truth prediction)))
          cp (+ tp fn)
          cn (+ fp tn)
          total (+ cp cn)
@@ -780,9 +796,13 @@
                      :mk (dec (+ ppv npv))}))))
 
 (defn binary-measures
-  ([truth prediction] (binary-measures truth prediction nil nil))
-  ([truth prediction true-value false-value]
-   (select-keys (binary-measures-all truth prediction true-value false-value)
+  "Subset of binary measures. See [[binary-measures-all]].
+
+  Following keys are returned: `[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance]`"
+  {:metadoc/categories #{:stat}}
+  ([truth prediction] (binary-measures truth prediction nil))
+  ([truth prediction true-value]
+   (select-keys (binary-measures-all truth prediction true-value)
                 [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance])))
 
 ;; tests
@@ -823,6 +843,12 @@
    (+ mu (* r stderr))])
 
 (defn ttest-one-sample
+  "One-sample Student's t-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)"
+  {:metadoc/categories #{:test}}
   ([xs] (ttest-one-sample xs {}))
   ([xs {:keys [^double alpha sides ^double mu]
         :or {alpha 0.05 sides :two-sided mu 0.0}}]
@@ -860,65 +886,99 @@
     [df stderr]))
 
 (defn ttest-two-samples
-  [xs ys {:keys [^double alpha sides ^double mu paired? equal-variances?]
-          :or {alpha 0.05 sides :two-sided mu 0.0 paired? false equal-variances? false}
-          :as params}]
-  (let [nx (count xs)
-        ny (count ys)]
-    (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
-                (and (not equal-variances?)
-                     (> nx 1) (> ny 1))) "Not enough observations.")
-    (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal.")) 
-    (if paired? (-> (ttest-one-sample (map (fn [^double x ^double y] (- x y)) xs ys) params)
-                    (assoc :paired? true))
-        (let [axs (m/seq->double-array xs)
-              ays (m/seq->double-array ys)
-              mx (mean axs)
-              my (mean ays)
-              vx (variance axs)
-              vy (variance ays)
-              [df ^double stderr] (if equal-variances?
-                                    (ttest-equal-variances nx ny vx vy)
-                                    (ttest-not-equal-variances nx ny vx vy))
-              tstat (/ (- mx my mu) stderr)
-              pvals (-> ((ttest-sides-fn sides) tstat alpha df)
-                        (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
-          (merge pvals {:estimated-mu [mx my]
-                        :df df
-                        :t tstat
-                        :test-type sides
-                        :paired? false})))))
+  "Two-sample Student's t-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)
+  * `paired?` - unpaired or paired test, boolean (default: `false`)
+  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
+  {:metadoc/categories #{:test}}
+  ([xs ys] (ttest-two-samples xs ys {}))
+  ([xs ys {:keys [^double alpha sides ^double mu paired? equal-variances?]
+           :or {alpha 0.05 sides :two-sided mu 0.0 paired? false equal-variances? false}
+           :as params}]
+   (let [nx (count xs)
+         ny (count ys)]
+     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
+                 (and (not equal-variances?)
+                      (> nx 1) (> ny 1))) "Not enough observations.")
+     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal.")) 
+     (if paired? (-> (ttest-one-sample (map (fn [^double x ^double y] (- x y)) xs ys) params)
+                     (assoc :paired? true))
+         (let [axs (m/seq->double-array xs)
+               ays (m/seq->double-array ys)
+               mx (mean axs)
+               my (mean ays)
+               vx (variance axs)
+               vy (variance ays)
+               [df ^double stderr] (if equal-variances?
+                                     (ttest-equal-variances nx ny vx vy)
+                                     (ttest-not-equal-variances nx ny vx vy))
+               tstat (/ (- mx my mu) stderr)
+               pvals (-> ((ttest-sides-fn sides) tstat alpha df)
+                         (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
+           (merge pvals {:estimated-mu [mx my]
+                         :df df
+                         :t tstat
+                         :test-type sides
+                         :paired? false}))))))
 
 ;; acf/pacf
 
+(defn- cov-for-acf
+  ^double [xs1 xs2]
+  (reduce m/fast+ 0.0 (map m/fast* xs1 xs2)))
+
+;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l12
 (defn acf
-  "Calculate acf for given number of lags or a list of lags"
-  [data lags]
-  (let [vdata (if (vector? data) data (vec data))]
-    (map (fn [lag]
-           (let [v2 (subvec vdata lag)
-                 v1 (subvec vdata 0 (count v2))]
-             (correlation v1 v2))) (if (number? lags)
-                                     (range (inc (int lags)))
-                                     (seq lags)))))
+  "Calculate acf (autocorrelation function) for given number of lags or a list of lags.
+
+  If lags is omitted function returns maximum possible number of lags.
+
+  See also [[acf-ci]], [[pacf]], [[pacf-ci]]"
+  {:metadoc/categories #{:time}}
+  ([data] (acf data (dec (count data))))
+  ([data lags]
+   (let [vdata (vec (demean data))
+         rc (/ (double (count data)))
+         lag0 (* rc (cov-for-acf vdata vdata))
+         f (/ lag0)]
+     (map (fn [^long lag]
+            (if (zero? lag)
+              1.0
+              (let [v2 (subvec vdata lag)
+                    v1 (subvec vdata 0 (count v2))]
+                (* f rc (cov-for-acf v1 v2))))) (if (number? lags)
+                                                  (range (inc (int lags)))
+                                                  (seq lags))))))
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l13
 (defn pacf
-  [data ^long lags]
-  (let [acf (vec (acf data lags))
-        phis (reductions (fn [curr ^long id]
-                           (let [phi (/ (- ^double (acf id)
-                                           ^double (reduce m/fast+
-                                                           (map-indexed (fn [^long idx ^double c]
-                                                                          (* c ^double (acf (dec (- id idx))))) curr)))
-                                        (- 1.0
-                                           ^double (reduce m/fast+
-                                                           (map-indexed (fn [^long id ^double c]
-                                                                          (* c ^double (acf (inc id)))) curr))))]
-                             
-                             (conj (mapv (fn [^double p1 ^double p2]
-                                           (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acf 1)] (range 2 (inc lags)))]
-    (conj (map last phis) 0.0)))
+  "Caluclate pacf (partial autocorrelation function) for given number of lags.
+
+  If lags is omitted function returns maximum possible number of lags.
+
+  `pacf` returns also lag `0` (which is `0.0`).
+  
+  See also [[acf]], [[acf-ci]], [[pacf-ci]]"
+  {:metadoc/categories #{:time}}
+  ([data] (pacf data (dec (count data))))
+  ([data ^long lags]
+   (let [acf (vec (acf data lags))
+         phis (reductions (fn [curr ^long id]
+                            (let [phi (/ (- ^double (acf id)
+                                            ^double (reduce m/fast+
+                                                            (map-indexed (fn [^long idx ^double c]
+                                                                           (* c ^double (acf (dec (- id idx))))) curr)))
+                                         (- 1.0
+                                            ^double (reduce m/fast+
+                                                            (map-indexed (fn [^long id ^double c]
+                                                                           (* c ^double (acf (inc id)))) curr))))]
+                              
+                              (conj (mapv (fn [^double p1 ^double p2]
+                                            (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acf 1)] (range 2 (inc lags)))]
+     (conj (map last phis) 0.0))))
 
 (defn- p-acf-ci-value
   ^double [data ^double alpha]
@@ -926,14 +986,20 @@
      ^double (r/icdf r/default-normal (* 0.5 (inc (- 1.0 alpha))))))
 
 (defn pacf-ci
+  "[[pacf]] with added confidence interval data."
+  {:metadoc/categories #{:time}}
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
-   (let [pacf-data (rest (pacf data lags))
+   (let [pacf-data (pacf data lags)
          ci (p-acf-ci-value data alpha)]
      {:ci ci
       :pacf pacf-data})))
 
 (defn acf-ci
+  "[[acf]] with added confidence interval data.
+
+  `:cis` contains list of calculated ci for every lag."
+  {:metadoc/categories #{:time}}
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [acf-data (acf data lags)

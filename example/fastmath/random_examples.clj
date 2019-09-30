@@ -24,7 +24,10 @@
 (add-examples set-seed!
   (example "Set seed for the RNG object" {:test-value 10} (let [rng (rng :isaac)]
                                                             (set-seed! rng 1234)
-                                                            (irandom rng 10 15))))
+                                                            (irandom rng 10 15)))
+  (example "Set seed for the distribution object" {:test-value 2} (let [d (distribution :enumerated-int {:data [1 1 1 2 3]})] 
+                                                                    (set-seed! d 1234)
+                                                                    (irandom d))))
 
 
 (add-examples default-rng
@@ -89,7 +92,8 @@
 
 ;; noise
 
-(add-examples interpolations (example "List of names (keys)" (keys interpolations)))
+(add-examples noise-interpolations (example "List of names (keys)" (keys noise-interpolations)))
+(add-examples noise-generators (example "List of names (keys)" (keys noise-generators)))
 (add-examples noise-types (example "List of names (keys)" (keys noise-types)))
 
 (add-examples vnoise
@@ -161,10 +165,19 @@
     (discrete-noise 123))
   (example-image "Draw noise for [0-180] range." "images/n/discrete_noise.jpg"))
 
+(add-examples warp-noise-fn
+  (example (let [n (warp-noise-fn simplex 2.0 2.0)]
+             [(n 0.0)
+              (n 1.0 0.5)
+              (n 2 2 2)]))
+  (example-image "Default warp (noise=vnoise, scale=4.0, depth=1.0)." "images/n/warp.jpg"))
+
 (add-examples distribution
   (example-session "Usage"
     (distribution :beta)
-    (distribution :beta {:alpha 1.0 :beta 1.0})))
+    (distribution :beta {:alpha 1.0 :beta 1.0}))
+  (example "All parameters"
+    (into (sorted-map) (map #(vector % (sort (distribution-parameters (distribution %)))) (keys (methods distribution))))))
 
 (add-examples distributions-list
   (example-session "Number and list of distributions" distributions-list (count distributions-list)))
@@ -186,13 +199,18 @@
 ;;
 
 (add-examples cdf (example-session "Usage" (cdf (distribution :gamma) 1) (cdf (distribution :gamma) 1 4)))
-(add-examples pdf (example "Usage" (pdf (distribution :gamma) 1)))
+(add-examples pdf (example-session "Usage"
+                    (pdf (distribution :gamma) 1)
+                    (pdf (distribution :pascal) 1)))
+(add-examples probability (example-session "Usage"
+                            (probability (distribution :gamma) 1)
+                            (probability (distribution :pascal) 1)))
 (add-examples lpdf (example "Usage" (lpdf (distribution :gamma) 1)))
 (add-examples icdf (example "Usage" (icdf (distribution :gamma) 0.5)))
-(add-examples mean (example "Usage" (mean (distribution :gamma))))
-(add-examples variance (example "Usage" (variance (distribution :gamma))))
-(add-examples lower-bound (example "Usage" (lower-bound (distribution :gamma))))
-(add-examples upper-bound (example "Usage" (upper-bound (distribution :gamma))))
+(add-examples mean (example "Usage" {:test-value 4.0} (mean (distribution :gamma))))
+(add-examples variance (example "Usage" {:test-value 8.0} (variance (distribution :gamma))))
+(add-examples lower-bound (example "Usage"  {:test-value 0.0} (lower-bound (distribution :gamma))))
+(add-examples upper-bound (example "Usage" {:test-value ##Inf} (upper-bound (distribution :gamma))))
 (add-examples sample (example "Random value from distribution" (sample (distribution :gamma))))
 (add-examples ->seq (example "Sequence of random values from distribution" (->seq (distribution :gamma) 5)))
 (add-examples log-likelihood (example "Usage" (log-likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
@@ -202,3 +220,51 @@
 (add-examples irandom (example "Integer random value from distribution (sample cast to `int`)" (irandom (distribution :gamma))))
 (add-examples frandom (example "Float random value from distribution (sample cast to `float`)" (frandom (distribution :gamma))))
 (add-examples lrandom (example "Long random value from distribution (sample cast to `long`)" (lrandom (distribution :gamma))))
+
+(add-examples continuous?
+  (example-session "Usage" {:test-values [true false]}
+    (continuous? (distribution :gamma))
+    (continuous? (distribution :pascal))))
+
+(add-examples covariance
+  (example-session "Usage" {:test-values [[[1.0 0.0] [0.0 1.0]] [[0.05 -0.05] [-0.05 0.05]]]}
+    (covariance (distribution :multi-normal))
+    (covariance (distribution :dirichlet {:alpha [2 2]}))))
+
+(add-examples means
+  (example-session "Usage" {:test-values [[0.0 0.0] [0.5 0.5]]}
+    (means (distribution :multi-normal))
+    (means (distribution :dirichlet {:alpha [2 2]}))))
+
+(add-examples default-normal
+  (example-session "Usage"
+    (sample default-normal)
+    (set-seed! default-normal 1234)
+    (sample default-normal)
+    (irandom default-normal)
+    (mean default-normal)
+    (variance default-normal)))
+
+(add-examples dimensions
+  (example-session "Usage" {:test-values [1 30]}
+    (dimensions (distribution :gamma))
+    (dimensions (distribution :dirichlet {:alpha (repeat 30 2.0)}))))
+
+(add-examples distribution-id
+  (example-session "Usage" {:test-values [:gamma :normal]}
+    (distribution-id (distribution :gamma))
+    (distribution-id default-normal)))
+
+(add-examples distribution-parameters
+  (example-session "Usage" {:test-values [[:scale :shape] [:rng :shape :scale :inverse-cumm-accuracy] [:sd :mu]]}
+    (distribution-parameters (distribution :gamma))
+    (distribution-parameters (distribution :gamma) true)
+    (distribution-parameters default-normal)))
+
+(add-examples observe (example "Usage" (observe (distribution :gamma) [10 0.5 0.5 1 2])))
+(add-examples observe1 (example "Usage" (observe1 (distribution :gamma) 10)))
+
+(add-examples source-object (example (source-object default-normal)))
+
+(add-examples synced-rng (example (drandom (synced-rng :mersenne 1234))))
+

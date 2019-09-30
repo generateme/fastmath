@@ -22,6 +22,4 @@
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
   :profiles {:dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
-                                 ;; :namespaces [#"^fastmath\."]
-                                 }}
-             :uberjar {:aot :all}})
+                                 :namespaces [#"^fastmath\."]}}})

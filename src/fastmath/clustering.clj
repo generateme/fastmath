@@ -60,7 +60,8 @@
             [fastmath.vector :as v]
             [clojure.string :as s]
             [fastmath.stats :as stat]
-            [fastmath.distance :as d])
+            [fastmath.distance :as d]
+            [fastmath.protocols :as prot])
   (:import [smile.clustering PartitionClustering Clustering KMeans GMeans XMeans DeterministicAnnealing
             DENCLUE CLARANS DBSCAN MEC]
            [smile.vq NeuralGas]
@@ -266,7 +267,7 @@
 
   Empty clusters are skipped."
   [clustered-data]
-  (let [mvector? (satisfies? v/VectorProto (first (:data clustered-data))) ;;required to fix missing representative
+  (let [mvector? (satisfies? prot/VectorProto (first (:data clustered-data))) ;;required to fix missing representative
         mseqable? (sequential? (first (:data clustered-data)))]
     (for [[k lst] (group-by first (map vector (:clustering clustered-data) (:data clustered-data)))
           :let [d (map second lst)

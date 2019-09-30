@@ -171,7 +171,7 @@
         cosa (m/cos (* m/PI alpha))]
     (fn [^Vec2 v]
       (let [^Vec2 v0 (v/mult v amount)
-            ^double r (v/magsq v0)
+            r (v/magsq v0)
             xx (m/sq (dec (m/abs (.x v0))))
             yy (m/sq (dec (m/abs (.y v0))))
             r2 (m/sqrt (+ xx yy))
@@ -266,7 +266,7 @@
             v- (Vec2. (- 1.0 (.x v)) (.y v))
             tau (* 0.5 (- (m/log (v/magsq v+))
                           (m/log (v/magsq v-))))
-            pre-sigma (- m/PI ^double (v/heading v+) ^double (v/heading v-))
+            pre-sigma (- m/PI (v/heading v+) (v/heading v-))
             alt (double (int (* pre-sigma bcn-pi)))
             sigma (if (even? (int alt))
                     (+ (* alt pi-bcn) (rem (+ pre-sigma bca-bcn) pi-bcn))
@@ -289,7 +289,7 @@
             v- (Vec2. (- 1.0 (.x v)) (.y v))
             pre-tau (* 0.5 (- (m/log (v/magsq v+))
                               (m/log (v/magsq v-))))
-            sigma (- m/PI ^double (v/heading v+) ^double (v/heading v-))
+            sigma (- m/PI (v/heading v+) (v/heading v-))
             tau (if (and (< pre-tau radius) (< (- pre-tau) radius))
                   (- (rem (+ pre-tau radius rd) r2) radius)
                   pre-tau)]
@@ -323,7 +323,7 @@
           v- (Vec2. (- 1.0 (.x v)) (.y v))
           tau (* 0.5 (- (m/log (v/magsq v+))
                         (m/log (v/magsq v-))))
-          pre-sigma (- m/PI ^double (v/heading v+) ^double (v/heading v-))
+          pre-sigma (- m/PI (v/heading v+) (v/heading v-))
           sigma (+ pre-sigma (* tau out) (/ in tau))]
       (bseries-calc amount tau sigma))))
 (make-field-method bswirl :regular)
@@ -344,7 +344,7 @@
             v- (Vec2. (- 1.0 (.x v)) (.y v))
             pre-tau (+ (/ (* 0.5 (- (m/log (v/magsq v+))
                                     (m/log (v/magsq v-)))) power) move)
-            pre-sigma (+ (- m/PI ^double (v/heading v+) ^double (v/heading v-)) rotate)
+            pre-sigma (+ (- m/PI (v/heading v+) (v/heading v-)) rotate)
             tau (if (neg? (.x v))
                   (- pre-tau split)
                   (+ pre-tau split))
@@ -381,12 +381,12 @@
                           (v/add (Vec2. 0.5 0.5))
                           (v/mult cellsize))
               L (v/sub v C)]
-          (if (> ^double (v/magsq L) r2)
+          (if (> (v/magsq L) r2)
             (v/mult v amount)
             (let [L (v/mult L g2)
-                  r (/ rfactor (inc (* 0.25 ^double (v/magsq L))))
+                  r (/ rfactor (inc (* 0.25 (v/magsq L))))
                   ^Vec2 L (v/mult L r)
-                  r (/ ^double (v/magsq L) r2)
+                  r (/ (v/magsq L) r2)
                   theta (+ (* inner-twist (- 1.0 r))
                            (* outer-twist r))
                   s (m/sin theta)
@@ -455,7 +455,7 @@
   [^double amount {:keys [^double shift]}]
   (let [ps (* (- m/HALF_PI) shift)]
     (fn [^Vec2 v]
-      (let [^double x2y2 (v/magsq v)
+      (let [x2y2 (v/magsq v)
             t (inc x2y2)
             x2 (+ (.x v) (.x v))
             pre-y (+ ps (* 0.5 (m/atan2 (+ (.y v) (.y v))
@@ -480,7 +480,7 @@
   "Blade"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (* (drand amount) ^double (v/mag v))
+    (let [r (* (drand amount) (v/mag v))
           sinr (m/sin r)
           cosr (m/cos r)]
       (Vec2. (* amount (.x v) (+ cosr sinr))
@@ -491,7 +491,7 @@
   "Blade2"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (* (drand amount) ^double (v/mag v))
+    (let [r (* (drand amount) (v/mag v))
           sinr (m/sin r)
           cosr (m/cos r)]
       (Vec2. (* amount (.x v) (+ cosr sinr))
@@ -509,8 +509,8 @@
   [^double amount {:keys [^double low ^double high ^double waves]}]
   (let [hl (- high low)]
     (fn [^Vec2 v]
-      (let [^double a (v/heading v)
-            ^double r (v/mag v)
+      (let [a (v/heading v)
+            r (v/mag v)
             rr (->> (* a waves)
                     (m/sin)
                     (* 0.5)
@@ -535,7 +535,7 @@
     (fn [^Vec2 v]
       (let [T (inc (/ (+ (m/cos (.x v)) (m/cos (.y v))) mp))
             r (/ amount T)
-            tmp (inc ^double (v/magsq v))
+            tmp (inc (v/magsq v))
             x2 (+ (.x v) (.x v))
             y2 (+ (.y v) (.y v))
             xmax (* 0.5 (+ (m/sqrt (+ tmp x2)) (m/sqrt (- tmp x2))))
@@ -704,7 +704,7 @@
   "Bubble"
   [^double amount _]
   (fn [v]
-    (v/mult v (/ amount (inc (* 0.25 ^double (v/mag v)))))))
+    (v/mult v (/ amount (inc (* 0.25 (v/mag v)))))))
 (make-field-method bubble :regular)
 
 ;; ### Butterfly
@@ -727,8 +727,8 @@
          "Bessel"
          [^double amount _]
          (fn [^Vec2 v]
-           (Vec2. (* amount ^double (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
-                  (* amount ^double (v/heading v)))))
+           (Vec2. (* amount (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
+                  (* amount (v/heading v)))))
 (comment make-field-method besselj :regular)
 
 ;; ### Beta
@@ -738,7 +738,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (Vec2. (* amount (m/log-beta (+ m/EPSILON (m/abs (.x v))) (+ m/EPSILON (m/abs (.y v)))))
-           (* amount ^double (v/heading v)))))
+           (* amount (v/heading v)))))
 (make-field-method beta :regular)
 
 ;; ## C
@@ -765,7 +765,7 @@
         full-spread (* m/TWO_PI spread)
         fac (* c half-d ang)]
     (fn [^Vec2 v]
-      (let [^double ai (v/heading v)
+      (let [ai (v/heading v)
             n (drand spread)
             n (double (if (>= discrete-spread 1.0) (int n) n))
             n (if (neg? ai) (inc n) n)
@@ -791,7 +791,7 @@
         vc (/ r power)
         vd (/ i power)]
     (fn [v]
-      (let [^double a (v/heading v)
+      (let [a (v/heading v)
             lnr (* 0.5 (m/log (v/magsq v)))
             ang (+ (* a vc)
                    (* vd lnr)
@@ -919,10 +919,10 @@
                                (v/mult Sc)))]
           (if (bool-and (< iter 60)
                         (bool-or (> (discrete-noise (+ Seed (.x MN)) (.y MN)) Dens)
-                                 (> ^double (v/mag XY) (-> (discrete-noise (+ 10.0 (.x MN)) (+ 3.0 (.y MN)))
-                                                           (* 0.7)
-                                                           (+ 0.3)
-                                                           (* Sc)))))
+                                 (> (v/mag XY) (-> (discrete-noise (+ 10.0 (.x MN)) (+ 3.0 (.y MN)))
+                                                   (* 0.7)
+                                                   (+ 0.3)
+                                                   (* Sc)))))
             (recur (inc iter))
             (-> MN
                 (v/mult 2.0)
@@ -1025,7 +1025,7 @@
   "Conc"
   [^double amount {:keys [^double eccentricity ^double holes]}]
   (fn [^Vec2 v]
-    (let [magr (/ 1.0 (+ ^double (v/mag v) m/EPSILON))
+    (let [magr (/ 1.0 (+ (v/mag v) m/EPSILON))
           ct (* (.x v) magr)
           r (* (/ (* (* amount (- (drand) holes)) eccentricity) (inc (* eccentricity ct))) magr)]
       (v/mult v r))))
@@ -1153,7 +1153,7 @@
   "Diamond"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [^double length (v/mag v)
+    (let [length (v/mag v)
           sina (/ (.x v) length)
           cosa (/ (.y v) length)
           sinr (m/sin length)
@@ -1169,10 +1169,10 @@
   [^double amount _]
   (let [api (/ amount m/PI)]
     (fn [^Vec2 v]
-      (let [rpi (* m/PI ^double (v/mag v))
+      (let [rpi (* m/PI (v/mag v))
             sinr (m/sin rpi)
             cosr (m/cos rpi)
-            r (* api ^double (v/heading v))]
+            r (* api (v/heading v))]
         (Vec2. (* r sinr) (* r cosr))))))
 (make-field-method disc :regular)
 
@@ -1191,7 +1191,7 @@
       (let [t (* timespi (+ (.x v) (.y v)))
             sinr (m/sin t)
             cosr (m/cos t)
-            r (/ (* amount ^double (v/heading v)) m/PI)]
+            r (/ (* amount (v/heading v)) m/PI)]
         (Vec2. (* r (+ cosadd sinr))
                (* r (+ sinadd cosr)))))))
 (make-field-method disc2 :regular)
@@ -1205,7 +1205,7 @@
   [^double amount _]
   (let [w (/ amount 11.57034632)]
     (fn [^Vec2 v]
-      (let [tmp (inc ^double (v/magsq v))
+      (let [tmp (inc (v/magsq v))
             tmp2 (* 2.0 (.x v))
             xmax (* 0.5 (+ (m/safe-sqrt (+ tmp tmp2))
                            (m/safe-sqrt (- tmp tmp2))))
@@ -1229,7 +1229,7 @@
   (let [radius2 (* 2.0 radius)
         rdr (+ radius (* distance radius))]
     (fn [^Vec2 v]
-      (let [tmp (inc ^double (v/magsq v))
+      (let [tmp (inc (v/magsq v))
             tmp2 (* 2.0 (.x v))
             xmax-pre (* 0.5 (+ (m/safe-sqrt (+ tmp tmp2))
                                (m/safe-sqrt (- tmp tmp2))))
@@ -1268,7 +1268,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (Vec2. (* amount (m/erf (.x v) (.y v)))
-           (* amount ^double (v/heading v)))))
+           (* amount (v/heading v)))))
 (make-field-method erf :regular)
 
 ;; ### Elliptic
@@ -1278,7 +1278,7 @@
   [^double amount _]
   (let [-a (/ amount m/HALF_PI)]
     (fn [^Vec2 v]
-      (let [tmp (inc ^double (v/magsq v))
+      (let [tmp (inc (v/magsq v))
             x2 (+ (.x v) (.x v))
             xmax (* 0.5 (+ (m/sqrt (+ tmp x2)) (m/sqrt (- tmp x2))))
             a (/ (.x v) xmax)
@@ -1301,7 +1301,7 @@
         vc (* 0.5 (inc ceb))
         vd (* 0.5 seb)]
     (fn [^Vec2 v]
-      (let [^double a (v/heading v)
+      (let [a (v/heading v)
             lnr (* 0.5 (m/log (v/magsq v)))
             m (* amount (m/exp (- (* vc lnr)
                                   (* vd a))))
@@ -1317,8 +1317,8 @@
   "Ex"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [^double r (v/mag v)
-          ^double h (v/heading v)
+    (let [r (v/mag v)
+          h (v/heading v)
           n0 (m/sin (+ h r))
           n1 (m/cos (- h r))
           m0 (* n0 n0 n0)
@@ -1357,7 +1357,7 @@
   "Eyefish"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (/ (* amount 4.0) (inc ^double (v/mag v)))]
+    (let [r (/ (* amount 4.0) (inc (v/mag v)))]
       (Vec2. (* r (.x v)) (* r (.y v))))))
 (make-field-method eyefish :regular)
 
@@ -1374,8 +1374,8 @@
   (let [dx (+ m/EPSILON (* m/PI (m/sq coeff20)))
         dx2 (* 0.5 dx)]
     (fn [^Vec2 v]
-      (let [^double angle (v/heading v)
-            r (* amount ^double (v/mag v))
+      (let [angle (v/heading v)
+            r (* amount (v/mag v))
             ac (+ angle coeff21)
             a (if (> ^double (mod ac dx) dx2)
                 (- angle dx2)
@@ -1391,8 +1391,8 @@
   "Fan2"
   [^double amount {:keys [^double x ^double y]}]
   (fn [^Vec2 v]
-    (let [^double r (v/mag v)
-          ^double angle (v/heading v)
+    (let [r (v/mag v)
+          angle (v/heading v)
           ac (+ angle y)
           dx (+ m/EPSILON (* m/PI x x))
           dx2 (* 0.5 dx)
@@ -1410,7 +1410,7 @@
   "Fisheye"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (/ (* amount 4.0) (inc ^double (v/mag v)))]
+    (let [r (/ (* amount 4.0) (inc (v/mag v)))]
       (Vec2. (* r (.y v)) (* r (.x v))))))
 (make-field-method fisheye :regular)
 
@@ -1423,8 +1423,8 @@
   "Flower"
   [^double amount {:keys [^double petals ^double holes]}]
   (fn [v]
-    (let [^double theta (v/heading v)
-          d (/ 1.0 (+ m/EPSILON ^double (v/mag v)))
+    (let [theta (v/heading v)
+          d (/ 1.0 (+ m/EPSILON (v/mag v)))
           r (* amount (- (drand) holes) (m/cos (* petals theta)) d)]
       (v/mult v r))))
 (make-field-method flower :random)
@@ -1454,7 +1454,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (Vec2. (* amount (m/log-gamma (v/mag v)))
-           (* amount ^double (v/heading v)))))
+           (* amount (v/heading v)))))
 (make-field-method gamma :regular)
 
 ;; ### GaussianBlur
@@ -1520,8 +1520,8 @@
   "Heart"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [^double r (v/mag v)
-          ^double theta (v/heading v)
+    (let [r (v/mag v)
+          theta (v/heading v)
           rt (* r theta)
           sr (m/sin rt)
           cr (m/cos rt)]
@@ -1534,8 +1534,8 @@
   "Handkerchief"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [^double angle (v/heading v)
-          ^double r (v/mag v)]
+    (let [angle (v/heading v)
+          r (v/mag v)]
       (Vec2. (* amount (* r (m/sin (+ angle r))))
              (* amount (* r (m/cos (- angle r))))))))
 (make-field-method handkerchief :regular)
@@ -1546,7 +1546,7 @@
   "Hemisphere"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (/ amount (m/sqrt (inc ^double (v/magsq v))))]
+    (let [r (/ amount (m/sqrt (inc (v/magsq v))))]
       (Vec2. (* r (.x v))
              (* r (.y v))))))
 (make-field-method hemisphere :regular)
@@ -1564,8 +1564,8 @@
   "Hole2"
   [^double amount {:keys [^double a ^double b ^double c ^double d inside shape]}]
   (fn [v]
-    (let [^double rhosq (v/magsq v)
-          theta (* d ^double (v/heading v))
+    (let [rhosq (v/magsq v)
+          theta (* d (v/heading v))
           delta (* c (m/pow (inc (/ theta m/PI)) a))
           r (case (unchecked-int shape)
               1 (m/sqrt (+ rhosq delta))
@@ -1592,7 +1592,7 @@
   "Horseshoe"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (+ m/EPSILON ^double (v/mag v))
+    (let [r (+ m/EPSILON (v/mag v))
           sina (/ (.x v) r)
           cosa (/ (.y v) r)]
       (Vec2. (* amount (- (* sina (.x v)) (* cosa (.y v))))
@@ -1605,7 +1605,7 @@
   "Hyperbolic"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (+ m/EPSILON ^double (v/mag v))
+    (let [r (+ m/EPSILON (v/mag v))
           theta (v/heading v)]
       (Vec2. (* amount (/ (m/sin theta) r))
              (* amount (m/cos theta) r)))))
@@ -1621,7 +1621,7 @@
   [^double amount {:keys [^double shift ^double stretch]}]
   (let [scale (- 1.0 (* shift shift))]
     (fn [^Vec2 v]
-      (let [rad (/ ^double (v/magsq v))
+      (let [rad (/ (v/magsq v))
             x (+ shift (* rad (.x v)))
             y (* rad (.y v))
             r (/ (* amount scale) (+ (* x x) (* y y)))]
@@ -1653,7 +1653,7 @@
   "Julia"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [a (+ (* 0.5 ^double (v/heading v)) (* m/PI (lrand 2)))
+    (let [a (+ (* 0.5 (v/heading v)) (* m/PI (lrand 2)))
           r (* amount (m/sqrt (v/mag v)))]
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
 (make-field-method julia :random)
@@ -1678,7 +1678,7 @@
   [^double amount {:keys [^double re ^double im ^double dist]}]
   (let [rre (/ 1.0 re)]
     (fn [^Vec2 v]
-      (let [arg (+ ^double (v/heading v)
+      (let [arg (+ (v/heading v)
                    (* m/TWO_PI ^double (mod (irand) re)))
             lnmod (* dist (m/log (v/magsq v)))
             a (+ (* arg rre)
@@ -1701,7 +1701,7 @@
   (let [abspower (int (m/abs power))
         cpower (* 0.5 (/ dist power))]
     (fn [v]
-      (let [a (/ (+ ^double (v/heading v) (* m/TWO_PI (double (irand abspower)))) power)
+      (let [a (/ (+ (v/heading v) (* m/TWO_PI (double (irand abspower)))) power)
             r (* amount (m/pow (v/magsq v) cpower))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
 (make-field-method julian :random)
@@ -1720,8 +1720,8 @@
     (fn [v]
       (let [rnd (double (lrand abspower))
             a (if (zero? (bit-and rnd 1))
-                (/ (+ (* m/TWO_PI rnd) ^double (v/heading v)) power)
-                (/ (- (* m/TWO_PI rnd) ^double (v/heading v)) power))
+                (/ (+ (* m/TWO_PI rnd) (v/heading v)) power)
+                (/ (- (* m/TWO_PI rnd) (v/heading v)) power))
             r (* amount (m/pow (v/magsq v) cpower))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
 (make-field-method juliascope :random)
@@ -1739,7 +1739,7 @@
         half-inv-power (* 0.5 inv-power)
         inv-power-2pi (/ m/TWO_PI power)]
     (fn [^Vec2 v]
-      (let [a (+ (* inv-power ^double (v/heading v))
+      (let [a (+ (* inv-power (v/heading v))
                  (* inv-power-2pi (double (irand))))
             r (* amount (m/pow (v/magsq v) half-inv-power))]
         (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
@@ -1782,7 +1782,7 @@
   (let [denom (/ 0.5 (m/log base))]
     (fn [v]
       (Vec2. (* amount denom (m/log (v/magsq v)))
-             (* amount ^double (v/heading v))))))
+             (* amount (v/heading v))))))
 (make-field-method logapo :regular)
 
 ;; ### Log
@@ -1792,7 +1792,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (Vec2. (* amount 0.5 (m/log (v/magsq v)))
-           (* amount ^double (v/heading v)))))
+           (* amount (v/heading v)))))
 (make-field-method log :regular)
 
 ;; ### Loonie
@@ -1802,7 +1802,7 @@
   [^double amount _]
   (let [w2 (m/sq amount)]
     (fn [v]
-      (let [^double r2 (v/magsq v)]
+      (let [r2 (v/magsq v)]
         (if (and (< r2 w2) (not (zero? r2)))
           (let [r (* amount (m/sqrt (dec (/ w2 r2))))]
             (v/mult v r))
@@ -1850,7 +1850,7 @@
         hpower (/ power 2.0)]
     (fn [v]
       (let [r-factor (m/pow (v/magsq v) hpower)
-            ^double theta (v/heading v)
+            theta (v/heading v)
             phi (- theta (* b (m/floor (/ theta b))))
             phi (if (> phi hb) (- phi b) phi)
             amp (/ (+ circle (* corners (dec (/ 1.0 (+ (m/cos phi) m/EPSILON))))) (+ r-factor m/EPSILON))]
@@ -1877,10 +1877,10 @@
   "Panorama1"
   [^double amount _]
   (fn [v]
-    (let [aux (/ (m/sqrt (inc ^double (v/magsq v))))
+    (let [aux (/ (m/sqrt (inc (v/magsq v))))
           nv (v/mult v aux)
-          ^double aux (v/mag nv)]
-      (Vec2. (* amount m/M_1_PI ^double (v/heading nv))
+          aux (v/mag nv)]
+      (Vec2. (* amount m/M_1_PI (v/heading nv))
              (* amount (- aux 0.5))))))
 (make-field-method panorama1 :regular)
 
@@ -1892,8 +1892,8 @@
   (fn [v]
     (let [aux (/ (inc (m/sqrt (v/magsq v))))
           nv (v/mult v aux)
-          ^double aux (v/mag nv)]
-      (Vec2. (* amount m/M_1_PI ^double (v/heading nv))
+          aux (v/mag nv)]
+      (Vec2. (* amount m/M_1_PI (v/heading nv))
              (* amount (- aux 0.5))))))
 (make-field-method panorama2 :regular)
 
@@ -1906,7 +1906,7 @@
   "Parabola fn"
   [^double amount {:keys [^double width ^double height]}]
   (fn [v]
-    (let [^double r (v/mag v)
+    (let [r (v/mag v)
           sr (m/sin r)
           cr (m/cos r)]
       (Vec2. (* amount height sr sr (drand))
@@ -2037,8 +2037,8 @@
   "Polar"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [ny (dec ^double (v/mag v))]
-      (Vec2. (* amount ^double (v/heading v) m/M_1_PI)
+    (let [ny (dec (v/mag v))]
+      (Vec2. (* amount (v/heading v) m/M_1_PI)
              (* amount ny)))))
 (make-field-method polar :regular)
 
@@ -2047,7 +2047,7 @@
   [^double amount _]
   (let [p2v (/ amount m/PI)
         p2v2 (* 0.5 p2v)]
-    (fn [^Vec2 v] (Vec2. (* p2v ^double (v/heading v)) (* p2v2 (m/log (v/magsq v)))))))
+    (fn [^Vec2 v] (Vec2. (* p2v (v/heading v)) (* p2v2 (m/log (v/magsq v)))))))
 (make-field-method polar2 :regular)
 
 ;; ### PowBlock
@@ -2066,7 +2066,7 @@
         power (/ (* 0.5 numerator) power) 
         deneps (/ (if (< (m/abs denominator) m/EPSILON) m/EPSILON denominator))]
     (fn [^Vec2 v]
-      (let [^double theta (v/heading v)
+      (let [theta (v/heading v)
             r2 (* amount (m/pow (v/magsq v) power))
             ran (+ (* numerator (+ (* theta deneps) (* root m/TWO_PI (m/floor (drand denominator)) deneps))))]
         (Vec2. (* r2 (m/cos ran))
@@ -2143,8 +2143,8 @@
   [^double amount {:keys [^double n ^double seed ^double dist ^double mn ^double mx]}]
   (let [dm (- mx mn)]
     (fn [v]
-      (let [^double angle (v/heading v)
-            ^double rad (v/mag v)
+      (let [angle (v/heading v)
+            rad (v/mag v)
             rad (mod rad n)
             by (m/sin (+ angle rad))
             bx (m/cos (+ angle rad))
@@ -2173,8 +2173,8 @@
         zoom (* amount (m/cos (* angle m/HALF_PI)))]
     (fn [^Vec2 v]
       (let [rnd-g (+ (drand) (drand) (drand) (drand) -2.0)
-            ^double ra (v/mag v)
-            alpha (+ (* spin rnd-g) ^double (v/heading v))
+            ra (v/mag v)
+            alpha (+ (* spin rnd-g) (v/heading v))
             rz (dec (* zoom rnd-g))]
         (Vec2. (+ (* rz (.x v)) (* ra (m/cos alpha)))
                (+ (* rz (.y v)) (* ra (m/sin alpha))))))))
@@ -2218,7 +2218,7 @@
   [^double amount _]
   (fn [^Vec2 v]
     (let [ang (* amount (drand m/PI))
-          r (/ amount (+ m/EPSILON ^double (v/magsq v)))
+          r (/ amount (+ m/EPSILON (v/magsq v)))
           tanr (* amount r (m/tan ang))]
       (Vec2. (* tanr (m/cos (.x v)))
              (* tanr (m/sin (.y v)))))))
@@ -2229,7 +2229,7 @@
   [^double amount _]
   (let [pa (* amount (m/sq m/M_2_PI))]
     (fn [^Vec2 v]
-      (let [^double t (v/magsq v)
+      (let [t (v/magsq v)
             u (+ pa (/ (m/tan (m/sqrt t))))
             r (* amount u t)]
         (Vec2. (/ r (.x v))
@@ -2241,7 +2241,7 @@
   [^double amount _]
   (let [a10 (/ amount 10.0)]
     (fn [^Vec2 v]
-      (let [^double t (v/magsq v)
+      (let [t (v/magsq v)
             u (/ (m/cos (* (+ t m/EPSILON) (m/tan (/ (+ m/EPSILON t))))))
             r (* a10 t u)]
         (Vec2. (/ r (.x v))
@@ -2253,7 +2253,7 @@
   [^double amount _]
   (let [a10 (/ amount 10.0)]
     (fn [^Vec2 v]
-      (let [^double t (v/magsq v)
+      (let [t (v/magsq v)
             t2 (* t t)
             u (/ (m/sqrt (m/cos (m/sin (* (+ m/EPSILON t2) (m/sin (/ (+ t2 m/EPSILON))))))))
             r (* a10 t u)]
@@ -2346,8 +2346,8 @@
                  (* cycles-to-close metacycles)
                  cycles-param)]
     (fn [^Vec2 v]
-      (let [rin (* spread-split ^double (v/mag v))
-            ^double tin (v/heading v)
+      (let [rin (* spread-split (v/mag v))
+            tin (v/heading v)
             t (* cycles (+ tin (* cycle-offset m/TWO_PI)))
             r (+ radial-offset (m/cos (* t k)))
             r (if-not (zero? fill)
@@ -2416,7 +2416,7 @@
         rdx (/ 1.0 dx2)
         dx- (- 1.0 dx)]
     (fn [^Vec2 v]
-      (let [^double r (v/mag v)
+      (let [r (v/mag v)
             rr (* amount (+ (- r (* dx2 (double (int (* (+ r dx) rdx))))) (* r dx-)))]
         (Vec2. (* rr (/ (.x v) r))
                (* rr (/ (.y v) r)))))))
@@ -2429,7 +2429,7 @@
   [^double amount {:keys [^double val]}]
   (let [dx (+ m/EPSILON (m/sq val))]
     (fn [^Vec2 v]
-      (let [^double l (v/mag v)
+      (let [l (v/mag v)
             r (* amount (- 2.0 (* dx (inc (/ (* 2.0 (double (int (* 0.5 (inc (/ l dx)))))) l)))))]
         (v/mult v r)))))
 (make-field-method rings2 :regular)
@@ -2460,11 +2460,11 @@
     (fn [^Vec2 v]
       (let [x (- (* s (.x v)) centerx)
             y (- (* s (.y v)) centery)
-            ^double d (case (unchecked-int fixed-dist-calc)
-                        0 (v/mag v)
-                        1 (m/sqrt (* (m/sq (.x v)) (m/sq (.y v))))
-                        2 (max (m/abs (.x v)) (m/abs (.y v)))
-                        3 (+ (m/abs (.x v)) (m/abs (.y v))))
+            d (case (unchecked-int fixed-dist-calc)
+                0 (v/mag v)
+                1 (m/sqrt (* (m/sq (.x v)) (m/sq (.y v))))
+                2 (max (m/abs (.x v)) (m/abs (.y v)))
+                3 (+ (m/abs (.x v)) (m/abs (.y v))))
             d (if (< d m/EPSILON) m/EPSILON d)
             nx (/ x d)
             ny (/ y d)
@@ -2485,7 +2485,7 @@
   "Rippled"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [d (+ m/EPSILON ^double (v/magsq v))]
+    (let [d (+ m/EPSILON (v/magsq v))]
       (Vec2. (* (* (m/tanh d) (* 2.0 (.x v))) (/ amount 2.0))
              (* (* (m/cos d) (* 2.0 (.y v))) (/ amount 2.0))))))
 (make-field-method rippled :regular)
@@ -2497,7 +2497,7 @@
   [^double amount _]
   (let [s (m/sq m/M_2_PI)]
     (fn [v]
-      (let [^double d (v/magsq v)
+      (let [d (v/magsq v)
             re (/ (+ s (/ d)))
             ad (/ amount d)]
         (v/mult v (* amount ad re))))))
@@ -2511,7 +2511,7 @@
   "Scry"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [^double t (v/magsq v)
+    (let [t (v/magsq v)
           d (-> 1.0
                 (/ amount)
                 (+ t)
@@ -2552,8 +2552,8 @@
         sa2sw (* sa2 width)
         pi3 (* 3.0 m/PI)]
     (fn [v]
-      (let [^double ang (v/heading v)
-            ^double rad (v/mag v)
+      (let [ang (v/heading v)
+            rad (v/mag v)
             xang (/ (+ ang pi3 sa2) sa)
             ixang (unchecked-int xang)
             zang (- (* sa (+ ixang (* width (- xang ixang)))) m/PI sa2sw)]
@@ -2576,7 +2576,7 @@
   "Secant2"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (* amount ^double (v/mag v))
+    (let [r (* amount (v/mag v))
           cr (* amount (m/cos r))
           icr (/ 1.0 (if (zero? cr) m/EPSILON cr))]
       (Vec2. (* amount (.x v)) icr))))
@@ -2586,7 +2586,7 @@
   "Secant2"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (* amount ^double (v/mag v))
+    (let [r (* amount (v/mag v))
           cr (m/cos r)
           icr (/ 1.0 (if (zero? cr) m/EPSILON cr))
           ny (if (neg? cr)
@@ -2601,7 +2601,7 @@
   "Spherical"
   [^double amount _]
   (fn [^Vec2 v]
-    (v/mult v (/ amount (+ m/EPSILON ^double (v/magsq v))))))
+    (v/mult v (/ amount (+ m/EPSILON (v/magsq v))))))
 (make-field-method spherical :regular)
 
 ;; ### Spiral
@@ -2610,7 +2610,7 @@
   "Spiral"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (+ m/EPSILON ^double (v/mag v))
+    (let [r (+ m/EPSILON (v/mag v))
           revr (/ 1.0 r)
           sina (* (.x v) revr)
           cosa (* (.y v) revr)
@@ -2715,12 +2715,12 @@
   (let [pm-4 (/ m 4.0)
         pneg1-n1 (/ -1.0 n1)]
     (fn [^Vec2 v]
-      (let [theta (+ (* pm-4 ^double (v/heading v)) m/M_PI_4)
+      (let [theta (+ (* pm-4 (v/heading v)) m/M_PI_4)
             st (m/sin theta)
             ct (m/cos theta)
             t1 (m/pow (m/abs ct) n2)
             t2 (m/pow (m/abs st) n3)
-            ^double mag (v/mag v)
+            mag (v/mag v)
             r (/ (* (* amount (- (+ (drand rnd) (* (- 1.0 rnd) mag)) holes)) (m/pow (+ t1 t2) pneg1-n1)) mag)]
         (v/mult v r)))))
 (make-field-method supershape :random)
@@ -2758,7 +2758,7 @@
   "Twintrian"
   [^double amount _]
   (fn [^Vec2 v]
-    (let [r (* amount (drand) ^double (v/mag v))
+    (let [r (* amount (drand) (v/mag v))
           sinr (m/sin r)
           diff (+ (m/cos r) (m/log10 (m/sq sinr)))]
       (Vec2. (* amount diff (.x v))
@@ -2804,7 +2804,7 @@
                                                               [c1 (- c2) (/ r2 r1) r1]
                                                               [(- c2) c1 (/ r1 r2) r2])
             nv (Vec2. (- cc1 (.x v)) (.y v))
-            ^double rm (v/mag nv)
+            rm (v/mag nv)
             r (* rm fr)
             a (v/heading nv)
             res (Vec2. (+ cc2 (* r (m/cos a)))
@@ -3035,8 +3035,8 @@
   [^double amount {:keys [^double angle ^double hole ^double count ^double swirl]}]
   (let [hm1p (* m/M_1_PI 0.5)]
     (fn [v]
-      (let [^double r (v/mag v)
-            a (+ ^double (v/heading v) (* r swirl))
+      (let [r (v/mag v)
+            a (+ (v/heading v) (* r swirl))
             c (m/floor (* (+ (* count a) m/PI) hm1p))
             comp-fac (- 1.0 (* angle count hm1p))
             a (+ (* a comp-fac) (* c angle))

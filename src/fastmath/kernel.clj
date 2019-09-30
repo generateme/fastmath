@@ -456,9 +456,9 @@
   ([_] (kernel :pearson 1.0 1.0))
   ([_ ^double sigma ^double omega]
    (let [c (/ (* 2.0 (m/sqrt (dec (m/pow 2.0 (/ omega))))) sigma)]
-     (fn [x y] (let [^double xx (v/sum (v/sq x))
-                    ^double yy (v/sum (v/sq y))
-                    ^double xy (v/sum (v/emult x y))
+     (fn [x y] (let [xx (v/sum (v/sq x))
+                    yy (v/sum (v/sq y))
+                    xy (v/sum (v/emult x y))
                     m (* c (m/sqrt (+ (* -2.0 xy) xx yy)))]
                 (/ (m/pow (inc (* m m)) omega)))))))
 

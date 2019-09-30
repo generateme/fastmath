@@ -122,9 +122,10 @@
     (m/degrees (relative-angle-between (vec (repeatedly 50 rand)) (vec (repeatedly 50 rand))))))
 
 (add-examples aligned?
-  (example-session "Usage"
+  (example-session "Usage" {:test-values [true false true]}
     (aligned? (vec2 1.0 1.0) (vec2 2.0 2.000001))
-    (aligned? (vec2 1.0 1.0) (vec2 2.0 2.00001))))
+    (aligned? (vec2 1.0 1.0) (vec2 2.0 2.00001))
+    (aligned? (vec2 1.0 1.0) (vec2 2.0 2.00001) 0.001)))
 
 (add-examples faceforward
   (example-session "Usage"
@@ -135,9 +136,13 @@
 (add-examples generate-vec3 (example-session "Usage" (generate-vec3 rand) (generate-vec3 rand (constantly 1) (constantly 2))))
 (add-examples generate-vec4 (example-session "Usage" (generate-vec4 rand) (generate-vec4 rand rand (constantly 1) (constantly 2))))
 
-(add-examples array->vec2 (example "Usage" (array->vec2 (double-array [11 22 33 44 55]))))
-(add-examples array->vec3 (example "Usage" (array->vec3 (double-array [11 22 33 44 55]))))
-(add-examples array->vec4 (example "Usage" (array->vec4 (double-array [11 22 33 44 55]))))
+(add-examples array->vec2 (example (array->vec2 (double-array [11 22 33 44 55]))))
+(add-examples array->vec3 (example (array->vec3 (double-array [11 22 33 44 55]))))
+(add-examples array->vec4 (example (array->vec4 (double-array [11 22 33 44 55]))))
+
+(add-examples seq->vec2 (example (seq->vec2 [11 22 33 44 55])))
+(add-examples seq->vec3 (example (seq->vec3 (lazy-seq '(1 2)))))
+(add-examples seq->vec4 (example (seq->vec4 (double-array [11 22 33 44 55]))))
 
 (add-examples mag (example "Length of the vector" {:test-value (m/sqrt 2.0)} (mag (vec2 1 1))))
 (add-examples magsq (example "Length of the vector, squared" {:test-value 10.0} (magsq [1 2 1 2])))
@@ -155,7 +160,11 @@
 (add-examples emn (example "Usage" (emn [-1 2] [1 -2])))
 (add-examples emx (example "Usage" (emx [-1 2] [1 -2])))
 (add-examples emult (example "Usage" (emult (vec3 1 2 3) (vec3 9 9 9))))
-(add-examples is-near-zero? (example-session "Usage" (is-near-zero? [0 0.0000001]) (is-near-zero? [0 0.000001])))
+(add-examples is-near-zero?
+  (example-session "Usage" {:test-values [true false true]}
+    (is-near-zero? [0 0.0000001])
+    (is-near-zero? [0 0.000001])
+    (is-near-zero? [0 0.000001] 0.0001)))
 (add-examples is-zero? (example-session "Usage" (is-zero? [0 0.0000001]) (is-zero? [0 0.0])))
 (add-examples mn (example "Usage" (mn (vec4 -1 -2 3 4))))
 (add-examples mx (example "Usage" (mx (vec4 -1 -2 3 4))))
@@ -238,20 +247,20 @@
     (cross (vec2 1 2)
            (vec2 -1 2))))
 
-(add-examples to-vec
+(add-examples vec->Vec
   (example-session "Check types"
-    (type (to-vec [1 2 3]))
-    (type (to-vec (vec2 1 2)))
-    (type (to-vec (vec3 1 2 3)))
-    (type (to-vec (vec4 1 2 3 4)))
-    (type (to-vec (array-vec 1)))))
+    (type (vec->Vec [1 2 3]))
+    (type (vec->Vec (vec2 1 2)))
+    (type (vec->Vec (vec3 1 2 3)))
+    (type (vec->Vec (vec4 1 2 3 4)))
+    (type (vec->Vec (array-vec 1)))))
 
 (add-examples as-vec
   (example-session "Create vectors"
     (as-vec [1 2 3])
     (as-vec [3 2 3] (repeat -10))
     (as-vec (vec3 1 2 3) (repeat -10))
-    (as-vec (array-vec [1 1 11 2 3]) (repeat -10))))
+    (type (as-vec (array-vec [1 1 11 2 3]) (repeat -10)))))
 
 (add-examples clamp
   (example-session "Clamp"
@@ -285,6 +294,6 @@
 
 (math-ops [sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh
            cot sec csc acot asec acsc coth sech csch acoth asech csch
-           sq safe-sqrt sqrt cbrt exp log log10 log2 ln log1p
+           sq safe-sqrt sqrt cbrt exp expm1 log log10 log2 ln log1p
            radians degrees sinc sigmoid
            floor ceil round rint trunc frac sfrac signum sgn])
