@@ -489,8 +489,8 @@
   ^double [^double x]
   (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
 
-(let [o1 (opt/minimize :gradient target-1d {:bounds [[-5 5]]})
-      o2 (opt/maximize :gradient target-1d {:bounds [[-5 5]]})]
+(let [o1 (opt/scan-and-minimize :cmaes target-1d {:bounds [[-5 5]] :N 10000})
+      o2 (opt/scan-and-maximize :cmaes target-1d {:bounds [[-5 5]] :N 10000})]
   (println (map (juxt ffirst second) [o1 o2]))
   (cljplot/show (opt-1d-chart target-1d [-5 5] (map (juxt ffirst second) [o1 o2]))))
 
