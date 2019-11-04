@@ -108,3 +108,18 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (transform [v1 o vx vy] [v1 o vx vy vz] "Transform vector; map point to coordinate system defined by origin, vx and vy (as bases), d and 3d only.")
   (to-polar [v1] "To polar coordinates (2d, 3d only), first element is length, the rest angle.")
   (from-polar [v1] "From polar coordinates (2d, 3d only)"))
+
+(defprotocol TransformProto
+  "Transformer functions."
+  (forward-1d [t xs] "Forward transform of sequence or array.")
+  (reverse-1d [t xs] "Reverse transform of sequence or array.")
+  (forward-2d [t xss] "Forward transform of sequence of sequences.")
+  (reverse-2d [t xss] "Reverse transform of sequence of sequences."))
+
+(defprotocol GridProto
+  "Common grid conversion functions."
+  (coords->cell [g coords] "Converts 2d space coordinates to cell coordinates.")
+  (cell->anchor [g cell] "Converts cell coordinates to anchor coordinates.")
+  (coords->mid [g coords] "Converts 2d space into cell midpoint.")
+  (grid-type [g] "Returns type of the cell.")
+  (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))

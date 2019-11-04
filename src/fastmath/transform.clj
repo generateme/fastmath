@@ -19,7 +19,8 @@
   {:metadoc/categories {:w "Transform"
                         :p "Process"}}
   (:require [fastmath.core :as m]
-            [fastmath.stats :as stat])
+            [fastmath.stats :as stat]
+            [fastmath.protocols :as prot])
   (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
             BasicTransform DiscreteFourierTransform]
            [jwave.exceptions JWaveFailure]
@@ -33,9 +34,8 @@
 ;;
 
 (defmulti
-  ^{:doc "Create wavelet object.
-
-  Shouldn't be used directly"
+  ^{:doc "Create wavelet object."
+    :private true
     :metadoc/categories #{:w}} wavelet identity)
 
 (defmethod wavelet :default [n] (throw (JWaveFailure. (str "Unknown wavelet: " n))))
@@ -158,31 +158,52 @@
                                            (= t :sine) (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
                                            (= t :cosine) (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)))
 
-(defprotocol TransformProto
-  "Transformer functions."
-  (^{:metadoc/categories #{:w}} forward-1d [t xs] "Forward transform of sequence or array. Returns double array.")
-  (^{:metadoc/categories #{:w}} reverse-1d [t xs] "Reverse transform of sequence or array. Returns double array.")
-  (^{:metadoc/categories #{:w}} forward-2d [t xss] "Forward transform of sequence of sequences or 2d double array. Returns 2d double array.")
-  (^{:metadoc/categories #{:w}} reverse-2d [t xss] "Reverse transform of sequence of sequences or 2d double array. Returns 2d double array."))
-
 (extend BasicTransform
-  TransformProto
+  prot/TransformProto
   {:forward-1d (fn [^BasicTransform t xs] (.forward t (m/seq->double-array xs)))
    :reverse-1d (fn [^BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
    :forward-2d (fn [^BasicTransform t xss] (.forward t (m/seq->double-double-array xss)))
    :reverse-2d (fn [^BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))})
 
 (extend RealTransformer
-  TransformProto
+  prot/TransformProto
   {:forward-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/FORWARD))
    :reverse-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/INVERSE))})
+
+(defn forward-1d
+  "Forward transform of sequence or array."
+  {:metadoc/categories #{:w}}
+  [t xs] (prot/forward-1d t xs))
+
+(defn reverse-1d
+  "Forward transform of sequence or array."
+  {:metadoc/categories #{:w}}
+  [t xs] (prot/reverse-1d t xs))
+
+(defn forward-2d
+  "Forward transform of sequence or array."
+  {:metadoc/categories #{:w}}
+  [t xss] (prot/forward-2d t xss))
+
+(defn reverse-2d
+  "Forward transform of sequence or array."
+  {:metadoc/categories #{:w}}
+  [t xss] (prot/reverse-2d t xss))
 
 (set! *warn-on-reflection* false)
 
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
   {:metadoc/categories #{:p}}
-  ([^double mag xs]
+  ([trans xs ^double mag]
+   (let [[fwd rev] (if (seqable? (first xs))
+                     [prot/forward-2d prot/reverse-2d]
+                     [prot/forward-1d prot/reverse-1d])]
+     (->> xs
+          (fwd trans)
+          (.compress (jwave.compressions.CompressorMagnitude. mag))
+          (rev trans))))
+  ([xs ^double mag]
    (.compress (jwave.compressions.CompressorMagnitude. mag) xs)))
 
 (set! *warn-on-reflection* true)
@@ -213,6 +234,6 @@
              (when (< (m/abs v) lambda) (aset-double t i2 0.0)))))
        t)))
   ([trans xs soft?]
-   (let [v (forward-1d trans xs)]
-     (reverse-1d trans (denoise v soft?))))
+   (let [v (prot/forward-1d trans xs)]
+     (prot/reverse-1d trans (denoise v soft?))))
   ([xs] (denoise xs false)))

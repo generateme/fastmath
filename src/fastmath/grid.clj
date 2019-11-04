@@ -35,7 +35,8 @@
   * Only hexagonal cells have anchor at the center. For the rest the anchor is at the top left vertex.
       * Anchors for triangular grids are shared between two cells: even and odd `q` coordinate. Even `q` is pointy topped, odd `q` is flat topped."
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.protocols :as prot])
   (:import [fastmath.vector Vec2 Vec3]
            [clojure.lang Named]))
 
@@ -43,23 +44,36 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-(defprotocol GridProto
-  "Common grid conversion functions."
-  (coords->cell [g coords] "Converts 2d space coordinates to cell coordinates.")
-  (cell->anchor [g cell] "Converts cell coordinates to anchor coordinates.")
-  (coords->mid [g coords] "Converts 2d space into cell midpoint.")
-  (grid-type [g] "Returns type of the cell.")
-  (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))
+(defn coords->cell
+  "Converts 2d space coordinates to cell coordinates."
+  [g coords] (prot/coords->cell g coords))
+
+(defn cell->anchor
+  "Converts cell coordinates to anchor coordinates."
+  [g cell] (prot/cell->anchor g cell))
+
+(defn coords->mid
+  "Converts 2d space into cell midpoint."
+  [g coords] (prot/coords->mid g coords))
+
+(defn grid-type
+  "Returns type of the cell."
+  [g] (prot/grid-type g))
+
+(defn corners
+  "Returns list of cell vertices for given 2d space coordinates."
+  ([g coords] (prot/corners g coords))
+  ([g coords scale] (prot/corners g coords scale)))
 
 (defn coords->anchor
   "Converts 2d coordinates to cell anchor."
   [g coords]
-  (cell->anchor g (coords->cell g coords)))
+  (prot/cell->anchor g (prot/coords->cell g coords)))
 
 (defn cell->mid
   "Converts cell coordinates to mid point"
   [g cell]
-  (coords->mid g (cell->anchor g cell)))
+  (prot/coords->mid g (prot/cell->anchor g cell)))
 
 (defn- grid-obj
   "Create grid object."
@@ -68,7 +82,7 @@
          tostr (str nm ", size=" size)
          anchor (or anchor coords->anchor)]
      (reify
-       GridProto
+       prot/GridProto
        (coords->cell [_ [^double x ^double y]] (to-cell size (- x (.x sv)) (- y (.y sv))))
        (cell->anchor [_ [^double q ^double r]] (v/add sv (from-cell size q r)))
        (coords->mid [g coords] (to-mid size (anchor g coords)))
@@ -123,8 +137,8 @@
         diff-x (m/abs (- rx x))
         diff-y (m/abs (- ry y))
         diff-z (m/abs (- rz z))]
-    (if (bool-and (> diff-x diff-y)
-                  (> diff-x diff-z))
+    (if (and (> diff-x diff-y)
+             (> diff-x diff-z))
       (Vec2. (- (- ry) rz) rz)
       (if (> diff-y diff-z)
         (Vec2. rx rz)
@@ -266,8 +280,8 @@
 (defn- coords->triangle-anchor
   "2d coordinates to triangle anchor with cell information (even or odd)."
   [g coords]
-  (let [^Vec2 qr (coords->cell g coords)]
-    (v/vec3 (cell->anchor g qr) (bit-and (long (.x qr)) 0x1))))
+  (let [^Vec2 qr (prot/coords->cell g coords)]
+    (v/vec3 (prot/cell->anchor g qr) (bit-and (long (.x qr)) 0x1))))
 
 ;;
 
@@ -294,5 +308,3 @@
   ([] (grid :square)))
 
 (def cell-names ^{:doc "List of cell types"} [:square :shifted-square :triangle :rhombus :flat-hex :pointy-hex])
-
-

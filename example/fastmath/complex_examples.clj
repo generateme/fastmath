@@ -42,7 +42,7 @@
 (add-examples pow (example "\\\\(\\sqrt{2}\\\\)" (pow TWO (complex 0.5 0.0)))
   (example "Complex power" (pow (complex 1 2) (complex 3 4))))
 
-(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal identity))
+(def fn-list `(atan asin acos log exp csc sec tanh tan sinh sin cosh cos sqrt sq sqrt1z reciprocal))
 
 (defmacro ^:private add-image-examples
   []

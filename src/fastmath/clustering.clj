@@ -219,7 +219,7 @@
   * num-local - the number of local minima to search for
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/CLARANS.html)"
-  ([data clusters] (clarans data (d/distance :euclidean) clusters))
+  ([data clusters] (clarans data d/euclidean clusters))
   ([data dist clusters] (clustering :clarans data dist clusters))
   ([data dist clusters max-neighbor] (clustering :clarans data dist clusters max-neighbor))
   ([data dist clusters max-neighbor num-local] (clustering :clarans data dist clusters max-neighbor num-local)))
@@ -235,7 +235,7 @@
   * radius - the neighborhood radius
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/DBSCAN.html)"
-  ([data min-pts radius] (dbscan data (d/distance :euclidean) min-pts radius))
+  ([data min-pts radius] (dbscan data d/euclidean min-pts radius))
   ([data dist min-pts ^double radius] (clustering :dbscan data dist (int min-pts) radius)))
 
 (defn mec
@@ -249,7 +249,7 @@
   * radius - the neighborhood radius
 
   See more in [SMILE doc](https://haifengl.github.io/smile/api/java/smile/clustering/MEC.html)"
-  ([data max-clusters radius] (mec data (d/distance :euclidean) max-clusters radius))
+  ([data max-clusters radius] (mec data d/euclidean max-clusters radius))
   ([data dist max-clusters ^double radius] (clustering :mec data dist max-clusters radius)))
 
 (defn regroup

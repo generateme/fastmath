@@ -11,13 +11,6 @@
   To create complex number use [[complex]], [[vec2]] or [[->Vec2]].
 
   Simplified implementation based on Apache Commons Math. Functions don't check NaNs or INF values.
-
-  Graphs are generated as follows, background is based on:
-
-  * argument as HUE
-  * absolute value as BRIGHTNESS
-
-  with transformed points painted white.
   
   Complex plane (identity) looks as follows:
 
@@ -50,7 +43,7 @@
 
 (defn conjugate
   "Complex conjugate. \\\\(\\bar{z}\\\\)"
-  [^Vec2 z]
+  [^Vec2 z] 
   (Vec2. (.x z) (- (.y z))))
 
 (defn div

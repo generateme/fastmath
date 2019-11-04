@@ -1,4 +1,13 @@
 (ns fastmath.kernel
+  "Various kernel functions.
+
+  * RBF (double -> double functions)
+  * vector kernels (vector x vector -> double function; may be positive definite, conditional positive definite, positive semi-definite, mercer)
+  * density estimation
+  * some kernel operations"
+  {:metadoc/categories {:rbf "RBF kernels"
+                        :kernel "Vector kernels"
+                        :dens "Density kernels"}}
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
             [fastmath.vector :as v])
@@ -49,7 +58,16 @@
        ([a# ^double scale#] (rbf ~nm 1.0 scale#))
        ([a# ^double ~beta ^double scale#] (make-scaled-x scale# ~form)))))
 
-(defmulti rbf (fn [k & _] k))
+(defmulti rbf
+  "RBF kernel creator. RBF is double->double function.
+
+  Parameters:
+
+  All kernels accept `scale` parameter (as last parameter).
+
+  Following kernels also accept `beta`: `:multiquadratic`, `:inverse-multiquadratic`, `:truncated-power`, `:radial-powers` and `:thin-plate`."
+  {:metadoc/categories #{:rbf}}
+  (fn [k & _] k))
 
 (emit-simple-rbf :linear xs)
 (emit-simple-rbf :gaussian (m/exp (- (* xs xs))))
@@ -237,6 +255,8 @@
                                                        (* 7.0 xs))))))
 
 
+(def rbf-list ^{:doc "List of RBF kernels"} (sort (keys (methods rbf))))
+
 (defn smile-rbf
   "Create RBF Smile object.
 
@@ -252,7 +272,8 @@
 ;; Various kernels
 
 (defn rbf->kernel
-  "Treat RBF kernel as Kernel kernel for given distance."
+  "Treat RBF kernel as vector kernel using distance function (default [[euclidean]]."
+  {:metadoc/categories #{:kernel :rbf}}
   ([rbf-kernel] (rbf->kernel rbf-kernel d/euclidean))
   ([rbf-kernel distance]
    (fn [x y] (rbf-kernel (distance x y)))))
@@ -261,15 +282,43 @@
 ;; Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective
 ;; http://www.jmlr.org/papers/volume2/genton01a/genton01a.pdf
 
-(defmulti kernel (fn [k & _] k))
+(defmulti kernel
+  "Crated vector kernel.
+
+  Kernels can be Mercer, positive definite, conditional positive definite, positive semi-definite or other.
+  
+  Optional parameters:
+
+  For `:gaussian`, `:exponential`, `:laplacian`, `:rational-quadratic`, `:multiquadratic`, `:inverse-multiquadratic`, `:circular`, `:spherical`, `:wave`, `:power`, `:log`, `:cauchy`, `:generalized-t-student`, `:hyperbolic-secant`, `:thin-plate`, `:mattern-12`, `:mattern-32`, `:mattern-52` and `::hyperbolic-secant` you can provide scaling parameter and `distance` (see [[fastmath.distance]], default is [[euclidean]]).
+
+  Others:
+
+  * `:linear` - `alpha`, scaling parameter
+  * `:polynomial` - `alpha` (scaling), `c` (shift) and `d` (power)
+  * `:anova` - `sigma` (scaling), `k` and `d` (power)
+  * `:hyperbolic-tangent` - `alpha` (scaling), `c` (shift)
+  * `:periodic` - `sigma` (scaling), `periodicity` and `distance`
+  * `:bessel` - `sigma` (scaling), `n` and `v` (power factors) and `distance`
+  * `:generalized-histogram` - `alpha` and `beta` (power factors)
+  * `:dirichlet` - `N`
+  * `:pearson` - `sigma` (scaling) and `omega` (power)
+
+  Additionally there are two special kernels build from funcitons:
+
+  * `:scalar-functions` - provide one or two double->double functions
+  * `:variance-function` - provide any variance function (smooth, vector->double type)
+
+  The rest of the kernels do not require parameters."
+  {:metadoc/categories #{:kernel}}
+  (fn [k & _] k))
 
 (defmethod kernel :linear
   ([_] (fn [x y] (v/dot x y)))
-  ([_ ^double alpha] (fn [x y] (* alpha ^double (v/dot x y)))))
+  ([_ ^double alpha] (fn [x y] (* alpha (v/dot x y)))))
 
 (defmethod kernel :polynomial
   ([_] (fn [x y] (m/sq (v/dot x y))))
-  ([_ ^double alpha ^double c ^double d] (fn [x y] (m/pow (+ c (* alpha ^double (v/dot x y))) d))))
+  ([_ ^double alpha ^double c ^double d] (fn [x y] (m/pow (+ c (* alpha (v/dot x y))) d))))
 
 (defmethod kernel :gaussian
   ([_] (kernel :gaussian 1.0))
@@ -306,12 +355,11 @@
              (v/fmap powd)
              (v/sum)))))))
 
-
 (defmethod kernel :hyperbolic-tangent
   ([_] (kernel :hyperbolic-tangent 1.0))
   ([_ ^double alpha] (kernel :hyperbolic-tangent alpha 0.0))
   ([_ ^double alpha ^double c]
-   (fn [x y] (m/tanh (+ c (* alpha ^double (v/dot x y)))))))
+   (fn [x y] (m/tanh (+ c (* alpha (v/dot x y)))))))
 
 (defmethod kernel :rational-quadratic
   ([_] (kernel :rational-quadratic 1.0))
@@ -499,12 +547,15 @@
               (+ (/ 2.0 (m/exp d)) (m/exp (- d)))))))
 
 (defmethod kernel :scalar-functions
+  ([_] (kernel :scalar-functions v/mag))
   ([_ f] (kernel :scalar-functions f f))
   ([_ f1 f2] (fn [x y] (* ^double (f1 x) ^double (f2 y)))))
 
 (defmethod kernel :variance-function
+  ([_] (kernel :variance-function v/mag))
   ([_ h] (fn [x y] (* 0.25 (- ^double (h (v/add x y)) ^double (h (v/sub x y)))))))
 
+(def kernels-list ^{:doc "List of available vector kernels."} (sort (keys (methods kernel))))
 
 (defn smile-mercer
   "Create Smile Mercer Kernel object
@@ -519,23 +570,35 @@
 ;; kernel manipulation functions
 
 (defn kernel->rbf
+  "Convert vector kernel to RBF kernel. `center` is fixed `y` vector (default contains [[EPSILON]] values)."
+  {:metadoc/categories #{:kernel :rbf}}
   ([k] (kernel->rbf k m/EPSILON))
   ([k center]
    (let [c (vector center)]
      (fn [x] (k [x] c)))))
 
 (defn exp
+  "Kernel wraper. exp of kernel `k` with optional scaling value `t`."
+  {:metadoc/categories #{:kernel}}
   ([k] (exp k 1.0))
   ([k ^double t]
    (fn [x y] (m/exp (* t ^double (k x y))))))
 
-(defn approx [k] (comp float k))
+(defn approx
+  "Kernel wrapper. Round value returned by kernel using [[fastmath.core/approx]] function."
+  {:metadoc/categories #{:kernel}}
+  ([k precision] (comp #(m/approx % precision) k))
+  ([k] (comp m/approx k)))
 
 (defn scale
+  "Kernel wrapper. Scale kernel result."
+  {:metadoc/categories #{:kernel}}
   [k ^double scale]
   (fn [x y] (* scale ^double (k x y))))
 
 (defn mult
+  "Kernel wrapper. Multiply two or more kernels."
+  {:metadoc/categories #{:kernel}}
   ([k1] k1)
   ([k1 k2] (fn [x y] (* ^double (k1 x y) ^double (k2 x y))))
   ([k1 k2 k3] (fn [x y] (* ^double (k1 x y) ^double (k2 x y) ^double (k3 x y))))
@@ -545,21 +608,31 @@
              (apply mult k r)))))
 
 (defn wadd
+  "Kernel wrapper. Add kernels (weighted)."
+  {:metadoc/categories #{:kernel}}
   ([kernels] (wadd (repeat (count kernels) 1.0) kernels))
   ([weights kernels]
    (fn [x y] (reduce #(+ ^double %1 ^double %2)
                     (map (fn [^double w k] (* w ^double (k x y))) weights kernels)))))
 
 (defn fields
+  "Kernel wrapper. Apply vector field for each input before applying kernel function."
+  {:metadoc/categories #{:kernel}}
   ([k f] (fields k f f))
   ([k f1 f2]
    (fn [x y] (k (f1 x) (f2 y)))))
 
 (defn- zero-vec [c] (vec (repeat c 0.0)))
-(def zero-vec-m (memoize zero-vec))
+(def ^:private zero-vec-m (memoize zero-vec))
 
 ;; doesn't work well
 (defn cpd->pd
+  "Convert conditionally positive definite kernel into positive definite.
+
+  Formula is based on this [SO answer](https://stats.stackexchange.com/questions/149889/prove-that-a-kernel-is-conditionally-positive-definite). `x0` is equals `0`.
+  
+  Doesn't work well."
+  {:metadoc/categories #{:kernel}}
   [k]
   (fn [x y] (let [zero (zero-vec-m (count x))]
              (float (* 0.5 (+ ^double (k zero zero)
@@ -647,7 +720,16 @@
    :sigmoid (/ 2.0 (* m/PI m/PI))
    :silverman (* 0.0625 3.0 m/SQRT2)})
 
-(defmulti kernel-density (fn [k & _] k))
+(defmulti kernel-density
+  "Create kernel density estimator.
+
+  Parameters:
+
+  * kernel name, see [[kernel-density-list]].
+  * sequence of data values
+  * optional: bandwidth (by default, bandwidth is estimated using nrd method)"
+  {:metadoc/categories #{:dens}}
+  (fn [k & _] k))
 
 (defmacro ^:private make-kernel-density-fns
   [lst]
@@ -671,12 +753,24 @@
 
 (defmethod kernel-density :default [_ & r] (apply kernel-density :smile r))
 
+(def kernel-density-list ^{:doc "List of available density kernels."} (sort (keys (methods kernel-density))))
+
 (defonce ^:private ^NormalDistribution local-normal (NormalDistribution.))
 
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
 
-  Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html"
+  Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html
+
+  Parameters:
+
+  * `method` - kernel name
+  * `data` - sequence of data values
+  * `bandwidth`
+  * `alpha` - confidence level parameter
+
+  Returns three values: density, lower confidence, upper confidence"
+  {:metadoc/categories #{:dens}}
   ([method data] (kernel-density-ci method data nil))
   ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
   ([method data bandwidth ^double alpha]

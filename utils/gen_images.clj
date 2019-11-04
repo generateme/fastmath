@@ -2,14 +2,21 @@
   "Generate images from examples attached to metadata."
   (:require [fastmath.core :as m]
             [fastmath.complex :as c]
+            [fastmath.kernel :as k]
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.transform :as t]
             [fastmath.interpolation :as i]
+            [fastmath.distance :as d]
+            [fastmath.fields :as fields]
+            [fastmath.easings :as e]
+            [fastmath.grid :as g]
+            [fastmath.optimization :as opt]
             [cljplot.build :as b]
             [cljplot.core :as cljplot]
             [clojure2d.color :as clr]
-            [clojure2d.core :as c2d]))
+            [clojure2d.core :as c2d]
+            [clojure2d.extra.utils :as utls]))
 
 (r/set-seed! r/default-rng 1234)
 
@@ -251,6 +258,243 @@
             "d" "multi-normal2" ".jpg")
 (save-chart (function2d-chart (fn [x y] (r/pdf (r/distribution :dirichlet {:alpha [2 0.8]}) [x y])) {:x [0 1] :y [0 1]})
             "d" "dirichlet" ".jpg")
+
+;; kernels
+
+(doseq [rbf k/rbf-list]
+  (save-chart (function-chart (k/rbf rbf)) "k" (str "rbf_" (name rbf)) ".png"))
+
+(doseq [ks k/kernels-list]
+  (save-chart (function2d-chart (let [k (k/kernel ks)]
+                                  (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" (str "k_" (name ks)) ".jpg"))
+
+(def density-data (repeatedly 200 r/grand))
+
+(defn density-chart
+  [k]
+  (cljplot/xy-chart {:width 400 :height 200 :background bg-color}
+                    (b/series [:vline 0 {:color [60 100 120]}]
+                              [:hline 0 {:color [60 100 120]}]
+                              [:histogram density-data {:type :lollipops :density? true :palette [[200 200 220]] :bins 35}]
+                              [:density density-data {:kernel-type k :color (clr/set-alpha fg-color 180) :area? true
+                                                      :kernel-bandwidth 0.25}])
+                    (b/update-scale :x :ticks 5)
+                    (b/update-scale :y :ticks 5)
+                    (b/add-axes :bottom {:ticks {:color fg-color}
+                                         :line {:color fg-color}})
+                    (b/add-axes :left {:ticks {:color fg-color}
+                                       :line {:color fg-color}})))
+
+(doseq [kd k/kernel-density-list]
+  (save-chart (density-chart kd) "k" (str "d_" (name kd)) ".jpg"))
+
+(save-chart (function2d-chart (let [k (k/approx (k/kernel :gaussian) 1)]
+                                (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" "approx" ".jpg")
+
+(save-chart (function2d-chart (let [k (k/cpd->pd (k/kernel :periodic))]
+                                (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" "cpdpd" ".jpg")
+
+(save-chart (function2d-chart (let [k (k/exp (k/kernel :dirichlet) 5.0)]
+                                (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" "exp" ".jpg")
+
+
+(defn ci-chart
+  []
+  (let [d (k/kernel-density-ci :epanechnikov density-data 0.5)
+        r (range -3.0 3.0 0.05)
+        top (map #(vector % (second (d %))) r)
+        bottom (map #(vector % (last (d %))) r)]
+    (cljplot/xy-chart {:width 400 :height 200 :background bg-color}
+                      (b/series [:vline 0 {:color [60 100 120]}]
+                                [:hline 0 {:color [60 100 120]}]
+                                [:histogram density-data {:type :lollipops :density? true :palette [[200 200 220]] :bins 35}]
+                                [:ci [top bottom] {:color (clr/set-alpha (clr/darken (clr/darken fg-color)) 200)}]
+                                [:function (comp first d) {:domain [-3.0 3.0] :color fg-color}])
+                      (b/update-scale :x :ticks 5)
+                      (b/update-scale :y :ticks 5)
+                      (b/add-axes :bottom {:ticks {:color fg-color}
+                                           :line {:color fg-color}})
+                      (b/add-axes :left {:ticks {:color fg-color}
+                                         :line {:color fg-color}}))))
+
+
+(save-chart (ci-chart) "k" "ci" ".jpg")
+
+(save-chart (function2d-chart (let [k1 (k/kernel :periodic)
+                                    k2 (k/kernel :laplacian)
+                                    k (k/mult k1 k2)]
+                                (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" "mult" ".jpg")
+
+(save-chart (function2d-chart (let [k1 (k/kernel :periodic)
+                                    k2 (k/kernel :laplacian)
+                                    k (k/wadd [0.2 0.8] [k1 k2])]
+                                (fn [x y] (k [x] [y]))) {:x [-3 3] :y [-3 3]}) "k" "wadd" ".jpg")
+
+(save-chart (function-chart (k/rbf :thin-plate 2 1)) "k" "thin-plate" ".jpg")
+
+;; easings
+
+(doseq [[e ef] e/easings-list]
+  (save-chart (function-chart ef [0.0 1.0]) "e" (name e) ".png"))
+
+(save-chart (function-chart (e/out e/sin-in) [0 1]) "e" "out" ".png")
+(save-chart (function-chart (e/in-out e/sin-out) [0 1]) "e" "in-out" ".png")
+(save-chart (function-chart (e/reflect e/elastic-in-out 0.2) [0 1]) "e" "reflect" ".png")
+
+;; complex
+
+(defn complex-chart
+  [f]
+  (cljplot/xy-chart {:width 300 :height 300 :background bg-color}
+                    (b/series [:complex f])
+                    (b/update-scale :x :ticks 5)
+                    (b/update-scale :y :ticks 5)
+                    (b/add-axes :bottom {:ticks {:color fg-color}
+                                         :line {:color fg-color}})
+                    (b/add-axes :left {:ticks {:color fg-color}
+                                       :line {:color fg-color}})))
+
+(doseq [c `(c/acos c/asin c/atan c/cos c/cosh c/csc c/exp c/log c/reciprocal
+                   c/sec c/sin c/sinh c/sq c/sqrt c/sqrt1z c/tan c/tanh)]
+  (save-chart (complex-chart (symbol->fn c)) "c" (name c) ".jpg"))
+
+(save-chart (complex-chart identity) "c" "identity" ".jpg")
+
+;; interpolation
+
+(defn ifun
+  ^double [^double x]
+  (m/sin (* x (* 0.5 (m/cos (inc x))))))
+
+(defn interpolation-chart
+  ([inter] (interpolation-chart inter false))
+  ([inter r?] (apply interpolation-chart inter (if r? [0.69 6.22] [0 7])))
+  ([inter mn mx]
+   (let [xs [0.69 1.73 2.0 2.28 3.46 4.18 4.84 5.18 5.53 5.87 6.22]
+         ys (map ifun xs)]
+     (cljplot/xy-chart {:width 450 :height 250 :background bg-color}
+                       (b/series [:function ifun {:domain [0 7] :color fg-color :stroke {:dash [5 5]}}]
+                                 [:function (inter xs ys) {:domain [mn mx] :samples 300 :color :white}]
+                                 [:scatter (map vector xs ys) {:color :lightgoldenrodyellow}])
+                       (b/update-scale :x :ticks 5)
+                       (b/update-scale :y :ticks 5)
+                       (b/add-axes :bottom {:ticks {:color fg-color}
+                                            :line {:color fg-color}})
+                       (b/add-axes :left {:ticks {:color fg-color}
+                                          :line {:color fg-color}})))))
+
+(save-chart (function-chart ifun [0 7]) "i" "1d" ".png")
+
+(save-chart (interpolation-chart i/akima-spline true) "i" "akima" ".png")
+(save-chart (interpolation-chart i/divided-difference true) "i" "divided-difference" ".png")
+(save-chart (interpolation-chart i/linear true) "i" "linear" ".png")
+
+(save-chart (interpolation-chart i/loess true) "i" "loess" ".png")
+(save-chart (interpolation-chart (partial i/loess 0.7 2) true) "i" "loess2" ".png")
+(save-chart (interpolation-chart (partial i/loess 0.2 1) true) "i" "loess1" ".png")
+
+(save-chart (interpolation-chart i/neville true) "i" "neville" ".png")
+(save-chart (interpolation-chart i/spline true) "i" "spline" ".png")
+
+(save-chart (interpolation-chart (partial i/microsphere-projection 6 0.1 0.1 0.1 1.5 false 0.01) true) "i" "microsphere" ".png")
+
+(save-chart (interpolation-chart i/cubic-spline) "i" "cubic-spline" ".png")
+(save-chart (interpolation-chart i/kriging-spline) "i" "kriging-spline" ".png")
+(save-chart (interpolation-chart i/linear-smile) "i" "linear-smile" ".png")
+
+(save-chart (interpolation-chart i/rbf) "i" "rbf" ".png")
+(save-chart (interpolation-chart (partial i/rbf (k/rbf :mattern-c0))) "i" "rbf1" ".png")
+(save-chart (interpolation-chart (partial i/rbf (k/rbf :gaussian) true)) "i" "rbf2" ".png")
+(save-chart (interpolation-chart (partial i/rbf (k/rbf :truncated-power 3 0.3))) "i" "rbf3" ".png")
+(save-chart (interpolation-chart (partial i/rbf (k/rbf :wendland-53))) "i" "rbf4" ".png")
+
+(save-chart (interpolation-chart i/shepard) "i" "shepard" ".png")
+(save-chart (interpolation-chart (partial i/shepard 0.9)) "i" "shepard1" ".png")
+
+(save-chart (interpolation-chart i/step) "i" "step" ".png")
+(save-chart (interpolation-chart i/step-after) "i" "step-after" ".png")
+(save-chart (interpolation-chart i/step-before) "i" "step-before" ".png")
+(save-chart (interpolation-chart i/monotone) "i" "monotone" ".png")
+
+(defn ifun2d
+  [x y]
+  (m/sin (* (/ (- x 100.0) 10.0) (m/cos (/ y 20.0)))))
+
+(defn interpolation2d-chart
+  [f]
+  (let [xs [20 50 58 66 100 121 140 150 160 170 180]
+        ys [20 30 58 66 90  121 140 152 170 172 180] 
+        vs (partition (count ys) (for [x xs y ys] (ifun2d x y)))]
+    (cljplot/xy-chart {:width 400 :height 400 :background bg-color}
+                      (b/series [:function-2d (f xs ys vs) {:x [20 180] :y [20 180] :gradient (clr/gradient [bg-color :white])}] 
+                                [:scatter (for [x xs y ys] [x y]) {:color :lightgoldenrodyellow :margins {:x [0 0] :y [0 0]}}])
+                      ;; (b/update-scale :x :ticks 5)
+                      ;; (b/update-scale :y :ticks 5)
+                      (b/add-axes :bottom {:ticks {:color fg-color}
+                                           :line {:color fg-color}})
+                      (b/add-axes :left {:ticks {:color fg-color}
+                                         :line {:color fg-color}}))))
+
+(save-chart (interpolation2d-chart i/bicubic) "i" "bicubic" ".jpg")
+(save-chart (interpolation2d-chart i/piecewise-bicubic) "i" "piecewise-bicubic" ".jpg")
+(save-chart (interpolation2d-chart i/bilinear) "i" "bilinear" ".jpg")
+(save-chart (interpolation2d-chart i/bicubic-smile) "i" "bicubic-smile" ".jpg")
+(save-chart (interpolation2d-chart i/cubic-2d) "i" "cubic-2d" ".jpg")
+(save-chart (interpolation2d-chart (partial i/microsphere-2d-projection 10 0.5 0.0001 0.5 1.5 false 0.1)) "i" "microsphere-2d" ".jpg")
+
+(save-chart (function2d-chart ifun2d {:x [0 200]
+                                      :y [0 200]}) "i" "2d" ".jpg")
+
+;; grids
+
+(doseq [gs g/cell-names]
+  (let [grid (g/grid gs 40)
+        cells (distinct (map (partial g/coords->mid grid) (take 100 (map #(v/add (v/mult % 100) (v/vec2 150 150)) (r/sequence-generator :sphere 2)))))]
+    (c2d/save (c2d/with-canvas [c (c2d/canvas 300 300 :highest)]
+                (-> (c2d/set-background c bg-color)
+                    (c2d/set-color fg-color)
+                    (c2d/set-stroke 2))
+                (doseq [[x y] cells]
+                  (c2d/grid-cell c grid x y true))
+                (c2d/set-stroke c 1)
+                (doseq [[x y :as mid] cells
+                        :let [[ax ay] (g/coords->anchor grid mid)]]
+                  (-> c
+                      (c2d/set-color 250 100 100)
+                      (c2d/crect x y 3 3)
+                      (c2d/set-color 100 250 250)
+                      (c2d/ellipse ax ay 7 7 true)))
+                c) (str "docs/images/g/" (name grid) ".jpg"))))
+
+;; optimization
+
+(defn opt-1d-chart
+  ([f d pts]
+   (cljplot/xy-chart {:width 400 :height 200 :background bg-color}
+                     (b/series [:vline 0 {:color [60 100 120]}]
+                               [:hline 0 {:color [60 100 120]}]
+                               [:function f {:domain (or d [-3.1 3.1])
+                                             :color :white
+                                             :samples 300}]
+                               [:scatter pts {:color :red :size 8}])
+                     (b/update-scale :x :ticks 5)
+                     (b/update-scale :y :ticks 5)
+                     (b/add-axes :bottom {:ticks {:color fg-color}
+                                          :line {:color fg-color}})
+                     (b/add-axes :left {:ticks {:color fg-color}
+                                        :line {:color fg-color}}))))
+
+
+(defn target-1d
+  ^double [^double x]
+  (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
+
+(let [o1 (opt/minimize :gradient target-1d {:bounds [[-5 5]]})
+      o2 (opt/maximize :gradient target-1d {:bounds [[-5 5]]})]
+  (println (map (juxt ffirst second) [o1 o2]))
+  (cljplot/show (opt-1d-chart target-1d [-5 5] (map (juxt ffirst second) [o1 o2]))))
+
+#_(cljplot/show (interpolation2d-chart i/piecewise-bicubic))
 
 #_(comment (do
              (defn generate-math-graph

@@ -250,6 +250,7 @@
                                    (if (not== 1.0 (+ 1.0 (* d 0.5)))
                                      (recur (* d 0.5))
                                      d)))))
+
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD (/ 3.0))
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD (/ 2.0 3.0))
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH (/ 6.0))
@@ -701,9 +702,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Constrained version of norm. Result of [[norm]] is applied to [[constrain]] to `[0,1]` or `[start2,stop2]` ranges."
   {:metadoc/categories -conv-set-}
   ([v start1 stop1 start2 stop2]
-   (constrain (PrimitiveMath/norm v start1 stop1 start2 stop2) ^double start2 ^double stop2))
-  (^double [v start stop]
-   (constrain (PrimitiveMath/norm v start stop) 0.0 1.0)))
+   (constrain ^double (PrimitiveMath/norm v start1 stop1 start2 stop2) ^double start2 ^double stop2))
+  (^double [v ^double start ^double stop]
+   (constrain ^double (PrimitiveMath/norm v start stop) 0.0 1.0)))
 
 ;;; Interpolation functions
 
@@ -821,7 +822,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn co-intervals
   "Divide sequence to overlaping intervals containing similar number of values. Same as R's `co.intervals()`"
   ([data] (co-intervals data 6))
-  ([data number] (co-intervals data number 0.5))
+  ([data ^long number] (co-intervals data number 0.5))
   ([data ^long number ^double overlap]
    (let [o- (- 1.0 overlap)
          x (vec (sort (remove invalid-double? data)))
@@ -866,12 +867,12 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
     (== a b) a
     (zero? a) b
     (zero? b) a
-    (bool-and (even? a) (even? b)) (<< (gcd- (>> a 1) (>> b 1)) 1)
-    (bool-and (even? a) (odd? b)) (recur (>> a 1) b)
-    (bool-and (odd? a) (even? b)) (recur a (>> b 1))
-    (bool-and (odd? a) (odd? a)) (if (> a b)
-                                   (recur (>> (- a b) 1) b)
-                                   (recur (>> (- b a) 1) a))))
+    (and (even? a) (even? b)) (<< (gcd- (>> a 1) (>> b 1)) 1)
+    (and (even? a) (odd? b)) (recur (>> a 1) b)
+    (and (odd? a) (even? b)) (recur a (>> b 1))
+    (and (odd? a) (odd? a)) (if (> a b)
+                              (recur (>> (- a b) 1) b)
+                              (recur (>> (- b a) 1) a))))
 
 (defn gcd
   "Fast binary greatest common divisor (Stein's algorithm)"
@@ -932,7 +933,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
        (let [tie-fn (case ties
                       :min ffirst
                       :max (comp first last)
-                      (fn [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
+                      (fn ^double [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
              m (into {} (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map))]
          (map m vs))))))
 
@@ -1029,3 +1030,4 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
     (doseq [v vars-to-exclude]
       (ns-unmap *ns* v))
     (refer 'clojure.core)))
+

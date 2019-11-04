@@ -1,77 +1,66 @@
 (ns fastmath.distance
-  "Distance functions.
+  "Distance objects.
 
-  Distances objects which work with Smile, Apache Commons, fastmath vectors and native clojure sequences."
+  Objects implement IFn, Smile and Apache Commons Math distance interfaces."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v])
   (:import [clojure.lang IFn]
            [org.apache.commons.math3.ml.distance DistanceMeasure CanberraDistance EarthMoversDistance]
            [smile.math.distance Distance Metric EuclideanDistance ManhattanDistance ChebyshevDistance
-            CorrelationDistance JensenShannonDistance MahalanobisDistance MinkowskiDistance]))
+            CorrelationDistance JensenShannonDistance MahalanobisDistance]))
 
 (set! *warn-on-reflection* true)
-
-(defprotocol DistProto
-  (dist [t v1 v2]))
+(set! *unchecked-math* :warn-on-boxed)
+(m/use-primitive-operators)
 
 (defn- gen-smile
   [^Distance dst]
   (reify
-    IFn (invoke [d x y] (dist d x y))
-    Metric Distance (d [_ x y] (.d dst ^doubles x ^doubles y))
-    DistanceMeasure (compute [_ x y] (.d dst x y))
-    DistProto (dist [_ v1 v2] (.d dst (double-array v1) (double-array v2)))))
+    IFn (invoke [d x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))
+    Metric Distance (d [_ x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))
+    DistanceMeasure (compute [_ x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))))
 
 (defn- gen-apache
   [^DistanceMeasure dst]
   (reify
-    IFn (invoke [d x y] (dist d x y))
-    Metric Distance (d [_ x y] (.compute dst x y))
-    DistanceMeasure (compute [_ x y] (.compute dst x y))
-    DistProto (dist [_ v1 v2] (.compute dst (double-array v1) (double-array v2)))))
+    IFn (invoke [d x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))
+    Metric Distance (d [_ x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))
+    DistanceMeasure (compute [_ x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))))
 
 (defn- gen-fn
   [f]
   (reify
     IFn (invoke [_ x y] (f x y))
     Metric Distance (d [_ x y] (f x y))
-    DistanceMeasure (compute [_ x y] (f x y))
-    DistProto (dist [_ v1 v2] (f v1 v2))))
-
-(defmulti distance "Create distance object."
-  (fn [k & _] k))
-
-(defmethod distance :euclidean [_ & _] (gen-smile (EuclideanDistance.)))
-(defmethod distance :manhattan [_ & _] (gen-smile (ManhattanDistance.)))
-(defmethod distance :chebyshev [_ & _] (gen-smile (ChebyshevDistance.)))
-(defmethod distance :correlation [_ & _] (gen-smile (CorrelationDistance.)))
-(defmethod distance :jensen-shannon [_ & _] (gen-smile (JensenShannonDistance.)))
-(defmethod distance :mahalanobis [_ & [cov]] (gen-smile (MahalanobisDistance. (m/seq->double-double-array cov))))
-(defmethod distance :minkowski [_ & [p weights]]
-  (if weights
-    (gen-smile (MinkowskiDistance. (int p) (m/seq->double-array weights)))
-    (gen-smile (MinkowskiDistance. (int p)))))
-
-(defmethod distance :canberra [_ & _] (gen-apache (CanberraDistance.)))
-(defmethod distance :earth-movers [_ & _] (gen-apache (EarthMoversDistance.)))
-
-(defmethod distance :euclidean-sq [_ & _] (gen-fn v/dist-sq))
-(defmethod distance :discrete [_ & _] (gen-fn v/dist-discrete))
-(defmethod distance :cosine [_ & _] (gen-fn v/dist-cos))
+    DistanceMeasure (compute [_ x y] (f x y))))
 
 ;; static distances
 
-(def euclidean (distance :euclidean))
-(def manhattan (distance :manhattan))
-(def chebyshev (distance :chebyshev))
-(def correlation (distance :correlation))
-(def canberra (distance :canberra))
-(def earth-movers (distance :earth-movers))
-(def euclidean-sq (distance :euclidean-sq))
-(def discrete (distance :discrete))
-(def cosine (distance :cosine))
-(def jensen-shannon (distance :jensen-shannon))
+(defonce ^{:doc "Euclidean distance"} euclidean (gen-smile (EuclideanDistance.)))
+(defonce ^{:doc "Manhattan distance"} manhattan (gen-smile (ManhattanDistance.)))
+(defonce ^{:doc "Chebyshev distance"} chebyshev (gen-smile (ChebyshevDistance.)))
+(defonce ^{:doc "Correlation distance"} correlation (gen-smile (CorrelationDistance.)))
+(defonce ^{:doc "Canberra distance"} canberra (gen-apache (CanberraDistance.)))
+(defonce ^{:doc "Earth-Movers distance"} earth-movers (gen-apache (EarthMoversDistance.)))
+(defonce ^{:doc "Squared Euclidean distance"} euclidean-sq (gen-fn v/dist-sq))
+(defonce ^{:doc "Discrete distance"} discrete (gen-fn v/dist-discrete))
+(defonce ^{:doc "Cosine distance"} cosine (gen-fn v/dist-cos))
+(defonce ^{:doc "Jensen-Shannon distance"} jensen-shannon (gen-smile (JensenShannonDistance.)))
 
-;;
+(defn make-mahalanobis
+  "Create Mahalonobis distance for given covariance (seq of seqs) matrix."
+  [cov] (gen-smile (MahalanobisDistance. (m/seq->double-double-array cov))))
 
-(def ^{:doc "List of distance creator keys."} distance-names (sort (keys (methods distance))))
+(defn make-minkowski
+  "Create Minkowski distance for order `p` and optional `weights` for each dimension."
+  ([^double p weights]
+   (let [rp (/ p)]
+     (gen-fn (fn [x y]
+               (m/pow (reduce m/fast+ 0.0 (map (fn [^double w ^double xx ^double yy]
+                                                 (* w (m/pow (m/abs (- xx yy)) p))) weights x y)) rp)))))
+  ([^double p]
+   (let [rp (/ p)]
+     (gen-fn (fn [x y]
+               (m/pow (reduce m/fast+ 0.0 (map (fn [^double xx ^double yy]
+                                                 (m/pow (m/abs (- xx yy)) p)) x y)) rp))))))
+

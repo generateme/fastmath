@@ -785,7 +785,7 @@
   "Subtraction of two vectors."
   {:metadoc/categories #{:op}}
   ([v] (prot/mult v -1.0))
-  ([v1 v2] (prot/add v1 v2)))
+  ([v1 v2] (prot/sub v1 v2)))
 
 (defn mult
   "Multiply vector by number `x`."

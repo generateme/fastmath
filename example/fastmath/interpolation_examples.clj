@@ -1,119 +1,134 @@
 (ns fastmath.interpolation-examples
   (:require [fastmath.interpolation :refer :all]
-            [incanter.charts :as c]
             [fastmath.core :as m]
             [metadoc.examples :refer :all]
-            [fastmath.kernel :as k]
-            [incanter.core :as i]))
+            [fastmath.kernel :as k]))
 
-(defsnippet fastmath.interpolation save-graph
-  "Save graph"
-  (let [fname (str "images/i/" (first opts) ".png")
-        [x1 x2] params]
-    (incanter.core/save (c/function-plot f x1 x2 :y-label "value") (str "docs/" fname) :width 250 :height 250)
-    fname))
+(defsnippet fastmath.interpolation interpolate
+  "1d interpolation"
+  (let [fun (fn [x] (m/sin (* x (* 0.5 (m/cos (inc x))))))
+        xs [0.69 1.73 2.0 2.28 3.46 4.18 4.84 5.18 5.53 5.87 6.22]
+        ys (map fun xs)
+        interpolator ((apply partial f params) xs ys)]
+    (interpolator 5.0)))
 
-(defsnippet fastmath.interpolation save-interpolation
-  "Save interpolation graph"
-  (let [xs [0.69 1.73 2.0 2.28 3.46 4.18 4.84 5.18 5.53 5.87 6.22]
-        ft (fn [^double x] (m/sin (* x (* 0.5 (m/cos (inc x))))))
-        ys (map ft xs)
-        [x1 x2] params
-        fname (str "images/i/" (first opts) ".png")]
-    (incanter.core/save (doto (c/function-plot ft 0 7 :y-label "value")
-                          (c/set-theme-bw)
-                          (c/add-points xs ys)
-                          (c/add-function (f xs ys) x1 x2)) (str "docs/" fname) :width 600 :height 300)
-    fname))
+(defsnippet fastmath.interpolation interpolate2d
+  "2d interpolation"
+  (let [fun (fn [x y] (m/sin (* (/ (- x 100.0) 10.0) (m/cos (/ y 20.0)))))
+        xs [20 50 58 66 100 121 140 150 160 170 180]
+        ys [20 30 58 66 90  121 140 152 170 172 180] 
+        vs (partition (count ys) (for [x xs y ys] (fun x y)))
+        interpolator ((apply partial f params) xs ys vs)]
+    (interpolator 105 155)))
 
 (add-examples akima-spline
-  (example-snippet "Akima plot" save-interpolation :image akima-spline 0.69 6.22))
-
-(add-examples linear-smile
-  (example-snippet "Linear (SMILE version) plot" save-interpolation :image linear-smile 0 7))
-
-(add-examples linear
-  (example-snippet "Linear (Apache Commons version) plot" save-interpolation :image linear 0.69 6.22))
-
-(add-examples shepard
-  (example-snippet "Shepard plot" save-interpolation :image shepard 0 7)
-  (example-snippet "Shepard plot, p=5" save-interpolation :image (fn [xs ys] (shepard 5 xs ys)) 0 7)
-  (example-snippet "Shepard plot, p=0.9" save-interpolation :image (fn [xs ys] (shepard 0.9 xs ys)) 0 7))
-
-(add-examples kriging-spline
-  (example "Usage" {:test-value -0.07}
-    (let [interpolator (kriging-spline [2 5 9 10 11] [0.4 1.0 -1.0 -0.5 0.0])]
-      (m/approx (interpolator 7.0))))
-  (example-snippet "Kriging spline plot" save-interpolation :image kriging-spline 0 7))
-
-(add-examples cubic-spline
-  (example-snippet "Cubic spline plot" save-interpolation :image cubic-spline 0 7))
-
-(add-examples spline
-  (example-snippet "Spline plot" save-interpolation :image spline 0.69 6.22))
-
-(add-examples neville
-  (example-snippet "Neville plot" save-interpolation :image neville 0.65 6.5))
+  (example-snippet "Usage" interpolate :simple akima-spline)
+  (example-image "Akima spline plot" "images/i/akima.png"))
 
 (add-examples divided-difference
-  (example-snippet "Divided Difference plot" save-interpolation :image divided-difference 0.65 6.5))
+  (example-snippet "Usage" interpolate :simple divided-difference)
+  (example-image "Divided difference plot" "images/i/divided-difference.png"))
 
-(add-examples step-after
-  (example-snippet "Step function plot" save-interpolation :image step-after 0 7))
+(add-examples linear-smile
+  (example-snippet "Usage" interpolate :simple linear-smile)
+  (example-image "Linear (Smile) plot" "images/i/linear-smile.png"))
 
-(add-examples step-before
-  (example-snippet "Step function plot" save-interpolation :image step-before 0 7))
+(add-examples linear
+  (example-snippet "Usage" interpolate :simple linear)
+  (example-image "Linear (Apache) plot" "images/i/linear.png"))
 
 (add-examples loess
-  (example-snippet "Loess plot" save-interpolation :image loess 0.69 6.22)
-  (example-snippet "Loess plot, bandwidth=0.7, robustness-iters=4" save-interpolation :image (fn [xs ys] (loess 0.7 4 xs ys)) 0.69 6.22)
-  (example-snippet "Loess plot, bandwidth=0.2, robustness-iters=1" save-interpolation :image (fn [xs ys] (loess 0.2 1 xs ys)) 0.69 6.22))
+  (example-snippet "Usage" interpolate :simple loess)
+  (example-image "Loess plot" "images/i/loess.png")
+  (example-snippet "Usage (0.7, 2.0)" interpolate :simple loess 0.7 2)
+  (example-image "Loess (0.7, 2.0) plot" "images/i/loess2.png")
+  (example-snippet "Usage (0.2, 1.0)" interpolate :simple loess 0.2 1)
+  (example-image "Loess (0.2, 1.0) plot" "images/i/loess1.png"))
+
+(add-examples neville
+  (example-snippet "Usage" interpolate :simple neville)
+  (example-image "Neville plot" "images/i/neville.png"))
+
+(add-examples spline
+  (example-snippet "Usage" interpolate :simple spline)
+  (example-image "Spline plot" "images/i/spline.png"))
+
+(add-examples cubic-spline
+  (example-snippet "Usage" interpolate :simple cubic-spline)
+  (example-image "Cubic spline plot" "images/i/cubic-spline.png"))
+
+(add-examples kriging-spline
+  (example-snippet "Usage" interpolate :simple kriging-spline)
+  (example-image "Kriging spline plot" "images/i/kriging-spline.png"))
+
+(add-examples step
+  (example-snippet "Usage" interpolate :simple step)
+  (example-image "Step plot" "images/i/step.png"))
+
+(add-examples step-after
+  (example-snippet "Usage" interpolate :simple step-after)
+  (example-image "Step (after) plot" "images/i/step-after.png"))
+
+(add-examples step-before
+  (example-snippet "Usage" interpolate :simple step-before)
+  (example-image "Step (before) plot" "images/i/step-before.png"))
+
+(add-examples monotone
+  (example-snippet "Usage" interpolate :simple monotone)
+  (example-image "Monotone plot" "images/i/monotone.png"))
 
 (add-examples microsphere-projection
-  (example-snippet "Microsphere projection plot" save-interpolation :image (fn [xs ys] (microsphere-projection 4 0.5 0.0000001 0.1 2.5 false 0.1 xs ys)) 0 7))
-
-(add-examples cubic-2d
-  (example "Usage" {:test-value 4.68}
-    (let [interpolator (cubic-2d [2 5 9] [2 3 10] [[4 0 2]
-                                                   [-1 2 -2]
-                                                   [-2 0 1]])]
-      (m/approx (interpolator 5.0 5.0))))
-  (example "Array layout"
-    (let [intrp (cubic-2d [2 5] [1 6] [[-1 -2]
-                                       [3 4]])]
-      [(intrp 2 1)
-       (intrp 2 6)
-       (intrp 5 1)
-       (intrp 5 6)])))
+  (example-snippet "Usage" interpolate :simple microsphere-projection 6 0.1 0.1 0.1 1.5 false 0.01)
+  (example-image "Microsphere plot" "images/i/microsphere.png"))
 
 (add-examples rbf
-  (example-snippet "RBF - Linear" save-interpolation :image (fn [xs ys] (rbf (k/rbf :linear) xs ys)) 0 7)
-  (example-snippet "RBF - Gaussian" save-interpolation :image (fn [xs ys] (rbf (k/rbf :gaussian) xs ys)) 0 7)
-  (example-snippet "RBF - Multiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :multiquadratic) xs ys)) 0 7)
-  (example-snippet "RBF - Inverse ultiquadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-multiquadratic) xs ys)) 0 7)
-  ;; (example-snippet "RBF - Inverse quadratic" save-interpolation :image (fn [xs ys] (rbf (k/rbf :inverse-quadratic) xs ys)) 0 7)
-  (example-snippet "RBF - Thinplate" save-interpolation :image (fn [xs ys] (rbf (k/rbf :thin-plate) xs ys)) 0 7)
-  ;; (example-snippet "RBF - Polyharmonic 3" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 3) xs ys)) 0 7)
-  ;; (example-snippet "RBF - Polyharmonic 4" save-interpolation :image (fn [xs ys] (rbf (k/rbf :polyharmonic 4) xs ys)) 0 7)
-  ;; (example-snippet "RBF - Wendland" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wendland) xs ys)) 0 7)
-  ;; (example-snippet "RBF - Wu" save-interpolation :image (fn [xs ys] (rbf (k/rbf :wu) xs ys)) 0 7)
-  )
+  (example-snippet "Usage" interpolate :simple rbf)
+  (example-image "Rbf plot" "images/i/rbf.png")
+  (example-snippet "Usage (mattern-c0 kernel)" interpolate :simple rbf (k/rbf :mattern-c0))
+  (example-image "Rbf (mattern-c0 kernel) plot" "images/i/rbf1.png")
+  (example-snippet "Usage (gaussian kernel, normalized)" interpolate :simple rbf (k/rbf :gaussian) true)
+  (example-image "Rbf (gaussian kernel, normalized) plot" "images/i/rbf2.png")
+  (example-snippet "Usage (truncated-power kernel)" interpolate :simple rbf (k/rbf :truncated-power 3 0.3))
+  (example-image "Rbf (truncated-power kernel) plot" "images/i/rbf3.png")
+  (example-snippet "Usage (wendland-53 kernel)" interpolate :simple rbf (k/rbf :wendland-53))
+  (example-image "Rbf (wendland-53 kernel) plot" "images/i/rbf4.png"))
 
+(add-examples shepard
+  (example-snippet "Usage" interpolate :simple shepard)
+  (example-image "Shepard plot" "images/i/shepard.png")
+  (example-snippet "Usage (0.9)" interpolate :simple shepard 0.9)
+  (example-image "Shepard (0.9) plot" "images/i/shepard1.png"))
+
+;; 2d
+
+(add-examples bicubic
+  (example-snippet "Usage" interpolate2d :simple bicubic)
+  (example-image "Bicubic plot" "images/i/bicubic.jpg"))
+
+(add-examples piecewise-bicubic
+  (example-snippet "Usage" interpolate2d :simple piecewise-bicubic)
+  (example-image "Piecewise bicubic plot" "images/i/piecewise-bicubic.jpg"))
+
+(add-examples bilinear
+  (example-snippet "Usage" interpolate2d :simple bilinear)
+  (example-image "Bilinear plot" "images/i/bilinear.jpg"))
+
+(add-examples bicubic-smile
+  (example-snippet "Usage" interpolate2d :simple bicubic-smile)
+  (example-image "Bicubic (Smile) plot" "images/i/bicubic-smile.jpg"))
+
+(add-examples cubic-2d
+  (example-snippet "Usage" interpolate2d :simple cubic-2d)
+  (example-image "Cubic-2d plot" "images/i/cubic-2d.jpg"))
+
+(add-examples microsphere-2d-projection
+  (example-snippet "Usage" interpolate2d :simple microsphere-2d-projection 10 0.5 0.0001 0.5 1.5 false 0.1)
+  (example-image "Microsphere 2d plot" "images/i/microsphere-2d.jpg"))
 
 (add-examples interpolators-1d-list
   (example "List of names" (keys interpolators-1d-list)))
 
 (add-examples interpolators-2d-list
   (example "List of names" (keys interpolators-2d-list)))
-
-(comment let [f (fn [xs ys] (rbf xs ys (k/rbf :wu 2)))
-              xs [0.69 1.73 2.0 2.28 3.46 4.18 4.84 5.18 5.53 5.87 6.22]
-              ft (fn [^double x] (m/sin (* x (* 0.5 (m/cos (inc x))))))
-              ys (map ft xs)
-              [x1 x2] [0.69 6.22]]
-         (incanter.core/view (doto (c/function-plot ft 0 7 :y-label "value")
-                               (c/set-theme-bw)
-                               (c/add-points xs ys)
-                               (c/add-function (f xs ys) x1 x2)) :width 600 :height 300))
 
 

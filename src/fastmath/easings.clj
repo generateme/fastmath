@@ -25,6 +25,8 @@
 (defonce ^:private easings-list-atom (atom {}))
 (defmacro ^:private add-name [s] `(swap! easings-list-atom assoc ~(keyword s) ~s))
 
+(reset! easings-list-atom {})
+
 ;;
 
 (def ^:private ^:const ^double ease-back-s 1.70158)
@@ -350,30 +352,30 @@
 ;;
 
 (defn out
-  "Create out easing for given `ease`."
+  "Create out easing for given `easing` function."
   {:metadoc/categories #{:cr}}
-  [ease]
+  [easeing]
   (fn ^double [^double t]
-    (- 1.0 ^double (ease (- 1.0 t)))))
+    (- 1.0 ^double (easeing (- 1.0 t)))))
 
 (defn in-out
-  "Create in-out easing for given `ease`."
+  "Create in-out easing for given `easing` function."
   {:metadoc/categories #{:cr}}
-  [ease]
+  [easeing]
   (fn ^double [^double t]
     (* 0.5 (if (< t 0.5)
-             ^double (ease (* 2.0 t))
-             (- 2.0 ^double (ease (* 2.0 (- 1.0 t))))))))
+             ^double (easeing (* 2.0 t))
+             (- 2.0 ^double (easeing (* 2.0 (- 1.0 t))))))))
 
 (defn reflect
-  "Create in-out easing for given `ease` function and `center`."
+  "Create in-out easing for given `easing` function and `center`."
   {:metadoc/categories #{:cr}}
-  [ease ^double center]
+  [easing ^double center]
   (fn ^double [^double t]
     (if (< t center)
-      (* center ^double (ease (/ t center)))
+      (* center ^double (easing (/ t center)))
       (let [center- (- 1.0 center)]
-        (- 1.0 (* center- ^double (ease (/ (- 1.0 t) center-))))))))
+        (- 1.0 (* center- ^double (easing (/ (- 1.0 t) center-))))))))
 
 ;;
 

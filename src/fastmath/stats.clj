@@ -225,7 +225,8 @@
   "Calculate MAD"
   {:metadoc/categories #{:stat}}
   ^double [vs]
-  (smile.math.Math/mad (m/seq->double-array vs)))
+  (let [m (median vs)]
+    (median (map (fn [^double x] (m/abs (- x m))) vs))))
 
 (defn sem
   "Standard error of mean"
@@ -326,8 +327,8 @@
          uof-thr (+ q3 iqr)]
      ;; (java.util.Arrays/sort avs)
      (filter #(let [v (double %)]
-                (bool-or (< v lof-thr)
-                         (> v uof-thr))) vs))))
+                (or (< v lof-thr)
+                    (> v uof-thr))) vs))))
 
 (defn minimum
   "Minimum value from sequence."
@@ -476,6 +477,8 @@
       :Kurtosis (kurtosis avs)
       :Skewness (skewness avs)
       :SecMoment (second-moment avs)})))
+
+(stats-map [1 2 3 4 5 11])
 
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."

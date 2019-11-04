@@ -6,7 +6,7 @@
   * [Apache Commons Math](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/analysis/interpolation/package-summary.html)
   * [Smile Interpolation](http://haifengl.github.io/smile/api/java/smile/interpolation/package-summary.html)
 
-  Note: Smile interpolators doesn't check ranges.
+  Note: Smile interpolators also extrapolate values outside range.
 
   ### Input data
 
@@ -30,7 +30,16 @@
   * `vs` - sequence of sequences of values (2d array) for all possible pairs. Array is column-wise: `[ [first column] [second column] ...]`.
 
   See [[cubic-2d-interpolator]]
-  "
+
+  ### Examples
+
+  Examples below use following functions:
+
+  #### 1d
+  ![1d](images/i/1d.png)
+
+  #### 2d
+  ![2d](images/i/2d.jpg)"
   {:metadoc/categories {:smile "Smile interpolators"
                         :comm "Apache Commons Math interpolators"
                         :d1 "1d interpolation"
@@ -165,8 +174,11 @@ Source: Apache Commons Math." #{:comm :d1}
 (defn rbf
   "RBF (Radial Basis Function) interpolation.
 
+  Default kernel: `:gaussian`
+  
   Source: Smile"
   {:metadoc/categories #{:smile :d1}}
+  ([xs ys] (rbf (k/rbf :gaussian) xs ys))
   ([rbf-fn normalize? xs ys]
    (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) (k/smile-rbf rbf-fn) normalize?)]
      (fn ^double [^double x] (.interpolate interp x))))
@@ -203,6 +215,27 @@ Source: Apache Commons Math." #{:comm :d1}
     (fn ^double [^double v]
       (let [b (java.util.Arrays/binarySearch ^doubles x v)
             i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
+        (aget ^doubles y i)))))
+
+(defn step
+  "Step function."
+  {:metadoc/categories #{:comm :d1}}
+  [xs ys]
+  (let [x (m/seq->double-array xs)
+        y (m/seq->double-array ys)
+        l (dec (alength x))]
+    (fn ^double [^double v]
+      (let [b (java.util.Arrays/binarySearch ^doubles x v) 
+            i (cond
+                (== b -1) 0
+                (< b (- l)) l
+                (< b -1) (let [b-2 (- (- b) 2)
+                               b-1 (dec (- b))
+                               x1 (aget ^doubles x b-2)
+                               x2 (aget ^doubles x b-1)
+                               diff (+ x1 (* 0.5 (- x2 x1)))]
+                           (if (< v diff) b-2 b-1))
+                :else b)]
         (aget ^doubles y i)))))
 
 ;; monotonic
@@ -367,6 +400,7 @@ Source: Apache Commons Math." #{:comm :d1}
                          :microsphere microsphere-projection
                          :step-after step-after
                          :step-before step-before
+                         :step step
                          :monotone monotone})
 
 (def ^{:doc "Map of 2d interpolation functions"

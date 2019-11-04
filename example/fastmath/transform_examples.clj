@@ -5,9 +5,6 @@
             [fastmath.core :as m]))
 
 
-(add-examples wavelet
-  (example "Usage" (wavelet :haar)))
-
 (add-examples wavelets-list
   (example "List of wavelets" (sort wavelets-list)))
 
@@ -51,26 +48,23 @@
       (m/double-double-array->seq (reverse-2d t (forward-2d t [[-1 8] [7 6]]))))))
 
 (add-examples compress
-  (example "Compress 1d"
+  (example "Compress 1d - explicite usage"
     (let [t (transformer :fast :symlet-5)]
-      (->> [1 2 3 4]
-           (forward-1d t)
-           (compress 0.3)
-           (reverse-1d t)
-           (seq))))
-  (example "Compress 2d"
+      (seq (reverse-1d t (compress (forward-1d t [1 2 3 4]) 0.3)))))
+  (example "Compress 1d - implicit usage"
     (let [t (transformer :fast :symlet-5)]
-      (->> [[1 2] [3 4]]
-           (forward-2d t)
-           (compress 0.5)
-           (reverse-2d t)
-           (m/double-double-array->seq))))
-  (example-image "Disturbed sin compressed using :haar wavelet. `mag=5`."
-    "images/t/compress.jpg"))
+      (seq (compress t [1 2 3 4] 0.3))))
+  (example "Compress 2d - explicit usage"
+    (let [t (transformer :fast :symlet-5)]
+      (m/double-double-array->seq (reverse-2d t (compress (forward-2d t [[1 2] [3 4]]) 0.5)))))
+  (example "Compress 2d - implicit usage"
+    (let [t (transformer :fast :symlet-5)]
+      (m/double-double-array->seq (compress t [[1 2] [3 4]] 0.5)))))
 
 (add-examples denoise
-  (example "Denoise signal"
+  (example "Denoise signal - implicit usage"
     (let [t (transformer :packet :haar)]
-      (v/approx (vec (denoise t [1 2 3 4 5 6.5 7.5 8] true)))))
-  (example-image "Disturbed sin denoised with `(t/denoise (t/transformer :packet :daubechies-5) s false)`"
-    "images/t/denoise.jpg"))
+      (v/approx (seq (denoise t [1 2 3 4 5 6.5 7.5 8] true)))))
+  (example "Denoise signal - explicit usage"
+    (let [t (transformer :packet :haar)]
+      (v/approx (vec (reverse-1d t (denoise (forward-1d t [1 2 3 4 5 6.5 7.5 8]) true)))))))

@@ -1,4 +1,62 @@
 (ns fastmath.optimization
+  "Optimization.
+
+  Namespace provides various optimization methods.
+
+  * Brent (1d functions)
+  * Bobyqa (2d+ functions)
+  * Powell
+  * Nelder-Mead
+  * Multidirectional simplex
+  * CMAES
+  * Gradient
+  * Bayesian Optimization (see below)
+
+  All optimizers require bounds.
+
+  ## Optimizers
+
+  To optimize functions call one of the following functions:
+
+  * [[minimize]] or [[maximize]] - to perform actual optimization
+  * [[scan-and-minimize]] or [[scan-and-maximize]] - functions find initial point using brute force and then perform optimization paralelly for best initialization points. Brute force scan is done using jitter low discrepancy sequence generator.
+
+  You can also create optimizer (function which performs optimization) by calling [[minimizer]] or [[maximizer]]. Optimizer accepts initial point.
+
+  All above accept:
+
+  * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`
+  * function to optimize
+  * parameters as a map
+
+  For parameters meaning refer [Optim package](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html?org/apache/commons/math3/optim/package-summary.html)
+  
+  ### Common parameters
+
+  * `:bounds` (obligatory) - search ranges for each dimensions as a seqence of [low high] pairs
+  * `:max-evals` - maximum number of function evaluations
+  * `:max-iters` - maximum number of algorithm interations
+  * `:bounded?` - should optimizer force to keep search within bounds (some algorithms go outside desired ranges)
+  * `:stats?` - return number of iterations and evaluations along with result
+  * `:rel` and `:abs` - relative and absolute accepted errors
+
+  For `scan-and-...` functions additionally you can provide:
+
+  * `:N` - number of brute force iterations
+  * `:n` - fraction of N which are used as initial points to parallel optimization
+  * `:jitter` - jitter factor for sequence generator (for scanning domain)
+  
+  ### Specific parameters
+
+  * BOBYQA - `:number-of-points`, `:initial-radius`, `:stopping-radius`
+  * Nelder-Mead - `:rho`, `:khi`, `:gamma`, `:sigma`, `:side-length`
+  * Multidirectional simples - `:khi`, `:gamma`, `:side-length`
+  * CMAES - `:check-feasable-count`, `:diagonal-only`, `:stop-fitness`, `:active-cma?`, `:population-size`
+  * Gradient - `:bracketing-range`, `:formula` (`:polak-ribiere` or `:fletcher-reeves`), `:gradient-h` (finite differentiation step, default: `0.01`) 
+  
+  ## Bayesian Optimization
+
+  Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)"
   (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
            [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds SimpleValueChecker InitialGuess PointValuePair]
@@ -176,8 +234,10 @@
   ^long [bounds]
   (if (sequential? (first bounds)) (count bounds) 1))
 
-(defn optimizer
-  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h] :as config}]
+(defn- optimizer
+  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
+             :or {gradient-h 0.01}
+             :as config}]
   (assert (not (nil? bounds)) "Provide bounds")
   (let [dim (find-dimensions bounds)
         config (assoc config :dim dim)
@@ -206,7 +266,7 @@
                         :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
                         ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
                         :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
-                                                                                        (or gradient-h 0.01)))
+                                                                                        gradient-h))
                         :cmaes (conj base-opt-data
                                      (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
                                      (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))
@@ -232,15 +292,15 @@
 
 (defmacro ^:private with-optimizer [opt m f c] `((~opt ~m ~f ~c) (:initial ~c)))
 
-(defn optimize [method f config] (with-optimizer optimizer method f config))
+#_(defn optimize [method f config] (with-optimizer optimizer method f config))
 (defn minimize [method f config] (with-optimizer minimizer method f config))
 (defn maximize [method f config] (with-optimizer maximizer method f config))
 
 (defn- goal-comparator
   [goal]
   (if (= goal :minimize)
-    #(< ^double %1 ^double %2)
-    #(> ^double %1 ^double %2)))
+    (fn [^double a ^double b] (< a b))
+    (fn [^double a ^double b] (> a b))))
 
 (defn- generate-points
   [method f bounds goal N n jitter]
@@ -252,7 +312,7 @@
         n (max 10 (m/floor (* ^double n N)))
         gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim jitter)]
     (->> (take N (if (and (not= method :bernt)
-                          (== dim 1)) (map vector gen) gen))
+                          (m/one? dim)) (map vector gen) gen))
          (map #(let [p (inter lo high %)]
                  [(genf p) p]))
          (sort-by first (goal-comparator goal))
@@ -279,7 +339,7 @@
          (sort-by second (goal-comparator goal))
          (taker))))
 
-(def scan-and-optimize (partial scan-and- optimizer))
+#_(def scan-and-optimize (partial scan-and- optimizer))
 (def scan-and-minimize (partial scan-and- minimizer :minimize))
 (def scan-and-maximize (partial scan-and- maximizer :maximize))
 
@@ -329,25 +389,52 @@
     [pts (map f pts)]))
 
 (defn- bayesian-step-fn
-  [f util-fn warm-up bounds gp jitter optimizer]
-  (fn [{:keys [x ^double y xs ys]}]
-    (let [curr-gp (gp xs ys)
-          curr-util (fn [& r] (util-fn curr-gp r y))
-          bx (first (scan-and-maximize optimizer curr-util {:N warm-up :n 0.02 :bounded? true
-                                                            :bounds bounds :jitter jitter}))
-          ^double by (f bx)
-          nxs (conj xs bx)
-          nys (conj ys by)]
-      {:x (if (> by y) bx x)
-       :y (if (> by y) by y)
-       :util-fn curr-util
-       :gp curr-gp
-       :xs nxs
-       :ys nys
-       :util-best bx})))
+  [f util-fn warm-up bounds gp jitter optimizer optimizer-params]
+  (let [params (merge optimizer-params {:N warm-up :n 0.02 :bounded? true
+                                        :bounds bounds :jitter jitter})]
+    (fn [{:keys [x ^double y xs ys]}]
+      (let [curr-gp (gp xs ys)
+            curr-util (fn [& r] (util-fn curr-gp r y))
+            bx (first (scan-and-maximize optimizer curr-util params))
+            ^double by (f bx)
+            nxs (conj xs bx)
+            nys (conj ys by)]
+        {:x (if (> by y) bx x)
+         :y (if (> by y) by y)
+         :util-fn curr-util
+         :gp curr-gp
+         :xs nxs
+         :ys nys
+         :util-best bx}))))
 
 (defn bayesian-optimization
-  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer normalize?]
+  "Bayesian optimizer
+
+  Parameters are:
+
+  * `:warm-up` - number of brute force iterations to find maximum of utility function
+  * `:init-points` - number of initial evaluation before bayesian optimization starts. Points are selected using jittered low discrepancy sequence generator (see: [[jittered-sequence-generator]]
+  * `:bounds` - bounds for each dimension
+  * `:utility-funciton-type` - one of `:ei`, `:poi` or `:ucb`
+  * `:utility-param` - parameter for utility function (kappa for `ucb` and xi for `ei` and `poi`)
+  * `:kernel` - kernel, default `:mattern-52`, see [[fastmath.kernel]]
+  * `:kscale` - scaling factor for kernel
+  * `:jitter` - jitter factor for sequence generator (used to find initial points)
+  * `:noise` - noise (lambda) factor for gaussian process
+  * `:optimizer` - name of optimizer (used to optimized utility function)
+  * `:optimizer-params` - optional parameters for optimizer
+  * `:normalize?` - normalize data in gaussian process?
+
+  Returns lazy sequence with consecutive executions. Each step consist:
+
+  * `:x` - maximum `x`
+  * `:y` - value
+  * `:xs` - list of all visited x's
+  * `:ys` - list of values for every visited x
+  * `:gp` - current gaussian process regression instance
+  * `:util-fn` - current utility function
+  * `:util-best` - best x in utility function"
+  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?]
       :or {kscale 1.0
            kernel (k/kernel :mattern-52)
            warm-up (* ^int (count bounds) 1000)
@@ -356,13 +443,13 @@
            utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)
            jitter 0.25
            normalize? true}}]
-  (let [optimizer (or optimizer (if (== 1 (count bounds)) :cmaes :powell))
+  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :powell))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
         gp (partial gp/gaussian-process+ {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
-        step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer)]
+        step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer optimizer-params)]
     (rest (iterate step-fn {:x maxx
                             :y maxy
                             :xs xs
@@ -416,6 +503,3 @@
 
 
 ;; => [1.9210981963566007 -5.751481824637489 0.3304425131054902]
-
-
-
