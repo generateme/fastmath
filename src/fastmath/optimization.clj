@@ -34,6 +34,7 @@
   ### Common parameters
 
   * `:bounds` (obligatory) - search ranges for each dimensions as a seqence of [low high] pairs
+  * `:initial` - initial point other then mid of the bounds as vector
   * `:max-evals` - maximum number of function evaluations
   * `:max-iters` - maximum number of algorithm interations
   * `:bounded?` - should optimizer force to keep search within bounds (some algorithms go outside desired ranges)
@@ -53,7 +54,7 @@
   * Multidirectional simples - `:khi`, `:gamma`, `:side-length`
   * CMAES - `:check-feasable-count`, `:diagonal-only`, `:stop-fitness`, `:active-cma?`, `:population-size`
   * Gradient - `:bracketing-range`, `:formula` (`:polak-ribiere` or `:fletcher-reeves`), `:gradient-h` (finite differentiation step, default: `0.01`) 
-  
+
   ## Bayesian Optimization
 
   Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)"
@@ -183,7 +184,7 @@
   [[lo high] init]
   (let [[lo high] (infer-lo-high lo high)]
     (if init
-      (SearchInterval. lo high init)
+      (SearchInterval. lo high (if (sequential? init) (first init) init))
       (SearchInterval. lo high))))
 
 (defn- multi-bounds
@@ -223,7 +224,7 @@
   [^MultivariateFunctionMappingAdapter mfma res]
   (condp instance? res
     UnivariatePointValuePair (let [^UnivariatePointValuePair res res]
-                               [(.getPoint res) (.getValue res)])
+                               [(list (.getPoint res)) (.getValue res)])
     PointValuePair (let [^PointValuePair res res]
                      [(seq (if mfma
                              (.unboundedToBounded mfma (.getPointRef res))
@@ -234,13 +235,20 @@
   ^long [bounds]
   (if (sequential? (first bounds)) (count bounds) 1))
 
+(defn- fix-brent-bounds
+  [method bounds]
+  (if (and (= method :brent)
+           (sequential? (first bounds)))
+    (first bounds) bounds))
+
 (defn- optimizer
   [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
              :or {gradient-h 0.01}
              :as config}]
   (assert (not (nil? bounds)) "Provide bounds")
-  (let [dim (find-dimensions bounds)
-        config (assoc config :dim dim)
+  (let [bounds (fix-brent-bounds method bounds)
+        dim (find-dimensions bounds)
+        config (assoc config :dim dim :bounds bounds)
         
         ^SimpleBounds b (wrap-bounds method bounds)
 
@@ -287,14 +295,32 @@
                    :evaluations (.getEvaluations optimizer)
                    :iterations (.getIterations optimizer)}))))))
 
-(defn minimizer [method f config] (optimizer method f (assoc config :goal :minimize)))
-(defn maximizer [method f config] (optimizer method f (assoc config :goal :maximize)))
+(defn minimizer
+  "Create optimizer which minimizes function.
+
+  Returns function which performs optimization for optionally given initial point."
+  [method f config] (optimizer method f (assoc config :goal :minimize)))
+
+(defn maximizer
+  "Create optimizer which maximizer function.
+
+  Returns function which performs optimization for optionally given initial point."
+  [method f config] (optimizer method f (assoc config :goal :maximize)))
 
 (defmacro ^:private with-optimizer [opt m f c] `((~opt ~m ~f ~c) (:initial ~c)))
 
 #_(defn optimize [method f config] (with-optimizer optimizer method f config))
-(defn minimize [method f config] (with-optimizer minimizer method f config))
-(defn maximize [method f config] (with-optimizer maximizer method f config))
+(defn minimize
+  "Minimize given function.
+
+  Parameters: optimization method, function and configuration."
+  [method f config] (with-optimizer minimizer method f config))
+
+(defn maximize
+  "Maximize given function.
+
+  Parameters: optimization method, function and configuration."
+  [method f config] (with-optimizer maximizer method f config))
 
 (defn- goal-comparator
   [goal]
@@ -304,14 +330,15 @@
 
 (defn- generate-points
   [method f bounds goal N n jitter]
-  (let [dim (find-dimensions bounds)
+  (let [bounds (fix-brent-bounds method bounds)
+        dim (find-dimensions bounds)
         [lo high inter genf] (if (= method :brent)
                                [(first bounds) (second bounds) m/lerp f]
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
         N (max 10 ^int N)
         n (max 10 (m/floor (* ^double n N)))
         gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim jitter)]
-    (->> (take N (if (and (not= method :bernt)
+    (->> (take N (if (and (not= method :brent)
                           (m/one? dim)) (map vector gen) gen))
          (map #(let [p (inter lo high %)]
                  [(genf p) p]))
@@ -415,7 +442,7 @@
   * `:warm-up` - number of brute force iterations to find maximum of utility function
   * `:init-points` - number of initial evaluation before bayesian optimization starts. Points are selected using jittered low discrepancy sequence generator (see: [[jittered-sequence-generator]]
   * `:bounds` - bounds for each dimension
-  * `:utility-funciton-type` - one of `:ei`, `:poi` or `:ucb`
+  * `:utility-function-type` - one of `:ei`, `:poi` or `:ucb`
   * `:utility-param` - parameter for utility function (kappa for `ucb` and xi for `ei` and `poi`)
   * `:kernel` - kernel, default `:mattern-52`, see [[fastmath.kernel]]
   * `:kscale` - scaling factor for kernel

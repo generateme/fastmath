@@ -485,14 +485,46 @@
                                         :line {:color fg-color}}))))
 
 
-(defn target-1d
-  ^double [^double x]
-  (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
+(defn opt-2d-chart
+  [f d pts]
+  (cljplot/xy-chart {:width 300 :height 300 :background bg-color}
+                    (b/series [:contour-2d f (merge d {:palette (clr/resample 100 [bg-color :white])
+                                                       :contours 100})]
+                              [:scatter pts {:color (clr/color :red 140) :size 8}])
+                    (b/update-scale :x :ticks 5)
+                    (b/update-scale :y :ticks 5)
+                    (b/add-axes :bottom {:ticks {:color fg-color}
+                                         :line {:color fg-color}})
+                    (b/add-axes :left {:ticks {:color fg-color}
+                                       :line {:color fg-color}})))
 
-(let [o1 (opt/scan-and-minimize :cmaes target-1d {:bounds [[-5 5]] :N 10000})
-      o2 (opt/scan-and-maximize :cmaes target-1d {:bounds [[-5 5]] :N 10000})]
-  (println (map (juxt ffirst second) [o1 o2]))
-  (cljplot/show (opt-1d-chart target-1d [-5 5] (map (juxt ffirst second) [o1 o2]))))
+
+(doseq [ooo [:powell :nelder-mead :multidirectional-simplex :cmaes :gradient :brent]]
+  (let [bounds [[-5.0 5.0]]
+        f (fn [x] (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
+        o1 (opt/minimize ooo f {:bounds bounds})
+        o2 (opt/maximize ooo f {:bounds bounds})]
+    (save-chart (opt-1d-chart f (first bounds)
+                              (map (juxt ffirst second) [o1 o2])) "o" (str (name ooo) "-1d") ".png")))
+
+(doseq [ooo [:powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bobyqa]]
+  (let [bounds [[-5.0 5.0] [-5.0 5.0]]
+        f (fn [x y] (+ (m/sq (+ (* x x) y -11.0))
+                      (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
+        o1 (opt/minimize ooo f {:bounds bounds})]
+    (save-chart (opt-2d-chart f {:x (first bounds)
+                                 :y (second bounds)} [(first o1)]) "o" (str (name ooo) "-2d") ".jpg")))
+
+(let [bounds [[-5.0 5.0] [-5.0 5.0]]
+      f (fn [x y] (+ (m/sq (+ (* x x) y -11.0))
+                    (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
+      bo (nth (opt/bayesian-optimization (fn [x y] (- (f x y))) {:bounds bounds
+                                                                :init-points 5
+                                                                :utility-function-type :poi}) 20)]
+  #_(cljplot/show (opt-2d-chart f {:x (first bounds)
+                                   :y (second bounds)} (:xs bo)))
+  (save-chart (opt-2d-chart f {:x (first bounds)
+                               :y (second bounds)} (:xs bo)) "o" "bo" ".jpg"))
 
 #_(cljplot/show (interpolation2d-chart i/piecewise-bicubic))
 
