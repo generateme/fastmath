@@ -60,7 +60,8 @@
   (:require [fastmath.core :as m]
             [fastmath.distance :as dist]
             [fastmath.kernel :as k]
-            [fastmath.stats :as stats])
+            [fastmath.stats :as stats]
+            [fastmath.protocols :as pr])
   (:import [clojure.lang IFn]
            [smile.classification Classifier SoftClassifier ClassifierTrainer KNN$Trainer AdaBoost$Trainer FLD$Trainer QDA$Trainer
             LDA$Trainer DecisionTree$Trainer DecisionTree$SplitRule GradientTreeBoost$Trainer
@@ -74,16 +75,6 @@
 (set! *warn-on-reflection* false)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
-
-(defprotocol ClassificationProto
-  (backend [_] "Return name of backend library")
-  (^{:metadoc/categories #{:cl}} model-native [_] "Return trained model as a backend class.")
-  (^{:metadoc/categories #{:dt}} data-native [_] [_ native?] "Return data transformed for backend library.")
-  (^{:metadoc/categories #{:cl}} predict [_ v] [_ v posteriori?] "Predict class for given vector. With posteriori probabilities when required.")
-  (^{:metadoc/categories #{:cl}} predict-all [_ vs] [_ v posteriori?] "Predict classes for given sequence of vectors. With posteriori probabilities when required.")
-  (^{:metadoc/categories #{:cl}} train [_] [_ x y] "Train another set of data for given classifier or force training already given data.")
-  (^{:metadoc/categories #{:dt}} labels [_]  "Return labels.")
-  (^{:metadoc/categories #{:vd}} cv [_] [_ params] "Cross-validation"))
 
 (defn- labels-converters
   "Convert y into label->int and int->label functions."
@@ -137,27 +128,24 @@
                                     [(labels (int (Linear/predictProbability @model (liblinear-to-features v) buff))) (vec buff)]
                                     (c v))))
 
-      ClassificationProto
+      pr/PredictorProto
       (backend [_] :liblinear)
       (model-native [_] @model)
       (data-native [_] [data labels])
 
-      (predict [c v] (c v))
       (predict [c v posteriori?] (c v posteriori?))
-      (predict-all [_ vs] (map (comp labels int #(Linear/predict @model (liblinear-to-features %))) vs))
       (predict-all [c vs posteriori?] (if posteriori?
                                         (map #(c % true) vs)
-                                        (predict-all c vs)))
+                                        (map (comp labels int #(Linear/predict @model (liblinear-to-features %))) vs)))
 
-      (cv [c] (cv c 10))
+      (cv [c] (pr/cv c 10))
       (cv [_ k]
         (let [target (double-array (count x))]
           (Linear/crossValidation data params (or k 10) target)
           {:accuracy (accuracy y (map (comp labels int) target))}))
 
       (train [c] (do (deref model) c))
-      (train [_ x y] (train (classifier :liblinear params x y bias)))
-      (labels [_] labels))))
+      (train [_ x y] (pr/train (classifier :liblinear params x y bias))))))
 
 (defmethod classifier :smile
   [_ ^ClassifierTrainer trainer x y]
@@ -176,16 +164,14 @@
       (invoke [_ v] (predict-fn v))
       (invoke [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
 
-      ClassificationProto
+      pr/PredictorProto
       (backend [_] :smile)
       (model-native [_] @classifier-raw)
       (data-native [_] internal-data)
       
-      (predict [_ v] (predict-fn v))
       (predict [_ v posteriori?] (if posteriori? (predict-fn-posteriori v) (predict-fn v)))
-      (predict-all [_ vs] (map predict-fn vs))
       (predict-all [_ vs posteriori?] (if posteriori? (map predict-fn-posteriori vs) (map predict-fn vs)))
-      (cv [c] (cv c {}))
+      (cv [c] (pr/cv c {}))
       (cv [_ {:keys [^int k type] :or {k 10 type :cv}}]
         (case type
           :cv {:accuracy (Validation/cv k trainer data int-labels)}
@@ -195,8 +181,7 @@
                                    :stddev (stats/stddev b)}})))
       
       (train [c] (do (deref classifier-raw) c))
-      (train [_ x y] (train (classifier :smile trainer x y)))
-      (labels [_] labels))))
+      (train [_ x y] (pr/train (classifier :smile trainer x y))))))
 
 (defmacro ^:private wrap-classifier
   {:style/indent 3}
@@ -365,10 +350,46 @@
 
 (wrap-classifier :liblinear liblinear {:keys [solver bias ^double C ^double eps ^int max-iters ^double p weights]
                                        :or {solver :l2r-l2loss-svc-dual bias -1 C 1.0 eps 0.01 max-iters 1000 p 0.1}}
-  (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
-    (if weights
-      (do (.setWeights par (double-array weights) (int-array (range (count weights)))) par)
-      par)) bias)
+                 (let [par (Parameter. (or (liblinear-solvers solver) SolverType/L2R_LR) C eps max-iters p)]
+                   (if weights
+                     (do (.setWeights par (double-array weights) (int-array (range (count weights)))) par)
+                     par)) bias)
+
+(defn backend
+  "Return name of backend library"
+  [model] (pr/backend model))
+
+(defn model-native
+  "Return trained model as a backend class."
+  [model] (pr/model-native model))
+
+(defn data-native
+  "Return data transformed for backend library."
+  [model] (pr/data-native model))
+
+(defn predict
+  "Predict categories for given vector. If `posteriori?` is true returns also posteriori probability (default `false`)."
+  ([model v] (pr/predict model v false))
+  ([model v posteriori?] (pr/predict model v posteriori?)))
+
+(defn predict-all
+  "Predict categories for given sequence of vectors. If `posteriori?` is true returns also posteriori probability (default `false`)."
+  ([model v] (pr/predict-all model v false))
+  ([model v posteriori?] (pr/predict-all model v posteriori?)))
+
+(defn train
+  "Train another set of data for given classifier or force training already given data."
+  ([model] (pr/train model))
+  ([model xs ys] (pr/train model xs ys)))
+
+(defn cv
+  "Cross validation"
+  ([model] (pr/cv model))
+  ([model params] (pr/cv model params)))
+
+(defn labels
+  "Return labels"
+  [ys] (first (labels-converters ys)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; validation metrics
@@ -388,81 +409,81 @@
                :truth (map second invalid)}
      :stats {:accuracy (double (- 1.0 (/ invalid-cnt (double (count ty)))))}}))
 
-#_(do
+(comment do
 
-    (defn- drop-nth [coll n]
-      (keep-indexed #(if (not= %1 n) %2) coll))
+         (defn- drop-nth [coll n]
+           (keep-indexed #(if (not= %1 n) %2) coll))
 
-    (defn- process-chunks
-      [model predict-fn data labels mapcat? id]
-      (let [tdata (if mapcat? (mapcat identity (drop-nth data id)) (drop-nth data id))
-            tlabels (if mapcat? (mapcat identity (drop-nth labels id)) (drop-nth labels id))
-            value (nth data id)
-            mtrain (train model tdata tlabels)]
-        (predict-fn mtrain value)))
+         (defn- process-chunks
+           [model predict-fn data labels mapcat? id]
+           (let [tdata (if mapcat? (mapcat identity (drop-nth data id)) (drop-nth data id))
+                 tlabels (if mapcat? (mapcat identity (drop-nth labels id)) (drop-nth labels id))
+                 value (nth data id)
+                 mtrain (train model tdata tlabels)]
+             (predict-fn mtrain value)))
 
-    (def ^:dynamic ^{:doc "When `true` provide data used to test."}
-      *cross-validation-debug* false)
+         (def ^:dynamic ^{:doc "When `true` provide data used to test."}
+           *cross-validation-debug* false)
 
-    (defn loocv
-      "Leave-one-out cross validation of a classification model."
-      {:metadoc/categories #{:vd}}
-      ([model]
-       (let [[data labels] (data model)
-             plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
-             stats {:accuracy (accuracy labels plabels)}]
-         (if *cross-validation-debug*
-           (merge stats {:data data :truth labels :prediction plabels})
-           stats))))
+         (defn loocv
+           "Leave-one-out cross validation of a classification model."
+           {:metadoc/categories #{:vd}}
+           ([model]
+            (let [[data labels] (data model)
+                  plabels (mapv (partial process-chunks model predict data labels false) (range (count data)))
+                  stats {:accuracy (accuracy labels plabels)}]
+              (if *cross-validation-debug*
+                (merge stats {:data data :truth labels :prediction plabels})
+                stats))))
 
-    (defn- slice [data ids] (mapv (partial nth data) ids))
+         (defn- slice [data ids] (mapv (partial nth data) ids))
 
-    (defn cv
-      "Cross validation of a classification model.
+         (defn cv
+           "Cross validation of a classification model.
 
   k defaults to 10% of data count."
-      {:metadoc/categories #{:vd}}
-      ([model]
-       (cv model  (* 0.1 (count (first (data model))))))
-      ([model k]
-       (let [[data labels] (data model)
-             dsize (count data)
-             chunksize (max 2 (min (* 0.75 dsize) (/ dsize k)))
-             ids (shuffle (range dsize))
-             sdata (slice data ids)
-             slabels (slice labels ids)
-             psdata (partition-all chunksize sdata)
-             plabels (mapcat (partial process-chunks model predict-all
-                                      psdata (partition-all chunksize slabels) true) (range (count psdata)))
-             stats {:accuracy (accuracy slabels plabels)}]
-         (if *cross-validation-debug*
-           (merge stats {:data sdata :truth slabels :prediction plabels})
-           stats))))
+           {:metadoc/categories #{:vd}}
+           ([model]
+            (cv model  (* 0.1 (count (first (data model))))))
+           ([model k]
+            (let [[data labels] (data model)
+                  dsize (count data)
+                  chunksize (max 2 (min (* 0.75 dsize) (/ dsize k)))
+                  ids (shuffle (range dsize))
+                  sdata (slice data ids)
+                  slabels (slice labels ids)
+                  psdata (partition-all chunksize sdata)
+                  plabels (mapcat (partial process-chunks model predict-all
+                                           psdata (partition-all chunksize slabels) true) (range (count psdata)))
+                  stats {:accuracy (accuracy slabels plabels)}]
+              (if *cross-validation-debug*
+                (merge stats {:data sdata :truth slabels :prediction plabels})
+                stats))))
 
-    (defn bootstrap
-      "Perform k-round bootstrap validation.
+         (defn bootstrap
+           "Perform k-round bootstrap validation.
 
   k defaults to 10
 
   Returns map where `:accuracy` is average accuracy from every round. `:boostrap` contains every round statistics."
-      {:metadoc/categories #{:vd}}
-      ([model] (bootstrap model 10))
-      ([model k]
-       (let [[data labels] (data model)
-             ^Bootstrap bootstrap (Bootstrap. (count data) k)
-             all (for [[train-ids test-ids] (map vector (.-train bootstrap) (.-test bootstrap))
-                       :let [sdata (slice data train-ids)
-                             slabels (slice labels train-ids)
-                             test-labels-true (slice labels test-ids)
-                             test-data (slice data test-ids)
-                             m (train model sdata slabels)
-                             test-labels-pred (predict-all m test-data)
-                             stats {:accuracy (accuracy test-labels-true test-labels-pred)}]]
-                   (if *cross-validation-debug*
-                     (merge stats {:data test-data :truth test-labels-true :prediction test-labels-pred})
-                     stats))
-             avg (stat/mean (map :accuracy all))]
-         {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))}))))
+           {:metadoc/categories #{:vd}}
+           ([model] (bootstrap model 10))
+           ([model k]
+            (let [[data labels] (data model)
+                  ^Bootstrap bootstrap (Bootstrap. (count data) k)
+                  all (for [[train-ids test-ids] (map vector (.-train bootstrap) (.-test bootstrap))
+                            :let [sdata (slice data train-ids)
+                                  slabels (slice labels train-ids)
+                                  test-labels-true (slice labels test-ids)
+                                  test-data (slice data test-ids)
+                                  m (train model sdata slabels)
+                                  test-labels-pred (predict-all m test-data)
+                                  stats {:accuracy (accuracy test-labels-true test-labels-pred)}]]
+                        (if *cross-validation-debug*
+                          (merge stats {:data test-data :truth test-labels-true :prediction test-labels-pred})
+                          stats))
+                  avg (stat/mean (map :accuracy all))]
+              {:accuracy avg :bootstrap (into (sorted-map) (map-indexed vector all))}))))
 
 (defn confusion-map
   "Create confusion map where keys are pairs of `[truth-label prediction-label]`"
@@ -472,5 +493,3 @@
             (if (contains? m tpv)
               (update m tpv clojure.core/inc)
               (assoc m tpv 1))) {} (map vector t p)))
-
-

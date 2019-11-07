@@ -2,18 +2,10 @@
 
 Fast and primitive based math library.
 
-Originally it was a part of generative art/glich [Clojure2d](https://github.com/Clojure2D/clojure2d) library.
-
 ## Installation
 
 ```clojure
-[generateme/fastmath "1.2.0"]
-```
-
-### Development version
-
-```clojure
-[generateme/fastmath "1.4.0-SNAPSHOT"]
+[generateme/fastmath "1.5.0-alpha1"]
 ```
 
 ## Documentation
@@ -48,7 +40,7 @@ Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafam
 
 * 2d (`Vec2`), 3d (`Vec3`) and 4d (`Vec4`) vector types.
 * ArrayVector for fixed length long vectors (fixed sized double-array)
-* Clojure vector
+* Clojure vector, double array, Number (as 1d vector)
 
 With following groups of functions:
 
@@ -71,7 +63,7 @@ With following groups of functions:
 ### Random numbers
 
 * Collection of random number generators
-* Collection of distributions (count: 28)
+* Collection of distributions
 * Random generator functions for each primitive type (drand - double, lrand - long, frand - float, irand - int)
 * Additional RNG functions: brand - true/false, grand - gaussian distributed double
 * Random sequences: from distribution, halton, sobol, R2, sphere, uniform
@@ -86,6 +78,11 @@ With following groups of functions:
 
 * Descriptive statistics: size, min, max, mode, mean, median, percentiles, kurtosis, skewness, IQR, LAV, UAV and other
 * Correlations
+* t-test
+* ACF/PACF
+* histogram
+* Bootstrap
+* Confidence intervals
 
 ### Interpolations
 
@@ -108,9 +105,14 @@ Great collection (100+) of R^2->R^2 functions.
 
 SMILE bindings for clustering
 
-### Classifcations (dev version)
+### Classifcations
 
 SMILE, LIBLINEAR classification bindings
+
+### Regression
+
+* SMILE regression bindings
+* extended Gaussian Processes
 
 ### Optimization
 
@@ -119,6 +121,10 @@ Gradient, Nelder-Mead, Simplex, Powell, BOBYQA, CMAES, BayesianOptimizer
 ### Grids
 
 Hexagonal, squared, triangular, rhomboidal grid functions
+
+### Kernels
+
+Collection of various kernels (density, RBF, correlation)
 
 ### Other
 
@@ -133,6 +139,7 @@ Almost all functions optimized to work on `double` and `long` primitives
 * [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
 * [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence
+* [SSJ](https://github.com/umontreal-simul/ssj) - Apache 2.0 Licence
 
 ## Alternatives
 
@@ -147,12 +154,6 @@ Since this library is only JVM version, you can check following Clojure/ClojureS
 ## Java
 
 Java classes are compiled for java 1.8
-
-## TODO
-
-* Change images to plots with axes
-* More tests
-* Move vector fields
 
 ## How To Help
 

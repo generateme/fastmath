@@ -9,3 +9,6 @@ pom.xml.asc
 .lein-plugins/
 .lein-failures
 .nrepl-port
+.clj-kondo/
+.Rhistory
+fastmath.core.matrix/target/

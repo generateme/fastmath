@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [1.5.0]
+## [1.5.0-alpha1]
 
 Cleaned documentation with more usage examples.
 
@@ -19,6 +19,7 @@ Cleaned documentation with more usage examples.
 ### Fixed
 
 * acf calculation
+* MAD SMILE bindings replaced (SMILE mutates an array)
 
 ### Removed
 

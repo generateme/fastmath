@@ -123,3 +123,18 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (coords->mid [g coords] "Converts 2d space into cell midpoint.")
   (grid-type [g] "Returns type of the cell.")
   (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))
+
+;; predictors
+
+(defprotocol PredictorProto
+  (backend [_] "Return name of backend library")
+  (model-native [_] "Return trained model as a backend class.")
+  (data-native [_] "Return data transformed for backend library.")
+  (predict [_ v info?] "Predict for given vector. Additional info may be returned on request.")
+  (predict-all [_ v info?] "Predict for given sequence of vectors. Additional info may be returned on request.")
+  (train [_] [_ x y] "Train another set of data for given model or force training already given data.")
+  (cv [_] [_ params] "Cross-validation"))
+
+(defprotocol GPProto
+  (prior-samples [_ vs] "Draw samples from prior for given vs")
+  (posterior-samples [gp vs stddev?] "Draw samples from posterior for given vs"))

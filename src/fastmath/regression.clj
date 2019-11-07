@@ -4,7 +4,8 @@
             [fastmath.kernel :as k]
             [fastmath.stats :as stats]
             [fastmath.random :as r]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.protocols :as pr])
   (:refer-clojure :exclude [test])
   (:import [clojure.lang IFn]
            [smile.regression Regression RegressionTrainer OLS$Trainer RLS$Trainer LASSO$Trainer RidgeRegression$Trainer
@@ -18,16 +19,6 @@
 (set! *warn-on-reflection* false)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
-
-(defprotocol RegressionProto
-  (backend [_])
-  (model-native [_])
-  (data-native [_])
-  (predict [_ v] [_ v info?])
-  (predict-all [_ vs] [_ v info?])
-  (train [_] [_ x y])
-  (stats [_])
-  (cv [_] [_ params]))
 
 (defmulti regression (fn [k & _] k))
 
@@ -50,20 +41,18 @@
         regression-raw (delay (.train trainer data-x data-y))]
     (reify
       IFn
-      (invoke [r v] (predict r v))
-      (invoke [r v _] (predict r v))
+      (invoke [r v] (.predict ^Regression @regression-raw (m/seq->double-array v)))
+      (invoke [r v _] (.predict ^Regression @regression-raw (m/seq->double-array v)))
 
-      RegressionProto
+      pr/PredictorProto
       (backend [_] :smile)
       (model-native [_] @regression-raw)
       (data-native [_] [data-x data-y])
-      (predict [_ v] (.predict ^Regression @regression-raw (m/seq->double-array v)))
-      (predict [r v _] (predict r v))
-      (predict-all [_ vs] (seq (.predict ^Regression @regression-raw (m/seq->double-double-array vs))))
-      (predict-all [r vs _] (predict-all r vs))
+      (predict [r v _] (.predict ^Regression @regression-raw (m/seq->double-array v)))
+      (predict-all [r vs _] (seq (.predict ^Regression @regression-raw (m/seq->double-double-array vs))))
       (train [v] (do (deref regression-raw) v))
-      (train [_ nx ny] (train (regression :smile trainer nx ny)))
-      (cv [c] (cv c {}))
+      (train [_ nx ny] (pr/train (regression :smile trainer nx ny)))
+      (cv [c] (pr/cv c {}))
       (cv [_ {:keys [^int k type measure] :or {k 10 type :cv measure :rmse}}]
         (let [measure-obj (regression-measure-objs measure)
               result (case type
@@ -188,10 +177,6 @@
                                   (map #(* scale ^double (kernel x %)) xss*)))))
   (^Array2DRowRealMatrix [kernel xss xss*] (kernel-cov-matrix kernel 1.0 xss xss*)))
 
-(defprotocol GPProto
-  (prior-samples [_ vs] "Draw samples from prior for given vs")
-  (posterior-samples [gp vs] [gp vs stddev?] "Draw samples from posterior for given vs"))
-
 (defn gaussian-process+
   ([x y] (gaussian-process+ {} x y))
   ([{:keys [^double kscale kernel noise normalize?]
@@ -213,12 +198,11 @@
      
      (reify
        IFn
-       (invoke [gp v] (predict gp v))
-       (invoke [gp v stddev?] (predict gp v stddev?))
+       (invoke [gp v] (pr/predict gp v false))
+       (invoke [gp v stddev?] (pr/predict gp v stddev?))
 
-       RegressionProto
+       pr/PredictorProto
        (backend [_] :fastmath)
-       (predict [gp xval] (predict gp xval false))
        (predict [_ xval stddev?]
          (let [xtest (if (sequential? xval) xval [xval])
                cov-vector (double-array (map #(* kscale ^double (kernel xtest %)) xs))
@@ -228,14 +212,13 @@
              (let [cov-v (MatrixUtils/createRealVector cov-vector)]
                (MatrixUtils/solveLowerTriangularSystem L cov-v)
                [mu (m/safe-sqrt (- 1.0 (.dotProduct cov-v cov-v)))]))))
-       (predict-all [gp xtest] (predict-all gp xtest false))
        (predict-all [gp xtest stddev?]
-         (map #(predict gp % stddev?) xtest))
+         (map #(pr/predict gp % stddev?) xtest))
        (train [gp] gp)
        (train [_ x y] (gaussian-process+ {:kscale kscale :kernel kernel :normalize? normalize?} x y))
 
 
-       GPProto
+       pr/GPProto
        (prior-samples [_ xs]
          (let [xs (ensure-vectors xs)
                ^RealMatrix cov (kernel-cov-matrix kernel kscale xs xs)
@@ -243,7 +226,6 @@
                ^RealMatrix Lp (.getL ^CholeskyDecomposition (CholeskyDecomposition. (.add cov diag)))]
            (seq (.operate Lp (m/seq->double-array (repeatedly (count xs) r/grand))))))
 
-       (posterior-samples [gp xtest] (posterior-samples gp xtest false))
        (posterior-samples [_ xtest stddev?]
          (let [xtest (ensure-vectors xtest)
                ^RealMatrix cov (kernel-cov-matrix kernel kscale xs xtest)
@@ -267,10 +249,53 @@
 (defn validate
   "Validate data against trained regression."
   [model tx ty]
-  (let [pred (predict-all model tx)
+  (let [pred (pr/predict-all model tx false)
         pred-arr (m/seq->double-array pred)
         truth (m/seq->double-array ty)]
     {:prediction pred
      :stats (zipmap regression-measures
                     (map #(let [^RegressionMeasure m (regression-measure-objs %)]
                             (.measure m truth pred-arr)) regression-measures))}))
+
+(defn backend
+  "Return name of backend library"
+  [model] (pr/backend model))
+
+(defn model-native
+  "Return trained model as a backend class."
+  [model] (pr/model-native model))
+
+(defn data-native
+  "Return data transformed for backend library."
+  [model] (pr/data-native model))
+
+(defn predict
+  "Predict for given vector. If `info?` is true returns also additional information (default `false`)."
+  ([model v] (pr/predict model v false))
+  ([model v info?] (pr/predict model v info?)))
+
+(defn predict-all
+  "Predict for given sequence of vectors. If `info?` is true returns also additional information (default `false`)."
+  ([model v] (pr/predict-all model v false))
+  ([model v info?] (pr/predict-all model v info?)))
+
+(defn train
+  "Train another set of data for given regression model or force training already given data."
+  ([model] (pr/train model))
+  ([model xs ys] (pr/train model xs ys)))
+
+(defn cv
+  "Cross validation"
+  ([model] (pr/cv model))
+  ([model params] (pr/cv model params)))
+
+;; GP
+
+(defn prior-samples
+  "Gaussian process - draw samples from prior for given vs"
+  [gp vs] (pr/prior-samples gp vs))
+
+(defn posterior-samples
+  "Gaussian process - draw samples from posterior for given vs"
+  ([gp vs] (pr/posterior-samples gp vs false))
+  ([gp vs stddev?] (pr/posterior-samples gp vs stddev?)))
