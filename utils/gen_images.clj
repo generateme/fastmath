@@ -12,6 +12,7 @@
             [fastmath.easings :as e]
             [fastmath.grid :as g]
             [fastmath.optimization :as opt]
+            [fastmath.signal :as sig]
             [cljplot.build :as b]
             [cljplot.core :as cljplot]
             [clojure2d.color :as clr]
@@ -417,7 +418,7 @@
 (save-chart (interpolation-chart i/monotone) "i" "monotone" ".png")
 
 (defn ifun2d
-  [x y]
+  ^double [^double x ^double y]
   (m/sin (* (/ (- x 100.0) 10.0) (m/cos (/ y 20.0)))))
 
 (defn interpolation2d-chart
@@ -501,7 +502,7 @@
 
 (doseq [ooo [:powell :nelder-mead :multidirectional-simplex :cmaes :gradient :brent]]
   (let [bounds [[-5.0 5.0]]
-        f (fn [x] (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
+        f (fn ^double [^double x] (+ (* 0.2 (m/sin (* 10.0 x))) (/ (+ 6.0 (- (* x x) (* 5.0 x))) (inc (* x x)))))
         o1 (opt/minimize ooo f {:bounds bounds})
         o2 (opt/maximize ooo f {:bounds bounds})]
     (save-chart (opt-1d-chart f (first bounds)
@@ -509,21 +510,80 @@
 
 (doseq [ooo [:powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bobyqa]]
   (let [bounds [[-5.0 5.0] [-5.0 5.0]]
-        f (fn [x y] (+ (m/sq (+ (* x x) y -11.0))
-                      (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
+        f (fn ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11.0))
+                                              (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
         o1 (opt/minimize ooo f {:bounds bounds})]
     (save-chart (opt-2d-chart f {:x (first bounds)
                                  :y (second bounds)} [(first o1)]) "o" (str (name ooo) "-2d") ".jpg")))
 
 (let [bounds [[-5.0 5.0] [-5.0 5.0]]
-      f (fn [x y] (+ (m/sq (+ (* x x) y -11.0))
-                    (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
-      bo (nth (opt/bayesian-optimization (fn [x y] (- (f x y))) {:bounds bounds
-                                                                :init-points 5
-                                                                :utility-function-type :poi}) 20)]
+      f (fn ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11.0))
+                                            (m/sq (+ x (* y y) -7.0)))) ;; Himmelblau's function
+      bo (nth (opt/bayesian-optimization (fn ^double [^double x ^double y] (- (f x y))) {:bounds bounds
+                                                                                        :init-points 5
+                                                                                        :utility-function-type :poi}) 20)]
   #_(cljplot/show (opt-2d-chart f {:x (first bounds)
                                    :y (second bounds)} (:xs bo)))
   (save-chart (opt-2d-chart f {:x (first bounds)
                                :y (second bounds)} (:xs bo)) "o" "bo" ".jpg"))
 
 #_(cljplot/show (interpolation2d-chart i/piecewise-bicubic))
+
+;; signal
+
+(def signal-f (sig/oscillators-sum
+               (sig/oscillator :square 30 0.25 0.1)
+               (sig/oscillator :triangle 2.2 0.25 0.2)
+               (sig/oscillator :sin 4 0.5 0)))
+
+(def ^doubles signal (sig/oscillator->signal signal-f 1000 5))
+
+(defn signal-chart
+  ([effect] (signal-chart effect {}))
+  ([effect params]
+   (cljplot/xy-chart {:width 600 :height 200 :background bg-color}
+                     (b/series [:vline 0 {:color [60 100 120]}]
+                               [:hline 0 {:color [60 100 120]}]
+                               [:function signal-f {:domain [0 5]
+                                                    :samples 500}]
+                               [:function (sig/signal->oscillator (sig/apply-effects-raw signal (sig/effect effect params)) 5)
+                                {:domain [0 5]
+                                 :color :white
+                                 :samples 500}])
+                     (b/update-scale :x :ticks 5)
+                     (b/update-scale :y :ticks 5)
+                     (b/add-axes :bottom {:ticks {:color fg-color}
+                                          :line {:color fg-color}})
+                     (b/add-axes :left {:ticks {:color fg-color}
+                                        :line {:color fg-color}})
+                     (b/add-label :top (str (name effect) " " params) {:color fg-color}))))
+
+(doseq [[e p] [[:simple-lowpass {:rate 1000 :cutoff 10}]
+               [:simple-highpass {:rate 1000 :cutoff 100}]
+               [:biquad-eq {:fs 1000 :fc 20 :gain -10 :bw 5}]
+               [:biquad-hs {:fs 1000 :fc 10 :gain -10}]
+               [:biquad-ls {:fs 1000 :fc 10 :gain -10}]
+               [:biquad-lp {:fs 1000 :fc 20 :bw 5}]
+               [:biquad-hp {:fs 1000 :fc 10 :bw 5}]
+               [:biquad-bp {:fs 1000 :fc 20 :bw 2}]
+               [:dj-eq {:rate 1000 :hi -25 :mid -25 :low 5}]
+               [:phaser-allpass {:delay 0.001}]
+               [:divider {:denom 4}]
+               [:fm {:quant 100 :phase 0.05 :omega 0.02}]
+               [:bandwidth-limit {:rate 1000 :freq 15}]
+               [:distort {:factor 0.1}]
+               [:foverdrive {:drive 0.1}]
+               [:decimator {:fs 35 :rate 1000 :bits 4}]
+               [:basstreble {:rate 1000 :bass-freq 2 :treble-freq 20 :bass 10 :treble -10}]
+               [:echo {:rate 1000 :delay 0.1 :decay 0.5}]
+               [:vcf303 {:rate 1000 :trigger true :gain 3 :resonance 1.2}]
+               [:slew-limit {:rate 1000 :maxfall 20 :maxrise 30}]
+               [:mda-thru-zero {:rate 1000}]]]
+  (save-chart (signal-chart e p) "s" (name e) ".jpg"))
+
+(doseq [o (disj (set sig/oscillators) :constant)]
+  (save-chart (function-chart (sig/wave o 1 0.75 0.25) [-5 5]) "s" (name o) ".jpg"))
+
+(save-chart (function-chart (sig/oscillators-sum
+                             (sig/oscillator :triangle 1.5 0.5 0.5)
+                             (sig/oscillator :sin 1 0.5 0)) [-3 3]) "s" "sum" ".jpg")
