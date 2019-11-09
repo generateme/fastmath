@@ -10,6 +10,7 @@ Cleaned documentation with more usage examples.
 * `demean` function
 * `seq->vec2`, `seq->vec3` and `seq->vec4`
 * `warp-noise`
+* fastmath.signal - audio signal processing with effects + oscillators
 
 ### Changed
 

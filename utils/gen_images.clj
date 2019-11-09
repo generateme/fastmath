@@ -582,8 +582,9 @@
   (save-chart (signal-chart e p) "s" (name e) ".jpg"))
 
 (doseq [o (disj (set sig/oscillators) :constant)]
-  (save-chart (function-chart (sig/wave o 1 0.75 0.25) [-5 5]) "s" (name o) ".jpg"))
+  (save-chart (function-chart (sig/oscillator o 1 0.75 0.25) [-5 5]) "s" (name o) ".jpg"))
 
 (save-chart (function-chart (sig/oscillators-sum
                              (sig/oscillator :triangle 1.5 0.5 0.5)
                              (sig/oscillator :sin 1 0.5 0)) [-3 3]) "s" "sum" ".jpg")
+

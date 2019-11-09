@@ -126,6 +126,10 @@ Hexagonal, squared, triangular, rhomboidal grid functions
 
 Collection of various kernels (density, RBF, correlation)
 
+### Signal
+
+Signal (audio) processing filters and oscillators
+
 ### Other
 
 Plenty of constant values

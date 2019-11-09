@@ -1,4 +1,168 @@
 (ns fastmath.signal
+  "Signal processing (effect) and generation (oscillators).
+
+  Singal is any sequence with double values.
+
+  ## Signal processing
+
+  To process signal use [[apply-effects]] or [[apply-effects-raw]] (operates on `double-array` only) function.
+
+  Effect is signal filter, created by [[effect]] multimethod. Effects can be composed with [[compose-effects]]. Effect can be treated as function and can be called for given sample.
+
+  Each effect has it's own parametrization which should be passed during creation.
+  
+  List of all available effects is under [[effects-list]] value.
+
+  ### Effects parametrization
+
+  Each effect has its own parameters.
+
+  #### :simple-lowpass, :simple-highpass
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:cutoff` - cutoff frequency (default 2000.0)
+
+  #### :biquad-eq
+
+  Biquad equalizer
+  
+  * `:fc` - center frequency
+  * `:gain` - gain
+  * `:bw` - bandwidth (default: 1.0)
+  * `:fs` - sampling rate (defatult: 44100.0)
+
+  #### :biquad-hs, :biquad-ls
+
+  Biquad highpass and lowpass shelf filters
+  
+  * `:fc` - center frequency
+  * `:gain` - gain
+  * `:slope` - shelf slope (default 1.5)
+  * `:fs` - sampling rate (default 44100.0)
+
+  #### :biquad-lp, :biquad-hp, :biquad-bp
+
+  Biquad lowpass, highpass and bandpass filters
+  
+  * `:fc` - cutoff/center frequency
+  * `:bw` - bandwidth (default 1.0)
+  * `:fs` - sampling rate (default 44100.0)
+
+  #### :dj-eq
+
+  * `:high` - high frequency gain (10000Hz)
+  * `:mid` - mid frequency gain (1000Hz)
+  * `:low` - low frequency gain (100Hz)
+  * `:shelf-slope` - shelf slope for high frequency (default 1.5)
+  * `:peak-bw` - peak bandwidth for mid and low frequencies (default 1.0)
+  * `:rate` - sampling rate (default 44100.0)
+
+  #### :phaser-allpass
+
+  * `:delay` - delay factor (default: 0.5)
+
+  #### :divider
+
+  * `:denom` (long, default 2.0)
+
+  #### :fm
+
+  Modulate and demodulate signal using frequency
+
+   * `:quant` - quantization value (0.0 - if no quantization, default 10)
+   * `:omega` - carrier factor (default 0.014)
+   * `:phase` - deviation factor (default 0.00822)
+
+  #### :bandwidth-limit
+
+  https://searchcode.com/file/18573523/cmt/src/lofi.cpp#
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:freq` - cutoff frequency (default 1000.0)
+
+  #### :distort
+
+  * `:factor` - distortion factor (default 1.0)
+
+  #### :foverdrive
+
+  Fast overdrive
+  
+  * `:drive` - drive (default 2.0)
+
+  #### :decimator
+
+  * `:bits` - bit depth (default 2)
+  * `:fs` - decimator sample rate (default 4410.0)
+  * `:rate` - input sample rate (default 44100.0)
+
+  #### :basstreble
+
+  * `:bass` - bass gain (default 1.0)
+  * `:treble` - treble gain (default 1.0)
+  * `:gain` - gain (default 0.0)
+  * `:rate` - sample rate (default 44100.0)
+  * `:slope` - slope for both (default 0.4)
+  * `:bass-freq` - bass freq (default 250.0)
+  * `:treble-freq` - treble freq (default 4000.0)
+
+  #### :echo
+
+  * `:delay` - delay time in seconds (default 0.5)
+  * `:decay` - decay (amount echo in signal, default 0.5)
+  * `:rate` - sample rate (default 44100.0)
+  
+  _Warning! Echo filter uses mutable array as a internal state, don't use the same filter in paraller processing._
+
+  #### :vcf303
+
+  * `:rate` - sample rate (default 44100.0)
+  * `:trigger` - boolean, trigger some action (default `false`), set true when you reset filter every line
+  * `:cutoff` - cutoff frequency (values 0-1, default 0.8)
+  * `:resonance` - resonance (values 0-1, default 0.8)
+  * `:env-mod` - envelope modulation (values 0-1, default 0.5)
+  * `:decay` - decay (values 0-1, default 1.0)
+  * `:gain` - gain output signal (default: 1.0)
+  
+  #### :slew-limit
+
+  http://git.drobilla.net/cgit.cgi/omins.lv2.git/tree/src/slew_limiter.c
+
+  * `:rate` - sample rate
+  * `:maxrise` - maximum change for rising signal (in terms of 1/rate steps, default 500)
+  * `:maxfall` - maximum change for falling singal (default 500)
+
+  #### :mda-thru-zero
+
+  * `:rate` - sample rate
+  * `:speed` - effect rate
+  * `:depth`
+  * `:mix`
+  * `:depth-mod`
+  * `:feedback`
+  
+  _Warning: internal state is kept in doubles array._
+  
+  ## Oscillators
+
+  [[oscillator]] creates function which generates signal value for given time.
+
+  To sample generated wave to signal, call [[oscillator->signal]] with following parameters:
+
+  * `f` - oscillator
+  * `samplerate` - sample rate (samples per second)
+  * `seconds` - duration
+
+  To convert signal to oscillator (using interpolation) use [[signal->oscillator]] passing signal and duration.
+
+  Add oscillators using [[oscillators-sum]].
+  
+  ## File operations
+
+  You can [[save-signal]] or [[load-signal]]. Representation is 16 bit signed, big endian. Use Audacity or SoX to convert to/from audio files."
+  {:metadoc/categories {:eff "Effects"
+                        :wave "Wave"
+                        :sig "Signal"}}
   (:require [fastmath.core :as m]
             [clojure.java.io :refer [file make-parents output-stream input-stream]]
             [fastmath.vector :as v]
@@ -67,13 +231,13 @@
       (EffectsList. (.effect-name e) (.sample r) (.effect e) (.state r) prev))))
 
 (defn apply-effects-raw
-  "Apply effects to signal.
+  "Apply effects to signal as `double-array`.
 
   If `reset` is positive, reinit state each `reset` number of samples.
 
-  Returns new signal."
+  Returns new signal as `double-array`."
   {:metadoc/categories #{:eff}}
-  ([^doubles in effects ^long reset]
+  (^doubles [^doubles in effects ^long reset]
    (let [len (alength in)
          ^doubles out (double-array len)]
      (loop [idx (int 0)
@@ -88,9 +252,15 @@
                     (reset-effects effects)
                     res)))))
      out))
-  ([^doubles in effects] (apply-effects-raw in effects 0)))
+  (^doubles [^doubles in effects] (apply-effects-raw in effects 0)))
 
 (defn apply-effects
+  "Apply effects to signal as any sequence.
+
+  If `reset` is positive, reinit state each `reset` number of samples.
+
+  Returns new signal."
+  {:metadoc/categories #{:eff}}
   ([in effects ^long reset] (m/double-array->seq (apply-effects-raw (m/seq->double-array in) effects reset)))
   ([in effects] (apply-effects in effects 0)))
 
@@ -109,7 +279,7 @@
 ;; ## Effects / Filters
 
 (defmulti effect
-  "Create effect for given name (as keyword) and optional parametrization.
+  "Create effect for given name (as keyword) and optional parameters.
 
   List of all possible effects is under [[effects-list]].
 
@@ -713,7 +883,7 @@
 ;; Multimethod creates oscillator function accepting `double` (time) and resulting `double` from [-1.0 1.0] range.
 
 (defmulti oscillator
-  "Create oscillators from various oscilators
+  "Create oscillator.
 
   Parameters are:
 
@@ -722,9 +892,9 @@
   * amplitude
   * phase (0-1)
   
-  Multimethod creates oscillator function accepting `double` (time) and resulting `double` from [-1.0 1.0] range.
+  Multimethod creates oscillator function accepting `double` (as time) and returns `double` from [-1.0 1.0] range.
 
-  To convert `oscillator` to Signal, call [[signal-from-oscillator]].
+  To convert `oscillator` to signal, call [[signal-from-oscillator]].
 
   To add oscillators, call [[sum-oscillators]]."
   {:metadoc/categories #{:oscillator}}
@@ -735,15 +905,13 @@
     (* a
        (m/sin (+ (* p m/TWO_PI) (* x m/TWO_PI f))))))
 
-(def ^:private snoise (r/fbm-noise {:octaves 1
-                                    :gain 1.0
+(def ^:private snoise (r/fbm-noise {:noise-type :simplex
+                                    :octaves 1                                    
                                     :normalize? false}))
 
 (defmethod oscillator :noise [_ ^double f ^double a ^double p]
-  (let [a2 (* a 1.5)
-        f2 (+ f f)]
-    (fn ^double [^double x]
-      (* a2 ^double (snoise (* (+ p x) f2) 1.23456789)))))
+  (fn ^double [^double x]
+    (* a ^double (snoise (* (+ p x) f) 1.23456789))))
 
 (defmethod oscillator :saw [_ ^double f ^double a ^double p] 
   (fn ^double [^double x]
@@ -812,6 +980,7 @@
   * sig - signal as sequence
   * seconds - duration
   * interpolator - interpolation (see [[fastmath.interpolation]]). Default: [[linear-smile]]."
+  {:metadoc/categories #{:oscillator}}
   ([sig ^double seconds] (signal->oscillator sig seconds i/linear-smile))
   ([sig ^double seconds interpolator]
    (let [c (count sig)
