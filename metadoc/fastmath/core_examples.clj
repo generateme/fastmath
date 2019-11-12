@@ -174,6 +174,13 @@
   (example "Normalize cos() to [0,255]" (norm (cos HALF_PI) -1.0 1.0 0.0 255.0))
   (example "Normalize cos() to [255,0]" (norm (cos HALF_PI) -1.0 1.0 255.0 0.0)))
 
+(add-examples mnorm
+  (example "Normalize from [1,-1] to [0,1]" (mnorm 0.234 -1.0 1.0))
+  (example "Normalize from [-1,1] to [0,1]" (mnorm 0.234 1.0 -1.0))
+  (example "Normalize cos() to [0,255]" (mnorm (cos HALF_PI) -1.0 1.0 0.0 255.0))
+  (example "Normalize cos() to [255,0]" (mnorm (cos HALF_PI) -1.0 1.0 255.0 0.0)))
+
+
 (add-examples make-norm
   (example "Make cos() normalizer from [-1.0,1.0] to [0.0, 1.0]." (let [norm-cos (make-norm -1.0 1.0 0.0 1.0)]
                                                                     (norm-cos (cos 2.0))))

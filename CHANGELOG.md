@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.5.0-alpha2]
+
+### Added
+
+* `mnorm` - macro version of `norm`
+
+### Changed
+
+* protocol's wrapping functions shouldn't have primitive math hints (to avoid too many primitive->boxed conversions)
+
 ## [1.5.0-alpha1]
 
 Cleaned documentation with more usage examples.

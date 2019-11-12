@@ -89,9 +89,9 @@
    :approx (fn
              ([v] (map m/approx v))
              ([v d] (map #(m/approx ^double % d) v)))
-   :magsq (fn [v] (reduce #(+ ^double %1 (* ^double %2 ^double %2)) 0.0 v))
-   :mag #(m/sqrt (prot/magsq %))
-   :dot #(reduce m/fast+ (map m/fast* %1 %2))
+   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (+ b (* x x))) 0.0 v))
+   :mag (fn ^double [v] (m/sqrt (prot/magsq v)))
+   :dot (fn ^double [v1 v2] (reduce m/fast+ (map m/fast* v1 v2)))
    :add (fn [v1 v2] (map m/fast+ v1 v2))
    :sub (fn [v1 v2] (map m/fast- v1 v2))
    :mult (fn [v1 v] (map #(m/fast* ^double % ^double v) v1))
@@ -101,12 +101,12 @@
    :mn #(reduce m/fast-min %)
    :emx #(mapv m/fast-max %1 %2)
    :emn #(mapv m/fast-min %1 %2)
-   :maxdim #(first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first %)] %))
-   :mindim #(first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first %)] %))
-   :sum #(reduce m/fast+ %)
+   :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
+   :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
+   :sum (fn ^double [v] (reduce m/fast+ v))
    :permute #(map (fn [idx] (%1 idx)) %2)
    :reciprocal #(map (fn [^double v] (/ v)) %)
-   :heading #(angle-between % (reduce conj [1.0] (repeatedly (dec (count %)) (constantly 0.0))))
+   :heading (fn ^double [v] (angle-between v (reduce conj [1.0] (repeatedly (dec (count v)) (constantly 0.0)))))
    :interpolate (fn [v1 v2 t f] (map #(f %1 %2 t) v1 v2))
    :einterpolate (fn [v1 v2 v f] (map #(f %1 %2 %3) v1 v2 v))
    :econstrain (fn [v val1 val2] (map #(m/constrain ^double %1 ^double val1 ^double val2) v))
@@ -126,9 +126,9 @@
    :approx (fn
              ([v] (mapv m/approx v))
              ([v d] (mapv #(m/approx ^double % d) v)))
-   :magsq (fn [v] (reduce #(+ ^double %1 (* ^double %2 ^double %2)) 0.0 v))
-   :mag #(m/sqrt (prot/magsq %))
-   :dot #(reduce m/fast+ (map m/fast* %1 %2))
+   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (+ b (* x x))) 0.0 v))
+   :mag (fn ^double [v] (m/sqrt (prot/magsq v)))
+   :dot (fn ^double [v1 v2] (reduce m/fast+ (map m/fast* v1 v2)))
    :add (fn [v1 v2] (mapv m/fast+ v1 v2))
    :sub (fn [v1 v2] (mapv m/fast- v1 v2))
    :mult (fn [v1 v] (mapv #(m/fast* ^double % ^double v) v1))
@@ -138,9 +138,9 @@
    :mn #(reduce m/fast-min %)
    :emx #(mapv m/fast-max %1 %2)
    :emn #(mapv m/fast-min %1 %2)
-   :maxdim #(first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first %)] %))
-   :mindim #(first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first %)] %))
-   :sum #(reduce m/fast+ %)
+   :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
+   :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
+   :sum (fn ^double [v] (reduce m/fast+ v))
    :permute #(mapv (fn [idx] (%1 idx)) %2)
    :reciprocal #(mapv (fn [^double v] (/ v)) %)
    :heading #(angle-between % (reduce conj [1.0] (repeatedly (dec (count %)) (constantly 0.0))))
@@ -758,7 +758,7 @@
   "Round to 2 (or `d`) decimal places"
   {:metadoc/categories #{:op}}
   ([v] (prot/approx v))
-  ([v ^long d] (prot/approx v d)))
+  ([v d] (prot/approx v d)))
 
 (defn magsq
   "Length of the vector squared."
@@ -790,7 +790,7 @@
 (defn mult
   "Multiply vector by number `x`."
   {:metadoc/categories #{:op}}
-  [v ^double x] (prot/mult v x))
+  [v x] (prot/mult v x))
 
 (defn emult
   "Element-wise vector multiplication (Hadamard product)."
@@ -878,7 +878,7 @@
   "Is vector almost zero? (all absolute values of elements are less than `tol` tolerance or `1.0e-6`)"
   {:metadoc/categories #{:op}}
   ([v] (prot/is-near-zero? v))
-  ([v ^double tol] (prot/is-near-zero? v tol)))
+  ([v tol] (prot/is-near-zero? v tol)))
 
 (defn heading
   "Angle between vector and unit vector `[1,0,...]`"
@@ -893,14 +893,14 @@
 (defn rotate
   "Rotate vector. Only for `Vec2` and `Vec3` types."
   {:metadoc/categories #{:geom}}
-  ([v ^double angle] (prot/rotate v angle))
-  ([v ^double angle-x ^double angle-y ^double angle-z] (prot/rotate v angle-x angle-y angle-z)))
+  ([v angle] (prot/rotate v angle))
+  ([v angle-x angle-y angle-z] (prot/rotate v angle-x angle-y angle-z)))
 
 (defn axis-rotate
   "Rotate vector. Only for `Vec3` types"
   {:metadoc/categories #{:geom}}
-  ([v ^double angle axis] (prot/axis-rotate v angle axis))
-  ([v ^double angle axis pivot] (prot/axis-rotate v angle axis pivot)))
+  ([v angle axis] (prot/axis-rotate v angle axis))
+  ([v angle axis pivot] (prot/axis-rotate v angle axis pivot)))
 
 (defn perpendicular
   "Perpendicular vector. Only for `Vec2` and `Vec3` types."
@@ -991,7 +991,7 @@
 (defn clamp
   "Clamp elements."
   {:metadoc/categories #{:op}}
-  ([v ^double mn ^double mx] (prot/econstrain v mn mx))
+  ([v mn mx] (prot/econstrain v mn mx))
   ([v] (prot/econstrain v 0 Double/MAX_VALUE)))
 
 (defn nonzero-count
@@ -1083,7 +1083,7 @@
 (defn set-mag
   "Set length of the vector"
   {:metadoc/categories #{:dist}} 
-  [v ^double len]
+  [v len]
   (prot/mult (normalize v) len))
 
 (defn limit

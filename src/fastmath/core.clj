@@ -688,6 +688,14 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ([v start1 stop1 start2 stop2] ;; map
    (PrimitiveMath/norm v start1 stop1 start2 stop2)))
 
+(defmacro mnorm
+  "Macro version of [[norm]]."
+  {:metadoc/categoriewes -conv-set-}
+  ([v start stop]
+   `(PrimitiveMath/norm ~v ~start ~stop))
+  ([v start1 stop1 start2 stop2]
+   `(PrimitiveMath/norm ~v ~start1 ~stop1 ~start2 ~stop2)))
+
 (defn make-norm
   "Make [[norm]] function for given range. Resulting function accepts `double` value (with optional target `[dstart,dstop]` range) and returns `double`."
   {:metadoc/categories -conv-set-}
