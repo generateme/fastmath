@@ -623,8 +623,8 @@ See also [[jittered-sequence-generator]]."
   ([noise] (warp-noise-fn noise 4.0 1))
   ([] (warp-noise-fn vnoise 4.0 1)))
 
-(def ^{:doc "List of possible noise generators as a map of names and functions."
-       :metadoc/categories #{:noise}}
+(defonce ^{:doc "List of possible noise generators as a map of names and functions."
+           :metadoc/categories #{:noise}}
   noise-generators
   {:fbm fbm-noise
    :single single-noise
@@ -1464,8 +1464,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;;
 
-(def ^{:doc "List of distributions."
-       :metadoc/categories #{:dist}}
+(defonce ^{:doc "List of distributions."
+           :metadoc/categories #{:dist}}
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
 
