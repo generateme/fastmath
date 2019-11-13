@@ -125,58 +125,57 @@
 (m/use-primitive-operators)
 
 ;; protocol proxies
-
 (defn frandom
   "Random double number with provided RNG"
   {:metadoc/categories #{:rand}}
   (^double [rng] (prot/frandom rng))
-  (^double [rng ^double mx] (prot/frandom rng mx))
-  (^double [rng ^double mn ^double mx] (prot/frandom rng mn mx)))
+  (^double [rng mx] (prot/frandom rng mx))
+  (^double [rng mn mx] (prot/frandom rng mn mx)))
 
 (defn drandom
   "Random double number with provided RNG"
   {:metadoc/categories #{:rand}}
   (^double [rng] (prot/drandom rng))
-  (^double [rng ^double mx] (prot/drandom rng mx))
-  (^double [rng ^double mn ^double mx] (prot/drandom rng mn mx)))
+  (^double [rng mx] (prot/drandom rng mx))
+  (^double [rng mn mx] (prot/drandom rng mn mx)))
 
 (defn grandom
   "Random gaussian double number with provided RNG"
   {:metadoc/categories #{:rand}}
   (^double [rng] (prot/grandom rng))
-  (^double [rng ^double stddev] (prot/grandom rng stddev))
-  (^double [rng ^double mean ^double stddev] (prot/grandom rng mean stddev)))
+  (^double [rng stddev] (prot/grandom rng stddev))
+  (^double [rng mean stddev] (prot/grandom rng mean stddev)))
 
 (defn irandom
   "Random integer number with provided RNG"
   {:metadoc/categories #{:rand}}
   (^long [rng] (prot/irandom rng))
-  (^long [rng ^long mx] (prot/irandom rng mx))
-  (^long [rng ^long mn ^long mx] (prot/irandom rng mn mx)))
+  (^long [rng mx] (prot/irandom rng mx))
+  (^long [rng mn ^long mx] (prot/irandom rng mn mx)))
 
 (defn lrandom
   "Random long number with provided RNG"
   {:metadoc/categories #{:rand}}
   (^long [rng] (prot/lrandom rng))
-  (^long [rng ^long mx] (prot/lrandom rng mx))
-  (^long [rng ^long mn ^long mx] (prot/lrandom rng mn mx)))
+  (^long [rng mx] (prot/lrandom rng mx))
+  (^long [rng mn mx] (prot/lrandom rng mn mx)))
 
 (defn brandom
   "Random boolean with provided RNG"
   {:metadoc/categories #{:rand}}
   ([rng] (prot/brandom rng))
-  ([rng ^double p] (prot/brandom rng p)))
+  ([rng p] (prot/brandom rng p)))
 
 (defn set-seed!
   "Sets seed. Returns `rng`."
   {:metadoc/categories #{:rand}}
-  ([rng v] (prot/set-seed! rng v)))
+  [rng v] (prot/set-seed! rng v))
 
 (defn ->seq
   "Returns lazy sequence of random samples (can be limited to optional `n` values)."
   {:metadoc/categories #{:rand}}
   ([rng] (prot/->seq rng))
-  ([rng ^long n] (prot/->seq rng n)))
+  ([rng n] (prot/->seq rng n)))
 
 ;; Type hinted functions generating random value
 (defn- next-random-value-long
@@ -679,52 +678,52 @@ See also [[jittered-sequence-generator]]."
 ;; Distribution
 
 ;; protocol proxies
+(do
+  (defn cdf
+    "Cumulative probability."
+    {:metadoc/categories #{:dist}}
+    (^double [d v] (prot/cdf d v))
+    (^double [d v1 v2] (prot/cdf d v1 v2)))
 
-(defn cdf
-  "Cumulative probability."
-  {:metadoc/categories #{:dist}}
-  (^double [d v] (prot/cdf d v))
-  (^double [d v1 v2] (prot/cdf d v1 v2)))
+  (defn pdf
+    "Density"
+    {:metadoc/categories #{:dist}}
+    ^double [d v] (prot/pdf d v))
 
-(defn pdf
-  "Density"
-  {:metadoc/categories #{:dist}}
-  ^double [d v] (prot/pdf d v))
+  (defn lpdf
+    "Log density"
+    {:metadoc/categories #{:dist}}
+    ^double [d v] (prot/lpdf d v))
 
-(defn lpdf
-  "Log density"
-  {:metadoc/categories #{:dist}}
-  ^double [d v] (prot/lpdf d v))
+  (defn icdf
+    "Inverse cumulative probability"
+    {:metadoc/categories #{:dist}}
+    [d ^double v] (prot/icdf d v))
 
-(defn icdf
-  "Inverse cumulative probability"
-  {:metadoc/categories #{:dist}}
-  [d ^double v] (prot/icdf d v))
+  (defn probability
+    "Probability (PMF)"
+    {:metadoc/categories #{:dist}}
+    ^double [d v] (prot/probability d v))
 
-(defn probability
-  "Probability (PMF)"
-  {:metadoc/categories #{:dist}}
-  ^double [d v] (prot/probability d v))
+  (defn sample
+    "Random sample"
+    {:metadoc/categories #{:dist}}
+    [d] (prot/sample d))
 
-(defn sample
-  "Random sample"
-  {:metadoc/categories #{:dist}}
-  [d] (prot/sample d))
+  (defn dimensions
+    "Distribution dimensionality"
+    {:metadoc/categories #{:dist}}
+    ^long [d] (prot/dimensions d))
 
-(defn dimensions
-  "Distribution dimensionality"
-  {:metadoc/categories #{:dist}}
-  ^long [d] (prot/dimensions d))
+  (defn source-object
+    "Returns Java or proxy object from backend library (if available)"
+    {:metadoc/categories #{:dist}}
+    [d] (prot/source-object d))
 
-(defn source-object
-  "Returns Java or proxy object from backend library (if available)"
-  {:metadoc/categories #{:dist}}
-  [d] (prot/source-object d))
-
-(defn continuous?
-  "Does distribution support continuous domain?"
-  {:metadoc/categories #{:dist}}
-  [d] (prot/continuous? d))
+  (defn continuous?
+    "Does distribution support continuous domain?"
+    {:metadoc/categories #{:dist}}
+    [d] (prot/continuous? d)))
 
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
@@ -805,26 +804,26 @@ See also [[jittered-sequence-generator]]."
 (extend RealDistribution
   prot/DistributionProto
   {:cdf (fn
-          ([^RealDistribution d ^double v] (.cumulativeProbability d v))
-          ([^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
-   :pdf (fn [^RealDistribution d ^double v] (.density d v))
-   :lpdf (fn [^AbstractRealDistribution d ^double v] (.logDensity d v))
-   :icdf (fn [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :probability (fn [^RealDistribution d ^double p] (.density d p))
-   :sample (fn [^RealDistribution d] (.sample d))
+          (^double [^RealDistribution d ^double v] (.cumulativeProbability d v))
+          (^double [^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+   :pdf (fn ^double [^RealDistribution d ^double v] (.density d v))
+   :lpdf (fn ^double [^AbstractRealDistribution d ^double v] (.logDensity d v))
+   :icdf (fn ^double [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :probability (fn ^double [^RealDistribution d ^double p] (.density d p))
+   :sample (fn ^double [^RealDistribution d] (.sample d))
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly true)} 
   prot/UnivariateDistributionProto
-  {:mean (fn [^RealDistribution d] (.getNumericalMean d))
-   :variance (fn [^RealDistribution d] (.getNumericalVariance d))
-   :lower-bound (fn [^RealDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn [^RealDistribution d] (.getSupportUpperBound d))}
+  {:mean (fn ^double [^RealDistribution d] (.getNumericalMean d))
+   :variance (fn ^double [^RealDistribution d] (.getNumericalVariance d))
+   :lower-bound (fn ^double [^RealDistribution d] (.getSupportLowerBound d))
+   :upper-bound (fn ^double [^RealDistribution d] (.getSupportUpperBound d))}
   prot/RNGProto
-  {:drandom (fn [^RealDistribution d] (.sample d))
-   :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
-   :lrandom (fn [^RealDistribution d] (unchecked-long (.sample d)))
-   :irandom (fn [^RealDistribution d] (unchecked-int (.sample d)))
+  {:drandom (fn ^double [^RealDistribution d] (.sample d))
+   :frandom (fn ^double [^RealDistribution d] (unchecked-float (.sample d)))
+   :lrandom (fn ^long [^RealDistribution d] (unchecked-long (.sample d)))
+   :irandom (fn ^long [^RealDistribution d] (unchecked-int (.sample d)))
    :->seq (fn
             ([^RealDistribution d] (repeatedly #(.sample d)))
             ([^RealDistribution d n] (repeatedly n #(.sample d))))
@@ -900,24 +899,24 @@ See also [[jittered-sequence-generator]]."
 (extend DiscreteDistribution
   prot/DistributionProto
   {:cdf (fn
-          ([^Distribution d ^double v] (.cdf d (m/floor v)))
-          ([^Distribution d ^double v1 ^double v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1)))))
-   :pdf (fn [^Distribution d ^double v] (.p d (m/floor v)))
-   :lpdf (fn [^Distribution d ^double v] (.logp d (m/floor v)))
-   :icdf (fn [^Distribution d ^double p] (.quantile d p))
-   :probability (fn [^Distribution d ^double v] (.p d (m/floor v)))
-   :sample (fn [^Distribution d] (.rand d))
+          (^double [^Distribution d ^double v] (.cdf d (m/floor v)))
+          (^double [^Distribution d ^double v1 ^double v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1)))))
+   :pdf (fn ^double [^Distribution d ^double v] (.p d (m/floor v)))
+   :lpdf (fn ^double [^Distribution d ^double v] (.logp d (m/floor v)))
+   :icdf (fn ^double [^Distribution d ^double p] (.quantile d p))
+   :probability (fn ^double [^Distribution d ^double v] (.p d (m/floor v)))
+   :sample (fn ^double [^Distribution d] (.rand d))
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly false)}  
   prot/UnivariateDistributionProto
-  {:mean (fn [^Distribution d] (.mean d))
-   :variance (fn [^Distribution d] (.var d))}
+  {:mean (fn ^double [^Distribution d] (.mean d))
+   :variance (fn ^double [^Distribution d] (.var d))}
   prot/RNGProto
-  {:drandom (fn [^Distribution d] (.rand d))
-   :frandom (fn [^Distribution d] (unchecked-float (.rand d)))
-   :lrandom (fn [^Distribution d] (unchecked-long (.rand d)))
-   :irandom (fn [^Distribution d] (unchecked-int (.rand d)))
+  {:drandom (fn ^double [^Distribution d] (.rand d))
+   :frandom (fn ^double [^Distribution d] (unchecked-float (.rand d)))
+   :lrandom (fn ^long [^Distribution d] (unchecked-long (.rand d)))
+   :irandom (fn ^long [^Distribution d] (unchecked-int (.rand d)))
    :->seq (fn
             ([^Distribution d] (repeatedly #(.rand d)))
             ([^Distribution d n] (repeatedly n #(.rand d))))})
@@ -925,26 +924,26 @@ See also [[jittered-sequence-generator]]."
 (extend IntegerDistribution
   prot/DistributionProto
   {:cdf (fn
-          ([^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
-          ([^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
-   :icdf (fn [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :pdf (fn [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
-   :lpdf (fn [^AbstractIntegerDistribution d ^double p] (.logProbability d (m/floor p)))
-   :probability (fn [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
-   :sample (fn [^IntegerDistribution d] (.sample d))
+          (^double [^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
+          (^double [^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
+   :icdf (fn ^long [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :pdf (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
+   :lpdf (fn ^double [^AbstractIntegerDistribution d ^double p] (.logProbability d (m/floor p)))
+   :probability (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
+   :sample (fn ^long [^IntegerDistribution d] (.sample d))
    :dimensions (constantly 1)
    :source-object identity
    :continuous? (constantly false)}
   prot/UnivariateDistributionProto
-  {:mean (fn [^IntegerDistribution d] (.getNumericalMean d))
-   :variance (fn [^IntegerDistribution d] (.getNumericalVariance d))
-   :lower-bound (fn [^IntegerDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn [^IntegerDistribution d] (.getSupportUpperBound d))}
+  {:mean (fn ^double [^IntegerDistribution d] (.getNumericalMean d))
+   :variance (fn ^double [^IntegerDistribution d] (.getNumericalVariance d))
+   :lower-bound (fn ^long [^IntegerDistribution d] (.getSupportLowerBound d))
+   :upper-bound (fn ^long [^IntegerDistribution d] (.getSupportUpperBound d))}
   prot/RNGProto
-  {:drandom (fn [^IntegerDistribution d] (unchecked-double (.sample d)))
-   :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
-   :lrandom (fn [^IntegerDistribution d] (unchecked-long (.sample d)))
-   :irandom (fn [^IntegerDistribution d] (.sample d))
+  {:drandom (fn ^double [^IntegerDistribution d] (unchecked-double (.sample d)))
+   :frandom (fn ^double [^IntegerDistribution d] (unchecked-float (.sample d)))
+   :lrandom (fn ^long [^IntegerDistribution d] (unchecked-long (.sample d)))
+   :irandom (fn ^long [^IntegerDistribution d] (.sample d))
    :->seq (fn
             ([^IntegerDistribution d] (repeatedly #(.sample d)))
             ([^IntegerDistribution d n] (repeatedly n #(.sample d))))
@@ -952,10 +951,10 @@ See also [[jittered-sequence-generator]]."
 
 (extend MultivariateNormalDistribution
   prot/DistributionProto
-  {:pdf (fn [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
-   :lpdf (fn [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
+  {:pdf (fn ^double [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
+   :lpdf (fn ^double [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
    :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
-   :dimensions (fn [^MultivariateNormalDistribution d] (.getDimension d))
+   :dimensions (fn ^long [^MultivariateNormalDistribution d] (.getDimension d))
    :source-object identity
    :continuous? (constantly true)}
   prot/MultivariateDistributionProto
