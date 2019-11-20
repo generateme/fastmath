@@ -433,6 +433,7 @@
 (defn sq "Same as [[pow2]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))
 (defn pow2 "Same as [[sq]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))
 (defn pow3 "\\\\(x^3\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x (* x x)))
+(defn cb "\\\\(x^3\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x (* x x)))
 
 (defn safe-sqrt
   "Safe sqrt, for value <= 0 result is 0.
