@@ -4,7 +4,8 @@
   See more:
   
   * [Apache Commons Math](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/analysis/interpolation/package-summary.html)
-  * [Smile Interpolation](http://haifengl.github.io/smile/api/java/smile/interpolation/package-summary.html)
+  * [Smile Interpolation](http://haifengl.github.io/smile/api/java/smile/interpolation/package-summary.html
+  * [SSJ B-Spline](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html)
 
   Note: Smile interpolators also extrapolate values outside range.
 
@@ -42,6 +43,7 @@
   ![2d](images/i/2d.jpg)"
   {:metadoc/categories {:smile "Smile interpolators"
                         :comm "Apache Commons Math interpolators"
+                        :ssj "SSJ interpolators"
                         :d1 "1d interpolation"
                         :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
@@ -52,7 +54,9 @@
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction BivariateFunction]
            [org.apache.commons.math3.analysis.function StepFunction]
            [smile.interpolation Interpolation AbstractInterpolation CubicSplineInterpolation1D KrigingInterpolation1D LinearInterpolation RBFInterpolation1D ShepardInterpolation1D]
-           [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]           ))
+           [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]
+           [umontreal.ssj.functionfit BSpline PolInterp]
+           [umontreal.ssj.functions MathFunction]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -242,7 +246,9 @@ Source: Apache Commons Math." #{:comm :d1}
 ;; https://gist.github.com/lecho/7627739
 
 (defn monotone
-  "Monotone interpolation"
+  "Monotone interpolation
+
+  https://gist.github.com/lecho/7627739"
   {:metadoc/categories #{:d1}}
   [xs ys]
   (assert (and (seq xs) (seq ys)) "Sequences can't be empty.")
@@ -298,6 +304,45 @@ Source: Apache Commons Math." #{:comm :d1}
                                    (* (- 3.0 t t) (aget ys (inc i))))))))))))))
 
 
+
+;; b-spline
+
+(defn- ssj-math-function
+  [^MathFunction f] (fn ^double [^double x] (.evaluate f x)))
+
+(defn b-spline-interp
+  "B-spline interpolation.
+
+  See:
+
+  * 2 or 3 arity - exact interpolation using b-spline, default degree = 3 ([more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html#a364fa9e72b7cdc0457140d79b2249530))
+  * 4 arity - approximated b-spline interpolation with precision parameter `h` ([more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html#a0892c41fc64e14a58e7f17208e05289a))"
+  {:metadoc/categories #{:ssj :d1}}
+  ([xs ys] (b-spline-interp 3 xs ys))
+  ([^long degree xs ys]
+   (ssj-math-function (BSpline/createInterpBSpline (m/seq->double-array xs) (m/seq->double-array ys) degree)))
+  ([^long degree ^long h xs ys]
+   (ssj-math-function (BSpline/createApproxBSpline (m/seq->double-array xs) (m/seq->double-array ys)
+                                                   degree (m/constrain h degree (dec (count xs)))))))
+
+(defn b-spline
+  "B-spline for given points, default degree equals samples count - 1.
+
+  [more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html)"
+  {:metadoc/categories #{:ssj :d1}}
+  ([xs ys] (b-spline (dec (count xs)) xs ys))
+  ([degree-or-knots xs ys]
+   (let [b (if (integer? degree-or-knots)
+             (BSpline. (m/seq->double-array xs) (m/seq->double-array ys) (int degree-or-knots))
+             (BSpline. (m/seq->double-array xs) (m/seq->double-array ys) (m/seq->double-array degree-or-knots)))]
+     (ssj-math-function b))))
+
+(defn polynomial
+  "Polynomial interpolation.
+
+  [more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1PolInterp.html)"
+  {:metadoc/categories #{:ssj :d1}}
+  [xs ys] (ssj-math-function (PolInterp. (m/seq->double-array xs) (m/seq->double-array ys))))
 
 ;;; 2d
 
@@ -401,7 +446,10 @@ Source: Apache Commons Math." #{:comm :d1}
                          :step-after step-after
                          :step-before step-before
                          :step step
-                         :monotone monotone})
+                         :monotone monotone
+                         :b-spline b-spline
+                         :b-spline-interp b-spline-interp
+                         :polynomial polynomial})
 
 (def ^{:doc "Map of 2d interpolation functions"
        :metadoc/categories #{:smile :comm :d2}}

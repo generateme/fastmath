@@ -82,7 +82,7 @@
                   m/pow3 m/pow2 
                   [m/qsqrt [0.01 5]] m/qsin [m/qlog [0.01 5]] m/qexp m/qcos
                   [m/rqsqrt [0.01 5]] m/round-up-pow2 m/round m/rint 
-                  m/sin m/sqrt m/sq m/sinh m/sinc m/signum m/sigmoid m/sgn m/sfrac m/sech m/sec m/safe-sqrt 
+                  m/sin m/sqrt m/sq m/cb m/sinh m/sinc m/signum m/sigmoid m/sgn m/sfrac m/sech m/sec m/safe-sqrt 
                   m/trunc [m/trigamma [0 2]] m/tanh m/tan)]
   (let [[f d] (if (vector? f) f [f nil])]
     (save-chart (function-chart (symbol->fn f) d) "m" (name f) ".png")))
@@ -416,6 +416,17 @@
 (save-chart (interpolation-chart i/step-after) "i" "step-after" ".png")
 (save-chart (interpolation-chart i/step-before) "i" "step-before" ".png")
 (save-chart (interpolation-chart i/monotone) "i" "monotone" ".png")
+
+(save-chart (interpolation-chart i/polynomial true) "i" "polynomial" ".png")
+
+(save-chart (interpolation-chart i/b-spline) "i" "bspline1" ".png")
+(save-chart (interpolation-chart (partial i/b-spline 1)) "i" "bspline2" ".png")
+(save-chart (interpolation-chart (partial i/b-spline (map #(/ % 7.0) [0 0.1 0.3 0.6 1.7 2.0 2 3 4 4.8 5 5.5 5.8 6 6.5 7])))
+            "i" "bspline3" ".png")
+
+(save-chart (interpolation-chart i/b-spline-interp) "i" "bsplinei1" ".png")
+(save-chart (interpolation-chart (partial i/b-spline-interp 5)) "i" "bsplinei2" ".png")
+(save-chart (interpolation-chart (partial i/b-spline-interp 3 6)) "i" "bsplinei3" ".png")
 
 (defn ifun2d
   ^double [^double x ^double y]

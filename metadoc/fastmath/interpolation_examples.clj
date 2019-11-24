@@ -77,6 +77,22 @@
   (example-snippet "Usage" interpolate :simple monotone)
   (example-image "Monotone plot" "images/i/monotone.png"))
 
+(add-examples polynomial
+  (example-snippet "Usage" interpolate :simple polynomial)
+  (example-image "Polynomial plot" "images/i/polynomial.png"))
+
+(add-examples b-spline
+  (example-snippet "Usage" interpolate :simple b-spline)
+  (example-image "B-Spline plot" "images/i/bspline1.png")
+  (example-image "B-Spline plot (degree=1)" "images/i/bspline2.png")
+  (example-image "B-Spline plot (with knots)" "images/i/bspline3.png"))
+
+(add-examples b-spline-interp
+  (example-snippet "Usage" interpolate :simple b-spline-interp)
+  (example-image "B-Spline interpolation plot" "images/i/bsplinei1.png")
+  (example-image "B-Spline interpolation plot (degree=5)" "images/i/bsplinei2.png")
+  (example-image "B-Spline interpolation plot (degree=3, h=6)" "images/i/bsplinei3.png"))
+
 (add-examples microsphere-projection
   (example-snippet "Usage" interpolate :simple microsphere-projection 6 0.1 0.1 0.1 1.5 false 0.01)
   (example-image "Microsphere plot" "images/i/microsphere.png"))

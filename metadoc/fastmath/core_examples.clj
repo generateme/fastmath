@@ -350,7 +350,7 @@
                        sinh cosh tanh coth sech csch asinh acosh atanh acoth asech acsch
                        qsin qcos exp log log10 ln log1p expm1 sqrt cbrt qexp qsqrt rqsqrt
                        erf erfc inv-erf inv-erfc sinc log2 qlog log1pexp
-                       sq pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc itrunc
+                       sq cb pow2 pow3 safe-sqrt floor ceil round rint abs iabs trunc itrunc
                        frac sfrac low-2-exp high-2-exp round-up-pow2
                        signum sgn sigmoid logit
                        gamma log-gamma digamma log-gamma-1p trigamma inv-gamma-1pm1))
