@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.5.0-alpha4]
+
+### Changed
+
+* some defaults for scan optimization
+
 ## [1.5.0-alpha3]
 
 ### Added

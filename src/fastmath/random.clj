@@ -678,52 +678,51 @@ See also [[jittered-sequence-generator]]."
 ;; Distribution
 
 ;; protocol proxies
-(do
-  (defn cdf
-    "Cumulative probability."
-    {:metadoc/categories #{:dist}}
-    (^double [d v] (prot/cdf d v))
-    (^double [d v1 v2] (prot/cdf d v1 v2)))
+(defn cdf
+  "Cumulative probability."
+  {:metadoc/categories #{:dist}}
+  (^double [d v] (prot/cdf d v))
+  (^double [d v1 v2] (prot/cdf d v1 v2)))
 
-  (defn pdf
-    "Density"
-    {:metadoc/categories #{:dist}}
-    ^double [d v] (prot/pdf d v))
+(defn pdf
+  "Density"
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (prot/pdf d v))
 
-  (defn lpdf
-    "Log density"
-    {:metadoc/categories #{:dist}}
-    ^double [d v] (prot/lpdf d v))
+(defn lpdf
+  "Log density"
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (prot/lpdf d v))
 
-  (defn icdf
-    "Inverse cumulative probability"
-    {:metadoc/categories #{:dist}}
-    [d ^double v] (prot/icdf d v))
+(defn icdf
+  "Inverse cumulative probability"
+  {:metadoc/categories #{:dist}}
+  [d ^double v] (prot/icdf d v))
 
-  (defn probability
-    "Probability (PMF)"
-    {:metadoc/categories #{:dist}}
-    ^double [d v] (prot/probability d v))
+(defn probability
+  "Probability (PMF)"
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (prot/probability d v))
 
-  (defn sample
-    "Random sample"
-    {:metadoc/categories #{:dist}}
-    [d] (prot/sample d))
+(defn sample
+  "Random sample"
+  {:metadoc/categories #{:dist}}
+  [d] (prot/sample d))
 
-  (defn dimensions
-    "Distribution dimensionality"
-    {:metadoc/categories #{:dist}}
-    ^long [d] (prot/dimensions d))
+(defn dimensions
+  "Distribution dimensionality"
+  {:metadoc/categories #{:dist}}
+  ^long [d] (prot/dimensions d))
 
-  (defn source-object
-    "Returns Java or proxy object from backend library (if available)"
-    {:metadoc/categories #{:dist}}
-    [d] (prot/source-object d))
+(defn source-object
+  "Returns Java or proxy object from backend library (if available)"
+  {:metadoc/categories #{:dist}}
+  [d] (prot/source-object d))
 
-  (defn continuous?
-    "Does distribution support continuous domain?"
-    {:metadoc/categories #{:dist}}
-    [d] (prot/continuous? d)))
+(defn continuous?
+  "Does distribution support continuous domain?"
+  {:metadoc/categories #{:dist}}
+  [d] (prot/continuous? d))
 
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."

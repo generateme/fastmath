@@ -336,7 +336,7 @@
                                [(first bounds) (second bounds) m/lerp f]
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
         N (max 10 ^int N)
-        n (max 10 (m/floor (* ^double n N)))
+        n (max 4 (m/floor (* ^double n N)))
         gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim jitter)]
     (->> (take N (if (and (not= method :brent)
                           (m/one? dim)) (map vector gen) gen))
@@ -354,7 +354,7 @@
   * N - number of points to scan per dimension (default: 10, minumum 10)
   * n - fraction of total points N) used for optimization (default: 0.1, minimum 10)"
   [optimizer goal method f {:keys [bounds ^int N ^double n ^double jitter]
-                            :or {N 10 n 0.1 jitter 0.25}
+                            :or {N 100 n 0.05 jitter 0.25}
                             :as config}]
   (assert (not (nil? bounds)) "Provide search bounds.")
   (let [goal (or goal (get config :goal :minimize))
