@@ -5,7 +5,7 @@ Fast and primitive based math library.
 ## Installation
 
 ```clojure
-[generateme/fastmath "1.5.0-alpha1"]
+[generateme/fastmath "1.5.0-alpha4"]
 ```
 
 ## Documentation
@@ -134,7 +134,7 @@ Signal (audio) processing filters and oscillators
 
 Plenty of constant values
 
-Almost all functions optimized to work on `double` and `long` primitives
+Almost all functions optimized to work with `double` and `long` primitives
 
 ## Supporting libraries
 
