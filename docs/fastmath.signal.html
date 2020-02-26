@@ -164,7 +164,7 @@
 <p>Returns new signal as <code>double-array</code>.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [lpf (effect :simple-lowpass {:cutoff 10000})
       sgnal (m/seq-&gt;double-array [-1.0 1.0 -0.5 0.5 -0.1 0.1 0 0])]
   (apply-effects-raw sgnal lpf))
-;;=&gt; [D@3fd6b82</code></pre></div><div><blockquote><p>Reset state every two samples</p></blockquote><pre><code class="hljs clojure">(let [lpf (effect :simple-lowpass {:cutoff 10000})
+;;=&gt; [D@741d4ff5</code></pre></div><div><blockquote><p>Reset state every two samples</p></blockquote><pre><code class="hljs clojure">(let [lpf (effect :simple-lowpass {:cutoff 10000})
       sgnal (m/seq-&gt;double-array [-1.0 1.0 -0.5 0.5 -0.1 0.1 0 0])]
   (seq (apply-effects-raw sgnal lpf 2)))
 ;;=&gt; (-0.5875878072514978
@@ -182,9 +182,9 @@
    "After call on sample" result,
    "Extracted sample" (result)})
 ;;=&gt; {"After call on sample"
-;;=&gt;  #object[fastmath.signal.EffectsList 0xbc21b3f "simple-highpass (0.38911967999610275) -&gt; simple-lowpass (0.08629142927556396)"],
+;;=&gt;  #object[fastmath.signal.EffectsList 0x408c030b "simple-highpass (0.38911967999610275) -&gt; simple-lowpass (0.08629142927556396)"],
 ;;=&gt;  "Composed effects"
-;;=&gt;  #object[fastmath.signal.EffectsList 0x408880cc "simple-highpass (0.0) -&gt; simple-lowpass (0.0)"],
+;;=&gt;  #object[fastmath.signal.EffectsList 0x2a88880d "simple-highpass (0.0) -&gt; simple-lowpass (0.0)"],
 ;;=&gt;  "Extracted sample" 0.08629142927556396}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L211">view source</a></div></div><div class="public anchor" id="var-db-.3Elinear"><h3>db-&gt;linear</h3><div class="usage"><code>(db-&gt;linear x)</code></div><div class="doc"><div class="markdown"><p>DB to Linear</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(db-&gt;linear 0.5)
 ;;=&gt; 1.0592537251772889</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L269">view source</a></div></div><div class="public anchor" id="var-effect"><h3>effect</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Create effect for given name (as keyword) and optional parameters.</p>
 <p>List of all possible effects is under <a href="fastmath.signal.html#var-effects-list">effects-list</a>.</p>
@@ -230,7 +230,7 @@
   <li>seconds - duration</li>
 </ul>
 <p>Returns sampled signal as double array.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [w (oscillator :sin 0.2 0.9 0.2)] (oscillator-&gt;signal w 44100 5))
-;;=&gt; [D@3ef40fce</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L957">view source</a></div></div><div class="public anchor" id="var-oscillator-gain"><h3>oscillator-gain</h3><div class="usage"><code>(oscillator-gain fs gain)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [wave-sin (oscillator :sin 1.0 1.0 0.5)
+;;=&gt; [D@5bd5ed6</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L957">view source</a></div></div><div class="public anchor" id="var-oscillator-gain"><h3>oscillator-gain</h3><div class="usage"><code>(oscillator-gain fs gain)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [wave-sin (oscillator :sin 1.0 1.0 0.5)
       gained (oscillator-gain wave-sin 0.22)]
   {:original (wave-sin 0.75), :gained (gained 0.75)})
 ;;=&gt; {:gained 0.22, :original 1.0}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L951">view source</a></div></div><div class="public anchor" id="var-oscillators"><h3>oscillators</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of oscillator names used with <a href="fastmath.signal.html#var-oscillator">oscillator</a></p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of oscillators</p></blockquote><pre><code class="hljs clojure">oscillators
@@ -241,7 +241,7 @@
 ;;=&gt; -0.24999999999999994</code></pre></div><div><blockquote><p>Signal plot</p></blockquote><img src="images/s/sum.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L945">view source</a></div></div><div class="public anchor" id="var-save-signal"><h3>save-signal</h3><div class="usage"><code>(save-signal sig filename)</code></div><div class="doc"><div class="markdown"><p>Save signal to file.</p>
 <p>Representation is: 16 bit signed, big endian file You can use Audacity/SOX utilities to convert files to audio.</p></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p></blockquote><pre><code class="hljs clojure">(let [s (oscillator-&gt;signal (oscillator :sin 1 1 0) 11050 5)]
   (save-signal s "signal.raw"))
-;;=&gt; [D@18bfde9e</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L839">view source</a></div></div><div class="public anchor" id="var-signal-.3Eoscillator"><h3>signal-&gt;oscillator</h3><div class="usage"><code>(signal-&gt;oscillator sig seconds)</code><code>(signal-&gt;oscillator sig seconds interpolator)</code></div><div class="doc"><div class="markdown"><p>Create oscillator from signal.</p>
+;;=&gt; [D@6baac161</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/signal.clj#L839">view source</a></div></div><div class="public anchor" id="var-signal-.3Eoscillator"><h3>signal-&gt;oscillator</h3><div class="usage"><code>(signal-&gt;oscillator sig seconds)</code><code>(signal-&gt;oscillator sig seconds interpolator)</code></div><div class="doc"><div class="markdown"><p>Create oscillator from signal.</p>
 <p>Parameters:</p>
 <ul>
   <li>sig - signal as sequence</li>

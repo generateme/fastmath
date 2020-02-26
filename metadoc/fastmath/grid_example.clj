@@ -9,12 +9,12 @@
     (name (grid :square))
     (str (grid :rhombus))
     (grid))
-  (example-image "Pointy hex (red dot: mid point, cyan circle: anchor)" "images/g/pointy-hex.png")
-  (example-image "Flat hex (red dot: mid point, cyan circle: anchor)" "images/g/flat-hex.png")
-  (example-image "Rhombus (red dot: mid point, cyan circle: anchor)" "images/g/rhombus.png")
-  (example-image "Triangle (red dot: mid point, cyan circle: anchor)" "images/g/triangle.png")
-  (example-image "Square (red dot: mid point, cyan circle: anchor)" "images/g/square.png")
-  (example-image "Shifted square (red dot: mid point, cyan circle: anchor)" "images/g/shifted-square.png"))
+  (example-image "Pointy hex (red dot: mid point, cyan circle: anchor)" "images/g/pointy-hex.jpg")
+  (example-image "Flat hex (red dot: mid point, cyan circle: anchor)" "images/g/flat-hex.jpg")
+  (example-image "Rhombus (red dot: mid point, cyan circle: anchor)" "images/g/rhombus.jpg")
+  (example-image "Triangle (red dot: mid point, cyan circle: anchor)" "images/g/triangle.jpg")
+  (example-image "Square (red dot: mid point, cyan circle: anchor)" "images/g/square.jpg")
+  (example-image "Shifted square (red dot: mid point, cyan circle: anchor)" "images/g/shifted-square.jpg"))
 
 (add-examples coords->cell
   (example "Usage"
