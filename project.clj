@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "1.5.0-alpha4"
+(defproject generateme/fastmath "1.5.0-alpha5"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The Unlicence"
@@ -9,11 +9,9 @@
                  [com.github.haifengl/smile-interpolation "1.5.3" ]
                  [com.github.haifengl/smile-core "1.5.3"]
                  [com.github.haifengl/smile-netlib "1.5.3"]
-                 [org.slf4j/slf4j-nop "1.7.28"]
                  [de.sciss/jwave "1.0.3"]
                  [de.bwaldvogel/liblinear "2.30"]
                  [ca.umontreal.iro.simul/ssj "3.3.1"]]
-  :exclusions [[org.slf4j/slf4j-simple]]
   :resource-path "resources/"
   :java-source-paths ["src"]
   :javac-options ["-target" "1.8" "-source" "1.8"]
