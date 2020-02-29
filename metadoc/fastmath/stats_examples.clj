@@ -91,7 +91,17 @@
 (add-examples sum (example "Sum" (sum [1 2 3 -1 -1 2 -1 11 111])))
 
 (add-examples kurtosis (example "Kurtosis" (kurtosis [1 2 3 -1 -1 2 -1 11 111])))
-(add-examples second-moment (example "Second Moment" (second-moment [1 2 3 -1 -1 2 -1 11 111])))
+(add-examples moment
+  (example-session "Usage"
+    (moment [3 7 5 9 -8])
+    (moment [3 7 5 9 -8] 1.0)
+    (moment [3 7 5 9 -8] 4.0)
+    (moment [3 7 5 9 -8] 3.0)
+    (moment [3 7 5 9 -8] 3.0 {:center 0.0})
+    (moment [3 7 5 9 -8] 3.0 {:mean? false})
+    (moment [3 7 5 9 -8] 3.0 {:absolute? true})
+    (moment [3 7 5 9 -8] 3.0 {:center -3.0})
+    (moment [3 7 5 9 -8] 0.5 {:absolute? true})))
 (add-examples skewness (example "Skewness" (skewness [1 2 3 -1 -1 2 -1 11 111])))
 
 (add-examples sem (example "SEM" (sem [1 2 3 -1 -1 2 -1 11 111])))

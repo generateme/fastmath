@@ -210,6 +210,9 @@
 (defn fast-min {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
                 :doc "Primitive `min` for two arguments as function (not macro)."
                 :metadoc/categories -prim-set-} ^double [^double a ^double b] (min a b))
+(defn fast-identity {:inline (fn [x] `~x) :inline-arities #{1}
+                     :doc "Identity on double."
+                     :metadoc/categories -prim-set-} ^double [^double a] a)
 
 ;; Primitive math eq
 (defn eq 

@@ -43,7 +43,6 @@
   * `:Outliers` - list of [[outliers]], samples which are outside outer fences
   * `:Kurtosis` - [[kurtosis]]
   * `:Skewness` - [[skewness]]
-  * `:SecMoment` - second central moment, use: [[second-moment]]
 
   Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)"
   {:metadoc/categories {:stat "Descriptive statistics"
@@ -57,7 +56,7 @@
             [fastmath.random :as r])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
-           [org.apache.commons.math3.stat.descriptive.moment Kurtosis SecondMoment Skewness]
+           [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
            [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
            [org.apache.commons.math3.stat.inference TestUtils]))
 
@@ -369,14 +368,35 @@
   (let [^Kurtosis k (Kurtosis.)]
     (.evaluate k (m/seq->double-array vs))))
 
-(defn second-moment
-  "Calculate second moment from sequence.
+(defn moment
+  "Calculate moment (central or/and absolute) of given order (default: 2).
 
-  It's a sum of squared deviations from the sample mean"
-  {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [^SecondMoment k (SecondMoment.)]
-    (.evaluate k (m/seq->double-array vs))))
+  Additional parameters as a map:
+
+  * `:absolute?` - calculate sum as absolute values (default: `false`)
+  * `:mean?` - returns mean (proper moment) or just sum of differences (default: `true`)
+  * `:center` - value of central (default: `nil` = mean)"
+  (^double [vs] (moment vs 2.0 nil))
+  (^double [vs ^double order] (moment vs order nil))
+  (^double [vs ^double order {:keys [absolute? center mean?]
+                              :or {absolute? false center nil mean? true}}]
+   (let [in (double-array vs)
+         cin (alength in)
+         ^double center (if-not center 0.0 (or center (mean in)))
+         f (case order
+             1.0 m/fast-identity
+             2.0 m/sq
+             3.0 m/cb
+             4.0 (fn ^double [^double diff] (m/sq (m/sq diff)))
+             (fn ^double [^double diff] (m/pow diff order)))
+         a (if absolute? m/abs m/fast-identity)]
+     (loop [idx (int 0)]
+       (when (< idx cin)
+         (aset in idx ^double (f (a (- (aget in idx) center))))
+         (recur (inc idx))))
+     (if mean? (mean in) (sum in)))))
+
+(def ^{:deprecated "Use `moment` function"} second-moment moment)
 
 (defn skewness
   "Calculate kurtosis from sequence."
@@ -475,8 +495,7 @@
       :UIF (+ q3 (* 1.5 iqr))
       :Outliers (outliers avs q1 q3)
       :Kurtosis (kurtosis avs)
-      :Skewness (skewness avs)
-      :SecMoment (second-moment avs)})))
+      :Skewness (skewness avs)})))
 
 (stats-map [1 2 3 4 5 11])
 
@@ -1012,3 +1031,4 @@
       :cis (map (fn [^double r]
                   (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
                                                                (+ acc (* s s))) acf-data))})))
+

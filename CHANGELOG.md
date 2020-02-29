@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.5.1]
+
+### Added
+
+* `moment` function
+
+### Removed
+
+* `second-moment` (invalid implementation)
+
 ## [1.5.0]
 
 ### Changed
