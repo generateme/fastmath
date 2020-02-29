@@ -382,7 +382,7 @@
                               :or {absolute? false center nil mean? true}}]
    (let [in (double-array vs)
          cin (alength in)
-         ^double center (if-not center 0.0 (or center (mean in)))
+         ^double center (or center (mean in))
          f (case order
              1.0 m/fast-identity
              2.0 m/sq
