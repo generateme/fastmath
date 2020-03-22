@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.5.3-SNAPSHOT]
+
+### Changed
+
+* R2 sequence is able to generate up to dimensioons=15
+
 ## [1.5.2]
 
 ### Fixed

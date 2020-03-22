@@ -38,7 +38,7 @@
 
   Couple of functions to generate sequences of numbers or vectors.
 
-  To create generator call [[sequence-generator]] with generator name and vector size [1,4].
+  To create generator call [[sequence-generator]] with generator name and vector size.
   Following generators are available:
 
   * `:halton` - Halton low-discrepancy sequence; range [0,1]
@@ -382,7 +382,7 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
   (let [s (case seq-generator
             :halton (m/constrain dimensions 1 40)
             :sobol (m/constrain dimensions 1 1000)
-            :r2 (m/constrain dimensions 1 4)
+            :r2 (m/constrain dimensions 1 15)
             dimensions)
         ^RandomVectorGenerator g (case seq-generator
                                    :halton (HaltonSequenceGenerator. s)
@@ -440,7 +440,7 @@ Values:
 
 Possible dimensions:
 
-* `:r2` - 1-4
+* `:r2` - 1-15
 * `:halton` - 1-40
 * `:sobol` - 1-1000
 * the rest - 1+
