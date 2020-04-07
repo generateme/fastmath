@@ -3,9 +3,20 @@ All notable changes to this project will be documented in this file. This change
 
 ## [1.5.3-SNAPSHOT]
 
+### Added
+
+* `round-even` - even (or IEEE/IEC) rounding
+* `cut` - cut range into even intervals
+* `slice-range` - cut range into even steps
+
 ### Changed
 
-* R2 sequence is able to generate up to dimensioons=15
+* R2 sequence is able to generate up to dimensions=15
+
+### Fixed
+
+* `co-intervals` works the same as in R now
+* `group-by-intervals` checks all intervals instead the first one
 
 ## [1.5.2]
 

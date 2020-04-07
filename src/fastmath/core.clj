@@ -63,7 +63,8 @@
            [fastmath.java PrimitiveMath]
            [clojure.lang Numbers]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Erf Gamma Beta BesselJ]))
+           [org.apache.commons.math3.special Erf Gamma Beta BesselJ])
+  (:require [fastmath.core :as m]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -495,10 +496,15 @@
         :metadoc/categories -round-set-} round ^long [^double x] (FastMath/round x))
 (defn ^{:doc "Round to `double`. See [[round]], [[qround]]."
         :metadoc/categories -round-set-} rint ^double [^double x] (FastMath/rint x))
+(defn round-even
+  "Round evenly (like in round in R), IEEE / IEC rounding"
+  {:metadoc/categories -round-set-}
+  ^long [^double x] (FastMath/roundEven x))
 
 (primitivemath-proxy :one ^{:doc "Fast version of [[floor]]. Returns `long`. See: [[floor]]." :metadoc/categories -round-set-} qfloor fastFloor)
 (primitivemath-proxy :one ^{:doc "Fast version of [[ceil]]. Returns `long`. See: [[ceil]]." :metadoc/categories -round-set-} qceil fastCeil)
 (primitivemath-proxy :one ^{:doc "Fast version of [[round]]. Returns `long`. See: [[rint]], [[round]]." :metadoc/categories -round-set-} qround fastRound)
+
 
 (fastmath-proxy :two ^{:doc "From `FastMath` doc: returns dividend - divisor * n,
 where n is the mathematical integer closest to dividend/divisor. Returned value in `[-|divisor|/2,|divisor|/2]`"
@@ -826,10 +832,35 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   (Double/isFinite v))
 
 (defn between?
-  "Check if given number is within the range."
+  "Check if given number is within the range [x,y]."
   {:metadoc/categories #{:bool :compare}}
   ([[^double x ^double y] ^double v] (<= x v y))
   ([^double x ^double y ^double v] (<= x v y)))
+
+(defn between-?
+  "Check if given number is within the range (x,y]."
+  {:metadoc/categories #{:bool :compare}}
+  ([[^double x ^double y] ^double v] (and (< x v) (<= v y)))
+  ([^double x ^double y ^double v] (and (< x v) (<= v y))))
+
+;; intervals
+
+(defn slice-range 
+  "Slice range to get `cnt` number of points evenly distanced."
+  ([^double start ^double end ^long cnt] (if (= cnt 1)
+                                           (list (+ start (* 0.5 (- end start))))
+                                           (map #(m/mnorm % 0.0 (dec cnt) start end) (range cnt))))
+  ([^long cnt] (slice-range 0.0 1.0 cnt)))
+
+(defn cut
+  "Cut range or sequence into intervals"
+  ([data ^long breaks]
+   (let [d (sort (remove invalid-double? data))]
+     (cut (first d) (last d) breaks)))
+  ([^double x1 ^double x2 ^long breaks]
+   (let [[[^double start end] & r] (->> (slice-range x1 x2 (inc breaks))
+                                        (partition 2 1))]
+     (conj r (list (- start EPSILON) end)))))
 
 (defn co-intervals
   "Divide sequence to overlaping intervals containing similar number of values. Same as R's `co.intervals()`"
@@ -843,10 +874,12 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
          r (/ n (+ (* number o-) overlap))
          ii-mult (*  o- r)
          ii (mapv #(* ^long % ii-mult) (range number))
-         x1 (map #(x (round %)) ii)
-         xr (map #(x (min n- (round (+ r ^double %)))) ii)
+         x1 (map #(x (round-even %)) ii)
+         xr (map #(x (dec (round-even (+ r ^double %)))) ii)
+         _ (println x n r ii x1 xr)
          diffs (filter #(pos? ^double %) (mapv (fn [[^double x ^double y]] (- y x)) (partition 2 1 x)))
          eps (* 0.5 (double (if (seq diffs) (reduce fast-min diffs) 0.0)))]
+     (println diffs eps)
      (for [[[^double px ^double cx] [^double py ^double cy]] (map vector
                                                                   (partition 2 1 (conj x1 (dec ^double (first x1))))
                                                                   (partition 2 1 (conj xr (dec ^double (first xr)))))
@@ -854,23 +887,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                      (pos? (- cy py)))]
        [(- cx eps) (+ cy eps)]))))
 
-(defn- find-interval
-  [intervals v]
-  (some #(if (between? % v) % false) intervals))
-
 (defn group-by-intervals
   "Group sequence of values into given intervals.
 
   If `intervals` are missing, use [[co-intervals]] to find some."
   ([coll] (group-by-intervals (co-intervals coll) coll))
   ([intervals coll]
-   (reduce (fn [m ^double v]
-             (if-let [interval (find-interval intervals v)]
-               (if (contains? m interval)
-                 (update m interval conj v)
-                 (assoc m interval [v]))
-               m)) {} coll)))
-;; gcd 
+   (into {} (map (fn [[^double x1 ^double x2 :as i]]
+                   [i (filter #(between-? x1 x2 %) coll)]) intervals))))
+
+;; gcd
 
 (defn- gcd-
   "Input is unsigned!"
