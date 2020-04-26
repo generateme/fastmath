@@ -953,11 +953,15 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn rank
   "Sample ranks. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/rank).
 
-  Possible tie strategies: `:average`, `:first`, `:last`, `:random`, `:min`, `:max`"
+  Rank uses 0 based indexing.
+  
+  Possible tie strategies: `:average`, `:first`, `:last`, `:random`, `:min`, `:max`, `:dense`.
+
+  `:dense` is the same as in `data.table::frank` from R"
   {:metadoc/categories #{:rank}}
   ([vs] (rank vs :average))
   ([vs ties]
-   (let [indexed-sorted-map (group-by second (map-indexed (fn [^long idx v] [(inc idx) v]) (sort vs)))]
+   (let [indexed-sorted-map (group-by second (map-indexed vector (sort vs)))]
      (if (#{:first :last :random} ties)
        (let [tie-sort (case ties
                         :first (partial sort-by first clojure.core/<)
@@ -970,13 +974,20 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                              (assoc curr v (rest lst))])) [[] sorted2-map] vs)))
        (let [tie-fn (case ties
                       :min ffirst
+                      :dense ffirst
                       :max (comp first last)
                       (fn ^double [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
-             m (into {} (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map))]
-         (map m vs))))))
+             m (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map)
+             m (if (= ties :dense)
+                 (map-indexed (fn [id [k v]]
+                                [k id]) (sort-by second m))
+                 m)]
+         (map (into {} m) vs))))))
 
 (defn order
-  "Ordering permutation. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/order)"
+  "Ordering permutation. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/order)
+
+  Order uses 0 based indexing."
   {:metadoc/categories #{:rank}}
   ([vs] (order vs false))
   ([vs decreasing?]
@@ -984,7 +995,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
         (sort-by second (if decreasing?
                           clojure.core/>
                           clojure.core/<))
-        (map (comp #(inc ^long %) first)))))
+        (map first))))
 
 ;;
 

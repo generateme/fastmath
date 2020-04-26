@@ -8,10 +8,12 @@ All notable changes to this project will be documented in this file. This change
 * `round-even` - even (or IEEE/IEC) rounding
 * `cut` - cut range into even intervals
 * `slice-range` - cut range into even steps
+* `:dense` rank ties method
 
 ### Changed
 
 * R2 sequence is able to generate up to dimensions=15
+* [breaking] `rank` and `order` chagned to be zero based.
 
 ### Fixed
 

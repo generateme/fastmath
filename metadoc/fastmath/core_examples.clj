@@ -323,23 +323,24 @@
     (nan? ##NaN)))
 
 (add-examples order
-  (example "Usage" {:test-value '(1 2 5 6 4 7 3 8 10 9)} (order [1 1 3 2 1 1 2 3 4 3]))
-  (example "Reverse order" {:test-value '(9 3 8 10 4 7 1 2 5 6)} (order [1 1 3 2 1 1 2 3 4 3] true)))
+  (example "Usage" {:test-value '(0 1 4 5 3 6 2 7 9 8)} (order [1 1 3 2 1 1 2 3 4 3]))
+  (example "Reverse order" {:test-value '(8 2 7 9 3 6 0 1 4 5)} (order [1 1 3 2 1 1 2 3 4 3] true)))
 
 (add-examples rank
-  (example-session "Usage" {:test-values ['(4.5 1.5 6.0 1.5 8.0 11.0 3.0 10.0 8.0 4.5 8.0)
-                                          '(4.5 1.5 6.0 1.5 8.0 11.0 3.0 10.0 8.0 4.5 8.0)
-                                          [4 1 6 2 7 11 3 10 8 5 9]
-                                          [5 2 6 1 9 11 3 10 8 4 7]
-                                          '(4 1 6 1 7 11 3 10 7 4 7)
-                                          '(5 2 6 2 9 11 3 10 9 5 9)
-                                          ]}
+  (example-session "Usage" {:test-values ['(3.5 0.5 5.0 0.5 7.0 10.0 2.0 9.0 7.0 3.5 7.0)
+                                          '(3.5 0.5 5.0 0.5 7.0 10.0 2.0 9.0 7.0 3.5 7.0)
+                                          [3 0 5 1 6 10 2 9 7 4 8]
+                                          [4 1 5 0 8 10 2 9 7 3 6]
+                                          '(3 0 5 0 6 10 2 9 6 3 6)
+                                          '(4 1 5 1 8 10 2 9 8 4 8)
+                                          '(2 0 3 0 4 6 1 5 4 2 4)]}
     (rank [3 1 4 1 5 9 2 6 5 3 5])
     (rank [3 1 4 1 5 9 2 6 5 3 5] :average)
     (rank [3 1 4 1 5 9 2 6 5 3 5] :first)
     (rank [3 1 4 1 5 9 2 6 5 3 5] :last)
     (rank [3 1 4 1 5 9 2 6 5 3 5] :min)
-    (rank [3 1 4 1 5 9 2 6 5 3 5] :max))
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :max)
+    (rank [3 1 4 1 5 9 2 6 5 3 5] :dense))
   (example-session "Random ties"
     (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
     (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
