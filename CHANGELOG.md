@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file. This change
 
 * R2 sequence is able to generate up to dimensions=15
 * [breaking] `rank` and `order` chagned to be zero based.
+* Licence changed to MIT
 
 ### Fixed
 
