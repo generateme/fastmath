@@ -683,9 +683,9 @@
 (defn- nrd
   ^double [data]
   (let [adata (m/seq->double-array data)
-        sd (smile.math.Math/sd adata)
-        iqr (- (smile.math.Math/q3 adata)
-               (smile.math.Math/q1 adata))]
+        sd (smile.math.MathEx/sd adata)
+        iqr (- (smile.math.MathEx/q3 adata)
+               (smile.math.MathEx/q1 adata))]
     (* 1.06 (min sd (/ iqr 1.34)) (m/pow (alength ^doubles data) -0.2))))
 
 (defn- kde

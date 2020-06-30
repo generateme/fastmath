@@ -62,14 +62,14 @@
             [fastmath.stats :as stat]
             [fastmath.distance :as d]
             [fastmath.protocols :as prot])
-  (:import [smile.clustering PartitionClustering Clustering KMeans GMeans XMeans DeterministicAnnealing
+  (:import [smile.clustering PartitionClustering KMeans GMeans XMeans DeterministicAnnealing
             DENCLUE CLARANS DBSCAN MEC]
            [smile.vq NeuralGas]
            [clojure.lang IFn]))
 
 (set! *warn-on-reflection* false)
 
-(def ^:const ^{:doc "Id of the cluster which contain outliers."} outlier-id Clustering/OUTLIER)
+(def ^:const ^{:doc "Id of the cluster which contain outliers."} outlier-id PartitionClustering/OUTLIER)
 
 (defrecord ClusteringResult [type data clustering sizes clusters predict representatives info obj]
   IFn

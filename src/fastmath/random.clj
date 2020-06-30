@@ -910,7 +910,7 @@ See also [[jittered-sequence-generator]]."
    :continuous? (constantly false)}  
   prot/UnivariateDistributionProto
   {:mean (fn ^double [^Distribution d] (.mean d))
-   :variance (fn ^double [^Distribution d] (.var d))}
+   :variance (fn ^double [^Distribution d] (.variance d))}
   prot/RNGProto
   {:drandom (fn ^double [^Distribution d] (.rand d))
    :frandom (fn ^double [^Distribution d] (unchecked-float (.rand d)))
