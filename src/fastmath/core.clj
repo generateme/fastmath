@@ -61,9 +61,8 @@
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd?])
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
-           [clojure.lang Numbers]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Erf Gamma Beta BesselJ])
+           [org.apache.commons.math3.special Gamma])
   (:require [fastmath.core :as m]))
 
 (set! *warn-on-reflection* true)
@@ -870,7 +869,6 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
    (let [o- (- 1.0 overlap)
          x (vec (sort (remove invalid-double? data)))
          n (count x)
-         n- (dec n)
          r (/ n (+ (* number o-) overlap))
          ii-mult (*  o- r)
          ii (mapv #(* ^long % ii-mult) (range number))
@@ -960,8 +958,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   `:dense` is the same as in `data.table::frank` from R"
   {:metadoc/categories #{:rank}}
   ([vs] (rank vs :average))
-  ([vs ties]
-   (let [indexed-sorted-map (group-by second (map-indexed vector (sort vs)))]
+  ([vs ties] (rank vs ties false))
+  ([vs ties desc?]
+   (let [cmp (if desc? #(compare %2 %1) compare)
+         indexed-sorted-map (group-by second (map-indexed vector (sort cmp vs)))]
      (if (#{:first :last :random} ties)
        (let [tie-sort (case ties
                         :first (partial sort-by first clojure.core/<)
@@ -979,7 +979,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                       (fn ^double [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
              m (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map)
              m (if (= ties :dense)
-                 (map-indexed (fn [id [k v]]
+                 (map-indexed (fn [id [k _]]
                                 [k id]) (sort-by second m))
                  m)]
          (map (into {} m) vs))))))
@@ -1007,20 +1007,20 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   Alias for `seq`."
        :metadoc/categories #{:seq}} double-array->seq seq)
 
-(defmacro ^:private seq->any-array
-  [primitive-type]
-  (let [atype (symbol (str primitive-type "-array"))
-        clazz (symbol (str atype "-type"))
-        fname (symbol (str "seq->" atype))
-        docs (str "Convert sequence to " atype ".")]
-    `(defn ~fname ~docs [vs#]
-       (cond
-         (nil? vs#) nil
-         (= (type vs#) ~clazz) vs#
-         (seqable? vs#) (~atype vs#)
-         :else (let [arr# (~atype 1)] 
-                 (aset arr# 0 (~primitive-type vs#))
-                 arr#)))))
+#_(defmacro ^:private seq->any-array
+    [primitive-type]
+    (let [atype (symbol (str primitive-type "-array"))
+          clazz (symbol (str atype "-type"))
+          fname (symbol (str "seq->" atype))
+          docs (str "Convert sequence to " atype ".")]
+      `(defn ~fname ~docs [vs#]
+         (cond
+           (nil? vs#) nil
+           (= (type vs#) ~clazz) vs#
+           (seqable? vs#) (~atype vs#)
+           :else (let [arr# (~atype 1)] 
+                   (aset arr# 0 (~primitive-type vs#))
+                   arr#)))))
 
 (defn seq->double-array
   "Convert sequence to double array. Returns input if `vs` is double array already."

@@ -48,12 +48,12 @@
                         :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
             [fastmath.kernel :as k])
-  (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator UnivariatePeriodicInterpolator MicrosphereProjectionInterpolator UnivariateInterpolator]
+  (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator MicrosphereProjectionInterpolator]
            [org.apache.commons.math3.analysis.interpolation BicubicInterpolator PiecewiseBicubicSplineInterpolator BivariateGridInterpolator]
            [org.apache.commons.math3.analysis.interpolation MultivariateInterpolator]
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction BivariateFunction]
            [org.apache.commons.math3.analysis.function StepFunction]
-           [smile.interpolation Interpolation AbstractInterpolation CubicSplineInterpolation1D KrigingInterpolation1D LinearInterpolation RBFInterpolation1D ShepardInterpolation1D]
+           [smile.interpolation Interpolation CubicSplineInterpolation1D KrigingInterpolation1D LinearInterpolation RBFInterpolation1D ShepardInterpolation1D]
            [smile.interpolation Interpolation2D BicubicInterpolation BilinearInterpolation CubicSplineInterpolation2D]
            [umontreal.ssj.functionfit BSpline PolInterp]
            [umontreal.ssj.functions MathFunction]))

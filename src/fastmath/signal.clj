@@ -168,7 +168,7 @@
             [fastmath.vector :as v]
             [fastmath.random :as r]
             [fastmath.interpolation :as i])
-  (:import [fastmath.vector Vec2 Vec3]
+  (:import [fastmath.vector Vec3]
            [clojure.lang IFn]))
 
 (set! *warn-on-reflection* true)

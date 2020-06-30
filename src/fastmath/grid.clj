@@ -37,7 +37,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.protocols :as prot])
-  (:import [fastmath.vector Vec2 Vec3]
+  (:import [fastmath.vector Vec2]
            [clojure.lang Named]))
 
 (set! *warn-on-reflection* true)

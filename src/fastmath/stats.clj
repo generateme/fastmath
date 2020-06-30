@@ -57,8 +57,7 @@
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
-           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
-           [org.apache.commons.math3.stat.inference TestUtils]))
+           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -334,7 +333,7 @@
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.Math/min ^doubles vs)
+    (smile.math.MathEx/min ^doubles vs)
     (reduce clojure.core/min vs)))
 
 (defn maximum
@@ -342,7 +341,7 @@
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.Math/max ^doubles vs)
+    (smile.math.MathEx/max ^doubles vs)
     (reduce clojure.core/max vs)))
 
 (defn extent
@@ -358,7 +357,7 @@
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.Math/sum ^doubles vs)
+    (smile.math.MathEx/sum ^doubles vs)
     (reduce (fn [^double x ^double y] (+ x y)) 0.0 vs)))
 
 (defn kurtosis
@@ -461,9 +460,9 @@
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
          sz (alength avs)
-         mn (smile.math.Math/min avs)
-         mx (smile.math.Math/max avs)
-         sm (smile.math.Math/sum avs)
+         mn (smile.math.MathEx/min avs)
+         mx (smile.math.MathEx/max avs)
+         sm (smile.math.MathEx/sum avs)
          u (/ sm sz)
          mdn (median avs)
          q1 (percentile avs 25.0 estimation-strategy)
@@ -517,7 +516,7 @@
   "Covariance of two sequences."
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
-  (smile.math.Math/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn covariance-matrix
   "Generate covariance matrix from seq of seqs. Row order."
@@ -530,7 +529,7 @@
               (let [key (sort [id1 id2])]
                 (if (contains? @cache key)
                   (@cache key)
-                  (let [cov (smile.math.Math/cov a b)]
+                  (let [cov (smile.math.MathEx/cov a b)]
                     (swap! cache assoc key cov)
                     cov)))) avss))))
 
@@ -538,7 +537,7 @@
   "Correlation of two sequences."
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
-  (smile.math.Math/cor (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (smile.math.MathEx/cor (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
@@ -562,13 +561,13 @@
   "Kullback-Leibler divergence of two sequences."
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
-  (smile.math.Math/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (smile.math.MathEx/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 (defn jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
-  (smile.math.Math/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
 
 ;;
 
