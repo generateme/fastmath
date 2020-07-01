@@ -1,8 +1,8 @@
-(defproject generateme/fastmath "1.5.3-SNAPSHOT"
+(defproject generateme/fastmath "1.5.3"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
-  :license {:name "The Unlicence"
-            :url "http://unlicense.org"}
+  :license {:name "The MIT Licence"
+            :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]

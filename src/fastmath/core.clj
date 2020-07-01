@@ -876,10 +876,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
          ii (mapv #(* ^long % ii-mult) (range number))
          x1 (map #(x (round-even %)) ii)
          xr (map #(x (dec (round-even (+ r ^double %)))) ii)
-         _ (println x n r ii x1 xr)
          diffs (filter #(pos? ^double %) (mapv (fn [[^double x ^double y]] (- y x)) (partition 2 1 x)))
          eps (* 0.5 (double (if (seq diffs) (reduce fast-min diffs) 0.0)))]
-     (println diffs eps)
      (for [[[^double px ^double cx] [^double py ^double cy]] (map vector
                                                                   (partition 2 1 (conj x1 (dec ^double (first x1))))
                                                                   (partition 2 1 (conj xr (dec ^double (first xr)))))

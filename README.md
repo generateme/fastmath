@@ -165,5 +165,7 @@ If you see place of improvement, I'm accepting PRs.
 
 ## Licence
 
-The Unlicence
+* The Unlicence - up to 1.5.2
+* MIT License - from 1.5.3
 
+Copyright (c) 2020 generateme
