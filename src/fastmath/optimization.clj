@@ -69,7 +69,7 @@
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
-            [fastmath.regression :as gp]))
+            [fastmath.gp :as gp]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -370,8 +370,6 @@
 (def scan-and-minimize (partial scan-and- minimizer :minimize))
 (def scan-and-maximize (partial scan-and- maximizer :maximize))
 
-;; bayesian optimization
-
 (defmulti ^:private utility-function (fn [t & _] t))
 
 (defmethod utility-function :default [_ p]
@@ -475,7 +473,7 @@
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
-        gp (partial gp/gaussian-process+ {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
+        gp #(gp/gaussian-process %1 %2 {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
         step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer optimizer-params)]
     (rest (iterate step-fn {:x maxx
                             :y maxy
@@ -483,13 +481,13 @@
                             :ys ys}))))
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
-        bounds [[2 4] [-3 3]]
+        bounds [[-4 4] [-3 3]]
         bo (bayesian-optimization f {:bounds bounds
-                                     :utility-function-type :poi
+                                     :utility-function-type :ei
                                      :utility-param 0.1
                                      :optimizer :powell})]
     (println (f 0 1))
-    (last (take 10 (map (juxt :x :y) bo))))
+    (last (take 20 (map (juxt :x :y) bo))))
 
 ;; tests
 

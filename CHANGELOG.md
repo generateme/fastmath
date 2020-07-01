@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.0.0-SNAPSHOT]
+
+Breaking change: due to significant change of SMILE API I decided to remove three ML namespaces: classification, clustering and regression. They probably be back as a separated bindings or incorporeted into SMILE directly.
+
+### Changed
+
+* [breaking] removed namespaces: classification, clustering and regression
+
 ## [1.5.3-SNAPSHOT]
 
 ### Added
