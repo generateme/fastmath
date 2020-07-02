@@ -2,10 +2,25 @@
 
 Fast and primitive based math library.
 
+---
+**NOTE**
+
+Due to significant change in SMILE 2.x API I decided to remove ML namespaces (regression, classification and clustering). Possible scenarios are: separate library with ML elements or further development of Clojure bindings in SMILE directly.
+
+---
+
 ## Installation
 
 ```clojure
-[generateme/fastmath "1.5.2"]
+[generateme/fastmath "2.0.0-alpha1"]
+```
+
+### Previous version
+
+Based on SMILE 1.5.3 and including: regression, classification and clustering
+
+```clojure
+[generateme/fastmath "1.5.3"]
 ```
 
 ## Documentation
@@ -101,18 +116,9 @@ Several easing functions (in, out, in-out)
 
 Great collection (100+) of R^2->R^2 functions.
 
-### Clustering
+### Gaussian Processes
 
-SMILE bindings for clustering
-
-### Classifcations
-
-SMILE, LIBLINEAR classification bindings
-
-### Regression
-
-* SMILE regression bindings
-* extended Gaussian Processes
+Extended Gaussian Processes
 
 ### Optimization
 
