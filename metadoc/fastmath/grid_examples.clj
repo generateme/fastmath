@@ -1,4 +1,4 @@
-(ns fastmath.grid-example
+(ns fastmath.grid-examples
   (:require [fastmath.grid :refer :all]
             [metadoc.examples :refer :all]))
 

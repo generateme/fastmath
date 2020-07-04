@@ -9,6 +9,7 @@
             [fastmath.interpolation :as i]
             [fastmath.distance :as d]
             [fastmath.fields :as fields]
+            [fastmath.gp :as gp]
             [fastmath.easings :as e]
             [fastmath.grid :as g]
             [fastmath.optimization :as opt]
@@ -138,7 +139,7 @@
 
 ;; distributions
 
-(def pal (reverse (clr/palette-presets :category20)))
+(def pal (reverse (clr/palette :category20)))
 
 (defn distr-chart
   ([f d pnames ps] (distr-chart f d pnames ps nil))
@@ -500,7 +501,7 @@
 (defn opt-2d-chart
   [f d pts]
   (cljplot/xy-chart {:width 300 :height 300 :background bg-color}
-                    (b/series [:contour-2d f (merge d {:palette (clr/resample 100 [bg-color :white])
+                    (b/series [:contour-2d f (merge d {:palette (clr/resample [bg-color :white] 100)
                                                        :contours 100})]
                               [:scatter pts {:color (clr/color :red 140) :size 8}])
                     (b/update-scale :x :ticks 5)
@@ -598,4 +599,89 @@
 (save-chart (function-chart (sig/oscillators-sum
                              (sig/oscillator :triangle 1.5 0.5 0.5)
                              (sig/oscillator :sin 1 0.5 0)) [-3 3]) "s" "sum" ".jpg")
+
+
+;; gp
+
+(def xs [0 1 -2 -2.001])
+(def ys [-2 3 0.5 -0.6])
+
+(let [gp (gp/gaussian-process xs ys)]
+  (gp/prior-samples gp (range 0 1 0.1)))
+
+(defn draw-prior
+  ([gp] (draw-prior gp 10))
+  ([gp cnt]
+   (let [xs (range -3 3.1 0.1)
+         priors (map #(vector % (map vector xs (gp/prior-samples gp xs))) (range cnt))]
+     (cljplot/xy-chart {:width 700 :height 300 :background bg-color}
+                       (-> (b/series [:grid])
+                           (b/add-multi :line priors {} {:color (cycle (map #(clr/set-alpha % 200) (clr/palette :pubu-9)))})
+                           (b/add-serie [:hline 0 {:color :black :stroke {:size 2}}]))
+                       (b/add-axes :bottom {:ticks {:color fg-color}
+                                            :line {:color fg-color}})
+                       (b/add-axes :left {:ticks {:color fg-color}
+                                          :line {:color fg-color}})
+                       (b/add-label :top "Priors" {:color fg-color})))))
+
+(save-chart (draw-prior (gp/gaussian-process xs ys)) "gp" "prior" ".jpg")
+(save-chart (draw-prior (gp/gaussian-process xs ys {:noise 0.1})) "gp" "priorn" ".jpg")
+(save-chart (draw-prior (gp/gaussian-process xs ys {:kernel (k/kernel :periodic 2)
+                                                    :noise 0.01})) "gp" "priorp" ".jpg")
+
+
+
+(def xs [-4 -1 2])
+(def ys [-5 -1 2])
+
+(let [gp (gp/gaussian-process xs ys)]
+  (gp/posterior-samples gp (range 0 1 0.1)))
+
+
+(defn draw-posterior
+  ([gp] (draw-posterior gp 10))
+  ([gp cnt]
+   (let [xxs (range -5 5.1 0.1)
+         posteriors (map #(vector % (map vector xxs (gp/posterior-samples gp xxs))) (range cnt))]
+     (cljplot/xy-chart {:width 700 :height 300 :background bg-color}
+                       (-> (b/series [:grid])
+                           (b/add-multi :line posteriors {} {:color (cycle (map #(clr/set-alpha % 200) (clr/palette :pubu-9)))})
+                           (b/add-serie [:function gp {:domain [-5 5] :color :black :stroke {:size 3 :dash [5 2]}}])
+                           (b/add-serie [:scatter (map vector xs ys) {:size 16
+                                                                      :color (clr/color fg-color 230)}]))
+                       (b/add-axes :bottom {:ticks {:color fg-color}
+                                            :line {:color fg-color}})
+                       (b/add-axes :left {:ticks {:color fg-color}
+                                          :line {:color fg-color}})
+                       (b/add-label :top "Posteriors" {:color fg-color})))))
+
+(save-chart (draw-posterior (gp/gaussian-process xs ys {:kernel (k/kernel :gaussian 0.5)})) "gp" "posteriork" ".jpg")
+(save-chart (draw-posterior (gp/gaussian-process xs ys {:kernel (k/kernel :periodic 0.2 6.5)})) "gp" "posteriorkp" ".jpg")
+
+(def xs [-5 1 2])
+(def ys [17 10 12])
+
+(defn draw-stddev
+  [gp]
+  (let [xxs (range -5 5.1 0.2)
+        pairs (gp/predict-all gp xxs true)
+        mu (map first pairs)
+        stddev (map second pairs)
+        s95 (map (partial * 1.96) stddev)
+        s50 (map (partial * 0.67) stddev)]
+    (cljplot/xy-chart {:width 700 :height 300 :background bg-color}
+                      (b/series [:grid]
+                                [:ci [(map vector xxs (map - mu s95)) (map vector xxs (map + mu s95))] {:color (clr/color :lightblue 180)}]
+                                [:ci [(map vector xxs (map - mu s50)) (map vector xxs (map + mu s50))] {:color (clr/color :lightblue)}]
+                                [:line (map vector xxs mu) {:color :black :stroke {:size 2 :dash [5 2]}}]
+                                [:scatter (map vector xs ys) {:size 8 :color fg-color}])
+                      (b/add-axes :bottom {:ticks {:color fg-color}
+                                           :line {:color fg-color}})
+                      (b/add-axes :left {:ticks {:color fg-color}
+                                         :line {:color fg-color}})
+                      (b/add-label :top "Confidence intervals" {:color fg-color}))))
+
+(save-chart (draw-stddev (gp/gaussian-process xs ys)) "gp" "ci" ".jpg")
+(save-chart (draw-stddev (gp/gaussian-process xs ys {:normalize? true})) "gp" "cin" ".jpg")
+
 

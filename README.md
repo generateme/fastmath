@@ -5,7 +5,7 @@ Fast and primitive based math library.
 ---
 **NOTE**
 
-Due to significant change in SMILE 2.x API I decided to remove ML namespaces (regression, classification and clustering). Possible scenarios are: separate library with ML elements or further development of Clojure bindings in SMILE directly.
+Due to significant change in SMILE 2.x API I decided to remove ML namespaces: regression and classification. Possible scenarios are: separate library with ML elements or further development of Clojure bindings in SMILE directly.
 
 ---
 
@@ -15,17 +15,17 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces (re
 [generateme/fastmath "2.0.0-alpha1"]
 ```
 
+[Documentation with examples](https://generateme.github.io/fastmath/index.html)
+
 ### Previous version
 
-Based on SMILE 1.5.3 and including: regression, classification and clustering
+Based on SMILE 1.5.3 and including: regression and classification.
 
 ```clojure
 [generateme/fastmath "1.5.3"]
 ```
 
-## Documentation
-
-[HERE](https://generateme.github.io/fastmath/index.html)
+[Documentation with examples](https://generateme.github.io/1.5/fastmath/index.html)
 
 ## Content
 
@@ -78,16 +78,20 @@ With following groups of functions:
 ### Random numbers
 
 * Collection of random number generators
-* Collection of distributions
 * Random generator functions for each primitive type (drand - double, lrand - long, frand - float, irand - int)
 * Additional RNG functions: brand - true/false, grand - gaussian distributed double
 * Random sequences: from distribution, halton, sobol, R2, sphere, uniform
+
+### Distributions
+
+* Collection of distributions (60+)
 
 ### Noise
 
 * 4 noise types: value, gradient, simplex, discrete
 * 3 noise blends: fbm, ridgedmulti, billow
 * Ready to use fbm functions: noise (perlin), vnoise (value noise), simplex
+* Warp noise
 
 ### Statistics
 
@@ -118,7 +122,11 @@ Great collection (100+) of R^2->R^2 functions.
 
 ### Gaussian Processes
 
-Extended Gaussian Processes
+Gaussian Processes
+
+### Clustering
+
+Various clustering algorithms including K-Means++, DBSCAN, CLARANS, DENCLUE, MEC, Spectral, Deterministic Annealing
 
 ### Optimization
 

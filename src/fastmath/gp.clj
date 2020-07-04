@@ -1,5 +1,7 @@
 (ns fastmath.gp
-  "Gaussian Processes"
+  "Gaussian Processes
+
+  See more [here](https://nextjournal.com/generateme/gaussian-processes#gp%2B)"
   (:require [fastmath.core :as m]
             [fastmath.kernel :as k]
             [fastmath.stats :as stats]
@@ -11,8 +13,6 @@
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
-
-;; bayesian optimization
 
 ;; native gaussian processes
 ;; Based on: https://www.cs.ubc.ca/~nando/540-2013/lectures/gp.py
@@ -78,7 +78,7 @@
   [^GaussianProcess gp-object xvals]
   (let [xvals (ensure-vectors xvals)
         ^RealMatrix cov (kernel-cov-matrix (.kernel gp-object) (.kscale gp-object) xvals xvals)
-        ^RealMatrix diag (MatrixUtils/createRealDiagonalMatrix (m/seq->double-array ((.noise-fn gp-object))))
+        ^RealMatrix diag (MatrixUtils/createRealDiagonalMatrix (m/seq->double-array ((.noise-fn gp-object) xvals)))
         ^RealMatrix Lp (.getL ^CholeskyDecomposition (CholeskyDecomposition. (.add cov diag)))]
     (seq (.operate Lp (m/seq->double-array (repeatedly (count xvals) r/grand))))))
 

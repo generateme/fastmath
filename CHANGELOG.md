@@ -1,15 +1,25 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [2.0.0-SNAPSHOT]
+## [2.0.0-alpha1]
 
-Breaking change: due to significant change of SMILE API I decided to remove three ML namespaces: classification, clustering and regression. They probably be back as a separated bindings or incorporeted into SMILE directly.
+Breaking change: due to significant change of SMILE API I decided to remove three ML namespaces: classification and regression. They probably be back as a separated bindings or incorporeted into SMILE directly.
+
+### Added
+
+* `lloyd` k-means variants
+* `spectral` clustering
+
+### Removed
+
+* `neural-gas` clustering
 
 ### Changed
 
-* [breaking] removed namespaces: classification, clustering and regression
+* [breaking] removed namespaces: classification and regression
+* `:outliers?` key is removed from regrouped data for clusters, now `:outliers` key is created when outliers are present
 
-## [1.5.3-SNAPSHOT]
+## [1.5.3]
 
 ### Added
 
