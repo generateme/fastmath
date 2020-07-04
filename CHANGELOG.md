@@ -9,6 +9,7 @@ Breaking change: due to significant change of SMILE API I decided to remove thre
 
 * `lloyd` k-means variants
 * `spectral` clustering
+* `gp` namespace (GaussianProcesses) - moved from regression namespace
 
 ### Removed
 

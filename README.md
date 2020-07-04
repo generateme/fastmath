@@ -25,7 +25,7 @@ Based on SMILE 1.5.3 and including: regression and classification.
 [generateme/fastmath "1.5.3"]
 ```
 
-[Documentation with examples](https://generateme.github.io/1.5/fastmath/index.html)
+[Documentation with examples](https://generateme.github.io/fastmath/1.5/index.html)
 
 ## Content
 
