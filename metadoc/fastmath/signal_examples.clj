@@ -103,3 +103,10 @@
 
 (effect-plots)
 
+(add-examples savgol-filter
+  (example (let [signal [-1 2 4 99 4 2 -1]
+                 savgol (savgol-filter)
+                 savgol-1st-deriv (savgol-filter 5 2 1)]
+             {:smoothed (savgol signal)
+              :deriv (savgol-1st-deriv signal)}))
+  (example-image "Savitzky-Golay smoothing" "images/s/savgol.jpg"))

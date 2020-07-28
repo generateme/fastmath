@@ -12,7 +12,7 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces: re
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.0.0-alpha1"]
+[generateme/fastmath "2.0.1"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
@@ -142,7 +142,8 @@ Collection of various kernels (density, RBF, correlation)
 
 ### Signal
 
-Signal (audio) processing filters and oscillators
+* Signal (audio) processing filters and oscillators
+* Savitzky-Golay smoothing filter
 
 ### Other
 

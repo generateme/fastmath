@@ -156,6 +156,10 @@
   To convert signal to oscillator (using interpolation) use [[signal->oscillator]] passing signal and duration.
 
   Add oscillators using [[oscillators-sum]].
+
+  ## Smoothing filter
+
+  Savitzky-Golay smoothing filter [[savgol-filter]].
   
   ## File operations
 
@@ -169,7 +173,9 @@
             [fastmath.random :as r]
             [fastmath.interpolation :as i])
   (:import [fastmath.vector Vec3]
-           [clojure.lang IFn]))
+           [clojure.lang IFn]
+           [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
+           [org.apache.commons.math3.util MathArrays]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -987,3 +993,37 @@
          step (/ seconds c)] 
      (interpolator (for [^long i (range c)]
                      (* i step)) sig))))
+
+;; signal smoothing
+
+(defn savgol-filter
+  "Creates Savitzky-Golay smoothing filter.
+
+  Arguments:
+
+  * length - length of the filter (default: 5)
+  * order - polynomial order (default: 2)
+  * derivative - signal derivative (default: 0)
+
+  Returns filtering function which accepts collection of numbers and returns filtered signal."
+  ([] (savgol-filter 5))
+  ([^long length] (savgol-filter length 2))
+  ([^long length ^long order] (savgol-filter length order 0))
+  ([^long length ^long order ^long derivative]
+   (assert (odd? length) "Lenght must be odd!")
+   (let [fc (/ (dec length) 2)
+         kernel (-> (for [v (range (- fc) (inc fc))]
+                      (map #(m/pow v %) (range (inc order))))
+                    (m/seq->double-double-array)
+                    (Array2DRowRealMatrix.)
+                    (SingularValueDecomposition.)
+                    (.getSolver)
+                    (.getInverse)
+                    (.getRow derivative))]
+     (fn [signal]
+       (let [ns (->> (MathArrays/convolve (m/seq->double-array signal) kernel)
+                     (drop fc)
+                     (take (count signal)))]
+         (if (even? derivative)
+           ns
+           (map (fn [^double v] (* -1.0 v)) ns)))))))

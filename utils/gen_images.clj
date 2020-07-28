@@ -601,6 +601,28 @@
                              (sig/oscillator :sin 1 0.5 0)) [-3 3]) "s" "sum" ".jpg")
 
 
+(defn savgol-chart
+  [name & params]
+  (let [flt (apply sig/savgol-filter params)]
+    (cljplot/xy-chart {:width 600 :height 200 :background bg-color}
+                      (b/series [:vline 0 {:color [60 100 120]}]
+                                [:hline 0 {:color [60 100 120]}]
+                                [:function signal-f {:domain [0 5]
+                                                     :samples 500}]
+                                [:function (sig/signal->oscillator (flt signal) 5)
+                                 {:domain [0 5]
+                                  :color :white
+                                  :samples 500}])
+                      (b/update-scale :x :ticks 5)
+                      (b/update-scale :y :ticks 5)
+                      (b/add-axes :bottom {:ticks {:color fg-color}
+                                           :line {:color fg-color}})
+                      (b/add-axes :left {:ticks {:color fg-color}
+                                         :line {:color fg-color}})
+                      (b/add-label :top name {:color fg-color}))))
+
+(save-chart (savgol-chart "Savitzky-Golay filter (length=121, order=2)" 121 2) "s" "savgol" ".jpg")
+
 ;; gp
 
 (def xs [0 1 -2 -2.001])
