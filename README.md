@@ -1,3 +1,6 @@
+[![Clojars Project](https://img.shields.io/clojars/v/generateme/fastmath.svg)](https://clojars.org/generateme/fastmath)
+
+
 # fastmath
 
 Fast and primitive based math library.
@@ -12,7 +15,7 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces: re
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.0.1"]
+[generateme/fastmath "2.0.2"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
@@ -143,7 +146,7 @@ Collection of various kernels (density, RBF, correlation)
 ### Signal
 
 * Signal (audio) processing filters and oscillators
-* Savitzky-Golay smoothing filter
+* Smoothing filters: Savitzky-Golay, moving average, kernel smoothing
 
 ### Other
 

@@ -996,12 +996,18 @@
 
 ;; signal smoothing
 
+(defn- perform-convolution
+  [coeffs fc signal]
+  (->> (MathArrays/convolve (m/seq->double-array signal) coeffs)
+       (drop fc)
+       (take (count signal))))
+
 (defn savgol-filter
   "Creates Savitzky-Golay smoothing filter.
 
   Arguments:
 
-  * length - length of the filter (default: 5)
+  * length - length of the kernel (default: 5)
   * order - polynomial order (default: 2)
   * derivative - signal derivative (default: 0)
 
@@ -1010,9 +1016,9 @@
   ([^long length] (savgol-filter length 2))
   ([^long length ^long order] (savgol-filter length order 0))
   ([^long length ^long order ^long derivative]
-   (assert (odd? length) "Lenght must be odd!")
+   (assert (odd? length) "Length must be odd!")
    (let [fc (/ (dec length) 2)
-         kernel (-> (for [v (range (- fc) (inc fc))]
+         coeffs (-> (for [v (range (- fc) (inc fc))]
                       (map #(m/pow v %) (range (inc order))))
                     (m/seq->double-double-array)
                     (Array2DRowRealMatrix.)
@@ -1021,9 +1027,40 @@
                     (.getInverse)
                     (.getRow derivative))]
      (fn [signal]
-       (let [ns (->> (MathArrays/convolve (m/seq->double-array signal) kernel)
-                     (drop fc)
-                     (take (count signal)))]
+       (let [ns (perform-convolution coeffs fc signal)]
          (if (even? derivative)
            ns
            (map (fn [^double v] (* -1.0 v)) ns)))))))
+
+(defn moving-average-filter
+  "Creates moving average filter.
+
+  Arguments:
+
+  * length - length of the kernel (default: 5)
+
+  Returns filtering function. See also [[savgol-filter]]."
+  ([] (moving-average-filter 5))
+  ([^long length] (savgol-filter length 1 0)))
+
+(defn kernel-smoothing-filter
+  "Creates Nadaraya-Watson kernel-weighted average
+
+  Arguments:
+
+  * kernel - [[kernel]] function (default `gaussian`)
+  * length - length of the kernel (default: 5)
+  * step - distance between consecutive samples (default: 1.0)
+
+  Returns filtering function. See also [[savgol-filter]]."
+  ([kernel] (kernel-smoothing-filter kernel 5))
+  ([kernel ^long length] (kernel-smoothing-filter kernel length 1.0))
+  ([kernel ^long length ^double step]
+   (assert (odd? length) "Length must be odd!")
+   (let [fc (/ (dec length) 2)
+         coeffs (map (fn [^long v]
+                       (kernel 0 (* step v))) (range (- fc) (inc fc)))
+         ^double sum (reduce m/fast+ coeffs)
+         coeffs (double-array (map (fn [^double v]
+                                     (/ v sum)) coeffs))]
+     (partial perform-convolution coeffs fc))))

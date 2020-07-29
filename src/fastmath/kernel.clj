@@ -538,7 +538,6 @@
    (fn [x y] (let [d (/ (* m/SQRT5 ^double (distance x y)) sigma)]
               (* (inc (+ d (* d d m/THIRD))) (m/exp (- d)))))))
 
-
 (defmethod kernel :hyperbolic-secant
   ([_] (kernel :hyperbolic-secant 1.0))
   ([_ ^double sigma] (kernel :hyperbolic-secant sigma d/euclidean))

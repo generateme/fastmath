@@ -601,9 +601,9 @@
                              (sig/oscillator :sin 1 0.5 0)) [-3 3]) "s" "sum" ".jpg")
 
 
-(defn savgol-chart
-  [name & params]
-  (let [flt (apply sig/savgol-filter params)]
+(defn smoothing-chart
+  [filter name & params]
+  (let [flt (apply filter params)]
     (cljplot/xy-chart {:width 600 :height 200 :background bg-color}
                       (b/series [:vline 0 {:color [60 100 120]}]
                                 [:hline 0 {:color [60 100 120]}]
@@ -621,7 +621,10 @@
                                          :line {:color fg-color}})
                       (b/add-label :top name {:color fg-color}))))
 
-(save-chart (savgol-chart "Savitzky-Golay filter (length=121, order=2)" 121 2) "s" "savgol" ".jpg")
+(save-chart (smoothing-chart sig/savgol-filter "Savitzky-Golay filter (length=121, order=2)" 121 2) "s" "savgol" ".jpg")
+(save-chart (smoothing-chart sig/moving-average-filter "Moving average (length=51)" 51) "s" "movavg" ".jpg")
+(save-chart (smoothing-chart sig/kernel-smoothing-filter "Gaussian kernel smoothing (length=51, kernel sigma=11)" (k/kernel :gaussian 11) 51) "s" "gaussian" ".jpg")
+(save-chart (smoothing-chart sig/kernel-smoothing-filter "Mattern-12 kernel smoothing (length=51, step=0.1)" (k/kernel :mattern-12) 51 0.1)  "s" "mattern12" ".jpg")
 
 ;; gp
 

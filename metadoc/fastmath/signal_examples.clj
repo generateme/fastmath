@@ -1,6 +1,7 @@
 (ns fastmath.signal-examples
   (:require [metadoc.examples :refer :all]
             [fastmath.signal :refer :all]
+            [fastmath.kernel]
             [fastmath.core :as m]))
 
 (add-examples compose-effects
@@ -110,3 +111,23 @@
              {:smoothed (savgol signal)
               :deriv (savgol-1st-deriv signal)}))
   (example-image "Savitzky-Golay smoothing" "images/s/savgol.jpg"))
+
+(add-examples moving-average-filter
+  (example (let [signal [-1 2 4 99 4 2 -1]
+                 mov-avg (moving-average-filter 3)]
+             (mov-avg signal)))
+  (example-image "Moving average smoothing" "images/s/movavg.jpg"))
+
+(add-examples kernel-smoothing-filter
+  (example-session "Usage"
+    (let [signal [-1 2 4 99 4 2 -1]
+          gaussian-filter (kernel-smoothing-filter (fastmath.kernel/kernel :gaussian) 3)]
+      (gaussian-filter signal))
+    (let [signal [-1 2 4 99 4 2 -1]
+          gaussian-filter (kernel-smoothing-filter (fastmath.kernel/kernel :gaussian 0.5) 3 0.5)]
+      (gaussian-filter signal))
+    (let [signal [-1 2 4 99 4 2 -1]
+          mattern-filter (kernel-smoothing-filter (fastmath.kernel/kernel :mattern-12 0.5) 3)]
+      (mattern-filter signal)))
+  (example-image "Kernel smoothing (gaussian)" "images/s/gaussian.jpg")
+  (example-image "Kernel smoothing (mattern-12)" "images/s/mattern12.jpg"))

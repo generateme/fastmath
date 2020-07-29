@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.0.2]
+
+### Added
+
+* `moving-average-filter` - moving average smoothing
+* `kernel-smoothing-filter` - signal smoothing filter using kernel methods
+
 ## [2.0.1]
 
 ### Added
