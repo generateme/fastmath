@@ -15,7 +15,7 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces: re
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.0.2"]
+[generateme/fastmath "2.0.3"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
@@ -157,7 +157,7 @@ Almost all functions optimized to work with `double` and `long` primitives
 ## Supporting libraries
 
 * [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html) - Apache 2.0 Licence
-* [SMILE 1.5.1](http://haifengl.github.io/smile/) - Apache 2.0 Licence
+* [SMILE 2.5.0](http://haifengl.github.io/smile/) - Apache 2.0 Licence
 * [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
 * [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence

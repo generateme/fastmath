@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.0.3]
+
+### Changed
+
+* SMILE version bumped to 2.5.0
+* netlib replaced by mkl (smile)
+
 ## [2.0.2]
 
 ### Added
