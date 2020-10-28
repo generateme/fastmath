@@ -628,7 +628,7 @@
 (defn cpd->pd
   "Convert conditionally positive definite kernel into positive definite.
 
-  Formula is based on this [SO answer](https://stats.stackexchange.com/questions/149889/prove-that-a-kernel-is-conditionally-positive-definite). `x0` is equals `0`.
+  Formula is based on this [SO answer](https://stats.stackexchange.com/questions/149889/prove-that-a-kernel-is-conditionally-positive-definite). `x0` is equal `0`.
   
   Doesn't work well."
   {:metadoc/categories #{:kernel}}
