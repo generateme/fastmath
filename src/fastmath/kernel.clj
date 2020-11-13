@@ -695,7 +695,9 @@
          h (double (or h (nrd data)))
          hrev (/ h)
          span (* 6.0 h)
-         factor (/ (* (alength data) h))]
+         factor (/ (* (alength data) h))
+         mn (aget data 0)
+         mx (aget data (dec (alength data)))]
      [(fn [^double x]
         (let [start (java.util.Arrays/binarySearch data (- x span))
               ^int start (if (neg? start) (dec (- start)) start)
@@ -704,7 +706,7 @@
               ^doubles xs (java.util.Arrays/copyOfRange data start end)]
           (* factor (double (areduce xs i sum (double 0.0)
                                      (+ sum ^double (k (* hrev (- x ^double (aget xs i))))))))))
-      factor h])))
+      factor h (- mn span) (+ mx span)])))
 
 (defonce ^:private kde-integral
   {:uniform 0.5
@@ -717,7 +719,10 @@
    :cosine (* 0.0625 m/PI m/PI)
    :logistic m/SIXTH
    :sigmoid (/ 2.0 (* m/PI m/PI))
-   :silverman (* 0.0625 3.0 m/SQRT2)})
+   :silverman (* 0.0625 3.0 m/SQRT2)
+   :wigner (/ 16.0 (* 3 m/PI m/PI))
+   :cauchy m/M_1_PI
+   :laplace 0.25})
 
 (defmulti kernel-density
   "Create kernel density estimator.
@@ -740,7 +745,7 @@
               ([k# vs# h# all?#] (let [kded# (kde vs# ~n h#)]
                                    (if all?# kded# (first kded#))))))))
 
-(make-kernel-density-fns (concat (keys kde-integral) [:wigner :laplace :cauchy]))
+(make-kernel-density-fns (keys kde-integral))
 
 (defmethod kernel-density :smile
   ([_ vs h] (if h

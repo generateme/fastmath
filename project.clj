@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "2.0.3"
+(defproject generateme/fastmath "2.0.4"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
@@ -6,11 +6,15 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [net.jafama/jafama "2.3.1"]
                  [org.apache.commons/commons-math3 "3.6.1"]
-                 [com.github.haifengl/smile-interpolation "2.5.0" ]
+                 [com.github.haifengl/smile-interpolation "2.5.0"]
                  [com.github.haifengl/smile-core "2.5.0"]
                  [com.github.haifengl/smile-mkl "2.5.0"]
+                 ;; [org.bytedeco/arpack-ng "3.7.0-1.5.4"]
+                 ;; [org.bytedeco/openblas "0.3.10-1.5.4"]
+                 ;; [org.bytedeco/javacpp "1.5.4"]
                  [de.sciss/jwave "1.0.3"]
                  [ca.umontreal.iro.simul/ssj "3.3.1"]]
+  :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src"]
   :javac-options ["-target" "1.8" "-source" "1.8"]

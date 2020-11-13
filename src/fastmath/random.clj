@@ -107,7 +107,8 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
-            [fastmath.protocols :as prot])
+            [fastmath.protocols :as prot]
+            [fastmath.interpolation :as i])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -118,7 +119,9 @@
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
-           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
+           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
+           [org.apache.commons.math3.analysis UnivariateFunction]
+           [org.apache.commons.math3.analysis.integration RombergIntegrator]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -1459,6 +1462,87 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
        (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :half-cauchy {})))
+
+(defonce ^:private ^RombergIntegrator romberg-integrator (RombergIntegrator.))
+
+(defn- find-first-non-zero
+  ^double [f xs]
+  (->> xs
+       (map #(vector % (f %)))
+       (filter #(pos? ^double (second %)))
+       (ffirst)))
+
+(defn- narrow-range
+  [kd ^double mn ^double mx ^long steps]
+  (let [step (/ (- mx mn) steps)]
+    [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
+     (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)
+     step]))
+
+(defn- integrate-pdf
+  [kd [^double mn ^double mx ^double step] ^long steps]
+  (let [ukd (reify UnivariateFunction
+              (value [_ x] (kd x)))
+        ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
+        points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
+                                 (let [i (.integrate romberg-integrator Integer/MAX_VALUE ukd x1 x2)
+                                       curr-new (m/constrain (+ i curr) 0.0 1.0)
+                                       res (if (> curr-new curr)
+                                             [curr-new (conj lst [(+ x1 (* 0.5 (- x2 x1))) curr-new])]
+                                             [curr-new lst])]
+                                   (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated
+                                     (reduced res)
+                                     res))) [0.0 [[mn 0.0]]]
+                               (partition 2 1 (m/slice-range mn mx steps))))
+        ^double lv (second (last points))
+        points (if (< lv 1.0) ;; if last point is not 1.0, add such as near as possible
+                 (conj points [(+ mx step) 1.0])
+                 points)
+        xs (m/seq->double-array (map first points))
+        ys (m/seq->double-array (map second points))]
+    ;; interpolate points lineary, return cdf and icdf
+    [(i/linear-smile xs ys)
+     (i/linear-smile ys xs)]))
+
+(defmethod distribution :kde
+  ([_ {:keys [data ^long steps kde bandwidth]
+       :or {data [-1 0 1] steps 200 kde :epanechnikov}
+       :as all}]
+   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
+         [^double mn ^double mx ^double step :as pdf-range] (narrow-range kd mn mx (* 4 steps))
+         [cdf-fn icdf-fn] (integrate-pdf kd pdf-range steps)
+         r (or (:rng all) (rng :jvm))
+         m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
+         v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
+     (reify
+       prot/DistributionProto
+       (pdf [_ v] (kd v))
+       (lpdf [_ v] (m/log (kd v)))
+       (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
+       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
+       (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
+       (probability [d v] (kd v))
+       (sample [d] (icdf-fn (prot/drandom r)))
+       (dimensions [_] 1)
+       (source-object [d] d)
+       (continuous? [_] true)
+       prot/DistributionIdProto
+       (distribution-id [_] :kde)
+       (distribution-parameters [_] [:data :steps :kde :bandwidth :rng])
+       prot/UnivariateDistributionProto
+       (mean [_] @m)
+       (variance [_] @v)
+       (lower-bound [_] (- mn step))
+       (upper-bound [_] (+ mx step))
+       prot/RNGProto
+       (drandom [_] (icdf-fn (prot/drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
+  ([_] (distribution :kde {})))
 
 ;;
 

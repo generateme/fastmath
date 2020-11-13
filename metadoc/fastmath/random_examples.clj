@@ -184,7 +184,7 @@
 
 (doseq [n (disj distributions-list
                 :categorical-distribution :cramer-von-mises :logarithmic :normal-inverse-gaussian
-                :multi-normal :dirichlet)]
+                :multi-normal :dirichlet :kde)]
   (add-examples distribution (example-image (str "PDFs of " (name n)) (str "images/d/pdf-" (name n) ".jpg")))
   (add-examples distribution (example-image (str "CDFs of " (name n)) (str "images/d/cdf-" (name n) ".jpg")))
   (add-examples distribution (example-image (str "ICDFs of " (name n)) (str "images/d/icdf-" (name n) ".jpg"))))
