@@ -22,12 +22,15 @@
 (add-examples brandom (example-snippet "boolean" rngproto-snippet brandom))
 
 (add-examples set-seed!
-  (example "Set seed for the RNG object" {:test-value 10} (let [rng (rng :isaac)]
-                                                            (set-seed! rng 1234)
-                                                            (irandom rng 10 15)))
-  (example "Set seed for the distribution object" {:test-value 2} (let [d (distribution :enumerated-int {:data [1 1 1 2 3]})] 
-                                                                    (set-seed! d 1234)
-                                                                    (irandom d))))
+              (example "Set seed for the RNG object" {:test-value 10} (let [rng (rng :isaac)]
+                                                                        (set-seed! rng 1234)
+                                                                        (irandom rng 10 15)))
+              (example "Set seed for the distribution object" {:test-value 2} (let [d (distribution :enumerated-int {:data [1 1 1 2 3]})] 
+                                                                                (set-seed! d 1234)
+                                                                                (irandom d)))
+              (example "Set seed to SMILE (global) RNG" (set-seed! :smile 1234))
+              (example "Set seed to both SMILE and fastmath default RNGs" (set-seed! 1234))
+              (example "Set to random seed both default RNGs" (set-seed!)))
 
 
 (add-examples default-rng

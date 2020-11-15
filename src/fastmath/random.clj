@@ -121,7 +121,8 @@
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
            [org.apache.commons.math3.analysis UnivariateFunction]
-           [org.apache.commons.math3.analysis.integration RombergIntegrator]))
+           [org.apache.commons.math3.analysis.integration RombergIntegrator]
+           [smile.math MathEx]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -168,11 +169,6 @@
   {:metadoc/categories #{:rand}}
   ([rng] (prot/brandom rng))
   ([rng p] (prot/brandom rng p)))
-
-(defn set-seed!
-  "Sets seed. Returns `rng`."
-  {:metadoc/categories #{:rand}}
-  [rng v] (prot/set-seed! rng v))
 
 (defn ->seq
   "Returns lazy sequence of random samples (can be limited to optional `n` values)."
@@ -1554,3 +1550,23 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 (defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
            :metadoc/categories #{:dist}}
   default-normal (distribution :normal))
+
+;;
+
+(defn set-seed!
+  "Sets seed.
+
+  If `rng` is `:smile` calls `smile.math.MathEx/setSeed()`.
+
+  Without `rng` sets both `:smile` and `default-rng`"
+  {:metadoc/categories #{:rand}}
+  ([]
+   (MathEx/setSeed)
+   (prot/set-seed! default-rng (lrand)))
+  ([^long v]
+   (MathEx/setSeed v)
+   (prot/set-seed! default-rng v))
+  ([rng ^long v]
+   (if (= rng :smile)
+     (MathEx/setSeed v)
+     (prot/set-seed! rng v))))

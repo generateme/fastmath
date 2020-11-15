@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.0.5]
+
+### Added
+
+* `set-seed!` accept `:smile` RNG which calls `smile.math.MathEx/setSeed` function. Also, without RNG function will set seed to both: Smile and `default-rng`.
+
 ## [2.0.4]
 
 ### Added
