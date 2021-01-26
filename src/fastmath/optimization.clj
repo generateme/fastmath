@@ -64,7 +64,8 @@
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction MultivariateVectorFunction]
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
            [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
-           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula])
+           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]
+           [smile.math BFGS DifferentiableMultivariateFunction])
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
@@ -76,7 +77,7 @@
 (m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient})
+(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bfgs})
 (def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
 
 (defn- brent
@@ -148,26 +149,39 @@
                                                                     (value [_ x] (f x)))))
 
 (defn- multivariate-function [f]
-  (reify MultivariateFunction
+  (reify
+    MultivariateFunction
     (value [_ xs] (apply f xs))))
+
+(defn- negative-multivariate-function [f]
+  (reify
+    MultivariateFunction
+    (value [_ xs] (- ^double (apply f xs)))))
+
 
 (defn- wrap-multivariate-function [f] (ObjectiveFunction. (multivariate-function f)))
 
 (defn- wrap-objective-function [f] (ObjectiveFunction. f))
 
+(defn- finite-differences
+  [^MultivariateFunction f ^doubles xs ^double step] 
+  (double-array (map-indexed (fn [^long id ^double x]
+                               (let [x+ (+ x step)
+                                     x- (- x step)
+                                     step2 (+ (- x+ x) (- x x-))
+                                     a (aclone ^doubles xs)
+                                     v1 (do (aset a id (+ x step))
+                                            (.value f a))
+                                     v2 (do (aset a id (- x step))
+                                            (.value f a))]
+                                 (/ (- v1 v2) step2))) xs)))
+
 (defn- multivariate-gradient
   "Calculate gradient numerically."
   [^MultivariateFunction f ^double step] 
-  (let [step2 (+ step step)]
-    (reify MultivariateVectorFunction
-      (value [_ xs]
-        (double-array (map-indexed (fn [^long id ^double x]
-                                     (let [a (aclone ^doubles xs)
-                                           v1 (do (aset a id (+ x step))
-                                                  (.value f a))
-                                           v2 (do (aset a id (- x step))
-                                                  (.value f a))]
-                                       (/ (- v1 v2) step2))) xs))))))
+  (reify MultivariateVectorFunction
+    (value [_ xs]
+      (finite-differences f xs step))))
 
 (defn- wrap-objective-function-gradient [f ^double step]
   (ObjectiveFunctionGradient. (multivariate-gradient f step)))
@@ -199,7 +213,7 @@
 
 (defn- mid-point
   [bounds]
-  (mapv (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds))
+  (map (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds))
 
 (defn- initial-guess
   [bounds initial ^MultivariateFunctionMappingAdapter mfma]
@@ -241,59 +255,95 @@
            (sequential? (first bounds)))
     (first bounds) bounds))
 
+(defn- smile-fn
+  [^MultivariateFunction mf ^double gradient-h]
+  (reify DifferentiableMultivariateFunction
+    (f [_ xs] (.value mf xs))
+    (g [_ xs gout]
+      (let [^doubles gradient (finite-differences mf xs gradient-h)]
+        (System/arraycopy gradient 0 gout 0 (alength gradient))
+        (.value mf xs)))))
+
+(defn- bfgs
+  [f {:keys [^int max-iters ^int m ^double tolerance goal bounds bounded? ^double gradient-h]
+      :or {max-iters 1000 m 5 tolerance 1.0e-8 goal :minimize bounded? true gradient-h 0.0001}}]
+  (let [dim (find-dimensions bounds)
+        mf (if (= goal :minimize)
+             (multivariate-function f)
+             (negative-multivariate-function f))
+        ^DifferentiableMultivariateFunction sf (smile-fn mf gradient-h)]
+    (if bounded?
+      (let [l (double-array (map first bounds))
+            u (double-array (map second bounds))]
+        (fn smile-bounded
+          ([] (smile-bounded nil))
+          ([init]
+           (let [i (double-array (or init (mid-point bounds)))
+                 res (BFGS/minimize sf m i l u tolerance max-iters)]
+             [(seq i) (if (= goal :minimize) res (- res))]))))
+      (fn smile-unbounded
+        ([] (smile-unbounded nil))
+        ([init]
+         (let [i (double-array (or init (repeat dim 0.0)))
+               res (BFGS/minimize sf m i tolerance max-iters)]
+           [(seq i) (if (= goal :minimize) res (- res))]))))))
+
 (defn- optimizer
   [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
-             :or {gradient-h 0.01}
+             :or {gradient-h 0.0001}
              :as config}]
-  (assert (not (nil? bounds)) "Provide bounds")
-  (let [bounds (fix-brent-bounds method bounds)
-        dim (find-dimensions bounds)
-        config (assoc config :dim dim :bounds bounds)
-        
-        ^SimpleBounds b (wrap-bounds method bounds)
+  (if (= method :bfgs)
+    (bfgs f config)
+    (do
+      (assert (not (nil? bounds)) "Provide bounds")
+      (let [bounds (fix-brent-bounds method bounds)
+            dim (find-dimensions bounds)
+            config (assoc config :dim dim :bounds bounds)
+            
+            ^SimpleBounds b (wrap-bounds method bounds)
 
-        bounded? (and bounded? (unbounded-set method))
+            bounded? (and bounded? (unbounded-set method))
 
-        mfma (when bounded?
-               (MultivariateFunctionMappingAdapter. (multivariate-function f) (.getLower b) (.getUpper b)))
-        
-        ;; create initial optimization data
-        base-opt-data [(wrap-evals max-evals)
-                       (wrap-iters max-iters)
-                       (if (= goal :maximize) GoalType/MAXIMIZE GoalType/MINIMIZE)
-                       (if bounded?
-                         (wrap-objective-function mfma)
-                         (wrap-function method f))]
-        
-        ;; powell and simplex methods do not accept bounds
-        base-opt-data (if (and b (not (unbounded-set method))) (conj base-opt-data b) base-opt-data)
+            mfma (when bounded?
+                   (MultivariateFunctionMappingAdapter. (multivariate-function f) (.getLower b) (.getUpper b)))
+            
+            ;; create initial optimization data
+            base-opt-data [(wrap-evals max-evals)
+                           (wrap-iters max-iters)
+                           (if (= goal :maximize) GoalType/MAXIMIZE GoalType/MINIMIZE)
+                           (if bounded?
+                             (wrap-objective-function mfma)
+                             (wrap-function method f))]
+            
+            ;; powell and simplex methods do not accept bounds
+            base-opt-data (if (and b (not (unbounded-set method))) (conj base-opt-data b) base-opt-data)
 
-        ;; simplex methods should have also specific siumplex algorithms, also for cmaes we add additional stuff
-        base-opt-data (case method
-                        :nelder-mead (conj base-opt-data (nelder-mead config))
-                        :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
-                        ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
-                        :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
-                                                                                        gradient-h))
-                        :cmaes (conj base-opt-data
-                                     (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
-                                     (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))
-                        base-opt-data)
+            ;; simplex methods should have also specific siumplex algorithms, also for cmaes we add additional stuff
+            base-opt-data (case method
+                            :nelder-mead (conj base-opt-data (nelder-mead config))
+                            :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
+                            ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
+                            :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
+                                                                                            gradient-h))
+                            :cmaes (conj base-opt-data
+                                         (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
+                                         (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))
+                            base-opt-data)
+            
+            builder (optimizers method)        
+            ^BaseOptimizer optimizer (builder config)]
         
-        builder (optimizers method)        
-        ^BaseOptimizer optimizer (builder config)]
-    
-    (fn local-optimizer
-      ([] (local-optimizer nil))
-      ([init] (let [res (->> (conj base-opt-data (wrap-initial method bounds init mfma))
-                             (into-array OptimizationData)
-                             (.optimize optimizer)
-                             (parse-result mfma))]
-                (if-not stats?
-                  res
-                  {:result res
-                   :evaluations (.getEvaluations optimizer)
-                   :iterations (.getIterations optimizer)}))))))
+        (fn local-optimizer
+          ([] (local-optimizer nil))
+          ([init] (let [res (->> (conj base-opt-data (wrap-initial method bounds init mfma))
+                                 (into-array OptimizationData)
+                                 (.optimize optimizer)
+                                 (parse-result mfma))]
+                    (if-not stats?
+                      res
+                      {:result res
+                       :evaluations (.getEvaluations optimizer)
+                       :iterations (.getIterations optimizer)}))))))))
 
 (defn minimizer
   "Create optimizer which minimizes function.
@@ -370,6 +420,8 @@
 (def scan-and-minimize (partial scan-and- minimizer :minimize))
 (def scan-and-maximize (partial scan-and- maximizer :maximize))
 
+;; bo
+
 (defmulti ^:private utility-function (fn [t & _] t))
 
 (defmethod utility-function :default [_ p]
@@ -402,7 +454,7 @@
         int-fn (if (== dims 1)
                  #(vector (m/lerp (ffirst bounds) (second (first bounds)) %))
                  #(v/einterpolate (mapv first bounds) (mapv second bounds) %))]
-    (->> (r/jittered-sequence-generator (if (< dims 5) :r2 :sobol) dims jitter)
+    (->> (r/jittered-sequence-generator (if (< dims 15) :r2 :sobol) dims jitter)
          (take init-points)
          (map int-fn))))
 
@@ -467,8 +519,9 @@
            utility-function-type :ucb
            utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)
            jitter 0.25
-           normalize? true}}]
-  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :powell))
+           normalize? true
+           noise 1.0e-8}}]
+  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :bfgs))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
@@ -487,22 +540,27 @@
                                      :utility-param 0.1
                                      :optimizer :powell})]
     (println (f 0 1))
-    (last (take 20 (map (juxt :x :y) bo))))
+    (last (take 30 (map (juxt :x :y) bo))))
 
 ;; tests
 
 #_(defn target-1d ^double [^double x]
     (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4)))
 
-#_(defn target-2d-schweel
+#_(defn target-2d-schwefel
     ^double [^double x ^double y]
-    (- (* 418.9829 2.0)
+    (- 418.9829
        (+ (* x (m/sin (m/sqrt (m/abs x))))
           (* y (m/sin (m/sqrt (m/abs y)))))))
 
-#_(let [f (minimizer :nelder-mea target-2d-schweel {:bounds [[-500 500]
-                                                             [-500 500]] :bounded? false :stats? true})]
-    (f (v/generate-vec2 #(r/drand -500 500))))
+#_(defn target-2d-booth
+    ^double [^double x ^double y]
+    (+ (m/sq (+ x y y -7))
+       (m/sq (+ x x y -5))))
+
+#_(time (let [f (minimizer :bfgs target-2d-booth {:bounds [[-10 10]
+                                                           [-10 10]]})]
+          (f (v/generate-vec2 #(r/drand -9 9)))))
 
 #_(scan-and-minimize :cmaes target-2d-schweel {:bounds [[-500 500]
                                                         [-500 500]] :N 100 :bounded? true})

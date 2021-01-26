@@ -15,7 +15,7 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces: re
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.0.5"]
+[generateme/fastmath "2.1.0"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
@@ -133,7 +133,7 @@ Various clustering algorithms including K-Means++, DBSCAN, CLARANS, DENCLUE, MEC
 
 ### Optimization
 
-Gradient, Nelder-Mead, Simplex, Powell, BOBYQA, CMAES, BayesianOptimizer
+L-BFGS-B, Gradient, Nelder-Mead, Simplex, Powell, BOBYQA, CMAES, BayesianOptimizer
 
 ### Grids
 

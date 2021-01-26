@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.0]
+
+### Added 
+
+* `l-bfgs-b` optimizer as `:bfgs`
+
+### Changed
+
+* SMILE version bump to 2.6.0
+* `fastmath.gp` relies now on SMILE backend (openblas/mkl)
+
 ## [2.0.5]
 
 ### Added

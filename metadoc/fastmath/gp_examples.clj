@@ -33,10 +33,12 @@
   (example "With added noise" (let [gp (gaussian-process [0 1 -2 -2.001] [-2 3 0.5 -0.6] {:noise 0.1})]
                                 (prior-samples gp (range 0 1 0.1))))
   (example-image "Plot of 10 priors (with noise)" "images/gp/priorn.jpg")
-  (example "With periodic kernel" (let [gp (gaussian-process [0 1 -2 -2.001] [-2 3 0.5 -0.6] {:noise 0.01
-                                                                                              :kernel (k/kernel :periodic 2)})]
-                                    (prior-samples gp (range 0 1 0.1))))
-  (example-image "Plot of 10 priors (with periodic kernel)" "images/gp/priorp.jpg"))
+  ;; periodic causes LAPACK GETRF error in prior...
+  #_(example "With periodic kernel" (let [gp (gaussian-process [0 1 -2 -2.001] [-2 3 0.5 -0.6] {:noise 0.01
+                                                                                                :kernel (k/kernel :periodic 0.2)})]
+                                      (prior-samples gp (range 0 1 0.1))))
+  #_(example-image "Plot of 10 priors (with periodic kernel)" "images/gp/priorp.jpg")
+  )
 
 (add-examples posterior-samples
   (example "With gaussian kernel"
