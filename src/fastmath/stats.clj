@@ -262,6 +262,29 @@
       (percentile avs p2 estimation-strategy)
       (median avs)])))
 
+(defn percentile-bc-extent
+  "Return bias corrected percentile range and mean for bootstrap samples.
+  See https://projecteuclid.org/euclid.ss/1032280214
+
+  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)"
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-bc-extent vs 2.5))
+  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
+  ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
+  ([vs ^double p1 ^double p2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         gaussian (r/distribution :normal {:mu 0 :sd 1})
+        ;;  icdf of the number of bootstrap samples <= the mean
+         z0 (r/icdf gaussian (/ (double (count (filter  #(<= % (mean avs)) vs))) (count vs)))
+         z1 (r/icdf gaussian (/  (double p1) 100))
+         z2 (r/icdf gaussian (/  (double  p2) 100))
+         q1 (r/cdf gaussian (+ (* 2 z0) z1))
+         q2 (r/cdf gaussian (+ (* 2 z0) z2))]
+
+     [(percentile avs (* 100  q1) estimation-strategy)
+      (percentile avs (* 100  q2) estimation-strategy)
+      (mean avs)])))
+
 (defn iqr
   "Interquartile range."
   {:metadoc/categories #{:stat}}
@@ -1030,4 +1053,3 @@
       :cis (map (fn [^double r]
                   (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
                                                                (+ acc (* s s))) acf-data))})))
-
