@@ -273,17 +273,17 @@
   ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
   ([vs ^double p1 ^double p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         gaussian (r/distribution :normal {:mu 0 :sd 1})
+         m (mean avs)
         ;;  icdf of the number of bootstrap samples <= the mean
-         z0 (r/icdf gaussian (/ (double (count (filter  #(<= % (mean avs)) vs))) (count vs)))
-         z1 (r/icdf gaussian (/  (double p1) 100))
-         z2 (r/icdf gaussian (/  (double  p2) 100))
-         q1 (r/cdf gaussian (+ (* 2 z0) z1))
-         q2 (r/cdf gaussian (+ (* 2 z0) z2))]
+         z0 (r/icdf r/default-normal (/ (count (filter  #(<= % m) vs)) (count vs)))
+         z1 (r/icdf r/default-normal (/ p1 100))
+         z2 (r/icdf r/default-normal (/ p2 100))
+         q1 (r/cdf r/default-normal (+ (* 2 z0) z1))
+         q2 (r/cdf r/default-normal (+ (* 2 z0) z2))]
 
      [(percentile avs (* 100  q1) estimation-strategy)
       (percentile avs (* 100  q2) estimation-strategy)
-      (mean avs)])))
+      m])))
 
 (defn iqr
   "Interquartile range."
