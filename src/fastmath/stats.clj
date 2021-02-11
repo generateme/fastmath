@@ -100,14 +100,14 @@
   "Calculate percentile of a `vs`.
 
   Percentile `p` is from range 0-100.
-  
+
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
-  
+
   See also [[quantile]]."
   {:metadoc/categories #{:stat}}
-  (^double [vs ^double p] 
+  (^double [vs ^double p]
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
    (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
@@ -117,11 +117,11 @@
   "Calculate percentiles of a `vs`.
 
   Percentiles are sequence of values from range 0-100.
-  
+
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
-  
+
   See also [[quantile]]."
   {:metadoc/categories #{:stat}}
   ([vs ps] (percentiles vs ps nil))
@@ -134,11 +134,11 @@
   "Calculate quantile of a `vs`.
 
   Quantile `q` is from range 0.0-1.0.
-  
+
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
-  
+
   See also [[percentile]]."
   {:metadoc/categories #{:stat}}
   (^double [vs ^double q]
@@ -150,11 +150,11 @@
   "Calculate quantiles of a `vs`.
 
   Quantilizes is sequence with values from range 0.0-1.0.
-  
+
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
-  
+
   See also [[percentiles]]."
   {:metadoc/categories #{:stat}}
   ([vs qs]
@@ -219,7 +219,7 @@
   (^double [vs u]
    (m/sqrt (variance vs u))))
 
-(defn median-absolute-deviation 
+(defn median-absolute-deviation
   "Calculate MAD"
   {:metadoc/categories #{:stat}}
   ^double [vs]
@@ -275,9 +275,9 @@
    (let [avs (m/seq->double-array vs)
          m (mean avs)
         ;;  icdf of the number of bootstrap samples <= the mean
-         z0 (r/icdf r/default-normal (/ (count (filter  #(<= % m) vs)) (count vs)))
-         z1 (r/icdf r/default-normal (/ p1 100))
-         z2 (r/icdf r/default-normal (/ p2 100))
+         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ^double z1 (r/icdf r/default-normal (/ p1 100))
+         ^double z2 (r/icdf r/default-normal (/ p2 100))
          q1 (r/cdf r/default-normal (+ (* 2 z0) z1))
          q2 (r/cdf r/default-normal (+ (* 2 z0) z2))]
 
@@ -301,7 +301,7 @@
   * LAV is smallest value which is greater or equal to the LIF = `(- Q1 (* 1.5 IQR))`.
   * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
   * third value is a median of samples
-  
+
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   {:metadoc/categories #{:extent}}
@@ -653,8 +653,8 @@
          step (/ diff bins)
          search-array (double-array (map #(+ mn (* ^long % step)) (range bins)))
          buff (long-array bins)]
-     
-     (doseq [^double v vs] 
+
+     (doseq [^double v vs]
        (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
              ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
          (fastmath.java.Array/inc ^longs buff pos)))
@@ -764,7 +764,7 @@
               :else #(= % true-value))]
       (map f xs))))
 
-(defn binary-measures-all 
+(defn binary-measures-all
   "Collection of binary measures.
 
   * `truth` - list of ground truth values
@@ -905,7 +905,7 @@
      (let [df (dec n)
            tstat (/ (- m mu) stderr)
            pvals (-> ((ttest-sides-fn sides) tstat alpha df)
-                     (update :confidence-intervals (partial ttest-update-ci mu stderr)))] 
+                     (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
        (merge pvals {:estimated-mu m
                      :df df
                      :t tstat
@@ -947,7 +947,7 @@
      (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
                  (and (not equal-variances?)
                       (> nx 1) (> ny 1))) "Not enough observations.")
-     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal.")) 
+     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
      (if paired? (-> (ttest-one-sample (map (fn [^double x ^double y] (- x y)) xs ys) params)
                      (assoc :paired? true))
          (let [axs (m/seq->double-array xs)
@@ -1004,7 +1004,7 @@
   If lags is omitted function returns maximum possible number of lags.
 
   `pacf` returns also lag `0` (which is `0.0`).
-  
+
   See also [[acf]], [[acf-ci]], [[pacf-ci]]"
   {:metadoc/categories #{:time}}
   ([data] (pacf data (dec (count data))))
@@ -1019,7 +1019,7 @@
                                             ^double (reduce m/fast+
                                                             (map-indexed (fn [^long id ^double c]
                                                                            (* c ^double (acf (inc id)))) curr))))]
-                              
+
                               (conj (mapv (fn [^double p1 ^double p2]
                                             (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acf 1)] (range 2 (inc lags)))]
      (conj (map last phis) 0.0))))
