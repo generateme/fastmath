@@ -262,28 +262,6 @@
       (percentile avs p2 estimation-strategy)
       (median avs)])))
 
-(defn percentile-bc-extent
-  "Return bias corrected percentile range and mean for bootstrap samples.
-  See https://projecteuclid.org/euclid.ss/1032280214
-
-  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)"
-  {:metadoc/categories #{:extent}}
-  ([vs] (percentile-bc-extent vs 2.5))
-  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
-  ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
-  ([vs ^double p1 ^double p2 estimation-strategy]
-   (let [avs (m/seq->double-array vs)
-         m (mean avs)
-        ;;  icdf of the number of bootstrap samples <= the mean
-         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
-         ^double z1 (r/icdf r/default-normal (/ p1 100))
-         ^double z2 (r/icdf r/default-normal (/ p2 100))
-         q1 (r/cdf r/default-normal (+ (* 2 z0) z1))
-         q2 (r/cdf r/default-normal (+ (* 2 z0) z2))]
-
-     [(percentile avs (* 100  q1) estimation-strategy)
-      (percentile avs (* 100  q2) estimation-strategy)
-      m])))
 
 (defn iqr
   "Interquartile range."
@@ -1053,3 +1031,66 @@
       :cis (map (fn [^double r]
                   (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
                                                                (+ acc (* s s))) acf-data))})))
+
+
+(defn- estimate-acceleration
+"Estimates acceleration for BCA bootstrap confidence interval computation"
+([avs]  (let [m (mean avs)
+              influence (map #(- ^double % m) avs)
+              num (sum (map m/cb influence))
+              denom (* 6 (m/sqrt (m/cb (sum (map m/sq influence)))))]
+          (/ (double num) denom))))
+
+(defn- accelerated-quantile [^double z0 ^double z1 ^double a]
+  (let [num (+ z0 z1)
+       denom (- 1 (* a num))]
+       (+ z0 (/ (double num) denom))
+  ))
+
+(defn percentile-bca-extent
+  "Return bias corrected percentile range and mean for bootstrap samples. Also accounts for variance
+   variations throught the accelaration parameter.
+  See https://projecteuclid.org/euclid.ss/1032280214
+
+  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)"
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-bca-extent vs 2.5))
+  ([vs ^double p] (percentile-bca-extent vs p (- 100 p)))
+  ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
+  ([vs ^double p1 ^double p2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         accel (estimate-acceleration avs)
+         m (mean avs)
+        ;;  icdf of the number of bootstrap samples <= the mean
+         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ^double z1 (r/icdf r/default-normal (/ p1 100))
+         ^double z2 (r/icdf r/default-normal (/ p2 100))
+         q1 (r/cdf r/default-normal (accelerated-quantile z0 z1 accel))
+         q2 (r/cdf r/default-normal (accelerated-quantile z0 z2 accel))]
+
+     [(percentile avs (* 100  q1) estimation-strategy)
+      (percentile avs (* 100  q2) estimation-strategy)
+      m])))
+
+(defn percentile-bc-extent
+  "Return bias corrected percentile range and mean for bootstrap samples.
+  See https://projecteuclid.org/euclid.ss/1032280214
+
+  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)"
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-bc-extent vs 2.5))
+  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
+  ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
+  ([vs ^double p1 ^double p2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         m (mean avs)
+        ;;  icdf of the number of bootstrap samples <= the mean
+         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ^double z1 (r/icdf r/default-normal (/ p1 100))
+         ^double z2 (r/icdf r/default-normal (/ p2 100))
+         q1 (r/cdf r/default-normal (accelerated-quantile z0 z1 0.0))
+         q2 (r/cdf r/default-normal (accelerated-quantile z0 z2 0.0))]
+
+     [(percentile avs (* 100  q1) estimation-strategy)
+      (percentile avs (* 100  q2) estimation-strategy)
+      m])))
