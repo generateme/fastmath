@@ -1034,18 +1034,19 @@
 
 
 (defn- estimate-acceleration
-"Estimates acceleration for BCA bootstrap confidence interval computation"
-([avs]  (let [m (mean avs)
-              influence (map #(- ^double % m) avs)
-              num (sum (map m/cb influence))
-              denom (* 6 (m/sqrt (m/cb (sum (map m/sq influence)))))]
-          (/ (double num) denom))))
+  "Estimates acceleration for BCA bootstrap confidence interval computation"
+  ([avs m]  (let [influence (map #(- ^double % m) avs)
+                  num       (sum (map m/cb influence))
+                  denom     (* 6 (m/sqrt (m/cb (sum (map m/sq influence)))))]
+              (/  num denom))))
 
 (defn- accelerated-quantile [^double z0 ^double z1 ^double a]
   (let [num (+ z0 z1)
-       denom (- 1 (* a num))]
-       (+ z0 (/ (double num) denom))
-  ))
+        denom (- 1 (* a num))]
+    (+ z0 (/ (double num) denom))))
+(defn- empirical-cdf [vs value]
+  (/ (double  (count (filter  #(<= ^double % value) vs))) (count vs)))
+
 
 (defn percentile-bca-extent
   "Return bias corrected percentile range and mean for bootstrap samples. Also accounts for variance
@@ -1059,10 +1060,10 @@
   ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
   ([vs ^double p1 ^double p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         accel (estimate-acceleration avs)
          m (mean avs)
+         accel (estimate-acceleration avs m)
         ;;  icdf of the number of bootstrap samples <= the mean
-         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ^double z0 (r/icdf r/default-normal (empirical-cdf vs m))
          ^double z1 (r/icdf r/default-normal (/ p1 100))
          ^double z2 (r/icdf r/default-normal (/ p2 100))
          q1 (r/cdf r/default-normal (accelerated-quantile z0 z1 accel))
@@ -1085,7 +1086,7 @@
    (let [avs (m/seq->double-array vs)
          m (mean avs)
         ;;  icdf of the number of bootstrap samples <= the mean
-         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ^double z0 (r/icdf r/default-normal (empirical-cdf vs m))
          ^double z1 (r/icdf r/default-normal (/ p1 100))
          ^double z2 (r/icdf r/default-normal (/ p2 100))
          q1 (r/cdf r/default-normal (accelerated-quantile z0 z1 0.0))
