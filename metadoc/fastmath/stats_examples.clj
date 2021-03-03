@@ -88,6 +88,10 @@
                                   (percentile-extent (repeatedly 100000 r/grand))
                                   (percentile-extent (repeatedly 100000 r/grand) 10)
                                   (percentile-extent (repeatedly 100000 r/grand) 30 70)))
+(add-examples percentile-bc-extent (example-session "for samples from gaussian distribution"
+                                     (percentile-bc-extent (repeatedly 100000 r/grand))
+                                     (percentile-bc-extent (repeatedly 100000 r/grand) 10)
+                                     (percentile-bc-extent (repeatedly 100000 r/grand) 30 70)))
 (add-examples sum (example "Sum" (sum [1 2 3 -1 -1 2 -1 11 111])))
 
 (add-examples kurtosis (example "Kurtosis" (kurtosis [1 2 3 -1 -1 2 -1 11 111])))

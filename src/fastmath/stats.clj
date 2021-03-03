@@ -274,15 +274,15 @@
   ([vs ^double p1 ^double p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)
          m (mean avs)
-        ;;  icdf of the number of bootstrap samples <= the mean
-         ^double z0 (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs)))
+         ;;  icdf of the number of bootstrap samples <= the mean
+         z0 (* 2.0 ^double (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs))))
          ^double z1 (r/icdf r/default-normal (/ p1 100))
          ^double z2 (r/icdf r/default-normal (/ p2 100))
-         q1 (r/cdf r/default-normal (+ (* 2 z0) z1))
-         q2 (r/cdf r/default-normal (+ (* 2 z0) z2))]
+         q1 (r/cdf r/default-normal (+ z0 z1))
+         q2 (r/cdf r/default-normal (+ z0 z2))]
 
-     [(percentile avs (* 100  q1) estimation-strategy)
-      (percentile avs (* 100  q2) estimation-strategy)
+     [(percentile avs (* 100.0 q1) estimation-strategy)
+      (percentile avs (* 100.0 q2) estimation-strategy)
       m])))
 
 (defn iqr
