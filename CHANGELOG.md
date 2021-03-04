@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.2]
+
+### Added
+
+* bias corrected and accelerated percentile method for boostrap ([PR7](https://github.com/generateme/fastmath/pull/7))
+
 ## [2.1.1]
 
 ### Added

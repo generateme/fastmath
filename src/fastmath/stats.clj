@@ -262,29 +262,6 @@
       (percentile avs p2 estimation-strategy)
       (median avs)])))
 
-(defn percentile-bc-extent
-  "Return bias corrected percentile range and mean for bootstrap samples.
-  See https://projecteuclid.org/euclid.ss/1032280214
-
-  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)"
-  {:metadoc/categories #{:extent}}
-  ([vs] (percentile-bc-extent vs 2.5))
-  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
-  ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
-  ([vs ^double p1 ^double p2 estimation-strategy]
-   (let [avs (m/seq->double-array vs)
-         m (mean avs)
-         ;;  icdf of the number of bootstrap samples <= the mean
-         z0 (* 2.0 ^double (r/icdf r/default-normal (/ (double  (count (filter  #(<= ^double % m) vs))) (count vs))))
-         ^double z1 (r/icdf r/default-normal (/ p1 100))
-         ^double z2 (r/icdf r/default-normal (/ p2 100))
-         q1 (r/cdf r/default-normal (+ z0 z1))
-         q2 (r/cdf r/default-normal (+ z0 z2))]
-
-     [(percentile avs (* 100.0 q1) estimation-strategy)
-      (percentile avs (* 100.0 q2) estimation-strategy)
-      m])))
-
 (defn iqr
   "Interquartile range."
   {:metadoc/categories #{:stat}}
@@ -1053,3 +1030,71 @@
       :cis (map (fn [^double r]
                   (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
                                                                (+ acc (* s s))) acf-data))})))
+
+;;
+
+(defn- estimate-acceleration
+  "Estimates acceleration for BCA bootstrap confidence interval computation"
+  ^double [avs ^double m]
+  (let [influence (map (fn [^double v] (- m v)) avs)
+        num       (sum (map m/cb influence))
+        denom     (* 6.0 (m/sqrt (m/cb (sum (map m/sq influence)))))]
+    (/ num denom)))
+
+(defn- cdf-accelerated-quantile
+  ^double [^double z0 ^double z ^double a]
+  (let [num (+ z0 z)
+        denom (- 1.0 (* a num))]
+    (->> (+ z0 (/ num denom))
+         (r/cdf r/default-normal))))
+
+(defn- empirical-cdf
+  ^double [vs ^double value]
+  (/ (double (count (filter (fn [^double v] (< v value)) vs))) (count vs)))
+
+(defn- percentile-bca-common
+  [avs p1 p2 m accel estimation-strategy]
+  (let [^double z0 (r/icdf r/default-normal (empirical-cdf avs m))
+        ^double z1 (r/icdf r/default-normal (/ ^double p1 100.0))
+        ^double z2 (r/icdf r/default-normal (/ ^double p2 100.0))
+        q1 (cdf-accelerated-quantile z0 z1 accel)
+        q2 (cdf-accelerated-quantile z0 z2 accel)]
+    [(quantile avs q1 estimation-strategy)
+     (quantile avs q2 estimation-strategy)
+     m]))
+
+(defn percentile-bca-extent
+  "Return bias corrected percentile range and mean for bootstrap samples. Also accounts for variance
+   variations throught the accelaration parameter.
+  See https://projecteuclid.org/euclid.ss/1032280214
+
+  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)
+
+  Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-bca-extent vs 2.5))
+  ([vs ^double p] (percentile-bca-extent vs p (- 100.0 p)))
+  ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
+  ([vs p1 p2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         m (mean avs)
+         accel (estimate-acceleration avs m)]
+     (percentile-bca-common avs p1 p2 m accel estimation-strategy)))
+  ([vs p1 p2 accel estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         m (mean avs)]
+     (percentile-bca-common avs p1 p2 m accel estimation-strategy))))
+
+(defn percentile-bc-extent
+  "Return bias corrected percentile range and mean for bootstrap samples.
+  See https://projecteuclid.org/euclid.ss/1032280214
+
+  `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)
+
+  Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
+  {:metadoc/categories #{:extent}}
+  ([vs] (percentile-bc-extent vs 2.5))
+  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
+  ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
+  ([vs p1 p2 estimation-strategy]
+   (percentile-bca-extent vs p1 p2 0.0 estimation-strategy)))
