@@ -624,11 +624,10 @@
   ([vs] (histogram vs :freedman-diaconis))
   ([vs bins-or-estimate-method] (histogram vs (estimate-bins vs bins-or-estimate-method) (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
-   (let [mx (m/next-double mx)
-         vs (filter #(<= mn ^double % mx) vs)
+   (let [vs (filter #(<= mn ^double % mx) vs)
          diff (- mx mn)
          step (/ diff bins)
-         search-array (double-array (map #(+ mn (* ^long % step)) (range bins)))
+         search-array (double-array (butlast (m/slice-range mn mx (inc bins))))
          buff (long-array bins)]
 
      (doseq [^double v vs]

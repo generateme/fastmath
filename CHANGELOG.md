@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.3]
+
+### Fixed
+
+* better histogram split
+
 ## [2.1.2]
 
 ### Added
