@@ -38,7 +38,7 @@
   (example "Usage"
     (cell->anchor (grid :triangle 20 10 10) [5 5]))
   (let [g (grid :triangle 20 10 10)]
-    (example-session "More examples (grid `g` same as above). For triangle grid pair of cells share the same anchor."
+    (example-session "More examples (grid `g` same as above). For triangle grid pair of cells share the same anchor, third coordinate indicates if it's up (`0`) or down (`1`) triangle."
       (cell->anchor g [0 0])
       (cell->anchor g [1 0])
       (cell->anchor g [2 0])
@@ -47,7 +47,7 @@
 
 (add-examples cell->mid
   (example "Usage"
-    (cell->mid (grid :triangle 20 10 10) [5 5]))
+    (cell->mid (grid :triangle 20 10 10) [4 5]))
   (let [g (grid :triangle 20 10 10)]
     (example-session "More examples (grid `g` same as above)."
       (cell->mid g [0 0])

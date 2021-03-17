@@ -121,5 +121,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (coords->cell [g coords] "Converts 2d space coordinates to cell coordinates.")
   (cell->anchor [g cell] "Converts cell coordinates to anchor coordinates.")
   (coords->mid [g coords] "Converts 2d space into cell midpoint.")
+  (cell->mid [g cell] "Converts cell coordinates to cell midpoint")
   (grid-type [g] "Returns type of the cell.")
   (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))

@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.4]
+
+### Fixed
+
+* `cell->mid` for `:triangle` grid returned wrong mid point for `down` triangles (#8)
+
+### Changed
+
+* [breaking] `:triangle` grid anchor is 3d now, last coordinate indicates triangle position (up/down)
+
 ## [2.1.3]
 
 ### Fixed

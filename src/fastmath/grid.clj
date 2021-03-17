@@ -33,11 +33,11 @@
 
   * Hexagonal grids are based on https://www.redblobgames.com/grids/hexagons/
   * Only hexagonal cells have anchor at the center. For the rest the anchor is at the top left vertex.
-      * Anchors for triangular grids are shared between two cells: even and odd `q` coordinate. Even `q` is pointy topped, odd `q` is flat topped."
+      * Anchors for triangular grids are shared between two cells: even and odd `q` coordinate. Even `q` is pointy topped, odd `q` is flat topped which is marked in the third coordinate of anchor."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.protocols :as prot])
-  (:import [fastmath.vector Vec2]
+  (:import [fastmath.vector Vec2 Vec3]
            [clojure.lang Named]))
 
 (set! *warn-on-reflection* true)
@@ -73,18 +73,24 @@
 (defn cell->mid
   "Converts cell coordinates to mid point"
   [g cell]
-  (prot/coords->mid g (prot/cell->anchor g cell)))
+  (prot/cell->mid g cell))
 
 (defn- grid-obj
   "Create grid object."
   ([typ {:keys [from-cell to-cell to-mid vertices anchor]} ^double size ^Vec2 sv]
-   (let [nm (subs (str typ) 1)
+   (let [nm (name typ)
          tostr (str nm ", size=" size)
-         anchor (or anchor coords->anchor)]
+         anchor (or anchor coords->anchor)
+         ^Vec3 sv3 (v/vec3 sv 0.0)
+         triangle? (= typ :triangle)]
      (reify
        prot/GridProto
        (coords->cell [_ [^double x ^double y]] (to-cell size (- x (.x sv)) (- y (.y sv))))
-       (cell->anchor [_ [^double q ^double r]] (v/add sv (from-cell size q r)))
+       (cell->anchor [_ [^double q ^double r]] (let [cell (from-cell size q r)]
+                                                 (if triangle?
+                                                   (v/add cell sv3)
+                                                   (v/add cell sv))))
+       (cell->mid [g cell] (to-mid size (prot/cell->anchor g cell)))
        (coords->mid [g coords] (to-mid size (anchor g coords)))
        (corners [g coords] (vertices size (anchor g coords)))
        (corners [g coords scale] (vertices (* ^double scale size) (anchor g coords)))
@@ -242,7 +248,7 @@
 (defn- triangle->pixel
   "Triangle cell to anchor."
   [^double size ^long q ^long r]
-  (shifted-square->pixel size (>> q 1) r))
+  (v/vec3 (shifted-square->pixel size (>> q 1) r) (bit-and q 0x1)))
 
 (defn- pixel->triangle
   "2d coords to triangle cell."
@@ -281,7 +287,7 @@
   "2d coordinates to triangle anchor with cell information (even or odd)."
   [g coords]
   (let [^Vec2 qr (prot/coords->cell g coords)]
-    (v/vec3 (prot/cell->anchor g qr) (bit-and (long (.x qr)) 0x1))))
+    (prot/cell->anchor g qr)))
 
 ;;
 
