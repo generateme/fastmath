@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.5]
+
+### Fixed
+
+* grid: `rhombus` is now a real rhombus, `triangle` is equilateral now (cont. #8)
+
 ## [2.1.4]
 
 ### Fixed

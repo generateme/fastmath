@@ -212,12 +212,16 @@
 
 ;; rhombus
 
-(def ^:private rhombus->pixel shifted-square->pixel)
+(defn- rhombus->pixel
+  "Shifted square to anchor."
+  [^double size ^long q ^long r]
+  (v/vec2 (+ (* r (* 0.5 size)) (* q size)) (* r size m/SQRT3_2)))
 
 (defn- pixel->rhombus
   "2d coords to rhombus cell."
   [^double size ^double x ^double y]
-  (let [ys (/ y size)
+  (let [h (* size m/SQRT3_2)
+        ys (/ y h)
         yy (m/floor ys)
         fy (if (neg? ys) (- 1.0 (m/frac ys)) (m/frac ys))
         hs (* 0.5 size)]
@@ -227,15 +231,15 @@
 
 (defn- rhombus-pixel->mid
   [^double size v]
-  (let [hs (/ size 2.0)
-        qs (/ size 4.0)]
+  (let [hs (* m/SQRT3_4 size)
+        qs (* 0.25 size)]
     (v/add v (Vec2. qs hs))))
 
 (defn- rhombus-corners
   "Rhombus vertices."
   ([^double size ^double x ^double y]
    (let [hs (* 0.5 size)
-         y+ (+ y size)]
+         y+ (+ y (* m/SQRT3_2 size))]
      [(v/vec2 x y)
       (v/vec2 (+ x size) y)
       (v/vec2 (+ x hs) y+)
@@ -248,12 +252,13 @@
 (defn- triangle->pixel
   "Triangle cell to anchor."
   [^double size ^long q ^long r]
-  (v/vec3 (shifted-square->pixel size (>> q 1) r) (bit-and q 0x1)))
+  (v/vec3 (rhombus->pixel size (>> q 1) r) (bit-and q 0x1)))
 
 (defn- pixel->triangle
   "2d coords to triangle cell."
   [^double size ^double x ^double y]
-  (let [ys (/ y size)
+  (let [h (* size m/SQRT3_2)
+        ys (/ y h)
         yy (m/floor ys)
         fy (if (neg? ys) (- 1.0 (m/frac ys)) (m/frac ys))
         hs (* 0.5 size)
@@ -268,20 +273,23 @@
 (defn- triangle-corners
   "Triangle shape."
   ([^double size ^double x ^double y ^long down?]
-   (if (zero? down?)
-     [(v/vec2 x y)
-      (v/vec2 (+ x (/ size 2.0)) (+ y size))
-      (v/vec2 (- x (/ size 2.0)) (+ y size))]
-     [(v/vec2 x y)
-      (v/vec2 (+ x size) y)
-      (v/vec2 (+ x (/ size 2.0)) (+ y size))]))
+   (let [y+ (+ y (* m/SQRT3_2 size))
+         hsize (* 0.5 size)]
+     (if (zero? down?)
+       [(v/vec2 x y)
+        (v/vec2 (+ x hsize) y+)
+        (v/vec2 (- x hsize) y+)]
+       [(v/vec2 x y)
+        (v/vec2 (+ x size) y)
+        (v/vec2 (+ x hsize) y+)])))
   ([size [x y down?]] (triangle-corners size x y down?)))
 
 (defn- triangle-pixel->mid
   [^double size [^double x ^double y ^long down?]]
-  (if (zero? down?)
-    (v/vec2 x (+ y (/ (+ size size) 3.0)))
-    (v/vec2 (+ x (/ size 2.0)) (+ y (/ size 3.0)))))
+  (let [h (* m/SQRT3_2 size)]
+    (if (zero? down?)
+      (v/vec2 x (+ y (* m/TWO_THIRD h)))
+      (v/vec2 (+ x (/ size 2.0)) (+ y (* m/THIRD h))))))
 
 (defn- coords->triangle-anchor
   "2d coordinates to triangle anchor with cell information (even or odd)."
