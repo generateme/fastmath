@@ -226,22 +226,58 @@
   ([^double a ^double b ^double c ^double d]
    (bool-and (== a b) (== b c) (== c d))))
 
+;; macros for polynomials
+
+(defmacro muladd
+  "`[x y z]` -> `(+ z (* x y))`"
+  [x y z]
+  `(+ ~z (* ~x ~y)))
+
+(defmacro mevalpoly
+  "Evaluate polynomial macro version"
+  [x & coeffs]
+  (let [cnt (count coeffs)]
+    (condp clojure.core/= cnt
+      0 `0.0
+      1 `~(first coeffs)
+      2 (let [[z y] coeffs]
+          `(muladd ~x ~y ~z))
+      `(muladd ~x (mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
+
+(defn evalpoly
+  "Evaluate polynomial"
+  [x & coeffs]
+  (if-not (seq coeffs)
+    0.0
+    (let [rc (reverse coeffs)]
+      (loop [rcoeffs (rest rc)
+             ^double ex (first rc)]
+        (if-not (seq rcoeffs)
+          ex
+          (recur (rest rcoeffs)
+                 (muladd ^double x ex ^double (first rcoeffs))))))))
+
 ;; Processing math constants
 (def ^:const ^double ^{:doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (/ PI 2.0))
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (* PI 0.5))
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{3}\\\\)"} THIRD_PI (/ PI 3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (/ PI 4.0))
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (* PI 0.25))
 (def ^:const ^double ^{:doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (+ PI PI))
 (def ^:const ^double ^{:doc "Alias for [[TWO_PI]]"} TAU TWO_PI)
 (def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} E Math/E)
 
 (def ^:const ^double ^{:doc "Value of \\\\(\\-pi\\\\)"} -PI (- Math/PI))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (/ -PI 2.0))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI 3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (/ -PI 4.0))
-(def ^:const ^double ^{:doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (+ -PI -PI))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (* PI -0.5))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI -3.0))
+(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (* PI -0.25))
+(def ^:const ^double ^{:doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (- TWO_PI))
 (def ^:const ^double ^{:doc "Alias for [[TWO_PI-]]"} -TAU -TWO_PI)
 (def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} -E (- Math/E))
+
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{\\pi}\\\\)"} INV_PI (/ PI))
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{2}{\\pi}\\\\)"} TWO_INV_PI (/ 2.0 PI))
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{4}{\\pi}\\\\)"} FOUR_INV_PI (/ 4.0 PI))
+(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{2 \\pi}\\\\)"} INV_TWO_PI (/ TWO_PI))
 
 (def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 
@@ -324,10 +360,58 @@
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} log1p)
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} expm1)
 
-(defn
-  ^{:doc "log(1+exp(x))"
-    :metadoc/categories -pow-set-}
-  log1pexp ^double [^double x] (log1p (exp x)))
+(defn ^{:doc "log(1+exp(x))"
+        :metadoc/categories -pow-set-}
+  log1pexp ^double [^double x] (FastMath/log1p (FastMath/exp x)))
+
+(defn ^{:doc "log(1-exp(x))"
+        :metadoc/categories -pow-set-}
+  log1mexp ^double [^double x] (FastMath/log1p (- (FastMath/exp x))))
+
+(defn ^{:doc "log(1+x^2))"
+        :metadoc/categories -pow-set-}
+  log1psq ^double [^double x] (FastMath/log1p (* x x)))
+
+(defn ^{:doc "log(exp(x)-1))"
+        :metadoc/categories -pow-set-}
+  logexpm1 ^double [^double x] (FastMath/log (FastMath/expm1 x)))
+
+;; from julia
+(defn- log1pmx-ker
+  ^double [^double x]
+  (let [r (/ x (+ 2.0 x))
+        t (* r r)
+        w (mevalpoly t 6.66666666666666667e-1 4.00000000000000000e-1 2.85714285714285714e-1 2.22222222222222222e-1
+                     1.81818181818181818e-1 1.53846153846153846e-1 1.33333333333333333e-1 1.17647058823529412e-1)
+        hxsq (* 0.5 x x)]
+    (- (* r (+ hxsq (* w t))) hxsq)))
+
+(defn ^{:doc "log(1+x)-x"
+        :metadoc/categories -pow-set-}
+  log1pmx ^double [^double x]
+  (cond
+    (not (< -0.7 x 0.9)) (- (FastMath/log1p x) x)
+    (> x 0.315) (let [u (/ (- x 0.5) 1.5)]
+                  (- (log1pmx-ker u) 9.45348918918356180e-2 (* 0.5 u)))
+    (> x -0.227) (log1pmx-ker x)
+    (> x -0.4) (let [u (/ (+ x 0.25) 0.75)]
+                 (+ (log1pmx-ker u) -3.76820724517809274e-2 (* 0.25 u)))
+    (> x -0.6) (let [u (* (+ x 0.5) 2.0)]
+                 (+ (log1pmx-ker u) -1.93147180559945309e-1 (* 0.5 u)))
+    :else (let [u (/ (+ x 0.625) 0.375)]
+            (+ (log1pmx-ker u) -3.55829253011726237e-1 (* 0.625 u)))))
+
+(defn ^{:doc "log(x)-x+1"
+        :metadoc/categories -pow-set-}
+  logmxp1 ^double [^double x]
+  (cond
+    (<= x 0.3) (- (inc (FastMath/log x)) x)
+    (<= x 0.4) (let [u (/ (- x 0.375) 0.375)]
+                 (+ (log1pmx-ker u) -3.55829253011726237e-1 (* 0.625 u)))
+    (<= x 0.6) (let [u (* (- x 0.5) 2.0)]
+                 (+ (log1pmx-ker u) -1.93147180559945309e-1 (* 0.5 u)))
+    :else (log1pmx (dec x))))
+
 
 ;; Roots (square and cubic)
 (fastmath-proxy :one ^{:doc "\\\\(\\sqrt{x}\\\\)" :metadoc/categories -pow-set-} sqrt)
@@ -371,6 +455,18 @@
 ;; BesselJ
 (besselj-proxy :two ^{:doc "Bessel J function value for given order and argument." :metadoc/categories -special-set-} bessel-j value)
 
+(def ^:private ^:const ^double jinc-c4 (/ (* PI PI PI PI) 192.0))
+(def ^:private ^:const ^double jinc-c2 (/ (* PI PI) -8.0))
+
+(defn jinc
+  "Besselj1 devided by `x`"
+  ^double [^double x]
+  (if (< (FastMath/abs x) 0.002)
+    (let [x2 (* x x)]
+      (mevalpoly x2 1.0 jinc-c2 jinc-c4))
+    (let [pix (* PI x)]
+      (* 2.0 (/ (bessel-j 1 pix) pix)))))
+
 ;; Sinc
 (defn sinc
   "Sinc function."
@@ -387,6 +483,10 @@
   ^double [^double x]
   (/ (inc (FastMath/exp (- x)))))
 
+(def ^{:metadoc/categories -pow-set-
+       :doc "Alias for [[sigmoid]]"}
+  logistic sigmoid)
+
 (defn logit
   "Logit function"
   {:metadoc/categories -pow-set-}
@@ -398,6 +498,15 @@
 (def ^:const ^double ^{:doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
 (def ^:const ^double ^{:doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
 (def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
+(def ^:const ^double ^{:doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
+(def ^:const ^double ^{:doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
+(def ^:const ^double ^{:doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
+
+(defn xlogx
+  "x * log(x)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (if (zero? x) 0.0 (* x (log x))))
 
 (defn log2
   "Logarithm with base 2.
@@ -536,6 +645,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ([^double a ^double b ^long digits] (== (approx a digits)
                                           (approx b digits))))
 
+(def ^{:metadoc/categories -round-set-
+       :doc "Alias for [[approx-eq]]"} approx= approx-eq)
+
 (defn frac
   "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."
   {:metadoc/categories -round-set-}
@@ -602,6 +714,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
    (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
      (Double/longBitsToDouble (if (pos? v) (- ui delta) (+ ui delta))))))
 
+(defn double-high-bits
+  "Returns high word from double as bits"
+  ^long [^double v]
+  (bit-and (>>> (Double/doubleToRawLongBits v) 32) 0xffffffff))
+
+(defn double-low-bits
+  "Returns low word from double as bits"
+  ^long [^double v]
+  (bit-and (Double/doubleToRawLongBits v) 0xffffffff))
+
 ;; More constants
 
 ;; \\(\sqrt{2}\\)
@@ -615,11 +737,12 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{4}\\\\)"} SQRT3_4 (/ (sqrt 3.0) 4.0))
 
 ;; \\(\sqrt{5}\\)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{5}\\\\)" }SQRT5 (sqrt 5.0))
+(def ^:const ^double ^{:doc "\\\\(\\sqrt{5}\\\\)"} SQRT5 (sqrt 5.0))
 
 ;; \\(\sqrt{\pi}\\)
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{\\pi}\\\\)"} SQRTPI (sqrt PI))
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{2\\pi}\\\\)"} SQRT2PI (sqrt TWO_PI))
+(def ^:const ^double ^{:doc "\\\\(\\sqrt{\\frac{1}{2}\\pi}\\\\)"} SQRT_HALFPI (sqrt HALF_PI))
 
 ;; 
 (def ^:const ^double ^{:doc "Golden ratio \\\\(\\varphi\\\\)"} PHI (* (inc SQRT5) 0.5))
@@ -636,8 +759,11 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\pi}\\\\)"} M_1_PI (/ PI))
 (def ^:const ^double ^{:doc "\\\\(\\frac{2}{\\pi}\\\\)"} M_2_PI (/ 2.0 PI))
 (def ^:const ^double ^{:doc "\\\\(\\frac{2}{\\sqrt\\pi}\\\\)"} M_2_SQRTPI (/ 2.0 SQRTPI))
+(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{2}\\\\)"} M_SQRT2 SQRT2)
 (def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} M_SQRT1_2 (/ SQRT2))
+(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} INV_SQRT_2 M_SQRT1_2)
+
 
 (def ^:const ^double ^{:doc "\\\\(2\\pi\\\\)"} M_TWOPI TWO_PI)
 (def ^:const ^double ^{:doc "\\\\(\\frac{3\\pi}{4}\\\\)"} M_3PI_4 (* PI 0.75))
@@ -995,6 +1121,145 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                           clojure.core/>
                           clojure.core/<))
         (map first))))
+
+;; sinint / cosint
+
+(defn Si
+  "Integral of sin(t)/t from 0 to x"
+  ^double [^double x]
+  (if (nan? x)
+    ##NaN
+    (let [t (* x x)]
+      (cond
+        (<= t 36.0) (* x (/ (mevalpoly t 1.00000000000000000000E0 -0.44663998931312457298E-1 0.11209146443112369449E-2
+                                       -0.13276124407928422367E-4 0.85118014179823463879E-7 -0.29989314303147656479E-9
+                                       0.55401971660186204711E-12 -0.42406353433133212926E-15)
+                            (mevalpoly t 1.00000000000000000000E0 0.10891556624243098264E-1 0.59334456769186835896E-4
+                                       0.21231112954641805908E-6 0.54747121846510390750E-9 0.10378561511331814674E-11
+                                       0.13754880327250272679E-14 0.10223981202236205703E-17)))
+        (<= t 144.0) (let [invt (/ t)
+                           p (if (neg? x) -HALF_PI HALF_PI)]
+                       (- p
+                          (* (cos x) (/ (mevalpoly invt 0.99999999962173909991E0 0.36451060338631902917E3
+                                                   0.44218548041288440874E5 0.22467569405961151887E7
+                                                   0.49315316723035561922E8 0.43186795279670283193E9
+                                                   0.11847992519956804350E10 0.45573267593795103181E9)
+                                        (* x (mevalpoly invt 1.00000000000000000000E0 0.36651060273229347594E3
+                                                        0.44927569814970692777E5 0.23285354882204041700E7
+                                                        0.53117852017228262911E8 0.50335310667241870372E9
+                                                        0.16575285015623175410E10 0.11746532837038341076E10))))
+                          (* (sin x) invt (/ (mevalpoly invt 0.99999999920484901956E0 0.51385504875307321394E3
+                                                        0.92293483452013810811E5 0.74071341863359841727E7
+                                                        0.28142356162841356551E9 0.49280890357734623984E10
+                                                        0.35524762685554302472E11 0.79194271662085049376E11
+                                                        0.17942522624413898907E11)
+                                             (mevalpoly invt 1.00000000000000000000E0 0.51985504708814870209E3
+                                                        0.95292615508125947321E5 0.79215459679762667578E7
+                                                        0.31977567790733781460E9 0.62273134702439012114E10
+                                                        0.54570971054996441467E11 0.18241750166645704670E12
+                                                        0.15407148148861454434E12)))))
+        (< t ##Inf) (let [invt (/ t)
+                          p (if (neg? x) -HALF_PI HALF_PI)]
+                      (- p
+                         (* (/ (cos x) x) (- 1.0 (* invt
+                                                    (/ (mevalpoly invt 0.19999999999999978257E1 0.22206119380434958727E4
+                                                                  0.84749007623988236808E6 0.13959267954823943232E9
+                                                                  0.10197205463267975592E11 0.30229865264524075951E12
+                                                                  0.27504053804288471142E13 0.21818989704686874983E13)
+                                                       (mevalpoly invt 1.00000000000000000000E0 0.11223059690217167788E4
+                                                                  0.43685270974851313242E6 0.74654702140658116258E8
+                                                                  0.58580034751805687471E10 0.20157980379272098841E12
+                                                                  0.26229141857684496445E13 0.87852907334918467516E13)))))
+                         (* (sin x) invt (- 1.0 (* invt
+                                                   (/ (mevalpoly invt 0.59999999999999993089E1 0.96527746044997139158E4
+                                                                 0.56077626996568834185E7 0.15022667718927317198E10
+                                                                 0.19644271064733088465E12 0.12191368281163225043E14
+                                                                 0.31924389898645609533E15 0.25876053010027485934E16
+                                                                 0.12754978896268878403E16)
+                                                      (mevalpoly invt 1.00000000000000000000E0 0.16287957674166143196E4
+                                                                 0.96636303195787870963E6 0.26839734750950667021E9
+                                                                 0.37388510548029219241E11 0.26028585666152144496E13
+                                                                 0.85134283716950697226E14 0.11304079361627952930E16
+                                                                 0.42519841479489798424E16)))))))
+        
+        :else (if (neg? x) -HALF_PI HALF_PI)))))
+
+(def ^:private ^:const ^double ci-r0 0.616505485620716233797110404100)
+(def ^:private ^:const ^double ci-r1 3.384180422551186426397851146402)
+(def ^:private ^:const ^double ci-r01 0.6162109375)
+(def ^:private ^:const ^double ci-r02 0.29454812071623379711E-3)
+(def ^:private ^:const ^double ci-r11 3.3837890625)
+(def ^:private ^:const ^double ci-r12 0.39136005118642639785E-3)
+
+(defn Ci
+  "Integral of cos(t)/t from -x to inf"
+  ^double [^double x]
+  (assert (not (neg? x)) "x must be non-negative")
+  (if (nan? x)
+    ##NaN
+    (let [t (* x x)]
+      (cond
+        (<= x 3.0) (+ (log (/ x ci-r0)) (* (- (- x ci-r01) ci-r02)
+                                           (+ x ci-r0)
+                                           (/ (mevalpoly t -0.24607411378767540707E0 0.72113492241301534559E-2
+                                                         -0.11867127836204767056E-3 0.90542655466969866243E-6
+                                                         -0.34322242412444409037E-8 0.51950683460656886834E-11)
+                                              (mevalpoly t 1.00000000000000000000E0 0.12670095552700637845E-1
+                                                         0.78168450570724148921E-4 0.29959200177005821677E-6
+                                                         0.73191677761328838216E-9 0.94351174530907529061E-12))))
+        (<= x 6.0) (+ (log (/ x ci-r1)) (* (- (- x ci-r11) ci-r12)
+                                           (+ x ci-r1)
+                                           (/ (mevalpoly t -0.15684781827145408780E0 0.66253165609605468916E-2
+                                                         -0.12822297297864512864E-3 0.12360964097729408891E-5
+                                                         -0.66450975112876224532E-8 0.20326936466803159446E-10
+                                                         -0.33590883135343844613E-13 0.23686934961435015119E-16)
+                                              (mevalpoly t 1.00000000000000000000E0 0.96166044388828741188E-2
+                                                         0.45257514591257035006E-4 0.13544922659627723233E-6
+                                                         0.27715365686570002081E-9 0.37718676301688932926E-12
+                                                         0.27706844497155995398E-15))))
+        (<= x 12.0) (let [invt (/ t)]
+                      (- (* (sin x) (/ (mevalpoly invt 0.99999999962173909991E0 0.36451060338631902917E3
+                                                  0.44218548041288440874E5 0.22467569405961151887E7
+                                                  0.49315316723035561922E8 0.43186795279670283193E9
+                                                  0.11847992519956804350E10 0.45573267593795103181E9)
+                                       (* x (mevalpoly invt 1.00000000000000000000E0 0.36651060273229347594E3
+                                                       0.44927569814970692777E5 0.23285354882204041700E7
+                                                       0.53117852017228262911E8 0.50335310667241870372E9
+                                                       0.16575285015623175410E10 0.11746532837038341076E10))))
+                         (* (cos x) invt (/ (mevalpoly invt 0.99999999920484901956E0 0.51385504875307321394E3
+                                                       0.92293483452013810811E5 0.74071341863359841727E7
+                                                       0.28142356162841356551E9 0.49280890357734623984E10
+                                                       0.35524762685554302472E11 0.79194271662085049376E11
+                                                       0.17942522624413898907E11)
+                                            (mevalpoly invt 1.00000000000000000000E0 0.51985504708814870209E3
+                                                       0.95292615508125947321E5 0.79215459679762667578E7
+                                                       0.31977567790733781460E9 0.62273134702439012114E10
+                                                       0.54570971054996441467E11 0.18241750166645704670E12
+                                                       0.15407148148861454434E12)))))
+        (< x ##Inf) (let [invt (/ t)]
+                      (- (* (/ (sin x) x) (- 1.0 (* invt
+                                                    (/ (mevalpoly invt 0.19999999999999978257E1 0.22206119380434958727E4
+                                                                  0.84749007623988236808E6 0.13959267954823943232E9
+                                                                  0.10197205463267975592E11 0.30229865264524075951E12
+                                                                  0.27504053804288471142E13 0.21818989704686874983E13)
+                                                       (mevalpoly invt 1.00000000000000000000E0 0.11223059690217167788E4
+                                                                  0.43685270974851313242E6 0.74654702140658116258E8
+                                                                  0.58580034751805687471E10 0.20157980379272098841E12
+                                                                  0.26229141857684496445E13 0.87852907334918467516E13)))))
+                         (* (cos x) invt (- 1.0 (* invt
+                                                   (/ (mevalpoly invt 0.59999999999999993089E1 0.96527746044997139158E4
+                                                                 0.56077626996568834185E7 0.15022667718927317198E10
+                                                                 0.19644271064733088465E12 0.12191368281163225043E14
+                                                                 0.31924389898645609533E15 0.25876053010027485934E16
+                                                                 0.12754978896268878403E16)
+                                                      (mevalpoly invt 1.00000000000000000000E0 0.16287957674166143196E4
+                                                                 0.96636303195787870963E6 0.26839734750950667021E9
+                                                                 0.37388510548029219241E11 0.26028585666152144496E13
+                                                                 0.85134283716950697226E14 0.11304079361627952930E16
+                                                                 0.42519841479489798424E16)))))))        
+        :else 0.0))))
+
+
 
 ;;
 

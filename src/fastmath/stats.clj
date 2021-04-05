@@ -360,13 +360,6 @@
     (smile.math.MathEx/sum ^doubles vs)
     (reduce (fn [^double x ^double y] (+ x y)) 0.0 vs)))
 
-(defn kurtosis
-  "Calculate kurtosis from sequence."
-  {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [^Kurtosis k (Kurtosis.)]
-    (.evaluate k (m/seq->double-array vs))))
-
 (defn moment
   "Calculate moment (central or/and absolute) of given order (default: 2).
 
@@ -382,12 +375,12 @@
    (let [in (double-array vs)
          cin (alength in)
          ^double center (or center (mean in))
-         f (case order
-             1.0 m/fast-identity
-             2.0 m/sq
-             3.0 m/cb
-             4.0 (fn ^double [^double diff] (m/sq (m/sq diff)))
-             (fn ^double [^double diff] (m/pow diff order)))
+         f (cond
+             (m/one? order) m/fast-identity
+             (= order 2.0) m/sq
+             (= order 3.0) m/cb
+             (= order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
+             :else (fn ^double [^double diff] (m/pow diff order)))
          a (if absolute? m/abs m/fast-identity)]
      (loop [idx (int 0)]
        (when (< idx cin)
@@ -398,11 +391,52 @@
 (def ^{:deprecated "Use `moment` function"} second-moment moment)
 
 (defn skewness
-  "Calculate kurtosis from sequence."
+  "Calculate skewness from sequence.
+
+  Possible types: `:G1` (default), `:g1` (`:pearson`), `:b1`, `:B1` (`:yule`), `:B3`, `:skew`, `:mode` or `:median`."
   {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [^Skewness k (Skewness.)]
-    (.evaluate k (m/seq->double-array vs))))
+  (^double [vs] (skewness vs :G1))
+  (^double [vs typ]
+   (let [vs (m/seq->double-array vs)]
+     (cond
+       (= :mode typ) (/ (- (mean vs) (mode vs)) (stddev vs))
+       (= :median typ) (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
+       (#{:B1 :yule} typ) (let [[^double q1 ^double q2 ^double q3] (quantiles vs [0.25 0.5 0.75])]
+                            (/ (+ q3 (* -2.0 q2) q1)
+                               (- q3 q1)))
+       (= :B3 typ) (let [v (median vs)]
+                     (/ (- (mean vs) v)
+                        (moment vs 1.0 {:absolute? true :center v})))
+       :else (let [^Skewness k (Skewness.)
+                   n (alength vs)
+                   v (.evaluate k vs)]
+               (cond
+                 (= :b1 typ) (* v (/ (* (- n 2.0) (dec n)) (* n n)))
+                 (#{:pearson :g1} typ) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
+                 (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n)))))
+                 :else v))))))
+
+(declare standardize)
+
+(defn kurtosis
+  "Calculate kurtosis from sequence.
+
+  Possible typs: `:G2` (default), `:g2`, `:excess` or `:kurt`."
+  {:metadoc/categories #{:stat}}
+  (^double [vs] (kurtosis vs nil))
+  (^double [vs typ]
+   (let [vs (m/seq->double-array vs)
+         n (alength vs)
+         ^Kurtosis k (Kurtosis.)
+         v (.evaluate k vs)]
+     (cond
+       (= :excess typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                          (inc n))
+       (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                               (inc n)))
+       (= :g2 typ) (- (mean (map (comp m/sq m/sq) (standardize vs))) 3)
+       (= :G2 typ) v
+       :else v))))
 
 (defn ci
   "T-student based confidence interval for given data. Alpha value defaults to 0.98.
@@ -856,7 +890,6 @@
     :one-sided ttest-less
     :one-sided-greater ttest-greater
     ttest-two-sided))
-
 (defn- ttest-update-ci
   [^double mu ^double stderr [^double l ^double r]]
   [(+ mu (* l stderr))
@@ -1034,11 +1067,8 @@
 
 (defn- estimate-acceleration
   "Estimates acceleration for BCA bootstrap confidence interval computation"
-  ^double [avs ^double m]
-  (let [influence (map (fn [^double v] (- m v)) avs)
-        num       (sum (map m/cb influence))
-        denom     (* 6.0 (m/sqrt (m/cb (sum (map m/sq influence)))))]
-    (/ num denom)))
+  ^double [avs]
+  (/ (skewness avs :skew) -6.0))
 
 (defn- cdf-accelerated-quantile
   ^double [^double z0 ^double z ^double a]
@@ -1076,13 +1106,11 @@
   ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
   ([vs p1 p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         m (mean avs)
-         accel (estimate-acceleration avs m)]
-     (percentile-bca-common avs p1 p2 m accel estimation-strategy)))
+         accel (estimate-acceleration avs)]
+     (percentile-bca-common avs p1 p2 (mean avs) accel estimation-strategy)))
   ([vs p1 p2 accel estimation-strategy]
-   (let [avs (m/seq->double-array vs)
-         m (mean avs)]
-     (percentile-bca-common avs p1 p2 m accel estimation-strategy))))
+   (let [avs (m/seq->double-array vs)]
+     (percentile-bca-common avs p1 p2 (mean avs) accel estimation-strategy))))
 
 (defn percentile-bc-extent
   "Return bias corrected percentile range and mean for bootstrap samples.

@@ -99,7 +99,14 @@
 
 (add-examples sum (example "Sum" (sum [1 2 3 -1 -1 2 -1 11 111])))
 
-(add-examples kurtosis (example "Kurtosis" (kurtosis [1 2 3 -1 -1 2 -1 11 111])))
+(add-examples kurtosis
+  (example-session "Kurtosis"
+    (kurtosis [1 2 3 -1 -1 2 -1 11 111])
+    (kurtosis [1 2 3 -1 -1 2 -1 11 111] :G2)
+    (kurtosis [1 2 3 -1 -1 2 -1 11 111] :g2)
+    (kurtosis [1 2 3 -1 -1 2 -1 11 111] :excess)
+    (kurtosis [1 2 3 -1 -1 2 -1 11 111] :kurt)))
+
 (add-examples moment
   (example-session "Usage"
     (moment [3 7 5 9 -8])
@@ -111,7 +118,20 @@
     (moment [3 7 5 9 -8] 3.0 {:absolute? true})
     (moment [3 7 5 9 -8] 3.0 {:center -3.0})
     (moment [3 7 5 9 -8] 0.5 {:absolute? true})))
-(add-examples skewness (example "Skewness" (skewness [1 2 3 -1 -1 2 -1 11 111])))
+
+(add-examples skewness
+  (example-session "Skewness"
+    (skewness [1 2 3 -1 -1 2 -1 11 111])
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :G1)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :g1)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :pearson)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :b1)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :B1)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :yule)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :B3)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :mode)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :median)
+    (skewness [1 2 3 -1 -1 2 -1 11 111] :skew)))
 
 (add-examples sem (example "SEM" (sem [1 2 3 -1 -1 2 -1 11 111])))
 

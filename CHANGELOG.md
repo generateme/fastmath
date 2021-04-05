@@ -1,6 +1,20 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.6] - not released
+
+### Added
+
+* `jinc` - besselj1(x)/x
+* `muladd` macro
+* `evalpoly` and `mevalpoly` - evaluate polynomial (from Julia)
+* `Si` and `Ci` - https://dlmf.nist.gov/6.2#ii
+* much more types of `skewness` and `kurtosis`
+
+### Fixed
+
+* `moment` didn't work properly
+
 ## [2.1.5]
 
 ### Fixed
