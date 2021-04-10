@@ -53,7 +53,8 @@
                         :test "Hypothesis test"
                         :norm "Normalize"}}
   (:require [fastmath.core :as m]
-            [fastmath.random :as r])
+            [fastmath.random :as r]
+            [fastmath.distance :as d])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -179,6 +180,31 @@
   {:metadoc/categories #{:stat}}
   (^double [vs] (StatUtils/mean (m/seq->double-array vs))))
 
+(defn geomean
+  "Geometric mean for positive values only"
+  {:metadoc/categories #{:stat}}
+  ^double [vs]
+  (m/exp (mean (map #(m/log %) vs))))
+
+(defn harmean
+  "Harmonic mean"
+  {:metadoc/categories #{:stat}}
+  ^double [vs]
+  (/ (mean (map #(/ 1.0 ^double %) vs))))
+
+(defn powmean
+  "Generalized power mean"
+  {:metadoc/categories #{:stat}}
+  ^double [vs ^double power]
+  (cond
+    (zero? power) (geomean vs)
+    (m/one? power) (mean vs)
+    (== power m/THIRD) (m/cb (mean (map #(m/cbrt %) vs)))
+    (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
+    (== power 2.0) (m/sqrt (mean (map m/sq vs)))
+    (== power 3.0) (m/cbrt (mean (map m/cb vs))) 
+    :else (m/pow (mean (map #(m/pow % power) vs)) (/ power))))
+
 (defn population-variance
   "Calculate population variance of `vs`.
 
@@ -219,12 +245,24 @@
   (^double [vs u]
    (m/sqrt (variance vs u))))
 
+(defn variation
+  "stddev / mean"
+  {:metadoc/categories #{:stat}}
+  ^double [vs]
+  (let [vs (m/seq->double-array vs)]
+    (/ (stddev vs)
+       (mean vs))))
+
 (defn median-absolute-deviation
   "Calculate MAD"
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [m (median vs)]
     (median (map (fn [^double x] (m/abs (- x m))) vs))))
+
+(def ^{:doc "Alias for [[median-absolute-deviation]]"
+       :metadoc/categories #{:stat}}
+  mad median-absolute-deviation)
 
 (defn sem
   "Standard error of mean"
@@ -377,9 +415,9 @@
          ^double center (or center (mean in))
          f (cond
              (m/one? order) m/fast-identity
-             (= order 2.0) m/sq
-             (= order 3.0) m/cb
-             (= order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
+             (== order 2.0) m/sq
+             (== order 3.0) m/cb
+             (== order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
              :else (fn ^double [^double diff] (m/pow diff order)))
          a (if absolute? m/abs m/fast-identity)]
      (loop [idx (int 0)]
@@ -413,7 +451,7 @@
                (cond
                  (= :b1 typ) (* v (/ (* (- n 2.0) (dec n)) (* n n)))
                  (#{:pearson :g1} typ) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
-                 (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n)))))
+                 (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
                  :else v))))))
 
 (declare standardize)
@@ -433,7 +471,7 @@
        (= :excess typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
                           (inc n))
        (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                               (inc n)))
+                               (inc n))) ;; based on methods of moments without correction
        (= :g2 typ) (- (mean (map (comp m/sq m/sq) (standardize vs))) 3)
        (= :G2 typ) v
        :else v))))
@@ -602,6 +640,53 @@
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
   (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+
+(defn mae
+  "Mean absolute error"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2]
+  (mean (map (comp m/abs m/fast-) vs1 vs2)))
+
+(defn rss
+  "Residual sum of squares"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2]
+  (sum (map (comp m/sq m/fast-) vs1 vs2)))
+
+(defn mse
+  "Mean squared error"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2]
+  (mean (map (comp m/sq m/fast-) vs1 vs2)))
+
+(defn rmse
+  "Root mean squared error"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2]
+  (m/sqrt (mse vs1 vs2)))
+
+(defn count=
+  "Count equal values in both seqs."
+  {:metadoc/categories #{:stat}}
+  ^long [vs1 vs2]
+  (count (filter #(zero? ^double %) (map m/fast- vs1 vs2))))
+
+(def L0 count=)
+(def L1 d/manhattan)
+(def L2sq d/euclidean-sq)
+(def L2 d/euclidean)
+(def LInf d/chebyshev)
+
+(defn psnr
+  "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
+  {:metadoc/categories #{:stat}}
+  (^double [vs1 vs2]
+   (let [mx1 (maximum vs1)
+         mx2 (maximum vs2)]
+     (psnr vs1 vs2 (max mx1 mx2))))
+  (^double [vs1 vs2 ^double max-value]
+   (- (* 20.0 (m/log10 max-value))
+      (* 10.0 (m/log10 (mse vs1 vs2))))))
 
 ;;
 

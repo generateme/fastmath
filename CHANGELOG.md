@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
-* `moment` didn't work properly
+* `moment` didn't work properly for certain cases
 
 ## [2.1.5]
 

@@ -86,6 +86,7 @@
             :or {kscale 1.0 kernel (k/kernel :gaussian 1.0) normalize? false noise 1.0e-8 L? true}}]
    (let [xss (ensure-vectors xss)
          ys (m/seq->double-array ys)
+         normalize? (if (= 1 (alength ys)) false normalize?)
          ymean (if normalize? (stats/mean ys) 0.0)
          ystddev (if normalize? (stats/stddev ys) 1.0)
          ys (if normalize? (StatUtils/normalize ys) ys)

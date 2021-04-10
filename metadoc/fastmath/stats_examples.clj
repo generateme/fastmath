@@ -60,7 +60,20 @@
   (example "For three elements use faster [[median-3]]." (median [7 1 4])))
 
 (add-examples median-3 (example "Median of [7 1 4]" (median-3 7 1 4)))
+
 (add-examples mean (example "Mean (average value)" (mean [1 2 3 -1 -1 2 -1 11 111])))
+(add-examples geomean (example "Geometric mean" (geomean [1 2 3 1 1 2 1 11 111])))
+(add-examples harmean (example "Harmonic mean" (harmean [1 2 3 -1 -1 2 -1 11 111])))
+(add-examples powmean (example-session "Power mean"
+                        (powmean [1 2 3 1 1 2 1 11 111] 0.0)
+                        (powmean [1 2 3 1 1 2 1 11 111] 0.1)
+                        (powmean [1 2 3 1 1 2 1 11 111] 0.5)
+                        (powmean [1 2 3 1 1 2 1 11 111] 1.0)
+                        (powmean [1 2 3 1 1 2 1 11 111] 2.0)
+                        (powmean [1 2 3 1 1 2 1 11 111] 3.0)
+                        (powmean [1 2 3 1 1 2 1 11 111] 5.5)))
+
+
 (add-examples population-variance (example "Population variance" (population-variance [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples variance (example "Variance." (variance [1 2 3 -1 -1 2 -1 11 111])))
 (add-examples population-stddev (example "Population standard deviation." (population-stddev [1 2 3 -1 -1 2 -1 11 111])))

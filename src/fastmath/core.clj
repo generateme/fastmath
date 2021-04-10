@@ -62,8 +62,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma])
-  (:require [fastmath.core :as m]))
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -975,7 +974,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Slice range to get `cnt` number of points evenly distanced."
   ([^double start ^double end ^long cnt] (if (= cnt 1)
                                            (list (+ start (* 0.5 (- end start))))
-                                           (map #(m/mnorm % 0.0 (dec cnt) start end) (range cnt))))
+                                           (map (make-norm 0.0 (dec cnt) start end) (range cnt))))
   ([^long cnt] (slice-range 0.0 1.0 cnt)))
 
 (defn cut
@@ -1343,4 +1342,3 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
     (doseq [v vars-to-exclude]
       (ns-unmap *ns* v))
     (refer 'clojure.core)))
-
