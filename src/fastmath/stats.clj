@@ -58,7 +58,8 @@
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
-           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]))
+           [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
+           [org.apache.commons.math3.stat.regression SimpleRegression]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -765,31 +766,30 @@
 ;;;;;;;;;;;;;;
 ;; tests
 
-
-(defn- cohens-d-with-correct
-  "Cohen's d effect size for two groups"
-  ^double [group1 group2 ^double correct]
+(defn cohens-d
+  "Cohen's d effect size for two groups, using sqrt of mean of variances as pooled sd"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
   (let [group1 (m/seq->double-array group1)
         group2 (m/seq->double-array group2)
         diff (- (mean group1) (mean group2))
         var1 (variance group1)
-        var2 (variance group2)
-        n1 (alength group1)
-        n2 (alength group2)
-        pooled-var (/ (+ (* n1 var1) (* n2 var2)) (+ n1 n2 correct))]
-    (/ diff (m/sqrt pooled-var))))
+        var2 (variance group2)]
+    (/ diff (m/sqrt (* 0.5 (+ var1 var2))))))
 
-(defn cohens-d-orig
-  "Original version of Cohen's d effect size for two groups"
+(defn- effect-size-correction
+  ^double [^long n]
+  (* (/ (- n 3)
+        (- n 2.25))
+     (m/sqrt (/ (- n 2.0) n))))
+
+(defn cohens-d-corrected
+  "Cohen's d corrected for small group size"
   {:metadoc/categories #{:effect}}
   ^double [group1 group2]
-  (cohens-d-with-correct group1 group2 -2.0))
-
-(defn cohens-d
-  "Cohen's d effect size for two groups"
-  {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (cohens-d-with-correct group1 group2 0.0))
+  (* (effect-size-correction (+ (count group1)
+                                (count group2)))
+     (cohens-d group1 group2)))
 
 (defn glass-delta
   "Glass's delta effect size for two groups"
@@ -807,10 +807,19 @@
         diff (- (mean group1) (mean group2))
         var1 (variance group1)
         var2 (variance group2)
-        n1 (dec (alength group1))
-        n2 (dec (alength group2))
-        pooled-var (/ (+ (* n1 var1) (* n2 var2)) (+ n1 n2 -2.0))]
-    (/ diff (m/sqrt pooled-var))))
+        n1 (alength group1)
+        n2 (alength group2)]
+    (/ diff (m/sqrt (/ (+ (* (dec n1) var1)
+                          (* (dec n2) var2))
+                       (+ n1 n2 -2))))))
+
+(defn hedges-g-corrected
+  "Cohen's d corrected for small group size"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (* (effect-size-correction (+ (count group1)
+                                (count group2)))
+     (hedges-g group1 group2)))
 
 (defn hedges-g*
   "Less biased Hedges's g effect size for two groups"
@@ -825,19 +834,145 @@
   ^double [group1 group2]
   (let [m (count group1)
         n (count group2)
-        ^double r1 (reduce #(+ ^double %1 ^double %2) (take m (m/rank (concat group1 group2))))]
+        ^double r1 (reduce m/fast+ (take m (m/rank (concat group1 group2))))
+        r1 (+ m r1)] ;; correct rank, which is 0 based
     (/ (- (+ r1 r1) (* m (inc m)))
        (* 2.0 m n))))
 
 (defn cliffs-delta
-  "Cliff's delta effect size"
+  "Cliff's delta effect size for ordinal data."
   {:metadoc/categories #{:effect}}
   ^double [group1 group2]
-  (/ ^double (reduce #(+ ^double %1 ^double %2)
-                     (for [^double a group1
-                           ^double b group2]
-                       (m/signum (- a b))))
+  (/ ^double (reduce m/fast+ (for [a group1
+                                   b group2]
+                               (m/signum (compare a b))))
      (* (count group1) (count group2))))
+
+(defn pearson-r
+  "Pearson `r` correlation coefficient"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (pearson-correlation group1 group2))
+
+(defn r2-determination
+  "Coefficient of determination"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (m/sq (pearson-correlation group1 group2)))
+
+(defn- local-linear-regression
+  ^SimpleRegression [group1 group2]
+  (let [lm (SimpleRegression. true)]
+    (.addData lm (m/seq->double-double-array (map vector group1 group2)))
+    (.regress lm)
+    lm))
+
+(defn eta-sq
+  "R2"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (.getRSquare (local-linear-regression group1 group2)))
+
+(defn omega-sq
+  "Adjusted R2"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [lm (local-linear-regression group1 group2)
+        mse (.getMeanSquareError lm)]
+    (/ (- (.getRegressionSumSquares lm) mse)
+       (+ (.getTotalSumSquares lm) mse))))
+
+(defn epsilon-sq
+  "Less biased R2"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [lm (local-linear-regression group1 group2)]
+    (/ (- (.getRegressionSumSquares lm) (.getMeanSquareError lm))
+       (.getTotalSumSquares lm))))
+
+(defn cohens-f2
+  "Cohens f2, by default based on `eta-sq`.
+
+  Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
+  {:metadoc/categories #{:effect}}
+  (^double [group1 group2] (cohens-f2 :eta group1 group2))
+  (^double [type group1 group2]
+   (let [f (case type
+             :omega omega-sq
+             :epsilon epsilon-sq
+             eta-sq)
+         ^double v (f group1 group2)]
+     (/ v (- 1.0 v)))))
+
+(defn cohens-q
+  "Comparison of two correlations.
+
+  Arity:
+
+  * 2 - compare two correlation values
+  * 3 - compare correlation of `group1` and `group2a` with correlation of `group1` and `group2b`
+  * 4 - compare correlation of first two arguments with correlation of last two arguments"
+  {:metadoc/categories #{:effect}}
+  (^double [^double r1 ^double r2]
+   (- (m/atanh r1) (m/atanh r2)))
+  (^double [group1 group2a group2b]
+   (cohens-q (pearson-correlation group1 group2a)
+             (pearson-correlation group1 group2b)))
+  (^double [group1a group2a group1b group2b]
+   (cohens-q (pearson-correlation group1a group2a)
+             (pearson-correlation group1b group2b))))
+
+(defn- chi-square
+  [group1 group2]
+  (let [fqs (frequencies (map vector group1 group2))
+        cnts1 (frequencies group1)
+        cnts2 (frequencies group2)
+        n (double (reduce m/fast+ (vals fqs)))]
+    {:chi2 (reduce m/fast+ (for [[g1 ^long c1] cnts1
+                                 [g2 ^long c2] cnts2
+                                 :let [f (/ (* c1 c2) n)]]
+                             (/ (m/sq (- ^long (get fqs [g1 g2] 0) f)) f)))
+     :k (count cnts1)
+     :r (count cnts2)
+     :n n}))
+
+(defn cramers-v
+  "Cramer's V effect size for discrete data."
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chi-square group1 group2)]
+    (m/sqrt (/ (/ chi2 n)
+               (min (dec k) (dec r))))))
+
+(defn cramers-v-corrected
+  "Corrected Cramer's V"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chi-square group1 group2)
+        k1 (dec k)
+        r1 (dec r)
+        n1 (double (dec n))
+        phi2_ (max 0.0 (- (/ chi2 n) (/ (* k1 r1) n1)))
+        k_ (- k (/ (* k1 k1) n1))
+        r_ (- r (/ (* r1 r1) n1))]
+    (m/sqrt (/ phi2_
+               (min (dec k_) (dec r_))))))
+
+(defn cohens-w
+  "Cohen's W effect size for discrete data."
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [{:keys [^double chi2 ^long n]} (chi-square group1 group2)]
+    (m/sqrt (/ chi2 n))))
+
+(defn tschuprows-t
+  "Tschuprows T effect size for discrete data"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chi-square group1 group2)]
+    (m/sqrt (/ (/ chi2 n)
+               (m/sqrt (* (dec k) (dec r)))))))
+
 
 ;; binary classification statistics
 

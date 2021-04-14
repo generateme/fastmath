@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [2.1.6] - not released
+## [2.1.6-SNAPSHOT] - not released
 
 ### Added
 
@@ -10,10 +10,12 @@ All notable changes to this project will be documented in this file. This change
 * `evalpoly` and `mevalpoly` - evaluate polynomial (from Julia)
 * `Si` and `Ci` - https://dlmf.nist.gov/6.2#ii
 * much more types of `skewness` and `kurtosis`
+* much more effect size functions: `r2-determination`, `eta-sq`, `omega-sq`, `epsilon-sq`, `cohens-f2`, `cohens-q`, `cramers-v`, `cohens-w`, `tschuprows-t`
 
 ### Fixed
 
 * `moment` didn't work properly for certain cases
+* `effect-size` methods fixes
 
 ## [2.1.5]
 

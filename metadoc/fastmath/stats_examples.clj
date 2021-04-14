@@ -210,10 +210,10 @@
                  c [10,20,30,40,40,50]]
              (cohens-d t c))))
 
-(add-examples cohens-d-orig
+(add-examples cohens-d-corrected
   (example (let [t [10,10,20,20,20,30,30,30,40,50]
                  c [10,20,30,40,40,50]]
-             (cohens-d-orig t c))))
+             (cohens-d-corrected t c))))
 
 (add-examples glass-delta
   (example (let [t [10,10,20,20,20,30,30,30,40,50]
@@ -221,20 +221,90 @@
              (glass-delta t c))))
 
 (add-examples cliffs-delta
-  (example (let [t [10,10,20,20,20,30,30,30,40,50]
-                 c [10,20,30,40,40,50]]
-             (cliffs-delta t c))))
+  (example-session "Usage"
+    (let [t [10,10,20,20,20,30,30,30,40,50]
+          c [10,20,30,40,40,50]]
+      (cliffs-delta t c))
+    (let [t [:a :b :c :D :e :f]
+          c [:a :z :X :y :x :y]]
+      (cliffs-delta t c))))
 
 (add-examples hedges-g
   (example (let [t [10,10,20,20,20,30,30,30,40,50]
                  c [10,20,30,40,40,50]]
              (hedges-g t c))))
 
+(add-examples hedges-g-corrected
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [10,20,30,40,40,50]]
+             (hedges-g-corrected t c))))
+
 (add-examples hedges-g*
   (example (let [t [10,10,20,20,20,30,30,30,40,50]
                  c [10,20,30,40,40,50]]
              (hedges-g* t c))))
 
+(add-examples pearson-r
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             (pearson-r t c))))
+
+(add-examples r2-determination
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             (r2-determination t c))))
+
+(add-examples eta-sq
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             (eta-sq t c))))
+
+(add-examples omega-sq
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             (omega-sq t c))))
+
+(add-examples epsilon-sq
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             (epsilon-sq t c))))
+
+(add-examples cohens-f2
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]]
+             {:default (cohens-f2 t c)
+              :eta (cohens-f2 :eta t c)
+              :omega (cohens-f2 :omega t c)
+              :epsilon (cohens-f2 :epsilon t c)})))
+
+(add-examples cohens-q
+  (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                 c [-50,20,30,40,40,50,10,20,30,10]
+                 d [5 2 3 4 4 5 4 2 3 -1]
+                 e (range 10)]
+             {:arity-2 (cohens-q 0.5 -0.25)
+              :arity-3 (cohens-q t c d)
+              :arity-4 (cohens-q t c d e)})))
+
+(add-examples cramers-v
+  (example (let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
+                 b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
+             (cramers-v a b))))
+
+(add-examples cramers-v-corrected
+  (example (let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
+                 b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
+             (cramers-v-corrected a b))))
+
+(add-examples cohens-w
+  (example (let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
+                 b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
+             (cohens-w a b))))
+
+(add-examples tschuprows-t
+  (example (let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
+                 b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
+             (tschuprows-t a b))))
 
 (add-examples binary-measures
   (example (binary-measures [true false true false true false true false]

@@ -540,7 +540,15 @@
                                      :utility-param 0.1
                                      :optimizer :powell})]
     (println (f 0 1))
-    (last (take 30 (map (juxt :x :y) bo))))
+    (last (take 30 (map (juxt :x :y) bo)))    )
+
+#_(let [f (fn [^double x] (- (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4))))
+        bounds [[-0.2 0.2]]
+        bo (bayesian-optimization f {:bounds bounds
+                                     :utility-function-type :ucb
+                                     ;; :utility-param 0
+                                     :optimizer :bfgs})]
+    (take 3 (drop 30 (map (juxt :x :y) bo))))
 
 ;; tests
 
