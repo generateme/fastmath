@@ -569,8 +569,6 @@
       :Kurtosis (kurtosis avs)
       :Skewness (skewness avs)})))
 
-(stats-map [1 2 3 4 5 11])
-
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."
   {:metadoc/categories #{:norm}}
@@ -584,6 +582,35 @@
   (let [m (mean vs)]
     (map (fn [^double v]
            (- v m)) vs)))
+
+(defn winsor
+  "Return winsorized data. Trim is done by using quantiles, by default is set to 0.2."
+  ([vs] (winsor vs 0.2))
+  ([vs quantile] (winsor vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[qlow qmid qhigh] (quantiles vs [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+     (winsor vs qlow qhigh qmid)))
+  ([vs ^double low ^double high ^double nan]
+   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+     (map (fn [^double v]
+            (cond
+              (m/nan? v) nan
+              (< v low) low
+              (> v high) high
+              :else v)) vs))))
+
+(defn trim
+  "Return trimmed data. Trim is done by using quantiles, by default is set to 0.2."
+  ([vs] (trim vs 0.2))
+  ([vs quantile] (trim vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[qlow qmid qhigh] (quantiles vs [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+     (trim vs qlow qhigh qmid)))
+  ([vs ^double low ^double high ^double nan]
+   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+     (filter (fn [^double v]
+               (<= low v high))
+             (map (fn [^double v] (if (m/nan? v) nan v)) vs)))))
 
 (defn covariance
   "Covariance of two sequences."
@@ -1345,3 +1372,4 @@
   ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
   ([vs p1 p2 estimation-strategy]
    (percentile-bca-extent vs p1 p2 0.0 estimation-strategy)))
+

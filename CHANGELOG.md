@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file. This change
 * `Si` and `Ci` - https://dlmf.nist.gov/6.2#ii
 * much more types of `skewness` and `kurtosis`
 * much more effect size functions: `r2-determination`, `eta-sq`, `omega-sq`, `epsilon-sq`, `cohens-f2`, `cohens-q`, `cramers-v`, `cohens-w`, `tschuprows-t`
+* `trim` and `winsor` data based on quantiles
 
 ### Fixed
 
