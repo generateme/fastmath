@@ -202,7 +202,7 @@
   (invoke [e n]
     (single-pass e n)))
 
-(defn- effect-node
+(defn effect-node
   "Create `EffectsList` node from effect function and initial state."
   [effect-name f]
   (EffectsList. effect-name 0.0 f (f) nil))
@@ -220,13 +220,13 @@
   [^EffectsList e & es]
   (reduce compose-two-effects e es))
 
-(defn- reset-effects
+(defn reset-effects
   "Resets effects state to initial one."
   [^EffectsList e]
   (EffectsList. (.effect-name e) 0.0 (.effect e) ((.effect e)) (when (.next e)
                                                                  (reset-effects (.next e)))))
 
-(defn- single-pass
+(defn single-pass
   "Process on sample using effects, returns `EffectsList` with result and new effect states."
   [^EffectsList e ^double sample]
   (if-not (.next e)
