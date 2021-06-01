@@ -12,6 +12,7 @@
 (add-examples euclidean-sq (example (euclidean-sq [1 2 4 4] [-1 3 4 -5])))
 (add-examples discrete (example (discrete [1 2 4 4] [-1 3 4 -5])))
 (add-examples cosine (example (cosine [1 2 4 4] [-1 3 4 -5])))
+(add-examples angular (example (angular [1 2 4 4] [-1 3 4 -5])))
 (add-examples jensen-shannon (example (jensen-shannon [1 2 4 4] [1 3 4 5])))
 
 (add-examples make-mahalanobis

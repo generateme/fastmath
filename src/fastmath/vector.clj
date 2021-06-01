@@ -1054,11 +1054,18 @@
                         n (- (+ a l) b)]
                     [(+ s (m/abs l)) n]) [0.0 0.0] (map vector v1 v2))))
 
-(defn dist-cos
-  "Cosine distance"
+(defn dist-ang
+  "Angular distance"
   {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
-  (- 1.0 (/ (dot v1 v2) (* (mag v1) (mag v2)))))
+  (* (m/acos (/ (dot v1 v2) (* (mag v1) (mag v2)))) m/M_1_PI))
+
+(defn sim-cos
+  "Cosine similarity"
+  {:metadoc/categories #{:dist}} 
+  ^double [v1 v2]
+  (/ (dot v1 v2) (* (mag v1) (mag v2))))
+
 
 ;; List of distance fn
 (def ^{:metadoc/categories #{:dist}}
@@ -1068,7 +1075,7 @@
              :cheb dist-cheb
              :canberra dist-canberra
              :emd dist-emd
-             :cosine dist-cos
+             :angular dist-ang
              :discrete dist-discrete})
 
 (defn normalize

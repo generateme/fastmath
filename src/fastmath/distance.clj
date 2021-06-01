@@ -44,7 +44,8 @@
 (defonce ^{:doc "Earth-Movers distance"} earth-movers (gen-apache (EarthMoversDistance.)))
 (defonce ^{:doc "Squared Euclidean distance"} euclidean-sq (gen-fn v/dist-sq))
 (defonce ^{:doc "Discrete distance"} discrete (gen-fn v/dist-discrete))
-(defonce ^{:doc "Cosine distance"} cosine (gen-fn v/dist-cos))
+(defonce ^{:doc "Cosine similarity"} cosine (gen-fn v/sim-cos))
+(defonce ^{:doc "Angular distance"} angular (gen-fn v/dist-ang))
 (defonce ^{:doc "Jensen-Shannon distance"} jensen-shannon (gen-smile (JensenShannonDistance.)))
 
 (defn make-mahalanobis

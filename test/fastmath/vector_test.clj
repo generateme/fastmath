@@ -185,7 +185,7 @@
   (is (m/approx-eq 2.0 (dist-discrete v2-in1 v2-in2)))
   (is (m/approx-eq 4.0 (dist-emd v2-in1 v2-in2)))
   (is (m/approx-eq 1.3333333 (dist-canberra v2-in1 v2-in2)))
-  (is (m/approx-eq 0.6636636 (dist-cos v2-in1 v2-in2)))
+  (is (m/approx-eq 0.390812 (dist-ang v2-in1 v2-in2)))
 
   (is (approximately-vec (vec2 -0.242535 0.9701425) (normalize v2-in1)))
   (is (m/approx-eq 0.70710678 (first (set-mag (vec2 1 1) 1))))

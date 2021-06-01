@@ -90,10 +90,15 @@
     (dist-emd (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
     (dist-emd [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5])))
 
-(add-examples dist-cos
+(add-examples sim-cos
   (example-session "Usage"
-    (dist-cos (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
-    (dist-cos [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5])))
+    (sim-cos (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
+    (sim-cos [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5])))
+
+(add-examples dist-ang
+  (example-session "Usage"
+    (dist-ang (vec4 1.0 2.0 -1.0 -2.0) (vec4 1.0 -2.0 3.0 4.0))
+    (dist-ang [9 8 7 6 5 4 3 2 1] [9 8 7 6 5 5 5 5 5])))
 
 (add-examples distances
   (example "List of distances" (sort (keys distances))))
