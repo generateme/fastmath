@@ -256,6 +256,20 @@
           (recur (rest rcoeffs)
                  (muladd ^double x ex ^double (first rcoeffs))))))))
 
+(defn makepoly
+  "Create polynomial function for given coefficients"
+  [coeffs]
+  (if-not (seq coeffs)
+    (constantly 0.0)
+    (let [rc (reverse coeffs)]
+      (fn [^double x]
+        (loop [rcoeffs (rest rc)
+               ^double ex (first rc)]
+          (if-not (seq rcoeffs)
+            ex
+            (recur (rest rcoeffs)
+                   (muladd x ex ^double (first rcoeffs)))))))))
+
 ;; Processing math constants
 (def ^:const ^double ^{:doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
 (def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (* PI 0.5))
