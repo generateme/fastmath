@@ -1263,13 +1263,19 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
         ^double n (reduce m/fast+ (map #(m/log-gamma %) alpha))]
     (- d n)))
 
+#_(defn- dirichlet-lpdf
+    ^double [alpha- values ^double lbeta]
+    (if (every? #(< 0.0 ^double % 1.0) values)
+      (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x] 
+                                              (* ai (m/log x))) alpha- values))]
+        (+ lbeta p))
+      ##-Inf))
+
 (defn- dirichlet-lpdf
   ^double [alpha- values ^double lbeta]
-  (if (every? #(< 0.0 ^double % 1.0) values)
-    (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x] 
-                                            (* ai (m/log x))) alpha- values))]
-      (+ lbeta p))
-    ##-Inf))
+  (let [v (reduce m/fast+ lbeta (map (fn [^double ai ^double x] 
+                                       (* ai (m/log x))) alpha- values))]
+    (if (m/invalid-double? v) ##-Inf v)))
 
 (defmethod distribution :dirichlet
   ([_ {:keys [alpha] :as all}]
@@ -1326,59 +1332,149 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;; 
 
+#_(defmethod distribution :continuous-distribution
+    ([_ {:keys [data kernel h bin-count probabilities]
+         :or {kernel :smile data [-1.0 0.0 1.0]}
+         :as all}]
+     (let [d (m/seq->double-array data)]
+       (java.util.Arrays/sort d)
+       (let [r (or (:rng all) (rng :jvm)) 
+             kde (if h
+                   (k/kernel-density kernel d h)
+                   (k/kernel-density kernel d))
+             ^RealDistribution enumerated (distribution :enumerated-real {:data d :probabilities probabilities :rng r})
+             ^RealDistribution empirical (distribution :empirical (if-not bin-count
+                                                                    {:data d}
+                                                                    {:data d :bin-count bin-count}))]
+         (reify
+           prot/DistributionProto
+           (pdf [_ v] (kde v))
+           (lpdf [_ v] (m/log (kde v)))
+           (cdf [_ v] (.cumulativeProbability enumerated ^double v))
+           (cdf [_ v1 v2] (.cumulativeProbability enumerated ^double v1 ^double v2))
+           (icdf [_ v] (.inverseCumulativeProbability empirical v))
+           (probability [_ v] (kde v))
+           (sample [_] (.sample enumerated))
+           (dimensions [_] 1)
+           (source-object [d] {:enumerated enumerated
+                               :empirical empirical})
+           (continuous? [_] true)
+           prot/DistributionIdProto
+           (distribution-id [_] :continuous-distribution)
+           (distribution-parameters [_] [:data :kernel :h :bin-count :probabilities :rng])
+           prot/UnivariateDistributionProto
+           (mean [_] (prot/mean enumerated))
+           (variance [_] (prot/variance enumerated))
+           (lower-bound [_] (prot/lower-bound enumerated))
+           (upper-bound [_] (prot/upper-bound enumerated))
+           prot/RNGProto
+           (drandom [_] (prot/drandom enumerated))
+           (frandom [_] (prot/frandom enumerated))
+           (lrandom [_] (prot/lrandom enumerated))
+           (irandom [_] (prot/irandom enumerated))
+           (->seq [_] (prot/->seq enumerated))
+           (->seq [_ n] (prot/->seq enumerated n))
+           (set-seed! [d seed] (prot/set-seed! r seed) d)))))
+    ([_] (distribution :continuous-distribution {})))
+
+(defonce ^:private ^RombergIntegrator romberg-integrator (RombergIntegrator.))
+
+(defn- find-first-non-zero
+  ^double [f xs]
+  (->> xs
+       (map #(vector % (f %)))
+       (filter #(pos? ^double (second %)))
+       (ffirst)))
+
+(defn- narrow-range
+  [kd ^double mn ^double mx ^long steps]
+  (let [step (/ (- mx mn) steps)]
+    [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
+     (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)
+     step]))
+
+(defn- integrate-pdf
+  [kd [^double mn ^double mx ^double step] ^long steps]
+  (let [ukd (reify UnivariateFunction
+              (value [_ x] (kd x)))
+        ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
+        points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
+                                 (let [i (.integrate romberg-integrator Integer/MAX_VALUE ukd x1 x2)
+                                       curr-new (m/constrain (+ i curr) 0.0 1.0)
+                                       res (if (> curr-new curr)
+                                             [curr-new (conj lst [(+ x1 (* 0.5 (- x2 x1))) curr-new])]
+                                             [curr-new lst])]
+                                   (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated)
+                                     (reduced res)
+                                     res))) [0.0 [[mn 0.0]]]
+                               (partition 2 1 (m/slice-range mn mx steps))))
+        ^double lv (second (last points))
+        points (if (< lv 1.0) ;; if last point is not 1.0, add such as near as possible
+                 (conj points [(+ mx step) 1.0])
+                 points)
+        xs (m/seq->double-array (map first points))
+        ys (m/seq->double-array (map second points))]
+    ;; interpolate points lineary, return cdf and icdf
+    [(i/linear-smile xs ys)
+     (i/linear-smile ys xs)]))
+
 (defmethod distribution :continuous-distribution
-  ([_ {:keys [data kernel h bin-count probabilities]
-       :or {kernel :smile data [-1.0 0.0 1.0]}
+  ([_ {:keys [data ^long steps kde bandwidth]
+       :or {data [-1 0 1] steps 200 kde :epanechnikov}
        :as all}]
-   (let [d (m/seq->double-array data)]
-     (java.util.Arrays/sort d)
-     (let [r (or (:rng all) (rng :jvm)) 
-           kde (if h
-                 (k/kernel-density kernel d h)
-                 (k/kernel-density kernel d))
-           ^RealDistribution enumerated (distribution :enumerated-real {:data d :probabilities probabilities :rng r})
-           ^RealDistribution empirical (distribution :empirical (if-not bin-count
-                                                                  {:data d}
-                                                                  {:data d :bin-count bin-count}))]
-       (reify
-         prot/DistributionProto
-         (pdf [_ v] (kde v))
-         (lpdf [_ v] (m/log (kde v)))
-         (cdf [_ v] (.cumulativeProbability enumerated ^double v))
-         (cdf [_ v1 v2] (.cumulativeProbability enumerated ^double v1 ^double v2))
-         (icdf [_ v] (.inverseCumulativeProbability empirical v))
-         (probability [_ v] (kde v))
-         (sample [_] (.sample enumerated))
-         (dimensions [_] 1)
-         (source-object [d] {:enumerated enumerated
-                             :empirical empirical})
-         (continuous? [_] true)
-         prot/DistributionIdProto
-         (distribution-id [_] :continuous-distribution)
-         (distribution-parameters [_] [:data :kernel :h :bin-count :probabilities :rng])
-         prot/UnivariateDistributionProto
-         (mean [_] (prot/mean enumerated))
-         (variance [_] (prot/variance enumerated))
-         (lower-bound [_] (prot/lower-bound enumerated))
-         (upper-bound [_] (prot/upper-bound enumerated))
-         prot/RNGProto
-         (drandom [_] (prot/drandom enumerated))
-         (frandom [_] (prot/frandom enumerated))
-         (lrandom [_] (prot/lrandom enumerated))
-         (irandom [_] (prot/irandom enumerated))
-         (->seq [_] (prot/->seq enumerated))
-         (->seq [_ n] (prot/->seq enumerated n))
-         (set-seed! [d seed] (prot/set-seed! r seed) d)))))
+   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
+         [^double mn ^double mx ^double step :as pdf-range] (narrow-range kd mn mx (* 4 steps))
+         [cdf-fn icdf-fn] (integrate-pdf kd pdf-range steps)
+         r (or (:rng all) (rng :jvm))
+         m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
+         v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
+     (reify
+       prot/DistributionProto
+       (pdf [_ v] (kd v))
+       (lpdf [_ v] (m/log (kd v)))
+       (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
+       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
+       (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
+       (probability [d v] (kd v))
+       (sample [d] (icdf-fn (prot/drandom r)))
+       (dimensions [_] 1)
+       (source-object [d] d)
+       (continuous? [_] true)
+       prot/DistributionIdProto
+       (distribution-id [_] :kde)
+       (distribution-parameters [_] [:data :steps :kde :bandwidth :rng])
+       prot/UnivariateDistributionProto
+       (mean [_] @m)
+       (variance [_] @v)
+       (lower-bound [_] (- mn step))
+       (upper-bound [_] (+ mx step))
+       prot/RNGProto
+       (drandom [_] (icdf-fn (prot/drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :continuous-distribution {})))
 
+(defmethod distribution :kde
+  [_ & r] (apply distribution :continuous-distribution r))
+
+(defn- sort-data-with-weights
+  [{:keys [data probabilities] :as in}]
+  (if probabilities
+    (let [sorted (sort-by first (map vector data probabilities))]
+      (assoc in :data (map first sorted) :probabilities (map second sorted)))
+    (assoc in :data (sort data))))
+
 (defmethod distribution :integer-discrete-distribution
-  ([_ d]
-   (distribution :enumerated-int (update d :data #(map (fn [^double v]
-                                                         (int (m/floor v))) %))))
+  ([_ d] (distribution :enumerated-int (sort-data-with-weights d)))
   ([_] (distribution :enumerated-int)))
 
-(defmethod distribution :real-discrete-distribution [_ & d]
-  (apply distribution :enumerated-real d))
+(defmethod distribution :real-discrete-distribution
+  ([_ d] (distribution :enumerated-real (sort-data-with-weights d)))
+  ([_] (distribution :enumerated-real)))
 
 (defmethod distribution :categorical-distribution
   ([_ {:keys [data probabilities]
@@ -1459,87 +1555,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :half-cauchy {})))
 
-(defonce ^:private ^RombergIntegrator romberg-integrator (RombergIntegrator.))
-
-(defn- find-first-non-zero
-  ^double [f xs]
-  (->> xs
-       (map #(vector % (f %)))
-       (filter #(pos? ^double (second %)))
-       (ffirst)))
-
-(defn- narrow-range
-  [kd ^double mn ^double mx ^long steps]
-  (let [step (/ (- mx mn) steps)]
-    [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
-     (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)
-     step]))
-
-(defn- integrate-pdf
-  [kd [^double mn ^double mx ^double step] ^long steps]
-  (let [ukd (reify UnivariateFunction
-              (value [_ x] (kd x)))
-        ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
-        points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
-                                 (let [i (.integrate romberg-integrator Integer/MAX_VALUE ukd x1 x2)
-                                       curr-new (m/constrain (+ i curr) 0.0 1.0)
-                                       res (if (> curr-new curr)
-                                             [curr-new (conj lst [(+ x1 (* 0.5 (- x2 x1))) curr-new])]
-                                             [curr-new lst])]
-                                   (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated
-                                     (reduced res)
-                                     res))) [0.0 [[mn 0.0]]]
-                               (partition 2 1 (m/slice-range mn mx steps))))
-        ^double lv (second (last points))
-        points (if (< lv 1.0) ;; if last point is not 1.0, add such as near as possible
-                 (conj points [(+ mx step) 1.0])
-                 points)
-        xs (m/seq->double-array (map first points))
-        ys (m/seq->double-array (map second points))]
-    ;; interpolate points lineary, return cdf and icdf
-    [(i/linear-smile xs ys)
-     (i/linear-smile ys xs)]))
-
-(defmethod distribution :kde
-  ([_ {:keys [data ^long steps kde bandwidth]
-       :or {data [-1 0 1] steps 200 kde :epanechnikov}
-       :as all}]
-   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
-         [^double mn ^double mx ^double step :as pdf-range] (narrow-range kd mn mx (* 4 steps))
-         [cdf-fn icdf-fn] (integrate-pdf kd pdf-range steps)
-         r (or (:rng all) (rng :jvm))
-         m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
-         v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (kd v))
-       (lpdf [_ v] (m/log (kd v)))
-       (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
-       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
-       (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
-       (probability [d v] (kd v))
-       (sample [d] (icdf-fn (prot/drandom r)))
-       (dimensions [_] 1)
-       (source-object [d] d)
-       (continuous? [_] true)
-       prot/DistributionIdProto
-       (distribution-id [_] :kde)
-       (distribution-parameters [_] [:data :steps :kde :bandwidth :rng])
-       prot/UnivariateDistributionProto
-       (mean [_] @m)
-       (variance [_] @v)
-       (lower-bound [_] (- mn step))
-       (upper-bound [_] (+ mx step))
-       prot/RNGProto
-       (drandom [_] (icdf-fn (prot/drandom r)))
-       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
-       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
-       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
-       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
-       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
-       (set-seed! [d seed] (prot/set-seed! r seed) d))))
-  ([_] (distribution :kde {})))
-
 ;;
 
 (defonce ^{:doc "List of distributions."
@@ -1570,3 +1585,4 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (if (= rng :smile)
      (MathEx/setSeed v)
      (prot/set-seed! rng v))))
+

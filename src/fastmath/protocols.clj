@@ -82,6 +82,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (dot [v1 v2] "Dot product of two vectors.")
   (add [v1] [v1 v2] "Sum of two vectors.")
   (sub [v1] [v1 v2] "Subtraction of two vectors.")
+  (shift [v1 v] "Add `v` value to every vector element.")
   (mult [v1 v] "Multiply vector by number `v`.")
   (emult [v1 v2] "Element-wise vector multiplication (Hadamard product).")
   (abs [v1] "Absolute value of vector elements")

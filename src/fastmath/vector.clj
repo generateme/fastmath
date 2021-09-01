@@ -94,7 +94,8 @@
    :dot (fn ^double [v1 v2] (reduce m/fast+ (map m/fast* v1 v2)))
    :add (fn [v1 v2] (map m/fast+ v1 v2))
    :sub (fn [v1 v2] (map m/fast- v1 v2))
-   :mult (fn [v1 v] (map #(m/fast* ^double % ^double v) v1))
+   :shift (fn [v1 ^double v] (map #(m/fast+ ^double % v) v1))
+   :mult (fn [v1 ^double v] (map #(m/fast* ^double % v) v1))
    :emult #(map m/fast* %1 %2)
    :abs #(map m/abs %)
    :mx #(reduce m/fast-max %)
@@ -131,7 +132,8 @@
    :dot (fn ^double [v1 v2] (reduce m/fast+ (map m/fast* v1 v2)))
    :add (fn [v1 v2] (mapv m/fast+ v1 v2))
    :sub (fn [v1 v2] (mapv m/fast- v1 v2))
-   :mult (fn [v1 v] (mapv #(m/fast* ^double % ^double v) v1))
+   :shift (fn [v1 ^double v] (mapv #(m/fast+ ^double % v) v1))
+   :mult (fn [v1 ^double v] (mapv #(m/fast* ^double % v) v1))
    :emult #(mapv m/fast* %1 %2)
    :abs #(mapv m/abs %)
    :mx #(reduce m/fast-max %)
@@ -183,6 +185,7 @@
   (sub [arr v2] (let [b (aclone ^doubles arr)]
                   (smile.math.MathEx/sub b ^doubles v2)
                   b))
+  (shift [arr v] (amap ^doubles arr idx ret (+ (aget ^doubles arr idx) ^double v)))
   (mult [arr v] (let [b (aclone ^doubles arr)]
                   (smile.math.MathEx/scale ^double v ^doubles b)
                   b))
@@ -259,6 +262,7 @@
   (dot [_ v2] (smile.math.MathEx/dot array ^doubles (.array ^ArrayVec v2)))
   (add [_ v2] (ArrayVec. (prot/add array (.array ^ArrayVec v2))))
   (sub [_ v2] (ArrayVec. (prot/sub array (.array ^ArrayVec v2))))
+  (shift [_ v] (ArrayVec. (prot/shift array v)))
   (mult [_ v] (ArrayVec. (prot/mult array v)))
   (emult [_ v2] (ArrayVec. (prot/emult array v2)))
   (abs [_] (ArrayVec. (prot/abs array)))
@@ -293,6 +297,7 @@
   (dot [v1 v2] (* (double v1) (double v2)))
   (add [v1 v2] (+ (double v1) (double v2)))
   (sub [v1 v2] (- (double v1) (double v2)))
+  (shift [v1 v2] (+ (double v1) (double v2)))
   (mult [v1 ^double v] (* (double v1) v))
   (emult [v1 v2] (* (double v1) (double v2)))
   (abs [v] (m/abs v))
@@ -380,6 +385,7 @@
     (let [^Vec2 v2 v2] (Vec2. (+ x (.x v2)) (+ y (.y v2)))))
   (sub [_ v2]
     (let [^Vec2 v2 v2] (Vec2. (- x (.x v2)) (- y (.y v2)))))
+  (shift [_ v] (Vec2. (+ x ^double v) (+ y ^double v)))
   (mult [_ v] (Vec2. (* x ^double v) (* y ^double v)))
   (emult [_ v] 
     (let [^Vec2 v v] (Vec2. (* x (.x v)) (* y (.y v)))))
@@ -496,6 +502,7 @@
     (let [^Vec3 v2 v2] (Vec3. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)))))
   (sub [_ v2]
     (let [^Vec3 v2 v2] (Vec3. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)))))
+  (shift [_ v] (Vec3. (+ x ^double v) (+ y ^double v) (+ z ^double v)))
   (mult [_ v] (Vec3. (* x ^double v) (* y ^double v) (* z ^double v)))
   (emult [_ v] 
     (let [^Vec3 v v] (Vec3. (* x (.x v)) (* y (.y v)) (* z (.z v)))))
@@ -690,6 +697,7 @@
     (let [^Vec4 v2 v2] (Vec4. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)) (+ w (.w v2)))))
   (sub [_ v2] 
     (let [^Vec4 v2 v2] (Vec4. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)) (- w (.w v2)))))
+  (shift [_ v] (Vec4. (+ x ^double v) (+ y ^double v) (+ z ^double v) (+ w ^double v)))
   (mult [_ v] (Vec4. (* x ^double v) (* y ^double v) (* z ^double v) (* w ^double v)))
   (emult [_ v]
     (let [^Vec4 v v] (Vec4. (* x (.x v)) (* y (.y v)) (* z (.z v)) (* w (.w v)))))
@@ -786,6 +794,12 @@
   {:metadoc/categories #{:op}}
   ([v] (prot/mult v -1.0))
   ([v1 v2] (prot/sub v1 v2)))
+
+(defn shift
+  "Add value to every vector element."
+  {:metadoc/categories #{:op}}
+  ([v] v)
+  ([v x] (prot/shift v x)))
 
 (defn mult
   "Multiply vector by number `x`."
@@ -1007,6 +1021,11 @@
    (div (reduce prot/add init vs) (inc (count vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
 
+(defn average
+  "Mean or weighted average of the vector"
+  (^double [v] (/ (sum v) (count v)))
+  (^double [v weights] (/ (dot v weights) (sum weights))))
+
 (defn dist
   "Euclidean distance between vectors"
   {:metadoc/categories #{:dist}} 
@@ -1217,8 +1236,32 @@
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/csch
                 m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
-                m/radians m/degrees m/sinc m/sigmoid
+                m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
+                m/radians m/degrees m/sinc m/jinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
+
+(defn softmax
+  [v]
+  (let [nv (exp (shift v (mx v)))
+        sm (sum nv)]
+    (div nv sm)))
+
+(defn logsoftmax
+  [v]
+  (let [shifted (shift v (mx v))
+        lsm (- (m/log (sum (exp shifted))))]
+    (shift shifted lsm)))
+
+(defn logsumexp
+  ^double [v]
+  (let [m (mx v)]
+    (+ m (m/log (sum (exp (shift v (- m))))))))
+
+(defn logmeanexp
+  ^double [v]
+  (let [m (mx v)]
+    (+ m (m/log (average (exp (shift v (- m))))))))
+
 ;;
 
 (defmethod print-method Vec2 [v ^java.io.Writer w] (.write w (str v)))

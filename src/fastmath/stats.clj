@@ -1373,3 +1373,4 @@
   ([vs p1 p2 estimation-strategy]
    (percentile-bca-extent vs p1 p2 0.0 estimation-strategy)))
 
+;; weighted sampling
