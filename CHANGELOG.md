@@ -17,16 +17,20 @@ All notable changes to this project will be documented in this file. This change
   - `dist-ang` - angular distance
   - `sim-cos` - cosine similarity
   - `angular` - refers to angular distance
+* `->seq` in `fastmath.random` can accept sampling scheme (`:uniform`, `:stratified` and `:systematic`)
 
 ### Fixed
 
 * `moment` didn't work properly for certain cases
-* `effect-size` methods fixes
+* `effect-size` methods fixed
 * [breaking] fixes around cosine distance and similarity
 
 ### Changed
 
 * `fastmath.distance/cosine` - refers to cosine similarity now
+* changes around data based distributions:
+  - `continuous-distribution` is the same as `kde`
+  - `integer-discrete-distribution` and `real-discrete-distribution` are sorted version of `enumerated-int` and `enumerated-real`
 
 ### Removed
 

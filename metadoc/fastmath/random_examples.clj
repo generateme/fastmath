@@ -215,7 +215,10 @@
 (add-examples lower-bound (example "Usage"  {:test-value 0.0} (lower-bound (distribution :gamma))))
 (add-examples upper-bound (example "Usage" {:test-value ##Inf} (upper-bound (distribution :gamma))))
 (add-examples sample (example "Random value from distribution" (sample (distribution :gamma))))
-(add-examples ->seq (example "Sequence of random values from distribution" (->seq (distribution :gamma) 5)))
+(add-examples ->seq (example-session "Sequence of random values from distribution"
+                                     (->seq (distribution :gamma) 5)
+                                     (->seq (distribution :gamma) 5 :stratified)
+                                     (->seq default-rng 5 :systematic)))
 (add-examples log-likelihood (example "Usage" (log-likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
 (add-examples likelihood (example "Usage" (likelihood (distribution :gamma) [10 0.5 0.5 1 2])))
 

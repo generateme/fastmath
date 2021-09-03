@@ -170,12 +170,6 @@
   ([rng] (prot/brandom rng))
   ([rng p] (prot/brandom rng p)))
 
-(defn ->seq
-  "Returns lazy sequence of random samples (can be limited to optional `n` values)."
-  {:metadoc/categories #{:rand}}
-  ([rng] (prot/->seq rng))
-  ([rng n] (prot/->seq rng n)))
-
 ;; Type hinted functions generating random value
 (defn- next-random-value-long
   "Generate next long.
@@ -1586,3 +1580,42 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
      (MathEx/setSeed v)
      (prot/set-seed! rng v))))
 
+;;
+
+(defn- uniform-spacings
+  ([^long n] (uniform-spacings default-rng n))
+  ([rng ^long n]
+   (let [xs (reductions m/fast+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
+         l (/ ^double (last xs))]
+     (map (fn [^double x] (* x l)) (butlast xs)))))
+
+(defn- systematic-spacings
+  ([^long n] (systematic-spacings default-rng n))
+  ([rng ^long n]
+   (let [l (/ 1.0 n)
+         d (drandom rng)]
+     (map (fn [^long x] (* (+ x d) l)) (range n)))))
+
+(defn- stratified-spacings
+  ([^long n] (systematic-spacings default-rng n))
+  ([rng ^long n]
+   (let [l (/ 1.0 n)]
+     (map (fn [^long x] (* (+ x (drandom rng)) l)) (range n)))))
+
+(def ^:private spacings
+  {:uniform uniform-spacings
+   :systematic systematic-spacings
+   :stratified stratified-spacings})
+
+(defn ->seq
+  "Returns lazy sequence of random samples (can be limited to optional `n` values).
+
+  Additionally one of the sampling methods can be provided, ie: `:uniform`, `:systematic` and `:stratified`."
+  {:metadoc/categories #{:rand}}
+  ([] (prot/->seq default-rng))
+  ([rng] (prot/->seq rng))
+  ([rng n] (prot/->seq rng n))
+  ([rng n sampling-method]
+   (if (satisfies? prot/DistributionProto rng)
+     (map (partial prot/icdf rng) ((spacings sampling-method uniform-spacings) n))
+     ((spacings sampling-method uniform-spacings) rng n))))
