@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [2.1.6-SNAPSHOT]
+## [2.1.6]
 
 ### Added
 
@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file. This change
   - `sim-cos` - cosine similarity
   - `angular` - refers to angular distance
 * `->seq` in `fastmath.random` can accept sampling scheme (`:uniform`, `:stratified` and `:systematic`)
+* new vector functions: `softmax`, `logsoftmax`, `logsumexp`, `logmeanexp`, `shift` (adds a value to all elements), `average` (mean / weighted average)
 
 ### Fixed
 
