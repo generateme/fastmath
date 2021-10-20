@@ -25,21 +25,29 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-(def ^:const I (Vec2. 0.0 1.0))
-(def ^:const I- (Vec2. 0.0 -1.0))
-(def ^:const ONE (Vec2. 1.0 0.0))
-(def ^:const TWO (Vec2. 2.0 0.0))
-(def ^:const ZERO (Vec2. 0.0 0.0))
+(def I (Vec2. 0.0 1.0))
+(def I- (Vec2. 0.0 -1.0))
+(def -I (Vec2. 0.0 -1.0))
+(def ONE (Vec2. 1.0 0.0))
+(def TWO (Vec2. 2.0 0.0))
+(def ZERO (Vec2. 0.0 0.0))
 
 (defn complex
   "Create complex number. Represented as `Vec2`."
-  [a b]
-  (Vec2. a b))
+  ([^double a ^double b] (Vec2. a b))
+  ([^double a] (Vec2. a 0.0))
+  ([] ZERO))
 
 (def ^{:doc "Absolute value"} abs v/mag)
 (def ^{:doc "Sum of two complex numbers."} add v/add)
 (def ^{:doc "Subtraction of two complex numbers."} sub v/sub)
 (def ^{:doc "Argument (angle) of complex number."} arg v/heading)
+(def ^{:doc "Scale number"} scale v/mult)
+
+(defn re "Real part" ^double [^Vec2 z] (.x z))
+(defn im "Imaginary part" ^double [^Vec2 z] (.y z))
+
+(defn flip "Exchange imaginary and real parts" ^Vec2 [^Vec2 z] (Vec2. (.y z) (.x z)))
 
 (defn conjugate
   "Complex conjugate. \\\\(\\bar{z}\\\\)"
@@ -75,6 +83,9 @@
         d (.y z2)]
     (Vec2. (- (* a c) (* b d))
            (+ (* a d) (* b c)))))
+
+(defn mult-I [^Vec2 z] (Vec2. (- (.y z)) (.x z)))
+(defn mult-I- [^Vec2 z] (Vec2. (.y z) (- (.x z))))
 
 (defn neg
   "Negate complex number. \\\\(-z\\\\)"
@@ -225,10 +236,10 @@
   {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
-       (mult I)
+       (mult-I)
        (add z)
        (log)
-       (mult I-)))
+       (mult-I-)))
 
 ;; [[../../docs/images/c/acos.jpg]]
 
@@ -237,11 +248,13 @@
   {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
-       (add (mult I z))
+       (add (mult-I z))
        (log)
-       (mult I-)))
+       (mult-I-)))
 
 ;; [[../../docs/images/c/asin.jpg]]
+
+(def ^:private i-div-two (div I TWO))
 
 (defn atan
   "atan"
@@ -250,7 +263,7 @@
   (->> (sub I z)
        (div (add I z))
        (log)
-       (mult (div I TWO ))))
+       (mult i-div-two)))
 
 ;; [[../../docs/images/c/atan.jpg]]
 
@@ -262,4 +275,66 @@
        (log)
        (mult z2)
        (exp)))
+
+(defn acosh
+  "acosh"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (-> z
+      (acos)
+      (mult-I)))
+
+(defn asinh
+  "asinh"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (-> z
+      (mult-I)
+      (asin)
+      (mult-I-)))
+
+(defn atanh
+  "atanh"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (-> z
+      (mult-I)
+      (atan)
+      (mult-I-)))
+
+(defn sech
+  "sech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (reciprocal (cosh z)))
+
+(defn csch
+  "cosech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (reciprocal (sinh z)))
+
+(defn coth
+  "coth"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (reciprocal (tanh z)))
+
+(defn asech
+  "sech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (acosh (reciprocal z)))
+
+(defn acsch
+  "sech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (asinh (reciprocal z)))
+
+(defn acoth
+  "sech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (atanh (reciprocal z)))
 

@@ -45,6 +45,7 @@
   * `:sobol` - Sobol low-discrepancy sequence; range [0,1]
   * `:r2` - R2 low-discrepancy sequence; range [0,1], [more...](http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
   * `:sphere` - uniformly random distributed on unit sphere
+  * `:ball` - uniformly random distributed from unit ball
   * `:gaussian` - gaussian distributed (mean=0, stddev=1)
   * `:default` - uniformly random; range:[0,1]
 
@@ -369,6 +370,20 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
 
 ;; generators
 
+;; http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/#more-2165
+(defn ball-random
+  "Return random vector from a ball"
+  ([^long dims] (ball-random default-rng dims))
+  ([rng ^long dims]
+   (let [u (double-array (repeatedly (+ dims 2) #(grandom rng)))
+         ^doubles n (v/div u (v/mag u))]
+     (case dims
+       1 (aget n 0)
+       2 (v/array->vec2 n)
+       3 (v/array->vec3 n)
+       4 (v/array->vec4 n)
+       (vec (take dims n))))))
+
 (defn- rv-generators
   "Generators from commons math and custom classes."
   [seq-generator ^long dimensions]
@@ -430,6 +445,7 @@ Values:
 * `:r2`, `:halton`, `:sobol`, `:default` - range `[0-1] for each dimension`
 * `:gaussian` - from `N(0,1)` distribution
 * `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)
+* `:ball` - from an unit ball
 
 Possible dimensions:
 
@@ -447,6 +463,7 @@ See also [[jittered-sequence-generator]]."
 (defmethod sequence-generator :sphere [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :gaussian [seq-generator dimensions] (random-generators seq-generator dimensions))
 (defmethod sequence-generator :default [seq-generator dimensions] (random-generators seq-generator dimensions))
+(defmethod sequence-generator :ball [_ dimensions] (repeatedly (partial ball-random dimensions)))
 
 (defn jittered-sequence-generator
   "Create jittered sequence generator.

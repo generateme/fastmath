@@ -45,7 +45,7 @@
                         :vf "Derive vector field from other vector field(s)."}}
   (:require [fastmath.core :as m]
             [fastmath.complex :as c]
-            [fastmath.random :refer [brand discrete-noise drand fbm-noise irand lrand noise randval] :exclude [flip]]
+            [fastmath.random :refer [brand discrete-noise drand fbm-noise irand lrand noise randval] :exclude [flip] :as r]
             [fastmath.vector :as v])
   (:import [fastmath.vector Vec2]))
 
@@ -75,6 +75,7 @@
   Resulting function operates on [[Vec2]] type."
   {:metadoc/categories #{:cr}}
   (fn [key & _] key))
+
 (defmethod field :default
   ([_ s _] (fn [v] (v/mult v s)))
   ([_ s] (fn [v] (v/mult v s)))
@@ -147,6 +148,161 @@
 
 ;; ## A
 
+;; ### Acosech
+
+(defn- make-acosech
+  "Acosech"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [z (-> v c/acsch c/flip (c/scale (* amount m/M_2_PI)))]
+      (randval z (c/neg z)))))
+(make-field-method acosech :random)
+
+;; ### Acosh
+
+(defn- make-acosh
+  "Acosh"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [z (-> v c/acosh (c/scale (* amount m/M_2_PI)))]
+      (randval z (c/neg z)))))
+(make-field-method acosh :random)
+
+;; ### Acoth
+
+(defn- make-acoth
+  "Acoth"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (-> v c/acoth c/flip (c/scale (* amount m/M_2_PI)))))
+(make-field-method acoth :regular)
+
+;; ### AnamorphCyl
+
+(make-config-method anamorphcyl {:a (srandom 0.01 2.0)
+                                 :b (drand -2.0 2.0)
+                                 :k (srandom 0.01 2.0)})
+
+(defn- make-anamorphcyl
+  "AnamorphCyl"
+  [^double amount {:keys [^double a ^double b ^double k]}]
+  (fn [^Vec2 v]
+    (let [by (* a amount (+ b (.y v)))
+          kx (* k (.x v))]
+      (Vec2. (* by (m/cos kx))
+             (* by (m/sin kx))))))
+(make-field-method anamorphcyl :regular)
+
+;; ### Apocarpet
+
+(def ^:private ^:const ^double apocarpet_r (/ (inc m/SQRT2)))
+(def ^:private apocarpet+r-r (Vec2. apocarpet_r (- apocarpet_r)))
+(def ^:private apocarpet-r+r (Vec2. (- apocarpet_r) apocarpet_r))
+
+(defn- make-apocarpet
+  "Apolonian carpet"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [denom (v/magsq v)]
+      (-> (case (irand 6)
+            0 (v/div (Vec2. (* 2.0 (.x v) (.y v))
+                            (- (m/sq (.x v)) (m/sq (.y v)))) denom)
+            1 (v/shift (v/mult v apocarpet_r) (- apocarpet_r))
+            2 (v/shift (v/mult v apocarpet_r) apocarpet_r)
+            3 (v/add (v/mult v apocarpet_r) apocarpet+r-r)
+            4 (v/add (v/mult v apocarpet_r) apocarpet-r+r)
+            5 (v/div (Vec2. (- (m/sq (.x v)) (m/sq (.y v)))
+                            (* 2.0 (.x v) (.y v))) denom))
+          (v/mult amount)))))
+(make-field-method apocarpet :random)
+
+;; ### Apollony
+
+(def ^:private ^:const ^double apollony-inc-sqrt3 (+ 1.0 m/SQRT3))
+(def ^:private ^:const ^double apollony-inc-sqrt3-div (/ apollony-inc-sqrt3 (inc apollony-inc-sqrt3)))
+
+(defn- make-apollony
+  "Apollony"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [sqy (m/sq (.y v))
+          sx (- apollony-inc-sqrt3 (.x v))
+          p (+ (m/sq sx) sqy)
+          a (- (/ (* 3.0 sx) p)
+               apollony-inc-sqrt3-div)
+          b (/ (* 3.0 (.y v)) p)
+          r (irand 3)]
+      (-> (if (zero? r)
+            (Vec2. a b)
+            (let [denom (+ (* a a) (* b b))
+                  f1x (/ a denom)
+                  f1y (/ (- b) denom)]
+              (-> (if (m/one? r)
+                    (Vec2. (- (- f1x ) (* m/SQRT3 f1y))
+                           (- (* m/SQRT3 f1x) f1y))
+                    (Vec2. (+ (- f1x ) (* m/SQRT3 f1y))
+                           (- (- (* m/SQRT3 f1x)) f1y)))
+                  (v/mult 0.5))))
+          (v/mult amount)))))
+(make-field-method apollony :random)
+
+;; ### Arc Truchet
+
+(make-config-method arctruchet (let [radius (m/sq (r/drand 0.25 0.99))]
+                                 {:seed (irand)
+                                  :thickness (drand 0.01 0.99)
+                                  :radius radius
+                                  :legacy? (brand)
+                                  :tiles-per-row (irand 4 (/ 3.0 radius))
+                                  :tiles-per-col (irand 4 (/ 3.0 radius))}))
+
+(defn- make-arctruchet
+  "Arc Truchet"
+  [^double amount {:keys [seed ^double thickness ^double radius ^long tiles-per-row ^long tiles-per-col legacy?]}]
+  (let [rng (r/rng :well19937c seed)
+        tilesize (* 2.0 radius)
+        number-of-tiles (* tiles-per-row tiles-per-col)
+        tilt-array (vec (repeatedly number-of-tiles #(m/radians (* 90 (r/irandom rng 4)))))
+        r+t (+ radius thickness)
+        hthickness (* 0.5 thickness)
+        gamma (/ (* thickness (+ tilesize thickness)) r+t)
+        shift (Vec2. (* 0.5 tilesize tiles-per-row)
+                     (* 0.5 tilesize tiles-per-col))
+        rfun (if legacy? #(- r+t (drand gamma)) #(- radius (drand (- hthickness) hthickness)))]
+    (fn [_]
+      (let [side (irand 2)
+            phi1 (if (zero? side) 0.0 m/PI)
+            i (r/irandom rng tiles-per-row)
+            j (r/irandom rng tiles-per-col)
+            ^double tilt (tilt-array (+ i (* j tiles-per-row)))
+            ^double r (rfun)
+            phi (+ phi1 (drand m/HALF_PI))
+            p (v/rotate (Vec2. (* r (m/cos phi)) (* r (m/sin phi))) tilt)
+            radio (if (zero? side) radius (- radius))
+            vradio (v/rotate (Vec2. radio radio) tilt)]
+        (-> p
+            (v/sub vradio)
+            (v/add (Vec2. (+ radius (* i tilesize)) (+ radius (* j tilesize))))
+            (v/sub shift)
+            (v/mult amount))))))
+(make-field-method arctruchet :random)
+
+
+;; ### Arcsech2
+
+(defn- make-arcsech2
+  "Arcsech2"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [z (c/reciprocal v)
+          z2 (-> z (c/sub c/ONE) c/sqrt)
+          z3 (-> z (c/add c/ONE) c/sqrt (c/mult z2))
+          z (-> z (c/add z3) c/log (c/scale (* amount m/M_2_PI)))]
+      (if (neg? (c/im z))
+        (Vec2. (c/re z) (inc (c/im z)))
+        (Vec2. (- (c/re z)) (dec (c/im z)))))))
+(make-field-method arcsech2 :regular)
+
 ;; ### Arch
 
 (defn- make-arch
@@ -160,6 +316,26 @@
           (Vec2. (* amount sinr)
                  (* amount (/ (m/sq sinr) cosr)))))))
 (make-field-method arch :random)
+
+;; ### Asinh
+
+(defn- make-asinh
+  "Asinh"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (-> v c/asinh (c/scale (* amount m/M_2_PI)))))
+(make-field-method asinh :regular)
+
+;; ### Atanh
+
+(defn- make-atanh
+  "Atanh"
+  [^double amount _]
+  (fn [^Vec2 v]
+    (let [z2 (-> v (c/scale -1.0) (c/add c/ONE))]
+      (-> v (c/add c/ONE) (c/div z2) c/log (c/scale (* amount m/M_2_PI))))))
+(make-field-method atanh :regular)
+
 
 ;; ### Asteria
 (make-config-method asteria {:alpha (drand -5 5)})
@@ -192,6 +368,41 @@
                    (+ (- (* sina nx))
                       (* cosa yy)))))))))
 (make-field-method asteria :random)
+
+;; ### Atan2 Spirals
+
+(make-config-method atan2spirals {:r-mult (srandom 0.01 2.0)
+                                  :r-add (drand 0.9 1.1)
+                                  :xy2-mult (srandom 0.1 1.5)
+                                  :xy2-add (srandom 0.1 3.0)
+                                  :x-mult (drand 0.7 3.0)
+                                  :x-add (drand -0.5 3.0)
+                                  :yx-div (srandom 0.1 2.0)
+                                  :yx-add (drand -0.5 0.5)
+                                  :yy-div (srandom 0.1 2.0)
+                                  :yy-add (drand -0.5 0.5)
+                                  :sin-add (drand m/-TWO_PI m/TWO_PI)
+                                  :y-mult (srandom 0.9 2.0)
+                                  :r-power (drand 0.05 0.6)
+                                  :x2y2-power (drand 0.9 4.0)})
+
+(defn- make-atan2spirals
+  "Atan2 Spirals"
+  [^double amount {:keys [^double r-mult ^double r-add ^double xy2-mult ^double xy2-add
+                          ^double x-mult ^double x-add ^double yx-div ^double yx-add
+                          ^double yy-div ^double yy-add ^double sin-add ^double y-mult
+                          ^double r-power ^double x2y2-power] :as cfg}]
+  (println cfg)
+  (fn [^Vec2 v]
+    (let [xs+ys (v/magsq v)
+          xy2 (m/pow xs+ys x2y2-power)
+          r (m/pow xs+ys r-power)
+          fx (- (+ x-add (* x-mult (m/atan2 (+ r-add (* r r-mult))
+                                            (+ xy2-add (* xy2 xy2-mult))))) m/PI)
+          fy (* y-mult (m/sin (+ sin-add (m/atan2 (+ yy-add (/ (.y v) yy-div))
+                                                  (+ yx-add (/ (.x v) yx-div))))))]
+      (v/mult (Vec2. (if (neg? (.x v)) fx (- fx)) fy) amount))))
+(make-field-method atan2spirals :regular)
 
 ;; ### Atan
 
@@ -353,6 +564,101 @@
         (bseries-calc amount tau sigma)))))
 (make-field-method btransform :random)
 
+;; ### BWRands
+
+(defn- bwrands-bytemix ^long [^long a ^long b] (bit-xor (bit-and a 0x5a5a) (bit-and b 0xa5a5)))
+(defn- bwrands-bytexim ^long [^long a ^long b] (bit-xor (bit-and a 0xaaaa) (bit-and b 0x5555)))
+(defn- bwrands-byteshf ^long [^long a ^long b] (bit-and (bit-xor (<< a 8) (>> b 8)) 0xffff))
+(defn- bwrands-byteprimes ^long [^long a ^long b]
+  (bit-and 0xffff (bit-xor (- (* a 857) 4)
+                           (+ (* b -977) 8))))
+
+(make-config-method bwrands (let [min-petals (irand 1 5)]
+                              {:cellsize (srandom 0.1 2.0)
+                               :space (drand -1.0 1.0)
+                               :gain (drand -2.0 2.0)
+                               :inner-twist (drand -2.0 2.0)
+                               :outer-twist (drand -2.0 2.0)
+                               :seed (irand)
+                               :rrot (drand -1.0 1.0)
+                               :rmin (drand)
+                               :loonie-chance (drand 0.5 0.9)
+                               :petal-chance (drand 0.5 0.9)
+                               :min-petals min-petals
+                               :max-petals (+ min-petals (irand 15))}))
+
+
+(defn- make-bwrands
+  "bwrands"
+  [^double amount {:keys [^double cellsize ^double space ^double gain ^double inner-twist ^double outer-twist
+                          ^long seed ^double rrot ^double rmin ^double loonie-chance ^double petal-chance
+                          ^long min-petals ^long max-petals]}]
+  (let [radius (* 0.5 (/ cellsize (inc (m/sq space))))
+        g2 (+ m/EPSILON (/ (m/sq gain) radius))
+        max-bubble (as-> (* g2 radius) a
+                     (if (> a 2.0) 1.0 (* a (/ (inc (* 0.25 a a))))))
+        r2 (* radius radius)
+        rfactor (/ radius max-bubble)
+        petx min-petals
+        pety (- max-petals min-petals)]
+    (fn [^Vec2 v]
+      (if (< (m/abs cellsize) m/EPSILON)
+        (v/mult v amount)
+        (let [^Vec2 I (v/floor (v/div v cellsize))
+              C (v/mult (v/shift I 0.5) cellsize)
+              xx (bit-xor (int (.x I)) 0xb641)
+              yy (bit-xor (int (.y I)) 0x9d81)
+              xy (bit-and 0xffff (+ seed (* xx yy)))
+              xx (bit-and 0xffff xx)
+              yy (bit-and 0xffff yy)
+              tt (bwrands-bytemix xx yy)
+              yy (bwrands-bytemix yy xx)
+              xx tt
+              tt (bwrands-byteshf xx yy)
+              yy (bwrands-byteshf xy yy)
+              xx tt
+              tt (bwrands-bytexim xx yy)
+              yy (bwrands-bytexim yy xx)
+              xx tt
+              ssz (-> (/ xx 65536.0)
+                      (* (- 1.0 rmin))
+                      (+ rmin))
+              aan (/ (* rrot m/TWO_PI yy) 65536.0)
+              tt (bwrands-byteprimes xx yy)
+              yy (bwrands-byteprimes yy xx)
+              xx tt
+              LC (+ (/ xx -65536.0) loonie-chance)
+              PC (if (neg? LC) (+ LC petal-chance) 0.0)
+              LC (if (<= LC PC) -1.0 LC)
+              L (v/sub v C)
+              vv2 (* ssz r2)
+              mL (v/magsq L)]
+          (if (> mL vv2)
+            (v/mult v amount)
+            (let [nL (if (pos? LC)
+                       (v/mult L (m/sqrt (dec (/ vv2 mL))))
+                       (if (pos? PC)
+                         (let [NPetals (if (zero? pety)
+                                         petx
+                                         (+ petx (mod (>> yy 3) (inc pety))))
+                               flrw (as-> (* (+ m/PI (v/heading L))
+                                             (/ NPetals m/TWO_PI)) a
+                                      (- a (int a))
+                                      (* 2.0 (m/abs (- a 0.5))))
+                               r (m/sqrt mL)]
+                           (randval (* 0.5 (+ flrw 0.5))
+                                    (v/mult L (* (- 1.0 r) (* 1.1 flrw)))
+                                    (v/mult L (/ (- (m/sqrt vv2)
+                                                    (* r (- 1.0 flrw))) (+ r m/EPSILON)))))
+                         (let [nL (v/mult L g2)
+                               r (/ rfactor (inc (/ (v/magsq nL) (* 4.0 ssz))))]
+                           (v/mult nL r))))
+                  nvvl (if-not (or (pos? LC) (pos? PC)) (m/sqrt ssz) 1.0)
+                  r (/ (* nvvl (v/mag nL)) r2)
+                  theta (m/lerp inner-twist outer-twist r)]
+              (v/mult (v/add C (v/rotate nL theta)) amount))))))))
+(make-field-method bwrands :regular)
+
 ;; ### BWraps7
 
 (make-config-method bwraps7 {:cellsize (srandom 0.5 2.0)
@@ -473,6 +779,43 @@
           (Vec2. (* amount m/M_2_PI 0.25 (m/log (/ f g)))
                  (* amount m/M_2_PI y)))))))
 (make-field-method bipolar :regular)
+
+(make-config-method bipolar2 {:shift (drand -2.0 2.0)
+                              :a (drand -2.0 2.0)
+                              :b (srandom 1.5 3.0)
+                              :c (srandom 0.8 2.0)
+                              :d (drand -1.0 2.0)
+                              :e (srandom 0.5 3.0)
+                              :f1 (srandom 0.8 3.0)
+                              :g1 (drand 0.5 2.0)
+                              :h (srandom 0.8 2.0)})
+
+(defn- make-bipolar2
+  "Bipolar2"
+  [^double amount {:keys [^double shift ^double a ^double b ^double c ^double d
+                          ^double e ^double f1 ^double g1 ^double h] :as cfg}]
+  (println cfg)
+  (let [ps (* (- m/HALF_PI) shift)]
+    (fn [^Vec2 v]
+      (let [x2y2 (* g1 (v/magsq v))
+            t (+ a x2y2)
+            x2 (* b (.x v))
+            pre-y (+ ps (* c (m/atan2 (* e (.y v))
+                                      (- x2y2 d))))
+            y (if (> pre-y m/HALF_PI)
+                (- (rem (+ pre-y m/HALF_PI) m/PI) m/HALF_PI)
+                (if (< pre-y (- m/HALF_PI))
+                  (- m/HALF_PI (rem (- m/HALF_PI pre-y) m/PI))
+                  pre-y))
+            f (+ t x2)
+            g (- t x2)]
+        (if (or (zero? g)
+                (not (pos? (/ f g))))
+          (Vec2. 0.0 0.0)
+          (Vec2. (* amount f1 m/M_2_PI 0.25 (m/log (/ f g)))
+                 (* amount m/M_2_PI y h)))))))
+(make-field-method bipolar2 :regular)
+
 
 ;; ### Blade
 
@@ -1468,6 +1811,98 @@
       (Vec2. (* r (m/cos a)) (* r (m/sin a))))))
 (make-field-method gaussianblur :random)
 
+;; ### GlynnSim
+
+(make-config-method glynnsim1 {:radius (r/drand 0.01 2.0)
+                               :radius1 (srandom 0.01 2.0)
+                               :phi (r/drand 0.0 360.0)
+                               :thickness (r/drand)
+                               :pow (r/drand 6.0)
+                               :contrast (r/drand)})
+
+(defn- make-glynnsim1
+  [^double amount {:keys [^double radius ^double radius1 ^double phi ^double thickness ^double pow ^double contrast]}]
+  (let [a (m/radians phi)
+        sinphi1 (m/sin a)
+        cosphi1 (m/cos a)
+        x1 (* radius sinphi1)
+        y1 (* radius cosphi1)
+        abspow (m/abs pow)
+        circle-fn #(let [r (* radius1 (+ thickness (* (- 1.0 thickness) (r/drand))))
+                         phi (r/drand m/TWO_PI)]
+                     (Vec2. (+ x1 (* r (m/sin phi)))
+                            (+ y1 (* r (m/cos phi)))))]
+    (fn [^Vec2 v]
+      (let [r (v/mag v)
+            alpha (/ radius (+ m/EPSILON r))]
+        (if (< r radius)
+          (v/mult (circle-fn) amount)
+          (let [^Vec2 toolpoint (if (> (r/drand) (* contrast (m/pow alpha abspow)))
+                                  v
+                                  (v/mult v (* alpha alpha)))
+                z (+ (m/sq (- (.x toolpoint) x1))
+                     (m/sq (- (.y toolpoint) y1)))]
+            (if (< z (* radius1 radius1))
+              (v/mult (circle-fn) amount)
+              (v/mult toolpoint amount))))))))
+(make-field-method glynnsim1 :random)
+
+(make-config-method glynnsim2 {:radius (r/drand 0.01 2.0)
+                               :phi1 (r/drand 0.0 360.0)
+                               :phi2 (r/drand 0.0 360.0)
+                               :thickness (r/drand)
+                               :pow (r/drand 6.0)
+                               :contrast (r/drand)})
+
+(defn- make-glynnsim2
+  [^double amount {:keys [^double radius ^double phi1 ^double phi2 ^double thickness ^double pow ^double contrast]}]
+  (let [phi10 (m/radians phi1)
+        phi20 (m/radians phi2)
+        delta (- phi20 phi10)
+        gamma (/ (* thickness (+ radius radius thickness))
+                 (+ radius thickness))
+        abspow (m/abs pow)
+        circle-fn #(let [r (- (+ radius thickness)
+                              (* gamma (r/drand)))
+                         phi (+ phi10 (* delta (r/drand)))]
+                     (Vec2. (* r (m/sin phi))
+                            (* r (m/cos phi))))]
+    (fn [^Vec2 v]
+      (let [r (v/mag v)
+            alpha (/ radius (+ m/EPSILON r))]
+        (if (< r radius)
+          (v/mult (circle-fn) amount)
+          (if (> (r/drand) (* contrast (m/pow alpha abspow)))
+            v
+            (v/mult v (* alpha alpha))))))))
+(make-field-method glynnsim2 :random)
+
+(make-config-method glynnsim3 {:radius (r/drand 0.01 2.0)
+                               :thickness (r/drand)
+                               :pow (r/drand 6.0)
+                               :contrast (r/drand)})
+
+(defn- make-glynnsim3
+  [^double amount {:keys [^double radius ^double thickness ^double pow ^double contrast]}]
+  (let [radius1 (+ radius thickness)
+        radius2 (/ (m/sq radius) radius1)
+        gamma (/ radius1
+                 (+ radius1 radius2))
+        abspow (m/abs pow)
+        circle-fn #(let [phi (r/drand m/TWO_PI)
+                         r (if (< (r/drand) gamma) radius1 radius2)]
+                     (Vec2. (* r (m/sin phi))
+                            (* r (m/cos phi))))]
+    (fn [^Vec2 v]
+      (let [r (v/mag v)
+            alpha (/ radius (+ m/EPSILON r))]
+        (if (< r radius1)
+          (v/mult (circle-fn) amount)
+          (if (> (r/drand) (* contrast (m/pow alpha abspow)))
+            v
+            (v/mult v (* alpha alpha))))))))
+(make-field-method glynnsim3 :random)
+
 ;; ### GDOffs
 
 (make-config-method gdoffs {:delta-x (drand -6 6)
@@ -1869,6 +2304,146 @@
              (* r (m/sin a))))))
 (make-field-method noise :random)
 
+;; ## O
+
+;; ## Octapol
+
+(make-config-method octapol {:polarweight (r/randval 0.2 0.0 (r/drand 0.01 2.0))
+                             :radius (r/randval 0.2 0.0 (r/drand 0.2 2.0))
+                             :s (r/drand 0.01 1.0)
+                             :t (r/drand 0.01 1.0)
+                             :scale (srandom 0.05 0.5)})
+
+(defn- octapol-hits-circle-around-origin
+  ^double [^double radius ^Vec2 p]
+  (if (zero? radius) 0.0 (v/mag p)))
+
+(defn- octapol-hits-square-around-origin
+  [^double a ^Vec2 XY]
+  (and (<= (m/abs (.x XY)) a)
+       (<= (m/abs (.y XY)) a)))
+
+(defn- octapol-hits-rect
+  [^Vec2 t1 ^Vec2 br ^Vec2 p]
+  (and (>= (.x p) (.x t1))
+       (>= (.y p) (.y t1))
+       (<= (.x p) (.x br))
+       (<= (.y p) (.y br))))
+
+(defn- octapol-hits-triangle
+  [^Vec2 a ^Vec2 b ^Vec2 c ^Vec2 p]
+  (let [v0 (v/sub c a)
+        v1 (v/sub b a)
+        v2 (v/sub p a)
+        d00 (v/dot v0 v0)
+        d01 (v/dot v0 v1)
+        d02 (v/dot v0 v2)
+        d11 (v/dot v1 v1)
+        d12 (v/dot v1 v2)
+        denom (- (* d00 d11) (* d01 d01))
+        ^Vec2 uv (if (zero? denom)
+                   (Vec2. 0.0 0.0)
+                   (v/div (Vec2. (- (* d11 d02) (* d01 d12))
+                                 (- (* d00 d12) (* d01 d02))) denom))]
+    (and (< (v/sum uv) 1.0) (pos? (.x uv)) (pos? (.y uv)))))
+
+
+
+(defn- make-octapol
+  [^double amount {:keys [^double polarweight ^double radius ^double s ^double t ^double scale]}]
+  (let [-hs (* -0.5 s)
+        hs (* 0.5 s)
+        a (+ hs t)
+        b (- -hs t)
+        rad (* (m/abs radius) (/ s m/SQRT2))
+        A (Vec2. -hs a)
+        B (Vec2. hs a)
+        C (Vec2. t hs)
+        D (Vec2. t -hs)
+        E (Vec2. hs b)
+        F (Vec2. -hs b)
+        G (Vec2. (- t) -hs)
+        H (Vec2. (- t) hs)
+        I (Vec2. -hs hs)
+        J (Vec2. hs hs)
+        K (Vec2. -hs -hs)
+        L (Vec2. hs -hs)]
+    (fn [^Vec2 v]
+      (let [^Vec2 XY (v/mult v scale)
+            r (octapol-hits-circle-around-origin rad XY)]
+        (cond
+          (and (pos? rad) (<= r rad)) (let [rd (m/log (m/sq (/ r rad)))
+                                            phi (v/heading XY)
+                                            t (* rd polarweight)]
+                                        (v/mult (v/add XY (Vec2. (m/lerp (.x XY) phi t)
+                                                                 (m/lerp (.y XY) r t))) amount))
+          (and (octapol-hits-square-around-origin a XY)
+               (or (octapol-hits-rect H K XY)
+                   (octapol-hits-rect J D XY)
+                   (octapol-hits-rect A J XY)
+                   (octapol-hits-rect K E XY)
+                   (octapol-hits-triangle I A H XY)
+                   (octapol-hits-triangle J B C XY)
+                   (octapol-hits-triangle L D E XY)
+                   (octapol-hits-triangle K F G XY))) (v/mult (v/add XY XY) amount)
+          :else (v/mult v amount))))))
+(make-field-method octapol :regular)
+
+;; ### Oscilloscope
+
+(make-config-method oscilloscope {:separation (srandom 0.05 2.0)
+                                  :frequency (srandom 0.01 10.0)
+                                  :amplitude (srandom 0.1 2.0)
+                                  :damping (r/randval 0.5 0.0 (m/sqrt (r/drand 0.01 0.99)))})
+
+(defn- make-oscilloscope
+  [^double amount {:keys [^double separation ^double frequency ^double amplitude ^double damping]}]
+  (let [tpf (* m/TWO_PI frequency)]
+    (fn [^Vec2 v]
+      (let [t (if (zero? damping)
+                (+ separation (* amplitude (m/cos (* tpf (.x v)))))
+                (+ separation (* amplitude (* (m/exp (* damping (- (m/abs (.x v)))))
+                                              (m/cos (* tpf (.x v)))))))]
+        (if (<= (m/abs (.y v)) t)
+          (Vec2. (* amount (.x v))
+                 (* -1.0 amount (.y v)))
+          (v/mult v amount))))))
+(make-field-method oscilloscope :regular)
+
+(make-config-method oscilloscope2 {:separation (srandom 0.05 2.0)
+                                   :frequency-x (srandom 0.01 10.0)
+                                   :frequency-y (srandom 0.01 10.0)
+                                   :amplitude (srandom 0.1 2.0)
+                                   :perturbation (srandom 0.1 2.0)
+                                   :damping (r/randval 0.5 0.0 (m/sqrt (r/drand 0.01 0.99)))})
+
+(defn- make-oscilloscope2
+  [^double amount {:keys [^double separation ^double frequency-x ^double frequency-y ^double perturbation ^double amplitude ^double damping]}]
+  (let [tpf (* m/TWO_PI frequency-x)
+        tpf2 (* m/TWO_PI frequency-y)]
+    (fn [^Vec2 v]
+      (let [pt (* perturbation (m/sin (* tpf2 (.y v))))
+            t (if (zero? damping)
+                (+ separation (* amplitude (m/cos (+ pt (* tpf (.x v))))))
+                (+ separation (* amplitude (* (m/exp (* damping (- (m/abs (.x v)))))
+                                              (m/cos (+ pt (* tpf (.x v))))))))]
+        (if (<= (m/abs (.y v)) t)
+          (v/mult v (- amount))
+          (v/mult v amount))))))
+(make-field-method oscilloscope2 :regular)
+
+;; ### Ovoid
+
+(make-config-method ovoid {:x (srandom 0.01 m/PI)
+                           :y (srandom 0.01 m/PI)})
+
+(defn- make-ovoid
+  [^double amount {:keys [^double x ^double y]}]
+  (fn [^Vec2 v]
+    (let [r (/ amount (+ m/EPSILON (v/magsq v)))]
+      (v/emult (v/mult v r) (Vec2. x y)))))
+(make-field-method ovoid :regular)
+
 ;; ## P
 
 ;; ### Panorama1
@@ -1938,6 +2513,25 @@
     (make-noise-variation2 amount scale n)))
 (make-field-method perlin2 :regular)
 
+;; 
+
+(make-config-method general-noise (assoc (r/random-noise-cfg) :scale (srandom 0.1 1.5)))
+
+(defn- make-general-noise
+  "Perlin noise"
+  [amount cfg]
+  (let [n (r/random-noise-fn cfg)]
+    (make-noise-variation amount (:scale cfg) n)))
+(make-field-method general-noise :regular)
+
+(make-config-method general-noise2 (assoc (r/random-noise-cfg) :scale (srandom 0.1 1.5)))
+
+(defn- make-general-noise2
+  "Perlin noise"
+  [amount cfg]
+  (let [n (r/random-noise-fn cfg)]
+    (make-noise-variation2 amount (:scale cfg) n)))
+(make-field-method general-noise2 :regular)
 
 ;; ### Petal
 
@@ -1973,6 +2567,38 @@
       (Vec2. (* r (m/cos a))
              (* r (m/sin a))))))
 (make-field-method pie :random)
+
+;; ### PixelFlow
+
+(make-config-method pixelflow {:angle (drand m/TWO_PI)
+                               :len (srandom 0.01 3.0)
+                               :width (srandom 0.1 10.0)
+                               :seed (irand)})
+
+(defn- pixelflow-hash
+  ^double [^long a]
+  (as-> (unchecked-int a) a
+    (bit-xor (bit-xor a 61)
+             (bit-shift-right a 16))
+    (+ a (bit-shift-left a 3))
+    (bit-xor a (bit-shift-right a 4))
+    (unchecked-int (* a 0x27d4eb2d))
+    (bit-xor a (bit-shift-right a 15))
+    (/ (double (bit-and a 0xffffffff)) Integer/MAX_VALUE)))
+
+(defn- make-pixelflow
+  "Pixel Flow"
+  [^double amount {:keys [^double angle ^double len ^double width ^long seed]}]
+  (let [vin (Vec2. (m/cos angle) (m/sin angle))]
+    (fn [^Vec2 v]
+      (let [blockx (int (m/floor (* width (.x v))))
+            blockx (+ blockx (- 2.0 (* 4.0 (pixelflow-hash (inc (* seed blockx))))))
+            blocky (int (m/floor (* width (.y v))))
+            blocky (+ blocky (- 2.0 (* 4.0 (pixelflow-hash (inc (* seed blocky))))))
+            flen (* 0.5 (+ (pixelflow-hash (+ blocky (* blockx (- seed))))
+                           (pixelflow-hash (+ blockx (* blocky (/ seed 2))))))]
+        (v/add v (v/mult vin (* amount flen (m/sq (m/sq (drand))) len)))))))
+(make-field-method pixelflow :random)
 
 ;; ### PDJ
 

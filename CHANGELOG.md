@@ -1,6 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.7-SNAPSHOT]
+
+### Added
+
+* `ball-random` - unit ball random vector
+* `sequence-generator` `:ball` added - unit ball random sampling
+* some more fields
+
+### Fixed
+
+* Vec3 rotation
+
 ## [2.1.6]
 
 ### Added
