@@ -15,7 +15,7 @@ Due to significant change in SMILE 2.x API I decided to remove ML namespaces: re
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.1.3"]
+[generateme/fastmath "2.1.6"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
