@@ -8,7 +8,8 @@ Fast and primitive based math library.
 ---
 **NOTE**
 
-Due to significant change in SMILE 2.x API I decided to remove ML namespaces: regression and classification. Possible scenarios are: separate library with ML elements or further development of Clojure bindings in SMILE directly.
+Due to significant change in SMILE 2.x API I decided to remove ML namespaces: regression and classification. 
+The ML functionality is now available in [scicloj.ml](https://github.com/scicloj/scicloj.ml)
 
 ---
 
