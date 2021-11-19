@@ -392,7 +392,6 @@
                           ^double x-mult ^double x-add ^double yx-div ^double yx-add
                           ^double yy-div ^double yy-add ^double sin-add ^double y-mult
                           ^double r-power ^double x2y2-power] :as cfg}]
-  (println cfg)
   (fn [^Vec2 v]
     (let [xs+ys (v/magsq v)
           xy2 (m/pow xs+ys x2y2-power)
@@ -794,7 +793,6 @@
   "Bipolar2"
   [^double amount {:keys [^double shift ^double a ^double b ^double c ^double d
                           ^double e ^double f1 ^double g1 ^double h] :as cfg}]
-  (println cfg)
   (let [ps (* (- m/HALF_PI) shift)]
     (fn [^Vec2 v]
       (let [x2y2 (* g1 (v/magsq v))
