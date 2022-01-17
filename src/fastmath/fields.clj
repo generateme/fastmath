@@ -63,6 +63,7 @@
   See [[field]]."
   {:metadoc/categories #{:cr}}
   (fn [key & _] key))
+
 (defmethod parametrization :default
   ([_ _] {})
   ([_] {}))
@@ -100,7 +101,7 @@
            ([k#] (~m 1.0 (parametrization ~k))))
          ~(if (= t :regular)
             `(register-regular-field ~k)
-            `(register-random-field ~k)))))
+            `(register-noisy-field ~k)))))
 
 ;; Locally used random function for some parametrization parameters. Mostly used to avoid `0` value.
 (defn- srandom
@@ -136,14 +137,14 @@
 ;; Two atoms to store variation names. One for non-random functions and second for random.
 
 (def ^:private regular-field (atom [:default]))
-(def ^:private random-field (atom []))
+(def ^:private noisy-field (atom []))
 
 (defn- register-field
   "Add `name` to the atom `what`"
   [what name]
   (swap! what conj name))
 
-(def ^:private register-random-field (partial register-field random-field))
+(def ^:private register-noisy-field (partial register-field noisy-field))
 (def ^:private register-regular-field (partial register-field regular-field))
 
 ;; ## A
@@ -3723,7 +3724,7 @@
 ;; ## Lists
 
 ;; List of variations based on RNG
-(def fields-list-random @random-field)
+(def fields-list-random @noisy-field)
 
 ;; List of variations not random
 (def fields-list-not-random @regular-field)
@@ -3734,8 +3735,8 @@
 ;; ## Function arithmetic
 ;;
 (def ^{:dynamic true
-       :doc "When random configuration for [[combine]] is used. Skip vector fields which are random."
-       :metadoc/categories #{:vf}}
+     :doc "When random configuration for [[combine]] is used. Skip vector fields which are random."
+     :metadoc/categories #{:vf}}
   *skip-random-fields* false)
 
 (defn- directional-derivative
@@ -3985,3 +3986,8 @@ Resulting value is from range `[-PI,PI]`."
            :mult (multiplication v1 v2 amount)
            :angles (scalar->vector-field v/heading v1 v2))))))
   ([] (combine (random-configuration))))
+
+(defn random-field
+  "Create randomized field (optional depth can be provided)."
+  ([] (combine))
+  ([depth] (combine (random-configuration depth))))

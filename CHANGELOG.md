@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 * `ball-random` - unit ball random vector
 * `sequence-generator` `:ball` added - unit ball random sampling
 * some more fields
+* `ceil` and `floor` can snap to the nearest multiply of scale parameter (optional)
 
 ### Fixed
 

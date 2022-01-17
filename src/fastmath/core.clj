@@ -612,10 +612,24 @@
   (qsqrt (+ (sq (- x2 x1)) (sq (- y2 y1)))))
 
 ;; Rounding functions
-(defn floor "\\\\(\\lfloor x \\rfloor\\\\). See: [[qfloor]]." {:metadoc/categories -round-set-} ^double [^double x] (FastMath/floor x))
-(defn ceil "\\\\(\\lceil x \\rceil\\\\). See: [[qceil]]." {:metadoc/categories -round-set-} ^double [^double x] (FastMath/ceil x))
+(defn floor
+  "\\\\(\\lfloor x \\rfloor\\\\). See: [[qfloor]].
+
+  Rounding is done to a multiply of scale value (when provided)."
+  {:metadoc/categories -round-set-}
+  (^double [^double x] (FastMath/floor x))
+  (^double [^double x ^double scale] (* (FastMath/floor (/ x scale)) scale)))
+
+(defn ceil
+  "\\\\(\\lceil x \\rceil\\\\). See: [[qceil]].
+
+  Rounding is done to a multiply of scale value (when provided)."
+  {:metadoc/categories -round-set-}
+  (^double [^double x] (FastMath/ceil x))
+  (^double [^double x ^double scale] (* (FastMath/ceil (/ x scale)) scale)))
+
 (defn ^{:doc "Round to `long`. See: [[rint]], [[qround]]."
-        :metadoc/categories -round-set-} round ^long [^double x] (FastMath/round x))
+     :metadoc/categories -round-set-} round ^long [^double x] (FastMath/round x))
 (defn ^{:doc "Round to `double`. See [[round]], [[qround]]."
         :metadoc/categories -round-set-} rint ^double [^double x] (FastMath/rint x))
 (defn round-even
