@@ -1,7 +1,8 @@
 (ns fastmath.vector-test
   (:require [fastmath.vector :refer :all]
             [fastmath.core :as m]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [fastmath.vector :as v]))
 
 ;; test protocol
 
@@ -194,3 +195,48 @@
   (is (not (aligned? v2-in1 v2-in2)))
   (is (aligned? v2-in1 (add (vec2 0.0000001 -0.0000001) (mult v2-in1 0.555))))
   (is (= v2-in1 (faceforward v2-in1 v2-in2))))
+
+;; clojure contract tests
+
+(defmacro exception?
+  [& forms]
+  `(try
+     ~@forms
+     (catch IllegalArgumentException iae# :iae)
+     (catch IndexOutOfBoundsException ioobe# :ioobe)))
+
+(defn clojure-contract-vec-tests
+  [vfn in]
+  (let [v (vfn in)
+        cnt (count in)
+        lst (dec cnt)
+        lin (last in)]
+    (is (= cnt (count v)))
+    (is (= in v))
+    (is (= in (seq v)))
+    (is (= (reverse in) (rseq v)))
+    (is (= 2.0 (nth v 1)))
+    (is (= lin (nth v lst)))
+    (is (= :ioobe (exception? (nth v cnt))))
+    (is (= 2.0 (nth v 1 :not-found)))
+    (is (= :not-found (nth v cnt :not-found)))
+    (is (= 2.0 (get v 1)))
+    (is (= lin (get v lst)))
+    (is (nil? (get v cnt)))
+    (is (= :not-found (get v cnt :not-found)))
+    (is (= 2.0 (get v 1 :not-found)))
+    (is (contains? v 1))
+    (is (not (contains? v 11)))
+    (is (= -11.0 (second (assoc v 1 -11.0))))
+    (is (= :iae (exception? (assoc v :a -11.0))))
+    (is (= :ioobe (exception? (assoc v cnt -11.0))))
+    (is (= 2.0 (v 1)))
+    (is (= lin (v lst)))
+    (is (= :iae (exception? (v :a))))
+    (is (= :ioobe (exception? (v cnt))))))
+
+(deftest clojure-contract-vecs
+  (clojure-contract-vec-tests v/array-vec [1.0 2.0 3.0 4.0 5.0 6.0])
+  (clojure-contract-vec-tests (partial apply v/vec2) [1.0 2.0])
+  (clojure-contract-vec-tests (partial apply v/vec3) [1.0 2.0 3.0])
+  (clojure-contract-vec-tests (partial apply v/vec4) [1.0 2.0 3.0 4.0]))

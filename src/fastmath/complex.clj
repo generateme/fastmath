@@ -17,6 +17,7 @@
   ![identity](images/c/identity.jpg)" 
   {:metadoc/categories {:trig "Trigonometry"
                         :pow "Power / logarithm"}}
+  (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v])
   (:import [fastmath.vector Vec2]))

@@ -58,7 +58,7 @@
                         :seq "Primitive <-> Seq converters"
                         :sample "Sampling"}}
   (:refer-clojure
-   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd?])
+   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
@@ -231,6 +231,11 @@
   "`[x y z]` -> `(+ z (* x y))`"
   [x y z]
   `(+ ~z (* ~x ~y)))
+
+(defmacro negmuladd
+  "`[x y z]` -> `(+ z (* -1.0 x y)`"
+  [x y z]
+  `(+ ~z (* -1.0 ~x ~y)))
 
 (defmacro mevalpoly
   "Evaluate polynomial macro version"
@@ -727,20 +732,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn next-double
   "Next double value. Optional value `delta` sets step amount."
   (^double [^double v]
-   (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
-     (Double/longBitsToDouble (if (neg? v) (dec ui) (inc ui)))))
+   (FastMath/nextUp v))
   (^double [^double v ^long delta]
-   (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
-     (Double/longBitsToDouble (if (neg? v) (- ui delta) (+ ui delta))))))
+   (nth (iterate next-double v) delta)))
 
 (defn prev-double
-  "Previous double value. Optional value `delta` sets step amount."
+  "Next double value. Optional value `delta` sets step amount."
   (^double [^double v]
-   (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
-     (Double/longBitsToDouble (if (pos? v) (dec ui) (inc ui)))))
+   (FastMath/nextDown v))
   (^double [^double v ^long delta]
-   (let [ui (Double/doubleToRawLongBits (if (zero? v) 0.0 v))]
-     (Double/longBitsToDouble (if (pos? v) (- ui delta) (+ ui delta))))))
+   (nth (iterate prev-double v) delta)))
 
 (defn double-high-bits
   "Returns high word from double as bits"

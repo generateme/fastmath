@@ -65,7 +65,7 @@
        ([k#] (~m (parametrization ~k))))))
 
 (make-config-method astroid {:a 1.0})
-(defn make-astroid
+(defn- make-astroid
   [{:keys [^double a]}]
   (fn [^double t]
     (Vec2. (* a (m/cb (m/cos t)))
@@ -77,7 +77,7 @@
                                           {:a 1.0
                                            :x0 (rx0 -4.0 4.0)
                                            :y0 (ry0 -4.0 4.0)}))
-(defn make-astroid-pedal-curve
+(defn- make-astroid-pedal-curve
   [{:keys [^double a ^double x0 ^double y0]}]
   (let [x02 (+ x0 x0)
         y02 (+ y0 y0)]
@@ -97,7 +97,7 @@
                                            {:a 1.0
                                             :x0 (rx0 -4.0 4.0)
                                             :y0 (ry0 -4.0 4.0)}))
-(defn make-cardioid-pedal-curve
+(defn- make-cardioid-pedal-curve
   [{:keys [^double a ^double x0 ^double y0]}]
   (let [x02 (+ x0 x0)
         y02 (+ y0 y0)
@@ -123,7 +123,7 @@
                                 {:a 1.0 :b 1.0
                                  :kx (rkx 0.1 8.0)
                                  :ky (rky 0.1 8.0)}))
-(defn make-lissajous
+(defn- make-lissajous
   [{:keys [^double a ^double b ^double kx ^double ky]}]
   (fn [^double t]
     (Vec2. (* a (m/cos (* kx t)))
@@ -131,7 +131,7 @@
 (make-curve-method lissajous)
 
 (make-config-method piriform {:a (srandom 0.5 1.5) :b (srandom 0.5 1.5)})
-(defn make-piriform
+(defn- make-piriform
   [{:keys [^double a ^double b]}]
   (fn [^double t]
     (let [sint+1 (inc (m/sin t))]
@@ -141,7 +141,7 @@
 
 (make-config-method superellipse-general {:a 1.0 :b 1.0 :y (srandom 0.01 m/TWO_PI) :z (srandom 0.01 m/TWO_PI)
                                           :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
-(defn make-superellipse-general
+(defn- make-superellipse-general
   [{:keys [^double a ^double b ^double y ^double z ^double n1 ^double n2 ^double n3]}]
   (let [ra (/ a)
         rb (/ b)
@@ -154,16 +154,16 @@
 
 (make-config-method superellipse {:a 1.0 :b 1.0 :m (srandom 0.01 m/TWO_PI)
                                   :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
-(defn make-superellipse
+(defn- make-superellipse
   [params]
-  (superellipse-general (-> params
-                            (assoc :y (:m params))
-                            (assoc :z (:m params)))))
+  (make-superellipse-general (-> params
+                                 (assoc :y (:m params))
+                                 (assoc :z (:m params)))))
 (make-curve-method superellipse)
 
 (make-config-method superformula-general {:a 1.0 :b 1.0 :y (srandom 0.01 m/TWO_PI) :z (srandom 0.01 m/TWO_PI)
                                           :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
-(defn make-superformula-general
+(defn- make-superformula-general
   [{:keys [^double a ^double b ^double y ^double z ^double n1 ^double n2 ^double n3]}]
   (let [ra (/ a)
         rb (/ b)
@@ -176,15 +176,15 @@
 
 (make-config-method superformula {:a 1.0 :b 1.0 :m (srandom 0.01 m/TWO_PI)
                                   :n1 (r/drand -5.0 5.0) :n2 (r/drand -5.0 5.0) :n3 (r/drand -5.0 5.0)})
-(defn make-superformula
+(defn- make-superformula
   [params]
-  (superformula-general (-> params
-                            (assoc :y (:m params))
-                            (assoc :z (:m params)))))
+  (make-superformula-general (-> params
+                                 (assoc :y (:m params))
+                                 (assoc :z (:m params)))))
 (make-curve-method superformula)
 
 (make-config-method hypotrochoid {:R (srandom 0.1 2.0) :r (srandom 0.1 2.0) :d (srandom 0.5 2.0)})
-(defn make-hypotrochoid
+(defn- make-hypotrochoid
   [{:keys [^double R ^double r ^double d]}]
   (fn [^double t]
     (let [diff (- R r)
@@ -206,3 +206,5 @@
   [c1 c2]
   (fn [^double t]
     (v/add (c1 t) (c2 t))))
+
+(def curves-list (sort (keys (methods curve))))

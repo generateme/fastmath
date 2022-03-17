@@ -5,7 +5,8 @@
 
   * random generator protocol
   * distribution protocols
-  * vector protocol")
+  * vector protocol"
+  (:refer-clojure :exclude [abs]))
 
 (defprotocol RNGProto
   "Defines set of random functions for different RNGs or distributions returning primitive values."

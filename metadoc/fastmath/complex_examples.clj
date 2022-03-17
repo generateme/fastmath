@@ -1,4 +1,5 @@
 (ns fastmath.complex-examples
+  (:refer-clojure :exclude [abs])
   (:require [fastmath.complex :refer :all]
             [metadoc.examples :refer :all]
             [fastmath.core :as m]))

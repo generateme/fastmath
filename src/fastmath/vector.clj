@@ -46,6 +46,7 @@
                         :dist "Distance / length"
                         :op "Operations"
                         :mop "Math operations"}}
+  (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
@@ -210,6 +211,14 @@
     ([arr] (aevery arr near-zero?))
     ([arr tol] (aevery arr (partial near-zero? tol)))))
 
+(defn- vec-id-check
+  [^long len id]
+  (and (number? id) (< (unchecked-int id) len)))
+
+(defn- assert-number
+  [n]
+  (when-not (number? n) (throw (IllegalArgumentException. "Key must be a number"))))
+
 ;; Array Vector
 (deftype ArrayVec [^doubles array]
   Object
@@ -217,8 +226,8 @@
                                     (str "[" (s/join " " (take 10 array)) "...]")
                                     (vec array))))
   (equals [_ v]
-    (bool-and (instance? ArrayVec v)
-              (smile.math.MathEx/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON)))
+    (and (instance? ArrayVec v)
+         (smile.math.MathEx/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON)))
   (hashCode [_]
     (mix-collection-hash (java.util.Arrays/hashCode array) (alength array)))
   clojure.lang.IHashEq 
@@ -227,22 +236,29 @@
   Sequential
   Seqable
   (seq [_] (seq array))
+  Reversible
+  (rseq [_] (reverse array))
   Indexed
-  (nth [v id] (v id))
-  (nth [v id not-found] (or (v id) not-found))
+  (nth [_ id] (aget array (unchecked-int id)))
+  (nth [_ id not-found]
+    (let [id (unchecked-int id)]
+      (if (< id (alength array)) (aget array id) not-found)))
   ILookup
-  (valAt [v id] (v id))
-  (valAt [v id not-found] (or (v id) not-found))
+  (valAt [_ id] (when (vec-id-check (alength array) id) (aget array (unchecked-int id))))
+  (valAt [_ id not-found] (if (vec-id-check (alength array) id) (aget array (unchecked-int id)) not-found))
   Associative
-  (containsKey [v id] (< (alength array) (unchecked-int id)))
-  (assoc [v k vl] (let [^ArrayVec v v
-                        arr (aclone ^doubles (.array v))]
-                    (aset arr (unchecked-int k) ^double vl)
-                    (ArrayVec. arr)))
+  (containsKey [_ id] (vec-id-check (alength array) id))
+  (assoc [v k vl]
+    (assert-number k)
+    (let [^ArrayVec v v
+          arr (aclone ^doubles (.array v))]
+      (aset arr (unchecked-int k) ^double vl)
+      (ArrayVec. arr)))
   (entryAt [v k] (MapEntry. k (v k)))
   IFn
   (invoke [_ n]
-    (aget array ^long n))
+    (assert-number n)
+    (aget array (unchecked-int n)))
   Counted
   (count [_] (alength array))
   IPersistentVector
@@ -252,7 +268,7 @@
   prot/VectorProto
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
-  (as-vec [v xs] (ArrayVec. (prot/as-vec array xs)))
+  (as-vec [_ xs] (ArrayVec. (prot/as-vec array xs)))
   (as-vec [v] (prot/as-vec v (repeat 0.0)))
   (fmap [_ f] (ArrayVec. (prot/fmap array f)))
   (approx [_] (ArrayVec. (prot/approx array)))
@@ -273,7 +289,7 @@
   (emx [_ v2] (ArrayVec. (prot/emx array v2)))
   (emn [_ v2] (ArrayVec. (prot/emn array v2)))
   (sum [_] (smile.math.MathEx/sum array))
-  (heading [v1] (prot/heading array))
+  (heading [_] (prot/heading array))
   (reciprocal [_] (ArrayVec. (prot/reciprocal array)))
   (interpolate [_ v2 t f] (ArrayVec. (prot/interpolate array v2 t f))) 
   (einterpolate [_ v2 v f] (ArrayVec. (prot/einterpolate array v2 v f)))
@@ -328,15 +344,19 @@
          elt (bit-xor abits (>>> abits 32))]
      (+ elt 31))))
 
+(defn- vec-throw-ioobe
+  [^long id len]
+  (throw (IndexOutOfBoundsException. (str "Index " id " out of bounds for lenghth " len))))
+
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
   Object
   (toString [_] (str "#vec2 [" x ", " y "]"))
   (equals [_ v]
-    (bool-and (instance? Vec2 v)
-              (let [^Vec2 v v]
-                (bool-and (== x (.x v))
-                          (== y (.y v))))))
+    (and (instance? Vec2 v)
+         (let [^Vec2 v v]
+           (and (== x (.x v))
+                (== y (.y v))))))
   (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
   clojure.lang.IHashEq 
   (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
@@ -346,26 +366,29 @@
   Reversible
   (rseq [_] (list y x))
   Indexed
-  (nth [v id] (v id))
-  (nth [v id not-found] (or (v id) not-found))
+  (nth [_ id] (case (unchecked-int id) 0 x 1 y (vec-throw-ioobe id 2)))
+  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y not-found))
   ILookup
-  (valAt [v id] (v id))
-  (valAt [v id not-found] (or (v id) not-found))
+  (valAt [_ id] (when (vec-id-check 2 id) (case (unchecked-int id) 0 x 1 y)))
+  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y not-found) not-found))
   Associative
-  (containsKey [v id] (#{0 1} id))
-  (assoc [v k vl] (case (unchecked-int k)
-                    0 (Vec2. vl y)
-                    1 (Vec2. x vl)
-                    vl))
+  (containsKey [_ id] (boolean (#{0 1} id)))
+  (assoc [_ k vl]
+    (assert-number k)
+    (case (unchecked-int k)
+      0 (Vec2. vl y)
+      1 (Vec2. x vl)
+      (vec-throw-ioobe k 2)))
   (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 2)
   IFn
   (invoke [_ id]
+    (assert-number id)
     (case (unchecked-int id)
       0 x
       1 y
-      nil))
+      (vec-throw-ioobe id 2)))
   IPersistentVector
   (length [_] 2)
   IPersistentCollection
@@ -416,9 +439,9 @@
              (f y (.y v2) (.y v)))))
   (econstrain [_ val1 val2] (Vec2. (m/constrain x ^double val1 ^double val2)
                                    (m/constrain y ^double val1 ^double val2)))
-  (is-zero? [_] (bool-and (zero? x) (zero? y)))
-  (is-near-zero? [_] (m/bool-and (near-zero? x) (near-zero? y)))
-  (is-near-zero? [_ tol] (m/bool-and (near-zero? tol x) (near-zero? tol y)))
+  (is-zero? [_] (and (zero? x) (zero? y)))
+  (is-near-zero? [_] (and (near-zero? x) (near-zero? y)))
+  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y)))
   (heading [_] (m/atan2 y x))
   (cross [_ v]
     (let [^Vec2 v v]
@@ -447,11 +470,11 @@
   Object
   (toString [_] (str "#vec3 [" x ", " y ", " z "]"))
   (equals [_ v]
-    (bool-and (instance? Vec3 v)
-              (let [^Vec3 v v]
-                (bool-and (== x (.x v))
-                          (== y (.y v))
-                          (== z (.z v))))))
+    (and (instance? Vec3 v)
+         (let [^Vec3 v v]
+           (and (== x (.x v))
+                (== y (.y v))
+                (== z (.z v))))))
   (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
   clojure.lang.IHashEq 
   (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
@@ -461,28 +484,31 @@
   Reversible
   (rseq [_] (list z y x))
   Indexed
-  (nth [v id] (v id))
-  (nth [v id not-found] (or (v id) not-found))
+  (nth [_ id] (case (unchecked-int id) 0 x 1 y 2 z (vec-throw-ioobe id 3)))
+  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y 2 z not-found))
   ILookup
-  (valAt [v id] (v id))
-  (valAt [v id not-found] (or (v id) not-found))
+  (valAt [_ id] (when (vec-id-check 3 id) (case (unchecked-int id) 0 x 1 y 2 z)))
+  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z not-found) not-found))
   Associative
-  (containsKey [v id] (#{0 1 2} id))
-  (assoc [v k vl] (case (unchecked-int k)
-                    0 (Vec3. vl y z)
-                    1 (Vec3. x vl z)
-                    2 (Vec3. x y vl)
-                    vl))
+  (containsKey [_ id] (boolean (#{0 1 2} id)))
+  (assoc [_ k vl]
+    (assert-number k)
+    (case (unchecked-int k)
+      0 (Vec3. vl y z)
+      1 (Vec3. x vl z)
+      2 (Vec3. x y vl)
+      (vec-throw-ioobe k 2)))
   (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 3)
   IFn
   (invoke [_ id]
+    (assert-number id)
     (case (unchecked-int id)
       0 x
       1 y
       2 z
-      nil))
+      (vec-throw-ioobe id 2)))
   IPersistentVector
   (length [_] 3)
   IPersistentCollection
@@ -543,9 +569,9 @@
   (econstrain [_ val1 val2] (Vec3. (m/constrain x ^double val1 ^double val2)
                                    (m/constrain y ^double val1 ^double val2)
                                    (m/constrain z ^double val1 ^double val2)))
-  (is-zero? [_] (bool-and (zero? x) (zero? y) (zero? z)))
-  (is-near-zero? [_] (bool-and (near-zero? x) (near-zero? y) (near-zero? z)))
-  (is-near-zero? [_ tol] (bool-and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z)))
+  (is-zero? [_] (and (zero? x) (zero? y) (zero? z)))
+  (is-near-zero? [_] (and (near-zero? x) (near-zero? y) (near-zero? z)))
+  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z)))
   (heading [v1] (angle-between v1 (Vec3. 1 0 0)))
   (cross [_ v2]
     (let [^Vec3 v2 v2
@@ -639,10 +665,10 @@
   (equals [_ v]
     (and (instance? Vec4 v)
          (let [^Vec4 v v]
-           (bool-and (== x (.x v))
-                     (== y (.y v))
-                     (== z (.z v))
-                     (== w (.w v))))))
+           (and (== x (.x v))
+                (== y (.y v))
+                (== z (.z v))
+                (== w (.w v))))))
   (hashCode [_]
     (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
   clojure.lang.IHashEq 
@@ -653,31 +679,35 @@
   (seq [_] (list x y z w))
   Reversible
   (rseq [_] (list w z y x))
+
   Indexed
-  (nth [v id] (v id))
-  (nth [v id not-found] (or (v id) not-found))
+  (nth [_ id] (case (unchecked-int id) 0 x 1 y 2 z 3 w (vec-throw-ioobe id 4)))
+  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found))
   ILookup
-  (valAt [v id] (v id))
-  (valAt [v id not-found] (or (v id) not-found))
+  (valAt [_ id] (when (vec-id-check 4 id) (case (unchecked-int id) 0 x 1 y 2 z 3 w)))
+  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found) not-found))
   Associative
-  (containsKey [v id] (#{0 1 2 3} id))
-  (assoc [v k vl] (case (unchecked-int k)
-                    0 (Vec4. vl y z w)
-                    1 (Vec4. x vl z w)
-                    2 (Vec4. x y vl w)
-                    3 (Vec4. x y z vl)
-                    vl))
+  (containsKey [_ id] (boolean (#{0 1 2 3} id)))
+  (assoc [_ k vl]
+    (assert-number k)
+    (case (unchecked-int k)
+      0 (Vec4. vl y z w)
+      1 (Vec4. x vl z w)
+      2 (Vec4. x y vl w)
+      3 (Vec4. x y z vl)
+      (vec-throw-ioobe k 2)))
   (entryAt [v k] (MapEntry. k (v k)))
   Counted
   (count [_] 4)
   IFn
   (invoke [_ id]
+    (assert-number id)
     (case (unchecked-int id)
       0 x
       1 y
       2 z
       3 w
-      nil))
+      (vec-throw-ioobe id 2)))
   IPersistentVector
   (length [_] 4)
   IPersistentCollection
@@ -732,9 +762,9 @@
                                    (m/constrain y ^double val1 ^double val2)
                                    (m/constrain z ^double val1 ^double val2)
                                    (m/constrain w ^double val1 ^double val2)))
-  (is-zero? [_] (bool-and (zero? x) (zero? y) (zero? z) (zero? w)))
-  (is-near-zero? [_] (bool-and (near-zero? x) (near-zero? y) (near-zero? z) (near-zero? w)))
-  (is-near-zero? [_ tol] (bool-and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z) (near-zero? tol w)))
+  (is-zero? [_] (and (zero? x) (zero? y) (zero? z) (zero? w)))
+  (is-near-zero? [_] (and (near-zero? x) (near-zero? y) (near-zero? z) (near-zero? w)))
+  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z) (near-zero? tol w)))
   (heading [v1] (angle-between v1 (Vec4. 1 0 0 0))))
 
 ;;
@@ -938,6 +968,11 @@
   {:metadoc/categories #{:geom}}
   [v] (prot/from-polar v))
 
+(defn triple-product
+  "a o (b x c)"
+  {:metadoc/categories #{:geom}}
+  ^double [a b c]
+  (dot a (cross b c)))
 
 ;; creators
 

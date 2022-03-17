@@ -1,6 +1,6 @@
 (ns fastmath.core-examples
   (:refer-clojure
-   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd?])
+   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
   (:require [metadoc.examples :refer :all]
             [fastmath.core :refer :all]))
 

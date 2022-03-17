@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 * Vec3 rotation
+* [breaking] ensure proper behaviour for Clojure interfaces for fastmath.vector custom types (see: https://github.com/nextjournal/clerk/issues/64)
+* `next-double` and `prev-double` to properly cross 0.0
 
 ## [2.1.6]
 
