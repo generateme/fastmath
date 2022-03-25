@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.8]
+
+### Added
+
+* `use-primitive-operators` accepts optional set of symbols which shouldn't be imported
+
+### Fixed
+
+* `abs` redefinition in `vector` was not properly implemented (problem was visible when `vector` was precompiled with javac for Clojure2d)
+
 ## [2.1.7]
 
 ### Added

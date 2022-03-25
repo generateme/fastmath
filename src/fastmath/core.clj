@@ -1358,11 +1358,13 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Replaces Clojure's arithmetic and number coercion functions with primitive equivalents.  These are
    defined as macros, so they cannot be used as higher-order functions. This is an idempotent operation. Undo with [[unuse-primitive-operators]]."
   {:metadoc/categories -prim-set-}
-  []
-  (when-not (using-primitive-operators?)
-    (doseq [v vars-to-exclude]
-      (ns-unmap *ns* v))
-    (require (vector 'fastmath.core :refer vars-to-exclude))))
+  ([] (use-primitive-operators #{}))
+  ([skip-set]
+   (when-not (using-primitive-operators?)
+     (let [v2e (remove skip-set vars-to-exclude)]
+       (doseq [v v2e]
+         (ns-unmap *ns* v))
+       (require (vector 'fastmath.core :refer v2e))))))
 
 (defn unuse-primitive-operators
   "Undoes the work of [[use-primitive-operators]]. This is idempotent."

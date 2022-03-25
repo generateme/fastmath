@@ -1,6 +1,5 @@
 [![Clojars Project](https://img.shields.io/clojars/v/generateme/fastmath.svg)](https://clojars.org/generateme/fastmath)
 
-
 # fastmath
 
 Fast and primitive based math library.
@@ -16,7 +15,7 @@ The ML functionality is now available in [scicloj.ml](https://github.com/scicloj
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.1.7"]
+[generateme/fastmath "2.1.8"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)

@@ -46,16 +46,16 @@
                         :dist "Distance / length"
                         :op "Operations"
                         :mop "Math operations"}}
+  (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
-  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup
-            Associative MapEntry]
+  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry]
            [clojure.core Vec]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(m/use-primitive-operators #{'abs})
 
 ;; ## Vector definitions
 
@@ -840,7 +840,6 @@
   {:metadoc/categories #{:op}}
   [v1 v2] (prot/emult v1 v2))
 
-(ns-unmap *ns* 'abs)
 (defn abs
   "Absolute value of vector elements"
   {:metadoc/categories #{:op}}
@@ -1307,3 +1306,4 @@
 
 (defmethod print-method Vec4 [^Vec4 v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Vec4 [v w] (print-method v w))
+
