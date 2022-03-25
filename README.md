@@ -16,7 +16,7 @@ The ML functionality is now available in [scicloj.ml](https://github.com/scicloj
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.1.6"]
+[generateme/fastmath "2.1.7"]
 ```
 
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
