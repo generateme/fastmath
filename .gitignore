@@ -12,3 +12,5 @@ pom.xml.asc
 .clj-kondo/
 .Rhistory
 fastmath.core.matrix/target/
+.lsp
+.clj-kondo
