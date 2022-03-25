@@ -39,6 +39,7 @@
   ([^double a] (Vec2. a 0.0))
   ([] ZERO))
 
+(ns-unmap *ns* 'abs)
 (def ^{:doc "Absolute value"} abs v/mag)
 (def ^{:doc "Sum of two complex numbers."} add v/add)
 (def ^{:doc "Subtraction of two complex numbers."} sub v/sub)

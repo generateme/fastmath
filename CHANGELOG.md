@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [2.1.7-SNAPSHOT]
+## [2.1.7]
 
 ### Added
 
@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This change
 * Vec3 rotation
 * [breaking] ensure proper behaviour for Clojure interfaces for fastmath.vector custom types (see: https://github.com/nextjournal/clerk/issues/64)
 * `next-double` and `prev-double` to properly cross 0.0
+* Clojure 1.11.0 fixes (`abs`)
 
 ## [2.1.6]
 

@@ -46,7 +46,6 @@
                         :dist "Distance / length"
                         :op "Operations"
                         :mop "Math operations"}}
-  (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
@@ -841,6 +840,7 @@
   {:metadoc/categories #{:op}}
   [v1 v2] (prot/emult v1 v2))
 
+(ns-unmap *ns* 'abs)
 (defn abs
   "Absolute value of vector elements"
   {:metadoc/categories #{:op}}
