@@ -18,6 +18,48 @@ The ML functionality is now available in [scicloj.ml](https://github.com/scicloj
 [generateme/fastmath "2.1.8"]
 ```
 
+### MKL
+
+**Important Note**
+
+Fastmath relies on [SMILE](https://haifengl.github.io/) 2.6.0 which relies on BLAS/LAPACK via MKL and/or OpenBlas. MKL (preferred) and OpenBlas are included as dependencies in `fastmath`. This leads to addional 1GB of jar files. I can't assure that all functionalities will work on OpenBlas (see: [#15](https://github.com/generateme/fastmath/issues/15#issuecomment-1090323385)) but 99% should. If you need `fastmath` to be lighter, please exclude MKL from your path.
+
+#### lein / project.clj
+
+```clojure
+[generateme/fastmath "2.1.8" :exclusions [com.github.haifengl/smile-mkl]]
+```
+
+#### deps.edn
+
+```clojure
+{:deps {generateme/fastmath {:mvn/version "2.1.8"
+                             :exclusions [com.github.haifengl/smile-mkl]}}}
+```
+
+If you don't need certain interpolation or clustering methods you can exclude OpenBlas as well (be warned that other things can break):
+
+```clojure
+:exclusions [com.github.haifengl/smile-mkl org.bytedeco/openblas]
+```
+
+#### MKL Exception
+
+When MKL is not available `fastmath` (SMILE actually, [here](https://github.com/haifengl/smile/blob/master/base/src/main/java/smile/math/blas/BLAS.java#L58) and [here](https://github.com/haifengl/smile/blob/master/base/src/main/java/smile/math/blas/LAPACK.java#L60)) will throw two exceptions with full stack traces about lack of MKL. You can safely ignore them.
+
+```
+[main] DEBUG smile.math.blas.LAPACK - Failed to create MKL instance:
+java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
+[...]
+
+[main] DEBUG smile.math.blas.BLAS - Failed to create MKL instance:
+java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
+[...]
+```
+
+
+### Documentation
+
 [Documentation with examples](https://generateme.github.io/fastmath/index.html)
 
 ### Previous version
