@@ -190,6 +190,10 @@ Collection of various kernels (density, RBF, correlation)
 * Signal (audio) processing filters and oscillators
 * Smoothing filters: Savitzky-Golay, moving average, kernel smoothing
 
+### EFloat
+
+Floating point operations with error bounds
+
 ### Other
 
 Plenty of constant values

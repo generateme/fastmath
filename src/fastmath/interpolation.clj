@@ -58,7 +58,6 @@
            [umontreal.ssj.functionfit BSpline PolInterp]
            [umontreal.ssj.functions MathFunction]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

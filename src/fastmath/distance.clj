@@ -9,7 +9,6 @@
            [smile.math.distance Distance Metric EuclideanDistance ManhattanDistance ChebyshevDistance
             CorrelationDistance JensenShannonDistance MahalanobisDistance]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

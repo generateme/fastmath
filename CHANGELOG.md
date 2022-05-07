@@ -1,6 +1,21 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.1.9-SNAPSHOT]
+
+### Added
+
+* `fma` - fused multiply and add `(+ (* x y) z)` (for java 9+)
+* `fastmath.efloat` - floating point operations with error bounds
+
+### Changed
+
+* `(set! *warn-on-reflection* true)` removed ([motivation](https://github.com/clojure-emacs/refactor-nrepl/issues/347))
+
+### Fixed
+
+* a nasty bug with primitive macro generation, how could I missed that?
+
 ## [2.1.8]
 
 ### Added
@@ -11,7 +26,7 @@ All notable changes to this project will be documented in this file. This change
 
 * `abs` redefinition in `vector` was not properly implemented (problem was visible when `vector` was precompiled with javac for Clojure2d)
 
-## [2.1.7]
+## [2.1.7 - do not use]
 
 ### Added
 

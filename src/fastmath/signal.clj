@@ -177,7 +177,6 @@
            [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
            [org.apache.commons.math3.util MathArrays]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

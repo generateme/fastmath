@@ -63,8 +63,6 @@
            [smile.math.distance Distance]
            [clojure.lang IFn]))
 
-(set! *warn-on-reflection* true)
-
 (def ^:const ^{:doc "Id of the cluster which contain outliers."} outlier-id PartitionClustering/OUTLIER)
 
 (defrecord ClusteringResult [type data clustering sizes clusters predict representatives info obj]

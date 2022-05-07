@@ -12,7 +12,6 @@
            [smile.math.matrix Matrix Matrix$Cholesky]
            [smile.math.blas UPLO]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

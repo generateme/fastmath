@@ -62,9 +62,10 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma]))
+           [org.apache.commons.math3.special Gamma])
+  (:require [fastmath.core :as m]
+            [clojure.string :as str]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 
 ;; metadoc sets
@@ -79,6 +80,10 @@
 (def ^:const ^:private -round-set- #{:round})
 (def ^:const ^:private -special-set- #{:special})
 (def ^:const ^:private -mod-set- #{:mod})
+
+;; which java?
+
+(def ^:private jvm-version-type (if (= "1." (subs (System/getProperty "java.version") 0 2)) :old :new))
 
 ;; ## Macros
 
@@ -121,6 +126,7 @@
          y (symbol "y")
          rest (symbol "rest")
          fname (symbol (str "fastmath.java.PrimitiveMath/" fn))
+         qname (symbol (str "fastmath.core/" name))
          doc (or (:doc (meta name)) (str "A primitive math version of `" name "`"))]
      `(defmacro ~name
         ~doc
@@ -129,7 +135,8 @@
         ([~x ~y]
          (list '~fname ~x ~y))
         ([~x ~y ~'& ~rest]
-         (list* '~name (list '~name ~x ~y) ~rest))))))
+         (list* '~qname (list '~fname ~x ~y) ~rest))))))
+
 
 (defmacro ^:private variadic-predicate-proxy
   "Turns variadic predicates into multiple pair-wise comparisons.
@@ -143,6 +150,7 @@
          y (symbol "y")
          rest (symbol "rest")
          fname (symbol (str "fastmath.java.PrimitiveMath/" fn))
+         qname (symbol (str "fastmath.core/" name))
          doc (or (:doc (meta name)) (str "A primitive math version of `" name "`"))]
      `(defmacro ~name
         ~doc
@@ -151,7 +159,7 @@
         ([~x ~y]
          (list '~fname ~x ~y))
         ([~x ~y ~'& ~rest]
-         (list 'fastmath.java.PrimitiveMath/and (list '~name ~x ~y) (list* '~name ~y ~rest)))))))
+         (list 'fastmath.java.PrimitiveMath/and (list '~fname ~x ~y) (list* '~qname ~y ~rest)))))))
 
 ;; ## Basic operations
 
@@ -221,21 +229,28 @@
   ([^double a ^double b]
    (== a b))
   ([^double a ^double b ^double c]
-   (bool-and (== a b) (== b c)))
+   (and (== a b) (== b c)))
   ([^double a ^double b ^double c ^double d]
-   (bool-and (== a b) (== b c) (== c d))))
+   (and (== a b) (== b c) (== c d))))
 
 ;; macros for polynomials
 
 (defmacro muladd
-  "`[x y z]` -> `(+ z (* x y))`"
+  "`[x y z]` -> `(+ z (* x y))` or `Math/fma` for java 9+"
   [x y z]
-  `(+ ~z (* ~x ~y)))
+  (if (= :new jvm-version-type)
+    `(Math/fma ~x ~y ~z)
+    `(+ ~z (* ~x ~y))))
+
+(defmacro fma
+  "`[x y z]` -> `(+ z (* x y))` or `Math/fma` for java 9+"
+  [x y z]
+  `(muladd ~x ~y ~z))
 
 (defmacro negmuladd
   "`[x y z]` -> `(+ z (* -1.0 x y)`"
   [x y z]
-  `(+ ~z (* -1.0 ~x ~y)))
+  `(muladd (- ~x) ~y ~z))
 
 (defmacro mevalpoly
   "Evaluate polynomial macro version"
@@ -275,6 +290,17 @@
                   ex
                   (recur (rest rcoeffs)
                          (muladd x ex ^double (first rcoeffs)))))))))
+;; some stuff from pbrt
+(defn difference-of-products
+  ^double [^double a ^double b ^double c ^double d]
+  (let [cd (* c d)]
+    (+ (fma a b (- cd)) (fma (- c) d cd))))
+
+(defn sum-of-products
+  ^double [^double a ^double b ^double c ^double d]
+  (let [cd (* c d)]
+    (+ (fma a b cd) (fma c d (- cd)))))
+
 
 ;; Processing math constants
 (def ^:const ^double ^{:doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
@@ -485,6 +511,43 @@
       (mevalpoly x2 1.0 jinc-c2 jinc-c4))
     (let [pix (* PI x)]
       (* 2.0 (/ (bessel-j 1 pix) pix)))))
+
+;; I0
+
+(defn I0
+  "Modified Bessel function of the first kind, order 0."
+  ^double [^double x]
+  (let [x2 (* x x)
+        ;; i=1
+        val (inc (/ x2 4))
+        x2i (* x2 x2)
+        ;; i=2
+        val (+ val (/ x2i 64))
+        x2i (* x2i x2)
+        ;; i=3
+        val (+ val (/ x2i 2304))
+        x2i (* x2i x2)
+        ;; i=4
+        val (+ val (/ x2i 147456))
+        x2i (* x2i x2)
+        ;; i=5
+        val (+ val (/ x2i 14745600))
+        x2i (* x2i x2)
+        ;; i=6
+        val (+ val (/ x2i 2123366400))
+        x2i (* x2i x2)
+        ;; i=7
+        val (+ val (/ x2i 416179814400))
+        x2i (* x2i x2)
+        ;; i=8
+        val (+ val (/ x2i 106542032486400))
+        x2i (* x2i x2)]
+    (+ val (/ x2i 34519618525593600))))
+
+(defn logI0
+  "Log of [[I0]]."
+  ^double [^double x]
+  (m/log (I0 x)))
 
 ;; Sinc
 (defn sinc
@@ -755,6 +818,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;; More constants
 
+(def ^:const ^double ^{:doc "Value of 0x1.fffffffffffffp-1d = 0.(9)"}
+  double-one-minus-epsilon (Double/parseDouble "0x1.fffffffffffffp-1d"))
+
 ;; \\(\sqrt{2}\\)
 (def ^:const ^double ^{:doc "\\\\(\\sqrt{2}\\\\)"} SQRT2 (sqrt 2.0))
 (def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{2}}{2}\\\\)"} SQRT2_2 (* 0.5 SQRT2))
@@ -834,6 +900,12 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   {:metadoc/categories #{:sign}}
   ^double [^double value]
   (if (neg? value) -1.0 1.0))
+
+
+;; copy-sign
+
+(fastmath-proxy :two ^{:doc "Returns a value with a magnitude of first arguemnt and sign of second."
+                       :metadoc/categories #{:sign}} copy-sign copySign)
 
 (defmacro constrain
   "Clamp `value` to the range `[mn,mx]`."
@@ -1364,7 +1436,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
      (let [v2e (remove skip-set vars-to-exclude)]
        (doseq [v v2e]
          (ns-unmap *ns* v))
-       (require (vector 'fastmath.core :refer v2e))))))
+       (require ['fastmath.core :refer v2e])))))
 
 (defn unuse-primitive-operators
   "Undoes the work of [[use-primitive-operators]]. This is idempotent."
@@ -1374,3 +1446,4 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
     (doseq [v vars-to-exclude]
       (ns-unmap *ns* v))
     (refer 'clojure.core)))
+

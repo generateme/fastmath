@@ -72,7 +72,6 @@
             [fastmath.kernel :as k]
             [fastmath.gp :as gp]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

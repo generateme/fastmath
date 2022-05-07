@@ -27,7 +27,6 @@
            [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer
             DstNormalization DctNormalization TransformType]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
@@ -190,8 +189,6 @@
   {:metadoc/categories #{:w}}
   [t xss] (prot/reverse-2d t xss))
 
-(set! *warn-on-reflection* false)
-
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
   {:metadoc/categories #{:p}}
@@ -205,8 +202,6 @@
           (rev trans))))
   ([xs ^double mag]
    (.compress (jwave.compressions.CompressorMagnitude. mag) xs)))
-
-(set! *warn-on-reflection* true)
 
 (defn denoise
   "Adaptive denoising of time series (1d).

@@ -125,7 +125,6 @@
            [org.apache.commons.math3.analysis.integration RombergIntegrator]
            [smile.math MathEx]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

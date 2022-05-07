@@ -40,7 +40,6 @@
   (:import [fastmath.vector Vec2 Vec3]
            [clojure.lang Named]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 

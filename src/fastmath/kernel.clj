@@ -17,7 +17,6 @@
            [clojure.lang IFn]
            [org.apache.commons.math3.distribution NormalDistribution]))
 
-(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
