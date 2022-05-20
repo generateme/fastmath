@@ -67,7 +67,7 @@
   (is (== 3.0 (sum av-in1)))
   (is (= (array-vec [-1.0 0.25]) (reciprocal av-in1)))
   (is (= (array-vec [1.0 3.0]) (interpolate av-in1 av-in2 0.5)))
-  (is (= (array-vec [1.0 3.0]) (einterpolate av-in1 av-in2 [0.5 0.5])))
+  (is (= (array-vec [1.0 3.0]) (einterpolate av-in1 av-in2 (array-vec [0.5 0.5]))))
   (is (= (array-vec [0.0 2.0]) (econstrain av-in1 0.0 2.0)))
   (is (not (is-zero? av-in1)))
   (is (is-zero? (array-vec [0.0 0.0])))
