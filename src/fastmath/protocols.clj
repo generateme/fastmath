@@ -75,6 +75,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 (defprotocol VectorProto
   "Vector operations"
   (to-vec [v] "Convert to Clojure primitive vector `Vec`.")
+  (to-acm-vec [v] "Convert to Apache Commons Math ArrayRealVector")
   (as-vec [v] [v xs] "Create vector from sequence as given type.")
   (fmap [v f] "Apply function to all vector values (like map but returns the same type).")
   (approx [v] [v d] "Round to 2 (or `d`) decimal places")

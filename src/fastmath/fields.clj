@@ -2064,6 +2064,23 @@
 
 ;; ## I
 
+;; ### Circle inverse
+;; https://mathworld.wolfram.com/Inversion.html
+
+(make-config-method circle-inverse {:x0 (randval (irand -3 3) (drand -3.0 3.0))
+                                    :y0 (randval (irand -3 3) (drand -3.0 3.0))
+                                    :r (drand 0.01 3.0)})
+
+(defn- make-circle-inverse
+  "Circle inverse"
+  [^double amount {:keys [^double x0 ^double y0 ^double r]}]
+  (let [o (Vec2. x0 y0)
+        r2 (* r r)]
+    (fn [^Vec2 v]
+      (let [diff (v/sub v o)]
+        (v/mult (v/add o (v/div (v/mult diff r2) (v/magsq diff))) amount)))))
+(make-field-method circle-inverse :regular)
+
 ;; ### InvTree
 
 (defn- make-invtree

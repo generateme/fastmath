@@ -51,7 +51,9 @@
             [clojure.string :as s]
             [fastmath.protocols :as prot])
   (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry]
-           [clojure.core Vec]))
+           [clojure.core Vec]
+           [org.apache.commons.math3.linear ArrayRealVector RealVector]
+           [org.apache.commons.math3.analysis UnivariateFunction]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs})
@@ -80,7 +82,8 @@
 ;; Add `VectorProto` to Clojure vector using map/reduce terms.
 (extend ISeq
   prot/VectorProto
-  {:to-vec #(apply conj (vector-of :double) %1)
+  {:to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
+   :to-vec #(apply vector-of :double %1)
    :as-vec (fn
              ([v xs] (take (count v) xs))
              ([v] (prot/as-vec v (repeat 0.0))))
@@ -118,7 +121,8 @@
 ;; Add `VectorProto` to Clojure vector using mapv/reduce terms.
 (extend IPersistentVector
   prot/VectorProto
-  {:to-vec #(apply conj (vector-of :double) %1)
+  {:to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
+   :to-vec #(apply vector-of :double %1)
    :as-vec (fn
              ([v xs] (vec (take (count v) xs)))
              ([v] (prot/as-vec v (repeat 0.0))))
@@ -153,6 +157,52 @@
                     ([v] (every? near-zero? v))
                     ([v tol] (every? (partial near-zero? tol) v)))})
 
+(extend ArrayRealVector
+  prot/VectorProto
+  {:to-acm-vec (fn [this] this)
+   :to-vec #(apply vector-of :double (.getDataRef ^ArrayRealVector %))
+   :as-vec (fn
+             ([^ArrayRealVector v xs] (ArrayRealVector. (double-array (take (.getDimension v) xs)))
+              [v] (prot/as-vec v (repeat 0.0))))
+   :fmap (fn [^ArrayRealVector v f] (.map v (reify UnivariateFunction
+                                             (value [_ v] (f v)))))
+   :approx (fn
+             ([v] (prot/fmap v m/approx))
+             ([^ArrayRealVector v ^long d] (.map v (reify UnivariateFunction
+                                                     (value [_ v] (m/approx v d))))))
+   :magsq (fn [^ArrayRealVector v] (.dotProduct v v))
+   :mag (fn [^ArrayRealVector v] (.getNorm v))
+   :dot (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (.dotProduct v1 v2))
+   :add (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (.add v1 v2))
+   :sub (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (.subtract v1 v2))
+   :shift (fn [^ArrayRealVector v1 ^double v2] (.mapAddToSelf (.copy v1) v2))
+   :mult (fn [^ArrayRealVector v1 ^double v2] (.mapMultiplyToSelf (.copy v1) v2))
+   :emult (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (.ebeMultiply v1 v2))
+   :abs (fn [v] (prot/fmap v m/abs))
+   :mx (fn [^ArrayRealVector v1] (.getMaxValue v1))
+   :mn (fn [^ArrayRealVector v1] (.getMinValue v1))
+   :emx (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (ArrayRealVector. ^doubles (prot/emx (.getDataRef v1)
+                                                                                          (.getDataRef v2))))
+   :emn (fn [^ArrayRealVector v1 ^ArrayRealVector v2] (ArrayRealVector. ^doubles (prot/emn (.getDataRef v1)
+                                                                                          (.getDataRef v2))))
+   :maxdim (fn [^ArrayRealVector v1] (.getMaxIndex v1))
+   :mindim (fn [^ArrayRealVector v1] (.getMinIndex v1))
+   :sum (fn [^ArrayRealVector v1] (prot/sum (.getDataRef v1)))
+   :heading (fn [^ArrayRealVector v1] (prot/heading (.getDataRef v1)))
+   :reciprocal (fn [v1] (prot/fmap v1 #(/ ^double %)))
+   :interpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 t f]
+                  (ArrayRealVector. ^doubles (prot/interpolate (.getDataRef v1) (.getDataRef v2) t f)))
+   :einterpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 ^ArrayRealVector t f]
+                   (ArrayRealVector. ^doubles (prot/einterpolate (.getDataRef v1)
+                                                                 (.getDataRef v2)
+                                                                 (.getDataRef t) f)))
+   :econstrain (fn [^ArrayRealVector v ^double v1 ^double v2]
+                 (ArrayRealVector. v ^doubles (prot/econstrain (.getDataRef v) v1 v2)))
+   :is-zero? (fn [^ArrayRealVector v] (prot/is-zero? (.getDataRef v)))
+   :is-near-zero? (fn
+                    ([^ArrayRealVector v] (prot/is-near-zero? (.getDataRef v)))
+                    ([^ArrayRealVector v ^double tol] (prot/is-near-zero? (.getDataRef v) tol)))})
+
 (defn- aevery
   "Array version of every"
   [^doubles arr pred]
@@ -166,6 +216,7 @@
 
 (extend-type (Class/forName "[D")
   prot/VectorProto
+  (to-acm-vec [arr] (ArrayRealVector. ^doubles  arr))
   (to-vec [arr] (let [^Vec v (vector-of :double)]
                   (Vec. (.am v) (alength ^doubles arr) (.shift v) (.root v) arr (.meta v))))
   (as-vec
@@ -188,21 +239,21 @@
   (mult [arr v] (let [b (aclone ^doubles arr)]
                   (smile.math.MathEx/scale ^double v ^doubles b)
                   b))
-  (emult [arr v2] (amap ^doubles arr idx ret (* (aget ^doubles arr idx) ^double (v2 idx))))
+  (emult [arr v2] (amap ^doubles arr idx ret (* (aget ^doubles arr idx) (aget ^doubles v2 idx))))
   (abs [arr] (amap ^doubles arr idx ret (m/abs (aget ^doubles arr idx))))
   (mx [arr] (smile.math.MathEx/max ^doubles arr))
   (mn [arr] (smile.math.MathEx/min ^doubles arr))
   (maxdim [arr] (smile.math.MathEx/whichMax ^doubles arr))
   (mindim [arr] (smile.math.MathEx/whichMin ^doubles arr))
-  (emx [arr v2] (amap ^doubles arr idx ret (max (aget ^doubles arr idx) ^double (v2 idx))))
-  (emn [arr v2] (amap ^doubles arr idx ret (min (aget ^doubles arr idx) ^double (v2 idx))))
+  (emx [arr v2] (amap ^doubles arr idx ret (max (aget ^doubles arr idx) (aget ^doubles v2 idx))))
+  (emn [arr v2] (amap ^doubles arr idx ret (min (aget ^doubles arr idx) (aget ^doubles v2 idx))))
   (sum [arr] (smile.math.MathEx/sum ^doubles arr))
   (heading [arr] (let [v (double-array (alength ^doubles arr) 0.0)]
                    (aset v 0 1.0)
                    (angle-between arr v)))
   (reciprocal [arr] (amap ^doubles arr idx ret (/ (aget ^doubles arr idx))))
-  (interpolate [arr v2 t f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (v2 idx) t)))
-  (einterpolate [arr v2 v f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (v2 idx) (v idx))))
+  (interpolate [arr v2 t f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) t)))
+  (einterpolate [arr v2 v f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) (v idx))))
   (econstrain [arr val1 val2] (amap ^doubles arr idx ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
   (is-zero? [arr] (aevery arr #(zero? ^double %)))
   (is-near-zero?
@@ -264,6 +315,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-acm-vec [_] (ArrayRealVector. array))
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
   (as-vec [_ xs] (ArrayVec. (prot/as-vec array xs)))
@@ -298,6 +350,7 @@
 
 (extend-type Number
   prot/VectorProto
+  (to-acm-vec [v] (ArrayRealVector. 1 (double v)))
   (to-vec [v] (vector-of :double (double v)))
   (as-vec
     ([_] 0.0)
@@ -331,7 +384,7 @@
     ([v] (near-zero? v))
     ([v tol] (near-zero? tol v))))
 
-(defn- dhash-code
+(defn dhash-code
   "double hashcode"
   (^long [^long state ^double a]
    (let [abits (Double/doubleToLongBits a)
@@ -344,7 +397,7 @@
 
 (defn- vec-throw-ioobe
   [^long id len]
-  (throw (IndexOutOfBoundsException. (str "Index " id " out of bounds for lenghth " len))))
+  (throw (IndexOutOfBoundsException. (str "Index " id " out of bounds for length " len))))
 
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
@@ -392,6 +445,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-acm-vec [_] (ArrayRealVector. (double-array [x y])))
   (to-vec [_] (vector-of :double x y))
   (as-vec [_ [x y]] (Vec2. x y))
   (as-vec [_] (Vec2. 0.0 0.0))
@@ -512,6 +566,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-acm-vec [_] (ArrayRealVector. (double-array [x y z])))
   (to-vec [_] (vector-of :double x y z))
   (as-vec [_ [x y z]] (Vec3. x y z))
   (as-vec [_] (Vec3. 0.0 0.0 0.0))
@@ -711,6 +766,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-acm-vec [_] (ArrayRealVector. (double-array [x y z w])))
   (to-vec [_] (vector-of :double x y z w))
   (as-vec [_ [x y z w]] (Vec4. x y z w))
   (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
@@ -771,6 +827,12 @@
 (def ^{:deprecated "v1.5.0" :metadoc/categories #{:gen} :doc "Same as [[vec->Vec]]. Deprecated."} to-vec prot/to-vec)
 
 ;; protocol methods mapped
+
+(defn vec->RealVector
+  "Convert to Apache Commons Math RealVector"
+  {:metadoc/categories #{:gen}}
+  ^RealVector [v]
+  (prot/to-acm-vec v))
 
 (defn vec->Vec
   "Convert to Clojure primitive vector `Vec`."
@@ -1192,6 +1254,12 @@
     (sub n)
     n))
 
+(defn project
+  "Project `v1` onto `v2`"
+  {:metadoc/categories #{:geom}}
+  [v1 v2]
+  (mult v2 (/ (dot v1 v2) (magsq v2))))
+
 (defn generate-vec2
   "Generate Vec2 with fn(s)"
   {:metadoc/categories #{:gen}} 
@@ -1303,6 +1371,5 @@
 (defmethod print-method Vec3 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Vec3 [v w] (print-method v w))
 
-(defmethod print-method Vec4 [^Vec4 v ^java.io.Writer w] (.write w (str v)))
+(defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Vec4 [v w] (print-method v w))
-

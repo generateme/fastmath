@@ -176,9 +176,12 @@
 (variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-or bitOr)
 (variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-xor bitXor)
 (primitivemath-proxy :one ^{:metadoc/categories -bitwise-set-} bit-not bitNot)
-(variadic-proxy ^{:metadoc/categories #{:bool}} bool-and and)
-(variadic-proxy ^{:metadoc/categories #{:bool}} bool-or or)
-(variadic-proxy ^{:metadoc/categories #{:bool}} bool-xor xor)
+(variadic-proxy ^{:metadoc/categories #{:bool}
+                  :deprecated true} bool-and and)
+(variadic-proxy ^{:metadoc/categories #{:bool}
+                  :deprecated true} bool-or or)
+(variadic-proxy ^{:metadoc/categories #{:bool}
+                  :deprecated true} bool-xor xor)
 (primitivemath-proxy :one ^{:metadoc/categories #{:bool}} bool-not not)
 (variadic-proxy ^{:metadoc/categories -prim-set-} min)
 (variadic-proxy ^{:metadoc/categories -prim-set-} max)
