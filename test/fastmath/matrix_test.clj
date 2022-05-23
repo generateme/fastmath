@@ -2,7 +2,8 @@
   (:require [fastmath.matrix :as sut]
             [clojure.test :as t]
             [fastmath.vector :as v]
-            [fastmath.core :as m]))
+            [fastmath.core :as m]
+            [fastmath.random :as r]))
 
 (t/deftest create-matrix
   (t/are [c r] (= c r)
@@ -37,6 +38,14 @@
 (def m22 (apply sut/mat2x2 d22))
 (def m33 (apply sut/mat3x3 d33))
 (def m44 (apply sut/mat4x4 d44))
+
+(defn- creator
+  [m]
+  (condp instance? m
+    fastmath.matrix.Mat2x2 sut/mat2x2
+    fastmath.matrix.Mat3x3 sut/mat3x3
+    fastmath.matrix.Mat4x4 sut/mat4x4))
+
 
 (t/deftest solving
   (t/are [A b x] (= (v/approx (sut/solve A b)) x)
@@ -109,3 +118,91 @@
     (sut/transpose m22) (sut/transpose m33) (sut/transpose m44))
   (t/are [s m] (= (sut/eye s) (sut/fmap (sut/mulm m (sut/inverse m)) m/approx))
     2 m22 3 m33 4 m44))
+
+(t/deftest diag-and-trace
+  (t/are [m v s] (and (= (sut/diag m) v)
+                      (= (sut/trace m) s))
+    m22 (v/vec2 2.0 -10.0) -8.0
+    m33 (v/vec3 -3.0 7.0 -2.0) 2.0
+    m44 (v/vec4 4.0 3.0 5.0 -1.0) 11.0))
+
+(t/deftest determinant
+  (t/are [m] (m/approx-eq
+              (sut/det m)
+              (.getDeterminant (org.apache.commons.math3.linear.LUDecomposition. (sut/mat->RealMatrix m)))
+              8)
+    m22 m33 m44))
+
+(t/deftest add-a-scalar
+  (t/are [m res s] (= res (sut/adds m s))
+    m22 (apply sut/mat2x2 (map inc d22)) 1.0
+    m33 (apply sut/mat3x3 (map dec d33)) -1.0
+    m44 (apply sut/mat4x4 (map inc d44)) 1.0))
+
+(t/deftest add-sub
+  (t/are [m s] (and (= s (sut/add m m))
+                    (= ((creator m) 0.0) (sut/sub m m)))
+    m22 (apply sut/mat2x2 (v/add d22 d22))
+    m33 (apply sut/mat3x3 (v/add d33 d33))
+    m44 (apply sut/mat4x4 (v/add d44 d44))))
+
+(t/deftest negation
+  (t/are [m] (= ((creator m) 0.0) (sut/add (sut/sub m) m) (sut/add (sut/negate m) m))
+    m22 m33 m44))
+
+(t/deftest multiplication
+  (t/are [m t1 t2 r] (= (apply (creator m) r) (sut/mulm m t1 m t2))
+    m22 false false [19 -24 -40 115]
+    m22 true false [29 -44 -44 109]
+    m22 false true [13 -20 -20 125]
+    m22 true true [19 -40 -24 115]
+    m33 false false [13.0 -16.0 20.0 15.0 39.0 -55.0 15.0 22.0 -22.0]
+    m33 true false [35.0 33.0 -9.0 33.0 69.0 -55.0 -9.0 -55.0 65.0]
+    m33 false true [49.0 29.0 17.0 29.0 99.0 43.0 17.0 43.0 21.0]
+    m33 true true [13 15 15 -16 39 22 20 -55 -22]
+    m44 false false [-4.0 -1.0 8.0 -3.0 0.0 20.0 -2.0 16.0 -10.0 19.0 24.0 15.0 0.0 19.0 18.0 5.0]
+    m44 true false [51.0 13.0 21.0 -30.0 13.0 30.0 21.0 7.0 21.0 21.0 39.0 -8.0 -30.0 7.0 -8.0 27.0]
+    m44 false true [30.0 -23.0 5.0 33.0 -23.0 35.0 8.0 -10.0 5.0 8.0 31.0 17.0 33.0 -10.0 17.0 51.0]
+    m44 true true [-4.0 0.0 -10.0 0.0 -1.0 20.0 19.0 19.0 8.0 -2.0 24.0 18.0 -3.0 16.0 15.0 5.0])
+  (t/are [m r] (= (apply (creator m) r) (sut/mulmt m m))
+    m22 [13 -20 -20 125]
+    m33 [49.0 29.0 17.0 29.0 99.0 43.0 17.0 43.0 21.0]
+    m44 [30.0 -23.0 5.0 33.0 -23.0 35.0 8.0 -10.0 5.0 8.0 31.0 17.0 33.0 -10.0 17.0 51.0])
+  (t/are [m r] (= (apply (creator m) r) (sut/tmulm m m))
+    m22 [29 -44 -44 109]
+    m33 [35.0 33.0 -9.0 33.0 69.0 -55.0 -9.0 -55.0 65.0]
+    m44 [51.0 13.0 21.0 -30.0 13.0 30.0 21.0 7.0 21.0 21.0 39.0 -8.0 -30.0 7.0 -8.0 27.0])
+  (t/are [m r] (= (apply (creator m) r) (sut/tmulmt m m))
+    m22 [19 -40 -24 115]
+    m33 [13 15 15 -16 39 22 20 -55 -22]
+    m44 [-4.0 0.0 -10.0 0.0 -1.0 20.0 19.0 19.0 8.0 -2.0 24.0 18.0 -3.0 16.0 15.0 5.0])
+  (t/are [m] (= (sut/emulm m m) (sut/sq m))
+    m22 m33 m44)
+  (t/are [m d] (let [r (r/drand)]
+                 (= (sut/muls m r)
+                    (apply (creator m) (v/mult d r))))
+    m22 d22 m33 d33 m44 d44)
+  (t/is (= (v/vec2 (v/sum (sut/row m22 0))
+                   (v/sum (sut/row m22 1)))
+           (sut/mulv m22 (v/vec2 1 1))))
+  (t/is (= (v/vec3 (v/sum (sut/row m33 0))
+                   (v/sum (sut/row m33 1))
+                   (v/sum (sut/row m33 2)))
+           (sut/mulv m33 (v/vec3 1 1 1))))
+  (t/is (= (v/vec4 (v/sum (sut/row m44 0))
+                   (v/sum (sut/row m44 1))
+                   (v/sum (sut/row m44 2))
+                   (v/sum (sut/row m44 3)))
+           (sut/mulv m44 (v/vec4 1 1 1 1))))
+  (t/is (= (v/vec2 (v/sum (sut/col m22 0))
+                   (v/sum (sut/col m22 1)))
+           (sut/vtmul m22 (v/vec2 1 1))))
+  (t/is (= (v/vec3 (v/sum (sut/col m33 0))
+                   (v/sum (sut/col m33 1))
+                   (v/sum (sut/col m33 2)))
+           (sut/vtmul m33 (v/vec3 1 1 1))))
+  (t/is (= (v/vec4 (v/sum (sut/col m44 0))
+                   (v/sum (sut/col m44 1))
+                   (v/sum (sut/col m44 2))
+                   (v/sum (sut/col m44 3)))
+           (sut/vtmul m44 (v/vec4 1 1 1 1)))))

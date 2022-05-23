@@ -1,4 +1,5 @@
 (ns fastmath.matrix
+  "Fixed size (2x2, 3x3, 4x4) matrix types."
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.protocols.matrix :as prot])
@@ -129,11 +130,11 @@
                         (- a01 (.a01 m))
                         (- a10 (.a10 m))
                         (- a11 (.a11 m)))))
-  (emul [_ m] (let [^Mat2x2 m m]
-                (Mat2x2. (* a00 (.a00 m))
-                         (* a01 (.a01 m))
-                         (* a10 (.a10 m))
-                         (* a11 (.a11 m)))))
+  (emulm [_ m] (let [^Mat2x2 m m]
+                 (Mat2x2. (* a00 (.a00 m))
+                          (* a01 (.a01 m))
+                          (* a10 (.a10 m))
+                          (* a11 (.a11 m)))))
   (mulm [_ m2] (let [^Mat2x2 m2 m2] (gen-mulm 2 Mat2x2 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat2x2 m2 m2]
                          (cond
@@ -242,10 +243,10 @@
                (Mat3x3. (- a00 (.a00 m)) (- a01 (.a01 m)) (- a02 (.a02 m))
                         (- a10 (.a10 m)) (- a11 (.a11 m)) (- a12 (.a12 m))
                         (- a20 (.a20 m)) (- a21 (.a21 m)) (- a22 (.a22 m)))))
-  (emul [_ m] (let [^Mat3x3 m m]
-                (Mat3x3. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m))
-                         (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m))
-                         (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)))))
+  (emulm [_ m] (let [^Mat3x3 m m]
+                 (Mat3x3. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m))
+                          (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m))
+                          (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)))))
   (mulm [_ m2] (let [^Mat3x3 m2 m2] (gen-mulm 3 Mat3x3 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat3x3 m2 m2]
                          (cond
@@ -391,11 +392,11 @@
                         (- a10 (.a10 m)) (- a11 (.a11 m)) (- a12 (.a12 m)) (- a13 (.a13 m))
                         (- a20 (.a20 m)) (- a21 (.a21 m)) (- a22 (.a22 m)) (- a23 (.a23 m))
                         (- a30 (.a30 m)) (- a31 (.a31 m)) (- a32 (.a32 m)) (- a33 (.a33 m)))))
-  (emul [_ m] (let [^Mat4x4 m m]
-                (Mat4x4. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m)) (* a03 (.a03 m))
-                         (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m)) (* a13 (.a13 m))
-                         (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)) (* a23 (.a23 m))
-                         (* a30 (.a30 m)) (* a31 (.a31 m)) (* a32 (.a32 m)) (* a33 (.a33 m)))))
+  (emulm [_ m] (let [^Mat4x4 m m]
+                 (Mat4x4. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m)) (* a03 (.a03 m))
+                          (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m)) (* a13 (.a13 m))
+                          (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)) (* a23 (.a23 m))
+                          (* a30 (.a30 m)) (* a31 (.a31 m)) (* a32 (.a32 m)) (* a33 (.a33 m)))))
   (mulm [_ m2] (let [^Mat4x4 m2 m2] (gen-mulm 4 Mat4x4 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat4x4 m2 m2]
                          (cond
@@ -472,6 +473,12 @@
             0.0 0.0 1.0 0.0
             0.0 0.0 0.0 1.0)])
 
+(def zero
+  [nil 0.0
+   (mat2x2 0.0)
+   (mat3x3 0.0)
+   (mat4x4 0.0)])
+
 (defn diagonal
   "Create diagonal matrix"
   [diag]
@@ -514,47 +521,47 @@
 
 (defn fmap
   "Apply a function `f` to each matrix element."
-  [m f] (prot/fmap m f))
+  [A f] (prot/fmap A f))
 
 (defn cols
   "Return matrix columns"
-  [m] (prot/cols m))
+  [A] (prot/cols A))
 
 (defn rows
   "Return matrix rows"
-  [m] (prot/rows m))
+  [A] (prot/rows A))
 
 (defn mat->array2d
   "Return doubles of doubles"
-  [m] (prot/to-array2d m))
+  [A] (prot/to-array2d A))
 
 (defn mat->RealMatrix
   "Return  Apache Commons Math Array2DRowMatrix"
-  [m] (prot/to-acm-mat m))
+  [A] (prot/to-acm-mat A))
 
 (defn nrow
   "Return number of rows"
-  [m] (prot/nrow m))
+  [A] (prot/nrow A))
 
 (defn ncol
   "Return number of rows"
-  [m] (prot/ncol m))
+  [A] (prot/ncol A))
 
 (defn row
   "Return row as a vector"
-  [m ^long r] (prot/row m r))
+  [A ^long r] (prot/row A r))
 
 (defn col
   "Return column as a vector"
-  [m ^long c] (prot/column m c))
+  [A ^long c] (prot/column A c))
 
 (defn symmetric?
   "Check if matrix is symmetric"
-  [m] (prot/symmetric? m))
+  [A] (prot/symmetric? A))
 
 (defn transpose
-  "Transpose matrix"
-  [m] (prot/transpose m))
+  "Transpose matrix, C=A^T"
+  [A] (prot/transpose A))
 
 (defn inverse
   "Matrix inversion.
@@ -562,14 +569,71 @@
   Returns `nil` if inversion doesn't exist."
   [m]  (prot/inverse m))
 
+(defn diag
+  "Return diagonal of the matrix as a vector."
+  [A] (prot/diag A))
+
+(defn det
+  "Return determinant of the matrix."
+  ^double [A] (prot/det A))
+
 (defn add
   "Add matrices, C=A+B."
-  ([m] m)
-  ([m1 m2] (prot/add m1 m2)))
+  ([A] A)
+  ([A B] (prot/add A B)))
+
+(defn adds
+  "Add scalar to all matrix elements"
+  [A s] (prot/adds A s))
+
+(defn sub
+  "Subract matrices, C=A-B."
+  ([A] (prot/sub A))
+  ([A B] (prot/sub A B)))
+
+(defn negate
+  "Negate all matrxi elements, C=-A"
+  [A] (prot/sub A))
 
 (defn mulm
-  "Multiply two matrices, C=AxB."
-  [m1 m2] (prot/mulm m1 m2))
+  "Multiply two matrices, C=AxB.
+
+  Optionally you can request transposition of matrices."
+  ([A B] (prot/mulm A B))
+  ([A transposeA? B transposeB?]
+   (prot/mulm A transposeA? B transposeB?)))
+
+(defn mulmt
+  "Multiply with transposed matrix, C=AxB^T"
+  [A B] (prot/mulm A false B true))
+
+(defn tmulm
+  "Transpose and multiply, C=A^TxB"
+  [A B] (prot/mulm A true B false))
+
+(defn tmulmt
+  "Transpose both and multiply, C=A^TxB^T"
+  [A B] (prot/mulm A true B true))
+
+(defn emulm
+  "Multiply two matrices element-wise, Hadamard product, C=AoB"
+  [A B] (prot/emulm A B))
+
+(defn mulv
+  "Multply matrix by vector, x=Av"
+  [A v] (prot/mulv A v))
+
+(defn muls
+  "Multply matrix by a scalar, C=sA"
+  [A s] (prot/muls A s))
+
+(defn vtmul
+  "Multiply transposed vector by matrix, C=v^T A"
+  [A v] (prot/vtmul A v))
+
+(defn trace
+  "Return trace of the matrix (sum of diagonal elements)"
+  ^double [A] (prot/trace A))
 
 (defmacro ^:private primitive-ops
   "Generate primitive functions operating on vectors"

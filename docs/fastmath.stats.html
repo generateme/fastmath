@@ -169,7 +169,7 @@
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 0.3333333333333333,
-;;=&gt;  :f-beta #<fn@117bde16 fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@148edc0c fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.28571428571428575,
 ;;=&gt;  :f1-score 0.28571428571428575,
 ;;=&gt;  :fall-out 0.5,
@@ -199,14 +199,14 @@
 ;;=&gt;  :tnr 0.5,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 1,
-;;=&gt;  :tpr 0.25}</fn@117bde16></code></pre></div><div><blockquote><p>Treat <code>1</code> as <code>true</code> value.</p>
+;;=&gt;  :tpr 0.25}</fn@148edc0c></code></pre></div><div><blockquote><p>Treat <code>1</code> as <code>true</code> value.</p>
 </blockquote><pre><code class="hljs clojure">(binary-measures-all [1 0 1 0 1 0 1 0] [1 0 0 1 0 0 0 1] [1])
 ;;=&gt; {:accuracy 0.375,
 ;;=&gt;  :bm -0.25,
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 0.3333333333333333,
-;;=&gt;  :f-beta #<fn@7237a0d1 fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@44b66570 fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.28571428571428575,
 ;;=&gt;  :f1-score 0.28571428571428575,
 ;;=&gt;  :fall-out 0.5,
@@ -236,7 +236,7 @@
 ;;=&gt;  :tnr 0.5,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 1,
-;;=&gt;  :tpr 0.25}</fn@7237a0d1></code></pre></div><div><blockquote><p>Treat <code>:a</code> and <code>:b</code> as <code>true</code> value.</p>
+;;=&gt;  :tpr 0.25}</fn@44b66570></code></pre></div><div><blockquote><p>Treat <code>:a</code> and <code>:b</code> as <code>true</code> value.</p>
 </blockquote><pre><code class="hljs clojure">(binary-measures-all [:a :b :c :d :e :f :a :b]
                      [:a :b :a :b :a :f :d :b]
                      {:a true, :b true, :c false})
@@ -245,7 +245,7 @@
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 1.0,
-;;=&gt;  :f-beta #<fn@6e5af14e fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@753fe3a1 fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.6,
 ;;=&gt;  :f1-score 0.6,
 ;;=&gt;  :fall-out 0.75,
@@ -275,7 +275,7 @@
 ;;=&gt;  :tnr 0.25,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 3,
-;;=&gt;  :tpr 0.75}</fn@6e5af14e></code></pre></div><div><blockquote><p>F-beta is a function. When <code>beta</code> is equal <code>1.0</code>, you get <code>f1-score</code>.</p>
+;;=&gt;  :tpr 0.75}</fn@753fe3a1></code></pre></div><div><blockquote><p>F-beta is a function. When <code>beta</code> is equal <code>1.0</code>, you get <code>f1-score</code>.</p>
 </blockquote><pre><code class="hljs clojure">(let [fbeta (:f-beta (binary-measures-all
                       [true false true false true false true false]
                       [true false false true false false false true]))]
@@ -284,65 +284,65 @@
 <p>Default <code>samples</code> is 50, number of <code>size</code> defaults to 1000</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(bootstrap [1 2 3 4 1 2 3 1 2 1] 2 20)
-;;=&gt; ((3.0
+;;=&gt; ((1.0
+;;=&gt;   1.0
 ;;=&gt;   2.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
-;;=&gt;   3.0
+;;=&gt;   1.0
 ;;=&gt;   2.0
-;;=&gt;   3.0
-;;=&gt;   3.0
+;;=&gt;   1.0
+;;=&gt;   2.0
+;;=&gt;   4.0
+;;=&gt;   4.0
+;;=&gt;   1.0
 ;;=&gt;   4.0
 ;;=&gt;   2.0
+;;=&gt;   3.0
 ;;=&gt;   1.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   1.0
+;;=&gt;   3.0
 ;;=&gt;   3.0)
-;;=&gt;  (2.0
+;;=&gt;  (1.0
 ;;=&gt;   2.0
 ;;=&gt;   3.0
-;;=&gt;   3.0
-;;=&gt;   3.0
 ;;=&gt;   1.0
-;;=&gt;   3.0
 ;;=&gt;   2.0
-;;=&gt;   1.0
-;;=&gt;   1.0
-;;=&gt;   3.0
-;;=&gt;   1.0
+;;=&gt;   2.0
+;;=&gt;   2.0
 ;;=&gt;   4.0
-;;=&gt;   3.0
-;;=&gt;   3.0
 ;;=&gt;   2.0
+;;=&gt;   1.0
 ;;=&gt;   3.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
-;;=&gt;   1.0))
+;;=&gt;   1.0
+;;=&gt;   1.0
+;;=&gt;   1.0
+;;=&gt;   1.0
+;;=&gt;   2.0
+;;=&gt;   1.0
+;;=&gt;   3.0))
 (let [data [1 2 3 4 1 2 3 1 2 1]
       fdata (frequencies data)
       bdata (bootstrap data 5 1000)]
   {:source fdata, :bootstrapped (map frequencies bdata)})
-;;=&gt; {:bootstrapped ({1.0 379, 2.0 305, 3.0 230, 4.0 86}
-;;=&gt;                 {1.0 401, 2.0 295, 3.0 210, 4.0 94}
-;;=&gt;                 {1.0 410, 2.0 309, 3.0 183, 4.0 98}
-;;=&gt;                 {1.0 427, 2.0 294, 3.0 182, 4.0 97}
-;;=&gt;                 {1.0 382, 2.0 311, 3.0 199, 4.0 108}),
+;;=&gt; {:bootstrapped ({1.0 387, 2.0 294, 3.0 200, 4.0 119}
+;;=&gt;                 {1.0 393, 2.0 304, 3.0 199, 4.0 104}
+;;=&gt;                 {1.0 385, 2.0 290, 3.0 213, 4.0 112}
+;;=&gt;                 {1.0 413, 2.0 274, 3.0 215, 4.0 98}
+;;=&gt;                 {1.0 403, 2.0 274, 3.0 228, 4.0 95}),
 ;;=&gt;  :source {1 4, 2 3, 3 2, 4 1}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L516">view source</a></div></div><div class="public anchor" id="var-bootstrap-ci"><h3>bootstrap-ci</h3><div class="usage"><code>(bootstrap-ci vs)</code><code>(bootstrap-ci vs alpha)</code><code>(bootstrap-ci vs alpha samples)</code><code>(bootstrap-ci vs alpha samples stat-fn)</code></div><div class="doc"><div class="markdown"><p>Bootstrap method to calculate confidence interval.</p>
 <p>Alpha defaults to 0.98, samples to 1000. Last parameter is statistical function used to measure, default: <a href="fastmath.stats.html#var-mean">mean</a>.</p>
 <p>Returns ci and statistical function value.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(bootstrap-ci [-5 1 1 1 1 2 2 5 11 71])
-;;=&gt; [-6.100000000000001 17.6 9.0]
+;;=&gt; [-5.398 17.897999999999996 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8)
-;;=&gt; [2.7199999999999926 15.7 9.0]
+;;=&gt; [2.8000000000000007 15.7 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8 100000)
-;;=&gt; [2.5999999999999996 15.7 9.0]
+;;=&gt; [2.6000000000000014 15.7 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.98 1000 median)
 ;;=&gt; [-5.0 2.0 1.5]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L495">view source</a></div></div><div class="public anchor" id="var-ci"><h3>ci</h3><div class="usage"><code>(ci vs)</code><code>(ci vs alpha)</code></div><div class="doc"><div class="markdown"><p>T-student based confidence interval for given data. Alpha value defaults to 0.98.</p>
 <p>Last value is mean.</p>
@@ -442,11 +442,11 @@
 (estimate-bins vs :rice)
 ;;=&gt; 20
 (estimate-bins vs :doane)
-;;=&gt; 16
+;;=&gt; 18
 (estimate-bins vs :scott)
-;;=&gt; 40
+;;=&gt; 68
 (estimate-bins vs :freedman-diaconis)
-;;=&gt; 95</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L729">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p>
+;;=&gt; 297</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L729">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p>
 </blockquote><pre><code class="hljs clojure">(sort (keys estimation-strategies-list))
 ;;=&gt; (:legacy :r1 :r2 :r3 :r4 :r5 :r6 :r7 :r8 :r9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L86">view source</a></div></div><div class="public anchor" id="var-eta-sq"><h3>eta-sq</h3><div class="usage"><code>(eta-sq group1 group2)</code></div><div class="doc"><div class="markdown"><p>R2</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -495,20 +495,20 @@
 <p>For estimation methods check <a href="fastmath.stats.html#var-estimate-bins">estimate-bins</a>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>3 bins from uniform distribution.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 1000 rand) 3)
-;;=&gt; {:bins ([4.132262718616886E-4 326]
-;;=&gt;         [0.3335121637919166 336]
-;;=&gt;         [0.6666111013119715 338]),
-;;=&gt;  :max 0.9997100388320265,
-;;=&gt;  :min 4.132262718616886E-4,
+;;=&gt; {:bins ([3.7680240724535796E-4 311]
+;;=&gt;         [0.33314689125037755 319]
+;;=&gt;         [0.6659169800935097 370]),
+;;=&gt;  :max 0.9986870689366419,
+;;=&gt;  :min 3.7680240724535796E-4,
 ;;=&gt;  :samples 1000,
 ;;=&gt;  :size 3,
-;;=&gt;  :step 0.3330989375200549}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p>
+;;=&gt;  :step 0.3327700888431322}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
 ;;=&gt; {:bins
-;;=&gt;  ([0.1 1275] [0.23333333333333334 1410] [0.3666666666666667 1287]),
+;;=&gt;  ([0.1 1344] [0.23333333333333334 1314] [0.3666666666666667 1358]),
 ;;=&gt;  :max 0.5,
 ;;=&gt;  :min 0.1,
-;;=&gt;  :samples 3972,
+;;=&gt;  :samples 4016,
 ;;=&gt;  :size 3,
 ;;=&gt;  :step 0.13333333333333333}</code></pre></div><div><blockquote><p>5 bins from normal distribution.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 r/grand) 5)

@@ -18,7 +18,7 @@
   (add [m1 m2])
   (adds [m v])
   (sub [m] [m1 m2])
-  (emul [m1 m2])
+  (emulm [m1 m2])
   (mulm [m1 m2] [m1 t1? m2 t2?])
   (mulv [m v])
   (vtmul [m v])
