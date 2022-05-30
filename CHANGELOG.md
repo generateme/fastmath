@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file. This change
 * `fma` - fused multiply and add `(+ (* x y) z)` (for java 9+)
 * `fastmath.efloat` - floating point operations with error bounds
 * `project` - vector projection
-* `ArrayRealVector` extended with `VectorProto
+* Apache Commons Math `ArrayRealVector` extended with `VectorProto
 * `fastmath.matrix` - matrix 2x2, 3x3 and 4x4 basic operations (unrolled)
 * fields: `circle-inverse`
 

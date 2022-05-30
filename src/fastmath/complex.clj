@@ -284,6 +284,14 @@
       (acos)
       (mult-I)))
 
+(defn acosech
+  "acosech"
+  {:metadoc/categories #{:trig}}
+  [z]
+  (-> z
+      (reciprocal)
+      (acosh)))
+
 (defn asinh
   "asinh"
   {:metadoc/categories #{:trig}}
