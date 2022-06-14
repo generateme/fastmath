@@ -1374,6 +1374,9 @@
 
 ;;
 
+(def binomial-ci-methods [:asymptotic :agresti-coull :clopper-pearson :wilson :prop.test
+                        :cloglog :logit :probit :arcsine])
+
 (defn binomial-ci
   "Return confidence interval for a binomial distribution.
 
@@ -1383,6 +1386,11 @@
   * `:clopper-pearson`
   * `:wilson`
   * `:prop.test` - one sample proportion test
+  * `:cloglog`
+  * `:logit`
+  * `:probit`
+  * `:arcsine`
+  * `:all` - apply all methods and return a map of triplets
 
   Default confidence level: 0.95
   
@@ -1396,11 +1404,13 @@
    (let [p (/ (double number-of-successes) number-of-trials)
          alpha (- 1.0 confidence-level)
          alpha2 (* 0.5 alpha)
-         z (r/icdf r/default-normal (- 1.0 alpha2))
+         ^double z (r/icdf r/default-normal (- 1.0 alpha2))
          z2 (* z z)
          x0? (zero? number-of-successes)
          xn? (== number-of-trials number-of-successes)]
      (case method
+       :all (into {} (map #(vector %1 (binomial-ci number-of-successes number-of-trials % confidence-level))
+                          binomial-ci-methods))
        :cloglog (let [logp (m/log p)
                       mu (m/log (- logp))
                       sd (* z (m/sqrt (-> (- 1.0 p) (/ number-of-trials) (/ p) (/ (* logp logp)))))
@@ -1426,18 +1436,18 @@
                           :else (let [ucl (m/exp (+ logitp sd))]
                                   (/ ucl (inc ucl))))]
                 [lcl ucl p])
-       :probit (let [probitp (r/icdf r/default-normal p)
+       :probit (let [^double probitp (r/icdf r/default-normal p)
                      sd (* z (m/sqrt (-> (* p (- 1.0 p))
                                          (/ number-of-trials)
-                                         (/ (m/sq (r/pdf r/default-normal probitp))))))
-                     lcl (cond
-                           x0? 0.0
-                           xn? (m/pow alpha2 (/ 1.0 number-of-trials))
-                           :else (r/cdf r/default-normal (- probitp sd)))
-                     ucl (cond
-                           x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
-                           xn? 1.0
-                           :else (r/cdf r/default-normal (+ probitp sd)))]
+                                         (/ (m/sq ^double (r/pdf r/default-normal probitp))))))
+                     ^double lcl (cond
+                                   x0? 0.0
+                                   xn? (m/pow alpha2 (/ 1.0 number-of-trials))
+                                   :else (r/cdf r/default-normal (- probitp sd)))
+                     ^double ucl (cond
+                                   x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                                   xn? 1.0
+                                   :else (r/cdf r/default-normal (+ probitp sd)))]
                  [lcl ucl p])
        :prop.test (let [yatesn (/ (min 0.5 (m/abs (- number-of-successes (* number-of-trials 0.5))))
                                   number-of-trials)
@@ -1463,23 +1473,27 @@
                      p3 (inc z2n)]
                  [(/ (- p1 p2) p3) (/ (+ p1 p2) p3) p])
        :clopper-pearson (let [lclbeta (if x0? 1.0
-                                          (r/icdf
-                                           (r/distribution :beta
-                                                           {:alpha (inc (- number-of-trials
-                                                                           number-of-successes))
-                                                            :beta number-of-successes})
-                                           (- 1.0 alpha2)))
+                                          ^double (r/icdf
+                                                   (r/distribution :beta
+                                                                   {:alpha (inc (- number-of-trials
+                                                                                   number-of-successes))
+                                                                    :beta number-of-successes})
+                                                   (- 1.0 alpha2)))
                               uclbeta (if xn? 0.0
-                                          (r/icdf
-                                           (r/distribution :beta
-                                                           {:alpha (- number-of-trials number-of-successes)
-                                                            :beta (inc number-of-successes)})
-                                           alpha2))]
+                                          ^double (r/icdf
+                                                   (r/distribution :beta
+                                                                   {:alpha (- number-of-trials number-of-successes)
+                                                                    :beta (inc number-of-successes)})
+                                                   alpha2))]
                           [(- 1.0 lclbeta) (- 1.0 uclbeta) p])
        :agresti-coull (let [x (+ number-of-successes (* 0.5 z2))
                             n (+ number-of-trials z2)
                             p' (/ x n)
                             zse (* z (m/sqrt (* p' (/ (- 1.0 p') n))))]
                         [(- p' zse) (+ p' zse) p])
+       :arcsine (let [ap (m/asin (m/sqrt p))
+                      zn (/ z (* 2.0 (m/sqrt number-of-trials)))]
+                  [(m/sq (m/sin (max 0.0 (- ap zn))))
+                   (m/sq (m/sin (min m/HALF_PI (+ ap zn)))) p])
        (let [zse (* z (m/sqrt (* p (/ (- 1.0 p) number-of-trials))))]
          [(- p zse) (+ p zse) p])))))

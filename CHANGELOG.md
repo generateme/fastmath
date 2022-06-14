@@ -10,7 +10,8 @@ All notable changes to this project will be documented in this file. This change
 * `project` - vector projection
 * Apache Commons Math `ArrayRealVector` extended with `VectorProto
 * `fastmath.matrix` - matrix 2x2, 3x3 and 4x4 basic operations (unrolled)
-* fields: `circle-inverse`
+* fields refactored
+* `binomial-ci` - confidence interval methods for binomial distribution
 
 ### Changed
 
