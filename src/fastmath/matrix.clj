@@ -7,7 +7,7 @@
            [org.apache.commons.math3.linear Array2DRowRealMatrix ArrayRealVector]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
-(set! *warn-on-reflection* true)
+#_(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs})
 

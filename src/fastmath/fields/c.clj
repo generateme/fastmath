@@ -7,8 +7,6 @@
             [fastmath.complex :as c])
   (:import [fastmath.vector Vec2]))
 
-#_(set! *warn-on-reflection* true)
-
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
@@ -569,13 +567,13 @@
              r (* amount (v/mag v))
              a (if (>= a 0.0)
                  (let [alt (long (* a kn-pi))]
-                   (if (zero? (rem alt 2))
-                     (+ (* alt pi-kn) (rem (+ ka-kn a) pi-kn))
-                     (+ (* alt pi-kn) (rem (- a ka-kn) pi-kn))))
+                   (if (zero? (mod alt 2))
+                     (+ (* alt pi-kn) (mod (+ ka-kn a) pi-kn))
+                     (+ (* alt pi-kn) (mod (- a ka-kn) pi-kn))))
                  (let [alt (long (* -1.0 a kn-pi))]
-                   (if-not (zero? (rem alt 2))
-                     (- (+ (* alt pi-kn) (rem (- (- ka-kn) a) pi-kn)))
-                     (- (+ (* alt pi-kn) (rem (- ka-kn a) pi-kn))))))]
+                   (if-not (zero? (mod alt 2))
+                     (- (+ (* alt pi-kn) (mod (- (- ka-kn) a) pi-kn)))
+                     (- (+ (* alt pi-kn) (mod (- ka-kn a) pi-kn))))))]
          (Vec2. (* r (m/cos a)) (* r (m/sin a))))))))
 
 (defn conic
@@ -740,8 +738,6 @@
        (Vec2. (* amount cothden cothsinh)
               (* amount cothden cothsin))))))
 
-(def ^:private crackle-offsets (vec (for [x (range -1 2) y (range -1 2)] (Vec2. x y))))
-
 (defn- crackle-position
   ^Vec2 [^Vec2 xy ^double z ^double s ^double d]
   (let [^Vec2 E (v/mult xy 2.5)
@@ -773,10 +769,10 @@
              U (Vec2. (* blurr (m/sin theta))
                       (* blurr (m/cos theta)))
              Cv (v/floor (v/div U s))
-             P (mapv #(cache (v/add Cv %)) crackle-offsets)
+             P (mapv #(cache (v/add Cv %)) u/offsets)
              q (u/closest P 9 U)
-             Cv (v/add Cv (crackle-offsets q))
-             P (mapv #(cache (v/add Cv %)) crackle-offsets)
+             Cv (v/add Cv (u/offsets q))
+             P (mapv #(cache (v/add Cv %)) u/offsets)
              L (+ (u/voronoi P 9 4 U) 1.0e-100)
              P4 (P 4)
              Do (v/sub U P4)
@@ -1019,3 +1015,15 @@
        (v/mult (c/div (c/add v c/I-)
                       (c/add v c/I)) amount)))))
 
+(defn circle-inverse
+  "Circle inverse"
+  ([] {:type :regular
+       :config (fn [] {:x0 (r/randval 0.3 0.0 (r/randval (r/irand -3 3) (r/drand -3.0 3.0)))
+                      :y0 (r/randval 0.3 0.0 (r/randval (r/irand -3 3) (r/drand -3.0 3.0)))
+                      :r (r/drand 0.01 3.0)})})
+  ([^double amount {:keys [^double x0 ^double y0 ^double r]}]
+   (let [o (Vec2. x0 y0)
+         r2 (* r r)]
+     (fn [^Vec2 v]
+       (let [diff (v/sub v o)]
+         (v/mult (v/add o (v/div (v/mult diff r2) (v/magsq diff))) amount))))))

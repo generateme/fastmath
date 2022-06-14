@@ -38,8 +38,8 @@
              pre-sigma (- m/PI (v/heading v+) (v/heading v-))
              alt (double (int (* pre-sigma bcn-pi)))
              sigma (if (even? (int alt))
-                     (+ (* alt pi-bcn) (rem (+ pre-sigma bca-bcn) pi-bcn))
-                     (+ (* alt pi-bcn) (rem (- pre-sigma bca-bcn) pi-bcn)))]
+                     (+ (* alt pi-bcn) (mod (+ pre-sigma bca-bcn) pi-bcn))
+                     (+ (* alt pi-bcn) (mod (- pre-sigma bca-bcn) pi-bcn)))]
          (bseries-calc amount tau sigma))))))
 
 (defn bmod
@@ -57,7 +57,7 @@
                                (m/log (v/magsq v-))))
              sigma (- m/PI (v/heading v+) (v/heading v-))
              tau (if (and (< pre-tau radius) (< (- pre-tau) radius))
-                   (- (rem (+ pre-tau radius rd) r2) radius)
+                   (- (mod (+ pre-tau radius rd) r2) radius)
                    pre-tau)]
          (bseries-calc amount tau sigma))))))
 
@@ -305,9 +305,9 @@
              pre-y (+ ps (* 0.5 (m/atan2 (+ (.y v) (.y v))
                                          (dec x2y2))))
              y (if (> pre-y m/HALF_PI)
-                 (- (rem (+ pre-y m/HALF_PI) m/PI) m/HALF_PI)
+                 (- (mod (+ pre-y m/HALF_PI) m/PI) m/HALF_PI)
                  (if (< pre-y (- m/HALF_PI))
-                   (- m/HALF_PI (rem (- m/HALF_PI pre-y) m/PI))
+                   (- m/HALF_PI (mod (- m/HALF_PI pre-y) m/PI))
                    pre-y))
              f (+ t x2)
              g (- t x2)]
@@ -339,9 +339,9 @@
              pre-y (+ ps (* c (m/atan2 (* e (.y v))
                                        (- x2y2 d))))
              y (if (> pre-y m/HALF_PI)
-                 (- (rem (+ pre-y m/HALF_PI) m/PI) m/HALF_PI)
+                 (- (mod (+ pre-y m/HALF_PI) m/PI) m/HALF_PI)
                  (if (< pre-y (- m/HALF_PI))
-                   (- m/HALF_PI (rem (- m/HALF_PI pre-y) m/PI))
+                   (- m/HALF_PI (mod (- m/HALF_PI pre-y) m/PI))
                    pre-y))
              f (+ t x2)
              g (- t x2)]

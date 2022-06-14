@@ -63,8 +63,7 @@
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
            [org.apache.commons.math3.special Gamma])
-  (:require [fastmath.core :as m]
-            [clojure.string :as str]))
+  (:require [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -495,6 +494,25 @@
 (gamma-proxy :two ^{:doc "Regularized `gamma` P" :metadoc/categories -special-set-} regularized-gamma-p regularizedGammaP)
 (gamma-proxy :two ^{:doc "Regularized `gamma` Q" :metadoc/categories -special-set-} regularized-gamma-q regularizedGammaQ)
 
+(defn minkowski
+  "Minkowski's question mark function ?(x)"
+  {:metadoc/categories -special-set-}
+  ^double [^double x]
+  (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
+    (if (< it 20)
+      (let [d (* d 0.5)
+            m (+ p r)
+            n (+ q s)
+            p? (< x (/ m n))]
+        (recur (inc it)
+               (if p? p m)
+               (if p? q n)
+               (if p? m r)
+               (if p? n s)
+               d
+               (if p? y (+ y d))))
+      (+ y d))))
+
 ;; Beta
 
 (beta-proxy :two ^{:doc "Logarithm of Beta function." :metadoc/categories -special-set-} log-beta logBeta)
@@ -508,6 +526,7 @@
 
 (defn jinc
   "Besselj1 devided by `x`"
+  {:metadoc/categories -special-set-}
   ^double [^double x]
   (if (< (FastMath/abs x) 0.002)
     (let [x2 (* x x)]
@@ -519,6 +538,7 @@
 
 (defn I0
   "Modified Bessel function of the first kind, order 0."
+  {:metadoc/categories -special-set-}
   ^double [^double x]
   (let [x2 (* x x)
         ;; i=1
@@ -549,6 +569,7 @@
 
 (defn logI0
   "Log of [[I0]]."
+  {:metadoc/categories -special-set-}
   ^double [^double x]
   (m/log (I0 x)))
 
@@ -625,6 +646,17 @@
 
 ;; Fast version of power, second parameter should be integer
 (fastmath-proxy :two ^{:doc "Fast version of pow where exponent is integer." :metadoc/categories -pow-set-} fpow powFast)
+
+(def ^:private factorial20-table [1 1 2 6 24 120 720 5040 40320 362880 3628800 39916800 479001600
+                                6227020800 87178291200 1307674368000 20922789888000
+                                355687428096000 6402373705728000 121645100408832000
+                                2432902008176640000])
+
+(defn factorial20
+  "Factorial table up to 20!"
+  {:metadoc/categories -pow-set-}
+  ^long [^long n]
+  (factorial20-table n))
 
 ;; Square and cubic
 (defn sq "Same as [[pow2]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))

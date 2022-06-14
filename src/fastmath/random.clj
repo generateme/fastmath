@@ -295,7 +295,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   "Random double number with default RNG.
 
   As default returns random float from `[0,1)` range.
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
   (^double [] (prot/frandom default-rng))
   (^double [mx] (prot/frandom default-rng mx))
@@ -308,8 +308,8 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
   (^double [] (prot/drandom default-rng))
-  (^double [mx] (prot/drandom default-rng mx))
-  (^double [mn mx] (prot/drandom default-rng mn mx)))
+  (^double [^double mx] (prot/drandom default-rng mx))
+  (^double [^double mn ^double mx] (prot/drandom default-rng mn mx)))
 
 (defn grand
   "Random gaussian double number with default RNG.
@@ -318,8 +318,8 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
   When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`."
   {:metadoc/categories #{:rand}}
   (^double [] (prot/grandom default-rng))
-  (^double [stddev] (prot/grandom default-rng stddev))
-  (^double [mean stddev] (prot/grandom default-rng mean stddev)))
+  (^double [^double stddev] (prot/grandom default-rng stddev))
+  (^double [^double mean ^double stddev] (prot/grandom default-rng mean stddev)))
 
 (defn irand
   "Random integer number with default RNG.
@@ -335,11 +335,11 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
   "Random long number with default RNG.
 
   As default returns random long from full integer range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
   (^long [] (prot/lrandom default-rng))
-  (^long [mx] (prot/lrandom default-rng mx))
-  (^long [mn mx] (prot/lrandom default-rng mn mx)))
+  (^long [^long mx] (prot/lrandom default-rng mx))
+  (^long [^long mn ^long mx] (prot/lrandom default-rng mn mx)))
 
 (defmacro randval
   "Retrun value with given probability (default 0.5)"

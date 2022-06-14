@@ -1372,4 +1372,114 @@
   ([vs p1 p2 estimation-strategy]
    (percentile-bca-extent vs p1 p2 0.0 estimation-strategy)))
 
-;; weighted sampling
+;;
+
+(defn binomial-ci
+  "Return confidence interval for a binomial distribution.
+
+  Possible methods are:
+  * `:asymptotic` (normal aproximation, based on central limit theorem), default
+  * `:agresti-coull`
+  * `:clopper-pearson`
+  * `:wilson`
+  * `:prop.test` - one sample proportion test
+
+  Default confidence level: 0.95
+  
+  Returns a triple [lower ci, upper ci, mean]"
+  {:metadoc/categories #{:extent}}
+  ([^long number-of-successes ^long number-of-trials]
+   (binomial-ci number-of-successes number-of-trials :asymptotic))
+  ([^long number-of-successes ^long number-of-trials method]
+   (binomial-ci number-of-successes number-of-trials method 0.95))
+  ([^long number-of-successes ^long number-of-trials method ^double confidence-level]
+   (let [p (/ (double number-of-successes) number-of-trials)
+         alpha (- 1.0 confidence-level)
+         alpha2 (* 0.5 alpha)
+         z (r/icdf r/default-normal (- 1.0 alpha2))
+         z2 (* z z)
+         x0? (zero? number-of-successes)
+         xn? (== number-of-trials number-of-successes)]
+     (case method
+       :cloglog (let [logp (m/log p)
+                      mu (m/log (- logp))
+                      sd (* z (m/sqrt (-> (- 1.0 p) (/ number-of-trials) (/ p) (/ (* logp logp)))))
+                      lcl (cond
+                            x0? 0.0
+                            xn? (m/pow alpha2 (/ 1.0 number-of-trials))
+                            :else (m/exp (- (m/exp (+ mu sd)))))
+                      ucl (cond
+                            x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                            xn? 1.0
+                            :else (m/exp (- (m/exp (- mu sd)))))]
+                  [lcl ucl p])
+       :logit (let [logitp (- (m/log p) (m/log1p (- p)))
+                    sd (* z (m/sqrt (-> (/ 1.0 number-of-trials) (/ p) (/ (- 1.0 p)))))
+                    lcl (cond
+                          x0? 0.0
+                          xn? (m/pow alpha2 (/ 1.0 number-of-trials))
+                          :else (let [lcl (m/exp (- logitp sd))]
+                                  (/ lcl (inc lcl))))
+                    ucl (cond
+                          x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                          xn? 1.0
+                          :else (let [ucl (m/exp (+ logitp sd))]
+                                  (/ ucl (inc ucl))))]
+                [lcl ucl p])
+       :probit (let [probitp (r/icdf r/default-normal p)
+                     sd (* z (m/sqrt (-> (* p (- 1.0 p))
+                                         (/ number-of-trials)
+                                         (/ (m/sq (r/pdf r/default-normal probitp))))))
+                     lcl (cond
+                           x0? 0.0
+                           xn? (m/pow alpha2 (/ 1.0 number-of-trials))
+                           :else (r/cdf r/default-normal (- probitp sd)))
+                     ucl (cond
+                           x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                           xn? 1.0
+                           :else (r/cdf r/default-normal (+ probitp sd)))]
+                 [lcl ucl p])
+       :prop.test (let [yatesn (/ (min 0.5 (m/abs (- number-of-successes (* number-of-trials 0.5))))
+                                  number-of-trials)
+                        nn (* 2.0 number-of-trials)
+                        z22n (/ z2 nn)
+                        z22n+ (inc (* 2.0 z22n))
+                        z22n2n (/ z22n nn)
+                        pc (- p yatesn)
+                        pl (if-not (pos? pc) 0.0
+                                   (/ (- (+ pc z22n) (* z (m/sqrt (+ (* pc (/ (- 1.0 pc) number-of-trials))
+                                                                     z22n2n))))
+                                      z22n+))
+                        pc (+ p yatesn)
+                        pu (if (>= pc 1.0) 1.0
+                               (/ (+ pc z22n (* z (m/sqrt (+ (* pc (/ (- 1.0 pc) number-of-trials))
+                                                             z22n2n))))
+                                  z22n+))]
+                    [pl pu p])
+       :wilson (let [z2n (/ z2 number-of-trials)
+                     p1 (+ p (* 0.5 z2n))
+                     p2 (* z (m/sqrt (/ (+ (* p (- 1.0 p))
+                                           (* 0.25 z2n)) number-of-trials)))
+                     p3 (inc z2n)]
+                 [(/ (- p1 p2) p3) (/ (+ p1 p2) p3) p])
+       :clopper-pearson (let [lclbeta (if x0? 1.0
+                                          (r/icdf
+                                           (r/distribution :beta
+                                                           {:alpha (inc (- number-of-trials
+                                                                           number-of-successes))
+                                                            :beta number-of-successes})
+                                           (- 1.0 alpha2)))
+                              uclbeta (if xn? 0.0
+                                          (r/icdf
+                                           (r/distribution :beta
+                                                           {:alpha (- number-of-trials number-of-successes)
+                                                            :beta (inc number-of-successes)})
+                                           alpha2))]
+                          [(- 1.0 lclbeta) (- 1.0 uclbeta) p])
+       :agresti-coull (let [x (+ number-of-successes (* 0.5 z2))
+                            n (+ number-of-trials z2)
+                            p' (/ x n)
+                            zse (* z (m/sqrt (* p' (/ (- 1.0 p') n))))]
+                        [(- p' zse) (+ p' zse) p])
+       (let [zse (* z (m/sqrt (* p (/ (- 1.0 p) number-of-trials))))]
+         [(- p zse) (+ p zse) p])))))

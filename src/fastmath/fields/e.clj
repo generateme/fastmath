@@ -29,8 +29,8 @@
              alt (int (* nu ecn-pi))
              altp (* alt pi-ecn)
              nu (if (even? alt)
-                  (+ altp (rem (+ nu eca-ecn) pi-ecn))
-                  (+ altp (rem (- nu eca-ecn) pi-ecn)))
+                  (+ altp (mod (+ nu eca-ecn) pi-ecn))
+                  (+ altp (mod (- nu eca-ecn) pi-ecn)))
              nu (if-not (pos? (.y v)) (- nu) nu)]
          (Vec2. (* amount xmax (m/cos nu))
                 (* amount (m/sqrt (dec xmax)) (m/sqrt (inc xmax)) (m/sin nu))))))))
@@ -96,8 +96,8 @@
              nu (if-not (pos? (.y v)) (- nu) nu)
              mu (if (and (< mu radius) (< (- mu) radius))
                   (if (pos? nu)
-                    (- (rem (+ mu rdr) radius2) radius)
-                    (+ (rem (- mu rdr) radius2) radius))
+                    (- (mod (+ mu rdr) radius2) radius)
+                    (+ (mod (- mu rdr) radius2) radius))
                   mu)
              xx (* amount (m/cosh mu) (m/cos nu))
              yy (* amount (m/sinh mu) (m/sin nu))]
@@ -161,7 +161,7 @@
            t (m/constrain (/ (.x v) xmax) -1.0 1.0)
            nu (m/acos t)
            nu (if-not (pos? (.y v)) (- nu) nu)
-           nu (- (rem (+ nu rotate m/PI) m/TWO_PI) m/PI)
+           nu (- (mod (+ nu rotate m/PI) m/TWO_PI) m/PI)
            
            xx (* amount xmax (m/cos nu))
            yy (* amount (m/sqrt (dec xmax)) (m/sqrt (inc xmax)) (m/sin nu))]
@@ -186,7 +186,7 @@
              nu (m/acos t)
              nu (if-not (pos? (.y v)) (- nu) nu)
              mu (* mu scale)
-             nu (rem (- (rem (* scale (+ nu angle+pi)) scale2pi) angle scalepi) m/TWO_PI)
+             nu (mod (- (mod (* scale (+ nu angle+pi)) scale2pi) angle scalepi) m/TWO_PI)
              nu (if (> nu m/PI)
                   (- nu m/TWO_PI)
                   (if (< nu m/-PI)

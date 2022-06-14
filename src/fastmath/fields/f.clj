@@ -5,8 +5,6 @@
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
-(set! *warn-on-reflection* true)
-
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
@@ -100,6 +98,23 @@
      (let [r (/ (* amount 4.0) (inc (v/mag v)))]
        (Vec2. (* r (.y v)) (* r (.x v)))))))
 
+(defn flipcircle
+  ([] {:type :regular})
+  ([^double amount _]
+   (let [samount (* amount amount)]
+     (fn [^Vec2 v]
+       (if (> (v/magsq v) samount)
+         (v/mult v amount)
+         (Vec2. (* amount (.x v)) (* amount -1.0 (.y v))))))))
+
+(defn flipy
+  ([] {:type :regular})
+  ([^double amount _]
+   (fn [^Vec2 v]
+     (if-not (pos? (.x v))
+       (v/mult v amount)
+       (Vec2. (* amount (.x v)) (* amount -1.0 (.y v)))))))
+
 (defn flower
   "Flower"
   ([] {:type :random
@@ -111,6 +126,22 @@
            d (/ 1.0 (+ m/EPSILON (v/mag v)))
            r (* amount (- (r/drand) holes) (m/cos (* petals theta)) d)]
        (v/mult v r)))))
+
+(defn flux
+  "Flux"
+  ([] {:type :regular
+       :config (fn [] {:spread (u/sdrand 0.1 2.0)})})
+  ([^double amount {:keys [^double spread]}]
+   (let [aspread2 (* amount (+ 2.0 spread))]
+     (fn [^Vec2 v]
+       (let [xpw (+ (.x v) amount)
+             xmw (- (.x v) amount)
+             y2 (* (.y v) (.y v))
+             avgr (* aspread2 (m/sqrt (/ (m/sqrt (+ y2 (* xpw xpw)))
+                                         (m/sqrt (+ y2 (* xmw xmw))))))
+             avga (* 0.5 (- (m/atan2 (.y v) xmw) (m/atan2 (.y v) xpw)))]
+         (Vec2. (* avgr (m/cos avga))
+                (* avgr (m/sin avga))))))))
 
 (defn foci
   "Foci"
@@ -126,3 +157,49 @@
        (Vec2. (* tmp (- expx expnx))
               (* tmp sy))))))
 
+(defn fourth
+  ([] {:type :regular
+       :config (fn [] {:spin (r/drand m/-TWO_PI m/TWO_PI)
+                      :space (u/sdrand 0.1 2.0)
+                      :twist (r/drand m/-TWO_PI m/TWO_PI)
+                      :x (r/randval 0.0 (r/drand -0.5 0.5))
+                      :y (r/randval 0.0 (r/drand -0.5 0.5))})})
+  ([^double amount {:keys [^double spin ^double space ^double twist
+                           ^double x ^double y]}]
+   (let [sqrvvar (* amount amount)
+         ^Vec2 x-y (Vec2. (- x) y)
+         ^Vec2 xy- (Vec2. x (- y))]
+     (fn [^Vec2 v]
+       (cond
+         (and (pos? (.x v))
+              (pos? (.y v))) (let [a (v/heading v)
+                                   r (/ (v/mag v))
+                                   s (m/sin a)
+                                   c (m/cos a)]
+                               (Vec2. (* amount r c) (* amount r s)))
+         (and (pos? (.x v))
+              (neg? (.y v))) (let [r2 (v/magsq v)]
+                               (if (< r2 sqrvvar)
+                                 (let [r (* amount (m/sqrt (dec (/ sqrvvar r2))))]
+                                   (v/mult v r))
+                                 (v/mult v amount)))
+         (and (neg? (.x v))
+              (pos? (.y v))) (let [xy (v/add v x-y)
+                                   r (v/mag xy)]
+                               (if (< r amount)
+                                 (let [a (+ (v/heading xy) spin (* twist (- amount r)))
+                                       r (* amount r)]
+                                   (v/add (Vec2. (* r (m/cos a))
+                                                 (* r (m/sin a))) xy-))
+                                 (let [r (* amount (inc (/ space r)))]
+                                   (v/add (v/mult xy r) xy-))))
+         :else (v/mult v amount))))))
+
+(defn funnel
+  ([] {:type :regular
+       :config (fn [] {:effect (r/drand -1.6 1.6)})})
+  ([^double amount {:keys [^double effect]}]
+   (let [effect (* effect m/PI)]
+     (fn [v]
+       (v/emult (v/mult (v/tanh v) amount)
+                (v/shift (v/reciprocal (v/cos v)) effect))))))
