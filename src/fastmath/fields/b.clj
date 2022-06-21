@@ -2,8 +2,7 @@
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.random :as r]
-            [fastmath.fields.utils :as u]
-            [clojure2d.color.blend :as b])
+            [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
