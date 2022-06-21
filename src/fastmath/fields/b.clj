@@ -2,7 +2,8 @@
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.random :as r]
-            [fastmath.fields.utils :as u])
+            [fastmath.fields.utils :as u]
+            [clojure2d.color.blend :as b])
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -600,11 +601,11 @@
          line-threshold line-fraction
          rng (r/rng :mersenne seed)
          level (min 15 level)
-         xys (atom (cycle (xypoints rng variation level)))]
+         xys (atom (partition 2 1 (cycle (xypoints rng variation level))))]
      (fn [_]
        (let [[^Vec2 p1 ^Vec2 p2] (first @xys)
              out (if (< (r/drand) line-threshold)
-                   (let [^Vec2 diff (v/sub p2 p1)
+                   (let [^Vec2 diff (v/sub p2 p1)                         
                          m (if (zero? (.x diff)) 10000.0 (/ (.y diff) (.x diff)))
                          line-length (v/mag diff)
                          d (r/drand line-length)
@@ -731,7 +732,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (v/mag v) (m/bessel-j (m/abs (.x v)) (m/abs (.y v))))
+     (Vec2. (* amount (v/mag v) (m/bessel-j (m/abs (.x v)) (min 10000.0 (m/abs (.y v)))))
             (* amount (v/heading v))))))
 
 (defn beta

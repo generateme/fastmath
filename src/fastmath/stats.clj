@@ -1472,17 +1472,18 @@
                                            (* 0.25 z2n)) number-of-trials)))
                      p3 (inc z2n)]
                  [(/ (- p1 p2) p3) (/ (+ p1 p2) p3) p])
-       :clopper-pearson (let [lclbeta (if x0? 1.0
+       :clopper-pearson (let [diff (- number-of-trials
+                                      number-of-successes)
+                              lclbeta (if x0? 1.0
                                           ^double (r/icdf
                                                    (r/distribution :beta
-                                                                   {:alpha (inc (- number-of-trials
-                                                                                   number-of-successes))
+                                                                   {:alpha (inc diff)
                                                                     :beta number-of-successes})
                                                    (- 1.0 alpha2)))
                               uclbeta (if xn? 0.0
                                           ^double (r/icdf
                                                    (r/distribution :beta
-                                                                   {:alpha (- number-of-trials number-of-successes)
+                                                                   {:alpha diff
                                                                     :beta (inc number-of-successes)})
                                                    alpha2))]
                           [(- 1.0 lclbeta) (- 1.0 uclbeta) p])
