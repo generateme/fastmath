@@ -145,57 +145,7 @@
   `(do ~@(for [l letters]
            `(load-fields-from-namespace ~l))))
 
-(load-fields "abcdefghijklmnopqrstuv")
-
-
-;; ### Waves
-
-(make-config-method waves {:coeff10 (drand -2.0 2.0)
-                           :coeff11 (drand -2.0 2.0)
-                           :coeff20 (drand -2.0 2.0)
-                           :coeff21 (drand -2.0 2.0)})
-
-(defn- make-waves
-  "Waves"
-  [^double amount {:keys [^double coeff10 ^double coeff11 ^double coeff20 ^double coeff21]}]
-  (let [c202 (+ m/EPSILON (m/sq coeff20))
-        c212 (+ m/EPSILON (m/sq coeff21))]
-    (fn [^Vec2 v]
-      (Vec2. (->> c202
-                  (/ (.y v))
-                  (m/sin)
-                  (* coeff10)
-                  (+ (.x v))
-                  (* amount))
-             (->> c212
-                  (/ (.x v))
-                  (m/sin)
-                  (* coeff11)
-                  (+ (.y v))
-                  (* amount))))))
-(make-field-method waves :regular)
-
-;; ### Wedge
-
-(make-config-method wedge {:angle (drand m/TWO_PI)
-                           :hole (drand -2 2)
-                           :count (drand -5 5)
-                           :swirl (drand -2 2)})
-
-(defn- make-wedge
-  "Wedge"
-  [^double amount {:keys [^double angle ^double hole ^double count ^double swirl]}]
-  (let [hm1p (* m/M_1_PI 0.5)]
-    (fn [v]
-      (let [r (v/mag v)
-            a (+ (v/heading v) (* r swirl))
-            c (m/floor (* (+ (* count a) m/PI) hm1p))
-            comp-fac (- 1.0 (* angle count hm1p))
-            a (+ (* a comp-fac) (* c angle))
-            r (* amount (+ r hole))]
-        (Vec2. (* r (m/cos a))
-               (* r (m/sin a)))))))
-(make-field-method wedge :regular)
+(load-fields "abcdefghijklmnopqrstuvwx")
 
 
 ;; ## Additional variations
