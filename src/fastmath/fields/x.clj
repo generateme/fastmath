@@ -5,8 +5,6 @@
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
-(set! *warn-on-reflection* true)
-
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
@@ -29,7 +27,8 @@
                            ^double star ^double star-n ^double star-slope
                            ^double lituus ^double lituus-a
                            ^double super ^double super-m ^double super-n1 ^double super-n2 ^double super-n3]}]
-   (let [-hypergon-d (m/sqrt (inc (m/sq hypergon-r)))
+   (let [hypergon (if (and (zero? hypergon) (zero? star) (zero? lituus) (zero? super)) 1.0 hypergon)
+         -hypergon-d (m/sqrt (inc (m/sq hypergon-r)))
          -lituus-a (- lituus-a)
          -star-slope (m/tan star-slope)
          -super-m (* 0.25 super-m)

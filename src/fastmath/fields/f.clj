@@ -203,3 +203,23 @@
      (fn [v]
        (v/emult (v/mult (v/tanh v) amount)
                 (v/shift (v/reciprocal (v/cos v)) effect))))))
+
+;;
+
+
+(defn foucaut
+  "Foucaut"
+  ([] {:type :regular})
+  ([^double amount _]
+   (let [as (* amount m/SQRTPI)]
+     (fn [^Vec2 v]
+       (let [k (* 0.5 (.y v))
+             cosk (m/cos k)
+             xx (->> cosk
+                     (* cosk)
+                     (* (m/cos (.y v)))
+                     (* (/ (.x v) m/SQRTPI))
+                     (* 2.0)
+                     (* amount))
+             yy (* as (m/tan k))]
+         (Vec2. xx yy))))))

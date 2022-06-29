@@ -232,3 +232,31 @@
              r1 (/ vp (* r r))]
          (Vec2. (* r1 (+ (* (.x v) re) (* (.y v) im)))
                 (* r1 (- (* (.y v) re) (* (.x v) im)))))))))
+
+;; https://github.com/d3/d3-geo-projection/tree/master/src
+
+(defn miller
+  "Miller"
+  ([] {:type :regular})
+  ([^double amount _]
+   (fn [^Vec2 v]
+     (v/mult (Vec2. (.x v)
+                    (->> (m/constrain (.y v) -1.9634 1.9634)
+                         (* 0.4)
+                         (+ m/QUARTER_PI)
+                         (m/tan)
+                         (m/log)
+                         (* 1.25))) amount))))
+
+(defn millerrev
+  "Millerrev"
+  ([] {:type :regular})
+  ([^double amount _]
+   (fn [^Vec2 v]
+     (v/mult (Vec2. (.x v)
+                    (-> (.y v)
+                        (* 0.8)
+                        (m/exp)
+                        (m/atan)
+                        (* 2.5)
+                        (- (* 0.625 m/PI)))) amount))))

@@ -44,7 +44,7 @@
                         :sc "Derive scalar field from vector field"
                         :vf "Derive vector field from other vector field(s)."}}
   (:require [fastmath.core :as m]
-            [fastmath.random :refer [brand discrete-noise drand fbm-noise irand lrand noise randval] :exclude [flip] :as r]
+            [fastmath.random :as r]
             [fastmath.vector :as v])
   (:import [fastmath.vector Vec2]))
 
@@ -53,7 +53,7 @@
 
 ;; Two atoms to store variation names. One for non-random functions and second for random.
 
-(def ^:private fields-atom (atom {:regular [:default]}))
+(def ^:private fields-atom (atom {}))
 
 (defn- register-field
   "Add `name` to the atom `what`"
@@ -84,37 +84,10 @@
   {:metadoc/categories #{:cr}}
   (fn [key & _] key))
 
-(defmethod field :default
-  ([_ s _] (fn [v] (v/mult v s)))
-  ([_ s] (fn [v] (v/mult v s)))
-  ([_] identity))
-
-(defmacro ^:private make-config-method
-  "Add new multimethod for variation parametrization"
-  [sym m]
-  (when (and sym m)
-    (let [k (keyword sym)]
-      `(defmethod parametrization ~k
-         ([k# p#] (merge ~m p#))
-         ([k#] ~m)))))
-
-(defmacro ^:private make-field-method
-  "Add new multimethod for variation factory function and store variation fn in global list."
-  [sym t]
-  (let [k (keyword sym)
-        m (symbol (str "make-" sym))]
-    `(do (defmethod field ~k
-           ([k# a# p#] (~m a# (parametrization ~k p#)))
-           ([k# a#] (~m a# (parametrization ~k)))
-           ([k#] (~m 1.0 (parametrization ~k))))
-         (register-field ~t ~k))))
-
-;; Locally used random function for some parametrization parameters. Mostly used to avoid `0` value.
-(defn- sdrand
-  "Symetric random from [-mx -mn] and [mn mx]"
-  ^double  [^double mn ^double mx]
-  (let [rand (drand mn mx)]
-    (randval rand (* -1.0 rand))))
+#_(defmethod field :default
+    ([_ s _] (fn [v] (v/mult v s)))
+    ([_ s] (fn [v] (v/mult v s)))
+    ([_] identity))
 
 ;;;;;
 
@@ -145,58 +118,7 @@
   `(do ~@(for [l letters]
            `(load-fields-from-namespace ~l))))
 
-(load-fields "abcdefghijklmnopqrstuvwx")
-
-
-;; ## Additional variations
-;;
-;; https://github.com/d3/d3-geo-projection/tree/master/src
-
-;; ### Miller
-
-(defn- make-miller
-  "Miller"
-  [^double amount _]
-  (fn [^Vec2 v]
-    (v/mult (Vec2. (.x v)
-                   (->> (m/constrain (.y v) -1.9634 1.9634)
-                        (* 0.4)
-                        (+ m/QUARTER_PI)
-                        (m/tan)
-                        (m/log)
-                        (* 1.25))) amount)))
-(make-field-method miller :regular)
-
-(defn- make-millerrev
-  "Millerrev"
-  [^double amount _]
-  (fn [^Vec2 v]
-    (v/mult (Vec2. (.x v)
-                   (-> (.y v)
-                       (* 0.8)
-                       (m/exp)
-                       (m/atan)
-                       (* 2.5)
-                       (- (* 0.625 m/PI)))) amount)))
-(make-field-method millerrev :regular)
-
-;; ### Foucaut
-
-(defn- make-foucaut
-  "Foucaut"
-  [^double amount _]
-  (fn [^Vec2 v]
-    (let [k (* 0.5 (.y v))
-          cosk (m/cos k)
-          xx (->> cosk
-                  (* cosk)
-                  (* (m/cos (.y v)))
-                  (* (/ (.x v) m/SQRTPI))
-                  (* 2.0)
-                  (* amount))
-          yy (* amount m/SQRTPI (m/tan k))]
-      (Vec2. xx yy))))
-(make-field-method foucaut :regular)
+(load-fields "abcdefghijklmnopqrstuvwxyz")
 
 ;; ## Lists
 
@@ -385,10 +307,10 @@ Resulting value is from range `[-PI,PI]`."
    (let [operand (rand-nth [:comp :add :comp :add :comp :mult :comp :angles :comp])]
      {:type :operation :name operand :var1 f1 :var2 f2}))
   ([f]
-   (randval 0.1 f
-            (randval 0.1
-                     {:type :operation :name :deriv :var f}
-                     (build-random-parametrization-step f (build-random-variation-step)))))
+   (r/randval 0.1 f
+              (r/randval 0.1
+                         {:type :operation :name :deriv :var f}
+                         (build-random-parametrization-step f (build-random-variation-step)))))
   ([]
    (build-random-parametrization-step (build-random-variation-step) (build-random-variation-step))))
 
@@ -400,9 +322,9 @@ Resulting value is from range `[-PI,PI]`."
      (assoc f :amount 1.0 :config (parametrization (:name f) {}))
      (let [name (:name f)]
        (if (= name :deriv)
-         (assoc f :amount 1.0 :step (m/sq (drand 0.01 1.0)) :var (randomize-configuration (:var f)))
-         (let [amount1 (if (#{:comp :angles} name) 1.0 (drand -2.0 2.0))
-               amount2 (if (#{:comp :angles} name) 1.0 (drand -2.0 2.0)) 
+         (assoc f :amount 1.0 :step (m/sq (r/drand 0.01 1.0)) :var (randomize-configuration (:var f)))
+         (let [amount1 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0))
+               amount2 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0)) 
                amount (case name
                         :add (/ 1.0 (+ (m/abs amount1) (m/abs amount2)))
                         :mult (/ 1.0 (* amount1 amount2))
@@ -418,7 +340,7 @@ Resulting value is from range `[-PI,PI]`."
 
   Bind `*skip-random-fields*` to true to exclude fields which are random."
   {:metadoc/categories #{:vf}}
-  ([] (random-configuration (lrand 5)))
+  ([] (random-configuration (r/lrand 5)))
   ([depth] (random-configuration depth (build-random-variation-step)))
   ([^long depth f]
    (if (pos? depth)
