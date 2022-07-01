@@ -88,43 +88,43 @@
         {:bounds bounds, :init-points 5, :utility-function-type :poi})
        10))
 ;;=&gt; {:gp
-;;=&gt;  #object[fastmath.gp.GaussianProcess 0x3d26a876 "fastmath.gp.GaussianProcess@3d26a876"],
-;;=&gt;  :util-best (3.344216792082942 -2.564953888144595),
-;;=&gt;  :util-fn #<fn@5bf6075a fastmath.optimization="" ayesian_step_fn[fn]="">,
-;;=&gt;  :x (3.344216792082942 -2.564953888144595),
-;;=&gt;  :xs ((3.344216792082942 -2.564953888144595)
-;;=&gt;       (3.2896503130530923 -2.594513536490429)
-;;=&gt;       (3.275790561933885 -2.6003898079042504)
-;;=&gt;       (3.269733112779267 -2.6027831860228328)
-;;=&gt;       (3.2068048169878773 -2.621334505749951)
-;;=&gt;       (3.173229913866858 -2.628376548998575)
-;;=&gt;       (3.1283745818011526 -2.6345127425511765)
-;;=&gt;       (3.0633945252501253 -2.638341212716874)
-;;=&gt;       (3.038078296327032 -2.6379321037551793)
-;;=&gt;       (3.0007509178495493 -2.635396589310344)
-;;=&gt;       (2.961839050373891 -2.6314071874853)
-;;=&gt;       [-1.9564527966013951 -3.194253422331637]
-;;=&gt;       [-4.619225211921998 2.082499493264449]
-;;=&gt;       [2.9579181642035444 -2.6309932918454435]
-;;=&gt;       [0.25487401367680107 2.8486225740225644]
-;;=&gt;       [-1.888363763588683 -1.1563871329733284]),
-;;=&gt;  :y -14.215089615431829,
-;;=&gt;  :ys (-14.215089615431829
-;;=&gt;       -16.815297071677293
-;;=&gt;       -17.462860293788076
-;;=&gt;       -17.744816239598208
-;;=&gt;       -20.615802356617465
-;;=&gt;       -22.162615510893275
-;;=&gt;       -24.224408335659316
-;;=&gt;       -27.242155607463257
-;;=&gt;       -28.411167999778808
-;;=&gt;       -30.124452463080992
-;;=&gt;       -31.938891263714766
-;;=&gt;       -109.0197889700575
-;;=&gt;       -207.28362446861843
-;;=&gt;       -32.125778640591044
-;;=&gt;       -67.26573203293053
-;;=&gt;       -130.81576798956124)}</fn@5bf6075a></code></pre></div><div><blockquote><p>Bayesian optimization points</p>
+;;=&gt;  #object[fastmath.gp.GaussianProcess 0x28b5ba47 "fastmath.gp.GaussianProcess@28b5ba47"],
+;;=&gt;  :util-best (3.3729488879147964 -2.620438835444758),
+;;=&gt;  :util-fn #<fn@56c734b fastmath.optimization="" ayesian_step_fn[fn]="">,
+;;=&gt;  :x (3.3729488879147964 -2.620438835444758),
+;;=&gt;  :xs ((3.3729488879147964 -2.620438835444758)
+;;=&gt;       (3.36187557517831 -2.6237903194805474)
+;;=&gt;       (3.351828505436199 -2.6264359739765966)
+;;=&gt;       (3.3060837306516566 -2.640935863617064)
+;;=&gt;       (3.286454362856877 -2.6473628941707936)
+;;=&gt;       (3.265767305740245 -2.6544534772895774)
+;;=&gt;       (3.2419800358378614 -2.6637697495855432)
+;;=&gt;       (3.190317165852559 -2.684697918465639)
+;;=&gt;       (3.172005847659775 -2.6921006238846394)
+;;=&gt;       (3.1451516934935335 -2.7029851461345773)
+;;=&gt;       (3.1427077525951934 -2.7039793547117545)
+;;=&gt;       [-1.433722730094984 -4.137307884094992]
+;;=&gt;       [-4.714882264268117 1.9098365364159786]
+;;=&gt;       [3.1397031994440194 -2.7052550947300946]
+;;=&gt;       [0.4479931778387405 2.8837298590521643]
+;;=&gt;       [-2.031539012553959 -1.389874414200587]),
+;;=&gt;  :y -15.52930903134845,
+;;=&gt;  :ys (-15.52930903134845
+;;=&gt;       -15.927245046746147
+;;=&gt;       -16.282604887285657
+;;=&gt;       -18.110651852307072
+;;=&gt;       -18.959945083044893
+;;=&gt;       -19.904039697074026
+;;=&gt;       -21.083425811017257
+;;=&gt;       -23.841924184622968
+;;=&gt;       -24.872757395829396
+;;=&gt;       -26.435102867433862
+;;=&gt;       -26.580321983031297
+;;=&gt;       -246.53690626818835
+;;=&gt;       -237.7413705814692
+;;=&gt;       -26.76191499591264
+;;=&gt;       -65.76759583573417
+;;=&gt;       -118.67959361768936)}</fn@56c734b></code></pre></div><div><blockquote><p>Bayesian optimization points</p>
 </blockquote><img src="images/o/bo.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L486">view source</a></div></div><div class="public anchor" id="var-maximize"><h3>maximize</h3><div class="usage"><code>(maximize method f config)</code></div><div class="doc"><div class="markdown"><p>Maximize given function.</p>
 <p>Parameters: optimization method, function and configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -149,10 +149,10 @@
    :run-1 (optimizer),
    :run-2 (optimizer [4.5]),
    :run-3 (optimizer [-4.5])})
-;;=&gt; {:optimizer #<fn@3ab17202 fastmath.optimization="" ptimizer[fn]="">,
-;;=&gt;  :run-1 [(0.0) 6.0],
-;;=&gt;  :run-2 [(-2.544249755334584) 3.310339162598309],
-;;=&gt;  :run-3 [(-3.381948864800522) 2.6270099739476245]}</fn@3ab17202></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L353">view source</a></div></div><div class="public anchor" id="var-minimize"><h3>minimize</h3><div class="usage"><code>(minimize method f config)</code></div><div class="doc"><div class="markdown"><p>Minimize given function.</p>
+;;=&gt; {:optimizer #<fn@790c2af1 fastmath.optimization="" ptimizer[fn]="">,
+;;=&gt;  :run-1 [(-0.17915749236498976) 6.517287720905591],
+;;=&gt;  :run-2 [(0.6671021467828373) 2.227512773020161],
+;;=&gt;  :run-3 [(-0.9516825400712801) 6.139029174147362]}</fn@790c2af1></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L353">view source</a></div></div><div class="public anchor" id="var-minimize"><h3>minimize</h3><div class="usage"><code>(minimize method f config)</code></div><div class="doc"><div class="markdown"><p>Minimize given function.</p>
 <p>Parameters: optimization method, function and configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>1d function</p>
 </blockquote><pre><code class="hljs clojure">(let [bounds [[-5.0 5.0]]
@@ -178,7 +178,7 @@
 ;;=&gt;  :gradient [(2.999999970879802 2.0000000603184582)
 ;;=&gt;             5.80971508134794E-14]}</code></pre></div><div><blockquote><p>With stats</p>
 </blockquote><pre><code class="hljs clojure">(minimize :gradient
-          (fn* [p1__30191#] (m/sin p1__30191#))
+          (fn* [p1__33957#] (m/sin p1__33957#))
           {:bounds [[-5 5]], :stats? true})
 ;;=&gt; {:evaluations 22, :iterations 3, :result [(-1.5707963273466874) -1.0]}</code></pre></div><div><blockquote><p>min/max of f using <code>:powell</code> optimizer</p>
 </blockquote><img src="images/o/powell-1d.png" /></div><div><blockquote><p>min/max of f using <code>:nelder-mead</code> optimizer</p>
@@ -204,10 +204,10 @@
    :run-1 (optimizer),
    :run-2 (optimizer [4.5]),
    :run-3 (optimizer [-4.5])})
-;;=&gt; {:optimizer #<fn@5cc1ba9b fastmath.optimization="" ptimizer[fn]="">,
+;;=&gt; {:optimizer #<fn@4412c998 fastmath.optimization="" ptimizer[fn]="">,
 ;;=&gt;  :run-1 [(-3.947569586073323) 2.2959519482739297],
 ;;=&gt;  :run-2 [(2.357114991599655) -0.2350104692683484],
-;;=&gt;  :run-3 [(-4.570514545168775) 2.074718566761628]}</fn@5cc1ba9b></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L347">view source</a></div></div><div class="public anchor" id="var-scan-and-maximize"><h3>scan-and-maximize</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
+;;=&gt;  :run-3 [(-4.570514545168775) 2.074718566761628]}</fn@4412c998></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L347">view source</a></div></div><div class="public anchor" id="var-scan-and-maximize"><h3>scan-and-maximize</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [bounds [[-5.0 5.0]]
       f (fn [x]
           (+ (* 0.2 (m/sin (* 10.0 x)))
@@ -215,9 +215,9 @@
   {:powell (scan-and-maximize :powell f {:bounds bounds}),
    :brent (scan-and-maximize :brent f {:bounds bounds}),
    :bfgs (scan-and-maximize :bfgs f {:bounds bounds})})
-;;=&gt; {:bfgs [(-0.45231069241223704) 7.22468967120353],
-;;=&gt;  :brent [(-0.4523107095968778) 7.224689671203526],
-;;=&gt;  :powell [(-0.4523089346961063) 7.2246896711585515]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L420">view source</a></div></div><div class="public anchor" id="var-scan-and-minimize"><h3>scan-and-minimize</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>1d function</p>
+;;=&gt; {:bfgs [(-0.4523106924983422) 7.224689671203531],
+;;=&gt;  :brent [(-0.4523106952522764) 7.224689671203531],
+;;=&gt;  :powell [(-0.45230980862870857) 7.224689671192147]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L420">view source</a></div></div><div class="public anchor" id="var-scan-and-minimize"><h3>scan-and-minimize</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>1d function</p>
 </blockquote><pre><code class="hljs clojure">(let [bounds [[-5.0 5.0]]
       f (fn [x]
           (+ (* 0.2 (m/sin (* 10.0 x)))
@@ -225,18 +225,17 @@
   {:powell (scan-and-minimize :powell f {:bounds bounds}),
    :brent (scan-and-minimize :brent f {:bounds bounds}),
    :bfgs (scan-and-minimize :bfgs f {:bounds bounds})})
-;;=&gt; {:bfgs [(2.3571149048737094) -0.23501046926842542],
-;;=&gt;  :brent [(2.357115161802861) -0.23501046926775246],
-;;=&gt;  :powell [(2.3568462925873455) -0.23501046926768646]}</code></pre></div><div><blockquote><p>2d function</p>
+;;=&gt; {:bfgs [(2.35711490562854) -0.23501046926842561],
+;;=&gt;  :brent [(2.357114837258413) -0.23501046926837937],
+;;=&gt;  :powell [(2.3567778686638596) -0.23501046922629149]}</code></pre></div><div><blockquote><p>2d function</p>
 </blockquote><pre><code class="hljs clojure">(let [bounds [[-5.0 5.0] [-5.0 5.0]]
       f (fn [x y]
           (+ (m/sq (+ (* x x) y -11.0)) (m/sq (+ x (* y y) -7.0))))]
   {:bobyqa (scan-and-minimize :bobyqa f {:bounds bounds}),
    :gradient (scan-and-minimize :gradient f {:bounds bounds}),
    :bfgs (scan-and-minimize :bfgs f {:bounds bounds})})
-;;=&gt; {:bfgs [(-2.8051180988104436 3.1313125348546036)
-;;=&gt;         1.5397757100655527E-14],
+;;=&gt; {:bfgs [(2.999999998925092 1.99999999832212) 1.2668195871859995E-16],
 ;;=&gt;  :bobyqa [(2.9999999999935567 2.000000000056682)
 ;;=&gt;           4.8850752449334874E-20],
-;;=&gt;  :gradient [(3.000000000017255 2.0000000000007283)
-;;=&gt;             1.1276866241712257E-20]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L419">view source</a></div></div></div></body></html>
+;;=&gt;  :gradient [(-2.80511808703194 3.1313125185420416)
+;;=&gt;             3.590446894468834E-18]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/optimization.clj#L419">view source</a></div></div></div></body></html>

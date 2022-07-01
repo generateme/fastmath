@@ -107,9 +107,9 @@
 </ul>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [k (kernel-density :epanechnikov (repeatedly 1000 rand))] (k 0.5))
-;;=&gt; 1.0975248642891238
+;;=&gt; 1.0669094760426778
 (let [k (kernel-density :gaussian (repeatedly 1000 rand) 2)] (k 0.5))
-;;=&gt; 0.19741996801404357</code></pre></div><div><blockquote><p>Plot of cauchy</p>
+;;=&gt; 0.19741284492345842</code></pre></div><div><blockquote><p>Plot of cauchy</p>
 </blockquote><img src="images/k/d_cauchy.jpg" /></div><div><blockquote><p>Plot of cosine</p>
 </blockquote><img src="images/k/d_cosine.jpg" /></div><div><blockquote><p>Plot of default</p>
 </blockquote><img src="images/k/d_default.jpg" /></div><div><blockquote><p>Plot of epanechnikov</p>
@@ -138,9 +138,9 @@
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [k (kernel-density-ci :epanechnikov (repeatedly 1000 rand))]
   (k 0.5))
-;;=&gt; [1.0794221315964698 0.8980097608706256 1.260834502322314]
+;;=&gt; [1.027391020668285 0.8521265645757178 1.2026554767608522]
 (let [k (kernel-density-ci :gaussian (repeatedly 1000 rand) 2)] (k 0.5))
-;;=&gt; [0.19739773627994323 0.18705580348752873 0.20773966907235772]</code></pre></div><div><blockquote><p>Kernel density with confidence intervals</p>
+;;=&gt; [0.1974627015123404 0.18711906705198922 0.2078063359726916]</code></pre></div><div><blockquote><p>Kernel density with confidence intervals</p>
 </blockquote><img src="images/k/ci.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/kernel.clj#L763">view source</a></div></div><div class="public anchor" id="var-kernel-density-list"><h3>kernel-density-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of density kernels</p>
 </blockquote><pre><code class="hljs clojure">kernel-density-list
 ;;=&gt; (:cauchy :cosine
@@ -263,11 +263,11 @@
 <p>Used to pass to Smile constructors/functions.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(smile-mercer (kernel :mattern-52))
-;;=&gt; fastmath.kernel$smile_mercer$reify__22827@1f5b76ed</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/kernel.clj#L558">view source</a></div></div><div class="public anchor" id="var-smile-rbf"><h3>smile-rbf</h3><div class="usage"><code>(smile-rbf rbf-fn)</code></div><div class="doc"><div class="markdown"><p>Create RBF Smile object.</p>
+;;=&gt; fastmath.kernel$smile_mercer$reify__22830@24846ab8</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/kernel.clj#L558">view source</a></div></div><div class="public anchor" id="var-smile-rbf"><h3>smile-rbf</h3><div class="usage"><code>(smile-rbf rbf-fn)</code></div><div class="doc"><div class="markdown"><p>Create RBF Smile object.</p>
 <p>Used to pass to Smile constructors/functions.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(smile-rbf (rbf :mattern-c2))
-;;=&gt; fastmath.kernel$smile_rbf$reify__22565@4ea99ef7</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/kernel.clj#L259">view source</a></div></div><div class="public anchor" id="var-wadd"><h3>wadd</h3><div class="usage"><code>(wadd kernels)</code><code>(wadd weights kernels)</code></div><div class="doc"><div class="markdown"><p>Kernel wrapper. Add kernels (weighted).</p>
+;;=&gt; fastmath.kernel$smile_rbf$reify__22568@81a2a11</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/kernel.clj#L259">view source</a></div></div><div class="public anchor" id="var-wadd"><h3>wadd</h3><div class="usage"><code>(wadd kernels)</code><code>(wadd weights kernels)</code></div><div class="doc"><div class="markdown"><p>Kernel wrapper. Add kernels (weighted).</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [k1 (kernel :laplacian)
       k2 (kernel :periodic)
