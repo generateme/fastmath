@@ -78,7 +78,7 @@
 ;;=&gt; 90.0
 (m/degrees (angle-between (vec (repeatedly 50 rand))
                           (vec (repeatedly 50 rand))))
-;;=&gt; 41.27310941996836</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1218">view source</a></div></div><div class="public anchor" id="var-applyf"><h3>applyf</h3><h4 class="deprecated">deprecated in v1.3.0</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Same as <a href="fastmath.vector.html#var-fmap">fmap</a>. Deprecated.</p>
+;;=&gt; 43.90510532051888</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1218">view source</a></div></div><div class="public anchor" id="var-applyf"><h3>applyf</h3><h4 class="deprecated">deprecated in v1.3.0</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Same as <a href="fastmath.vector.html#var-fmap">fmap</a>. Deprecated.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(applyf [5 3] (fn [v] (m/sin v)))
 ;;=&gt; [-0.9589242746631386 0.1411200080598671]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L826">view source</a></div></div><div class="public anchor" id="var-approx"><h3>approx</h3><div class="usage"><code>(approx v)</code><code>(approx v d)</code></div><div class="doc"><div class="markdown"><p>Round to 2 (or <code>d</code>) decimal places</p>
@@ -299,18 +299,18 @@
 </blockquote><pre><code class="hljs clojure">(generate-vec2 (constantly 2))
 ;;=&gt; [2.0 2.0]
 (generate-vec2 rand (constantly 1))
-;;=&gt; [0.24034061572325793 1.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1263">view source</a></div></div><div class="public anchor" id="var-generate-vec3"><h3>generate-vec3</h3><div class="usage"><code>(generate-vec3 f1 f2 f3)</code><code>(generate-vec3 f)</code></div><div class="doc"><div class="markdown"><p>Generate Vec3 with fn(s)</p>
+;;=&gt; [0.6807480091417473 1.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1263">view source</a></div></div><div class="public anchor" id="var-generate-vec3"><h3>generate-vec3</h3><div class="usage"><code>(generate-vec3 f1 f2 f3)</code><code>(generate-vec3 f)</code></div><div class="doc"><div class="markdown"><p>Generate Vec3 with fn(s)</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(generate-vec3 rand)
-;;=&gt; [0.8358968410114342 0.7887787612343918 0.9638845054903926]
+;;=&gt; [0.6832019202579933 0.6186931340704168 7.909158539444183E-4]
 (generate-vec3 rand (constantly 1) (constantly 2))
-;;=&gt; [0.4954375271650199 1.0 2.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1271">view source</a></div></div><div class="public anchor" id="var-generate-vec4"><h3>generate-vec4</h3><div class="usage"><code>(generate-vec4 f1 f2 f3 f4)</code><code>(generate-vec4 f)</code></div><div class="doc"><div class="markdown"><p>Generate Vec4 with fn(s)</p>
+;;=&gt; [0.169649252751502 1.0 2.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1271">view source</a></div></div><div class="public anchor" id="var-generate-vec4"><h3>generate-vec4</h3><div class="usage"><code>(generate-vec4 f1 f2 f3 f4)</code><code>(generate-vec4 f)</code></div><div class="doc"><div class="markdown"><p>Generate Vec4 with fn(s)</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(generate-vec4 rand)
-;;=&gt; [0.3119807768283125 0.8005221589515181 0.5321109313454473
-;;=&gt;  0.9840176991221459]
+;;=&gt; [0.6287886424142788 0.12140659337959536 0.8720660802073715
+;;=&gt;  0.097819318898972]
 (generate-vec4 rand rand (constantly 1) (constantly 2))
-;;=&gt; [0.645316099540766 0.3195932914971993 1.0 2.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1279">view source</a></div></div><div class="public anchor" id="var-heading"><h3>heading</h3><div class="usage"><code>(heading v)</code></div><div class="doc"><div class="markdown"><p>Angle between vector and unit vector <code>[1,0,...]</code></p>
+;;=&gt; [0.6590095217117674 0.700106482584609 1.0 2.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1279">view source</a></div></div><div class="public anchor" id="var-heading"><h3>heading</h3><div class="usage"><code>(heading v)</code></div><div class="doc"><div class="markdown"><p>Angle between vector and unit vector <code>[1,0,...]</code></p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(m/degrees (heading (vec2 1.0 1.0)))
 ;;=&gt; 45.0
@@ -403,14 +403,14 @@
 </blockquote><pre><code class="hljs clojure">(let [v (vec (repeatedly 100 (fn [] (- (int (rand-int 200)) 100))))
       mdim (maxdim v)]
   [mdim (v mdim)])
-;;=&gt; [91 95]
+;;=&gt; [8 99]
 (maxdim (vec3 1 2 3))
 ;;=&gt; 2</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L929">view source</a></div></div><div class="public anchor" id="var-mindim"><h3>mindim</h3><div class="usage"><code>(mindim v)</code></div><div class="doc"><div class="markdown"><p>Index of minimum value.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [v (vec (repeatedly 100 (fn [] (- (int (rand-int 200)) 100))))
       mdim (mindim v)]
   [mdim (v mdim)])
-;;=&gt; [76 -97]
+;;=&gt; [37 -100]
 (mindim (vec3 1 2 3))
 ;;=&gt; 0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L934">view source</a></div></div><div class="public anchor" id="var-mn"><h3>mn</h3><div class="usage"><code>(mn v)</code></div><div class="doc"><div class="markdown"><p>Minimum value of vector elements</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -450,7 +450,7 @@
 ;;=&gt; 90.0
 (m/degrees (relative-angle-between (vec (repeatedly 50 rand))
                                    (vec (repeatedly 50 rand))))
-;;=&gt; 8.522274318786005</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1233">view source</a></div></div><div class="public anchor" id="var-rint"><h3>rint</h3><div class="usage"><code>(rint vector)</code></div><div class="doc"><div class="markdown"><p>Apply rint to vector elements.</p>
+;;=&gt; 10.060467354394754</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1233">view source</a></div></div><div class="public anchor" id="var-rint"><h3>rint</h3><div class="usage"><code>(rint vector)</code></div><div class="doc"><div class="markdown"><p>Apply rint to vector elements.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(rint (fastmath.vector/vec4 0.5 -1.5 2.1 0.0))
 ;;=&gt; [0.0 -2.0 2.0 0.0]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/vector.clj#L1337">view source</a></div></div><div class="public anchor" id="var-rotate"><h3>rotate</h3><div class="usage"><code>(rotate v angle)</code><code>(rotate v angle-x angle-y angle-z)</code></div><div class="doc"><div class="markdown"><p>Rotate vector. Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
@@ -570,7 +570,7 @@
 ;;=&gt; 6.5</code></pre></div><div><blockquote><p>As function</p>
 </blockquote><pre><code class="hljs clojure">[((vec2 11 22) 0) ((vec2 11 22) 1)]
 ;;=&gt; [11.0 22.0]</code></pre></div><div><blockquote><p>As sequence</p>
-</blockquote><pre><code class="hljs clojure">(map (fn* [p1__35931#] (* 2.0 p1__35931#)) (vec2 1 2))
+</blockquote><pre><code class="hljs clojure">(map (fn* [p1__35950#] (* 2.0 p1__35950#)) (vec2 1 2))
 ;;=&gt; (2.0 4.0)
 (reduce clojure.core/+ (vec2 6 4))
 ;;=&gt; 10.0

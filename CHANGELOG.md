@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.matrix` - matrix 2x2, 3x3 and 4x4 basic operations (unrolled)
 * fields refactored
 * `binomial-ci` - confidence interval methods for binomial distribution
+* new distributions:
+    - `:zaga` - zero adjusted gamma distribution
 
 ### Changed
 

@@ -652,7 +652,7 @@ See also [[jittered-sequence-generator]]."
            :octaves (irand 1 10)
            :lacunarity (drand 1.5 2.5)
            :gain (drand 0.2 0.8)
-           :warp-scale (randval 0.8 0.0 (randval 0.5 4.0 (drand 0.1 10)))
+           :warp-scale (randval 0.8 0.0 (randval 0.5 4.0 (drand 0.1 10.0)))
            :warp-depth (randval 0.8 1 (irand 1 4))
            :normalize? true} pre-config))
   ([] (random-noise-cfg nil)))
@@ -1220,7 +1220,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn v))
        (probability [d v] (prot/pdf d v))
-       (sample [d] (icdf-fn (prot/drandom r)))
+       (sample [_] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
@@ -1309,7 +1309,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        prot/DistributionProto
        (pdf [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
        (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
-       (probability [d v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
+       (probability [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
        (sample [_] (let [samples (map #(prot/sample %) sampler)
                          s (v/sum samples)]
                      (mapv (fn [^double v] (cond
@@ -1445,8 +1445,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
        (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
-       (probability [d v] (kd v))
-       (sample [d] (icdf-fn (prot/drandom r)))
+       (probability [_ v] (kd v))
+       (sample [_] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
@@ -1505,7 +1505,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (probability [_ v] (.probability enumerated (.valAt dict v -1)))
        (sample [_] (.valAt unique (.sample enumerated)))
        (dimensions [_] 1)
-       (source-object [d] enumerated)
+       (source-object [_] enumerated)
        (continuous? [_] false)
        prot/DistributionIdProto
        (distribution-id [_] :categorical-distribution)
@@ -1542,8 +1542,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (cdf [_ v] (* m/M_2_PI (m/atan (/ ^double v scale))))
        (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn v))
-       (probability [d v] (m/exp (lpdf-fn v)))
-       (sample [d] (icdf-fn (prot/drandom r)))
+       (probability [_ v] (m/exp (lpdf-fn v)))
+       (sample [_] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)
        (continuous? [_] true)
@@ -1565,7 +1565,67 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (set-seed! [d seed] (prot/set-seed! r seed) d))))
   ([_] (distribution :half-cauchy {})))
 
-;;
+;; source: https://github.com/cran/gamlss.dist
+
+(defmethod distribution :zaga
+  ([_ {:keys [^double mu ^double sigma ^double nu lower-tail?]
+       :or {mu 1.0 sigma 1.0 nu 0.1 lower-tail? true}
+       :as all}]
+   (let [mean (* (- 1.0 nu) mu)
+         s2 (* sigma sigma)
+         rs2 (/ s2)
+         lgrs2 (m/log-gamma rs2)
+         mus2 (* s2 mu)
+         rmus2 (/ mus2)
+         variance (* mean mu (+ s2 nu))
+         lnu (m/log nu)
+         -nu (- 1.0 nu)
+         l1nu (m/log -nu)
+         r (or (:rng all) (rng :jvm))
+         gamma-dist (distribution :gamma (assoc all :rng r :shape rs2 :scale mus2))
+         lpdf-fn (fn [^double x]
+                   (if (zero? x)
+                     lnu
+                     (let [xx (* x rmus2)]
+                       (- (+ l1nu (* rs2 (m/log xx))) xx (m/log x) lgrs2))))
+         cdf-fn (fn [^double x]
+                  (let [cdf (if (zero? x)
+                              nu
+                              (+ nu (* -nu ^double (prot/cdf gamma-dist x))))]
+                    (if lower-tail? cdf (- 1.0 cdf))))
+         icdf-fn (fn [^double x]
+                   (let [p (if lower-tail? x (- 1.0 x))
+                         p (if (<= p nu) nu p)]
+                     (prot/icdf gamma-dist (/ (- p nu) -nu))))]
+     (reify
+       prot/DistributionProto
+       (pdf [_ v] (m/exp (lpdf-fn v)))
+       (lpdf [_ v] (lpdf-fn v))
+       (cdf [_ v] (cdf-fn v))
+       (cdf [d v1 v2] ((- ^double (prot/cdf d v2) ^double (prot/cdf d v1))))
+       (icdf [_ v] (icdf-fn v))
+       (probability [_ v] (m/exp (lpdf-fn v)))
+       (sample [_] (icdf-fn (prot/drandom r)))
+       (dimensions [_] 1)
+       (source-object [d] d)
+       (continuous? [_] true)
+       prot/DistributionIdProto
+       (distribution-id [_] :zaga)
+       (distribution-parameters [_] [:mu :sigma :nu :lower-tail? :rng])
+       prot/UnivariateDistributionProto
+       (mean [_] mean)
+       (variance [_] variance)
+       (lower-bound [_] 0)
+       (upper-bound [_] ##Inf)
+       prot/RNGProto
+       (drandom [_] (icdf-fn (prot/drandom r)))
+       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
+       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
+       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
+  ([_] (distribution :zaga {})))
 
 (defonce ^{:doc "List of distributions."
            :metadoc/categories #{:dist}}
@@ -1573,65 +1633,65 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   (into (sorted-set) (keys (methods distribution))))
 
 (defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
-           :metadoc/categories #{:dist}}
-  default-normal (distribution :normal))
+:metadoc/categories #{:dist}}
+default-normal (distribution :normal))
 
 ;;
 
 (defn set-seed!
-  "Sets seed.
+"Sets seed.
 
   If `rng` is `:smile` calls `smile.math.MathEx/setSeed()`.
 
   Without `rng` sets both `:smile` and `default-rng`"
-  {:metadoc/categories #{:rand}}
-  ([]
-   (MathEx/setSeed)
-   (prot/set-seed! default-rng (lrand)))
-  ([^long v]
-   (MathEx/setSeed v)
-   (prot/set-seed! default-rng v))
-  ([rng ^long v]
-   (if (= rng :smile)
-     (MathEx/setSeed v)
-     (prot/set-seed! rng v))))
+{:metadoc/categories #{:rand}}
+([]
+(MathEx/setSeed)
+(prot/set-seed! default-rng (lrand)))
+([^long v]
+(MathEx/setSeed v)
+(prot/set-seed! default-rng v))
+([rng ^long v]
+(if (= rng :smile)
+  (MathEx/setSeed v)
+  (prot/set-seed! rng v))))
 
 ;;
 
 (defn- uniform-spacings
-  ([^long n] (uniform-spacings default-rng n))
-  ([rng ^long n]
-   (let [xs (reductions m/fast+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
-         l (/ ^double (last xs))]
-     (map (fn [^double x] (* x l)) (butlast xs)))))
+([^long n] (uniform-spacings default-rng n))
+([rng ^long n]
+(let [xs (reductions m/fast+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
+      l (/ ^double (last xs))]
+  (map (fn [^double x] (* x l)) (butlast xs)))))
 
 (defn- systematic-spacings
-  ([^long n] (systematic-spacings default-rng n))
-  ([rng ^long n]
-   (let [l (/ 1.0 n)
-         d (drandom rng)]
-     (map (fn [^long x] (* (+ x d) l)) (range n)))))
+([^long n] (systematic-spacings default-rng n))
+([rng ^long n]
+(let [l (/ 1.0 n)
+      d (drandom rng)]
+  (map (fn [^long x] (* (+ x d) l)) (range n)))))
 
 (defn- stratified-spacings
-  ([^long n] (systematic-spacings default-rng n))
-  ([rng ^long n]
-   (let [l (/ 1.0 n)]
-     (map (fn [^long x] (* (+ x (drandom rng)) l)) (range n)))))
+([^long n] (systematic-spacings default-rng n))
+([rng ^long n]
+(let [l (/ 1.0 n)]
+  (map (fn [^long x] (* (+ x (drandom rng)) l)) (range n)))))
 
 (def ^:private spacings
-  {:uniform uniform-spacings
-   :systematic systematic-spacings
-   :stratified stratified-spacings})
+{:uniform uniform-spacings
+:systematic systematic-spacings
+:stratified stratified-spacings})
 
 (defn ->seq
-  "Returns lazy sequence of random samples (can be limited to optional `n` values).
+"Returns lazy sequence of random samples (can be limited to optional `n` values).
 
   Additionally one of the sampling methods can be provided, ie: `:uniform`, `:systematic` and `:stratified`."
-  {:metadoc/categories #{:rand}}
-  ([] (prot/->seq default-rng))
-  ([rng] (prot/->seq rng))
-  ([rng n] (prot/->seq rng n))
-  ([rng n sampling-method]
-   (if (satisfies? prot/DistributionProto rng)
-     (map (partial prot/icdf rng) ((spacings sampling-method uniform-spacings) n))
-     ((spacings sampling-method uniform-spacings) rng n))))
+{:metadoc/categories #{:rand}}
+([] (prot/->seq default-rng))
+([rng] (prot/->seq rng))
+([rng n] (prot/->seq rng n))
+([rng n sampling-method]
+(if (satisfies? prot/DistributionProto rng)
+  (map (partial prot/icdf rng) ((spacings sampling-method uniform-spacings) n))
+  ((spacings sampling-method uniform-spacings) rng n))))
