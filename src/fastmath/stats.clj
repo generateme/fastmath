@@ -300,6 +300,67 @@
       (percentile avs p2 estimation-strategy)
       (median avs)])))
 
+(defn quantile-extent
+  "Return quantile range and median.
+
+  `p` - calculates extent of `p` and `100-p` (default: `p=25`)"
+  {:metadoc/categories #{:extent}}
+  ([vs] (quantile-extent vs 25.0))
+  ([vs ^double q] (quantile-extent vs q (- 100.0 q)))
+  ([vs q1 q2] (quantile-extent vs q1 q2 :legacy))
+  ([vs ^double q1 ^double q2 estimation-strategy]
+   (let [avs (m/seq->double-array vs)]
+     [(quantile avs q1 estimation-strategy)
+      (quantile avs q2 estimation-strategy)
+      (median avs)])))
+
+(defn pi
+  "Returns PI as a map, quantile intervals based on interval size.
+
+  Quantiles are `(1-size)/2` and `1-(1-size)/2`"
+  ([vs] (pi vs 0.5))
+  ([vs ^double size] (pi vs size :legacy))
+  ([vs ^double size estimation-strategy]
+   (let [a (* 0.5 (- 1.0 size))
+         avs (m/seq->double-array vs)
+         q1 (quantile avs a estimation-strategy)
+         q2 (quantile avs (- 1.0 a) estimation-strategy)]
+     {(m/approx (* a 100.0) 2) q1
+      (m/approx (* (- 1.0 a) 100.0) 2) q2})))
+
+(defn pi-extent
+  "Returns PI extent, quantile intervals based on interval size + median.
+
+  Quantiles are `(1-size)/2` and `1-(1-size)/2`"
+  ([vs] (pi-extent vs 0.5))
+  ([vs ^double size] (pi-extent vs size :legacy))
+  ([vs ^double size estimation-strategy]
+   (let [a (* 0.5 (- 1.0 size))]
+     (quantile-extent vs a (- 1.0 a) estimation-strategy))))
+
+
+(defn hpdi-extent
+  "Higher Posterior Density interval + median.
+
+  `size` parameter is the target probability content of the interval."
+  ([vs] (hpdi-extent vs 0.95))
+  ([vs ^double size]
+   (let [avs (m/seq->double-array vs)
+         nsamp (alength avs)
+         gap (m/constrain (m/round (* nsamp size)) 1 (dec nsamp))
+         max-idx (- nsamp gap)]
+     (java.util.Arrays/sort avs)
+     (loop [idx (long 0)
+            min-idx (long 0)
+            mn Double/MAX_VALUE]
+       (if (< idx max-idx)
+         (let [diff (- (aget avs (+ idx gap))
+                       (aget avs idx))]
+           (if (< diff mn)
+             (recur (inc idx) idx diff)
+             (recur (inc idx) min-idx mn)))
+         [(aget avs min-idx) (aget avs (+ min-idx gap)) (median avs)])))))
+
 (defn iqr
   "Interquartile range."
   {:metadoc/categories #{:stat}}

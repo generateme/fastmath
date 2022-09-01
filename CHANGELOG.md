@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file. This change
 * `binomial-ci` - confidence interval methods for binomial distribution
 * new distributions:
     - `:zaga` - zero adjusted gamma distribution
+* `hpdi-extent` and `pi-extent` - new extents based on HPDI and PI from `rethinking` R package
+* `distribution-parameters` accept a keyword additionally
 
 ### Changed
 

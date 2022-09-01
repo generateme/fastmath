@@ -686,6 +686,16 @@ See also [[jittered-sequence-generator]]."
 
 ;; Distribution
 
+(defmulti
+  ^{:doc "Create distribution object.
+
+* First parameter is distribution as a `:key`.
+* Second parameter is a map with configuration.
+
+All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."
+    :metadoc/categories #{:dist}}
+  distribution (fn ([k _] k) ([k] k)))
+
 ;; protocol proxies
 (defn cdf
   "Cumulative probability."
@@ -801,12 +811,13 @@ See also [[jittered-sequence-generator]]."
   {:metadoc/categories #{:dist}}
   ([d] (distribution-parameters d false))
   ([d all?]
-   (if-not all?
-     (-> (prot/distribution-parameters d)
-         (set)
-         (disj :rng :inverse-cumm-accuracy)
-         (vec))
-     (prot/distribution-parameters d))))
+   (let [d' (if (keyword? d) (distribution d) d)]
+     (if-not all?
+       (-> (prot/distribution-parameters d')
+           (set)
+           (disj :rng :inverse-cumm-accuracy)
+           (vec))
+       (prot/distribution-parameters d')))))
 
 ;; apache commons math
 (extend RealDistribution
@@ -979,16 +990,6 @@ See also [[jittered-sequence-generator]]."
             ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
             ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
    :set-seed! (fn [^MultivariateNormalDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
-
-(defmulti
-  ^{:doc "Create distribution object.
-
-* First parameter is distribution as a `:key`.
-* Second parameter is a map with configuration.
-
-All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."
-    :metadoc/categories #{:dist}}
-  distribution (fn ([k _] k) ([k] k)))
 
 (defmacro ^:private make-acm-distr
   [nm obj ks vs]
@@ -1387,8 +1388,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
            (set-seed! [d seed] (prot/set-seed! r seed) d)))))
     ([_] (distribution :continuous-distribution {})))
 
-(defonce ^:private ^RombergIntegrator romberg-integrator (RombergIntegrator.))
-
 (defn- find-first-non-zero
   ^double [f xs]
   (->> xs
@@ -1407,6 +1406,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   [kd [^double mn ^double mx ^double step] ^long steps]
   (let [ukd (reify UnivariateFunction
               (value [_ x] (kd x)))
+        ^RombergIntegrator romberg-integrator (RombergIntegrator.)
         ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
         points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
                                  (let [i (.integrate romberg-integrator Integer/MAX_VALUE ukd x1 x2)
