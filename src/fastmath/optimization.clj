@@ -144,8 +144,8 @@
    :cmaes cmaes
    :gradient non-linear-gradient})
 
-(defn- wrap-univariate-function [f] (UnivariateObjectiveFunction. (reify UnivariateFunction
-                                                                    (value [_ x] (f x)))))
+(defn- wrap-univariate-function ^UnivariateFunction [f] (reify UnivariateFunction (value [_ x] (f x))))
+(defn- wrap-univariate-objective-function [f] (UnivariateObjectiveFunction. (wrap-univariate-function f)))
 
 (defn- multivariate-function [f]
   (reify
@@ -230,7 +230,7 @@
 (defn- wrap-function
   [method f]
   (if (univariate-set method)
-    (wrap-univariate-function f)
+    (wrap-univariate-objective-function f)
     (wrap-multivariate-function f)))
 
 (defn- parse-result
@@ -531,6 +531,9 @@
                             :y maxy
                             :xs xs
                             :ys ys}))))
+
+;; root finding methods
+
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
         bounds [[-4 4] [-3 3]]

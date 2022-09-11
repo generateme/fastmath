@@ -12,10 +12,22 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.matrix` - matrix 2x2, 3x3 and 4x4 basic operations (unrolled)
 * fields refactored
 * `binomial-ci` - confidence interval methods for binomial distribution
-* new distributions:
+* new distributions (based on R package `gamlss.dist`):
     - `:zaga` - zero adjusted gamma distribution
+	- `:nbi` - negative binomial type I
+	- `:zinbi` - zero inflated negative binomial type I
+	- `:zanbi` - zero altered negative binomial type I
+	- `:zip` - poisson zero inflated
+	- `:zip2` - zero inflated poisson 2
+	- `:exgaus` - ex-Gaussian
+	- `:zabi` - zero adjusted binomial
+	- `:zibi` - binomial zero inflated
+	- `:bb` - beta binomial
+	- `:zabb` - zero adjusted beta binomial
+	- `:zibb` - zero inflated beta binomial
 * `hpdi-extent` and `pi-extent` - new extents based on HPDI and PI from `rethinking` R package
 * `distribution-parameters` accept a keyword additionally
+* `fastmath.solver/find-root` - root solver for univariate functions
 
 ### Changed
 
