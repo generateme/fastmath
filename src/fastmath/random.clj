@@ -1857,9 +1857,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                  (let [pnew (- (/ (- p sigma) sigma-) 1.0e-10)]
                                    (if (pos? pnew) (prot/icdf dist pnew) 0.0))))
 
+;; mean and variance from the paper: https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf
+
 (distribution-template :zabb
-                       {:mean ##NaN :variance ##NaN
-                        :distribution-parameters [:mu :sigma :bd :nu :rng]
+                       {:distribution-parameters [:mu :sigma :bd :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^double bd ^double nu]
                         :or {mu 0.5 sigma 0.1 nu 0.1 bd 1.0}} args
@@ -1867,7 +1868,12 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        nu- (- 1.0 nu)
                        lnu- (m/log nu-)
                        dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
-                       -lpdf0- (- (m/log (- 1.0 (pdf dist 0.0))))
+                       pdf0- (- 1.0 (pdf dist 0.0))
+                       mean (/ (* nu- mu bd) pdf0-)
+                       variance (- (/ (* nu- (+ (* bd mu (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
+                                                (* bd bd mu mu))) pdf0-)
+                                   (* mean mean))
+                       -lpdf0- (- (m/log pdf0-))
                        cdf2 (cdf dist 0.0)
                        rcdf2- (/ (- 1.0 cdf2))
                        lpdf-fn (fn ^double [^double x]
@@ -1884,14 +1890,16 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                      (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew)) 0.0))))
 
 (distribution-template :zibb
-                       {:mean ##NaN :variance ##NaN
-                        :distribution-parameters [:mu :sigma :bd :nu :rng]
+                       {:distribution-parameters [:mu :sigma :bd :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^double bd ^double nu]
                         :or {mu 0.5 sigma 0.5 nu 0.1 bd 1.0}} args
                        lnu (m/log nu)
                        nu- (- 1.0 nu)
                        lnu- (m/log nu-)
+                       mean (* nu- bd mu)
+                       variance (+ (* mean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
+                                   (* nu nu- bd bd mu mu))
                        dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
                        lpdf0- (m/log (+ nu (* nu- (pdf dist 0.0))))
                        lpdf-fn (fn ^double [^double x]

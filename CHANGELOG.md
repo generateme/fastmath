@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file. This change
 	- `:zanbi` - zero altered negative binomial type I
 	- `:zip` - poisson zero inflated
 	- `:zip2` - zero inflated poisson 2
-	- `:exgaus` - ex-Gaussian
+	- `:exgaus` - ex-Gaussian, exponentially modified gaussian
 	- `:zabi` - zero adjusted binomial
 	- `:zibi` - binomial zero inflated
 	- `:bb` - beta binomial
