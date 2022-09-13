@@ -1933,7 +1933,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                         :distribution-parameters [:distr :left :right]
                         :continuous? (continuous? distribution)
                         :lower-bound left-bound :upper-bound right-bound}
-                       {:keys [distr left right]} args
+                       {:keys [distr left right]
+                        :or {distr (distribution :normal)}} args
                        left-cdf (if left (cdf distr left) 0.0)
                        right-cdf (if right (cdf distr right) 1.0)
                        cdf-diff (- right-cdf left-cdf)
