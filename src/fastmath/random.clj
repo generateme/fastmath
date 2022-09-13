@@ -1581,7 +1581,24 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        cdf-fn (fn [^double v]
                                 (* m/M_2_PI (m/atan (/ v scale)))))
 
-;;
+(distribution-template :half-normal
+                       {:mean mean :variance variance
+                        :distribution-parameters [:sigma :rng]
+                        :lower-bound 0.0 :uppor-bound ##Inf}
+                       {:keys [^double sigma] :or {sigma 1.0}} args
+                       mean (* sigma (/ m/SQRT2 m/M_SQRT_PI))
+                       variance (* sigma sigma (- 1.0 (/ 2.0 m/PI)))
+                       dist (distribution :normal {:mu 0.0 :sd sigma})
+                       lpdf-fn (fn ^double [^double x]
+                                 (if (neg? x)
+                                   ##-Inf
+                                   (+ m/M_LN2 (lpdf dist x))))
+                       cdf-fn (fn ^double [^double x]
+                                (if (neg? x)
+                                  0.0
+                                  (dec (* 2.0 (cdf dist x)))))
+                       icdf-fn (fn ^double [^double x]
+                                 (icdf dist (* 0.5 (inc x)))))
 
 ;; source: https://github.com/cran/gamlss.dist
 
@@ -1626,10 +1643,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        variance (+ mu (* sigma mu mu))
                        distr (if (< sigma 0.0001)
                                (distribution :poisson {:p mu :rng r})
-                               (let [nbinom-r (unchecked-int (/ sigma))]
-                                 (distribution :negative-binomial {:r nbinom-r
-                                                                   :p (/ nbinom-r (+ nbinom-r mu))
-                                                                   :rng r})))
+                               (let [nbinom-r (/ sigma)]
+                                 (distribution :pascal {:r nbinom-r
+                                                        :p (/ nbinom-r (+ nbinom-r mu))
+                                                        :rng r})))
                        lpdf-fn (fn ^double [^double v] (prot/lpdf distr v))
                        cdf-fn (fn ^double [^double v] (prot/cdf distr v))
                        icdf-fn (fn ^double [^double v] (prot/icdf distr v)))
@@ -1910,6 +1927,29 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                  (let [pnew (max 0.0 (- (/ (- p nu) nu-)1.0e-7))]
                                    (if (pos? pnew)
                                      (prot/icdf dist pnew) 0.0))))
+
+(distribution-template :truncated
+                       {:mean ##NaN :variance ##NaN
+                        :distribution-parameters [:distr :left :right]
+                        :continuous? (continuous? distribution)
+                        :lower-bound left-bound :upper-bound right-bound}
+                       {:keys [distr left right]} args
+                       left-cdf (if left (cdf distr left) 0.0)
+                       right-cdf (if right (cdf distr right) 1.0)
+                       cdf-diff (- right-cdf left-cdf)
+                       lcdf-diff (m/log cdf-diff)
+                       left-bound (or left (lower-bound distr))
+                       right-bound (or right (upper-bound distr))
+                       ^double left (or left ##-Inf)
+                       ^double right (or right ##Inf)
+                       lpdf-fn (fn ^double [^double x]
+                                 (if (and (< left x) (<= x right))
+                                   (- (lpdf distr x) lcdf-diff)
+                                   ##-Inf))
+                       cdf-fn (fn ^double [^double x]
+                                (m/constrain (/ (- (cdf distr x) left-cdf) cdf-diff) 0.0 1.0))
+                       icdf-fn (fn ^double [^double x]
+                                 (icdf distr (+ left-cdf (* x cdf-diff)))))
 
 (defonce ^{:doc "List of distributions."
            :metadoc/categories #{:dist}}

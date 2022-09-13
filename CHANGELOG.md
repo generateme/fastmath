@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file. This change
 	- `:bb` - beta binomial
 	- `:zabb` - zero adjusted beta binomial
 	- `:zibb` - zero inflated beta binomial
+* `:half-normal` - half-normal distribution
+* `:truncated` distribution
 * `hpdi-extent` and `pi-extent` - new extents based on HPDI and PI from `rethinking` R package
 * `distribution-parameters` accept a keyword additionally
 * `fastmath.solver/find-root` - root solver for univariate functions
