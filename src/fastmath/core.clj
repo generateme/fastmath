@@ -776,8 +776,17 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ([^double a ^double b ^long digits] (== (approx a digits)
                                           (approx b digits))))
 
+(defn delta-eq
+  "Checks equality for given accuracy (default `10.0e-6`)."
+  ([^double a ^double b] (delta-eq a b 10.0e-6))
+  ([^double a ^double b ^double accuracy]
+   (< (m/abs (- a b)) accuracy)))
+
 (def ^{:metadoc/categories -round-set-
-       :doc "Alias for [[approx-eq]]"} approx= approx-eq)
+     :doc "Alias for [[approx-eq]]"} approx= approx-eq)
+
+(def ^{:metadoc/categories -round-set-
+     :doc "Alias for [[delta-eq]]"} delta= delta-eq)
 
 (defn frac
   "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."

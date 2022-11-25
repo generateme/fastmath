@@ -129,6 +129,7 @@
     (EFloat. (m/difference-of-products (.v a) (.v b) (.v c) (.v d))
              (m/prev-double (m/prev-double low))
              (m/next-double (m/next-double high)))))
+
 (defn abs ^EFloat [^EFloat ev]
   (cond
     (>= (.low ev) 0.0) ev

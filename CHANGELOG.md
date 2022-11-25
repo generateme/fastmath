@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file. This change
 * `hpdi-extent` and `pi-extent` - new extents based on HPDI and PI from `rethinking` R package
 * `distribution-parameters` accept a keyword additionally
 * `fastmath.solver/find-root` - root solver for univariate functions
+* `delta-eq` and `delta=` for checking eqality with given accuracy.
 
 ### Changed
 
