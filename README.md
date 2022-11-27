@@ -18,6 +18,13 @@ The ML functionality is now available in [scicloj.ml](https://github.com/scicloj
 [generateme/fastmath "2.1.8"]
 ```
 
+Snapshot:
+
+```clojure
+[generateme/fastmath "2.1.9-SNAPSHOT"]
+```
+
+
 ### MKL
 
 **Important Note**

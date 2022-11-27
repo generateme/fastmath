@@ -1009,19 +1009,32 @@
    (cohens-q (pearson-correlation group1a group2a)
              (pearson-correlation group1b group2b))))
 
-(defn- chi-square
+(defn chi-square
+  "Chi square test for given vectors.
+
+  Returns a map containing:
+
+  * `:chi2` - chi2 value
+  * `:k` - number of values in first vector
+  * `:r` - number of values in second vector
+  * `:n` - length of the vector
+  * `:df` - degrees of freedom (k-1)*(r-1)
+  * `:p-value` - chi2 distribution cdf for found statistic and df (upper tail)."
   [group1 group2]
   (let [fqs (frequencies (map vector group1 group2))
         cnts1 (frequencies group1)
         cnts2 (frequencies group2)
-        n (double (reduce m/fast+ (vals fqs)))]
-    {:chi2 (reduce m/fast+ (for [[g1 ^long c1] cnts1
-                                 [g2 ^long c2] cnts2
-                                 :let [f (/ (* c1 c2) n)]]
-                             (/ (m/sq (- ^long (get fqs [g1 g2] 0) f)) f)))
-     :k (count cnts1)
-     :r (count cnts2)
-     :n n}))
+        n (double (reduce m/fast+ (vals fqs)))
+        cnt1 (count cnts1)
+        cnt2 (count cnts2)
+        df (* (dec cnt1) (dec cnt2))
+        chi2-distr (r/distribution :chi-squared {:degrees-of-freedom df})
+        chi2 (reduce m/fast+ (for [[g1 ^long c1] cnts1
+                                   [g2 ^long c2] cnts2
+                                   :let [f (/ (* c1 c2) n)]]
+                               (/ (m/sq (- ^long (get fqs [g1 g2] 0) f)) f)))]
+    {:chi2 chi2 :k cnt1 :r cnt2 :df df :n n
+     :p-value (- 1.0 (r/cdf chi2-distr chi2))}))
 
 (defn cramers-v
   "Cramer's V effect size for discrete data."
