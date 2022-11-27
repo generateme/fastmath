@@ -1017,7 +1017,7 @@
   * `:chi2` - chi2 value
   * `:k` - number of values in first vector
   * `:r` - number of values in second vector
-  * `:n` - length of the vector
+  * `:n` - number of observed pairs
   * `:df` - degrees of freedom (k-1)*(r-1)
   * `:p-value` - chi2 distribution cdf for found statistic and df (upper tail)."
   [group1 group2]

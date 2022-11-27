@@ -432,6 +432,18 @@
   (^Mat2x2 [^double d1 ^double d2] (Mat2x2. d1 0.0 0.0 d2))
   (^Mat2x2 [^double a00 ^double a01 ^double a10 ^double a11] (Mat2x2. a00 a01 a10 a11)))
 
+(defn rows->mat2x2
+  "Create 2x2 matrix from 2d vectors (rows)."
+  ^Mat2x2 [[^double a00 ^double a01]
+           [^double a10 ^double a11]]
+  (Mat2x2. a00 a01 a10 a11))
+
+(defn cols->mat2x2
+  "Create 2x2 matrix from 2d vectors (columns)."
+  ^Mat2x2 [[^double a00 ^double a10]
+           [^double a01 ^double a11]]
+  (Mat2x2. a00 a01 a10 a11))
+
 (defn mat3x3
   "Create 3x3 matrix.
 
@@ -445,6 +457,20 @@
                                                        0.0 d2 0.0
                                                        0.0 0.0 d3))
   (^Mat3x3 [a00 a01 a02 a10 a11 a12 a20 a21 a22] (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22)))
+
+(defn rows->mat3x3
+  "Create 3x3 matrix from 3d vectors (rows)."
+  ^Mat3x3 [[^double a00 ^double a01 ^double a02]
+           [^double a10 ^double a11 ^double a12]
+           [^double a20 ^double a21 ^double a22]]
+  (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
+
+(defn cols->mat3x3
+  "Create 3x3 matrix from 3d vectors (columns)."
+  ^Mat3x3 [[^double a00 ^double a10 ^double a20]
+           [^double a01 ^double a11 ^double a21]
+           [^double a02 ^double a12 ^double a22]]
+  (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
 
 (defn mat4x4
   "Create 4x4 matrix.
@@ -461,6 +487,22 @@
                                                                   0.0 0.0 0.0 d4))
   (^Mat4x4 [a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33]
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
+
+(defn rows->mat4x4
+  "Create 4x4 matrix from 4d vectors (rows)."
+  ^Mat4x4 [[^double a00 ^double a01 ^double a02 ^double a03]
+           [^double a10 ^double a11 ^double a12 ^double a13]
+           [^double a20 ^double a21 ^double a22 ^double a23]
+           [^double a30 ^double a31 ^double a32 ^double a33]]
+  (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
+
+(defn cols->mat4x4
+  "Create 4x4 matrix from 4d vectors (columns)."
+  ^Mat4x4 [[^double a00 ^double a10 ^double a20 ^double a30]
+           [^double a01 ^double a11 ^double a21 ^double a31]
+           [^double a02 ^double a12 ^double a22 ^double a32]
+           [^double a03 ^double a13 ^double a23 ^double a33]]
+  (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
 
 (def eye
   [nil 1.0
@@ -592,7 +634,7 @@
   ([A B] (prot/sub A B)))
 
 (defn negate
-  "Negate all matrxi elements, C=-A"
+  "Negate all matrix elements, C=-A"
   [A] (prot/sub A))
 
 (defn mulm
