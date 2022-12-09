@@ -121,9 +121,9 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 (defprotocol GridProto
   "Common grid conversion functions."
-  (coords->cell [g coords] "Converts 2d space coordinates to cell coordinates.")
-  (cell->anchor [g cell] "Converts cell coordinates to anchor coordinates.")
-  (coords->mid [g coords] "Converts 2d space into cell midpoint.")
-  (cell->mid [g cell] "Converts cell coordinates to cell midpoint")
+  (coords->cell [g coords] [g x y] "Converts 2d space coordinates to cell coordinates.")
+  (cell->anchor [g cell] [g q r] "Converts cell coordinates to anchor coordinates.")
+  (coords->mid [g coords] [g x y] "Converts 2d space into cell midpoint.")
+  (cell->mid [g cell] [g q r] "Converts cell coordinates to cell midpoint")
   (grid-type [g] "Returns type of the cell.")
-  (corners [g coords] [g coords scale] "Returns list of cell vertices for given 2d space coordinates."))
+  (corners [g coords] [g coords scale] [g x y scale] "Returns list of cell vertices for given 2d space coordinates."))

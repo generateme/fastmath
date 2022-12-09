@@ -86,11 +86,11 @@
 <p>Additionally one of the sampling methods can be provided, ie: <code>:uniform</code>, <code>:systematic</code> and <code>:stratified</code>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Sequence of random values from distribution</p>
 </blockquote><pre><code class="hljs clojure">(-&gt;seq (distribution :gamma) 5)
-;;=&gt; (4.5898428021170785
-;;=&gt;  1.2785195017831836
-;;=&gt;  3.9651964017947217
-;;=&gt;  2.467089635816437
-;;=&gt;  2.3594830487323044)
+;;=&gt; (2.160374512793441
+;;=&gt;  9.153075102946932
+;;=&gt;  3.569775045781066
+;;=&gt;  1.7804649365122402
+;;=&gt;  2.763535189913013)
 (-&gt;seq (distribution :gamma) 5 :stratified)
 ;;=&gt; (1.2167938174251236
 ;;=&gt;  2.3299262601946245
@@ -102,8 +102,8 @@
 ;;=&gt;  0.2535647309959507
 ;;=&gt;  0.4535647309959508
 ;;=&gt;  0.6535647309959508
-;;=&gt;  0.8535647309959509)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2010">view source</a></div></div><div class="public anchor" id="var-ball-random"><h3>ball-random</h3><div class="usage"><code>(ball-random dims)</code><code>(ball-random rng dims)</code></div><div class="doc"><div class="markdown"><p>Return random vector from a ball</p>
-</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L375">view source</a></div></div><div class="public anchor" id="var-billow-noise"><h3>billow-noise</h3><div class="usage"><code>(billow-noise)</code><code>(billow-noise cfg__23467__auto__)</code></div><div class="doc"><div class="markdown"><p>Create billow noise function with optional configuration.</p>
+;;=&gt;  0.8535647309959509)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2041">view source</a></div></div><div class="public anchor" id="var-ball-random"><h3>ball-random</h3><div class="usage"><code>(ball-random dims)</code><code>(ball-random rng dims)</code></div><div class="doc"><div class="markdown"><p>Return random vector from a ball</p>
+</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L375">view source</a></div></div><div class="public anchor" id="var-billow-noise"><h3>billow-noise</h3><div class="usage"><code>(billow-noise)</code><code>(billow-noise cfg__23570__auto__)</code></div><div class="doc"><div class="markdown"><p>Create billow noise function with optional configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [n (billow-noise {:seed 12345, :interpolation :none})]
   (n 0.5 1.1 -1.3))
@@ -116,7 +116,7 @@
 (brand 0.1)
 ;;=&gt; false</code></pre></div><div><blockquote><p>Count number of <code>true</code> values with probability 0.15</p>
 </blockquote><pre><code class="hljs clojure">(count (filter true? (repeatedly 100000 (fn* [] (brand 0.15)))))
-;;=&gt; 15068</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L290">view source</a></div></div><div class="public anchor" id="var-brandom"><h3>brandom</h3><div class="usage"><code>(brandom rng)</code><code>(brandom rng p)</code></div><div class="doc"><div class="markdown"><p>Random boolean with provided RNG</p>
+;;=&gt; 14840</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L290">view source</a></div></div><div class="public anchor" id="var-brandom"><h3>brandom</h3><div class="usage"><code>(brandom rng)</code><code>(brandom rng p)</code></div><div class="doc"><div class="markdown"><p>Random boolean with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>boolean</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet brandom ...)
 ;;=&gt; true</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L169">view source</a></div></div><div class="public anchor" id="var-cdf"><h3>cdf</h3><div class="usage"><code>(cdf d v)</code><code>(cdf d v1 v2)</code></div><div class="doc"><div class="markdown"><p>Cumulative probability.</p>
@@ -141,9 +141,9 @@
 ;; Test: ok.</small></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L789">view source</a></div></div><div class="public anchor" id="var-default-normal"><h3>default-normal</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>Default normal distribution (u=0.0, sigma=1.0).</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(sample default-normal)
-;;=&gt; -0.9491612537808269
+;;=&gt; -0.6694810401764545
 (set-seed! default-normal 1234)
-;;=&gt; org.apache.commons.math3.distribution.NormalDistribution@276fb06
+;;=&gt; org.apache.commons.math3.distribution.NormalDistribution@f23448b
 (sample default-normal)
 ;;=&gt; 0.14115907833078006
 (irandom default-normal)
@@ -151,18 +151,18 @@
 (mean default-normal)
 ;;=&gt; 0.0
 (variance default-normal)
-;;=&gt; 1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1960">view source</a></div></div><div class="public anchor" id="var-default-rng"><h3>default-rng</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>Default RNG - JDK</p>
+;;=&gt; 1.0</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1931">view source</a></div></div><div class="public anchor" id="var-default-rng"><h3>default-rng</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>Default RNG - JDK</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(set-seed! default-rng 111)
-;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@95208ef
+;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@e319a6a
 (irandom default-rng)
 ;;=&gt; -1641157356
 (set-seed! default-rng 999)
-;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@95208ef
+;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@e319a6a
 (irandom default-rng)
 ;;=&gt; -421961713
 (set-seed! default-rng 111)
-;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@95208ef
+;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@e319a6a
 (irandom default-rng)
 ;;=&gt; -1641157356</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L286">view source</a></div></div><div class="public anchor" id="var-dimensions"><h3>dimensions</h3><div class="usage"><code>(dimensions d)</code></div><div class="doc"><div class="markdown"><p>Distribution dimensionality</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -194,14 +194,14 @@
 <p>All distributions accept <code>rng</code> under <code>:rng</code> key (default: <a href="fastmath.random.html#var-default-rng">default-rng</a>) and some of them accept <code>inverse-cumm-accuracy</code> (default set to <code>1e-9</code>).</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(distribution :beta)
-;;=&gt; org.apache.commons.math3.distribution.BetaDistribution@4c455ec6
+;;=&gt; org.apache.commons.math3.distribution.BetaDistribution@52655d6a
 (distribution :beta {:alpha 1.0, :beta 1.0})
-;;=&gt; org.apache.commons.math3.distribution.BetaDistribution@5a4ec9f1</code></pre></div><div><blockquote><p>All parameters</p>
+;;=&gt; org.apache.commons.math3.distribution.BetaDistribution@71564df3</code></pre></div><div><blockquote><p>All parameters</p>
 </blockquote><pre><code class="hljs clojure">(into (sorted-map)
-      (map (fn* [p1__34624#]
-             (vector p1__34624#
+      (map (fn* [p1__34780#]
+             (vector p1__34780#
                      (sort (distribution-parameters (distribution
-                                                     p1__34624#)))))
+                                                     p1__34780#)))))
            (keys (methods distribution))))
 ;;=&gt; {:anderson-darling (:n),
 ;;=&gt;  :bb (:bd :mu :sigma),
@@ -250,6 +250,7 @@
 ;;=&gt;  :log-normal (:scale :shape),
 ;;=&gt;  :logarithmic (:theta),
 ;;=&gt;  :logistic (:mu :s),
+;;=&gt;  :mixture (:distrs :weights),
 ;;=&gt;  :multi-normal (:covariances :means),
 ;;=&gt;  :nakagami (:mu :omega),
 ;;=&gt;  :nbi (:mi :sigma),
@@ -407,7 +408,10 @@
 </blockquote><img src="images/d/icdf-log-normal.jpg" /></div><div><blockquote><p>PDFs of logistic</p>
 </blockquote><img src="images/d/pdf-logistic.jpg" /></div><div><blockquote><p>CDFs of logistic</p>
 </blockquote><img src="images/d/cdf-logistic.jpg" /></div><div><blockquote><p>ICDFs of logistic</p>
-</blockquote><img src="images/d/icdf-logistic.jpg" /></div><div><blockquote><p>PDFs of nakagami</p>
+</blockquote><img src="images/d/icdf-logistic.jpg" /></div><div><blockquote><p>PDFs of mixture</p>
+</blockquote><img src="images/d/pdf-mixture.jpg" /></div><div><blockquote><p>CDFs of mixture</p>
+</blockquote><img src="images/d/cdf-mixture.jpg" /></div><div><blockquote><p>ICDFs of mixture</p>
+</blockquote><img src="images/d/icdf-mixture.jpg" /></div><div><blockquote><p>PDFs of nakagami</p>
 </blockquote><img src="images/d/pdf-nakagami.jpg" /></div><div><blockquote><p>CDFs of nakagami</p>
 </blockquote><img src="images/d/cdf-nakagami.jpg" /></div><div><blockquote><p>ICDFs of nakagami</p>
 </blockquote><img src="images/d/icdf-nakagami.jpg" /></div><div><blockquote><p>PDFs of nbi</p>
@@ -530,13 +534,14 @@
 ;;=&gt;   :integer-discrete-distribution :inverse-gamma :inverse-gaussian
 ;;=&gt;   :johnson-sb :johnson-sl :johnson-su :kde :kolmogorov-smirnov
 ;;=&gt;   :kolmogorov-smirnov+ :laplace :levy :log-logistic :log-normal
-;;=&gt;   :logarithmic :logistic :multi-normal :nakagami :nbi :negative-binomial
-;;=&gt;   :normal :normal-inverse-gaussian :pareto :pascal :pearson-6 :poisson
-;;=&gt;   :power :rayleigh :real-discrete-distribution :reciprocal-sqrt :t
-;;=&gt;   :triangular :truncated :uniform-int :uniform-real :watson-g :watson-u
-;;=&gt;   :weibull :zabb :zabi :zaga :zanbi :zibb :zibi :zinbi :zip :zip2 :zipf}
+;;=&gt;   :logarithmic :logistic :mixture :multi-normal :nakagami :nbi
+;;=&gt;   :negative-binomial :normal :normal-inverse-gaussian :pareto :pascal
+;;=&gt;   :pearson-6 :poisson :power :rayleigh :real-discrete-distribution
+;;=&gt;   :reciprocal-sqrt :t :triangular :truncated :uniform-int :uniform-real
+;;=&gt;   :watson-g :watson-u :weibull :zabb :zabi :zaga :zanbi :zibb :zibi
+;;=&gt;   :zinbi :zip :zip2 :zipf}
 (count distributions-list)
-;;=&gt; 79</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1955">view source</a></div></div><div class="public anchor" id="var-drand"><h3>drand</h3><div class="usage"><code>(drand)</code><code>(drand mx)</code><code>(drand mn mx)</code></div><div class="doc"><div class="markdown"><p>Random double number with default RNG.</p>
+;;=&gt; 80</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1990">view source</a></div></div><div class="public anchor" id="var-drand"><h3>drand</h3><div class="usage"><code>(drand)</code><code>(drand mx)</code><code>(drand mn mx)</code></div><div class="doc"><div class="markdown"><p>Random double number with default RNG.</p>
 <p>As default returns random double from <code>[0,1)</code> range. When <code>mx</code> is passed, range is set to <code>[0, mx)</code>. When <code>mn</code> is passed, range is set to <code>[mn, mx)</code>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(drand)
@@ -547,13 +552,13 @@
 ;;=&gt; 12.544011338963232</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L306">view source</a></div></div><div class="public anchor" id="var-drandom"><h3>drandom</h3><div class="usage"><code>(drandom rng)</code><code>(drandom rng mx)</code><code>(drandom rng mn mx)</code></div><div class="doc"><div class="markdown"><p>Random double number with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>double</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet drandom ...)
-;;=&gt; 0.8789605563873095</code></pre></div><div><blockquote><p>Double random value from distribution</p>
+;;=&gt; 0.9611045161349976</code></pre></div><div><blockquote><p>Double random value from distribution</p>
 </blockquote><pre><code class="hljs clojure">(drandom (distribution :gamma))
-;;=&gt; 3.8870896157928443</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L141">view source</a></div></div><div class="public anchor" id="var-fbm-noise"><h3>fbm-noise</h3><div class="usage"><code>(fbm-noise)</code><code>(fbm-noise cfg__23467__auto__)</code></div><div class="doc"><div class="markdown"><p>Create fbm noise function with optional configuration.</p>
+;;=&gt; 5.039148778998878</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L141">view source</a></div></div><div class="public anchor" id="var-fbm-noise"><h3>fbm-noise</h3><div class="usage"><code>(fbm-noise)</code><code>(fbm-noise cfg__23570__auto__)</code></div><div class="doc"><div class="markdown"><p>Create fbm noise function with optional configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [n (fbm-noise {:interpolation :linear, :noise-type :value})]
   (n 0.5 1.1 -1.3))
-;;=&gt; 0.36909796197513556</code></pre></div><div><blockquote><p>2d noise</p>
+;;=&gt; 0.3695755915369664</code></pre></div><div><blockquote><p>2d noise</p>
 </blockquote><img src="images/n/fbm.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L576">view source</a></div></div><div class="public anchor" id="var-flip"><h3>flip</h3><div class="usage"><code>(flip p)</code><code>(flip)</code></div><div class="doc"><div class="markdown"><p>Returns 1 with given probability, 0 otherwise</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(flip)
@@ -579,9 +584,9 @@
 ;;=&gt; 16.104887008666992</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L296">view source</a></div></div><div class="public anchor" id="var-frandom"><h3>frandom</h3><div class="usage"><code>(frandom rng)</code><code>(frandom rng mx)</code><code>(frandom rng mn mx)</code></div><div class="doc"><div class="markdown"><p>Random double number with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>float</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet frandom ...)
-;;=&gt; 0.090323306620121</code></pre></div><div><blockquote><p>Float random value from distribution (sample cast to <code>float</code>)</p>
+;;=&gt; 0.0749516710639</code></pre></div><div><blockquote><p>Float random value from distribution (sample cast to <code>float</code>)</p>
 </blockquote><pre><code class="hljs clojure">(frandom (distribution :gamma))
-;;=&gt; 0.5365126132965088</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L134">view source</a></div></div><div class="public anchor" id="var-grand"><h3>grand</h3><div class="usage"><code>(grand)</code><code>(grand stddev)</code><code>(grand mean stddev)</code></div><div class="doc"><div class="markdown"><p>Random gaussian double number with default RNG.</p>
+;;=&gt; 0.47846630215644836</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L134">view source</a></div></div><div class="public anchor" id="var-grand"><h3>grand</h3><div class="usage"><code>(grand)</code><code>(grand stddev)</code><code>(grand mean stddev)</code></div><div class="doc"><div class="markdown"><p>Random gaussian double number with default RNG.</p>
 <p>As default returns random double from <code>N(0,1)</code>. When <code>std</code> is passed, <code>N(0,std)</code> is used. When <code>mean</code> is passed, distribution is set to <code>N(mean, std)</code>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(grand)
@@ -592,7 +597,7 @@
 ;;=&gt; 32.81407031197551</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L316">view source</a></div></div><div class="public anchor" id="var-grandom"><h3>grandom</h3><div class="usage"><code>(grandom rng)</code><code>(grandom rng stddev)</code><code>(grandom rng mean stddev)</code></div><div class="doc"><div class="markdown"><p>Random gaussian double number with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>gaussian double</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet grandom ...)
-;;=&gt; 0.4795483152982946</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L148">view source</a></div></div><div class="public anchor" id="var-icdf"><h3>icdf</h3><div class="usage"><code>(icdf d v)</code></div><div class="doc"><div class="markdown"><p>Inverse cumulative probability</p>
+;;=&gt; 0.7828377803585473</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L148">view source</a></div></div><div class="public anchor" id="var-icdf"><h3>icdf</h3><div class="usage"><code>(icdf d v)</code></div><div class="doc"><div class="markdown"><p>Inverse cumulative probability</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(icdf (distribution :gamma) 0.5)
 ;;=&gt; 3.3566939800333233</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L718">view source</a></div></div><div class="public anchor" id="var-irand"><h3>irand</h3><div class="usage"><code>(irand)</code><code>(irand mx)</code><code>(irand mn mx)</code></div><div class="doc"><div class="markdown"><p>Random integer number with default RNG.</p>
@@ -606,7 +611,7 @@
 ;;=&gt; 19</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L326">view source</a></div></div><div class="public anchor" id="var-irandom"><h3>irandom</h3><div class="usage"><code>(irandom rng)</code><code>(irandom rng mx)</code><code>(irandom rng mn mx)</code></div><div class="doc"><div class="markdown"><p>Random integer number with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>integer</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet irandom ...)
-;;=&gt; -1516719839</code></pre></div><div><blockquote><p>Integer random value from distribution (sample cast to <code>int</code>)</p>
+;;=&gt; 1177832111</code></pre></div><div><blockquote><p>Integer random value from distribution (sample cast to <code>int</code>)</p>
 </blockquote><pre><code class="hljs clojure">(irandom (distribution :gamma))
 ;;=&gt; 3</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L155">view source</a></div></div><div class="public anchor" id="var-jittered-sequence-generator"><h3>jittered-sequence-generator</h3><div class="usage"><code>(jittered-sequence-generator seq-generator dimensions)</code><code>(jittered-sequence-generator seq-generator dimensions jitter)</code></div><div class="doc"><div class="markdown"><p>Create jittered sequence generator.</p>
 <p>Suitable for <code>:r2</code>, <code>:sobol</code> and <code>:halton</code> sequences.</p>
@@ -616,8 +621,8 @@
 </blockquote><pre><code class="hljs clojure">(let [gen1 (jittered-sequence-generator :r2 2 0.5)
       gen2 (jittered-sequence-generator :r2 2 0.5)]
   [(first gen1) (first gen2)])
-;;=&gt; [[0.5293237235987416 0.079132486905601]
-;;=&gt;  [0.31374793925856853 0.0872573854842772]]</code></pre></div><div><blockquote><p>Jittered (0.5) R2 plot (500 samples)</p>
+;;=&gt; [[0.5005513651041876 0.36882331081126063]
+;;=&gt;  [0.4147820688740471 0.3003495655288163]]</code></pre></div><div><blockquote><p>Jittered (0.5) R2 plot (500 samples)</p>
 </blockquote><img src="images/r/jr2.jpg" /></div><div><blockquote><p>Jittered (0.5) Halton plot (500 samples)</p>
 </blockquote><img src="images/r/jhalton.jpg" /></div><div><blockquote><p>Jittered (0.5) Sobol plot (500 samples)</p>
 </blockquote><img src="images/r/jsobol.jpg" /></div><div><blockquote><p>Jittered (0.5) Sphere plot (500 samples)</p>
@@ -648,7 +653,7 @@
 ;;=&gt; 12</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L336">view source</a></div></div><div class="public anchor" id="var-lrandom"><h3>lrandom</h3><div class="usage"><code>(lrandom rng)</code><code>(lrandom rng mx)</code><code>(lrandom rng mn mx)</code></div><div class="doc"><div class="markdown"><p>Random long number with provided RNG</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>long</p>
 </blockquote><pre><code class="hljs clojure">(rngproto-snippet lrandom ...)
-;;=&gt; 7786174787538892712</code></pre></div><div><blockquote><p>Long random value from distribution (sample cast to <code>long</code>)</p>
+;;=&gt; -7776355417647693338</code></pre></div><div><blockquote><p>Long random value from distribution (sample cast to <code>long</code>)</p>
 </blockquote><pre><code class="hljs clojure">(lrandom (distribution :gamma))
 ;;=&gt; 3</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L162">view source</a></div></div><div class="public anchor" id="var-mean"><h3>mean</h3><div class="usage"><code>(mean d)</code></div><div class="doc"><div class="markdown"><p>Distribution mean</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -666,11 +671,11 @@
 <p>6 octaves, quintic interpolation.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(noise 3.3)
-;;=&gt; 0.23108012698412722
+;;=&gt; 0.3017036190476191
 (noise 3.3 1.1)
-;;=&gt; 0.3175675429384127
+;;=&gt; 0.5582061938590476
 (noise 3.3 0.0 -0.1)
-;;=&gt; 0.5184813246984127</code></pre></div><div><blockquote><p>2d noise</p>
+;;=&gt; 0.43304204458666673</code></pre></div><div><blockquote><p>2d noise</p>
 </blockquote><img src="images/n/noise.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L544">view source</a></div></div><div class="public anchor" id="var-noise-generators"><h3>noise-generators</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of possible noise generators as a map of names and functions.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of names (keys)</p>
 </blockquote><pre><code class="hljs clojure">(keys noise-generators)
@@ -700,22 +705,22 @@
 <p>Optional map with fixed values.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Random configuration</p>
 </blockquote><pre><code class="hljs clojure">(random-noise-cfg)
-;;=&gt; {:gain 0.5472453121745153,
-;;=&gt;  :generator :single,
+;;=&gt; {:gain 0.32333816943883925,
+;;=&gt;  :generator :ridgemulti,
 ;;=&gt;  :interpolation :quintic,
-;;=&gt;  :lacunarity 1.585361038672655,
-;;=&gt;  :noise-type :simplex,
+;;=&gt;  :lacunarity 1.5349587653493995,
+;;=&gt;  :noise-type :gradient,
 ;;=&gt;  :normalize? true,
-;;=&gt;  :octaves 8,
-;;=&gt;  :seed 535287361,
+;;=&gt;  :octaves 1,
+;;=&gt;  :seed 536556111,
 ;;=&gt;  :warp-depth 1,
 ;;=&gt;  :warp-scale 0.0}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L644">view source</a></div></div><div class="public anchor" id="var-random-noise-fn"><h3>random-noise-fn</h3><div class="usage"><code>(random-noise-fn cfg)</code><code>(random-noise-fn)</code></div><div class="doc"><div class="markdown"><p>Create random noise function from all possible options.</p>
 <p>Optionally provide own configuration <code>cfg</code>. In this case one of 4 different blending methods will be selected.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Create function</p>
 </blockquote><pre><code class="hljs clojure">(random-noise-fn)
-;;=&gt; fastmath.random$fbm_noise$fn__23481@168b502f
+;;=&gt; fastmath.random$ridgedmulti_noise$fn__23592@117db0e0
 (random-noise-fn (random-noise-cfg))
-;;=&gt; fastmath.random$single_noise$fn__23477@6fb6ef6e</code></pre></div><div><blockquote><p>One</p>
+;;=&gt; fastmath.random$single_noise$fn__23580@446cec6a</code></pre></div><div><blockquote><p>One</p>
 </blockquote><img src="images/n/random1.jpg" /></div><div><blockquote><p>Two</p>
 </blockquote><img src="images/n/random2.jpg" /></div><div><blockquote><p>Three</p>
 </blockquote><img src="images/n/random3.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L662">view source</a></div></div><div class="public anchor" id="var-randval"><h3>randval</h3><h4 class="type">macro</h4><div class="usage"><code>(randval v1 v2)</code><code>(randval prob v1 v2)</code><code>(randval prob)</code><code>(randval)</code></div><div class="doc"><div class="markdown"><p>Retrun value with given probability (default 0.5)</p>
@@ -726,19 +731,19 @@
 ;;=&gt; :high-probability</code></pre></div><div><blockquote><p>Check probability of nil (should return value around 1000).</p>
 </blockquote><pre><code class="hljs clojure">(count (filter nil?
                (repeatedly 1000000 (fn* [] (randval 0.001 nil 101)))))
-;;=&gt; 997</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L346">view source</a></div></div><div class="public anchor" id="var-ridgedmulti-noise"><h3>ridgedmulti-noise</h3><div class="usage"><code>(ridgedmulti-noise)</code><code>(ridgedmulti-noise cfg__23467__auto__)</code></div><div class="doc"><div class="markdown"><p>Create ridgedmulti noise function with optional configuration.</p>
+;;=&gt; 983</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L346">view source</a></div></div><div class="public anchor" id="var-ridgedmulti-noise"><h3>ridgedmulti-noise</h3><div class="usage"><code>(ridgedmulti-noise)</code><code>(ridgedmulti-noise cfg__23570__auto__)</code></div><div class="doc"><div class="markdown"><p>Create ridgedmulti noise function with optional configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [n
       (ridgedmulti-noise
        {:octaves 3, :lacunarity 2.1, :gain 0.7, :noise-type :simplex})]
   (n 0.5 1.1 -1.3))
-;;=&gt; 0.6036946495597475</code></pre></div><div><blockquote><p>2d noise</p>
+;;=&gt; 0.7310582695987831</code></pre></div><div><blockquote><p>2d noise</p>
 </blockquote><img src="images/n/ridgedmulti.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L578">view source</a></div></div><div class="public anchor" id="var-rng"><h3>rng</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Create RNG for given name (as keyword) and optional seed. Return object enhanced with <a href="fastmath.protocols.html#var-RNGProto">RNGProto</a>. See: <a href="fastmath.random.html#var-rngs-list">rngs-list</a> for names.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Creation</p>
 </blockquote><pre><code class="hljs clojure">(rng :mersenne)
-;;=&gt; org.apache.commons.math3.random.MersenneTwister@4bc5d296
+;;=&gt; org.apache.commons.math3.random.MersenneTwister@a59479c
 (rng :isaac 1234)
-;;=&gt; org.apache.commons.math3.random.ISAACRandom@43a8856b</code></pre></div><div><blockquote><p>Usage</p>
+;;=&gt; org.apache.commons.math3.random.ISAACRandom@3e36d7a3</code></pre></div><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(irandom (rng :mersenne 999) 15 25)
 ;;=&gt; 17</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L247">view source</a></div></div><div class="public anchor" id="var-rngs-list"><h3>rngs-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of all possible RNGs.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Contains</p>
@@ -749,7 +754,7 @@
 ;;=&gt;         :well44497b :well512a)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L280">view source</a></div></div><div class="public anchor" id="var-sample"><h3>sample</h3><div class="usage"><code>(sample d)</code></div><div class="doc"><div class="markdown"><p>Random sample</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Random value from distribution</p>
 </blockquote><pre><code class="hljs clojure">(sample (distribution :gamma))
-;;=&gt; 5.186125936559093</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L728">view source</a></div></div><div class="public anchor" id="var-sequence-generator"><h3>sequence-generator</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Create Sequence generator. See <a href="fastmath.random.html#var-sequence-generators-list">sequence-generators-list</a> for names.</p>
+;;=&gt; 7.411595201911644</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L728">view source</a></div></div><div class="public anchor" id="var-sequence-generator"><h3>sequence-generator</h3><h4 class="type">multimethod</h4><div class="usage"></div><div class="doc"><div class="markdown"><p>Create Sequence generator. See <a href="fastmath.random.html#var-sequence-generators-list">sequence-generators-list</a> for names.</p>
 <p>Values:</p>
 <ul>
 <li><code>:r2</code>, <code>:halton</code>, <code>:sobol</code>, <code>:default</code> - range <code>[0-1] for each dimension</code></li>
@@ -811,24 +816,24 @@
 </blockquote><pre><code class="hljs clojure">(set-seed! :smile 1234)
 ;;=&gt; nil</code></pre></div><div><blockquote><p>Set seed to both SMILE and fastmath default RNGs</p>
 </blockquote><pre><code class="hljs clojure">(set-seed! 1234)
-;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@95208ef</code></pre></div><div><blockquote><p>Set to random seed both default RNGs</p>
+;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@e319a6a</code></pre></div><div><blockquote><p>Set to random seed both default RNGs</p>
 </blockquote><pre><code class="hljs clojure">(set-seed!)
-;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@95208ef</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1965">view source</a></div></div><div class="public anchor" id="var-simplex"><h3>simplex</h3><div class="usage"><code>(simplex x)</code><code>(simplex x y)</code><code>(simplex x y z)</code></div><div class="doc"><div class="markdown"><p>Simplex noise. 6 octaves.</p>
+;;=&gt; org.apache.commons.math3.random.JDKRandomGenerator@e319a6a</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L1996">view source</a></div></div><div class="public anchor" id="var-simplex"><h3>simplex</h3><div class="usage"><code>(simplex x)</code><code>(simplex x y)</code><code>(simplex x y z)</code></div><div class="doc"><div class="markdown"><p>Simplex noise. 6 octaves.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(simplex 3.3)
-;;=&gt; 0.6172626529447619
+;;=&gt; 0.37091132152380946
 (simplex 3.3 1.1)
-;;=&gt; 0.42411589110526204
+;;=&gt; 0.49098148492808347
 (simplex 3.3 0.0 -0.1)
-;;=&gt; 0.3963893356848911</code></pre></div><div><blockquote><p>2d noise</p>
-</blockquote><img src="images/n/simplex.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L553">view source</a></div></div><div class="public anchor" id="var-single-noise"><h3>single-noise</h3><div class="usage"><code>(single-noise)</code><code>(single-noise cfg__23467__auto__)</code></div><div class="doc"><div class="markdown"><p>Create single noise function with optional configuration.</p>
+;;=&gt; 0.4546092886537329</code></pre></div><div><blockquote><p>2d noise</p>
+</blockquote><img src="images/n/simplex.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L553">view source</a></div></div><div class="public anchor" id="var-single-noise"><h3>single-noise</h3><div class="usage"><code>(single-noise)</code><code>(single-noise cfg__23570__auto__)</code></div><div class="doc"><div class="markdown"><p>Create single noise function with optional configuration.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [n (single-noise {:interpolation :linear})] (n 0.5 1.1 -1.3))
-;;=&gt; 0.497</code></pre></div><div><blockquote><p>2d noise</p>
+;;=&gt; 0.4295</code></pre></div><div><blockquote><p>2d noise</p>
 </blockquote><img src="images/n/single.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L575">view source</a></div></div><div class="public anchor" id="var-source-object"><h3>source-object</h3><div class="usage"><code>(source-object d)</code></div><div class="doc"><div class="markdown"><p>Returns Java or proxy object from backend library (if available)</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(source-object default-normal)
-;;=&gt; org.apache.commons.math3.distribution.NormalDistribution@276fb06</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L738">view source</a></div></div><div class="public anchor" id="var-synced-rng"><h3>synced-rng</h3><div class="usage"><code>(synced-rng m)</code><code>(synced-rng m seed)</code></div><div class="doc"><div class="markdown"><p>Create synchronized RNG for given name and optional seed. Wraps <a href="fastmath.random.html#var-rng">rng</a> method.</p>
+;;=&gt; org.apache.commons.math3.distribution.NormalDistribution@f23448b</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L738">view source</a></div></div><div class="public anchor" id="var-synced-rng"><h3>synced-rng</h3><div class="usage"><code>(synced-rng m)</code><code>(synced-rng m seed)</code></div><div class="doc"><div class="markdown"><p>Create synchronized RNG for given name and optional seed. Wraps <a href="fastmath.random.html#var-rng">rng</a> method.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(drandom (synced-rng :mersenne 1234))
 ;;=&gt; 0.1915194466361949</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L273">view source</a></div></div><div class="public anchor" id="var-upper-bound"><h3>upper-bound</h3><div class="usage"><code>(upper-bound d)</code></div><div class="doc"><div class="markdown"><p>Distribution highest supported value</p>
@@ -845,11 +850,11 @@
 <p>6 octaves, Hermite interpolation (cubic, h01).</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(vnoise 3.3)
-;;=&gt; 0.5200868336249286
+;;=&gt; 0.5762378811512683
 (vnoise 3.3 1.1)
-;;=&gt; 0.3728825047986026
+;;=&gt; 0.5643754537591705
 (vnoise 3.3 0.0 -0.1)
-;;=&gt; 0.3801386666324907</code></pre></div><div><blockquote><p>2d noise</p>
+;;=&gt; 0.12075665906506489</code></pre></div><div><blockquote><p>2d noise</p>
 </blockquote><img src="images/n/vnoise.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L535">view source</a></div></div><div class="public anchor" id="var-warp-noise-fn"><h3>warp-noise-fn</h3><div class="usage"><code>(warp-noise-fn noise scale depth)</code><code>(warp-noise-fn noise scale)</code><code>(warp-noise-fn noise)</code><code>(warp-noise-fn)</code></div><div class="doc"><div class="markdown"><p>Create warp noise (see <a href="http://www.iquilezles.org/www/articles/warp/warp.htm">Inigo Quilez article</a>).</p>
 <p>Parameters:</p>
 <ul>
@@ -861,5 +866,5 @@
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [n (warp-noise-fn simplex 2.0 2.0)]
   [(n 0.0) (n 1.0 0.5) (n 2 2 2)])
-;;=&gt; [0.5515144212494715 0.6024192223420912 0.46992027049767693]</code></pre></div><div><blockquote><p>Default warp (noise=vnoise, scale=4.0, depth=1.0).</p>
+;;=&gt; [0.4257318704798638 0.5452280849997946 0.6029978614712093]</code></pre></div><div><blockquote><p>Default warp (noise=vnoise, scale=4.0, depth=1.0).</p>
 </blockquote><img src="images/n/warp.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L613">view source</a></div></div></div></body></html>

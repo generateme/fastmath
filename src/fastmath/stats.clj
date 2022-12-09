@@ -672,26 +672,13 @@
                (<= low v high))
              (map (fn [^double v] (if (m/nan? v) nan v)) vs)))))
 
+;;
+
 (defn covariance
   "Covariance of two sequences."
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
   (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
-
-(defn covariance-matrix
-  "Generate covariance matrix from seq of seqs. Row order."
-  {:metadoc/categories #{:corr}}
-  [vss]
-  (let [avss (map-indexed (fn [id v] [id (m/seq->double-array v)]) vss)
-        cache (atom {})]
-    (for [[id1 ^doubles a] avss]
-      (mapv (fn [[id2 ^doubles b]]
-              (let [key (sort [id1 id2])]
-                (if (contains? @cache key)
-                  (@cache key)
-                  (let [cov (smile.math.MathEx/cov a b)]
-                    (swap! cache assoc key cov)
-                    cov)))) avss))))
 
 (defn correlation
   "Correlation of two sequences."
@@ -728,6 +715,48 @@
   {:metadoc/categories #{:corr}}
   ^double [vs1 vs2]
   (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+
+(defn coefficient-matrix
+  "Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.
+
+  Default method: pearson-correlation"
+  {:metadoc/categories #{:corr}}
+  ([vss] (coefficient-matrix vss :pearson))
+  ([vss measure-fn] (coefficient-matrix vss measure-fn true))
+  ([vss measure-fn symmetric?]
+   (if symmetric?
+     (let [avss (map-indexed (fn [id v] [id (m/seq->double-array v)]) vss)
+           cache (atom {})]
+       (for [[^long id1 ^doubles a] avss]
+         (mapv (fn [[^long id2 ^doubles b]]
+                 (let [key (if (< id1 id2) [id1 id2] [id2 id1])]
+                   (if (contains? @cache key)
+                     (@cache key)
+                     (let [cov (measure-fn a b)]
+                       (swap! cache assoc key cov)
+                       cov)))) avss)))
+     (let [avss (map m/seq->double-array vss)]
+       (for [^doubles a avss]
+         (mapv #(measure-fn a ^doubles %) avss))))))
+
+(defn correlation-matrix
+  "Generate correlation matrix from seq of seqs. Row order.
+
+  Possible measures: `:pearson` (default), `:kendall`, `:spearman`, `:kullback-leibler` and `jensen-shannon`."
+  {:metadoc/categories #{:corr}}
+  ([vss] (correlation-matrix vss :pearson))
+  ([vss measure]
+   (let [measure (get {:pearson pearson-correlation
+                       :kendall kendall-correlation
+                       :spearman spearman-correlation
+                       :kullback-leibler kullback-leibler-divergence
+                       :jensen-shannon jensen-shannon-divergence} measure pearson-correlation)]
+     (coefficient-matrix vss measure true))))
+
+(defn covariance-matrix
+  "Generate covariance matrix from seq of seqs. Row order."
+  {:metadoc/categories #{:corr}}
+  [vss] (coefficient-matrix vss covariance true))
 
 (defn mae
   "Mean absolute error"

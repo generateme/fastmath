@@ -1928,13 +1928,17 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    (if (pos? pnew)
                                      (prot/icdf dist pnew) 0.0))))
 
+(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
+           :metadoc/categories #{:dist}}
+  default-normal (distribution :normal))
+
 (distribution-template :truncated
                        {:mean ##NaN :variance ##NaN
                         :distribution-parameters [:distr :left :right]
                         :continuous? (continuous? distribution)
                         :lower-bound left-bound :upper-bound right-bound}
                        {:keys [distr left right]
-                        :or {distr (distribution :normal)}} args
+                        :or {distr default-normal}} args
                        left-cdf (if left (cdf distr left) 0.0)
                        right-cdf (if right (cdf distr right) 1.0)
                        cdf-diff (- right-cdf left-cdf)
@@ -1952,14 +1956,41 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        icdf-fn (fn ^double [^double x]
                                  (icdf distr (+ left-cdf (* x cdf-diff)))))
 
+(distribution-template :mixture
+                       {:distribution-parameters [:distrs :weights]
+                        :mean mean-val
+                        :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
+                       {:keys [distrs weights]
+                        :or {distrs [default-normal]}} args
+                       cnt (count distrs)
+                       weights (vec (or weights (repeat cnt 1.0)))
+                       weights (v/div weights (v/sum weights))
+                       continuous? (continuous? (first distrs))
+                       lower-bound (reduce m/fast-min (map prot/lower-bound distrs))
+                       upper-bound (reduce m/fast-max (map prot/upper-bound distrs))
+                       mean-val (reduce m/fast+ (map (fn ^double [^double w d]
+                                                       (* w (mean d))) weights distrs))
+                       variance (- ^double (reduce m/fast+ (map (fn ^double [^double w d]
+                                                                  (* w (+ (m/sq (mean d))
+                                                                          (variance d)))) weights distrs))
+                                   (m/sq mean-val))
+                       lpdf-fn (fn ^double [^double x]
+                                 (m/log (reduce m/fast+ (map (fn ^double [^double w d]
+                                                               (* w (pdf d x))) weights distrs))))
+                       cdf-fn (fn ^double [^double x]
+                                (reduce m/fast+ (map (fn ^double [^double w d]
+                                                       (* w (cdf d x))) weights distrs)))
+                       icdf-fn (fn [^double x]
+                                 (let [icdfs (map #(icdf % x) distrs)
+                                       mn (reduce m/fast-min icdfs)
+                                       mx (reduce m/fast-max icdfs)
+                                       target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
+                                   (solver/find-root target-fn mn mx))))
+
 (defonce ^{:doc "List of distributions."
            :metadoc/categories #{:dist}}
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
-
-(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
-           :metadoc/categories #{:dist}}
-  default-normal (distribution :normal))
 ;;
 
 (defn set-seed!

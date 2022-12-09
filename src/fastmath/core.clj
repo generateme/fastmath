@@ -614,6 +614,14 @@
   ^double [^double x]
   (if (zero? x) 0.0 (* x (log x))))
 
+(defn xlogy
+  "x * log(y)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (if (and (zero? x)
+           (not (Double/isNaN y))) 0.0 (* x (log y))))
+
+
 (defn log2
   "Logarithm with base 2.
 

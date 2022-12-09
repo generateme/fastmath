@@ -44,16 +44,19 @@
 (m/use-primitive-operators)
 
 (defn coords->cell
-  "Converts 2d space coordinates to cell coordinates."
-  [g coords] (prot/coords->cell g coords))
+  "Converts 2d space coordinates (x,y) to cell coordinates (q,r)."
+  ([g coords] (prot/coords->cell g coords))
+  ([g x y] (prot/coords->cell g x y)))
 
 (defn cell->anchor
-  "Converts cell coordinates to anchor coordinates."
-  [g cell] (prot/cell->anchor g cell))
+  "Converts cell coordinates (q,r) to anchor coordinates (x,y)."
+  ([g cell] (prot/cell->anchor g cell))
+  ([g q r] (prot/cell->anchor g q r)))
 
 (defn coords->mid
-  "Converts 2d space into cell midpoint."
-  [g coords] (prot/coords->mid g coords))
+  "Converts 2d space coordinates (x,y) into cell midpoint (x,y)."
+  ([g coords] (prot/coords->mid g coords))
+  ([g x y] (prot/coords->mid g x y)))
 
 (defn grid-type
   "Returns type of the cell."
@@ -62,17 +65,18 @@
 (defn corners
   "Returns list of cell vertices for given 2d space coordinates."
   ([g coords] (prot/corners g coords))
-  ([g coords scale] (prot/corners g coords scale)))
+  ([g coords scale] (prot/corners g coords scale))
+  ([g x y scale] (prot/corners g x y scale)))
 
 (defn coords->anchor
-  "Converts 2d coordinates to cell anchor."
-  [g coords]
-  (prot/cell->anchor g (prot/coords->cell g coords)))
+  "Converts 2d coordinates (x,y) to cell anchor (x,y)."
+  ([g coords] (prot/cell->anchor g (prot/coords->cell g coords)))
+  ([g x y] (prot/cell->anchor g (prot/coords->cell g x y))))
 
 (defn cell->mid
-  "Converts cell coordinates to mid point"
-  [g cell]
-  (prot/cell->mid g cell))
+  "Converts cell coordinates (q,r) to mid point (x,y)."
+  ([g cell] (prot/cell->mid g cell))
+  ([g x y] (prot/cell->mid g x y)))
 
 (defn- grid-obj
   "Create grid object."
@@ -85,14 +89,22 @@
      (reify
        prot/GridProto
        (coords->cell [_ [^double x ^double y]] (to-cell size (- x (.x sv)) (- y (.y sv))))
-       (cell->anchor [_ [^double q ^double r]] (let [cell (from-cell size q r)]
-                                                 (if triangle?
-                                                   (v/add cell sv3)
-                                                   (v/add cell sv))))
+       (coords->cell [_ x y] (to-cell size (- ^double x (.x sv)) (- ^double y (.y sv))))
+       (cell->anchor [_ [q r]] (let [cell (from-cell size q r)]
+                                 (if triangle?
+                                   (v/add cell sv3)
+                                   (v/add cell sv))))
+       (cell->anchor [_ q r] (let [cell (from-cell size q r)]
+                               (if triangle?
+                                 (v/add cell sv3)
+                                 (v/add cell sv))))
        (cell->mid [g cell] (to-mid size (prot/cell->anchor g cell)))
+       (cell->mid [g q r] (to-mid size (prot/cell->anchor g q r)))
        (coords->mid [g coords] (to-mid size (anchor g coords)))
+       (coords->mid [g x y] (to-mid size (anchor g x y)))
        (corners [g coords] (vertices size (anchor g coords)))
        (corners [g coords scale] (vertices (* ^double scale size) (anchor g coords)))
+       (corners [g x y scale] (vertices (* ^double scale size) (anchor g x y)))
        (grid-type [_] typ)
        Named
        (getName [_] nm)
@@ -292,9 +304,12 @@
 
 (defn- coords->triangle-anchor
   "2d coordinates to triangle anchor with cell information (even or odd)."
-  [g coords]
-  (let [^Vec2 qr (prot/coords->cell g coords)]
-    (prot/cell->anchor g qr)))
+  ([g coords]
+   (let [^Vec2 qr (prot/coords->cell g coords)]
+     (prot/cell->anchor g qr)))
+  ([g x y]
+   (let [^Vec2 qr (prot/coords->cell g x y)]
+     (prot/cell->anchor g qr))))
 
 ;;
 

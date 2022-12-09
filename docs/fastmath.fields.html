@@ -77,7 +77,7 @@
 <p>See <a href="fastmath.fields.html#var-random-configuration">random-configuration</a> for example.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Create random combination</p>
 </blockquote><pre><code class="hljs clojure">(let [f (combine)] (f (v/vec2 -0.5 0.5)))
-;;=&gt; [0.316000488152783 1.4642781871537451]</code></pre></div><div><blockquote><p>Create combination for given configuration</p>
+;;=&gt; [1.4676779262311643 2.3928008652293857]</code></pre></div><div><blockquote><p>Create combination for given configuration</p>
 </blockquote><pre><code class="hljs clojure">(let [conf {:type :operation,
             :name :comp,
             :var1 {:type :variation,
@@ -123,21 +123,21 @@
 <p>Resulting function operates on <a href="null">Vec2</a> type.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Get vector field by name</p>
 </blockquote><pre><code class="hljs clojure">(field :sinusoidal)
-;;=&gt; fastmath.fields.s$sinusoidal$fn__31618@237b27cd
+;;=&gt; fastmath.fields.s$sinusoidal$fn__31774@5984a200
 ((field :sinusoidal) (v/vec2 m/HALF_PI m/HALF_PI))
 ;;=&gt; [1.0 1.0]</code></pre></div><div><blockquote><p>Get vector field by name and scale</p>
 </blockquote><pre><code class="hljs clojure">(field :sinusoidal 0.5)
-;;=&gt; fastmath.fields.s$sinusoidal$fn__31618@1ad4f4fd
+;;=&gt; fastmath.fields.s$sinusoidal$fn__31774@60019cd0
 ((field :sinusoidal 0.5) (v/vec2 m/HALF_PI m/HALF_PI))
 ;;=&gt; [0.5 0.5]</code></pre></div><div><blockquote><p>Apply parametrization</p>
 </blockquote><pre><code class="hljs clojure">(let [params (parametrization :cpow3)
       f (field :cpow3 1.0 params)]
   {:parametrization params, :value (f (v/vec2 -1.0 1.0))})
-;;=&gt; {:parametrization {:d -2.353346816469723,
-;;=&gt;                    :divisor 0.9957279508551414,
-;;=&gt;                    :r 1.022934708932171,
-;;=&gt;                    :spread -0.7447520262451821},
-;;=&gt;  :value [1.7949852852195411 -2.475926453425315]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L78">view source</a></div></div><div class="public anchor" id="var-fields-list"><h3>fields-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of all vector field names.</p>
+;;=&gt; {:parametrization {:d 17.582474548145193,
+;;=&gt;                    :divisor 1.1296818404996032,
+;;=&gt;                    :r -0.9817220532128452,
+;;=&gt;                    :spread 2.093180045962897},
+;;=&gt;  :value [0.6402044091942768 -0.38926861287295983]}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L78">view source</a></div></div><div class="public anchor" id="var-fields-list"><h3>fields-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of all vector field names.</p>
 </blockquote><pre><code class="hljs clojure">(sort fields-list)
 ;;=&gt; (:acosech
 ;;=&gt;  :acosh
@@ -557,72 +557,79 @@
 <p>See <a href="fastmath.fields.html#var-field">field</a>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Get random parametrization for given field</p>
 </blockquote><pre><code class="hljs clojure">(parametrization :auger)
-;;=&gt; {:freq -2.414653055771152,
-;;=&gt;  :scale -0.8068105494971137,
-;;=&gt;  :sym -1.5984862981576695,
-;;=&gt;  :weight 0.37846218325246195}</code></pre></div><div><blockquote><p>Add lacking fields</p>
+;;=&gt; {:freq 0.6407802028505287,
+;;=&gt;  :scale 1.7124802323081068,
+;;=&gt;  :sym -1.2818555402918088,
+;;=&gt;  :weight 0.9709457220343087}</code></pre></div><div><blockquote><p>Add lacking fields</p>
 </blockquote><pre><code class="hljs clojure">(parametrization :auger {:scale 1.0, :freq 1.0})
 ;;=&gt; {:freq 1.0,
 ;;=&gt;  :scale 1.0,
-;;=&gt;  :sym 0.18687495421809164,
-;;=&gt;  :weight -0.7356707840904679}</code></pre></div><div><blockquote><p>Returns empty map when field doesn’t have parametrization</p>
+;;=&gt;  :sym 0.6731039311723688,
+;;=&gt;  :weight -0.3538452147188411}</code></pre></div><div><blockquote><p>Returns empty map when field doesn’t have parametrization</p>
 </blockquote><pre><code class="hljs clojure">(parametrization :sinusoidal)
 ;;=&gt; {}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L63">view source</a></div></div><div class="public anchor" id="var-random-configuration"><h3>random-configuration</h3><div class="usage"><code>(random-configuration)</code><code>(random-configuration depth)</code><code>(random-configuration depth f)</code></div><div class="doc"><div class="markdown"><p>Create random configuration for <a href="fastmath.fields.html#var-combine">combine</a> function. Optionally with depth (0 = only root is created).</p>
 <p>See <a href="fastmath.fields.html#var-combine">combine</a> for structure.</p>
 <p>Bind <code>*skip-random-fields*</code> to true to exclude fields which are random.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Generate random configuration</p>
 </blockquote><pre><code class="hljs clojure">(random-configuration)
+;;=&gt; {:amount 0.5328325646840278,
+;;=&gt;  :name :add,
+;;=&gt;  :type :operation,
+;;=&gt;  :var1 {:amount -0.17890691373876555,
+;;=&gt;         :name :deriv,
+;;=&gt;         :step 3.139543347930634E-4,
+;;=&gt;         :type :operation,
+;;=&gt;         :var {:amount 1.0,
+;;=&gt;               :name :angles,
+;;=&gt;               :type :operation,
+;;=&gt;               :var1 {:amount 1.0,
+;;=&gt;                      :config {:octaves 4,
+;;=&gt;                               :scale 0.5343399098896845,
+;;=&gt;                               :seed 1489028190},
+;;=&gt;                      :name :perlin2,
+;;=&gt;                      :type :variation},
+;;=&gt;               :var2 {:amount 1.0,
+;;=&gt;                      :config {:r-add 1.0699965872226909,
+;;=&gt;                               :r-mult -1.1304959527223877,
+;;=&gt;                               :r-power 0.3031487940042884,
+;;=&gt;                               :sin-add 2.4133648701792474,
+;;=&gt;                               :x-add -0.21626608371079425,
+;;=&gt;                               :x-mult 1.0204814674630358,
+;;=&gt;                               :x2y2-power 1.2087860014715925,
+;;=&gt;                               :xy2-add -1.9816944023234313,
+;;=&gt;                               :xy2-mult -0.8168174599105805,
+;;=&gt;                               :y-mult 1.8201422332062873,
+;;=&gt;                               :yx-add -0.2675696613906918,
+;;=&gt;                               :yx-div -0.7346102053835983,
+;;=&gt;                               :yy-add -0.08264424868907383,
+;;=&gt;                               :yy-div -1.291745218176676},
+;;=&gt;                      :name :atan2spirals,
+;;=&gt;                      :type :variation}}},
+;;=&gt;  :var2 {:amount -1.6978552556173896,
+;;=&gt;         :config {:a -1.8727721473190568,
+;;=&gt;                  :b 1.029218325419464,
+;;=&gt;                  :c 0.9103182367045748},
+;;=&gt;         :name :wallpaper,
+;;=&gt;         :type :variation}}</code></pre></div><div><blockquote><p>One node configuration</p>
+</blockquote><pre><code class="hljs clojure">(random-configuration 0)
 ;;=&gt; {:amount 1.0,
-;;=&gt;  :name :comp,
+;;=&gt;  :config
+;;=&gt;  {:im-div -1.3788863353865022, :mode 1, :re-div 0.9220927830390159},
+;;=&gt;  :name :juliaoutside,
+;;=&gt;  :type :variation}</code></pre></div><div><blockquote><p>Configuration with depth 2</p>
+</blockquote><pre><code class="hljs clojure">(random-configuration 2)
+;;=&gt; {:amount 1.0,
+;;=&gt;  :name :angles,
 ;;=&gt;  :type :operation,
 ;;=&gt;  :var1 {:amount 1.0,
 ;;=&gt;         :name :comp,
 ;;=&gt;         :type :operation,
-;;=&gt;         :var1 {:amount 1.0,
-;;=&gt;                :config {:angle 1.9069281038187478,
-;;=&gt;                         :hypergon 3.6341507548383802,
-;;=&gt;                         :hypergon-n -8,
-;;=&gt;                         :hypergon-r 0.20903321339546738,
-;;=&gt;                         :lituus 0.0,
-;;=&gt;                         :lituus-a -1.3220545876537932,
-;;=&gt;                         :star 3.865080583168077,
-;;=&gt;                         :star-n 8,
-;;=&gt;                         :star-slope 1.378518337140064,
-;;=&gt;                         :super 0.0,
-;;=&gt;                         :super-m -9.309469933524742,
-;;=&gt;                         :super-n1 3.3000742824564107,
-;;=&gt;                         :super-n2 4,
-;;=&gt;                         :super-n3 -7.28389589467151},
-;;=&gt;                :name :w,
-;;=&gt;                :type :variation},
-;;=&gt;         :var2
-;;=&gt;         {:amount 1.0, :config {}, :name :sinusoidal, :type :variation}},
-;;=&gt;  :var2 {:amount 1.0,
-;;=&gt;         :config {:divisor -0.32142823100209483, :power -8},
-;;=&gt;         :name :juliaq,
-;;=&gt;         :type :variation}}</code></pre></div><div><blockquote><p>One node configuration</p>
-</blockquote><pre><code class="hljs clojure">(random-configuration 0)
-;;=&gt; {:amount 1.0,
-;;=&gt;  :config {:n-of-sp -2,
-;;=&gt;           :size 0.7727639921580453,
-;;=&gt;           :tightness -1.4867037268105219,
-;;=&gt;           :twist -0.059606421914632834},
-;;=&gt;  :name :targetsp,
-;;=&gt;  :type :variation}</code></pre></div><div><blockquote><p>Configuration with depth 2</p>
-</blockquote><pre><code class="hljs clojure">(random-configuration 2)
-;;=&gt; {:amount -0.7870346835152463,
-;;=&gt;  :name :mult,
-;;=&gt;  :type :operation,
-;;=&gt;  :var1 {:amount 1.9524861410545138,
-;;=&gt;         :config {},
-;;=&gt;         :name :julia,
-;;=&gt;         :type :variation},
-;;=&gt;  :var2 {:amount -0.6507559813622019,
-;;=&gt;         :config {:a 0.44305398339677593,
-;;=&gt;                  :b 0.5096795852330476,
-;;=&gt;                  :c -0.5675152439099289},
-;;=&gt;         :name :wallpaper,
-;;=&gt;         :type :variation}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L336">view source</a></div></div><div class="public anchor" id="var-random-field"><h3>random-field</h3><div class="usage"><code>(random-field)</code><code>(random-field depth)</code></div><div class="doc"><div class="markdown"><p>Create randomized field (optional depth can be provided).</p>
+;;=&gt;         :var1 {:amount 1.0, :config {}, :name :noise, :type :variation},
+;;=&gt;         :var2 {:amount 1.0,
+;;=&gt;                :config {:shift -1.8663705915558815},
+;;=&gt;                :name :bipolar,
+;;=&gt;                :type :variation}},
+;;=&gt;  :var2 {:amount 1.0, :config {}, :name :rays3, :type :variation}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L336">view source</a></div></div><div class="public anchor" id="var-random-field"><h3>random-field</h3><div class="usage"><code>(random-field)</code><code>(random-field depth)</code></div><div class="doc"><div class="markdown"><p>Create randomized field (optional depth can be provided).</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L393">view source</a></div></div><div class="public anchor" id="var-randomize-configuration"><h3>randomize-configuration</h3><div class="usage"><code>(randomize-configuration f)</code></div><div class="doc"><div class="markdown"><p>Randomize values for given configuration. Keeps structure untouched.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [conf {:type :variation,
@@ -631,15 +638,14 @@
             :config {:x -1.4, :y 0.9, :mp 2.6}}]
   [(randomize-configuration conf) (randomize-configuration conf)])
 ;;=&gt; [{:amount 1.0,
-;;=&gt;   :config {:mp -1.2562769192386953,
-;;=&gt;            :x -1.228289206511139,
-;;=&gt;            :y 1.2654058244281168},
+;;=&gt;   :config
+;;=&gt;   {:mp 3.817822989003519, :x -1.250207814768228, :y 1.1357969243735457},
 ;;=&gt;   :name :blocky,
 ;;=&gt;   :type :variation}
 ;;=&gt;  {:amount 1.0,
-;;=&gt;   :config {:mp -4.086614060682385,
-;;=&gt;            :x -0.7506014094909301,
-;;=&gt;            :y 1.246927511990722},
+;;=&gt;   :config {:mp -3.107322074518262,
+;;=&gt;            :x 0.8375776399499093,
+;;=&gt;            :y 1.0651726771712444},
 ;;=&gt;   :name :blocky,
 ;;=&gt;   :type :variation}]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L317">view source</a></div></div><div class="public anchor" id="var-scalar-.3Evector-field"><h3>scalar-&gt;vector-field</h3><div class="usage"><code>(scalar-&gt;vector-field scalar f)</code><code>(scalar-&gt;vector-field scalar f1 f2)</code></div><div class="doc"><div class="markdown"><p>Returns vector field build from scalar fields of the input vector and result of the vector field.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
@@ -650,7 +656,7 @@
                               (field :sinusoidal)
                               (field :julia))]
   (v/applyf (f (v/vec2 m/HALF_PI m/HALF_PI)) m/degrees))
-;;=&gt; [45.0 -157.50000000000003]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L267">view source</a></div></div><div class="public anchor" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum f1 f2 amount)</code><code>(sum f1 f2)</code></div><div class="doc"><div class="markdown"><p>Add two vector fields.</p>
+;;=&gt; [45.0 22.500000000000004]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/fields.clj#L267">view source</a></div></div><div class="public anchor" id="var-sum"><h3>sum</h3><div class="usage"><code>(sum f1 f2 amount)</code><code>(sum f1 f2)</code></div><div class="doc"><div class="markdown"><p>Add two vector fields.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [field-1 (field :sinusoidal)
       field-2 (field :swirl)
