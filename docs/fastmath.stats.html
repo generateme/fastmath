@@ -69,7 +69,7 @@
 ;;=&gt;  -0.3015873015873015
 ;;=&gt;  -0.011904761904761935
 ;;=&gt;  0.17777777777777773
-;;=&gt;  0.20317460317460315)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1336">view source</a></div></div><div class="public anchor" id="var-acf-ci"><h3>acf-ci</h3><div class="usage"><code>(acf-ci data lags)</code><code>(acf-ci data lags alpha)</code></div><div class="doc"><div class="markdown"><p><a href="fastmath.stats.html#var-acf">acf</a> with added confidence interval data.</p>
+;;=&gt;  0.20317460317460315)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1343">view source</a></div></div><div class="public anchor" id="var-acf-ci"><h3>acf-ci</h3><div class="usage"><code>(acf-ci data lags)</code><code>(acf-ci data lags alpha)</code></div><div class="doc"><div class="markdown"><p><a href="fastmath.stats.html#var-acf">acf</a> with added confidence interval data.</p>
 <p><code>:cis</code> contains list of calculated ci for every lag.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(acf-ci (repeatedly 1000 r/grand) 3)
@@ -87,7 +87,7 @@
 ;;=&gt;  :cis (0.653321328180018
 ;;=&gt;        0.8218653739461048
 ;;=&gt;        0.8219599072345126
-;;=&gt;        0.9281841012727746)}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1400">view source</a></div></div><div class="public anchor" id="var-adjacent-values"><h3>adjacent-values</h3><div class="usage"><code>(adjacent-values vs)</code><code>(adjacent-values vs estimation-strategy)</code><code>(adjacent-values vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Lower and upper adjacent values (LAV and UAV).</p>
+;;=&gt;        0.9281841012727746)}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1407">view source</a></div></div><div class="public anchor" id="var-adjacent-values"><h3>adjacent-values</h3><div class="usage"><code>(adjacent-values vs)</code><code>(adjacent-values vs estimation-strategy)</code><code>(adjacent-values vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Lower and upper adjacent values (LAV and UAV).</p>
 <p>Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is <code>(- Q3 Q1)</code>.</p>
 <ul>
 <li>LAV is smallest value which is greater or equal to the LIF = <code>(- Q1 (* 1.5 IQR))</code>.</li>
@@ -104,7 +104,7 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (ameasure t c))
-;;=&gt; 0.375</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L947">view source</a></div></div><div class="public anchor" id="var-binary-measures"><h3>binary-measures</h3><div class="usage"><code>(binary-measures truth prediction)</code><code>(binary-measures truth prediction true-value)</code></div><div class="doc"><div class="markdown"><p>Subset of binary measures. See <a href="fastmath.stats.html#var-binary-measures-all">binary-measures-all</a>.</p>
+;;=&gt; 0.375</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L954">view source</a></div></div><div class="public anchor" id="var-binary-measures"><h3>binary-measures</h3><div class="usage"><code>(binary-measures truth prediction)</code><code>(binary-measures truth prediction true-value)</code></div><div class="doc"><div class="markdown"><p>Subset of binary measures. See <a href="fastmath.stats.html#var-binary-measures-all">binary-measures-all</a>.</p>
 <p>Following keys are returned: <code>[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance]</code></p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(binary-measures [true false true false true false true false]
@@ -148,7 +148,7 @@
 ;;=&gt;  :sensitivity 0.75,
 ;;=&gt;  :specificity 0.25,
 ;;=&gt;  :tn 1,
-;;=&gt;  :tp 3}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1201">view source</a></div></div><div class="public anchor" id="var-binary-measures-all"><h3>binary-measures-all</h3><div class="usage"><code>(binary-measures-all truth prediction)</code><code>(binary-measures-all truth prediction true-value)</code></div><div class="doc"><div class="markdown"><p>Collection of binary measures.</p>
+;;=&gt;  :tp 3}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1208">view source</a></div></div><div class="public anchor" id="var-binary-measures-all"><h3>binary-measures-all</h3><div class="usage"><code>(binary-measures-all truth prediction)</code><code>(binary-measures-all truth prediction true-value)</code></div><div class="doc"><div class="markdown"><p>Collection of binary measures.</p>
 <ul>
 <li><code>truth</code> - list of ground truth values</li>
 <li><code>prediction</code> - list of predicted values</li>
@@ -169,7 +169,7 @@
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 0.3333333333333333,
-;;=&gt;  :f-beta #<fn@35d5915b fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@b04794c fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.28571428571428575,
 ;;=&gt;  :f1-score 0.28571428571428575,
 ;;=&gt;  :fall-out 0.5,
@@ -199,14 +199,14 @@
 ;;=&gt;  :tnr 0.5,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 1,
-;;=&gt;  :tpr 0.25}</fn@35d5915b></code></pre></div><div><blockquote><p>Treat <code>1</code> as <code>true</code> value.</p>
+;;=&gt;  :tpr 0.25}</fn@b04794c></code></pre></div><div><blockquote><p>Treat <code>1</code> as <code>true</code> value.</p>
 </blockquote><pre><code class="hljs clojure">(binary-measures-all [1 0 1 0 1 0 1 0] [1 0 0 1 0 0 0 1] [1])
 ;;=&gt; {:accuracy 0.375,
 ;;=&gt;  :bm -0.25,
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 0.3333333333333333,
-;;=&gt;  :f-beta #<fn@77092f3d fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@12995c62 fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.28571428571428575,
 ;;=&gt;  :f1-score 0.28571428571428575,
 ;;=&gt;  :fall-out 0.5,
@@ -236,7 +236,7 @@
 ;;=&gt;  :tnr 0.5,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 1,
-;;=&gt;  :tpr 0.25}</fn@77092f3d></code></pre></div><div><blockquote><p>Treat <code>:a</code> and <code>:b</code> as <code>true</code> value.</p>
+;;=&gt;  :tpr 0.25}</fn@12995c62></code></pre></div><div><blockquote><p>Treat <code>:a</code> and <code>:b</code> as <code>true</code> value.</p>
 </blockquote><pre><code class="hljs clojure">(binary-measures-all [:a :b :c :d :e :f :a :b]
                      [:a :b :a :b :a :f :d :b]
                      {:a true, :b true, :c false})
@@ -245,7 +245,7 @@
 ;;=&gt;  :cn 4.0,
 ;;=&gt;  :cp 4.0,
 ;;=&gt;  :dor 1.0,
-;;=&gt;  :f-beta #<fn@5452f52a fastmath.stats="" inary_measures_all[fn]="">,
+;;=&gt;  :f-beta #<fn@399b7b01 fastmath.stats="" inary_measures_all[fn]="">,
 ;;=&gt;  :f-measure 0.6,
 ;;=&gt;  :f1-score 0.6,
 ;;=&gt;  :fall-out 0.75,
@@ -275,76 +275,76 @@
 ;;=&gt;  :tnr 0.25,
 ;;=&gt;  :total 8.0,
 ;;=&gt;  :tp 3,
-;;=&gt;  :tpr 0.75}</fn@5452f52a></code></pre></div><div><blockquote><p>F-beta is a function. When <code>beta</code> is equal <code>1.0</code>, you get <code>f1-score</code>.</p>
+;;=&gt;  :tpr 0.75}</fn@399b7b01></code></pre></div><div><blockquote><p>F-beta is a function. When <code>beta</code> is equal <code>1.0</code>, you get <code>f1-score</code>.</p>
 </blockquote><pre><code class="hljs clojure">(let [fbeta (:f-beta (binary-measures-all
                       [true false true false true false true false]
                       [true false false true false false false true]))]
   [(fbeta 1.0) (fbeta 2.0) (fbeta 0.5)])
-;;=&gt; [0.28571428571428575 0.7142857142857144 0.1785714285714286]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1126">view source</a></div></div><div class="public anchor" id="var-binomial-ci"><h3>binomial-ci</h3><div class="usage"><code>(binomial-ci number-of-successes number-of-trials)</code><code>(binomial-ci number-of-successes number-of-trials method)</code><code>(binomial-ci number-of-successes number-of-trials method confidence-level)</code></div><div class="doc"><div class="markdown"><p>Return confidence interval for a binomial distribution.</p>
+;;=&gt; [0.28571428571428575 0.7142857142857144 0.1785714285714286]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1133">view source</a></div></div><div class="public anchor" id="var-binomial-ci"><h3>binomial-ci</h3><div class="usage"><code>(binomial-ci number-of-successes number-of-trials)</code><code>(binomial-ci number-of-successes number-of-trials method)</code><code>(binomial-ci number-of-successes number-of-trials method confidence-level)</code></div><div class="doc"><div class="markdown"><p>Return confidence interval for a binomial distribution.</p>
 <p>Possible methods are: * <code>:asymptotic</code> (normal aproximation, based on central limit theorem), default * <code>:agresti-coull</code> * <code>:clopper-pearson</code> * <code>:wilson</code> * <code>:prop.test</code> - one sample proportion test * <code>:cloglog</code> * <code>:logit</code> * <code>:probit</code> * <code>:arcsine</code> * <code>:all</code> - apply all methods and return a map of triplets</p>
 <p>Default confidence level: 0.95</p>
 <p>Returns a triple <a href="lower ci, upper ci, mean">lower ci, upper ci, mean</a></p>
-</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1483">view source</a></div></div><div class="public anchor" id="var-binomial-ci-methods"><h3>binomial-ci-methods</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1480">view source</a></div></div><div class="public anchor" id="var-bootstrap"><h3>bootstrap</h3><div class="usage"><code>(bootstrap vs)</code><code>(bootstrap vs samples)</code><code>(bootstrap vs samples size)</code></div><div class="doc"><div class="markdown"><p>Generate set of samples of given size from provided data.</p>
+</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1490">view source</a></div></div><div class="public anchor" id="var-binomial-ci-methods"><h3>binomial-ci-methods</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1487">view source</a></div></div><div class="public anchor" id="var-bootstrap"><h3>bootstrap</h3><div class="usage"><code>(bootstrap vs)</code><code>(bootstrap vs samples)</code><code>(bootstrap vs samples size)</code></div><div class="doc"><div class="markdown"><p>Generate set of samples of given size from provided data.</p>
 <p>Default <code>samples</code> is 50, number of <code>size</code> defaults to 1000</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(bootstrap [1 2 3 4 1 2 3 1 2 1] 2 20)
-;;=&gt; ((2.0
+;;=&gt; ((1.0
+;;=&gt;   4.0
 ;;=&gt;   2.0
 ;;=&gt;   1.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   2.0
-;;=&gt;   2.0
 ;;=&gt;   1.0
-;;=&gt;   2.0
+;;=&gt;   1.0
 ;;=&gt;   3.0
-;;=&gt;   3.0
-;;=&gt;   2.0
-;;=&gt;   3.0
+;;=&gt;   1.0
+;;=&gt;   1.0
 ;;=&gt;   1.0
 ;;=&gt;   4.0
+;;=&gt;   3.0
+;;=&gt;   2.0
+;;=&gt;   4.0
+;;=&gt;   1.0
+;;=&gt;   3.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
-;;=&gt;   1.0
-;;=&gt;   1.0
+;;=&gt;   2.0
 ;;=&gt;   1.0)
-;;=&gt;  (4.0
+;;=&gt;  (1.0
 ;;=&gt;   1.0
 ;;=&gt;   2.0
 ;;=&gt;   2.0
 ;;=&gt;   2.0
-;;=&gt;   3.0
-;;=&gt;   2.0
-;;=&gt;   1.0
-;;=&gt;   2.0
-;;=&gt;   3.0
-;;=&gt;   3.0
 ;;=&gt;   4.0
 ;;=&gt;   2.0
-;;=&gt;   1.0
+;;=&gt;   3.0
 ;;=&gt;   1.0
 ;;=&gt;   1.0
 ;;=&gt;   2.0
+;;=&gt;   1.0
+;;=&gt;   2.0
+;;=&gt;   3.0
 ;;=&gt;   2.0
 ;;=&gt;   1.0
-;;=&gt;   2.0))
+;;=&gt;   3.0
+;;=&gt;   1.0
+;;=&gt;   4.0
+;;=&gt;   3.0))
 (let [data [1 2 3 4 1 2 3 1 2 1]
       fdata (frequencies data)
       bdata (bootstrap data 5 1000)]
   {:source fdata, :bootstrapped (map frequencies bdata)})
-;;=&gt; {:bootstrapped ({1.0 389, 2.0 299, 3.0 204, 4.0 108}
-;;=&gt;                 {1.0 392, 2.0 306, 3.0 207, 4.0 95}
-;;=&gt;                 {1.0 423, 2.0 291, 3.0 199, 4.0 87}
-;;=&gt;                 {1.0 417, 2.0 310, 3.0 190, 4.0 83}
-;;=&gt;                 {1.0 347, 2.0 335, 3.0 220, 4.0 98}),
+;;=&gt; {:bootstrapped ({1.0 397, 2.0 301, 3.0 201, 4.0 101}
+;;=&gt;                 {1.0 413, 2.0 296, 3.0 185, 4.0 106}
+;;=&gt;                 {1.0 412, 2.0 290, 3.0 184, 4.0 114}
+;;=&gt;                 {1.0 387, 2.0 317, 3.0 201, 4.0 95}
+;;=&gt;                 {1.0 389, 2.0 280, 3.0 221, 4.0 110}),
 ;;=&gt;  :source {1 4, 2 3, 3 2, 4 1}}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L577">view source</a></div></div><div class="public anchor" id="var-bootstrap-ci"><h3>bootstrap-ci</h3><div class="usage"><code>(bootstrap-ci vs)</code><code>(bootstrap-ci vs alpha)</code><code>(bootstrap-ci vs alpha samples)</code><code>(bootstrap-ci vs alpha samples stat-fn)</code></div><div class="doc"><div class="markdown"><p>Bootstrap method to calculate confidence interval.</p>
 <p>Alpha defaults to 0.98, samples to 1000. Last parameter is statistical function used to measure, default: <a href="fastmath.stats.html#var-mean">mean</a>.</p>
 <p>Returns ci and statistical function value.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(bootstrap-ci [-5 1 1 1 1 2 2 5 11 71])
-;;=&gt; [-6.5980000000000025 17.7 9.0]
+;;=&gt; [-6.100000000000001 17.7 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8)
-;;=&gt; [2.5 15.899999999999999 9.0]
+;;=&gt; [3.0 15.6 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.8 100000)
 ;;=&gt; [2.5999999999999996 15.7 9.0]
 (bootstrap-ci [-5 1 1 1 1 2 2 5 11 71] 0.98 1000 median)
@@ -358,7 +358,7 @@
 <li><code>:df</code> - degrees of freedom (k-1)*(r-1)</li>
 <li><code>:p-value</code> - chi2 distribution cdf for found statistic and df (upper tail).</li>
 </ul>
-</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1041">view source</a></div></div><div class="public anchor" id="var-ci"><h3>ci</h3><div class="usage"><code>(ci vs)</code><code>(ci vs alpha)</code></div><div class="doc"><div class="markdown"><p>T-student based confidence interval for given data. Alpha value defaults to 0.98.</p>
+</div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1048">view source</a></div></div><div class="public anchor" id="var-ci"><h3>ci</h3><div class="usage"><code>(ci vs)</code><code>(ci vs alpha)</code></div><div class="doc"><div class="markdown"><p>T-student based confidence interval for given data. Alpha value defaults to 0.98.</p>
 <p>Last value is mean.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(ci [-5 1 1 1 1 2 2 5 11 71])
@@ -371,19 +371,19 @@
   (cliffs-delta t c))
 ;;=&gt; -0.25
 (let [t [:a :b :c :D :e :f] c [:a :z :X :y :x :y]] (cliffs-delta t c))
-;;=&gt; -0.4722222222222222</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L958">view source</a></div></div><div class="public anchor" id="var-coefficient-matrix"><h3>coefficient-matrix</h3><div class="usage"><code>(coefficient-matrix vss)</code><code>(coefficient-matrix vss measure-fn)</code><code>(coefficient-matrix vss measure-fn symmetric?)</code></div><div class="doc"><div class="markdown"><p>Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.</p>
+;;=&gt; -0.4722222222222222</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L965">view source</a></div></div><div class="public anchor" id="var-coefficient-matrix"><h3>coefficient-matrix</h3><div class="usage"><code>(coefficient-matrix vss)</code><code>(coefficient-matrix vss measure-fn)</code><code>(coefficient-matrix vss measure-fn symmetric?)</code></div><div class="doc"><div class="markdown"><p>Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.</p>
 <p>Default method: pearson-correlation</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L719">view source</a></div></div><div class="public anchor" id="var-cohens-d"><h3>cohens-d</h3><div class="usage"><code>(cohens-d group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s d effect size for two groups, using sqrt of mean of variances as pooled sd</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (cohens-d t c))
-;;=&gt; -0.41291824242367126</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L885">view source</a></div></div><div class="public anchor" id="var-cohens-d-corrected"><h3>cohens-d-corrected</h3><div class="usage"><code>(cohens-d-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s d corrected for small group size</p>
+;;=&gt; -0.41291824242367126</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L892">view source</a></div></div><div class="public anchor" id="var-cohens-d-corrected"><h3>cohens-d-corrected</h3><div class="usage"><code>(cohens-d-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s d corrected for small group size</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (cohens-d-corrected t c))
-;;=&gt; -0.36518148535776646</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L902">view source</a></div></div><div class="public anchor" id="var-cohens-f2"><h3>cohens-f2</h3><div class="usage"><code>(cohens-f2 group1 group2)</code><code>(cohens-f2 type group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohens f2, by default based on <code>eta-sq</code>.</p>
+;;=&gt; -0.36518148535776646</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L909">view source</a></div></div><div class="public anchor" id="var-cohens-f2"><h3>cohens-f2</h3><div class="usage"><code>(cohens-f2 group1 group2)</code><code>(cohens-f2 type group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohens f2, by default based on <code>eta-sq</code>.</p>
 <p>Possible <code>type</code> values are: <code>:eta</code> (default), <code>:omega</code> and <code>:epsilon</code>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
@@ -395,7 +395,7 @@
 ;;=&gt; {:default 0.06779661016949151,
 ;;=&gt;  :epsilon -0.050847457627118633,
 ;;=&gt;  :eta 0.06779661016949151,
-;;=&gt;  :omega -0.04576271186440677}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1009">view source</a></div></div><div class="public anchor" id="var-cohens-q"><h3>cohens-q</h3><div class="usage"><code>(cohens-q r1 r2)</code><code>(cohens-q group1 group2a group2b)</code><code>(cohens-q group1a group2a group1b group2b)</code></div><div class="doc"><div class="markdown"><p>Comparison of two correlations.</p>
+;;=&gt;  :omega -0.04576271186440677}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1016">view source</a></div></div><div class="public anchor" id="var-cohens-q"><h3>cohens-q</h3><div class="usage"><code>(cohens-q r1 r2)</code><code>(cohens-q group1 group2a group2b)</code><code>(cohens-q group1a group2a group1b group2b)</code></div><div class="doc"><div class="markdown"><p>Comparison of two correlations.</p>
 <p>Arity:</p>
 <ul>
 <li>2 - compare two correlation values</li>
@@ -412,12 +412,12 @@
    :arity-4 (cohens-q t c d e)})
 ;;=&gt; {:arity-2 0.8047189562170503,
 ;;=&gt;  :arity-3 0.9030140869391835,
-;;=&gt;  :arity-4 0.8369271764963739}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1023">view source</a></div></div><div class="public anchor" id="var-cohens-w"><h3>cohens-w</h3><div class="usage"><code>(cohens-w group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s W effect size for discrete data.</p>
+;;=&gt;  :arity-4 0.8369271764963739}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1030">view source</a></div></div><div class="public anchor" id="var-cohens-w"><h3>cohens-w</h3><div class="usage"><code>(cohens-w group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s W effect size for discrete data.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
       b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
   (cohens-w a b))
-;;=&gt; 1.0408329997330663</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1090">view source</a></div></div><div class="public anchor" id="var-correlation"><h3>correlation</h3><div class="usage"><code>(correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Correlation of two sequences.</p>
+;;=&gt; 1.0408329997330663</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1097">view source</a></div></div><div class="public anchor" id="var-correlation"><h3>correlation</h3><div class="usage"><code>(correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Correlation of two sequences.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Correlation of uniform and gaussian distribution samples.</p>
 </blockquote><pre><code class="hljs clojure">(correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
              (repeatedly 100000 (partial r/drand -10.0 -5.0)))
@@ -437,12 +437,12 @@
 </blockquote><pre><code class="hljs clojure">(let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
       b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
   (cramers-v a b))
-;;=&gt; 0.6009252125773316</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1068">view source</a></div></div><div class="public anchor" id="var-cramers-v-corrected"><h3>cramers-v-corrected</h3><div class="usage"><code>(cramers-v-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Corrected Cramer’s V</p>
+;;=&gt; 0.6009252125773316</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1075">view source</a></div></div><div class="public anchor" id="var-cramers-v-corrected"><h3>cramers-v-corrected</h3><div class="usage"><code>(cramers-v-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Corrected Cramer’s V</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
       b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
   (cramers-v-corrected a b))
-;;=&gt; 0.3410563654946854</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1076">view source</a></div></div><div class="public anchor" id="var-demean"><h3>demean</h3><div class="usage"><code>(demean vs)</code></div><div class="doc"><div class="markdown"><p>Subtract mean from sequence</p>
+;;=&gt; 0.3410563654946854</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1083">view source</a></div></div><div class="public anchor" id="var-demean"><h3>demean</h3><div class="usage"><code>(demean vs)</code></div><div class="doc"><div class="markdown"><p>Subtract mean from sequence</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(demean [-5 1 1 1 1 2 2 5 11 71])
 ;;=&gt; (-14.0 -8.0 -8.0 -8.0 -8.0 -7.0 -7.0 -4.0 2.0 62.0)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L638">view source</a></div></div><div class="public anchor" id="var-epsilon-sq"><h3>epsilon-sq</h3><div class="usage"><code>(epsilon-sq group1 group2)</code></div><div class="doc"><div class="markdown"><p>Less biased R2</p>
@@ -450,8 +450,9 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [-50 20 30 40 40 50 10 20 30 10]]
   (epsilon-sq t c))
-;;=&gt; -0.05357142857142856</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1001">view source</a></div></div><div class="public anchor" id="var-estimate-bins"><h3>estimate-bins</h3><div class="usage"><code>(estimate-bins vs)</code><code>(estimate-bins vs bins-or-estimate-method)</code></div><div class="doc"><div class="markdown"><p>Estimate number of bins for histogram.</p>
+;;=&gt; -0.05357142857142856</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1008">view source</a></div></div><div class="public anchor" id="var-estimate-bins"><h3>estimate-bins</h3><div class="usage"><code>(estimate-bins vs)</code><code>(estimate-bins vs bins-or-estimate-method)</code></div><div class="doc"><div class="markdown"><p>Estimate number of bins for histogram.</p>
 <p>Possible methods are: <code>:sqrt</code> <code>:sturges</code> <code>:rice</code> <code>:doane</code> <code>:scott</code> <code>:freedman-diaconis</code> (default).</p>
+<p>The number returned is not higher than number of samples.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Estimate number of bins for various methods. <code>vs</code> contains 1000 random samples from Log-Normal distribution.</p>
 </blockquote><pre><code class="hljs clojure">(estimate-bins vs :sqrt)
 ;;=&gt; 31
@@ -460,18 +461,18 @@
 (estimate-bins vs :rice)
 ;;=&gt; 20
 (estimate-bins vs :doane)
-;;=&gt; 17
+;;=&gt; 16
 (estimate-bins vs :scott)
-;;=&gt; 40
+;;=&gt; 35
 (estimate-bins vs :freedman-diaconis)
-;;=&gt; 114</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L819">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p>
+;;=&gt; 87</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L819">view source</a></div></div><div class="public anchor" id="var-estimation-strategies-list"><h3>estimation-strategies-list</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of estimation strategies for percentile</p>
 </blockquote><pre><code class="hljs clojure">(sort (keys estimation-strategies-list))
 ;;=&gt; (:legacy :r1 :r2 :r3 :r4 :r5 :r6 :r7 :r8 :r9)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L86">view source</a></div></div><div class="public anchor" id="var-eta-sq"><h3>eta-sq</h3><div class="usage"><code>(eta-sq group1 group2)</code></div><div class="doc"><div class="markdown"><p>R2</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [-50 20 30 40 40 50 10 20 30 10]]
   (eta-sq t c))
-;;=&gt; 0.06349206349206347</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L986">view source</a></div></div><div class="public anchor" id="var-extent"><h3>extent</h3><div class="usage"><code>(extent vs)</code></div><div class="doc"><div class="markdown"><p>Return extent (min, max, mean) values from sequence</p>
+;;=&gt; 0.06349206349206347</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L993">view source</a></div></div><div class="public anchor" id="var-extent"><h3>extent</h3><div class="usage"><code>(extent vs)</code></div><div class="doc"><div class="markdown"><p>Return extent (min, max, mean) values from sequence</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>min/max and mean of gaussian distribution</p>
 </blockquote><pre><code class="hljs clojure">(extent (repeatedly 100000 r/grand))
 ;;=&gt; [-4.357031191282226 4.408496896819855 0.0018745406093300476]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L446">view source</a></div></div><div class="public anchor" id="var-geomean"><h3>geomean</h3><div class="usage"><code>(geomean vs)</code></div><div class="doc"><div class="markdown"><p>Geometric mean for positive values only</p>
@@ -482,7 +483,7 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (glass-delta t c))
-;;=&gt; -0.3849741916091626</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L910">view source</a></div></div><div class="public anchor" id="var-harmean"><h3>harmean</h3><div class="usage"><code>(harmean vs)</code></div><div class="doc"><div class="markdown"><p>Harmonic mean</p>
+;;=&gt; -0.3849741916091626</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L917">view source</a></div></div><div class="public anchor" id="var-harmean"><h3>harmean</h3><div class="usage"><code>(harmean vs)</code></div><div class="doc"><div class="markdown"><p>Harmonic mean</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Harmonic mean</p>
 </blockquote><pre><code class="hljs clojure">(harmean [1 2 3 -1 -1 2 -1 11 111])
 ;;=&gt; -15.880057803468203</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L189">view source</a></div></div><div class="public anchor" id="var-hedges-g"><h3>hedges-g</h3><div class="usage"><code>(hedges-g group1 group2)</code></div><div class="doc"><div class="markdown"><p>Hedges’s g effect size for two groups</p>
@@ -490,17 +491,17 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (hedges-g t c))
-;;=&gt; -0.42208932839491475</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L917">view source</a></div></div><div class="public anchor" id="var-hedges-g*"><h3>hedges-g*</h3><div class="usage"><code>(hedges-g* group1 group2)</code></div><div class="doc"><div class="markdown"><p>Less biased Hedges’s g effect size for two groups</p>
+;;=&gt; -0.42208932839491475</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L924">view source</a></div></div><div class="public anchor" id="var-hedges-g*"><h3>hedges-g*</h3><div class="usage"><code>(hedges-g* group1 group2)</code></div><div class="doc"><div class="markdown"><p>Less biased Hedges’s g effect size for two groups</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (hedges-g* t c))
-;;=&gt; -0.3990662741188285</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L940">view source</a></div></div><div class="public anchor" id="var-hedges-g-corrected"><h3>hedges-g-corrected</h3><div class="usage"><code>(hedges-g-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s d corrected for small group size</p>
+;;=&gt; -0.3990662741188285</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L947">view source</a></div></div><div class="public anchor" id="var-hedges-g-corrected"><h3>hedges-g-corrected</h3><div class="usage"><code>(hedges-g-corrected group1 group2)</code></div><div class="doc"><div class="markdown"><p>Cohen’s d corrected for small group size</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [10 20 30 40 40 50]]
   (hedges-g-corrected t c))
-;;=&gt; -0.3732923180922673</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L932">view source</a></div></div><div class="public anchor" id="var-histogram"><h3>histogram</h3><div class="usage"><code>(histogram vs)</code><code>(histogram vs bins-or-estimate-method)</code><code>(histogram vs bins [mn mx])</code></div><div class="doc"><div class="markdown"><p>Calculate histogram.</p>
+;;=&gt; -0.3732923180922673</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L939">view source</a></div></div><div class="public anchor" id="var-histogram"><h3>histogram</h3><div class="usage"><code>(histogram vs)</code><code>(histogram vs bins-or-estimate-method)</code><code>(histogram vs bins [mn mx])</code></div><div class="doc"><div class="markdown"><p>Calculate histogram.</p>
 <p>Returns map with keys:</p>
 <ul>
 <li><code>:size</code> - number of bins</li>
@@ -511,22 +512,23 @@
 <li><code>:samples</code> - number of used samples</li>
 </ul>
 <p>For estimation methods check <a href="fastmath.stats.html#var-estimate-bins">estimate-bins</a>.</p>
+<p>If difference between min and max values is <code>0</code>, number of bins is set to 1.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>3 bins from uniform distribution.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 1000 rand) 3)
-;;=&gt; {:bins ([0.0025632299372215783 340]
-;;=&gt;         [0.33490255959062054 334]
-;;=&gt;         [0.6672418892440195 326]),
-;;=&gt;  :max 0.9995812188974185,
-;;=&gt;  :min 0.0025632299372215783,
+;;=&gt; {:bins ([3.4830523675077885E-4 314]
+;;=&gt;         [0.33354771490270263 352]
+;;=&gt;         [0.6667471245686545 334]),
+;;=&gt;  :max 0.9999465342346064,
+;;=&gt;  :min 3.4830523675077885E-4,
 ;;=&gt;  :samples 1000,
 ;;=&gt;  :size 3,
-;;=&gt;  :step 0.33233932965339896}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p>
+;;=&gt;  :step 0.3331994096659519}</code></pre></div><div><blockquote><p>3 bins from uniform distribution for given range.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 rand) 3 [0.1 0.5])
 ;;=&gt; {:bins
-;;=&gt;  ([0.1 1376] [0.23333333333333334 1310] [0.3666666666666667 1350]),
+;;=&gt;  ([0.1 1301] [0.23333333333333334 1297] [0.3666666666666667 1398]),
 ;;=&gt;  :max 0.5,
 ;;=&gt;  :min 0.1,
-;;=&gt;  :samples 4036,
+;;=&gt;  :samples 3996,
 ;;=&gt;  :size 3,
 ;;=&gt;  :step 0.13333333333333333}</code></pre></div><div><blockquote><p>5 bins from normal distribution.</p>
 </blockquote><pre><code class="hljs clojure">(histogram (repeatedly 10000 r/grand) 5)
@@ -543,7 +545,7 @@
 </blockquote><pre><code class="hljs clojure">(:size (histogram (repeatedly 10000 r/grand)))
 ;;=&gt; 58</code></pre></div><div><blockquote><p>Estimate number of bins, Rice rule</p>
 </blockquote><pre><code class="hljs clojure">(:size (histogram (repeatedly 10000 r/grand) :rice))
-;;=&gt; 44</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L846">view source</a></div></div><div class="public anchor" id="var-hpdi-extent"><h3>hpdi-extent</h3><div class="usage"><code>(hpdi-extent vs)</code><code>(hpdi-extent vs size)</code></div><div class="doc"><div class="markdown"><p>Higher Posterior Density interval + median.</p>
+;;=&gt; 44</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L848">view source</a></div></div><div class="public anchor" id="var-hpdi-extent"><h3>hpdi-extent</h3><div class="usage"><code>(hpdi-extent vs)</code><code>(hpdi-extent vs size)</code></div><div class="doc"><div class="markdown"><p>Higher Posterior Density interval + median.</p>
 <p><code>size</code> parameter is the target probability content of the interval.</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L342">view source</a></div></div><div class="public anchor" id="var-iqr"><h3>iqr</h3><div class="usage"><code>(iqr vs)</code><code>(iqr vs estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Interquartile range.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>IQR</p>
@@ -641,7 +643,7 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [-50 20 30 40 40 50 10 20 30 10]]
   (omega-sq t c))
-;;=&gt; -0.04795737122557726</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L992">view source</a></div></div><div class="public anchor" id="var-outliers"><h3>outliers</h3><div class="usage"><code>(outliers vs)</code><code>(outliers vs estimation-strategy)</code><code>(outliers vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Find outliers defined as values outside outer fences.</p>
+;;=&gt; -0.04795737122557726</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L999">view source</a></div></div><div class="public anchor" id="var-outliers"><h3>outliers</h3><div class="usage"><code>(outliers vs)</code><code>(outliers vs estimation-strategy)</code><code>(outliers vs q1 q3)</code></div><div class="doc"><div class="markdown"><p>Find outliers defined as values outside outer fences.</p>
 <p>Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is <code>(- Q3 Q1)</code>.</p>
 <ul>
 <li>LIF (Lower Outer Fence) equals <code>(- Q1 (* 1.5 IQR))</code>.</li>
@@ -679,7 +681,7 @@
 ;;=&gt;  0.17585056996358742
 ;;=&gt;  -0.2652225487589841
 ;;=&gt;  -0.17978918763554708
-;;=&gt;  -0.10771973872263883)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1359">view source</a></div></div><div class="public anchor" id="var-pacf-ci"><h3>pacf-ci</h3><div class="usage"><code>(pacf-ci data lags)</code><code>(pacf-ci data lags alpha)</code></div><div class="doc"><div class="markdown"><p><a href="fastmath.stats.html#var-pacf">pacf</a> with added confidence interval data.</p>
+;;=&gt;  -0.10771973872263883)</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1366">view source</a></div></div><div class="public anchor" id="var-pacf-ci"><h3>pacf-ci</h3><div class="usage"><code>(pacf-ci data lags)</code><code>(pacf-ci data lags alpha)</code></div><div class="doc"><div class="markdown"><p><a href="fastmath.stats.html#var-pacf">pacf</a> with added confidence interval data.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(pacf-ci (repeatedly 1000 r/grand) 3)
 ;;=&gt; {:ci 0.06197950323045615,
@@ -689,7 +691,7 @@
 ;;=&gt;         -0.014989261931523782)}
 (pacf-ci [1 2 3 4 5 4 3 2 1] 3)
 ;;=&gt; {:ci 0.653321328180018,
-;;=&gt;  :pacf (0.0 0.5396825396825397 -0.4299857803057234 -0.388084834596935)}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1390">view source</a></div></div><div class="public anchor" id="var-pearson-correlation"><h3>pearson-correlation</h3><div class="usage"><code>(pearson-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Pearson’s correlation of two sequences.</p>
+;;=&gt;  :pacf (0.0 0.5396825396825397 -0.4299857803057234 -0.388084834596935)}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1397">view source</a></div></div><div class="public anchor" id="var-pearson-correlation"><h3>pearson-correlation</h3><div class="usage"><code>(pearson-correlation vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Pearson’s correlation of two sequences.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Pearson’s correlation of uniform and gaussian distribution samples.</p>
 </blockquote><pre><code class="hljs clojure">(pearson-correlation (repeatedly 100000 (partial r/grand 1.0 10.0))
                      (repeatedly 100000 (partial r/drand -10.0 -5.0)))
@@ -698,7 +700,7 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [-50 20 30 40 40 50 10 20 30 10]]
   (pearson-r t c))
-;;=&gt; 0.2519763153394848</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L967">view source</a></div></div><div class="public anchor" id="var-percentile"><h3>percentile</h3><div class="usage"><code>(percentile vs p)</code><code>(percentile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate percentile of a <code>vs</code>.</p>
+;;=&gt; 0.2519763153394848</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L974">view source</a></div></div><div class="public anchor" id="var-percentile"><h3>percentile</h3><div class="usage"><code>(percentile vs p)</code><code>(percentile vs p estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Calculate percentile of a <code>vs</code>.</p>
 <p>Percentile <code>p</code> is from range 0-100.</p>
 <p>See <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html">docs</a>.</p>
 <p>Optionally you can provide <code>estimation-strategy</code> to change interpolation methods for selecting values. Default is <code>:legacy</code>. See more <a href="http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html">here</a></p>
@@ -740,7 +742,7 @@
 (percentile-bc-extent (repeatedly 100000 r/grand) 10)
 ;;=&gt; [-1.279163968122198 1.281344245784764 0.003361547849110133]
 (percentile-bc-extent (repeatedly 100000 r/grand) 30 70)
-;;=&gt; [-0.5309526715401288 0.5221697307230696 4.846600760231651E-4]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1464">view source</a></div></div><div class="public anchor" id="var-percentile-bca-extent"><h3>percentile-bca-extent</h3><div class="usage"><code>(percentile-bca-extent vs)</code><code>(percentile-bca-extent vs p)</code><code>(percentile-bca-extent vs p1 p2)</code><code>(percentile-bca-extent vs p1 p2 estimation-strategy)</code><code>(percentile-bca-extent vs p1 p2 accel estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Return bias corrected percentile range and mean for bootstrap samples. Also accounts for variance variations throught the accelaration parameter. See <a href="https://projecteuclid.org/euclid.ss/1032280214">https://projecteuclid.org/euclid.ss/1032280214</a></p>
+;;=&gt; [-0.5309526715401288 0.5221697307230696 4.846600760231651E-4]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1471">view source</a></div></div><div class="public anchor" id="var-percentile-bca-extent"><h3>percentile-bca-extent</h3><div class="usage"><code>(percentile-bca-extent vs)</code><code>(percentile-bca-extent vs p)</code><code>(percentile-bca-extent vs p1 p2)</code><code>(percentile-bca-extent vs p1 p2 estimation-strategy)</code><code>(percentile-bca-extent vs p1 p2 accel estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Return bias corrected percentile range and mean for bootstrap samples. Also accounts for variance variations throught the accelaration parameter. See <a href="https://projecteuclid.org/euclid.ss/1032280214">https://projecteuclid.org/euclid.ss/1032280214</a></p>
 <p><code>p</code> - calculates extent of bias corrected <code>p</code> and <code>100-p</code> (default: <code>p=2.5</code>)</p>
 <p>Set <code>estimation-strategy</code> to <code>:r7</code> to get the same result as in R <code>coxed::bca</code>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>for samples from gaussian distribution</p>
@@ -749,7 +751,7 @@
 (percentile-bca-extent (repeatedly 100000 r/grand) 10)
 ;;=&gt; [-1.2749701341136717 1.2746725930256597 0.0010483348040287801]
 (percentile-bca-extent (repeatedly 100000 r/grand) 30 70)
-;;=&gt; [-0.5184760408346551 0.5274680408584328 0.005395882408154664]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1444">view source</a></div></div><div class="public anchor" id="var-percentile-extent"><h3>percentile-extent</h3><div class="usage"><code>(percentile-extent vs)</code><code>(percentile-extent vs p)</code><code>(percentile-extent vs p1 p2)</code><code>(percentile-extent vs p1 p2 estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Return percentile range and median.</p>
+;;=&gt; [-0.5184760408346551 0.5274680408584328 0.005395882408154664]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1451">view source</a></div></div><div class="public anchor" id="var-percentile-extent"><h3>percentile-extent</h3><div class="usage"><code>(percentile-extent vs)</code><code>(percentile-extent vs p)</code><code>(percentile-extent vs p1 p2)</code><code>(percentile-extent vs p1 p2 estimation-strategy)</code></div><div class="doc"><div class="markdown"><p>Return percentile range and median.</p>
 <p><code>p</code> - calculates extent of <code>p</code> and <code>100-p</code> (default: <code>p=25</code>)</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>for samples from gaussian distribution</p>
 </blockquote><pre><code class="hljs clojure">(percentile-extent (repeatedly 100000 r/grand))
@@ -839,7 +841,7 @@
 </blockquote><pre><code class="hljs clojure">(let [t [10 10 20 20 20 30 30 30 40 50]
       c [-50 20 30 40 40 50 10 20 30 10]]
   (r2-determination t c))
-;;=&gt; 0.06349206349206347</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L973">view source</a></div></div><div class="public anchor" id="var-rmse"><h3>rmse</h3><div class="usage"><code>(rmse vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Root mean squared error</p>
+;;=&gt; 0.06349206349206347</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L980">view source</a></div></div><div class="public anchor" id="var-rmse"><h3>rmse</h3><div class="usage"><code>(rmse vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Root mean squared error</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L779">view source</a></div></div><div class="public anchor" id="var-rss"><h3>rss</h3><div class="usage"><code>(rss vs1 vs2)</code></div><div class="doc"><div class="markdown"><p>Residual sum of squares</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L767">view source</a></div></div><div class="public anchor" id="var-second-moment"><h3>second-moment</h3><h4 class="deprecated">deprecated in Use `moment` function</h4><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L490">view source</a></div></div><div class="public anchor" id="var-sem"><h3>sem</h3><div class="usage"><code>(sem vs)</code></div><div class="doc"><div class="markdown"><p>Standard error of mean</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>SEM</p>
@@ -929,7 +931,7 @@
 </blockquote><pre><code class="hljs clojure">(let [a [:a :a :b :b :f :a :a :b :b :c :a :a :b :b :c :a :a :b :b :c]
       b [:b :f :a :a :b :b :y :z :c :b :b :c :a :a :b :b :c :a :a :b]]
   (tschuprows-t a b))
-;;=&gt; 0.5288813325243744</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1097">view source</a></div></div><div class="public anchor" id="var-ttest-one-sample"><h3>ttest-one-sample</h3><div class="usage"><code>(ttest-one-sample xs)</code><code>(ttest-one-sample xs {:keys [alpha sides mu], :or {alpha 0.05, sides :two-sided, mu 0.0}})</code></div><div class="doc"><div class="markdown"><p>One-sample Student’s t-test</p>
+;;=&gt; 0.5288813325243744</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1104">view source</a></div></div><div class="public anchor" id="var-ttest-one-sample"><h3>ttest-one-sample</h3><div class="usage"><code>(ttest-one-sample xs)</code><code>(ttest-one-sample xs {:keys [alpha sides mu], :or {alpha 0.05, sides :two-sided, mu 0.0}})</code></div><div class="doc"><div class="markdown"><p>One-sample Student’s t-test</p>
 <ul>
 <li><code>alpha</code> - significance level (default: <code>0.05</code>)</li>
 <li><code>sides</code> - one of: <code>:two-sided</code>, <code>:one-sided-less</code> (short: <code>:one-sided</code>) or <code>:one-sided-greater</code></li>
@@ -963,7 +965,7 @@
 ;;=&gt;  :estimated-mu 5.5,
 ;;=&gt;  :p-value 0.6141172548083933,
 ;;=&gt;  :t 0.5222329678670935,
-;;=&gt;  :test-type :two-sided}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1247">view source</a></div></div><div class="public anchor" id="var-ttest-two-samples"><h3>ttest-two-samples</h3><div class="usage"><code>(ttest-two-samples xs ys)</code><code>(ttest-two-samples xs ys {:keys [alpha sides mu paired? equal-variances?], :or {alpha 0.05, sides :two-sided, mu 0.0, paired? false, equal-variances? false}, :as params})</code></div><div class="doc"><div class="markdown"><p>Two-sample Student’s t-test</p>
+;;=&gt;  :test-type :two-sided}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1254">view source</a></div></div><div class="public anchor" id="var-ttest-two-samples"><h3>ttest-two-samples</h3><div class="usage"><code>(ttest-two-samples xs ys)</code><code>(ttest-two-samples xs ys {:keys [alpha sides mu paired? equal-variances?], :or {alpha 0.05, sides :two-sided, mu 0.0, paired? false, equal-variances? false}, :as params})</code></div><div class="doc"><div class="markdown"><p>Two-sample Student’s t-test</p>
 <ul>
 <li><code>alpha</code> - significance level (default: <code>0.05</code>)</li>
 <li><code>sides</code> - one of: <code>:two-sided</code>, <code>:one-sided-less</code> (short: <code>:one-sided</code>) or <code>:one-sided-greater</code></li>
@@ -1009,7 +1011,7 @@
 ;;=&gt;  :p-value 0.011615504295919215,
 ;;=&gt;  :paired? true,
 ;;=&gt;  :t -3.156496045715208,
-;;=&gt;  :test-type :two-sided}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1290">view source</a></div></div><div class="public anchor" id="var-variance"><h3>variance</h3><div class="usage"><code>(variance vs)</code><code>(variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate variance of <code>vs</code>.</p>
+;;=&gt;  :test-type :two-sided}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/stats.clj#L1297">view source</a></div></div><div class="public anchor" id="var-variance"><h3>variance</h3><div class="usage"><code>(variance vs)</code><code>(variance vs u)</code></div><div class="doc"><div class="markdown"><p>Calculate variance of <code>vs</code>.</p>
 <p>See <a href="fastmath.stats.html#var-population-variance">population-variance</a>.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Variance.</p>
 </blockquote><pre><code class="hljs clojure">(variance [1 2 3 -1 -1 2 -1 11 111])

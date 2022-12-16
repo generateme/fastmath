@@ -62,8 +62,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma])
-  (:require [fastmath.core :as m]))
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -407,17 +406,44 @@
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} log1p)
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} expm1)
 
+(def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
+(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
+(def ^:const ^double ^{:doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
+(def ^:const ^double ^{:doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
+(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
+(def ^:const ^double ^{:doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
+(def ^:const ^double ^{:doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
+(def ^:const ^double ^{:doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
+
 (defn ^{:doc "log(1+exp(x))"
-        :metadoc/categories -pow-set-}
-  log1pexp ^double [^double x] (FastMath/log1p (FastMath/exp x)))
+     :metadoc/categories -pow-set-}
+  log1pexp ^double [^double x]
+  (cond
+    (< x -745.1332191019412) 0.0
+    (< x -36.7368005696771) (FastMath/exp x)
+    (< x 18.021826694558577) (FastMath/log1p (FastMath/exp x))
+    (< x 33.23111882352963) (+ x (FastMath/exp (- x)))
+    :else x))
 
 (defn ^{:doc "log(1-exp(x))"
-        :metadoc/categories -pow-set-}
-  log1mexp ^double [^double x] (FastMath/log1p (- (FastMath/exp x))))
+     :metadoc/categories -pow-set-}
+  log1mexp ^double [^double x]
+  (if (< x LOG_HALF)
+    (FastMath/log1p (- (FastMath/exp x)))
+    (FastMath/log (- (FastMath/expm1 x)))))
+
+(defn log2mexp
+  "log(2-exp(x))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (FastMath/log1p (- (FastMath/expm1 x))))
 
 (defn ^{:doc "log(1+x^2))"
-        :metadoc/categories -pow-set-}
-  log1psq ^double [^double x] (FastMath/log1p (* x x)))
+     :metadoc/categories -pow-set-}
+  log1psq ^double [^double x]
+  (if (< x 9007199254740992)
+    (FastMath/log1p (* x x))
+    (* 2.0 (log x))))
 
 (defn ^{:doc "log(exp(x)-1))"
         :metadoc/categories -pow-set-}
@@ -449,7 +475,7 @@
             (+ (log1pmx-ker u) -3.55829253011726237e-1 (* 0.625 u)))))
 
 (defn ^{:doc "log(x)-x+1"
-        :metadoc/categories -pow-set-}
+     :metadoc/categories -pow-set-}
   logmxp1 ^double [^double x]
   (cond
     (<= x 0.3) (- (inc (FastMath/log x)) x)
@@ -458,6 +484,91 @@
     (<= x 0.6) (let [u (* (- x 0.5) 2.0)]
                  (+ (log1pmx-ker u) -1.93147180559945309e-1 (* 0.5 u)))
     :else (log1pmx (dec x))))
+
+(defn logaddexp
+  "log(exp(x)+exp(y))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (if (< x y)
+    (+ y (log1pexp (- x y)))
+    (+ (if-not (Double/isNaN y) x y)
+       (log1pexp (- y x)))))
+
+(defn logsubexp
+  "log(abs(exp(x)-exp(y)))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (+ (max x y)
+     (log1mexp (- (if (and (== x y)
+                           (or (Double/isFinite x) (neg? x))) 0.0 (FastMath/abs (- x y)))))))
+
+
+(defn logsumexp
+  "log(exp(x1)+...+exp(xn))"
+  {:metadoc/categories -pow-set-}
+  ^double [xs]
+  (loop [[^double x & rst] xs
+         r 0.0
+         alpha ##-Inf]
+    (if (<= x alpha)
+      (let [nr (+ r (FastMath/exp (- x alpha)))]
+        (if-not (seq rst)
+          (+ (FastMath/log nr) alpha)
+          (recur rst nr alpha)))
+      (let [nr (inc (* r (FastMath/exp (- alpha x))))]
+        (if-not (seq rst)
+          (+ (FastMath/log nr) x)
+          (recur rst nr (double x)))))))
+
+(defn xlogx
+  "x * log(x)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (if (zero? x) 0.0 (* x (log x))))
+
+(defn xlogy
+  "x * log(y)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (if (and (zero? x)
+           (not (Double/isNaN y))) 0.0 (* x (log y))))
+
+(defn xlog1py
+  "x * log(1+y)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (if (and (zero? x)
+           (not (Double/isNaN y))) 0.0 (* x (log1p y))))
+
+(defn cloglog
+  "log(-log(1-x))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (FastMath/log (- (FastMath/log1p (- x)))))
+
+(defn xexpx
+  "x * exp(x)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (let [expx (exp x)]
+    (if (zero? expx) 0.0 (* x expx))))
+
+(defn xexpy
+  "x * exp(x)"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x ^double y]
+  (let [expy (exp y)]
+    (if (and (zero? expy)
+             (not (Double/isNaN x))) 0.0 (* x expy))))
+
+(defn cexpexp
+  "1-exp(-exp(x))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (- (FastMath/expm1 (- (FastMath/exp x)))))
+
+;; Quick logarithm
+(fastmath-proxy :one ^{:doc "Fast and less accurate version of [[log]]." :metadoc/categories -pow-set-} qlog logQuick)
 
 
 ;; Roots (square and cubic)
@@ -571,7 +682,7 @@
   "Log of [[I0]]."
   {:metadoc/categories -special-set-}
   ^double [^double x]
-  (m/log (I0 x)))
+  (log (I0 x)))
 
 ;; Sinc
 (defn sinc
@@ -590,7 +701,7 @@
   (/ (inc (FastMath/exp (- x)))))
 
 (def ^{:metadoc/categories -pow-set-
-       :doc "Alias for [[sigmoid]]"}
+     :doc "Alias for [[sigmoid]]"}
   logistic sigmoid)
 
 (defn logit
@@ -598,29 +709,6 @@
   {:metadoc/categories -pow-set-}
   ^double [^double x]
   (FastMath/log (/ x (- 1.0 x))))
-
-(def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
-(def ^:const ^double ^{:doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
-(def ^:const ^double ^{:doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
-(def ^:const ^double ^{:doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
-(def ^:const ^double ^{:doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
-
-(defn xlogx
-  "x * log(x)"
-  {:metadoc/categories -pow-set-}
-  ^double [^double x]
-  (if (zero? x) 0.0 (* x (log x))))
-
-(defn xlogy
-  "x * log(y)"
-  {:metadoc/categories -pow-set-}
-  ^double [^double x ^double y]
-  (if (and (zero? x)
-           (not (Double/isNaN y))) 0.0 (* x (log y))))
-
 
 (defn log2
   "Logarithm with base 2.
@@ -639,8 +727,12 @@
   ^double [^double b ^double x]
   (/ (FastMath/log x) (FastMath/log b)))
 
-;; Quick logarithm
-(fastmath-proxy :one ^{:doc "Fast and less accurate version of [[log]]." :metadoc/categories -pow-set-} qlog logQuick)
+(defn logcosh
+  "log(cosh(x))"
+  {:metadoc/categories -pow-set-}
+  ^double [^double x]
+  (let [absx (FastMath/abs x)]
+    (- (+ absx (log1pexp (* -2.0 absx))) LN2)))
 
 ;; \\(\log_2 e\\)
 (def ^:const ^double ^{:doc "\\\\(\\log_{2}{e}\\\\)"} LOG2E (log2 E))
@@ -788,7 +880,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Checks equality for given accuracy (default `10.0e-6`)."
   ([^double a ^double b] (delta-eq a b 10.0e-6))
   ([^double a ^double b ^double accuracy]
-   (< (m/abs (- a b)) accuracy)))
+   (< (abs (- a b)) accuracy)))
 
 (def ^{:metadoc/categories -round-set-
      :doc "Alias for [[approx-eq]]"} approx= approx-eq)

@@ -819,29 +819,31 @@
 (defn estimate-bins
   "Estimate number of bins for histogram.
 
-  Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default)."
+  Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default).
+
+  The number returned is not higher than number of samples."
   {:metadoc/categories #{:stat}}
   ([vs] (estimate-bins vs :freedman-diaconis))
   ([vs bins-or-estimate-method]
    (if-not (keyword? bins-or-estimate-method)
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
-       (int (condp = bins-or-estimate-method
-              :sqrt (m/sqrt n)
-              :sturges (inc (m/ceil (m/log2 n)))
-              :rice (m/ceil (* 2.0 (m/cbrt n)))
-              :doane (+ (inc (m/log2 n))
-                        (m/log2 (inc (/ (m/abs (skewness vs))
-                                        (m/sqrt (/ (* 6.0 (- n 2.0))
-                                                   (* (inc n) (+ n 3.0))))))))
-              :scott (let [vvs (m/seq->double-array vs)
-                           h (/ (* 3.5 (stddev vs))
+       (min n (int (condp = bins-or-estimate-method
+                     :sqrt (m/sqrt n)
+                     :sturges (inc (m/ceil (m/log2 n)))
+                     :rice (m/ceil (* 2.0 (m/cbrt n)))
+                     :doane (if (< n 3) 1 (+ (inc (m/log2 n))
+                                             (m/log2 (inc (/ (m/abs (skewness vs))
+                                                             (m/sqrt (/ (* 6.0 (- n 2.0))
+                                                                        (* (inc n) (+ n 3.0)))))))))
+                     :scott (let [vvs (m/seq->double-array vs)
+                                  h (/ (* 3.5 (stddev vvs))
+                                       (m/cbrt n))]
+                              (scott-fd-helper vvs h))
+                     (let [vvs (m/seq->double-array vs)
+                           h (/ (* 2.0 (iqr vvs))
                                 (m/cbrt n))]
-                       (scott-fd-helper vvs h))
-              (let [vvs (m/seq->double-array vs)
-                    h (/ (* 2.0 (iqr vvs))
-                         (m/cbrt n))]
-                (scott-fd-helper vvs h))))))))
+                       (scott-fd-helper vvs h)))))))))
 
 (defn histogram
   "Calculate histogram.
@@ -855,13 +857,16 @@
   * `:max` - max value
   * `:samples` - number of used samples
 
-  For estimation methods check [[estimate-bins]]."
+  For estimation methods check [[estimate-bins]].
+
+  If difference between min and max values is `0`, number of bins is set to 1."
   {:metadoc/categories #{:stat}}
   ([vs] (histogram vs :freedman-diaconis))
   ([vs bins-or-estimate-method] (histogram vs (estimate-bins vs bins-or-estimate-method) (extent vs)))
   ([vs ^long bins [^double mn ^double mx]]
    (let [vs (filter #(<= mn ^double % mx) vs)
          diff (- mx mn)
+         bins (if (zero? diff) 1 bins)
          step (/ diff bins)
          search-array (double-array (butlast (m/slice-range mn mx (inc bins))))
          buff (long-array bins)]
@@ -877,6 +882,8 @@
       :min mn
       :max mx
       :bins (map vector search-array buff)})))
+
+
 
 ;;
 ;;;;;;;;;;;;;;

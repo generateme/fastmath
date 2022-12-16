@@ -41,6 +41,7 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 * a nasty bug with primitive macro generation, how could I missed that?
+* `:histogram` issues with low number of samples
 
 ## [2.1.8]
 
