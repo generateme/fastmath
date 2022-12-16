@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file. This change
 * `delta-eq` and `delta=` for checking eqality with given accuracy.
 * `coefficient-matrix` and `correlation-matrix`
 * grid functions accept separate coordinates
+* many additional `log-exp` functions
 
 ### Changed
 
