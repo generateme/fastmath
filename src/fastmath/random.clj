@@ -110,15 +110,14 @@
             [fastmath.kernel :as k]
             [fastmath.protocols :as prot]
             [fastmath.interpolation :as i]
-            [fastmath.solver :as solver]
-            [fastmath.random :as r])
+            [fastmath.solver :as solver])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
            [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
-           [umontreal.ssj.probdistmulti DirichletDist]
+           [umontreal.ssj.probdistmulti DirichletDist MultinomialDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
@@ -704,6 +703,11 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   {:metadoc/categories #{:dist}}
   (^double [d v] (prot/cdf d v))
   (^double [d v1 v2] (prot/cdf d v1 v2)))
+
+(defn ccdf
+  "Complementary cumulative probability."
+  {:metadoc/categories #{:dist}}
+  ^double [d v] (- 1.0 (cdf d v)))
 
 (defn pdf
   "Density"
@@ -1342,6 +1346,47 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (->seq [d n] (repeatedly n #(prot/sample d)))
        (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
   ([_] (distribution :dirichlet {})))
+
+(defmethod distribution :multinomial
+  ([_ {:keys [^int trials ps]
+       :or {trials 20 ps [0.5 0.5]}:as all}]
+   (let [ps (m/seq->double-array (v/div ps (v/sum ps)))
+         r (or (:rng all) (rng :jvm))
+         
+         m (delay (seq (MultinomialDist/getMean trials ps)))
+         cv (delay (mapv vec (MultinomialDist/getCovariance trials ps)))
+         dim (count ps)
+         binom-probs (mapv (fn [^double prob ^double sum]
+                             (/ prob (- 1.0 sum))) ps (reductions m/fast+ 0 ps))]
+     (reify
+       prot/DistributionProto
+       (pdf [_ v] (MultinomialDist/prob trials ps (int-array v)))
+       (lpdf [_ v] (m/log (MultinomialDist/prob trials ps (int-array v))))
+       (probability [_ v] (MultinomialDist/prob trials ps (int-array v)))
+       (cdf [_ v] (MultinomialDist/cdf trials ps (int-array v)))
+       (sample [_] (first (reduce (fn [[buf ^int curr] ^double prob]
+                                    (let [res (int (prot/sample (distribution :binomial
+                                                                              {:trials curr
+                                                                               :p (m/constrain prob 0.0 1.0)})))]
+                                      [(conj buf res) (- curr res)])) [[] trials] binom-probs)))
+       (dimensions [_] dim)
+       (source-object [this] this)
+       (continuous? [_] false)
+       prot/DistributionIdProto
+       (distribution-id [_] :multinomial)
+       (distribution-parameters [_] [:n :ps :rng])
+       prot/MultivariateDistributionProto
+       (means [_] @m)
+       (covariance [_] @cv)
+       prot/RNGProto
+       (drandom [d] (prot/sample d))
+       (frandom [d] (mapv unchecked-float (prot/sample d)))
+       (lrandom [d] (mapv unchecked-long (prot/sample d)))
+       (irandom [d] (mapv unchecked-int (prot/sample d)))
+       (->seq [d] (repeatedly #(prot/sample d)))
+       (->seq [d n] (repeatedly n #(prot/sample d)))
+       (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
+  ([_] (distribution :multinomial {})))
 
 ;; 
 

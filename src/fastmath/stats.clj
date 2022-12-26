@@ -7,7 +7,7 @@
   * Confidence intervals
   * Extents
   * Effect size
-  * Student's t-test
+  * Tests
   * Histogram
   * ACF/PACF
   * Bootstrap
@@ -54,7 +54,8 @@
                         :norm "Normalize"}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
-            [fastmath.distance :as d])
+            [fastmath.distance :as d]
+            [fastmath.vector :as v])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -487,7 +488,7 @@
          (recur (inc idx))))
      (if mean? (mean in) (sum in)))))
 
-(def ^{:deprecated "Use `moment` function"} second-moment moment)
+(def ^{:deprecated "Use [[moment]] function"} second-moment moment)
 
 (defn skewness
   "Calculate skewness from sequence.
@@ -883,8 +884,6 @@
       :max mx
       :bins (map vector search-array buff)})))
 
-
-
 ;;
 ;;;;;;;;;;;;;;
 ;; tests
@@ -1045,6 +1044,8 @@
    (cohens-q (pearson-correlation group1a group2a)
              (pearson-correlation group1b group2b))))
 
+(declare power-divergence-test)
+
 (defn chi-square
   "Chi square test for given vectors.
 
@@ -1057,20 +1058,7 @@
   * `:df` - degrees of freedom (k-1)*(r-1)
   * `:p-value` - chi2 distribution cdf for found statistic and df (upper tail)."
   [group1 group2]
-  (let [fqs (frequencies (map vector group1 group2))
-        cnts1 (frequencies group1)
-        cnts2 (frequencies group2)
-        n (double (reduce m/fast+ (vals fqs)))
-        cnt1 (count cnts1)
-        cnt2 (count cnts2)
-        df (* (dec cnt1) (dec cnt2))
-        chi2-distr (r/distribution :chi-squared {:degrees-of-freedom df})
-        chi2 (reduce m/fast+ (for [[g1 ^long c1] cnts1
-                                   [g2 ^long c2] cnts2
-                                   :let [f (/ (* c1 c2) n)]]
-                               (/ (m/sq (- ^long (get fqs [g1 g2] 0) f)) f)))]
-    {:chi2 chi2 :k cnt1 :r cnt2 :df df :n n
-     :p-value (- 1.0 (r/cdf chi2-distr chi2))}))
+  (power-divergence-test (frequencies (map vector group1 group2)) {:lambda 1.0}))
 
 (defn cramers-v
   "Cramer's V effect size for discrete data."
@@ -1126,8 +1114,9 @@
     xs
     (let [f (cond
               (map? true-value) true-value
-              (seqable? true-value) (partial contains? (set true-value))
-              :else #(= % true-value))]
+              (seqable? true-value) (set true-value)
+              (fn? true-value) true-value
+              :else (set [true-value]))]
       (map f xs))))
 
 (defn binary-measures-all
@@ -1135,13 +1124,14 @@
 
   * `truth` - list of ground truth values
   * `prediction` - list of predicted values
-  * `true-value` - optional, what is true in `truth` and `prediction`
+  * `true-value` - optional, true/false encoding, what is true in `truth` and `prediction`
 
   `true-value` can be one of:
 
   * `nil` - values are treating as booleans
   * any sequence - values from sequence will be treated as `true`
   * map - conversion will be done according to provided map (if there is no correspondin key, value is treated as `false`)
+  * any predicate
 
   https://en.wikipedia.org/wiki/Precision_and_recall"
   {:metadoc/categories #{:stat}}
@@ -1214,124 +1204,6 @@
   ([truth prediction true-value]
    (select-keys (binary-measures-all truth prediction true-value)
                 [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance])))
-
-;; tests
-
-;; t-test, reimplementation of R version
-
-(defn- ttest-two-sided
-  [^double tstat ^double alpha ^double df]
-  (let [d (r/distribution :t {:degrees-of-freedom df})
-        p (* 2.0 ^double (r/cdf d (- (m/abs tstat))))
-        ^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
-    {:p-value p
-     :confidence-intervals [(- tstat cint) (+ tstat cint)]}))
-
-(defn- ttest-less
-  [^double tstat ^double alpha ^double df]
-  (let [d (r/distribution :t {:degrees-of-freedom df})]
-    {:p-value (r/cdf d tstat)
-     :confidence-intervals [##-Inf (+ tstat ^double (r/icdf d (- 1.0 alpha)))]}))
-
-(defn- ttest-greater
-  [^double tstat ^double alpha ^double df]
-  (let [d (r/distribution :t {:degrees-of-freedom df})]
-    {:p-value (- 1.0 ^double (r/cdf d tstat))
-     :confidence-intervals [(- tstat ^double (r/icdf d (- 1.0 alpha))) ##Inf]}))
-
-(defn- ttest-sides-fn
-  [sides]
-  (case sides
-    :one-sided-less ttest-less
-    :one-sided ttest-less
-    :one-sided-greater ttest-greater
-    ttest-two-sided))
-(defn- ttest-update-ci
-  [^double mu ^double stderr [^double l ^double r]]
-  [(+ mu (* l stderr))
-   (+ mu (* r stderr))])
-
-(defn ttest-one-sample
-  "One-sample Student's t-test
-
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)"
-  {:metadoc/categories #{:test}}
-  ([xs] (ttest-one-sample xs {}))
-  ([xs {:keys [^double alpha sides ^double mu]
-        :or {alpha 0.05 sides :two-sided mu 0.0}}]
-   (let [axs (m/seq->double-array xs)
-         n (alength axs)
-         m (mean axs)
-         v (variance axs)
-         stderr (m/sqrt (/ v n))]
-     (assert (> stderr (* 10.0 m/MACHINE-EPSILON (m/abs m))) "Constant data, can't perform test.")
-     (let [df (dec n)
-           tstat (/ (- m mu) stderr)
-           pvals (-> ((ttest-sides-fn sides) tstat alpha df)
-                     (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
-       (merge pvals {:estimated-mu m
-                     :df df
-                     :t tstat
-                     :test-type sides})))))
-
-(defn- ttest-equal-variances
-  [^double nx ^double ny ^double vx ^double vy]
-  (let [df (- (+ nx ny) 2.0)
-        v (/ (+ (* vx (dec nx))
-                (* vy (dec ny))) df)]
-    [df (m/sqrt (* v (+ (/ 1.0 nx)
-                        (/ 1.0 ny))))]))
-
-(defn- ttest-not-equal-variances
-  [^double nx ^double ny ^double vx ^double vy]
-  (let [stderrx (m/sqrt (/ vx nx))
-        stderry (m/sqrt (/ vy ny))
-        stderr (m/hypot-sqrt stderrx stderry)
-        df (/ (m/sq (m/sq stderr))
-              (+ (/ (m/sq (m/sq stderrx)) (dec nx))
-                 (/ (m/sq (m/sq stderry)) (dec ny))))]
-    [df stderr]))
-
-(defn ttest-two-samples
-  "Two-sample Student's t-test
-
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)
-  * `paired?` - unpaired or paired test, boolean (default: `false`)
-  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
-  {:metadoc/categories #{:test}}
-  ([xs ys] (ttest-two-samples xs ys {}))
-  ([xs ys {:keys [^double alpha sides ^double mu paired? equal-variances?]
-           :or {alpha 0.05 sides :two-sided mu 0.0 paired? false equal-variances? false}
-           :as params}]
-   (let [nx (count xs)
-         ny (count ys)]
-     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
-                 (and (not equal-variances?)
-                      (> nx 1) (> ny 1))) "Not enough observations.")
-     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
-     (if paired? (-> (ttest-one-sample (map (fn [^double x ^double y] (- x y)) xs ys) params)
-                     (assoc :paired? true))
-         (let [axs (m/seq->double-array xs)
-               ays (m/seq->double-array ys)
-               mx (mean axs)
-               my (mean ays)
-               vx (variance axs)
-               vy (variance ays)
-               [df ^double stderr] (if equal-variances?
-                                     (ttest-equal-variances nx ny vx vy)
-                                     (ttest-not-equal-variances nx ny vx vy))
-               tstat (/ (- mx my mu) stderr)
-               pvals (-> ((ttest-sides-fn sides) tstat alpha df)
-                         (update :confidence-intervals (partial ttest-update-ci mu stderr)))]
-           (merge pvals {:estimated-mu [mx my]
-                         :df df
-                         :t tstat
-                         :test-type sides
-                         :paired? false}))))))
 
 ;; acf/pacf
 
@@ -1608,3 +1480,448 @@
                    (m/sq (m/sin (min m/HALF_PI (+ ap zn)))) p])
        (let [zse (* z (m/sqrt (* p (/ (- 1.0 p) number-of-trials))))]
          [(- p zse) (+ p zse) p])))))
+
+;; tests
+
+;; t-test, reimplementation of R version
+
+(defn p-value
+  "Calculate p-value for given distribution (default: N(0,1)), `stat`  and sides (one of `:two-sided`, `:one-sided-greater` or `:one-sided-less`/`:one-sided`)."
+  ([^double stat] (p-value r/default-normal stat))
+  ([distribution ^double stat] (p-value distribution stat :two-sided))
+  ([distribution ^double stat sides]
+   (let [stat2 (if (r/continuous? distribution) stat (dec stat))]
+     (case sides
+       (:two-sided :both) (min 1.0 (* 2.0 (min (r/cdf distribution stat)
+                                               (r/ccdf distribution stat2))))
+       (:one-sided-greater :right) (r/ccdf distribution stat2)
+       (r/cdf distribution stat)))))
+
+(defn binomial-test
+  "Binomial test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `ci-method`"
+  ([xs] (binomial-test xs {}))
+  ([xs maybe-params]
+   (if (map? maybe-params)
+     (let [{:keys [true-false-conv] :as params} maybe-params
+           xxs (binary-process-list xs true-false-conv)
+           nos (count (filter identity xxs))
+           not (count xxs)]
+       (binomial-test nos not params))
+     (binomial-test xs maybe-params {})))
+  ([^long number-of-successes ^long number-of-trials {:keys [^double alpha ^double p ci-method sides]
+                                                      :or {alpha 0.05 p 0.5
+                                                           ci-method :asymptotic sides :two-sided}}]
+   {:p-value (p-value (r/distribution :binomial {:trials number-of-trials :p p}) (double number-of-successes) sides)
+    :p p
+    :successes number-of-successes
+    :trials number-of-trials
+    :alpha alpha
+    :level (- 1.0 alpha)
+    :test-type sides
+    :stat number-of-successes
+    :estimate (double (/ number-of-successes number-of-trials))
+    :confidence-interval (let [ci (partial binomial-ci number-of-successes number-of-trials ci-method)]
+                           (case sides
+                             (:two-sided :both) (vec (butlast (ci (- 1.0 alpha))))
+                             (:one-side-greater :right) [(first (ci (- 1.0 (* alpha 2.0)))) 1.0]
+                             [0.0 (second (ci (- 1.0 (* alpha 2.0))))]))}))
+
+;; t/z
+
+(defn- test-update-ci
+  [^double mu ^double stderr [^double l ^double r]]
+  [(+ mu (* l stderr)) (+ mu (* r stderr))])
+
+(defn- test-pvalue-ci
+  [d sides ^double stat ^double alpha]
+  {:confidence-interval (case sides
+                          (:two-sided :both) (let [^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
+                                               [(- stat cint) (+ stat cint)])
+                          (:one-sided-greater :right) [(- stat ^double (r/icdf d (- 1.0 alpha))) ##Inf]
+                          [##-Inf (+ stat ^double (r/icdf d (- 1.0 alpha)))])
+   :p-value (p-value d stat sides)})
+
+(defn- test-one-sample
+  [xs {:keys [^double alpha sides ^double mu]
+       :or {alpha 0.05 sides :two-sided mu 0.0}}]
+  (let [axs (m/seq->double-array xs)
+        n (alength axs)
+        m (mean axs)
+        v (variance axs)
+        stderr (m/sqrt (/ v n))]
+    (assert (> stderr (* 10.0 m/MACHINE-EPSILON (m/abs m))) "Constant data, can't perform test.")
+    {:n n
+     :estimate m
+     :mu mu
+     :stat (/ (- m mu) stderr)
+     :test-type sides
+     :stderr stderr
+     :alpha alpha
+     :level (- 1.0 alpha)}))
+
+(defn t-test-one-sample
+  "One sample Student's t-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)"
+  {:metadoc/categories #{:test}}
+  ([xs] (t-test-one-sample xs {}))
+  ([xs m]
+   (let [{:keys [^long n ^double stat test-type ^double alpha ^double mu ^double stderr]
+          :as res} (test-one-sample xs m)
+         df (dec n)
+         pvals (-> (test-pvalue-ci (r/distribution :t {:degrees-of-freedom df}) test-type stat alpha)
+                   (update :confidence-interval (partial test-update-ci mu stderr)))]
+     (assoc (merge pvals res) :df df :t stat))))
+
+(def ^{:deprecated "Use [[t-test-one-sample]]"} ttest-one-sample t-test-one-sample)
+
+(defn z-test-one-sample
+  "One sample z-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)"
+  {:metadoc/categories #{:test}}
+  ([xs] (z-test-one-sample xs {}))
+  ([xs m]
+   (let [{:keys [^double stat test-type ^double alpha ^double mu ^double stderr]
+          :as res} (test-one-sample xs m)
+         pvals (-> (test-pvalue-ci r/default-normal test-type stat alpha)
+                   (update :confidence-interval (partial test-update-ci mu stderr)))]
+     (assoc (merge pvals res) :z stat))))
+
+(defn- test-equal-variances
+  [^double nx ^double ny ^double vx ^double vy]
+  (let [df (- (+ nx ny) 2.0)
+        v (/ (+ (* vx (dec nx))
+                (* vy (dec ny))) df)]
+    [df (m/sqrt (* v (+ (/ 1.0 nx)
+                        (/ 1.0 ny))))]))
+
+(defn- test-not-equal-variances
+  [^double nx ^double ny ^double vx ^double vy]
+  (let [stderrx (m/sqrt (/ vx nx))
+        stderry (m/sqrt (/ vy ny))
+        stderr (m/hypot-sqrt stderrx stderry)
+        df (/ (m/sq (m/sq stderr))
+              (+ (/ (m/sq (m/sq stderrx)) (dec nx))
+                 (/ (m/sq (m/sq stderry)) (dec ny))))]
+    [df stderr]))
+
+(defn test-two-samples-not-paired
+  [xs ys {:keys [^double alpha sides ^double mu equal-variances?]
+          :or {alpha 0.05 sides :two-sided mu 0.0 equal-variances? false}}]
+  (let [axs (m/seq->double-array xs)
+        ays (m/seq->double-array ys)
+        nx (alength axs)
+        ny (alength ays)
+        mx (mean axs)
+        my (mean ays)
+        vx (variance axs)
+        vy (variance ays)
+        [df ^double stderr] (if equal-variances?
+                              (test-equal-variances nx ny vx vy)
+                              (test-not-equal-variances nx ny vx vy))]
+    {:n [nx ny]
+     :estimated-mu [mx my]
+     :mu mu
+     :estimate (- mx my mu)
+     :stat (/ (- mx my mu) stderr)
+     :test-type sides
+     :stderr stderr
+     :alpha alpha
+     :level (- 1.0 alpha)
+     :df df
+     :paired? false
+     :equal-variances? equal-variances?}))
+
+(defn t-test-two-samples
+  "Two samples Student's t-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)
+  * `paired?` - unpaired or paired test, boolean (default: `false`)
+  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
+  {:metadoc/categories #{:test}}
+  ([xs ys] (t-test-two-samples xs ys {}))
+  ([xs ys {:keys [paired? equal-variances?]
+           :or {paired? false equal-variances? false}
+           :as params}]
+   (let [nx (count xs)
+         ny (count ys)]
+     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
+                 (and (not equal-variances?)
+                      (> nx 1) (> ny 1))) "Not enough observations.")
+     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
+     (if paired?
+       (-> (t-test-one-sample (map m/fast- xs ys) params)
+           (assoc :paired? true))
+       (let [{:keys [test-type ^double stat ^double alpha ^double df ^double mu ^double stderr]
+              :as res} (test-two-samples-not-paired xs ys params)
+             pvals (-> (test-pvalue-ci (r/distribution :t {:degrees-of-freedom df}) test-type stat alpha)
+                       (update :confidence-interval (partial test-update-ci mu stderr)))]
+         (assoc (merge pvals res) :t stat))))))
+
+(def ^{:deprecated "Use [[t-test-two-samples]]"} ttest-two-samples t-test-two-samples)
+
+(defn z-test-two-samples
+  "Two samples z-test
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
+  * `mu` - mean (default: `0.0`)
+  * `paired?` - unpaired or paired test, boolean (default: `false`)
+  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
+  {:metadoc/categories #{:test}}
+  ([xs ys] (z-test-two-samples xs ys {}))
+  ([xs ys {:keys [paired? equal-variances?]
+           :or {paired? false equal-variances? false}
+           :as params}]
+   (let [nx (count xs)
+         ny (count ys)]
+     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
+                 (and (not equal-variances?)
+                      (> nx 1) (> ny 1))) "Not enough observations.")
+     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
+     (if paired?
+       (-> (z-test-one-sample (map m/fast- xs ys) params)
+           (assoc :paired? true))
+       (let [{:keys [test-type ^double stat ^double alpha ^double ^double mu ^double stderr]
+              :as res} (test-two-samples-not-paired xs ys params)
+             pvals (-> (test-pvalue-ci r/default-normal test-type stat alpha)
+                       (update :confidence-interval (partial test-update-ci mu stderr)))]
+         (-> (merge res pvals)
+             (assoc :z stat)
+             (dissoc :df)))))))
+
+(defn f-test
+  "Variance F-test of two samples.
+
+  * `alpha` - significance level (default: `0.05`)
+  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater` "
+  {:metadoc/categories #{:test}}
+  ([xs ys] (f-test xs ys {}))
+  ([xs ys {:keys [sides ^double alpha]
+           :or {sides :two-sided alpha 0.05}}]
+   (let [dfx (dec (count xs))
+         dfy (dec (count ys))
+         F (/ (variance xs) (variance ys))
+         distr (r/distribution :f {:denominator-degrees-of-freedom dfy
+                                   :numerator-degrees-of-freedom dfx})]
+     {:F F
+      :stat F
+      :estimate F
+      :df [dfx dfy]
+      :test-type sides
+      :p-value (p-value distr F sides)
+      :confidence-interval (case sides
+                             (:two-sided :both) [(/ F ^double (r/icdf distr (- 1.0 (* alpha 0.5))))
+                                                 (/ F ^double (r/icdf distr (* alpha 0.5)))]
+                             (:one-sided-greater :right) [(/ F ^double (r/icdf distr (- 1.0 alpha))) ##Inf]
+                             [0.0 (/ F ^double (r/icdf distr alpha))])})))
+
+(defn contingency-table
+  "Returns frequencies map of tuples built from seqs."
+  [& seqs]
+  (if (= 1 (count seqs))
+    (frequencies (first seqs))
+    (frequencies (apply map vector seqs))))
+
+(defn- xss->contingency-table
+  [xss]
+  (->> (for [[row-id row] (map-indexed vector xss)
+             [col-id ^long val] (map-indexed vector row)
+             :when (not (zero? val))]
+         [[row-id col-id] val])
+       (into {})))
+
+(defn- ct-marginals-sum
+  [m]
+  (map (fn [[k v]]
+         [k (reduce clojure.core/+ (map second v))]) m))
+
+(defn- pdt-gof
+  [xs p ^double lambda]
+  (let [cnt (count xs)
+        n (double (reduce m/fast+ xs))
+        df (dec cnt)
+        p (or p (repeat cnt (/ (double cnt))))
+        xhat (map (fn [^double p] (* n p)) p)
+        stat (condp = (double lambda)
+               0.0 (* 2.0 ^double (reduce m/fast+ (map (fn [^long a ^double b]
+                                                         (* a (- (m/log a) (m/log b)))) xs xhat)))
+               -1.0 (* 2.0 ^double (reduce m/fast+ (map (fn [^double a ^long b]
+                                                          (* a (- (m/log a) (m/log b)))) xhat xs)))
+               (* (/ 2.0 (* lambda (inc lambda)))
+                  ^double (reduce m/fast+ (map (fn [^long a ^double b]
+                                                 (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
+    {:stat stat :df df :n n :expected xhat
+     :estimate (map (fn [^double v] (/ v n)) xs)}))
+
+(defn- pdt-bootstrap-ci
+  [{:keys [estimate ^long n ^double alpha ci-sides]} samples]
+  (let [alpha (if (#{:both :two-sided} ci-sides) alpha (* alpha 2.0))
+        d (r/distribution :multinomial {:trials n :ps (if (map? estimate) (vals estimate) estimate)})
+        rands (apply map (comp m/seq->double-array vector) (r/->seq d samples))
+        vs (case ci-sides
+             (:two-sided :both) (let [qs [(/ alpha 2.0) (- 1.0 (/ alpha 2.0))]]
+                                  (map #(v/div (quantiles % qs) (double n)) rands))
+             (:one-sided-greater :right) (let [q (/ alpha 2.0)]
+                                           (map #(vector (/ (quantile % q) n) 1.0) rands))
+             (let [q (- 1.0 (/ alpha 2.0))]
+               (map #(vector 0.0 (/ (quantile % q) n)) rands)))]
+    (if (map? estimate) (zipmap (keys estimate) vs) vs)))
+
+(defn- pdt-multi
+  [ct ^double lambda]
+  (let [xs (if (and (sequential? ct)
+                    (every? sequential? ct))
+             (xss->contingency-table ct)
+             ct)
+        n (double (reduce m/fast+ (vals xs)))
+        xhat (->> (for [[k1 ^long v1] (ct-marginals-sum (group-by ffirst xs))
+                        [k2 ^long v2] (ct-marginals-sum (group-by (comp second first) xs))]
+                    [[k1 k2] (/ (* v1 v2) n)])
+                  (into {}))
+        n1 (count (distinct (map first (keys xs))))
+        n2 (count (distinct (map second (keys xs))))
+        df (* (dec n1) (dec n2))
+        stat (condp = (double lambda)
+               0.0 (* 2.0 ^double (reduce (fn [^double sum [k ^long cnt]]
+                                            (+ sum (* cnt (- (m/log cnt) (m/log (xhat k)))))) 0.0 xs))
+               -1.0 (* 2.0 ^double (reduce (fn [^double sum [k ^double xhv]]
+                                             (let [^double cnt (get xs k 0.0)]
+                                               (+ sum (* xhv (- (m/log xhv) (m/log cnt) ))))) 0.0 xhat))
+               (* (/ 2.0 (* lambda (inc lambda)))
+                  ^double (reduce (fn [^double sum [k ^long cnt]]
+                                    (+ sum (* cnt (dec (m/pow (/ cnt ^double (xhat k)) lambda))))) 0.0 xs)))]
+    {:stat stat :df df :n n :k n1 :r n2
+     :expected xhat
+     :estimate (into {} (map (fn [[k ^long v]] [k (/ v n)]) xs))}))
+
+(defn power-divergence-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {}))
+  ([contingency-table-or-xs {:keys [^double lambda ci-sides sides p ^double alpha ^long bootstrap-samples]
+                             :or {lambda m/TWO_THIRD sides :one-sided-greater ci-sides :two-sided
+                                  alpha 0.05 bootstrap-samples 5000}}]
+   (let [{:keys [n df stat] :as res}
+         (if (and (sequential? contingency-table-or-xs)
+                  (every? number? contingency-table-or-xs))
+           (pdt-gof contingency-table-or-xs p lambda)
+           (pdt-multi (if (and (sequential? contingency-table-or-xs)
+                               (every? sequential? contingency-table-or-xs))
+                        (xss->contingency-table contingency-table-or-xs)
+                        contingency-table-or-xs) lambda))
+         res (assoc res :lambda lambda :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
+                    :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides))]
+     (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
+
+(defn chisq-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda 1.0}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda 1.0))))
+
+(defn multinomial-likelihood-ratio-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda 0.0}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda 0.0))))
+
+(defn minimum-discrimination-information-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -1.0}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda -1.0))))
+
+(defn neyman-modified-chisq-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -2.0}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda -2.0))))
+
+(defn freeman-tukey-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -0.5}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda -0.5))))
+
+(defn cressie-read-test
+  ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda m/TWO_THIRD}))
+  ([contingency-table-or-xs params]
+   (power-divergence-test contingency-table-or-xs (assoc params :lambda m/TWO_THIRD))))
+
+(defn- anova
+  [xss]
+  (let [Ni (map count xss)
+        Zi (map mean xss)
+        Z (mean Zi)
+        SSt (sum (map (fn [^double n ^double z]
+                        (* n (m/sq (- z Z)))) Ni Zi))
+        SSe (sum (map (fn [xs ^double zi]
+                        (v/magsq (map (fn [^double v]
+                                        (- v zi)) xs))) xss Zi))
+        k (count Ni)
+        DFt (dec k)
+        DFe (- (sum Ni) k)
+        y (/ SSt SSe)]
+    {:N Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe (/ SSe DFe)}))
+
+(defn- update-f-p-value
+  [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]
+  (let [F (/ MSt MSe)]
+    (assoc aov
+           :F F :df [DFt DFe]
+           :p-value (p-value (r/distribution :f {:numerator-degrees-of-freedom DFt
+                                                 :denominator-degrees-of-freedom DFe})
+                             F sides))))
+
+(defn one-way-anova-test
+  ([xss] (one-way-anova-test xss {}))
+  ([xss {:keys [sides]
+         :or {sides :one-sided-greater}}]
+   (update-f-p-value (anova xss) sides)))
+
+(defn levene-test
+  ([xss] (levene-test xss {}))
+  ([xss {:keys [sides statistic scorediff]
+         :or {sides :one-sided-greater statistic mean scorediff abs}}]
+   (let [res (update-f-p-value (anova (map (fn [xs]
+                                             (let [^double s (statistic xs)]
+                                               (map (fn [^double v]
+                                                      (scorediff (- v s))) xs))) xss)) sides)]
+     (-> (assoc res :W (:F res))
+         (dissoc :F)))))
+
+(defn brown-forsythe-test
+  ([xss] (levene-test xss {:statistic median}))
+  ([xss params] (levene-test xss (assoc params :statistic median))))
+
+(defn fligner-killeen-test
+  ([xss] (fligner-killeen-test xss {}))
+  ([xss {:keys [sides]
+         :or {sides :one-sided-greater}}]
+   (let [Z (mapcat (fn [xs]
+                     (let [s (median xs)]
+                       (map (fn [^double v] (abs (- v s))) xs))) xss)
+         ranks (m/rank Z)
+         rden (/ (* 2.0 (inc (count ranks))))
+         qij (map (fn [^double r]
+                    (r/icdf r/default-normal (+ 0.5 (* rden (inc r))))) ranks)
+         {:keys [^double SSt ^double SSe ^int DFt ^int DFe]
+          :as res} (->> (map count xss)
+                        (reductions clojure.core/+ 0)
+                        (partition 2 1)
+                        (map (fn [[d t]] (drop d (take t qij))))
+                        (anova))
+         y (/ SSt SSe)
+         chi2 (/ (* y (+ DFt DFe)) (inc y))]
+     (assoc res
+            :chi2 chi2 :df DFt
+            :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom DFt}) chi2 sides)))))
+
+
+(m/unuse-primitive-operators)
+

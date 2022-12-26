@@ -25,8 +25,10 @@ All notable changes to this project will be documented in this file. This change
 	- `:bb` - beta binomial
 	- `:zabb` - zero adjusted beta binomial
 	- `:zibb` - zero inflated beta binomial
-* `:half-normal` - half-normal distribution
-* `:truncated` and `:mixture` distributions
+* other distributions
+	- `:half-normal` - half-normal distribution
+	- `:truncated` and `:mixture` distributions
+	- `:multinomial` distribution
 * `hpdi-extent` and `pi-extent` - new extents based on HPDI and PI from `rethinking` R package
 * `distribution-parameters` accept a keyword additionally
 * `fastmath.solver/find-root` - root solver for univariate functions
@@ -35,9 +37,31 @@ All notable changes to this project will be documented in this file. This change
 * grid functions accept separate coordinates
 * many additional `log-exp` functions
 
+#### Tests
+
+* `p-value` - helper for calculating p-value
+* `contingency-table` - calculate frequencies
+* `binomial-test`
+* `t-test-one-sample`, `t-test-two-samples` (more information added)
+* `z-test-one-sample`, `z-test-two-samples`
+* `power-divergence-test` + special cases
+    - `chisq-test`
+	- `multinomial-likelihood-ratio-test`
+	- `minimum-discrimination-information-test`
+	- `neyman-modified-chisq-test`
+	- `freeman-tukey-test`
+	- `cressie-read-test`
+* variance tests
+    - `f-test`
+	- `one-way-anova-test`
+	- `levene-test`
+	- `brown-forsythe-test`
+	- `fligner-killeen-test`
+
 ### Changed
 
 * `(set! *warn-on-reflection* true)` removed ([motivation](https://github.com/clojure-emacs/refactor-nrepl/issues/347))
+* names changed: `ttest-` -> `t-test-`
 
 ### Fixed
 

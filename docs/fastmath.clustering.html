@@ -58,9 +58,9 @@
         :data :clustering
         :obj :predict)
 ;;=&gt; {:clusters 2,
-;;=&gt;  :info {:distortion 11389.0},
-;;=&gt;  :representatives ((124.0) (0.0)),
-;;=&gt;  :sizes (898 102 0),
+;;=&gt;  :info {:distortion 11492.0},
+;;=&gt;  :representatives ((124.0) (3.0)),
+;;=&gt;  :sizes (908 92 0),
 ;;=&gt;  :type :clarans}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L232">view source</a></div></div><div class="public anchor" id="var-clustering-methods-list"><h3>clustering-methods-list</h3><div class="usage"></div><div class="doc"><div class="markdown"><p>List of clustering methods.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>List of methods</p>
 </blockquote><pre><code class="hljs clojure">clustering-methods-list
@@ -92,7 +92,7 @@
 ;;=&gt; {:clusters 8,
 ;;=&gt;  :info {},
 ;;=&gt;  :representatives nil,
-;;=&gt;  :sizes (1150 1115 1161 1084 118 116 127 129 0),
+;;=&gt;  :sizes (1111 1182 104 1110 1124 130 115 124 0),
 ;;=&gt;  :type :dbscan}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L263">view source</a></div></div><div class="public anchor" id="var-denclue"><h3>denclue</h3><div class="usage"><code>(denclue data sigma m)</code><code>(denclue data sigma m tolerance)</code><code>(denclue data sigma m tolerance min-pts)</code></div><div class="doc"><div class="markdown"><p>DENsity CLUstering algorithm.</p>
 <p>Input:</p>
 <ul>
@@ -136,18 +136,18 @@
                                (r/randval (r/grand) (r/grand 5 1.0)))))
          (deterministic-annealing 4 0.5)
          (regroup)))
-;;=&gt; ({:key 3,
-;;=&gt;   :representative (5.038910672049884 5.032733391341623),
-;;=&gt;   :size 269}
-;;=&gt;  {:key 2,
-;;=&gt;   :representative (4.923786125725327 -0.013184593396510104),
-;;=&gt;   :size 254}
+;;=&gt; ({:key 0,
+;;=&gt;   :representative (-0.042908247356602834 0.08775108137573409),
+;;=&gt;   :size 237}
 ;;=&gt;  {:key 1,
-;;=&gt;   :representative (0.016522301437156193 5.085849033307863),
-;;=&gt;   :size 241}
-;;=&gt;  {:key 0,
-;;=&gt;   :representative (0.12592856759644672 -0.02205785660659959),
-;;=&gt;   :size 236})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L210">view source</a></div></div><div class="public anchor" id="var-g-means"><h3>g-means</h3><div class="usage"><code>(g-means data clusters)</code><code>(g-means data clusters max-iter)</code><code>(g-means data clusters max-iter tolerance)</code></div><div class="doc"><div class="markdown"><p>G-Means</p>
+;;=&gt;   :representative (5.027916606898878 -0.0071233040502130356),
+;;=&gt;   :size 255}
+;;=&gt;  {:key 2,
+;;=&gt;   :representative (0.006959202757411682 5.023658996550846),
+;;=&gt;   :size 262}
+;;=&gt;  {:key 3,
+;;=&gt;   :representative (5.039232596752194 5.01082867391299),
+;;=&gt;   :size 246})</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L210">view source</a></div></div><div class="public anchor" id="var-g-means"><h3>g-means</h3><div class="usage"><code>(g-means data clusters)</code><code>(g-means data clusters max-iter)</code><code>(g-means data clusters max-iter tolerance)</code></div><div class="doc"><div class="markdown"><p>G-Means</p>
 <p>Input:</p>
 <ul>
 <li>data - sequence of samples</li>
@@ -160,7 +160,7 @@
 </blockquote><pre><code class="hljs clojure">((juxt :clusters :sizes :representatives)
  (g-means (repeatedly 100 (fn* [] (r/randval (r/drand) (r/drand 5 6))))
           4))
-;;=&gt; [2 (59 41 0) ((5.470860681166757) (0.48782689553302033))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L180">view source</a></div></div><div class="public anchor" id="var-k-means"><h3>k-means</h3><div class="usage"><code>(k-means data clusters)</code><code>(k-means data clusters max-iter)</code><code>(k-means data clusters max-iter tolerance)</code></div><div class="doc"><div class="markdown"><p>K-Means++ algorithm.</p>
+;;=&gt; [2 (55 45 0) ((0.46730358755020723) (5.485337099705223))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L180">view source</a></div></div><div class="public anchor" id="var-k-means"><h3>k-means</h3><div class="usage"><code>(k-means data clusters)</code><code>(k-means data clusters max-iter)</code><code>(k-means data clusters max-iter tolerance)</code></div><div class="doc"><div class="markdown"><p>K-Means++ algorithm.</p>
 <p>Input:</p>
 <ul>
 <li>data - sequence of samples</li>
@@ -177,11 +177,11 @@
 ;;=&gt;   :data [1 2 3 -1 -1 2 -1 11 111],
 ;;=&gt;   :info {:distortion 2.0000000000000004},
 ;;=&gt;   :obj
-;;=&gt;   #object[smile.clustering.KMeans 0x78fd1fd2 "Cluster distortion: 2.00000\nCluster size of 9 data points:\nCluster    1      3 (33.3%)\nCluster    2      1 (11.1%)\nCluster    3      1 (11.1%)\nCluster    4      4 (44.4%)\n"],
-;;=&gt;   :predict #<fn@69a3a6bd fastmath.clustering="" _means[fn]="">,
+;;=&gt;   #object[smile.clustering.KMeans 0x2b4eebf8 "Cluster distortion: 2.00000\nCluster size of 9 data points:\nCluster    1      3 (33.3%)\nCluster    2      1 (11.1%)\nCluster    3      1 (11.1%)\nCluster    4      4 (44.4%)\n"],
+;;=&gt;   :predict #<fn@4ba21f8a fastmath.clustering="" _means[fn]="">,
 ;;=&gt;   :representatives ((-1.0) (111.0) (11.0) (2.0)),
 ;;=&gt;   :sizes (3 1 1 4 0),
-;;=&gt;   :type :k-means}</fn@69a3a6bd></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p>
+;;=&gt;   :type :k-means}</fn@4ba21f8a></code></pre></div><div><blockquote><p>Clusters group into separate maps.</p>
 </blockquote><pre><code class="hljs clojure">(regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 4))
 ;;=&gt; ({:data (1 2 3 2), :key 3, :representative (2.0), :size 4}
 ;;=&gt;  {:data (-1 -1 -1), :key 0, :representative (-1.0), :size 3}
@@ -219,10 +219,10 @@
              20)
         :data :clustering
         :obj :predict)
-;;=&gt; {:clusters 5,
-;;=&gt;  :info {:entropy 247.22967728619898},
+;;=&gt; {:clusters 4,
+;;=&gt;  :info {:entropy 0.0},
 ;;=&gt;  :representatives nil,
-;;=&gt;  :sizes (859 253 2266 1370 252 0),
+;;=&gt;  :sizes (241 246 2210 2303 0),
 ;;=&gt;  :type :mec}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L277">view source</a></div></div><div class="public anchor" id="var-outlier-id"><h3>outlier-id</h3><h4 class="dynamic">const</h4><div class="usage"></div><div><div class="markdown"><code class="hljs clojure">;;=&gt; 2147483647</code></div></div><div class="doc"><div class="markdown"><p>Id of the cluster which contain outliers.</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L66">view source</a></div></div><div class="public anchor" id="var-predict"><h3>predict</h3><div class="usage"><code>(predict cluster in)</code></div><div class="doc"><div class="markdown"><p>Predict cluster for given vector</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L72">view source</a></div></div><div class="public anchor" id="var-regroup"><h3>regroup</h3><div class="usage"><code>(regroup {:keys [clustering data representatives sizes]})</code></div><div class="doc"><div class="markdown"><p>Transform clustering result into list of clusters as separate maps.</p>
@@ -238,25 +238,25 @@
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Result of clustering with regrouping</p>
 </blockquote><pre><code class="hljs clojure">(k-means [1 2 3 -1 -1 2 -1 11 111] 7)
 ;;=&gt; #fastmath.clustering.ClusteringResult
-;;=&gt;  {:clustering (5 0 4 3 3 0 3 2 1),
+;;=&gt;  {:clustering (4 0 5 2 2 0 2 3 1),
 ;;=&gt;   :clusters 7,
 ;;=&gt;   :data [1 2 3 -1 -1 2 -1 11 111],
 ;;=&gt;   :info {:distortion 0.0},
 ;;=&gt;   :obj
-;;=&gt;   #object[smile.clustering.KMeans 0x253e295f "Cluster distortion: 0.00000\nCluster size of 9 data points:\nCluster    1      2 (22.2%)\nCluster    2      1 (11.1%)\nCluster    3      1 (11.1%)\nCluster    4      3 (33.3%)\nCluster    5      1 (11.1%)\nCluster    6      1 (11.1%)\nCluster    7      0 ( 0.0%)\n"],
-;;=&gt;   :predict #<fn@1f0eb797 fastmath.clustering="" _means[fn]="">,
-;;=&gt;   :representatives ((2.0) (111.0) (11.0) (-1.0) (3.0) (1.0) (##NaN)),
-;;=&gt;   :sizes (2 1 1 3 1 1 0 0),
+;;=&gt;   #object[smile.clustering.KMeans 0x6cd4887f "Cluster distortion: 0.00000\nCluster size of 9 data points:\nCluster    1      2 (22.2%)\nCluster    2      1 (11.1%)\nCluster    3      3 (33.3%)\nCluster    4      1 (11.1%)\nCluster    5      1 (11.1%)\nCluster    6      1 (11.1%)\nCluster    7      0 ( 0.0%)\n"],
+;;=&gt;   :predict #<fn@2cfc0c54 fastmath.clustering="" _means[fn]="">,
+;;=&gt;   :representatives ((2.0) (111.0) (-1.0) (11.0) (1.0) (3.0) (##NaN)),
+;;=&gt;   :sizes (2 1 3 1 1 1 0 0),
 ;;=&gt;   :type :k-means}
 (regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 7))
-;;=&gt; ({:data (1), :key 3, :representative (1.0), :size 1}
+;;=&gt; ({:data (1), :key 0, :representative (1.0), :size 1}
 ;;=&gt;  {:data (2 2), :key 5, :representative (2.0), :size 2}
 ;;=&gt;  {:data (3), :key 4, :representative (3.0), :size 1}
-;;=&gt;  {:data (-1 -1 -1), :key 2, :representative (-1.0), :size 3}
-;;=&gt;  {:data (11), :key 0, :representative (11.0), :size 1}
+;;=&gt;  {:data (-1 -1 -1), :key 3, :representative (-1.0), :size 3}
+;;=&gt;  {:data (11), :key 2, :representative (11.0), :size 1}
 ;;=&gt;  {:data (111), :key 1, :representative (111.0), :size 1})
 (count (regroup (k-means [1 2 3 -1 -1 2 -1 11 111] 7)))
-;;=&gt; 6</fn@1f0eb797></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L77">view source</a></div></div><div class="public anchor" id="var-spectral"><h3>spectral</h3><div class="usage"><code>(spectral data clusters sigma)</code><code>(spectral data clusters sigma max-iters tolerance)</code><code>(spectral data clusters samples sigma)</code><code>(spectral data clusters samples sigma max-iters tolerance)</code></div><div class="doc"><div class="markdown"><p>Spectral clustering</p>
+;;=&gt; 6</fn@2cfc0c54></code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L77">view source</a></div></div><div class="public anchor" id="var-spectral"><h3>spectral</h3><div class="usage"><code>(spectral data clusters sigma)</code><code>(spectral data clusters sigma max-iters tolerance)</code><code>(spectral data clusters samples sigma)</code><code>(spectral data clusters samples sigma max-iters tolerance)</code></div><div class="doc"><div class="markdown"><p>Spectral clustering</p>
 <p>Input:</p>
 <ul>
 <li>data - sequence of samples</li>
@@ -279,9 +279,9 @@
         :data :clustering
         :obj :predict)
 ;;=&gt; {:clusters 4,
-;;=&gt;  :info {:distortion 75.4931284371952},
+;;=&gt;  :info {:distortion 35.248881957073884},
 ;;=&gt;  :representatives nil,
-;;=&gt;  :sizes (372 5 78 45 0),
+;;=&gt;  :sizes (272 65 142 21 0),
 ;;=&gt;  :type :spectral}</code></pre></div><div><blockquote><p>2d vectors</p>
 </blockquote><pre><code class="hljs clojure">(dissoc (lloyd
          (repeatedly
@@ -294,12 +294,12 @@
         :data :clustering
         :obj :predict)
 ;;=&gt; {:clusters 4,
-;;=&gt;  :info {:distortion 352880.62592793396},
-;;=&gt;  :representatives ((-1.1481481481481481 69.27777777777777)
-;;=&gt;                    (138.84158415841586 -0.8217821782178217)
-;;=&gt;                    (123.62672811059907 123.14746543778801)
-;;=&gt;                    (114.3671875 -0.9296875)),
-;;=&gt;  :sizes (54 101 217 128 0),
+;;=&gt;  :info {:distortion 160947.1103339556},
+;;=&gt;  :representatives ((-1.0571428571428572 129.45714285714286)
+;;=&gt;                    (123.54502369668246 -0.6729857819905213)
+;;=&gt;                    (0.12121212121212122 -0.6666666666666666)
+;;=&gt;                    (124.2579185520362 126.04072398190046)),
+;;=&gt;  :sizes (35 211 33 221 0),
 ;;=&gt;  :type :lloyd}</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L291">view source</a></div></div><div class="public anchor" id="var-x-means"><h3>x-means</h3><div class="usage"><code>(x-means data clusters)</code><code>(x-means data clusters max-iter)</code><code>(x-means data clusters max-iter tolerance)</code></div><div class="doc"><div class="markdown"><p>X-Means</p>
 <p>Input:</p>
 <ul>
@@ -314,4 +314,4 @@
  (x-means (repeatedly 10000
                       (fn* [] (r/randval (r/grand) (r/grand 5 1.0))))
           4))
-;;=&gt; [2 (4959 5041 0) ((5.027556786798623) (-0.001167151004893941))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L195">view source</a></div></div></div></body></html>
+;;=&gt; [2 (5021 4979 0) ((4.995013469803964) (-0.018784229331761593))]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/clustering.clj#L195">view source</a></div></div></div></body></html>
