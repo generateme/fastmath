@@ -51,6 +51,9 @@ All notable changes to this project will be documented in this file. This change
 	- `neyman-modified-chisq-test`
 	- `freeman-tukey-test`
 	- `cressie-read-test`
+* distribution tests
+    - `one-sample-ad-test` - Anderson Darling test
+	- `one-sample-ks-test` - Kolmogorov Smirnov test
 * variance tests
     - `f-test`
 	- `one-way-anova-test`

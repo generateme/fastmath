@@ -55,7 +55,8 @@
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.distance :as d]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+            [fastmath.complex :as c])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -759,35 +760,43 @@
   {:metadoc/categories #{:corr}}
   [vss] (coefficient-matrix vss covariance true))
 
+(defn- maybe-number->seq [v] (if (number? v) (repeat v) v))
+
+(defn me
+  "Mean error"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2-or-val]
+  (mean (map m/fast- vs1 (maybe-number->seq vs2-or-val))))
+
 (defn mae
   "Mean absolute error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2]
-  (mean (map (comp m/abs m/fast-) vs1 vs2)))
+  ^double [vs1 vs2-or-val]
+  (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val))))
 
 (defn rss
   "Residual sum of squares"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2]
-  (sum (map (comp m/sq m/fast-) vs1 vs2)))
+  ^double [vs1 vs2-or-val]
+  (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val))))
 
 (defn mse
   "Mean squared error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2]
-  (mean (map (comp m/sq m/fast-) vs1 vs2)))
+  ^double [vs1 vs2-or-val]
+  (mean (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val))))
 
 (defn rmse
   "Root mean squared error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2]
-  (m/sqrt (mse vs1 vs2)))
+  ^double [vs1 vs2-or-val]
+  (m/sqrt (mse vs1 vs2-or-val)))
 
 (defn count=
   "Count equal values in both seqs."
   {:metadoc/categories #{:stat}}
   ^long [vs1 vs2]
-  (count (filter #(zero? ^double %) (map m/fast- vs1 vs2))))
+  (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 vs2))))
 
 (def L0 count=)
 (def L1 d/manhattan)
@@ -1485,17 +1494,24 @@
 
 ;; t-test, reimplementation of R version
 
+(defmacro ^:private sides-case
+  [sides both right left]
+  `(case ~sides
+     (:two-sided :both) ~both
+     (:one-sided-greater :right) ~right
+     ~left))
+
 (defn p-value
   "Calculate p-value for given distribution (default: N(0,1)), `stat`  and sides (one of `:two-sided`, `:one-sided-greater` or `:one-sided-less`/`:one-sided`)."
   ([^double stat] (p-value r/default-normal stat))
   ([distribution ^double stat] (p-value distribution stat :two-sided))
   ([distribution ^double stat sides]
    (let [stat2 (if (r/continuous? distribution) stat (dec stat))]
-     (case sides
-       (:two-sided :both) (min 1.0 (* 2.0 (min (r/cdf distribution stat)
-                                               (r/ccdf distribution stat2))))
-       (:one-sided-greater :right) (r/ccdf distribution stat2)
-       (r/cdf distribution stat)))))
+     (sides-case sides
+                 (min 1.0 (* 2.0 (min (r/cdf distribution stat)
+                                      (r/ccdf distribution stat2))))
+                 (r/ccdf distribution stat2)
+                 (r/cdf distribution stat)))))
 
 (defn binomial-test
   "Binomial test
@@ -1515,20 +1531,21 @@
   ([^long number-of-successes ^long number-of-trials {:keys [^double alpha ^double p ci-method sides]
                                                       :or {alpha 0.05 p 0.5
                                                            ci-method :asymptotic sides :two-sided}}]
-   {:p-value (p-value (r/distribution :binomial {:trials number-of-trials :p p}) (double number-of-successes) sides)
-    :p p
-    :successes number-of-successes
-    :trials number-of-trials
-    :alpha alpha
-    :level (- 1.0 alpha)
-    :test-type sides
-    :stat number-of-successes
-    :estimate (double (/ number-of-successes number-of-trials))
-    :confidence-interval (let [ci (partial binomial-ci number-of-successes number-of-trials ci-method)]
-                           (case sides
-                             (:two-sided :both) (vec (butlast (ci (- 1.0 alpha))))
-                             (:one-side-greater :right) [(first (ci (- 1.0 (* alpha 2.0)))) 1.0]
-                             [0.0 (second (ci (- 1.0 (* alpha 2.0))))]))}))
+   (let [distr (r/distribution :binomial {:trials number-of-trials :p p})]
+     {:p-value (p-value distr (double number-of-successes) sides)
+      :p p
+      :successes number-of-successes
+      :trials number-of-trials
+      :alpha alpha
+      :level (- 1.0 alpha)
+      :test-type sides
+      :stat number-of-successes
+      :estimate (double (/ number-of-successes number-of-trials))
+      :confidence-interval (let [ci (partial binomial-ci number-of-successes number-of-trials ci-method)]
+                             (sides-case sides
+                                         (vec (butlast (ci (- 1.0 alpha))))
+                                         [(first (ci (- 1.0 (* alpha 2.0)))) 1.0]
+                                         [0.0 (second (ci (- 1.0 (* alpha 2.0))))]))})))
 
 ;; t/z
 
@@ -1538,11 +1555,11 @@
 
 (defn- test-pvalue-ci
   [d sides ^double stat ^double alpha]
-  {:confidence-interval (case sides
-                          (:two-sided :both) (let [^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
-                                               [(- stat cint) (+ stat cint)])
-                          (:one-sided-greater :right) [(- stat ^double (r/icdf d (- 1.0 alpha))) ##Inf]
-                          [##-Inf (+ stat ^double (r/icdf d (- 1.0 alpha)))])
+  {:confidence-interval (sides-case sides
+                                    (let [^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
+                                      [(- stat cint) (+ stat cint)])
+                                    [(- stat ^double (r/icdf d (- 1.0 alpha))) ##Inf]
+                                    [##-Inf (+ stat ^double (r/icdf d (- 1.0 alpha)))])
    :p-value (p-value d stat sides)})
 
 (defn- test-one-sample
@@ -1721,11 +1738,11 @@
       :df [dfx dfy]
       :test-type sides
       :p-value (p-value distr F sides)
-      :confidence-interval (case sides
-                             (:two-sided :both) [(/ F ^double (r/icdf distr (- 1.0 (* alpha 0.5))))
-                                                 (/ F ^double (r/icdf distr (* alpha 0.5)))]
-                             (:one-sided-greater :right) [(/ F ^double (r/icdf distr (- 1.0 alpha))) ##Inf]
-                             [0.0 (/ F ^double (r/icdf distr alpha))])})))
+      :confidence-interval (sides-case sides
+                                       [(/ F ^double (r/icdf distr (- 1.0 (* alpha 0.5))))
+                                        (/ F ^double (r/icdf distr (* alpha 0.5)))]
+                                       [(/ F ^double (r/icdf distr (- 1.0 alpha))) ##Inf]
+                                       [0.0 (/ F ^double (r/icdf distr alpha))])})))
 
 (defn contingency-table
   "Returns frequencies map of tuples built from seqs."
@@ -1770,13 +1787,13 @@
   (let [alpha (if (#{:both :two-sided} ci-sides) alpha (* alpha 2.0))
         d (r/distribution :multinomial {:trials n :ps (if (map? estimate) (vals estimate) estimate)})
         rands (apply map (comp m/seq->double-array vector) (r/->seq d samples))
-        vs (case ci-sides
-             (:two-sided :both) (let [qs [(/ alpha 2.0) (- 1.0 (/ alpha 2.0))]]
-                                  (map #(v/div (quantiles % qs) (double n)) rands))
-             (:one-sided-greater :right) (let [q (/ alpha 2.0)]
-                                           (map #(vector (/ (quantile % q) n) 1.0) rands))
-             (let [q (- 1.0 (/ alpha 2.0))]
-               (map #(vector 0.0 (/ (quantile % q) n)) rands)))]
+        vs (sides-case ci-sides
+                       (let [qs [(/ alpha 2.0) (- 1.0 (/ alpha 2.0))]]
+                         (map #(v/div (quantiles % qs) (double n)) rands))
+                       (let [q (/ alpha 2.0)]
+                         (map #(vector (/ (quantile % q) n) 1.0) rands))
+                       (let [q (- 1.0 (/ alpha 2.0))]
+                         (map #(vector 0.0 (/ (quantile % q) n)) rands)))]
     (if (map? estimate) (zipmap (keys estimate) vs) vs)))
 
 (defn- pdt-multi
@@ -1819,8 +1836,9 @@
                                (every? sequential? contingency-table-or-xs))
                         (xss->contingency-table contingency-table-or-xs)
                         contingency-table-or-xs) lambda))
+         distr (r/distribution :chi-squared {:degrees-of-freedom df})
          res (assoc res :lambda lambda :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
-                    :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides))]
+                    :p-value (p-value distr stat sides))]
      (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
 
 (defn chisq-test
@@ -1870,28 +1888,28 @@
     {:N Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe (/ SSe DFe)}))
 
 (defn- update-f-p-value
-  [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]
-  (let [F (/ MSt MSe)]
+  [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides ^double alpha]
+  (let [F (/ MSt MSe)
+        distr (r/distribution :f {:numerator-degrees-of-freedom DFt
+                                  :denominator-degrees-of-freedom DFe})]
     (assoc aov
-           :F F :df [DFt DFe]
-           :p-value (p-value (r/distribution :f {:numerator-degrees-of-freedom DFt
-                                                 :denominator-degrees-of-freedom DFe})
-                             F sides))))
+           :F F :df [DFt DFe] :stat F
+           :p-value (p-value distr F sides))))
 
 (defn one-way-anova-test
   ([xss] (one-way-anova-test xss {}))
-  ([xss {:keys [sides]
-         :or {sides :one-sided-greater}}]
-   (update-f-p-value (anova xss) sides)))
+  ([xss {:keys [sides ^double alpha]
+         :or {sides :one-sided-greater alpha 0.05}}]
+   (update-f-p-value (anova xss) sides alpha)))
 
 (defn levene-test
   ([xss] (levene-test xss {}))
-  ([xss {:keys [sides statistic scorediff]
-         :or {sides :one-sided-greater statistic mean scorediff abs}}]
+  ([xss {:keys [sides statistic scorediff ^double alpha]
+         :or {sides :one-sided-greater statistic mean scorediff abs alpha 0.05}}]
    (let [res (update-f-p-value (anova (map (fn [xs]
                                              (let [^double s (statistic xs)]
                                                (map (fn [^double v]
-                                                      (scorediff (- v s))) xs))) xss)) sides)]
+                                                      (scorediff (- v s))) xs))) xss)) sides alpha)]
      (-> (assoc res :W (:F res))
          (dissoc :F)))))
 
@@ -1901,8 +1919,8 @@
 
 (defn fligner-killeen-test
   ([xss] (fligner-killeen-test xss {}))
-  ([xss {:keys [sides]
-         :or {sides :one-sided-greater}}]
+  ([xss {:keys [sides ^double alpha]
+         :or {sides :one-sided-greater alpha 0.05}}]
    (let [Z (mapcat (fn [xs]
                      (let [s (median xs)]
                        (map (fn [^double v] (abs (- v s))) xs))) xss)
@@ -1917,11 +1935,63 @@
                         (map (fn [[d t]] (drop d (take t qij))))
                         (anova))
          y (/ SSt SSe)
-         chi2 (/ (* y (+ DFt DFe)) (inc y))]
+         chi2 (/ (* y (+ DFt DFe)) (inc y))
+         distr (r/distribution :chi-squared {:degrees-of-freedom DFt})]
      (assoc res
-            :chi2 chi2 :df DFt
-            :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom DFt}) chi2 sides)))))
+            :chi2 chi2 :df DFt :stat chi2
+            :p-value (p-value distr chi2 sides)))))
 
+;; ad/ks tests
 
-(m/unuse-primitive-operators)
+(defn- a2-stat
+  [^doubles xs d]
+  (let [n (alength xs)]
+    (reduce m/fast- (- n) (map (fn [^long idx]
+                                 (* (/ (+ idx idx 1.0) n)
+                                    (+ (m/log (r/cdf d (aget xs idx)))
+                                       (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
 
+(defn one-sample-ad-test
+  "Anderson-Darling test"
+  ([xs] (one-sample-ad-test xs r/default-normal))
+  ([xs distribution-or-ys] (one-sample-ad-test xs distribution-or-ys {}))
+  ([xs distribution-or-ys {:keys [sides kernel] :or {sides :one-sided-greater kernel :gaussian}}]
+   (let [d (cond
+             (r/distribution? distribution-or-ys) distribution-or-ys
+             (= kernel :empirical) (r/distribution :enumerated-real {:data distribution-or-ys})
+             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel}))
+         axs (m/seq->double-array (sort xs))
+         stat (a2-stat axs d)
+         n (alength axs)
+         distr (r/distribution :anderson-darling {:n n})]
+     {:stat stat :A2 stat :mean (mean axs) :stddev (stddev axs) :n n
+      :p-value (p-value distr stat sides)})))
+
+(defn- ks-stat
+  [xs d]
+  (let [n (count xs)
+        dn (/ (double n))
+        idxs (map (fn [^long i] (* i dn)) (range (inc n)))
+        cdfs (map (partial r/cdf d) (sort xs))
+        ^double dp (reduce m/fast-max (map m/fast- (rest idxs) cdfs))
+        dn (- ^double (reduce m/fast-min (map m/fast- (butlast idxs) cdfs)))]
+    {:n n :dp dp :dn dn :d (max dp dn) }))
+
+(defn one-sample-ks-test
+  "Kolmogorov-Smirnov test"
+  ([xs] (one-sample-ks-test xs r/default-normal))
+  ([xs distribution-or-ys] (one-sample-ks-test xs distribution-or-ys {}))
+  ([xs distribution-or-ys {:keys [sides kernel] :or {sides :two-sided kernel :gaussian}}]
+   (let [d (cond
+             (r/distribution? distribution-or-ys) distribution-or-ys
+             (= kernel :empirical) (r/distribution :enumerated-real {:data distribution-or-ys})
+             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel}))
+         {:keys [^long n ^double dp ^double dn ^double d]
+          :as ksstat} (ks-stat xs d)]
+     (merge ksstat {:stat (sides-case sides d dp dn) 
+                    :p-value (sides-case sides
+                                         (p-value (r/distribution :kolmogorov-smirnov {:n n}) d :right)
+                                         (p-value (r/distribution :kolmogorov-smirnov+ {:n n}) dp :right)
+                                         (p-value (r/distribution :kolmogorov-smirnov+ {:n n}) dn :right))}))))
+
+#_(m/unuse-primitive-operators)

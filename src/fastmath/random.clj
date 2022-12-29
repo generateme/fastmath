@@ -697,6 +697,12 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
     :metadoc/categories #{:dist}}
   distribution (fn ([k _] k) ([k] k)))
 
+(defn distribution?
+  "Checks if `distr` is a distribution object."
+  {:metadoc/categories #{:dist}}
+  [distr]
+  (satisfies? prot/DistributionProto distr))
+
 ;; protocol proxies
 (defn cdf
   "Cumulative probability."
