@@ -1525,6 +1525,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   [_ & r] (apply distribution :continuous-distribution r))
 
 (defn- sort-data-with-weights
+  "Internal helper for creating enumerated distributions"
   [{:keys [data probabilities] :as in}]
   (if probabilities
     (let [sorted (sort-by first (map vector data probabilities))]
@@ -1579,20 +1580,20 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   (- ^double (cdf-fn v2) ^double (cdf-fn v1)))
 
 (defmacro ^:private distribution-template
-  [d-name {:keys [dimensions continuous? distribution-parameters mean variance lower-bound upper-bound]
-           :or {dimensions 1 continuous? true mean 'mean variance 'variance}} & let-body]
+  [d-name {:keys [pdf? dimensions continuous? distribution-parameters mean variance lower-bound upper-bound]
+           :or {pdf? false dimensions 1 continuous? true mean 'mean variance 'variance}} & let-body]
   `(defmethod distribution ~d-name
      ([_# ~'args]
       (let [~'r (or (:rng ~'args) (rng :jvm))
             ~@let-body]
         (reify
           prot/DistributionProto
-          (pdf [_# v#] (m/exp (~'lpdf-fn v#)))
-          (lpdf [_# v#] (~'lpdf-fn v#))
+          (pdf [_# ~'v] ~(if pdf? `(~'pdf-fn ~'v) `(m/exp (~'lpdf-fn ~'v))))
+          (lpdf [_# ~'v] ~(if pdf? `(m/log (~'pdf-fn ~'v)) `(~'lpdf-fn ~'v)))
           (cdf [_# v#] (~'cdf-fn v#))
           (cdf [_# v1# v2#] (diff-cdf ~'cdf-fn v1# v2#))
           (icdf [_# v#] (~'icdf-fn v#))
-          (probability [_# v#] (m/exp (~'lpdf-fn v#)))
+          (probability [_# ~'v] ~(if pdf? `(~'pdf-fn ~'v) `(m/exp (~'lpdf-fn ~'v))))
           (sample [_#] (~'icdf-fn (prot/drandom ~'r)))
           (dimensions [_#] ~dimensions)
           (source-object [d#] d#)
@@ -2008,7 +2009,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                  (icdf distr (+ left-cdf (* x cdf-diff)))))
 
 (distribution-template :mixture
-                       {:distribution-parameters [:distrs :weights]
+                       {:pdf? true :distribution-parameters [:distrs :weights]
                         :mean mean-val
                         :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
                        {:keys [distrs weights]
@@ -2025,9 +2026,9 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                                   (* w (+ (m/sq (mean d))
                                                                           (variance d)))) weights distrs))
                                    (m/sq mean-val))
-                       lpdf-fn (fn ^double [^double x]
-                                 (m/log (reduce m/fast+ (map (fn ^double [^double w d]
-                                                               (* w (pdf d x))) weights distrs))))
+                       pdf-fn (fn ^double [^double x]
+                                (reduce m/fast+ (map (fn ^double [^double w d]
+                                                       (* w (pdf d x))) weights distrs)))
                        cdf-fn (fn ^double [^double x]
                                 (reduce m/fast+ (map (fn ^double [^double w d]
                                                        (* w (cdf d x))) weights distrs)))
@@ -2037,6 +2038,185 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                        mx (reduce m/fast-max icdfs)
                                        target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
                                    (solver/find-root target-fn mn mx))))
+
+;; from Julia
+(distribution-template :kolmogorov
+                       {:pdf? true :distribution-parameters []
+                        :mean 0.8687311606361591 :variance 0.0677732039638651
+                        :continuous? true :lower-bound 0.0 :upper-bound ##Inf}
+                       cdf-raw (fn ^double [^double x]
+                                 (let [a (- (m/sq (/ m/PI x)))
+                                       f (m/exp a)
+                                       f2 (* f f)
+                                       u (inc (* f (inc f2)))]
+                                   (/ (* m/SQRT2PI (m/exp (* 0.125 a)) u) x)))
+                       ccdf-raw (fn [^double ^double x]
+                                  (let [f (m/exp (* -2.0 x x))
+                                        f2 (* f f)
+                                        f3 (* f f2)
+                                        f5 (* f2 f3)
+                                        f7 (* f2 f5)
+                                        u (- 1.0 (* f3 (- 1.0 (* f5 (- 1.0 f7)))))]
+                                    (* 2.0 f u)))
+                       cdf-fn (fn ^double [^double x]
+                                (cond
+                                  (not (pos? x)) 0.0
+                                  (<= x 1.0) (cdf-raw x)
+                                  :else (- 1.0 ^double (ccdf-raw x))))
+                       pdf-fn (fn ^double [^double x]
+                                (cond
+                                  (not (pos? x)) 0.0
+                                  (<= x 1.0) (let [c (/ m/PI (* 2.0 x))
+                                                   ks (map (fn [^long i]
+                                                             (let [k (m/sq (* i c))]
+                                                               (* (dec k) (m/exp (* -0.5 k)))))
+                                                           (range 1 40 2))
+                                                   ^double s (reduce m/fast+ ks)]
+                                               (/ (* m/SQRT2PI s) (* x x)))
+                                  :else (let [ks (map (fn [^double a ^long i]
+                                                        (* a i i (m/exp (* -2.0 (m/sq (* i x))))))
+                                                      (cycle [1.0 -1.0]) (range 1 21))
+                                              ^double s (reduce m/fast+ ks)]
+                                          (* 8.0 x s))))
+                       icdf-fn (fn ^double [^double p]
+                                 (let [h1 (fn ^double [^double q] (- ^double (cdf-fn q) p))]
+                                   (if (< 0.5626816957524641 p) ;; cdf(mean)
+                                     (loop [interval 1.1290640320985719 ;; mean + sigma
+                                            j 2]
+                                       (if (< ^double (cdf-fn interval) p)
+                                         (recur (+ 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
+                                         (solver/find-root h1 0.8687311606361591 interval)))
+                                     (loop [interval 0.6083982891737463 ;; mean - sigma
+                                            j 2]
+                                       (if (> ^double (cdf-fn interval) p)
+                                         (recur (- 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
+                                         (solver/find-root h1 interval 0.8687311606361591)))))))
+
+;; from Julia
+(distribution-template :fishers-noncentral-hypergeometric
+                       {:pdf? true :distribution-parameters [:ns :nf :n :omega]
+                        :continuous? false :lower-bound lower-bound :upper-bound upper-bound}
+                       {:keys [^long ns ^long nf ^long n ^double omega]
+                        :or {ns 10 nf 10 n 5 omega 1.0}} args
+                       lower-bound (max 0 (- n nf))
+                       upper-bound (min ns n)
+                       mode (let [A (dec omega)
+                                  B (- n nf (* (+ ns n 2) omega))
+                                  C (* (inc ns) (* (inc n)) omega)]
+                              (long (m/floor (/ (* -2.0 C)
+                                                (- B (m/sqrt (- (* B B) (* 4.0 A C))))))))
+                       fri (fn [^long i]
+                             (* (/ (* (inc (- ns i)) omega)
+                                   (* i (+ (- nf n) i)))
+                                (inc (- n i))))
+                       fri+ (fn [^long i]
+                              (* (/ (* (- ns i) omega)
+                                    (* (inc i)
+                                       (inc (+ (- nf n) i))))
+                                 (- n i)))
+                       expectation (fn [f]
+                                     (let [[^double s ^double m] (loop [m (double (f mode))
+                                                                        fi 1.0
+                                                                        s 1.0
+                                                                        i (inc mode)]
+                                                                   (if (> i upper-bound)
+                                                                     [s m]
+                                                                     (let [^double ri (fri i)
+                                                                           nfi (* fi ri)
+                                                                           sfi (+ s nfi)]
+                                                                       (if (== sfi s)
+                                                                         [s m]
+                                                                         (recur (+ m (* ^double (f i) nfi))
+                                                                                nfi sfi (inc i))))))]
+                                       (loop [m m
+                                              fi 1.0
+                                              s s
+                                              i (dec mode)]
+                                         (if (< i lower-bound)
+                                           (/ m s)
+                                           (let [^double ri (fri+ i) 
+                                                 nfi (/ fi ri)
+                                                 sfi (+ s nfi)]
+                                             (if (== sfi s)
+                                               (/ m s)
+                                               (recur (+ m (* ^double (f i) nfi))
+                                                      nfi sfi (dec i))))))))
+                       ^double mean (expectation identity)
+                       variance (expectation (fn [^double t] (m/sq (- t mean))))
+                       pdf-fn (fn [^double k]
+                                (if-not (m/between? lower-bound upper-bound k)
+                                  0.0
+                                  (let [k (int k)
+                                        [^double s ^double fk] (loop [fk 1.0
+                                                                      fi 1.0
+                                                                      s 1.0
+                                                                      i (inc mode)]
+                                                                 (if (> i upper-bound)
+                                                                   [s fk]
+                                                                   (let [^double ri (fri i)
+                                                                         nfi (* fi ri)
+                                                                         sfi (+ s nfi)]
+                                                                     (if (and (== sfi s)
+                                                                              (> i k))
+                                                                       [s fk]
+                                                                       (recur (if (== k i) nfi fk)
+                                                                              nfi sfi (inc i))))))]
+                                    (loop [fk fk
+                                           fi 1.0
+                                           s s
+                                           i (dec mode)]
+                                      (if (< i lower-bound)
+                                        (/ fk s)
+                                        (let [^double ri (fri+ i) 
+                                              nfi (/ fi ri)
+                                              sfi (+ s nfi)]
+                                          (if (and (== sfi s)
+                                                   (< i k))
+                                            (/ fk s)
+                                            (recur (if (== k i) nfi fk)
+                                                   nfi sfi (dec i)))))))))
+                       cdf-fn (fn [^double k]                                
+                                (cond
+                                  (< k lower-bound) 0.0
+                                  (>= k upper-bound) 1.0
+                                  :else (let [k (int k)
+                                              [^double s ^double fk] (loop [fk (if (>= k mode) 1.0 0.0)
+                                                                            fi 1.0
+                                                                            s 1.0
+                                                                            i (inc mode)]
+                                                                       (if (> i upper-bound)
+                                                                         [s fk]
+                                                                         (let [^double ri (fri i)
+                                                                               nfi (* fi ri)
+                                                                               sfi (+ s nfi)]
+                                                                           (if (and (== sfi s)
+                                                                                    (> i k))
+                                                                             [s fk]
+                                                                             (recur (if (<= i k)
+                                                                                      (+ fk nfi) fk)
+                                                                                    nfi sfi (inc i))))))]
+                                          (loop [fk fk
+                                                 fi 1.0
+                                                 s s
+                                                 i (dec mode)]
+                                            (if (< i lower-bound)
+                                              (/ fk s)
+                                              (let [^double ri (fri+ i) 
+                                                    nfi (/ fi ri)
+                                                    sfi (+ s nfi)]
+                                                (if (and (== sfi s)
+                                                         (< i k))
+                                                  (/ fk s)
+                                                  (recur (if (<= i k) (+ fk nfi) fk)
+                                                         nfi sfi (dec i)))))))))
+                       icdf-fn (fn [^double q]
+                                 (if-not (<= 0.0 q 1.0)
+                                   ##NaN
+                                   (loop [i lower-bound]
+                                     (cond
+                                       (> i upper-bound) upper-bound
+                                       (> q ^double (cdf-fn i)) (recur (inc i)) 
+                                       :else i)))))
 
 (defonce ^{:doc "List of distributions."
            :metadoc/categories #{:dist}}

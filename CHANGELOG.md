@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file. This change
 	- `:zabb` - zero adjusted beta binomial
 	- `:zibb` - zero inflated beta binomial
 * other distributions
+    - `:kolmogorov` - Kolmogorov distribution
 	- `:half-normal` - half-normal distribution
 	- `:truncated` and `:mixture` distributions
 	- `:multinomial` distribution
@@ -36,14 +37,16 @@ All notable changes to this project will be documented in this file. This change
 * `coefficient-matrix` and `correlation-matrix`
 * grid functions accept separate coordinates
 * many additional `log-exp` functions
+* weighted mean (`wmean`), median (`wmedian`) and quantiles (`wquantile`,`wquantiles`)
 
 #### Tests
 
 * `p-value` - helper for calculating p-value
 * `contingency-table` - calculate frequencies
 * `binomial-test`
-* `t-test-one-sample`, `t-test-two-samples` (more information added)
+* `t-test-one-sample`, `t-test-two-samples` (more information returned)
 * `z-test-one-sample`, `z-test-two-samples`
+* `f-test`
 * `power-divergence-test` + special cases
     - `chisq-test`
 	- `multinomial-likelihood-ratio-test`
@@ -52,10 +55,9 @@ All notable changes to this project will be documented in this file. This change
 	- `freeman-tukey-test`
 	- `cressie-read-test`
 * distribution tests
-    - `one-sample-ad-test` - Anderson Darling test
-	- `one-sample-ks-test` - Kolmogorov Smirnov test
-* variance tests
-    - `f-test`
+    - `ad-test-one-sample` - Anderson Darling test
+	- `ks-test-one-sample`, `ks-test-two-samples` - Kolmogorov Smirnov test
+* ANOVA tests
 	- `one-way-anova-test`
 	- `levene-test`
 	- `brown-forsythe-test`

@@ -4,39 +4,39 @@
 <p>See more <a href="https://nextjournal.com/generateme/gaussian-processes#gp%2B">here</a></p>
 </div><div class="markdown"><h4>Categories</h4><ul></ul><p>Other vars: <a>-&gt;GaussianProcess</a> <a href="fastmath.gp.html#var-L">L</a> <a href="fastmath.gp.html#var-gaussian-process">gaussian-process</a> <a href="fastmath.gp.html#var-posterior-samples">posterior-samples</a> <a href="fastmath.gp.html#var-predict">predict</a> <a href="fastmath.gp.html#var-predict-all">predict-all</a> <a href="fastmath.gp.html#var-prior-samples">prior-samples</a></p></div></div><div class="public anchor" id="var-gaussian-process"><h3>gaussian-process</h3><div class="usage"><code>(gaussian-process xss ys)</code><code>(gaussian-process xss ys {:keys [kscale kernel noise normalize? L?], :or {kscale 1.0, kernel (k/kernel :gaussian 1.0), normalize? false, noise 1.0E-8, L? true}})</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Object creation</p>
 </blockquote><pre><code class="hljs clojure">(gaussian-process [1 2 3] [-1 2 1])
-;;=&gt; fastmath.gp.GaussianProcess@3392b9ae
+;;=&gt; fastmath.gp.GaussianProcess@734c1a9e
 (gaussian-process [1 2 3]
                   [-1 2 1]
                   {:normalize? true,
                    :kernel (k/kernel :gaussian 0.5),
                    :kscale 2.0,
                    :noise 0.1})
-;;=&gt; fastmath.gp.GaussianProcess@33c94191</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L82">view source</a></div></div><div class="public anchor" id="var-L"><h3>L</h3><div class="usage"><code>(L ys w chol n)</code><code>(L gp-object)</code></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L59">view source</a></div></div><div class="public anchor" id="var-posterior-samples"><h3>posterior-samples</h3><div class="usage"><code>(posterior-samples gp-object xvals)</code><code>(posterior-samples gp-object xvals stddev?)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>With gaussian kernel</p>
+;;=&gt; fastmath.gp.GaussianProcess@6460b4b3</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L82">view source</a></div></div><div class="public anchor" id="var-L"><h3>L</h3><div class="usage"><code>(L ys w chol n)</code><code>(L gp-object)</code></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L59">view source</a></div></div><div class="public anchor" id="var-posterior-samples"><h3>posterior-samples</h3><div class="usage"><code>(posterior-samples gp-object xvals)</code><code>(posterior-samples gp-object xvals stddev?)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>With gaussian kernel</p>
 </blockquote><pre><code class="hljs clojure">(let [gp (gaussian-process [-5 1 2]
                            [17 10 12]
                            {:kernel (k/kernel :gaussian 0.5)})]
   (posterior-samples gp (range -5 2 0.9)))
-;;=&gt; (17.000077841963336
-;;=&gt;  3.285145704683951
-;;=&gt;  -0.39937934864910934
-;;=&gt;  -0.06569086531100968
-;;=&gt;  -2.0749413659402114
-;;=&gt;  -0.5152311592989604
-;;=&gt;  4.596996701312858
-;;=&gt;  10.887359066756966)</code></pre></div><div><blockquote><p>Plot of 10 posteriors (with gaussian kernel)</p>
+;;=&gt; (17.000099273351303
+;;=&gt;  3.486871322141547
+;;=&gt;  1.16252159935488
+;;=&gt;  1.5126673210031227
+;;=&gt;  -0.22927781380801388
+;;=&gt;  -1.5562864724085492
+;;=&gt;  4.468464192246327
+;;=&gt;  11.615324762496392)</code></pre></div><div><blockquote><p>Plot of 10 posteriors (with gaussian kernel)</p>
 </blockquote><img src="images/gp/posteriork.jpg" /></div><div><blockquote><p>With periodic kernel</p>
 </blockquote><pre><code class="hljs clojure">(let [gp (gaussian-process [-5 1 2]
                            [17 10 12]
                            {:kernel (k/kernel :periodic 0.2 6.5)})]
   (posterior-samples gp (range -5 2 0.9)))
-;;=&gt; (17.000129578224506
-;;=&gt;  1.18431017670836
-;;=&gt;  -0.49025948660882235
-;;=&gt;  -0.04515877938537734
-;;=&gt;  0.39225198945949524
-;;=&gt;  -0.8192515558002039
-;;=&gt;  0.8880719267657673
-;;=&gt;  12.207182743407738)</code></pre></div><div><blockquote><p>Plot of 10 posteriors (with periodic kernel)</p>
+;;=&gt; (17.00004609740686
+;;=&gt;  -0.15841614239670854
+;;=&gt;  0.0653257127256486
+;;=&gt;  -0.13197285231643252
+;;=&gt;  -0.6411427001494433
+;;=&gt;  0.1257650766241411
+;;=&gt;  -0.03192181439957967
+;;=&gt;  12.963584487427383)</code></pre></div><div><blockquote><p>Plot of 10 posteriors (with periodic kernel)</p>
 </blockquote><img src="images/gp/posteriorkp.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L170">view source</a></div></div><div class="public anchor" id="var-predict"><h3>predict</h3><div class="usage"><code>(predict gp-object xval)</code><code>(predict gp-object xval stddev?)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [gp (gaussian-process [-5 1 2] [17 10 12])]
   [(gp 1.1) (predict gp 1.1)])
@@ -67,30 +67,30 @@
 ;;=&gt;  [6.277135459489308 0.739305317305734])</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L140">view source</a></div></div><div class="public anchor" id="var-prior-samples"><h3>prior-samples</h3><div class="usage"><code>(prior-samples gp-object xvals)</code></div><div class="doc"><div class="markdown"></div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Usage</p>
 </blockquote><pre><code class="hljs clojure">(let [gp (gaussian-process [0 1 -2 -2.001] [-2 3 0.5 -0.6])]
   (prior-samples gp (range 0 1 0.1)))
-;;=&gt; (-3.033343720306772
-;;=&gt;  -2.7683187470215054
-;;=&gt;  -2.481275402370454
-;;=&gt;  -2.1783968562311706
-;;=&gt;  -1.8657131852945115
-;;=&gt;  -1.5489418433548827
-;;=&gt;  -1.2333565942726463
-;;=&gt;  -0.9236897449483796
-;;=&gt;  -0.6240754530557574
-;;=&gt;  -0.33804145369661254
-;;=&gt;  -0.06855250105061943)</code></pre></div><div><blockquote><p>Plot of 10 priors</p>
+;;=&gt; (0.45357859112339244
+;;=&gt;  0.3621601186839099
+;;=&gt;  0.24496353236744325
+;;=&gt;  0.10831349733282543
+;;=&gt;  -0.040817343307830156
+;;=&gt;  -0.1952810947863322
+;;=&gt;  -0.3482135600195837
+;;=&gt;  -0.49344203757351984
+;;=&gt;  -0.6258112310727106
+;;=&gt;  -0.7414076038590804
+;;=&gt;  -0.8376755162725331)</code></pre></div><div><blockquote><p>Plot of 10 priors</p>
 </blockquote><img src="images/gp/prior.jpg" /></div><div><blockquote><p>With added noise</p>
 </blockquote><pre><code class="hljs clojure">(let [gp
       (gaussian-process [0 1 -2 -2.001] [-2 3 0.5 -0.6] {:noise 0.1})]
   (prior-samples gp (range 0 1 0.1)))
-;;=&gt; (-1.7634827540234144
-;;=&gt;  -1.7197336762716455
-;;=&gt;  -1.65480697062954
-;;=&gt;  -1.570080488803599
-;;=&gt;  -1.4677044679129523
-;;=&gt;  -1.3504731055263566
-;;=&gt;  -1.221657162931836
-;;=&gt;  -1.0848011852591455
-;;=&gt;  -0.943496710001753
-;;=&gt;  -0.8011517799860045
-;;=&gt;  -0.6607830768483762)</code></pre></div><div><blockquote><p>Plot of 10 priors (with noise)</p>
+;;=&gt; (0.2213025980251065
+;;=&gt;  0.1697118693111898
+;;=&gt;  0.10596711029412587
+;;=&gt;  0.03142434654031082
+;;=&gt;  -0.051577196809818
+;;=&gt;  -0.1398475434717286
+;;=&gt;  -0.22954924668890822
+;;=&gt;  -0.3164456185311574
+;;=&gt;  -0.39616740180086757
+;;=&gt;  -0.4644738323476515
+;;=&gt;  -0.5174901387475045)</code></pre></div><div><blockquote><p>Plot of 10 priors (with noise)</p>
 </blockquote><img src="images/gp/priorn.jpg" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/gp.clj#L164">view source</a></div></div></div></body></html>
