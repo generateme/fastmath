@@ -864,7 +864,7 @@
               SQRTPI "\\sqrt{\\pi}" SQRT2PI "\\sqrt{2\\pi}" SQRT_HALFPI "\\sqrt{\\frac{\\pi}{2}}"
               TWO_INV_PI "\\frac{2}{\\pi}"
               deg-in-rad "\\frac{\\pi}{180}" rad-in-deg "\\frac{180}{\\pi}"
-              double-one-minus-epsilon "0.(9)"})
+              double-one-minus-epsilon "\\inf\\{x:x<1\\}"})
 
 ^{::clerk/visibility :hide  ::clerk/viewer unpaginated-table}
 {:head ["symbol" "formula" "value"]
