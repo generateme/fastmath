@@ -4,7 +4,8 @@
   (:require [fastmath.core :as m]
             [nextjournal.clerk :as clerk]
             [nextjournal.clerk.viewer :as viewer]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [utils :as u]))
 
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
@@ -14,7 +15,7 @@
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
 (def unpaginated-table
-  (update-child-viewers viewer/table-viewer (fn [vs] (viewer/update-viewers vs {:page-size #(dissoc % :page-size)}))))
+  (update-child-viewers viewer/table-viewer (fn [vs] (nextjournal.clerk.viewer/update-viewers vs {:page-size #(dissoc % :page-size)}))))
 
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
@@ -47,7 +48,6 @@
 ;; * `zero? neg? pos? even? odd?`
 ;; * `min max`
 ;; * `abs`
-
 
 (require '[fastmath.core :as m])
 
@@ -401,6 +401,12 @@
  (m/high-exp 0.5 10.591)
  (map m/round-up-pow2 (range 10)))
 
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["floor" "ceil" "round"]
+ [(u/fgraph m/floor) (u/fgraph m/ceil) (u/fgraph m/round)]
+ ["trunc" "frac" "sfrac"]
+ [(u/fgraph m/trunc) (u/fgraph m/frac) (u/fgraph m/sfrac)]]
+
 ;; ## Polynomials and fma
 
 ;; Set of macros or functions which deal with polynomial evaluation plus some useful primitive ops shortcuts.
@@ -426,18 +432,21 @@
  (m/difference-of-products 100.0 -200.1 500.0 -400.1)
  (m/sum-of-products 100.0 -200.1 500.0 -400.1))
 
-;; Let's define a polynomial $P(x)=3x^4-7x^3+x+2.5$
+;; Let's define a polynomial $P(x)=0.5x^4-0.2x^3-2.0x-0.5$
 
-(def Px (m/makepoly [2.5 1.0 0.0 7.0 3.0]))
+(def Px (m/makepoly [-0.5 -2.0 0.0 -0.2 0.5]))
+
+^{::clerk/visibility :hide}
+(u/fgraph Px [-1.5 2] nil)
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (Px -2.0)
- (Px 2.0)
- (m/mevalpoly -2.0 2.5 1.0 0.0 7.0 3.0)
- (m/mevalpoly 2.0 2.5 1.0 0.0 7.0 3.0)
- (m/evalpoly -2.0 2.5 1.0 0.0 7.0 3.0)
- (m/evalpoly 2.0 2.5 1.0 0.0 7.0 3.0))
+ (Px -1.0)
+ (Px 1.0)
+ (m/mevalpoly -1.0 -0.5 -2.0 0.0 -0.2 0.5)
+ (m/mevalpoly 1.0 -0.5 -2.0 0.0 -0.2 0.5)
+ (m/evalpoly -1.0 -0.5 -2.0 0.0 -0.2 0.5)
+ (m/evalpoly 1.0 -0.5 -2.0 0.0 -0.2 0.5))
 
 ;; `mevalpoly` unrolls into calls to `fma` (for JDK 9+)
 
@@ -465,6 +474,16 @@
   [qsin true "faster and less accurate sin"]
   [qcos true "faster and less accurate cos"]])
 
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["sin" "cos" "tan"]
+ [(u/fgraph m/sin) (u/fgraph m/cos) (u/fgraph m/tan)]
+ ["cot" "sec" "csc"]
+ [(u/fgraph m/cot) (u/fgraph m/sec) (u/fgraph m/csc)]
+ ["asin" "acos" "atan"]
+ [(u/fgraph m/asin [-1.1 1.1] nil) (u/fgraph m/acos [-1.1 1.1] [-0.5 nil]) (u/fgraph m/atan)]
+ ["acot" "asec" "acsc"]
+ [(u/fgraph m/acot) (u/fgraph m/asec) (u/fgraph m/acsc)]]
+
 ;; ### Hyperbolic
 
 ^{::clerk/visibility :hide}
@@ -481,6 +500,16 @@
   [acoth false (clerk/md "$\\operatorname{artanh}(\\frac{1}{x})$")]
   [asech false (clerk/md "$\\operatorname{arcosh}(\\frac{1}{x})$")]
   [acsch false (clerk/md "$\\operatorname{arsinh}(\\frac{1}{x})$")]])
+
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["sinh" "cosh" "tanh"]
+ [(u/fgraph m/sinh) (u/fgraph m/cosh) (u/fgraph m/tanh)]
+ ["coth" "sech" "csch"]
+ [(u/fgraph m/coth) (u/fgraph m/sech) (u/fgraph m/csch)]
+ ["asinh" "acosh" "atanh"]
+ [(u/fgraph m/asinh) (u/fgraph m/acosh) (u/fgraph m/atanh)]
+ ["acoth" "asech" "acsch"]
+ [(u/fgraph m/acoth) (u/fgraph m/asech) (u/fgraph m/acsch)]]
 
 ;; ### Historical
 
@@ -523,13 +552,17 @@
  (m/haversine-dist [0.3 0.3] [0.5 0.5])
  (m/haversine-dist 0.3 0.3 0.5 0.5))
 
-;; ### Special functions
+;; ### Special
 
 ^{::clerk/visibility :hide}
 (table
  [[sinc false (clerk/md "$\\frac{\\sin(x)}{x}$")]
   [Si false (clerk/md "$\\operatorname{Si}(x)=\\int_{0}^{x}\\frac{\\sin(x)}{x}dx$")]
   [Ci false (clerk/md "$\\operatorname{Ci}(x)=-\\int_{x}^{\\infty}\\frac{\\cos(x)}{x}dx$")]])
+
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["sinc" "Si" "Ci"]
+ [(u/fgraph m/sinc) (u/fgraph m/Si [-10 10] nil) (u/fgraph m/Ci [0 10] [-4.0 nil])]]
 
 ;; ## Power, roots and log
 
@@ -550,6 +583,14 @@
   [rqsqrt true "fast inverse square root, zero step Newton's method"]
   [cbrt true (clerk/md "$\\sqrt[3]{x}$")]])
 
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["sqrt" "qsqrt"]
+ [(u/fgraph m/sqrt [0 5] nil) (u/fgraph m/qsqrt [0 5] nil)]
+ ["(pow x 0.5) " "(qpow x 0.5)"]
+ [(u/fgraph #(m/pow % 0.5) [0 5] nil) (u/fgraph #(m/pow % 0.5) [0 5] nil)]
+ ["1/sqrt" "rqsqrt"]
+ [(u/fgraph #(/ 1.0 (m/sqrt %)) [0.09 5] [-0.5 nil]) (u/fgraph m/rqsqrt [0.09 5] [-0.5 nil])]] 
+
 ;; ### Exp and log
 
 ;; Basic functions
@@ -564,6 +605,12 @@
   [logb false (clerk/md "$\\log_b(x)$")]
   [qexp true "fast and less accurate exp"]
   [qlog true "fast and less accurate log"]])
+
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["exp" "log"]
+ [(u/fgraph m/exp [-5.0 1.0] nil) (u/fgraph m/log [0.01 5.0] nil)]
+ ["qexp" "qlog"]
+ [(u/fgraph m/qexp [-5.0 1.0] nil) (u/fgraph m/qlog [0.01 5.0] nil)]]
 
 ;; Various additional special functions based of log and exp. Some of them are optimized. Source [LogExpFunctions from Julia](https://juliastats.org/LogExpFunctions.jl/stable/)
 
@@ -592,6 +639,18 @@
   [cloglog false (clerk/md "$\\ln(-\\ln(1-x))$")]
   [logit false (clerk/md "$\\ln(\\frac{x}{1-x})$")]
   [logcosh false (clerk/md "$\\ln(\\cosh(x))$")]])
+
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["expm1" "xexpx" "cexpexp"]
+ [(u/fgraph m/expm1) (u/fgraph m/xexpx) (u/fgraph m/cexpexp)]
+ ["log1p" "log1pexp" "log1mexp"]
+ [(u/fgraph m/log1p) (u/fgraph m/log1pexp) (u/fgraph m/log1mexp)]
+ ["log2mexp" "log1psq" "logexpm1"]
+ [(u/fgraph m/log2mexp) (u/fgraph m/log1psq) (u/fgraph m/logexpm1)]
+ ["log1pmx" "xlogx" "cloglog"]
+ [(u/fgraph m/log1pmx) (u/fgraph m/xlogx) (u/fgraph m/cloglog)]
+ ["sigmoid" "logit" "logcosh"]
+ [(u/fgraph m/sigmoid [-6 6] [-0.2 1.2]) (u/fgraph m/logit [-0.2 1.2] nil) (u/fgraph m/logcosh)]]
 
 ;; ## Distance
 
@@ -637,6 +696,20 @@
   [log-I0 false "log of I0"]
   [minkowski false "Minkowski's question mark function, ?(x)"]])
 
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["erf" "inv-erf"]
+ [(u/fgraph m/erf) (u/fgraph m/inv-erf [-1.1 1.1] nil)]
+ ["gamma" "log-gamma"] 
+ [(u/fgraph m/gamma [-5.0 3.0]) (u/fgraph m/log-gamma [-0.2 3.0])]
+ ["digamma" "trigamma"]
+ [(u/fgraph m/trigamma [-0.2 3.0]) (u/fgraph m/trigamma [-0.2 3.0])]
+ ["bessel-j 0" "bessel-j 1"]
+ [(u/fgraph #(m/bessel-j 0 %) [0 5.0] nil) (u/fgraph #(m/bessel-j 1 %) [0 5.0] nil)]
+ ["I0" "log-I0"]
+ [(u/fgraph m/I0) (u/fgraph m/log-I0)]
+ ["jinc" "minkowski"]
+ [(u/fgraph m/jinc [0 5] nil) (u/fgraph m/minkowski [-0.1 1.1])]]
+
 ;; ## Interpolation
 
 ;; Various interpolations on $[x_1,x_2]$ interval, $t\in[0,1]$:
@@ -648,6 +721,13 @@
   [cos-interpolation false (clerk/md "$f(x)=x_1+(x_2-x_1)\\frac{1-\\cos(\\pi t)}{2}$")]
   [smooth-interpolation false (clerk/md "$f(x)=x_1+3(x_2-x_1)(t^2-2t^3)$")]
   [quad-interpolation false "quadratic interpolation"]])
+
+^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+[["lerp" "cos" "smooth" "quad"]
+ [(u/fgraph (partial m/lerp 0 1) [0 1] nil)
+  (u/fgraph (partial m/cos-interpolation 0 1) [0 1] nil)
+  (u/fgraph (partial m/smooth-interpolation 0 1) [0 1] nil)
+  (u/fgraph (partial m/quad-interpolation 0 1) [0 1] nil)]]
 
 ^{::clerk/visibility :hide}
 (clerk/example
@@ -710,7 +790,7 @@
 
 ;; * `cut` - left endpoint of the first interval is slightly less than declared
 ;; * `co-intervals` - can produce less intervals than required, last (optional) argument controls overlap and defaults to 0.5.
-;; * `group-by-intervals` - by default uses `co-intervals` to gather initial intervals
+;; * `group-by-intervals` - by default uses `co-intervals` to create initial intervals
 
 (def data (repeatedly 200 (fn [] (m/sq (rand-int 10)))))
 
