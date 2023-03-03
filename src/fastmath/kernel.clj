@@ -28,34 +28,39 @@
 
 (defmacro ^:private make-scaled-x
   [scale formula]
-  (let [s (symbol "xs")]
-    `(fn [^double x#] (let [~s (/ (m/abs x#) ~scale)] ~formula))))
+  (let [s (symbol "xs")
+        x (with-meta (symbol "x") {:tag 'double})]
+    `(fn [~x] (let [~s (/ (m/abs ~x) ~scale)] ~formula))))
 
 (defmacro ^:private make-scaled-x+
   [scale formula]
-  (let [s (symbol "xs")]
-    `(fn [^double x#] (let [~s (/ (m/abs x#) ~scale)]
-                       (if (< ~s 1.0) ~formula 0.0)))))
+  (let [s (symbol "xs")
+        x (with-meta (symbol "x") {:tag 'double})]
+    `(fn [~x] (let [~s (/ (m/abs ~x) ~scale)]
+               (if (< ~s 1.0) ~formula 0.0)))))
 
 (defmacro ^:private emit-simple-rbf
   [nm form]
-  `(defmethod rbf ~nm
-     ([a#] (rbf ~nm 1.0))
-     ([a# ^double scale#] (make-scaled-x scale# ~form))))
+  (let [s (with-meta (symbol "scale") {:tag 'double})]
+    `(defmethod rbf ~nm
+       ([a#] (rbf ~nm 1.0))
+       ([a# ~s] (make-scaled-x ~s ~form)))))
 
 (defmacro ^:private emit-simple-rbf+
   [nm form]
-  `(defmethod rbf ~nm
-     ([a#] (rbf ~nm 1.0))
-     ([a# ^double scale#] (make-scaled-x+ scale# ~form))))
+  (let [s (with-meta (symbol "scale") {:tag 'double})]
+    `(defmethod rbf ~nm
+       ([a#] (rbf ~nm 1.0))
+       ([a# ~s] (make-scaled-x+ ~s ~form)))))
 
 (defmacro ^:private emit-beta-rbf
   [nm form]
-  (let [beta (symbol "beta")]
+  (let [beta (with-meta (symbol "beta") {:tag 'double})
+        s (with-meta (symbol "scale") {:tag 'double})]
     `(defmethod rbf ~nm
        ([a#] (rbf ~nm 1.0))
-       ([a# ^double scale#] (rbf ~nm 1.0 scale#))
-       ([a# ^double ~beta ^double scale#] (make-scaled-x scale# ~form)))))
+       ([a# ~s] (rbf ~nm 1.0 ~s))
+       ([a# ~beta ~s] (make-scaled-x ~s ~form)))))
 
 (defmulti rbf
   "RBF kernel creator. RBF is double->double function.
@@ -642,7 +647,7 @@
 
 ;;;;;;;;; density
 
-(defonce ^:private ^:const ^double gaussian-factor (/ (m/sqrt m/TWO_PI)))
+(def ^{:const true :private true :tag 'double} gaussian-factor (/ (m/sqrt m/TWO_PI)))
 
 (defn- density-uniform ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
 (defn- density-gaussian ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))

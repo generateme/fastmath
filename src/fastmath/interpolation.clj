@@ -69,7 +69,7 @@
   [n doc cat clazz] 
   (let [cl (with-meta (symbol "interp-obj") {:tag clazz})
         interp (with-meta (symbol "ufun") {:tag `UnivariateFunction})
-        x (with-meta (gensym "x") {:tag double})
+        x (with-meta (gensym "x") {:tag 'double})
         n (vary-meta n assoc :metadoc/categories cat)
         xs (symbol "xs")
         ys (symbol "ys")]

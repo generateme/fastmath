@@ -31,10 +31,16 @@ public final class PrimitiveMath {
     public static int unsignedShiftRight(int a, long n) { return a >>> n; }
 
     public static long bitAnd(long a, long b) { return a & b; }
+    public static long bitAndNot(long a, long b) { return a & ~b; }
     public static long bitOr(long a, long b) { return a | b; }
     public static long bitXor(long a, long b) { return a ^ b; }
     public static long bitNot(long a) { return ~a; }
 
+    public static long bitSet (long a, long n) {return a | (1L << n);}
+    public static long bitClear (long a, long n) {return a & ~(1L << n);}
+    public static long bitFlip (long a, long n) {return a ^ (1L << n);}
+    public static boolean bitTest (long a, long n) {return (a & (1L << n)) != 0L;}
+    
     public static long inc(long a) { return a+1L; }
     public static double inc(double a) { return a+1.0; }
     public static long dec(long a) { return a-1L; }
@@ -97,7 +103,12 @@ public final class PrimitiveMath {
     public static boolean isNeg(double a) { return a<0.0; }
     public static boolean isPos(long a) { return a>0L; }
     public static boolean isPos(double a) { return a>0.0; }
-    
+
+    public static boolean isNNeg(long a) { return a>=0L; }
+    public static boolean isNNeg(double a) { return a>=0.0; }
+    public static boolean isNPos(long a) { return a<=0L; }
+    public static boolean isNPos(double a) { return a<=0.0; }
+
     public static boolean and(boolean a, boolean b) { return a && b; }
     public static boolean or(boolean a, boolean b) { return a || b; }
     public static boolean not(boolean a) { return !a; }

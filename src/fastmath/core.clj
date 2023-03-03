@@ -15,14 +15,10 @@
 
   Based on [Primitive Math by Zach Tellman](https://github.com/ztellman/primitive-math) several operators are introduced and replace `clojure.core` functions. All operators are macros and can't be used as functions. List includes:
 
-  Known from Clojure: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
+  Known from Clojure: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-and-not` `bit-set` `bit-clear` `bit-test` `bit-flip` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
 
   And additionally:
 
-  * `bool-and` - `and` working on booleans
-  * `bool-or` - boolean `or`
-  * `bool-xor` - boolean `xor`
-  * `bool-not` - boolean `not`
   * `<<` - bit shift left
   * `>>` - signed bit shift right
   * `>>>` - unsigned bit shift right
@@ -58,7 +54,7 @@
                         :seq "Primitive <-> Seq converters"
                         :sample "Sampling"}}
   (:refer-clojure
-   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
+   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
@@ -68,16 +64,16 @@
 
 ;; metadoc sets
 
-(def ^:const ^:private -prim-set- #{:prim})
-(def ^:const ^:private -trig-set- #{:trig})
-(def ^:const ^:private -conv-set- #{:conv})
-(def ^:const ^:private -err-set- #{:err})
-(def ^:const ^:private -pow-set- #{:pow})
-(def ^:const ^:private -bitwise-set- #{:bitwise})
-(def ^:const ^:private -compare-set- #{:compare})
-(def ^:const ^:private -round-set- #{:round})
-(def ^:const ^:private -special-set- #{:special})
-(def ^:const ^:private -mod-set- #{:mod})
+(def ^:private -prim-set- #{:prim})
+(def ^:private -trig-set- #{:trig})
+(def ^:private -conv-set- #{:conv})
+(def ^:private -err-set- #{:err})
+(def ^:private -pow-set- #{:pow})
+(def ^:private -bitwise-set- #{:bitwise})
+(def ^:private -compare-set- #{:compare})
+(def ^:private -round-set- #{:round})
+(def ^:private -special-set- #{:special})
+(def ^:private -mod-set- #{:mod})
 
 ;; which java?
 
@@ -135,7 +131,6 @@
         ([~x ~y ~'& ~rest]
          (list* '~qname (list '~fname ~x ~y) ~rest))))))
 
-
 (defmacro ^:private variadic-predicate-proxy
   "Turns variadic predicates into multiple pair-wise comparisons.
   https://github.com/ztellman/primitive-math/blob/master/src/primitive_math.clj#L27"
@@ -171,9 +166,14 @@
 (primitivemath-proxy :two ^{:metadoc/categories -mod-set-} quot quotient)
 (primitivemath-proxy :two ^{:metadoc/categories -mod-set-} mod modulus)
 (variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-and bitAnd)
+(variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-and-not bitAndNot)
 (variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-or bitOr)
 (variadic-proxy ^{:metadoc/categories -bitwise-set-} bit-xor bitXor)
 (primitivemath-proxy :one ^{:metadoc/categories -bitwise-set-} bit-not bitNot)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-set bitSet)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-clear bitClear)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-flip bitFlip)
+(primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} bit-test bitTest)
 (variadic-proxy ^{:metadoc/categories #{:bool}
                   :deprecated true} bool-and and)
 (variadic-proxy ^{:metadoc/categories #{:bool}
@@ -187,6 +187,8 @@
 (primitivemath-proxy :one ^{:metadoc/categories -compare-set-} one? isOne)
 (primitivemath-proxy :one ^{:metadoc/categories -compare-set-} neg? isNeg)
 (primitivemath-proxy :one ^{:metadoc/categories -compare-set-} pos? isPos)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} not-neg? isNNeg)
+(primitivemath-proxy :one ^{:metadoc/categories -compare-set-} not-pos? isNPos)
 (primitivemath-proxy :one ^{:metadoc/categories -compare-set-} even? isEven)
 (primitivemath-proxy :one ^{:metadoc/categories -compare-set-} odd? isOdd)
 (primitivemath-proxy :two ^{:metadoc/categories -bitwise-set-} << shiftLeft)
@@ -212,12 +214,12 @@
 (defn fast* {:inline (fn [x y] `(* ~x ~y)) :inline-arities #{2}
              :doc "Primitive `*` for two arguments as function (not macro)."
              :metadoc/categories -prim-set-} ^double [^double a ^double b] (* a b))
-(defn fast-max {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
-                :doc "Primitive `max` for two arguments as function (not macro)."
-                :metadoc/categories -prim-set-} ^double [^double a ^double b] (max a b))
-(defn fast-min {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
-                :doc "Primitive `min` for two arguments as function (not macro)."
-                :metadoc/categories -prim-set-} ^double [^double a ^double b] (min a b))
+(defn fast-max {:inline (fn [x y] `(max ~x ~y)) :inline-arities #{2}
+             :doc "Primitive `max` for two arguments as function (not macro)."
+             :metadoc/categories -prim-set-} ^double [^double a ^double b] (max a b))
+(defn fast-min {:inline (fn [x y] `(min ~x ~y)) :inline-arities #{2}
+             :doc "Primitive `min` for two arguments as function (not macro)."
+             :metadoc/categories -prim-set-} ^double [^double a ^double b] (min a b))
 (defn fast-identity {:inline (fn [x] `~x) :inline-arities #{1}
                      :doc "Identity on double."
                      :metadoc/categories -prim-set-} ^double [^double a] a)
@@ -254,7 +256,7 @@
   `(muladd (- ~x) ~y ~z))
 
 (defmacro mevalpoly
-  "Evaluate polynomial macro version"
+  "Evaluate polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+...."
   [x & coeffs]
   (let [cnt (count coeffs)]
     (condp clojure.core/= cnt
@@ -293,52 +295,51 @@
                          (muladd x ex ^double (first rcoeffs)))))))))
 ;; some stuff from pbrt
 (defn difference-of-products
+  "Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation."
   ^double [^double a ^double b ^double c ^double d]
   (let [cd (* c d)]
     (+ (fma a b (- cd)) (fma (- c) d cd))))
 
 (defn sum-of-products
+  "Kahan's algorithm for (a*b)+(c*d) to avoid catastrophic cancellation."
   ^double [^double a ^double b ^double c ^double d]
   (let [cd (* c d)]
     (+ (fma a b cd) (fma c d (- cd)))))
 
 
 ;; Processing math constants
-(def ^:const ^double ^{:doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (* PI 0.5))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{3}\\\\)"} THIRD_PI (/ PI 3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (* PI 0.25))
-(def ^:const ^double ^{:doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (+ PI PI))
-(def ^:const ^double ^{:doc "Alias for [[TWO_PI]]"} TAU TWO_PI)
-(def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} E Math/E)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (* PI 0.5))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{3}\\\\)"} THIRD_PI (/ PI 3.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (* PI 0.25))
+(def ^{:const true :tag 'double :doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (+ PI PI))
+(def ^{:const true :tag 'double :doc "Alias for [[TWO_PI]]"} TAU TWO_PI)
+(def ^{:const true :tag 'double :doc "Value of \\\\(e\\\\)"} E Math/E)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\-pi\\\\)"} -PI (- Math/PI))
+(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (* PI -0.5))
+(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI -3.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (* PI -0.25))
+(def ^{:const true :tag 'double :doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (- TWO_PI))
+(def ^{:const true :tag 'double :doc "Alias for [[TWO_PI-]]"} -TAU -TWO_PI)
+(def ^{:const true :tag 'double :doc "Value of \\\\(e\\\\)"} -E (- Math/E))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{\\pi}\\\\)"} INV_PI (/ PI))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{\\pi}\\\\)"} TWO_INV_PI (/ 2.0 PI))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{4}{\\pi}\\\\)"} FOUR_INV_PI (/ 4.0 PI))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{2 \\pi}\\\\)"} INV_TWO_PI (/ TWO_PI))
+(def ^{:const true :tag 'double :doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
+(def ^{:const true :tag 'double :doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
+(def ^{:const true :tag 'double :doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
+(def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.915965594177219015054603514932384110774)
 
-(def ^:const ^double ^{:doc "Value of \\\\(\\-pi\\\\)"} -PI (- Math/PI))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (* PI -0.5))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI -3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (* PI -0.25))
-(def ^:const ^double ^{:doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (- TWO_PI))
-(def ^:const ^double ^{:doc "Alias for [[TWO_PI-]]"} -TAU -TWO_PI)
-(def ^:const ^double ^{:doc "Value of \\\\(e\\\\)"} -E (- Math/E))
-
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{\\pi}\\\\)"} INV_PI (/ PI))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{2}{\\pi}\\\\)"} TWO_INV_PI (/ 2.0 PI))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{4}{\\pi}\\\\)"} FOUR_INV_PI (/ 4.0 PI))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{2 \\pi}\\\\)"} INV_TWO_PI (/ TWO_PI))
-
-(def ^:const ^double ^{:doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
-
-(def ^:const ^double ^{:doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
-(def ^:const ^double ^{:doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
-
-(def ^:const ^double ^{:doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
+(defonce ^{:const true :tag 'double :doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
                                    (if (not== 1.0 (+ 1.0 (* d 0.5)))
                                      (recur (* d 0.5))
                                      d)))))
 
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD (/ 3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD (/ 2.0 3.0))
-(def ^:const ^double ^{:doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH (/ 6.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD (/ 3.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD (/ 2.0 3.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH (/ 6.0))
 
 ;; Trigonometry
 (fastmath-proxy :one ^{:metadoc/categories -trig-set-} sin)
@@ -368,6 +369,7 @@
 (defn ^{:doc "Arccosecant" :metadoc/categories -trig-set-} acsc ^double [^double v] (FastMath/asin (/ 1.0 v)))
 (fastmath-proxy :two ^{:metadoc/categories -trig-set-} atan2)
 
+
 ;; Additional hyperbolic functions
 (defn ^{:doc "Hyperbolic cotangent" :metadoc/categories -trig-set-} coth ^double [^double v] (/ (FastMath/tanh v)))
 (defn ^{:doc "Hyperbolic secant" :metadoc/categories -trig-set-} sech ^double [^double v] (/ (FastMath/cosh v)))
@@ -378,23 +380,75 @@
 (defn ^{:doc "Area hyperbolic secant" :metadoc/categories -trig-set-} asech ^double [^double v] (FastMath/acosh (/ v)))
 (defn ^{:doc "Area hyperbolic cosecant" :metadoc/categories -trig-set-} acsch ^double [^double v] (FastMath/asinh (/ v)))
 
-;; haversine
+;; historical
 
-(defn ^{:doc "Haversine formula" :metadoc/categories -trig-set-} haversine
+(defn ^{:doc "Chord" :metadoc/categories -trig-set-} crd ^double [^double v]
+  (* 2.0 (FastMath/sin (* 0.5 v))))
+(defn ^{:doc "Inverse chord" :metadoc/categories -trig-set-} acrd ^double [^double v]
+  (* 2.0 (FastMath/asin (* 0.5 v))))
+
+(defn ^{:doc "Versine" :metadoc/categories -trig-set-} versin ^double [^double v]
+  (- 1.0 (FastMath/cos v)))
+(defn ^{:doc "Coversine" :metadoc/categories -trig-set-} coversin ^double [^double v]
+  (- 1.0 (FastMath/sin v)))
+(defn ^{:doc "Vercosine" :metadoc/categories -trig-set-} vercos ^double [^double v]
+  (inc (FastMath/cos v)))
+(defn ^{:doc "Covercosine" :metadoc/categories -trig-set-} covercos ^double [^double v]
+  (inc (FastMath/sin v)))
+
+(defn ^{:doc "Arc versine" :metadoc/categories -trig-set-} aversin ^double [^double v]
+  (FastMath/acos (- 1.0 v)))
+(defn ^{:doc "Arc coversine" :metadoc/categories -trig-set-} acoversin ^double [^double v]
+  (FastMath/asin (- 1.0 v)))
+(defn ^{:doc "Arc vercosine" :metadoc/categories -trig-set-} avercos ^double [^double v]
+  (FastMath/acos (dec v)))
+(defn ^{:doc "Arc covercosine" :metadoc/categories -trig-set-} acovercos ^double [^double v]
+  (FastMath/asin (dec v)))
+
+(defn ^{:doc "Haversine formula" :metadoc/categories -trig-set-} haversin
   (^double [^double v] (* 0.5 (- 1.0 (FastMath/cos v))))
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
-   (haversine lat1 lon1 lat2 lon2))
+   (haversin lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
-   (+ (haversine (- lat2 lat1))
+   (+ (haversin (- lat2 lat1))
       (* (FastMath/cos lat1)
          (FastMath/cos lat2)
-         (haversine (- lon2 lon1))))))
+         (haversin (- lon2 lon1))))))
+
+(def ^{:doc "Haversine formula" :metadoc/categories -trig-set-} haversine haversin)
+
+(defn ^{:doc "Hacoversine" :metadoc/categories -trig-set-} hacoversin ^double [^double v]
+  (* 0.5 (- 1.0 (FastMath/sin v))))
+(defn ^{:doc "Havercosine" :metadoc/categories -trig-set-} havercos ^double [^double v]
+  (* 0.5 (inc (FastMath/cos v))))
+(defn ^{:doc "Hacovercosine" :metadoc/categories -trig-set-} hacovercos ^double [^double v]
+  (* 0.5 (inc (FastMath/sin v))))
+
+(defn ^{:doc "Arc haversine" :metadoc/categories -trig-set-} ahaversin ^double [^double v]
+  (FastMath/acos (- 1.0 (* 2.0 v))))
+(defn ^{:doc "Arc hacoversine" :metadoc/categories -trig-set-} ahacoversin ^double [^double v]
+  (FastMath/asin (- 1.0 (* 2.0 v))))
+(defn ^{:doc "Arc havercosine" :metadoc/categories -trig-set-} ahavercos ^double [^double v]
+  (FastMath/acos (dec (* 2.0 v))))
+(defn ^{:doc "Arc hacovercosine" :metadoc/categories -trig-set-} ahacovercos ^double [^double v]
+  (FastMath/asin (dec (* 2.0 v))))
+
+(defn ^{:doc "Exsecant" :metadoc/categories -trig-set-} exsec ^double [^double v]
+  (dec (sec v)))
+(defn ^{:doc "Excosecant" :metadoc/categories -trig-set-} excsc ^double [^double v]
+  (dec (csc v)))
+(defn ^{:doc "Arc exsecant" :metadoc/categories -trig-set-} aexsec ^double [^double v]
+  (asec (inc v)))
+(defn ^{:doc "Arc excosecant" :metadoc/categories -trig-set-} aexcsc ^double [^double v]
+  (acsc (inc v)))
+
+;; haversine
 
 (defn ^{:doc "Haversine distance `d` for `r=1`" :metadoc/categories -trig-set-} haversine-dist
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
    (haversine-dist lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
-   (* 2 (FastMath/asin (FastMath/sqrt (haversine lat1 lon1 lat2 lon2))))))
+   (* 2.0 (FastMath/asin (FastMath/sqrt (haversin lat1 lon1 lat2 lon2))))))
 
 ;; exp and log
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} exp)
@@ -406,14 +460,14 @@
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} log1p)
 (fastmath-proxy :one ^{:metadoc/categories -pow-set-} expm1)
 
-(def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
-(def ^:const ^double ^{:doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
-(def ^:const ^double ^{:doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
-(def ^:const ^double ^{:doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
-(def ^:const ^double ^{:doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
 
 (defn ^{:doc "log(1+exp(x))"
      :metadoc/categories -pow-set-}
@@ -524,7 +578,7 @@
   "x * log(x)"
   {:metadoc/categories -pow-set-}
   ^double [^double x]
-  (if (zero? x) 0.0 (* x (log x))))
+  (if (zero? x) 0.0 (* x (FastMath/log x))))
 
 (defn xlogy
   "x * log(y)"
@@ -579,8 +633,8 @@
 (fastmath-proxy :one ^{:doc "Quick and less accurate version of [[exp]]." :metadoc/categories -pow-set-} qexp expQuick)
 
 ;; Radians to degrees (and opposite) conversions
-(def ^:const ^double ^{:doc "\\\\(\\frac{180}{\\pi}\\\\)"} rad-in-deg (/ 180.0 PI))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\pi}{180}\\\\)"} deg-in-rad (/ PI 180.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{180}{\\pi}\\\\)"} rad-in-deg (/ 180.0 PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{180}\\\\)"} deg-in-rad (/ PI 180.0))
 (defn ^{:doc "Convert degrees into radians."
         :metadoc/categories -conv-set-}
   radians ^double [^double deg] (* deg-in-rad deg))
@@ -597,11 +651,11 @@
 ;; Gamma
 
 (gamma-proxy :one ^{:doc "Gamma function \\\\(\\Gamma(x)\\\\)" :metadoc/categories -special-set-} gamma gamma)
-(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories -special-set-} log-gamma logGamma)
-(gamma-proxy :one ^{:doc "Gamma function \\\\(\\ln\\Gamma(1+x)\\\\)" :metadoc/categories -special-set-} log-gamma-1p logGamma1p)
+(gamma-proxy :one ^{:doc "Log of Gamma function \\\\(\\ln\\Gamma(x)\\\\)" :metadoc/categories -special-set-} log-gamma logGamma)
+(gamma-proxy :one ^{:doc "Log of Gamma function \\\\(\\ln\\Gamma(1+x)\\\\)" :metadoc/categories -special-set-} log-gamma-1p logGamma1p)
 (gamma-proxy :one ^{:doc "Logarithmic derivative of \\\\(\\Gamma\\\\)." :metadoc/categories -special-set-} digamma)
 (gamma-proxy :one ^{:doc "Derivative of [[digamma]]." :metadoc/categories -special-set-} trigamma)
-(gamma-proxy :one ^{:doc "\\\\(\\frac{1}{\\Gamma(1+x)}\\\\)." :metadoc/categories -special-set-} inv-gamma-1pm1 invGamma1pm1)
+(gamma-proxy :one ^{:doc "\\\\(\\frac{1}{\\Gamma(1+x)}-1\\\\)." :metadoc/categories -special-set-} inv-gamma-1pm1 invGamma1pm1)
 (gamma-proxy :two ^{:doc "Regularized `gamma` P" :metadoc/categories -special-set-} regularized-gamma-p regularizedGammaP)
 (gamma-proxy :two ^{:doc "Regularized `gamma` Q" :metadoc/categories -special-set-} regularized-gamma-q regularizedGammaQ)
 
@@ -632,8 +686,8 @@
 ;; BesselJ
 (besselj-proxy :two ^{:doc "Bessel J function value for given order and argument." :metadoc/categories -special-set-} bessel-j value)
 
-(def ^:private ^:const ^double jinc-c4 (/ (* PI PI PI PI) 192.0))
-(def ^:private ^:const ^double jinc-c2 (/ (* PI PI) -8.0))
+;; jinc-c4 (/ (* PI PI PI PI) 192.0)
+;; jinc-c2 (/ (* PI PI) -8.0)
 
 (defn jinc
   "Besselj1 devided by `x`"
@@ -641,7 +695,7 @@
   ^double [^double x]
   (if (< (FastMath/abs x) 0.002)
     (let [x2 (* x x)]
-      (mevalpoly x2 1.0 jinc-c2 jinc-c4))
+      (mevalpoly x2 1.0 -1.2337005501361697 0.5073390158020964))
     (let [pix (* PI x)]
       (* 2.0 (/ (bessel-j 1 pix) pix)))))
 
@@ -678,7 +732,7 @@
         x2i (* x2i x2)]
     (+ val (/ x2i 34519618525593600))))
 
-(defn logI0
+(defn log-I0
   "Log of [[I0]]."
   {:metadoc/categories -special-set-}
   ^double [^double x]
@@ -735,10 +789,10 @@
     (- (+ absx (log1pexp (* -2.0 absx))) LN2)))
 
 ;; \\(\log_2 e\\)
-(def ^:const ^double ^{:doc "\\\\(\\log_{2}{e}\\\\)"} LOG2E (log2 E))
+(def ^{:const true :tag 'double :doc "\\\\(\\log_{2}{e}\\\\)"} LOG2E (log2 E))
 
 ;; \\(\log_{10} e\\)
-(def ^:const ^double ^{:doc "\\\\(\\log_{10}{e}\\\\)"} LOG10E (log10 E))
+(def ^{:const true :tag 'double :doc "\\\\(\\log_{10}{e}\\\\)"} LOG10E (log10 E))
 
 ;; Powers (normal, quick)
 (fastmath-proxy :two ^{:metadoc/categories -pow-set-} pow)
@@ -757,6 +811,43 @@
   {:metadoc/categories -pow-set-}
   ^long [^long n]
   (factorial20-table n))
+
+(defn ^{:doc "Factorial" :metadoc/categories -pow-set-} factorial
+  ^double [^long n]
+  (if (< n 21)
+    (factorial20-table n)
+    (exp (log-gamma (double (inc n))))))
+
+(defn ^{:doc "Log factorial, alias to log-gamma" :metadoc/categories -pow-set-} log-factorial
+  ^double [^long x] (log-gamma (double (inc x))))
+
+(defn combinations
+  "Binomial coefficient (n choose k)"
+  ^double [^long n ^long k]
+  (let [k (min k (- n k))]
+    (cond
+      (neg? k) 0.0
+      (zero? k) 1.0
+      (< k 30) (loop [j (long 2)
+                      r (double n)]
+                 (if (> j k)
+                   r
+                   (recur (inc j) (* r (/ (inc (- n j)) (double j))))))
+      :else (exp (- (- (ln (inc n)))
+                    (log-beta (inc (- n k)) (inc k)))))))
+
+(defn log-combinations
+  "Log of binomial coefficient (n choose k)"
+  ^double [^long n ^long k]
+  (let [k (min k (- n k))]
+    (cond
+      (neg? k) ##-Inf
+      (zero? k) 0.0
+      (one? k) (ln n)
+      (< n k) ##-Inf
+      (== n k) 0.0
+      :else (- (- (ln (inc n)))
+               (log-beta (inc (- n k)) (inc k))))))
 
 ;; Square and cubic
 (defn sq "Same as [[pow2]]. \\\\(x^2\\\\)" {:metadoc/categories -pow-set-} ^double [^double x] (* x x))
@@ -805,14 +896,16 @@
 (defn dist
   "Euclidean distance between points `(x1,y1)` and `(x2,y2)`. See [[fastmath.vector]] namespace to see other metrics which work on vectors."
   {:metadoc/categories #{:dist}}
-  ^double [^double x1 ^double y1 ^double x2 ^double y2]
-  (sqrt (+ (sq (- x2 x1)) (sq (- y2 y1)))))
+  (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (dist x1 y1 x2 y2))
+  (^double [^double x1 ^double y1 ^double x2 ^double y2]
+   (FastMath/sqrt (+ (sq (- x2 x1)) (sq (- y2 y1))))))
 
 (defn qdist
   "Quick version of Euclidean distance between points. [[qsqrt]] is used instead of [[sqrt]]."
   {:metadoc/categories #{:dist}}
-  ^double [^double x1 ^double y1 ^double x2 ^double y2]
-  (qsqrt (+ (sq (- x2 x1)) (sq (- y2 y1)))))
+  (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (qdist x1 y1 x2 y2))
+  (^double [^double x1 ^double y1 ^double x2 ^double y2]
+   (FastMath/sqrtQuick (+ (sq (- x2 x1)) (sq (- y2 y1))))))
 
 ;; Rounding functions
 (defn floor
@@ -877,8 +970,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                                           (approx b digits))))
 
 (defn delta-eq
-  "Checks equality for given accuracy (default `10.0e-6`)."
-  ([^double a ^double b] (delta-eq a b 10.0e-6))
+  "Checks equality for given accuracy (default `1.0e-6`)."
+  ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
    (< (abs (- a b)) accuracy)))
 
@@ -960,57 +1053,68 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ^long [^double v]
   (bit-and (Double/doubleToRawLongBits v) 0xffffffff))
 
+(defn double-bits
+  "Returns double as 64-bits (long)"
+  ^long [^double v]
+  (Double/doubleToRawLongBits v))
+
+(defn bits->double
+  "Convert 64 bits to double"
+  ^double [^long v]
+  (Double/longBitsToDouble v))
+
 ;; More constants
 
-(def ^:const ^double ^{:doc "Value of 0x1.fffffffffffffp-1d = 0.(9)"}
+(def ^{:const true :tag 'double :doc "Value of 0x1.fffffffffffffp-1d = 0.(9)"}
   double-one-minus-epsilon (Double/parseDouble "0x1.fffffffffffffp-1d"))
 
 ;; \\(\sqrt{2}\\)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{2}\\\\)"} SQRT2 (sqrt 2.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{2}}{2}\\\\)"} SQRT2_2 (* 0.5 SQRT2))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2}\\\\)"} SQRT2 (sqrt 2.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{2}}{2}\\\\)"} SQRT2_2 (* 0.5 SQRT2))
 
 ;; \\(\sqrt{3}\\)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{3}\\\\)"} SQRT3 (sqrt 3.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{2}\\\\)"} SQRT3_2 (* 0.5 (sqrt 3.0)))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{3}\\\\)"} SQRT3_3 (/ (sqrt 3.0) 3.0))
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\sqrt{3}}{4}\\\\)"} SQRT3_4 (/ (sqrt 3.0) 4.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{3}\\\\)"} SQRT3 (sqrt 3.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{2}\\\\)"} SQRT3_2 (* 0.5 (sqrt 3.0)))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{3}\\\\)"} SQRT3_3 (/ (sqrt 3.0) 3.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{4}\\\\)"} SQRT3_4 (/ (sqrt 3.0) 4.0))
 
 ;; \\(\sqrt{5}\\)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{5}\\\\)"} SQRT5 (sqrt 5.0))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{5}\\\\)"} SQRT5 (sqrt 5.0))
 
 ;; \\(\sqrt{\pi}\\)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{\\pi}\\\\)"} SQRTPI (sqrt PI))
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{2\\pi}\\\\)"} SQRT2PI (sqrt TWO_PI))
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{\\frac{1}{2}\\pi}\\\\)"} SQRT_HALFPI (sqrt HALF_PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\pi}\\\\)"} SQRTPI (sqrt PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2\\pi}\\\\)"} SQRT2PI (sqrt TWO_PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\frac{1}{2}\\pi}\\\\)"} SQRT_HALFPI (sqrt HALF_PI))
 
 ;; 
-(def ^:const ^double ^{:doc "Golden ratio \\\\(\\varphi\\\\)"} PHI (* (inc SQRT5) 0.5))
+(def ^{:const true :tag 'double :doc "Golden ratio \\\\(\\phi\\\\)"} PHI (* (inc SQRT5) 0.5))
+(def ^{:const true :tag 'double :doc "Silver ratio \\\\(\\delta_S\\\\)"} SILVER (inc SQRT2))
 
 ;; math.h predefined constants names
-(def ^:const ^double ^{:doc "\\\\(e\\\\)"} M_E E)
-(def ^:const ^double ^{:doc "\\\\(\\log_{2}{e}\\\\)"} M_LOG2E LOG2E)
-(def ^:const ^double ^{:doc "\\\\(\\log_{10}{e}\\\\)"} M_LOG10E LOG10E)
-(def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} M_LN2 LN2)
-(def ^:const ^double ^{:doc "\\\\(\\ln{10}\\\\)"} M_LN10 LN10)
-(def ^:const ^double ^{:doc "\\\\(\\pi\\\\)"} M_PI PI)
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\pi}{2}\\\\)"} M_PI_2 HALF_PI)
-(def ^:const ^double ^{:doc "\\\\(\\frac{\\pi}{4}\\\\)"} M_PI_4 QUARTER_PI)
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\pi}\\\\)"} M_1_PI (/ PI))
-(def ^:const ^double ^{:doc "\\\\(\\frac{2}{\\pi}\\\\)"} M_2_PI (/ 2.0 PI))
-(def ^:const ^double ^{:doc "\\\\(\\frac{2}{\\sqrt\\pi}\\\\)"} M_2_SQRTPI (/ 2.0 SQRTPI))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{2}\\\\)"} M_SQRT2 SQRT2)
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} M_SQRT1_2 (/ SQRT2))
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} INV_SQRT_2 M_SQRT1_2)
+(def ^{:const true :tag 'double :doc "\\\\(e\\\\)"} M_E E)
+(def ^{:const true :tag 'double :doc "\\\\(\\log_{2}{e}\\\\)"} M_LOG2E LOG2E)
+(def ^{:const true :tag 'double :doc "\\\\(\\log_{10}{e}\\\\)"} M_LOG10E LOG10E)
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} M_LN2 LN2)
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{10}\\\\)"} M_LN10 LN10)
+(def ^{:const true :tag 'double :doc "\\\\(\\pi\\\\)"} M_PI PI)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{2}\\\\)"} M_PI_2 HALF_PI)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{4}\\\\)"} M_PI_4 QUARTER_PI)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\pi}\\\\)"} M_1_PI (/ PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\pi}\\\\)"} M_2_PI (/ 2.0 PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\sqrt\\pi}\\\\)"} M_2_SQRTPI (/ 2.0 SQRTPI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2}\\\\)"} M_SQRT2 SQRT2)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} M_SQRT1_2 (/ SQRT2))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} INV_SQRT_2 M_SQRT1_2)
 
 
-(def ^:const ^double ^{:doc "\\\\(2\\pi\\\\)"} M_TWOPI TWO_PI)
-(def ^:const ^double ^{:doc "\\\\(\\frac{3\\pi}{4}\\\\)"} M_3PI_4 (* PI 0.75))
-(def ^:const ^double ^{:doc "\\\\(\\sqrt\\pi\\\\)"} M_SQRT_PI SQRTPI)
-(def ^:const ^double ^{:doc "\\\\(\\sqrt{3}\\\\)"} M_SQRT3 SQRT3)
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{10}}\\\\)"} M_IVLN10 (/ LN10))
-(def ^:const ^double ^{:doc "\\\\(\\ln{2}\\\\)"} M_LOG2_E LN2)
-(def ^:const ^double ^{:doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} M_INVLN2 (/ LN2))
+(def ^{:const true :tag 'double :doc "\\\\(2\\pi\\\\)"} M_TWOPI TWO_PI)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{3\\pi}{4}\\\\)"} M_3PI_4 (* PI 0.75))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt\\pi\\\\)"} M_SQRT_PI SQRTPI)
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{3}\\\\)"} M_SQRT3 SQRT3)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{10}}\\\\)"} M_IVLN10 (/ LN10))
+(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} M_LOG2_E LN2)
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} M_INVLN2 (/ LN2))
 
 (defn signum
   "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]].
@@ -1048,7 +1152,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;; copy-sign
 
-(fastmath-proxy :two ^{:doc "Returns a value with a magnitude of first arguemnt and sign of second."
+(fastmath-proxy :two ^{:doc "Returns a value with a magnitude of first argument and sign of second."
                        :metadoc/categories #{:sign}} copy-sign copySign)
 
 (defmacro constrain
@@ -1145,18 +1249,19 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn wrap
   "Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.cc/documentation/math/ofMath/#!show_ofWrap)."
   {:metadoc/categories -conv-set-}
-  ^double [^double start ^double stop ^double value]
-  (let [p (> start stop)
-        from (if p stop start)
-        to (if p start stop)
-        cycle (- to from)]
-    (if (zero? cycle)
-      to
-      (->> cycle
-           (/ (- value from))
-           (floor)
-           (* cycle)
-           (- value)))))
+  (^double [[^double start ^double stop] ^double value] (wrap start stop value))
+  (^double [^double start ^double stop ^double value]
+   (let [p (> start stop)
+         from (if p stop start)
+         to (if p start stop)
+         cycle (- to from)]
+     (if (zero? cycle)
+       to
+       (->> cycle
+            (/ (- value from))
+            (floor)
+            (* cycle)
+            (- value))))))
 
 ;;
 
@@ -1231,7 +1336,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   ([^double x1 ^double x2 ^long breaks]
    (let [[[^double start end] & r] (->> (slice-range x1 x2 (inc breaks))
                                         (partition 2 1))]
-     (conj r (list (- start EPSILON) end)))))
+     (conj r (list (prev-double start) end)))))
 
 (defn co-intervals
   "Divide sequence to overlaping intervals containing similar number of values. Same as R's `co.intervals()`"
@@ -1290,7 +1395,9 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Fast binary least common multiplier."
   {:metadoc/categories -mod-set-}
   ^long [^long a ^long b]
-  (/ (* a b) (gcd- (iabs a) (iabs b))))
+  (if (> a b)
+    (* b (/ a (gcd- (iabs a) (iabs b))))
+    (* a (/ b (gcd- (iabs a) (iabs b))))))
 
 ;;
 
@@ -1346,13 +1453,16 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                       :min ffirst
                       :dense ffirst
                       :max (comp first last)
-                      (fn ^double [v] (/ ^double (reduce #(+ ^double %1 ^double %2) (map first v)) (count v))))
+                      (fn ^double [v] (/ ^double (reduce fast+ (map first v)) (count v))))
              m (map (fn [[k v]] [k (tie-fn v)]) indexed-sorted-map)
              m (if (= ties :dense)
                  (map-indexed (fn [id [k _]]
                                 [k id]) (sort-by second m))
                  m)]
          (map (into {} m) vs))))))
+
+(def rank1 ^{:doc "[[rank]] with indexing statring from 1" :metadoc/categories #{:rank}}
+  (comp (partial map clojure.core/inc) rank))
 
 (defn order
   "Ordering permutation. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/order)
@@ -1429,15 +1539,15 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
         
         :else (if (neg? x) -HALF_PI HALF_PI)))))
 
-(def ^:private ^:const ^double ci-r0 0.616505485620716233797110404100)
-(def ^:private ^:const ^double ci-r1 3.384180422551186426397851146402)
-(def ^:private ^:const ^double ci-r01 0.6162109375)
-(def ^:private ^:const ^double ci-r02 0.29454812071623379711E-3)
-(def ^:private ^:const ^double ci-r11 3.3837890625)
-(def ^:private ^:const ^double ci-r12 0.39136005118642639785E-3)
+(def ^:private ^:const ^{:tag 'double} ci-r0 0.616505485620716233797110404100)
+(def ^:private ^:const ^{:tag 'double} ci-r1 3.384180422551186426397851146402)
+(def ^:private ^:const ^{:tag 'double} ci-r01 0.6162109375)
+(def ^:private ^:const ^{:tag 'double} ci-r02 0.29454812071623379711E-3)
+(def ^:private ^:const ^{:tag 'double} ci-r11 3.3837890625)
+(def ^:private ^:const ^{:tag 'double} ci-r12 0.39136005118642639785E-3)
 
 (defn Ci
-  "Integral of cos(t)/t from -x to inf"
+  "Negative of integral of cos(t)/t from x to inf"
   ^double [^double x]
   (assert (not (neg? x)) "x must be non-negative")
   (if (nan? x)
@@ -1558,14 +1668,14 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   (cond 
     (= (type vss) double-double-array-type) vss
     (nil? vss) nil
-    :else (into-array (mapv seq->double-array vss))))
+    :else (into-array (map seq->double-array vss))))
 
 ;; ## Copy of primitive math machinery
 ;;
 ;; Simplified to be used after `ns` is defined.
 
 (def ^:private vars-to-exclude
-  '[* + - / > < >= <= == abs rem quot mod bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? bool-and bool-or bool-xor bool-not << >> >>> not==])
+  '[* + - / > < >= <= == abs rem quot mod bit-and-not bit-set bit-clear bit-test bit-flip bit-or bit-and bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? bool-and bool-or bool-xor bool-not << >> >>> not==])
 
 (defn- using-primitive-operators? []
   (= #'fastmath.core/+ (resolve '+)))

@@ -141,7 +141,8 @@
         high (m/acos (m/max -1.0 (.low ev)))]
     (EFloat. (m/acos (.v ev)) (m/max 0.0 (m/prev-double low)) (m/next-double high))))
 
-(def ^:private ^:const ^double PI32 (* 1.5 m/PI))
+(def ^{:const true :private true :tag 'double} PI32 (* 1.5 m/PI))
+
 (defn sin ^EFloat [^EFloat ev]
   (let [low (m/sin (m/max 0.0 (.low ev)))
         high (m/sin (.high ev))

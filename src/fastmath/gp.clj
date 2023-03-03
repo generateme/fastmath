@@ -54,7 +54,7 @@
       (predict-all this xs stddev?)
       (predict this xs stddev?))))
 
-(def ^:const ^double ^:private LOG2PI (m/log m/TWO_PI))
+(def ^{:const true :private true :tag 'double} LOG2PI (m/log m/TWO_PI))
 
 (defn L
   ([ys w ^Matrix$Cholesky chol ^long n]

@@ -21,8 +21,12 @@
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src"]
-  :javac-options ["-target" "1.8" "-source" "1.8"]
+  ;; :javac-options ["-target" "1.8" "-source" "1.8"]
+  :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
-  :profiles {:dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
+  :profiles {:dev {:dependencies [[io.github.nextjournal/clerk "0.13.838"]
+                                  [clojure2d "1.4.5-SNAPSHOT"]]
+                   :source-paths ["notebooks"]}
+             :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}})

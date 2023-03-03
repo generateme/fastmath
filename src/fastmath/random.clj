@@ -567,9 +567,9 @@ See also [[jittered-sequence-generator]]."
        ([cfg#]
         (let [ncfg# (noise-config cfg#)]
           (fn
-            (^double [x#] (~method ncfg# x#))
-            (^double [x# y#] (~method ncfg# x# y#))
-            (^double [x# y# z#] (~method ncfg# x# y# z#))))))))
+            ([x#] (~method ncfg# x#))
+            ([x# y#] (~method ncfg# x# y#))
+            ([x# y# z#] (~method ncfg# x# y# z#))))))))
 
 (gen-noise-function single Noise/noise)
 (gen-noise-function fbm FBM/noise)
@@ -1277,8 +1277,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
      (MultivariateNormalDistribution. (or (:rng all) (rng :jvm)) (m/seq->double-array means) (m/seq->double-double-array covariances))))
   ([_] (distribution :multi-normal {})))
 
-(defonce ^:const ^:private ^double zero+epsilon (m/next-double 0.0))
-(defonce ^:const ^:private ^double one-epsilon (m/prev-double 1.0))
+(def ^{:const true :private true :tag 'double} zero+epsilon (m/next-double 0.0))
+(def ^{:const true :private true :tag 'double} one-epsilon (m/prev-double 1.0))
 
 (defn- dirichlet-rev-log-beta
   ^double [alpha]
@@ -1616,7 +1616,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
      ([_#] (distribution ~d-name {}))))
 
-(defonce ^:private ^:const ^double LOG_M_2_PI (m/log m/M_2_PI))
+(def ^{:const true :private true :tag 'double} LOG_M_2_PI (m/log m/M_2_PI))
 
 (distribution-template :half-cauchy
                        {:mean ##NaN :variance ##NaN :distribution-parameters [:scale :rng]

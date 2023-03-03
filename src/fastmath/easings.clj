@@ -28,7 +28,7 @@
 
 ;;
 
-(def ^:private ^:const ^double ease-back-s 1.70158)
+(def ^{:const true :private true :tag 'double} ease-back-s 1.70158)
 
 ;;
 
@@ -74,16 +74,16 @@
 
 ;;
 
-(def ^:const ^:private ^double b1 (/ 4.0 11.0))
-(def ^:const ^:private ^double b2 (/ 6.0 11.0))
-(def ^:const ^:private ^double b3 (/ 8.0 11.0))
-(def ^:const ^:private ^double b4 (/ 3.0 4.0))
-(def ^:const ^:private ^double b5 (/ 9.0 11.0))
-(def ^:const ^:private ^double b6 (/ 10.0 11.0))
-(def ^:const ^:private ^double b7 (/ 15.0 16.0))
-(def ^:const ^:private ^double b8 (/ 21.0 22.0))
-(def ^:const ^:private ^double b9 (/ 63.0 64.0))
-(def ^:const ^:private ^double b0 (/ (/ b1) b1))
+(def ^{:const true :private true :tag 'double} b1 (/ 4.0 11.0))
+(def ^{:const true :private true :tag 'double} b2 (/ 6.0 11.0))
+(def ^{:const true :private true :tag 'double} b3 (/ 8.0 11.0))
+(def ^{:const true :private true :tag 'double} b4 (/ 3.0 4.0))
+(def ^{:const true :private true :tag 'double} b5 (/ 9.0 11.0))
+(def ^{:const true :private true :tag 'double} b6 (/ 10.0 11.0))
+(def ^{:const true :private true :tag 'double} b7 (/ 15.0 16.0))
+(def ^{:const true :private true :tag 'double} b8 (/ 21.0 22.0))
+(def ^{:const true :private true :tag 'double} b9 (/ 63.0 64.0))
+(def ^{:const true :private true :tag 'double} b0 (/ (/ b1) b1))
 
 (defn bounce-out
   "BounceOut easing"
@@ -177,8 +177,8 @@
   (^double [^double amplitude ^double period]
    (* (/ period m/TWO_PI) (m/asin (/ (max 1.0 amplitude))))))
 
-(def ^:private ^:const ^double elastic-s (calc-elastic-factor))
-(def ^:private ^:const ^double elastic-period (/ 0.3 m/TWO_PI))
+(def ^{:const true :private true :tag 'double} elastic-s (calc-elastic-factor))
+(def ^{:const true :private true :tag 'double} elastic-period (/ 0.3 m/TWO_PI))
 
 (defn elastic-in
   "ElasticIn.
