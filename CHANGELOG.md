@@ -40,6 +40,7 @@ All notable changes to this project will be documented in this file. This change
 * weighted mean (`wmean`), median (`wmedian`) and quantiles (`wquantile`,`wquantiles`)
 * Vec2/3/4 implement IReduce and IReduceInit
 * historical trigonometric functions (versine with variants, chord, exsec/excsc) with their inverses
+* Clerk notebook for: fastmath.core
 
 #### Tests
 
@@ -75,6 +76,7 @@ All notable changes to this project will be documented in this file. This change
 * a nasty bug with primitive macro generation, how could I missed that?
 * `:histogram` issues with low number of samples
 * `fast-max` and `fast-min` had wrong inline operation
+* wrong primitive hinting and protocol extensions
 
 ## [2.1.8]
 
