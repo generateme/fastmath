@@ -131,7 +131,7 @@
          s2bc (/ s2 (+ b c) 6.0)
          s2ab (/ s2 (+ a b) 6.0)
          s2ac (/ s2 (+ a c) 6.0)
-         absn (int (m/abs power))
+         absn (long (m/abs power))
          cn (/ dist power 2.0)
          twopi_power (/ m/TWO_PI power)
          direct-trilinear (fn [^double x ^double y]
@@ -142,7 +142,7 @@
                                    inx (/ (+ (- be radius)
                                              (* iny cosc)) sinc)
                                    angle (+ (m/atan2 iny inx)
-                                            (* twopi_power (mod (r/irand) absn)))
+                                            (* twopi_power (r/lrand absn)))
                                    r (* amount (m/pow (+ (* inx inx) (* iny iny)) cn))]
                                (Vec2. (* r (m/cos angle))
                                       (* r (m/sin angle)))))

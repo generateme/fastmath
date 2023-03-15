@@ -89,7 +89,7 @@
            ys (* (.y v) (.y v))
            z (+ x2y2-add (m/pow (+ xs (* ys y2-mult)) power))
            q (+ (* 0.5 (m/atan2 (* (.x v) a2x-mult) (+ (* (.y v) a2y-mult) a2y-add)))
-                (* m/PI (r/irand 2)))
+                (* m/PI (r/lrand 2)))
            r (* amount (m/cos (* z cos-mult)) (/ (* z center)))]
        (Vec2. (* r (m/sin q)) (* r (m/cos q) y-mult))))))
 

@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file. This change
 * `fma` - fused multiply and add `(+ (* x y) z)` (for java 9+)
 * `fastmath.efloat` - floating point operations with error bounds
 * `project` - vector projection
-* Apache Commons Math `ArrayRealVector` extended with `VectorProto
+* Apache Commons Math `ArrayRealVector` extended with `VectorProto`
 * `fastmath.matrix` - matrix 2x2, 3x3 and 4x4 basic operations (unrolled)
 * fields refactored
 * `binomial-ci` - confidence interval methods for binomial distribution
@@ -41,6 +41,8 @@ All notable changes to this project will be documented in this file. This change
 * Vec2/3/4 implement IReduce and IReduceInit
 * historical trigonometric functions (versine with variants, chord, exsec/excsc) with their inverses
 * Clerk notebook for: fastmath.core
+* Added PDF to `:cramer-von-misses` distribution (based on finite difference)
+* `integrate-pdf` converted from private to public
 
 #### Tests
 
@@ -77,6 +79,8 @@ All notable changes to this project will be documented in this file. This change
 * `:histogram` issues with low number of samples
 * `fast-max` and `fast-min` had wrong inline operation
 * wrong primitive hinting and protocol extensions
+* `set-seed` calls protocol for PRNGs
+* `integrate-pdf` accuracy increased
 
 ## [2.1.8]
 

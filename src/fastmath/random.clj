@@ -129,13 +129,68 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
+;; Helper macro which creates RNG object of given class and/or seed.
+(defmacro ^:private create-object-with-seed
+  "Create object of the class with (or not) given seed. Used to create RNG."
+  [cl seed]
+  `(if-let [arg# ~seed]
+     (prot/set-seed! (new ~cl) (long arg#)) ;; seeding via protocols
+     (new ~cl)))
+
+(defmulti rng
+  "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
+  {:metadoc/categories #{:rand}}
+  (fn [m & _] m))
+
+(def ^:private rng-class->keyword {MersenneTwister :mersenne
+                                 ISAACRandom :isaac
+                                 Well512a :well512a
+                                 Well1024a :well1024a
+                                 Well19937a :well19937a
+                                 Well19937c :well19937c
+                                 Well44497a :well44497a
+                                 Well44497b :well44497b
+                                 JDKRandomGenerator :jdk})
+
+(defmethod rng :mersenne [_ & [seed]]
+  (create-object-with-seed MersenneTwister seed))
+(defmethod rng :isaac [_ & [seed]]
+  (create-object-with-seed ISAACRandom seed))
+(defmethod rng :well512a [_ & [seed]]
+  (create-object-with-seed Well512a seed))
+(defmethod rng :well1024a [_ & [seed]]
+  (create-object-with-seed Well1024a seed))
+(defmethod rng :well19937a [_ & [seed]]
+  (create-object-with-seed Well19937a seed))
+(defmethod rng :well19937c [_ & [seed]]
+  (create-object-with-seed Well19937c seed))
+(defmethod rng :well44497a [_ & [seed]]
+  (create-object-with-seed Well44497a seed))
+(defmethod rng :well44497b [_ & [seed]]
+  (create-object-with-seed Well44497b seed))
+(defmethod rng :jdk [_ & [seed]]
+  (create-object-with-seed JDKRandomGenerator seed))
+(defmethod rng :default [_ & [seed]]
+  (rng :jdk seed))
+
+(defn synced-rng
+  "Create synchronized RNG for given name and optional seed. Wraps [[rng]] method."
+  {:metadoc/categories #{:rand}}
+  ([m] (SynchronizedRandomGenerator. (rng m)))
+  ([m seed] (SynchronizedRandomGenerator. (rng m seed))))
+
+;; List of randomizers
+(defonce ^{:metadoc/categories #{:rand}
+           :doc "List of all possible RNGs."}
+  rngs-list (remove #{:default} (keys (methods rng))))
+
 ;; protocol proxies
 (defn frandom
   "Random double number with provided RNG"
   {:metadoc/categories #{:rand}}
-  (^double [rng] (prot/frandom rng))
-  (^double [rng mx] (prot/frandom rng mx))
-  (^double [rng mn mx] (prot/frandom rng mn mx)))
+  ([rng] (prot/frandom rng))
+  ([rng mx] (prot/frandom rng mx))
+  ([rng mn mx] (prot/frandom rng mn mx)))
 
 (defn drandom
   "Random double number with provided RNG"
@@ -185,6 +240,19 @@
      (if (zero? diff) mn
          (+ mn (next-random-value-long r diff))))))
 
+(defn- next-random-value-int
+  "Generate next int.
+
+  * arity 0 - from 0 to maximum int value
+  * arity 1 - from 0 to provided integer (excluded)
+  * arity 2 - from the provided range (included, excluded)"
+  (^long [^RandomGenerator r] (.nextInt r))
+  (^long [^RandomGenerator r ^long mx] (.nextInt r mx))
+  (^long [r ^long mn ^long mx]
+   (let [diff (- mx mn)]
+     (if (zero? diff) mn
+         (+ mn (next-random-value-int r diff))))))
+
 (defn- next-random-value-double
   "Generate next double.
 
@@ -197,6 +265,19 @@
    (let [diff (- mx mn)]
      (if (zero? diff) mn
          (+ mn (next-random-value-double r diff))))))
+
+(defn- next-random-value-float
+  "Generate next float.
+
+  * arity 0 - from 0 to 1 (exluded)
+  * arity 1 - from 0 to provided float (excluded)
+  * arity 2 - from the provided range (included, excluded)"
+  ([^RandomGenerator r] (.nextFloat r))
+  ([^RandomGenerator r ^double mx] (unchecked-float (* (.nextFloat r) mx)))
+  ([r ^double mn ^double mx]
+   (let [diff (- mx mn)]
+     (unchecked-float (if (zero? diff) mn
+                          (+ mn ^float (next-random-value-float r diff)))))))
 
 (defn- next-random-value-gaussian
   "Generate next random value from normal distribution.
@@ -217,9 +298,9 @@
 
 (extend RandomGenerator 
   prot/RNGProto
-  {:irandom (comp unchecked-int next-random-value-long)
+  {:irandom next-random-value-int
    :lrandom next-random-value-long
-   :frandom (comp float next-random-value-double)
+   :frandom next-random-value-float
    :drandom next-random-value-double
    :grandom (fn
               ([t] (next-random-value-gaussian t))
@@ -228,57 +309,14 @@
    :brandom (fn
               ([^RandomGenerator t] (.nextBoolean t))
               ([t ^double thr] (< (next-random-value-double t) thr)))
-   :set-seed! #(do
-                 (.setSeed ^RandomGenerator %1 (long %2))
-                 %1)
+   :set-seed! (fn [^RandomGenerator t ^long seed]
+                (.setSeed t seed)
+                t)
+   :set-seed #(let [rng-name (rng-class->keyword (class %1))]
+                (rng rng-name (long %2)))
    :->seq (fn
             ([^RandomGenerator t] (repeatedly #(next-random-value-double t)))
             ([^RandomGenerator t n] (repeatedly n #(next-random-value-double t))))})
-
-;; Helper macro which creates RNG object of given class and/or seed.
-(defmacro ^:private create-object-with-seed
-  "Create object of the class with (or not) given seed. Used to create RNG."
-  [cl seed]
-  `(if-let [arg# ~seed]
-     (new ~cl (int arg#))
-     (new ~cl)))
-
-(defmulti rng
-  "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
-  {:metadoc/categories #{:rand}}
-  (fn [m & _] m))
-
-(defmethod rng :mersenne [_ & [seed]]
-  (create-object-with-seed MersenneTwister seed))
-(defmethod rng :isaac [_ & [seed]]
-  (create-object-with-seed ISAACRandom seed))
-(defmethod rng :well512a [_ & [seed]]
-  (create-object-with-seed Well512a seed))
-(defmethod rng :well1024a [_ & [seed]]
-  (create-object-with-seed Well1024a seed))
-(defmethod rng :well19937a [_ & [seed]]
-  (create-object-with-seed Well19937a seed))
-(defmethod rng :well19937c [_ & [seed]]
-  (create-object-with-seed Well19937c seed))
-(defmethod rng :well44497a [_ & [seed]]
-  (create-object-with-seed Well44497a seed))
-(defmethod rng :well44497b [_ & [seed]]
-  (create-object-with-seed Well44497b seed))
-(defmethod rng :jdk [_ & [seed]]
-  (create-object-with-seed JDKRandomGenerator seed))
-(defmethod rng :default [_ & [seed]]
-  (rng :jdk seed))
-
-(defn synced-rng
-  "Create synchronized RNG for given name and optional seed. Wraps [[rng]] method."
-  {:metadoc/categories #{:rand}}
-  ([m] (SynchronizedRandomGenerator. (rng m)))
-  ([m seed] (SynchronizedRandomGenerator. (rng m seed))))
-
-;; List of randomizers
-(defonce ^{:metadoc/categories #{:rand}
-           :doc "List of all possible RNGs."}
-  rngs-list (remove #{:default} (keys (methods rng))))
 
 ;; ### Default RNG
 
@@ -289,7 +327,7 @@
 (def ^{:doc "Random boolean with default RNG.
 
 Returns true or false with equal probability. You can set `p` probability for `true`"
-       :metadoc/categories #{:rand}} 
+     :metadoc/categories #{:rand}} 
   brand (partial prot/brandom default-rng))
 
 (defn frand
@@ -298,9 +336,9 @@ Returns true or false with equal probability. You can set `p` probability for `t
   As default returns random float from `[0,1)` range.
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
-  (^double [] (prot/frandom default-rng))
-  (^double [mx] (prot/frandom default-rng mx))
-  (^double [mn mx] (prot/frandom default-rng mn mx)))
+  ([] (prot/frandom default-rng))
+  ([mx] (prot/frandom default-rng mx))
+  ([mn mx] (prot/frandom default-rng mn mx)))
 
 (defn drand
   "Random double number with default RNG.
@@ -326,7 +364,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   "Random integer number with default RNG.
 
   As default returns random integer from full integer range. 
-When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
   {:metadoc/categories #{:rand}}
   (^long [] (prot/irandom default-rng))
   (^long [mx] (prot/irandom default-rng mx))
@@ -343,7 +381,7 @@ When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is se
   (^long [^long mn ^long mx] (prot/lrandom default-rng mn mx)))
 
 (defmacro randval
-  "Retrun value with given probability (default 0.5)"
+  "Return value with given probability (default 0.5)"
   {:metadoc/categories #{:rand}}
   ([v1 v2]
    `(if (prot/brandom default-rng) ~v1 ~v2))
@@ -697,11 +735,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
     :metadoc/categories #{:dist}}
   distribution (fn ([k _] k) ([k] k)))
 
+(extend Object
+  prot/DistributionIdProto
+  {:distribution? (constantly false)})
+
 (defn distribution?
   "Checks if `distr` is a distribution object."
   {:metadoc/categories #{:dist}}
   [distr]
-  (satisfies? prot/DistributionProto distr))
+  (prot/distribution? distr))
 
 ;; protocol proxies
 (defn cdf
@@ -827,9 +869,61 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
      (if-not all?
        (-> (prot/distribution-parameters d')
            (set)
-           (disj :rng :inverse-cumm-accuracy)
+           (disj :rng :inverse-cumm-accuracy :epsilon :max-iterations)
            (vec))
        (prot/distribution-parameters d')))))
+
+(defn integrate-pdf
+  "Integrate PDF function, returns CDF and iCDF
+
+  Parameters:
+  * `pdf-func` - univariate function
+  * `mn` - lower bound for integration, value of pdf-func should be 0.0 at this point
+  * `mx` - upper bound for integration
+  * `steps` - how much subintervals to integrate (default 1000)
+  * `min-iterations` - minimum iterations for RombergIntegrator (default 3)
+  * `interpolator` - interpolation method between integrated points (default :spline)
+
+  Possible interpolation methods: `:linear` (default), `:spline`, `:monotone` or any function from `fastmath.interpolation`"
+  ([pdf-func mn mx steps]
+   (integrate-pdf pdf-func {:mn mn :mx mx :steps steps}))
+  ([pdf-func {:keys [^double mn ^double mx ^long steps
+                     interpolator ^long min-iterations]
+              :or {mn 0.0 mx 1.0 steps 1000
+                   min-iterations 3 interpolator :linear}}]
+   (let [step (/ (- mx mn) steps)
+         u-pdf-func (reify UnivariateFunction
+                      (value [_ x] (pdf-func x)))
+         ^RombergIntegrator romberg-integrator (RombergIntegrator. (max 2 min-iterations) RombergIntegrator/ROMBERG_MAX_ITERATIONS_COUNT)
+         ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
+         points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
+                                  (let [i (.integrate romberg-integrator Integer/MAX_VALUE u-pdf-func x1 x2) ;; integration can be very slow on very narrow spikes
+                                        curr-new (m/constrain (+ i curr) 0.0 1.0)
+                                        res (if (> curr-new curr)
+                                              [curr-new (conj lst [x2 curr-new])]
+                                              [curr-new lst])]
+                                    (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated)
+                                      (reduced res)
+                                      res))) [0.0 [[mn 0.0]]]
+                                (partition 2 1 (m/slice-range mn mx steps))))
+         [^double lx ^double ly] (last points)
+         points (if (< ly 1.0)
+                  (if (< lx mx)
+                    (conj points [mx 1.0])
+                    (conj points [(+ mx step 1.0)]))
+                  (if (< lx mx)
+                    (conj points [mx (m/next-double 1.0)])
+                    (conj points [(+ mx step) (m/next-double 1.0)]))) ;; fix upper endpoint
+         xs (m/seq->double-array (map first points))
+         ys (m/seq->double-array (map second points))
+         intpol (case interpolator
+                  :linear i/linear-smile
+                  :spline i/cubic-spline
+                  :monotone i/monotone
+                  (if (fn? interpolator) interpolator i/cubic-spline))]
+     ;; interpolate points lineary, return cdf and icdf
+     [(intpol xs ys)
+      (intpol ys xs)])))
 
 ;; apache commons math
 (extend RealDistribution
@@ -852,13 +946,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    :upper-bound (fn ^double [^RealDistribution d] (.getSupportUpperBound d))}
   prot/RNGProto
   {:drandom (fn ^double [^RealDistribution d] (.sample d))
-   :frandom (fn ^double [^RealDistribution d] (unchecked-float (.sample d)))
-   :lrandom (fn ^long [^RealDistribution d] (unchecked-long (.sample d)))
-   :irandom (fn ^long [^RealDistribution d] (unchecked-int (.sample d)))
+   :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
+   :lrandom (fn ^long [^RealDistribution d] (m/round-even (.sample d)))
+   :irandom (fn ^long [^RealDistribution d] (unchecked-int (m/round-even (.sample d))))
    :->seq (fn
             ([^RealDistribution d] (repeatedly #(.sample d)))
             ([^RealDistribution d n] (repeatedly n #(.sample d))))
-   :set-seed! (fn [^RealDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+   :set-seed! (fn [^RealDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
 
 ;; ssj
 
@@ -869,15 +963,16 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
       prot/DistributionProto
       (pdf [_ v] (.density d v))
       (lpdf [_ v] (m/log (.density d v)))
+      (probability [_ v] (.density d v))
       (cdf [_ v] (.cdf d v))
       (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
       (icdf [_ v] (.inverseF d v))
-      (probability [_ v] (.density d v))
       (sample [_] (.inverseF d (prot/drandom rng)))
       (dimensions [_] 1)
       (source-object [_] d)
       (continuous? [_] true)
       prot/DistributionIdProto
+      (distribution? [_] true)
       (distribution-id [_] nm)
       (distribution-parameters [_] kss)
       prot/UnivariateDistributionProto
@@ -888,28 +983,71 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
       prot/RNGProto
       (drandom [_] (.inverseF d (prot/drandom rng)))
       (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
-      (lrandom [_] (unchecked-long (.inverseF d (prot/drandom rng))))
-      (irandom [_] (unchecked-int (.inverseF d (prot/drandom rng))))
+      (lrandom [_] (m/round-even (.inverseF d (prot/drandom rng))))
+      (irandom [_] (unchecked-int (m/round-even (.inverseF d (prot/drandom rng)))))
+      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
+      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
+      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
+
+(defn- reify-continuous-ssj-no-pdf
+  [^ContinuousDistribution d ^RandomGenerator rng nm & ks]
+  (let [kss (vec (conj ks :rng))]
+    (reify
+      prot/DistributionProto
+      (pdf [_ v] (/ (- (.cdf d (+ ^double v 0.5e-6))
+                       (.cdf d (- ^double v 0.5e-6)))
+                    1.0e-6))
+      (lpdf [rd v] (m/log (prot/pdf rd v)))
+      (probability [rd v] (prot/pdf rd v))
+      (cdf [_ v] (.cdf d v))
+      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
+      (icdf [_ v] (.inverseF d v))
+      (sample [_] (.inverseF d (prot/drandom rng)))
+      (dimensions [_] 1)
+      (source-object [_] d)
+      (continuous? [_] true)
+      prot/DistributionIdProto
+      (distribution? [_] true)
+      (distribution-id [_] nm)
+      (distribution-parameters [_] kss)
+      prot/UnivariateDistributionProto
+      (mean [_] (.getMean d))
+      (variance [_] (.getVariance d))
+      (lower-bound [_] (.getXinf d))
+      (upper-bound [_] (.getXsup d))
+      prot/RNGProto
+      (drandom [_] (.inverseF d (prot/drandom rng)))
+      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
+      (lrandom [_] (m/round-even (.inverseF d (prot/drandom rng))))
+      (irandom [_] (unchecked-int (m/round-even (.inverseF d (prot/drandom rng)))))
       (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
       (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
       (set-seed! [d seed] (prot/set-seed! rng seed) d))))
 
 (defn- reify-integer-ssj
-  [^DiscreteDistributionInt d ^RandomGenerator rng nm & ks]
-  (let [kss (vec (conj ks :rng))]
+  [^DiscreteDistributionInt d ^RandomGenerator rng nm m]
+  (let [kss (vec (conj (keys m) :rng))
+        icdf-fn (case nm
+                  :logarithmic (let [upper (/ 25.0 (- 1.0 ^double (get m :theta 0.5)))
+                                     r (range 0 (inc upper))]                                 
+                                 (i/step-before (rest (reductions
+                                                       (fn [^double s ^double v]
+                                                         (+ s (.prob d v))) 0.0 r)) r))
+                  (fn [^double v] (.inverseF d v)))]
     (reify
       prot/DistributionProto
       (pdf [_ v] (.prob d (m/floor v)))
       (lpdf [_ v] (m/log (.prob d (m/floor v))))
       (cdf [_ v] (.cdf d (m/floor v)))
       (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
-      (icdf [_ v] (.inverseF d v))
+      (icdf [_ v] (unchecked-long (icdf-fn v)))
       (probability [_ v] (.prob d (m/floor v)))
-      (sample [_] (.inverseF d (prot/drandom rng)))
+      (sample [_] (unchecked-long (icdf-fn (prot/drandom rng))))
       (dimensions [_] 1)
       (source-object [_] d)
       (continuous? [_] false)
       prot/DistributionIdProto
+      (distribution? [_] true)
       (distribution-id [_] nm)
       (distribution-parameters [_] kss)
       prot/UnivariateDistributionProto
@@ -919,11 +1057,11 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
       (upper-bound [_] (.getXsup d))
       prot/RNGProto
       (drandom [_] (.inverseF d (prot/drandom rng)))
-      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
-      (lrandom [_] (unchecked-long (.inverseF d (prot/drandom rng))))
-      (irandom [_] (unchecked-int (.inverseF d (prot/drandom rng))))
-      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
-      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
+      (frandom [_] (unchecked-float (icdf-fn (prot/drandom rng))))
+      (lrandom [_] (unchecked-long (icdf-fn (prot/drandom rng))))
+      (irandom [_] (unchecked-int (icdf-fn (prot/drandom rng))))
+      (->seq [_] (repeatedly #(unchecked-long (icdf-fn (prot/drandom rng)))))
+      (->seq [_ n] (repeatedly n #(unchecked-long (icdf-fn (prot/drandom rng)))))
       (set-seed! [d seed] (prot/set-seed! rng seed) d))))
 
 ;; smile
@@ -945,9 +1083,9 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    :variance (fn ^double [^Distribution d] (.variance d))}
   prot/RNGProto
   {:drandom (fn ^double [^Distribution d] (.rand d))
-   :frandom (fn ^double [^Distribution d] (unchecked-float (.rand d)))
-   :lrandom (fn ^long [^Distribution d] (unchecked-long (.rand d)))
-   :irandom (fn ^long [^Distribution d] (unchecked-int (.rand d)))
+   :frandom (fn [^Distribution d] (unchecked-float (.rand d)))
+   :lrandom (fn ^long [^Distribution d] (m/round-even (.rand d)))
+   :irandom (fn ^long [^Distribution d] (unchecked-int (m/round-even (.rand d))))
    :->seq (fn
             ([^Distribution d] (repeatedly #(.rand d)))
             ([^Distribution d n] (repeatedly n #(.rand d))))})
@@ -972,13 +1110,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    :upper-bound (fn ^long [^IntegerDistribution d] (.getSupportUpperBound d))}
   prot/RNGProto
   {:drandom (fn ^double [^IntegerDistribution d] (unchecked-double (.sample d)))
-   :frandom (fn ^double [^IntegerDistribution d] (unchecked-float (.sample d)))
+   :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
    :lrandom (fn ^long [^IntegerDistribution d] (unchecked-long (.sample d)))
    :irandom (fn ^long [^IntegerDistribution d] (.sample d))
    :->seq (fn
             ([^IntegerDistribution d] (repeatedly #(.sample d)))
             ([^IntegerDistribution d n] (repeatedly n #(.sample d))))
-   :set-seed! (fn [^IntegerDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+   :set-seed! (fn [^IntegerDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
 
 (extend MultivariateNormalDistribution
   prot/DistributionProto
@@ -994,14 +1132,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                  (let [^org.apache.commons.math3.linear.Array2DRowRealMatrix cv (.getCovariances d)]
                    (m/double-double-array->seq (.getDataRef cv))))}
   prot/RNGProto
-  {:drandom (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
-   :frandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-float (.sample d)))
-   :lrandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-long (.sample d)))
-   :irandom (fn [^MultivariateNormalDistribution d] (mapv unchecked-int (.sample d)))
-   :->seq (fn
+  {:->seq (fn
             ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
             ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
-   :set-seed! (fn [^MultivariateNormalDistribution d ^double seed] (.reseedRandomGenerator d seed) d)})
+   :set-seed! (fn [^MultivariateNormalDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
 
 (defmacro ^:private make-acm-distr
   [nm obj ks vs]
@@ -1009,7 +1143,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
     `(do
        (extend ~obj
          prot/DistributionIdProto
-         {:distribution-id (fn [d#] ~nm)
+         {:distribution? (constantly true)
+          :distribution-id (fn [d#] ~nm)
           :distribution-parameters (fn [d#] [~@(conj (map keyword ks) :rng)])})
        (defmethod distribution ~nm
          ([n# {:keys [~@ks]
@@ -1077,7 +1212,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (extend EmpiricalDistribution
   prot/DistributionIdProto
-  {:distribution-id (fn [_] :empirical)
+  {:distribution? (constantly true)
+   :distribution-id (fn [_] :empirical)
    :distribution-parameters (fn [_] [:rng :bin-count :data])})
 
 (defmethod distribution :empirical
@@ -1092,8 +1228,11 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   ([_] (distribution :empirical {})))
 
 (extend EnumeratedRealDistribution
+  prot/DistributionProto
+  {:continuous? (constantly false)}
   prot/DistributionIdProto
-  {:distribution-id (fn [_] :enumerated-real)
+  {:distribution? (constantly true)
+   :distribution-id (fn [_] :enumerated-real)
    :distribution-parameters (fn [_] [:rng :data :probabilities])})
 
 (defmethod distribution :enumerated-real
@@ -1110,7 +1249,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (extend NegativeBinomialDistribution
   prot/DistributionIdProto
-  {:distribution-id (fn [_] :negative-binomial)
+  {:distribution? (constantly true)
+   :distribution-id (fn [_] :negative-binomial)
    :distribution-parameters (fn [_] [:r :p :rng])})
 
 (defmethod distribution :negative-binomial
@@ -1128,7 +1268,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (extend EnumeratedIntegerDistribution
   prot/DistributionIdProto
-  {:distribution-id (fn [_] :enumerated-int)
+  {:distribution? (constantly true)
+   :distribution-id (fn [_] :enumerated-int)
    :distribution-parameters (fn [_] [:data :probabilities :rng])})
 
 (defmethod distribution :enumerated-int
@@ -1145,7 +1286,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 (make-acm-distr :geometric GeometricDistribution [p] [0.5])
 (make-acm-distr :hypergeometric HypergeometricDistribution
                 [population-size number-of-successes sample-size] [100 50 25])
-(make-acm-distr :pascal PascalDistribution [r p] [5 0.5])
+(make-acm-distr :pascal PascalDistribution [r p] [20 0.5])
 (make-acm-distr :poisson PoissonDistribution
                 [p epsilon max-iterations]
                 [0.5 PoissonDistribution/DEFAULT_EPSILON PoissonDistribution/DEFAULT_MAX_ITERATIONS])
@@ -1156,17 +1297,20 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defmacro ^:private make-ssj-distr
   [rf nm obj ks vs]
-  (let [or-map (zipmap ks vs)]
+  (let [or-map (zipmap ks vs)
+        k-map (zipmap (map keyword ks) vs)]
     `(defmethod distribution ~nm
        ([n# {:keys [~@ks]
              :or ~or-map
              :as all#}]
         (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
-          (~rf (new ~obj ~@ks) r# ~nm ~@(map keyword ks))))
+          (~rf (new ~obj ~@ks) r# ~nm (merge ~k-map all#))))
        ([n#] (distribution ~nm {})))))
 
 (defmacro ^:private make-ssjc-distr
   [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj ~nm ~obj ~ks ~vs))
+(defmacro ^:private make-ssjc-distr-no-pdf
+  [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj-no-pdf ~nm ~obj ~ks ~vs))
 (defmacro ^:private make-ssji-distr
   [nm obj ks vs] `(make-ssj-distr reify-integer-ssj ~nm ~obj ~ks ~vs))
 
@@ -1174,7 +1318,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 (make-ssjc-distr :inverse-gamma InverseGammaDist [alpha beta] [2.0 1.0])
 (make-ssjc-distr :chi ChiDist [nu] [1.0])
 (make-ssjc-distr :chi-squared-noncentral ChiSquareNoncentralDist [nu lambda] [1.0 1.0])
-(make-ssjc-distr :cramer-von-mises CramerVonMisesDist [n] [1.0])
+(make-ssjc-distr-no-pdf :cramer-von-mises CramerVonMisesDist [n] [1.0])
 (make-ssjc-distr :erlang ErlangDist [k lambda] [1 1])
 (make-ssjc-distr :fatigue-life FatigueLifeDist [mu beta gamma] [0.0 1.0 1.0])
 (make-ssjc-distr :folded-normal FoldedNormalDist [mu sigma] [0.0 1.0])
@@ -1210,8 +1354,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (let [f (* 2.0 (m/sqrt a))
          icdf-fn (fn [^double x]
                    (cond
-                     (zero? x) a
-                     :else (m/sq (* 0.5 (+ x f)))))
+                     (m/not-pos? x) a
+                     :else (m/sq (* 0.5 (+ (min x 1.0) f)))))
          ^double b (icdf-fn 1.0)
          m (* (/ 2.0 3.0) (- (m/pow b 1.5) (m/pow a 1.5)))
          m1 (* 15.0 m m)
@@ -1238,6 +1382,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (source-object [d] d)
        (continuous? [_] true)
        prot/DistributionIdProto
+       (distribution? [_] true)
        (distribution-id [_] :reciprocal-sqrt)
        (distribution-parameters [_] [:a :rng])
        prot/UnivariateDistributionProto
@@ -1248,8 +1393,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        prot/RNGProto
        (drandom [_] (icdf-fn (prot/drandom r)))
        (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
-       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
-       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (lrandom [_] (m/round-even (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (m/round-even (icdf-fn (prot/drandom r)))))
        (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
        (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
        (set-seed! [d seed] (prot/set-seed! r seed) d))))
@@ -1259,7 +1404,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (extend MultivariateNormalDistribution
   prot/DistributionIdProto
-  {:distribution-id (fn [_] :multi-normal)
+  {:distribution? (constantly true)
+   :distribution-id (fn [_] :multi-normal)
    :distribution-parameters (fn [_] [:means :covariances :rng])})
 
 (defmethod distribution :multi-normal
@@ -1338,16 +1484,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (source-object [this] this)
        (continuous? [_] true)
        prot/DistributionIdProto
+       (distribution? [_] true)
        (distribution-id [_] :dirichlet)
        (distribution-parameters [_] [:alpha :rng])
        prot/MultivariateDistributionProto
        (means [_] @m)
        (covariance [_] @cv)
        prot/RNGProto
-       (drandom [d] (prot/sample d))
-       (frandom [d] (mapv unchecked-float (prot/sample d)))
-       (lrandom [d] (mapv unchecked-long (prot/sample d)))
-       (irandom [d] (mapv unchecked-int (prot/sample d)))
        (->seq [d] (repeatedly #(prot/sample d)))
        (->seq [d n] (repeatedly n #(prot/sample d)))
        (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
@@ -1379,16 +1522,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (source-object [this] this)
        (continuous? [_] false)
        prot/DistributionIdProto
+       (distribution? [_] true)
        (distribution-id [_] :multinomial)
        (distribution-parameters [_] [:n :ps :rng])
        prot/MultivariateDistributionProto
        (means [_] @m)
        (covariance [_] @cv)
        prot/RNGProto
-       (drandom [d] (prot/sample d))
-       (frandom [d] (mapv unchecked-float (prot/sample d)))
-       (lrandom [d] (mapv unchecked-long (prot/sample d)))
-       (irandom [d] (mapv unchecked-int (prot/sample d)))
        (->seq [d] (repeatedly #(prot/sample d)))
        (->seq [d n] (repeatedly n #(prot/sample d)))
        (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
@@ -1449,45 +1589,18 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (ffirst)))
 
 (defn- narrow-range
-  [kd ^double mn ^double mx ^long steps]
-  (let [step (/ (- mx mn) steps)]
-    [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
-     (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)
-     step]))
-
-(defn- integrate-pdf
   [kd [^double mn ^double mx ^double step] ^long steps]
-  (let [ukd (reify UnivariateFunction
-              (value [_ x] (kd x)))
-        ^RombergIntegrator romberg-integrator (RombergIntegrator.)
-        ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
-        points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
-                                 (let [i (.integrate romberg-integrator Integer/MAX_VALUE ukd x1 x2) ;; integration can be very slow on very narrow spikes
-                                       curr-new (m/constrain (+ i curr) 0.0 1.0)
-                                       res (if (> curr-new curr)
-                                             [curr-new (conj lst [(+ x1 (* 0.5 (- x2 x1))) curr-new])]
-                                             [curr-new lst])]
-                                   (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated)
-                                     (reduced res)
-                                     res))) [0.0 [[mn 0.0]]]
-                               (partition 2 1 (m/slice-range mn mx steps))))
-        ^double lv (second (last points))
-        points (if (< lv 1.0) ;; if last point is not 1.0, add such as near as possible
-                 (conj points [(+ mx step) 1.0])
-                 points)
-        xs (m/seq->double-array (map first points))
-        ys (m/seq->double-array (map second points))]
-    ;; interpolate points lineary, return cdf and icdf
-    [(i/linear-smile xs ys)
-     (i/linear-smile ys xs)]))
+  [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
+   (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
 
 (defmethod distribution :continuous-distribution
   ([_ {:keys [data ^long steps kde bandwidth]
-       :or {data [-1 0 1] steps 200 kde :epanechnikov}
+       :or {data [-1 0 1] steps 5000 kde :epanechnikov}
        :as all}]
    (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
-         [^double mn ^double mx ^double step :as pdf-range] (narrow-range kd mn mx (* 4 steps))
-         [cdf-fn icdf-fn] (integrate-pdf kd pdf-range steps)
+         step (/ (- mx mn) steps)
+         [^double mn ^double mx] (narrow-range kd [mn mx step] (* 4 steps))
+         [cdf-fn icdf-fn] (integrate-pdf kd mn mx steps)
          r (or (:rng all) (rng :jvm))
          m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
          v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
@@ -1504,6 +1617,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (source-object [d] d)
        (continuous? [_] true)
        prot/DistributionIdProto
+       (distribution? [_] true)
        (distribution-id [_] :kde)
        (distribution-parameters [_] [:data :steps :kde :bandwidth :rng])
        prot/UnivariateDistributionProto
@@ -1514,8 +1628,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        prot/RNGProto
        (drandom [_] (icdf-fn (prot/drandom r)))
        (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
-       (lrandom [_] (unchecked-long (icdf-fn (prot/drandom r))))
-       (irandom [_] (unchecked-int (icdf-fn (prot/drandom r))))
+       (lrandom [_] (m/round-even (icdf-fn (prot/drandom r))))
+       (irandom [_] (unchecked-int (m/round-even (icdf-fn (prot/drandom r)))))
        (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
        (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
        (set-seed! [d seed] (prot/set-seed! r seed) d))))
@@ -1562,6 +1676,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
        (source-object [_] enumerated)
        (continuous? [_] false)
        prot/DistributionIdProto
+       (distribution? [_] true)
        (distribution-id [_] :categorical-distribution)
        (distribution-parameters [_] [:data :probabilities :rng])
        prot/UnivariateDistributionProto
@@ -1599,6 +1714,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           (source-object [d#] d#)
           (continuous? [_#] ~continuous?)
           prot/DistributionIdProto
+          (distribution? [_#] true)
           (distribution-id [_#] ~d-name)
           (distribution-parameters [_#] ~distribution-parameters)
           prot/UnivariateDistributionProto
@@ -1609,8 +1725,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           prot/RNGProto
           (drandom [_#] (~'icdf-fn (prot/drandom ~'r)))
           (frandom [_#] (unchecked-float (~'icdf-fn (prot/drandom ~'r))))
-          (lrandom [_#] (unchecked-long (~'icdf-fn (prot/drandom ~'r))))
-          (irandom [_#] (unchecked-int (~'icdf-fn (prot/drandom ~'r))))
+          (lrandom [_#] (m/round-even (~'icdf-fn (prot/drandom ~'r))))
+          (irandom [_#] (unchecked-int (m/round-even (~'icdf-fn (prot/drandom ~'r)))))
           (->seq [_#] (repeatedly #(~'icdf-fn (prot/drandom ~'r))))
           (->seq [_# n#] (repeatedly n# #(~'icdf-fn (prot/drandom ~'r))))
           (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
@@ -1629,7 +1745,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    ##-Inf
                                    (- LOG_M_2_PI ls (m/log1p (m/sq (/ x scale))))))
                        icdf-fn (fn [^double p]
-                                 (* scale (m/tan (* m/HALF_PI p))))
+                                 (cond
+                                   (m/not-pos? p) 0.0
+                                   (>= p 1.0) 1.0
+                                   :else (* scale (m/tan (* m/HALF_PI p)))))
                        cdf-fn (fn [^double v]
                                 (* m/M_2_PI (m/atan (/ v scale)))))
 
@@ -1762,11 +1881,11 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        lsigma-mu (- (m/log sigma-) mu)
                        lmu (m/log mu)
                        lpdf0 (m/log (+ sigma (* sigma- (m/exp (- mu)))))
-                       lpdf-fn (fn ^double [^double x]
+                       lpdf-fn (fn ^double [^long x]
                                  (if (zero? x) lpdf0 (- (+ lsigma-mu (* x lmu))
                                                         (m/log-gamma (inc x)))))
                        dist (distribution :poisson {:p mu :rng r})
-                       cdf-fn (fn ^double [^double x]
+                       cdf-fn (fn ^double [^long x]
                                 (+ sigma (* sigma- (cdf dist x))))
                        icdf-fn (fn ^double [^double x]
                                  (let [pnew (- (/ (- x sigma) sigma-) 1.0e-7)]
@@ -1784,13 +1903,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        mus (/ mu sigma-)
                        lmu (m/log mu)
                        lpdf0 (m/log (+ sigma (* sigma- (m/exp (- mus)))))
-                       lpdf-fn (fn ^double [^double x]
+                       lpdf-fn (fn ^double [^long x]
                                  (if (zero? x) lpdf0 (+ (- (* (- 1.0 x) lsigma-) mus
                                                            (m/log-gamma (inc x)))
                                                         (* x lmu))))
                        dist (distribution :poisson {:p mus :rng r})
-                       cdf-fn (fn ^double [^double x]
-                                (+ sigma (* sigma-(cdf dist x))))
+                       cdf-fn (fn ^double [^long x]
+                                (+ sigma (* sigma- (cdf dist x))))
                        icdf-fn (fn ^double [^double x]
                                  (let [pnew (- (/ (- x sigma) sigma-) 1.0e-7)]
                                    (if (pos? pnew) (prot/icdf dist pnew) 0.0))))
@@ -1799,7 +1918,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        {:distribution-parameters [:mu :sigma :nu :rng]
                         :continuous? true :lower-bound ##-Inf :upper-bound ##Inf}
                        {:keys [^double mu ^double sigma ^double nu]
-                        :or {mu 5.0 sigma 1.0 nu 1.0}} args
+                        :or {mu 0.0 sigma 1.0 nu 1.0}} args
                        mean (+ mu nu)
                        sigma2 (* sigma sigma)
                        variance (+ sigma2 (* nu nu))
@@ -1848,7 +1967,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                            (inc sigma))))
                        dist (distribution :binomial {:p mu :trials bd :rng r})
                        lpdf-fn (if (< sigma 0.00001)
-                                 (fn ^double [^double x] (prot/lpdf dist x))
+                                 (fn ^double [^long x] (prot/lpdf dist x))
                                  (let [rsigma (/ sigma)
                                        mursigma (* mu rsigma)
                                        mu-rsigma (* (- 1.0 mu) rsigma)
@@ -1857,15 +1976,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                       (m/log-gamma mursigma)
                                                       (m/log-gamma mu-rsigma)
                                                       (m/log-gamma (+ bd rsigma)))]
-                                   (fn ^double [^double x]
+                                   (fn ^double [^long x]
                                      (+ (- lgamma-part
                                            (m/log-gamma (inc x))
                                            (m/log-gamma (inc (- bd x))))
                                         (m/log-gamma (+ x mursigma))
                                         (m/log-gamma (- (+ bd mu-rsigma) x))))))
                        cdf-fn (if (< sigma 0.00001)
-                                (fn ^double [^double x] (prot/cdf dist x))
-                                (memoize (fn ^double [^double q]
+                                (fn ^double [^long x] (prot/cdf dist x))
+                                (memoize (fn ^double [^long q]
                                            (reduce m/fast+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
                        icdf-fn (if (< sigma 0.00001)
                                  (fn ^double [^double p] (prot/icdf dist p))
@@ -1986,7 +2105,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (distribution-template :truncated
                        {:mean ##NaN :variance ##NaN
-                        :distribution-parameters [:distr :left :right]
+                        :distribution-parameters [:distr :left :right :rng]
                         :continuous? (continuous? distribution)
                         :lower-bound left-bound :upper-bound right-bound}
                        {:keys [distr left right]
@@ -2000,7 +2119,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        ^double left (or left ##-Inf)
                        ^double right (or right ##Inf)
                        lpdf-fn (fn ^double [^double x]
-                                 (if (and (< left x) (<= x right))
+                                 (if (and (<= left x) (<= x right))
                                    (- (lpdf distr x) lcdf-diff)
                                    ##-Inf))
                        cdf-fn (fn ^double [^double x]
@@ -2009,7 +2128,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                  (icdf distr (+ left-cdf (* x cdf-diff)))))
 
 (distribution-template :mixture
-                       {:pdf? true :distribution-parameters [:distrs :weights]
+                       {:pdf? true :distribution-parameters [:distrs :weights :rng]
                         :mean mean-val
                         :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
                        {:keys [distrs weights]
@@ -2018,8 +2137,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        weights (vec (or weights (repeat cnt 1.0)))
                        weights (v/div weights (v/sum weights))
                        continuous? (continuous? (first distrs))
-                       lower-bound (reduce m/fast-min (map prot/lower-bound distrs))
-                       upper-bound (reduce m/fast-max (map prot/upper-bound distrs))
+                       lower-bound (reduce m/fast-min (map lower-bound distrs))
+                       upper-bound (reduce m/fast-max (map upper-bound distrs))
                        mean-val (reduce m/fast+ (map (fn ^double [^double w d]
                                                        (* w (mean d))) weights distrs))
                        variance (- ^double (reduce m/fast+ (map (fn ^double [^double w d]
@@ -2041,7 +2160,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;; from Julia
 (distribution-template :kolmogorov
-                       {:pdf? true :distribution-parameters []
+                       {:pdf? true :distribution-parameters [:rng]
                         :mean 0.8687311606361591 :variance 0.0677732039638651
                         :continuous? true :lower-bound 0.0 :upper-bound ##Inf}
                        cdf-raw (fn ^double [^double x]
@@ -2094,7 +2213,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;; from Julia
 (distribution-template :fishers-noncentral-hypergeometric
-                       {:pdf? true :distribution-parameters [:ns :nf :n :omega]
+                       {:pdf? true :distribution-parameters [:rng :ns :nf :n :omega]
                         :continuous? false :lower-bound lower-bound :upper-bound upper-bound}
                        {:keys [^long ns ^long nf ^long n ^double omega]
                         :or {ns 10 nf 10 n 5 omega 1.0}} args
@@ -2223,6 +2342,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
 ;;
+
+(defn set-seed
+  "Create and return new RNG"
+  ([]
+   (prot/set-seed default-rng (lrand)))
+  ([^long v]
+   (prot/set-seed default-rng v))
+  ([rng ^long v]
+   (prot/set-seed rng v)))
 
 (defn set-seed!
   "Sets seed.

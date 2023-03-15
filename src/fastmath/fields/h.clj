@@ -261,7 +261,7 @@
                                     (* (m/sin (* fd in)) (- f (* fk (u/spow (m/cos (* fe in)) fj))))
                                     (+ 0.005 (* fm (u/spow (m/sin (* fg in)) fl))))))]
      (fn [_]
-       (-> (let [iin (inc (r/irand npoints))
+       (-> (let [iin (inc (r/lrand npoints))
                  in (* iin npointsd)]
              (case presetid
                0 (hamid-pline (hamid-line-1 in))
@@ -522,7 +522,7 @@
              x (+ (* rad (.x v)) shift)
              y (* rad (.y v))
              rad (* amount (/ scale (+ (* x x) (* y y))))
-             angle (* pp (inc (* 2.0 (mod (r/irand) p))))
+             angle (* pp (inc (* 2.0 (mod (r/lrand) p))))
              X (+ (* rad x) shift)
              Y (* rad y)
              cosa (m/cos angle)
@@ -556,7 +556,7 @@
                       (+ (m/cos pa) (m/cos pq))))
          r (if (pos? r2) (/ (m/sqrt r2)) 1.0)]
      (fn [^Vec2 v]
-       (let [rpa (* pa (r/irand))
+       (let [rpa (* pa (r/lrand))
              sina (m/sin rpa)
              cosa (m/cos rpa)
              re (* r cosa)
@@ -587,7 +587,7 @@
              x (+ (* a c) (* b d))
              y (- (* b c) (* a d))
              vr (/ amount (+ (* c c) (* d d)))
-             rpa (* pa (r/irand))
+             rpa (* pa (r/lrand))
              sina (m/sin rpa)
              cosa (m/cos rpa)]
          (Vec2. (* vr (+ (* x cosa) (* y sina)))

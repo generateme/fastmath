@@ -153,7 +153,7 @@
        (let [pre-x (* (.x v) x-distort)
              pre-y (* (.y v) y-distort)
              a (+ (* (m/atan2 pre-y pre-x) inv-n)
-                  (* (r/irand) inv2pi-n))
+                  (* (r/lrand) inv2pi-n))
              sina (m/sin a)
              cosa (m/cos a)
              r (* amount (m/pow (v/magsq v) c-n))]
@@ -195,7 +195,7 @@
        :config (fn [] {:angle (r/drand m/TWO_PI)
                       :len (u/sdrand 0.01 3.0)
                       :width (u/sdrand 0.1 10.0)
-                      :seed (r/irand)})})
+                      :seed (r/lrand)})})
   ([^double amount {:keys [^double angle ^double len ^double width ^long seed]}]
    (let [vin (Vec2. (m/cos angle) (m/sin angle))
          seed2 (/ seed 2)

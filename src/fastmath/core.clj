@@ -77,7 +77,11 @@
 
 ;; which java?
 
-(def ^:private jvm-version-type (if (= "1." (subs (System/getProperty "java.version") 0 2)) :old :new))
+(def ^{:const true :tag 'long} jvm-version
+  (->> (System/getProperty "java.version")
+       (re-seq #"\d+")
+       (first)
+       (Long/parseLong)))
 
 ;; ## Macros
 
@@ -241,9 +245,9 @@
 (defmacro muladd
   "`[x y z]` -> `(+ z (* x y))` or `Math/fma` for java 9+"
   [x y z]
-  (if (= :new jvm-version-type)
-    `(Math/fma ~x ~y ~z)
-    `(+ ~z (* ~x ~y))))
+  (if (< jvm-version 9)
+    `(+ ~z (* ~x ~y))
+    `(Math/fma ~x ~y ~z)))
 
 (defmacro fma
   "`[x y z]` -> `(+ z (* x y))` or `Math/fma` for java 9+"

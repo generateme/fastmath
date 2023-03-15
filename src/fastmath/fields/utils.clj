@@ -26,7 +26,7 @@
   "Symmetric irand"
   (^long [^long mx] (sirand 1 mx))
   (^long [^long mn ^long mx]
-   (let [rand (r/irand mn mx)]
+   (let [rand (r/lrand mn mx)]
      (r/randval rand (* -1 rand)))))
 
 (defn spow

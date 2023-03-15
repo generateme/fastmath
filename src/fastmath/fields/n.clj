@@ -27,7 +27,7 @@
        (let [x (if isodd? (.x v) (* vvar (m/atan2 (.x v) (.y v))))
              y (if isodd? (.y v) (* vvar2 (m/log (v/magsq v))))
              angle (/ (+ (m/atan2 y x)
-                         (* m/TWO_PI (mod (r/irand) iabsn))) nnz)
+                         (* m/TWO_PI (r/lrand iabsn))) nnz)
              r (* amount (m/pow (+ (* x x) (* y y)) cn) p)
              cosa (* r (m/cos angle))
              sina (* r (m/sin angle))]

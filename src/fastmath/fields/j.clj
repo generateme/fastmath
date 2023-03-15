@@ -207,7 +207,7 @@
          rre (/ (+ m/EPSILON re))]
      (fn [^Vec2 v]
        (let [arg (+ (v/heading v)
-                    (* m/TWO_PI (mod (r/irand) re)))
+                    (* m/TWO_PI (mod (r/lrand) re)))
              lnmod (* dist (m/log (v/magsq v)))
              a (+ (* arg rre)
                   (* lnmod im))
@@ -221,7 +221,7 @@
   ([] {:type :random})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [a (+ (* 0.5 (v/heading v)) (* m/PI (r/irand 2)))
+     (let [a (+ (* 0.5 (v/heading v)) (* m/PI (r/lrand 2)))
            r (* amount (m/sqrt (v/mag v)))]
        (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
 
@@ -237,12 +237,12 @@
                       :dist (u/sdrand 0.1 2.5)})})
   ([^double amount {:keys [^double a ^double b ^double c ^double d ^double e ^double f
                            ^double power ^double dist]}]
-   (let [absn (max 1 (int (m/abs power)))
+   (let [absn (max 1 (long (m/abs power)))
          cn (* 0.5 (/ dist power))]
      (fn [^Vec2 v]
        (let [x (+ (* a (.x v)) (* b (.y v)) e)
              y (+ (* c (.x v)) (* d (.y v)) f)
-             angle (+ (v/heading v) (* m/TWO_PI (mod (r/irand) absn)))
+             angle (+ (v/heading v) (* m/TWO_PI (r/lrand absn)))
              r (* amount (m/pow (+ (* x x) (* y y)) cn))]
          (Vec2. (* r (m/cos angle))
                 (* r (m/sin angle))))))))
@@ -322,6 +322,6 @@
   ([] {:type :random})
   ([^double amount _]
    (fn [^Vec2 v]
-     (let [a (+ (* 0.5 (m/atan2 (.x v) (.y v))) (* m/PI (r/irand 2)))
+     (let [a (+ (* 0.5 (m/atan2 (.x v) (.y v))) (* m/PI (r/lrand 2)))
            r (* amount (m/sqrt (v/mag v)))]
        (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))

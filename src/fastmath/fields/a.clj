@@ -55,7 +55,7 @@
   ([^double amount _]
    (fn [^Vec2 v]
      (let [denom (v/magsq v)]
-       (-> (case (r/irand 6)
+       (-> (case (unchecked-int (r/irand 6))
              0 (v/div (Vec2. (* 2.0 (.x v) (.y v))
                              (- (m/sq (.x v)) (m/sq (.y v)))) denom)
              1 (v/shift (v/mult v apocarpet_r) (- apocarpet_r))
@@ -109,7 +109,7 @@
    (let [rng (r/rng :well19937c seed)
          tilesize (* 2.0 radius)
          number-of-tiles (* tiles-per-row tiles-per-col)
-         tilt-array (vec (repeatedly number-of-tiles #(m/radians (* 90 (r/irandom rng 4)))))
+         tilt-array (vec (repeatedly number-of-tiles #(m/radians (* 90 (r/lrandom rng 4)))))
          r+t (+ radius thickness)
          hthickness (* 0.5 thickness)
          gamma (/ (* thickness (+ tilesize thickness)) r+t)
@@ -117,10 +117,10 @@
                       (* 0.5 tilesize tiles-per-col))
          rfun (if legacy? #(- r+t (r/drand gamma)) #(- radius (r/drand (- hthickness) hthickness)))]
      (fn [_]
-       (let [side (r/irand 2)
+       (let [side (r/lrand 2)
              phi1 (if (zero? side) 0.0 m/PI)
-             i (r/irandom rng tiles-per-row)
-             j (r/irandom rng tiles-per-col)
+             i (r/lrandom rng tiles-per-row)
+             j (r/lrandom rng tiles-per-col)
              ^double tilt (tilt-array (+ i (* j tiles-per-row)))
              ^double r (rfun)
              phi (+ phi1 (r/drand m/HALF_PI))

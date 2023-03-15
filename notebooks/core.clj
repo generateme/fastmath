@@ -3,29 +3,10 @@
 (ns core
   (:require [fastmath.core :as m]
             [nextjournal.clerk :as clerk]
-            [nextjournal.clerk.viewer :as viewer]
             [clojure.walk :as walk]
             [utils :as u]))
 
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
-(defn update-child-viewers [viewer f]
-  (update viewer :transform-fn (fn [trfn] (comp #(update % :nextjournal/viewers f) trfn))))
-
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
-(def unpaginated-table
-  (update-child-viewers viewer/table-viewer (fn [vs] (nextjournal.clerk.viewer/update-viewers vs {:page-size #(dissoc % :page-size)}))))
-
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
-(defmacro table
-  [rows]
-  `(clerk/with-viewer unpaginated-table {:head ["symbol" "macro?" "info"]
-                                         :rows [~@(for [[s m? i] rows]
-                                                    `[(clerk/code (quote ~s)) ~m? (or ~i "-")])]}))
-
-;; # Core math functions
+;; # fastmath.core
 
 ;; Collection of type hinted math macros and functions. Partially backed by Java static functions and exposed as macros. They are prepared to accept primitive `long` or `double` arguments and return `long` or `double` only. There is no support for Clojure specific numeric types (like eg. Ratio or Number).
 
@@ -60,7 +41,7 @@
 ;; Multi-arity macros for primitive mathematical operations.
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[+ true]
   [- true "negation for 1-ary"]
   [* true]
@@ -92,7 +73,7 @@
 ;; ### Integer division and remainders
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[quot true "same as in Clojure"]
   [mod true "same as in Clojure"]
   [rem true "same as in Clojure"]
@@ -126,7 +107,7 @@
 ;; ### GCD and LCM
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[gcd false "greatest common divisor, Stein's algorithm"]
   [lcm false "least common multiplier as (/ (* a b) (gcd a b))"]])
 
@@ -138,7 +119,7 @@
 ;; ### Incrementation and decrementation
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[inc true "same as in Clojure"]
   [dec true "same as in Clojure"]])
 
@@ -152,7 +133,7 @@
 ;; ### Comparison
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[== true "numerical equality"]
   [eq false "function, up to 4 doubles"]
   [not== true "numerical inequality"]
@@ -211,7 +192,7 @@
 ;; There are two options:
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[approx-eq false "see notes below"]
   [approx= false "the same as approx-eq"]
   [delta-eq false "see notes below"]
@@ -234,7 +215,7 @@
 ;; Set of function to test against `NAN` and `Inf` values. 
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[nan? false "checks if arg is NaN"]
   [inf? false "checks if arg is either Inf or -Inf"]
   [pos-inf? false "check if arg is Inf"]
@@ -254,7 +235,7 @@
 ;; ### Sign
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[sgn false "returns -1.0 for negative numbers, 1.0 otherwise"]
   [signum false "returns -1.0 for negative numbers, 0.0 for zero, 1.0 for positive numbers"]
   [copy-sign true "sets sign of second argument to the first argument"]])
@@ -275,7 +256,7 @@
 ;; ### Other
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[abs false "works on doubles only"]
   [iabs false "works on longs only"]
   [max true]
@@ -293,7 +274,7 @@
 ;; Some functions are exposed as two arity inlined functions to use for fast reduction. They work only on doubles.
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[fast+ false]
   [fast- false]
   [fast* false]
@@ -315,7 +296,7 @@
 ;; Bit manipulation
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[bit-shift-left true "same as <<"]
   [<< true "same as bit-shift-left"]
   [bit-shift-right true "same as >>"]
@@ -353,7 +334,7 @@
 ;; ## Rounding
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[floor false "round to the lower integer, value can be scaled optionally, returns double"]
   [ceil false "round to the upper integer, value can be scaled optionally, returns double"]
   [round false "round to the nearest integer, returns long"]
@@ -401,7 +382,7 @@
  (m/high-exp 0.5 10.591)
  (map m/round-up-pow2 (range 10)))
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["floor" "ceil" "round"]
  [(u/fgraph m/floor) (u/fgraph m/ceil) (u/fgraph m/round)]
  ["trunc" "frac" "sfrac"]
@@ -412,7 +393,7 @@
 ;; Set of macros or functions which deal with polynomial evaluation plus some useful primitive ops shortcuts.
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[muladd true "(+ (* x y) z) or Math/fma for JDK 9+"]
   [fma true "same as muladd"]
   [negmuladd true (clerk/code '(- z (* x y)))]
@@ -457,7 +438,7 @@
 ;; ### Basic
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[sin true (clerk/md "$\\sin(x)$")]
   [cos true (clerk/md "$\\cos(x)$")]
   [tan true (clerk/md "$\\frac{\\sin(x)}{\\cos(x)}$")]
@@ -474,7 +455,7 @@
   [qsin true "faster and less accurate sin"]
   [qcos true "faster and less accurate cos"]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["sin" "cos" "tan"]
  [(u/fgraph m/sin) (u/fgraph m/cos) (u/fgraph m/tan)]
  ["cot" "sec" "csc"]
@@ -487,7 +468,7 @@
 ;; ### Hyperbolic
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[sinh true (clerk/md "$\\frac{e^x-e^{-x}}{2}$")]
   [cosh true (clerk/md "$\\frac{e^x+e^{-x}}{2}$")]
   [tanh true (clerk/md "$\\frac{\\sinh(x)}{\\cosh(x)}$")]
@@ -501,7 +482,7 @@
   [asech false (clerk/md "$\\operatorname{arcosh}(\\frac{1}{x})$")]
   [acsch false (clerk/md "$\\operatorname{arsinh}(\\frac{1}{x})$")]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["sinh" "cosh" "tanh"]
  [(u/fgraph m/sinh) (u/fgraph m/cosh) (u/fgraph m/tanh)]
  ["coth" "sech" "csch"]
@@ -514,7 +495,7 @@
 ;; ### Historical
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[crd false (clerk/md "$2\\sin(\\frac{x}{2})$")]
   [versin false (clerk/md "$1-\\cos(x)$")]
   [coversin false (clerk/md "$1-\\sin(x)$")]
@@ -541,7 +522,7 @@
 ;; Additionally there is a special case of `haversin` which accepts longitude and lattitude.
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[haversine false "accepts lat/lon (in radians) pairs"]
   [haversine-dist false "caluclates distance between lat/lon (in radians) pairs"]])
 
@@ -555,12 +536,12 @@
 ;; ### Special
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[sinc false (clerk/md "$\\frac{\\sin(x)}{x}$")]
   [Si false (clerk/md "$\\operatorname{Si}(x)=\\int_{0}^{x}\\frac{\\sin(x)}{x}dx$")]
   [Ci false (clerk/md "$\\operatorname{Ci}(x)=-\\int_{x}^{\\infty}\\frac{\\cos(x)}{x}dx$")]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["sinc" "Si" "Ci"]
  [(u/fgraph m/sinc) (u/fgraph m/Si [-10 10] nil) (u/fgraph m/Ci [0 10] [-4.0 nil])]]
 
@@ -569,7 +550,7 @@
 ;; ### Power and roots
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[pow true (clerk/md "$x^a$")]
   [qpow true "fast and less accurate pow"]
   [fpow true "fast pow for integer exponents"]
@@ -583,7 +564,7 @@
   [rqsqrt true "fast inverse square root, zero step Newton's method"]
   [cbrt true (clerk/md "$\\sqrt[3]{x}$")]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["sqrt" "qsqrt"]
  [(u/fgraph m/sqrt [0 5] nil) (u/fgraph m/qsqrt [0 5] nil)]
  ["(pow x 0.5) " "(qpow x 0.5)"]
@@ -596,7 +577,7 @@
 ;; Basic functions
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[exp true (clerk/md "$e^x$")]
   [log true (clerk/md "$\\ln(x)$")]
   [ln true (clerk/md "$\\ln(x)$")]
@@ -606,7 +587,7 @@
   [qexp true "fast and less accurate exp"]
   [qlog true "fast and less accurate log"]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["exp" "log"]
  [(u/fgraph m/exp [-5.0 1.0] nil) (u/fgraph m/log [0.01 5.0] nil)]
  ["qexp" "qlog"]
@@ -615,7 +596,7 @@
 ;; Various additional special functions based of log and exp. Some of them are optimized. Source [LogExpFunctions from Julia](https://juliastats.org/LogExpFunctions.jl/stable/)
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[expm1 true (clerk/md "$e^x-1$")]
   [xexpx false (clerk/md "$xe^x$")]
   [xexpy false (clerk/md "$xe^y$")]
@@ -640,7 +621,7 @@
   [logit false (clerk/md "$\\ln(\\frac{x}{1-x})$")]
   [logcosh false (clerk/md "$\\ln(\\cosh(x))$")]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["expm1" "xexpx" "cexpexp"]
  [(u/fgraph m/expm1) (u/fgraph m/xexpx) (u/fgraph m/cexpexp)]
  ["log1p" "log1pexp" "log1mexp"]
@@ -655,7 +636,7 @@
 ;; ## Distance
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[dist false (clerk/md "$\\sqrt{(x_1-x_2)^2+(y_1-y_2)^2}$")]
   [qdist false (clerk/md "same as `dist` but `qsqrt` is used")]
   [hypot false (clerk/md "$\\sqrt{x^2+y^2}$ or $\\sqrt{x^2+y^2+z^2}$ without over/underflow")]
@@ -674,7 +655,7 @@
 ;; ## Special
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[erf true "error function, for two arguments it's a difference between erf(x) and erf(y)"]
   [erfc true "complementary error function"]
   [inv-erf true "inverse error function"]
@@ -696,13 +677,13 @@
   [log-I0 false "log of I0"]
   [minkowski false "Minkowski's question mark function, ?(x)"]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["erf" "inv-erf"]
  [(u/fgraph m/erf) (u/fgraph m/inv-erf [-1.1 1.1] nil)]
  ["gamma" "log-gamma"] 
  [(u/fgraph m/gamma [-5.0 3.0]) (u/fgraph m/log-gamma [-0.2 3.0])]
  ["digamma" "trigamma"]
- [(u/fgraph m/trigamma [-0.2 3.0]) (u/fgraph m/trigamma [-0.2 3.0])]
+ [(u/fgraph m/digamma [-0.2 3.0] [-5 1.1]) (u/fgraph m/trigamma [-0.2 3.0])]
  ["bessel-j 0" "bessel-j 1"]
  [(u/fgraph #(m/bessel-j 0 %) [0 5.0] nil) (u/fgraph #(m/bessel-j 1 %) [0 5.0] nil)]
  ["I0" "log-I0"]
@@ -715,14 +696,14 @@
 ;; Various interpolations on $[x_1,x_2]$ interval, $t\in[0,1]$:
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[lerp false (clerk/md "Linear, $\\operatorname{lerp}(t)=x_1+(x_2-x_1)t$")]
   [mlerp true "macro version of lerp"]
   [cos-interpolation false (clerk/md "$f(x)=x_1+(x_2-x_1)\\frac{1-\\cos(\\pi t)}{2}$")]
   [smooth-interpolation false (clerk/md "$f(x)=x_1+3(x_2-x_1)(t^2-2t^3)$")]
   [quad-interpolation false "quadratic interpolation"]])
 
-^{::clerk/visibility :hide ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["lerp" "cos" "smooth" "quad"]
  [(u/fgraph (partial m/lerp 0 1) [0 1] nil)
   (u/fgraph (partial m/cos-interpolation 0 1) [0 1] nil)
@@ -744,7 +725,7 @@
 ;; * `norm` with variants expect value as the first arguemnt (as `map` in Processing)
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[constrain true "clamp value to a given range, (max (min value mx) mn)"]
   [norm false "map lineary value from given interval to a new interval (or [0,1] by default)"]
   [mnorm true "macro version of norm"]
@@ -779,7 +760,7 @@
 ;; ## Slicing and sampling
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[slice-range false "evenly distrubuted points from given interval (or [0,1] by default)"]
   [sample false "applies function on evenly distributed points, can return [x,y] pairs"]
   [cut false "cuts given range or data into even intervals"]
@@ -812,7 +793,7 @@
 ;; ## Rank and order
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[rank false "calculate rank, index is 0 based"]
   [rank1 false "calculate rank, index is 1 based"]
   [order false "ordering indexes, 0 based"]])
@@ -839,7 +820,7 @@
 ;; ## Double manipulations
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[next-double false "next (or next nth) possible double value"]
   [prev-double false "previous (or previous nth) possible double value"]
   [double-high-bits false "high 32 bits of binary representation of double value"]
@@ -868,7 +849,7 @@
 ;; All functions (but `factorial20`) are able to work with big numbers as they use and return double.
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[factorial20 false "factorial up to 20!, returns long"]
   [factorial false "factorial, accepts long and returns double"]
   [log-factorial false "log of factorial, accepts long and returns double"]
@@ -891,7 +872,7 @@
 ;; Functions which help convert seq or seq of seqs into double-(double)-array and vice versa
 
 ^{::clerk/visibility :hide}
-(table
+(u/table
  [[seq->double-array false "Converts sequence into double array"]
   [seq->double-double-array false "Converts seq of seqs into array of double arrays"]
   [double-array->seq false "Converts double array into sequence"]
@@ -908,8 +889,7 @@
 
 ;; ## Constants
 
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
+^{::clerk/visibility {:code :hide :result :hide}}
 (def formulas '{-E "-e" E "e" M_E "e" EPSILON "\\epsilon"
               -HALF_PI "-\\frac{\\pi}{2}" -QUARTER_PI "-\\frac{\\pi}{4}" -THIRD_PI "-\\frac{\\pi}{3}"
               -PI "-\\pi" -TAU "-2\\pi" -TWO_PI "-2\\pi"
@@ -946,7 +926,7 @@
               deg-in-rad "\\frac{\\pi}{180}" rad-in-deg "\\frac{180}{\\pi}"
               double-one-minus-epsilon "\\inf\\{x:x<1\\}"})
 
-^{::clerk/visibility :hide  ::clerk/viewer unpaginated-table}
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 {:head ["symbol" "formula" "value"]
  :rows (for [nm (->> (ns-publics 'fastmath.core)
                      (map (comp meta second))
@@ -956,12 +936,3 @@
          [nm
           (clerk/md (str "$" (get formulas nm "-") "$"))
           (var-get (ns-resolve 'fastmath.core nm))])}
-
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
-(comment
-  (clerk/serve! {:browse? false :watch-paths ["notebooks"]})
-  (clerk/show! "notebooks/core.clj")
-  (clerk/build! {:browse? false :paths ["notebooks/core.clj"] :out-path "docs/notebooks/"})
-  (clerk/clear-cache!)
-  (clerk/halt!))

@@ -118,7 +118,7 @@
 (defn bwrands
   "bwrands"
   ([] {:type :random
-       :config (fn [] (let [min-petals (r/irand 1 5)]
+       :config (fn [] (let [min-petals (r/lrand 1 5)]
                        {:cellsize (u/sdrand 0.1 2.0)
                         :space (r/drand -1.0 1.0)
                         :gain (r/drand -2.0 2.0)
@@ -130,7 +130,7 @@
                         :loonie-chance (r/drand 0.5 0.9)
                         :petal-chance (r/drand 0.5 0.9)
                         :min-petals min-petals
-                        :max-petals (+ min-petals (r/irand 15))}))})
+                        :max-petals (+ min-petals (r/lrand 15))}))})
   ([^double amount {:keys [^double cellsize ^double space ^double gain ^double inner-twist ^double outer-twist
                            ^long seed ^double rrot ^double rmin ^double loonie-chance ^double petal-chance
                            ^long min-petals ^long max-petals]}]

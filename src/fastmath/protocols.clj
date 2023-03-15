@@ -40,6 +40,7 @@ When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is
 
 Returns true or false with equal probability. You can set `p` probability for `true`")
   (set-seed! [rng v] "Sets seed. Returns `rng`")
+  (set-seed [rng v] "Sets seed. Returns new `rng` object")
   (->seq [rng] [rng n] "Returns lazy sequence of random samples (can be limited to optional `n` values)."))
 
 (defprotocol DistributionProto
@@ -68,7 +69,8 @@ Returns true or false with equal probability. You can set `p` probability for `t
 (defprotocol DistributionIdProto
   "Get name and parameter names from distribution"
   (distribution-id [d] "Distribution id as keyword")
-  (distribution-parameters [d] "List of distribution parameter names"))
+  (distribution-parameters [d] "List of distribution parameter names")
+  (distribution? [d] "Returns true if the object is distribution"))
 
 ;; vector
 
