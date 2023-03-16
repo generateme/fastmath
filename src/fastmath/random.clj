@@ -110,7 +110,9 @@
             [fastmath.kernel :as k]
             [fastmath.protocols :as prot]
             [fastmath.interpolation :as i]
-            [fastmath.solver :as solver])
+            [fastmath.solver :as solver]
+            [clojure.data.int-map :as im]
+            [fastmath.random :as r])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -910,7 +912,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
          points (if (< ly 1.0)
                   (if (< lx mx)
                     (conj points [mx 1.0])
-                    (conj points [(+ mx step 1.0)]))
+                    (conj points [(+ mx step) 1.0]))
                   (if (< lx mx)
                     (conj points [mx (m/next-double 1.0)])
                     (conj points [(+ mx step) (m/next-double 1.0)]))) ;; fix upper endpoint
@@ -1218,10 +1220,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defmethod distribution :empirical
   ([_ {:keys [^long bin-count data]
-       :or {bin-count EmpiricalDistribution/DEFAULT_BIN_COUNT
-            data [1.0]}
+       :or {data [1.0]}
        :as all}]
-   (let [^RandomGenerator r (or (:rng all) (rng :jvm))
+   (let [bin-count (or bin-count (unchecked-long (max (* 0.1 (count data)) 1.0)))
+         ^RandomGenerator r (or (:rng all) (rng :jvm))
          ^EmpiricalDistribution d (EmpiricalDistribution. bin-count r)]
      (.load d ^doubles (m/seq->double-array data))
      d))
@@ -1229,7 +1231,17 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (extend EnumeratedRealDistribution
   prot/DistributionProto
-  {:continuous? (constantly false)}
+  {:cdf (fn
+          (^double [^EnumeratedRealDistribution d ^double v] (.cumulativeProbability d v))
+          (^double [^EnumeratedRealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+   :icdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.inverseCumulativeProbability d p))
+   :pdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.probability d p))
+   :lpdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.logDensity d p))
+   :probability (fn ^double [^EnumeratedRealDistribution d ^double p] (.probability d p))
+   :sample (fn ^double [^EnumeratedRealDistribution d] (.sample d))
+   :dimensions (constantly 1)
+   :source-object identity
+   :continuous? (constantly false)}
   prot/DistributionIdProto
   {:distribution? (constantly true)
    :distribution-id (fn [_] :enumerated-real)
@@ -1536,51 +1548,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;; 
 
-#_(defmethod distribution :continuous-distribution
-    ([_ {:keys [data kernel h bin-count probabilities]
-         :or {kernel :smile data [-1.0 0.0 1.0]}
-         :as all}]
-     (let [d (m/seq->double-array data)]
-       (java.util.Arrays/sort d)
-       (let [r (or (:rng all) (rng :jvm)) 
-             kde (if h
-                   (k/kernel-density kernel d h)
-                   (k/kernel-density kernel d))
-             ^RealDistribution enumerated (distribution :enumerated-real {:data d :probabilities probabilities :rng r})
-             ^RealDistribution empirical (distribution :empirical (if-not bin-count
-                                                                    {:data d}
-                                                                    {:data d :bin-count bin-count}))]
-         (reify
-           prot/DistributionProto
-           (pdf [_ v] (kde v))
-           (lpdf [_ v] (m/log (kde v)))
-           (cdf [_ v] (.cumulativeProbability enumerated ^double v))
-           (cdf [_ v1 v2] (.cumulativeProbability enumerated ^double v1 ^double v2))
-           (icdf [_ v] (.inverseCumulativeProbability empirical v))
-           (probability [_ v] (kde v))
-           (sample [_] (.sample enumerated))
-           (dimensions [_] 1)
-           (source-object [d] {:enumerated enumerated
-                               :empirical empirical})
-           (continuous? [_] true)
-           prot/DistributionIdProto
-           (distribution-id [_] :continuous-distribution)
-           (distribution-parameters [_] [:data :kernel :h :bin-count :probabilities :rng])
-           prot/UnivariateDistributionProto
-           (mean [_] (prot/mean enumerated))
-           (variance [_] (prot/variance enumerated))
-           (lower-bound [_] (prot/lower-bound enumerated))
-           (upper-bound [_] (prot/upper-bound enumerated))
-           prot/RNGProto
-           (drandom [_] (prot/drandom enumerated))
-           (frandom [_] (prot/frandom enumerated))
-           (lrandom [_] (prot/lrandom enumerated))
-           (irandom [_] (prot/irandom enumerated))
-           (->seq [_] (prot/->seq enumerated))
-           (->seq [_ n] (prot/->seq enumerated n))
-           (set-seed! [d seed] (prot/set-seed! r seed) d)))))
-    ([_] (distribution :continuous-distribution {})))
-
 (defn- find-first-non-zero
   ^double [f xs]
   (->> xs
@@ -1594,13 +1561,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
 
 (defmethod distribution :continuous-distribution
-  ([_ {:keys [data ^long steps kde bandwidth]
+  ([_ {:keys [data ^long steps kde bandwidth interpolator min-iterations]
        :or {data [-1 0 1] steps 5000 kde :epanechnikov}
        :as all}]
-   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
+   (let [[kd _ _ ^double mn ^double mx :as z] (k/kernel-density kde data bandwidth true)
          step (/ (- mx mn) steps)
          [^double mn ^double mx] (narrow-range kd [mn mx step] (* 4 steps))
-         [cdf-fn icdf-fn] (integrate-pdf kd mn mx steps)
+         [cdf-fn icdf-fn] (integrate-pdf kd (merge all {:mn mn :mx mx :steps steps}))
          r (or (:rng all) (rng :jvm))
          m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
          v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
@@ -1637,56 +1604,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defmethod distribution :kde
   [_ & r] (apply distribution :continuous-distribution r))
-
-(defn- sort-data-with-weights
-  "Internal helper for creating enumerated distributions"
-  [{:keys [data probabilities] :as in}]
-  (if probabilities
-    (let [sorted (sort-by first (map vector data probabilities))]
-      (assoc in :data (map first sorted) :probabilities (map second sorted)))
-    (assoc in :data (sort data))))
-
-(defmethod distribution :integer-discrete-distribution
-  ([_ d] (distribution :enumerated-int (sort-data-with-weights d)))
-  ([_] (distribution :enumerated-int)))
-
-(defmethod distribution :real-discrete-distribution
-  ([_ d] (distribution :enumerated-real (sort-data-with-weights d)))
-  ([_] (distribution :enumerated-real)))
-
-(defmethod distribution :categorical-distribution
-  ([_ {:keys [data probabilities]
-       :or {data [1]}
-       :as all}]
-   (let [r (or (:rng all) (rng :jvm))
-         
-         ^clojure.lang.ILookup unique (vec (distinct data))
-         ^clojure.lang.ILookup dict (zipmap unique (range (count unique)))
-
-         ^AbstractIntegerDistribution enumerated (distribution :enumerated-int {:data (map dict data) :probabilities probabilities :rng r})]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (.probability enumerated (.valAt dict v -1)))
-       (lpdf [_ v] (.logProbability enumerated (.valAt dict v -1)))
-       (cdf [_ v] (.cumulativeProbability enumerated (.valAt dict v -1)))
-       (icdf [_ v] (.valAt unique (.inverseCumulativeProbability enumerated ^double v)))
-       (probability [_ v] (.probability enumerated (.valAt dict v -1)))
-       (sample [_] (.valAt unique (.sample enumerated)))
-       (dimensions [_] 1)
-       (source-object [_] enumerated)
-       (continuous? [_] false)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :categorical-distribution)
-       (distribution-parameters [_] [:data :probabilities :rng])
-       prot/UnivariateDistributionProto
-       (mean [_] ##NaN)
-       (variance [_] ##NaN)
-       prot/RNGProto
-       (->seq [_] (map #(.valAt unique %) (prot/->seq enumerated)))
-       (->seq [_ n] (map #(.valAt unique %) (prot/->seq enumerated n)))
-       (set-seed! [d seed] (prot/set-seed! r seed) d))))
-  ([_] (distribution :categorical-distribution {})))
 
 ;;
 
@@ -1731,6 +1648,88 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           (->seq [_# n#] (repeatedly n# #(~'icdf-fn (prot/drandom ~'r))))
           (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
      ([_#] (distribution ~d-name {}))))
+
+(defn- build-discrete
+  [kind data probabilities]
+  (let [cnt (count data)
+        probabilities (or probabilities (repeat cnt 1))
+        ^double sum (reduce m/fast+ probabilities)
+        [emptymap upd corr] (if (= :int kind)
+                              [(im/int-map) im/update unchecked-long]
+                              [(sorted-map) update unchecked-double])
+        pmf (reduce (fn [m [v ^double p]]
+                      (upd m v (fnil m/fast+ 0.0) (/ p sum))) emptymap (map vector data probabilities))
+        cumsum (reductions m/fast+ (vals pmf))
+        ks (keys pmf)
+        ^double mnk (first ks)
+        icdf (let [stepf (i/step-before cumsum ks)]
+               (fn [^double x]
+                 (corr (stepf x))))
+        cdf (let [stepf (i/step-after ks cumsum)]
+              (fn [^double x]
+                (if (< x mnk) 0.0 (stepf x))))]
+    [pmf cdf icdf mnk (last ks)]))
+
+(distribution-template :integer-discrete-distribution
+                       {:mean mean :variance @variance :distribution-parameters [:data :probabilities :rng]
+                        :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
+                       {:keys [data probabilities]
+                        :or {data [0]}} args
+                       [pmf cdf-fn icdf-fn
+                        ^long lower-bound ^long upper-bound] (build-discrete :int data probabilities)
+                       pdf-fn (fn [^long k] (get pmf k 0.0))
+                       ^double mean (reduce-kv (fn [^double s ^long k ^double v]
+                                                 (+ s (* k v))) 0.0 pmf)
+                       variance (delay (- ^double (reduce-kv (fn [^double s ^long k ^double v]
+                                                               (+ s (* k k v))) 0.0 pmf) (* mean mean))))
+
+(distribution-template :real-discrete-distribution
+                       {:mean mean :variance @variance :distribution-parameters [:data :probabilities :rng]
+                        :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
+                       {:keys [data probabilities]
+                        :or {data [0]}} args
+                       [pmf cdf-fn icdf-fn
+                        ^double lower-bound ^double upper-bound] (build-discrete :double data probabilities)
+                       pdf-fn (fn [^double k] (get pmf k 0.0))
+                       ^double mean (reduce-kv (fn [^double s ^double k ^double v]
+                                                 (+ s (* k v))) 0.0 pmf)
+                       variance (delay (- ^double (reduce-kv (fn [^double s ^double k ^double v]
+                                                               (+ s (* k k v))) 0.0 pmf) (* mean mean))))
+
+(defmethod distribution :categorical-distribution
+  ([_ {:keys [data probabilities]
+       :or {data [0]}
+       :as all}]
+   (let [r (or (:rng all) (rng :jvm))
+         
+         ^clojure.lang.ILookup unique (vec (distinct data))
+         ^clojure.lang.ILookup dict (zipmap unique (range (count unique)))
+
+         enumerated (distribution :integer-discrete-distribution
+                                  {:data (map dict data) :probabilities probabilities :rng r})]
+     (reify
+       prot/DistributionProto
+       (pdf [_ v] (prot/pdf enumerated (.valAt dict v -1)))
+       (lpdf [_ v] (prot/lpdf enumerated (.valAt dict v -1)))
+       (cdf [_ v] (prot/cdf enumerated (.valAt dict v -1)))
+       (icdf [_ v] (.valAt unique (prot/icdf enumerated v)))
+       (probability [_ v] (prot/probability enumerated (.valAt dict v -1)))
+       (sample [_] (.valAt unique (prot/sample enumerated)))
+       (dimensions [_] 1)
+       (source-object [_] enumerated)
+       (continuous? [_] false)
+       prot/DistributionIdProto
+       (distribution? [_] true)
+       (distribution-id [_] :categorical-distribution)
+       (distribution-parameters [_] [:data :probabilities :rng])
+       prot/UnivariateDistributionProto
+       (mean [_] ##NaN)
+       (variance [_] ##NaN)
+       prot/RNGProto
+       (->seq [_] (map #(.valAt unique %) (prot/->seq enumerated)))
+       (->seq [_ n] (map #(.valAt unique %) (prot/->seq enumerated n)))
+       (set-seed! [d seed] (prot/set-seed! r seed) d))))
+  ([_] (distribution :categorical-distribution {})))
 
 (def ^{:const true :private true :tag 'double} LOG_M_2_PI (m/log m/M_2_PI))
 

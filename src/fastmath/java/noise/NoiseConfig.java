@@ -47,6 +47,7 @@ public final class NoiseConfig {
     public int[] perm, perm12;
     public double[] valueLUT;
     public double[] cell2dX, cell2dY;
+    public double[] spectralWeights;
 
     public NoiseConfig(int seed, int noise_type, int interpolate_type, int octaves, double lacunarity, double gain, boolean normalize) {
         this.seed = seed;
@@ -63,6 +64,13 @@ public final class NoiseConfig {
         perm = new int[512];
         perm12 = new int[512];
 
+        spectralWeights = new double[octaves];
+        double frequency = 1.0;
+        for(int i=0;i<octaves;i++) {
+            spectralWeights[i] = 1.0/frequency;
+            frequency *= lacunarity;
+        }
+        
         Random rng = new Random(seed);
 
         for (int i=0; i<256; i++) {

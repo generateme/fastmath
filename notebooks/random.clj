@@ -4,9 +4,9 @@
 (ns random
   (:require [fastmath.random :as r]
             [nextjournal.clerk :as clerk]
-            [nextjournal.clerk.viewer :as viewer]
             [utils :as u]
-            [fastmath.core :as m]))
+            [fastmath.core :as m]
+            [fastmath.stats :as stats]))
 
 ;; # fastmath.random
 
@@ -384,14 +384,13 @@
 
 ;; Parameters list:
 
-^{::clerk/visibility :hide}
-(clerk/table
- [['pdf-func "PDF, univariate double->double function"]
-  [:mn "lower bound, value of PDF(mn) should be 0.0"]
-  [:mx "upper bound"]
-  [:steps "number of subintervals"]
-  [:min-iterations "minimum number of Romberg integrator iterations (default: 3, minimum 2)"]
-  [:interpolator "one of: `:linear` (default), `:spline`, `:monotone` or any `fastmath.interpolator` method"]])
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[['pdf-func "PDF, univariate double->double function"]
+ [:mn "lower bound, value of PDF(mn) should be 0.0"]
+ [:mx "upper bound"]
+ [:steps "number of subintervals"]
+ [:min-iterations "minimum number of Romberg integrator iterations (default: 3, minimum 2)"]
+ [:interpolator "one of: `:linear` (default), `:spline`, `:monotone` or any `fastmath.interpolator` method"]]
 
 ;; Let's compare cdf and icdf to integrated pdf of beta distribution
 
@@ -1641,16 +1640,543 @@
         [:enumerated-real (r/distribution-parameters (r/distribution :enumerated-real) true) false]
         [:enumerated-int (r/distribution-parameters (r/distribution :enumerated-int) true) false]]}
 
-;; #### Continuous distribution
+;; #### Continuous
+
+;; Continous distribution build from data is based on KDE (Kernel Density Estimation) and PDF integration for CDF and iCDF. Mean and variance are calculated from samples.
+
+;; `:continous-distribution` and `:kde` are two names for the same distribution
+
+;; * Default parameters:
+;;    * `:data`, samples, sequence of numbers
+;;    * `:kde`, density estimation kernel: `:epenechnikov`
+;;    * `:bandwidth`, KDE bandwidth, smoothing parameter: `nil` (auto)
+;;    * `:steps`, number of steps for PDF integration: 5000
+;;    * `:min-iterations`, number of PDF integrator iterations: `nil` (default)
+;;    * `:interpolator`, CDF/iCDF interpolator for PDF integration: `nil` (default, `:linear`)
+;; * [wiki](https://en.wikipedia.org/wiki/Kernel_density_estimation), [pdf integration](#pdf-integration)
+
+
+(def random-data (repeatedly 1000 (fn [] (+ (* (r/drand -2 2) (r/drand -2 2))
+                                         (m/sqrt (* (r/drand) (r/drand)))))))
+
+(def kde-distr (r/distribution :continuous-distribution {:data random-data}))
+
+^{::clerk/visibility :hide}
+(let [build-distr (fn [pars]
+                    (r/distribution :continuous-distribution (assoc pars :data random-data)))]
+  (clerk/table
+   [["default", "bandwidth=1.0"]
+    [(u/dgraph kde-distr {:pdf [-5 5]})
+     (u/dgraph (build-distr {:bandwidth 1.0}) {:pdf [-5 5]})]
+    ["gaussian kernel" "triangular kernel, bandwidth=0.1"]
+    [(u/dgraph (build-distr {:kde :gaussian}) {:pdf [-5 5]})
+     (u/dgraph (build-distr {:kde :triangular :bandwidth 0.1}) {:pdf [-5 5]})]]))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/sample kde-distr)
+ (r/sample kde-distr)
+ (r/pdf kde-distr 0.0)
+ (r/cdf kde-distr 0.0)
+ (map (partial r/icdf kde-distr) [0.0001 0.5 0.9999])
+ (r/lower-bound kde-distr)
+ (r/upper-bound kde-distr)
+ (r/mean kde-distr)
+ (r/variance kde-distr))
+
 ;; #### Empirical
-;; #### Real discrete
-;; #### Integer discrete
+
+;; Empirical distribution calculates PDF, CDF and iCDF from a histogram.
+
+;; * Default parameters
+;;    * `:data`, samples, sequence of numbers
+;;    * `:bin-count`, number of bins for histogram: 10% of the size of the data
+;; * [wiki](https://en.wikipedia.org/wiki/Empirical_distribution_function), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/random/EmpiricalDistribution.html)
+
+(def empirical-distr (r/distribution :empirical {:data random-data}))
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [["default", "bin-count=10"]
+  [(u/dgraph empirical-distr {:pdf [-5 5]})
+   (u/dgraph (r/distribution :empirical {:data random-data :bin-count 10}) {:pdf [-5 5]})]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/sample empirical-distr)
+ (r/sample empirical-distr)
+ (r/pdf empirical-distr 0.0)
+ (r/cdf empirical-distr 0.0)
+ (map (partial r/icdf empirical-distr) [0.0001 0.5 0.9999])
+ (r/lower-bound empirical-distr)
+ (r/upper-bound empirical-distr)
+ (r/mean empirical-distr)
+ (r/variance empirical-distr))
+
+;; #### Discrete
+
+;; * Default parameters
+;;    * `:data`, sequence of numbers (integers/longs or doubles)
+;;    * `:probabilities`, optional, probabilities or weights
+;; * [wiki](https://en.wikipedia.org/wiki/Probability_distribution#Discrete_probability_distribution), [source1](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/EnumeratedRealDistribution.html), [source2](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/EnumeratedIntegerDistribution.html)
+
+;; Please note: data can contain duplicates.
+
+;; There are four discrete distributions:
+;; * `:enumerated-int` for integers, backed by Apache Commons Math
+;; * `:enumerated-real` for doubles, backed by Apache Commons Math
+;; * `:integer-discrete-distribution` - for longs, custom implementation
+;; * `:real-discrete-distribution` - for doubles, custom implementation
+
+;; Please note:
+
+;; * Apache Commons Math implementation have some issues with iCDF.
+;; * `:integer-discrete-distribution` is backed by `clojure.data.int-map`
+
+;; ##### Doubles
+
+(def data-doubles (repeatedly 100 #(m/sq (m/approx (r/drand 2.0) 1))))
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [[:real-discrete-distribution :enumerated-real]
+  (let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
+        real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
+        dist (distinct data-doubles)]
+    [(u/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
+                                                              dist))})
+     (u/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
+                                                                dist))})])])
+
+(def real-distr (r/distribution :real-discrete-distribution {:data [0.1 0.2 0.3 0.4 0.3 0.2 0.1]
+                                                           :probabilities [5 4 3 2 1 5 4]}))
+
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/sample real-distr)
+ (r/sample real-distr)
+ (r/pdf real-distr 0.1)
+ (r/pdf real-distr 0.15)
+ (r/cdf real-distr 0.2)
+ (map (partial r/icdf real-distr) [0.0001 0.5 0.9999])
+ (r/lower-bound real-distr)
+ (r/upper-bound real-distr)
+ (r/mean real-distr)
+ (r/variance real-distr))
+
+;; ##### Integers / Longs
+
+(def data-ints (repeatedly 500 #(int (m/sqrt (r/drand 100.0)))))
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [[:integer-discrete-distribution :enumerated-int]
+  (let [enumerated-int (r/distribution :enumerated-int {:data data-ints})
+        int-discrete (r/distribution :integer-discrete-distribution {:data data-ints})
+        dist (distinct data-ints)]
+    [(u/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
+                                                              dist))})
+     (u/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %))
+                                                                dist))})])])
+
+(def int-distr (r/distribution :integer-discrete-distribution {:data [10 20 30 40 30 20 10]
+                                                             :probabilities [5 4 3 2 1 5 4]}))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/sample int-distr)
+ (r/sample int-distr)
+ (r/pdf int-distr 10)
+ (r/pdf int-distr 15)
+ (r/cdf int-distr 20)
+ (map (partial r/icdf int-distr) [0.0001 0.5 0.9999])
+ (r/lower-bound int-distr)
+ (r/upper-bound int-distr)
+ (r/mean int-distr)
+ (r/variance int-distr))
+
 ;; #### Categorical
+
+;; Categorical distribution is a discrete distribution which accepts any data.
+
+;; * Default parameters:
+;;    * `:data`, sequence of any values
+;;    * `:probabilities`, optional, probabilities or weights
+
+;; Order for CDF/iCDF is created by calling `(distinct data)`. If sorted data is needed, external sort is necessary. `lower-bound` and `upper-bound` are not defined though.
+
+(def cat-distr (r/distribution :categorical-distribution {:data (repeatedly 100 #(rand-nth [:a :b nil "s"]))}))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/sample cat-distr)
+ (r/sample cat-distr)
+ (r/pdf cat-distr nil)
+ (r/pdf cat-distr "ss")
+ (r/cdf cat-distr :b)
+ (map (partial r/icdf cat-distr) [0.0001 0.5 0.9999]))
 
 ;; ## Sequences
 
+;; Sequence generators can create random or quasi random vector with certain property like low discrepancy or from ball/sphere.
+
+;; There are two multimethods:
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[sequence-generator "Lazy sequence of generated vectors (for dim>1) or primitives (for dim=1)"]
+  [jittered-sequence-generator "Adds jittering, works only for low discrepancy sequences"]])
+
+;; Parameters:
+;;    * `seq-generator` - generator name
+;;    * `dimensions` - vector dimensionality, 1 for primitive
+;;    * `jitter` - only for jittered sequences, from 0.0 to 1.0, default 0.25
+
+;; For given dimensionality, returns sequence of:
+;;   * 1 - doubles
+;;   * 2 - `Vec2` type
+;;   * 3 - `Vec3` type
+;;   * 4 - `Vec4` type
+;;   * n>4 - Clojure vector
+
+;; `Vec2`, `Vec3` and `Vec4` are fixed size vectors optimized for speed. They act exactly like 2,3 and 4 elements Clojure vectors.
+
 ;; ### Low discrepancy
+
+;; There are 3 types of sequences:
+
+;; * `:sobol` - up to 1000 dimensions, [wiki](https://en.wikipedia.org/wiki/Sobol_sequence), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/random/SobolSequenceGenerator.html)
+;; * `:halton` - up to 40 dimensions, [wiki](https://en.wikipedia.org/wiki/Halton_sequence), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/random/HaltonSequenceGenerator.html)
+;; * `:r2` - up to 15 dimensions, [info](http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
+
+;; 1000 samples from each of the sequence type without and with jittering
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [[":sobol" ":halton" ":r2"]
+  [(u/scatter (take 1000 (r/sequence-generator :sobol 2)))
+   (u/scatter (take 1000 (r/sequence-generator :halton 2)))
+   (u/scatter (take 1000 (r/sequence-generator :r2 2)))]
+  [":sobol (jittered)" ":halton (jittered)" ":r2 (jittered)"]
+  [(u/scatter (take 1000 (r/jittered-sequence-generator :sobol 2)))
+   (u/scatter (take 1000 (r/jittered-sequence-generator :halton 2)))
+   (u/scatter (take 1000 (r/jittered-sequence-generator :r2 2)))]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (first (r/sequence-generator :sobol 4))
+ (first (r/jittered-sequence-generator :sobol 4))
+ (first (r/sequence-generator :halton 3))
+ (first (r/jittered-sequence-generator :halton 3))
+ (first (r/sequence-generator :r2 2))
+ (first (r/jittered-sequence-generator :r2 2)))
+
+;; 15 dimensional sequence
+(take 2 (r/sequence-generator :r2 15))
+
+;; One dimensional sequence is just a sequence of numbers
+
+(take 20 (r/sequence-generator :sobol 1))
+
+;; ### Sphere and ball
+
+;; Unit sphere or unit ball sequences can generate any dimension.
+
+;; * `:sphere` - [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/random/UnitSphereRandomVectorGenerator.html)
+;; * `:ball` - dropped coordinates, [info]( http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls)
+
+;; 500 samples
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [[":sphere" ":ball"]
+  [(u/scatter (take 500 (r/sequence-generator :sphere 2)) [-1.1 1.1] [-1.1 1.1])
+   (u/scatter (take 500 (r/sequence-generator :ball 2)) [-1.1 1.1] [-1.1 1.1])]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (first (r/sequence-generator :sphere 4))
+ (first (r/sequence-generator :ball 3)))
+
+;; 20 dimensional sequence
+
+(take 2 (r/sequence-generator :sphere 20))
+
+;; ### Uniform and Gaussian
+
+;; Additionally uniform and gaussian N(0,1) sequences can generate any number of dimensions. They rely on `default-rng`
+
+;; * `:default` - uniform distribution U(0,1)
+;; * `:gaussian` - gaussian, normal distribution, N(0,1) for each dimension
+
+;; 1000 samples
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [[":default" ":gaussian"]
+  [(u/scatter (take 1000 (r/sequence-generator :default 2)))
+   (u/scatter (take 1000 (r/sequence-generator :gaussian 2)) [-3.5 3.5] [-3.5 3.5])]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (first (r/sequence-generator :default 4))
+ (first (r/sequence-generator :gaussian 3)))
 
 ;; ## Noise
 
-;; 
+;; Value, gradient and simplex noises plus various combinations. 1d ,2d and 3d versions are prepared.
+
+;; ### Generation
+
+;; There are four main methods of noise creation:
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[single-noise "single frequency (octave) noise"]
+  [fbm-noise "multi frequency (octaves), fractal brownian motion"]
+  [billow-noise "multi frequency, \"billowy\" noise"]
+  [ridgemulti-noise "multi frequency, ridged multi-fractal"]])
+
+;; Each noise can be configured in, here is the list of options:
+
+;; * `:seed` - seed for noise randomness
+;; * `:noise-type`
+;;    * `:value` - value noise
+;;    * `:gradient` (default) - gradient noise (Perlin)
+;;    * `:simplex` - OpenSimplex noise
+;; * `:interpolation` - interpolation between knots, only for value and gradient noise
+;;    * `:none`
+;;    * `:linear`
+;;    * `:hermite` (default)
+;;    * `:quintic`
+;; * `:octaves` (default: 6) - number of frequencies/octaves for multi frequency creators
+;; * `:lacunarity` (default: 2) - noise length (1/frequency) for each octave
+;; * `:gain` (default: 0.5) - amplitude factor for each octave
+;; * `:normalize?` (default: true) - if true, range is `[0,1]`, `[-1,1]` otherwise.
+
+;; [more info](http://www.campi3d.com/External/MariExtensionPack/userGuide5R4v1/Understandingsomebasicnoiseterms.html) about octaves, gain and lacunarity.
+
+;; #### Single
+
+(def single-g-noise (r/single-noise {:noise-type :gradient :seed 1}))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (single-g-noise 0.2)
+ (single-g-noise 0.2 0.3)
+ (single-g-noise 0.2 0.3 0.4))
+
+;; Single octave of simplex noise:
+^{::clerk/visibility :hide}
+(u/graph2d (r/single-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2])
+
+;; Value and gradient single noise for different interpolations
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["" :none :linear :hermite :quintic]
+ [:value
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :none}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :linear}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :hermite}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :quintic}) [-2 2] [-2 2] 150)]
+ [:gradient
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :none}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :linear}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) [-2 2] [-2 2] 150)]]
+
+;; #### FBM
+
+(def fbm-noise (r/fbm-noise {:noise-type :gradient :octaves 3 :seed 1}))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (fbm-noise 0.2)
+ (fbm-noise 0.2 0.3)
+ (fbm-noise 0.2 0.3 0.4))
+
+;; 6 octave of simplex noise:
+^{::clerk/visibility :hide}
+(u/graph2d (r/fbm-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2])
+
+;; Value and gradient FBM noise for different interpolations
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["" :none :linear :hermite :quintic]
+ [:value
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :none}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :linear}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :hermite}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :quintic}) [-2 2] [-2 2] 150)]
+ [:gradient
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :none}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :linear}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) [-2 2] [-2 2] 150)]]
+
+;; Different number of octaves for FBM gradient noise
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["octaves=2" "octaves=4" "octaves=6" "octaves=8"]
+ [(u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 2}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 4}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 6}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 8}) [-2 2] [-2 2] 150)]]
+
+;; Different gains and lacunarities for FBM gradient noise
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["" "lacunarity=0.5" "lacunarity=2" "lacunarity=5" "lacunarity=8"]
+ ["gain=0.25"
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 0.5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 2}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 8}) [-2 2] [-2 2] 150)]
+ ["gain=0.5"
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 0.5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 2}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 8}) [-2 2] [-2 2] 150)]
+ ["gain=0.75"
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 0.5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 2}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 5}) [-2 2] [-2 2] 150)
+  (u/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 8}) [-2 2] [-2 2] 150)]]
+
+;; #### Billow
+
+(def billow-noise (r/billow-noise {:seed 1}))
+
+^{::clerk/visibility :hide}
+(u/graph2d billow-noise [-2 2] [-2 2])
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["simplex noise" "value noise" "gradient noise, 1 octave"]
+ [(u/graph2d (r/billow-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2])
+  (u/graph2d (r/billow-noise {:seed 1 :noise-type :value}) [-2 2] [-2 2])
+  (u/graph2d (r/billow-noise {:seed 1 :noise-type :gradient :octaves 1}) [-2 2] [-2 2])]]
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (billow-noise 0.2)
+ (billow-noise 0.2 0.3)
+ (billow-noise 0.2 0.3 0.4))
+
+;; #### Ridged Multi
+
+(def ridgedmulti-noise (r/ridgedmulti-noise {:seed 1}))
+
+^{::clerk/visibility :hide}
+(u/graph2d ridgedmulti-noise [-2 2] [-2 2])
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["simplex noise" "value noise" "gradient noise, 1 octave"]
+ [(u/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2])
+  (u/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :value}) [-2 2] [-2 2])
+  (u/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :gradient :octaves 1}) [-2 2] [-2 2])]]
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (ridgedmulti-noise 0.2)
+ (ridgedmulti-noise 0.2 0.3)
+ (ridgedmulti-noise 0.2 0.3 0.4))
+
+;; ### Predefined
+
+;; There are three ready to use preconfigured noises:
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[vnoise "FBM value noise, 6 octaves, hermite interpolation"]
+  [noise "Perlin noise, FBM gradient noise, 6 octaves, quintic interpolation"]
+  [simplex "FBM simplex noise"]])
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["vnoise" "noise" "simplex"]
+ [(u/graph2d r/vnoise [-2 2] [-2 2])
+  (u/graph2d r/noise [-2 2] [-2 2])
+  (u/graph2d r/simplex [-2 2] [-2 2])]]
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/vnoise 0.2)
+ (r/vnoise 0.2 0.3)
+ (r/vnoise 0.2 0.3 0.4)
+ (r/noise 0.2)
+ (r/noise 0.2 0.3)
+ (r/noise 0.2 0.3 0.4)
+ (r/simplex 0.2)
+ (r/simplex 0.2 0.3)
+ (r/simplex 0.2 0.3 0.4))
+
+;; ### Warping
+
+;; Warp noise [info](http://www.iquilezles.org/www/articles/warp/warp.htm)
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[warp-noise-fn "Create warp noise"]])
+
+;; Default parameters:
+;;  * `noise` - any noise function: `vnoise`
+;;  * `scale`: $4.0$
+;;  * `depth`: $1$
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[["" "vnoise" "noise" "simplex"]
+ ["scale=2"
+  (u/graph2d (r/warp-noise-fn r/vnoise 2.0 1) [-2 2] [-2 2])
+  (u/graph2d (r/warp-noise-fn r/noise 2.0 1) [-2 2] [-2 2])
+  (u/graph2d (r/warp-noise-fn r/simplex 2.0 1) [-2 2] [-2 2])]
+ ["scale=4"
+  (u/graph2d (r/warp-noise-fn r/vnoise 4.0 1) [-2 2] [-2 2])
+  (u/graph2d (r/warp-noise-fn r/noise 4.0 1) [-2 2] [-2 2])
+  (u/graph2d (r/warp-noise-fn r/simplex 4.0 1) [-2 2] [-2 2])]]
+
+;; ### Random configuration
+
+;; For generative art purposes it's good to generate random configuration and noise based on it.
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[random-noise-cfg "Create random configuration"]
+  [random-noise-fn "Create random noise from random configuration"]])
+
+;; Optional parameter is a map with values user wants to fix.
+
+(r/random-noise-cfg)
+(r/random-noise-cfg {:seed 1})
+
+(def some-random-noise (r/random-noise-fn {:seed 1}))
+
+^{::clerk/visibility :hide}
+(u/graph2d some-random-noise [-2 2] [-2 2])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (some-random-noise 0.2)
+ (some-random-noise 0.2 0.3)
+ (some-random-noise 0.2 0.3 0.4))
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+[[(u/graph2d (r/random-noise-fn) [-2 2] [-2 2])
+  (u/graph2d (r/random-noise-fn) [-2 2] [-2 2])
+  (u/graph2d (r/random-noise-fn) [-2 2] [-2 2])]
+ [(u/graph2d (r/random-noise-fn) [-2 2] [-2 2])
+  (u/graph2d (r/random-noise-fn) [-2 2] [-2 2])
+  (u/graph2d (r/random-noise-fn) [-2 2] [-2 2])]]
+
+;; ### Discrete noise
+
+;; Discrete noise is a function which hashes long or two longs and converts it to a double from `[0,1]` range.
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[discrete-noise "1d or 2d hashing function"]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/discrete-noise 100)
+ (r/discrete-noise 101)
+ (r/discrete-noise 200 100)
+ (r/discrete-noise 200 101))

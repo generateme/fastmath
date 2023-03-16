@@ -72,6 +72,7 @@ All notable changes to this project will be documented in this file. This change
 
 * `(set! *warn-on-reflection* true)` removed ([motivation](https://github.com/clojure-emacs/refactor-nrepl/issues/347))
 * names changed: `ttest-` -> `t-test-`
+* RidgedMulti.java refactored
 
 ### Fixed
 
