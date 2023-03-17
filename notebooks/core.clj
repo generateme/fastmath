@@ -936,3 +936,8 @@
          [nm
           (clerk/md (str "$" (get formulas nm "-") "$"))
           (var-get (ns-resolve 'fastmath.core nm))])}
+
+;; ## List of symbols
+
+^{::clerk/visibility :hide}
+(u/make-public-fns-table 'fastmath.core)

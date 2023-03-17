@@ -111,8 +111,7 @@
             [fastmath.protocols :as prot]
             [fastmath.interpolation :as i]
             [fastmath.solver :as solver]
-            [clojure.data.int-map :as im]
-            [fastmath.random :as r])
+            [clojure.data.int-map :as im])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator

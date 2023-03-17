@@ -6,7 +6,8 @@
             [nextjournal.clerk.viewer :as viewer]
             [nextjournal.clerk.tap]
             [fastmath.random :as r]
-            [clojure2d.color :as c]))
+            [clojure2d.color :as c]
+            [clojure.string :as str]))
 
 (def ^:const size 200)
 
@@ -204,17 +205,46 @@
                                                     `[(clerk/code (quote ~s)) (or ~i "-")])]}))
 
 
+
+
+(def source-files "https://github.com/generateme/fastmath/blob/master/src/")
+
+(defn args->call [f args] (conj (seq args) f))
+(defn fix-tex [s]  (str/replace s #"\\\\\(|\\\\\)" "\\$"))
+(defn fix-anchor [s] (str/replace s #"\[\[(.+?)\]\]" "[$1](#LOS-$1)"))
+
+(defn make-public-fns-table
+  [ns]
+  (clerk/html
+   [:div (for [v (->> (ns-publics ns)
+                      (sort-by first)
+                      (map second))
+               :let [{:keys [name file macro arglists doc line const]} (meta v)]]
+           [:div {:class "pb-8" :id (str "LOS-" (clojure.core/name name))} ;; add border
+            
+            (clerk/html [:span [:b {:class "underline decoration-2 decoration-gray-400"} name]
+                         (when macro [:sup " MACRO"])
+                         (when const [:sup " CONST"])
+                         [:sup [:a {:href (str source-files file "#L" line)} "  [source]"]]])
+            [:p]
+            (when const [:div (clerk/code (var-get v)) [:p]])
+            (when arglists [:div
+                            [:div (for [args arglists]
+                                    (clerk/code (args->call name args)))]
+                            [:p]])
+            [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]))
+
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
 (comment
-  (clerk/serve! {:browse? false :watch-paths ["notebooks"]})
-  (clerk/serve! {:browse? false})
-  (clerk/show! 'nextjournal.clerk.tap)
-  ;; (clerk/show! "notebooks/core.clj")
-  (clerk/build! {:browse? false :paths ["notebooks/core.clj"
-                                        "notebooks/random.clj"]
-                 :out-path "docs/notebooks/"})
-  (clerk/clear-cache!)
-  (clerk/halt!))
+(clerk/serve! {:browse? false :watch-paths ["notebooks"]})
+(clerk/serve! {:browse? false})
+(clerk/show! 'nextjournal.clerk.tap)
+;; (clerk/show! "notebooks/core.clj")
+(clerk/build! {:browse? false :paths ["notebooks/core.clj"
+                                      "notebooks/random.clj"]
+               :out-path "docs/notebooks/"})
+(clerk/clear-cache!)
+(clerk/halt!))
 
 

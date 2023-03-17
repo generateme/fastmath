@@ -2180,3 +2180,9 @@
  (r/discrete-noise 101)
  (r/discrete-noise 200 100)
  (r/discrete-noise 200 101))
+
+;; ## List of symbols
+
+^{::clerk/visibility :hide}
+(u/make-public-fns-table 'fastmath.random)
+
