@@ -237,14 +237,14 @@
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
 (comment
-(clerk/serve! {:browse? false :watch-paths ["notebooks"]})
-(clerk/serve! {:browse? false})
-(clerk/show! 'nextjournal.clerk.tap)
-;; (clerk/show! "notebooks/core.clj")
-(clerk/build! {:browse? false :paths ["notebooks/core.clj"
-                                      "notebooks/random.clj"]
-               :out-path "docs/notebooks/"})
-(clerk/clear-cache!)
-(clerk/halt!))
+  (clerk/serve! {:browse? false :watch-paths ["notebooks"]})
+  (clerk/serve! {:browse? false})
+  (clerk/show! 'nextjournal.clerk.tap)
+  ;; (clerk/show! "notebooks/core.clj")
+  (clerk/build! {:browse? false :paths ["notebooks/core.clj"
+                                        "notebooks/random.clj"]
+                 :out-path "docs/notebooks/"})
+  (clerk/clear-cache!)
+  (clerk/halt!))
 
 
