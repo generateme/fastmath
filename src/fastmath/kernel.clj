@@ -768,8 +768,6 @@
 
 (def kernel-density-list ^{:doc "List of available density kernels."} (sort (keys (methods kernel-density))))
 
-(defonce ^:private ^NormalDistribution local-normal (NormalDistribution.))
-
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
 
@@ -788,7 +786,8 @@
   ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
   ([method data bandwidth ^double alpha]
    (if (contains? kde-integral method)
-     (let [za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
+     (let [^NormalDistribution local-normal (NormalDistribution.)
+           za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
            [kde-f ^double factor] (kernel-density method data bandwidth true)]
        (fn [^double x]
          (let [^double fx (kde-f x)

@@ -1,6 +1,7 @@
 ^{:nextjournal.clerk/visibility :hide-ns
   :nextjournal.clerk/toc true}
 (ns core
+  {:clj-kondo/config '{:config-in-call {utils/table {:ignore [:unresolved-symbol]}}}}
   (:require [fastmath.core :as m]
             [nextjournal.clerk :as clerk]
             [clojure.walk :as walk]
@@ -30,6 +31,7 @@
 ;; * `min max`
 ;; * `abs`
 
+#_:clj-kondo/ignore
 (require '[fastmath.core :as m])
 
 ;; ## Primitive math ops

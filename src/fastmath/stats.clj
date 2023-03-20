@@ -346,6 +346,7 @@
     (/ s (m/sqrt (count vs)))))
 
 (defmacro ^:private build-extent
+  {:clj-kondo/lint-as 'clojure.core/def}
   [nm mid ext]
   `(defn ~nm
      ~(str " -/+ " ext " and " mid)

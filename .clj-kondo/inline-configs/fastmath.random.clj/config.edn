@@ -1,0 +1,1 @@
+{:lint-as {fastmath.random/gen-noise-function clojure.core/def}}

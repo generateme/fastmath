@@ -1,7 +1,8 @@
 ^{:nextjournal.clerk/visibility :hide-ns
-  :nextjournal.clerk/toc true
-  :nextjournal.clerk/no-cache true}
+  :nextjournal.clerk/toc true}
 (ns random
+  {:clj-kondo/config '{:config-in-call {utils/table {:ignore [:unresolved-symbol]}
+                                        utils/table2 {:ignore [:unresolved-symbol]}}}}
   (:require [fastmath.random :as r]
             [nextjournal.clerk :as clerk]
             [utils :as u]
@@ -17,6 +18,7 @@
 ;; * sequences generators
 ;; * noise (value, gradient, simplex)
 
+#_:clj-kondo/ignore
 (require '[fastmath.random :as r])
 
 ;; ## Common functions

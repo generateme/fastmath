@@ -101,10 +101,11 @@
   Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions.
 
   To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."  
-  {:metadoc/categories {:rand "Random number generation"
-                        :noise "Noise functions"
-                        :gen "Random sequence generation"
-                        :dist "Distributions"}}
+  {:clj-kondo/config '{:config-in-call {fastmath.random/make-ssjc-distr {:ignore [:unresolved-symbol]}
+                                        fastmath.random/make-ssjc-distr-no-pdf {:ignore [:unresolved-symbol]}
+                                        fastmath.random/make-ssji-distr {:ignore [:unresolved-symbol]}
+                                        fastmath.random/make-acm-distr {:ignore [:unresolved-symbol]}
+                                        fastmath.random/distribution-template {:ignore [:unresolved-symbol]}}}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
@@ -140,7 +141,6 @@
 
 (defmulti rng
   "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
-  {:metadoc/categories #{:rand}}
   (fn [m & _] m))
 
 (def ^:private rng-class->keyword {MersenneTwister :mersenne
@@ -176,54 +176,46 @@
 
 (defn synced-rng
   "Create synchronized RNG for given name and optional seed. Wraps [[rng]] method."
-  {:metadoc/categories #{:rand}}
   ([m] (SynchronizedRandomGenerator. (rng m)))
   ([m seed] (SynchronizedRandomGenerator. (rng m seed))))
 
 ;; List of randomizers
-(defonce ^{:metadoc/categories #{:rand}
-           :doc "List of all possible RNGs."}
+(defonce ^{:doc "List of all possible RNGs."}
   rngs-list (remove #{:default} (keys (methods rng))))
 
 ;; protocol proxies
 (defn frandom
   "Random double number with provided RNG"
-  {:metadoc/categories #{:rand}}
   ([rng] (prot/frandom rng))
   ([rng mx] (prot/frandom rng mx))
   ([rng mn mx] (prot/frandom rng mn mx)))
 
 (defn drandom
   "Random double number with provided RNG"
-  {:metadoc/categories #{:rand}}
   (^double [rng] (prot/drandom rng))
   (^double [rng mx] (prot/drandom rng mx))
   (^double [rng mn mx] (prot/drandom rng mn mx)))
 
 (defn grandom
   "Random gaussian double number with provided RNG"
-  {:metadoc/categories #{:rand}}
   (^double [rng] (prot/grandom rng))
   (^double [rng stddev] (prot/grandom rng stddev))
   (^double [rng mean stddev] (prot/grandom rng mean stddev)))
 
 (defn irandom
   "Random integer number with provided RNG"
-  {:metadoc/categories #{:rand}}
   (^long [rng] (prot/irandom rng))
   (^long [rng mx] (prot/irandom rng mx))
   (^long [rng mn ^long mx] (prot/irandom rng mn mx)))
 
 (defn lrandom
   "Random long number with provided RNG"
-  {:metadoc/categories #{:rand}}
   (^long [rng] (prot/lrandom rng))
   (^long [rng mx] (prot/lrandom rng mx))
   (^long [rng mn mx] (prot/lrandom rng mn mx)))
 
 (defn brandom
   "Random boolean with provided RNG"
-  {:metadoc/categories #{:rand}}
   ([rng] (prot/brandom rng))
   ([rng p] (prot/brandom rng p)))
 
@@ -321,14 +313,11 @@
 
 ;; ### Default RNG
 
-(defonce ^{:doc "Default RNG - JDK"
-           :metadoc/categories #{:rand}}
-  default-rng (rng :jdk))
+(defonce ^{:doc "Default RNG - JDK"} default-rng (rng :jdk))
 
 (def ^{:doc "Random boolean with default RNG.
 
-Returns true or false with equal probability. You can set `p` probability for `true`"
-     :metadoc/categories #{:rand}} 
+Returns true or false with equal probability. You can set `p` probability for `true`"} 
   brand (partial prot/brandom default-rng))
 
 (defn frand
@@ -336,7 +325,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   As default returns random float from `[0,1)` range.
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
-  {:metadoc/categories #{:rand}}
   ([] (prot/frandom default-rng))
   ([mx] (prot/frandom default-rng mx))
   ([mn mx] (prot/frandom default-rng mn mx)))
@@ -346,7 +334,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   As default returns random double from `[0,1)` range.
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
-  {:metadoc/categories #{:rand}}
   (^double [] (prot/drandom default-rng))
   (^double [^double mx] (prot/drandom default-rng mx))
   (^double [^double mn ^double mx] (prot/drandom default-rng mn mx)))
@@ -356,7 +343,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   As default returns random double from `N(0,1)`.
   When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`."
-  {:metadoc/categories #{:rand}}
   (^double [] (prot/grandom default-rng))
   (^double [^double stddev] (prot/grandom default-rng stddev))
   (^double [^double mean ^double stddev] (prot/grandom default-rng mean stddev)))
@@ -366,7 +352,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   As default returns random integer from full integer range. 
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
-  {:metadoc/categories #{:rand}}
   (^long [] (prot/irandom default-rng))
   (^long [mx] (prot/irandom default-rng mx))
   (^long [mn mx] (prot/irandom default-rng mn mx)))
@@ -376,14 +361,12 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   As default returns random long from full integer range. 
   When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`."
-  {:metadoc/categories #{:rand}}
   (^long [] (prot/lrandom default-rng))
   (^long [^long mx] (prot/lrandom default-rng mx))
   (^long [^long mn ^long mx] (prot/lrandom default-rng mn mx)))
 
 (defmacro randval
   "Return value with given probability (default 0.5)"
-  {:metadoc/categories #{:rand}}
   ([v1 v2]
    `(if (prot/brandom default-rng) ~v1 ~v2))
   ([prob v1 v2]
@@ -395,7 +378,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 (defn flip
   "Returns 1 with given probability, 0 otherwise"
-  {:metadoc/categories #{:rand}}
   (^long [p]
    (randval p 1 0))
   (^long []
@@ -403,7 +385,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 (defn flipb
   "Returns true with given probability, false otherwise"
-  {:metadoc/categories #{:rand}}
   ([p] (randval p))
   ([] (randval)))
 
@@ -474,6 +455,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
         g (random-generators :default dimensions)]
     (map-indexed (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)))
 
+
 ;; Sequence creators
 
 (defmulti
@@ -493,8 +475,7 @@ Possible dimensions:
 * `:sobol` - 1-1000
 * the rest - 1+
 
-See also [[jittered-sequence-generator]]."
-    :metadoc/categories #{:gen}}
+See also [[jittered-sequence-generator]]."}
   sequence-generator (fn [seq-generator _] seq-generator))
 (defmethod sequence-generator :halton [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :sobol [seq-generator dimensions] (rv-generators seq-generator dimensions))
@@ -527,21 +508,18 @@ See also [[jittered-sequence-generator]]."
                              (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
      (map mod-fn s j))))
 
-(def ^{:doc "List of random sequence generator. See [[sequence-generator]]."
-       :metadoc/categories #{:gen}}
+(def ^{:doc "List of random sequence generator. See [[sequence-generator]]."}
   sequence-generators-list (keys (methods sequence-generator)))
 
 ;; ## Noise
 
-(def ^{:doc "List of possible noise interpolations as a map of names and values."
-       :metadoc/categories #{:noise}}
+(def ^{:doc "List of possible noise interpolations as a map of names and values."}
   noise-interpolations {:none NoiseConfig/INTERPOLATE_NONE
                         :linear NoiseConfig/INTERPOLATE_LINEAR
                         :hermite NoiseConfig/INTERPOLATE_HERMITE
                         :quintic NoiseConfig/INTERPOLATE_QUINTIC})
 
-(def ^{:doc "List of possible noise types as a map of names and values."
-       :metadoc/categories #{:noise}}
+(def ^{:doc "List of possible noise types as a map of names and values."}
   noise-types {:value NoiseConfig/NOISE_VALUE
                :gradient NoiseConfig/NOISE_GRADIENT
                :simplex NoiseConfig/NOISE_SIMPLEX})
@@ -574,7 +552,6 @@ See also [[jittered-sequence-generator]]."
   "Value Noise.
 
   6 octaves, Hermite interpolation (cubic, h01)."
-  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise value-noise-config x))
   (^double [^double x ^double y] (FBM/noise value-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise value-noise-config x y z)))
@@ -583,25 +560,23 @@ See also [[jittered-sequence-generator]]."
   "Improved Perlin Noise.
 
   6 octaves, quintic interpolation."
-  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise perlin-noise-config x))
   (^double [^double x ^double y] (FBM/noise perlin-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise perlin-noise-config x y z)))
 
 (defn simplex
   "Simplex noise. 6 octaves."
-  {:metadoc/categories #{:noise}}
   (^double [^double x] (FBM/noise simplex-noise-config x))
   (^double [^double x ^double y] (FBM/noise simplex-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise simplex-noise-config x y z)))
 
 (defmacro ^:private gen-noise-function
   "Generate various noise as static function"
+  {:clj-kondo/lint-as 'clojure.core/def}
   [noise-type method]
   (let [nm (symbol (str noise-type "-noise"))]
     `(defn ~nm
-       ~(str "Create " noise-type " noise function with optional configuration.")
-       {:metadoc/categories #{:noise}}
+       ~(str "Create " noise-type " function with optional configuration.")
        ([] (~nm {}))
        ([cfg#]
         (let [ncfg# (noise-config cfg#)]
@@ -610,10 +585,10 @@ See also [[jittered-sequence-generator]]."
             ([x# y#] (~method ncfg# x# y#))
             ([x# y# z#] (~method ncfg# x# y# z#))))))))
 
-(gen-noise-function single Noise/noise)
-(gen-noise-function fbm FBM/noise)
-(gen-noise-function billow Billow/noise)
-(gen-noise-function ridgedmulti RidgedMulti/noise)
+(gen-noise-function single-noise Noise/noise)
+(gen-noise-function fbm-noise FBM/noise)
+(gen-noise-function billow-noise Billow/noise)
+(gen-noise-function ridgedmulti-noise RidgedMulti/noise)
 
 (defn- make-warp-1d
   [noise ^double scale ^long depth]
@@ -658,7 +633,6 @@ See also [[jittered-sequence-generator]]."
   * depth (1 or 2), default 1
 
   Normalization of warp noise depends on normalization of noise function."
-  {:metadoc/categories #{:noise}}
   ([noise ^double scale ^long depth]
    (let [n1 (make-warp-1d noise scale depth)
          n2 (make-warp-2d noise scale depth)
@@ -671,8 +645,7 @@ See also [[jittered-sequence-generator]]."
   ([noise] (warp-noise-fn noise 4.0 1))
   ([] (warp-noise-fn vnoise 4.0 1)))
 
-(defonce ^{:doc "List of possible noise generators as a map of names and functions."
-           :metadoc/categories #{:noise}}
+(defonce ^{:doc "List of possible noise generators as a map of names and functions."}
   noise-generators
   {:fbm fbm-noise
    :single single-noise
@@ -683,7 +656,6 @@ See also [[jittered-sequence-generator]]."
   "Create random noise configuration.
 
   Optional map with fixed values."
-  {:metadoc/categories #{:noise}}
   ([pre-config]
    (merge {:seed (irand)
            :generator (rand-nth [:single :fbm :billow :ridgemulti])
@@ -701,7 +673,6 @@ See also [[jittered-sequence-generator]]."
   "Create random noise function from all possible options.
 
   Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
-  {:metadoc/categories #{:noise}}
   ([cfg]
    (let [cfg (random-noise-cfg cfg)
          gen-fn (noise-generators (get cfg :generator :fbm))
@@ -720,7 +691,6 @@ See also [[jittered-sequence-generator]]."
   * Y (long, optional)
 
   Returns double value from [0,1] range"
-  {:metadoc/categories #{:noise}}
   (^double [^long X ^long Y] (Discrete/value X Y))
   (^double [^long X] (Discrete/value X 0)))
 
@@ -732,8 +702,7 @@ See also [[jittered-sequence-generator]]."
 * First parameter is distribution as a `:key`.
 * Second parameter is a map with configuration.
 
-All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."
-    :metadoc/categories #{:dist}}
+All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."}
   distribution (fn ([k _] k) ([k] k)))
 
 (extend Object
@@ -742,71 +711,58 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defn distribution?
   "Checks if `distr` is a distribution object."
-  {:metadoc/categories #{:dist}}
   [distr]
   (prot/distribution? distr))
 
 ;; protocol proxies
 (defn cdf
   "Cumulative probability."
-  {:metadoc/categories #{:dist}}
   (^double [d v] (prot/cdf d v))
   (^double [d v1 v2] (prot/cdf d v1 v2)))
 
 (defn ccdf
   "Complementary cumulative probability."
-  {:metadoc/categories #{:dist}}
   ^double [d v] (- 1.0 (cdf d v)))
 
 (defn pdf
   "Density"
-  {:metadoc/categories #{:dist}}
   ^double [d v] (prot/pdf d v))
 
 (defn lpdf
   "Log density"
-  {:metadoc/categories #{:dist}}
   ^double [d v] (prot/lpdf d v))
 
 (defn icdf
   "Inverse cumulative probability"
-  {:metadoc/categories #{:dist}}
   [d ^double v] (prot/icdf d v))
 
 (defn probability
   "Probability (PMF)"
-  {:metadoc/categories #{:dist}}
   ^double [d v] (prot/probability d v))
 
 (defn sample
   "Random sample"
-  {:metadoc/categories #{:dist}}
   [d] (prot/sample d))
 
 (defn dimensions
   "Distribution dimensionality"
-  {:metadoc/categories #{:dist}}
   ^long [d] (prot/dimensions d))
 
 (defn source-object
   "Returns Java or proxy object from backend library (if available)"
-  {:metadoc/categories #{:dist}}
   [d] (prot/source-object d))
 
 (defn continuous?
   "Does distribution support continuous domain?"
-  {:metadoc/categories #{:dist}}
   [d] (prot/continuous? d))
 
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
-  {:metadoc/categories #{:dist}}
   ^double [d v]
   (prot/lpdf d v))
 
 (defn log-likelihood
   "Log likelihood of samples"
-  {:metadoc/categories #{:dist}}
   ^double [d vs] 
   (reduce (fn [^double s ^double v] (if (m/invalid-double? s)
                                      (reduced s)
@@ -814,56 +770,46 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defmacro observe
   "Log likelihood of samples. Alias for [[log-likelihood]]."
-  {:metadoc/categories #{:dist}}
   [d vs]
   `(log-likelihood ~d ~vs))
 
 (defn likelihood
   "Likelihood of samples"
-  {:metadoc/categories #{:dist}}
   ^double [d vs]
   (m/exp (log-likelihood d vs)))
 
 (defn mean
   "Distribution mean"
-  {:metadoc/categories #{:dist}}
   ^double [d] (prot/mean d))
 
 (defn means
   "Distribution means (for multivariate distributions)"
-  {:metadoc/categories #{:dist}}
   [d] (prot/means d))
 
 (defn variance
   "Distribution variance"
-  {:metadoc/categories #{:dist}}
   ^double [d] (prot/variance d))
 
 (defn covariance
   "Distribution covariance matrix (for multivariate distributions)"
-  {:metadoc/categories #{:dist}}
   [d] (prot/covariance d))
 
 (defn lower-bound
   "Distribution lowest supported value"
-  {:metadoc/categories #{:dist}}
   ^double [d] (prot/lower-bound d))
 
 (defn upper-bound
   "Distribution highest supported value"
-  {:metadoc/categories #{:dist}}
   ^double [d] (prot/upper-bound d))
 
 (defn distribution-id
   "Distribution identifier as keyword."
-  {:metadoc/categories #{:dist}}
   [d] (prot/distribution-id d))
 
 (defn distribution-parameters
   "Distribution highest supported value.
 
   When `all?` is true, technical parameters are included, ie: `:rng` and `:inverser-cumm-accuracy`."
-  {:metadoc/categories #{:dist}}
   ([d] (distribution-parameters d false))
   ([d all?]
    (let [d' (if (keyword? d) (distribution d) d)]
@@ -1563,10 +1509,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
 
 (defmethod distribution :continuous-distribution
-  ([_ {:keys [data ^long steps kde bandwidth interpolator min-iterations]
+  ([_ {:keys [data ^long steps kde bandwidth]
        :or {data [-1 0 1] steps 5000 kde :epanechnikov}
        :as all}]
-   (let [[kd _ _ ^double mn ^double mx :as z] (k/kernel-density kde data bandwidth true)
+   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
          step (/ (- mx mn) steps)
          [^double mn ^double mx] (narrow-range kd [mn mx step] (* 4 steps))
          [cdf-fn icdf-fn] (integrate-pdf kd (merge all {:mn mn :mx mx :steps steps}))
@@ -1673,30 +1619,30 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
     [pmf cdf icdf mnk (last ks)]))
 
 (distribution-template :integer-discrete-distribution
-                       {:mean mean :variance @variance :distribution-parameters [:data :probabilities :rng]
+                       {:mean mmean :variance @variance :distribution-parameters [:data :probabilities :rng]
                         :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
                        {:keys [data probabilities]
                         :or {data [0]}} args
                        [pmf cdf-fn icdf-fn
                         ^long lower-bound ^long upper-bound] (build-discrete :int data probabilities)
                        pdf-fn (fn [^long k] (get pmf k 0.0))
-                       ^double mean (reduce-kv (fn [^double s ^long k ^double v]
-                                                 (+ s (* k v))) 0.0 pmf)
+                       ^double mmean (reduce-kv (fn [^double s ^long k ^double v]
+                                                  (+ s (* k v))) 0.0 pmf)
                        variance (delay (- ^double (reduce-kv (fn [^double s ^long k ^double v]
-                                                               (+ s (* k k v))) 0.0 pmf) (* mean mean))))
+                                                               (+ s (* k k v))) 0.0 pmf) (* mmean mmean))))
 
 (distribution-template :real-discrete-distribution
-                       {:mean mean :variance @variance :distribution-parameters [:data :probabilities :rng]
+                       {:mean mmean :variance @variance :distribution-parameters [:data :probabilities :rng]
                         :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
                        {:keys [data probabilities]
                         :or {data [0]}} args
                        [pmf cdf-fn icdf-fn
                         ^double lower-bound ^double upper-bound] (build-discrete :double data probabilities)
                        pdf-fn (fn [^double k] (get pmf k 0.0))
-                       ^double mean (reduce-kv (fn [^double s ^double k ^double v]
-                                                 (+ s (* k v))) 0.0 pmf)
+                       ^double mmean (reduce-kv (fn [^double s ^double k ^double v]
+                                                  (+ s (* k v))) 0.0 pmf)
                        variance (delay (- ^double (reduce-kv (fn [^double s ^double k ^double v]
-                                                               (+ s (* k k v))) 0.0 pmf) (* mean mean))))
+                                                               (+ s (* k k v))) 0.0 pmf) (* mmean mmean))))
 
 (defmethod distribution :categorical-distribution
   ([_ {:keys [data probabilities]
@@ -1754,11 +1700,11 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                 (* m/M_2_PI (m/atan (/ v scale)))))
 
 (distribution-template :half-normal
-                       {:mean mean :variance variance
+                       {:mean mmean :variance variance
                         :distribution-parameters [:sigma :rng]
                         :lower-bound 0.0 :uppor-bound ##Inf}
                        {:keys [^double sigma] :or {sigma 1.0}} args
-                       mean (* sigma (/ m/SQRT2 m/M_SQRT_PI))
+                       mmean (* sigma (/ m/SQRT2 m/M_SQRT_PI))
                        variance (* sigma sigma (- 1.0 (/ 2.0 m/PI)))
                        dist (distribution :normal {:mu 0.0 :sd sigma})
                        lpdf-fn (fn ^double [^double x]
@@ -1775,17 +1721,17 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 ;; source: https://github.com/cran/gamlss.dist
 
 (distribution-template :zaga
-                       {:distribution-parameters [:mu :sigma :nu :lower-tail? :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :nu :lower-tail? :rng]
                         :lower-bound 0.0 :upper-bound ##Inf}
                        {:keys [^double mu ^double sigma ^double nu lower-tail?]
                         :or {mu 1.0 sigma 1.0 nu 0.1 lower-tail? true}} args
-                       mean (* (- 1.0 nu) mu)
+                       mmean (* (- 1.0 nu) mu)
                        s2 (* sigma sigma)
                        rs2 (/ s2)
                        lgrs2 (m/log-gamma rs2)
                        mus2 (* s2 mu)
                        rmus2 (/ mus2)
-                       variance (* mean mu (+ s2 nu))
+                       variance (* mmean mu (+ s2 nu))
                        lnu (m/log nu)
                        -nu (- 1.0 nu)
                        l1nu (m/log -nu)
@@ -1824,14 +1770,14 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        icdf-fn (fn ^double [^double v] (prot/icdf distr v)))
 
 (distribution-template :zinbi
-                       {:distribution-parameters [:mu :sigma :nu :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
                        {:keys [^double mu ^double sigma ^double nu]
                         :or {mu 1.0 sigma 1.0 nu 0.3}} args
                        nu- (- 1.0 nu)
                        lnu- (m/log nu-)
-                       mean (* nu- mu)
-                       variance (+ mean (* mean mu (+ sigma nu)))
+                       mmean (* nu- mu)
+                       variance (+ mmean (* mmean mu (+ sigma nu)))
                        distr (distribution :nbi {:mu mu :sigma sigma :rng r})
                        lpdf-fn (fn ^double [^double x]
                                  (let [fy (lpdf distr x)]
@@ -1845,7 +1791,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    (prot/icdf distr pnew))))
 
 (distribution-template :zanbi
-                       {:distribution-parameters [:mu :sigma :nu :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
                        {:keys [^double mu ^double sigma ^double nu]
                         :or {mu 1.0 sigma 1.0 nu 0.3}} args
@@ -1853,8 +1799,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        nu- (- 1.0 nu)
                        lnu- (m/log nu-)
                        c (/ nu- (- 1.0 (m/pow (inc (* mu sigma)) (- (/ sigma)))))
-                       mean (* mu c)
-                       variance (+ mean (* mean mu (inc (- sigma c))))
+                       mmean (* mu c)
+                       variance (+ mmean (* mmean mu (inc (- sigma c))))
                        distr (distribution :nbi {:mu mu :sigma sigma :rng r})
                        lfy0 (- (m/log (- 1.0 (m/exp (lpdf distr 0.0)))))
                        lpdf-fn (fn ^double [^double x]
@@ -1872,13 +1818,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    (prot/icdf distr (max 0.0 pnew2)))))
 
 (distribution-template :zip
-                       {:distribution-parameters [:mu :sigma :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
                        {:keys [^double mu ^double sigma]
                         :or {mu 5 sigma 0.1}} args
                        sigma- (- 1.0 sigma)
-                       mean (* sigma- mu)
-                       variance (* mean (inc (* mu sigma)))
+                       mmean (* sigma- mu)
+                       variance (* mmean (inc (* mu sigma)))
                        lsigma-mu (- (m/log sigma-) mu)
                        lmu (m/log mu)
                        lpdf0 (m/log (+ sigma (* sigma- (m/exp (- mu)))))
@@ -1959,13 +1905,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                          (solver/find-root h1 interval mu)))))))
 
 (distribution-template :bb
-                       {:distribution-parameters [:mu :sigma :bd :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :bd :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^long bd]
                         :or {mu 0.5 sigma 1.0 bd 10}} args
-                       mean (* bd mu)
-                       variance (* mean (- 1.0 mu) (inc (/ (* sigma (dec bd))
-                                                           (inc sigma))))
+                       mmean (* bd mu)
+                       variance (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd))
+                                                            (inc sigma))))
                        dist (distribution :binomial {:p mu :trials bd :rng r})
                        lpdf-fn (if (< sigma 0.00001)
                                  (fn ^double [^long x] (prot/lpdf dist x))
@@ -1996,14 +1942,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 
 (distribution-template :zabi
-                       {:distribution-parameters [:mu :sigma :bd :rng]
+                       {:mean mmean
+                        :distribution-parameters [:mu :sigma :bd :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^long bd]
                         :or {mu 0.5 sigma 0.1 bd 1}} args
                        sigma- (- 1.0 sigma)
-                       mean (/ (* sigma- bd mu)
-                               (- 1.0 (m/pow (- 1.0 mu) bd)))
-                       variance (- (* mean (+ (- 1.0 mu) (* bd mu))) (* mean mean))
+                       mmean (/ (* sigma- bd mu)
+                                (- 1.0 (m/pow (- 1.0 mu) bd)))
+                       variance (- (* mmean (+ (- 1.0 mu) (* bd mu))) (* mmean mmean))
                        lsigma (m/log sigma)
                        lsigma- (m/log sigma-)
                        dist (distribution :binomial {:trials bd :p mu :rng r})
@@ -2026,14 +1973,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                      0.0))))
 
 (distribution-template :zibi
-                       {:distribution-parameters [:mu :sigma :bd :rng]
+                       {:mean mmean
+                        :distribution-parameters [:mu :sigma :bd :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^long bd]
                         :or {mu 0.5 sigma 0.1 bd 1}} args
                        sigma- (- 1.0 sigma)
                        lsigma- (m/log sigma-)
-                       mean (* sigma- bd mu)
-                       variance (* mean (+ (- 1.0 mu) (* sigma bd mu)))
+                       mmean (* sigma- bd mu)
+                       variance (* mmean (+ (- 1.0 mu) (* sigma bd mu)))
                        dist (distribution :binomial {:trials bd :p mu :rng r})
                        pdf0 (m/log (+ sigma (* sigma- (pdf dist 0.0))))
                        lpdf-fn (fn ^double [^double x]
@@ -2049,7 +1997,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 ;; mean and variance from the paper: https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf
 
 (distribution-template :zabb
-                       {:distribution-parameters [:mu :sigma :bd :nu :rng]
+                       {:mean mmean :distribution-parameters [:mu :sigma :bd :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^double bd ^double nu]
                         :or {mu 0.5 sigma 0.1 nu 0.1 bd 1.0}} args
@@ -2058,10 +2006,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        lnu- (m/log nu-)
                        dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
                        pdf0- (- 1.0 (pdf dist 0.0))
-                       mean (/ (* nu- mu bd) pdf0-)
+                       mmean (/ (* nu- mu bd) pdf0-)
                        variance (- (/ (* nu- (+ (* bd mu (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
                                                 (* bd bd mu mu))) pdf0-)
-                                   (* mean mean))
+                                   (* mmean mmean))
                        -lpdf0- (- (m/log pdf0-))
                        cdf2 (cdf dist 0.0)
                        rcdf2- (/ (- 1.0 cdf2))
@@ -2079,15 +2027,16 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                      (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew)) 0.0))))
 
 (distribution-template :zibb
-                       {:distribution-parameters [:mu :sigma :bd :nu :rng]
+                       {:mean mmean
+                        :distribution-parameters [:mu :sigma :bd :nu :rng]
                         :continuous? false :lower-bound 0.0 :upper-bound bd}
                        {:keys [^double mu ^double sigma ^double bd ^double nu]
                         :or {mu 0.5 sigma 0.5 nu 0.1 bd 1.0}} args
                        lnu (m/log nu)
                        nu- (- 1.0 nu)
                        lnu- (m/log nu-)
-                       mean (* nu- bd mu)
-                       variance (+ (* mean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
+                       mmean (* nu- bd mu)
+                       variance (+ (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
                                    (* nu nu- bd bd mu mu))
                        dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
                        lpdf0- (m/log (+ nu (* nu- (pdf dist 0.0))))
@@ -2100,9 +2049,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    (if (pos? pnew)
                                      (prot/icdf dist pnew) 0.0))))
 
-(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."
-           :metadoc/categories #{:dist}}
-  default-normal (distribution :normal))
+(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."} default-normal (distribution :normal))
 
 (distribution-template :truncated
                        {:mean ##NaN :variance ##NaN
@@ -2215,11 +2162,12 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 ;; from Julia
 (distribution-template :fishers-noncentral-hypergeometric
                        {:pdf? true :distribution-parameters [:rng :ns :nf :n :omega]
-                        :continuous? false :lower-bound lower-bound :upper-bound upper-bound}
+                        :continuous? false :lower-bound mlower-bound :upper-bound mupper-bound
+                        :mean mmean}
                        {:keys [^long ns ^long nf ^long n ^double omega]
                         :or {ns 10 nf 10 n 5 omega 1.0}} args
-                       lower-bound (max 0 (- n nf))
-                       upper-bound (min ns n)
+                       mlower-bound (max 0 (- n nf))
+                       mupper-bound (min ns n)
                        mode (let [A (dec omega)
                                   B (- n nf (* (+ ns n 2) omega))
                                   C (* (inc ns) (* (inc n)) omega)]
@@ -2239,7 +2187,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                                         fi 1.0
                                                                         s 1.0
                                                                         i (inc mode)]
-                                                                   (if (> i upper-bound)
+                                                                   (if (> i mupper-bound)
                                                                      [s m]
                                                                      (let [^double ri (fri i)
                                                                            nfi (* fi ri)
@@ -2252,7 +2200,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                               fi 1.0
                                               s s
                                               i (dec mode)]
-                                         (if (< i lower-bound)
+                                         (if (< i mlower-bound)
                                            (/ m s)
                                            (let [^double ri (fri+ i) 
                                                  nfi (/ fi ri)
@@ -2261,17 +2209,17 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                (/ m s)
                                                (recur (+ m (* ^double (f i) nfi))
                                                       nfi sfi (dec i))))))))
-                       ^double mean (expectation identity)
-                       variance (expectation (fn [^double t] (m/sq (- t mean))))
+                       ^double mmean (expectation identity)
+                       variance (expectation (fn [^double t] (m/sq (- t mmean))))
                        pdf-fn (fn [^double k]
-                                (if-not (m/between? lower-bound upper-bound k)
+                                (if-not (m/between? mlower-bound mupper-bound k)
                                   0.0
                                   (let [k (int k)
                                         [^double s ^double fk] (loop [fk 1.0
                                                                       fi 1.0
                                                                       s 1.0
                                                                       i (inc mode)]
-                                                                 (if (> i upper-bound)
+                                                                 (if (> i mupper-bound)
                                                                    [s fk]
                                                                    (let [^double ri (fri i)
                                                                          nfi (* fi ri)
@@ -2285,7 +2233,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                            fi 1.0
                                            s s
                                            i (dec mode)]
-                                      (if (< i lower-bound)
+                                      (if (< i mlower-bound)
                                         (/ fk s)
                                         (let [^double ri (fri+ i) 
                                               nfi (/ fi ri)
@@ -2297,14 +2245,14 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                    nfi sfi (dec i)))))))))
                        cdf-fn (fn [^double k]                                
                                 (cond
-                                  (< k lower-bound) 0.0
-                                  (>= k upper-bound) 1.0
+                                  (< k mlower-bound) 0.0
+                                  (>= k mupper-bound) 1.0
                                   :else (let [k (int k)
                                               [^double s ^double fk] (loop [fk (if (>= k mode) 1.0 0.0)
                                                                             fi 1.0
                                                                             s 1.0
                                                                             i (inc mode)]
-                                                                       (if (> i upper-bound)
+                                                                       (if (> i mupper-bound)
                                                                          [s fk]
                                                                          (let [^double ri (fri i)
                                                                                nfi (* fi ri)
@@ -2319,7 +2267,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                                  fi 1.0
                                                  s s
                                                  i (dec mode)]
-                                            (if (< i lower-bound)
+                                            (if (< i mlower-bound)
                                               (/ fk s)
                                               (let [^double ri (fri+ i) 
                                                     nfi (/ fi ri)
@@ -2332,14 +2280,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                        icdf-fn (fn [^double q]
                                  (if-not (<= 0.0 q 1.0)
                                    ##NaN
-                                   (loop [i lower-bound]
+                                   (loop [i mlower-bound]
                                      (cond
-                                       (> i upper-bound) upper-bound
+                                       (> i mupper-bound) mupper-bound
                                        (> q ^double (cdf-fn i)) (recur (inc i)) 
                                        :else i)))))
 
-(defonce ^{:doc "List of distributions."
-           :metadoc/categories #{:dist}}
+(defonce ^{:doc "List of distributions."}
   distributions-list
   (into (sorted-set) (keys (methods distribution))))
 ;;
@@ -2359,7 +2306,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   If `rng` is `:smile` calls `smile.math.MathEx/setSeed()`.
 
   Without `rng` sets both `:smile` and `default-rng`"
-  {:metadoc/categories #{:rand}}
   ([]
    (MathEx/setSeed)
    (prot/set-seed! default-rng (lrand)))
@@ -2402,7 +2348,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   "Returns lazy sequence of random samples (can be limited to optional `n` values).
 
   Additionally one of the sampling methods can be provided, ie: `:uniform`, `:systematic` and `:stratified`."
-  {:metadoc/categories #{:rand}}
   ([] (prot/->seq default-rng))
   ([rng] (prot/->seq rng))
   ([rng n] (prot/->seq rng n))
