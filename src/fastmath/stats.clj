@@ -127,6 +127,7 @@
 
   See also [[quantile]]."
   {:metadoc/categories #{:stat}}
+  ([vs] (percentiles vs [25 50 75 100]))
   ([vs ps] (percentiles vs ps nil))
   ([vs ps estimation-strategy]
    (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
@@ -160,6 +161,7 @@
 
   See also [[percentiles]]."
   {:metadoc/categories #{:stat}}
+  ([vs] (quantiles vs [0.25 0.5 0.75 1.0]))
   ([vs qs]
    (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs)))
   ([vs qs estimation-strategy]
@@ -206,6 +208,7 @@
   * `:average` - average of ties
 
   Based on `spatstat.geom::weighted.quantile` from R."
+  ([vs ws] (wquantiles vs ws [0.25 0.5 0.75 1.0]))
   ([vs ws qs] (wquantiles vs ws qs :linear))
   ([vs ws qs method]
    (let [interp (wquantile-interpolator vs ws method)]
@@ -226,8 +229,10 @@
 (defn median
   "Calculate median of `vs`. See [[median-3]]."
   {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (percentile vs 50.0))
+  (^double [vs estimation-strategy]
+   (percentile vs 50.0 estimation-strategy))
+  (^double [vs]
+   (percentile vs 50.0)))
 
 (defn median-3
   "Median of three values. See [[median]]."

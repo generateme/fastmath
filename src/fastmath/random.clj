@@ -574,16 +574,15 @@ See also [[jittered-sequence-generator]]."}
   "Generate various noise as static function"
   {:clj-kondo/lint-as 'clojure.core/def}
   [noise-type method]
-  (let [nm (symbol (str noise-type "-noise"))]
-    `(defn ~nm
-       ~(str "Create " noise-type " function with optional configuration.")
-       ([] (~nm {}))
-       ([cfg#]
-        (let [ncfg# (noise-config cfg#)]
-          (fn
-            ([x#] (~method ncfg# x#))
-            ([x# y#] (~method ncfg# x# y#))
-            ([x# y# z#] (~method ncfg# x# y# z#))))))))
+  `(defn ~noise-type
+     ~(str "Create " noise-type " function with optional configuration.")
+     ([] (~noise-type {}))
+     ([cfg#]
+      (let [ncfg# (noise-config cfg#)]
+        (fn
+          ([x#] (~method ncfg# x#))
+          ([x# y#] (~method ncfg# x# y#))
+          ([x# y# z#] (~method ncfg# x# y# z#)))))))
 
 (gen-noise-function single-noise Noise/noise)
 (gen-noise-function fbm-noise FBM/noise)

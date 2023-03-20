@@ -242,7 +242,8 @@
   (clerk/show! 'nextjournal.clerk.tap)
   ;; (clerk/show! "notebooks/core.clj")
   (clerk/build! {:browse? false :paths ["notebooks/core.clj"
-                                        "notebooks/random.clj"]
+                                        #_"notebooks/random.clj"
+                                        "notebooks/stats.clj"]
                  :out-path "docs/notebooks/"})
   (clerk/clear-cache!)
   (clerk/halt!))
