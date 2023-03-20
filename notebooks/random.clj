@@ -6,7 +6,7 @@
             [nextjournal.clerk :as clerk]
             [utils :as u]
             [fastmath.core :as m]
-            [fastmath.stats :as stats]))
+            [fastmath.kernel :as k]))
 
 ;; # fastmath.random
 
@@ -1683,6 +1683,19 @@
  (r/upper-bound kde-distr)
  (r/mean kde-distr)
  (r/variance kde-distr))
+
+;; ##### Kernels
+
+;; Distributions for various kernels:
+;; * `:data`: `[-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]`
+;; * `:steps`: `100`
+;; * `:bandwidth`: auto
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+(for [k (remove #{:smile :default} k/kernel-density-list)]
+  (do (println k)
+      [k (u/dgraph (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
+                                                             :kde k :steps 100}) {:pdf [-3 3]})]))
 
 ;; #### Empirical
 

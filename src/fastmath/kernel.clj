@@ -688,8 +688,13 @@
   (let [adata (m/seq->double-array data)
         sd (smile.math.MathEx/sd adata)
         iqr (- (smile.math.MathEx/q3 adata)
-               (smile.math.MathEx/q1 adata))]
-    (* 1.06 (min sd (/ iqr 1.34)) (m/pow (alength ^doubles data) -0.2))))
+               (smile.math.MathEx/q1 adata))
+        res (cond
+              (and (pos? sd) (pos? iqr)) (min sd (/ iqr 1.34))
+              (pos? sd) sd
+              (pos? iqr) (/ iqr 1.34)
+              :else 1.0)]
+    (* 1.06 res (m/pow (alength ^doubles adata) -0.2))))
 
 (defn- kde
   "Return kernel density estimation function"

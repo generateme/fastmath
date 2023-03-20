@@ -210,8 +210,8 @@
 (variadic-predicate-proxy ^{:metadoc/categories -compare-set-} not== neq)
 
 (defn fast+ {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
-             :doc "Primitive `+` for two arguments as function (not macro)."
-             :metadoc/categories -prim-set-} ^double [^double a ^double b] (+ a b))
+          :doc "Primitive `+` for two arguments as function (not macro)."
+          :metadoc/categories -prim-set-} ^double [^double a ^double b] (+ a b))
 (defn fast- {:inline (fn [x y] `(- ~x ~y)) :inline-arities #{2}
              :doc "Primitive `-` for two arguments as function (not macro)."
              :metadoc/categories -prim-set-} ^double [^double a ^double b] (- a b))

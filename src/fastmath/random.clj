@@ -1549,10 +1549,13 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defn- find-first-non-zero
   ^double [f xs]
-  (->> xs
-       (map #(vector % (f %)))
-       (filter #(pos? ^double (second %)))
-       (ffirst)))
+  (or (->> xs
+           (map #(vector % (f %)))
+           (filter #(pos? ^double (second %)))
+           (ffirst))
+      (do
+        (println (first xs) (f (first xs)))
+        (first xs))))
 
 (defn- narrow-range
   [kd [^double mn ^double mx ^double step] ^long steps]

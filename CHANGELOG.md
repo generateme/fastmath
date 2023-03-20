@@ -82,6 +82,7 @@ All notable changes to this project will be documented in this file. This change
 * wrong primitive hinting and protocol extensions
 * `set-seed` calls protocol for PRNGs
 * `integrate-pdf` accuracy increased
+* `nrd` fixed when bandwidth was 0
 
 ## [2.1.8]
 
