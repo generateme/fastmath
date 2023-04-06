@@ -7,7 +7,9 @@
             [nextjournal.clerk.tap]
             [fastmath.random :as r]
             [clojure2d.color :as c]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.data.csv :as csv]
+            [clojure.java.io :as io]))
 
 (def ^:const size 200)
 
@@ -63,6 +65,50 @@
        (c2d/set-color c 0x303065)
        (doseq [p (split-at-invalid-double xsys (* 1.1 (m/max (m/abs rx) (m/abs ry))))]
          (c2d/path c (map (fn [[x y]] [(md x) (mr y)]) p)))
+       (c2d/get-image c)))))
+
+(defn common-extent
+  [xsyss]
+  (->> xsyss
+       (map (fn [xsys] (stats/extent (map second (filter (comp m/valid-double? second) xsys)))))
+       (reduce (fn [[mn mx] [y1 y2]]
+                 [(min mn y1) (max mx y2)]) [##Inf ##-Inf])))
+
+(defn fgraphs-int
+  ([fs] (fgraphs-int fs nil))
+  ([fs domain] (fgraphs-int fs domain :domain))
+  ([fs domain rnge] (fgraphs-int fs domain rnge size))
+  ([fs domain rnge size]
+   (let [[dx dy :as dom] (or domain [-3.3 3.3])
+         md (m/make-norm dx dy 5.0 (- size 5))
+         xsyss (map (fn [f] (m/sample f dx dy (* 2 size) true)) fs)
+         [frx fry] (common-extent xsyss)
+         [rx ry] (case rnge
+                   :domain dom
+                   :zero [(min 0.0 frx)
+                          (max 0.0 fry)]
+                   rnge)
+         rx (or rx frx)
+         ry (or ry fry)
+         mr (m/make-norm rx ry (- size 5.0) 5.0)         
+         r0 (mr 0)
+         d0 (md 0)
+         dticks (map md (remove zero? (range (m/qfloor dx) (m/qceil dy))))
+         rticks (map mr (remove zero? (range (m/qfloor rx) (m/qceil ry))))]
+     (c2d/with-canvas [c (c2d/canvas size size :highest)]
+       (c2d/set-background c 0xfafaff)
+       (c2d/set-color c 0x77303065)
+       (c2d/line c 0 r0 size r0)
+       (c2d/line c d0 0 d0 size)
+       (c2d/set-color c 0x11303065)
+       (doseq [dt dticks]
+         (c2d/line c dt 0 dt size))
+       (doseq [rt rticks]
+         (c2d/line c 0 rt size rt))
+       (doseq [[xsys color] (map vector xsyss (c/palette :category10))]
+         (c2d/set-color c color)
+         (doseq [p (split-at-invalid-double xsys (* 1.1 (m/max (m/abs rx) (m/abs ry))))]
+           (c2d/path c (map (fn [[x y]] [(md x) (mr y)]) p))))
        (c2d/get-image c)))))
 
 (defn sample-int
@@ -204,7 +250,13 @@
                                          :rows [~@(for [[s i] rows]
                                                     `[(clerk/code (quote ~s)) (or ~i "-")])]}))
 
-
+(defmacro table3
+  [last-col-name rows]
+  `(clerk/with-viewer unpaginated-table {:head ["symbol" "info" ~last-col-name]
+                                         :rows [~@(for [[s i f] rows]
+                                                    `[(clerk/code (quote ~s))
+                                                      (or ~i "-")
+                                                      (clerk/md ~(or f ""))])]}))
 
 
 (def source-files "https://github.com/generateme/fastmath/blob/master/src/")
@@ -234,6 +286,41 @@
                             [:p]])
             [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]))
 
+;; csv
+
+(defn transform [spec data]
+  (if (sequential? spec)
+    (let [[nm f] spec] [nm (f data)])
+    [spec (read-string data)]))
+(defn zip [header row] (into {} (map transform header row)))
+(defn parse-rows  [header rows]  (map (partial zip header) rows))
+(defn read-csv
+  [fname header]
+  (->> (io/resource fname)
+       (slurp)
+       (csv/read-csv)
+       (rest)
+       (parse-rows header)))
+
+(defn data->fn
+  [data]
+  (memoize (fn
+             ([] data)
+             ([selector] (map selector data))
+             ([selector filter-pred] (map selector (filter filter-pred data))))))
+
+(defn by
+  ([data f]
+   (mapv second (sort-by first (group-by f (data)))))
+  ([data f selector]
+   (vec (for [group (by data f)]
+          (map selector group)))))
+
+(def iris (data->fn (read-csv "iris.csv"
+                            [:sepal-length :sepal-width :petal-length :petal-width [:species keyword]])))
+(def mtcars (data->fn (read-csv "mtcars.csv"
+                              [[:name identity] :mpg :cyl :disp :hp :drat :wt :qsec :vs :am :gear :carb])))
+
 ^{::clerk/visibility :hide
   ::clerk/viewer :hide-result}
 (comment
@@ -247,5 +334,3 @@
                  :out-path "docs/notebooks/"})
   (clerk/clear-cache!)
   (clerk/halt!))
-
-

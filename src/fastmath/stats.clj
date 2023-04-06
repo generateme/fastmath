@@ -56,34 +56,19 @@
             [fastmath.random :as r]
             [fastmath.distance :as d]
             [fastmath.vector :as v]
-            [fastmath.interpolation :as interp])
+            [fastmath.interpolation :as interp]
+            [fastmath.optimization :as opt]
+            [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
            [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
-           [org.apache.commons.math3.stat.regression SimpleRegression]))
+           [org.apache.commons.math3.stat.regression SimpleRegression]
+           [org.apache.commons.math3.analysis.integration RombergIntegrator]
+           [org.apache.commons.math3.analysis UnivariateFunction]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
-
-(defn mode
-  "Find the value that appears most often in a dataset `vs`.
-
-  See also [[modes]]."
-  {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [m (StatUtils/mode (m/seq->double-array vs))]
-    (aget ^doubles m 0)))
-
-(defn modes
-  "Find the values that appears most often in a dataset `vs`.
-
-  Returns sequence with all most appearing values in increasing order.
-
-  See also [[mode]]."
-  {:metadoc/categories #{:stat}}
-  [vs]
-  (seq ^doubles (StatUtils/mode (m/seq->double-array vs))))
 
 (def
   ^{:metadoc/categories #{:stat}
@@ -113,7 +98,7 @@
   (^double [vs ^double p]
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
-   (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
+   (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
      (.evaluate perc (m/seq->double-array vs) p))))
 
 (defn percentiles
@@ -249,13 +234,13 @@
   "Geometric mean for positive values only"
   {:metadoc/categories #{:stat}}
   ^double [vs]
-  (m/exp (mean (map #(m/log %) vs))))
+  (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
 
 (defn harmean
   "Harmonic mean"
   {:metadoc/categories #{:stat}}
   ^double [vs]
-  (/ (mean (map #(/ 1.0 ^double %) vs))))
+  (/ (mean (map (fn [^double v] (/ v)) vs))))
 
 (defn powmean
   "Generalized power mean"
@@ -268,14 +253,15 @@
     (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
     (== power 2.0) (m/sqrt (mean (map m/sq vs)))
     (== power 3.0) (m/cbrt (mean (map m/cb vs))) 
-    :else (m/pow (mean (map #(m/pow % power) vs)) (/ power))))
+    :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (/ power))))
 
 (defn wmean
   "Weighted mean"
   {:metadoc/categories #{:stat}}
-  ^double [vs weights]
-  (/ ^double (reduce m/fast+ (map m/fast* vs weights))
-     ^double (reduce m/fast+ weights)))
+  (^double [vs] (mean vs))
+  (^double [vs weights]
+   (/ ^double (reduce m/fast+ (map m/fast* vs weights))
+      ^double (reduce m/fast+ weights))))
 
 (defn population-variance
   "Calculate population variance of `vs`.
@@ -318,7 +304,7 @@
    (m/sqrt (variance vs u))))
 
 (defn variation
-  "stddev / mean"
+  "Coefficient of variation CV = stddev / mean"
   {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [vs (m/seq->double-array vs)]
@@ -328,20 +314,25 @@
 (defn median-absolute-deviation
   "Calculate MAD"
   {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [m (median vs)]
-    (median (map (fn [^double x] (m/abs (- x m))) vs))))
-
-(defn mean-absolute-deviation
-  "Calculate mean absolute deviation"
-  {:metadoc/categories #{:stat}}
-  ^double [vs]
-  (let [m (mean vs)]
-    (mean (map (fn [^double x] (m/abs (- x m))) vs))))
+  (^double [vs] (median-absolute-deviation vs nil))
+  (^double [vs center]
+   (let [m (double (or center (median vs)))]
+     (median (map (fn [^double x] (m/abs (- x m))) vs))))
+  (^double [vs center estimation-strategy]
+   (let [m (double (or center (median vs estimation-strategy)))]
+     (median (map (fn [^double x] (m/abs (- x m))) vs) estimation-strategy))))
 
 (def ^{:doc "Alias for [[median-absolute-deviation]]"
      :metadoc/categories #{:stat}}
   mad median-absolute-deviation)
+
+(defn mean-absolute-deviation
+  "Calculate mean absolute deviation"
+  {:metadoc/categories #{:stat}}
+  (^double [vs] (mean-absolute-deviation vs nil))
+  (^double [vs center]
+   (let [m (double (or center (mean vs)))]
+     (mean (map (fn [^double x] (m/abs (- x m))) vs)))))
 
 (defn sem
   "Standard error of mean"
@@ -351,7 +342,6 @@
     (/ s (m/sqrt (count vs)))))
 
 (defmacro ^:private build-extent
-  {:clj-kondo/lint-as 'clojure.core/def}
   [nm mid ext]
   `(defn ~nm
      ~(str " -/+ " ext " and " mid)
@@ -383,10 +373,10 @@
 (defn quantile-extent
   "Return quantile range and median.
 
-  `p` - calculates extent of `p` and `100-p` (default: `p=25`)"
+  `q` - calculates extent of `q` and `1.0-q` (default: `q=0.25`)"
   {:metadoc/categories #{:extent}}
-  ([vs] (quantile-extent vs 25.0))
-  ([vs ^double q] (quantile-extent vs q (- 100.0 q)))
+  ([vs] (quantile-extent vs 0.25))
+  ([vs ^double q] (quantile-extent vs q (- 1.0 q)))
   ([vs q1 q2] (quantile-extent vs q1 q2 :legacy))
   ([vs ^double q1 ^double q2 estimation-strategy]
    (let [avs (m/seq->double-array vs)]
@@ -465,10 +455,9 @@
    (adjacent-values vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
-         q1 (percentile avs 25.0 estimation-strategy)
-         q3 (percentile avs 75.0 estimation-strategy)]
-     (adjacent-values avs q1 q3)))
-  ([vs ^double q1 ^double q3]
+         [q1 m q3] (percentiles avs [25.0 50.0 75.0] estimation-strategy)]
+     (adjacent-values avs q1 q3 m)))
+  ([vs ^double q1 ^double q3 ^double m]
    (let [avs (m/seq->double-array vs)
          iqr (* 1.5 (- q3 q1))
          lav-thr (- q1 iqr)
@@ -476,15 +465,31 @@
      (java.util.Arrays/sort avs)
      [(first (filter #(>= (double %) lav-thr) avs))
       (last (filter #(<= (double %) uav-thr) avs))
-      (median vs)])))
+      m])))
+
+(defn inner-fence-extent
+  "Returns LIF, UIF and median"
+  ([vs] (inner-fence-extent vs :legacy))
+  ([vs estimation-strategy]
+   (let [[^double q1 ^double m ^double q3] (percentiles vs [25.0 50.0 75.0] estimation-strategy)
+         iqr+ (* 1.5 (- q3 q1))]
+     [(- q1 iqr+) (+ q3 iqr+) m])))
+
+(defn outer-fence-extent
+  "Returns LOF, UOF and median"
+  ([vs] (outer-fence-extent vs :legacy))
+  ([vs estimation-strategy]
+   (let [[^double q1 ^double m ^double q3] (percentiles vs [25.0 50.0 75.0] estimation-strategy)
+         iqr+ (* 3.0 (- q3 q1))]
+     [(- q1 iqr+) (+ q3 iqr+) m])))
 
 (defn outliers
-  "Find outliers defined as values outside outer fences.
+  "Find outliers defined as values outside inner fences.
 
   Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
 
-  * LIF (Lower Outer Fence) equals `(- Q1 (* 1.5 IQR))`.
-  * UIF (Upper Outer Fence) equals `(+ Q3 (* 1.5 IQR))`.
+  * LIF (Lower Inner Fence) equals `(- Q1 (* 1.5 IQR))`.
+  * UIF (Upper Inner Fence) equals `(+ Q3 (* 1.5 IQR))`.
 
   Returns sequence.
 
@@ -498,14 +503,66 @@
          q3 (percentile avs 75.0 estimation-strategy)]
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
-   (let [;;avs (m/seq->double-array vs)
+   (let [ ;;avs (m/seq->double-array vs)
          iqr (* 1.5 (- q3 q1))
-         lof-thr (- q1 iqr)
-         uof-thr (+ q3 iqr)]
+         lif-thr (- q1 iqr)
+         uif-thr (+ q3 iqr)]
      ;; (java.util.Arrays/sort avs)
      (filter #(let [v (double %)]
-                (or (< v lof-thr)
-                    (> v uof-thr))) vs))))
+                (or (< v lif-thr)
+                    (> v uif-thr))) vs))))
+
+(declare histogram)
+
+(defn modes
+  "Find the values that appears most often in a dataset `vs`.
+
+  Returns sequence with all most appearing values in increasing order.
+
+  See also [[mode]]."
+  ([vs method] (modes vs method {}))
+  ([vs method opts]
+   (let [avs (m/seq->double-array vs)]
+     (case method
+       :histogram (let [{:keys [bins ^double step]} (histogram avs (get opts :bins :rice))
+                        ibins (vec (map-indexed #(conj %2 %1) bins))]
+                    (->> ibins
+                         (map (fn [[^double L ^long fm ^long id]]
+                                (let [^long f1 (second (get ibins (dec id) [0 0]))
+                                      ^long f2 (second (get ibins (inc id) [0 0]))]
+                                  [(+ L (* step (/ (- fm f1)
+                                                   (- (* 2.0 fm) f1 f2)))) (- fm)])))
+                         (sort-by second)
+                         (map first)))
+       :pearson (let [mu (mean avs)
+                      m (median avs (:estimation-strategy opts))]
+                  [(- (* 3.0 m) (* 2.0 mu))])
+       :kde (let [kde (k/kernel-density (get opts :kernel :gaussian) avs (:bandwidth opts))]
+              (->> (map (fn [^double v] [v (- ^double (kde v))]) vs)
+                   (sort-by second)
+                   (map first)))
+       (seq ^doubles (StatUtils/mode avs)))))
+  ([vs]
+   (seq ^doubles (StatUtils/mode (m/seq->double-array vs)))))
+
+(defn mode
+  "Find the value that appears most often in a dataset `vs`.
+
+  For sample from continuous distribution, three algorithms are possible:
+  * `:histogram` - calculated from [[histogram]]
+  * `:kde` - calculated from KDE
+  * `:pearson` - mode = mean-3(median-mean)
+  * `:default` - discrete mode
+
+  Histogram accepts optional `:bins` (see [[histogram]]). KDE method accepts `:kde` for kernel name (default `:gaussian`) and `:bandwidth` (auto). Pearson can accept `:estimation-strategy` for median.
+
+  See also [[modes]]."
+  (^double [vs method] (mode vs method {}))
+  (^double [vs method opts]
+   (first (modes vs method opts)))
+  (^double [vs]
+   (let [m (StatUtils/mode (m/seq->double-array vs))]
+     (aget ^doubles m 0))))
 
 (defn minimum
   "Minimum value from sequence."
@@ -522,6 +579,12 @@
   (if (= (type vs) m/double-array-type)
     (smile.math.MathEx/max ^doubles vs)
     (reduce clojure.core/max vs)))
+
+(defn span
+  "Width of the sample, maximum value minus minimum value"
+  ^double [vs]
+  (let [avs (m/seq->double-array vs)]
+    (- (maximum avs) (minimum avs))))
 
 (defn extent
   "Return extent (min, max, mean) values from sequence"
@@ -546,13 +609,15 @@
 
   * `:absolute?` - calculate sum as absolute values (default: `false`)
   * `:mean?` - returns mean (proper moment) or just sum of differences (default: `true`)
-  * `:center` - value of central (default: `nil` = mean)"
+  * `:center` - value of center (default: `nil` = mean)
+  * `:normalize?` - apply normalization by standard deviation to the order power"
   (^double [vs] (moment vs 2.0 nil))
   (^double [vs ^double order] (moment vs order nil))
-  (^double [vs ^double order {:keys [absolute? center mean?]
-                              :or {absolute? false center nil mean? true}}]
-   (let [in (double-array vs)
+  (^double [vs ^double order {:keys [absolute? center mean? normalize?]
+                              :or {mean? true}}]
+   (let [in (m/seq->double-array vs)
          cin (alength in)
+         nf (if normalize? (m/pow (variance in) (* 0.5 order)) 1.0)
          ^double center (or center (mean in))
          f (cond
              (m/one? order) m/fast-identity
@@ -565,9 +630,15 @@
        (when (< idx cin)
          (aset in idx ^double (f (a (- (aget in idx) center))))
          (recur (inc idx))))
-     (if mean? (mean in) (sum in)))))
+     (/ (if mean? (mean in) (sum in)) nf))))
 
 (def ^{:deprecated "Use [[moment]] function"} second-moment moment)
+
+(defn- yule-skewness
+  ^double [vs ^double u]
+  (let [[^double q1 ^double q2 ^double q3] (quantiles vs [u 0.5 (- 1.0 u)])]
+    (/ (+ q3 (* -2.0 q2) q1)
+       (- q3 q1))))
 
 (defn skewness
   "Calculate skewness from sequence.
@@ -578,11 +649,13 @@
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)]
      (cond
+       (sequential? typ) (cond
+                           (= :mode (first typ)) (let [[_ method opts] typ]
+                                                   (/ (- (mean vs) (mode vs method opts)) (stddev vs)))
+                           (#{:B1 :yule} (first typ)) (yule-skewness vs (second typ)))
        (= :mode typ) (/ (- (mean vs) (mode vs)) (stddev vs))
        (= :median typ) (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
-       (#{:B1 :yule} typ) (let [[^double q1 ^double q2 ^double q3] (quantiles vs [0.25 0.5 0.75])]
-                            (/ (+ q3 (* -2.0 q2) q1)
-                               (- q3 q1)))
+       (#{:B1 :yule} typ) (yule-skewness vs 0.25)
        (= :B3 typ) (let [v (median vs)]
                      (/ (- (mean vs) v)
                         (moment vs 1.0 {:absolute? true :center v})))
@@ -595,27 +668,26 @@
                  (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
                  :else v))))))
 
-(declare standardize)
-
 (defn kurtosis
   "Calculate kurtosis from sequence.
 
-  Possible typs: `:G2` (default), `:g2`, `:excess` or `:kurt`."
+  Possible typs: `:G2` (default), `:g2` (or `:excess`), `:geary` or `:kurt`."
   {:metadoc/categories #{:stat}}
   (^double [vs] (kurtosis vs nil))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)
-         n (alength vs)
-         ^Kurtosis k (Kurtosis.)
-         v (.evaluate k vs)]
-     (cond
-       (= :excess typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                          (inc n))
-       (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                               (inc n))) ;; based on methods of moments without correction
-       (= :g2 typ) (- (mean (map (comp m/sq m/sq) (standardize vs))) 3)
-       (= :G2 typ) v
-       :else v))))
+         n (alength vs)         ]
+     (if (= typ :geary)
+       (/ (mean-absolute-deviation vs)
+          (population-stddev vs))
+       (let [^Kurtosis k (Kurtosis.)
+             v (.evaluate k vs)]
+         (cond
+           (#{:excess :g2} typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                                   (inc n))
+           (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                                   (inc n)))
+           :else v))))))
 
 (defn ci
   "T-student based confidence interval for given data. Alpha value defaults to 0.98.
@@ -657,12 +729,19 @@
 (defn bootstrap
   "Generate set of samples of given size from provided data.
 
-  Default `samples` is 50, number of `size` defaults to 1000"
-  ([vs] (bootstrap vs 50))
-  ([vs samples] (bootstrap vs samples 1000))
+  Default `samples` is 200, number of `size` defaults to sample size."
+  ([vs] (bootstrap vs 200))
+  ([vs samples] (bootstrap vs samples (count vs)))
   ([vs samples size]
    (let [dist (r/distribution :enumerated-real {:data vs})]
      (repeatedly samples #(r/->seq dist size)))))
+
+(defn jackknife
+  "Generates set of samples using jackknife method"
+  [vs]
+  (map (fn [id]
+         (let [[a b] (split-at id vs)]
+           (concat a (rest b)))) (range (count vs))))
 
 (defn stats-map
   "Calculate several statistics of `vs` and return as map.
@@ -683,7 +762,7 @@
          iqr (- q3 q1)
          sd (stddev avs)
          mad (median-absolute-deviation avs)
-         [lav uav] (adjacent-values avs q1 q3)]
+         [lav uav] (adjacent-values avs q1 q3 mdn)]
      {:Size sz
       :Min mn
       :Max mx
@@ -715,6 +794,20 @@
   [vs]
   (seq ^doubles (StatUtils/normalize (m/seq->double-array vs))))
 
+(defn robust-standardize
+  "Normalize samples to have median = 0 and MAD = 1.
+
+  If `q` argument is used, scaling is done by quantile difference (Q_q, Q_(1-q)). Set 0.25 for IQR."
+  ([vs]
+   (let [avs (m/seq->double-array vs)
+         mad (median-absolute-deviation avs)
+         md (median avs)]
+     (map (fn [^double x] (/ (- x md) mad)) vs)))
+  ([vs ^double q]
+   (let [[^double q1 ^double md ^double q2] (quantiles vs [q 0.5 (- 1.0 q)])
+         diff (m/abs (- q2 q1))]
+     (map (fn [^double x] (/ (- x md) diff)) vs))))
+
 (defn demean
   "Subtract mean from sequence"
   {:metadoc/categories #{:norm}}
@@ -733,11 +826,9 @@
   ([vs ^double low ^double high ^double nan]
    (let [[^double low ^double high] (if (< low high) [low high] [high low])]
      (map (fn [^double v]
-            (cond
-              (m/nan? v) nan
-              (< v low) low
-              (> v high) high
-              :else v)) vs))))
+            (if (m/nan? v)
+              nan
+              (m/constrain v low high))) vs))))
 
 (defn trim
   "Return trimmed data. Trim is done by using quantiles, by default is set to 0.2."
@@ -752,7 +843,15 @@
                (<= low v high))
              (map (fn [^double v] (if (m/nan? v) nan v)) vs)))))
 
-;;
+(defn rescale
+  "Lineary rascale data to desired range, [0,1] by default"
+  ([vs] (rescale vs 0.0 1.0))
+  ([vs ^double low ^double high]
+   (let [avs (m/seq->double-array vs)
+         mn (minimum avs)
+         mx (maximum avs)
+         n (m/make-norm mn mx low high)]
+     (map n vs))))
 
 (defn covariance
   "Covariance of two sequences."
@@ -972,33 +1071,84 @@
       :bins (map vector search-array buff)})))
 
 ;;
-;;;;;;;;;;;;;;
-;; tests
+
+(defn- weighted-variance-average
+  ^double [groups]
+  (reduce (fn [^double sum xs]
+            (+ sum (* (dec (count xs))
+                      (variance xs)))) 0.0 groups))
+
+(defn pooled-variance
+  "Calculate pooled variance for samples and method.
+
+  Methods:
+  * `:unbiased` - sqrt of weighted average of variances (default)
+  * `:biased` - biased version of `:unbiased`
+  * `:avg` - sqrt of average of variances"
+  (^double [groups] (pooled-variance groups :unbiased))
+  (^double [groups method]
+   (let [agroups (map m/seq->double-array groups)]
+     (case method
+       :biased (/ (weighted-variance-average agroups)
+                  ^double (reduce m/fast+ (map alength agroups)))
+       :avg (/ ^double (reduce m/fast+ (map variance agroups))
+               (count groups))
+       (/ (weighted-variance-average agroups)
+          (- ^double (reduce m/fast+ (map alength agroups)) (count groups)))))))
+
+(defn pooled-stddev
+  "Calculate pooled standard deviation for samples and method"
+  (^double [groups] (m/sqrt (pooled-variance groups)))
+  (^double [groups method] (m/sqrt (pooled-variance groups method))))
 
 (defn cohens-d
-  "Cohen's d effect size for two groups, using sqrt of mean of variances as pooled sd"
+  "Cohen's d effect size for two groups"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [group1 (m/seq->double-array group1)
-        group2 (m/seq->double-array group2)
-        diff (- (mean group1) (mean group2))
-        var1 (variance group1)
-        var2 (variance group2)]
-    (/ diff (m/sqrt (* 0.5 (+ var1 var2))))))
+  (^double [group1 group2] (cohens-d group1 group2 :unbiased))
+  (^double [group1 group2 method]
+   (let [group1 (m/seq->double-array group1)
+         group2 (m/seq->double-array group2)
+         diff (- (mean group1) (mean group2))]
+     (/ diff (pooled-stddev [group1 group2] method)))))
 
 (defn- effect-size-correction
-  ^double [^long n]
-  (* (/ (- n 3)
-        (- n 2.25))
-     (m/sqrt (/ (- n 2.0) n))))
+  ^double [^long df]
+  (- 1.0 (/ 3.0 (dec (* 4.0 df)))))
 
 (defn cohens-d-corrected
   "Cohen's d corrected for small group size"
   {:metadoc/categories #{:effect}}
+  (^double [group1 group2] (cohens-d-corrected group1 group2 :unbiased))
+  (^double [group1 group2 method]
+   (* (effect-size-correction (if (= method :biased)
+                                (+ (count group1)
+                                   (count group2))
+                                (+ (count group1)
+                                   (count group2) -2)))
+      (cohens-d group1 group2 method))))
+
+(defn hedges-g
+  "Hedges's g effect size for two groups"
+  {:metadoc/categories #{:effect}}
   ^double [group1 group2]
-  (* (effect-size-correction (+ (count group1)
-                                (count group2)))
-     (cohens-d group1 group2)))
+  (cohens-d group1 group2 :unbiased))
+
+(defn hedges-g-corrected
+  "Cohen's d corrected for small group size"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (cohens-d-corrected group1 group2 :unbiased))
+
+(defn hedges-g*
+  "Less biased Hedges's g effect size for two groups, J term correction."
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [df (+ (count group1) (count group2) -2)
+        df2 (* 0.5 df)
+        j (m/exp (- (m/log-gamma df2)
+                    (m/log (m/sqrt df2))
+                    (m/log-gamma (* 0.5 (dec df)))))]
+    (* j (hedges-g group1 group2))))
 
 (defn glass-delta
   "Glass's delta effect size for two groups"
@@ -1007,46 +1157,28 @@
   (let [group2 (m/seq->double-array group2)]
     (/ (- (mean group1) (mean group2)) (stddev group2))))
 
-(defn hedges-g
-  "Hedges's g effect size for two groups"
-  {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [group1 (m/seq->double-array group1)
-        group2 (m/seq->double-array group2)
-        diff (- (mean group1) (mean group2))
-        var1 (variance group1)
-        var2 (variance group2)
-        n1 (alength group1)
-        n2 (alength group2)]
-    (/ diff (m/sqrt (/ (+ (* (dec n1) var1)
-                          (* (dec n2) var2))
-                       (+ n1 n2 -2))))))
+(defn means-ratio
+  "Means ratio"
+  (^double [group1 group2] (means-ratio group1 group2 false))
+  (^double [group1 group2 adjusted?]
+   (let [ag1 (m/seq->double-array group1)
+         ag2 (m/seq->double-array group2)
+         m1 (mean ag1)
+         m2 (mean ag2)]
+     (if-not adjusted?
+       (/ m1 m2)
+       (let [v1 (variance ag1)
+             v2 (variance ag2)
+             n1 (alength ag1)
+             n2 (alength ag2)
+             J (* 0.5 (- (/ v1 (* n1 m1 m1))
+                         (/ v2 (* n2 m2 m2))))]
+         (m/exp (+ (- (m/log m1) (m/log m2)) J)))))))
 
-(defn hedges-g-corrected
-  "Cohen's d corrected for small group size"
-  {:metadoc/categories #{:effect}}
+(defn means-ratio-corrected
+  "Bias correced means ratio"
   ^double [group1 group2]
-  (* (effect-size-correction (+ (count group1)
-                                (count group2)))
-     (hedges-g group1 group2)))
-
-(defn hedges-g*
-  "Less biased Hedges's g effect size for two groups"
-  {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [j (- 1.0 (/ 3.0 (- (* 4.0 (+ (count group1) (count group2))) 9.0)))]
-    (* j (hedges-g group1 group2))))
-
-(defn ameasure
-  "Vargha-Delaney A measure for two populations a and b"
-  {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [m (count group1)
-        n (count group2)
-        ^double r1 (reduce m/fast+ (take m (m/rank (concat group1 group2))))
-        r1 (+ m r1)] ;; correct rank, which is 0 based
-    (/ (- (+ r1 r1) (* m (inc m)))
-       (* 2.0 m n))))
+  (means-ratio group1 group2 true))
 
 (defn cliffs-delta
   "Cliff's delta effect size for ordinal data."
@@ -1056,6 +1188,72 @@
                                    b group2]
                                (m/signum (compare a b))))
      (* (count group1) (count group2))))
+
+;;
+
+(defn ameasure
+  "Vargha-Delaney A measure for two populations a and b"
+  {:metadoc/categories #{:effect}}
+  ^double [group1 group2]
+  (let [m (count group1)
+        n (count group2)
+        ^double r1 (reduce m/fast+ (take m (m/rank1 (concat group1 group2))))]
+    (/ (- (+ r1 r1) (* m (inc m)))
+       (* 2.0 m n))))
+
+(defn wmw-odds
+  "Wilcoxon-Mann-Whitney odds"
+  ^double [group1 group2]
+  (m/exp (m/logit (* 0.5 (inc (cliffs-delta group1 group2))))))
+
+(defn- integrate-kde
+  [iterations kde ranges]
+  (let [^RombergIntegrator integrator
+        (RombergIntegrator. iterations RombergIntegrator/ROMBERG_MAX_ITERATIONS_COUNT)
+        
+        f (reify UnivariateFunction (value [_ x] (kde x)))]
+    (map (fn [[^double mn ^double mx]]
+           (.integrate integrator Integer/MAX_VALUE f mn mx)) ranges)))
+
+(defn p-overlap
+  "Overlapping index, kernel density approximation"
+  (^double [group1 group2] (p-overlap group1 group2 {}))
+  (^double [group1 group2 {:keys [kde bandwidth ^long min-iterations ^long steps]
+                           :or {kde :gaussian min-iterations 3 steps 500}}]
+   (let [[kde1 _ ^double h1 ^double mn1 ^double mx1] (k/kernel-density kde group1 bandwidth true)
+         [kde2 _ ^double h2 ^double mn2 ^double mx2] (k/kernel-density kde group2 bandwidth true)
+         h (* 2.0 (+ h1 h2))
+         mn (- (m/min mn1 mn2) h)
+         mx (+ (m/max mx1 mx2) h)
+         iters (m/max 2 min-iterations)
+         ranges (partition 2 1 (m/slice-range mn mx steps))
+         i1 (integrate-kde iters kde1 ranges)
+         i2 (integrate-kde iters kde2 ranges)]
+     (reduce m/fast+ (map m/fast-min i1 i2)))))
+
+(defn cohens-u2
+  "Cohen's U2, the proportion of one of the groups that exceeds the same proportion in the other group."
+  (^double [group1 group2] (cohens-u2 group1 group2 :legacy))
+  (^double [group1 group2 estimation-strategy]
+   (let [g1 (m/seq->double-array group1)
+         g2 (m/seq->double-array group2)
+         target (fn [^double p]
+                  (let [p (m/constrain p 4.9E-324 0.9999999999999999)                        
+                        q1 (quantiles g1 [p (- 1.0 p)] estimation-strategy)
+                        q2 (quantiles g2 [(- 1.0 p) p] estimation-strategy)]
+                    (-> (v/sub q1 q2)
+                        (v/abs)
+                        (v/mn))))]
+     (ffirst (opt/minimize :brent target {:bounds [[0.5 1.0]] :initial [0.75]})))))
+
+(defn cohens-u3
+  "Cohen's U3, the proportion of the second group that is smaller than the median of the first group."
+  (^double [group1 group2] (cohens-u3 group1 group2 :legacy))
+  (^double [group1 group2 estimation-strategy]
+   (let [m (median group1 estimation-strategy)]
+     (/ (count (filter (fn [^double v] (< v m)) group2))
+        (double (count group2))))))
+;;
 
 (defn pearson-r
   "Pearson `r` correlation coefficient"
@@ -1077,7 +1275,7 @@
     lm))
 
 (defn eta-sq
-  "R2"
+  "R2, coefficient of determination"
   {:metadoc/categories #{:effect}}
   ^double [group1 group2]
   (.getRSquare (local-linear-regression group1 group2)))
@@ -1104,14 +1302,21 @@
 
   Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
   {:metadoc/categories #{:effect}}
-  (^double [group1 group2] (cohens-f2 :eta group1 group2))
-  (^double [type group1 group2]
+  (^double [group1 group2] (cohens-f2 group1 group2 :eta))
+  (^double [group1 group2 type]
    (let [f (case type
              :omega omega-sq
              :epsilon epsilon-sq
              eta-sq)
          ^double v (f group1 group2)]
      (/ v (- 1.0 v)))))
+
+(defn cohens-f
+  "Cohens f, sqrt of Cohens f2.
+
+  Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
+  (^double [group1 group2] (m/sqrt (cohens-f2 group1 group2 :eta)))
+  (^double [group1 group2 type] (m/sqrt (cohens-f2 group1 group2 type))))
 
 (defn cohens-q
   "Comparison of two correlations.
@@ -1131,6 +1336,23 @@
    (cohens-q (pearson-correlation group1a group2a)
              (pearson-correlation group1b group2b))))
 
+(declare kruskal-test)
+
+(defn rank-eta-sq
+  "Effect size for Kruskal-Wallis test"
+  ^double [xs]
+  (let [{:keys [^double stat ^long k ^long n]} (kruskal-test xs)]
+    (m/max 0.0 (/ (inc (- stat k))
+                  (- n k)))))
+
+(defn rank-epsilon-sq
+  "Effect size for Kruskal-Wallis test"
+  ^double [xs]
+  (let [{:keys [^double stat ^long n]} (kruskal-test xs)]
+    (/ stat (/ (dec (* n n)) (inc n)))))
+
+;;
+
 (defn contingency-table
   "Returns frequencies map of tuples built from seqs."
   [& seqs]
@@ -1138,7 +1360,7 @@
     (frequencies (first seqs))
     (frequencies (apply map vector seqs))))
 
-(defn xss->contingency-table
+(defn rows->contingency-table
   [xss]
   (->> (for [[row-id row] (map-indexed vector xss)
              [col-id ^long val] (map-indexed vector row)
@@ -1162,7 +1384,7 @@
 
 (defn- infer-ct
   [ct]
-  (if (map? ct) ct (xss->contingency-table ct)))
+  (if (map? ct) ct (rows->contingency-table ct)))
 
 (defn mcc
   "Matthews correlation coefficient also known as phi coefficient."
@@ -1231,7 +1453,7 @@
 (defn cohens-kappa
   "Cohens kappa"
   (^double [group1 group2] (cohens-kappa (contingency-table group1 group2)))
-  ([contingency-table]
+  (^double [contingency-table]
    (let [{:keys [^long n rows cols diag]} (contingency-table->marginals (infer-ct contingency-table))
          n2 (* n n)
          pe (/ (sum (map (fn [r c]
@@ -1251,8 +1473,8 @@
 
 (defn weighted-kappa
   "Cohen's weighted kappa for indexed contingency table"
-  ([contingency-table] (weighted-kappa contingency-table :equal-spacing))
-  ([contingency-table weights]
+  (^double [contingency-table] (weighted-kappa contingency-table :equal-spacing))
+  (^double [contingency-table weights]
    (let [ct (infer-ct contingency-table)
          R (inc (int (reduce clojure.core/max (map ffirst ct))))
          {:keys [^long n rows cols]} (contingency-table->marginals ct)
@@ -1270,25 +1492,6 @@
      (/ (- p0 pe) (- 1.0 pe)))))
 
 ;; binary classification statistics
-
-(defn- binary-confusion
-  [t p]
-  (cond
-    (and t p) :tp
-    (and t (not p)) :fn
-    (and (not t) p) :fp
-    :else :tn))
-
-(defn- binary-process-list
-  [xs true-value]
-  (if-not true-value
-    xs
-    (let [f (cond
-              (map? true-value) true-value
-              (seqable? true-value) (set true-value)
-              (fn? true-value) true-value
-              :else (set [true-value]))]
-      (map f xs))))
 
 (defn- binary-measures-all-calc
   [in]
@@ -1309,14 +1512,20 @@
         fnr (- 1.0 tpr)
         lr+ (/ tpr fpr)
         lr- (/ fnr tnr)
+        ts (/ tp (+ tp fn fp))
         f-beta (clojure.core/fn [^double beta] (let [b2 (* beta beta)]
                                                  (* (inc b2) (/ (* ppv tpr)
-                                                                (+ ppv tpr)))))
-        f1-score (f-beta 1.0)]
-    (merge details {:cp cp
-                    :cn cn
-                    :pcp pcp
-                    :pcn pcn
+                                                                (+ (* b2 ppv) tpr)))))
+        f1-score (f-beta 1.0)
+        mcc (/ (- (* tp tn) (* fp fn))
+               (m/sqrt (* (+ tp fp)
+                          (+ tp fn)
+                          (+ tn fp)
+                          (+ tn fn))))]
+    (merge details {:cp cp :p cp
+                    :cn cn :n cn
+                    :pcp pcp :pp pcp
+                    :pcn pcn :pn pcn
                     :total total
                     :tpr tpr
                     :recall tpr
@@ -1331,6 +1540,7 @@
                     :selectivity tnr
                     :prevalence (/ cp total)
                     :accuracy (/ (+ tp tn) total)
+                    :ba (/ (+ tpr tnr) 2.0)
                     :ppv ppv
                     :precision ppv
                     :fdr (- 1.0 ppv)
@@ -1339,14 +1549,16 @@
                     :lr+ lr+
                     :lr- lr-
                     :dor (/ lr+ lr-)
+                    :fm (m/sqrt (* ppv tpr))
+                    :pt (/ (- (m/sqrt (* tpr fpr)) fpr)
+                           (- tpr fpr))
+                    :ts ts
+                    :jaccard ts
                     :f-measure f1-score
                     :f1-score f1-score
                     :f-beta f-beta
-                    :mcc (/ (- (* tp tn) (* fp fn))
-                            (m/sqrt (* (+ tp fp)
-                                       (+ tp fn)
-                                       (+ tn fp)
-                                       (+ tn fn))))
+                    :mcc mcc
+                    :phi mcc
                     :bm (dec (+ tpr tnr))
                     :kappa (/ (* 2.0 (- (* tp tn) (* fp fn)))
                               (+ (* (+ tp fp)
@@ -1354,6 +1566,50 @@
                                  (* (+ tp fn)
                                     (+ fn tn))))
                     :mk (dec (+ ppv npv))})))
+
+(defn- binary-confusion
+  [t p]
+  (cond
+    (and t p) :tp
+    (and t (not p)) :fn
+    (and (not t) p) :fp
+    :else :tn))
+
+(defn- binary-process-list
+  [xs true-value]
+  (if-not true-value
+    xs
+    (let [f (if (sequential? true-value) (set true-value) true-value)]
+      (map f xs))))
+
+(defn- infer-confusion-matrix
+  [confusion-matrix]
+  (cond
+
+    (and (map? confusion-matrix)
+         (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix)))
+    (update-keys confusion-matrix (fn [[a b]] (keyword (str (name a) (name b)))))
+
+    (and (sequential? confusion-matrix)
+         (= 2 (count confusion-matrix))
+         (every? sequential? confusion-matrix))
+    (zipmap [:tp :fn :fp :tn] (flatten confusion-matrix))
+
+    (and (sequential? confusion-matrix)
+         (every? number? confusion-matrix))
+    (zipmap [:tp :fn :fp :tn] confusion-matrix)
+    
+    :else confusion-matrix))
+
+(defn ->confusion-matrix
+  "Convert input to confusion matrix"
+  ([tp fn fp tn] {:tp tp :fn fn :fp fp :tn tn})
+  ([confusion-matrix] (infer-confusion-matrix confusion-matrix))
+  ([actual prediction] (->confusion-matrix actual prediction nil))
+  ([actual prediction encode-true]
+   (let [truth (binary-process-list actual encode-true)
+         prediction (binary-process-list prediction encode-true)]
+     (frequencies (map binary-confusion truth prediction)))))
 
 (defn binary-measures-all
   "Collection of binary measures.
@@ -1363,7 +1619,7 @@
   
   or
 
-  * `truth` - list of ground truth values
+  * `actual` - list of ground truth values
   * `prediction` - list of predicted values
   * `true-value` - optional, true/false encoding, what is true in `truth` and `prediction`
 
@@ -1376,71 +1632,127 @@
 
   https://en.wikipedia.org/wiki/Precision_and_recall"
   {:metadoc/categories #{:stat}}
-  ([confusion-matrix] (binary-measures-all-calc (if (map? confusion-matrix)
-                                                  confusion-matrix
-                                                  (zipmap [:tp :fn :fp :tn] (flatten confusion-matrix)))))
-  ([truth prediction] (binary-measures-all truth prediction nil))
-  ([truth prediction true-value]
-   (let [truth (binary-process-list truth true-value)
+  ([tp fn fp tn] (binary-measures-all-calc (binary-measures-all {:tp tp :fn fn :fp fp :tn tn})))
+  ([confusion-matrix] (binary-measures-all-calc (infer-confusion-matrix confusion-matrix)))
+  ([actual prediction] (binary-measures-all actual prediction nil))
+  ([actual prediction true-value]
+   (let [truth (binary-process-list actual true-value)
          prediction (binary-process-list prediction true-value)]
      (binary-measures-all-calc (frequencies (map binary-confusion truth prediction))))))
+
+(defn- cm-select-keys
+  [cm]
+  (select-keys cm [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalence]))
 
 (defn binary-measures
   "Subset of binary measures. See [[binary-measures-all]].
 
-  Following keys are returned: `[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance]`"
+  Following keys are returned: `[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalence]`"
   {:metadoc/categories #{:stat}}
-  ([truth prediction] (binary-measures truth prediction nil))
-  ([truth prediction true-value]
-   (select-keys (binary-measures-all truth prediction true-value)
-                [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalance])))
+  ([tp fn fp tn] (cm-select-keys (binary-measures-all tp fn fp tn)))
+  ([confusion-matrix] (cm-select-keys (binary-measures-all confusion-matrix)))
+  ([actual prediction] (binary-measures actual prediction nil))
+  ([actual prediction true-value] (cm-select-keys (binary-measures-all actual prediction true-value))))
 
 ;; contingency 2x2
 
-#_(defn- contingency-2x2-measures-calc
-    [[^long a ^long b ^long c ^long d]]
-    (let [a (or a 0) b (or b 0) c (or c 0) d (or d 0)
-          table [a b c d]
-          r1 (double (+ a b))
-          r2 (double (+ c d))
-          c1 (double (+ a c))
-          c2 (double (+ b d))
-          n (+ r1 r2)
-          expected [(/ (* r1 c1) n) (/ (* r1 c2) n) (/ (* r2 c1) n) (/ (* r2 c2) n)]
-          proportions (v/div table n)
-          chi2distr (r/distribution :chi-squared {:degrees-of-freedom 1})
-          chi2 (let [diff (v/sub table expected)]
-                 (v/sum (v/ediv (v/emult diff diff) expected)))
-          yates (let [diff (v/shift (v/abs (v/sub table expected)) -0.5)]
-                  (v/sum (v/ediv (v/emult diff diff) expected)))
-          cmh (let [nmt (/ (* r1 c1) n)]
-                (/ (m/sq (- a nmt))
-                   (* nmt (/ (* r2 c2) (* n (dec n))))))
-          OR (/ (* a d) (double (* b c)))
-          EER (/ a c1) CER (/ b c2) ARR (- CER EER)
-          RR (/ (* a c2) (* b c1))]
-      {:n n
-       :table table
-       :expected expected
-       :marginals {:rows [(+ a b) (+ c d)]
-                   :cols [(+ a c) (+ b d)]}
-       :proportions {:table proportions
-                     :rows [(/ a r1) (/ b r1) (/ c r2) (/ d r2)]
-                     :cols [(/ a c1) (/ b c2) (/ c c1) (/ d c2)]
-                     :marginals {:rows (v/div [r1 r2] n)
-                                 :cols (v/div [c1 c2] n)}}
-       :p-values {:chi2 (r/ccdf chi2distr chi2)
-                  :yates (r/ccdf chi2distr yates)
-                  :cmh (r/ccdf chi2distr cmh)}
-       :chi2 {:chi2 chi2 :yates yates :cmh cmh}
-       :OR OR :RR RR :RRR (- 1.0 RR)
-       :EER EER :CER CER :ARR ARR :NNT (m/abs (/ ARR)) :PEER (/ c r2)
-       :SE (m/sqrt (v/sum (v/reciprocal table)))
-       :kappa (/ (* 2.0 (- (* a d) (* b c)))
+(defn- contingency-2x2-measures-calc
+  [^long a ^long b ^long c ^long d]
+  (let [fields [:a :b :c :d]
+        a (or a 0) b (or b 0) c (or c 0) d (or d 0)
+        table [a b c d]
+        r1 (+ a b) r2 (+ c d)
+        c1 (+ a c) c2 (+ b d)
+        n (+ a b c d)
+        dr1 (double r1) dr2 (double r2)
+        dc1 (double c1) dc2 (double c2)
+        dn (double n)
+        expected [(/ (* r1 c1) dn) (/ (* r1 c2) dn) (/ (* r2 c1) dn) (/ (* r2 c2) dn)]
+        proportions (v/div table n)
+        chi2distr (r/distribution :chi-squared {:degrees-of-freedom 1})
+        chi2 (let [diff (v/sub table expected)]
+               (v/sum (v/ediv (v/emult diff diff) expected)))
+        yates (let [diff (v/shift (v/abs (v/sub table expected)) -0.5)]
+                (v/sum (v/ediv (v/emult diff diff) expected)))
+        cmh (let [nmt (/ (* r1 c1) dn)]
+              (/ (m/sq (- a nmt))
+                 (* nmt (/ (* r2 c2) (* dn (dec dn))))))
+        phi (/ (- (* a d) (* b c))
+               (m/sqrt (* r1 r2 c1 c2)))
+        kappa (/ (* 2.0 (- (* a d) (* b c)))
                  (+ (* c1 r2) (* r1 c2)))
-       :yules-q (/ (dec OR) (inc OR))
-       :phi (/ (- a (* r1 c1))
-               (m/sqrt (* r1 r2 c1 c2)))}))
+        G (/ (- (+ a d) (+ b c)) dn)
+        OR (/ (* a d) (double (* b c)))
+        RD (- (/ a dr1) (/ c dr2))
+        EER (/ a dr1) CER (/ c dr2) ARR (- CER EER)
+        NNT (if (zero? ARR) ##Inf (/ ARR))
+        RR (/ (/ a dr1) (/ c dr2))
+        ad2 (+ (m/sq a) (m/sq d))
+        hbc (* 0.5 (+ b c))
+        pcc (m/sqrt (/ chi2 (+ chi2 dn)))]
+    {:n n
+     :table (zipmap fields table)
+     :expected (zipmap fields expected)
+     :marginals {:row1 (+ a b) :row2 (+ c d)
+                 :col1 (+ a c) :col2 (+ b d)
+                 :total n}
+     :proportions {:table (zipmap fields proportions)
+                   :rows (zipmap fields [(/ a dr1) (/ b dr1) (/ c dr2) (/ d dr2)])
+                   :cols (zipmap fields [(/ a dc1) (/ b dc2) (/ c dc1) (/ d dc2)])
+                   :marginals (merge (zipmap [:row1 :row2] (v/div [r1 r2] n))
+                                     (zipmap [:col1 :col2] (v/div [c1 c2] n)))}
+     :p-values {:chi2 (r/ccdf chi2distr chi2)
+                :yates (r/ccdf chi2distr yates)
+                :cochran-mantel-haenszel (r/ccdf chi2distr cmh)}
+     :OR OR :lOR (m/log OR) :RR RR
+     :risk {:RR RR :RRR (- 1.0 RR)
+            :RD RD :ES r1 :CS r2
+            :EER EER :CER CER :ARR ARR :NNT NNT
+            :ARI (- ARR) :NNH (- NNT) :RRI (dec RR)
+            :AFe (/ (dec RR) RR) :PFu (- 1.0 RR)}
+     :SE (m/sqrt (v/sum (v/reciprocal table)))
+     :measures {:chi2 chi2
+                :yates yates
+                :cochran-mantel-haenszel cmh
+                :cohens-kappa kappa
+                :yules-q (/ (dec OR) (inc OR))
+                :holley-guilfords-g G
+                :huberts-gamma (m/sq G)
+                :youdens-j (/ (- (* a d) (* b c))
+                              (* dr1 dr2))
+                :yules-y (let [sad (m/sqrt (* a d))
+                               sbc (m/sqrt (* b c))]
+                           (/ (- sad sbc) (+ sad sbc)))
+                :cramers-v (m/abs phi)
+                :phi phi
+                :scotts-pi (/ (- (* a d) (* hbc hbc))
+                              (* (+ a hbc) (+ d hbc)))
+                :PCC pcc
+                :PCC-adjusted (* m/SQRT2 pcc)
+                :TCC (m/cos (/ m/PI (inc (m/sqrt OR))))                
+                :F1 (/ (+ a a)
+                       (double (+ a a b c)))
+                :bangdiwalas-b (/ ad2 (+ (* dr1 dc1) (* dr2 dc2)))
+                :mcnemars-chi2 (/ (m/sq (- b c)) (+ b c))
+                :gwets-ac1 (let [bc (+ b c)
+                                 hbc2 (* bc hbc)]
+                             (/ (- ad2 hbc2)
+                                (+ ad2 hbc2 (* (+ a d) (+ b c)))))}}))
+
+(defn contingency-2x2-measures-all
+  ([^long a ^long b ^long c ^long d] (contingency-2x2-measures-calc a b c d))
+  ([map-or-seq]
+   (if (map? map-or-seq)
+     (let [{:keys [a b c d] :or {a 0 b 0 c 0 d 0}} map-or-seq]
+       (contingency-2x2-measures-all a b c d))
+     (apply contingency-2x2-measures-calc map-or-seq)))
+  ([[^long a ^long b] [^long c ^long d]] (contingency-2x2-measures-all a b c d)))
+
+(defn contingency-2x2-measures
+  [& args]
+  (let [m (apply contingency-2x2-measures-all args)]
+    (-> (:measures m)
+        (assoc :OR (:OR m)))))
 
 ;; acf/pacf
 
@@ -2089,8 +2401,9 @@
                                         (- v zi)) xs))) xss Zi))
         k (count Ni)
         DFt (dec k)
-        DFe (- (sum Ni) k)]
-    {:N Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe (/ SSe DFe)}))
+        DFe (- (sum Ni) k)
+        MSe (/ SSe DFe)]
+    {:N Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe MSe}))
 
 (defn- update-f-p-value
   [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]
@@ -2216,9 +2529,35 @@
      {:n n :nx nx :ny ny :dp dp :dn dn :d d
       :stat stat
       :KS stat
+      :sides sides
       :p-value (sides-case sides
                            (p-value (r/distribution :kolmogorov) stat :right)
                            (m/exp (* -2.0 (* stat stat)))
                            (m/exp (* -2.0 (* stat stat))))})))
+
+(defn kruskal-test
+  "Kruskal-Wallis rank sum test."
+  ([xss] (kruskal-test xss {}))
+  ([xss {:keys [sides] :or {sides :right}}] ;; as in R
+   (let [k (count xss)
+         df (dec k)
+         xs (flatten xss)
+         groups (mapcat (fn [[xs id]] (repeat (count xs) id)) (map vector xss (range)))
+         n (count xs)
+         r (m/rank1 xs)
+         ties (vals (frequencies xs))
+         ^double stat (->> (map vector r groups)
+                           (group-by second)
+                           (vals)
+                           (map #(let [ranks (map first %)]
+                                   (/ (m/sq (sum ranks)) (count ranks))))
+                           (reduce m/fast+))
+         stat (/ (- (/ (* 12.0 stat)
+                       (* n (inc n)))
+                    (* 3.0 (inc n)))
+                 (- 1.0 (/ (sum (map (fn [^long t] (- (m/cb t) t)) ties))
+                           (- (m/cb n) n))))]
+     {:stat stat :n n :df df :k k
+      :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
 
 #_(m/unuse-primitive-operators)

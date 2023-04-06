@@ -1,1 +1,0 @@
-{:lint-as {fastmath.stats/build-extent clojure.core/def}}

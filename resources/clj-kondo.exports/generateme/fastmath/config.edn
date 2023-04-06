@@ -1,0 +1,18 @@
+{:hooks {:macroexpand
+         {fastmath.core/variadic-proxy hooks.core/proxy->declare
+          fastmath.core/primitivemath-proxy hooks.core/variadic-proxy->declare
+          fastmath.core/variadic-predicate-proxy hooks.core/proxy->declare
+          fastmath.core/fastmath-proxy hooks.core/variadic-proxy->declare
+          fastmath.core/erf-proxy hooks.core/variadic-proxy->declare
+          fastmath.core/besselj-proxy hooks.core/variadic-proxy->declare
+          fastmath.core/beta-proxy hooks.core/variadic-proxy->declare
+          fastmath.core/gamma-proxy hooks.core/variadic-proxy->declare}}
+ 
+ :config-in-call {fastmath.random/make-ssjc-distr {:ignore [:unresolved-symbol]}
+                  fastmath.random/make-ssjc-distr-no-pdf {:ignore [:unresolved-symbol]}
+                  fastmath.random/make-ssji-distr {:ignore [:unresolved-symbol]}
+                  fastmath.random/make-acm-distr {:ignore [:unresolved-symbol]}
+                  fastmath.random/distribution-template {:ignore [:unresolved-symbol]}}
+ 
+ :lint-as {fastmath.random/gen-noise-function clojure.core/def
+           fastmath.stats/build-extent clojure.core/def}}

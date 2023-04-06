@@ -701,20 +701,23 @@
   ([data k] (kde data k nil))
   ([data k h]
    (let [data (let [a (m/seq->double-array data)] (java.util.Arrays/sort a) a)
+         last-idx (dec (alength data))
          h (double (or h (nrd data)))
          hrev (/ h)
          span (* 6.0 h)
          factor (/ (* (alength data) h))
          mn (aget data 0)
-         mx (aget data (dec (alength data)))]
+         mx (aget data last-idx)]
      [(fn [^double x]
         (let [start (java.util.Arrays/binarySearch data (- x span))
-              ^int start (if (neg? start) (dec (- start)) start)
+              start (long (if (neg? start) (dec (- start)) start))
               end (java.util.Arrays/binarySearch data (+ x span))
-              ^int end (if (neg? end) (dec (- end)) end)
-              ^doubles xs (java.util.Arrays/copyOfRange data start end)]
-          (* factor (double (areduce xs i sum (double 0.0)
-                                     (+ sum ^double (k (* hrev (- x ^double (aget xs i))))))))))
+              end (min last-idx (long (if (neg? end) (dec (- end)) end)))]
+          (loop [i start
+                 sum 0.0]
+            (if (<= i end)
+              (recur (inc i) (+ sum ^double (k (* hrev (- x (aget data i))))))
+              (* factor sum)))))
       factor h (- mn span) (+ mx span)])))
 
 (defonce ^:private kde-integral
@@ -764,7 +767,7 @@
   ([_ vs] (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs))]
             (fn [x] (.p k x)))))
 
-(defmethod kernel-density :default [_ & r] (apply kernel-density :smile r))
+(defmethod kernel-density :default [_ & r] (apply kernel-density :gaussian r))
 
 (def kernel-density-list ^{:doc "List of available density kernels."} (sort (keys (methods kernel-density))))
 

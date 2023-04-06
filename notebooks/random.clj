@@ -480,6 +480,7 @@
 
 ;; Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[0,1]$.
 
+;; * Name: `:anderson-darling`
 ;; * Default parameters:
 ;;    * `:n`: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1AndersonDarlingDist.html)
@@ -492,6 +493,7 @@
 
 ;; #### Beta
 
+;; * Name: `:beta`
 ;; * Default parameters:
 ;;    * `:alpha`: $2.0$
 ;;    * `:beta`: $5.0$
@@ -508,6 +510,7 @@
 
 ;; #### Cauchy
 
+;; * Name `:cauchy`
 ;; * Default parameters:
 ;;    * `:median`, location: $0.0$
 ;;    * `:scale`: $1.0$
@@ -521,6 +524,7 @@
 
 ;; #### Chi
 
+;; * Name: `:chi`
 ;; * Default parameters:
 ;;    * `:nu`, degrees of freedom: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ChiDist.html)
@@ -533,6 +537,7 @@
 
 ;; #### Chi-squared
 
+;; * Name: `:chi-squered`
 ;; * Default parameters:
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi-squared_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ChiSquaredDistribution.html)
@@ -545,6 +550,7 @@
 
 ;; #### Chi-squared noncentral
 
+;; * Name: `:chi-squared-noncentral`
 ;; * Default parameters:
 ;;    * `:nu`, degrees-of-freedom: $1.0$
 ;;    * `:lambda`, noncentrality: $1.0$
@@ -560,6 +566,7 @@
 
 ;; Distribution of Cramer-von Mises statistic $W^2$ on $n$ independent uniforms $U[0,1]$.
 
+;; * Name: `:cramer-von-mises`
 ;; * Default parameters
 ;;    * `:n`: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1CramerVonMisesDist.html)
@@ -574,6 +581,7 @@
 
 ;; #### Erlang
 
+;; * Name: `:erlang`
 ;; * Default parameters
 ;;    * `:k`, shape: $1.0$
 ;;    * `:lambda`, scale: $1.0$ 
@@ -587,6 +595,7 @@
 
 ;; #### ex-Gaussian
 
+;; * Name: `:exgaus`
 ;; * Default parameters
 ;;    * `:mu`, mean: $5.0$
 ;;    * `:sigma`, standard deviation: $1.0$
@@ -601,6 +610,7 @@
 
 ;; #### Exponential
 
+;; * Name: `:exponential`
 ;; * Default parameters
 ;;    * `:mean`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Exponential_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ExponentialDistribution.html)
@@ -613,6 +623,7 @@
 
 ;; #### F
 
+;; * Name: `:f`
 ;; * Default parameters
 ;;    * `:numerator-degrees-of-freedom`: $1.0$
 ;;    * `:denominator-degrees-of-freedom`: $1.0$
@@ -627,6 +638,7 @@
 
 ;; #### Fatigue life
 
+;; * Name: `:fatigue-life`
 ;; * Default parameters
 ;;    * `:mu`, location: $0.0$
 ;;    * `:beta`, scale: $1.0$
@@ -641,6 +653,7 @@
 
 ;; #### Folded Normal
 
+;; * Name: `:folded-normal`
 ;; * Default parameters
 ;;    * `:mu`: $0.0$
 ;;    * `:sigma`: $1.0$
@@ -654,6 +667,7 @@
 
 ;; #### Frechet
 
+;; * Name: `:frechet`
 ;; * Default parameters
 ;;    * `:delta`, location: $0.0$
 ;;    * `:alpha`, shape: $1.0$
@@ -668,6 +682,7 @@
 
 ;; #### Gamma
 
+;; * Name: `:gamma`
 ;; * Default parameters
 ;;    * `:shape`: $2.0$
 ;;    * `:scale`: $2.0$
@@ -681,6 +696,7 @@
 
 ;; #### Gumbel
 
+;; * Name: `:gumbel`
 ;; * Default parameters
 ;;    * `:mu`, location: $1.0$
 ;;    * `:beta`, scale: $2.0$
@@ -694,6 +710,7 @@
 
 ;; #### Half Cauchy
 
+;; * Name: `:half-cauchy`
 ;; * Default parameters
 ;;    * `:scale`: $1.0$
 ;; * [info](https://distribution-explorer.github.io/continuous/halfcauchy.html)
@@ -706,6 +723,7 @@
 
 ;; #### Half Normal
 
+;; * Name: `:half-normal`
 ;; * Default parameters
 ;;    * `:sigma`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Half-normal_distribution)
@@ -718,6 +736,7 @@
 
 ;; #### Hyperbolic secant
 
+;; * Name: `:hyperbolic-secant`
 ;; * Default parameters
 ;;    * `:mu`: $0.0$
 ;;    * `:sigma`, scale: $1.0$
@@ -731,6 +750,7 @@
 
 ;; #### Hypoexponential
 
+;; * Name: `:hypoexponential`
 ;; * Default parameters
 ;;    * `:lambdas`, list of rates: `[1.0]`
 ;; * [wiki](https://en.wikipedia.org/wiki/Hypoexponential_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HypoExponentialDist.html)
@@ -745,6 +765,7 @@
 
 ;; Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 
+;; * Name: `:hypoexponential-equal`
 ;; * Default parameters
 ;;    * `:k`, number of rates: $1$
 ;;    * `:h`, difference between rates: $1$
@@ -759,6 +780,7 @@
 
 ;; #### Inverse Gamma
 
+;; * Name: `:inverse-gamma`
 ;; * Default parameters
 ;;    * `:alpha`, shape: $2.0$
 ;;    * `:beta`, scale: $1.0$
@@ -772,6 +794,7 @@
 
 ;; #### Inverse Gaussian
 
+;; * Name: `:inverse-gaussian`
 ;; * Default parameters
 ;;    * `:mu`, location: $1.0$
 ;;    * `:lambda`, scale: $1.0$
@@ -785,6 +808,7 @@
 
 ;; #### Johnson Sb
 
+;; * Name: `:johnson-sb`
 ;; * Default parameters
 ;;    * `:gamma`, shape: $0.0$
 ;;    * `:delta`, shape: $1.0$
@@ -800,6 +824,7 @@
 
 ;; #### Johnson Sl
 
+;; * Name: `:johnson-sl`
 ;; * Default parameters
 ;;    * `:gamma`, shape: $0.0$
 ;;    * `:delta`, shape: $1.0$
@@ -815,6 +840,7 @@
 
 ;; #### Johnson Su
 
+;; * Name: `:johnson-su`
 ;; * Default parameters
 ;;    * `:gamma`, shape: $0.0$
 ;;    * `:delta`, shape: $1.0$
@@ -830,6 +856,7 @@
 
 ;; #### Kolmogorov
 
+;; * Name: `:kolmogorov`
 ;; * [wiki](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test#Kolmogorov_distribution), [info](https://www.math.ucla.edu/~tom/distributions/Kolmogorov.html)
 
 ^{::clerk/visibility :hide}
@@ -837,6 +864,7 @@
 
 ;; #### Kolmogorov-Smirnov
 
+;; * Name: `:kolmogorov-smirnov`
 ;; * Default parameters
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovDist.html)
@@ -849,6 +877,7 @@
 
 ;; #### Kolmogorov-Smirnov+
 
+;; * Name: `:kolmogorov-smirnov+`
 ;; * Default parameters
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovPlusDist.html)
@@ -861,6 +890,7 @@
 
 ;; #### Laplace
 
+;; * Name: `:laplace`
 ;; * Default parameters
 ;;    * `:mu`: $0.0$
 ;;    * `:beta`, scale: $1.0$
@@ -874,6 +904,7 @@
 
 ;; #### Levy
 
+;; * Name: `:levy`
 ;; * Default parameters
 ;;    * `:mu`: $0.0$
 ;;    * `:c`, scale: $1.0$
@@ -887,6 +918,7 @@
 
 ;; #### Log Logistic
 
+;; * Name: `:log-logistic`
 ;; * Default parameters
 ;;    * `:alpha`, shape: $3.0$
 ;;    * `:beta`, scale: $1.0$
@@ -900,6 +932,7 @@
 
 ;; #### Log Normal
 
+;; * Name: `:log-normal`
 ;; * Default parameters
 ;;    * `:scale`: $1.0$
 ;;    * `:shape`: $1.0$
@@ -913,6 +946,7 @@
 
 ;; #### Logistic
 
+;; * Name: `:logistic`
 ;; * Default parameters
 ;;    * `:mu`, location: $0.0$
 ;;    * `:s`, scale: $1.0$
@@ -926,6 +960,7 @@
 
 ;; #### Nakagami
 
+;; * Name: `:nakagami`
 ;; * Default parameters
 ;;    * `:mu`, shape: $1.0$
 ;;    * `:omega`, spread: $1.0$ 
@@ -939,6 +974,7 @@
 
 ;; #### Normal
 
+;; * Name: `:normal`
 ;; * Default parameters
 ;;    * `:mu`, mean: $0.0$
 ;;    * `:sd`, standard deviation: $1.0$
@@ -952,6 +988,7 @@
 
 ;; #### Normal-Inverse Gaussian
 
+;; * Name: `:normal-inverse-gaussian`
 ;; * Default parameters
 ;;    * `:alpha`, tail heavyness: $1.0$
 ;;    * `:beta`, assymetry: $0.0$
@@ -985,6 +1022,7 @@
 
 ;; #### Pareto
 
+;; * Name: `:pareto`
 ;; * Default parameters
 ;;    * `:shape`: $1.0$
 ;;    * `:scale`: $1.0$
@@ -998,6 +1036,7 @@
 
 ;; #### Pearson VI
 
+;; * Name: `:pearson-6`
 ;; * Default parameters:
 ;;    * `:alpha1`: $1.0$
 ;;    * `:alpha2`: $1.0$
@@ -1012,6 +1051,7 @@
 
 ;; #### Power
 
+;; * Name: `:power`
 ;; * Default parameters
 ;;    * `:a`: $0.0$
 ;;    * `:b`: $1.0$
@@ -1026,6 +1066,7 @@
 
 ;; #### Rayleigh
 
+;; * Name: `:rayleigh`
 ;; * Default parameters
 ;;    * `:a`, location: $0.0$
 ;;    * `:beta`, scale: $1.0$
@@ -1041,6 +1082,7 @@
 
 ;; $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 
+;; * Name: `:reciprocal-sqrt`
 ;; * Default parameters
 ;;    * `:a`, location, lower limit: $0.5$
 
@@ -1052,6 +1094,7 @@
 
 ;; #### Student's t
 
+;; * Name: `:t`
 ;; * Default parameters
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Student%27s_t-distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/TDistribution.html)
@@ -1064,6 +1107,7 @@
 
 ;; #### Triangular
 
+;; * Name: `:triangular`
 ;; * Default parameters
 ;;    * `:a`, lower limit: $-1.0$
 ;;    * `:b`, mode: $0.0$
@@ -1078,6 +1122,7 @@
 
 ;; #### Uniform
 
+;; * Name: `:uniform-real`
 ;; * Default parameters
 ;;    * `:lower`, lower limit: $0.0$
 ;;    * `:upper`, upper limit: $1.0$
@@ -1091,6 +1136,7 @@
 
 ;; #### Watson G
 
+;; * Name: `:watson-g`
 ;; * Default parameters
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonGDist.html)
@@ -1103,6 +1149,7 @@
 
 ;; #### Watson U
 
+;; * Name: `:watson-u`
 ;; * Default parameters
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonUDist.html)
@@ -1115,6 +1162,7 @@
 
 ;; #### Weibull
 
+;; * Name: `:weibull`
 ;; * Default parameters
 ;;    * `:alpha`, shape: $2.0$
 ;;    * `:beta`, scale: $1.0$
@@ -1128,6 +1176,7 @@
 
 ;; #### Zero adjusted Gamma (zaga)
 
+;; * Name: `:zaga`
 ;; * Default parameters:
 ;;    * `:mu`, location: $0.0$
 ;;    * `:sigma`, scale: $1.0$
@@ -1149,6 +1198,7 @@
 
 ;; #### Beta Binomial (bb)
 
+;; * Name: `:bb`
 ;; * Default parameters
 ;;    * `:mu`, probability: $0.5$
 ;;    * `:sigma`, dispersion: $1.0$
@@ -1171,6 +1221,7 @@
 
 ;; The same as Binomial with trials=1.
 
+;; * Name: `:bernoulli`
 ;; * Default parameters
 ;;    * `:p`, probability, $0.5$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Bernoulli_distribution)
@@ -1183,6 +1234,7 @@
 
 ;; #### Binomial
 
+;; * Name: `:binomial`
 ;; * Default parameters
 ;;    * `:p`, probability: $0.5$
 ;;    * `:trials`: $20$
@@ -1196,6 +1248,7 @@
 
 ;; #### Fisher's noncentral hypergeometric
 
+;; * Name: `:fishers-noncentral-hypergeometric`
 ;; * Default parameters
 ;;    * `:ns`, number of sucesses: $10$
 ;;    * `:nf`, number of failures: $10$
@@ -1212,6 +1265,7 @@
 
 ;; #### Geometric
 
+;; * Name: `:geometric`
 ;; * Default parameters
 ;;    * `:p`, probability: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Geometric_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GeometricDistribution.html)
@@ -1224,6 +1278,7 @@
 
 ;; #### Hypergeometric
 
+;; * Name: `:hypergeometric`
 ;; * Default parameters
 ;;    * `:population-size`: $100$
 ;;    * `:number-of-successes`: $50%
@@ -1245,6 +1300,7 @@
 
 ;; #### Logarithmic
 
+;; * Name: `:logarithmic`
 ;; * Default parameters
 ;;    * `:theta`, shape: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Logarithmic_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1LogarithmicDist.html)
@@ -1259,6 +1315,7 @@
 
 ;; The same as `:pascal`
 
+;; * Name: `:pascal`
 ;; * Default parameters
 ;;    * `:r`, number of successes: $20$
 ;;    * `:p`, probability of success: $0.5$
@@ -1274,6 +1331,7 @@
 
 ;; The same as `:negative-binomial`
 
+;; * Name: `:negative-binomial`
 ;; * Default parameters
 ;;    * `:r`, number of successes: $20$
 ;;    * `:p`, probability of success: $0.5$
@@ -1287,6 +1345,7 @@
 
 ;; #### Poisson
 
+;; * Name: `:poisson`
 ;; * Default parameters
 ;;    * `:p`, lambda, mean: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Poisson_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/PoissonDistribution.html)
@@ -1299,6 +1358,7 @@
 
 ;; #### Uniform
 
+;; * Name: `:uniform-int`
 ;; * Default parameters
 ;;    * `:lower`, lower bound: $0$
 ;;    * `:upper`, upper bound: $2147483647$
@@ -1312,6 +1372,7 @@
 
 ;; #### Zero Adjusted Beta Binomial (zabb)
 
+;; * Name: `:zabb`
 ;; * Default parameters
 ;;    * `:mu`, probability: $0.5$
 ;;    * `:sigma`, dispersion: $0.1$
@@ -1327,6 +1388,7 @@
 
 ;; #### Zero Adjusted Binomial (zabi)
 
+;; * Name: `:zabi`
 ;; * Default parameters
 ;;    * `:mu`, probability: $0.5$
 ;;    * `:sigma`, probability at 0.0: $0.1$
@@ -1341,6 +1403,7 @@
 
 ;; #### Zero Adjusted Negative Binomial (zanbi)
 
+;; * Name: `:zanbi`
 ;; * Default parameters
 ;;    * `:mu`, mean: $1.0$
 ;;    * `:sigma`, dispersion: $1.0$
@@ -1355,6 +1418,7 @@
 
 ;; #### Zero Inflated Beta Binomial (zibb)
 
+;; * Name: `:zibb`
 ;; * Default parameters
 ;;    * `:mu`, probability: $0.5$
 ;;    * `:sigma`, dispersion: $0.1$
@@ -1370,6 +1434,7 @@
 
 ;; #### Zero Inflated Binomial (zibi)
 
+;; * Name: `:zibi`
 ;; * Default parameters
 ;;    * `:mu`, probability: $0.5$
 ;;    * `:sigma`, probability factor at 0.0: $0.1$
@@ -1384,6 +1449,7 @@
 
 ;; #### Zero Inflated Negative Binomial (zinbi)
 
+;; * Name: `:zinbi`
 ;; * Default parameters
 ;;    * `:mu`, mean: $1.0$
 ;;    * `:sigma`, dispersion: $1.0$
@@ -1398,6 +1464,7 @@
 
 ;; #### Zero Inflated Poisson (zip)
 
+;; * Name: `:zip`
 ;; * Default parameters
 ;;    * `:mu`, mean: $5$
 ;;    * `:sigma`, probability at 0.0: $0.1$
@@ -1412,6 +1479,7 @@
 
 ;; #### Zero Inflated Poisson, type 2 (zip2)
 
+;; * Name: `:zip2`
 ;; * Default parameters
 ;;    * `:mu`, mean: $5$
 ;;    * `:sigma`, probability at 0.0: $0.1$
@@ -1425,6 +1493,7 @@
 
 ;; #### Zipf
 
+;; * Name: `:zipf`
 ;; * Default parameters
 ;;    * `:number-of-elements`: $100$
 ;;    * `:exponent`: $3.0$
@@ -1445,6 +1514,7 @@
 
 ;; #### Dirichlet
 
+;; * Name: `:dirichlet`
 ;; * Default parameters
 ;;    * `:alpha`, concentration, vector: `[1 1]`
 ;; * [wiki](https://en.wikipedia.org/wiki/Dirichlet_distribution)
@@ -1494,6 +1564,7 @@
 
 ;; #### Multi normal
 
+;; * Name: `:multi-normal`
 ;; * Default parameters
 ;;    * `:means`, vector: `[0 0]`
 ;;    * `:covariances`, vector of vectors (row-wise matrix): `[[1 0] [0 1]]`
@@ -1516,6 +1587,7 @@
 
 ;; #### Multinomial
 
+;; * Name: `:multinomial`
 ;; * Default parameters
 ;;    * `:ps`, probabilities or weights, vector: `[0.5 0.5]`
 ;;    * `:trials`: $20$
@@ -1543,6 +1615,7 @@
 
 ;; Creates a distribution from other distributions and weights.
 
+;; * Name: `:mixture`
 ;; * Default parameters:
 ;;    * `:distrs`, list of distributions: `[default-normal]`
 ;;    * `:weights`, list of weights: `[1.0]`
@@ -1592,6 +1665,7 @@
 {:head ["name" "parameters"]
  :rows [[:truncated (r/distribution-parameters (r/distribution :truncated) true)]]}
 
+;; * Name: `:truncated`
 ;; * Default parameters
 ;;    * `:distr`, distribution to truncate: `default-normal`
 ;;    * `:left`, lower boundary
@@ -1648,6 +1722,7 @@
 
 ;; `:continous-distribution` and `:kde` are two names for the same distribution
 
+;; * Name: `:continuous-distribution` or `:kde`
 ;; * Default parameters:
 ;;    * `:data`, samples, sequence of numbers
 ;;    * `:kde`, density estimation kernel: `:epenechnikov`
@@ -1703,6 +1778,7 @@
 
 ;; Empirical distribution calculates PDF, CDF and iCDF from a histogram.
 
+;; * Name: `:empirical`
 ;; * Default parameters
 ;;    * `:data`, samples, sequence of numbers
 ;;    * `:bin-count`, number of bins for histogram: 10% of the size of the data
@@ -1815,6 +1891,7 @@
 
 ;; Categorical distribution is a discrete distribution which accepts any data.
 
+;; * Name: `:categorical-distribution`
 ;; * Default parameters:
 ;;    * `:data`, sequence of any values
 ;;    * `:probabilities`, optional, probabilities or weights

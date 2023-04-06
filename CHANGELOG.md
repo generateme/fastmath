@@ -43,6 +43,8 @@ All notable changes to this project will be documented in this file. This change
 * Clerk notebook for: fastmath.core
 * Added PDF to `:cramer-von-misses` distribution (based on finite difference)
 * `integrate-pdf` converted from private to public
+* `contingency-2x2-measures` - selection of 2x2 contingency measures
+* clj-kondo hooks
 
 #### Tests
 
@@ -67,12 +69,14 @@ All notable changes to this project will be documented in this file. This change
 	- `levene-test`
 	- `brown-forsythe-test`
 	- `fligner-killeen-test`
+* `kruskal-test` - Kruskal-Wallis rank sum test
 
 ### Changed
 
 * `(set! *warn-on-reflection* true)` removed ([motivation](https://github.com/clojure-emacs/refactor-nrepl/issues/347))
 * names changed: `ttest-` -> `t-test-`
 * RidgedMulti.java refactored
+* effect size functions revisited
 
 ### Fixed
 
@@ -83,6 +87,7 @@ All notable changes to this project will be documented in this file. This change
 * `set-seed` calls protocol for PRNGs
 * `integrate-pdf` accuracy increased
 * `nrd` fixed when bandwidth was 0
+* kde estimator revisited
 
 ## [2.1.8]
 

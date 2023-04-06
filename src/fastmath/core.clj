@@ -36,15 +36,6 @@
   ### Other functions
 
   Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing."
-  {:clj-kondo/config '{:hooks {:macroexpand
-                               {fastmath.core/variadic-proxy macros/proxy->declare
-                                fastmath.core/primitivemath-proxy macros/variadic-proxy->declare
-                                fastmath.core/variadic-predicate-proxy macros/proxy->declare
-                                fastmath.core/fastmath-proxy macros/variadic-proxy->declare
-                                fastmath.core/erf-proxy macros/variadic-proxy->declare
-                                fastmath.core/besselj-proxy macros/variadic-proxy->declare
-                                fastmath.core/beta-proxy macros/variadic-proxy->declare
-                                fastmath.core/gamma-proxy macros/variadic-proxy->declare}}}}
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
   (:import [net.jafama FastMath]

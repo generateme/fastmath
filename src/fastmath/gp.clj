@@ -4,7 +4,6 @@
   See more [here](https://nextjournal.com/generateme/gaussian-processes#gp%2B)"
   (:require [fastmath.core :as m]
             [fastmath.kernel :as k]
-            [fastmath.stats :as stats]
             [fastmath.vector :as v]
             [fastmath.random :as r])
   (:import [clojure.lang IFn]
@@ -86,8 +85,8 @@
    (let [xss (ensure-vectors xss)
          ys (m/seq->double-array ys)
          normalize? (if (= 1 (alength ys)) false normalize?)
-         ymean (if normalize? (stats/mean ys) 0.0)
-         ystddev (if normalize? (stats/stddev ys) 1.0)
+         ymean (if normalize? (StatUtils/mean ys) 0.0)
+         ystddev (if normalize? (m/sqrt (StatUtils/variance ys)) 1.0)
          ys (if normalize? (StatUtils/normalize ys) ys)
          ^Matrix$Cholesky chol (.cholesky ^Matrix (cov-matrix xss noise kernel kscale) true)
          w (.solve chol ys)

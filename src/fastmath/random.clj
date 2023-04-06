@@ -101,11 +101,6 @@
   Various real and integer distributions. See [[DistributionProto]] and [[RNGProto]] for functions.
 
   To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."  
-  {:clj-kondo/config '{:config-in-call {fastmath.random/make-ssjc-distr {:ignore [:unresolved-symbol]}
-                                        fastmath.random/make-ssjc-distr-no-pdf {:ignore [:unresolved-symbol]}
-                                        fastmath.random/make-ssji-distr {:ignore [:unresolved-symbol]}
-                                        fastmath.random/make-acm-distr {:ignore [:unresolved-symbol]}
-                                        fastmath.random/distribution-template {:ignore [:unresolved-symbol]}}}}
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
@@ -572,7 +567,6 @@ See also [[jittered-sequence-generator]]."}
 
 (defmacro ^:private gen-noise-function
   "Generate various noise as static function"
-  {:clj-kondo/lint-as 'clojure.core/def}
   [noise-type method]
   `(defn ~noise-type
      ~(str "Create " noise-type " function with optional configuration.")

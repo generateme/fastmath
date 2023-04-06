@@ -400,8 +400,8 @@
 
   Additional parameters in config:
 
-  * N - number of points to scan per dimension (default: 10, minumum 10)
-  * n - fraction of total points N) used for optimization (default: 0.1, minimum 10)"
+  * N - number of points to scan per dimension (default: 100, minumum 10)
+  * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
   [optimizer goal method f {:keys [bounds ^int N ^double n ^double jitter]
                             :or {N 100 n 0.05 jitter 0.25}
                             :as config}]

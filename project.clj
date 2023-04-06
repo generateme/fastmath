@@ -19,7 +19,7 @@
                  [de.sciss/jwave "1.0.3"]
                  [ca.umontreal.iro.simul/ssj "3.3.1"]
 
-                 [org.clojure/data.int-map "1.2.0"]]
+                 [org.clojure/data.int-map "1.2.1"]]
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src"]
@@ -27,8 +27,9 @@
   :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
-  :profiles {:dev {:dependencies [[io.github.nextjournal/clerk "0.13.838"]
-                                  [clojure2d "1.4.5-SNAPSHOT"]]
+  :profiles {:dev {:dependencies [[io.github.nextjournal/clerk "0.13.842"]
+                                  [clojure2d "1.4.5-SNAPSHOT" :exclusions [generateme/fastmath]]
+                                  [org.clojure/data.csv "1.0.1"]]
                    :source-paths ["notebooks"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}})
