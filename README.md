@@ -2,15 +2,30 @@
 
 # fastmath
 
-Fast and primitive based math library.
+Math library.
 
----
-**NOTE**
+## Documentation
 
-Due to significant change in SMILE 2.x API I decided to remove ML namespaces: regression and classification. 
-The ML functionality is now available in [scicloj.ml](https://github.com/scicloj/scicloj.ml)
+[Documentation with examples](https://generateme.github.io/fastmath/index.html)
 
----
+### Clerk notebooks - towards 2.2.0
+
+[Index](https://generateme.github.io/fastmath/notebooks/)
+
+* [fastmath.core](https://generateme.github.io/fastmath/notebooks/notebooks/core.html)
+* [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random.html)
+* [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats.html)
+
+### Previous version
+
+Based on SMILE 1.5.3 and including: regression and classification.
+
+```clojure
+[generateme/fastmath "1.5.3"]
+```
+
+[Documentation with examples](https://generateme.github.io/fastmath/1.5/index.html)
+
 
 ## Installation
 
@@ -23,7 +38,6 @@ Snapshot:
 ```clojure
 [generateme/fastmath "2.1.9-SNAPSHOT"]
 ```
-
 
 ### MKL
 
@@ -63,21 +77,6 @@ java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
 java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
 [...]
 ```
-
-
-### Documentation
-
-[Documentation with examples](https://generateme.github.io/fastmath/index.html)
-
-### Previous version
-
-Based on SMILE 1.5.3 and including: regression and classification.
-
-```clojure
-[generateme/fastmath "1.5.3"]
-```
-
-[Documentation with examples](https://generateme.github.io/fastmath/1.5/index.html)
 
 ## Content
 
