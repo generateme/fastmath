@@ -21,6 +21,10 @@
 #_:clj-kondo/ignore
 (require '[fastmath.random :as r])
 
+;; Set initial seed
+^{::clerk/visibility {:result :hide}}
+(r/set-seed! 31337)
+
 ;; ## Common functions
 
 ;; List of the functions which work with PRNG and distribution objects:

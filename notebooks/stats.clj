@@ -652,6 +652,7 @@
          [:yates "Yates corrected chi squared" (:yates ct-m)]
          [:cochran-mantel-haenszel "Cochran-Mantel-Haenszel" (:cochran-mantel-haenszel ct-m)]
          [:cohens-kappa "Cohen's kappa" (:cohens-kappa ct-m)]
+         [:cohens-h "Cohen's H" (:cohens-h ct-m)]
          [:huberts-gamma "Hubert’s Γ" (:huberts-gamma ct-m)]
          [:yules-q "Yule's Q" (:yules-q ct-m)]
          [:yules-y "Yule's Y" (:yules-y ct-m)]
@@ -947,29 +948,112 @@
 
 ^{::clerk/visibility :hide}
 (clerk/example
-(stats/rank-epsilon-sq mpgs-by-cyl)
-(stats/rank-eta-sq mpgs-by-cyl))
+ (stats/rank-epsilon-sq mpgs-by-cyl)
+ (stats/rank-eta-sq mpgs-by-cyl))
 
 ;; ### Contingency
 
-
-
-;; ## Data manipulation
+;; Effect size or measures of contingency tables.
 
 ^{::clerk/visibility :hide}
 (u/table2
-[[demean]
- [standardize]
- [robust-standardize]
- [winsor]
- [trim]
- [rescale]])
+ [[mcc "Mathew correlation coefficient, phi"]
+  [cramers-c "Cramer's C"]
+  [cramers-v "Cramer's V"]
+  [cramers-v-corrected "Cramer's V corrected"]
+  [cohens-w "Cohen's W"]
+  [cohens-kappa "Cohen's kappa"]
+  [weighted-kappa "Cohen's weighted kappa"]
+  [tschuprows-t "Tschuprow's T"]])
 
-;; ## Confusion matrix
+^{::clerk/visibility :hide}
+(def ct-table
+  (stats/rows->contingency-table [[150 100 165 130]
+                                  [50 65 35 10]
+                                  [2 55 40 25]]))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/cramers-c ct-table)
+ (stats/cramers-v ct-table)
+ (stats/cramers-v-corrected ct-table)
+ (stats/cohens-w ct-table)
+ (stats/cohens-kappa ct-table)
+ (stats/tschuprows-t ct-table))
+
+;; Weighted kappa assumes that contingency table is indexed, rows and columns should be integers. There are two predefined methods for weights:
+;; * `:equal-spacing` - linear weights, default (also known as Cicchetti-Allison)
+;; * `:fleiss-cohen` - quadratic weights
+
+;; You can also provide own weights as map or custom 3-arity function: `R` (maximum index), `row-id` and `col-id`.
+
+(def wk-table
+  (stats/rows->contingency-table [[11 3 1 0]
+                                  [1 9 0 1]
+                                  [0 1 10 0]
+                                  [1 2 0 10]]))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/cohens-kappa wk-table)
+ (stats/weighted-kappa wk-table)
+ (stats/weighted-kappa wk-table :fleiss-cohen)
+ (stats/weighted-kappa wk-table {[0 0] 1 [1 1] 1 [2 2] 1 [3 3] 1})
+ (stats/weighted-kappa wk-table (fn [R row col]
+                                  (- 1.0 (m/sqrt (/ (m/abs (- row col)) R))))))
+
+;; ## Scaling and trimming
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[demean "subtract mean from the data"]
+  [standardize "normalize samples to make mean=0 and stddev=1"]
+  [robust-standardize "normalize samples to make median=0 and MAD=1"]
+  [winsor "constrain data to given quantiles: [q, 1-q]"]
+  [trim "remove data which are outside given quantiles: [q, 1-q]"]
+  [rescale "lineary scale data to given range"]])
+
+(def some-data [1 2 3 6 21])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/mean some-data)
+ (stats/stddev some-data)
+ (stats/median some-data)
+ (stats/median-absolute-deviation some-data))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/demean some-data)
+ (stats/mean (stats/demean some-data))
+ (stats/stddev (stats/demean some-data))
+ (stats/standardize some-data)
+ (stats/mean (stats/standardize some-data))
+ (stats/stddev (stats/standardize some-data))
+ (stats/robust-standardize some-data)
+ (stats/median (stats/robust-standardize some-data))
+ (stats/median-absolute-deviation (stats/robust-standardize some-data))
+ (stats/winsor some-data)
+ (stats/winsor some-data 0.4)
+ (stats/trim some-data)
+ (stats/trim some-data 0.4)
+ (stats/rescale some-data)
+ (stats/rescale some-data 10 100))
+
+;; `trim` and `winsor` also replace NaN value with median. 4-arity version accept data, low value, high value and NaN replacement.
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/winsor [1 2 ##NaN 4 5 6 7 10])
+ (stats/winsor [1 2 ##NaN 4 5 6 7 10] 2 6 nil)
+ (stats/trim [1 2 ##NaN 4 5 6 7 10])
+ (stats/trim [1 2 ##NaN 4 5 6 7 10] 2 6 nil))
 
 ;; ## Histogram
 
 ;; ## Tests
+
+
 
 ;; ## List of symbols
 

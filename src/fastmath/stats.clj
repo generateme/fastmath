@@ -821,9 +821,10 @@
   ([vs] (winsor vs 0.2))
   ([vs quantile] (winsor vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
-   (let [[qlow qmid qhigh] (quantiles vs [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
+                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
      (winsor vs qlow qhigh qmid)))
-  ([vs ^double low ^double high ^double nan]
+  ([vs ^double low ^double high nan]
    (let [[^double low ^double high] (if (< low high) [low high] [high low])]
      (map (fn [^double v]
             (if (m/nan? v)
@@ -835,13 +836,15 @@
   ([vs] (trim vs 0.2))
   ([vs quantile] (trim vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
-   (let [[qlow qmid qhigh] (quantiles vs [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
+                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
      (trim vs qlow qhigh qmid)))
-  ([vs ^double low ^double high ^double nan]
+  ([vs ^double low ^double high nan]
    (let [[^double low ^double high] (if (< low high) [low high] [high low])]
-     (filter (fn [^double v]
-               (<= low v high))
-             (map (fn [^double v] (if (m/nan? v) nan v)) vs)))))
+     (->> (filter (fn [^double v]
+                    (or (m/nan? v)
+                        (<= low v high))) vs)
+          (map (fn [^double v] (if (m/nan? v) nan v)))))))
 
 (defn rescale
   "Lineary rascale data to desired range, [0,1] by default"
@@ -1463,26 +1466,25 @@
 
 (defn- weighted-kappa-equal-spacing
   ^double [^long R ^long id1 ^long id2]
-  (- 1.0 (/ (m/abs (- id1 id2))
-            (dec R))))
+  (- 1.0 (/ (m/abs (- id1 id2)) R)))
 
 (defn- weighted-kappa-fleiss-cohen
   ^double [^long R ^long id1 ^long id2]
-  (- 1.0 (/ (m/sq (- id1 id2))
-            (m/sq (dec R)))))
+  (- 1.0 (/ (m/sq (- id1 id2)) (m/sq R))))
 
 (defn weighted-kappa
   "Cohen's weighted kappa for indexed contingency table"
   (^double [contingency-table] (weighted-kappa contingency-table :equal-spacing))
   (^double [contingency-table weights]
    (let [ct (infer-ct contingency-table)
-         R (inc (int (reduce clojure.core/max (map ffirst ct))))
+         R (int (reduce (fn [^long c [^long a ^long b]]
+                          (max c a b)) 0 (keys ct)))
          {:keys [^long n rows cols]} (contingency-table->marginals ct)
          wfn (cond
                (= weights :equal-spacing) weighted-kappa-equal-spacing
                (= weights :fleiss-cohen) weighted-kappa-fleiss-cohen
                (fn? weights) weights
-               :else (fn [_ id1 id2] (get-in weights [id1 id2] 0.0)))
+               :else (fn [_ id1 id2] (get weights [id1 id2] 0.0)))
          n2 (* n n)
          pe (/ (sum (for [[^long idr ^long r] rows
                           [^long idc ^long c] cols]
@@ -1727,6 +1729,8 @@
                 :phi phi
                 :scotts-pi (/ (- (* a d) (* hbc hbc))
                               (* (+ a hbc) (+ d hbc)))
+                :cohens-h (* 2.0 (- (m/asin (m/sqrt (/ a dr1)))
+                                    (m/asin (m/sqrt (/ c dr2))))) ;; effectsize R
                 :PCC pcc
                 :PCC-adjusted (* m/SQRT2 pcc)
                 :TCC (m/cos (/ m/PI (inc (m/sqrt OR))))                
