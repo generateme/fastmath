@@ -116,9 +116,9 @@
   (map (fn [v] [(+ v 0.5) (f v)]) (range dx (inc dy))))
 
 (defn bgraph-int
-  ([f] (fgraph-int f nil))
-  ([f domain] (fgraph-int f domain :domain))
-  ([f domain rnge] (fgraph-int f domain rnge size))
+  ([f] (bgraph-int f nil))
+  ([f domain] (bgraph-int f domain :domain))
+  ([f domain rnge] (bgraph-int f domain rnge size))
   ([f domain rnge size]
    (let [[dx dy :as dom] (or domain [0 10])
          md (m/make-norm dx dy 5.0 (- size 5))

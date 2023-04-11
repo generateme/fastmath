@@ -10,7 +10,8 @@
             [fastmath.random :as r]
             [fastmath.core :as m]
             [fastmath.kernel :as k]
-            [fastmath.stats :as stat]))
+            [fastmath.stats :as stat]
+            [fastmath.fields.y :as y]))
 
 ;; # fastmath.stats
 
@@ -498,6 +499,8 @@
  (stats/bootstrap-ci intervals-data 0.9 50000)
  (stats/bootstrap-ci intervals-data 0.9 1000 stats/median))
 
+;; ### Binomial
+
 ;; ### Range
 
 ^{::clerk/visibility :hide}
@@ -510,15 +513,135 @@
  (stats/iqr intervals-data)
  (stats/span intervals-data))
 
-;; ### Binomial
+;; ## Metrics
+
+;; For given two samples calculate distance or value of given measure. Second argument can be either sequence or a number.
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[me "mean error"]
+  [mae "mean absolute error"]
+  [mape "mean absolute percentage error"]
+  [rss "residual sum of squares"]
+  [r2 "R2"]
+  [mse "mean squared error"]
+  [rmse "root mean squared error"]
+  [psnr "peak signal to noise"]
+  [count= "count equals, L0"]
+  [L0 "count equals, count="]
+  [L1 "manhattan distance"]
+  [L2 "euclidean distance"]
+  [L2sq "euclidean distance squared"]
+  [LInf "chebyshev distance"]])
+
+;; As a data we'll use `mpg` column and the same column with distortion
+
+(def mpg (u/mtcars :mpg))
+(def mpg+ (map (fn [v] (+ v (r/grand))) mpg))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/me mpg mpg+)
+ (stats/me mpg 20.09)
+ (stats/mae mpg mpg+)
+ (stats/mae mpg 20.09)
+ (stats/mape mpg mpg+)
+ (stats/mape mpg 20.09)
+ (stats/rss mpg mpg+)
+ (stats/rss mpg 20.09)
+ (stats/r2 mpg mpg+)
+ (stats/r2 mpg 20.09)
+ (stats/mse mpg mpg+)
+ (stats/mse mpg 20.09)
+ (stats/rmse mpg mpg+)
+ (stats/rmse mpg 20.09)
+ (stats/count= mpg mpg+)
+ (stats/count= mpg 21)
+ (stats/L0 mpg mpg+)
+ (stats/L0 mpg 21)
+ (stats/L1 mpg mpg+)
+ (stats/L1 mpg 20.09)
+ (stats/L2 mpg mpg+)
+ (stats/L2 mpg 20.09)
+ (stats/L2sq mpg mpg+)
+ (stats/L2sq mpg 20.09)
+ (stats/LInf mpg mpg+)
+ (stats/LInf mpg 20.09))
 
 ;; ## Correlation
 
-;; ### ACF
+^{::clerk/visibility :hide}
+(u/table2
+ [[covariance "covariance of two samples"]
+  [correlation "correlation of two samples (Pearson's)"]
+  [spearman-correlation "Spearman's correlation"]
+  [pearson-correlation "Pearson's correlation"]
+  [kendall-correlation "Kendall's correlation"]
+  [kullback-leibler-divergence "Kullback-Leibler divergence"]
+  [jensen-shannon-divergence "Jensen-Shannon divergence"]
+  [correlation-matrix "correlation matrix"]
+  [covariance-matrix "covariance martrix"]
+  [coefficient-matrix "create any coefficient matrix for seq of seqs"]])
 
-;; ### PACF
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/covariance (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/correlation (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/pearson-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/spearman-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/kendall-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/kullback-leibler-divergence (u/mtcars :mpg) (u/mtcars :cyl))
+ (stats/jensen-shannon-divergence (u/mtcars :mpg) (u/mtcars :cyl))) 
 
-;; ## Metrics
+;; Matrices are created by applying given correlation method (on any function) for every pair of given sequences. For:
+;; * `covariance-matrix` - covariance
+;; * `correlation-matrix` - correlation (or divergence), Pearson's by default, other options:
+;;    * `:pearsons` - default
+;;    * `:spearman`
+;;    * `:kendall`
+;;    * `:kullback-leibler`
+;;    * `:jensen-shannon`
+;; * `coefficient-matrix` - apply any function (`pearson-correlation` by default) to every pair of sequences. Last argument indicates if function is commutative or not (to speedup calculations)
+
+(def three-irises (u/by u/iris :species :sepal-width))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/covariance-matrix three-irises)
+ (stats/correlation-matrix three-irises)
+ (stats/correlation-matrix three-irises :spearman)
+ (stats/correlation-matrix three-irises :kendall)
+ (stats/coefficient-matrix three-irises stats/L1))
+
+;; ### ACF/PACF
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[acf "autocorrelation function"]
+  [acf-ci "autocorrelation function with confidence intervals"]
+  [pacf "partial autocorrelation function"]
+  [pacf-ci "partial autocorrelation function with confidence intervals"]])
+
+;; Please note: `acf` can return selected lags
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/acf (u/mtcars :mpg))
+ (stats/acf (u/mtcars :mpg) 5)
+ (stats/acf (u/mtcars :mpg) [0 1 2 5 10])
+ (stats/acf-ci (u/mtcars :mpg) 5)
+ (stats/pacf (u/mtcars :mpg))
+ (stats/pacf (u/mtcars :mpg) 5)
+ (stats/pacf-ci (u/mtcars :mpg) 5))
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [["ACF (mpg)" "PACF (mpg)"]
+  [(u/bgraph-int (zipmap (range) (stats/acf (u/mtcars :mpg))) [0 32] [-1.1 1.1])
+   (u/bgraph-int (zipmap (range) (stats/pacf (u/mtcars :mpg))) [0 32] [-1.1 1.1])]
+  ["ACF (uniform random)" "PACF (uniform random)"]
+  [(u/bgraph-int (zipmap (range) (stats/acf (take-nth 10 (repeatedly 400 r/drand)))) [0 32] [-1.1 1.1])
+   (u/bgraph-int (zipmap (range) (stats/pacf (take-nth 10 (repeatedly 400 r/drand)))) [0 32] [-1.1 1.1])]])
 
 ;; ## Contingency table
 
@@ -1053,7 +1176,9 @@
 
 ;; ## Tests
 
-
+^{::clerk/visibility :hide}
+(u/table2
+ [[]])
 
 ;; ## List of symbols
 

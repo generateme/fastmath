@@ -903,7 +903,7 @@
 
   Default method: pearson-correlation"
   {:metadoc/categories #{:corr}}
-  ([vss] (coefficient-matrix vss :pearson))
+  ([vss] (coefficient-matrix vss pearson-correlation))
   ([vss measure-fn] (coefficient-matrix vss measure-fn true))
   ([vss measure-fn symmetric?]
    (if symmetric?
@@ -954,11 +954,24 @@
   ^double [vs1 vs2-or-val]
   (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val))))
 
+(defn mape
+  "Mean absolute percentage error"
+  {:metadoc/categories #{:stat}}
+  ^double [vs1 vs2-or-val]
+  (mean (map (fn [^double a ^double b]
+               (m/abs (/ (- a b) a))) vs1 (maybe-number->seq vs2-or-val))))
+
 (defn rss
   "Residual sum of squares"
   {:metadoc/categories #{:stat}}
   ^double [vs1 vs2-or-val]
   (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val))))
+
+(defn r2
+  "R2"
+  ^double [vs1 vs2-or-val]
+  (- 1.0 (/ (rss vs1 vs2-or-val)
+            (moment vs1 2 {:mean? false}))))
 
 (defn mse
   "Mean squared error"
@@ -973,27 +986,43 @@
   (m/sqrt (mse vs1 vs2-or-val)))
 
 (defn count=
-  "Count equal values in both seqs."
+  "Count equal values in both seqs. Same as [[L0]]"
   {:metadoc/categories #{:stat}}
-  ^long [vs1 vs2]
-  (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 vs2))))
+  ^long [vs1 vs2-or-val]
+  (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 (maybe-number->seq vs2-or-val)))))
 
-(def L0 count=)
-(def L1 d/manhattan)
-(def L2sq d/euclidean-sq)
-(def L2 d/euclidean)
-(def LInf d/chebyshev)
+(def L0 ^{:doc "Count equal values in both seqs. Same as [[count==]]"} count=)
+
+(defn L1
+  "Manhattan distance"
+  ^double [vs1 vs2-or-val]
+  (d/manhattan vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+
+(defn L2sq
+  "Squared euclidean distance"
+  ^double [vs1 vs2-or-val]
+  (d/euclidean-sq vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+
+(defn L2
+  "Euclidean distance"
+  ^double [vs1 vs2-or-val]
+  (d/euclidean vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+
+(defn LInf
+  "Chebyshev distance"
+  ^double [vs1 vs2-or-val]
+  (d/chebyshev vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
 
 (defn psnr
   "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
   {:metadoc/categories #{:stat}}
-  (^double [vs1 vs2]
+  (^double [vs1 vs2-or-val]
    (let [mx1 (maximum vs1)
-         mx2 (maximum vs2)]
-     (psnr vs1 vs2 (max mx1 mx2))))
-  (^double [vs1 vs2 ^double max-value]
+         ^double mx2 (if (number? vs2-or-val) vs2-or-val (maximum vs2-or-val))]
+     (psnr vs1 vs2-or-val (max mx1 mx2))))
+  (^double [vs1 vs2-or-val ^double max-value]
    (- (* 20.0 (m/log10 max-value))
-      (* 10.0 (m/log10 (mse vs1 vs2))))))
+      (* 10.0 (m/log10 (mse vs1 vs2-or-val))))))
 
 ;;
 
@@ -1822,6 +1851,7 @@
 (defn pacf-ci
   "[[pacf]] with added confidence interval data."
   {:metadoc/categories #{:time}}
+  ([data] (pacf-ci data (dec (count data))))
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [pacf-data (pacf data lags)
@@ -1834,6 +1864,7 @@
 
   `:cis` contains list of calculated ci for every lag."
   {:metadoc/categories #{:time}}
+  ([data] (acf-ci data (dec (count data))))
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [acf-data (acf data lags)
