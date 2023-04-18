@@ -617,6 +617,7 @@
                               :or {mean? true}}]
    (let [in (m/seq->double-array vs)
          cin (alength in)
+         out (double-array cin)
          nf (if normalize? (m/pow (variance in) (* 0.5 order)) 1.0)
          ^double center (or center (mean in))
          f (cond
@@ -628,9 +629,9 @@
          a (if absolute? m/abs m/fast-identity)]
      (loop [idx (int 0)]
        (when (< idx cin)
-         (aset in idx ^double (f (a (- (aget in idx) center))))
+         (aset out idx ^double (f (a (- (aget in idx) center))))
          (recur (inc idx))))
-     (/ (if mean? (mean in) (sum in)) nf))))
+     (/ (if mean? (mean out) (sum out)) nf))))
 
 (def ^{:deprecated "Use [[moment]] function"} second-moment moment)
 
@@ -721,7 +722,7 @@
          cnt (count vs)
          dist (r/distribution :enumerated-real {:data vsa})
          ^double m (stat-fn vsa)
-         deltas (m/seq->double-array (repeatedly samples #(- ^double (stat-fn (r/->seq dist cnt)) m)))
+         deltas (m/seq->double-array (repeatedly samples #(- ^double (mean (r/->seq dist cnt)) m)))
          q1 (quantile deltas alpha)
          q2 (quantile deltas (- 1.0 alpha))]
      [(- m q1) (- m q2) m])))
@@ -735,13 +736,6 @@
   ([vs samples size]
    (let [dist (r/distribution :enumerated-real {:data vs})]
      (repeatedly samples #(r/->seq dist size)))))
-
-(defn jackknife
-  "Generates set of samples using jackknife method"
-  [vs]
-  (map (fn [id]
-         (let [[a b] (split-at id vs)]
-           (concat a (rest b)))) (range (count vs))))
 
 (defn stats-map
   "Calculate several statistics of `vs` and return as map.
@@ -859,44 +853,51 @@
 (defn covariance
   "Covariance of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (covariance vs1 vs2))
+  (^double [vs1 vs2]
+   (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn correlation
   "Correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (smile.math.MathEx/cor (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (correlation vs1 vs2))
+  (^double [vs1 vs2]
+   (smile.math.MathEx/cor (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (spearman-correlation vs1 vs2))
+  (^double [vs1 vs2]
+   (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (pearson-correlation vs1 vs2))
+  (^double [vs1 vs2]
+   (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kendall-correlation
   "Kendall's correlation of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (kendall-correlation vs1 vs2))
+  (^double [vs1 vs2]
+   (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (smile.math.MathEx/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (kullback-leibler-divergence vs1 vs2))
+  (^double [vs1 vs2]
+   (smile.math.MathEx/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
   {:metadoc/categories #{:corr}}
-  ^double [vs1 vs2]
-  (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2)))
+  (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
+  (^double [vs1 vs2]
+   (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn coefficient-matrix
   "Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.
@@ -945,77 +946,90 @@
 (defn me
   "Mean error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (mean (map m/fast- vs1 (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (mean (map m/fast- vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn mae
   "Mean absolute error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn mape
   "Mean absolute percentage error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (mean (map (fn [^double a ^double b]
-               (m/abs (/ (- a b) a))) vs1 (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (mape vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (mean (map (fn [^double a ^double b]
+                (m/abs (/ (- a b) a))) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn rss
   "Residual sum of squares"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn r2
   "R2"
-  ^double [vs1 vs2-or-val]
-  (- 1.0 (/ (rss vs1 vs2-or-val)
-            (moment vs1 2 {:mean? false}))))
+  (^double [[vs1 vs2-or-val]] (r2 vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (- 1.0 (/ (rss vs1 vs2-or-val)
+             (moment vs1 2 {:mean? false})))))
 
 (defn mse
   "Mean squared error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (mean (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (mean (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn rmse
   "Root mean squared error"
   {:metadoc/categories #{:stat}}
-  ^double [vs1 vs2-or-val]
-  (m/sqrt (mse vs1 vs2-or-val)))
+  (^double [[vs1 vs2-or-val]] (rmse vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (m/sqrt (mse vs1 vs2-or-val))))
 
 (defn count=
   "Count equal values in both seqs. Same as [[L0]]"
   {:metadoc/categories #{:stat}}
-  ^long [vs1 vs2-or-val]
-  (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 (maybe-number->seq vs2-or-val)))))
+  (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
+  (^long [vs1 vs2-or-val]
+   (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 (maybe-number->seq vs2-or-val))))))
 
-(def L0 ^{:doc "Count equal values in both seqs. Same as [[count==]]"} count=)
+(def ^{:doc "Count equal values in both seqs. Same as [[count==]]"} L0 count=)
 
 (defn L1
   "Manhattan distance"
-  ^double [vs1 vs2-or-val]
-  (d/manhattan vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (L1 vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (d/manhattan vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
 
 (defn L2sq
   "Squared euclidean distance"
-  ^double [vs1 vs2-or-val]
-  (d/euclidean-sq vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (L2sq vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (d/euclidean-sq vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
 
 (defn L2
   "Euclidean distance"
-  ^double [vs1 vs2-or-val]
-  (d/euclidean vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (L2 vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (d/euclidean vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
 
 (defn LInf
   "Chebyshev distance"
-  ^double [vs1 vs2-or-val]
-  (d/chebyshev vs1 (take (count vs1) (maybe-number->seq vs2-or-val))))
+  (^double [[vs1 vs2-or-val]] (LInf vs1 vs2-or-val))
+  (^double [vs1 vs2-or-val]
+   (d/chebyshev vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
 
 (defn psnr
   "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
   {:metadoc/categories #{:stat}}
+  (^double [[vs1 vs2-or-val]] (psnr vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [mx1 (maximum vs1)
          ^double mx2 (if (number? vs2-or-val) vs2-or-val (maximum vs2-or-val))]
@@ -1081,9 +1095,10 @@
   If difference between min and max values is `0`, number of bins is set to 1."
   {:metadoc/categories #{:stat}}
   ([vs] (histogram vs :freedman-diaconis))
-  ([vs bins-or-estimate-method] (histogram vs (estimate-bins vs bins-or-estimate-method) (extent vs)))
-  ([vs ^long bins [^double mn ^double mx]]
-   (let [vs (filter #(<= mn ^double % mx) vs)
+  ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent vs)))
+  ([vs bins-or-estimate-method [^double mn ^double mx]]
+   (let [vs (filter (fn [^double v] (<= mn v mx)) vs)
+         ^long bins (estimate-bins vs bins-or-estimate-method)
          diff (- mx mn)
          bins (if (zero? diff) 1 bins)
          step (/ diff bins)
@@ -1136,6 +1151,7 @@
 (defn cohens-d
   "Cohen's d effect size for two groups"
   {:metadoc/categories #{:effect}}
+  (^double [[group1 group2]] (cohens-d group1 group2))
   (^double [group1 group2] (cohens-d group1 group2 :unbiased))
   (^double [group1 group2 method]
    (let [group1 (m/seq->double-array group1)
@@ -1150,6 +1166,7 @@
 (defn cohens-d-corrected
   "Cohen's d corrected for small group size"
   {:metadoc/categories #{:effect}}
+  (^double [[group1 group2]] (cohens-d-corrected group1 group2))
   (^double [group1 group2] (cohens-d-corrected group1 group2 :unbiased))
   (^double [group1 group2 method]
    (* (effect-size-correction (if (= method :biased)
@@ -1162,35 +1179,40 @@
 (defn hedges-g
   "Hedges's g effect size for two groups"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (cohens-d group1 group2 :unbiased))
+  (^double [[group1 group2]] (hedges-g group1 group2))
+  (^double [group1 group2]
+   (cohens-d group1 group2 :unbiased)))
 
 (defn hedges-g-corrected
   "Cohen's d corrected for small group size"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (cohens-d-corrected group1 group2 :unbiased))
+  (^double [[group1 group2]] (hedges-g-corrected group1 group2))
+  (^double [group1 group2]
+   (cohens-d-corrected group1 group2 :unbiased)))
 
 (defn hedges-g*
   "Less biased Hedges's g effect size for two groups, J term correction."
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [df (+ (count group1) (count group2) -2)
-        df2 (* 0.5 df)
-        j (m/exp (- (m/log-gamma df2)
-                    (m/log (m/sqrt df2))
-                    (m/log-gamma (* 0.5 (dec df)))))]
-    (* j (hedges-g group1 group2))))
+  (^double [[group1 group2]] (hedges-g* group1 group2))
+  (^double [group1 group2]
+   (let [df (+ (count group1) (count group2) -2)
+         df2 (* 0.5 df)
+         j (m/exp (- (m/log-gamma df2)
+                     (m/log (m/sqrt df2))
+                     (m/log-gamma (* 0.5 (dec df)))))]
+     (* j (hedges-g group1 group2)))))
 
 (defn glass-delta
   "Glass's delta effect size for two groups"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [group2 (m/seq->double-array group2)]
-    (/ (- (mean group1) (mean group2)) (stddev group2))))
+  (^double [[group1 group2]] (glass-delta group1 group2))
+  (^double [group1 group2]
+   (let [group2 (m/seq->double-array group2)]
+     (/ (- (mean group1) (mean group2)) (stddev group2)))))
 
 (defn means-ratio
   "Means ratio"
+  (^double [[group1 group2]] (means-ratio group1 group2))
   (^double [group1 group2] (means-ratio group1 group2 false))
   (^double [group1 group2 adjusted?]
    (let [ag1 (m/seq->double-array group1)
@@ -1209,34 +1231,38 @@
 
 (defn means-ratio-corrected
   "Bias correced means ratio"
-  ^double [group1 group2]
-  (means-ratio group1 group2 true))
+  (^double [[group1 group2]] (means-ratio-corrected group1 group2))
+  (^double [group1 group2]
+   (means-ratio group1 group2 true)))
 
 (defn cliffs-delta
   "Cliff's delta effect size for ordinal data."
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (/ ^double (reduce m/fast+ (for [a group1
-                                   b group2]
-                               (m/signum (compare a b))))
-     (* (count group1) (count group2))))
+  (^double [[group1 group2]] (cliffs-delta group1 group2))
+  (^double [group1 group2]
+   (/ ^double (reduce m/fast+ (for [a group1
+                                    b group2]
+                                (m/signum (compare a b))))
+      (* (count group1) (count group2)))))
 
 ;;
 
 (defn ameasure
   "Vargha-Delaney A measure for two populations a and b"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [m (count group1)
-        n (count group2)
-        ^double r1 (reduce m/fast+ (take m (m/rank1 (concat group1 group2))))]
-    (/ (- (+ r1 r1) (* m (inc m)))
-       (* 2.0 m n))))
+  (^double [[group1 group2]] (ameasure group1 group2))
+  (^double [group1 group2]
+   (let [m (count group1)
+         n (count group2)
+         ^double r1 (reduce m/fast+ (take m (m/rank1 (concat group1 group2))))]
+     (/ (- (+ r1 r1) (* m (inc m)))
+        (* 2.0 m n)))))
 
 (defn wmw-odds
   "Wilcoxon-Mann-Whitney odds"
-  ^double [group1 group2]
-  (m/exp (m/logit (* 0.5 (inc (cliffs-delta group1 group2))))))
+  (^double [[group1 group2]] (wmw-odds group1 group2))
+  (^double [group1 group2]
+   (m/exp (m/logit (* 0.5 (inc (cliffs-delta group1 group2)))))))
 
 (defn- integrate-kde
   [iterations kde ranges]
@@ -1249,6 +1275,7 @@
 
 (defn p-overlap
   "Overlapping index, kernel density approximation"
+  (^double [[group1 group2]] (p-overlap group1 group2))
   (^double [group1 group2] (p-overlap group1 group2 {}))
   (^double [group1 group2 {:keys [kde bandwidth ^long min-iterations ^long steps]
                            :or {kde :gaussian min-iterations 3 steps 500}}]
@@ -1265,6 +1292,7 @@
 
 (defn cohens-u2
   "Cohen's U2, the proportion of one of the groups that exceeds the same proportion in the other group."
+  (^double [[group1 group2]] (cohens-u2 group1 group2))
   (^double [group1 group2] (cohens-u2 group1 group2 :legacy))
   (^double [group1 group2 estimation-strategy]
    (let [g1 (m/seq->double-array group1)
@@ -1280,6 +1308,7 @@
 
 (defn cohens-u3
   "Cohen's U3, the proportion of the second group that is smaller than the median of the first group."
+  (^double [[group1 group2]] (cohens-u3 group1 group2))
   (^double [group1 group2] (cohens-u3 group1 group2 :legacy))
   (^double [group1 group2 estimation-strategy]
    (let [m (median group1 estimation-strategy)]
@@ -1290,14 +1319,16 @@
 (defn pearson-r
   "Pearson `r` correlation coefficient"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (pearson-correlation group1 group2))
+  (^double [[group1 group2]] (pearson-r group1 group2))
+  (^double [group1 group2]
+   (pearson-correlation group1 group2)))
 
 (defn r2-determination
   "Coefficient of determination"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (m/sq (pearson-correlation group1 group2)))
+  (^double [[group1 group2]] (r2-determination group1 group2))
+  (^double [group1 group2]
+   (m/sq (pearson-correlation group1 group2))))
 
 (defn- local-linear-regression
   ^SimpleRegression [group1 group2]
@@ -1309,31 +1340,35 @@
 (defn eta-sq
   "R2, coefficient of determination"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (.getRSquare (local-linear-regression group1 group2)))
+  (^double [[group1 group2]] (eta-sq group1 group2))
+  (^double [group1 group2]
+   (.getRSquare (local-linear-regression group1 group2))))
 
 (defn omega-sq
   "Adjusted R2"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [lm (local-linear-regression group1 group2)
-        mse (.getMeanSquareError lm)]
-    (/ (- (.getRegressionSumSquares lm) mse)
-       (+ (.getTotalSumSquares lm) mse))))
+  (^double [[group1 group2]] (omega-sq group1 group2))
+  (^double [group1 group2]
+   (let [lm (local-linear-regression group1 group2)
+         mse (.getMeanSquareError lm)]
+     (/ (- (.getRegressionSumSquares lm) mse)
+        (+ (.getTotalSumSquares lm) mse)))))
 
 (defn epsilon-sq
   "Less biased R2"
   {:metadoc/categories #{:effect}}
-  ^double [group1 group2]
-  (let [lm (local-linear-regression group1 group2)]
-    (/ (- (.getRegressionSumSquares lm) (.getMeanSquareError lm))
-       (.getTotalSumSquares lm))))
+  (^double [[group1 group2]] (epsilon-sq group1 group2))
+  (^double [group1 group2]
+   (let [lm (local-linear-regression group1 group2)]
+     (/ (- (.getRegressionSumSquares lm) (.getMeanSquareError lm))
+        (.getTotalSumSquares lm)))))
 
 (defn cohens-f2
   "Cohens f2, by default based on `eta-sq`.
 
   Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
   {:metadoc/categories #{:effect}}
+  (^double [[group1 group2]] (cohens-f2 group1 group2))
   (^double [group1 group2] (cohens-f2 group1 group2 :eta))
   (^double [group1 group2 type]
    (let [f (case type
@@ -1347,7 +1382,8 @@
   "Cohens f, sqrt of Cohens f2.
 
   Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
-  (^double [group1 group2] (m/sqrt (cohens-f2 group1 group2 :eta)))
+  (^double [[group1 group2]] (cohens-f group1 group2))
+  (^double [group1 group2] (cohens-f group1 group2 :eta))
   (^double [group1 group2 type] (m/sqrt (cohens-f2 group1 group2 type))))
 
 (defn cohens-q
@@ -2093,7 +2129,8 @@
 
   * `alpha` - significance level (default: `0.05`)
   * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `ci-method`"
+  * `ci-method` - see [[binomial-ci-methods]]
+  * `p` - tested probability"
   ([xs] (binomial-test xs {}))
   ([xs maybe-params]
    (if (map? maybe-params)
@@ -2115,7 +2152,7 @@
       :level (- 1.0 alpha)
       :test-type sides
       :stat number-of-successes
-      :estimate (double (/ number-of-successes number-of-trials))
+      :estimate (/ (double number-of-successes) number-of-trials)
       :confidence-interval (let [ci (partial binomial-ci number-of-successes number-of-trials ci-method)]
                              (sides-case sides
                                          (vec (butlast (ci (- 1.0 alpha))))
@@ -2206,7 +2243,7 @@
                  (/ (m/sq (m/sq stderry)) (dec ny))))]
     [df stderr]))
 
-(defn test-two-samples-not-paired
+(defn- test-two-samples-not-paired
   [xs ys {:keys [^double alpha sides ^double mu equal-variances?]
           :or {alpha 0.05 sides :two-sided mu 0.0 equal-variances? false}}]
   (let [axs (m/seq->double-array xs)
@@ -2220,11 +2257,12 @@
         [df ^double stderr] (if equal-variances?
                               (test-equal-variances nx ny vx vy)
                               (test-not-equal-variances nx ny vx vy))]
-    {:n [nx ny]
+    {:n [nx ny] :nx nx :ny ny
      :estimated-mu [mx my]
      :mu mu
      :estimate (- mx my mu)
      :stat (/ (- mx my mu) stderr)
+     :sides sides
      :test-type sides
      :stderr stderr
      :alpha alpha
@@ -2302,8 +2340,10 @@
   ([xs ys] (f-test xs ys {}))
   ([xs ys {:keys [sides ^double alpha]
            :or {sides :two-sided alpha 0.05}}]
-   (let [dfx (dec (count xs))
-         dfy (dec (count ys))
+   (let [nx (count xs)
+         ny (count ys)
+         dfx (dec nx)
+         dfy (dec ny)
          F (/ (variance xs) (variance ys))
          distr (r/distribution :f {:denominator-degrees-of-freedom dfy
                                    :numerator-degrees-of-freedom dfx})]
@@ -2311,6 +2351,8 @@
       :stat F
       :estimate F
       :df [dfx dfy]
+      :n [nx ny] :nx nx :ny ny
+      :sides sides
       :test-type sides
       :p-value (p-value distr F sides)
       :confidence-interval (sides-case sides
@@ -2324,7 +2366,9 @@
   (let [cnt (count xs)
         n (double (reduce m/fast+ xs))
         df (dec cnt)
-        p (or p (repeat cnt (/ (double cnt))))
+        p (or p (repeat cnt 1.0))
+        psum (sum p)
+        p (map (fn [^double p] (/ p psum)) p)
         xhat (map (fn [^double p] (* n p)) p)
         stat (condp = (double lambda)
                0.0 (* 2.0 ^double (reduce m/fast+ (map (fn [^long a ^double b]
@@ -2334,7 +2378,7 @@
                (* (/ 2.0 (* lambda (inc lambda)))
                   ^double (reduce m/fast+ (map (fn [^long a ^double b]
                                                  (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
-    {:stat stat :df df :n n :expected xhat
+    {:stat stat :df df :n n :expected xhat :p p
      :estimate (map (fn [^double v] (/ v n)) xs)}))
 
 (defn- pdt-bootstrap-ci
@@ -2381,14 +2425,14 @@
   ([contingency-table-or-xs {:keys [^double lambda ci-sides sides p ^double alpha ^long bootstrap-samples
                                     ^long ddof]
                              :or {lambda m/TWO_THIRD sides :one-sided-greater ci-sides :two-sided
-                                  alpha 0.05 bootstrap-samples 5000 ddof 0}}]
+                                  alpha 0.05 bootstrap-samples 1000 ddof 0}}]
    (let [{:keys [df stat] :as res} (-> (if (and (sequential? contingency-table-or-xs)
                                                 (every? number? contingency-table-or-xs))
                                          (pdt-gof contingency-table-or-xs p lambda)
                                          (pdt-multi contingency-table-or-xs lambda))
                                        (update :df (fn [^long df] (- df ddof))))
          distr (r/distribution :chi-squared {:degrees-of-freedom df})
-         res (assoc res :lambda lambda :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
+         res (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
                     :p-value (p-value distr stat sides))]
      (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
 
@@ -2438,7 +2482,7 @@
         DFt (dec k)
         DFe (- (sum Ni) k)
         MSe (/ SSe DFe)]
-    {:N Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe MSe}))
+    {:n Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe MSe}))
 
 (defn- update-f-p-value
   [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]
@@ -2508,11 +2552,12 @@
   "Anderson-Darling test"
   ([xs] (ad-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ad-test-one-sample xs distribution-or-ys {}))
-  ([xs distribution-or-ys {:keys [sides kernel] :or {sides :one-sided-greater kernel :gaussian}}]
+  ([xs distribution-or-ys {:keys [sides kernel bandwidth] :or {sides :one-sided-greater kernel :gaussian}}]
    (let [d (cond
              (r/distribution? distribution-or-ys) distribution-or-ys
-             (= kernel :empirical) (r/distribution :enumerated-real {:data distribution-or-ys})
-             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel}))
+             (= kernel :enumerated) (r/distribution :enumerated-real {:data distribution-or-ys})
+             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel
+                                                             :bandwidth bandwidth}))
          axs (m/seq->double-array (sort xs))
          stat (a2-stat axs d)
          n (alength axs)
@@ -2524,12 +2569,13 @@
   "One sample Kolmogorov-Smirnov test"
   ([xs] (ks-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ks-test-one-sample xs distribution-or-ys {}))
-  ([xs distribution-or-ys {:keys [sides kernel distinct?]
+  ([xs distribution-or-ys {:keys [sides kernel bandwidth distinct?]
                            :or {sides :two-sided kernel :gaussian distinct? true}}]
    (let [d (cond
              (r/distribution? distribution-or-ys) distribution-or-ys
-             (= kernel :empirical) (r/distribution :enumerated-real {:data distribution-or-ys})
-             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel}))
+             (= kernel :enumerated) (r/distribution :enumerated-real {:data distribution-or-ys})
+             :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel
+                                                             :bandwidth bandwidth}))
          xs (if distinct? (distinct xs) xs)
          n (count xs)
          dn (/ (double n))
@@ -2592,7 +2638,7 @@
                     (* 3.0 (inc n)))
                  (- 1.0 (/ (sum (map (fn [^long t] (- (m/cb t) t)) ties))
                            (- (m/cb n) n))))]
-     {:stat stat :n n :df df :k k
+     {:stat stat :n n :df df :k k :sides sides
       :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
 
 #_(m/unuse-primitive-operators)

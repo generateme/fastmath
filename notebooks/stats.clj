@@ -1174,14 +1174,327 @@
 
 ;; ## Histogram
 
+^{::clerk/visibility :hide}
+(u/table2
+ [[histogram "build histogram data"]
+  [estimate-bins "estimate number of bins using different algorithms"]])
+
+;; `histogram` for given data and (optional) number of bins or bins' estimation algorithm returns a map with following content:
+;; * `:size` - actual number of bins
+;; * `:step` - bin width
+;; * `:min` - minimal value
+;; * `:max` - maximum value
+;; * `:samples` - total data size
+;; * `:bins` - seq of pairs containing lower value of the bin and count
+
+;; If the last argument is pair `[min value, max value]` input data is filtered to be inside the given range
+
+;; `estimate-bins` calculates number of bins for your data:
+;; * `:freedman-diaconis` (default)
+;; * `:sqrt`
+;; * `:sturges`
+;; * `:rice`
+;; * `:doane`
+;; * `:scott`
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/estimate-bins (u/iris :sepal-length))
+ (stats/estimate-bins (u/iris :sepal-length) :sqrt)
+ (stats/estimate-bins (u/iris :sepal-length) :sturges)
+ (stats/estimate-bins (u/iris :sepal-length) :rice)
+ (stats/estimate-bins (u/iris :sepal-length) :doane)
+ (stats/estimate-bins (u/iris :sepal-length) :scott))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/histogram (u/iris :sepal-length))
+ (stats/histogram (u/iris :sepal-length) :sqrt)
+ (stats/histogram (u/iris :sepal-length) 20)
+ (stats/histogram (u/iris :sepal-length) :doane [4.8 6.2]))
+
+^{::clerk/visibility {:result :hide :code :hide}}
+(defn h->bars
+  [{:keys [bins step]}]
+  (update-keys (into {} bins) (fn [k] (+ k (* step 0.5)))))
+
+^{::clerk/visibility :hide}
+(clerk/table
+ [["default" ":sqrt"]
+  [(u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length))) [4 8] [0 40])
+   (u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) :sqrt)) [4 8] [0 40])]
+  ["20 bins" ":doane, 4.8<=v<=6.2"]
+  [(u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) 20)) [4 8] [0 40])
+   (u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) :doane [4.8 6.2])) [4 8] [0 40])]])
+
 ;; ## Tests
+
+;; Collection of various statistical tests
 
 ^{::clerk/visibility :hide}
 (u/table2
- [[]])
+ [[p-value "calculate p-value"]])
+
+;; `p-value` calculates probability of any statistic for given distribution, N(0,1) by default. `p-value` can be calculated as:
+;; * `:two-sided` or `:both` - using both sides of distribution (default)
+;; * `:one-sided-greater` or `:right` - using right side of the distribution
+;; * `:one-sided`, `:one-sided-lower` or `:left` - using left side of the distribution
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/p-value 2.0)
+ (stats/p-value (r/distribution :t) 2.0 :right)
+ (stats/p-value (r/distribution :t) 2.0 :left)
+ (stats/p-value (r/distribution :t) 2.0 :both))
+
+;; All tests accept a map:
+;; * `:sides` to indicate which distribution side to use to calculate `p-value`
+;; * `:alpha` significance, if confidence interval is calculated
+
+;; All tests return a map with calculated test information and input configuration, common keys are:
+;; * `:stat` - test statistic
+;; * `:p-value` - probability value of test statistic
+;; * `:sides` - sides
+;; * `:n` - data size (or sizes if more than one sample is used)
+;; * `:confidence-intarval` - confidence interval (if applicable)
+
+;; Data used:
+
+mpg
+(def sepal-widths (vec (u/by u/iris :species :sepal-width)))
+
+
+;; ### T and Z
+
+;; One and two samples (paired or equal/unequal variance) `t-test` and `z-test`. 
+
+;; #### One sample
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[t-test-one-sample "one sample Student's t-test"]
+  [z-test-one-sample "one sample z-test"]])
+
+;; Additional functions arguments:
+;; * `:mu` - mean (default: 0.0)
+
+;; Functions return (additionally):
+;; * `:df` - degrees of freedom (for `t-test`)
+;; * `:estimate` - mean estimation
+;; * `:t` or `:z` - test statistic
+;; * `:stderr` - standard error
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/t-test-one-sample mpg)
+ (stats/z-test-one-sample mpg)
+ (stats/t-test-one-sample mpg)
+ (stats/z-test-one-sample mpg))
+
+;; #### Two samples
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[t-test-two-samples "two samples Student's t-test"]
+  [z-test-two-samples "two samples z-test"]])
+
+;; Addtitional functions arguments:
+;; * `:mu` - mean (default: 0.0)
+;; * `:paired?` - paired test? (default: `false`)
+;; * `:equal-variances?` - equal or unequal variances (default: `false`)
+
+;; Functions return (additionally):
+;; * `:nx`, `:ny` - samples sizes
+;; * `:df` - degrees of freedom (for `t-test`)
+;; * `:estimate` - difference in means
+;; * `:estimated-mu` - estimated means of `xs` and `ys`
+;; * `:t` :or `:z` - test statistic
+;; * `:stderr` - standard error
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/t-test-two-samples (sepal-widths 0) (sepal-widths 1))
+ (stats/t-test-two-samples (sepal-widths 0) (sepal-widths 1) {:paired? true})
+ (stats/t-test-two-samples (sepal-widths 0) (sepal-widths 1) {:equal-variances? true})
+ (stats/z-test-two-samples (sepal-widths 0) (sepal-widths 1))
+ (stats/z-test-two-samples (sepal-widths 0) (sepal-widths 1) {:paired? true})
+ (stats/z-test-two-samples (sepal-widths 0) (sepal-widths 1) {:equal-variances? true}))
+
+;; ### Binomial
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[binomial-test "binomial test"]])
+
+;; Test if data are from binomial distribution with `p` (default: 0.5) probability.
+;; As a data function accepts one of below:
+;; * `xs` - sequence of true/false values
+;; * `number-of-successes` and `number-of-trials`
+
+;; Additional parameters include:
+;; * `:p` - probability (default: 0.5)
+;; * `:ci-method` - one of the binomial confidence interval methods (default: `:asymptotic`).
+
+;; List of confidence interval methods:
+
+stats/binomial-ci-methods
+
+;; Data:
+
+(def binomial-data [true false true true true false true true true])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/binomial-test binomial-data)
+ (stats/binomial-test binomial-data {:p 0.2})
+ (stats/binomial-test 100 201)
+ (stats/binomial-test 100 201 {:ci-method :wilson}))
+
+;; ### Variances
+
+;; #### F
+
+;; F-test analyses variances ratio
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[f-test "two samples f-test"]])
+
+;; Function returns (additionally):
+;; * `:F` - test statistic
+;; * `:df` - degreeses of freedom
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/f-test (sepal-widths 0) (sepal-widths 1))
+ (stats/f-test (sepal-widths 1) (sepal-widths 0)))
+
+;; #### ANOVA
+
+;; Variance tests for multiple samples
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[one-way-anova-test "One way ANOVA"]
+  [levene-test "Levene test"]
+  [brown-forsythe-test "Brown Forsythe test"]
+  [fligner-killeen-test "Flinger Killen test"]])
+
+;; Functions return (additionally)
+;; * `:SSt` - sum of squares (treatments)
+;; * `:SSe` - sum of squares (error)
+;; * `:DFt` - degrees of freedom (treatments)
+;; * `:DFe` - degrees of freedom (error)
+;; * `:MSt` - mean square (treatments)
+;; * `:MSe` - mean square (error)
+;; * `:F`, `:W` or `:chi2` - statistic (F - anova, W - levene or brown-forsythe, chi2 - flinger-killeen)
+
+;; Please note:
+;; * `levene-test` can accept `statistic` parameter (statistical function for spread, default `mean`) and `scorediff` function applied to score (spread) (default: `abs`)
+;; * `brown-forsythe-test` uses `median` as the statistic
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/one-way-anova-test sepal-widths)
+ (stats/levene-test sepal-widths)
+ (stats/brown-forsythe-test sepal-widths)
+ (stats/fligner-killeen-test sepal-widths))
+
+;; ### Power divergence
+
+;; Family of power divergence tests
+
+^{::clerk/visibility :hide}
+(u/table3
+ "lambda"
+ [[power-divergence-test "general, power divergence test" "$\\lambda$"]
+  [chisq-test "Chi2 test" 1]
+  [multinomial-likelihood-ratio-test "multinomial test, log likelihood test, G-test" 0]
+  [minimum-discrimination-information-test "modified log likelihood test" -1]
+  [neyman-modified-chisq-test "Neyman chi2 test, lambda=-2" -2]
+  [freeman-tukey-test "Freeman-Tukey test" -1/2]
+  [cressie-read-test "Cressie-Read test" 2/3]])
+
+;; Divergence tests work accept contingency table or sequence of numbers (in this case goodness-of-fit is performed for given `p` probabilities). Parameters:
+;; * `:lambda` - test parameter (for `power-divergence-test` only)
+;; * `:p` - probabilites/weights for goodness-of-fit test (default: $p_i=\frac{1}{n}$)
+;; * `:ci-sides` - sides for confidence intervals (the same values as for `:sides`) (default: `:both`)
+;; * `:ddof` - degrees of freedom correction (default: 0.0)
+;; * `:bootstrap-samples` - bootstrap samples for confidence intervals
+
+;; ### Contingency
+
+(def ctab (stats/rows->contingency-table [[1 2 10]
+                                        [3 20 50]
+                                        [1 4 30]]))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/chisq-test ctab)
+ (stats/multinomial-likelihood-ratio-test ctab)
+ (stats/minimum-discrimination-information-test ctab)
+ (stats/neyman-modified-chisq-test ctab)
+ (stats/freeman-tukey-test ctab)
+ (stats/cressie-read-test ctab))
+
+;; Chart of `chi2` statistic for different `lambda`
+^{::clerk/visibility :hide}
+(u/fgraph (fn [l] (:chi2 (stats/power-divergence-test ctab {:lambda l :bootstrap-samples 1}))) [-4 4] [0 nil])
+
+;; ### Goodness of fit
+
+(def counts [1 1 2 10])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/chisq-test counts)
+ (stats/chisq-test counts {:p [1 10 2 50]})
+ (stats/chisq-test counts {:p [1 1 2 11]}))
+
+;; Chart of `chi2` statistic for different `lambda`
+^{::clerk/visibility :hide}
+(u/fgraph (fn [l] (:chi2 (stats/power-divergence-test counts {:lambda l :bootstrap-samples 1}))) [-4 4] [0 nil])
+
+;; ### Distribution
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[ad-test-one-sample "Anderson-Darling test for one sample"]
+  [ks-test-one-sample "Kolmogorov-Smirnov test for one sample"]
+  [ks-test-two-samples "Kolmogorov-Smirnov test for two samples"]])
+
+;; For one sample test, verify if a sample is from given distribution. Second parameter can be actual distribution (default: N(0,1)) or data. In case of data `continuous-distribution` will be created. Parameters:
+;; * `:kernel` - kde kernel (see `fastmath.random` for kernels) or `:enumerated`
+;; * `:bandwidth` - bandwidth for kde
+;; * `:distinct?` - make `xs` distinct for Kolmogorov-Smirnov
+
+(def normal-data1 (repeatedly 50 r/grand))
+(def normal-data2 (repeatedly 100 r/grand))
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/ad-test-one-sample normal-data1)
+ (stats/ad-test-one-sample normal-data1 normal-data1)
+ (stats/ad-test-one-sample normal-data1 normal-data2)
+ (stats/ad-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
+ (stats/ks-test-one-sample normal-data1)
+ (stats/ks-test-one-sample normal-data1 normal-data1)
+ (stats/ks-test-one-sample normal-data1 normal-data2)
+ (stats/ks-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
+ (stats/ks-test-two-samples normal-data1 normal-data1)
+ (stats/ks-test-two-samples normal-data1 normal-data2)) 
+
+;; ### Rank
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[kruskal-test "Kruskal-Wallis rank sum test"]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (stats/kruskal-test sepal-widths))
 
 ;; ## List of symbols
 
 ^{::clerk/visibility :hide}
 (u/make-public-fns-table 'fastmath.stats)
-

@@ -50,8 +50,9 @@
 
 ;; To generate infinite lazy sequence of random values, call `->seq` on given PRNG or distribution.
 ;; Second (optional) argument can limit number of returned numbers.
-;; Third (optional) argument controls sampling method (for given `n` number of samples), there are three options:
+;; Third (optional) argument controls sampling method (for given `n` number of samples), there are the following options:
 
+;; * `:antithetic` - random values in pairs `[r1,1-r1,r2,1-r2,...]`
 ;; * `:uniform` - spacings between numbers follow uniform distribution
 ;; * `:systematic` - the same spacing with random starting point
 ;; * `:stratified` - divide $[0,1]$ into `n` intervals and get random value from each subinterval
@@ -148,6 +149,7 @@
 (clerk/example
  (take 2 (r/->seq my-prng))
  (r/->seq my-prng 2)
+ (r/->seq my-prng 5 :antithetic)
  (r/->seq my-prng 5 :uniform)
  (r/->seq my-prng 5 :systematic)
  (r/->seq my-prng 5 :stratified))
@@ -426,6 +428,7 @@
 (clerk/example
  (r/sample weibull)
  (r/->seq weibull 3)
+ (r/->seq weibull 5 :antithetic)
  (r/->seq weibull 5 :uniform)
  (r/->seq weibull 5 :systematic)
  (r/->seq weibull 5 :stratified))

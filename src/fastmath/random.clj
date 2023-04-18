@@ -2332,19 +2332,39 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (let [l (/ 1.0 n)]
      (map (fn [^long x] (* (+ x (drandom rng)) l)) (range n)))))
 
+(defn- antithetic-sampling
+  ([^long n] (antithetic-sampling default-rng n))
+  ([rng ^long n]
+   (->> (repeatedly (fn [] (let [r1 (drandom rng)]
+                            [r1 (- 1.0 r1)])))
+        (mapcat identity)
+        (take n))))
+
+(defn- jittered-sequence-sampling
+  ([kind ^long n] (jittered-sequence-sampling kind nil n))
+  ([kind _ ^long n]
+   (take n (jittered-sequence-generator kind 1))))
+
+
 (def ^:private spacings
   {:uniform uniform-spacings
    :systematic systematic-spacings
-   :stratified stratified-spacings})
+   :stratified stratified-spacings
+   :antithetic antithetic-sampling
+   :r2 (partial jittered-sequence-sampling :r2)
+   :sobol (partial jittered-sequence-sampling :sobol)
+   :halton (partial jittered-sequence-sampling :halton)})
 
 (defn ->seq
   "Returns lazy sequence of random samples (can be limited to optional `n` values).
 
-  Additionally one of the sampling methods can be provided, ie: `:uniform`, `:systematic` and `:stratified`."
+  Additionally one of the sampling methods can be provided, ie: `:uniform`, `:antithetic`, `:systematic` and `:stratified`."
   ([] (prot/->seq default-rng))
   ([rng] (prot/->seq rng))
   ([rng n] (prot/->seq rng n))
   ([rng n sampling-method]
-   (if (satisfies? prot/DistributionProto rng)
-     (map (partial prot/icdf rng) ((spacings sampling-method uniform-spacings) n))
-     ((spacings sampling-method uniform-spacings) rng n))))
+   (if-not sampling-method
+     (->seq rng n)
+     (if (distribution? rng)
+       (map (partial icdf rng) ((spacings sampling-method uniform-spacings) n))
+       ((spacings sampling-method uniform-spacings) rng n)))))

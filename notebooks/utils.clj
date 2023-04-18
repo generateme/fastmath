@@ -256,7 +256,7 @@
                                          :rows [~@(for [[s i f] rows]
                                                     `[(clerk/code (quote ~s))
                                                       (or ~i "-")
-                                                      (clerk/md ~(or f ""))])]}))
+                                                      (clerk/md ~(or (str f) ""))])]}))
 
 
 (def source-files "https://github.com/generateme/fastmath/blob/master/src/")
