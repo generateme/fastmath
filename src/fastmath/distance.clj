@@ -15,14 +15,14 @@
 (defn- gen-smile
   [^Distance dst]
   (reify
-    IFn (invoke [d x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))
+    IFn (invoke [_ x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))
     Metric Distance (d [_ x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))
     DistanceMeasure (compute [_ x y] (.d dst (m/seq->double-array x) (m/seq->double-array y)))))
 
 (defn- gen-apache
   [^DistanceMeasure dst]
   (reify
-    IFn (invoke [d x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))
+    IFn (invoke [_ x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))
     Metric Distance (d [_ x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))
     DistanceMeasure (compute [_ x y] (.compute dst (m/seq->double-array x) (m/seq->double-array y)))))
 

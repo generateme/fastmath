@@ -2,17 +2,6 @@
   "Easing functions.
 
   List of all are in [[easings-list]]."
-  {:metadoc/categories {:lin "Linear"
-                        :back "Anticipatory easings"
-                        :bounce "Bounce"
-                        :circle "Circular"
-                        :cubic "Cubic"
-                        :elastic "Elastic"
-                        :exp "Exponential"
-                        :poly "Polynomial"
-                        :quad "Quadratic"
-                        :sin "Sinusoidal"
-                        :cr "Creators"}}
   (:require [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -34,14 +23,12 @@
 
 (defn linear
   "Linear easing (identity)"
-  {:metadoc/categories #{:lin}}
   ^double [^double t] t)
 
 (defn back-in
   "BackIn easing.
 
   Parameter `s` (default: 1.70158) defines overshoot."
-  {:metadoc/categories #{:back}}
   (^double [^double t] (back-in ease-back-s t))
   (^double [^double s ^double t]
    (* t t (- (* (inc s) t) s))))
@@ -51,7 +38,6 @@
   "BackOut easing.
 
   Parameter `s` (default: 1.70158) defines overshoot."
-  {:metadoc/categories #{:back}}
   (^double [^double t] (back-out ease-back-s t))
   (^double [^double s ^double t]
    (let [t- (dec t)]
@@ -62,7 +48,6 @@
   "BackInOut easing.
 
   Parameter `s` (default: 1.70158) defines overshoot."
-  {:metadoc/categories #{:back}}
   (^double [^double t] (back-in-out ease-back-s t))
   (^double [^double s ^double t]
    (let [t2 (+ t t)]
@@ -87,7 +72,6 @@
 
 (defn bounce-out
   "BounceOut easing"
-  {:metadoc/categories #{:bounce}}
   ^double [^double t]
   (cond
     (< t b1) (* b0 t t)
@@ -98,14 +82,12 @@
 
 (defn bounce-in
   "BounceIn easing"
-  {:metadoc/categories #{:bounce}}
   ^double [^double t]
   (- 1.0 (bounce-out (- 1.0 t))))
 (add-name bounce-in)
 
 (defn bounce-in-out
   "BounceInOut easing"
-  {:metadoc/categories #{:bounce}}
   ^double [^double t]
   (let [t2 (+ t t)]
     (* 0.5 (if (< t 0.5)
@@ -117,14 +99,12 @@
 
 (defn circle-in
   "CircleIn easing"
-  {:metadoc/categories #{:circle}}
   ^double [^double t]
   (- 1.0 (m/sqrt (- 1.0 (* t t)))))
 (add-name circle-in)
 
 (defn circle-out
   "CircleIn easing"
-  {:metadoc/categories #{:circle}}
   ^double [^double t]
   (let [t- (dec t)]
     (m/sqrt (- 1.0 (* t- t-)))))
@@ -132,7 +112,6 @@
 
 (defn circle-in-out
   "CircleInOut easing"
-  {:metadoc/categories #{:circle}}
   ^double [^double t]
   (let [t2 (+ t t)]
     (* 0.5 (if (< t 0.5)
@@ -145,14 +124,12 @@
 
 (defn cubic-in
   "CubicIn easing"
-  {:metadoc/categories #{:cubic}}
   ^double [^double t]
   (* t t t))
 (add-name cubic-in)
 
 (defn cubic-out
   "CubicOut easing"
-  {:metadoc/categories #{:cubic}}
   ^double [^double t]
   (let [t- (dec t)]
     (inc (* t- t- t-))))
@@ -160,7 +137,6 @@
 
 (defn cubic-in-out
   "CubicInOut easing"
-  {:metadoc/categories #{:cubic}}
   ^double [^double t]
   (let [t2 (+ t t)]
     (* 0.5 (if (< t 0.5)
@@ -185,7 +161,6 @@
 
   When called with `t` parameter, returns easing value (for `amplitude=1.0` and `period=0.3`).
   When called with `amplitude` and `period` returns custom easing function."
-  {:metadoc/categories #{:elastic}}
   (^double [^double t]
    (let [t- (dec t)]
      (* (m/pow 2.0 (* 10.0 t-)) (m/sin (/ (- elastic-s t-) elastic-period)))))
@@ -202,7 +177,6 @@
 
   When called with `t` parameter, returns easing value (for `amplitude=1.0` and `period=0.3`).
   When called with `amplitude` and `period` returns custom easing function."
-  {:metadoc/categories #{:elastic}}
   (^double [^double t]
    (- 1.0 (* (m/pow 2.0 (* -10.0 t)) (m/sin (/ (+ elastic-s t) elastic-period)))))
   ([^double amplitude ^double period]
@@ -217,7 +191,6 @@
 
   When called with `t` parameter, returns easing value (for `amplitude=1.0` and `period=0.3`).
   When called with `amplitude` and `period` returns custom easing function."
-  {:metadoc/categories #{:elastic}}
   (^double [^double t]
    (let [t2 (dec (+ t t))]
      (* 0.5 (if (neg? t2)
@@ -237,21 +210,18 @@
 
 (defn exp-in
   "ExpIn easing"
-  {:metadoc/categories #{:exp}}
   ^double [^double t]
   (m/pow 2.0 (- (* 10.0 t) 10.0)))
 (add-name exp-in)
 
 (defn exp-out
   "ExpOut easing"
-  {:metadoc/categories #{:exp}}
   ^double [^double t]
   (- 1.0 (m/pow 2.0 (* -10.0 t))))
 (add-name exp-out)
 
 (defn exp-in-out
   "ExpInOut easing"
-  {:metadoc/categories #{:exp}}
   ^double [^double t]
   (let [t2 (+ t t)]
     (* 0.5 (if (< t 0.5)
@@ -265,7 +235,6 @@
   "PolyIn easing.
 
   Optional exponent `e` defaults to 3.0."
-  {:metadoc/categories #{:poly}}
   (^double [^double t] (m/pow t 3.0))
   (^double [^double e ^double t] (m/pow t e)))
 (add-name poly-in)
@@ -274,7 +243,6 @@
   "PolyOut easing.
 
   Optional exponent `e` defaults to 3.0."
-  {:metadoc/categories #{:poly}}
   (^double [^double t] (- 1.0 (m/pow (- 1.0 t) 3.0)))
   (^double [^double e ^double t] (- 1.0 (m/pow (- 1.0 t) e))))
 (add-name poly-out)
@@ -283,7 +251,6 @@
   "PolyInOut easing.
 
   Optional exponent `e` defaults to 3.0."
-  {:metadoc/categories #{:poly}}
   (^double [^double t]
    (let [t2 (+ t t)]
      (* 0.5 (if (< t 0.5)
@@ -300,21 +267,18 @@
 
 (defn quad-in
   "QuadIn easing"
-  {:metadoc/categories #{:quad}}
   ^double [^double t]
   (* t t))
 (add-name quad-in)
 
 (defn quad-out
   "QuadOut easing"
-  {:metadoc/categories #{:quad}}
   ^double [^double t]
   (* t (- 2.0 t)))
 (add-name quad-out)
 
 (defn quad-in-out
   "QuadInOut easing"
-  {:metadoc/categories #{:quad}}
   ^double [^double t]
   (let [t2 (+ t t)]
     (* 0.5 (if (< t 0.5)
@@ -328,21 +292,18 @@
 
 (defn sin-in
   "SinIn easing"
-  {:metadoc/categories #{:sin}}
   ^double [^double t]
   (- 1.0 (m/cos (* t m/HALF_PI))))
 (add-name sin-in)
 
 (defn sin-out
   "SinOut easing"
-  {:metadoc/categories #{:sin}}
   ^double [^double t]
   (m/sin (* t m/HALF_PI)))
 (add-name sin-out)
 
 (defn sin-in-out
   "SinInOut easing"
-  {:metadoc/categories #{:sin}}
   ^double [^double t]
   (* 0.5 (- 1.0 (m/cos (* t m/PI)))))
 (add-name sin-in-out)
@@ -352,14 +313,12 @@
 
 (defn out
   "Create out easing for given `easing` function."
-  {:metadoc/categories #{:cr}}
   [easeing]
   (fn ^double [^double t]
     (- 1.0 ^double (easeing (- 1.0 t)))))
 
 (defn in-out
   "Create in-out easing for given `easing` function."
-  {:metadoc/categories #{:cr}}
   [easeing]
   (fn ^double [^double t]
     (* 0.5 (if (< t 0.5)
@@ -368,7 +327,6 @@
 
 (defn reflect
   "Create in-out easing for given `easing` function and `center`."
-  {:metadoc/categories #{:cr}}
   [easing ^double center]
   (fn ^double [^double t]
     (if (< t center)

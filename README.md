@@ -15,6 +15,8 @@ Math library.
 * [fastmath.core](https://generateme.github.io/fastmath/notebooks/notebooks/core.html)
 * [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random.html)
 * [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats.html)
+    * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap.html)
+
 
 ### Previous version
 
@@ -98,7 +100,7 @@ Code adopted from Zach Tellmans' library.
 * Special functions: erf, beta, gamma + other
 * Distance: dist, hypot
 * Sign: sgn, signum, abs
-* Other: gcd
+* Other: gcd, lcm
 
 Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) or [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html)
 
@@ -108,15 +110,11 @@ Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafam
 * ArrayVector for fixed length long vectors (fixed sized double-array)
 * Clojure vector, double array, Number (as 1d vector)
 
-With following groups of functions:
+### Matrix operations protocol and implementations
 
-* Basic linear operations: add, mult, div, sub, dot, cross, hadamard product
-* mag, magsq, heading, angle-between, limit, normalize
-* rotations (2d,3d)
-* translations (2d, 3d)
-* various distances
-* centroid, interpolations
-* and other
+* 2d (`Mat2x2`), 3d (`Mat3x3`) and 4d (`Mat4x4`) matrix types.
+
+With typical basic matrix operations
 
 ### Complex number functions
 
@@ -153,6 +151,10 @@ With following groups of functions:
 * histogram
 * Bootstrap
 * Confidence intervals
+
+#### Bootstrap
+
+Bootstrap functions and confidence intervals
 
 ### Interpolations
 
@@ -238,4 +240,4 @@ If you see place of improvement, I'm accepting PRs.
 * The Unlicence - up to 1.5.2
 * MIT License - from 1.5.3
 
-Copyright (c) 2020 generateme
+Copyright (c) 2023 generateme

@@ -682,7 +682,7 @@
   [fns]
   (let [v (symbol "vector")]
     `(do ~@(for [f fns
-                 :let [nm (with-meta (symbol (name f)) {:metadoc/categories #{:mop}})
+                 :let [nm (symbol (name f))
                        doc (str "Apply " nm " to matrix elements.")
                        wfn (if (:macro (meta (resolve f))) `(fn [v#] (~f v#)) f)]] ;; wrap macro into function
              `(defn ~nm ~doc

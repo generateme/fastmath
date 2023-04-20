@@ -15,8 +15,6 @@
   Complex plane (identity) looks as follows:
 
   ![identity](images/c/identity.jpg)" 
-  {:metadoc/categories {:trig "Trigonometry"
-                        :pow "Power / logarithm"}}
   (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v])
@@ -123,7 +121,6 @@
 
 (defn cos
   "cos"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -134,7 +131,6 @@
 
 (defn sin
   "sin"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -145,7 +141,6 @@
 
 (defn cosh
   "cosh"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -156,7 +151,6 @@
 
 (defn sinh
   "sinh"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -167,7 +161,6 @@
 
 (defn tan
   "tan"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [aa (* 2.0 (.x z))
         bb (* 2.0 (.y z))
@@ -179,7 +172,6 @@
 
 (defn tanh
   "tanh"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [aa (* 2.0 (.x z))
         bb (* 2.0 (.y z))
@@ -191,7 +183,6 @@
 
 (defn sec
   "secant"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [cc (+ (m/cos (* 2.0 (.x z)))
               (m/cosh (* 2.0 (.y z))))]
@@ -202,7 +193,6 @@
 
 (defn csc
   "cosecant"
-  {:metadoc/categories #{:trig}}
   [^Vec2 z]
   (let [cc (- (m/cos (* 2.0 (.x z)))
               (m/cosh (* 2.0 (.y z))))]
@@ -213,7 +203,6 @@
 
 (defn exp
   "exp"
-  {:metadoc/categories #{:pow}}
   [^Vec2 z]
   (let [e (m/exp (.x z))
         y (.y z)]
@@ -224,7 +213,6 @@
 
 (defn log
   "log"
-  {:metadoc/categories #{:pow}}
   [^Vec2 z]
   (Vec2. (m/log (abs z))
          (m/atan2 (.y z) (.x z))))
@@ -233,7 +221,6 @@
 
 (defn acos
   "acos"
-  {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
        (mult-I)
@@ -245,7 +232,6 @@
 
 (defn asin
   "asin"
-  {:metadoc/categories #{:trig}}
   [z]
   (->> (sqrt1z z)
        (add (mult-I z))
@@ -258,7 +244,6 @@
 
 (defn atan
   "atan"
-  {:metadoc/categories #{:trig}}
   [z]
   (->> (sub I z)
        (div (add I z))
@@ -269,7 +254,6 @@
 
 (defn pow
   "Power. \\\\(z_1^{z_2}\\\\)"
-  {:metadoc/categories #{:pow}}
   [z1 z2]
   (->> z1
        (log)
@@ -278,7 +262,6 @@
 
 (defn acosh
   "acosh"
-  {:metadoc/categories #{:trig}}
   [z]
   (-> z
       (acos)
@@ -286,7 +269,6 @@
 
 (defn acosech
   "acosech"
-  {:metadoc/categories #{:trig}}
   [z]
   (-> z
       (reciprocal)
@@ -294,7 +276,6 @@
 
 (defn asinh
   "asinh"
-  {:metadoc/categories #{:trig}}
   [z]
   (-> z
       (mult-I)
@@ -303,7 +284,6 @@
 
 (defn atanh
   "atanh"
-  {:metadoc/categories #{:trig}}
   [z]
   (-> z
       (mult-I)
@@ -312,37 +292,31 @@
 
 (defn sech
   "sech"
-  {:metadoc/categories #{:trig}}
   [z]
   (reciprocal (cosh z)))
 
 (defn csch
   "cosech"
-  {:metadoc/categories #{:trig}}
   [z]
   (reciprocal (sinh z)))
 
 (defn coth
   "coth"
-  {:metadoc/categories #{:trig}}
   [z]
   (reciprocal (tanh z)))
 
 (defn asech
   "sech"
-  {:metadoc/categories #{:trig}}
   [z]
   (acosh (reciprocal z)))
 
 (defn acsch
   "sech"
-  {:metadoc/categories #{:trig}}
   [z]
   (asinh (reciprocal z)))
 
 (defn acoth
   "sech"
-  {:metadoc/categories #{:trig}}
   [z]
   (atanh (reciprocal z)))
 

@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file. This change
 * `integrate-pdf` converted from private to public
 * `contingency-2x2-measures` - selection of 2x2 contingency measures
 * clj-kondo hooks
+* `fastmath.stats.bootstrap` introduced as the replacement of `fastmath.stats/bootstrap` function (now deprecated)
 
 #### Tests
 

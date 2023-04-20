@@ -6,7 +6,17 @@
           fastmath.core/erf-proxy hooks.core/variadic-proxy->declare
           fastmath.core/besselj-proxy hooks.core/variadic-proxy->declare
           fastmath.core/beta-proxy hooks.core/variadic-proxy->declare
-          fastmath.core/gamma-proxy hooks.core/variadic-proxy->declare}}
+          fastmath.core/gamma-proxy hooks.core/variadic-proxy->declare
+
+          fastmath.kernel/emit-simple-rbf hooks.kernel/emit-simple
+          fastmath.kernel/emit-simple-rbf+ hooks.kernel/emit-simple
+          fastmath.kernel/emit-beta-rbf hooks.kernel/emit-beta
+          fastmath.kernel/make-scaled-x+ hooks.kernel/emit-simple
+          fastmath.kernel/make-scaled-x hooks.kernel/emit-simple
+
+          fastmath.matrix/gen-mulm hooks.matrix/gen-mulm
+
+          fastmath.vector/primitive-ops hooks.vector/primitive-ops}}
  
  :config-in-call {fastmath.random/make-ssjc-distr {:ignore [:unresolved-symbol]}
                   fastmath.random/make-ssjc-distr-no-pdf {:ignore [:unresolved-symbol]}
@@ -15,4 +25,6 @@
                   fastmath.random/distribution-template {:ignore [:unresolved-symbol]}}
  
  :lint-as {fastmath.random/gen-noise-function clojure.core/def
-           fastmath.stats/build-extent clojure.core/def}}
+           fastmath.stats/build-extent clojure.core/def
+           fastmath.curves/make-config-method clojure.core/def
+           fastmath.interpolation/apache-commons-interpolator clojure.core/def}}

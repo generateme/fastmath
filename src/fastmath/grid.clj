@@ -263,7 +263,7 @@
 (defn- triangle->pixel
   "Triangle cell to anchor."
   [^double size ^long q ^long r]
-  (v/vec3 (rhombus->pixel size (>> q 1) r) (bit-and q 0x1)))
+  (v/vec3 (rhombus->pixel size (m/>> q 1) r) (bit-and q 0x1)))
 
 (defn- pixel->triangle
   "2d coords to triangle cell."

@@ -270,12 +270,12 @@
              (epsilon-sq t c))))
 
 (add-examples cohens-f2
-  (example (let [t [10,10,20,20,20,30,30,30,40,50]
-                 c [-50,20,30,40,40,50,10,20,30,10]]
-             {:default (cohens-f2 t c)
-              :eta (cohens-f2 :eta t c)
-              :omega (cohens-f2 :omega t c)
-              :epsilon (cohens-f2 :epsilon t c)})))
+              (example (let [t [10,10,20,20,20,30,30,30,40,50]
+                             c [-50,20,30,40,40,50,10,20,30,10]]
+                         {:default (cohens-f2 t c)
+                          :eta (cohens-f2 t c :eta)
+                          :omega (cohens-f2 t c :omega)
+                          :epsilon (cohens-f2 t c :epsilon)})))
 
 (add-examples cohens-q
   (example (let [t [10,10,20,20,20,30,30,30,40,50]

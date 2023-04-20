@@ -42,11 +42,6 @@
   * `IReduce` and `IReduceInit`
 
   That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
-  {:metadoc/categories {:gen "Creators"
-                        :geom "Geometric"
-                        :dist "Distance / length"
-                        :op "Operations"
-                        :mop "Math operations"}}
   (:refer-clojure :exclude [abs])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
@@ -222,9 +217,9 @@
                       (Vec. (.am v) (alength ^doubles arr) (.shift v) (.root v) arr (.meta v))))
    :as-vec (fn ([v xs] (double-array (take (alength ^doubles v) xs)))
              ([v] (prot/as-vec v (repeat 0.0))))
-   :fmap (fn [arr f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx))))
-   :approx (fn ([arr] (amap ^doubles arr idx ret ^double (m/approx (aget ^doubles arr idx))))
-             ([arr d] (amap ^doubles arr idx ret ^double (m/approx (aget ^doubles arr idx) d))))
+   :fmap (fn [arr f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx))))
+   :approx (fn ([arr] (amap ^doubles arr idx _ret ^double (m/approx (aget ^doubles arr idx))))
+             ([arr d] (amap ^doubles arr idx _ret ^double (m/approx (aget ^doubles arr idx) d))))
    :magsq (fn [arr] (smile.math.MathEx/dot ^doubles arr ^doubles arr))
    :mag (fn [v1] (m/sqrt (prot/magsq v1)))
    :dot (fn [arr v2] (smile.math.MathEx/dot ^doubles arr ^doubles v2))
@@ -234,29 +229,30 @@
    :sub (fn [arr v2] (let [b (aclone ^doubles arr)]
                       (smile.math.MathEx/sub b ^doubles v2)
                       b))
-   :shift (fn [arr v] (amap ^doubles arr idx ret (+ (aget ^doubles arr idx) ^double v)))
+   :shift (fn [arr v] (amap ^doubles arr idx _ret (+ (aget ^doubles arr idx) ^double v)))
    :mult (fn [arr v] (let [b (aclone ^doubles arr)]
                       (smile.math.MathEx/scale ^double v ^doubles b)
                       b))
-   :emult (fn [arr v2] (amap ^doubles arr idx ret (* (aget ^doubles arr idx) (aget ^doubles v2 idx))))
-   :abs (fn [arr] (amap ^doubles arr idx ret (m/abs (aget ^doubles arr idx))))
+   :emult (fn [arr v2] (amap ^doubles arr idx _ret (* (aget ^doubles arr idx) (aget ^doubles v2 idx))))
+   :abs (fn [arr] (amap ^doubles arr idx _ret (m/abs (aget ^doubles arr idx))))
    :mx (fn [arr] (smile.math.MathEx/max ^doubles arr))
    :mn (fn [arr] (smile.math.MathEx/min ^doubles arr))
    :maxdim (fn [arr] (smile.math.MathEx/whichMax ^doubles arr))
    :mindim (fn [arr] (smile.math.MathEx/whichMin ^doubles arr))
-   :emx (fn [arr v2] (amap ^doubles arr idx ret (max (aget ^doubles arr idx) (aget ^doubles v2 idx))))
-   :emn (fn [arr v2] (amap ^doubles arr idx ret (min (aget ^doubles arr idx) (aget ^doubles v2 idx))))
+   :emx (fn [arr v2] (amap ^doubles arr idx _ret (max (aget ^doubles arr idx) (aget ^doubles v2 idx))))
+   :emn (fn [arr v2] (amap ^doubles arr idx _ret (min (aget ^doubles arr idx) (aget ^doubles v2 idx))))
    :sum (fn [arr] (smile.math.MathEx/sum ^doubles arr))
    :heading (fn [arr] (let [v (double-array (alength ^doubles arr) 0.0)]
                        (aset v 0 1.0)
                        (angle-between arr v)))
-   :reciprocal (fn [arr] (amap ^doubles arr idx ret (/ (aget ^doubles arr idx))))
-   :interpolate (fn [arr v2 t f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) t)))
-   :einterpolate (fn [arr v2 v f] (amap ^doubles arr idx ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) (aget ^doubles v idx))))
-   :econstrain (fn [arr val1 val2] (amap ^doubles arr idx ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
+   :reciprocal (fn [arr] (amap ^doubles arr idx _ret (/ (aget ^doubles arr idx))))
+   :interpolate (fn [arr v2 t f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) t)))
+   :einterpolate (fn [arr v2 v f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) (aget ^doubles v idx))))
+   :econstrain (fn [arr val1 val2] (amap ^doubles arr idx _ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
    :is-zero? (fn [arr] (aevery arr #(zero? ^double %)))
    :is-near-zero? (fn ([arr] (aevery arr near-zero?))
                     ([arr tol] (aevery arr (partial near-zero? tol))))})
+;; => nil
 
 (defn- vec-id-check
   [^long len id]
@@ -390,11 +386,11 @@
   "double hashcode"
   (^long [^long state ^double a]
    (let [abits (Double/doubleToLongBits a)
-         elt (bit-xor abits (>>> abits 32))]
+         elt (bit-xor abits (m/>>> abits 32))]
      (+ elt (* 31 state))))
   (^long [^double a]
    (let [abits (Double/doubleToLongBits a)
-         elt (bit-xor abits (>>> abits 32))]
+         elt (bit-xor abits (m/>>> abits 32))]
      (+ elt 31))))
 
 (defn- vec-throw-ioobe
@@ -837,214 +833,176 @@
 
 ;;
 
-(def ^{:deprecated "v1.3.0" :metadoc/categories #{:op} :doc "Same as [[fmap]]. Deprecated."} applyf prot/fmap)
-(def ^{:deprecated "v1.5.0" :metadoc/categories #{:gen} :doc "Same as [[vec->Vec]]. Deprecated."} to-vec prot/to-vec)
+(def ^{:deprecated "v1.3.0" :doc "Same as [[fmap]]. Deprecated."} applyf prot/fmap)
+(def ^{:deprecated "v1.5.0" :doc "Same as [[vec->Vec]]. Deprecated."} to-vec prot/to-vec)
 
 ;; protocol methods mapped
 
 (defn vec->RealVector
   "Convert to Apache Commons Math RealVector"
-  {:metadoc/categories #{:gen}}
   ^RealVector [v]
   (prot/to-acm-vec v))
 
 (defn vec->Vec
   "Convert to Clojure primitive vector `Vec`."
-  {:metadoc/categories #{:gen}}
   [v] 
   (prot/to-vec v))
 
 (defn as-vec
   "Create vector from sequence as given type. If there is no sequence fill with `0.0`."
-  {:metadoc/categories #{:gen}}
   ([v] (prot/as-vec v))
   ([v xs] (prot/as-vec v xs)))
 
 (defn fmap
   "Apply function to all vector values (like map but returns the same type)."
-  {:metadoc/categories #{:op}}
   [v f]
   (prot/fmap v f))
 
 (defn approx
   "Round to 2 (or `d`) decimal places"
-  {:metadoc/categories #{:op}}
   ([v] (prot/approx v))
   ([v d] (prot/approx v d)))
 
 (defn magsq
   "Length of the vector squared."
-  {:metadoc/categories #{:dist :geom}}
   ^double [v] (prot/magsq v))
 
 (defn mag
   "Length of the vector."
-  {:metadoc/categories #{:dist :geom}}
   ^double [v] (prot/mag v))
 
 (defn dot
   "Dot product of two vectors."
-  {:metadoc/categories #{:geom}}
   ^double [v1 v2] (prot/dot v1 v2))
 
 (defn add
   "Sum of two vectors."
-  {:metadoc/categories #{:op}}
   ([v] v)
   ([v1 v2] (prot/add v1 v2)))
 
 (defn sub
   "Subtraction of two vectors."
-  {:metadoc/categories #{:op}}
   ([v] (prot/mult v -1.0))
   ([v1 v2] (prot/sub v1 v2)))
 
 (defn shift
   "Add value to every vector element."
-  {:metadoc/categories #{:op}}
   ([v] v)
   ([v x] (prot/shift v x)))
 
 (defn mult
   "Multiply vector by number `x`."
-  {:metadoc/categories #{:op}}
   [v x] (prot/mult v x))
 
 (defn emult
   "Element-wise vector multiplication (Hadamard product)."
-  {:metadoc/categories #{:op}}
   [v1 v2] (prot/emult v1 v2))
 
 (defn abs
   "Absolute value of vector elements"
-  {:metadoc/categories #{:op}}
   [v] (prot/abs v))
 
 (defn mx
   "Maximum value of vector elements"
-  {:metadoc/categories #{:op}}
   ^double [v] (prot/mx v))
 
 (defn mn
   "Minimum value of vector elements"
-  {:metadoc/categories #{:op}}
   ^double [v] (prot/mn v))
 
 (defn emx
   "Element-wise max from two vectors."
-  {:metadoc/categories #{:op}}
   [v1 v2] (prot/emx v1 v2))
 
 (defn emn
   "Element-wise min from two vectors."
-  {:metadoc/categories #{:op}}
   [v1 v2] (prot/emn v1 v2))
 
 (defn maxdim
   "Index of maximum value."
-  {:metadoc/categories #{:op}}
   ^long [v] (prot/maxdim v))
 
 (defn mindim
   "Index of minimum value."
-  {:metadoc/categories #{:op}}
   ^long [v] (prot/mindim v))
 
 (defn base-from
   "List of perpendicular vectors (basis). Works only for `Vec2` and `Vec3` types."
-  {:metadoc/categories #{:geom}}
   [v] (prot/base-from v))
 
 (defn sum
   "Sum of elements"
-  {:metadoc/categories #{:op}}
   ^double [v] (prot/sum v))
 
 (defn permute
   "Permute vector elements with given indices."
-  {:metadoc/categories #{:op}}
   [v idxs] (prot/permute v idxs))
 
 (defn reciprocal
   "Reciprocal of elements."
-  {:metadoc/categories #{:op}}
   [v] (prot/reciprocal v))
 
 (defn interpolate 
   "Interpolate vectors, optionally set interpolation fn (default: lerp)"
-  {:metadoc/categories #{:op}}
   ([v1 v2 t] (prot/interpolate v1 v2 t m/lerp))
   ([v1 v2 t f] (prot/interpolate v1 v2 t f)))
 
 (defn einterpolate 
   "Interpolate vector selement-wise, optionally set interpolation fn (default: lerp)"
-  {:metadoc/categories #{:op}}
   ([v1 v2 v] (prot/einterpolate v1 v2 v m/lerp))
   ([v1 v2 v f] (prot/einterpolate v1 v2 v f)))
 
 (defn econstrain
   "Element-wise constrain"
-  {:metadoc/categories #{:op}}
   [v mn mx] (prot/econstrain v mn mx))
 
 (defn is-zero?
   "Is vector zero?"
-  {:metadoc/categories #{:op}}
   [v] (prot/is-zero? v))
 
 (defn is-near-zero?
   "Is vector almost zero? (all absolute values of elements are less than `tol` tolerance or `1.0e-6`)"
-  {:metadoc/categories #{:op}}
   ([v] (prot/is-near-zero? v))
   ([v tol] (prot/is-near-zero? v tol)))
 
 (defn heading
   "Angle between vector and unit vector `[1,0,...]`"
-  {:metadoc/categories #{:geom}}
   ^double [v] (prot/heading v))
 
 (defn cross
   "Cross product"
-  {:metadoc/categories #{:geom}}
   [v1 v2] (prot/cross v1 v2))
 
 (defn rotate
   "Rotate vector. Only for `Vec2` and `Vec3` types."
-  {:metadoc/categories #{:geom}}
   ([v angle] (prot/rotate v angle))
   ([v angle-x angle-y angle-z] (prot/rotate v angle-x angle-y angle-z)))
 
 (defn axis-rotate
   "Rotate vector. Only for `Vec3` types"
-  {:metadoc/categories #{:geom}}
   ([v angle axis] (prot/axis-rotate v angle axis))
   ([v angle axis pivot] (prot/axis-rotate v angle axis pivot)))
 
 (defn perpendicular
   "Perpendicular vector. Only for `Vec2` and `Vec3` types."
-  {:metadoc/categories #{:geom}}
   ([v] (prot/perpendicular v))
   ([v1 v2] (prot/perpendicular v1 v2)))
 
 (defn transform
   "Transform vector; map point to coordinate system defined by origin, vx and vy (as bases), Only for `Vec2` and `Vec3` types."
-  {:metadoc/categories #{:geom}}
   ([v o vx vy] (prot/transform v o vx vy))
   ([v o vx vy vz] (prot/transform v o vx vy vz)))
 
 (defn to-polar
   "To polar coordinates (2d, 3d only), first element is length, the rest angle."
-  {:metadoc/categories #{:geom}}
   [v] (prot/to-polar v))
 
 (defn from-polar
   "From polar coordinates (2d, 3d only)"
-  {:metadoc/categories #{:geom}}
   [v] (prot/from-polar v))
 
 (defn triple-product
   "a o (b x c)"
-  {:metadoc/categories #{:geom}}
   ^double [a b c]
   (dot a (cross b c)))
 
@@ -1052,20 +1010,17 @@
 
 (defn vec2
   "Make 2d vector."
-  {:metadoc/categories #{:gen}} 
   ([x y] (Vec2. x y))
   ([] (Vec2. 0.0 0.0)))
 
 (defn vec3
   "Make Vec2 vector"
-  {:metadoc/categories #{:gen}} 
   ([x y z] (Vec3. x y z))
   ([^Vec2 v z] (Vec3. (.x v) (.y v) z))
   ([] (Vec3. 0.0 0.0 0.0)))
 
 (defn vec4
   "Make Vec4 vector"
-  {:metadoc/categories #{:gen}} 
   ([x y z w] (Vec4. x y z w))
   ([^Vec3 v w] (Vec4. (.x v) (.y v) (.z v) w))
   ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w))
@@ -1073,7 +1028,6 @@
 
 (defn array-vec
   "Make ArrayVec type based on provided sequence `xs`."
-  {:metadoc/categories #{:gen}} 
   [xs]
   (ArrayVec. (double-array xs)))
 
@@ -1081,7 +1035,6 @@
   "Returns fixed size vector for given number of dimensions.
 
   Proper type is used."
-  {:metadoc/categories #{:gen}} 
   ([dims xs] (prot/as-vec (make-vector dims) xs))
   ([^long dims]
    (when (pos? dims)
@@ -1095,37 +1048,31 @@
 
 (defn div
   "Vector division or reciprocal."
-  {:metadoc/categories #{:op}}
   ([v1 ^double v] (prot/mult v1 (/ v)))
   ([v1] (prot/reciprocal v1)))
 
 (defn ediv
   "Element-wise division of two vectors."
-  {:metadoc/categories #{:op}} 
   [v1 v2]
   (prot/emult v1 (prot/reciprocal v2)))
 
 (defn zero-count
   "Count zeros in vector"
-  {:metadoc/categories #{:op}}
   [v]
   (count (filter #(zero? ^double %) v)))
 
 (defn clamp
   "Clamp elements."
-  {:metadoc/categories #{:op}}
   ([v mn mx] (prot/econstrain v mn mx))
   ([v] (prot/econstrain v 0 Double/MAX_VALUE)))
 
 (defn nonzero-count
   "Count non zero velues in vector"
-  {:metadoc/categories #{:op}}
   [v]
   (count (remove (fn [^double v] (zero? v)) v)))
 
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
-  {:metadoc/categories #{:op}} 
   ([init vs]
    (div (reduce prot/add init vs) (inc (count vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
@@ -1137,37 +1084,31 @@
 
 (defn dist
   "Euclidean distance between vectors"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (mag (prot/sub v1 v2)))
 
 (defn dist-sq
   "Squared Euclidean distance between vectors"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (magsq (prot/sub v1 v2)))
 
 (defn dist-abs
   "Manhattan distance between vectors"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (sum (prot/abs (prot/sub v1 v2))))
 
 (defn dist-cheb
   "Chebyshev distance between 2d vectors"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (mx (prot/abs (prot/sub v1 v2))))
 
 (defn dist-discrete
   "Discrete distance between 2d vectors"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (sum (prot/fmap (prot/sub v1 v2) (fn [^double v] (if (zero? v) 0.0 1.0)))))
 
 (defn dist-canberra
   "Canberra distance"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (let [num (prot/abs (prot/sub v1 v2))
         denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (zero? v) 0.0 (/ v))))]
@@ -1175,7 +1116,6 @@
 
 (defn dist-emd
   "Earth Mover's Distance"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (first (reduce #(let [[^double s ^double l] %1
                         [^double a ^double b] %2
@@ -1184,31 +1124,27 @@
 
 (defn dist-ang
   "Angular distance"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (* (m/acos (/ (dot v1 v2) (* (mag v1) (mag v2)))) m/M_1_PI))
 
 (defn sim-cos
   "Cosine similarity"
-  {:metadoc/categories #{:dist}} 
   ^double [v1 v2]
   (/ (dot v1 v2) (* (mag v1) (mag v2))))
 
 
 ;; List of distance fn
-(def ^{:metadoc/categories #{:dist}}
-  distances {:euclid dist
-             :euclid-sq dist-sq
-             :abs dist-abs
-             :cheb dist-cheb
-             :canberra dist-canberra
-             :emd dist-emd
-             :angular dist-ang
-             :discrete dist-discrete})
+(def distances {:euclid dist
+              :euclid-sq dist-sq
+              :abs dist-abs
+              :cheb dist-cheb
+              :canberra dist-canberra
+              :emd dist-emd
+              :angular dist-ang
+              :discrete dist-discrete})
 
 (defn normalize
   "Normalize vector (set length = 1.0)"
-  {:metadoc/categories #{:dist}} 
   [v]
   (let [m (mag v)]
     (if (zero? m)
@@ -1217,13 +1153,11 @@
 
 (defn set-mag
   "Set length of the vector"
-  {:metadoc/categories #{:dist}} 
   [v len]
   (prot/mult (normalize v) len))
 
 (defn limit
   "Limit length of the vector by given value"
-  {:metadoc/categories #{:dist}} 
   [v ^double len]
   (if (> (magsq v) (* len len))
     (set-mag v len)
@@ -1233,7 +1167,6 @@
   "Angle between two vectors
 
   See also [[relative-angle-between]]."
-  {:metadoc/categories #{:geom}} 
   ^double [v1 v2]
   (if (or (is-zero? v1) (is-zero? v2))
     0
@@ -1248,13 +1181,11 @@
   "Angle between two vectors relative to each other.
 
   See also [[angle-between]]."
-  {:metadoc/categories #{:geom}} 
   ^double [v1 v2]
   (- (heading v2) (heading v1)))
 
 (defn aligned?
   "Are vectors aligned (have the same direction)?"
-  {:metadoc/categories #{:geom}}
   ([v1 v2 ^double tol]
    (< (angle-between v1 v2) tol))
   ([v1 v2]
@@ -1262,7 +1193,6 @@
 
 (defn faceforward
   "Flip normal `n` to match the same direction as `v`."
-  {:metadoc/categories #{:geom}} 
   [n v]
   (if (neg? (dot n v)) 
     (sub n)
@@ -1270,13 +1200,11 @@
 
 (defn project
   "Project `v1` onto `v2`"
-  {:metadoc/categories #{:geom}}
   [v1 v2]
   (mult v2 (/ (dot v1 v2) (magsq v2))))
 
 (defn generate-vec2
   "Generate Vec2 with fn(s)"
-  {:metadoc/categories #{:gen}} 
   ([f1 f2]
    (Vec2. (f1) (f2)))
   ([f]
@@ -1284,7 +1212,6 @@
 
 (defn generate-vec3
   "Generate Vec3 with fn(s)"
-  {:metadoc/categories #{:gen}} 
   ([f1 f2 f3]
    (Vec3. (f1) (f2) (f3)))
   ([f]
@@ -1292,7 +1219,6 @@
 
 (defn generate-vec4
   "Generate Vec4 with fn(s)"
-  {:metadoc/categories #{:gen}} 
   ([f1 f2 f3 f4]
    (Vec4. (f1) (f2) (f3) (f4)))
   ([f]
@@ -1300,37 +1226,31 @@
 
 (defn array->vec2
   "Doubles array to Vec2"
-  {:metadoc/categories #{:gen}} 
   [^doubles arr]
   (Vec2. (aget arr 0) (aget arr 1)))
 
 (defn array->vec3
   "Doubles array to Vec3"
-  {:metadoc/categories #{:gen}} 
   [^doubles arr]
   (Vec3. (aget arr 0) (aget arr 1) (aget arr 2)))
 
 (defn array->vec4
   "Doubles array to Vec4"
-  {:metadoc/categories #{:gen}} 
   [^doubles arr]
   (Vec4. (aget arr 0) (aget arr 1) (aget arr 2) (aget arr 3)))
 
 (defn seq->vec2
   "Any seq to Vec2"
-  {:metadoc/categories #{:gen}} 
   [xs]
   (Vec2. (nth xs 0 0.0) (nth xs 1 0.0)))
 
 (defn seq->vec3
   "Any seq to Vec3"
-  {:metadoc/categories #{:gen}} 
   [xs]
   (Vec3. (nth xs 0 0.0) (nth xs 1 0.0) (nth xs 2 0.0)))
 
 (defn seq->vec4
   "Any seq to Vec4"
-  {:metadoc/categories #{:gen}} 
   [xs]
   (Vec4. (nth xs 0 0.0) (nth xs 1 0.0) (nth xs 2 0.0) (nth xs 3 0.0)))
 
@@ -1341,7 +1261,7 @@
   [fns]
   (let [v (symbol "vector")]
     `(do ~@(for [f fns
-                 :let [nm (with-meta (symbol (name f)) {:metadoc/categories #{:mop}})
+                 :let [nm (symbol (name f))
                        doc (str "Apply " nm " to vector elements.")
                        wfn (if (:macro (meta (resolve f))) `(fn [v#] (~f v#)) f)]] ;; wrap macro into function
              `(defn ~nm ~doc

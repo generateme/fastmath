@@ -5,9 +5,6 @@
   * vector kernels (vector x vector -> double function; may be positive definite, conditional positive definite, positive semi-definite, mercer)
   * density estimation
   * some kernel operations"
-  {:metadoc/categories {:rbf "RBF kernels"
-                        :kernel "Vector kernels"
-                        :dens "Density kernels"}}
   (:require [fastmath.core :as m]
             [fastmath.distance :as d]
             [fastmath.vector :as v])
@@ -70,7 +67,6 @@
   All kernels accept `scale` parameter (as last parameter).
 
   Following kernels also accept `beta`: `:multiquadratic`, `:inverse-multiquadratic`, `:truncated-power`, `:radial-powers` and `:thin-plate`."
-  {:metadoc/categories #{:rbf}}
   (fn [k & _] k))
 
 (emit-simple-rbf :linear xs)
@@ -265,7 +261,6 @@
   "Create RBF Smile object.
 
   Used to pass to Smile constructors/functions."
-  {:metadoc/categories #{:rbf}}
   [rbf-fn]
   (reify
     RadialBasisFunction (^double f [_ ^double x] (rbf-fn x))
@@ -277,7 +272,6 @@
 
 (defn rbf->kernel
   "Treat RBF kernel as vector kernel using distance function (default [[euclidean]]."
-  {:metadoc/categories #{:kernel :rbf}}
   ([rbf-kernel] (rbf->kernel rbf-kernel d/euclidean))
   ([rbf-kernel distance]
    (fn [x y] (rbf-kernel (distance x y)))))
@@ -313,7 +307,6 @@
   * `:variance-function` - provide any variance function (smooth, vector->double type)
 
   The rest of the kernels do not require parameters."
-  {:metadoc/categories #{:kernel}}
   (fn [k & _] k))
 
 (defmethod kernel :linear
@@ -564,7 +557,6 @@
   "Create Smile Mercer Kernel object
 
   Used to pass to Smile constructors/functions."
-  {:metadoc/categories #{:kernel}}
   [k]
   (reify
     MercerKernel (k [_ x y] (k x y))
@@ -574,7 +566,6 @@
 
 (defn kernel->rbf
   "Convert vector kernel to RBF kernel. `center` is fixed `y` vector (default contains [[EPSILON]] values)."
-  {:metadoc/categories #{:kernel :rbf}}
   ([k] (kernel->rbf k m/EPSILON))
   ([k center]
    (let [c (vector center)]
@@ -582,26 +573,22 @@
 
 (defn exp
   "Kernel wraper. exp of kernel `k` with optional scaling value `t`."
-  {:metadoc/categories #{:kernel}}
   ([k] (exp k 1.0))
   ([k ^double t]
    (fn [x y] (m/exp (* t ^double (k x y))))))
 
 (defn approx
   "Kernel wrapper. Round value returned by kernel using [[fastmath.core/approx]] function."
-  {:metadoc/categories #{:kernel}}
   ([k precision] (comp #(m/approx % precision) k))
   ([k] (comp m/approx k)))
 
 (defn scale
   "Kernel wrapper. Scale kernel result."
-  {:metadoc/categories #{:kernel}}
   [k ^double scale]
   (fn [x y] (* scale ^double (k x y))))
 
 (defn mult
   "Kernel wrapper. Multiply two or more kernels."
-  {:metadoc/categories #{:kernel}}
   ([k1] k1)
   ([k1 k2] (fn [x y] (* ^double (k1 x y) ^double (k2 x y))))
   ([k1 k2 k3] (fn [x y] (* ^double (k1 x y) ^double (k2 x y) ^double (k3 x y))))
@@ -612,7 +599,6 @@
 
 (defn wadd
   "Kernel wrapper. Add kernels (weighted)."
-  {:metadoc/categories #{:kernel}}
   ([kernels] (wadd (repeat (count kernels) 1.0) kernels))
   ([weights kernels]
    (fn [x y] (reduce #(+ ^double %1 ^double %2)
@@ -620,7 +606,6 @@
 
 (defn fields
   "Kernel wrapper. Apply vector field for each input before applying kernel function."
-  {:metadoc/categories #{:kernel}}
   ([k f] (fields k f f))
   ([k f1 f2]
    (fn [x y] (k (f1 x) (f2 y)))))
@@ -635,7 +620,6 @@
   Formula is based on this [SO answer](https://stats.stackexchange.com/questions/149889/prove-that-a-kernel-is-conditionally-positive-definite). `x0` is equal `0`.
   
   Doesn't work well."
-  {:metadoc/categories #{:kernel}}
   [k]
   (fn [x y] (let [zero (zero-vec-m (count x))]
              (float (* 0.5 (+ ^double (k zero zero)
@@ -649,37 +633,37 @@
 
 (def ^{:const true :private true :tag 'double} gaussian-factor (/ (m/sqrt m/TWO_PI)))
 
-(defn- density-uniform ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
-(defn- density-gaussian ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
-(defn- density-triangular ^double [^double x] (let [absx (m/abs x)]
-                                                (if (<= absx 1.0) (- 1.0 absx) 0.0)))
-(defn- density-epanechnikov ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
-(defn- density-quartic ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
-(defn- density-triweight
+(defn uniform-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
+(defn gaussian-density-kernel ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
+(defn triangular-density-kernel ^double [^double x] (let [absx (m/abs x)]
+                                                   (if (<= absx 1.0) (- 1.0 absx) 0.0)))
+(defn epanechnikov-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
+(defn quartic-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
+(defn triweight-density-kernel
   ^double [^double x]
   (if (<= (m/abs x) 1.0)
     (let [v (- 1.0 (* x x))]
       (* 1.09375 v v v)) 0.0))
 
-(defn- density-tricube
+(defn tricube-density-kernel
   ^double [^double x]
   (let [absx (m/abs x)]
     (if (<= absx 1.0)
       (let [v (- 1.0 (* absx absx absx))]
         (* 0.8875 v v v)) 0.0)))
 
-(defn- density-cosine ^double [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
-(defn- density-logistic ^double [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
-(defn- density-sigmoid ^double [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
-(defn- density-silverman
+(defn cosine-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
+(defn logistic-density-kernel ^double [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
+(defn sigmoid-density-kernel ^double [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
+(defn silverman-density-kernel
   ^double [^double x]
   (let [xx (/ (m/abs x) m/SQRT2)]
     (* 0.5 (m/exp (- xx)) (m/sin (+ xx m/QUARTER_PI)))))
 
 ;; experimental
-(defn- density-laplace ^double [^double x] (* 0.5 (m/exp (- (m/abs x)))))
-(defn- density-wigner ^double [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
-(defn- density-cauchy ^double [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
+(defn laplace-density-kernel ^double [^double x] (* 0.5 (m/exp (- (m/abs x)))))
+(defn wigner-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
+(defn cauchy-density-kernel ^double [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
 
 ;;
 
@@ -744,13 +728,12 @@
   * kernel name, see [[kernel-density-list]].
   * sequence of data values
   * optional: bandwidth (by default, bandwidth is estimated using nrd method)"
-  {:metadoc/categories #{:dens}}
   (fn [k & _] k))
 
 (defmacro ^:private make-kernel-density-fns
   [lst]
   `(do ~@(for [v (eval lst)
-               :let [n (symbol (str "density-" (name v)))]]
+               :let [n (symbol (str (name v) "-density-kernel"))]]
            `(defmethod kernel-density ~v
               ([k# vs#] (first (kde vs# ~n)))
               ([k# vs# h#] (first (kde vs# ~n h#)))
@@ -784,7 +767,6 @@
   * `alpha` - confidence level parameter
 
   Returns three values: density, lower confidence, upper confidence"
-  {:metadoc/categories #{:dens}}
   ([method data] (kernel-density-ci method data nil))
   ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
   ([method data bandwidth ^double alpha]

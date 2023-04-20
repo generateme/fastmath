@@ -43,7 +43,7 @@
   [{:keys [data samples] :as input} statistic]
   (let [t0 (statistic data)
         ts (map statistic samples)
-        ats (double-array ts)
+        ats (double-array (filter m/valid-double? ts))
         m (stats/mean ats)
         variance (stats/variance ats)
         stddev (m/sqrt variance)
@@ -72,7 +72,6 @@
   (map (fn [id]
          (conj vs (nth vs id))) (range (count vs))))
 
-
 (defn bootstrap
   "Create set of samples from given data (nonparametric) or model (parametric).
 
@@ -90,8 +89,8 @@
       *  `nil` (default) - random
       * `:jackknife` for leave-one-out jackknife
       * `:jackknife+` for positive jackknife
-      * any accepted by `r/->seq` method
-  * `:rng` - random number generator (see: `r/rng`)
+      * any method accepted by `fastmath.random/->seq`
+  * `:rng` - random number generator (see: `fastmath.random/rng`)
   * `:smoothing` - smoothing bootstrap:
       * `:kde` - kernel density estimation, additional options are: `:kernel` (default) and `:bandwidth` (auto)
       * `:gaussian` - add random value from N(0,standard error)
@@ -100,8 +99,10 @@
       * `:integer-discrete-distribution` - for integer values
       * `:categorical-distribution` - for any other type
   * `:dimensions` - if set to `:multi` - multidimensional data and models are created
+  * `:antithetic?` - antithetic sampling (default: false)
+  * `:include?` - if set to `true` (default: `false`) original dataset is included in samples
 
-  As a model it can be:
+  Model can be:
   * any distribution object
   * any 0-arity function which returns random sample
 
@@ -110,7 +111,7 @@
   ([input] (bootstrap input nil))
   ([input statistic] (bootstrap input statistic {}))
   ([input statistic {:keys [rng ^long samples ^long size method antithetic?
-                            smoothing dimensions]
+                            smoothing dimensions include?]
                      :or {samples 500}
                      :as params}]
    (let [{:keys [data model] :as input} (if (map? input) input {:data input})]
@@ -131,19 +132,21 @@
                                   (if antithetic?
                                     (bootstrap-antithetic rng model method samples size)
                                     (repeatedly samples #(r/->seq model size method)))
-                                  (repeatedly samples #(repeatedly size model))))
-                          xsss (map gen models sizes)
-                          xsss (if (= :gaussian smoothing)
-                                 (let [sds (map #(m/sqrt (/ (stats/variance %1) %2)) data sizes)]
-                                   (map (fn [xss sd size]
-                                          (map (fn [xs]                                                 
-                                                 (v/add xs (repeatedly size #(r/grandom rng sd)))) xss))
-                                        xsss sds sizes))
-                                 xsss)
-                          xsss (if (not= :multi dimensions)
-                                 (first xsss)
-                                 (apply map vector xsss))]
-                      (conj xsss data0)))
+                                  (repeatedly samples #(repeatedly size model))))]
+                      (as-> (map gen models sizes) xsss
+                        (if (= :gaussian smoothing)
+                          (let [sds (map #(m/sqrt (/ (stats/variance %1) %2)) data sizes)]
+                            (map (fn [xss sd size]
+                                   (map (fn [xs]                                                 
+                                          (v/add xs (repeatedly size #(r/grandom rng sd)))) xss))
+                                 xsss sds sizes))
+                          xsss)
+                        (if (not= :multi dimensions)
+                          (first xsss)
+                          (apply map vector xsss))
+                        (if include?
+                          (conj xsss data0)
+                          xsss))))
              res (assoc input :samples xsss)]
          (if statistic
            (bootstrap-stats res statistic)
@@ -244,8 +247,7 @@
   ([boot-data] (ci-studentized boot-data 0.05))
   ([boot-data ^double alpha] (ci-studentized boot-data alpha :legacy))
   ([{:keys [^double t0 ts data samples]} ^double alpha estimation-strategy]
-   (assert (and (seq data)
-                (seq samples)) "Bootstrap samples can't be empty.")
+   (assert (and (seq data) (seq samples)) "Bootstrap samples can't be empty.")
    (let [a (/ alpha 2.0)
          z (map (fn [^double t s]
                   (/ (- t t0) (stats/stddev s))) ts samples)

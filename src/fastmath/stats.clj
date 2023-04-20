@@ -1,5 +1,5 @@
 (ns fastmath.stats
-  "Statistics functions.
+  "#### Statistics functions.
 
   * Descriptive statistics.
   * Correlation / covariance
@@ -10,12 +10,12 @@
   * Tests
   * Histogram
   * ACF/PACF
-  * Bootstrap
+  * Bootstrap (see `fastmath.stats.bootstrap`)
   * Binary measures
 
-  All functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences.
+  Functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences.
 
-  ### Descriptive statistics
+  ##### Descriptive statistics
 
   All in one function [[stats-map]] contains:
 
@@ -45,13 +45,6 @@
   * `:Skewness` - [[skewness]]
 
   Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)"
-  {:metadoc/categories {:stat "Descriptive statistics"
-                        :corr "Correlation"
-                        :extent "Extents"
-                        :time "Time series"
-                        :effect "Effect size"
-                        :test "Hypothesis test"
-                        :norm "Normalize"}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.distance :as d]
@@ -70,9 +63,7 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-(def
-  ^{:metadoc/categories #{:stat}
-    :docs "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
+(def ^{:doc "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
   estimation-strategies-list {:legacy Percentile$EstimationType/LEGACY
                               :r1 Percentile$EstimationType/R_1
                               :r2 Percentile$EstimationType/R_2
@@ -94,7 +85,6 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[quantile]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs ^double p]
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
@@ -111,7 +101,6 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[quantile]]."
-  {:metadoc/categories #{:stat}}
   ([vs] (percentiles vs [25 50 75 100]))
   ([vs ps] (percentiles vs ps nil))
   ([vs ps estimation-strategy]
@@ -129,7 +118,6 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[percentile]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs ^double q]
    (percentile vs (m/constrain (* q 100.0) 0.0 100.0)))
   (^double [vs ^double q estimation-strategy]
@@ -145,7 +133,6 @@
   Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[percentiles]]."
-  {:metadoc/categories #{:stat}}
   ([vs] (quantiles vs [0.25 0.5 0.75 1.0]))
   ([vs qs]
    (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs)))
@@ -213,7 +200,6 @@
 
 (defn median
   "Calculate median of `vs`. See [[median-3]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs estimation-strategy]
    (percentile vs 50.0 estimation-strategy))
   (^double [vs]
@@ -221,30 +207,25 @@
 
 (defn median-3
   "Median of three values. See [[median]]."
-  {:metadoc/categories #{:stat}}
   ^double [^double a ^double b ^double c]
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
   "Calculate mean of `vs`"
-  {:metadoc/categories #{:stat}}
   (^double [vs] (StatUtils/mean (m/seq->double-array vs))))
 
 (defn geomean
   "Geometric mean for positive values only"
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
 
 (defn harmean
   "Harmonic mean"
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (/ (mean (map (fn [^double v] (/ v)) vs))))
 
 (defn powmean
   "Generalized power mean"
-  {:metadoc/categories #{:stat}}
   ^double [vs ^double power]
   (cond
     (zero? power) (geomean vs)
@@ -257,7 +238,6 @@
 
 (defn wmean
   "Weighted mean"
-  {:metadoc/categories #{:stat}}
   (^double [vs] (mean vs))
   (^double [vs weights]
    (/ ^double (reduce m/fast+ (map m/fast* vs weights))
@@ -267,7 +247,6 @@
   "Calculate population variance of `vs`.
 
   See [[variance]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs]
    (StatUtils/populationVariance (m/seq->double-array vs)))
   (^double [vs ^double u]
@@ -277,7 +256,6 @@
   "Calculate variance of `vs`.
 
   See [[population-variance]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs]
    (StatUtils/variance (m/seq->double-array vs)))
   (^double [vs ^double u]
@@ -287,7 +265,6 @@
   "Calculate population standard deviation of `vs`.
 
   See [[stddev]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs]
    (m/sqrt (population-variance vs)))
   (^double [vs u]
@@ -297,7 +274,6 @@
   "Calculate standard deviation of `vs`.
 
   See [[population-stddev]]."
-  {:metadoc/categories #{:stat}}
   (^double [vs]
    (m/sqrt (variance vs)))
   (^double [vs u]
@@ -305,7 +281,6 @@
 
 (defn variation
   "Coefficient of variation CV = stddev / mean"
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [vs (m/seq->double-array vs)]
     (/ (stddev vs)
@@ -313,7 +288,6 @@
 
 (defn median-absolute-deviation
   "Calculate MAD"
-  {:metadoc/categories #{:stat}}
   (^double [vs] (median-absolute-deviation vs nil))
   (^double [vs center]
    (let [m (double (or center (median vs)))]
@@ -322,13 +296,11 @@
    (let [m (double (or center (median vs estimation-strategy)))]
      (median (map (fn [^double x] (m/abs (- x m))) vs) estimation-strategy))))
 
-(def ^{:doc "Alias for [[median-absolute-deviation]]"
-     :metadoc/categories #{:stat}}
+(def ^{:doc "Alias for [[median-absolute-deviation]]"}
   mad median-absolute-deviation)
 
 (defn mean-absolute-deviation
   "Calculate mean absolute deviation"
-  {:metadoc/categories #{:stat}}
   (^double [vs] (mean-absolute-deviation vs nil))
   (^double [vs center]
    (let [m (double (or center (mean vs)))]
@@ -336,7 +308,6 @@
 
 (defn sem
   "Standard error of mean"
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (let [s (stddev vs)]
     (/ s (m/sqrt (count vs)))))
@@ -345,7 +316,6 @@
   [nm mid ext]
   `(defn ~nm
      ~(str " -/+ " ext " and " mid)
-     {:metadoc/categories #{:extent}}
      [~'vs]
      (let [vs# (m/seq->double-array ~'vs)
            m# (~mid vs#)
@@ -360,7 +330,6 @@
   "Return percentile range and median.
 
   `p` - calculates extent of `p` and `100-p` (default: `p=25`)"
-  {:metadoc/categories #{:extent}}
   ([vs] (percentile-extent vs 25.0))
   ([vs ^double p] (percentile-extent vs p (- 100.0 p)))
   ([vs p1 p2] (percentile-extent vs p1 p2 :legacy))
@@ -374,7 +343,6 @@
   "Return quantile range and median.
 
   `q` - calculates extent of `q` and `1.0-q` (default: `q=0.25`)"
-  {:metadoc/categories #{:extent}}
   ([vs] (quantile-extent vs 0.25))
   ([vs ^double q] (quantile-extent vs q (- 1.0 q)))
   ([vs q1 q2] (quantile-extent vs q1 q2 :legacy))
@@ -433,7 +401,6 @@
 
 (defn iqr
   "Interquartile range."
-  {:metadoc/categories #{:stat}}
   (^double [vs] (iqr vs :legacy))
   (^double [vs estimation-strategy]
    (let [[^double q1 ^double q3] (percentile-extent vs 25.0 75.0 estimation-strategy)]
@@ -450,7 +417,6 @@
 
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:extent}}
   ([vs]
    (adjacent-values vs :legacy))
   ([vs estimation-strategy]
@@ -494,7 +460,6 @@
   Returns sequence.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}}
   ([vs]
    (outliers vs :legacy))
   ([vs estimation-strategy]
@@ -566,7 +531,6 @@
 
 (defn minimum
   "Minimum value from sequence."
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.MathEx/min ^doubles vs)
@@ -574,7 +538,6 @@
 
 (defn maximum
   "Maximum value from sequence."
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.MathEx/max ^doubles vs)
@@ -588,7 +551,6 @@
 
 (defn extent
   "Return extent (min, max, mean) values from sequence"
-  {:metadoc/categories #{:extent}}
   [vs]
   (let [^double fv (first vs)]
     (conj (reduce (fn [[^double mn ^double mx] ^double v]
@@ -596,7 +558,6 @@
 
 (defn sum
   "Sum of all `vs` values."
-  {:metadoc/categories #{:stat}}
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (smile.math.MathEx/sum ^doubles vs)
@@ -645,7 +606,6 @@
   "Calculate skewness from sequence.
 
   Possible types: `:G1` (default), `:g1` (`:pearson`), `:b1`, `:B1` (`:yule`), `:B3`, `:skew`, `:mode` or `:median`."
-  {:metadoc/categories #{:stat}}
   (^double [vs] (skewness vs :G1))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)]
@@ -673,7 +633,6 @@
   "Calculate kurtosis from sequence.
 
   Possible typs: `:G2` (default), `:g2` (or `:excess`), `:geary` or `:kurt`."
-  {:metadoc/categories #{:stat}}
   (^double [vs] (kurtosis vs nil))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)
@@ -691,16 +650,15 @@
            :else v))))))
 
 (defn ci
-  "T-student based confidence interval for given data. Alpha value defaults to 0.98.
+  "T-student based confidence interval for given data. Alpha value defaults to 0.05.
 
   Last value is mean."
-  {:metadoc/categories #{:extent}}
-  ([vs] (ci vs 0.98))
+  ([vs] (ci vs 0.05))
   ([vs ^double alpha]
    (let [vsa (m/seq->double-array vs)
          cnt (count vs)
          dist (r/distribution :t {:degrees-of-freedom (dec cnt)})
-         ^double crit-val (r/icdf dist (- 1.0 (* 0.5 (- 1.0 alpha))))
+         ^double crit-val (r/icdf dist (- 1.0 (* 0.5 alpha)))
          mean-ci (/ (* crit-val (stddev vsa)) (m/sqrt cnt))
          mn (mean vsa)]
      [(- mn mean-ci) (+ mn mean-ci) mn])))
@@ -713,7 +671,7 @@
   Last parameter is statistical function used to measure, default: [[mean]].
 
   Returns ci and statistical function value."
-  {:metadoc/categories #{:extent}}
+  {:deprecated "Please use fastmath.stats.boostrap/ci-basic instead"}
   ([vs] (bootstrap-ci vs 0.98))
   ([vs alpha] (bootstrap-ci vs alpha 1000))
   ([vs alpha samples] (bootstrap-ci vs alpha samples mean))
@@ -728,9 +686,10 @@
      [(- m q1) (- m q2) m])))
 
 (defn bootstrap
-  "Generate set of samples of given size from provided data.
+  {:doc "Generate set of samples of given size from provided data.
 
   Default `samples` is 200, number of `size` defaults to sample size."
+   :deprecated "Please use fastmath.stats.bootstrap/bootstrap instead"}
   ([vs] (bootstrap vs 200))
   ([vs samples] (bootstrap vs samples (count vs)))
   ([vs samples size]
@@ -741,7 +700,6 @@
   "Calculate several statistics of `vs` and return as map.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  {:metadoc/categories #{:stat}}
   ([vs] (stats-map vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
@@ -784,7 +742,6 @@
 
 (defn standardize
   "Normalize samples to have mean = 0 and stddev = 1."
-  {:metadoc/categories #{:norm}}
   [vs]
   (seq ^doubles (StatUtils/normalize (m/seq->double-array vs))))
 
@@ -804,7 +761,6 @@
 
 (defn demean
   "Subtract mean from sequence"
-  {:metadoc/categories #{:norm}}
   [vs]
   (let [m (mean vs)]
     (map (fn [^double v]
@@ -852,49 +808,42 @@
 
 (defn covariance
   "Covariance of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (covariance vs1 vs2))
   (^double [vs1 vs2]
    (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn correlation
   "Correlation of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (correlation vs1 vs2))
   (^double [vs1 vs2]
    (smile.math.MathEx/cor (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (spearman-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (pearson-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kendall-correlation
   "Kendall's correlation of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (kendall-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (kullback-leibler-divergence vs1 vs2))
   (^double [vs1 vs2]
    (smile.math.MathEx/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
-  {:metadoc/categories #{:corr}}
   (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
   (^double [vs1 vs2]
    (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
@@ -903,7 +852,6 @@
   "Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.
 
   Default method: pearson-correlation"
-  {:metadoc/categories #{:corr}}
   ([vss] (coefficient-matrix vss pearson-correlation))
   ([vss measure-fn] (coefficient-matrix vss measure-fn true))
   ([vss measure-fn symmetric?]
@@ -926,7 +874,6 @@
   "Generate correlation matrix from seq of seqs. Row order.
 
   Possible measures: `:pearson` (default), `:kendall`, `:spearman`, `:kullback-leibler` and `jensen-shannon`."
-  {:metadoc/categories #{:corr}}
   ([vss] (correlation-matrix vss :pearson))
   ([vss measure]
    (let [measure (get {:pearson pearson-correlation
@@ -938,28 +885,24 @@
 
 (defn covariance-matrix
   "Generate covariance matrix from seq of seqs. Row order."
-  {:metadoc/categories #{:corr}}
   [vss] (coefficient-matrix vss covariance true))
 
 (defn- maybe-number->seq [v] (if (number? v) (repeat v) v))
 
 (defn me
   "Mean error"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (mean (map m/fast- vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn mae
   "Mean absolute error"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn mape
   "Mean absolute percentage error"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (mape vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (mean (map (fn [^double a ^double b]
@@ -967,7 +910,6 @@
 
 (defn rss
   "Residual sum of squares"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
@@ -981,21 +923,18 @@
 
 (defn mse
   "Mean squared error"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (mean (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
 
 (defn rmse
   "Root mean squared error"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (rmse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (m/sqrt (mse vs1 vs2-or-val))))
 
 (defn count=
   "Count equal values in both seqs. Same as [[L0]]"
-  {:metadoc/categories #{:stat}}
   (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
   (^long [vs1 vs2-or-val]
    (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 (maybe-number->seq vs2-or-val))))))
@@ -1028,7 +967,6 @@
 
 (defn psnr
   "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
-  {:metadoc/categories #{:stat}}
   (^double [[vs1 vs2-or-val]] (psnr vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [mx1 (maximum vs1)
@@ -1055,7 +993,6 @@
   Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default).
 
   The number returned is not higher than number of samples."
-  {:metadoc/categories #{:stat}}
   ([vs] (estimate-bins vs :freedman-diaconis))
   ([vs bins-or-estimate-method]
    (if-not (keyword? bins-or-estimate-method)
@@ -1093,7 +1030,6 @@
   For estimation methods check [[estimate-bins]].
 
   If difference between min and max values is `0`, number of bins is set to 1."
-  {:metadoc/categories #{:stat}}
   ([vs] (histogram vs :freedman-diaconis))
   ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent vs)))
   ([vs bins-or-estimate-method [^double mn ^double mx]]
@@ -1150,7 +1086,6 @@
 
 (defn cohens-d
   "Cohen's d effect size for two groups"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (cohens-d group1 group2))
   (^double [group1 group2] (cohens-d group1 group2 :unbiased))
   (^double [group1 group2 method]
@@ -1165,7 +1100,6 @@
 
 (defn cohens-d-corrected
   "Cohen's d corrected for small group size"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (cohens-d-corrected group1 group2))
   (^double [group1 group2] (cohens-d-corrected group1 group2 :unbiased))
   (^double [group1 group2 method]
@@ -1178,21 +1112,18 @@
 
 (defn hedges-g
   "Hedges's g effect size for two groups"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (hedges-g group1 group2))
   (^double [group1 group2]
    (cohens-d group1 group2 :unbiased)))
 
 (defn hedges-g-corrected
   "Cohen's d corrected for small group size"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (hedges-g-corrected group1 group2))
   (^double [group1 group2]
    (cohens-d-corrected group1 group2 :unbiased)))
 
 (defn hedges-g*
   "Less biased Hedges's g effect size for two groups, J term correction."
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (hedges-g* group1 group2))
   (^double [group1 group2]
    (let [df (+ (count group1) (count group2) -2)
@@ -1204,7 +1135,6 @@
 
 (defn glass-delta
   "Glass's delta effect size for two groups"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (glass-delta group1 group2))
   (^double [group1 group2]
    (let [group2 (m/seq->double-array group2)]
@@ -1237,7 +1167,6 @@
 
 (defn cliffs-delta
   "Cliff's delta effect size for ordinal data."
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (cliffs-delta group1 group2))
   (^double [group1 group2]
    (/ ^double (reduce m/fast+ (for [a group1
@@ -1249,7 +1178,6 @@
 
 (defn ameasure
   "Vargha-Delaney A measure for two populations a and b"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (ameasure group1 group2))
   (^double [group1 group2]
    (let [m (count group1)
@@ -1318,14 +1246,12 @@
 
 (defn pearson-r
   "Pearson `r` correlation coefficient"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (pearson-r group1 group2))
   (^double [group1 group2]
    (pearson-correlation group1 group2)))
 
 (defn r2-determination
   "Coefficient of determination"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (r2-determination group1 group2))
   (^double [group1 group2]
    (m/sq (pearson-correlation group1 group2))))
@@ -1339,14 +1265,12 @@
 
 (defn eta-sq
   "R2, coefficient of determination"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (eta-sq group1 group2))
   (^double [group1 group2]
    (.getRSquare (local-linear-regression group1 group2))))
 
 (defn omega-sq
   "Adjusted R2"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (omega-sq group1 group2))
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)
@@ -1356,7 +1280,6 @@
 
 (defn epsilon-sq
   "Less biased R2"
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (epsilon-sq group1 group2))
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)]
@@ -1367,7 +1290,6 @@
   "Cohens f2, by default based on `eta-sq`.
 
   Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
-  {:metadoc/categories #{:effect}}
   (^double [[group1 group2]] (cohens-f2 group1 group2))
   (^double [group1 group2] (cohens-f2 group1 group2 :eta))
   (^double [group1 group2 type]
@@ -1394,7 +1316,6 @@
   * 2 - compare two correlation values
   * 3 - compare correlation of `group1` and `group2a` with correlation of `group1` and `group2b`
   * 4 - compare correlation of first two arguments with correlation of last two arguments"
-  {:metadoc/categories #{:effect}}
   (^double [^double r1 ^double r2]
    (- (m/atanh r1) (m/atanh r2)))
   (^double [group1 group2a group2b]
@@ -1471,7 +1392,6 @@
 
 (defn cramers-c
   "Cramer's C effect size for discrete data."
-  {:metadoc/categories #{:effect}}
   (^double [group1 group2] (cramers-c (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -1479,7 +1399,6 @@
 
 (defn cramers-v
   "Cramer's V effect size for discrete data."
-  {:metadoc/categories #{:effect}}
   (^double [group1 group2] (cramers-v (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -1488,7 +1407,6 @@
 
 (defn cramers-v-corrected
   "Corrected Cramer's V"
-  {:metadoc/categories #{:effect}}
   (^double [group1 group2] (cramers-v-corrected (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))
@@ -1503,7 +1421,6 @@
 
 (defn cohens-w
   "Cohen's W effect size for discrete data."
-  {:metadoc/categories #{:effect}}
   (^double [group1 group2] (cohens-w (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -1511,7 +1428,6 @@
 
 (defn tschuprows-t
   "Tschuprows T effect size for discrete data"
-  {:metadoc/categories #{:effect}}
   (^double [group1 group2] (tschuprows-t (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -1698,7 +1614,6 @@
   * any predicate
 
   https://en.wikipedia.org/wiki/Precision_and_recall"
-  {:metadoc/categories #{:stat}}
   ([tp fn fp tn] (binary-measures-all-calc (binary-measures-all {:tp tp :fn fn :fp fp :tn tn})))
   ([confusion-matrix] (binary-measures-all-calc (infer-confusion-matrix confusion-matrix)))
   ([actual prediction] (binary-measures-all actual prediction nil))
@@ -1715,7 +1630,6 @@
   "Subset of binary measures. See [[binary-measures-all]].
 
   Following keys are returned: `[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalence]`"
-  {:metadoc/categories #{:stat}}
   ([tp fn fp tn] (cm-select-keys (binary-measures-all tp fn fp tn)))
   ([confusion-matrix] (cm-select-keys (binary-measures-all confusion-matrix)))
   ([actual prediction] (binary-measures actual prediction nil))
@@ -1836,7 +1750,6 @@
   If lags is omitted function returns maximum possible number of lags.
 
   See also [[acf-ci]], [[pacf]], [[pacf-ci]]"
-  {:metadoc/categories #{:time}}
   ([data] (acf data (dec (count data))))
   ([data lags]
    (let [vdata (vec (demean data))
@@ -1861,7 +1774,6 @@
   `pacf` returns also lag `0` (which is `0.0`).
 
   See also [[acf]], [[acf-ci]], [[pacf-ci]]"
-  {:metadoc/categories #{:time}}
   ([data] (pacf data (dec (count data))))
   ([data ^long lags]
    (let [acf (vec (acf data lags))
@@ -1886,7 +1798,6 @@
 
 (defn pacf-ci
   "[[pacf]] with added confidence interval data."
-  {:metadoc/categories #{:time}}
   ([data] (pacf-ci data (dec (count data))))
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
@@ -1899,7 +1810,6 @@
   "[[acf]] with added confidence interval data.
 
   `:cis` contains list of calculated ci for every lag."
-  {:metadoc/categories #{:time}}
   ([data] (acf-ci data (dec (count data))))
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
@@ -1948,7 +1858,6 @@
   `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)
 
   Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
-  {:metadoc/categories #{:extent}}
   ([vs] (percentile-bca-extent vs 2.5))
   ([vs ^double p] (percentile-bca-extent vs p (- 100.0 p)))
   ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
@@ -1967,7 +1876,6 @@
   `p` - calculates extent of bias corrected `p` and `100-p` (default: `p=2.5`)
 
   Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
-  {:metadoc/categories #{:extent}}
   ([vs] (percentile-bc-extent vs 2.5))
   ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
   ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
@@ -1976,8 +1884,8 @@
 
 ;;
 
-(def binomial-ci-methods [:asymptotic :agresti-coull :clopper-pearson :wilson :prop.test
-                        :cloglog :logit :probit :arcsine])
+(def binomial-ci-methods (sort [:asymptotic :agresti-coull :clopper-pearson :wilson :prop.test
+                              :cloglog :logit :probit :arcsine]))
 
 (defn binomial-ci
   "Return confidence interval for a binomial distribution.
@@ -1994,24 +1902,22 @@
   * `:arcsine`
   * `:all` - apply all methods and return a map of triplets
 
-  Default confidence level: 0.95
+  Default alpha is 0.05
   
-  Returns a triple [lower ci, upper ci, mean]"
-  {:metadoc/categories #{:extent}}
+  Returns a triple [lower ci, upper ci, p=successes/trials]"
   ([^long number-of-successes ^long number-of-trials]
    (binomial-ci number-of-successes number-of-trials :asymptotic))
   ([^long number-of-successes ^long number-of-trials method]
-   (binomial-ci number-of-successes number-of-trials method 0.95))
-  ([^long number-of-successes ^long number-of-trials method ^double confidence-level]
+   (binomial-ci number-of-successes number-of-trials method 0.05))
+  ([^long number-of-successes ^long number-of-trials method ^double alpha]
    (let [p (/ (double number-of-successes) number-of-trials)
-         alpha (- 1.0 confidence-level)
          alpha2 (* 0.5 alpha)
          ^double z (r/icdf r/default-normal (- 1.0 alpha2))
          z2 (* z z)
          x0? (zero? number-of-successes)
          xn? (== number-of-trials number-of-successes)]
      (case method
-       :all (into {} (map #(vector %1 (binomial-ci number-of-successes number-of-trials % confidence-level))
+       :all (into {} (map #(vector %1 (binomial-ci number-of-successes number-of-trials % alpha))
                           binomial-ci-methods))
        :cloglog (let [logp (m/log p)
                       mu (m/log (- logp))
@@ -2198,7 +2104,6 @@
   * `alpha` - significance level (default: `0.05`)
   * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
   * `mu` - mean (default: `0.0`)"
-  {:metadoc/categories #{:test}}
   ([xs] (t-test-one-sample xs {}))
   ([xs m]
    (let [{:keys [^long n ^double stat test-type ^double alpha ^double mu ^double stderr]
@@ -2216,7 +2121,6 @@
   * `alpha` - significance level (default: `0.05`)
   * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
   * `mu` - mean (default: `0.0`)"
-  {:metadoc/categories #{:test}}
   ([xs] (z-test-one-sample xs {}))
   ([xs m]
    (let [{:keys [^double stat test-type ^double alpha ^double mu ^double stderr]
@@ -2279,7 +2183,6 @@
   * `mu` - mean (default: `0.0`)
   * `paired?` - unpaired or paired test, boolean (default: `false`)
   * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
-  {:metadoc/categories #{:test}}
   ([xs ys] (t-test-two-samples xs ys {}))
   ([xs ys {:keys [paired? equal-variances?]
            :or {paired? false equal-variances? false}
@@ -2309,7 +2212,6 @@
   * `mu` - mean (default: `0.0`)
   * `paired?` - unpaired or paired test, boolean (default: `false`)
   * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
-  {:metadoc/categories #{:test}}
   ([xs ys] (z-test-two-samples xs ys {}))
   ([xs ys {:keys [paired? equal-variances?]
            :or {paired? false equal-variances? false}
@@ -2336,7 +2238,6 @@
 
   * `alpha` - significance level (default: `0.05`)
   * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater` "
-  {:metadoc/categories #{:test}}
   ([xs ys] (f-test xs ys {}))
   ([xs ys {:keys [sides ^double alpha]
            :or {sides :two-sided alpha 0.05}}]

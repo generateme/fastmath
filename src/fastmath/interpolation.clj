@@ -41,11 +41,6 @@
 
   #### 2d
   ![2d](images/i/2d.jpg)"
-  {:metadoc/categories {:smile "Smile interpolators"
-                        :comm "Apache Commons Math interpolators"
-                        :ssj "SSJ interpolators"
-                        :d1 "1d interpolation"
-                        :d2 "2d interpolation (grid based)"}}
   (:require [fastmath.core :as m]
             [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.analysis.interpolation AkimaSplineInterpolator DividedDifferenceInterpolator LinearInterpolator LoessInterpolator NevilleInterpolator SplineInterpolator MicrosphereProjectionInterpolator]
@@ -70,7 +65,6 @@
   (let [cl (with-meta (symbol "interp-obj") {:tag clazz})
         interp (with-meta (symbol "ufun") {:tag `UnivariateFunction})
         x (with-meta (gensym "x") {:tag 'double})
-        n (vary-meta n assoc :metadoc/categories cat)
         xs (symbol "xs")
         ys (symbol "ys")]
     `(defn ~n ~doc
@@ -116,7 +110,6 @@ Source: Apache Commons Math." #{:comm :d1}
   * accuracy: double (default: 1e-12)
 
   Source: Apache Commons Math."
-  {:metadoc/categories #{:comm :d1}}
   ([xs ys] (loess-interpolator-with-obj (LoessInterpolator. 0.4 2) xs ys))
   ([bandwidth robustness-iters xs ys]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters) xs ys))
@@ -140,7 +133,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Microsphere projection interpolator - 1d version
 
   Source: Apache Commons Math."
-  {:metadoc/categories #{:comm :d1}}
   [elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance xs ys]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 1 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
         xin (m/seq->double-double-array (map vector xs))
@@ -151,7 +143,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Cubic spline interpolation.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}}
   [xs ys]
   (let [^Interpolation interp (CubicSplineInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
@@ -160,7 +151,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Kriging interpolation.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}}
   [xs ys]
   (let [^Interpolation interp (KrigingInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
@@ -169,7 +159,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Linear interpolation from Smile library.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}}
   [xs ys]
   (let [^Interpolation interp (LinearInterpolation. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
@@ -180,7 +169,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Default kernel: `:gaussian`
   
   Source: Smile"
-  {:metadoc/categories #{:smile :d1}}
   ([xs ys] (rbf (k/rbf :gaussian) xs ys))
   ([rbf-fn normalize? xs ys]
    (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) (k/smile-rbf rbf-fn) normalize?)]
@@ -192,7 +180,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Shepard interpolation.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d1}}
   ([xs ys]
    (let [^Interpolation interp (ShepardInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys))]
      (fn ^double [^double x] (.interpolate interp x))))
@@ -202,7 +189,6 @@ Source: Apache Commons Math." #{:comm :d1}
 
 (defn step-after
   "Step function."
-  {:metadoc/categories #{:comm :d1}}
   [xs ys]
   (let [^StepFunction sf (StepFunction. (m/seq->double-array xs)
                                         (m/seq->double-array ys))]
@@ -210,7 +196,6 @@ Source: Apache Commons Math." #{:comm :d1}
 
 (defn step-before
   "Step function."
-  {:metadoc/categories #{:comm :d1}}
   [xs ys]
   (let [x (m/seq->double-array xs)
         y (m/seq->double-array ys)
@@ -222,7 +207,6 @@ Source: Apache Commons Math." #{:comm :d1}
 
 (defn step
   "Step function."
-  {:metadoc/categories #{:comm :d1}}
   [xs ys]
   (let [x (m/seq->double-array xs)
         y (m/seq->double-array ys)
@@ -248,7 +232,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Monotone interpolation
 
   https://gist.github.com/lecho/7627739"
-  {:metadoc/categories #{:d1}}
   [xs ys]
   (assert (and (seq xs) (seq ys)) "Sequences can't be empty.")
   (let [cntx (count xs)
@@ -316,7 +299,6 @@ Source: Apache Commons Math." #{:comm :d1}
 
   * 2 or 3 arity - exact interpolation using b-spline, default degree = 3 ([more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html#a364fa9e72b7cdc0457140d79b2249530))
   * 4 arity - approximated b-spline interpolation with precision parameter `h` ([more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html#a0892c41fc64e14a58e7f17208e05289a))"
-  {:metadoc/categories #{:ssj :d1}}
   ([xs ys] (b-spline-interp 3 xs ys))
   ([^long degree xs ys]
    (ssj-math-function (BSpline/createInterpBSpline (m/seq->double-array xs) (m/seq->double-array ys) degree)))
@@ -328,7 +310,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "B-spline for given points, default degree equals samples count - 1.
 
   [more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1BSpline.html)"
-  {:metadoc/categories #{:ssj :d1}}
   ([xs ys] (b-spline (dec (count xs)) xs ys))
   ([degree-or-knots xs ys]
    (let [b (if (integer? degree-or-knots)
@@ -340,7 +321,6 @@ Source: Apache Commons Math." #{:comm :d1}
   "Polynomial interpolation.
 
   [more](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1functionfit_1_1PolInterp.html)"
-  {:metadoc/categories #{:ssj :d1}}
   [xs ys] (ssj-math-function (PolInterp. (m/seq->double-array xs) (m/seq->double-array ys))))
 
 ;;; 2d
@@ -351,7 +331,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Apache Commons Math."
-  {:metadoc/categories #{:comm :d2}}
   [xs ys vs]
   (let [^BivariateGridInterpolator cl (BicubicInterpolator.)
         ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
@@ -365,7 +344,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Apache Commons Math."
-  {:metadoc/categories #{:comm :d2}}
   [xs ys vs]
   (let [^BivariateGridInterpolator cl (PiecewiseBicubicSplineInterpolator.)
         ^BivariateFunction interp (.interpolate cl (m/seq->double-array xs)
@@ -379,7 +357,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
   
   Source: Apache Commons Math."
-  {:metadoc/categories #{:comm :d2}}
   [elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance xs ys vs]
   (let [^MultivariateInterpolator interp (MicrosphereProjectionInterpolator. 2 elements max-dark-friction dark-threshold background exponent shared-sphere? no-interpolation-tolerance)
         xyin (m/seq->double-double-array (for [x xs
@@ -395,7 +372,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
   (let [^Interpolation2D interp (BilinearInterpolation. (m/seq->double-array xs)
                                                         (m/seq->double-array ys)
@@ -408,7 +384,6 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
   (let [^Interpolation2D interp (BicubicInterpolation. (m/seq->double-array xs)
                                                        (m/seq->double-array ys)
@@ -421,15 +396,13 @@ Source: Apache Commons Math." #{:comm :d1}
   Grid based.
 
   Source: Smile."
-  {:metadoc/categories #{:smile :d2}}
   [xs ys vs]
   (let [^Interpolation2D interp (CubicSplineInterpolation2D. (m/seq->double-array xs)
                                                              (m/seq->double-array ys)
                                                              (m/seq->double-double-array vs))]
     (fn ^double [^double x ^double y] (.interpolate interp x y))))
 
-(def ^{:doc "Map of 1d interpolation functions"
-       :metadoc/categories #{:smile :comm :d1}}
+(def ^{:doc "Map of 1d interpolation functions"}
   interpolators-1d-list {:akima akima-spline
                          :divided-difference divided-difference
                          :linear linear
@@ -450,8 +423,7 @@ Source: Apache Commons Math." #{:comm :d1}
                          :b-spline-interp b-spline-interp
                          :polynomial polynomial})
 
-(def ^{:doc "Map of 2d interpolation functions"
-       :metadoc/categories #{:smile :comm :d2}}
+(def ^{:doc "Map of 2d interpolation functions"}
   interpolators-2d-list {:bicubic bicubic
                          :piecewise-bicubic piecewise-bicubic
                          :microsphere-2d microsphere-2d-projection

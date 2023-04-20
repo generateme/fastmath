@@ -164,9 +164,6 @@
   ## File operations
 
   You can [[save-signal]] or [[load-signal]]. Representation is 16 bit signed, big endian. Use Audacity or SoX to convert to/from audio files."
-  {:metadoc/categories {:eff "Effects"
-                        :wave "Wave"
-                        :sig "Signal"}}
   (:require [fastmath.core :as m]
             [clojure.java.io :refer [file make-parents output-stream input-stream]]
             [fastmath.vector :as v]
@@ -215,7 +212,6 @@
 
 (defn compose-effects
   "Compose effects."
-  {:metadoc/categories #{:eff}}
   [^EffectsList e & es]
   (reduce compose-two-effects e es))
 
@@ -241,7 +237,6 @@
   If `reset` is positive, reinit state each `reset` number of samples.
 
   Returns new signal as `double-array`."
-  {:metadoc/categories #{:eff}}
   (^doubles [^doubles in effects ^long reset]
    (let [len (alength in)
          ^doubles out (double-array len)]
@@ -265,7 +260,6 @@
   If `reset` is positive, reinit state each `reset` number of samples.
 
   Returns new signal."
-  {:metadoc/categories #{:eff}}
   ([in effects ^long reset] (m/double-array->seq (apply-effects-raw (m/seq->double-array in) effects reset)))
   ([in effects] (apply-effects in effects 0)))
 
@@ -291,7 +285,6 @@
   Effect is a custom type which contains: name, sample (result of last call), effect function and current state.
 
   Effect can be considered as function: call with sample to effect with next state or call without parameter to obtain latest result. Effects are also composable with [[compose-effects]]."
-  {:metadoc/categories #{:eff}}
   (fn [m & _] m))
 
 ;; ### Simple Low/High pass filters
@@ -835,8 +828,7 @@
                            (SampleAndState. result (StateMdaThruZero. (.buffer state) ph bp f)))))
                       ([] (StateMdaThruZero. (double-array 2048) 0.0 0 0.0)))))))
 
-(def ^{:metadoc/categories #{:eff}
-       :doc "List of effects."}
+(def ^{:doc "List of effects."}
   effects-list (sort (keys (methods effect))))
 
 ;; ## File operations
@@ -846,7 +838,6 @@
 
   Representation is: 16 bit signed, big endian file
   You can use Audacity/SOX utilities to convert files to audio."
-  {:metadoc/categories #{:sig}}
   [sig filename]
   (make-parents filename)
   (let [^java.io.DataOutputStream out (java.io.DataOutputStream. (output-stream filename))
@@ -862,7 +853,6 @@
   "Read signal from file
 
   Expected representation is 16 bit signed, big endian file."
-  {:metadoc/categories #{:sig}}
   [filename]
   (let [^java.io.File f (file filename)
         len (/ (.length f) 2)
@@ -902,7 +892,6 @@
   To convert `oscillator` to signal, call [[signal-from-oscillator]].
 
   To add oscillators, call [[sum-oscillators]]."
-  {:metadoc/categories #{:oscillator}}
   (fn [f _ _ _] f))
 
 (defmethod oscillator :sin [_ ^double f ^double a ^double p]
@@ -943,18 +932,15 @@
 
 (defmethod oscillator :constant [_ _ ^double a _] (constantly a))
 
-(def ^{:doc "List of oscillator names used with [[oscillator]]"
-       :metadoc/categories #{:oscillator}}
+(def ^{:doc "List of oscillator names used with [[oscillator]]"}
   oscillators (sort (keys (methods oscillator))))
 
 (defn oscillators-sum
   "Create oscillator which is sum of all oscillators."
-  {:metadoc/categories #{:oscillator}}
   [& fs]
   (reduce #(fn ^double [^double x] (+ ^double (%1 x) ^double (%2 x))) fs))
 
 (defn oscillator-gain
-  {:metadoc/categories #{:oscillator}}
   [fs ^double gain]
   (fn ^double [^double x]
     (* gain ^double (fs x))))
@@ -969,7 +955,6 @@
   * seconds - duration
 
   Returns sampled signal as double array."
-  {:metadoc/categories #{:oscillator}}
   [f ^double samplerate ^double seconds]
   (let [len (* samplerate seconds)
         ^doubles buffer (double-array len)]
@@ -985,7 +970,6 @@
   * sig - signal as sequence
   * seconds - duration
   * interpolator - interpolation (see [[fastmath.interpolation]]). Default: [[linear-smile]]."
-  {:metadoc/categories #{:oscillator}}
   ([sig ^double seconds] (signal->oscillator sig seconds i/linear-smile))
   ([sig ^double seconds interpolator]
    (let [c (count sig)

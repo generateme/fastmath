@@ -40,9 +40,6 @@
   * [[combine]] - create vector field randomly of from given parametrization.
   * [[random-configuration]] - returns random configuration as a map
   * [[randomize-configuration]] - change parametrization for given configuration."
-  {:metadoc/categories {:cr "Create fields"
-                        :sc "Derive scalar field from vector field"
-                        :vf "Derive vector field from other vector field(s)."}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v])
@@ -68,7 +65,6 @@
   If field doesn't have parametrization, empty map will be returned.
   
   See [[field]]."
-  {:metadoc/categories #{:cr}}
   (fn [key & _] key))
 
 (defmethod parametrization :default
@@ -81,7 +77,6 @@
   Default scaling factor is 1.0, default parametrization is random.
 
   Resulting function operates on [[Vec2]] type."
-  {:metadoc/categories #{:cr}}
   (fn [key & _] key))
 
 #_(defmethod field :default
@@ -138,8 +133,7 @@
 ;; ## Function arithmetic
 ;;
 (def ^{:dynamic true
-     :doc "When random configuration for [[combine]] is used. Skip vector fields which are random."
-     :metadoc/categories #{:vf}}
+     :doc "When random configuration for [[combine]] is used. Skip vector fields which are random."}
   *skip-random-fields* false)
 
 (defn- directional-derivative
@@ -152,7 +146,6 @@
 
 (defn derivative 
   "Calculate directional derivative of fn. Derivative is calculated along [1,1] vector with `h` as a step (default `1.0e-6`)."
-  {:metadoc/categories #{:vf}}
   ([f ^double amount ^double h]
    (directional-derivative f (Vec2. h h) amount h))
   ([f ^double h]
@@ -162,7 +155,6 @@
 
 (defn grad-x
   "Calculate gradient along x axis."
-  {:metadoc/categories #{:vf}}
   ([f ^double amount ^double h]
    (directional-derivative f (Vec2. h 0.0) amount h))
   ([f ^double h]
@@ -172,7 +164,6 @@
 
 (defn grad-y
   "Calculate gradient along y axis."
-  {:metadoc/categories #{:vf}}
   ([f ^double amount ^double h]
    (directional-derivative f (Vec2. 0.0 h) amount h))
   ([f ^double h]
@@ -182,7 +173,6 @@
 
 (defn jacobian
   "Det of Jacobian of the field"
-  {:metadoc/categories #{:sc}}
   ([f] (jacobian f 1.0e-6))
   ([f ^double h]
    (let [gx (grad-x f h)
@@ -197,7 +187,6 @@
   "Divergence of the field.
 
   See: https://youtu.be/rB83DpBJQsE?t=855"
-  {:metadoc/categories #{:sc}}
   ([f] (divergence f 1.0e-6))
   ([f ^double h]
    (let [gx (grad-x f h)
@@ -211,7 +200,6 @@
   "Curl (2d version) of the field.
 
   See: https://youtu.be/rB83DpBJQsE?t=855"
-  {:metadoc/categories #{:sc}}
   ([f] (curl f 1.0e-6))
   ([f ^double h]
    (let [gx (grad-x f h)
@@ -223,14 +211,12 @@
 
 (defn magnitude
   "Magnitude of the vectors from field."
-  {:metadoc/categories #{:sc}}
   [f]
   (fn ^double [v]
     (v/mag (f v))))
 
 (defn heading
   "Angle of the vectors from field."
-  {:metadoc/categories #{:sc}}
   [f]
   (fn ^double [v]
     (v/heading (f v))))
@@ -248,25 +234,21 @@
 
 (def ^{:doc "2d cross product (det of the 2x2 matrix) of the input vector and result of the vector field.
 
-In case when two vector fields are given, cross product is taken from results of vector fields."
-       :metadoc/categories #{:sc}}
+In case when two vector fields are given, cross product is taken from results of vector fields."}
   cross (generate-scalar-field v/cross))
 (def ^{:doc "Dot product of the input vector and result of the vector field.
 
-In case when two vector fields are given, cross product is taken from result of vector fields."
-       :metadoc/categories #{:sc}}
+In case when two vector fields are given, cross product is taken from result of vector fields."}
   dot (generate-scalar-field v/dot))
 (def ^{:doc "Angle between input vector and result of the vector field.
 
 In case when two vector fields are given, cross product is taken from result of vector fields.
 
-Resulting value is from range `[-PI,PI]`."
-       :metadoc/categories #{:vf}}
+Resulting value is from range `[-PI,PI]`."}
   angle-between (generate-scalar-field v/angle-between))
 
 (defn scalar->vector-field
   "Returns vector field build from scalar fields of the input vector and result of the vector field."
-  {:metadoc/categories #{:vf}}
   ([scalar f] 
    (fn [v]
      (Vec2. (scalar (f v)) (scalar v))))
@@ -276,21 +258,18 @@ Resulting value is from range `[-PI,PI]`."
 
 (defn composition
   "Compose two vector fields."
-  {:metadoc/categories #{:vf}}
   ([f1 f2 ^double amount]
    (fn [v] (v/mult (f1 (f2 v)) amount)))
   ([f1 f2] (composition f1 f2 1.0)))
 
 (defn sum
   "Add two vector fields."
-  {:metadoc/categories #{:vf}}
   ([f1 f2 ^double amount]
    (fn [v] (v/mult (v/add (f1 v) (f2 v)) amount)))
   ([f1 f2] (sum f1 f2 1.0)))
 
 (defn multiplication
   "Multiply two vector fields (as a element-wise multiplication of results)."
-  {:metadoc/categories #{:vf}}
   ([f1 f2 ^double amount]
    (fn [v] (v/mult (v/emult (f1 v) (f2 v)) amount)))
   ([f1 f2] (multiplication f1 f2 1.0)))
@@ -316,7 +295,6 @@ Resulting value is from range `[-PI,PI]`."
 
 (defn randomize-configuration
   "Randomize values for given configuration. Keeps structure untouched."
-  {:metadoc/categories #{:vf}}
   ([f]
    (if (= (:type f) :variation)
      (assoc f :amount 1.0 :config (parametrization (:name f) {}))
@@ -339,7 +317,6 @@ Resulting value is from range `[-PI,PI]`."
   See [[combine]] for structure.
 
   Bind `*skip-random-fields*` to true to exclude fields which are random."
-  {:metadoc/categories #{:vf}}
   ([] (random-configuration (r/lrand 5)))
   ([depth] (random-configuration depth (build-random-variation-step)))
   ([^long depth f]
@@ -375,7 +352,6 @@ Resulting value is from range `[-PI,PI]`."
   * `:angles` - vector field from angles
 
   See [[random-configuration]] for example."
-  {:metadoc/categories #{:vf}}
   ([{:keys [type name amount config var step var1 var2]}]
    (if (= type :variation)
      (field name amount config)

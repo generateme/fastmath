@@ -10,8 +10,7 @@
             [fastmath.random :as r]
             [fastmath.core :as m]
             [fastmath.kernel :as k]
-            [fastmath.stats :as stat]
-            [fastmath.fields.y :as y]))
+            [fastmath.stats :as stat]))
 
 ;; # fastmath.stats
 
@@ -440,10 +439,7 @@
 
 ;; ## Bootstrap
 
-^{::clerk/visibility :hide}
-(u/table2
- [[bootstrap]
-  [jackknife]])
+;; All bootstrap functions are moved to the `fastmath.stats.bootstrap` namespace.
 
 ;; ## Intervals
 
@@ -455,16 +451,25 @@
   [sem-extent "mean-sem, mean+sem, mean"]
   [quantile-extent "q1, q2, median"]
   [percentile-extent "p1, p2, median"]
-  [percentile-bca-extent]
-  [percentile-bc-extent]
-  [pi-extent "sample size based"]
-  [pi]
+  [pi-extent "sample size based quantile extent"]
+  [pi "sample size based quantile extent as a map"]
   [hpdi-extent "higher posterior density interval"]
-  [adjacent-values]
-  [inner-fence-extent]
-  [outer-fence-extent]
-  [ci]
-  [bootstrap-ci]])
+  [adjacent-values "LAV, UAV, median"]
+  [inner-fence-extent "LIF, UIF, median"]
+  [outer-fence-extent "LOF, UOF, median"]
+  [ci "Student's t confidence interval for mean"]
+  [bootstrap-ci "Basic percentile confidence interval from bootstrapped samples, deprecated"]
+  [percentile-bca-extent "bias-corrected and accelerated"]
+  [percentile-bc-extent "bias-corrected extent"]])
+
+;; Some notes:
+
+;; * `pi`, `pi-extent` and `hpdi-extent` are based on R `rethinking` package
+;; * `pi` is actually `quantile-extent`
+;; * `LAV` - lower adjacent value is the lowest data value which is greater than LIF
+;; * `UAV` - upper adjacent value is the biggest data value which is lower than UIF
+;; * `LIF`, `UIF` - lower/upper inner fence is $Q_1-1.5(Q_3-Q_1)$ and $Q_3+1.5(Q_3-Q_1)$
+;; * `LOF`, `UOF` - lower/upper outer fence is $Q_1-3(Q_3-Q_1)$ and $Q_3+3(Q_3-Q_1)$
 
 (def intervals-data [0 0 0 1 2 3 4 5 1 2 3 4 1 2 3 1 2 1 10 20 30 40 50 -50])
 
@@ -481,9 +486,9 @@
  (stats/percentile-extent intervals-data 20)
  (stats/percentile-extent intervals-data 30 90)
  (stats/percentile-bca-extent intervals-data)
- (stats/percentile-bca-extent intervals-data 0.05)
+ (stats/percentile-bca-extent intervals-data 5)
  (stats/percentile-bc-extent intervals-data)
- (stats/percentile-bc-extent intervals-data 0.05)
+ (stats/percentile-bc-extent intervals-data 5)
  (stats/pi-extent intervals-data)
  (stats/pi-extent intervals-data 0.9)
  (stats/pi intervals-data)
@@ -500,6 +505,33 @@
  (stats/bootstrap-ci intervals-data 0.9 1000 stats/median))
 
 ;; ### Binomial
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[binamial-ci "Confidence intervals for binomial data"]])
+
+;; Parameters:
+;; * `number-of-successes`
+;; * `number-of-trials`
+;; * `method` - default: `:asymptotic`
+;; * `alpha` - default: `0.05`
+
+;; Full list of methods (use `:all` to get everything in a map)
+
+stats/binomial-ci-methods
+
+;; For `number-of successes=16` and `number-of-trials=100`, `p=0.16` here are the list of lower and upper interval values
+
+^{::clerk/visibility :hide}
+(clerk/table
+ {:head ["method" "lower" "upper"]
+  :rows (for [m stats/binomial-ci-methods
+              :let [[a b] (stats/binomial-ci 16 100 m)]]
+          [m a b])})
+
+;; To get all values use `:all` as a method (the same `p=0.16` but higher number of trials)
+
+(stats/binomial-ci 1600 10000 :all)
 
 ;; ### Range
 
@@ -1189,22 +1221,13 @@
 
 ;; If the last argument is pair `[min value, max value]` input data is filtered to be inside the given range
 
-;; `estimate-bins` calculates number of bins for your data:
-;; * `:freedman-diaconis` (default)
-;; * `:sqrt`
-;; * `:sturges`
-;; * `:rice`
-;; * `:doane`
-;; * `:scott`
+;; Here is the list of bin estimation method (`:freedman-diaconis` is default)
 
 ^{::clerk/visibility :hide}
-(clerk/example
- (stats/estimate-bins (u/iris :sepal-length))
- (stats/estimate-bins (u/iris :sepal-length) :sqrt)
- (stats/estimate-bins (u/iris :sepal-length) :sturges)
- (stats/estimate-bins (u/iris :sepal-length) :rice)
- (stats/estimate-bins (u/iris :sepal-length) :doane)
- (stats/estimate-bins (u/iris :sepal-length) :scott))
+(clerk/table
+ {:head ["method" "bin count for sepal-length (iris)"]
+  :rows (for [m [:freedman-diaconis :sqrt :sturges :rice :doane :scott]]
+          [m (stats/estimate-bins (u/iris :sepal-length) m)])})
 
 ^{::clerk/visibility :hide}
 (clerk/example
@@ -1213,19 +1236,14 @@
  (stats/histogram (u/iris :sepal-length) 20)
  (stats/histogram (u/iris :sepal-length) :doane [4.8 6.2]))
 
-^{::clerk/visibility {:result :hide :code :hide}}
-(defn h->bars
-  [{:keys [bins step]}]
-  (update-keys (into {} bins) (fn [k] (+ k (* step 0.5)))))
-
 ^{::clerk/visibility :hide}
 (clerk/table
  [["default" ":sqrt"]
-  [(u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length))) [4 8] [0 40])
-   (u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) :sqrt)) [4 8] [0 40])]
+  [(u/bgraph-int (u/h->bars (u/iris :sepal-length)) [4 8] [0 40])
+   (u/bgraph-int (u/h->bars (u/iris :sepal-length) :sqrt) [4 8] [0 40])]
   ["20 bins" ":doane, 4.8<=v<=6.2"]
-  [(u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) 20)) [4 8] [0 40])
-   (u/bgraph-int (h->bars (stats/histogram (u/iris :sepal-length) :doane [4.8 6.2])) [4 8] [0 40])]])
+  [(u/bgraph-int (u/h->bars (u/iris :sepal-length) 20) [4 8] [0 40])
+   (u/bgraph-int (u/h->bars (u/iris :sepal-length) :doane [4.8 6.2]) [4 8] [0 40])]])
 
 ;; ## Tests
 

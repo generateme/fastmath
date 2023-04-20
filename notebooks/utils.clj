@@ -1,4 +1,5 @@
 (ns utils
+  "Notebook utilities"
   (:require [fastmath.core :as m]
             [fastmath.stats :as stats]
             [clojure2d.core :as c2d]
@@ -31,6 +32,10 @@
         (recur (drop-while (comp (partial invalid? thr) second) inv)
                (if (seq v) (conj buff v) buff))))))
 
+(defn- tick-step
+  [a b]
+  (max 1 (long (m/ceil (m/log10 (m/abs (- a b)))))))
+
 (defn fgraph-int
   ([f] (fgraph-int f nil))
   ([f domain] (fgraph-int f domain :domain))
@@ -58,9 +63,9 @@
        (c2d/line c 0 r0 size r0)
        (c2d/line c d0 0 d0 size)
        (c2d/set-color c 0x11303065)
-       (doseq [dt dticks]
+       (doseq [dt (take-nth (tick-step dx dy) dticks)]
          (c2d/line c dt 0 dt size))
-       (doseq [rt rticks]
+       (doseq [rt (take-nth (tick-step rx ry) rticks)]
          (c2d/line c 0 rt size rt))
        (c2d/set-color c 0x303065)
        (doseq [p (split-at-invalid-double xsys (* 1.1 (m/max (m/abs rx) (m/abs ry))))]
@@ -101,9 +106,9 @@
        (c2d/line c 0 r0 size r0)
        (c2d/line c d0 0 d0 size)
        (c2d/set-color c 0x11303065)
-       (doseq [dt dticks]
+       (doseq [dt (take-nth (tick-step dx dy) dticks)]
          (c2d/line c dt 0 dt size))
-       (doseq [rt rticks]
+       (doseq [rt (take-nth (tick-step rx ry) rticks)]
          (c2d/line c 0 rt size rt))
        (doseq [[xsys color] (map vector xsyss (c/palette :category10))]
          (c2d/set-color c color)
@@ -144,9 +149,9 @@
        (c2d/line c 0 r0 size r0)
        (c2d/line c d0 0 d0 size)
        (c2d/set-color c 0x11303065)
-       (doseq [dt dticks]
+       (doseq [dt (take-nth (tick-step dx dy) dticks)]
          (c2d/line c dt 0 dt size))
-       (doseq [rt rticks]
+       (doseq [rt (take-nth (tick-step rx ry) rticks)]
          (c2d/line c 0 rt size rt))
        (c2d/set-color c 0x303065)
        (doseq [[x y] xsys
@@ -258,6 +263,13 @@
                                                       (or ~i "-")
                                                       (clerk/md ~(or (str f) ""))])]}))
 
+;; histogram
+(defn h->bars
+  [data & params]
+  (let [{:keys [bins step]} (apply stats/histogram data params)]
+    (update-keys (into {} bins) (fn [k] (+ k (* step 0.5))))))
+
+
 
 (def source-files "https://github.com/generateme/fastmath/blob/master/src/")
 
@@ -268,23 +280,32 @@
 (defn make-public-fns-table
   [ns]
   (clerk/html
-   [:div (for [v (->> (ns-publics ns)
-                      (sort-by first)
-                      (map second))
-               :let [{:keys [name file macro arglists doc line const]} (meta v)]]
-           [:div {:class "pb-8" :id (str "LOS-" (clojure.core/name name))} ;; add border
-            
-            (clerk/html [:span [:b {:class "underline decoration-2 decoration-gray-400"} name]
-                         (when macro [:sup " MACRO"])
-                         (when const [:sup " CONST"])
-                         [:sup [:a {:href (str source-files file "#L" line)} "  [source]"]]])
-            [:p]
-            (when const [:div (clerk/code (var-get v)) [:p]])
-            (when arglists [:div
-                            [:div (for [args arglists]
-                                    (clerk/code (args->call name args)))]
-                            [:p]])
-            [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]))
+   [:div
+    [:div
+     [:span [:b {:class "underline decoration-2 decoration-gray-400"} (name ns)] " namespace"]
+     [:p]
+     [:div (clerk/md (->> (or (:doc (meta (the-ns ns))) "\n") fix-tex fix-anchor))]]
+    [:div (for [v (->> (ns-publics ns)
+                       (sort-by first)
+                       (map second))
+                :let [{:keys [name file macro arglists doc line const deprecated]} (meta v)]]
+            [:div {:class "pb-8" :id (str "LOS-" (clojure.core/name name))} ;; add border
+             
+             (clerk/html [:span [:b {:class (str "underline decoration-2 decoration-gray-400"
+                                                 (when deprecated " text-gray-400"))} name]
+                          (when macro [:sup " MACRO"])
+                          (when const [:sup " CONST"])
+                          [:sup [:a {:href (str source-files file "#L" line)} "  [source]"]]])
+             (when deprecated [:div [:i (if (string? deprecated)
+                                          (clerk/md (str "Deprecated: "(->> deprecated fix-tex fix-anchor)))
+                                          "Deprecated")]])
+             [:p]
+             (when const [:div (clerk/code (var-get v)) [:p]])
+             (when arglists [:div
+                             [:div (for [args arglists]
+                                     (clerk/code (args->call name args)))]
+                             [:p]])
+             [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]]))
 
 ;; csv
 
@@ -330,7 +351,8 @@
   ;; (clerk/show! "notebooks/core.clj")
   (clerk/build! {:browse? false :paths ["notebooks/core.clj"
                                         "notebooks/random.clj"
-                                        "notebooks/stats.clj"]
+                                        "notebooks/stats.clj"
+                                        "notebooks/bootstrap.clj"]
                  :out-path "docs/notebooks/"})
   (clerk/clear-cache!)
   (clerk/halt!))

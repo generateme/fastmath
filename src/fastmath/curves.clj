@@ -39,7 +39,6 @@
   Default parametrization is random.
 
   Resulting function returns [[Vec2]] type."
-  {:metadoc/categories #{:cr}}
   (fn [key & _] key))
 
 (defmethod curve :default
