@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "2.1.9-SNAPSHOT"
+(defproject generateme/fastmath "2.2.0"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
@@ -23,7 +23,6 @@
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src"]
-  ;; :javac-options ["-target" "1.8" "-source" "1.8"]
   :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  

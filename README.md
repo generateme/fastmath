@@ -6,9 +6,9 @@ Math library.
 
 ## Documentation
 
-[Documentation with examples](https://generateme.github.io/fastmath/index.html)
+[Codox documentation](https://generateme.github.io/fastmath/index.html)
 
-### Clerk notebooks - towards 2.2.0
+### Clerk notebooks - WIP
 
 [Index](https://generateme.github.io/fastmath/notebooks/)
 
@@ -17,28 +17,10 @@ Math library.
 * [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats.html)
     * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap.html)
 
-
-### Previous version
-
-Based on SMILE 1.5.3 and including: regression and classification.
-
-```clojure
-[generateme/fastmath "1.5.3"]
-```
-
-[Documentation with examples](https://generateme.github.io/fastmath/1.5/index.html)
-
-
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.1.8"]
-```
-
-Snapshot:
-
-```clojure
-[generateme/fastmath "2.1.9-SNAPSHOT"]
+[generateme/fastmath "2.2.0"]
 ```
 
 ### MKL

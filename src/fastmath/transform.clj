@@ -16,8 +16,6 @@
   ### Fourier
 
   DFT."
-  {:metadoc/categories {:w "Transform"
-                        :p "Process"}}
   (:require [fastmath.core :as m]
             [fastmath.stats :as stat]
             [fastmath.protocols :as prot])
@@ -34,8 +32,7 @@
 
 (defmulti
   ^{:doc "Create wavelet object."
-    :private true
-    :metadoc/categories #{:w}} wavelet identity)
+    :private true} wavelet identity)
 
 (defmethod wavelet :default [n] (throw (JWaveFailure. (str "Unknown wavelet: " n))))
 
@@ -113,8 +110,7 @@
 (defmethod wavelet :cdf-97 [_] (jwave.transforms.wavelets.other.CDF97.))
 (defmethod wavelet :discrete-mayer [_] (jwave.transforms.wavelets.other.DiscreteMayer.))
 
-(def ^{:metadoc/categories #{:w}
-       :doc "List of all possible wavelets."}
+(def ^{:doc "List of all possible wavelets."}
   wavelets-list (remove #{:default} (keys (methods wavelet))))
 
 (defmulti
@@ -138,8 +134,7 @@
 
   #### Fourier
 
-  * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."
-    :metadoc/categories #{:w}}
+  * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."}
   transformer (fn [t _] t))
 
 (defmethod transformer :fast [_ w] (FastWaveletTransform. (wavelet w)))
@@ -171,27 +166,22 @@
 
 (defn forward-1d
   "Forward transform of sequence or array."
-  {:metadoc/categories #{:w}}
   [t xs] (prot/forward-1d t xs))
 
 (defn reverse-1d
   "Forward transform of sequence or array."
-  {:metadoc/categories #{:w}}
   [t xs] (prot/reverse-1d t xs))
 
 (defn forward-2d
   "Forward transform of sequence or array."
-  {:metadoc/categories #{:w}}
   [t xss] (prot/forward-2d t xss))
 
 (defn reverse-2d
   "Forward transform of sequence or array."
-  {:metadoc/categories #{:w}}
   [t xss] (prot/reverse-2d t xss))
 
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
-  {:metadoc/categories #{:p}}
   ([trans xs ^double mag]
    (let [[fwd rev] (if (seqable? (first xs))
                      [prot/forward-2d prot/reverse-2d]
@@ -209,11 +199,10 @@
   Use on transformed sequences or call with transformer object.
 
   SMILE implementation of WaveletShrinkage denoise function."
-  {:metadoc/categories #{:p}}
   ([xs soft?]
    (let [t (double-array xs)
          n (alength t)
-         nh (>> n 1)
+         nh (m/>> n 1)
          wc (double-array nh)]
      (System/arraycopy t nh wc 0 nh)
      (let [error (/ (stat/median-absolute-deviation wc) 0.6745)

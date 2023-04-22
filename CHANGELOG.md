@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.2.0]
+
+`2.1.9-SNAPSHOT` renamed to be `2.2.0` - see changes below
+
 ## [2.1.9-SNAPSHOT]
 
 ### Added
