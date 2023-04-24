@@ -61,7 +61,7 @@
 
 (defmacro ^:private apache-commons-interpolator
   {:style/indent :defn}
-  [n doc cat clazz] 
+  [n doc clazz] 
   (let [cl (with-meta (symbol "interp-obj") {:tag clazz})
         interp (with-meta (symbol "ufun") {:tag `UnivariateFunction})
         x (with-meta (gensym "x") {:tag 'double})
@@ -79,19 +79,19 @@
 
   xs[n] < xs[n+1] for all n.
 
-Source: Apache Commons Math." #{:comm :d1}
+Source: Apache Commons Math."
   AkimaSplineInterpolator)
 
 (apache-commons-interpolator divided-difference
   "Create Divided Difference Algorithm for interpolation.
 
-Source: Apache Commons Math." #{:comm :d1}
+Source: Apache Commons Math."
   DividedDifferenceInterpolator)
 
 (apache-commons-interpolator linear
   "Create Divided Difference Algorithm for inqterpolation.
 
-Source: Apache Commons Math." #{:comm :d1}
+Source: Apache Commons Math."
   LinearInterpolator)
 
 (defn- loess-interpolator-with-obj 
@@ -117,16 +117,16 @@ Source: Apache Commons Math." #{:comm :d1}
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters accuracy) xs ys)))
 
 (apache-commons-interpolator neville
-                             "Neville algorithm
+  "Neville algorithm
 
-Source: Apache Commons Math." #{:comm :d1}
-                             NevilleInterpolator)
+Source: Apache Commons Math."
+  NevilleInterpolator)
 
 (apache-commons-interpolator spline
-                             "Cubic spline interpolation
+  "Cubic spline interpolation
 
-Source: Apache Commons Math." #{:comm :d1}
-                             SplineInterpolator)
+Source: Apache Commons Math."
+  SplineInterpolator)
 
 
 (defn microsphere-projection

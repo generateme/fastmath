@@ -133,12 +133,12 @@
                            ^double ul-im-a ^double ul-im-b ^double ul-im-c ^double ul-im-d]}]
    (let [lr-pz-sin (m/sin (* lr-spin m/M_PI_2))
          lr-pz-cos (m/sin (* lr-spin m/M_PI_2))
-         ur-pz-sin (m/sin (* lr-spin m/M_PI_2))
-         ur-pz-cos (m/sin (* lr-spin m/M_PI_2))
-         ll-pz-sin (m/sin (* lr-spin m/M_PI_2))
-         ll-pz-cos (m/sin (* lr-spin m/M_PI_2))
-         ul-pz-sin (m/sin (* lr-spin m/M_PI_2))
-         ul-pz-cos (m/sin (* lr-spin m/M_PI_2))]
+         ur-pz-sin (m/sin (* ur-spin m/M_PI_2))
+         ur-pz-cos (m/sin (* ur-spin m/M_PI_2))
+         ll-pz-sin (m/sin (* ll-spin m/M_PI_2))
+         ll-pz-cos (m/sin (* ll-spin m/M_PI_2))
+         ul-pz-sin (m/sin (* ul-spin m/M_PI_2))
+         ul-pz-cos (m/sin (* ul-spin m/M_PI_2))]
      (fn [^Vec2 v]
        (let [lr (if (and (> (.x v) lr-shift-x) (> (.y v) lr-shift-y))
                   (let [re-u (+ (- (* lr-re-a (.x v)) (* lr-im-a (.y v))) lr-re-b)

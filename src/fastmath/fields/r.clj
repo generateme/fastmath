@@ -195,7 +195,7 @@
                                      (let [lkn (long kn)
                                            lkd (long kd)
                                            gcd (m/gcd lkn lkd)
-                                           [^long kn ^long kd] (if (not== gcd 1)
+                                           [^long kn ^long kd] (if (m/not== gcd 1)
                                                                  [(/ lkn gcd) (/ lkd gcd)]
                                                                  [lkn lkd])]
                                        (if (or (zero? (mod kn 2.0))

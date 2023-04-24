@@ -213,7 +213,7 @@
   ([] {:type :regular
        :config (fn [] {:ar (u/sdrand 0.1 5.0)
                       :ai (r/drand -5.0 5.0)})})
-  ([^double amount {:keys [^double ar ^double ai orig?]}]
+  ([^double amount {:keys [^double ar ^double ai]}]
    (let [a (c/complex ar ai)]
      (fn [^Vec2 z]
        (let [aa (m/sqrt (+ (v/magsq z) m/EPSILON))

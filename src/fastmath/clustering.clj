@@ -58,8 +58,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.distance :as d])
-  (:import [smile.clustering CentroidClustering PartitionClustering KMeans GMeans XMeans DeterministicAnnealing
-            DENCLUE CLARANS DBSCAN MEC SpectralClustering]
+  (:import [smile.clustering CentroidClustering PartitionClustering MEC SpectralClustering]
            [smile.math.distance Distance]
            [clojure.lang IFn]))
 
@@ -101,7 +100,6 @@
              (nth sizes k))}))
 
 ;;
-
 (defn- centroid-data
   [^CentroidClustering in]
   {:representatives (m/double-double-array->seq (.centroids in))
@@ -123,16 +121,16 @@
                         (dissoc additional-data :representatives)
                         clusters)))
 
-(def ^:private clustering-classes {:k-means '[KMeans centroid-data]
-                                   :lloyd '[KMeans centroid-data lloyd]
-                                   :g-means '[GMeans centroid-data]
-                                   :x-means '[XMeans centroid-data]
-                                   :deterministic-annealing '[DeterministicAnnealing centroid-data]
-                                   :clarans '[CLARANS centroid-data]
-                                   :denclue '[DENCLUE nil]
-                                   :dbscan '[DBSCAN nil]
-                                   :mec '[MEC mec-data]
-                                   :spectral '[SpectralClustering spectral-data nil true]})
+(def ^:private clustering-classes {:k-means '[smile.clustering.KMeans centroid-data]
+                                 :lloyd '[smile.clustering.KMeans centroid-data lloyd]
+                                 :g-means '[smile.clustering.GMeans centroid-data]
+                                 :x-means '[smile.clustering.XMeans centroid-data]
+                                 :deterministic-annealing '[smile.clustering.DeterministicAnnealing centroid-data]
+                                 :clarans '[smile.clustering.CLARANS centroid-data]
+                                 :denclue '[smile.clustering.DENCLUE nil]
+                                 :dbscan '[smile.clustering.DBSCAN nil]
+                                 :mec '[smile.clustering.MEC mec-data]
+                                 :spectral '[smile.clustering.SpectralClustering spectral-data nil true]})
 
 (def ^{:doc "List of clustering methods."} clustering-methods-list (keys clustering-classes))
 

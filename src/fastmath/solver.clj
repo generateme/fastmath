@@ -7,12 +7,12 @@
 (defmacro ^:private solver-constructor
   [clazz]
   `(cond
-     ~'relative-accuracy (new ~clazz (or ~'absolute-accuracy 1.0e-8) ~'relative-accuracy)
-     ~'absolute-accuracy (new ~clazz (or ~'absolute-accuracy 1.0e-8))
+     ~'_relative-accuracy (new ~clazz (or ~'_absolute-accuracy 1.0e-8) ~'_relative-accuracy)
+     ~'_absolute-accuracy (new ~clazz (or ~'_absolute-accuracy 1.0e-8))
      :else (new ~clazz)))
 
 (defn- get-solver
-  ^UnivariateSolver [solver-type absolute-accuracy relative-accuracy]
+  ^UnivariateSolver [solver-type _absolute-accuracy _relative-accuracy]
   (case solver-type
     :brent (solver-constructor BrentSolver)
     :bisection (solver-constructor BisectionSolver)

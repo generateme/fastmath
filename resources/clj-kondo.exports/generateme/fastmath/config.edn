@@ -23,6 +23,10 @@
                   fastmath.random/make-ssji-distr {:ignore [:unresolved-symbol]}
                   fastmath.random/make-acm-distr {:ignore [:unresolved-symbol]}
                   fastmath.random/distribution-template {:ignore [:unresolved-symbol]}}
+
+ :linters {:unused-private-var {:exclude [fastmath.clustering/centroid-data
+                                          fastmath.clustering/mec-data
+                                          fastmath.clustering/spectral-data]}}
  
  :lint-as {fastmath.random/gen-noise-function clojure.core/def
            fastmath.stats/build-extent clojure.core/def

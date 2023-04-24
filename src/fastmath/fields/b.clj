@@ -111,7 +111,7 @@
 
 (defn- bwrands-bytemix ^long [^long a ^long b] (bit-xor (bit-and a 0x5a5a) (bit-and b 0xa5a5)))
 (defn- bwrands-bytexim ^long [^long a ^long b] (bit-xor (bit-and a 0xaaaa) (bit-and b 0x5555)))
-(defn- bwrands-byteshf ^long [^long a ^long b] (bit-and (bit-xor (<< a 8) (>> b 8)) 0xffff))
+(defn- bwrands-byteshf ^long [^long a ^long b] (bit-and (bit-xor (m/<< a 8) (m/>> b 8)) 0xffff))
 (defn- bwrands-byteprimes ^long [^long a ^long b]
   (bit-and 0xffff (bit-xor (- (* a 857) 4) (+ (* b -977) 8))))
 
@@ -181,7 +181,7 @@
                         (if (pos? PC)
                           (let [NPetals (if (zero? pety)
                                           petx
-                                          (+ petx (mod (>> yy 3) (inc pety))))
+                                          (+ petx (mod (m/>> yy 3) (inc pety))))
                                 flrw (as-> (* (+ m/PI (v/heading L))
                                               (/ NPetals m/TWO_PI)) a
                                        (- a (int a))
