@@ -1,0 +1,3 @@
+[submodule "LBFGSBJava"]
+	path = LBFGSBJava
+	url = git@github.com:genmeblog/LBFGSBJava.git

@@ -22,7 +22,7 @@
                  [org.clojure/data.int-map "1.2.1"]]
   :pedantic? false
   :resource-path "resources/"
-  :java-source-paths ["src"]
+  :java-source-paths ["src" "LBFGSBJava/src"]
   :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
