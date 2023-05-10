@@ -15,3 +15,4 @@ fastmath.core.matrix/target/
 .clj-kondo/.*
 .calva
 .clerk
+*~

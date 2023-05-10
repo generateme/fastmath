@@ -25,7 +25,7 @@
 
   All above accept:
 
-  * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`
+  * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`, `:bfgs` and `:lbfgsb`
   * function to optimize
   * parameters as a map
 
@@ -58,6 +58,12 @@
   ## Bayesian Optimization
 
   Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)"
+  (:require [fastmath.core :as m]
+            [fastmath.random :as r]
+            [fastmath.vector :as v]
+            [fastmath.kernel :as k]
+            [fastmath.gp :as gp]
+            [fastmath.optimization.lbfgsb :as lbfgsb])
   (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
            [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds SimpleValueChecker InitialGuess PointValuePair]
@@ -65,18 +71,15 @@
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
            [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
            [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]
-           [smile.math BFGS DifferentiableMultivariateFunction])
-  (:require [fastmath.core :as m]
-            [fastmath.random :as r]
-            [fastmath.vector :as v]
-            [fastmath.kernel :as k]
-            [fastmath.gp :as gp]))
+           [smile.math BFGS DifferentiableMultivariateFunction]
+           [org.generateme.lbfgsb LBFGSB])
+  )
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bfgs})
+(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bfgs :lbfgsb})
 (def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
 
 (defn- brent
@@ -163,17 +166,15 @@
 (defn- wrap-objective-function [f] (ObjectiveFunction. f))
 
 (defn- finite-differences
-  [^MultivariateFunction f ^doubles xs ^double step] 
-  (double-array (map-indexed (fn [^long id ^double x]
-                               (let [x+ (+ x step)
-                                     x- (- x step)
-                                     step2 (+ (- x+ x) (- x x-))
-                                     a (aclone ^doubles xs)
-                                     v1 (do (aset a id (+ x step))
-                                            (.value f a))
-                                     v2 (do (aset a id (- x step))
-                                            (.value f a))]
-                                 (/ (- v1 v2) step2))) xs)))
+  [^MultivariateFunction f ^doubles xs ^double step]
+  (let [step2 (* 2.0 step)]
+    (double-array (map-indexed (fn [^long id ^double x]
+                                 (let [a (aclone ^doubles xs)
+                                       v1 (do (aset a id (+ x step))
+                                              (.value f a))
+                                       v2 (do (aset a id (- x step))
+                                              (.value f a))]
+                                   (/ (- v1 v2) step2))) xs))))
 
 (defn- multivariate-gradient
   "Calculate gradient numerically."
@@ -287,12 +288,34 @@
                res (BFGS/minimize sf m i tolerance max-iters)]
            [(seq i) (if (= goal :minimize) res (- res))]))))))
 
+(defn- lbfgsb
+  [f {:keys [goal bounds bounded? gradient-f gradient-h stats?] :as config}]
+  (assert (and bounded? bounds) "L-BFGS-B is constrained optimization, bounds should be provided")
+  (let [target (if (fn? gradient-f) [f gradient-f] f)
+        mf (lbfgsb/grad-function target goal gradient-h)
+        l (double-array (map first bounds))
+        u (double-array (map second bounds))
+        ^LBFGSB obj (lbfgsb/->lbfgsb config)]
+    (fn local-lbfgsb
+      ([] (local-lbfgsb nil))
+      ([init]
+       (let [i (double-array (or init (mid-point bounds)))
+             x (.minimize obj mf i l u)
+             res (.-fx obj)
+             result [(seq x) (if (= goal :minimize) res (- res))]]
+         (if-not stats?
+           result
+           {:result result
+            :iterations (.-k obj)
+            :gradient (seq (.m_grad obj))}))))))
+
 (defn- optimizer
   [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
              :or {gradient-h 0.0001}
              :as config}]
-  (if (= method :bfgs)
-    (bfgs f config)
+  (case method
+    :bfgs (bfgs f config)
+    :lbfgsb (lbfgsb f (assoc config :bounded? true))
     (do
       (assert (not (nil? bounds)) "Provide bounds")
       (let [bounds (fix-brent-bounds method bounds)
@@ -384,15 +407,17 @@
         [lo high inter genf] (if (= method :brent)
                                [(first bounds) (second bounds) m/lerp f]
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
-        N (max 10 ^int N)
-        n (max 4 (m/floor (* ^double n N)))
-        gen (r/jittered-sequence-generator (if (< dim 5) :r2 :sobol) dim jitter)]
+        N (int N)
+        N (max (m/fpow 3 dim) N)
+        n (double n)
+        nbest (max 10 (long (if (> n 1.0) n (m/floor (* ^double n N)))))
+        gen (r/jittered-sequence-generator (if (< dim 15) :r2 :sobol) dim jitter)]
     (->> (take N (if (and (not= method :brent)
                           (m/one? dim)) (map vector gen) gen))
          (map #(let [p (inter lo high %)]
                  [(genf p) p]))
          (sort-by first (goal-comparator goal))
-         (take n)
+         (take nbest)
          (map second))))
 
 (defn- scan-and-
@@ -400,7 +425,7 @@
 
   Additional parameters in config:
 
-  * N - number of points to scan per dimension (default: 100, minumum 10)
+  * N - number of total grid points
   * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
   [optimizer goal method f {:keys [bounds ^int N ^double n ^double jitter]
                             :or {N 100 n 0.05 jitter 0.25}
@@ -520,7 +545,7 @@
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :bfgs))
+  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
@@ -549,8 +574,10 @@
         bo (bayesian-optimization f {:bounds bounds
                                      :utility-function-type :ucb
                                      ;; :utility-param 0
-                                     :optimizer :bfgs})]
+                                     :optimizer :lbfgsb})]
     (take 3 (drop 30 (map (juxt :x :y) bo))))
+;; => ([(0.14580050823621077) 2.867142408546129] [(0.14564645826782044) 2.868128502656343] [(0.14550225115172954) 2.868981775657352])
+;; => ([(0.14973586005947528) 2.8164430833342324] [(0.14973586005947528) 2.8164430833342324] [(0.14973586005947528) 2.8164430833342324])
 
 ;; tests
 
@@ -568,12 +595,13 @@
     (+ (m/sq (+ x y y -7))
        (m/sq (+ x x y -5))))
 
-#_(time (let [f (minimizer :bfgs target-2d-booth {:bounds [[-10 10]
-                                                           [-10 10]]})]
+#_(time (let [f (minimizer :lbfgsb target-2d-booth {:bounds [[-10 10]
+                                                             [-10 10]]
+                                                    :tolerance 1.0e-10})]
           (f (v/generate-vec2 #(r/drand -9 9)))))
 
-#_(scan-and-minimize :cmaes target-2d-schweel {:bounds [[-500 500]
-                                                        [-500 500]] :N 100 :bounded? true})
+#_(scan-and-minimize :lbfgsb target-2d-schwefel {:bounds [[-500 500]
+                                                          [-500 500]] :N 1000 :bounded? true})
 
 #_(scan-and-minimize :gradient target-1d {:bounds [[-0.5 2.5]] :gradient-step 0.1})
 
@@ -581,10 +609,10 @@
 #_(do
 
     (defn bfn6 ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
-                                                (* 0.01 (m/abs (+ 10.0 x)))))
+                                             (* 0.01 (m/abs (+ 10.0 x)))))
 
     (defn h ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11))
-                                             (m/sq (+ x (* y y) -7))))
+                                          (m/sq (+ x (* y y) -7))))
 
     (defn d5 [a b c d e] (reduce #(+ ^double %1 (m/sq %2)) 0.0 [a b c d e]))
 
@@ -596,3 +624,42 @@
 
 
 ;; => [1.9210981963566007 -5.751481824637489 0.3304425131054902]
+
+#_(defn rosenbrock
+    [& vs]
+    (reduce (fn [^double fx [^double xi ^double xi+1]]
+              (let [t1 (- 1.0 xi)
+                    t2 (* 10.0 (- xi+1 (* xi xi)))]
+                (+ fx (* t1 t1) (* t2 t2)))) 0.0 (partition 2 1 vs)))
+
+
+#_(minimize :lbfgsb rosenbrock {:bounds (repeat 20 [-5 10])
+                                :init [2 -4 2 4 -2] :m 50 :N 10 :n 1
+                                :max-iters 1000})
+
+
+
+#_(comment (defn hump
+             [^double x ^double y]
+             (let [x2 (* x x)
+                   x4 (* x2 x2)]
+               (+ (* 2.0 x2)
+                  (* -1.05 x4)
+                  (* x4 x2 m/SIXTH)
+                  (* x y)
+                  (* y y))))
+
+           (defn hump-grad
+             [^double x ^double y]
+             (let [x2 (* x x)
+                   x4 (* x2 x2)]
+               [(+ (* 4.0 x)
+                   (* -4.2 x2 x)
+                   (* x4 x)
+                   y)
+                (+ x (* 2.0 y))]))
+
+           (minimize :lbfgsb hump {:bounds [[-5 5.1] [-5 5.1]]
+                                   :gradient-f hump-grad :N 1000
+                                   :weak-wolfe? false
+                                   :stats? true}))

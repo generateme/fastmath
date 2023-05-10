@@ -20,7 +20,7 @@ Math library.
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.2.0"]
+[generateme/fastmath "2.2.1"]
 ```
 
 ### MKL
@@ -32,13 +32,13 @@ Fastmath relies on [SMILE](https://haifengl.github.io/) 2.6.0 which relies on BL
 #### lein / project.clj
 
 ```clojure
-[generateme/fastmath "2.1.8" :exclusions [com.github.haifengl/smile-mkl]]
+[generateme/fastmath "2.2.1" :exclusions [com.github.haifengl/smile-mkl]]
 ```
 
 #### deps.edn
 
 ```clojure
-{:deps {generateme/fastmath {:mvn/version "2.1.8"
+{:deps {generateme/fastmath {:mvn/version "2.2.1"
                              :exclusions [com.github.haifengl/smile-mkl]}}}
 ```
 
