@@ -11,8 +11,9 @@
 
 (defn- parameters
   [{:keys [m rel abs past delta max-iters max-submin max-linesearch
-           linesearch xtol min-step max-step ftol wolfe weak-wolfe?]}]
+           linesearch xtol min-step max-step ftol wolfe weak-wolfe? debug?]}]
   (let [^Parameters p (Parameters.)]
+    (set! org.generateme.lbfgsb.Debug/DEBUG (boolean debug?))
     (when m (set! (.-m p) (int m)))
     (when abs (set! (.-epsilon p) (double abs)))
     (when rel (set! (.-epsilon_rel p) (double rel)))
@@ -57,7 +58,6 @@
          (reify IGradFunction
            (evaluate [_ xs] (- ^double (apply f xs)))
            (gradient [_ xs g]
-             (println "-- " (seq xs))
              (let [res (map (fn [^double v] (- v)) (apply grad xs))]
                (System/arraycopy (double-array res) 0 ^doubles g 0 (count res)))))))
      (if tol ;; tolerance for autograd provided

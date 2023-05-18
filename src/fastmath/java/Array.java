@@ -67,4 +67,100 @@ public final class Array {
     public static int div2d(int[] a, int cols, int x, int y, int v) { int idx=y*cols+x; a[idx]/=v; return a[idx]; }
     public static long div2d(long[] a, int cols, int x, int y, long v) { int idx=y*cols+x; a[idx]/=v; return a[idx]; }
     public static double div2d(double[] a, int cols, int x, int y, double v) { int idx=y*cols+x; a[idx]/=v; return a[idx]; }
+
+    public static double[][] mat2array2d(double a00, double a01, double a02, double a03,
+                                         double a10, double a11, double a12, double a13,
+                                         double a20, double a21, double a22, double a23,
+                                         double a30, double a31, double a32, double a33) {
+        return new double[][] {{a00,a01,a02,a03},
+                               {a10,a11,a12,a13},
+                               {a20,a21,a22,a23},
+                               {a30,a31,a32,a33}};
+    }
+
+    public static double[][] mat2array2d(double a00, double a01, double a02,
+                                         double a10, double a11, double a12,
+                                     double a20, double a21, double a22) {
+        return new double[][] {{a00,a01,a02},
+                               {a10,a11,a12},
+                               {a20,a21,a22}};
+    }
+
+    public static double[][] mat2array2d(double a00, double a01,
+                                         double a10, double a11) {
+        return new double[][] {{a00,a01},
+                               {a10,a11}};
+    }
+
+    public static float[][] mat2array2d(float a00, float a01, float a02, float a03,
+                                        float a10, float a11, float a12, float a13,
+                                        float a20, float a21, float a22, float a23,
+                                         float a30, float a31, float a32, float a33) {
+        return new float[][] {{a00,a01,a02,a03},
+                              {a10,a11,a12,a13},
+                              {a20,a21,a22,a23},
+                              {a30,a31,a32,a33}};
+    }
+
+    public static float[][] mat2array2d(float a00, float a01, float a02,
+                                        float a10, float a11, float a12,
+                                        float a20, float a21, float a22) {
+        return new float[][] {{a00,a01,a02},
+                              {a10,a11,a12},
+                              {a20,a21,a22}};
+    }
+
+    public static float[][] mat2array2d(float a00, float a01,
+                                        float a10, float a11) {
+        return new float[][] {{a00,a01},
+                              {a10,a11}};
+    }
+
+    public static double[] mat2array(double a00, double a01, double a02, double a03,
+                                     double a10, double a11, double a12, double a13,
+                                     double a20, double a21, double a22, double a23,
+                                     double a30, double a31, double a32, double a33) {
+        return new double[] {a00,a01,a02,a03,
+                             a10,a11,a12,a13,
+                             a20,a21,a22,a23,
+                             a30,a31,a32,a33};
+    }
+
+    public static double[] mat2array(double a00, double a01, double a02,
+                                     double a10, double a11, double a12,
+                                     double a20, double a21, double a22) {
+        return new double[] {a00,a01,a02,
+                             a10,a11,a12,
+                             a20,a21,a22};
+    }
+
+    public static double[] mat2array(double a00, double a01,
+                                     double a10, double a11) {
+        return new double[] {a00,a01,a10,a11};
+    }
+
+    public static float[] mat2array(float a00, float a01, float a02, float a03,
+                                    float a10, float a11, float a12, float a13,
+                                    float a20, float a21, float a22, float a23,
+                                    float a30, float a31, float a32, float a33) {
+        return new float[] {a00,a01,a02,a03,
+                             a10,a11,a12,a13,
+                             a20,a21,a22,a23,
+                             a30,a31,a32,a33};
+    }
+
+    public static float[] mat2array(float a00, float a01, float a02,
+                                    float a10, float a11, float a12,
+                                    float a20, float a21, float a22) {
+        return new float[] {a00,a01,a02,
+                            a10,a11,a12,
+                             a20,a21,a22};
+    }
+
+    public static float[] mat2array(float a00, float a01,
+                                    float a10, float a11) {
+        return new float[] {a00,a01,a10,a11};
+    }
+
+    
 }

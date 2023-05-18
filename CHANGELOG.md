@@ -1,6 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.2.2-SNAPSHOT]
+
+### Added
+
+* `mat->float-array2d`, `mat->array`, `mat->float-array` - row-wise matrix representations as arrays
+* `debug?` option for `:lbfgsb` optimizer
+
+### Fixed
+
+* `matrix` object name in printing
+* speed of element matrix accessing is improved
+
 ## [2.2.1]
 
 ### Added

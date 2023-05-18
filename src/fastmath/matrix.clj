@@ -7,7 +7,7 @@
            [org.apache.commons.math3.linear Array2DRowRealMatrix ArrayRealVector]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
-#_(set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs})
 
@@ -27,6 +27,16 @@
     `(condp = ~v ~@(mapcat identity (for [x r y r
                                           :let [s (gen-sym x y)]]
                                       [`[~x ~y] `~s])) ~else)))
+
+(defmacro ^:private gen-condition-2
+  [size x y else]
+  (let [r (range size)]
+    `(cond ~@(mapcat identity (for [xx r]
+                                [`(== ~x ~xx)
+                                 `(cond ~@(mapcat identity (for [yy r :let [s (gen-sym xx yy)]]
+                                                             [`(== ~y ~yy) `~s]))
+                                        :else ~else)]))
+           :else ~else)))
 
 (defmacro ^:private gen-mulm
   [size clss t1? t2?]
@@ -76,16 +86,16 @@
   Counted
   (count [_] 4)
   ILookup
-  (valAt [_ [x y :as v]] (when (in-range? x y 2)
-                           (gen-condition 2 v nil)))
-  (valAt [_ [x y :as v] not-found] (if (in-range? x y 2)
-                                     (gen-condition 2 v not-found)
-                                     not-found))
+  (valAt [_ [^long x ^long y]] (when (in-range? x y 2)
+                                 (gen-condition-2 2 x y nil)))
+  (valAt [_ [^long x ^long y] not-found] (if (in-range? x y 2)
+                                           (gen-condition-2 2 x y not-found)
+                                           not-found))
   IFn
   (invoke [_ id]
     (gen-condition 2 id (mat2x2-throw-ioobe id)))
   (invoke [_ x y]
-    (gen-condition 2 [x y] (mat2x2-throw-ioobe [x y])))
+    (gen-condition-2 2 ^long x ^long y (mat2x2-throw-ioobe [x y])))
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
@@ -94,8 +104,16 @@
              (Vec2. a01 a11)])
   (rows [_] [(Vec2. a00 a01)
              (Vec2. a10 a11)])
-  (to-array2d [_] (m/seq->double-double-array [[a00 a01] [a10 a11]]))
-  (to-acm-mat [_] (Array2DRowRealMatrix. (m/seq->double-double-array [[a00 a01] [a10 a11]])))
+  (to-double-array2d [_] (fastmath.java.Array/mat2array2d a00 a01
+                                                          a10 a11))
+  (to-float-array2d [_] (fastmath.java.Array/mat2array2d (float a00) (float a01)
+                                                         (float a10) (float a11)))
+
+  (to-double-array [_] (fastmath.java.Array/mat2array a00 a01
+                                                      a10 a11))
+  (to-float-array [_] (fastmath.java.Array/mat2array (float a00) (float a01)
+                                                     (float a10) (float a11)))
+
   (nrow [_] 2)
   (ncol [_] 2)
   (column [_ id]
@@ -156,7 +174,7 @@
                  ^double a10 ^double a11 ^double a12
                  ^double a20 ^double a21 ^double a22]
   Object
-  (toString [_] (str "#mat2x2 [[" a00 ", " a01 ", " a02  "] [" a10 ", " a11 ", " a12 "] [" a20 ", " a21 ", " a22 "]]"))
+  (toString [_] (str "#mat3x3 [[" a00 ", " a01 ", " a02  "] [" a10 ", " a11 ", " a12 "] [" a20 ", " a21 ", " a22 "]]"))
   (equals [_ m]
     (and (instance? Mat3x3 m)
          (let [^Mat3x3 m m]
@@ -173,16 +191,16 @@
   Counted
   (count [_] 9)
   ILookup
-  (valAt [_ [x y :as v]] (when (in-range? x y 3)
-                           (gen-condition 3 v nil)))
-  (valAt [_ [x y :as v] not-found] (if (in-range? x y 3)
-                                     (gen-condition 3 v not-found)
-                                     not-found))
+  (valAt [_ [^long x ^long y]] (when (in-range? x y 3)
+                                 (gen-condition-2 3 x y nil)))
+  (valAt [_ [^long x ^long y] not-found] (if (in-range? x y 3)
+                                           (gen-condition-2 3 x y not-found)
+                                           not-found))
   IFn
   (invoke [_ id]
     (gen-condition 3 id (mat3x3-throw-ioobe id)))
   (invoke [_ x y]
-    (gen-condition 3 [x y] (mat3x3-throw-ioobe [x y])))
+    (gen-condition-2 3 ^long x ^long y (mat3x3-throw-ioobe [x y])))
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
@@ -193,9 +211,19 @@
   (rows [_] [(Vec3. a00 a01 a02)
              (Vec3. a10 a11 a12)
              (Vec3. a20 a21 a22)])
-  (to-array2d [_] (m/seq->double-double-array [[a00 a01 a02] [a10 a11 a12] [a20 a21 a22]]))
-  (to-acm-mat [_] (Array2DRowRealMatrix.
-                   (m/seq->double-double-array [[a00 a01 a02] [a10 a11 a12] [a20 a21 a22]])))
+  (to-double-array2d [_] (fastmath.java.Array/mat2array2d a00 a01 a02
+                                                          a10 a11 a12
+                                                          a20 a21 a22))
+  (to-float-array2d [_] (fastmath.java.Array/mat2array2d (float a00) (float a01) (float a02)
+                                                         (float a10) (float a11) (float a12)
+                                                         (float a20) (float a21) (float a22)))
+  (to-double-array [_] (fastmath.java.Array/mat2array a00 a01 a02
+                                                      a10 a11 a12
+                                                      a20 a21 a22))
+  (to-float-array [_] (fastmath.java.Array/mat2array (float a00) (float a01) (float a02)
+                                                     (float a10) (float a11) (float a12)
+                                                     (float a20) (float a21) (float a22)))
+
   (nrow [_] 3)
   (ncol [_] 3)
   (column [_ id]
@@ -272,7 +300,7 @@
                  ^double a20 ^double a21 ^double a22 ^double a23
                  ^double a30 ^double a31 ^double a32 ^double a33]
   Object
-  (toString [_] (str "#mat2x2 [[" a00 ", " a01 ", " a02 ", " a03 "] [" a10 ", " a11 ", " a12 ", " a13 "] [" a20 ", " a21 ", " a22 ", " a23 "] [" a30 ", " a31 ", " a32 ", " a33 "]]"))
+  (toString [_] (str "#mat4x4 [[" a00 ", " a01 ", " a02 ", " a03 "] [" a10 ", " a11 ", " a12 ", " a13 "] [" a20 ", " a21 ", " a22 ", " a23 "] [" a30 ", " a31 ", " a32 ", " a33 "]]"))
   (equals [_ m]
     (and (instance? Mat4x4 m)
          (let [^Mat4x4 m m]
@@ -290,16 +318,16 @@
   Counted
   (count [_] 16)
   ILookup
-  (valAt [_ [x y :as v]] (when (in-range? x y 4)
-                           (gen-condition 4 v nil)))
-  (valAt [_ [x y :as v] not-found] (if (in-range? x y 4)
-                                     (gen-condition 4 v not-found)
-                                     not-found))
+  (valAt [_ [^long x ^long y]] (when (in-range? x y 4)
+                                 (gen-condition-2 4 x y nil)))
+  (valAt [_ [^long x ^long y] not-found] (if (in-range? x y 4)
+                                           (gen-condition-2 4 x y not-found)
+                                           not-found))
   IFn
   (invoke [_ id]
     (gen-condition 4 id (mat4x4-throw-ioobe id)))
   (invoke [_ x y]
-    (gen-condition 4 [x y] (mat4x4-throw-ioobe [x y])))
+    (gen-condition-2 4 ^long x ^long y (mat4x4-throw-ioobe [x y])))
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
@@ -315,14 +343,22 @@
              (Vec4. a10 a11 a12 a13)
              (Vec4. a20 a21 a22 a23)
              (Vec4. a30 a31 a32 a33)])
-  (to-array2d [_] (m/seq->double-double-array [[a00 a01 a02 a03]
-                                               [a10 a11 a12 a13]
-                                               [a20 a21 a22 a23]
-                                               [a30 a31 a32 a33]]))
-  (to-acm-mat [_] (Array2DRowRealMatrix. (m/seq->double-double-array [[a00 a01 a02 a03]
-                                                                      [a10 a11 a12 a13]
-                                                                      [a20 a21 a22 a23]
-                                                                      [a30 a31 a32 a33]])))
+  (to-double-array2d [_] (fastmath.java.Array/mat2array2d a00 a01 a02 a03
+                                                          a10 a11 a12 a13
+                                                          a20 a21 a22 a23
+                                                          a30 a31 a32 a33))
+  (to-float-array2d [_] (fastmath.java.Array/mat2array2d (float a00) (float a01) (float a02) (float a03)
+                                                         (float a10) (float a11) (float a12) (float a13)
+                                                         (float a20) (float a21) (float a22) (float a23)
+                                                         (float a30) (float a31) (float a32) (float a33)))
+  (to-double-array [_] (fastmath.java.Array/mat2array a00 a01 a02 a03
+                                                      a10 a11 a12 a13
+                                                      a20 a21 a22 a23
+                                                      a30 a31 a32 a33))
+  (to-float-array [_] (fastmath.java.Array/mat2array (float a00) (float a01) (float a02) (float a03)
+                                                     (float a10) (float a11) (float a12) (float a13)
+                                                     (float a20) (float a21) (float a22) (float a23)
+                                                     (float a30) (float a31) (float a32) (float a33)))
   (nrow [_] 4)
   (ncol [_] 4)
   (column [_ id]
@@ -575,11 +611,23 @@
 
 (defn mat->array2d
   "Return doubles of doubles"
-  [A] (prot/to-array2d A))
+  [A] (prot/to-double-array2d A))
+
+(defn mat->float-array2d
+  "Return doubles of doubles"
+  [A] (prot/to-float-array2d A))
+
+(defn mat->array
+  "Return doubles of doubles"
+  [A] (prot/to-double-array A))
+
+(defn mat->float-array
+  "Return doubles of doubles"
+  [A] (prot/to-float-array A))
 
 (defn mat->RealMatrix
   "Return  Apache Commons Math Array2DRowMatrix"
-  [A] (prot/to-acm-mat A))
+  [A] (Array2DRowRealMatrix. #^"[[D" (prot/to-double-array2d A)))
 
 (defn nrow
   "Return number of rows"
@@ -704,4 +752,3 @@
 
 (defmethod print-method Mat4x4 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Mat4x4 [v w] (print-method v w))
-

@@ -1753,17 +1753,15 @@
   ([data] (acf data (dec (count data))))
   ([data lags]
    (let [vdata (vec (demean data))
-         rc (/ (double (count data)))
-         lag0 (* rc (cov-for-acf vdata vdata))
-         f (/ lag0)]
+         rcov0 (/ (cov-for-acf vdata vdata))]
      (map (fn [^long lag]
             (if (zero? lag)
               1.0
               (let [v2 (subvec vdata lag)
                     v1 (subvec vdata 0 (count v2))]
-                (* f rc (cov-for-acf v1 v2))))) (if (number? lags)
-                                                  (range (inc (int lags)))
-                                                  (seq lags))))))
+                (* rcov0 (cov-for-acf v1 v2))))) (if (number? lags)
+                                                   (range (inc (int lags)))
+                                                   (seq lags))))))
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l13
 (defn pacf
