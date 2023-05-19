@@ -843,7 +843,14 @@
   (^double [^double x ^double scale] (* (FastMath/ceil (/ x scale)) scale)))
 
 (defn round "Round to `long`. See: [[rint]], [[qround]]." ^long [^double x] (FastMath/round x))
-(defn rint "Round to `double`. See [[round]], [[qround]]." ^double [^double x] (FastMath/rint x))
+
+(defn rint
+  "Round to `double`. See [[round]], [[qround]].
+
+  Rounding is done to a multiply of scale value (when provided)."
+  (^double [^double x] (FastMath/rint x))
+  (^double [^double x ^double scale] (* (FastMath/rint (/ x scale)) scale)))
+
 (defn round-even
   "Round evenly (like in round in R), IEEE / IEC rounding"
   ^long [^double x] (FastMath/roundEven x))

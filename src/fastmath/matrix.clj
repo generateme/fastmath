@@ -31,12 +31,13 @@
 (defmacro ^:private gen-condition-2
   [size x y else]
   (let [r (range size)]
-    `(cond ~@(mapcat identity (for [xx r]
-                                [`(== ~x ~xx)
-                                 `(cond ~@(mapcat identity (for [yy r :let [s (gen-sym xx yy)]]
-                                                             [`(== ~y ~yy) `~s]))
-                                        :else ~else)]))
-           :else ~else)))
+    `(case (int ~x)
+       ~@(mapcat identity (for [xx r]
+                            [xx `(case (int ~y)
+                                   ~@(mapcat identity (for [yy r :let [s (gen-sym xx yy)]]
+                                                        [yy `~s]))
+                                   ~else)]))
+       ~else)))
 
 (defmacro ^:private gen-mulm
   [size clss t1? t2?]

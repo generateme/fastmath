@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This change
 
 * `mat->float-array2d`, `mat->array`, `mat->float-array` - row-wise matrix representations as arrays
 * `debug?` option for `:lbfgsb` optimizer
+* `rint` accepts scale argument (same as `floor` and `ceil`)
 
 ### Fixed
 

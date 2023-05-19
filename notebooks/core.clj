@@ -339,9 +339,9 @@
 (u/table
  [[floor false "round to the lower integer, value can be scaled optionally, returns double"]
   [ceil false "round to the upper integer, value can be scaled optionally, returns double"]
+  [rint false "round to the nearest double integer, value can be scaled optionally, returns double"]
   [round false "round to the nearest integer, returns long"]
   [round-even false "IEEE / IEC rounding, returns long"]
-  [rint false "round to the nearest integer, returns double"]
   [qfloor true "floor by long casting with correction"]
   [qceil true "ceil by long casting with correction"]
   [qround true "round by long casting with correction"]
@@ -356,15 +356,21 @@
   [high-exp false "find lowest exponent for which b^x is greater than argument"]
   [round-up-pow2 false "round long to the next (nearest) power of two"]])
 
+;; Please note the difference between `rint` and `round` which is visible when rounding big numbers
+
 ^{::clerk/visibility :hide}
 (clerk/example
  (map m/floor [-10.5 10.5])
  (m/floor 10.5 4.0)
  (map m/ceil [-10.5 10.5])
  (m/ceil 10.5 4.0)
+ (map m/rint [-10.51 -10.5 -10.49 10.49 10.5 10.51])
+ (m/rint 10.5 4.0)
+ (m/rint 10.591 0.1)
  (map m/round [-10.51 -10.5 -10.49 10.49 10.5 10.51])
  (map m/round-even [-10.51 -10.5 -10.49 10.49 10.5 10.51])
- (map m/rint [-10.51 -10.5 -10.49 10.49 10.5 10.51])
+ (m/round 1.234e100)
+ (m/rint 1.234e100)
  (map (fn [x] (m/qfloor x)) [-10.5 10.5])
  (map (fn [x] (m/qceil x)) [-10.5 10.5])
  (map (fn [x] (m/qround x)) [-10.51 -10.5 -10.49 10.49 10.5 10.51])
