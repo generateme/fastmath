@@ -59,40 +59,36 @@
 
 ;; 1d
 
-(defmacro ^:private apache-commons-interpolator
-  {:style/indent :defn}
-  [n doc clazz] 
-  (let [cl (with-meta (symbol "interp-obj") {:tag clazz})
-        interp (with-meta (symbol "ufun") {:tag `UnivariateFunction})
-        x (with-meta (gensym "x") {:tag 'double})
-        xs (symbol "xs")
-        ys (symbol "ys")]
-    `(defn ~n ~doc
-       [~xs ~ys]
-       (let [~cl (new ~clazz)
-             ~interp (.interpolate ~cl (m/seq->double-array ~xs) (m/seq->double-array ~ys))]
-         (fn [~x] (.value ~interp ~x))))))
-
-(apache-commons-interpolator akima-spline
+(defn akima-spline
   "Create cubic spline interpolator using Akima algorithm.
+  
   Minimum number of points: 5
 
   xs[n] < xs[n+1] for all n.
 
-Source: Apache Commons Math."
-  AkimaSplineInterpolator)
+  Source: Apache Commons Math."
+  [xs ys]
+  (let [interp-obj (new AkimaSplineInterpolator)
+        ufun (.interpolate interp-obj (m/seq->double-array xs) (m/seq->double-array ys))]
+    (fn [^double x] (.value ufun x))))
 
-(apache-commons-interpolator divided-difference
+(defn divided-difference
   "Create Divided Difference Algorithm for interpolation.
 
-Source: Apache Commons Math."
-  DividedDifferenceInterpolator)
+  Source: Apache Commons Math."
+  [xs ys]
+  (let [interp-obj (new DividedDifferenceInterpolator)
+        ufun (.interpolate interp-obj (m/seq->double-array xs) (m/seq->double-array ys))]
+    (fn [^double x] (.value ufun x))))
 
-(apache-commons-interpolator linear
+(defn linear
   "Create Divided Difference Algorithm for inqterpolation.
 
-Source: Apache Commons Math."
-  LinearInterpolator)
+  Source: Apache Commons Math."
+  [xs ys]
+  (let [interp-obj (new LinearInterpolator)
+        ufun (.interpolate interp-obj (m/seq->double-array xs) (m/seq->double-array ys))]
+    (fn [^double x] (.value ufun x))))
 
 (defn- loess-interpolator-with-obj 
   "Create Loess function based on created object.
@@ -116,18 +112,23 @@ Source: Apache Commons Math."
   ([bandwidth robustness-iters accuracy xs ys]
    (loess-interpolator-with-obj (LoessInterpolator. bandwidth robustness-iters accuracy) xs ys)))
 
-(apache-commons-interpolator neville
+(defn neville
   "Neville algorithm
 
-Source: Apache Commons Math."
-  NevilleInterpolator)
+  Source: Apache Commons Math."
+  [xs ys]
+  (let [interp-obj (new NevilleInterpolator)
+        ufun (.interpolate interp-obj (m/seq->double-array xs) (m/seq->double-array ys))]
+    (fn [^double x] (.value ufun x))))
 
-(apache-commons-interpolator spline
+(defn spline
   "Cubic spline interpolation
 
-Source: Apache Commons Math."
-  SplineInterpolator)
-
+  Source: Apache Commons Math."
+  [xs ys]
+  (let [interp-obj (new SplineInterpolator)
+        ufun (.interpolate interp-obj (m/seq->double-array xs) (m/seq->double-array ys))]
+    (fn [^double x] (.value ufun x))))
 
 (defn microsphere-projection
   "Microsphere projection interpolator - 1d version
@@ -250,14 +251,14 @@ Source: Apache Commons Math."
                               (if d2 (* 0.5 (+ d1 d2)) d1)) (partition-all 2 1 d)) (first d)))
           stop (- cntx 2)
           m (m/seq->double-array (loop [idx (int 0)
-                                        ^double mi (m 0)
-                                        ^double mi+ (m 1)
+                                        mi (double (m 0))
+                                        mi+ (double (m 1))
                                         ms []]
                                    (if (== idx stop) (conj ms mi mi+)
-                                       (let [^double di (d idx)
-                                             mi++ (m (+ idx 2))]
+                                       (let [di (double (d idx))
+                                             mi++ (double (m (+ idx 2)))]
                                          (if (zero? di)
-                                           (recur (inc idx) 0 mi++ (conj ms 0))
+                                           (recur (inc idx) 0.0 mi++ (conj ms 0))
                                            (let [a (/ mi di)
                                                  b (/ mi+ di)
                                                  h (m/hypot-sqrt a b)]

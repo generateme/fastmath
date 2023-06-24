@@ -11,7 +11,7 @@
   (is (= (v/vec2 1.0 1.0) (complex 1.0 1.0)))
   (is (= (complex 1.0 1.0) (add I ONE)))
   (is (= (m/sqrt 2.0) (abs (complex 1.0 1.0))))
-  (is (= (complex 1.0 1.0)) (sub ONE I-))
+  (is (= (complex 1.0 1.0) (sub ONE I-)))
   (is (= -90.0 (m/degrees (arg I-))))
   (is (= (complex 0.0 -1.0) (conjugate I)))
   (is (= (complex 0.44 0.08) (div (complex 1 2) (complex 3 4))))

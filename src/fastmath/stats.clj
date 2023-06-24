@@ -88,7 +88,7 @@
   (^double [vs ^double p]
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
-   (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
+   (let [^Percentile perc (.withEstimationType (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
      (.evaluate perc (m/seq->double-array vs) p))))
 
 (defn percentiles
@@ -104,7 +104,7 @@
   ([vs] (percentiles vs [25 50 75 100]))
   ([vs ps] (percentiles vs ps nil))
   ([vs ps estimation-strategy]
-   (let [^Percentile perc (.withEstimationType ^Percentile (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
+   (let [^Percentile perc (.withEstimationType (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
      (.setData perc (m/seq->double-array vs))
      (mapv (fn [^double p] (.evaluate perc p)) ps))))
 
@@ -822,19 +822,19 @@
   "Spearman's correlation of two sequences."
   (^double [[vs1 vs2]] (spearman-correlation vs1 vs2))
   (^double [vs1 vs2]
-   (.correlation ^SpearmansCorrelation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (.correlation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn pearson-correlation
   "Pearson's correlation of two sequences."
   (^double [[vs1 vs2]] (pearson-correlation vs1 vs2))
   (^double [vs1 vs2]
-   (.correlation ^PearsonsCorrelation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (.correlation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kendall-correlation
   "Kendall's correlation of two sequences."
   (^double [[vs1 vs2]] (kendall-correlation vs1 vs2))
   (^double [vs1 vs2]
-   (.correlation ^KendallsCorrelation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (.correlation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
@@ -1774,19 +1774,19 @@
   See also [[acf]], [[acf-ci]], [[pacf-ci]]"
   ([data] (pacf data (dec (count data))))
   ([data ^long lags]
-   (let [acf (vec (acf data lags))
+   (let [acfs (vec (acf data lags))
          phis (reductions (fn [curr ^long id]
-                            (let [phi (/ (- ^double (acf id)
+                            (let [phi (/ (- ^double (acfs id)
                                             ^double (reduce m/fast+
                                                             (map-indexed (fn [^long idx ^double c]
-                                                                           (* c ^double (acf (dec (- id idx))))) curr)))
+                                                                           (* c ^double (acfs (dec (- id idx))))) curr)))
                                          (- 1.0
                                             ^double (reduce m/fast+
                                                             (map-indexed (fn [^long id ^double c]
-                                                                           (* c ^double (acf (inc id)))) curr))))]
+                                                                           (* c ^double (acfs (inc id)))) curr))))]
 
                               (conj (mapv (fn [^double p1 ^double p2]
-                                            (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acf 1)] (range 2 (inc lags)))]
+                                            (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acfs 1)] (range 2 (inc lags)))]
      (conj (map last phis) 0.0))))
 
 (defn- p-acf-ci-value
@@ -2057,11 +2057,11 @@
       :test-type sides
       :stat number-of-successes
       :estimate (/ (double number-of-successes) number-of-trials)
-      :confidence-interval (let [ci (partial binomial-ci number-of-successes number-of-trials ci-method)]
+      :confidence-interval (let [bci (partial binomial-ci number-of-successes number-of-trials ci-method)]
                              (sides-case sides
-                                         (vec (butlast (ci (- 1.0 alpha))))
-                                         [(first (ci (- 1.0 (* alpha 2.0)))) 1.0]
-                                         [0.0 (second (ci (- 1.0 (* alpha 2.0))))]))})))
+                                         (vec (butlast (bci (- 1.0 alpha))))
+                                         [(first (bci (- 1.0 (* alpha 2.0)))) 1.0]
+                                         [0.0 (second (bci (- 1.0 (* alpha 2.0))))]))})))
 
 ;; t/z
 

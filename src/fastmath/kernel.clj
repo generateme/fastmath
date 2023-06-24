@@ -23,42 +23,6 @@
 ;; https://www.math.unipd.it/~demarchi/RBF/LectureNotes.pdf
 ;; http://evoq-eval.siam.org/Portals/0/Publications/SIURO/Vol4/Choosing_Basis_Functions_and_Shape_Parameters.pdf
 
-(defmacro ^:private make-scaled-x
-  [scale formula]
-  (let [s (symbol "xs")
-        x (with-meta (symbol "x") {:tag 'double})]
-    `(fn [~x] (let [~s (/ (m/abs ~x) ~scale)] ~formula))))
-
-(defmacro ^:private make-scaled-x+
-  [scale formula]
-  (let [s (symbol "xs")
-        x (with-meta (symbol "x") {:tag 'double})]
-    `(fn [~x] (let [~s (/ (m/abs ~x) ~scale)]
-               (if (< ~s 1.0) ~formula 0.0)))))
-
-(defmacro ^:private emit-simple-rbf
-  [nm form]
-  (let [s (with-meta (symbol "scale") {:tag 'double})]
-    `(defmethod rbf ~nm
-       ([a#] (rbf ~nm 1.0))
-       ([a# ~s] (make-scaled-x ~s ~form)))))
-
-(defmacro ^:private emit-simple-rbf+
-  [nm form]
-  (let [s (with-meta (symbol "scale") {:tag 'double})]
-    `(defmethod rbf ~nm
-       ([a#] (rbf ~nm 1.0))
-       ([a# ~s] (make-scaled-x+ ~s ~form)))))
-
-(defmacro ^:private emit-beta-rbf
-  [nm form]
-  (let [beta (with-meta (symbol "beta") {:tag 'double})
-        s (with-meta (symbol "scale") {:tag 'double})]
-    `(defmethod rbf ~nm
-       ([a#] (rbf ~nm 1.0))
-       ([a# ~s] (rbf ~nm 1.0 ~s))
-       ([a# ~beta ~s] (make-scaled-x ~s ~form)))))
-
 (defmulti rbf
   "RBF kernel creator. RBF is double->double function.
 
@@ -69,191 +33,373 @@
   Following kernels also accept `beta`: `:multiquadratic`, `:inverse-multiquadratic`, `:truncated-power`, `:radial-powers` and `:thin-plate`."
   (fn [k & _] k))
 
-(emit-simple-rbf :linear xs)
-(emit-simple-rbf :gaussian (m/exp (- (* xs xs))))
+(defmethod rbf :linear
+  ([_] (rbf :linear 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         xs))))
+
+(defmethod rbf :gaussian
+  ([_] (rbf :gaussian 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (m/exp (- (* xs xs)))))))
 
 (defmethod rbf :multiquadratic
   ([_] (rbf :multiquadratic 1.0))
   ([_ scale] (rbf :multiquadratic 0.5 scale))
   ([_ ^double beta ^double scale] (let [s2 (* scale scale)]
-                                    (if (== beta 0.5)
-                                      (fn [^double x] (m/sqrt (+ s2 (* x x))))
-                                      (fn [^double x] (m/pow (+ s2 (* x x)) beta))))))
+                                    (cond
+                                      (== beta 1.0) (fn [^double x] (+ s2 (* x x)))
+                                      (== beta 0.5) (fn [^double x] (m/sqrt (+ s2 (* x x))))
+                                      (== beta 2.0) (fn [^double x] (m/sq (+ s2 (* x x))))
+                                      (== beta 3.0) (fn [^double x] (m/cb (+ s2 (* x x))))
+                                      :else (fn [^double x] (m/pow (+ s2 (* x x)) beta))))))
 
 (defmethod rbf :inverse-multiquadratic
   ([_] (rbf :inverse-multiquadratic 1.0))
   ([_ scale] (rbf :inverse-multiquadratic 0.5 scale))
   ([_ ^double beta ^double scale] (let [s2 (* scale scale)
                                         beta- (- beta)]
-                                    (if (== beta 0.5)
-                                      (fn [^double x] (/ (m/sqrt (+ s2 (* x x)))))
-                                      (fn [^double x] (m/pow (+ s2 (* x x)) beta-))))))
+                                    (cond
+                                      (== beta 1.0) (fn [^double x] (/ (+ s2 (* x x))))
+                                      (== beta 0.5) (fn [^double x] (/ (m/sqrt (+ s2 (* x x)))))
+                                      (== beta 2.0) (fn [^double x] (/ (m/sq (+ s2 (* x x)))))
+                                      (== beta 3.0) (fn [^double x] (/ (m/cb (+ s2 (* x x)))))
+                                      :else (fn [^double x] (m/pow (+ s2 (* x x)) beta-))))))
 
 (defmethod rbf :truncated-power
   ([_] (rbf :truncated-power 1.0))
   ([_ scale] (rbf :truncated-power 1.0 scale))
   ([_ ^double k ^double scale] (cond
-                                 (== k 1.0) (make-scaled-x+ scale (- 1.0 xs))
-                                 (== k 2.0) (make-scaled-x+ scale (m/sq (- 1.0 xs)))
-                                 (== k 3.0) (make-scaled-x+ scale (m/pow3 (- 1.0 xs)))
-                                 :else (make-scaled-x+ scale (m/pow (- 1.0 xs) k)))))
+                                 (== k 0.5) (fn [^double x] (let [xs (/ (m/abs x) scale)]
+                                                             (if (<= xs 1.0) (m/sqrt (- 1.0 xs)) 0.0)))
+                                 (== k 1.0) (fn [^double x] (let [xs (/ (m/abs x) scale)]
+                                                             (if (<= xs 1.0) (- 1.0 xs) 0.0)))
+                                 (== k 2.0) (fn [^double x] (let [xs (/ (m/abs x) scale)]
+                                                             (if (<= xs 1.0) (m/sq (- 1.0 xs)) 0.0)))
+                                 (== k 3.0) (fn [^double x] (let [xs (/ (m/abs x) scale)]
+                                                             (if (<= xs 1.0) (m/cb (- 1.0 xs)) 0.0)))
+                                 :else (fn [^double x] (let [xs (/ (m/abs x) scale)]
+                                                        (if (<= xs 1.0) (m/pow (- 1.0 xs) k) 0.0))))))
 
 
 ;; https://www.math.unipd.it/~demarchi/RBF/LectureNotes.pdf
 ;; page 33
 
-(emit-simple-rbf :gaussians-laguerre-11 (let [x2 (* xs xs)]
-                                          (* (- 1.5 x2) (m/exp (- x2)))))
+(defmethod rbf :gaussians-laguerre-11
+  ([_] (rbf :gaussian-laguerre-11 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* xs xs)]
+                         (* (- 1.5 x2) (m/exp (- x2)))))))
 
+(defmethod rbf :gaussians-laguerre-12
+  ([_] (rbf :gaussian-laguerre-12 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* xs xs)]
+                         (* (+ 1.875 (* -2.5 x2) (* 0.5 x2 x2)) (m/exp (- x2)))))))
 
-(emit-simple-rbf :gaussians-laguerre-12 (let [x2 (* xs xs)]
-                                          (* (+ 1.875 (* -2.5 x2) (* 0.5 x2 x2)) (m/exp (- x2)))))
+(defmethod rbf :gaussians-laguerre-21
+  ([_] (rbf :gaussian-laguerre-21 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* xs xs)]
+                         (* (- 2.0 x2) (m/exp (- x2)))))))
 
-(emit-simple-rbf :gaussians-laguerre-21 (let [x2 (* xs xs)]
-                                          (* (- 2.0 x2) (m/exp (- x2)))))
-
-(emit-simple-rbf :gaussians-laguerre-22 (let [x2 (* xs xs)]
-                                          (* (+ 3.0 (* -3.0 x2) (* 0.5 x2 x2)) (m/exp (- x2)))))
+(defmethod rbf :gaussians-laguerre-22
+  ([_] (rbf :gaussian-laguerre-22 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* xs xs)]
+                         (* (+ 3.0 (* -3.0 x2) (* 0.5 x2 x2)) (m/exp (- x2)))))))
 
 ;; page 34
 
-(emit-simple-rbf :poisson-2 (m/bessel-j 0 xs))
-(emit-simple-rbf :poisson-3 (* 0.7978845608028654 (m/sinc xs)))
-(emit-simple-rbf :poisson-4 (if (zero? (m/approx xs)) 0.5 (/ (m/bessel-j 1 xs) xs)))
+(defmethod rbf :poisson-2
+  ([_] (rbf :poisson-2 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (m/bessel-j 0 xs)))))
+
+(defmethod rbf :poisson-3
+  ([_] (rbf :poisson-3 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (* 0.7978845608028654 (m/sinc xs))))))
+
+(defmethod rbf :poisson-4
+  ([_] (rbf :poisson-4 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (m/delta-eq xs 0.0 1.0e-7) 0.5 (/ (m/bessel-j 1 xs) xs))))))
 
 ;; page 35
 ;; also http://evoq-eval.siam.org/Portals/0/Publications/SIURO/Vol4/Choosing_Basis_Functions_and_Shape_Parameters.pdf
 ;; page 193
 
-(emit-simple-rbf :mattern-c0 (m/exp (- xs)))
-(emit-simple-rbf :mattern-c2 (* (inc xs) (m/exp (- xs))))
-(emit-simple-rbf :mattern-c4 (* (+ 3.0 (* 3.0 xs) (* xs xs)) (m/exp (- xs))))
+(defmethod rbf :mattern-c0
+  ([_] (rbf :mattern-c0 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (m/exp (- xs))))))
+
+(defmethod rbf :mattern-c2
+  ([_] (rbf :mattern-c2 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (* (inc xs) (m/exp (- xs)))))))
+
+(defmethod rbf :mattern-c4
+  ([_] (rbf :mattern-c4 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (* (+ 3.0 (* 3.0 xs) (* xs xs)) (m/exp (- xs)))))))
 
 ;; page 37
 
-(emit-simple-rbf :whittaker-02 (+ 1.0 (- xs) (* xs (m/exp (/ -1.0 xs)))))
-(emit-simple-rbf :whittaker-12 (+ 1.0 (* -2.0 xs) (* (inc (* 2.0 xs)) (m/exp (/ -1.0 xs)))))
-(emit-simple-rbf :whittaker-03 (let [x2 (* 2.0 xs xs)]
-                                 (+ 1.0 (* -2.0 xs) x2 (* (- x2) (m/exp (/ -1.0 xs))))))
-(emit-simple-rbf :whittaker-13 (let [x2 (* 6.0 xs xs)]
-                                 (+ 1.0 (* -4.0 xs) x2 (* (- (+ xs xs x2)) (m/exp (/ -1.0 xs))))))
+(defmethod rbf :whittaker-02
+  ([_] (rbf :whittaker-02 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (+ 1.0 (- xs) (* xs (m/exp (/ -1.0 xs))))))))
+
+(defmethod rbf :whittaker-12
+  ([_] (rbf :whittaker-12 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (+ 1.0 (* -2.0 xs) (* (inc (* 2.0 xs)) (m/exp (/ -1.0 xs))))))))
+
+(defmethod rbf :whittaker-03
+  ([_] (rbf :whittaker-03 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* 2.0 xs xs)]
+                         (+ 1.0 (* -2.0 xs) x2 (* (- x2) (m/exp (/ -1.0 xs))))))))
+
+(defmethod rbf :whittaker-13
+  ([_] (rbf :whittaker-13 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)
+                             x2 (* 6.0 xs xs)]
+                         (+ 1.0 (* -4.0 xs) x2 (* (- (+ xs xs x2)) (m/exp (/ -1.0 xs))))))))
 
 ;; page 43
 
-(emit-beta-rbf :radial-powers (m/pow xs beta))
+(defmethod rbf :radial-powers
+  ([_] (rbf :radial-powers 1.0))
+  ([_ scale] (rbf :radial-powers 1.0 scale))
+  ([_ ^double beta ^double scale] (fn [^double x]
+                                    (let [xs (/ (m/abs x) scale)]
+                                      (m/pow xs beta)))))
 
 (defmethod rbf :thin-plate
   ([_] (rbf :thin-plate 1.0))
   ([_ scale] (rbf :thin-plate 1.0 scale))
   ([_ ^double beta ^double scale] (if (== beta 1.0)
-                                    (make-scaled-x scale (if-not (pos? xs) 0.0 (* xs xs (m/log xs))))
-                                    (make-scaled-x scale (if-not (pos? xs) 0.0 (* (m/pow (* xs xs) beta) (m/log xs)))))))
+                                    (fn [^double x]
+                                      (let [xs (/ (m/abs x) scale)]
+                                        (if-not (pos? xs) 0.0 (* xs xs (m/log xs)))))
+                                    (fn [^double x]
+                                      (let [xs (/ (m/abs x) scale)]
+                                        (if-not (pos? xs) 0.0 (* (m/pow (* xs xs) beta) (m/log xs))))))))
 
 ;; https://www.researchgate.net/profile/Zongmin_Wu/publication/246909840_Multivariate_compactly_supported_positive_definite_radial_functions/links/542247e30cf26120b7a0209b/Multivariate-compactly-supported-positive-definite-radial-functions.pdf
 ;; page 9
 
-(emit-simple-rbf+ :wu-00 (- 1.0 xs))
-(emit-simple-rbf+ :wu-10 (let [r- (- 1.0 xs)]
-                           (* r- r- r- (inc (* xs (+ 3.0 xs))))))
-(emit-simple-rbf+ :wu-11 (let [r- (- 1.0 xs)]
-                           (* r- r- (+ 2.0 xs))))
-(emit-simple-rbf+ :wu-20 (let [r- (- 1.0 xs)
-                               r2- (* r- r-)
-                               xs2 (* xs xs)]
-                           (* r- r2- r2- (inc (+ (* 5 xs)
-                                                 (* 9 xs2)
-                                                 (* 5 xs xs2)
-                                                 (* xs2 xs2))))))
-(emit-simple-rbf+ :wu-21 (let [r- (- 1.0 xs)
-                               r2- (* r- r-)
-                               xs2 (* xs xs)]
-                           (* r2- r2- (+ 4.0
-                                         (* 16.0 xs)
-                                         (* 12.0 xs2)
-                                         (* 3.0 xs xs2)))))
+(defmethod rbf :wu-00
+  ([_] (rbf :wu-00 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (- 1.0 xs) 0.0)))))
 
-(emit-simple-rbf+ :wu-22 (let [r- (- 1.0 xs)
-                               r2- (* r- r-)]
-                           (* r- r2- (+ 8.0
-                                        (* 9.0 xs)
-                                        (* 3.0 xs xs)))))
+(defmethod rbf :wu-10
+  ([_] (rbf :wu-10 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)]
+                                          (* r- r- r- (inc (* xs (+ 3.0 xs))))) 0.0)))))
 
-(emit-simple-rbf+ :wu-30 (let [r- (- 1.0 xs)
-                               r3- (* r- r- r-)
-                               xs2 (* xs xs)
-                               xs3 (* xs2 xs)]
-                           (* r- r3- r3- (+ 5.0
-                                            (* 35.0 xs)
-                                            (* 101.0 xs2)
-                                            (* 147.0 xs xs2)
-                                            (* 101.0 xs2 xs2)
-                                            (* 35.0 xs3 xs2)
-                                            (* 5.0 xs3 xs3)))))
+(defmethod rbf :wu-11
+  ([_] (rbf :wu-11 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)]
+                                          (* r- r- (+ 2.0 xs))) 0.0)))))
 
-(emit-simple-rbf+ :wu-31 (let [r- (- 1.0 xs)
-                               r3- (* r- r- r-)
-                               xs2 (* xs xs)
-                               xs4 (* xs2 xs2)]
-                           (* r3- r3- (+ 6.0
-                                         (* 36.0 xs)
-                                         (* 82.0 xs2)
-                                         (* 72.0 xs xs2)
-                                         (* 30.0 xs4)
-                                         (* 5.0 xs xs4)))))
+(defmethod rbf :wu-20
+  ([_] (rbf :wu-20 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)
+                                              xs2 (* xs xs)]
+                                          (* r- r2- r2- (inc (+ (* 5 xs)
+                                                                (* 9 xs2)
+                                                                (* 5 xs xs2)
+                                                                (* xs2 xs2))))) 0.0)))))
+(defmethod rbf :wu-21
+  ([_] (rbf :wu-21 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)
+                                              xs2 (* xs xs)]
+                                          (* r2- r2- (+ 4.0
+                                                        (* 16.0 xs)
+                                                        (* 12.0 xs2)
+                                                        (* 3.0 xs xs2)))) 0.0)))))
 
-(emit-simple-rbf+ :wu-32 (let [r- (- 1.0 xs)
-                               r2- (* r- r-)
-                               xs2 (* xs xs)]
-                           (* r- r2- r2- (+ 8.0
-                                            (* 40.0 xs)
-                                            (* 48.0 xs2)
-                                            (* 25.0 xs xs2)
-                                            (* 5.0 xs2 xs2)))))
+(defmethod rbf :wu-22
+  ([_] (rbf :wu-22 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r- r2- (+ 8.0
+                                                       (* 9.0 xs)
+                                                       (* 3.0 xs xs)))) 0.0)))))
 
-(emit-simple-rbf+ :wu-33 (let [r- (- 1.0 xs)
-                               r2- (* r- r-)
-                               xs2 (* xs xs)]
-                           (* r2- r2- (+ 16.0
-                                         (* 29.0 xs)
-                                         (* 20.0 xs2)
-                                         (* 5.0 xs xs2)))))
+(defmethod rbf :wu-30
+  ([_] (rbf :wu-30 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r3- (* r- r- r-)
+                                              xs2 (* xs xs)
+                                              xs3 (* xs2 xs)]
+                                          (* r- r3- r3- (+ 5.0
+                                                           (* 35.0 xs)
+                                                           (* 101.0 xs2)
+                                                           (* 147.0 xs xs2)
+                                                           (* 101.0 xs2 xs2)
+                                                           (* 35.0 xs3 xs2)
+                                                           (* 5.0 xs3 xs3)))) 0.0)))))
+
+(defmethod rbf :wu-31
+  ([_] (rbf :wu-31 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r3- (* r- r- r-)
+                                              xs2 (* xs xs)
+                                              xs4 (* xs2 xs2)]
+                                          (* r3- r3- (+ 6.0
+                                                        (* 36.0 xs)
+                                                        (* 82.0 xs2)
+                                                        (* 72.0 xs xs2)
+                                                        (* 30.0 xs4)
+                                                        (* 5.0 xs xs4)))) 0.0)))))
+
+(defmethod rbf :wu-32
+  ([_] (rbf :wu-32 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)
+                                              xs2 (* xs xs)]
+                                          (* r- r2- r2- (+ 8.0
+                                                           (* 40.0 xs)
+                                                           (* 48.0 xs2)
+                                                           (* 25.0 xs xs2)
+                                                           (* 5.0 xs2 xs2)))) 0.0)))))
+
+(defmethod rbf :wu-33
+  ([_] (rbf :wu-33 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)
+                                              xs2 (* xs xs)]
+                                          (* r2- r2- (+ 16.0
+                                                        (* 29.0 xs)
+                                                        (* 20.0 xs2)
+                                                        (* 5.0 xs xs2)))) 0.0)))))
 
 ;; wendland
 
-(emit-simple-rbf+ :wendland-10 (- 1.0 xs))
-(emit-simple-rbf+ :wendland-21 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)]
-                                 (* r- r2- (inc (* 3.0 xs)))))
-(emit-simple-rbf+ :wendland-32 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)]
-                                 (* r- r2- r2- (inc (+ (* 8.0 xs xs)
-                                                       (* 5.0 xs))))))
-(emit-simple-rbf+ :wendland-20 (m/sq (- 1.0 xs)))
-(emit-simple-rbf+ :wendland-31 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)]
-                                 (* r2- r2- (inc (* 4.0 xs)))))
-(emit-simple-rbf+ :wendland-42 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)]
-                                 (* r2- r2- r2- (+ (* 35.0 xs xs)
-                                                   (* 18.0 xs)
-                                                   3.0))))
-(emit-simple-rbf+ :wendland-53 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)
-                                     r4- (* r2- r2-)
-                                     xs2 (* xs xs)]
-                                 (* r4- r4- (inc (+ (* 32.0 xs2 xs)
-                                                    (* 25.0 xs2)
-                                                    (* 8.0 xs))))))
+(defmethod rbf :wendland-10
+  ([_] (rbf :wendland-10 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (- 1.0 xs) 0.0)))))
 
-(emit-simple-rbf+ :wendland-30 (m/pow3 (- 1.0 xs)))
-(emit-simple-rbf+ :wendland-41 (let [r- (- 1.0 xs)
-                                     r2- (* r- r-)]
-                                 (* r- r2- r2- (inc (* 5.0 xs)))))
-(emit-simple-rbf+ :wendland-52 (let [r- (- 1.0 xs)
-                                     r3- (* r- r- r-)]
-                                 (* r- r3- r3- (inc (+ (* 16.0 xs xs)
-                                                       (* 7.0 xs))))))
+(defmethod rbf :wendland-21
+  ([_] (rbf :wendland-21 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r- r2- (inc (* 3.0 xs)))) 0.0)))))
 
+(defmethod rbf :wendland-32
+  ([_] (rbf :wendland-32 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r- r2- r2- (inc (+ (* 8.0 xs xs)
+                                                                (* 5.0 xs))))) 0.0)))))
+
+(defmethod rbf :wendland-20
+  ([_] (rbf :wendland-20 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (m/sq (- 1.0 xs)) 0.0)))))
+
+(defmethod rbf :wendland-31
+  ([_] (rbf :wendland-31 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r2- r2- (inc (* 4.0 xs)))) 0.0)))))
+
+(defmethod rbf :wendland-42
+  ([_] (rbf :wendland-42 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r2- r2- r2- (+ (* 35.0 xs xs)
+                                                            (* 18.0 xs)
+                                                            3.0))) 0.0)))))
+
+(defmethod rbf :wendland-53
+  ([_] (rbf :wendland-53 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)
+                                              r4- (* r2- r2-)
+                                              xs2 (* xs xs)]
+                                          (* r4- r4- (inc (+ (* 32.0 xs2 xs)
+                                                             (* 25.0 xs2)
+                                                             (* 8.0 xs))))) 0.0)))))
+
+(defmethod rbf :wendland-30
+  ([_] (rbf :wendland-30 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (m/pow3 (- 1.0 xs)) 0.0)))))
+
+(defmethod rbf :wendland-41
+  ([_] (rbf :wendland-41 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r2- (* r- r-)]
+                                          (* r- r2- r2- (inc (* 5.0 xs)))) 0.0)))))
+
+(defmethod rbf :wendland-52
+  ([_] (rbf :wendland-52 1.0))
+  ([_ ^double scale] (fn [^double x]
+                       (let [xs (/ (m/abs x) scale)]
+                         (if (< xs 1.0) (let [r- (- 1.0 xs)
+                                              r3- (* r- r- r-)]
+                                          (* r- r3- r3- (inc (+ (* 16.0 xs xs)
+                                                                (* 7.0 xs))))) 0.0)))))
 
 (def rbf-list ^{:doc "List of RBF kernels"} (sort (keys (methods rbf))))
 

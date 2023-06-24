@@ -69,7 +69,7 @@
          (Vec2. (* r (m/cos a))
                 (* r (m/sin a))))))))
 
-(def ^:const ^:private ^double fib-fnatlog (m/log m/PHI))
+(def ^{:const true :private true :tag 'double} fib-fnatlog (m/log m/PHI))
 
 (defn fibonacci2
   ([] {:type :regular

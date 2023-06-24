@@ -158,8 +158,8 @@
   {:to-acm-vec (fn [this] this)
    :to-vec #(apply vector-of :double (.getDataRef ^ArrayRealVector %))
    :as-vec (fn
-             ([^ArrayRealVector v xs] (ArrayRealVector. (double-array (take (.getDimension v) xs)))
-              [v] (prot/as-vec v (repeat 0.0))))
+             ([^ArrayRealVector v xs] (ArrayRealVector. (double-array (take (.getDimension v) xs))))
+             ([v] (prot/as-vec v (repeat 0.0))))
    :fmap (fn [^ArrayRealVector v f] (.map v (reify UnivariateFunction
                                              (value [_ v] (f v)))))
    :approx (fn
@@ -1269,7 +1269,7 @@
                 (prot/fmap ~v ~wfn))))))
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
-                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/csch
+                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/acoth m/asech m/csch
                 m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
                 m/radians m/degrees m/sinc m/jinc m/sigmoid m/logit m/xlogx

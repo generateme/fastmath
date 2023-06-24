@@ -26,7 +26,13 @@
   :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
-  :profiles {:dev {:dependencies [[io.github.nextjournal/clerk "0.13.842"]
+  :profiles {:1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
+             :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
+             :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
+             :eastwood {:plugins [[jonase/eastwood "1.4.0"]]
+                        :eastwood {:add-linters [:performance :boxed-math]
+                                   :exclude-namespaces [stats random utils bootstrap core]}}
+             :dev {:dependencies [[io.github.nextjournal/clerk "0.13.842"]
                                   [clojure2d "1.4.5-SNAPSHOT" :exclusions [generateme/fastmath]]
                                   [org.clojure/data.csv "1.0.1"]]
                    :source-paths ["notebooks"]}

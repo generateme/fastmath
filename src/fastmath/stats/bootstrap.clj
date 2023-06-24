@@ -5,6 +5,9 @@
             [fastmath.vector :as v]
             [fastmath.stats :as stats]))
 
+(set! *unchecked-math* :warn-on-boxed)
+(m/use-primitive-operators)
+
 (defn- bootstrap-antithetic
   [rng model method samples size]
   (->> (repeatedly #(let [s (r/->seq rng size method)]
@@ -41,7 +44,7 @@
   * `:bias` - difference between mean of ts and t0
   * `:mean`, `:median`, `:variance`, `:stddev`, `:sem` - statistics from ts"
   [{:keys [data samples] :as input} statistic]
-  (let [t0 (statistic data)
+  (let [^double t0 (statistic data)
         ts (map statistic samples)
         ats (double-array (filter m/valid-double? ts))
         m (stats/mean ats)
@@ -135,7 +138,7 @@
                                   (repeatedly samples #(repeatedly size model))))]
                       (as-> (map gen models sizes) xsss
                         (if (= :gaussian smoothing)
-                          (let [sds (map #(m/sqrt (/ (stats/variance %1) %2)) data sizes)]
+                          (let [sds (map (fn [in ^long size] (m/sqrt (/ (stats/variance in) size))) data sizes)]
                             (map (fn [xss sd size]
                                    (map (fn [xs]                                                 
                                           (v/add xs (repeatedly size #(r/grandom rng sd)))) xss))
@@ -163,7 +166,7 @@
          ^double stddev (or stddev (stats/stddev @ats))
          ^double bias (or bias (- (stats/mean @ats) t0))
          tb (- t0 bias)
-         merr (* stddev (r/icdf r/default-normal a))]
+         merr (* stddev ^double (r/icdf r/default-normal a))]
      [(- tb merr) (+ tb merr) t0])))
 
 (defn ci-basic
@@ -265,5 +268,5 @@
   ([{:keys [^double t0 ts stddev]} ^double alpha]
    (let [a (/ alpha 2.0)
          ^double stddev (or stddev (stats/stddev ts))
-         t (* stddev (r/icdf (r/distribution :t {:degrees-of-freedom (dec (count ts))}) (- 1.0 a)))]
+         t (* stddev ^double (r/icdf (r/distribution :t {:degrees-of-freedom (dec (count ts))}) (- 1.0 a)))]
      [(- t0 t) (+ t0 t) t0])))

@@ -410,7 +410,7 @@
         N (int N)
         N (max (m/fpow 3 dim) N)
         n (double n)
-        nbest (max 10 (long (if (> n 1.0) n (m/floor (* ^double n N)))))
+        nbest (max 10 (long (if (> n 1.0) n (m/floor (* n N)))))
         gen (r/jittered-sequence-generator (if (< dim 15) :r2 :sobol) dim jitter)]
     (->> (take N (if (and (not= method :brent)
                           (m/one? dim)) (map vector gen) gen))
@@ -427,13 +427,13 @@
 
   * N - number of total grid points
   * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
-  [optimizer goal method f {:keys [bounds ^int N ^double n ^double jitter]
-                            :or {N 100 n 0.05 jitter 0.25}
-                            :as config}]
+  [optimizer-fn goal method f {:keys [bounds ^int N ^double n ^double jitter]
+                               :or {N 100 n 0.05 jitter 0.25}
+                               :as config}]
   (assert (not (nil? bounds)) "Provide search bounds.")
   (let [goal (or goal (get config :goal :minimize))
         samples (generate-points method f bounds goal N n jitter)
-        opt (repeatedly (count samples) #(optimizer method f config))
+        opt (repeatedly (count samples) #(optimizer-fn method f config))
         ^int tk (get config :take 1)
         taker (if (> tk 1) (partial take tk) first)]
     (->> (pmap #(%1 %2) opt samples)

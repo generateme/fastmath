@@ -62,7 +62,7 @@
            [smile.math.distance Distance]
            [clojure.lang IFn]))
 
-(def ^:const ^{:doc "Id of the cluster which contain outliers."} outlier-id PartitionClustering/OUTLIER)
+(def ^{:const true :tag 'double :doc "Id of the cluster which contain outliers."} outlier-id PartitionClustering/OUTLIER)
 
 (defrecord ClusteringResult [type data clustering sizes clusters predict representatives info obj]
   IFn
@@ -87,9 +87,9 @@
 
   Empty clusters are skipped."
   [{:keys [clustering data representatives sizes]}]
-  (for [[k lst] (group-by first (map vector clustering data))
+  (for [[^long k lst] (group-by first (map vector clustering data))
         :let [d (map second lst)
-              outliers? (== k outlier-id)]]
+              outliers? (m/== k outlier-id)]]
     {:key (if outliers? :outliers k)
      :data d
      :representative (if (and representatives (not outliers?))

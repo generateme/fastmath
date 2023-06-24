@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. This change
 
 * `matrix` object name in printing
 * speed of element matrix accessing is improved
+* eastwood boxed math and reflection warnings (removed problematic macros, shadowing global vars, etc.)
 
 ## [2.2.1]
 

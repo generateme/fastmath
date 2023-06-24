@@ -473,7 +473,7 @@
            u/zerov
            (v/mult (v/shift UV -0.5) amount2)))))))
 
-(def ^:private ^:const ^double thc-coeff 0.477464829275686)
+(def ^{:private true :const true :tag 'double} thc-coeff 0.477464829275686)
 
 (defn truchethexcrop
   ([] {:type :random

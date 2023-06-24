@@ -45,7 +45,7 @@
        (Vec2. (* by (m/cos kx))
               (* by (m/sin kx)))))))
 
-(def ^:private ^:const ^double apocarpet_r (/ (inc m/SQRT2)))
+(def ^{:private true :const true :tag 'double} apocarpet_r (/ (inc m/SQRT2)))
 (def ^:private apocarpet+r-r (Vec2. apocarpet_r (- apocarpet_r)))
 (def ^:private apocarpet-r+r (Vec2. (- apocarpet_r) apocarpet_r))
 
@@ -66,8 +66,8 @@
                              (* 2.0 (.x v) (.y v))) denom))
            (v/mult amount))))))
 
-(def ^:private ^:const ^double apollony-inc-sqrt3 (inc m/SQRT3))
-(def ^:private ^:const ^double apollony-inc-sqrt3-div (/ apollony-inc-sqrt3 (inc apollony-inc-sqrt3)))
+(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3 (inc m/SQRT3))
+(def ^{:private true :const true :tag 'double} apollony-inc-sqrt3-div (/ apollony-inc-sqrt3 (inc apollony-inc-sqrt3)))
 
 (defn apollony
   "Apollony"

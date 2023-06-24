@@ -584,36 +584,36 @@ See also [[jittered-sequence-generator]]."}
 (gen-noise-function ridgedmulti-noise RidgedMulti/noise)
 
 (defn- make-warp-1d
-  [noise ^double scale ^long depth]
+  [n ^double scale ^long depth]
   (let [warp-noise-1d-proto (fn warp-noise-1d
                               (^double [^double x ^long depth]
                                (if (zero? depth)
-                                 (noise x)
+                                 (n x)
                                  (let [q1 (* scale ^double (warp-noise-1d (+ x depth 0.321) (dec depth)))]
-                                   (noise (+ x q1))))))]
+                                   (n (+ x q1))))))]
     (fn [^double x] (warp-noise-1d-proto x depth))))
 
 (defn- make-warp-2d
-  [noise ^double scale ^long depth]
+  [n ^double scale ^long depth]
   (let [warp-noise-2d-proto (fn warp-noise-2d
                               (^double [^double x ^double y ^long depth]
                                (if (zero? depth)
-                                 (noise x y)
+                                 (n x y)
                                  (let [q1 (* scale ^double (warp-noise-2d (+ x depth 0.321) (+ y depth 4.987) (dec depth)))
                                        q2 (* scale ^double (warp-noise-2d (+ x depth 3.591) (+ y depth -2.711) (dec depth)))]
-                                   (noise (+ x q1) (+ y q2))))))]
+                                   (n (+ x q1) (+ y q2))))))]
     (fn [^double x ^double y] (warp-noise-2d-proto x y depth))))
 
 (defn- make-warp-3d
-  [noise ^double scale ^long depth]
+  [n ^double scale ^long depth]
   (let [warp-noise-3d-proto (fn warp-noise-3d
                               (^double [^double x ^double y ^double z ^long depth]
                                (if (zero? depth)
-                                 (noise x y)
+                                 (n x y z)
                                  (let [q1 (* scale ^double (warp-noise-3d (+ x depth 0.321) (+ y depth 4.987) (+ z depth 2.12) (dec depth)))
                                        q2 (* scale ^double (warp-noise-3d (+ x depth 3.591) (+ y depth -2.711) (+ z depth -5.4321) (dec depth)))
                                        q3 (* scale ^double (warp-noise-3d (+ x depth -1.591) (+ y depth 12.1711) (+ z depth 3.1) (dec depth)))]
-                                   (noise (+ x q1) (+ y q2) (+ z q3))))))]
+                                   (n (+ x q1) (+ y q2) (+ z q3))))))]
     (fn [^double x ^double y ^double z] (warp-noise-3d-proto x y z depth))))
 
 (defn warp-noise-fn
@@ -1171,7 +1171,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   prot/DistributionProto
   {:cdf (fn
           (^double [^EnumeratedRealDistribution d ^double v] (.cumulativeProbability d v))
-          (^double [^EnumeratedRealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
+          (^double [^EnumeratedRealDistribution d ^double v1 ^double v2] (.probability d v1 v2)))
    :icdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.inverseCumulativeProbability d p))
    :pdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.probability d p))
    :lpdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.logDensity d p))
