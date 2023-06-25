@@ -267,9 +267,8 @@
 (defn h->bars
   [data & params]
   (let [{:keys [bins step]} (apply stats/histogram data params)]
-    (update-keys (into {} bins) (fn [k] (+ k (* step 0.5))))))
-
-
+    (into {} (map (fn [[k v]]
+                    [(+ k (* step 0.5)) v]) bins))))
 
 (def source-files "https://github.com/generateme/fastmath/blob/master/src/")
 

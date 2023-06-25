@@ -26,9 +26,7 @@
   :javac-options ["--release" "8"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
-  :profiles {:1.8 {:dependencies [[org.clojure/clojure "1.8.0"]]}
-             :1.9 {:dependencies [[org.clojure/clojure "1.9.0"]]}
-             :1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
+  :profiles {:1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :eastwood {:plugins [[jonase/eastwood "1.4.0"]]
                         :eastwood {:add-linters [:performance :boxed-math]
                                    :exclude-namespaces [stats random utils bootstrap core]}}

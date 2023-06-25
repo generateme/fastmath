@@ -1571,7 +1571,7 @@
 
     (and (map? confusion-matrix)
          (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix)))
-    (update-keys confusion-matrix (fn [[a b]] (keyword (str (name a) (name b)))))
+    (into {} (map (fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix))
 
     (and (sequential? confusion-matrix)
          (= 2 (count confusion-matrix))
