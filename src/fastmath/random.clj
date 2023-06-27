@@ -383,6 +383,45 @@ Returns true or false with equal probability. You can set `p` probability for `t
   ([p] (randval p))
   ([] (randval)))
 
+(defn roll-a-dice
+  "Roll a dice with given sides"
+  (^long [sides]
+   (inc (irand sides)))
+  (^long [dices sides]
+   (reduce clojure.core/+ (repeatedly dices #(inc (irand sides)))))  )
+
+;; rng versions
+
+(defmacro randval-rng
+  "Return value with given probability (default 0.5), for given rng"
+  ([rng v1 v2]
+   `(if (prot/brandom ~rng) ~v1 ~v2))
+  ([rng prob v1 v2]
+   `(if (prot/brandom ~rng ~prob) ~v1 ~v2))
+  ([rng prob]
+   `(prot/brandom ~rng ~prob))
+  ([rng]
+   `(prot/brandom ~rng)))
+
+(defn flip-rng
+  "Returns 1 with given probability, 0 otherwise, for given rng"
+  (^long [rng p]
+   (randval-rng rng p 1 0))
+  (^long [rng]
+   (randval-rng rng 0.5 1 0)))
+
+(defn flipb-rng
+  "Returns true with given probability, false otherwise, for given rng"
+  ([rng p] (randval-rng rng p))
+  ([rng] (randval-rng rng)))
+
+(defn roll-a-dice-rng
+  "Roll a dice with given sides and given rng"
+  (^long [rng sides]
+   (inc (irandom rng sides)))
+  (^long [rng dices sides]
+   (reduce clojure.core/+ (repeatedly dices #(inc (irandom rng sides))))))
+
 ;; generators
 
 ;; http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/#more-2165

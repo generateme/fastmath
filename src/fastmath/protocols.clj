@@ -10,6 +10,7 @@
 
 (defprotocol RNGProto
   "Defines set of random functions for different RNGs or distributions returning primitive values."
+  
   (irandom [rng] [rng mx] [rng mn mx]
     "Random integer.
 

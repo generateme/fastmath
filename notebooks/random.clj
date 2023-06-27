@@ -232,7 +232,8 @@
 (u/table2
  [[randval "A macro, returns value with given probability (default true/false with prob=0.5)"]
   [flip "Returns 1 with given probability (or 0)"]
-  [flipb "Returns true with given probability"]])
+  [flipb "Returns true with given probability"]
+  [roll-a-dice "Returns a result of rolling a n-sides dice(s)"]])
 
 ^{::clerk/visibility :hide}
 (clerk/example
@@ -247,7 +248,40 @@
  (repeatedly 10 #(r/flip 0.2))
  (repeatedly 10 r/flipb)
  (repeatedly 10 #(r/flipb 0.8))
- (repeatedly 10 #(r/flipb 0.2)))
+ (repeatedly 10 #(r/flipb 0.2))
+ (r/roll-a-dice 6)
+ (r/roll-a-dice 100)
+ (r/roll-a-dice 10 6))
+
+;; Above helpers can accept custom PRNG
+
+^{::clerk/no-cache true}
+(def isaac3-prng (r/rng :isaac 1234))
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[randval-rng "A macro, returns value with given probability (default true/false with prob=0.5)"]
+  [flip-rng "Returns 1 with given probability (or 0)"]
+  [flipb-rng "Returns true with given probability"]
+  [roll-a-dice-rng "Returns a result of rolling a n-sides dice(s)"]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+ (r/randval-rng isaac3-prng)
+ (r/randval-rng isaac3-prng 0.99)
+ (r/randval-rng isaac3-prng 0.01)
+ (r/randval-rng isaac3-prng :value1 :value2)
+ (r/randval-rng isaac3-prng 0.99 :highly-probable-value :less-probably-value)
+ (r/randval-rng isaac3-prng 0.01 :less-probably-value :highly-probable-value)
+ (repeatedly 10 #(r/flip-rng isaac3-prng))
+ (repeatedly 10 #(r/flip-rng isaac3-prng 0.8))
+ (repeatedly 10 #(r/flip-rng isaac3-prng 0.2))
+ (repeatedly 10 #(r/flipb-rng isaac3-prng))
+ (repeatedly 10 #(r/flipb-rng isaac3-prng 0.8))
+ (repeatedly 10 #(r/flipb-rng isaac3-prng 0.2))
+ (r/roll-a-dice-rng isaac3-prng 6)
+ (r/roll-a-dice-rng isaac3-prng 100)
+ (r/roll-a-dice-rng isaac3-prng 10 6))
 
 ;; ## Distributions
 

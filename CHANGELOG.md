@@ -8,13 +8,14 @@ All notable changes to this project will be documented in this file. This change
 * `mat->float-array2d`, `mat->array`, `mat->float-array` - row-wise matrix representations as arrays
 * `debug?` option for `:lbfgsb` optimizer
 * `rint` accepts scale argument (same as `floor` and `ceil`)
+* `roll-a-dice` to simulate dice rolling
 
 ### Fixed
 
 * `matrix` object name in printing
 * speed of element matrix accessing is improved
 * eastwood boxed math and reflection warnings (removed problematic macros, shadowing global vars, etc.)
-* ensuring working with Clojure 1.10
+* ensuring working with Clojure 1.10.3
 
 ## [2.2.1]
 
