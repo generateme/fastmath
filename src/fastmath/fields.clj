@@ -63,7 +63,7 @@
   Optinally you can pass part of the parametrization. In this case function will add remaining keys with randomly generated values.
 
   If field doesn't have parametrization, empty map will be returned.
-  
+
   See [[field]]."
   (fn [key & _] key))
 
@@ -90,7 +90,8 @@
   [letter-char]
   (let [ns-sym (symbol (str "fastmath.fields." letter-char))]
     (require ns-sym)
-    `(do ~@(for [[sym v] (ns-publics ns-sym)
+    `(do (require (quote ~ns-sym))
+         ~@(for [[sym v] (ns-publics ns-sym)
                  :when (= (first (name sym)) letter-char)
                  :let [{:keys [type config]} (v)
                        k (keyword sym)
@@ -144,7 +145,7 @@
           v2 (f (v/add v dir))]
       (v/mult (v/div (v/sub v2 v1) h) amount))))
 
-(defn derivative 
+(defn derivative
   "Calculate directional derivative of fn. Derivative is calculated along [1,1] vector with `h` as a step (default `1.0e-6`)."
   ([f ^double amount ^double h]
    (directional-derivative f (Vec2. h h) amount h))
@@ -249,7 +250,7 @@ Resulting value is from range `[-PI,PI]`."}
 
 (defn scalar->vector-field
   "Returns vector field build from scalar fields of the input vector and result of the vector field."
-  ([scalar f] 
+  ([scalar f]
    (fn [v]
      (Vec2. (scalar (f v)) (scalar v))))
   ([scalar f1 f2]
@@ -302,7 +303,7 @@ Resulting value is from range `[-PI,PI]`."}
        (if (= name :deriv)
          (assoc f :amount 1.0 :step (m/sq (r/drand 0.01 1.0)) :var (randomize-configuration (:var f)))
          (let [amount1 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0))
-               amount2 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0)) 
+               amount2 (if (#{:comp :angles} name) 1.0 (r/drand -2.0 2.0))
                amount (case name
                         :add (/ 1.0 (+ (m/abs amount1) (m/abs amount2)))
                         :mult (/ 1.0 (* amount1 amount2))
