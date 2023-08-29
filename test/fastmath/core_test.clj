@@ -35,3 +35,9 @@
   (is (= (m/constrain 2 -1 1) 1))
   (is (= (m/norm 2 0 10) 0.2))
   (is (= (m/norm 2 0 10 0 100) 20.0)))
+
+(deftest floating-points
+  (is (= (m/double-exponent 2.0) 1))
+  (is (= (m/double-exponent 0.5) -1))
+  (is (= (m/double-significand 3.0) (Long/parseLong "1000000000000000000000000000000000000000000000000000" 2)))
+  (is (= (m/double-significand 7.0) (Long/parseLong "1100000000000000000000000000000000000000000000000000" 2))))

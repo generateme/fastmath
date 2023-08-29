@@ -9,6 +9,15 @@ All notable changes to this project will be documented in this file. This change
 * `debug?` option for `:lbfgsb` optimizer
 * `rint` accepts scale argument (same as `floor` and `ceil`)
 * `roll-a-dice` to simulate dice rolling
+* `double-exponent`, `double-significand` and `ulp` functions
+* `fastmath.solver/quadratic` solver of quadratic equation ax^2+bx+c=0
+* `fastmath.quaternion` namespace
+* Cholesky decomposition for fixed size matrices
+* `negative-zero?` tests for `-0.0` value
+
+### Changed
+
+* `fastmath.complex` reimplemented
 
 ### Fixed
 
@@ -16,6 +25,7 @@ All notable changes to this project will be documented in this file. This change
 * speed of element matrix accessing is improved
 * eastwood boxed math and reflection warnings (removed problematic macros, shadowing global vars, etc.)
 * ensuring working with Clojure 1.10.3
+* problem with field methods propagation in uberjar [#25](https://github.com/generateme/fastmath/pull/25), thanks @pfeodrippe
 
 ## [2.2.1]
 

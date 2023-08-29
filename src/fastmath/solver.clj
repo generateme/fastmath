@@ -1,5 +1,8 @@
 (ns fastmath.solver
-  (:import [org.apache.commons.math3.analysis UnivariateFunction]
+  (:require [fastmath.vector :as v]
+            [fastmath.core :as m])
+  (:import [fastmath.vector Vec2]
+           [org.apache.commons.math3.analysis UnivariateFunction]
            [org.apache.commons.math3.analysis.solvers UnivariateSolver BrentSolver BisectionSolver IllinoisSolver MullerSolver MullerSolver2 PegasusSolver RegulaFalsiSolver RiddersSolver SecantSolver]))
 
 (defn- wrap-univariate-function ^UnivariateFunction [f] (reify UnivariateFunction (value [_ x] (f x))))
@@ -43,3 +46,21 @@
      (if initial-value
        (.solve solver max-iters (wrap-univariate-function f) (double lower-bound) (double upper-bound) (double initial-value))
        (.solve solver max-iters (wrap-univariate-function f) (double lower-bound) (double upper-bound))))))
+
+(defn quadratic
+  "Solution of quadratic formula ax^2+bx+c=0, returns `nil` when there are no solutions"
+  ^Vec2 [^double a ^double b ^double c]
+  (if (zero? a)
+    (when-not (zero? b)
+      (let [r (m/- (m// c b))]
+        (Vec2. r r)))
+    (let [discrim (m/difference-of-products b b (* 4.0 a) c)]
+      (when-not (neg? discrim)
+        (let [discrim-root (m/sqrt discrim)
+              q (m/* -0.5 (m/+ b (m/copy-sign discrim-root b)))
+              r0 (m// q a)
+              r1 (m// c q)]
+          (if (< r0 r1)
+            (Vec2. r0 r1)
+            (Vec2. r1 r0)))))))
+

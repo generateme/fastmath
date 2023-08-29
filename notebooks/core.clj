@@ -144,6 +144,7 @@
   [>= true]
   [<= true]
   [zero? true]
+  [negative-zero? false "is value a negative zero, ie. -0.0"]
   [one? true]
   [pos? true]
   [not-pos? true]
@@ -165,6 +166,11 @@
  (m/<= 1 2 3 4)
  (m/zero? 0)
  (m/zero? 0.0)
+ (m/zero? -0.0)
+ (m/negative-zero? 0.0)
+ (m/negative-zero? -0.0)
+ (m/negative-zero? (m/* 1.0 0.0))
+ (m/negative-zero? (m/* -1.0 0.0))
  (m/one? 1.0)
  (m/one? -1)
  (m/pos? 0)
@@ -592,6 +598,7 @@
   [log2 false (clerk/md "$\\log_{2}(x)$")]
   [log10 true (clerk/md "$\\log_{10}(x)$")]
   [logb false (clerk/md "$\\log_b(x)$")]
+  [log2int false "fast log2 returning a long value"]
   [qexp true "fast and less accurate exp"]
   [qlog true "fast and less accurate log"]])
 
@@ -834,7 +841,10 @@
   [double-high-bits false "high 32 bits of binary representation of double value"]
   [double-low-bits false "low 32 bits of binary representation of double value"]
   [double-bits false "64 bits (long) of binary representation of double value"]
-  [bits->double false "convert 64 bits to double value"]])
+  [bits->double false "convert 64 bits to double value"]
+  [double-exponent false "exponent value"]
+  [double-significand false "significand value"]
+  [ulp false "unit in the last place, next double step"]])
 
 ^{::clerk/visibility :hide}
 (clerk/example
@@ -850,7 +860,13 @@
  (m/double-bits ##NaN)
  (m/bits->double 1234567890123456789)
  (m/bits->double (m/double-bits -0.991))
- (m/bits->double (m/double-bits ##NaN)))
+ (m/bits->double (m/double-bits ##NaN))
+ (m/double-exponent 2.0)
+ (m/double-exponent 0.5)
+ (m/double-significand 3.0)
+ (m/double-significand 7.0)
+ (m/ulp 1.0)
+ (m/ulp 1.0e20))
 
 ;; ## Combinatorics
 

@@ -176,6 +176,11 @@
 (variadic-predicate-proxy ^{:doc "Equality. See also [[eq]] for function version."} == eq)
 (variadic-predicate-proxy not== neq)
 
+(defn negative-zero?
+  "Check if zero is negative, ie. -0.0"
+  [^double x]
+  (== (Double/doubleToLongBits x) -9223372036854775808)) ;; -0.0
+
 (defn fast+
   {:inline (fn [x y] `(+ ~x ~y)) :inline-arities #{2}
    :doc "Primitive `+` for two doubles as function."}
@@ -269,6 +274,7 @@
                   ex
                   (recur (rest rcoeffs)
                          (muladd x ex ^double (first rcoeffs)))))))))
+
 ;; some stuff from pbrt
 (defn difference-of-products
   "Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation."
@@ -281,7 +287,6 @@
   ^double [^double a ^double b ^double c ^double d]
   (let [cd (* c d)]
     (+ (fma a b cd) (fma c d (- cd)))))
-
 
 ;; Processing math constants
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
@@ -302,6 +307,7 @@
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{\\pi}\\\\)"} TWO_INV_PI (/ 2.0 PI))
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{4}{\\pi}\\\\)"} FOUR_INV_PI (/ 4.0 PI))
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{2 \\pi}\\\\)"} INV_TWO_PI (/ TWO_PI))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{4 \\pi}\\\\)"} INV_FOUR_PI (/ (* 2.0 TWO_PI)))
 (def ^{:const true :tag 'double :doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 (def ^{:const true :tag 'double :doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
 (def ^{:const true :tag 'double :doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
@@ -335,7 +341,8 @@
 (fastmath-proxy :one ^{:doc "Fast and less accurate [[cos]]."} qcos cosQuick)
 
 ;; Additional trigonometry functions
-(defn cot "Cotangent" ^double [^double v] (FastMath/tan (- HALF_PI v)))
+(defn cot "Cotangent" ^double [^double v] (/ (FastMath/tan v)
+                                          #_(FastMath/tan (- HALF_PI v))))
 (defn sec "Secant" ^double [^double v] (/ (FastMath/cos v)))
 (defn csc "Cosecant" ^double [^double v] (/ (FastMath/sin v)))
 
@@ -670,7 +677,7 @@
 (defn log-I0
   "Log of [[I0]]."
   ^double [^double x]
-  (log (I0 x)))
+  (FastMath/log (I0 x)))
 
 ;; Sinc
 (defn sinc
@@ -792,7 +799,7 @@
   \\\\right.
   \\\\)"
   ^double [^double value]
-  (if (neg? value) 0.0 (sqrt value)))
+  (if (neg? value) 0.0 (FastMath/sqrt value)))
 
 ;; Approximated sqrt via binary operations (error 1.0E-2)
 (fastmath-proxy :one ^{:doc "Approximated [[sqrt]] using binary operations with error `1.0E-2`."} qsqrt sqrtQuick)
@@ -810,9 +817,9 @@
   "Hypot, sqrt version: \\\\(\\sqrt{x^2+y^2}\\\\) or \\\\(\\sqrt{x^2+y^2+z^2}\\\\).
   Should be faster than [[hypot]]."
   (^double [^double x ^double y]
-   (sqrt (+ (* x x) (* y y))))
+   (FastMath/sqrt (+ (* x x) (* y y))))
   (^double [^double x ^double y ^double z]
-   (sqrt (+ (* x x) (* y y) (* z z)))))
+   (FastMath/sqrt (+ (* x x) (* y y) (* z z)))))
 
 ;; distance
 (defn dist
@@ -969,6 +976,31 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
   "Convert 64 bits to double"
   ^double [^long v]
   (Double/longBitsToDouble v))
+
+(defn double-exponent
+  "Extract exponent information from double"
+  ^long [^double v]
+  (FastMath/getExponent v))
+
+(defn double-significand
+  "Extract significand from double"
+  ^long [^double v]
+  (bit-and (Double/doubleToRawLongBits v) 4503599627370495))
+
+(defn log2int
+  "Fast and integer version of log2, returns long"
+  ^long [^double v]
+  (if (< v 1.0)
+    (- (log2int (/ v)))
+    (let [s (double-significand v)]
+      (+ (FastMath/getExponent v)
+         (if (or (> s 1865452045155277) ;; (double-significand (pow 2 1.5))
+                 (neg? s)) 1 0)))))
+
+(defn ulp
+  "Unit in the Last Place, distance between next value larger than `v` and `v`"
+  ^double [^double v]
+  (FastMath/ulp v))
 
 ;; More constants
 

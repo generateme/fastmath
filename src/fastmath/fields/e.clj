@@ -468,7 +468,7 @@
                    (c/add z3)
                    (c/sqrt)
                    (as-> t (if-not (zero? asech) (-> (c/asech t) (c/mult casech)) t))
-                   (as-> t (if-not (zero? acosech) (-> (c/acosech t) (c/mult cacosech)) t))
+                   (as-> t (if-not (zero? acosech) (-> (c/acsch t) (c/mult cacosech)) t))
                    (as-> t (if-not (zero? acoth) (-> (c/acoth t) (c/mult cacoth)) t))
                    (c/scale scale))]
          (r/randval z (v/sub z)))))))

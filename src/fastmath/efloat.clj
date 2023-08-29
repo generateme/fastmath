@@ -56,10 +56,13 @@
        (<= v (.high ev))))
 
 (defn neg ^EFloat [^EFloat ev] (EFloat. (- (.v ev)) (- (.high ev)) (- (.low ev))))
+
 (defn add ^EFloat [^EFloat ev1 ^EFloat ev2]
   (EFloat. (+ (.v ev1) (.v ev2)) (add- (.low ev1) (.low ev2)) (add+ (.high ev1) (.high ev2))))
+
 (defn sub ^EFloat [^EFloat ev1 ^EFloat ev2]
   (EFloat. (- (.v ev1) (.v ev2)) (sub- (.low ev1) (.low ev2)) (sub+ (.high ev1) (.high ev2))))
+
 (defn mul ^EFloat [^EFloat ev1 ^EFloat ev2]
   (let [m1 (* (.low ev1) (.low ev2))
         m2 (* (.high ev1) (.low ev2))
@@ -68,6 +71,7 @@
     (EFloat. (* (.v ev1) (.v ev2))
              (m/min (m/prev-double m1) (m/prev-double m2) (m/prev-double m3) (m/prev-double m4))
              (m/max (m/next-double m1) (m/next-double m2) (m/next-double m3) (m/next-double m4)))))
+
 (defn div ^EFloat [^EFloat ev1 ^EFloat ev2]
   (if (in-range? ev2 0.0)
     (EFloat. (/ (.v ev1) 0.0) ##-Inf ##Inf)
@@ -78,6 +82,7 @@
       (EFloat. (/ (.v ev1) (.v ev2))
                (m/min (m/prev-double m1) (m/prev-double m2) (m/prev-double m3) (m/prev-double m4))
                (m/max (m/next-double m1) (m/next-double m2) (m/next-double m3) (m/next-double m4))))))
+
 (defn sq ^EFloat [^EFloat ev]
   (let [alow (m/abs (.low ev))
         ahigh (m/abs (.high ev))
@@ -87,6 +92,7 @@
       (EFloat. (* (.v ev) (.v ev)) 0.0 (mul+ ahigh' ahigh'))
       (EFloat. (* (.v ev) (.v ev)) (mul- alow' alow') (mul+ ahigh' ahigh')))))
 (defn sqrt ^EFloat [^EFloat ev] (EFloat. (m/sqrt (.v ev)) (sqrt- (.low ev)) (sqrt+ (.high ev))))
+
 (defn fma ^EFloat [^EFloat ev1 ^EFloat ev2 ^EFloat ev3]
   (let [low (m/min (fma- (.low ev1) (.low ev2) (.low ev3))
                    (fma- (.high ev1) (.low ev2) (.low ev3))
@@ -97,6 +103,7 @@
                     (fma+ (.low ev1) (.high ev2) (.high ev3))
                     (fma+ (.high ev1) (.high ev2) (.high ev3)))]
     (EFloat. (m/fma (.v ev1) (.v ev2) (.v ev3)) low high)))
+
 (defn difference-of-products
   ^EFloat [^EFloat a ^EFloat b ^EFloat c ^EFloat d]
   (let [_ (println a)

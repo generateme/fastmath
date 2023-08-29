@@ -8,9 +8,12 @@
             [nextjournal.clerk.tap]
             [fastmath.random :as r]
             [clojure2d.color :as c]
+            [clojure2d.pixels :as p]
             [clojure.string :as str]
             [clojure.data.csv :as csv]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [fastmath.vector :as v]
+            [fastmath.complex :as cmplx]))
 
 (def ^:const size 200)
 
@@ -235,7 +238,27 @@
 (def dgraph (partial dgraph-cont fgraph-int))
 (def dgraphi (partial dgraph-cont bgraph-int))
 
-(tap> (fgraph m/sin))
+(defn complex-graph
+  ([f] (complex-graph f [-3.2 3.2] [-3.2 3.2]))
+  ([f [x1 x2] [y1 y2]]
+   (println f)
+   (let [xn (m/make-norm x1 x2 0 size)
+         yn (m/make-norm y1 y2 0 size)
+         buff (p/renderer size size :sinc 1.1)]
+     (doseq [x (range x1 x2 0.0047)
+             y (range y2 y1 -0.0047)
+             :let [fz (f (v/vec2 x y))
+                   mag (* 255.0 (m/pow (m/frac (m/log2 (v/mag fz))) 0.2))
+                   angle (m/norm (v/heading fz) m/-PI m/PI 0.0 255.0)
+                   sat (- 255.0 (/ (- 255.0 mag) 4.0))]]
+       (if (m/invalid-double? mag)
+         (p/set-color! buff (xn x) (yn y) :white)
+         (p/set-color! buff (xn x) (yn y) (c/from-HSB* [angle sat mag]))))
+     (-> buff
+         (p/to-pixels {:splats? true})
+         (c2d/to-image)))))
+
+#_(tap> (complex-graph identity))
 
 (defn update-child-viewers [viewer f]
   (update viewer :transform-fn (fn [trfn] (comp #(update % :nextjournal/viewers f) trfn))))

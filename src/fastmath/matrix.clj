@@ -168,8 +168,13 @@
                        (+ (* a10 (.x v)) (* a11 (.y v))))))
   (vtmul [_ v] (let [^Vec2 v v]
                  (Vec2. (+ (* a00 (.x v)) (* a10 (.y v)))
-                        (+ (* a01 (.x v)) (* a11 (.y v)))))))
-
+                        (+ (* a01 (.x v)) (* a11 (.y v))))))
+  (cholesky [m] (do
+                  (assert (prot/symmetric? m) "Matrix is not symmetric.")
+                  (let [a (m/sqrt a00)
+                        b (/ a10 a)
+                        c (m/sqrt (- a11 (* b b)))]
+                    (Mat2x2. a 0.0 b c)))))
 
 (deftype Mat3x3 [^double a00 ^double a01 ^double a02
                  ^double a10 ^double a11 ^double a12
@@ -294,7 +299,16 @@
   (vtmul [_ v] (let [^Vec3 v v]
                  (Vec3. (+ (* a00 (.x v)) (* a10 (.y v)) (* a20 (.z v)))
                         (+ (* a01 (.x v)) (* a11 (.y v)) (* a21 (.z v)))
-                        (+ (* a02 (.x v)) (* a12 (.y v)) (* a22 (.z v)))))))
+                        (+ (* a02 (.x v)) (* a12 (.y v)) (* a22 (.z v))))))
+  (cholesky [m] (do
+                  (assert (prot/symmetric? m) "Matrix is not symmetric.")
+                  (let [a (m/sqrt a00)
+                        b (/ a10 a)
+                        c (m/sqrt (- a11 (* b b)))
+                        d (/ a20 a)
+                        e (/ (- a21 (* b d)) c)
+                        f (m/sqrt (- a22 (* d d) (* e e)))]
+                    (Mat3x3. a 0.0 0.0 b c 0.0 d e f)))))
 
 (deftype Mat4x4 [^double a00 ^double a01 ^double a02 ^double a03
                  ^double a10 ^double a11 ^double a12 ^double a13
@@ -455,7 +469,20 @@
                  (Vec4. (+ (* a00 (.x v)) (* a10 (.y v)) (* a20 (.z v)) (* a30 (.w v)))
                         (+ (* a01 (.x v)) (* a11 (.y v)) (* a21 (.z v)) (* a31 (.w v)))
                         (+ (* a02 (.x v)) (* a12 (.y v)) (* a22 (.z v)) (* a32 (.w v)))
-                        (+ (* a03 (.x v)) (* a13 (.y v)) (* a23 (.z v)) (* a33 (.w v)))))))
+                        (+ (* a03 (.x v)) (* a13 (.y v)) (* a23 (.z v)) (* a33 (.w v))))))
+  (cholesky [m] (do
+                  (assert (prot/symmetric? m) "Matrix is not symmetric.")
+                  (let [a (m/sqrt a00)
+                        b (/ a10 a)
+                        c (m/sqrt (- a11 (* b b)))
+                        d (/ a20 a)
+                        e (/ (- a21 (* b d)) c)
+                        f (m/sqrt (- a22 (* d d) (* e e)))
+                        g (/ a30 a)
+                        h (/ (- a31 (* b g)) c)
+                        i (/ (- a32 (* d g) (* e h)) f)
+                        j (m/sqrt (- a33 (* g g) (* h h) (* i i)))]
+                    (Mat4x4. a 0.0 0.0 0.0 b c 0.0 0.0 d e f 0.0 g h i j)))))
 
 (defn mat2x2
   "Create 2x2 matrix.
@@ -722,6 +749,16 @@
   "Multiply transposed vector by matrix, C=v^T A"
   [A v] (prot/vtmul A v))
 
+(defn cholesky
+  "Calculate L (lower by default) triangular for where L * L^T = A.
+
+  Checks only for symmetry, can return NaNs when A is not positive-definite."
+  ([A] (prot/cholesky A))
+  ([A upper?]
+   (if upper?
+     (prot/transpose (cholesky A))
+     (cholesky A))))
+
 (defn trace
   "Return trace of the matrix (sum of diagonal elements)"
   ^double [A] (prot/trace A))
@@ -739,8 +776,8 @@
                 (prot/fmap ~v ~wfn))))))
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
-                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech
-                m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
+                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch
+                m/sq m/cb m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
                 m/radians m/degrees m/sinc m/jinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])

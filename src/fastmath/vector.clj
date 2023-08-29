@@ -103,6 +103,7 @@
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/fast+ v))
+   :prod (fn ^double [v] (reduce m/fast* v))
    :permute #(map (fn [idx] (%1 idx)) %2)
    :reciprocal #(map (fn [^double v] (/ v)) %)
    :heading (fn ^double [v] (angle-between v (reduce conj [1.0] (repeatedly (dec (count v)) (constantly 0.0)))))
@@ -142,6 +143,7 @@
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/fast+ v))
+   :prod (fn ^double [v] (reduce m/fast* v))
    :permute #(mapv (fn [idx] (%1 idx)) %2)
    :reciprocal #(mapv (fn [^double v] (/ v)) %)
    :heading #(angle-between % (reduce conj [1.0] (repeatedly (dec (count %)) (constantly 0.0))))
@@ -184,6 +186,7 @@
    :maxdim (fn [^ArrayRealVector v1] (.getMaxIndex v1))
    :mindim (fn [^ArrayRealVector v1] (.getMinIndex v1))
    :sum (fn [^ArrayRealVector v1] (prot/sum (.getDataRef v1)))
+   :prod (fn [^ArrayRealVector v1] (prot/prod (.getDataRef v1)))
    :heading (fn [^ArrayRealVector v1] (prot/heading (.getDataRef v1)))
    :reciprocal (fn [v1] (prot/fmap v1 #(/ ^double %)))
    :interpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 t f]
@@ -242,6 +245,7 @@
    :emx (fn [arr v2] (amap ^doubles arr idx _ret (max (aget ^doubles arr idx) (aget ^doubles v2 idx))))
    :emn (fn [arr v2] (amap ^doubles arr idx _ret (min (aget ^doubles arr idx) (aget ^doubles v2 idx))))
    :sum (fn [arr] (smile.math.MathEx/sum ^doubles arr))
+   :prod (fn [arr] (areduce ^doubles arr idx ret 1.0 (* ret (aget ^doubles arr idx))))
    :heading (fn [arr] (let [v (double-array (alength ^doubles arr) 0.0)]
                        (aset v 0 1.0)
                        (angle-between arr v)))
@@ -252,7 +256,6 @@
    :is-zero? (fn [arr] (aevery arr #(zero? ^double %)))
    :is-near-zero? (fn ([arr] (aevery arr near-zero?))
                     ([arr tol] (aevery arr (partial near-zero? tol))))})
-;; => nil
 
 (defn- vec-id-check
   [^long len id]
@@ -337,6 +340,7 @@
   (emx [_ v2] (ArrayVec. (prot/emx array (.array ^ArrayVec v2))))
   (emn [_ v2] (ArrayVec. (prot/emn array (.array ^ArrayVec v2))))
   (sum [_] (smile.math.MathEx/sum array))
+  (prod [_] (areduce array idx ret 1.0 (* ret (aget array idx))))
   (heading [_] (prot/heading array))
   (reciprocal [_] (ArrayVec. (prot/reciprocal array)))
   (interpolate [_ v2 t f] (ArrayVec. (prot/interpolate array (.array ^ArrayVec v2) t f))) 
@@ -373,6 +377,7 @@
   (maxdim [_] 0)
   (mindim [_] 0)
   (sum [v] v)
+  (prod [v] v)
   (reciprocal [v] (/ (double v)))
   (interpolate [v1 v2 t f] (f v1 v2 t))
   (einterpolate [v1 v2 t f] (f v1 v2 t))
@@ -480,6 +485,7 @@
   (base-from [v]
     [v (prot/perpendicular v)])
   (sum [_] (+ x y))
+  (prod [_] (* x y))
   (permute [p [^long i1 ^long i2]]
     (Vec2. (p i1) (p i2)))
   (reciprocal [_] (Vec2. (/ x) (/ y)))
@@ -612,6 +618,7 @@
                (div (Vec3. 0.0 z (- y)) (m/hypot-sqrt y z)))]
       [v v2 (prot/cross v v2)]))
   (sum [_] (+ x y z))
+  (prod [_] (* x y z))
   (permute [p [^long i1 ^long i2 ^long i3]]
     (Vec3. (p i1) (p i2) (p i3)))
   (reciprocal [_] (Vec3. (/ x) (/ y) (/ z)))
@@ -807,6 +814,7 @@
   (mindim [_]
     (min-key [x y z w] 0 1 2 3))
   (sum [_] (+ x y z w))
+  (prod [_] (* x y z w))
   (permute [p [^long i1 ^long i2 ^long i3 ^long i4]]
     (Vec4. (p i1) (p i2) (p i3) (p i4)))
   (reciprocal [_] (Vec4. (/ x) (/ y) (/ z) (/ w)))
@@ -862,6 +870,11 @@
   "Round to 2 (or `d`) decimal places"
   ([v] (prot/approx v))
   ([v d] (prot/approx v d)))
+
+(defn delta-eq
+  "Equality with given toleance"
+  ([v1 v2 tol] (prot/is-near-zero? (prot/sub v1 v2) tol))
+  ([v1 v2] (prot/is-near-zero? (prot/sub v1 v2))))
 
 (defn magsq
   "Length of the vector squared."
@@ -934,6 +947,10 @@
   "Sum of elements"
   ^double [v] (prot/sum v))
 
+(defn prod
+  "Product of elements"
+  ^double [v] (prot/prod v))
+
 (defn permute
   "Permute vector elements with given indices."
   [v idxs] (prot/permute v idxs))
@@ -946,6 +963,10 @@
   "Interpolate vectors, optionally set interpolation fn (default: lerp)"
   ([v1 v2 t] (prot/interpolate v1 v2 t m/lerp))
   ([v1 v2 t f] (prot/interpolate v1 v2 t f)))
+
+(defn lerp
+  "Linear interpolation of vectors"
+  [v1 v2 t] (prot/interpolate v1 v2 t m/lerp))
 
 (defn einterpolate 
   "Interpolate vector selement-wise, optionally set interpolation fn (default: lerp)"
@@ -1148,7 +1169,7 @@
   [v]
   (let [m (mag v)]
     (if (zero? m)
-      (Vec2. 0.0 0.0)
+      (as-vec v)
       (div v m))))
 
 (defn set-mag
@@ -1269,8 +1290,8 @@
                 (prot/fmap ~v ~wfn))))))
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
-                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/acoth m/asech m/csch
-                m/sq m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
+                m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch
+                m/sq m/cb m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
                 m/radians m/degrees m/sinc m/jinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])

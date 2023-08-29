@@ -16,8 +16,10 @@
 
           fastmath.matrix/gen-mulm hooks.matrix/gen-mulm
 
-          fastmath.vector/primitive-ops hooks.vector/primitive-ops}}
- 
+          fastmath.vector/primitive-ops hooks.vector/primitive-ops
+
+          fastmath.quaternion/gen-from-complex hooks.quaternion/gen-from-complex}}
+
  :config-in-call {fastmath.random/make-ssjc-distr {:ignore [:unresolved-symbol]}
                   fastmath.random/make-ssjc-distr-no-pdf {:ignore [:unresolved-symbol]}
                   fastmath.random/make-ssji-distr {:ignore [:unresolved-symbol]}

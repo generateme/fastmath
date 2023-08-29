@@ -619,7 +619,7 @@
    (let [atwopi (* amount m/M_2_PI)]
      (fn [z]
        (let [z (-> (c/sqrt z)
-                   (c/acosech)
+                   (c/acsch)
                    (c/scale atwopi))]
          (r/randval z (c/neg z)))))))
 

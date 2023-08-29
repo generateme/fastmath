@@ -25,4 +25,5 @@
   (mulv [m v])
   (vtmul [m v])
   (muls [m v])
-  (trace [m]))
+  (trace [m])
+  (cholesky [m]))
