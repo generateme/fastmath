@@ -374,7 +374,8 @@
   (clerk/build! {:browse? false :paths ["notebooks/core.clj"
                                         "notebooks/random.clj"
                                         "notebooks/stats.clj"
-                                        "notebooks/bootstrap.clj"]
+                                        "notebooks/bootstrap.clj"
+                                        "notebooks/complex_quaternion.clj"]
                  :out-path "docs/notebooks/"})
   (clerk/clear-cache!)
   (clerk/halt!))

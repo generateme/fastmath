@@ -16,6 +16,9 @@ Math library.
 * [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random.html)
 * [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats.html)
     * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap.html)
+* [fastmath.complex](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion.html#complex-numbers)
+* [fastmath.quaternion](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion.html#quaternions)
+
 
 ## Installation
 
