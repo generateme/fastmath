@@ -597,7 +597,7 @@
    Constraints are defined as a sequence of one of the following triplets:
 
    * `[a1 a2 a3 ...] R n` - which means `a1*x1+a2*x2+a3*x3+... R n` 
-   * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb] - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
+   * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
    where `R` is a relationship and can be one of `<=`, `>=` or `=` as symbol or keyword. Also `:leq`, `:geq` and `:eq` are valid.
 
   Function returns pair of optimal point and function value. If `stat?` option is set to true, returns also information about number of iterations.  

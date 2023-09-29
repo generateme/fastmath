@@ -804,13 +804,13 @@
 
 ;; Test: ok.</small></code></pre></div><div><blockquote><p>Random ties</p>
 </blockquote><pre><code class="hljs clojure">(rank [3 1 4 1 5 9 2 6 5 3 5] :random)
+;;=&gt; [3 0 5 1 6 10 2 9 8 4 7]
+(rank [3 1 4 1 5 9 2 6 5 3 5] :random)
+;;=&gt; [3 0 5 1 7 10 2 9 6 4 8]
+(rank [3 1 4 1 5 9 2 6 5 3 5] :random)
 ;;=&gt; [4 1 5 0 6 10 2 9 7 3 8]
 (rank [3 1 4 1 5 9 2 6 5 3 5] :random)
-;;=&gt; [4 1 5 0 7 10 2 9 6 3 8]
-(rank [3 1 4 1 5 9 2 6 5 3 5] :random)
-;;=&gt; [3 1 5 0 6 10 2 9 7 4 8]
-(rank [3 1 4 1 5 9 2 6 5 3 5] :random)
-;;=&gt; [3 0 5 1 6 10 2 9 8 4 7]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L1342">view source</a></div></div><div class="public anchor" id="var-rank1"><h3>rank1</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L1377">view source</a></div></div><div class="public anchor" id="var-regularized-beta"><h3>regularized-beta</h3><h4 class="type">macro</h4><div class="usage"><code>(regularized-beta x y z)</code></div><div class="doc"><div class="markdown"><p>Regularized <code>Beta</code>.</p>
+;;=&gt; [3 0 5 1 8 10 2 9 6 4 7]</code></pre></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L1342">view source</a></div></div><div class="public anchor" id="var-rank1"><h3>rank1</h3><div class="usage"></div><div class="doc"><div class="markdown"></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L1377">view source</a></div></div><div class="public anchor" id="var-regularized-beta"><h3>regularized-beta</h3><h4 class="type">macro</h4><div class="usage"><code>(regularized-beta x y z)</code></div><div class="doc"><div class="markdown"><p>Regularized <code>Beta</code>.</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L628">view source</a></div></div><div class="public anchor" id="var-regularized-gamma-p"><h3>regularized-gamma-p</h3><h4 class="type">macro</h4><div class="usage"><code>(regularized-gamma-p x y)</code></div><div class="doc"><div class="markdown"><p>Regularized <code>gamma</code> P</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L604">view source</a></div></div><div class="public anchor" id="var-regularized-gamma-q"><h3>regularized-gamma-q</h3><h4 class="type">macro</h4><div class="usage"><code>(regularized-gamma-q x y)</code></div><div class="doc"><div class="markdown"><p>Regularized <code>gamma</code> Q</p>
 </div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L605">view source</a></div></div><div class="public anchor" id="var-rem"><h3>rem</h3><h4 class="type">macro</h4><div class="usage"><code>(rem x y)</code></div><div class="doc"><div class="markdown"><p>fastmath.java.PrimitiveMath/remainder function wrapped in macro.</p>
@@ -902,7 +902,7 @@
 </blockquote><img src="images/m/sech.png" /></div></div><div class="src-link"><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/core.clj#L358">view source</a></div></div><div class="public anchor" id="var-seq-.3Edouble-array"><h3>seq-&gt;double-array</h3><div class="usage"><code>(seq-&gt;double-array vs)</code></div><div class="doc"><div class="markdown"><p>Convert sequence to double array. Returns input if <code>vs</code> is double array already.</p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Convert</p>
 </blockquote><pre><code class="hljs clojure">(seq-&gt;double-array [1 2 3])
-;;=&gt; [D@70fc098e
+;;=&gt; [D@1ab622a5
 (seq (seq-&gt;double-array [1 2 3]))
 ;;=&gt; (1.0 2.0 3.0)
 (double-array-&gt;seq (seq-&gt;double-array [1 2 3]))
@@ -912,7 +912,7 @@
 <p>If sequence is double-array of double-arrays returns <code>vss</code></p>
 </div></div><div class="markdown"><h4>Examples</h4><div><blockquote><p>Convert</p>
 </blockquote><pre><code class="hljs clojure">(seq-&gt;double-double-array [[1 2] [3 4]])
-;;=&gt; [[D@76f969bf
+;;=&gt; [[D@6cc94852
 (double-double-array-&gt;seq (seq-&gt;double-double-array [[1 2] [3 4]]))
 ;;=&gt; ((1.0 2.0) (3.0 4.0))</code></pre></div><div><blockquote><p>Also works on seq of numbers</p>
 </blockquote><pre><code class="hljs clojure">(seq (second (seq-&gt;double-double-array [1 2 3])))
