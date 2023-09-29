@@ -10,7 +10,9 @@
   * Multidirectional simplex
   * CMAES
   * Gradient
+  * L-BFGS-B
   * Bayesian Optimization (see below)
+  * Linear optimization
 
   All optimizers require bounds.
 
@@ -57,7 +59,9 @@
 
   ## Bayesian Optimization
 
-  Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)"
+  Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
+
+  ## Linear optimization "
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
@@ -67,6 +71,8 @@
   (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
            [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds SimpleValueChecker InitialGuess PointValuePair]
+           [org.apache.commons.math3.optim.linear LinearObjectiveFunction LinearConstraint
+            Relationship LinearConstraintSet SimplexSolver NonNegativeConstraint PivotSelectionRule]
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction MultivariateVectorFunction]
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
            [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
@@ -235,15 +241,16 @@
     (wrap-multivariate-function f)))
 
 (defn- parse-result
-  [^MultivariateFunctionMappingAdapter mfma res]
-  (condp instance? res
-    UnivariatePointValuePair (let [^UnivariatePointValuePair res res]
-                               [(list (.getPoint res)) (.getValue res)])
-    PointValuePair (let [^PointValuePair res res]
-                     [(seq (if mfma
-                             (.unboundedToBounded mfma (.getPointRef res))
-                             (.getPointRef res))) (.getValue res)])
-    res))
+  ([res] (parse-result nil res))
+  ([^MultivariateFunctionMappingAdapter mfma res]
+   (condp instance? res
+     UnivariatePointValuePair (let [^UnivariatePointValuePair res res]
+                                [(list (.getPoint res)) (.getValue res)])
+     PointValuePair (let [^PointValuePair res res]
+                      [(seq (if mfma
+                              (.unboundedToBounded mfma (.getPointRef res))
+                              (.getPointRef res))) (.getValue res)])
+     res)))
 
 (defn- find-dimensions
   ^long [bounds]
@@ -309,6 +316,14 @@
             :iterations (.-k obj)
             :gradient (seq (.m_grad obj))}))))))
 
+(defn- maybe-stats?
+  [stats? ^BaseOptimizer optimizer res]
+  (if-not stats?
+    res
+    {:result res
+     :evaluations (.getEvaluations optimizer)
+     :iterations (.getIterations optimizer)}))
+
 (defn- optimizer
   [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
              :or {gradient-h 0.0001}
@@ -357,15 +372,11 @@
         
         (fn local-optimizer
           ([] (local-optimizer nil))
-          ([init] (let [res (->> (conj base-opt-data (wrap-initial method bounds init mfma))
-                                 (into-array OptimizationData)
-                                 (.optimize optimizer)
-                                 (parse-result mfma))]
-                    (if-not stats?
-                      res
-                      {:result res
-                       :evaluations (.getEvaluations optimizer)
-                       :iterations (.getIterations optimizer)}))))))))
+          ([init] (->> (conj base-opt-data (wrap-initial method bounds init mfma))
+                       (into-array OptimizationData)
+                       (.optimize optimizer)
+                       (parse-result mfma)
+                       (maybe-stats? stats? optimizer))))))))
 
 (defn minimizer
   "Create optimizer which minimizes function.
@@ -374,7 +385,7 @@
   [method f config] (optimizer method f (assoc config :goal :minimize)))
 
 (defn maximizer
-  "Create optimizer which maximizer function.
+  "Create optimizer which maximizes function.
 
   Returns function which performs optimization for optionally given initial point."
   [method f config] (optimizer method f (assoc config :goal :maximize)))
@@ -557,7 +568,77 @@
                             :xs xs
                             :ys ys}))))
 
-;; root finding methods
+;; linear optimization
+
+(defn- constraint-relations
+  ^Relationship [relation]
+  (cond
+    (#{:>= '>= :geq} relation) Relationship/GEQ
+    (#{:<= '<= :leq} relation) Relationship/LEQ
+    :else Relationship/EQ))
+
+(defn- build-constraint
+  ^LinearConstraint [[left relation right]]
+  (let [relationship (constraint-relations relation)]
+    (if (number? right)
+      (LinearConstraint. (m/seq->double-array left) relationship (double right))
+      (LinearConstraint. (m/seq->double-array (butlast left))
+                         (double (last left))
+                         relationship
+                         (m/seq->double-array (butlast right))
+                         (double (last right))))))
+
+(defn linear-optimization
+  "Solves a linear problem.
+
+   Target is defined as a vector of coefficients and constant as the last value:
+   `[a1 a2 a3 ... c]` means `f(x1,x2,x3) = a1*x1 + a2*x2 + a3*x3 + ... +  c`
+
+   Constraints are defined as a sequence of one of the following triplets:
+
+   * `[a1 a2 a3 ...] R n` - which means `a1*x1+a2*x2+a3*x3+... R n` 
+   * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb] - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
+   where `R` is a relationship and can be one of `<=`, `>=` or `=` as symbol or keyword. Also `:leq`, `:geq` and `:eq` are valid.
+
+  Function returns pair of optimal point and function value. If `stat?` option is set to true, returns also information about number of iterations.  
+
+  Possible options:
+  
+  * `:goal` - `:minimize` (default) or `:maximize`
+  * `:rule` - pivot selection rule, `:dantzig` (default) or `:bland`
+  * `:max-iter` - maximum number of iterations, maximum integer by default
+  * `:non-negative?` - allow non-negative variables only, default: `false` 
+  * `:epsilon` - convergence value, default: `1.0e-6`:
+  * `:max-ulps` - floating point comparisons, default: `10` ulp
+  * `:cut-off` - pivot elements smaller than cut-off are treated as zero, default: `1.0e-10`
+
+  ```clojure
+  (linear-optimization [-1 4 0] [[-3 1] :<= 6
+                                 [-1 -2] :>= -4
+                                 [0 1] :>= -3])
+  ;; => [(9.999999999999995 -3.0) -21.999999999999993]
+  ```"
+  ([target constraints] (linear-optimization target constraints {}))
+  ([target constraints {:keys [goal ^double epsilon ^int max-ulps ^double cut-off
+                               rule non-negative? ^int max-iter stats?]
+                        :or {goal :minimize epsilon 1.0e-6 max-ulps 10 cut-off 1.0e-10
+                             rule :dantzig non-negative? false max-iter Integer/MAX_VALUE}}]
+   (let [goal (if (= goal :minimize) GoalType/MINIMIZE GoalType/MAXIMIZE)
+         rule (if (= rule :dantzig) PivotSelectionRule/DANTZIG PivotSelectionRule/BLAND)
+         max-iter (MaxIter. max-iter)
+         non-negative? (NonNegativeConstraint. non-negative?)
+         target (LinearObjectiveFunction. (m/seq->double-array (butlast target))
+                                          (double (last target)))
+         constraints (->> constraints
+                          (partition 3)
+                          ^java.util.Collection (map build-constraint)
+                          (LinearConstraintSet.))
+         ^BaseOptimizer solver (SimplexSolver. epsilon max-ulps cut-off)]
+     (->> [goal rule max-iter non-negative? target constraints]
+          (into-array OptimizationData)
+          (.optimize solver)
+          (parse-result nil)
+          (maybe-stats? stats? solver)))))
 
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))

@@ -168,7 +168,7 @@ Various clustering algorithms including K-Means++, DBSCAN, CLARANS, DENCLUE, MEC
 
 ### Optimization
 
-L-BFGS-B, Gradient, Nelder-Mead, Simplex, Powell, BOBYQA, CMAES, BayesianOptimizer
+L-BFGS-B, Gradient, Nelder-Mead, Simplex, Powell, BOBYQA, CMAES, BayesianOptimizer, Linear optimizer
 
 ### Grids
 

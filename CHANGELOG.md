@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.quaternion` namespace
 * Cholesky decomposition for fixed size matrices
 * `negative-zero?` tests for `-0.0` value
+* `linear-optimizer` - linear optimization
 
 ### Changed
 
