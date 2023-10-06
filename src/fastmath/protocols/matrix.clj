@@ -26,4 +26,5 @@
   (vtmul [m v])
   (muls [m v])
   (trace [m])
-  (cholesky [m]))
+  (cholesky [m])
+  (norm [m t]))

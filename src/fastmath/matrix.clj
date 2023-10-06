@@ -4,7 +4,7 @@
             [fastmath.core :as m]
             [fastmath.protocols.matrix :as prot])
   (:import [clojure.lang Counted IFn IPersistentCollection Seqable Reversible ILookup]
-           [org.apache.commons.math3.linear Array2DRowRealMatrix ArrayRealVector]
+           [org.apache.commons.math3.linear Array2DRowRealMatrix ArrayRealVector EigenDecomposition]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
 (set! *warn-on-reflection* true)
@@ -71,7 +71,7 @@
 (deftype Mat2x2 [^double a00 ^double a01
                  ^double a10 ^double a11]
   Object
-  (toString [_] (str "#mat2x2 [[" a00 ", " a01 "] [" a10 ", " a11 "]]"))
+  (toString [_] (str "#mat2x2 [[" a00 ", " a01 "]\n         [" a10 ", " a11 "]]"))
   (equals [_ m]
     (and (instance? Mat2x2 m)
          (let [^Mat2x2 m m]
@@ -174,13 +174,25 @@
                   (let [a (m/sqrt a00)
                         b (/ a10 a)
                         c (m/sqrt (- a11 (* b b)))]
-                    (Mat2x2. a 0.0 b c)))))
+                    (Mat2x2. a 0.0 b c))))
+  (norm [m t] (if (sequential? t)
+                (let [[^double p ^double q] t
+                      qp (/ q p)]
+                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)) qp)) (/ q)))
+                (condp = t
+                  :inf (m/max (+ (m/abs a00) (m/abs a01))
+                              (+ (m/abs a10) (m/abs a11)))
+                  :max (m/max (m/abs a00) (m/abs a01)
+                              (m/abs a10) (m/abs a11))
+                  (m/max (+ (m/abs a00) (m/abs a10))
+                         (+ (m/abs a01) (m/abs a11)))))))
 
 (deftype Mat3x3 [^double a00 ^double a01 ^double a02
                  ^double a10 ^double a11 ^double a12
                  ^double a20 ^double a21 ^double a22]
   Object
-  (toString [_] (str "#mat3x3 [[" a00 ", " a01 ", " a02  "] [" a10 ", " a11 ", " a12 "] [" a20 ", " a21 ", " a22 "]]"))
+  (toString [_] (str "#mat3x3 [[" a00 ", " a01 ", " a02  "]\n         [" a10 ", " a11 ", " a12 "]\n         [" a20 ", " a21 ", " a22 "]]"))
   (equals [_ m]
     (and (instance? Mat3x3 m)
          (let [^Mat3x3 m m]
@@ -308,14 +320,31 @@
                         d (/ a20 a)
                         e (/ (- a21 (* b d)) c)
                         f (m/sqrt (- a22 (* d d) (* e e)))]
-                    (Mat3x3. a 0.0 0.0 b c 0.0 d e f)))))
+                    (Mat3x3. a 0.0 0.0 b c 0.0 d e f))))
+  (norm [_ t] (if (sequential? t)
+                (let [[^double p ^double q] t
+                      qp (/ q p)]
+                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p) (m/pow (m/abs a20) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p) (m/pow (m/abs a21) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p) (m/pow (m/abs a22) p)) qp))
+                         (/ q)))
+                (condp = t
+                  :inf (m/max (+ (m/abs a00) (m/abs a01) (m/abs a02))
+                              (+ (m/abs a10) (m/abs a11) (m/abs a12))
+                              (+ (m/abs a20) (m/abs a21) (m/abs a22)))
+                  :max (m/max (m/abs a00) (m/abs a01) (m/abs a02)
+                              (m/abs a10) (m/abs a11) (m/abs a12)
+                              (m/abs a20) (m/abs a21) (m/abs a22))
+                  (m/max (+ (m/abs a00) (m/abs a10) (m/abs a20))
+                         (+ (m/abs a01) (m/abs a11) (m/abs a21))
+                         (+ (m/abs a02) (m/abs a12) (m/abs a22)))))))
 
 (deftype Mat4x4 [^double a00 ^double a01 ^double a02 ^double a03
                  ^double a10 ^double a11 ^double a12 ^double a13
                  ^double a20 ^double a21 ^double a22 ^double a23
                  ^double a30 ^double a31 ^double a32 ^double a33]
   Object
-  (toString [_] (str "#mat4x4 [[" a00 ", " a01 ", " a02 ", " a03 "] [" a10 ", " a11 ", " a12 ", " a13 "] [" a20 ", " a21 ", " a22 ", " a23 "] [" a30 ", " a31 ", " a32 ", " a33 "]]"))
+  (toString [_] (str "#mat4x4 [[" a00 ", " a01 ", " a02 ", " a03 "]\n         [" a10 ", " a11 ", " a12 ", " a13 "]\n         [" a20 ", " a21 ", " a22 ", " a23 "]\n         [" a30 ", " a31 ", " a32 ", " a33 "]]"))
   (equals [_ m]
     (and (instance? Mat4x4 m)
          (let [^Mat4x4 m m]
@@ -482,7 +511,32 @@
                         h (/ (- a31 (* b g)) c)
                         i (/ (- a32 (* d g) (* e h)) f)
                         j (m/sqrt (- a33 (* g g) (* h h) (* i i)))]
-                    (Mat4x4. a 0.0 0.0 0.0 b c 0.0 0.0 d e f 0.0 g h i j)))))
+                    (Mat4x4. a 0.0 0.0 0.0 b c 0.0 0.0 d e f 0.0 g h i j))))
+  (norm [_ t] (if (sequential? t)
+                (let [[^double p ^double q] t
+                      qp (/ q p)]
+                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)
+                                      (m/pow (m/abs a20) p) (m/pow (m/abs a30) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)
+                                      (m/pow (m/abs a21) p) (m/pow (m/abs a31) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p)
+                                      (m/pow (m/abs a22) p) (m/pow (m/abs a32) p)) qp)
+                            (m/pow (+ (m/pow (m/abs a03) p) (m/pow (m/abs a13) p)
+                                      (m/pow (m/abs a23) p) (m/pow (m/abs a33) p)) qp))
+                         (/ q)))
+                (condp = t
+                  :inf (m/max (+ (m/abs a00) (m/abs a01) (m/abs a02) (m/abs a03))
+                              (+ (m/abs a10) (m/abs a11) (m/abs a12) (m/abs a13))
+                              (+ (m/abs a20) (m/abs a21) (m/abs a22) (m/abs a23))
+                              (+ (m/abs a30) (m/abs a31) (m/abs a32) (m/abs a33)))
+                  :max (m/max (m/abs a00) (m/abs a01) (m/abs a02) (m/abs a03)
+                              (m/abs a10) (m/abs a11) (m/abs a12) (m/abs a13)
+                              (m/abs a20) (m/abs a21) (m/abs a22) (m/abs a23)
+                              (m/abs a30) (m/abs a31) (m/abs a32) (m/abs a33))
+                  (m/max (+ (m/abs a00) (m/abs a10) (m/abs a20) (m/abs a30))
+                         (+ (m/abs a01) (m/abs a11) (m/abs a21) (m/abs a31))
+                         (+ (m/abs a02) (m/abs a12) (m/abs a22) (m/abs a32))
+                         (+ (m/abs a03) (m/abs a13) (m/abs a23) (m/abs a33)))))))
 
 (defn mat2x2
   "Create 2x2 matrix.
@@ -568,7 +622,45 @@
            [^double a03 ^double a13 ^double a23 ^double a33]]
   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
 
-(def eye
+(defn mat
+  "Create mat2x2, mat3x3 or mat4x4"
+  ([^double a00 ^double a01 ^double a10 ^double a11] (Mat2x2. a00 a01 a10 a11))
+  ([a00 a01 a02 a10 a11 a12 a20 a21 a22] (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
+  ([a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33]
+   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
+
+(defn rows->mat
+  "Create nxn matrix from nd vectors (rows)."
+  ([[^double a00 ^double a01]
+    [^double a10 ^double a11]]
+   (Mat2x2. a00 a01 a10 a11))
+  ([[^double a00 ^double a01 ^double a02]
+    [^double a10 ^double a11 ^double a12]
+    [^double a20 ^double a21 ^double a22]]
+   (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
+  ([[^double a00 ^double a01 ^double a02 ^double a03]
+    [^double a10 ^double a11 ^double a12 ^double a13]
+    [^double a20 ^double a21 ^double a22 ^double a23]
+    [^double a30 ^double a31 ^double a32 ^double a33]]
+   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
+
+(defn cols->mat
+  "Create nxn matrix from nd vectors (columns)."
+  ([[^double a00 ^double a10]
+    [^double a01 ^double a11]]
+   (Mat2x2. a00 a01 a10 a11))
+  ([[^double a00 ^double a10 ^double a20]
+    [^double a01 ^double a11 ^double a21]
+    [^double a02 ^double a12 ^double a22]]
+   (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
+  ([[^double a00 ^double a10 ^double a20 ^double a30]
+    [^double a01 ^double a11 ^double a21 ^double a31]
+    [^double a02 ^double a12 ^double a22 ^double a32]
+    [^double a03 ^double a13 ^double a23 ^double a33]]
+   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
+
+
+(def ^{:docs "Identity matrix for given size"} eye
   [nil 1.0
    (Mat2x2. 1.0 0.0 0.0 1.0)
    (Mat3x3. 1.0 0.0 0.0
@@ -579,7 +671,7 @@
             0.0 0.0 1.0 0.0
             0.0 0.0 0.0 1.0)])
 
-(def zero
+(def ^{:docs "Zero matrix for given size"} zero
   [nil 0.0
    (mat2x2 0.0)
    (mat3x3 0.0)
@@ -587,12 +679,14 @@
 
 (defn diagonal
   "Create diagonal matrix"
-  [diag]
-  (case (count diag)
-    1 (first diag)
-    2 (apply mat2x2 diag)
-    3 (apply mat3x3 diag)
-    4 (apply mat4x4 diag)))
+  ([v] (case (count v)
+         1 (first v)
+         2 (apply mat2x2 v)
+         3 (apply mat3x3 v)
+         4 (apply mat4x4 v)))
+  ([^double a11 ^double a22] (mat2x2 a11 a22))
+  ([^double a11 ^double a22 ^double a33] (mat3x3 a11 a22 a33))
+  ([^double a11 ^double a22 ^double a33 ^double a44] (mat4x4 a11 a22 a33 a44)))
 
 (defn solve
   "Solve linear equation Ax=b"
@@ -659,11 +753,11 @@
 
 (defn nrow
   "Return number of rows"
-  [A] (prot/nrow A))
+  ^long [A] (prot/nrow A))
 
 (defn ncol
   "Return number of rows"
-  [A] (prot/ncol A))
+  ^long [A] (prot/ncol A))
 
 (defn row
   "Return row as a vector"
@@ -762,6 +856,88 @@
 (defn trace
   "Return trace of the matrix (sum of diagonal elements)"
   ^double [A] (prot/trace A))
+
+(defn eigenvalues
+  "Return complex eigenvalues for given matrix as a sequence"
+  [A]
+  (let [^EigenDecomposition m (-> A mat->RealMatrix (EigenDecomposition.))
+        re (.getRealEigenvalues m)
+        im (.getImagEigenvalues m)]
+    (mapv v/vec2 re im)))
+
+(defn singular-values
+  "Returun singular values of the matrix as sqrt of eigenvalues of A^T * A matrix."
+  [A]
+  (->> (mulm A true A false)
+       (eigenvalues)
+       (map first)
+       (map (fn [^double x] (m/sqrt x)))))
+
+(defn eigenvalues-matrix
+  "Return eigenvalues for given matrix as a diagonal or block diagonal matrix"
+  [A]
+  (->> (mat->RealMatrix A)
+       (EigenDecomposition.)
+       ^Array2DRowRealMatrix (.getD)
+       (.getData)
+       (m/double-double-array->seq)
+       (apply rows->mat)))
+
+(defn normalize
+  "Normalize columns (or rows)"
+  ([A] (normalize A false))
+  ([A rows?]
+   (if rows?
+     (->> (rows A)
+          (map v/normalize)
+          (apply rows->mat))
+     (->> (cols A)
+          (map v/normalize)
+          (apply cols->mat)))))
+
+(defn eigenvectors
+  "Return eigenvectors as a matrix (columns). Vectors can be normalized."
+  ([A] (eigenvectors A false))
+  ([A normalize?]
+   (let [evs (->> (mat->RealMatrix A)
+                  (EigenDecomposition.)
+                  ^Array2DRowRealMatrix (.getV)
+                  (.getData)
+                  (m/double-double-array->seq)
+                  (apply rows->mat))]
+     (if normalize? (normalize evs) evs))))
+
+;;
+
+(defn norm
+  "Calculate norm of the matrix for given type, default: 1 (maximum absolute column sum).
+
+  All norm types are:
+  * 1 - maximum absolute column sum
+  * :inf -  maximum absolute row sum
+  * 2 - spectral norm, maximum singular value
+  * :max - maximum absolute value
+  * :frobenius - Frobenius norm
+  * [p,q] - generalized L_pq norm, [2,2] - Frobenius norm, [p,p] - entrywise p-norm
+  * [p] - Shatten p-norm, [1] - nuclear/trace norm"
+  (^double [A] (norm A 1))
+  (^double [A norm-type]
+   (cond
+     (= norm-type :frobenius) (prot/norm A [2 2])
+     (= norm-type 2) (reduce m/fast-max (singular-values A))
+     (and (sequential? norm-type)
+          (= 1 (count norm-type))) (let [^double p (first norm-type)]
+                                     (m/pow (->> (singular-values A)
+                                                 (map (fn [^double s] (m/pow s p)))
+                                                 (reduce m/fast+)) (/ p)))
+     :else (prot/norm A norm-type))))
+
+(defn condition
+  "Condition number calculated for L2 norm by default (see [[norm]] for other norm types).
+
+   Cond(A) = norm(A) * norm(inv(A))"
+  (^double [A] (condition A 2))
+  (^double [A norm-type] (* (norm A norm-type) (norm (inverse A) norm-type))))
 
 (defmacro ^:private primitive-ops
   "Generate primitive functions operating on vectors"

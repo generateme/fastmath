@@ -13,8 +13,12 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.solver/quadratic` solver of quadratic equation ax^2+bx+c=0
 * `fastmath.quaternion` namespace
 * Cholesky decomposition for fixed size matrices
+* Eigenvectors and eigenvalues for matrices
 * `negative-zero?` tests for `-0.0` value
 * `linear-optimizer` - linear optimization
+* `mat`, `rows->mat` and `cols->mat` - additional matrix creators
+* `norm` - various matrix norms (0, 1, Inf, max, generalized L_pq, Shatten p-norm, Frobenius)
+* `condition` - condition number of the matrix
 
 ### Changed
 
@@ -22,7 +26,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
-* `matrix` object name in printing
+* `matrix` object name in printing, indentation
 * speed of element matrix accessing is improved
 * eastwood boxed math and reflection warnings (removed problematic macros, shadowing global vars, etc.)
 * ensuring working with Clojure 1.10.3
