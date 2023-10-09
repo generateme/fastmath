@@ -41,7 +41,8 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma]))
+           [org.apache.commons.math3.special Gamma])
+  (:require [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -1187,6 +1188,46 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
             (floor)
             (* cycle)
             (- value))))))
+
+;;
+
+(defn- scale-xs
+  [xs ^double alpha]
+  (map (fn [^double x] (* x alpha)) xs))
+
+(defn- smooth-max-boltzmann
+  ^double [xs ^double alpha]
+  (let [eaxs (map (fn [^double x] (FastMath/exp (* alpha x))) xs)
+        den (reduce fast+ eaxs)]
+    (reduce fast+ (map (fn [^double x ^double eax]
+                         (/ (* x eax) den)) xs eaxs))))
+
+(defn smooth-max
+  "Smooth maximum function.
+
+  A smooth function with `alpha` argument. When `alpha` goes to infinity, function returns maximum value of `xs`.
+
+  Family:
+
+  * `:lse` - LogSumExp (default)
+  * `:boltzmann` - Boltzmann operator, works for small alpha values
+  * `:mellowmax`
+  * `:p-norm`
+  * `:smu` - smooth maximum unit, epsilon = 1/alpha > 0"
+  (^double [xs] (smooth-max xs 1.0))
+  (^double [xs ^double alpha] (smooth-max xs alpha :lse))
+  (^double [xs ^double alpha family]
+   (case family
+     :boltzmann (smooth-max-boltzmann xs alpha)
+     :lse (/ (logsumexp (scale-xs xs alpha)) alpha)
+     :mellowmax (/ (- (logsumexp (scale-xs xs alpha))
+                      (log (count xs))) alpha)
+     :p-norm (pow (reduce fast+ (map (fn [^double x]
+                                       (pow (abs x) alpha)) xs)) (/ alpha))
+     :smu (let [epsilon (/ alpha)]
+            (reduce (fn [^double a ^double b]
+                      (* 0.5 (+ a b (sqrt (+ (sq (- a b))
+                                             epsilon))))) xs)))))
 
 ;;
 

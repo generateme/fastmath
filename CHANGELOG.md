@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file. This change
 * `mat`, `rows->mat` and `cols->mat` - additional matrix creators
 * `norm` - various matrix norms (0, 1, Inf, max, generalized L_pq, Shatten p-norm, Frobenius)
 * `condition` - condition number of the matrix
+* `smooth-maximum` - boltzmann operator, lse, smu, p-norm, mellowmax
 
 ### Changed
 

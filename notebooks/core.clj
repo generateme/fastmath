@@ -261,7 +261,7 @@
  (m/copy-sign 1.0 -1.0)
  (m/copy-sign -1.0 -1.0))
 
-;; ### Other
+;; ### min,max,abs
 
 ^{::clerk/visibility :hide}
 (u/table
@@ -272,10 +272,53 @@
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (m/abs -1.0)
- (m/iabs -1)
- (m/max 1 2 3 4.0)
- (m/min 1 2 3 4.0))
+  (m/abs -1.0)
+  (m/iabs -1)
+  (m/max 1 2 3 4.0)
+  (m/min 1 2 3 4.0))
+
+;; #### Smooth maximum
+
+;; A [smooth maximum](https://en.wikipedia.org/wiki/Smooth_maximum) is a function with parameter $\alpha$ which is a `max` function when $\alpha\to\infty$
+
+;; Arguments are:
+;;
+;; * `xs` - seq of values
+;; * `alpha` - smooth maximum parameter
+;; * `family` - family of smooth maximum functions
+;;    * `:lse` - LogSumExp
+;;    * `:boltzmann` - Boltzmann operator
+;;    * `:mellowmax`
+;;    * `:p-norm`
+;;    * `:smu` - Smooth Maximum Unit, $\varepsilon = \frac{1}{\alpha}$
+
+;; Smooth minimum can is defined for negative $\alpha$ and for `:lse`, `:boltzmann` and `:mellowmax` families.
+
+^{::clerk/visibility :hide}
+(u/table
+ [[smooth-max false "Smooth maximum"]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+
+  (m/smooth-max [-0.5 0.5 1 2] 5.0 :lse)
+  (m/smooth-max [-0.5 0.5 1 2] -5.0 :lse)
+  (m/smooth-max [-0.5 0.5 1 2] 5.0 :boltzmann)
+  (m/smooth-max [-0.5 0.5 1 2] -5.0 :boltzmann)
+  (m/smooth-max [-0.5 0.5 1 2] 15.0 :mellowmax)
+  (m/smooth-max [-0.5 0.5 1 2] -15.0 :mellowmax)
+  (m/smooth-max [-0.5 0.5 1 2] 5.0 :p-norm)
+  (m/smooth-max [-0.5 0.5 1 2] 5.0 :smu))
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+(let [sm (fn [family ^double alpha] (m/smooth-max [-0.5 0.5 1 2] alpha family))]
+  [[:lse :boltzmann :mellowmax]
+   [(u/fgraph (partial sm :lse) [-3 3] [-4 4])
+    (u/fgraph (partial sm :boltzmann) [-3 3] [-4 4])
+    (u/fgraph (partial sm :mellowmax) [-3 3] [-4 4])]
+   [:p-norm :smu]
+   [(u/fgraph (partial sm :p-norm) [-3 3] [-4 4])
+    (u/fgraph (partial sm :smu) [-3 3] [-4 4])]])
 
 ;; ### Primitive ops as functions
 

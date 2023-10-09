@@ -12,12 +12,12 @@ Math library.
 
 [Index](https://generateme.github.io/fastmath/notebooks/)
 
-* [fastmath.core](https://generateme.github.io/fastmath/notebooks/notebooks/core.html)
-* [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random.html)
-* [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats.html)
-    * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap.html)
-* [fastmath.complex](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion.html#complex-numbers)
-* [fastmath.quaternion](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion.html#quaternions)
+* [fastmath.core](https://generateme.github.io/fastmath/notebooks/notebooks/core/)
+* [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random/)
+* [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats/)
+    * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap/)
+* [fastmath.complex](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#complex-numbers)
+* [fastmath.quaternion](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#quaternions)
 
 
 ## Installation

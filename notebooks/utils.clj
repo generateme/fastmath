@@ -364,8 +364,6 @@
 (def mtcars (data->fn (read-csv "mtcars.csv"
                               [[:name identity] :mpg :cyl :disp :hp :drat :wt :qsec :vs :am :gear :carb])))
 
-^{::clerk/visibility :hide
-  ::clerk/viewer :hide-result}
 (comment
   (clerk/serve! {:browse? false :watch-paths ["notebooks"]})
   (clerk/serve! {:browse? false})
