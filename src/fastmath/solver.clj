@@ -54,13 +54,13 @@
     (when-not (zero? b)
       (let [r (m/- (m// c b))]
         (Vec2. r r)))
-    (let [discrim (m/difference-of-products b b (* 4.0 a) c)]
+    (let [discrim (m/difference-of-products b b (m/* 4.0 a) c)]
       (when-not (neg? discrim)
         (let [discrim-root (m/sqrt discrim)
               q (m/* -0.5 (m/+ b (m/copy-sign discrim-root b)))
               r0 (m// q a)
               r1 (m// c q)]
-          (if (< r0 r1)
+          (if (m/< r0 r1)
             (Vec2. r0 r1)
             (Vec2. r1 r0)))))))
 

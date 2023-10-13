@@ -464,9 +464,9 @@ Returns true or false with equal probability. You can set `p` probability for `t
 (defn- random-generators
   "Random generators"
   [seq-generator ^long dimensions]
-  (let [g (case seq-generator
-            :default drand
-            :gaussian grand)]
+  (let [g (if (= seq-generator :gaussian)
+            grand
+            drand)]
     (repeatedly (case dimensions
                   1 g
                   2 (partial v/generate-vec2 g)
@@ -497,7 +497,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 Values:
 
-* `:r2`, `:halton`, `:sobol`, `:default` - range `[0-1] for each dimension`
+* `:r2`, `:halton`, `:sobol`, `:default`/`:uniform` - range `[0-1] for each dimension`
 * `:gaussian` - from `N(0,1)` distribution
 * `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)
 * `:ball` - from an unit ball
@@ -516,6 +516,7 @@ See also [[jittered-sequence-generator]]."}
 (defmethod sequence-generator :r2 [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :sphere [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :gaussian [seq-generator dimensions] (random-generators seq-generator dimensions))
+
 (defmethod sequence-generator :default [seq-generator dimensions] (random-generators seq-generator dimensions))
 (defmethod sequence-generator :ball [_ dimensions] (repeatedly (partial ball-random dimensions)))
 
