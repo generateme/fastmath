@@ -41,8 +41,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma])
-  (:require [fastmath.core :as m]))
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -1198,7 +1197,7 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 (defn- smooth-max-boltzmann
   ^double [xs ^double alpha]
   (let [eaxs (map (fn [^double x] (FastMath/exp (* alpha x))) xs)
-        den (reduce fast+ eaxs)]
+        ^double den (reduce fast+ eaxs)]
     (reduce fast+ (map (fn [^double x ^double eax]
                          (/ (* x eax) den)) xs eaxs))))
 

@@ -441,17 +441,18 @@ Returns true or false with equal probability. You can set `p` probability for `t
 (defn- rv-generators
   "Generators from commons math and custom classes."
   [seq-generator ^long dimensions]
-  (let [s (case seq-generator
-            :halton (m/constrain dimensions 1 40)
-            :sobol (m/constrain dimensions 1 1000)
-            :r2 (m/constrain dimensions 1 15)
-            dimensions)
-        ^RandomVectorGenerator g (case seq-generator
-                                   :halton (HaltonSequenceGenerator. s)
-                                   :sobol (SobolSequenceGenerator. s)
-                                   :sphere (UnitSphereRandomVectorGenerator. s)
-                                   :r2 (R2. s))]
-    (repeatedly (case s
+  (assert (case seq-generator
+            :halton (m/<= 1 dimensions 40)
+            :sobol (m/<= 1 dimensions 1000)
+            :r2 (m/<= 1 dimensions 15)
+            true) (str "Number of dimensions for " seq-generator " should be less or equal than "
+                       ({:halton 40 :sobol 1000 :r2 15} seq-generator)))
+  (let [^RandomVectorGenerator g (case seq-generator
+                                   :halton (HaltonSequenceGenerator. dimensions)
+                                   :sobol (SobolSequenceGenerator. dimensions)
+                                   :sphere (UnitSphereRandomVectorGenerator. dimensions)
+                                   :r2 (R2. dimensions))]
+    (repeatedly (case dimensions
                   1 #(aget (.nextVector g) 0)
                   2 #(v/array->vec2 (.nextVector g))
                   3 #(v/array->vec3 (.nextVector g))

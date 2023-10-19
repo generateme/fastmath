@@ -19,7 +19,8 @@
                  [de.sciss/jwave "1.0.3"]
                  [ca.umontreal.iro.simul/ssj "3.3.1"]
 
-                 [org.clojure/data.int-map "1.2.1"]]
+                 [org.clojure/data.int-map "1.2.1"]
+                 [org.clojure/math.combinatorics "0.2.0"]]
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src" "LBFGSBJava/src"]
