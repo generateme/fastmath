@@ -101,13 +101,20 @@ Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafam
 
 With typical basic matrix operations
 
-### Complex number functions
+### Complex and Quaternion number functions
 
 * primitive operations: mult, div, add, sub
 * abs, arg, conjugate, reciprocal, neg
 * atan, asin, acos, csc, sec, tanh, tan, sinh, sin, cosh, cos
 * log, exp, pow
 * sqrt, sq, sqrt1z
+
+### Integration, differentiations and solvers
+
+* Integration: VEGAS/VEGAS+ Monte Carlo, h-adaptive Cubature, h-adaptive Gauss-Kronrod (QuadGK), Simpson, Romberg, Trapezoid, Gauss-Legendre, Midpoint
+* Derivatives - any degree and order of accuracy
+* Gradient and Hessian for multivariate functions
+* Solvers (root finding): brent, bisection, illinois, muller, muller2, pegasus, regula-falsi, ridders, secant
 
 ### Random numbers
 

@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file. This change
 * `norm` - various matrix norms (0, 1, Inf, max, generalized L_pq, Shatten p-norm, Frobenius)
 * `condition` - condition number of the matrix
 * `smooth-maximum` - boltzmann operator, lse, smu, p-norm, mellowmax
+* `fastmath.calculus` - integration (VEGAS+ MC, h-adaptive Cubature and Gauss-Kronrod, ACM wrappers) and differentiations: derivative, gradient and hessian.
 
 ### Changed
 
