@@ -1,4 +1,19 @@
 (ns fastmath.calculus
+  "Integration and derivatives
+
+  Integrate univariate and multivariate functions.
+
+  * VEGAS / VEGAS+ - Monte Carlo integration of multivariate function
+  * h-Cubature - h-adaptive integration of multivariate function
+  * Guass-Kronrod and Gauss-Legendre - quadrature integration of univariate functions
+  * Romberg, Simpson, MidPoint and Trapezoid
+
+  Integrant is substituted in case of improper integration bounds.
+
+  Derivatives (finite differences method):
+
+  * derivatives of any degree and any order of accuracy
+  * gradient and hessian for multivariate functions"
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
@@ -453,7 +468,7 @@
                            (m/* 2 n (m/dec n))
                            (m/<< 1 n)))}))
 
-(def genz-malik (memoize genz-malik-))
+(def ^:private genz-malik (memoize genz-malik-))
 
 (defrecord CubatureBox [a b ^double I ^double E ^long kdiv])
 
@@ -539,7 +554,7 @@
             [(m/+ I (.I b))
              (m/+ E (.E b))]) [0.0 0.0] boxes))
 
-(defn split-box
+(defn- split-box
   [^CubatureBox box]
   (let [split-id (.kdiv box)
         a (.a box)
@@ -750,7 +765,7 @@
                     0.0)) (range 1 (inc (m/* 2 n))))]
     (kronrodjacobi b n)))
 
-(def kronrod (memoize kronrod-))
+(def ^:private kronrod (memoize kronrod-))
 
 (defrecord QuadGKSegment [^Vec2 ab ^double I ^double E])
 
