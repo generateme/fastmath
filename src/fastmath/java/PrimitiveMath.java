@@ -31,8 +31,10 @@ public final class PrimitiveMath {
     public static int unsignedShiftRight(int a, long n) { return a >>> n; }
 
     public static long bitAnd(long a, long b) { return a & b; }
+    public static long bitNand(long a, long b) { return ~(a & b); }
     public static long bitAndNot(long a, long b) { return a & ~b; }
     public static long bitOr(long a, long b) { return a | b; }
+    public static long bitNor(long a, long b) { return ~(a | b); }
     public static long bitXor(long a, long b) { return a ^ b; }
     public static long bitNot(long a) { return ~a; }
 

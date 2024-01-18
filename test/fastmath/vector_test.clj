@@ -1,9 +1,8 @@
 (ns fastmath.vector-test
-  (:refer-clojure :exclude [abs])
+  (:refer-clojure :exclude [abs zero?])
   (:require [fastmath.vector :refer :all]
             [fastmath.core :as m]
-            [clojure.test :refer :all]
-            [fastmath.vector :as v]))
+            [clojure.test :refer :all]))
 
 ;; test protocol
 
@@ -237,7 +236,7 @@
     (is (= :ioobe (exception? (v cnt))))))
 
 (deftest clojure-contract-vecs
-  (clojure-contract-vec-tests v/array-vec [1.0 2.0 3.0 4.0 5.0 6.0])
-  (clojure-contract-vec-tests (partial apply v/vec2) [1.0 2.0])
-  (clojure-contract-vec-tests (partial apply v/vec3) [1.0 2.0 3.0])
-  (clojure-contract-vec-tests (partial apply v/vec4) [1.0 2.0 3.0 4.0]))
+  (clojure-contract-vec-tests array-vec [1.0 2.0 3.0 4.0 5.0 6.0])
+  (clojure-contract-vec-tests (partial apply vec2) [1.0 2.0])
+  (clojure-contract-vec-tests (partial apply vec3) [1.0 2.0 3.0])
+  (clojure-contract-vec-tests (partial apply vec4) [1.0 2.0 3.0 4.0]))

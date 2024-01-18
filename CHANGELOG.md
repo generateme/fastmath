@@ -1,6 +1,18 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.3.0]
+
+### Added
+
+* Apache Commons Math `RealMatrix` and double[][] matrix interfaces
+* `vec->array` converts any vector to double array
+* Rotation matrix, quaternions, vectors consistency
+
+### Changed
+
+* `SMILE` deps updated
+
 ## [2.2.2-SNAPSHOT]
 
 ### Added
@@ -20,7 +32,7 @@ All notable changes to this project will be documented in this file. This change
 * `norm` - various matrix norms (0, 1, Inf, max, generalized L_pq, Shatten p-norm, Frobenius)
 * `condition` - condition number of the matrix
 * `smooth-maximum` - boltzmann operator, lse, smu, p-norm, mellowmax
-* `fastmath.calculus` - integration (VEGAS+ MC, h-adaptive Cubature and Gauss-Kronrod, ACM wrappers) and differentiations: derivative, gradient and hessian.
+* `fastmath.calculus` - integration (VEGAS+ MC, h-adaptive Cubature and Gauss-Kronrod, ACM wrappers) and differentiations: derivative, gradient and hessian + Richardson extrapolation
 
 ### Changed
 

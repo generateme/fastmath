@@ -42,7 +42,7 @@
   * `IReduce` and `IReduceInit`
 
   That means that vectors can be destructured, treated as sequence or called as a function. See [[vec2]] for examples."
-  (:refer-clojure :exclude [abs])
+  (:refer-clojure :exclude [abs zero?])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
@@ -52,7 +52,7 @@
            [org.apache.commons.math3.analysis UnivariateFunction]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators #{'abs})
+(m/use-primitive-operators #{'abs 'zero?})
 
 ;; ## Vector definitions
 
@@ -68,17 +68,11 @@
        [curr (inc curr) %2]
        [midx (inc curr) v])))
 
-(defn- near-zero?
-  "Is your value less than `tol` or `1.0e-6`"
-  ([^double tol ^double v]
-   (< (m/abs v) tol))
-  ([^double v]
-   (< (m/abs v) 1.0e-6)))
-
 ;; Add `VectorProto` to Clojure vector using map/reduce terms.
 (extend ISeq
   prot/VectorProto
-  {:to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
+  {:to-double-array #(m/seq->double-array %)
+   :to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
    :to-vec #(apply vector-of :double %1)
    :as-vec (fn
              ([v xs] (take (count v) xs))
@@ -110,15 +104,13 @@
    :interpolate (fn [v1 v2 t f] (map #(f %1 %2 t) v1 v2))
    :einterpolate (fn [v1 v2 v f] (map #(f %1 %2 %3) v1 v2 v))
    :econstrain (fn [v val1 val2] (map #(m/constrain ^double %1 ^double val1 ^double val2) v))
-   :is-zero? #(every? clojure.core/zero? %)
-   :is-near-zero? (fn
-                    ([v] (every? near-zero? v))
-                    ([v tol] (every? (partial near-zero? tol) v)))})
+   :is-zero? #(every? clojure.core/zero? %)})
 
 ;; Add `VectorProto` to Clojure vector using mapv/reduce terms.
 (extend IPersistentVector
   prot/VectorProto
-  {:to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
+  {:to-double-array #(m/seq->double-array %)
+   :to-acm-vec #(ArrayRealVector. (m/seq->double-array %))
    :to-vec #(apply vector-of :double %1)
    :as-vec (fn
              ([v xs] (vec (take (count v) xs)))
@@ -150,14 +142,12 @@
    :interpolate (fn [v1 v2 t f] (mapv #(f %1 %2 t) v1 v2))
    :einterpolate (fn [v1 v2 v f] (mapv #(f %1 %2 %3) v1 v2 v))
    :econstrain (fn [v val1 val2] (mapv #(m/constrain ^double %1 ^double val1 ^double val2) v))
-   :is-zero? #(every? clojure.core/zero? %)
-   :is-near-zero? (fn
-                    ([v] (every? near-zero? v))
-                    ([v tol] (every? (partial near-zero? tol) v)))})
+   :is-zero? #(every? clojure.core/zero? %)})
 
 (extend ArrayRealVector
   prot/VectorProto
-  {:to-acm-vec (fn [this] this)
+  {:to-double-array (fn [this] (.getDataRef ^ArrayRealVector this))
+   :to-acm-vec (fn [this] this)
    :to-vec #(apply vector-of :double (.getDataRef ^ArrayRealVector %))
    :as-vec (fn
              ([^ArrayRealVector v xs] (ArrayRealVector. (double-array (take (.getDimension v) xs))))
@@ -197,10 +187,7 @@
                                                                  (.getDataRef t) f)))
    :econstrain (fn [^ArrayRealVector v ^double v1 ^double v2]
                  (ArrayRealVector. v ^doubles (prot/econstrain (.getDataRef v) v1 v2)))
-   :is-zero? (fn [^ArrayRealVector v] (prot/is-zero? (.getDataRef v)))
-   :is-near-zero? (fn
-                    ([^ArrayRealVector v] (prot/is-near-zero? (.getDataRef v)))
-                    ([^ArrayRealVector v ^double tol] (prot/is-near-zero? (.getDataRef v) tol)))})
+   :is-zero? (fn [^ArrayRealVector v] (prot/is-zero? (.getDataRef v)))})
 
 (defn- aevery
   "Array version of every"
@@ -215,7 +202,8 @@
 
 (extend (Class/forName "[D")
   prot/VectorProto
-  {:to-acm-vec (fn [arr] (ArrayRealVector. ^doubles  arr))
+  {:to-double-array identity
+   :to-acm-vec (fn [arr] (ArrayRealVector. ^doubles  arr))
    :to-vec (fn [arr] (let [^Vec v (vector-of :double)]
                       (Vec. (.am v) (alength ^doubles arr) (.shift v) (.root v) arr (.meta v))))
    :as-vec (fn ([v xs] (double-array (take (alength ^doubles v) xs)))
@@ -253,9 +241,7 @@
    :interpolate (fn [arr v2 t f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) t)))
    :einterpolate (fn [arr v2 v f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) (aget ^doubles v idx))))
    :econstrain (fn [arr val1 val2] (amap ^doubles arr idx _ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
-   :is-zero? (fn [arr] (aevery arr #(zero? ^double %)))
-   :is-near-zero? (fn ([arr] (aevery arr near-zero?))
-                    ([arr tol] (aevery arr (partial near-zero? tol))))})
+   :is-zero? (fn [arr] (aevery arr #(m/zero? ^double %)))})
 
 (defn- vec-id-check
   [^long len id]
@@ -316,6 +302,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-double-array [_] array)
   (to-acm-vec [_] (ArrayRealVector. array))
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
@@ -346,12 +333,11 @@
   (interpolate [_ v2 t f] (ArrayVec. (prot/interpolate array (.array ^ArrayVec v2) t f))) 
   (einterpolate [_ v2 v f] (ArrayVec. (prot/einterpolate array (.array ^ArrayVec v2) (.array ^ArrayVec v) f)))
   (econstrain [_ val1 val2] (ArrayVec. (prot/econstrain array val1 val2)))
-  (is-zero? [_] (aevery array #(zero? ^double %)))
-  (is-near-zero? [_] (aevery array near-zero?))  
-  (is-near-zero? [_ tol] (aevery array (partial near-zero? tol))))
+  (is-zero? [_] (aevery array #(m/zero? ^double %))))
 
 (extend-type Number
   prot/VectorProto
+  (to-double-array [v] (double-array [v]))
   (to-acm-vec [v] (ArrayRealVector. 1 (double v)))
   (to-vec [v] (vector-of :double (double v)))
   (as-vec
@@ -382,10 +368,7 @@
   (interpolate [v1 v2 t f] (f v1 v2 t))
   (einterpolate [v1 v2 t f] (f v1 v2 t))
   (econstrain [v val1 val2] (m/constrain (double v) (double val1) (double val2)))
-  (is-zero? [v] (zero? (double v)))
-  (is-near-zero?
-    ([v] (near-zero? v))
-    ([v tol] (near-zero? tol v))))
+  (is-zero? [v] (m/zero? (double v))))
 
 (defn dhash-code
   "double hashcode"
@@ -452,6 +435,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-double-array [_] (double-array [x y]))
   (to-acm-vec [_] (ArrayRealVector. (double-array [x y])))
   (to-vec [_] (vector-of :double x y))
   (as-vec [_ [x y]] (Vec2. x y))
@@ -499,9 +483,7 @@
              (f y (.y v2) (.y v)))))
   (econstrain [_ val1 val2] (Vec2. (m/constrain x ^double val1 ^double val2)
                                    (m/constrain y ^double val1 ^double val2)))
-  (is-zero? [_] (and (zero? x) (zero? y)))
-  (is-near-zero? [_] (and (near-zero? x) (near-zero? y)))
-  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y)))
+  (is-zero? [_] (and (m/zero? x) (m/zero? y)))
   (heading [_] (m/atan2 y x))
   (cross [_ v]
     (let [^Vec2 v v]
@@ -578,6 +560,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-double-array [_] (double-array [x y z]))
   (to-acm-vec [_] (ArrayRealVector. (double-array [x y z])))
   (to-vec [_] (vector-of :double x y z))
   (as-vec [_ [x y z]] (Vec3. x y z))
@@ -635,9 +618,7 @@
   (econstrain [_ val1 val2] (Vec3. (m/constrain x ^double val1 ^double val2)
                                    (m/constrain y ^double val1 ^double val2)
                                    (m/constrain z ^double val1 ^double val2)))
-  (is-zero? [_] (and (zero? x) (zero? y) (zero? z)))
-  (is-near-zero? [_] (and (near-zero? x) (near-zero? y) (near-zero? z)))
-  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z)))
+  (is-zero? [_] (and (m/zero? x) (m/zero? y) (m/zero? z)))
   (heading [v1] (angle-between v1 (Vec3. 1 0 0)))
   (cross [_ v2]
     (let [^Vec3 v2 v2
@@ -783,6 +764,7 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
+  (to-double-array [_] (double-array [x y z w]))
   (to-acm-vec [_] (ArrayRealVector. (double-array [x y z w])))
   (to-vec [_] (vector-of :double x y z w))
   (as-vec [_ [x y z w]] (Vec4. x y z w))
@@ -834,9 +816,7 @@
                                    (m/constrain y ^double val1 ^double val2)
                                    (m/constrain z ^double val1 ^double val2)
                                    (m/constrain w ^double val1 ^double val2)))
-  (is-zero? [_] (and (zero? x) (zero? y) (zero? z) (zero? w)))
-  (is-near-zero? [_] (and (near-zero? x) (near-zero? y) (near-zero? z) (near-zero? w)))
-  (is-near-zero? [_ tol] (and (near-zero? tol x) (near-zero? tol y) (near-zero? tol z) (near-zero? tol w)))
+  (is-zero? [_] (and (m/zero? x) (m/zero? y) (m/zero? z) (m/zero? w)))
   (heading [v1] (angle-between v1 (Vec4. 1 0 0 0))))
 
 ;;
@@ -845,6 +825,10 @@
 (def ^{:deprecated "v1.5.0" :doc "Same as [[vec->Vec]]. Deprecated."} to-vec prot/to-vec)
 
 ;; protocol methods mapped
+
+(defn vec->array
+  "Convert to double array"
+  ^doubles [v] (prot/to-double-array v))
 
 (defn vec->RealVector
   "Convert to Apache Commons Math RealVector"
@@ -866,16 +850,6 @@
   [v f]
   (prot/fmap v f))
 
-(defn approx
-  "Round to 2 (or `d`) decimal places"
-  ([v] (prot/approx v))
-  ([v d] (prot/approx v d)))
-
-(defn delta-eq
-  "Equality with given toleance"
-  ([v1 v2 tol] (prot/is-near-zero? (prot/sub v1 v2) tol))
-  ([v1 v2] (prot/is-near-zero? (prot/sub v1 v2))))
-
 (defn magsq
   "Length of the vector squared."
   ^double [v] (prot/magsq v))
@@ -883,6 +857,17 @@
 (defn mag
   "Length of the vector."
   ^double [v] (prot/mag v))
+
+(defn approx
+  "Round to 2 (or `d`) decimal places"
+  ([v] (prot/approx v))
+  ([v d] (prot/approx v d)))
+
+(defn delta-eq
+  "Equality with given absolute (and/or relative) toleance."
+  ([v1 v2] (delta-eq v1 v2 1.0e-6))
+  ([v1 v2 ^double abs-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol))
+  ([v1 v2 ^double abs-tol ^double rel-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol)))
 
 (defn dot
   "Dot product of two vectors."
@@ -981,10 +966,21 @@
   "Is vector zero?"
   [v] (prot/is-zero? v))
 
+(defn zero?
+  "Is vector zero?"
+  [v] (prot/is-zero? v))
+
 (defn is-near-zero?
-  "Is vector almost zero? (all absolute values of elements are less than `tol` tolerance or `1.0e-6`)"
-  ([v] (prot/is-near-zero? v))
-  ([v tol] (prot/is-near-zero? v tol)))
+  "Equality to zero `0` with given absolute (and/or relative) toleance."
+  ([v] (is-near-zero? v 1.0e-6))
+  ([v ^double abs-tol] (m/near-zero? (mag v) abs-tol))
+  ([v ^double abs-tol ^double rel-tol] (m/near-zero? (mag v) abs-tol rel-tol)))
+
+(defn near-zero?
+  "Equality to zero `0` with given absolute (and/or relative) toleance."
+  ([v] (near-zero? v 1.0e-6))
+  ([v ^double abs-tol] (m/near-zero? (mag v) abs-tol))
+  ([v ^double abs-tol ^double rel-tol] (m/near-zero? (mag v) abs-tol rel-tol)))
 
 (defn heading
   "Angle between vector and unit vector `[1,0,...]`"
@@ -1080,7 +1076,7 @@
 (defn zero-count
   "Count zeros in vector"
   [v]
-  (count (filter #(zero? ^double %) v)))
+  (count (filter (fn [^double in] (m/zero? in)) v)))
 
 (defn clamp
   "Clamp elements."
@@ -1090,7 +1086,7 @@
 (defn nonzero-count
   "Count non zero velues in vector"
   [v]
-  (count (remove (fn [^double v] (zero? v)) v)))
+  (count (remove (fn [^double v] (m/zero? v)) v)))
 
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
@@ -1126,13 +1122,13 @@
 (defn dist-discrete
   "Discrete distance between 2d vectors"
   ^double [v1 v2]
-  (sum (prot/fmap (prot/sub v1 v2) (fn [^double v] (if (zero? v) 0.0 1.0)))))
+  (sum (prot/fmap (prot/sub v1 v2) (fn [^double v] (if (m/zero? v) 0.0 1.0)))))
 
 (defn dist-canberra
   "Canberra distance"
   ^double [v1 v2]
   (let [num (prot/abs (prot/sub v1 v2))
-        denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (zero? v) 0.0 (/ v))))]
+        denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (m/zero? v) 0.0 (/ v))))]
     (sum (prot/emult num denom))))
 
 (defn dist-emd
@@ -1168,7 +1164,7 @@
   "Normalize vector (set length = 1.0)"
   [v]
   (let [m (mag v)]
-    (if (zero? m)
+    (if (m/zero? m)
       (as-vec v)
       (div v m))))
 

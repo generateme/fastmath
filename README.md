@@ -16,6 +16,7 @@ Math library.
 * [fastmath.random](https://generateme.github.io/fastmath/notebooks/notebooks/random/)
 * [fastmath.stats](https://generateme.github.io/fastmath/notebooks/notebooks/stats/)
     * [fastmath.stats.bootstrap](https://generateme.github.io/fastmath/notebooks/notebooks/bootstrap/)
+* [fastmath.calculus](https://generateme.github.io/fastmath/notebooks/notebooks/calculus/)
 * [fastmath.complex](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#complex-numbers)
 * [fastmath.quaternion](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#quaternions)
 
@@ -23,7 +24,7 @@ Math library.
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.2.1"]
+[generateme/fastmath "2.3.0"]
 ```
 
 ### MKL

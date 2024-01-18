@@ -140,8 +140,10 @@
 (primitivemath-proxy :two quot quotient)
 (primitivemath-proxy :two mod modulus)
 (variadic-proxy bit-and bitAnd)
+(variadic-proxy bit-nand bitNand)
 (variadic-proxy bit-and-not bitAndNot)
 (variadic-proxy bit-or bitOr)
+(variadic-proxy bit-nor bitNor)
 (variadic-proxy bit-xor bitXor)
 (primitivemath-proxy :one bit-not bitNot)
 (primitivemath-proxy :two bit-set bitSet)
@@ -894,13 +896,24 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
                                           (approx b digits))))
 
 (defn delta-eq
-  "Checks equality for given accuracy (default `1.0e-6`)."
+  "Checks equality for given absolute accuracy (default `1.0e-6`).
+
+  Version with 4-arity accepts absolute and relative accuracy."
   ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
-   (< (abs (- a b)) accuracy)))
+   (< (abs (- a b)) accuracy))
+  ([^double a ^double b ^double abs-tol ^double rel-tol]
+   (< (abs (- a b)) (max abs-tol (* rel-tol (max (abs a) (abs b)))))))
 
 (def ^{:doc "Alias for [[approx-eq]]"} approx= approx-eq)
 (def ^{:doc "Alias for [[delta-eq]]"} delta= delta-eq)
+
+(defn near-zero?
+  "Checks if given value is near zero with absolute (default: `1.0e-6`) and/or relative (default `0.0`) tolerance."
+  ([^double x] (near-zero? x 1.0e-6))
+  ([^double x ^double abs-tol] (< (abs x) abs-tol))
+  ([^double x ^double abs-tol ^double rel-tol]
+   (let [ax (abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
 
 (defn frac
   "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."

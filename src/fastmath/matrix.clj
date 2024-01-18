@@ -4,7 +4,8 @@
             [fastmath.core :as m]
             [fastmath.protocols.matrix :as prot])
   (:import [clojure.lang Counted IFn IPersistentCollection Seqable Reversible ILookup]
-           [org.apache.commons.math3.linear Array2DRowRealMatrix ArrayRealVector EigenDecomposition]
+           [org.apache.commons.math3.linear Array2DRowRealMatrix RealVector ArrayRealVector EigenDecomposition
+            RealMatrix MatrixUtils LUDecomposition CholeskyDecomposition]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
 (set! *warn-on-reflection* true)
@@ -128,6 +129,7 @@
       1 (Vec2. a10 a11)
       (mat2x2-throw-ioobe id)))
   (symmetric? [_] (== a01 a10))
+  (symmetric? [_ tol] (m/delta-eq a01 a10 tol))
   (transpose [_] (Mat2x2. a00 a10 a01 a11))
   (inverse [_] (let [d (gen-det2 a00 a01 a10 a11)]
                  (when-not (zero? d)
@@ -175,7 +177,7 @@
                         b (/ a10 a)
                         c (m/sqrt (- a11 (* b b)))]
                     (Mat2x2. a 0.0 b c))))
-  (norm [m t] (if (sequential? t)
+  (norm [_ t] (if (sequential? t)
                 (let [[^double p ^double q] t
                       qp (/ q p)]
                   (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)) qp)
@@ -257,6 +259,7 @@
       2 (Vec3. a20 a21 a22)
       (mat3x3-throw-ioobe id)))
   (symmetric? [_] (and (== a01 a10) (== a12 a21) (== a20 a02)))
+  (symmetric? [_ tol] (and (m/delta-eq a01 a10 tol) (m/delta-eq a12 a21 tol) (m/delta-eq a20 a02 tol)))
   (transpose [_] (Mat3x3. a00 a10 a20 a01 a11 a21 a02 a12 a22))
   (inverse [_] (let [d (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22)]
                  (when-not (zero? d)
@@ -420,6 +423,9 @@
       3 (Vec4. a30 a31 a32 a33)
       (mat4x4-throw-ioobe id)))
   (symmetric? [_] (and (== a01 a10) (== a12 a21) (== a20 a02) (== a30 a03) (== a31 a13) (== a32 a23)))
+  (symmetric? [_ tol] (and (m/delta-eq a01 a10 tol) (m/delta-eq a12 a21 tol)
+                           (m/delta-eq a20 a02 tol) (m/delta-eq a30 a03 tol)
+                           (m/delta-eq a31 a13 tol) (m/delta-eq a32 a23 tol)))
   (transpose [_] (Mat4x4. a00 a10 a20 a30 a01 a11 a21 a31 a02 a12 a22 a32 a03 a13 a23 a33))
   (inverse [_] (let [d (+ (* a00 (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33))
                           (* (- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
@@ -537,6 +543,143 @@
                          (+ (m/abs a01) (m/abs a11) (m/abs a21) (m/abs a31))
                          (+ (m/abs a02) (m/abs a12) (m/abs a22) (m/abs a32))
                          (+ (m/abs a03) (m/abs a13) (m/abs a23) (m/abs a33)))))))
+
+(extend (Class/forName "[[D")
+  prot/MatrixProto
+  {:fmap (fn [arrs f] (into-array (map #(v/fmap % f) arrs)))
+   :rows seq
+   :cols (fn [arrs] (fastmath.java.Array/mat2cols arrs))
+   :to-double-array2d identity
+   :to-float-array2d (fn [arrs] (into-array (map float-array arrs)))
+   :to-double-array (fn [arrs] (double-array (mapcat seq arrs)))
+   :to-float-array (fn [arrs] (float-array (mapcat seq arrs)))
+   :nrow alength 
+   :ncol (comp alength first)
+   :row (fn [^"[[D" arrs ^long id] (aget arrs id))
+   :column (fn [arrs ^long id] (fastmath.java.Array/mat2column arrs id))
+   :symmetric? (fn ([^"[[D" arrs] (let [nr (prot/nrow arrs)
+                                       nc (prot/ncol arrs)]
+                                   (every? identity (for [^long r (range nr)
+                                                          c (range (inc r) nc)]
+                                                      (== ^double (aget arrs r c)
+                                                          ^double (aget arrs c r))))))
+                 ([^"[[D" arrs ^double tol] (let [nr (prot/nrow arrs)
+                                                  nc (prot/ncol arrs)]
+                                              (every? identity (for [^long r (range nr)
+                                                                     c (range (inc r) nc)]
+                                                                 (m/delta-eq (aget arrs r c)
+                                                                             (aget arrs c r) tol))))))
+   :transpose (fn [arrs] (into-array (fastmath.java.Array/mat2cols arrs)))
+   :inverse (fn [^"[[D" arrs] (->  arrs
+                                  (Array2DRowRealMatrix.)
+                                  (MatrixUtils/inverse)
+                                  (.getData)))
+   :diag (fn [arrs] (fastmath.java.Array/mat2diag arrs))
+   :det (fn [^"[[D" arrs] (-> arrs
+                             (Array2DRowRealMatrix.)
+                             (LUDecomposition.)
+                             (.getDeterminant)))
+   :add (fn [arrs1 arrs2] (fastmath.java.Array/matadd arrs1 arrs2))
+   :adds (fn [arrs1 ^double v] (fastmath.java.Array/matadds arrs1 v))
+   :sub (fn ([arrs1 arrs2] (fastmath.java.Array/matsub arrs1 arrs2))
+          ([arrs1] (fastmath.java.Array/matsub arrs1)))
+   :emulm (fn [arrs1 arrs2] (fastmath.java.Array/matemulm arrs1 arrs2))
+   :mulm (fn ([^"[[D" arrs1 t1? ^"[[D" arrs2 t2?]
+             (let [m1 (Array2DRowRealMatrix. arrs1)
+                   m2 (Array2DRowRealMatrix. arrs2)
+                   ^Array2DRowRealMatrix m1 (if t1? (.transpose m1) m1)
+                   ^Array2DRowRealMatrix m2 (if t2? (.transpose m2) m2)]
+               (.getDataRef (.multiply m1 m2))))
+           ([^"[[D" arrs1 ^"[[D" arrs2]
+            (let [m1 (Array2DRowRealMatrix. arrs1)
+                  m2 (Array2DRowRealMatrix. arrs2)]
+              (.getDataRef (.multiply m1 m2)))))
+   :mulv (fn [^"[[D" arrs ^doubles v]
+           (-> arrs
+               (Array2DRowRealMatrix.)
+               (.operate v)))
+   :vtmul (fn [^"[[D" arrs ^doubles v]
+            (-> arrs
+                (Array2DRowRealMatrix.)
+                (.preMultiply v)))
+   :muls (fn [arrs1 ^double v] (fastmath.java.Array/matmuls arrs1 v))
+   :trace (fn [arrs] (v/sum (fastmath.java.Array/mat2diag arrs)))
+   :cholesky (fn [^"[[D" arrs] (-> arrs
+                                  (Array2DRowRealMatrix.)
+                                  (CholeskyDecomposition.)
+                                  (.getL)
+                                  (.getData)))
+   :norm (fn [^"[[D" arrs t] (prot/norm (Array2DRowRealMatrix. arrs) t))})
+
+(extend RealMatrix
+  prot/MatrixProto
+  {:fmap (fn [^RealMatrix m f] (Array2DRowRealMatrix. ^"[[D" (prot/fmap (.getData m) f)))
+   :rows (fn [^RealMatrix m] (map (fn [idx] (.getRowVector m (unchecked-int idx)))
+                                 (range (.getRowDimension m))))
+   :cols (fn [^RealMatrix m] (map (fn [idx] (.getColumnVector m (unchecked-int idx)))
+                                 (range (.getColumnDimension m))))
+   :to-double-array2d (fn [^RealMatrix m] (.getData m))
+   :to-float-array2d (fn [^RealMatrix m] (prot/to-float-array2d (.getData m)))
+   :to-double-array (fn [^RealMatrix m] (prot/to-double-array (.getData m)))
+   :to-float-array (fn [^RealMatrix m] (prot/to-float-array (.getData m)))
+   :nrow (fn [^RealMatrix m] (.getRowDimension m))
+   :ncol (fn [^RealMatrix m] (.getColumnDimension m))
+   :row (fn [^RealMatrix m id] (.getRowVector m id))
+   :column (fn [^RealMatrix m id] (.getColumnVector m id))
+   :symmetric? (fn ([^RealMatrix m] (MatrixUtils/isSymmetric m 0.0))
+                 ([^RealMatrix m ^double tol] (MatrixUtils/isSymmetric m tol)))
+   :transpose (fn [^RealMatrix m] (.transpose m))
+   :inverse (fn [^RealMatrix m] (MatrixUtils/inverse m))
+   :diag (fn [^RealMatrix m] (let [size (.getRowDimension m)
+                                  v (ArrayRealVector. size)]
+                              (doseq [^int idx (range size)]
+                                (.setEntry v idx (.getEntry m idx idx)))
+                              v))
+   :det (fn [^RealMatrix m] (.getDeterminant (LUDecomposition. m)))
+   :add (fn [^RealMatrix m1 ^RealMatrix m2] (.add m1 m2))
+   :adds (fn [^RealMatrix m ^double v] (.scalarAdd m v))
+   :sub (fn ([^RealMatrix m1 ^RealMatrix m2] (.subtract m1 m2))
+          ([^RealMatrix m] (.subtract (Array2DRowRealMatrix. (.getRowDimension m)
+                                                             (.getColumnDimension m)) m)))
+   :emulm (fn [^RealMatrix m1 ^RealMatrix m2] (let [m (.copy m1)]
+                                               (doseq [^int r (range (.getRowDimension m))
+                                                       ^int c (range (.getColumnDimension m))]
+                                                 (.setEntry m r c (* (.getEntry m1 r c)
+                                                                     (.getEntry m2 r c))))
+                                               m))
+   :mulm (fn ([^RealMatrix m1 t1? ^RealMatrix m2 t2?]
+             (let [m1 (if t1? (.transpose m1) m1)
+                   m2 (if t2? (.transpose m2) m2)]
+               (.multiply m1 m2)))
+           ([^RealMatrix m1 ^RealMatrix m2] (.multiply m1 m2)))
+   :mulv (fn [^RealMatrix m1 v] (if (instance? RealVector v)
+                                 (.operate m1 ^RealVector v)
+                                 (.operate m1 ^doubles v)))
+   :vtmul (fn [^RealMatrix m1 v] (if (instance? RealVector v)
+                                  (.preMultiply m1 ^RealVector v)
+                                  (.preMultiply m1 ^doubles v)))
+   :muls (fn [^RealMatrix m1 ^double v] (.scalarMultiply m1 v))
+   :trace (fn [^RealMatrix m] (.getTrace m))
+   :cholesky (fn [^RealMatrix m] (.getL (CholeskyDecomposition. m)))
+   :norm (fn [^RealMatrix m t] (if (sequential? t)
+                                (let [[^double p ^double q] t]
+                                  (if (and (== p 2.0) (== q 2.0))
+                                    (.getFrobeniusNorm m)
+                                    (let [qp (/ q p)]
+                                      (-> (->> (prot/cols m)
+                                               (map (fn [c] (-> (v/abs c)
+                                                               (v/fmap (fn [v] (m/pow v p)))
+                                                               (v/sum)
+                                                               (m/pow qp)))))
+                                          (v/sum)
+                                          (m/pow (/ q))))))
+                                (condp = t
+                                  :inf (.getNorm (.transpose m))
+                                  :max (reduce m/fast-max (for [^int r (range (.getRowDimension m))
+                                                                ^int c (range (.getColumnDimension m))]
+                                                            (m/abs (.getEntry m r c))))
+                                  (.getNorm m))))})
+
 
 (defn mat2x2
   "Create 2x2 matrix.
@@ -715,7 +858,10 @@
                     (* (.w v1) (.x v2)) (* (.w v1) (.y v2)) (* (.w v1) (.z v2)) (* (.w v1) (.w v2))))
     ArrayRealVector (let [^ArrayRealVector v1 v1
                           ^ArrayRealVector v2 v2]
-                      (.outerProduct v1 v2))))
+                      (.outerProduct v1 v2))
+    (let [v1 (ArrayRealVector. (double-array v1))
+          v2 (ArrayRealVector. (double-array v2))]
+      (.getData (.outerProduct v1 v2)))))
 
 ;;
 
@@ -747,9 +893,17 @@
   "Return doubles of doubles"
   [A] (prot/to-float-array A))
 
+(defn rows->RealMatrix
+  "Return Apache Commons Math Array2DRowMatrix from sequence of rows"
+  [rows]
+  (Array2DRowRealMatrix. ^"[[D" (m/seq->double-double-array rows)))
+
 (defn mat->RealMatrix
-  "Return  Apache Commons Math Array2DRowMatrix"
-  [A] (Array2DRowRealMatrix. #^"[[D" (prot/to-double-array2d A)))
+  "Return Apache Commons Math Array2DRowMatrix from a matrix"
+  [A]
+  (if (instance? RealMatrix A)
+    A
+    (Array2DRowRealMatrix. ^"[[D" (prot/to-double-array2d A))))
 
 (defn nrow
   "Return number of rows"
@@ -878,7 +1032,7 @@
   [A]
   (->> (mat->RealMatrix A)
        (EigenDecomposition.)
-       ^Array2DRowRealMatrix (.getD)
+       ^RealMatrix (.getD)
        (.getData)
        (m/double-double-array->seq)
        (apply rows->mat)))
@@ -901,7 +1055,7 @@
   ([A normalize?]
    (let [evs (->> (mat->RealMatrix A)
                   (EigenDecomposition.)
-                  ^Array2DRowRealMatrix (.getV)
+                  ^RealMatrix (.getV)
                   (.getData)
                   (m/double-double-array->seq)
                   (apply rows->mat))]
@@ -938,6 +1092,73 @@
    Cond(A) = norm(A) * norm(inv(A))"
   (^double [A] (condition A 2))
   (^double [A norm-type] (* (norm A norm-type) (norm (inverse A) norm-type))))
+
+;;
+
+(defn rotation-matrix-2d
+  "Create rotation matrix for a plane"
+  ^Mat2x2 [^double theta]
+  (let [st (m/sin theta)
+        ct (m/cos theta)]
+    (Mat2x2. ct (- st) st ct)))
+
+(defn rotation-matrix-3d
+  "Create rotation matrix for a 3d space. Tait–Bryan angles z-y′-x″"
+  (^Mat3x3 [[^double x ^double y ^double z]] (rotation-matrix-3d x y z))
+  (^Mat3x3 [^double x ^double y ^double z]
+   (let [sx (m/sin x)
+         cx (m/cos x)
+         sy (m/sin y)
+         cy (m/cos y)
+         sz (m/sin z)
+         cz (m/cos z)
+         sycz (* sy cz)
+         sysz (* sy sz)]
+     (Mat3x3.  (* cy cz) (- (* cy sz)) sy
+               (+ (* cx sz) (* sx sycz)) (- (* cx cz) (* sx sysz)) (- (* sx cy))
+               (- (* sx sz) (* cx sycz)) (+ (* sx cz) (* cx sysz)) (* cx cy)))))
+
+(defn rotation-matrix-3d-x
+  "Create rotation matrix for a 3d space, x-axis, right hand rule."
+  ^Mat3x3 [^double a]
+  (let [sa (m/sin a)
+        ca (m/cos a)]
+    (Mat3x3. 1.0 0.0 0.0
+             0.0 ca (- sa)
+             0.0 sa ca)))
+
+(defn rotation-matrix-3d-y
+  "Create rotation matrix for a 3d space, y-axis, right hand rule."
+  ^Mat3x3 [^double a]
+  (let [sa (m/sin a)
+        ca (m/cos a)]
+    (Mat3x3. ca 0.0 sa
+             0.0 1.0 0.0
+             (- sa) 0.0 ca)))
+
+(defn rotation-matrix-3d-z
+  "Create rotation matrix for a 3d space, z-axis, right hand rule."
+  ^Mat3x3 [^double a]
+  (let [sa (m/sin a)
+        ca (m/cos a)]
+    (Mat3x3. ca (- sa) 0.0
+             sa ca 0.0
+             0.0 0.0 1.0)))
+
+(defn rotation-matrix-axis-3d
+  "Create 3d rotation matrix for axis ratation."
+  ^Mat3x3 [^double angle ^Vec3 axis]
+  (let [^Vec3 axis (v/normalize axis)
+        e1 (.x axis)
+        e2 (.y axis)
+        e3 (.z axis)
+        sa (m/sin angle)
+        ca (m/cos angle)]
+    (add (add (mat3x3 ca ca ca)
+              (muls (outer axis axis) (- 1.0 ca)))
+         (muls (mat3x3 0.0 (- e3) e2
+                       e3 0.0 (- e1)
+                       (- e2) e1 0.0) sa))))
 
 (defmacro ^:private primitive-ops
   "Generate primitive functions operating on vectors"

@@ -77,6 +77,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 (defprotocol VectorProto
   "Vector operations"
+  (to-double-array [v] "Convert o double array")
   (to-vec [v] "Convert to Clojure primitive vector `Vec`.")
   (to-acm-vec [v] "Convert to Apache Commons Math ArrayRealVector")
   (as-vec [v] [v xs] "Create vector from sequence as given type.")
@@ -106,6 +107,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (einterpolate [v1 v2 v f] "Interpolate vectors element-wise, optionally set interpolation fn")
   (econstrain [v val1 val2] "Element-wise constrain")
   (is-zero? [v1] "Is vector zero?")
+  ;; deprecated!
   (is-near-zero? [v1] [v1 tol] "Is vector almost zero? (all absolute values of elements are less than `tol` tolerance or `1.0e-6`)")
   (heading [v1] "Angle between vector and unit vector `[1,0,...]`")
   (cross [v1 v2] "Cross product")

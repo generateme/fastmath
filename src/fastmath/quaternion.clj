@@ -4,8 +4,11 @@
   (:refer-clojure :exclude [vector zero?])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.complex :as c])
-  (:import [fastmath.vector Vec2 Vec3 Vec4]))
+            [fastmath.matrix :as mat]
+            [fastmath.complex :as c]
+            [fastmath.random :as r])
+  (:import [fastmath.vector Vec2 Vec3 Vec4]
+           [fastmath.matrix Mat3x3]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -222,7 +225,7 @@
 
 ;; https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Euler_angles_(in_3-2-1_sequence)_to_quaternion_conversion
 (defn to-euler
-  "Convert quaternion to Euler ZYX (body 3-2-1). Quaternion will be normalized.
+  "Convert quaternion to Euler ZYX (body 3-2-1). Quaternion will be normalized before calculations.
 
   Output will contain roll (x), pitch (y) and yaw (z) angles."
   ^Vec3 [^Vec4 q]
@@ -261,6 +264,73 @@
             (m/- (m/* sr cp cy) (m/* cr sp sy))
             (m/+ (m/* cr sp cy) (m/* sr cp sy))
             (m/- (m/* cr cp sy) (m/* sr sp cy))))))
+
+;; OpenGL representation
+;; https://ntrs.nasa.gov/api/citations/19770024290/downloads/19770024290.pdf
+(defn to-angles
+  "Convert quaternion to Tait–Bryan angles, z-y′-x\"."
+  ^Vec3 [^Vec4 q]
+  (let [^Vec4 q (v/normalize q)
+        w (.x q) x (.y q) y (.z q) z (.w q)
+        ww (m/* w w) xx (m/* x x) yy (m/* y y) zz (m/* z z)
+        y1 (m/* 2.0 (m/- (m/* w x) (m/* y z)))
+        x1 (m/+ (m/- ww xx yy) zz)
+        a2 (m/* 2.0 (m/+ (m/* w y) (m/* x z)))
+        y3 (m/* 2.0 (m/- (m/* w z) (m/* x y)))
+        x3 (m/+ ww (m/- xx yy zz))]
+    (Vec3. (m/atan2 y1 x1)
+           (if (>= (m/abs a2) 1.0)
+             (m/copy-sign m/HALF_PI a2)
+             (m/asin a2))
+           (m/atan2 y3 x3))))
+
+(defn from-angles
+  "Convert Tait–Bryan angles z-y′-x\" to quaternion."
+  (^Vec4 [[^double x ^double y ^double z]] (from-angles x y z))
+  (^Vec4 [^double x ^double y ^double z]
+   (let [hx (m/* x 0.5)
+         hy (m/* y 0.5)
+         hz (m/* z 0.5)
+         cx (m/cos hx)
+         sx (m/sin hx)
+         cy (m/cos hy)
+         sy (m/sin hy)
+         cz (m/cos hz)
+         sz (m/sin hz)]
+     (Vec4. (m/- (m/* cx cy cz) (m/* sx sy sz))
+            (m/+ (m/* sx cy cz) (m/* cx sy sz))
+            (m/- (m/* cx sy cz) (m/* sx cy sz))
+            (m/+ (m/* sx sy cz) (m/* cx cy sz))))))
+
+(defn to-rotation-matrix
+  "Convert quaternion to rotation 3x3 matrix"
+  ^Mat3x3 [^Vec4 q]
+  (let [^Vec4 q (v/normalize q)
+        a (.x q) b (.y q) c (.z q) d (.w q)
+        aa (m/* a a) bb (m/* b b) cc (m/* c c) dd (m/* d d)
+        bc (m/* b c) ad (m/* a d) bd (m/* b d)
+        ac (m/* a c) cd (m/* c d) ab (m/* a b)]
+    (Mat3x3. (m/+ aa (m/- bb cc dd)) (m/* 2.0 (m/- bc ad)) (m/* 2.0 (m/+ bd ac))
+             (m/* 2.0 (m/+ bc ad)) (m/+ cc (m/- aa bb dd)) (m/* 2.0 (m/- cd ab))
+             (m/* 2.0 (m/- bd ac)) (m/* 2.0 (m/+ cd ab)) (m/+ dd (m/- aa bb cc)))))
+
+;; https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+(defn from-rotation-matrix
+  "Convert rotation 3x3 matrix to a quaternion"
+  ^Vec4 [^Mat3x3 m]
+  (let [[^double t q]
+        (if (m/neg? (.a22 m))
+          (if (m/> (.a00 m) (.a11 m))
+            (let [t (m/inc (m/- (.a00 m) (.a11 m) (.a22 m)))]
+              [t (Vec4. (m/- (.a21 m) (.a12 m)) t (m/+ (.a10 m) (.a01 m)) (m/+ (.a20 m) (.a02 m)))])
+            (let [t (m/inc (m/- (.a11 m) (.a00 m) (.a22 m)))]
+              [t (Vec4. (m/- (.a02 m) (.a20 m)) (m/+ (.a10 m) (.a01 m)) t (m/+ (.a21 m) (.a12 m)))]))
+          (if (m/< (.a00 m) (- (.a11 m)))
+            (let [t (m/inc (m/- (.a22 m) (.a00 m) (.a11 m)))]
+              [t (Vec4. (m/- (.a10 m) (.a01 m)) (m/+ (.a02 m) (.a20 m)) (m/+ (.a21 m) (.a12 m)) t)])
+            (let [t (m/inc (m/+ (.a00 m) (.a11 m) (.a22 m)))]
+              [t (Vec4. t (m/- (.a21 m) (.a12 m)) (m/- (.a02 m) (.a20 m)) (m/- (.a10 m) (.a01 m)))])))]
+    (v/mult q (m// 0.5 (m/sqrt t)))))
 
 ;; trig
 

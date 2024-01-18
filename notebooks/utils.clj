@@ -241,7 +241,6 @@
 (defn complex-graph
   ([f] (complex-graph f [-3.2 3.2] [-3.2 3.2]))
   ([f [x1 x2] [y1 y2]]
-   (println f)
    (let [xn (m/make-norm x1 x2 0 size)
          yn (m/make-norm y1 y2 0 size)
          buff (p/renderer size size :sinc 1.1)]
@@ -299,35 +298,48 @@
 (defn fix-tex [s]  (str/replace s #"\\\\\(|\\\\\)" "\\$"))
 (defn fix-anchor [s] (str/replace s #"\[\[(.+?)\]\]" "[$1](#LOS-$1)"))
 
+(defn remover
+  [exclude-vars]
+  (->> exclude-vars
+       (map (fn [cnd]
+              (if (symbol? cnd)
+                #{cnd}
+                #(re-matches cnd (str %)))))
+       (apply juxt (constantly nil))))
+
 (defn make-public-fns-table
-  [ns]
-  (clerk/html
-   [:div
+  ([ns] (make-public-fns-table ns nil))
+  ([ns {:keys [exclude-vars]}]
+   (clerk/html
     [:div
-     [:span [:b {:class "underline decoration-2 decoration-gray-400"} (name ns)] " namespace"]
-     [:p]
-     [:div (clerk/md (->> (or (:doc (meta (the-ns ns))) "\n") fix-tex fix-anchor))]]
-    [:div (for [v (->> (ns-publics ns)
-                       (sort-by first)
-                       (map second))
-                :let [{:keys [name file macro arglists doc line const deprecated]} (meta v)]]
-            [:div {:class "pb-8" :id (str "LOS-" (clojure.core/name name))} ;; add border
-             
-             (clerk/html [:span [:b {:class (str "underline decoration-2 decoration-gray-400"
-                                                 (when deprecated " text-gray-400"))} name]
-                          (when macro [:sup " MACRO"])
-                          (when const [:sup " CONST"])
-                          [:sup [:a {:href (str source-files file "#L" line)} "  [source]"]]])
-             (when deprecated [:div [:i (if (string? deprecated)
-                                          (clerk/md (str "Deprecated: "(->> deprecated fix-tex fix-anchor)))
-                                          "Deprecated")]])
-             [:p]
-             (when const [:div (clerk/code (var-get v)) [:p]])
-             (when arglists [:div
-                             [:div (for [args arglists]
-                                     (clerk/code (args->call name args)))]
-                             [:p]])
-             [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]]))
+     [:div
+      [:span [:b {:class "underline decoration-2 decoration-gray-400"} (name ns)] " namespace"]
+      [:p]
+      [:div (clerk/md (->> (or (:doc (meta (the-ns ns))) "\n") fix-tex fix-anchor))]]
+     [:div (for [v (->> (ns-publics ns)
+                        (sort-by first)
+                        (remove (comp (partial some identity)
+                                      (remover exclude-vars)
+                                      first))
+                        (map second))
+                 :let [{:keys [name file macro arglists doc line const deprecated]} (meta v)]]
+             [:div {:class "pb-8" :id (str "LOS-" (clojure.core/name name))} ;; add border
+              
+              (clerk/html [:span [:b {:class (str "underline decoration-2 decoration-gray-400"
+                                                  (when deprecated " text-gray-400"))} name]
+                           (when macro [:sup " MACRO"])
+                           (when const [:sup " CONST"])
+                           [:sup [:a {:href (str source-files file "#L" line)} "  [source]"]]])
+              (when deprecated [:div [:i (if (string? deprecated)
+                                           (clerk/md (str "Deprecated: "(->> deprecated fix-tex fix-anchor)))
+                                           "Deprecated")]])
+              [:p]
+              (when const [:div (clerk/code (var-get v)) [:p]])
+              (when arglists [:div
+                              [:div (for [args arglists]
+                                      (clerk/code (args->call name args)))]
+                              [:p]])
+              [:div (clerk/md (->> (or doc "\n") fix-tex fix-anchor))]])]])))
 
 ;; csv
 
@@ -373,7 +385,9 @@
                                         "notebooks/random.clj"
                                         "notebooks/stats.clj"
                                         "notebooks/bootstrap.clj"
-                                        "notebooks/complex_quaternion.clj"]
+                                        "notebooks/complex_quaternion.clj"
+                                        "notebooks/calculus.clj"
+                                        "notebooks/vector_matrix.clj"]
                  :out-path "docs/notebooks/"})
   (clerk/clear-cache!)
   (clerk/halt!))

@@ -120,7 +120,7 @@
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
            [org.apache.commons.math3.analysis UnivariateFunction]
-           [org.apache.commons.math3.analysis.integration RombergIntegrator]
+           [org.apache.commons.math3.analysis.integration RombergIntegrator IterativeLegendreGaussIntegrator]
            [smile.math MathEx]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -901,7 +901,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                   :linear i/linear-smile
                   :spline i/cubic-spline
                   :monotone i/monotone
-                  (if (fn? interpolator) interpolator i/cubic-spline))]
+                  (if (fn? interpolator) interpolator i/linear))]
      ;; interpolate points lineary, return cdf and icdf
      [(intpol xs ys)
       (intpol ys xs)])))
@@ -2341,7 +2341,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
   Without `rng` sets both `:smile` and `default-rng`"
   ([]
-   (MathEx/setSeed)
+   (MathEx/setSeed (lrand))
    (prot/set-seed! default-rng (lrand)))
   ([^long v]
    (MathEx/setSeed v)

@@ -190,33 +190,40 @@
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (m/between? 2.0 10.0 2.0)
- (m/between? [2.0 10.0] 2.0)
- (m/between-? 2.0 10.0 2.0)
- (m/between-? [2.0 10.0] 2.0))
+  (m/between? 2.0 10.0 2.0)
+  (m/between? [2.0 10.0] 2.0)
+  (m/between-? 2.0 10.0 2.0)
+  (m/between-? [2.0 10.0] 2.0))
 
 ;; #### Approximate equality
 
-;; There are two options:
+;; There are three options:
 
 ^{::clerk/visibility :hide}
 (u/table
  [[approx-eq false "see notes below"]
   [approx= false "the same as approx-eq"]
   [delta-eq false "see notes below"]
-  [delta= false "the same as delta-eq"]])
+  [delta= false "the same as delta-eq"]
+  [near-zero? false "if the value is zero with given tolerance"]])
 
 ;; * `approx-eq` or `approx=` - which first round numbers to specified number of decimal places (default `2`), then compare rounded numbers
-;; * `delta-eq` or `delta=` - which verifies if absolute difference between two numbers is less than given accuracy (default: `1.0e-6`)
+;; * `delta-eq` or `delta=` - which verifies if absolute difference between two numbers is less than given accuracy (default: `1.0e-6`). Optional fourth argument can be a relative accuracy (default `0.0`).
+;; * `near-zero?` -  applies `delta-eq` against `0.0`
+
+;; $$\Delta_{eq}(x,y) = \left| x-y \right| < \max(tol_{abs},tol_{rel} \max(\left| x \right|,\left| y \right|))$$
 
 ;; These functions work on doubles only.
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (m/approx-eq 2.230 2.231)
- (m/approx-eq 2.230 2.231 3)
- (m/delta-eq 2.230 2.231)
- (m/delta-eq 2.230 2.231 1.0e-2))
+  (m/approx-eq 2.230 2.231)
+  (m/approx-eq 2.230 2.231 3)
+  (m/delta-eq 2.230 2.231)
+  (m/delta-eq 2.230 2.231 1.0e-3)
+  (m/delta-eq 2.230 2.231 0.0 1.0e-3)
+  (m/near-zero? 0.0001 0.01)
+  (m/near-zero? 0.001 0.01 0.01))
 
 ;; #### NaN and Inf
 
@@ -355,7 +362,9 @@
   [unsigned-bit-shift-right true "same as >>>"]
   [>>> true "same as unsigned-bit-shift-right"]
   [bit-or true "a | b"]
+  [bit-nor true "~(a | b)"]
   [bit-and true "a & b"]
+  [bit-nand true "~(a & b)"]
   [bit-xor true "a ^ b"]
   [bit-not true "~a"]
   [bit-and-not true "a & ~b"]
@@ -373,7 +382,9 @@
  (m/unsigned-bit-shift-right -122 2)
  (m/>>> -122 2)
  (m/bit-or 123 -243)
+ (m/bit-nor 123 -243)
  (m/bit-and 123 -234)
+ (m/bit-nand 123 -234)
  (m/bit-and-not 123 -234)
  (m/bit-xor 123 -234)
  (m/bit-not 123)

@@ -8,9 +8,13 @@
             [nextjournal.clerk :as clerk]
             [utils :as u]
             [fastmath.vector :as v]
+            [fastmath.matrix :as mat]
             [fastmath.core :as m]))
 
 ;; # Complex numbers
+
+#_:clj-kondo/ignore
+(require '[fastmath.complex :as c])
 
 ;; Complex numbers $z = a + bi$ are represented internally as `fastmath.vector.Vec2` type and can be created with `complex` function.
 
@@ -270,6 +274,9 @@
 
 ;; # Quaternions
 
+#_:clj-kondo/ignore
+(require '[fastmath.quaternion :as q])
+
 ;; Quaternions $z = a + bi + cj + dk$ are represented internally as `fastmath.vector.Vec4` type and can be created with `quaternion` function.
 
 (q/quaternion 1 2 3 4)
@@ -500,12 +507,20 @@
 
 ;; ### Rotations
 
+;; 3d rotations can be treated in many ways, two options are possible:
+;; * Euler angles, like presented in [wiki](https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
+;; * Tait-Bryan angles, to achieve the same result as OpenGL rotations
+
 ^{::clerk/visibility :hide}
 (u/table2
  [[rotation-quaternion "Create rotation quaternion around vector u and angle alpha"]
   [rotate "Rotate 3d `in` vector around axis `u` (the same as `fastmath.vector/axis-rotate`)"]
   [to-euler "Convert quaternion to Euler angles (ZYX, body 3-2-1), output: [roll, pitch, yaw]"]
-  [from-euler "Convert Euler angles ZYX representation, [roll, pitch, yaw] to quaternion"]])
+  [from-euler "Convert Euler angles ZYX representation, [roll, pitch, yaw] to quaternion"]
+  [to-angles "Convert quaternion to Tait–Bryan (z-y′-x\") angles, output: [x, y, z]"]
+  [from-angles "Convert Tait-Bryan (z-y′-x\") angles to quaternion"]
+  [to-rotation-matrix "Convert quaternion to a rotation matrix"]
+  [from-rotation-matrix "Convert rotation matrix to a quaternion"]])
 
 ^{::clerk/visibility :hide}
 (clerk/example
@@ -513,7 +528,15 @@
   (q/rotate [1 1 1] m/HALF_PI [1 1 0])
   (v/axis-rotate (v/vec3 1 1 1) m/HALF_PI (v/vec3 1 1 0))
   (q/to-euler (q/quaternion m/SQRT2_2 0 m/SQRT2_2 0))
-  (q/from-euler 0 m/HALF_PI 0))
+  (q/from-euler 0 m/HALF_PI 0)
+  (q/to-angles (q/quaternion m/SQRT2_2 0 m/SQRT2_2 0))
+  (q/from-angles 0 m/HALF_PI 0)
+  (q/rotate [1 1 1] (q/from-euler 0.1 0.2 0.3))
+  (q/rotate [1 1 1] (q/from-angles 0.1 0.2 0.3))
+  (v/rotate (v/vec3 1 1 1) 0.1 0.2 0.3)
+  (q/from-angles 0.1 0.2 0.3)
+  (q/to-rotation-matrix (q/from-angles 0.1 0.2 0.3))
+  (q/from-rotation-matrix (mat/rotation-matrix-3d 0.1 0.2 0.3)))
 
 ;; ## List of symbols
 

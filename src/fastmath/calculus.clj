@@ -26,7 +26,7 @@
             RombergIntegrator SimpsonIntegrator TrapezoidIntegrator
             BaseAbstractUnivariateIntegrator]
            [java.util TreeSet Comparator]
-           [fastmath.vector Vec2]
+           [fastmath.vector Vec2 Vec3]
            [org.apache.commons.math3.linear Array2DRowRealMatrix LUDecomposition ArrayRealVector
             EigenDecomposition]
            [org.apache.commons.math3.exception MaxCountExceededException TooManyEvaluationsException]
@@ -117,10 +117,11 @@
 
 (defn- vegas-build-initial-grid
   [lower upper ^long nintervals]
-  [(mapv (fn [^double lb ^double ub]
-           (vec (m/slice-range lb ub (m/inc nintervals)))) lower upper)
-   (mapv (fn [^double lb ^double ub]
-           (vec (repeat nintervals (m// (m/- ub lb) nintervals)))) lower upper)])
+  (let [pairs (map vector lower upper)]
+    [(mapv (fn [[^double lb ^double ub]]
+             (m/seq->double-array (m/slice-range lb ub (m/inc nintervals)))) pairs)
+     (mapv (fn [[^double lb ^double ub]]
+             (m/seq->double-array (repeat nintervals (m// (m/- ub lb) nintervals)))) pairs)]))
 
 (defn- vegas-random-sequence
   [^long dims {:keys [random-sequence ^double jitter]
@@ -136,12 +137,12 @@
     [(m// (v/sum (v/emult integrals rev-sigma-squares)) sum-rev-sigma-squares)
      (m// (m/sqrt sum-rev-sigma-squares))]))
 
-(defn- normalize-and-compress-d
-  [d ^double sumd ^double alpha]
-  (mapv (fn [^double v]
-          (let [d (m// v sumd)]
-            (m/pow (m// (m/- 1.0 d)
-                        (m/log (m// d))) alpha))) d))
+(defn- normalize-and-compress-d!
+  [^doubles d ^double sumd ^double alpha]
+  (dotimes [i (alength d)]
+    (let [v (m// (aget d i) sumd)]
+      (aset d i (m/pow (m// (m/- 1.0 v)
+                            (m/log (m// v))) alpha)))))
 
 (defn- smooth-d
   [^doubles d ^long nintervals ^double alpha]
@@ -156,51 +157,57 @@
                          (m/* 6.0 (aget d id))
                          (aget d (inc id)))))
     (aset buff nintervals-1 (m/+ (aget d (dec nintervals-1))
-                            (m/* 7.0 (aget d nintervals-1))))
+                                 (m/* 7.0 (aget d nintervals-1))))
     
-    (normalize-and-compress-d buff sumd alpha)))
+    (normalize-and-compress-d! buff sumd alpha)
+
+    buff))
 
 (defn- calculate-d
-  [dims Jsf imat nintervals alpha]
+  [dims Jsf ssamples nintervals alpha]
   (let [nevals (count Jsf)
         ni (m// nevals (double nintervals))
-        Jsf22 (map (fn [idxs ^double v]
-                     [idxs (m// (m/sq v) ni)]) imat Jsf)]
-    (for [dim (range dims)]
-      (let [buffer (double-array nintervals)]
-        (run! (fn [[idxs ^double v]]
-                (let [id (idxs dim)
-                      curr (aget buffer id)]
-                  (aset buffer id (m/+ curr v)))) Jsf22)
-        (smooth-d buffer nintervals alpha)))))
+        Jsf22 (mapv (fn [idxs ^double v]
+                      [(int-array idxs) (m// (m/sq v) ni)]) ssamples Jsf)]
+    (->> (for [dim (range dims)]
+           (let [buffer (double-array nintervals)]
+             (run! (fn [in]
+                     (let [id (aget ^ints (in 0) dim)]
+                       (aset buffer id (m/+ (aget buffer id)
+                                            (double (in 1)))))) Jsf22)
+             buffer))
+         (mapv #(smooth-d % nintervals alpha)))))
 
-(defn- update-grid-dim [x dx d ^long nintervals]
+(defn- update-grid-dim [^doubles x ^doubles dx ^doubles d ^long nintervals]
   (let [cx (count x)
         end (m/dec cx)
         buff (double-array cx)
         delta-d (stats/mean d)]
-    (aset buff 0 ^double (x 0))
-    (aset buff end ^double (x end))
+    (aset buff 0 (aget x 0))
+    (aset buff end (aget x end))
     (loop [i (long 1)
            j (long 0)
            sd 0.0]
       (when (m/< i nintervals)
-        (let [[^long nj ^double nsd] (loop [nsd sd
-                                            nj j]
-                                       (if (m/< nsd delta-d)
-                                         (recur (m/+ nsd ^double (d nj))
-                                                (m/inc nj))
-                                         [nj nsd]))
+        (let [^Vec2 nj-nsd (loop [nsd sd
+                                  nj j]
+                             (if (m/< nsd delta-d)
+                               (recur (m/+ nsd (aget d nj))
+                                      (m/inc nj))
+                               (Vec2. nj nsd)))
+              nj (long (.x nj-nsd))
+              nsd (.y nj-nsd)
               nsd (m/- nsd delta-d)
               nj- (m/dec nj)]
-          (aset buff i (m/- ^double (x nj)
-                            (m// (m/* nsd ^double (dx nj-)) ^double (d nj-))))
+          (aset buff i (m/- (aget x nj)
+                            (m// (m/* nsd (aget dx nj-))
+                                 (aget d nj-))))
           (recur (m/inc i) (long nj) nsd))))
-    (vec buff)))
+    buff))
 
 (defn- calc-dx [x]
-  (mapv (fn [[^double a ^double b]]
-          (m/- b a)) (partition 2 1 x)))
+  (m/seq->double-array (map (fn [[^double a ^double b]]
+                              (m/- b a)) (partition 2 1 x))))
 
 (defn- update-grid [xs dxs ds ^long nintervals]
   (let [nxs (mapv (fn [x dx d]
@@ -228,17 +235,35 @@
 
 (defn- reshape-hypercube [hc] (apply mapv vector hc))
 
+(defn- volume
+  ^double [[left right]]
+  (->> (map m/fast- right left)
+       (reduce m/fast*)))
+
 (defn- build-hypercubes
-  [{:keys [^long nstrats ^long nevals ^long nintervals ^long dims]
+  [{:keys [nstrats ^long nevals ^long nintervals ^long dims]
     :or {nstrats -1 nintervals 1000}}]
-  (let [nstrats (if-not (m/pos? nstrats) (stratifications-number nevals dims) nstrats)
-        nintervals (ensure-bins-count nintervals nstrats)
+  (let [nstrats (->> (cond
+                       (= -1 nstrats) [(stratifications-number nevals dims)]
+                       (number? nstrats) [(m/max 1 (unchecked-long nstrats))]
+                       (sequential? nstrats) (map unchecked-long nstrats)
+                       :else [(stratifications-number nevals dims)])
+                     (cycle)
+                     (take dims))
         
-        strata-1d (->> (m/slice-range 0.0 1.0 (inc nstrats))
-                       (partition 2 1))
-        hypercubes (->> (repeat dims strata-1d)
+        nintervals (->> nstrats
+                        (reduce m/lcm)
+                        (ensure-bins-count nintervals))
+        
+        strata-1d (map (fn [^long n]
+                         (->> (m/slice-range 0.0 1.0 (inc n))
+                              (partition 2 1)))
+                       nstrats)
+        
+        hypercubes (->> strata-1d
                         (apply combo/cartesian-product)
                         (map reshape-hypercube))
+        
         nhcubes (count hypercubes)
         nhs (repeat nhcubes (-> (m// nevals (double nhcubes))
                                 (m/floor)
@@ -249,20 +274,21 @@
      :nhs nhs
      :hcubes hypercubes
      :nhcubes nhcubes
-     :volume (m/pow (m// nstrats) dims)}))
+     :volume (volume (first hypercubes))}))
 
 (defn- random-sequence-samples
-  [random-sequence hcubes nhs]
-  (loop [[nh & rest-nhs] nhs
-         [[left right] & rest-hcubes] hcubes
-         rs random-sequence
-         res []]
-    (if left
-      (let [[samples rest-samples] (split-at nh rs)
-            nres (reduce (fn [buff sample]
-                           (conj buff (v/einterpolate left right sample))) res samples)]
-        (recur rest-nhs rest-hcubes rest-samples nres))
-      [res rs])))
+  [random-sequence hcubes nhs ^long nhcubes]
+  (if (m/one? nhcubes)
+    (split-at (first nhs) random-sequence)
+    (loop [[nh & rest-nhs] nhs
+           [[left right] & rest-hcubes] hcubes
+           rs random-sequence
+           res []]
+      (if left
+        (let [[samples rest-samples] (split-at nh rs)
+              interpolated (map (partial v/einterpolate left right) samples)              ]
+          (recur rest-nhs rest-hcubes rest-samples (conj res interpolated)))
+        [(mapcat identity res) rs]))))
 
 (defn- sigmas-in-hypercubes-and-integral-mc
   [Jsf nhs ^double volume]
@@ -315,24 +341,31 @@
   * `:abs` - absolute accuracy, default: 5.0e-4
   * `:random-sequence` - random sequence used for generating samples: `:uniform` (default), low-discrepancy sequences: `:r2`, `:sobol` and `:halton`.
   * `:jitter` - jittering factor for low-discrepancy random sequence, default: 0.75
+  * `:info?` - return full information about integration, default: false
+  * `:record-data?` - stores samples, number of strata, x and dx, default: false (requires, `:info?` to be set to `true`)
 
   For original VEGAS algorithm set `:nstrats` to `1`.
 
-  Function returns a map with following keys:
+  `:nstrats` can be also a list, then each dimension is divided independently according to a given number. If list is lower then number of dimensions, then it's cycled.
+
+  Function returns a map with following keys (if info? is true, returns result otherwise):
 
   * `:result` - value of integral
   * `:iterations` - number of iterations (excluding warmup)
   * `:sd` - standard deviation of results
   * `:nintervals` - actual grid size
-  * `:nstrats` - number of stratitfications
+  * `:nstrats` - number of stratitfications per dimension
+  * `:nhcubes` - number of hypercubes
   * `:evaluations` - number of function calls
   * `:chi2-avg` - average of chi2
   * `:dof` - degrees of freedom
-  * `:Q` - goodness of fit indicator, 1 - very good, <0.25 very poor"
+  * `:Q` - goodness of fit indicator, 1 - very good, <0.25 very poor
+  * `:data` - recorded data (if available)"
   ([f lower upper] (vegas f lower upper nil))
   ([f lower upper {:keys [^long max-iters ^double rel ^double abs ^long nevals
-                          alpha ^double beta ^long warmup]
-                   :or {max-iters 10 rel 5.0e-4 abs 5.0e-4 nevals 10000 beta 0.75 warmup 0}
+                          alpha ^double beta ^long warmup info? record-data?]
+                   :or {max-iters 10 rel 5.0e-4 abs 5.0e-4 nevals 10000 beta 0.75 warmup 0
+                        info? false record-data? false}
                    :as options}]
    (let [[f lower upper] (subst-multi f lower upper)
          dims (count lower)
@@ -341,26 +374,15 @@
          
          random-sequence (vegas-random-sequence dims options)
          
-         {:keys [^long nintervals ^long nstrats
+         {:keys [^long nintervals nstrats ^long nhcubes
                  hcubes nhs ^double volume]} (build-hypercubes (assoc options
                                                                       :dims dims
                                                                       :nevals nevals))
 
          ;; lower damping alpha for statified sampling
-         alpha (double (or alpha (if (m/<= nstrats 1) 1.5 0.5)))
-         hbeta (m// beta 2.0)
-         
-         ;; convert y-space to x-space
-         y->x (fn ^double [x dx ^long dim ^double y]
-                (let [nby (m/* nintervals y)
-                      i (unchecked-long (m/floor nby))
-                      dy (m/- nby i)]
-                  (m/+ ^double (get-in x [dim i])
-                       (m/* ^double (get-in dx [dim i]) dy))))
-         
-         ;; Jacobian function
-         J (fn ^double [dx ^long dim ^double y]
-             (m/* nintervals ^double (get-in dx [dim (unchecked-long (m/floor (m/* nintervals y)))])))]
+         alpha (double (or alpha (if (and (= (count nstrats) 1)
+                                          (= (first nstrats) 1)) 1.5 0.5)))
+         hbeta (m// beta 2.0)]
      
      (loop [iter (long 1)
             evaluations (long 1)
@@ -368,35 +390,51 @@
             random-sequence random-sequence
             nhs nhs
             integrals []
-            rev-sigma-squares []]
-       (let [[samples rst] (random-sequence-samples random-sequence hcubes nhs)
+            rev-sigma-squares []
+            data []]
+       (let [[samples rst] (random-sequence-samples random-sequence hcubes nhs nhcubes)
+             
+             scaled-samples (mapv #(v/mult % nintervals) samples)
 
-             xss (->> samples
-                      (map (fn [ys]
-                             (vec (map-indexed (fn [^long dim ^double y]
-                                                 (y->x x dx dim y)) ys)))))
-             Js (map (fn [ys]
-                       (reduce m/fast* (map-indexed (partial J dx) ys))) samples)
-
-             fevals (map f xss)
-             Jsf (map m/fast* Js fevals)
-
+             ndata (when (and record-data? info?)
+                     (conj data {:x x :dx dx :nhs nhs
+                                 :samples (map (fn [ys]
+                                                 (mapv (fn [^doubles ax ^doubles adx ^double ny]
+                                                         (let [iy (unchecked-int ny)]
+                                                           (m/+ (Array/get ^doubles ax iy)
+                                                                (m/* (Array/get adx iy)
+                                                                     (m/frac ny))))) x dx ys)) scaled-samples)}))
+             
+             buff (double-array dims)
+             Jsf (mapv (fn [ys]
+                         (loop [dim (long 0)
+                                Js 1.0]
+                           (if (m/< dim dims)
+                             (let [ny (double (ys dim))
+                                   iy (unchecked-int ny)
+                                   ^doubles adx (dx dim)]
+                               ;; write mapped y->x to a buffer
+                               (aset ^doubles buff dim (m/+ (Array/get ^doubles (x dim) iy)
+                                                            (m/* (Array/get adx iy)
+                                                                 (m/frac ny))))
+                               (recur (m/inc dim)
+                                      ;; calculate Jacobian
+                                      (m/* Js nintervals (Array/get adx iy))))
+                             (m/* Js (double (f buff))))))
+                       scaled-samples)
+             
              real-calls (count Jsf)
              evaluations (+ evaluations real-calls)
              
              [hcsigmas integral-mc] (sigmas-in-hypercubes-and-integral-mc Jsf nhs volume)
-             nhs (recalculate-nhs hcsigmas nevals hbeta)
-
-             imat (map (fn [ys]
-                         (mapv (fn [^double y]
-                                 (unchecked-long (m/floor (m/* nintervals y)))) ys)) samples)
-             
-             d (calculate-d dims Jsf imat nintervals alpha)
-             x-dx (update-grid x dx d nintervals)]
+             nhs (recalculate-nhs hcsigmas nevals hbeta)             ]
          
          (if (m/<= iter warmup)
-           (recur (m/inc iter) evaluations
-                  x-dx rst nhs integrals rev-sigma-squares)
+           
+           (let [d (calculate-d dims Jsf scaled-samples nintervals alpha)
+                 x-dx (update-grid x dx d nintervals)]
+             (recur (m/inc iter) evaluations
+                    x-dx rst nhs integrals rev-sigma-squares ndata))
 
            (let [variance-mc (m/+ (v/sum (map (fn [^double s ^double nh]
                                                 (m// s nh)) hcsigmas nhs)))
@@ -408,24 +446,32 @@
              (if (or (m/== iter max-iters)
                      (and (m/< (m/abs (m// sd Itot)) rel)
                           (m/< (m/abs sd) abs)))
-               (let [chisq (-> new-integrals
-                               (v/shift (m/- Itot))
-                               (v/sq)
-                               (v/emult new-rev-sigma-squares)
-                               (v/sum))
-                     dof (m/dec (count new-integrals))]
-                 {:iterations (m/- iter warmup)
-                  :result Itot
-                  :sd sd
-                  :nintervals nintervals
-                  :nstrats nstrats
-                  :evaluations evaluations
-                  :chi2-avg (/ chisq dof)
-                  :dof dof
-                  :Q (m/regularized-gamma-q (m// dof 2.0) (m// chisq 2.0))})
-               
-               (recur (m/inc iter) evaluations
-                      x-dx rst nhs new-integrals new-rev-sigma-squares)))))))))
+               (if info?
+                 (let [chisq (-> new-integrals
+                                 (v/shift (m/- Itot))
+                                 (v/sq)
+                                 (v/emult new-rev-sigma-squares)
+                                 (v/sum))
+                       dof (m/dec (count new-integrals))
+                       res {:iterations (m/- iter warmup)
+                            :result Itot
+                            :sd sd
+                            :nintervals nintervals
+                            :nstrats nstrats
+                            :nhcubes nhcubes
+                            :evaluations evaluations
+                            :chi2-avg (/ chisq dof)
+                            :dof dof
+                            :Q (m/regularized-gamma-q (m// dof 2.0) (m// chisq 2.0))}]
+                   (if record-data?
+                     (assoc res :data ndata :hcubes hcubes)
+                     res))
+                 Itot)
+
+               (let [d (calculate-d dims Jsf scaled-samples nintervals alpha)
+                     x-dx (update-grid x dx d nintervals)]
+                 (recur (m/inc iter) evaluations
+                        x-dx rst nhs new-integrals new-rev-sigma-squares ndata))))))))))
 
 ;;
 ;; hcubature
@@ -470,7 +516,7 @@
 
 (def ^:private genz-malik (memoize genz-malik-))
 
-(defrecord CubatureBox [a b ^double I ^double E ^long kdiv])
+(deftype CubatureBox [a b ^double I ^double E ^long kdiv])
 
 (defn- integrate-gm
   ^CubatureBox [f lower upper dims gp1 gp2 gp3 gp4 w w']
@@ -587,8 +633,9 @@
   * `:max-iters` - maximum number of iterations, default: 64.
   * `:rel` - relative error, 1.0e-7
   * `:abs` - absolute error, 1.0e-7
+  * `:info?` - return full information about integration, default: false
 
-  Function returns a map containing:
+  Function returns a map containing (if info? is true, returns result otherwise):
 
   * `:result` - integration value
   * `:error` - integration error
@@ -597,8 +644,8 @@
   * `:subdivisions` - final number of boxes
   * `:fail?` - set to `:max-evals` or `:max-iters` when one of the limits has been reached without the convergence."
   ([f lower upper] (cubature f lower upper nil))
-  ([f lower upper {:keys [^double rel ^double abs ^int max-evals ^int max-iters ^int initdiv]
-                   :or {rel 1.0e-7 abs 1.0e-7 max-evals Integer/MAX_VALUE max-iters 64 initdiv 2}}]
+  ([f lower upper {:keys [^double rel ^double abs ^int max-evals ^int max-iters ^int initdiv info?]
+                   :or {rel 1.0e-7 abs 1.0e-7 max-evals Integer/MAX_VALUE max-iters 64 initdiv 2 info? false}}]
    (let [[f lower upper] (subst-multi f lower upper)
          dims (count lower)
          {:keys [^long gm-evals p w w']} (genz-malik dims)
@@ -608,10 +655,12 @@
          [^double I ^double E] (sum-boxes boxes)]
      (if (or (m/<= E (m/max (m/* rel (m/abs I)) abs))
              (m/>= initial-evals max-evals))
-       {:result I :error E
-        :evaluations initial-evals
-        :iterations 1
-        :subdivisions (count boxes)}
+       (if info?
+         {:result I :error E
+          :evaluations initial-evals
+          :iterations 1
+          :subdivisions (count boxes)}
+         I)
        (loop [iters (long 1)
               evals initial-evals
               I I
@@ -632,11 +681,13 @@
            (.add boxes nbox2)
            (if (or (m/<= nE (m/max (m/* rel (m/abs nI)) abs)) fail?)
              (let [[^double I ^double E] (sum-boxes boxes)]
-               {:result I :error E
-                :evaluations nevals
-                :iterations niters
-                :subdivisions (count boxes)
-                :fail? fail?})
+               (if info?
+                 {:result I :error E
+                  :evaluations nevals
+                  :iterations niters
+                  :subdivisions (count boxes)
+                  :fail? fail?}
+                 I))
              (recur niters nevals nI nE))))))))
 
 ;; quadgk
@@ -767,7 +818,7 @@
 
 (def ^:private kronrod (memoize kronrod-))
 
-(defrecord QuadGKSegment [^Vec2 ab ^double I ^double E])
+(deftype QuadGKSegment [^Vec2 ab ^double I ^double E])
 
 (defn- integrate-gk
   ^QuadGKSegment [f ^Vec2 ab x w gw]
@@ -835,19 +886,21 @@
 (defn- integrate-gk-final
   ([f lower upper] (integrate-gk-final f lower upper nil))
   ([f lower upper {:keys [^double rel ^double abs ^int max-evals ^int max-iters
-                          ^int integration-points ^int initdiv]
+                          ^int integration-points ^int initdiv info?]
                    :or {rel 1.0e-8 abs 1.0e-8 max-evals Integer/MAX_VALUE max-iters 64
-                        integration-points 7 initdiv 1}}]
+                        integration-points 7 initdiv 1 info? false}}]
    (let [{:keys [^long gk-evals x w gw]} (kronrod integration-points)
          ^TreeSet segments (build-initial-segments f lower upper initdiv x w gw)
          initial-evals (m/* gk-evals (count segments))
          [^double I ^double E] (sum-segments segments)]
      (if (or (m/<= E (m/max (m/* rel (m/abs I)) abs))
              (m/>= initial-evals max-evals))
-       {:result I :error E
-        :evaluations initial-evals
-        :iterations 1
-        :subdivisions (count segments)}
+       (if info?
+         {:result I :error E
+          :evaluations initial-evals
+          :iterations 1
+          :subdivisions (count segments)}
+         I)
        (loop [iters (long 1)
               evals initial-evals
               I I
@@ -868,11 +921,13 @@
            (.add segments nsegment2)
            (if (or (m/<= nE (m/max (m/* rel (m/abs nI)) abs)) fail?)
              (let [[^double I ^double E] (sum-segments segments)]
-               {:result I :error E
-                :evaluations nevals
-                :iterations niters
-                :subdivisions (count segments)
-                :fail? fail?})
+               (if info?
+                 {:result I :error E
+                  :evaluations nevals
+                  :iterations niters
+                  :subdivisions (count segments)
+                  :fail? fail?}
+                 I))
              (recur niters nevals nI nE))))))))
 
 ;;
@@ -903,10 +958,11 @@
   * `:abs` - absolute error
   * `:integration-points` - number of integration (quadrature) points for `:gauss-legendre` and `:gauss-kronrod`, default 7
   * `:initdiv` - initial number of subdivisions for `:gauss-kronrod`, default: 1
+  * `:info?` - return full information about integration, default: false
 
   `:gauss-kronrod` is h-adaptive implementation
 
-  Function returns a map containing:
+  Function returns a map containing (if info? is true, returns result otherwise):
 
   * `:result` - integration value
   * `:error` - integration error (`:gauss-kronrod` only)
@@ -917,14 +973,15 @@
   ([f] (integrate f 0.0 1.0))
   ([f ^double lower ^double upper] (integrate f lower upper nil))
   ([f ^double lower ^double upper
-    {:keys [^double rel ^double abs max-iters ^int min-iters ^int max-evals
+    {:keys [^double rel ^double abs max-iters ^int min-iters ^int max-evals info?
             integrator ^long integration-points]
      :or {rel BaseAbstractUnivariateIntegrator/DEFAULT_RELATIVE_ACCURACY
           abs BaseAbstractUnivariateIntegrator/DEFAULT_ABSOLUTE_ACCURACY
           min-iters BaseAbstractUnivariateIntegrator/DEFAULT_MIN_ITERATIONS_COUNT
           max-evals Integer/MAX_VALUE
           integration-points 7
-          integrator :gauss-kronrod}
+          integrator :gauss-kronrod
+          info? false}
      :as options}]
    (let [max-iters (unchecked-int (or max-iters
                                       (case integrator
@@ -934,37 +991,108 @@
                                         :simpson SimpsonIntegrator/SIMPSON_MAX_ITERATIONS_COUNT
                                         :gauss-legendre 64                                        
                                         BaseAbstractUnivariateIntegrator/DEFAULT_MAX_ITERATIONS_COUNT)))
-         ^UnivariateIntegrator integrator-obj (if (keyword? integrator)
-                                                (case integrator
-                                                  :romberg (RombergIntegrator. rel abs min-iters max-iters)
-                                                  :trapezoid (TrapezoidIntegrator. rel abs min-iters max-iters)
-                                                  :midpoint (MidPointIntegrator. rel abs min-iters max-iters)
-                                                  :simpson (SimpsonIntegrator. rel abs min-iters max-iters)
-                                                  :gauss-legendre (IterativeLegendreGaussIntegrator. integration-points
-                                                                                                     rel abs min-iters max-iters)
-                                                  integrator)
-                                                integrator)
+         integrator-obj (if (keyword? integrator)
+                          (case integrator
+                            :romberg (RombergIntegrator. rel abs min-iters max-iters)
+                            :trapezoid (TrapezoidIntegrator. rel abs min-iters max-iters)
+                            :midpoint (MidPointIntegrator. rel abs min-iters max-iters)
+                            :simpson (SimpsonIntegrator. rel abs min-iters max-iters)
+                            :gauss-legendre (IterativeLegendreGaussIntegrator. integration-points
+                                                                               rel abs min-iters max-iters)
+                            integrator)
+                          integrator)
          [f ^double lower ^double upper] (subst-1d f lower upper)]
      (cond (instance? UnivariateIntegrator integrator-obj)
            (let [integrant (make-integrant f)
                  result (try
-                          (.integrate integrator-obj max-evals integrant lower upper)
+                          (.integrate ^UnivariateIntegrator integrator-obj max-evals integrant lower upper)
                           (catch TooManyEvaluationsException _ :max-evals)
                           (catch MaxCountExceededException _ :max-iters))
-                 fail? (keyword? result)]
-             {:result (if fail? ##NaN result)
-              :iterations (.getIterations integrator-obj)
-              :evaluations (.getEvaluations integrator-obj)
-              :integrator integrator
-              :fail? (if fail? result false)})
+                 fail? (keyword? result)
+                 result' (if fail? ##NaN result)]
+             (if info?
+               {:result result'
+                :iterations (.getIterations ^UnivariateIntegrator integrator-obj)
+                :evaluations (.getEvaluations ^UnivariateIntegrator integrator-obj)
+                :integrator integrator
+                :fail? (if fail? result false)}
+               result'))
 
            (= integrator-obj :gauss-kronrod)
            (integrate-gk-final f lower upper options)
            
            :else (throw (Exception. (str "Unknown integrator: " integrator)))))))
 
-
 ;;; finite difference
+
+(defn fx->gx+h
+  "Convert f(x) to g(x,h)=f(x+h)"
+  [f]
+  (fn [^double x ^double h]
+    (f (m/+ x h))))
+
+(defn fx->gx-h
+  "Convert f(x) to g(x,h)=f(x-h)"
+  [f]
+  (fn [^double x ^double h]
+    (f (m/- x h))))
+
+;; https://github.com/JuliaMath/Richardson.jl/blob/master/src/Richardson.jl
+(defn extrapolate
+  "Richardson extrapolation for given function `g=g(x,h)`. Returns extrapolated function f(x).
+
+  Options:
+
+  * `:contract` - shrinkage factor, default=`1/2`
+  * `:power` - set to `2.0` for even functions around `x0`, default `1.0`
+  * `:init-h` - initial step `h`, default=`1/2`
+  * `:abs` - absolute error, default: machine epsilon
+  * `:rel` - relative error, default: ulp for init-h
+  * `:tol` - tolerance for error, default: `2.0` 
+  * `:max-evals` - maximum evaluations, default: maximum integer"
+  ([g] (extrapolate g nil))
+  ([g {:keys [^double contract ^double power ^double init-h
+              ^double rel ^double abs ^long max-evals ^double tol]
+       :or {contract 0.5 power 1.0 init-h 0.5
+            abs m/MACHINE-EPSILON rel (m/sqrt (m/ulp init-h))
+            max-evals Integer/MAX_VALUE tol 2.0}}]
+   (let [invcontract (m/pow (m// contract) power)
+         nf (fn ^double [^double x0 ^double h] (cond
+                                                (m/valid-double? x0) (g x0 h)
+                                                (m/pos-inf? x0) (g 0.0 (m// 1.0 h))
+                                                (m/neg-inf? x0) (g 0.0 (m// -1.0 h))
+                                                :else ##NaN))]
+     (fn ^double [^double x0]
+       (loop [i (long 1)
+              h init-h
+              ;; keep in 3-tuple of doubles to avoid destructuring
+              ^Vec3 f0+err+invc (Vec3. (nf x0 init-h) ##Inf invcontract) ;; curr val, err, contraction den
+              neville (list f0+err+invc)]
+         (if (m/>= i max-evals)
+           (.x f0+err+invc)
+           (let [nh (m/* h contract)
+                 nf0 (nf x0 nh)
+                 res (reductions (fn [^Vec3 curr ^Vec3 ni+err+invc]
+                                   (let [ni (.x ni+err+invc)
+                                         ni+1 (.x curr)
+                                         c (.z curr)
+                                         n (m/+ ni+1 (m// (m/- ni+1 ni) (m/dec c)))]
+                                     (Vec3. n (m/abs (m/- n ni)) (m/* c invcontract))))
+                                 (Vec3. nf0 ##Inf invcontract) neville)
+                 ^Vec3 minimal (reduce (fn [^Vec3 a ^Vec3 b]
+                                         (if (m/< (.y a) (.y b)) a b)) res)
+                 minimal' (.y minimal)
+                 err (.y f0+err+invc)
+                 ^Vec3 minimal (if (or (m/invalid-double? minimal')
+                                       (m/< err minimal')) f0+err+invc minimal)]
+             (if (or (m/invalid-double? minimal')
+                     (m/> minimal' (m/* tol err))
+                     (m/<= err (m/max (m/* rel (m/abs (.x minimal))) abs)))
+               (.x minimal)
+               (recur (m/inc i)
+                      nh
+                      minimal
+                      res)))))))))
 
 (defn- fd-coeffs
   [^long n offsets]
@@ -1008,10 +1136,16 @@
 (defmacro ^:private produce-symbols
   [n acc kind]
   (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc kind)
-        x (with-meta (symbol "x") {:tag 'double})]
-    `(fn [~x]
-       (m// (m/+ ~@(map (fn [id coeff]
-                          `(m/* ~coeff (double (~'f (m/+ ~x (m/* ~id ~'h)))))) offsets coeffs)) ~'hn))))
+        x (with-meta (symbol "x") {:tag 'double})
+        h (with-meta (symbol "h") {:tag 'double})
+        hn (with-meta (symbol "hn") {:tag 'double})
+        fname (gensym (str "local-" n "-" acc "-" (name kind)))]
+    `(fn ~fname
+       ([~x] (~fname ~x ~h ~hn))
+       ([~x ~h] (~fname ~x ~h (m/fpow ~h ~n)))
+       ([~x ~h ~hn]        
+        (m// (m/+ ~@(map (fn [id coeff]
+                           `(m/* ~coeff (double (~'f (m/+ ~x (m/* ~id ~h)))))) offsets coeffs)) ~hn)))))
 
 (defmacro ^:private produce-case-for-methods
   [n acc]
@@ -1024,7 +1158,10 @@
   [n]
   (let [xx (with-meta (symbol "xx") {:tag 'double})
         coeff (with-meta (symbol "coeff") {:tag 'double})
-        id (with-meta (symbol "id") {:tag 'long})]
+        id (with-meta (symbol "id") {:tag 'long})
+        h (with-meta (symbol "h") {:tag 'double})
+        hn (with-meta (symbol "hn") {:tag 'double})
+        fname (gensym (str "local-" n))]
     `(case (unchecked-int ~'acc)
        1 (produce-case-for-methods ~n 1)
        2 (produce-case-for-methods ~n 2)
@@ -1033,8 +1170,11 @@
        5 (produce-case-for-methods ~n 5)
        6 (produce-case-for-methods ~n 6)
        (let [[offsets# coeffs#] (fd-coeffs-for-accuracy ~n ~'acc ~'method)]
-         (fn [~xx] (m// (v/sum (map (fn [~id  ~coeff]
-                                     (m/* ~coeff (double (~'f (m/+ ~xx (m/* ~id ~'h)))))) offsets# coeffs#)) ~'hn))))))
+         (fn ~fname
+           ([~xx] (~fname ~xx ~h ~hn))
+           ([~xx ~h] (~fname ~xx ~h (m/fpow ~h ~n)))
+           ([~xx ~h ~hn] (m// (v/sum (map (fn [~id  ~coeff]
+                                            (m/* ~coeff (double (~'f (m/+ ~xx (m/* ~id ~h)))))) offsets# coeffs#)) ~hn)))))))
 
 (defn derivative
   "Create nth derivative of `f` using finite difference method for given accuracy `:acc` and step `:h`.
@@ -1046,26 +1186,36 @@
   * `n` - derivative
   * `:acc` - order of accuracy (default: 2)
   * `:h` - step, (default: 0.0, automatic)
-  * `:method` - `:central` (default), `:forward` or `:backward`"
+  * `:method` - `:central` (default), `:forward` or `:backward`
+  * `:extrapolate?` - creates extrapolated derivative if set to true or a map with [[extrapolate]] function options"
   ([f] (derivative f 1))
   ([f ^long n] (derivative f n nil))
-  ([f ^long n {:keys [^int acc ^double h method]
+  ([f ^long n {:keys [^int acc ^double h method extrapolate?]
                :or {acc 2 h 0.0 method :central}}]
    (if (m/zero? n)
      f
      (let [h (if (m/zero? h) (m/pow m/MACHINE-EPSILON (m// (m/+ n 2.0))) h)
-           hn (m/fpow h n)]
-       (case n
-         1 (produce-cases-for-accuracy 1)
-         2 (produce-cases-for-accuracy 2)
-         3 (produce-cases-for-accuracy 3)
-         4 (produce-cases-for-accuracy 4)
-         5 (produce-cases-for-accuracy 5)
-         6 (produce-cases-for-accuracy 6)
-         (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc method)]
-           (fn [^double x] (m// (v/sum (map (fn [^long id ^double coeff]
-                                             (m/* coeff ^double (f (m/+ x (m/* id h))))) offsets coeffs))
-                               hn))))))))
+           hn (m/fpow h n)
+           result (case n
+                    1 (produce-cases-for-accuracy 1)
+                    2 (produce-cases-for-accuracy 2)
+                    3 (produce-cases-for-accuracy 3)
+                    4 (produce-cases-for-accuracy 4)
+                    5 (produce-cases-for-accuracy 5)
+                    6 (produce-cases-for-accuracy 6)
+                    (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc method)]
+                      (fn local-rest
+                        ([^double x] (local-rest x h hn))
+                        ([^double x ^double h] (local-rest x h (m/fpow h n)))
+                        ([^double x ^double h ^double hn] (m// (v/sum (map (fn [^long id ^double coeff]
+                                                                             (m/* coeff ^double (f (m/+ x (m/* id h))))) offsets coeffs))
+                                                               hn)))))]
+       (if extrapolate?
+         (let [eoptions (if (map? extrapolate?) extrapolate? {})]
+           (extrapolate result (if (:power eoptions)
+                                 eoptions 
+                                 (assoc eoptions :power (if (= method :central) 2 1)))))
+         result)))))
 
 (defn f' "First central derivative with order of accuracy 2." [f] (derivative f 1))
 (defn f'' "Second central derivative with order of accuracy 2." [f] (derivative f 2))
@@ -1085,25 +1235,30 @@
        :or {h 1.0e-6 acc 2}}]
    (case (unchecked-int acc)
      2 (let [h2 (m// (m/* 2.0 h))]
-         (fn [v]
-           (let [v (vec v)]
-             (map (fn [^long id]
-                    (let [^double vid (v id)
-                          ^double x1 (f (assoc v id (m/+ vid h)))
-                          ^double x2 (f (assoc v id (m/- vid h)))]
-                      (m/* (m/- x1 x2) h2))) (range (count v))))))
-     4 (fn [v]
-         (let [v (vec v)]
-           (map (fn [^long id]
-                  (let [^double vid (v id)
-                        ^double x1 (f (assoc v id (m/- vid h h)))
-                        ^double x2 (f (assoc v id (m/- vid h)))
-                        ^double x3 (f (assoc v id (m/+ vid h)))
-                        ^double x4 (f (assoc v id (m/+ vid h h)))]
-                    (m// (m/+ (m/* 0.08333333333333333 x1)
-                              (m/* -0.6666666666666666 x2)
-                              (m/* 0.6666666666666666 x3)
-                              (m/* -0.08333333333333333 x4)) h))) (range (count v))))))))
+         (fn local-gradient-2
+           ([v] (local-gradient-2 v h h2))
+           ([v ^double h] (local-gradient-2 v h (m// (m/* 2.0 h))))
+           ([v ^double h ^double h2]
+            (let [v (vec v)]
+              (map (fn [^long id]
+                     (let [^double vid (v id)
+                           ^double x1 (f (assoc v id (m/+ vid h)))
+                           ^double x2 (f (assoc v id (m/- vid h)))]
+                       (m/* (m/- x1 x2) h2))) (range (count v)))))))
+     4 (fn local-gradient-4
+         ([v] (local-gradient-4 v h))
+         ([v ^double h]
+          (let [v (vec v)]
+            (map (fn [^long id]
+                   (let [^double vid (v id)
+                         ^double x1 (f (assoc v id (m/- vid h h)))
+                         ^double x2 (f (assoc v id (m/- vid h)))
+                         ^double x3 (f (assoc v id (m/+ vid h)))
+                         ^double x4 (f (assoc v id (m/+ vid h h)))]
+                     (m// (m/+ (m/* 0.08333333333333333 x1)
+                               (m/* -0.6666666666666666 x2)
+                               (m/* 0.6666666666666666 x3)
+                               (m/* -0.08333333333333333 x4)) h))) (range (count v)))))))))
 
 (defn hessian
   "Creates function returning Hessian matrix for mulitvariate function `f` and given `:h` step (default: `5.0e-3`)."
@@ -1112,28 +1267,33 @@
        :or {h 5.0e-3}}]
    (let [h4 (m// (m/* 4.0 h h))
          h2 (m// (m/* h h))]
-     (fn [v]
-       (let [v (vec v)
-             cv (count v)
-             r (range cv)
-             buff (double-array (m/* cv cv))
-             fv-2 (m/* -2.0 ^double (f v))]
-         (doseq [^long i r
-                 ^long j r
-                 :when (m/<= i j)]
-           (if (m/== i j)
-             (let [^double vi (v i)
-                   ^double x1 (f (assoc v i (m/+ vi h)))
-                   ^double x2 (f (assoc v i (m/- vi h)))]
-               (Array/set2d buff cv i i (m/* (m/+ x1 fv-2 x2) h2)))
-             (let [^double vi (v i)
-                   ^double vj (v j)
-                   ^double x1 (f (assoc v i (m/+ vi h) j (m/+ vj h)))
-                   ^double x2 (f (assoc v i (m/+ vi h) j (m/- vj h)))
-                   ^double x3 (f (assoc v i (m/- vi h) j (m/+ vj h)))
-                   ^double x4 (f (assoc v i (m/- vi h) j (m/- vj h)))
-                   val (m/* (m/- (m/+ x1 x4) x2 x3) h4)]
-               (Array/set2d buff cv i j val)
-               (Array/set2d buff cv j i val))))
-         (partition cv buff))))))
+     (fn local-hessian
+       ([v] (local-hessian v h h2 h4))
+       ([v ^double h] (let [h2 (m// (m/* h h))
+                            h4 (m// h2 4.0)]
+                        (local-hessian v h h2 h4)))
+       ([v ^double h ^double h2 ^double h4]
+        (let [v (vec v)
+              cv (count v)
+              r (range cv)
+              buff (double-array (m/* cv cv))
+              fv-2 (m/* -2.0 ^double (f v))]
+          (doseq [^long i r
+                  ^long j r
+                  :when (m/<= i j)]
+            (if (m/== i j)
+              (let [^double vi (v i)
+                    ^double x1 (f (assoc v i (m/+ vi h)))
+                    ^double x2 (f (assoc v i (m/- vi h)))]
+                (Array/set2d buff cv i i (m/* (m/+ x1 fv-2 x2) h2)))
+              (let [^double vi (v i)
+                    ^double vj (v j)
+                    ^double x1 (f (assoc v i (m/+ vi h) j (m/+ vj h)))
+                    ^double x2 (f (assoc v i (m/+ vi h) j (m/- vj h)))
+                    ^double x3 (f (assoc v i (m/- vi h) j (m/+ vj h)))
+                    ^double x4 (f (assoc v i (m/- vi h) j (m/- vj h)))
+                    val (m/* (m/- (m/+ x1 x4) x2 x3) h4)]
+                (Array/set2d buff cv i j val)
+                (Array/set2d buff cv j i val))))
+          (partition cv buff)))))))
 

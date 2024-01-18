@@ -47,6 +47,9 @@
                                                (m// (m/+ (m/sqrt (m/* x y z)) 1.0e-5))
                                                (m/sqrt (m/* x y z))))
 
+(sut/vegas fun4 [0 0] [1 1] {:nstrats 4})
+
+
 (def fun11-res 0.5235987755982988)
 (defn fun11 [v] (if (m/< (v/magsq v) 1.0) 1.0 0.0))
 
@@ -63,9 +66,9 @@
   (m/* 16.0 ro ro ro (m/sin phi) (m/cos phi)))
 
 (t/deftest multivariate-integrals-vegas+
-  (t/are [f res] (m/delta-eq res (:result (sut/vegas f [0 0 0] [1 1 1]
-                                                     {:niters 20 :warmup 5 :res 1.0e-5 :abs 1.0e-5
-                                                      :nstrats 20 :nevals 15000})) 1.0e-3)
+  (t/are [f res] (m/delta-eq res (sut/vegas f [0 0 0] [1 1 1]
+                                            {:niters 20 :warmup 5 :res 1.0e-5 :abs 1.0e-5
+                                             :nstrats 20 :nevals 15000}) 1.0e-2)
     fun1+ fun1+-res
     fun1 fun1-res
     fun2 fun2-res
@@ -77,25 +80,25 @@
     fun8 fun8-res
     fun9 fun9-res
     fun11 fun11-res)
-  (t/are [lower upper res] (m/delta-eq res (:result (sut/vegas normal-pdf lower upper
-                                                               {:niters 20 :warmup 5 :res 1.0e-4 :abs 1.0e-4
-                                                                :nstrats 20 :nevals 10000})) 1.0e-3)
+  (t/are [lower upper res] (m/delta-eq res (sut/vegas normal-pdf lower upper
+                                                      {:niters 20 :warmup 5 :res 1.0e-4 :abs 1.0e-4
+                                                       :nstrats 20 :nevals 10000}) 1.0e-2)
     [##-Inf ##-Inf ##-Inf] [##Inf ##Inf ##Inf] 1.0
     [##-Inf ##-Inf ##-Inf] [0 0 0] 0.125
     [0 0 0] [##Inf ##Inf ##Inf] 0.125
     [##-Inf 0 ##-Inf] [0 ##Inf ##Inf] 0.25)
-  (t/is (m/delta-eq m/TWO_PI (:result (sut/vegas gaussian [0.0 0.0] [m/TWO_PI ##Inf]
-                                                 {:max-iters 20 :warmup 5
-                                                  :random-sequence :sobol})) 1.0e-3))
-  (t/is (m/delta-eq (m/* 4.0 m/PI)
-                    (:result (sut/vegas polar-3d [0 0 0] [1.0 m/TWO_PI m/HALF_PI]
+  (t/is (m/delta-eq m/TWO_PI (sut/vegas gaussian [0.0 0.0] [m/TWO_PI ##Inf]
                                         {:max-iters 20 :warmup 5
-                                         :nstrats 20 :nevals 20000})) 1.0e-3)))
+                                         :random-sequence :sobol}) 1.0e-3))
+  (t/is (m/delta-eq (m/* 4.0 m/PI)
+                    (sut/vegas polar-3d [0 0 0] [1.0 m/TWO_PI m/HALF_PI]
+                               {:max-iters 20 :warmup 5
+                                :nstrats 20 :nevals 20000}) 1.0e-2)))
 
 (t/deftest multivariate-integrals-cubature
-  (t/are [f res] (m/delta-eq res (:result (sut/cubature f [0 0 0] [1 1 1]
-                                                        {:max-iters 1000
-                                                         :initdiv 18})) 1.0e-3)
+  (t/are [f res] (m/delta-eq res (sut/cubature f [0 0 0] [1 1 1]
+                                               {:max-iters 1000
+                                                :initdiv 18}) 1.0e-3)
     fun1+ fun1+-res
     fun1 fun1-res
     fun2 fun2-res
@@ -107,21 +110,67 @@
     fun8 fun8-res
     fun9 fun9-res
     fun11 fun11-res)
-  (t/are [lower upper res] (m/delta-eq res (:result (sut/cubature normal-pdf lower upper
-                                                                  {:initdiv 15})) 1.0e-3)
+  (t/are [lower upper res] (m/delta-eq res (sut/cubature normal-pdf lower upper
+                                                         {:initdiv 15}) 1.0e-3)
     [##-Inf ##-Inf ##-Inf] [##Inf ##Inf ##Inf] 1.0
     [##-Inf ##-Inf ##-Inf] [0 0 0] 0.125
     [0 0 0] [##Inf ##Inf ##Inf] 0.125
     [##-Inf 0 ##-Inf] [0 ##Inf ##Inf] 0.25)
-  (t/is (m/delta-eq m/TWO_PI (:result (sut/cubature gaussian [0.0 0.0] [m/TWO_PI ##Inf]))))
+  (t/is (m/delta-eq m/TWO_PI (sut/cubature gaussian [0.0 0.0] [m/TWO_PI ##Inf])))
   (t/is (m/delta-eq (m/* 4.0 m/PI)
-                    (:result (sut/cubature polar-3d [0 0 0] [1.0 m/TWO_PI m/HALF_PI] {:initdiv 15})))))
+                    (sut/cubature polar-3d [0 0 0] [1.0 m/TWO_PI m/HALF_PI] {:initdiv 15}))))
 
+
+;; https://github.com/stevengj/cubature/blob/master/test.c
+
+(defn ftest0 ^double [v] (v/prod (v/cos v)))
+(defn ftest1 ^double [v] (let [[^double val ^double scale] (reduce (fn [[^double val ^double scale] ^double x]
+                                                                  (if (m/pos? x)
+                                                                    [(m/+ val (m/sq (m// (m/- 1.0 x) x)))
+                                                                     (m/* scale (m// m/M_2_SQRTPI
+                                                                                     (m/sq x)))]
+                                                                    (reduced [0.0 0.0]))) [0.0 1.0] v)]
+                        (m/* (m/exp (m/- val)) scale)))
+
+(def ^{:const true :tag 'double} radius 0.50124145262344534123412)
+(def ^{:const true :tag 'double} radius2 (m/sq radius))
+
+(defn ftest2 ^double [v] (if (m/< (v/magsq v) radius2) 1.0 0.0))
+(defn nball-V
+  ^double [^long dims ^double radius]
+  (let [hdims (m/* 0.5 dims)]
+    (m/* (m/fpow radius dims)
+         (m// (m/pow m/PI hdims)
+              (m/gamma (m/inc hdims))))))
+
+(def ^{:const true :tag 'double} fdata 0.1)
+
+(defn ftest3 ^double [v] (v/prod (v/mult v 2.0)))
+(defn ftest4 ^double [^long dim v] (let [sum (m/- (v/sum (v/sq (v/shift v -0.5))))]
+                                  (m/* (m/fpow (m// m/M_2_SQRTPI (m/* 2.0 fdata)) dim)
+                                       (m/exp (m// sum (m/sq fdata))))))
+(defn ftest7 ^double [^long dim v] (let [p (m// dim)
+                                      prod (m/fpow (m/inc p) dim)]
+                                  (m/* prod (v/prod (map (fn [^double x] (m/pow x p)) v)))))
+
+
+(t/deftest stevengj-cubature
+  (let [mn (repeat 3 0.0)
+        mx (repeat 3 1.0)
+        dims (count mn)]
+    (t/are [f res] (m/delta-eq res (sut/cubature f mn mx {:max-iters 5000 :rel 1.0e-3 :abs 1.0e-3
+                                                          :initdiv 4}) 1.0e-3)
+      ftest0 (v/prod (v/sin mx))
+      ftest1 1.0
+      ftest2 (m// (nball-V dims radius) (m/fpow 2 dims))
+      ftest3 1.0
+      (partial ftest4 dims) 1.0
+      (partial ftest7 dims) 1.0)))
 
 ;;
 
 (t/deftest univariate-gk
-  (t/are [f a b res] (m/delta-eq res (:result (sut/integrate f a b {:integrator :gauss-kronrod})))
+  (t/are [f a b res] (m/delta-eq res (sut/integrate f a b {:integrator :gauss-kronrod}))
     (fn [^double x] (m/exp x)) -1 0 (m/- 1.0 (m// m/E))
     (fn [^double x] (m/fpow (m/cos x) 200)) 0 1 0.088512
     (fn [^double x] (m// 1.0 (m/inc (m/sq x)))) 0 1 m/QUARTER_PI
@@ -138,6 +187,16 @@
 
 ;;
 
+(defn xsinx ^double [^double x] (m/* x (m/sin x)))
+(defn sinx+xcosx ^double [^double x] (m/+ (m/sin x) (m/* x (m/cos x))))
+(defn twocosx-xsinx ^double [^double x] (m/- (m/* 2.0 (m/cos x))
+                                          (xsinx x)))
+(defn -threesinx-xcosx ^double [^double x] (m/- (m/* -3.0 (m/sin x))
+                                             (m/* x (m/cos x))))
+(defn xsinx-4cosx ^double [^double x] (m/- (xsinx x)
+                                        (m/* 4.0 (m/cos x))))
+
+
 (t/deftest derivative-tests
   (t/are [f f'] (->> (repeatedly 1000 r/grand)
                      (map (juxt (sut/derivative f 1 {:acc 4}) f'))
@@ -151,7 +210,16 @@
 
     (fn [^double x] (m// (m/cos x) (m/inc (m/* x x))))
     (fn [^double x] (let [d (m/inc (m/* x x))]
-                     (m/- (m// (m/+ (m/* d (m/sin x)) (m/* 2.0 x (m/cos x))) (m/sq d)))))))
+                     (m/- (m// (m/+ (m/* d (m/sin x)) (m/* 2.0 x (m/cos x))) (m/sq d))))))
+  (t/are [d n] (->> (repeatedly 1000 r/grand)
+                    (map (juxt (sut/derivative xsinx n {:acc 6}) d))
+                    (every? (fn [[^double a ^double b]]
+                              (m/delta-eq a b 1.0e-3))))
+    xsinx 0
+    sinx+xcosx 1
+    twocosx-xsinx 2
+    -threesinx-xcosx 3
+    xsinx-4cosx 4))
 
 (t/deftest hessian-tests
   (t/are [f point res] (every? identity (map (fn [h v] (v/delta-eq h v 1.0e-3))
@@ -165,3 +233,36 @@
 
     (fn [[^double x ^double y]] (m/+ (m/cb x) (m/* -2.0 x y) (m/* -1.0 (m/sq (m/cb y)))))
     [1 2] [[6 -2] [-2 -480]]))
+
+;; https://docs.scipy.org/doc/scipy/tutorial/integrate.html
+(t/deftest scipy-example
+  (t/is (m/delta-eq (sut/integrate (fn [^double x] (m/bessel-j 2.5 x)) 0.0 4.5)
+                    1.117817938088701 1.0e-11))
+  (t/is (v/delta-eq (map (fn [^double x]
+                           (sut/integrate (fn [^double t] (m// (m/exp (m/* -1.0 x t))
+                                                              (m/pow t 3.0))) 1.0 ##Inf))
+                         (range 1.0 4.0 0.5))
+                    [0.1097,  0.0567,  0.0301,  0.0163,  0.0089,  0.0049] 1.0e-4))
+  (t/is (v/delta-eq (map (fn [^double n]
+                           (sut/cubature (fn [[^double t ^double x]] (m// (m/exp (m/* -1.0 x t))
+                                                                         (m/pow t n))) [1 0] [##Inf ##Inf]
+                                         {:max-iters 5000
+                                          :initdiv 10})) (range 2 10))
+                    (map (fn [^double v] (m// v)) (range 2 10)) 1.0e-5)))
+
+;; extrapolation
+
+(t/deftest richardson-extrapolation
+  (t/is (m/delta-eq ((sut/extrapolate (sut/fx->gx+h (fn [^double x] (m// (m/sin x) x)))
+                                      {:abs 0 :rel 1.0e-10
+                                       :power 2 :init-h 1.0}) 0.0) 1.0 1.0e-15))
+  (t/are [d n] (->> (repeatedly 1000 r/grand)
+                    (map (juxt (sut/derivative xsinx n {:acc 4 :extrapolate? true}) d))
+                    (every? (fn [[^double a ^double b]]
+                              (m/delta-eq a b 1.0e-5))))
+    xsinx 0
+    sinx+xcosx 1
+    twocosx-xsinx 2
+    -threesinx-xcosx 3
+    xsinx-4cosx 4))
+

@@ -12,7 +12,7 @@
   (ncol [m])
   (column [m id])
   (row [m id])
-  (symmetric? [m])
+  (symmetric? [m] [m tol])
   (transpose [m])
   (inverse [m])
   (diag [m])
