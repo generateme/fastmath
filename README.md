@@ -36,13 +36,13 @@ Fastmath relies on [SMILE](https://haifengl.github.io/) 2.6.0 which relies on BL
 #### lein / project.clj
 
 ```clojure
-[generateme/fastmath "2.2.1" :exclusions [com.github.haifengl/smile-mkl]]
+[generateme/fastmath "2.3.0" :exclusions [com.github.haifengl/smile-mkl]]
 ```
 
 #### deps.edn
 
 ```clojure
-{:deps {generateme/fastmath {:mvn/version "2.2.1"
+{:deps {generateme/fastmath {:mvn/version "2.3.0"
                              :exclusions [com.github.haifengl/smile-mkl]}}}
 ```
 
