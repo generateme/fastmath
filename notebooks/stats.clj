@@ -9,8 +9,7 @@
             [fastmath.stats :as stats]
             [fastmath.random :as r]
             [fastmath.core :as m]
-            [fastmath.kernel :as k]
-            [fastmath.stats :as stat]))
+            [fastmath.kernel :as k]))
 
 ;; # fastmath.stats
 
@@ -573,32 +572,81 @@ stats/binomial-ci-methods
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (stats/me mpg mpg+)
- (stats/me mpg 20.09)
- (stats/mae mpg mpg+)
- (stats/mae mpg 20.09)
- (stats/mape mpg mpg+)
- (stats/mape mpg 20.09)
- (stats/rss mpg mpg+)
- (stats/rss mpg 20.09)
- (stats/r2 mpg mpg+)
- (stats/r2 mpg 20.09)
- (stats/mse mpg mpg+)
- (stats/mse mpg 20.09)
- (stats/rmse mpg mpg+)
- (stats/rmse mpg 20.09)
- (stats/count= mpg mpg+)
- (stats/count= mpg 21)
- (stats/L0 mpg mpg+)
- (stats/L0 mpg 21)
- (stats/L1 mpg mpg+)
- (stats/L1 mpg 20.09)
- (stats/L2 mpg mpg+)
- (stats/L2 mpg 20.09)
- (stats/L2sq mpg mpg+)
- (stats/L2sq mpg 20.09)
- (stats/LInf mpg mpg+)
- (stats/LInf mpg 20.09))
+  (stats/me mpg mpg+)
+  (stats/me mpg 20.09)
+  (stats/mae mpg mpg+)
+  (stats/mae mpg 20.09)
+  (stats/mape mpg mpg+)
+  (stats/mape mpg 20.09)
+  (stats/rss mpg mpg+)
+  (stats/rss mpg 20.09)
+  (stats/r2 mpg mpg+)
+  (stats/r2 mpg 20.09)
+  (stats/mse mpg mpg+)
+  (stats/mse mpg 20.09)
+  (stats/rmse mpg mpg+)
+  (stats/rmse mpg 20.09)
+  (stats/count= mpg mpg+)
+  (stats/count= mpg 21)
+  (stats/L0 mpg mpg+)
+  (stats/L0 mpg 21)
+  (stats/L1 mpg mpg+)
+  (stats/L1 mpg 20.09)
+  (stats/L2 mpg mpg+)
+  (stats/L2 mpg 20.09)
+  (stats/L2sq mpg mpg+)
+  (stats/L2sq mpg 20.09)
+  (stats/LInf mpg mpg+)
+  (stats/LInf mpg 20.09))
+
+;; ## Dissimilarity / similarity
+
+;; There are two functions to compare PDFs of histograms against other histogram or data against PDF of any distribution.
+
+^{::clerk/visibility :hide}
+(u/table2
+ [[dissimilarity "Distance between two histograms (PDFs)"]
+  [similarity "Similarity of two histograms (PDFs)"]] )
+
+;; As the input you can provide one of:
+;;
+;; * counts, which will be converted to probabilities (PDFs)
+;; * data which will be compared to a distribution (histogram will be calculated for data)
+
+;; Possible methods are desribed in the the [Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions](https://www.naun.org/main/NAUN/ijmmas/mmmas-49.pdf) paper by Sung-Hyuk Cha or in the [philentropy R](https://search.r-project.org/CRAN/refmans/philentropy/html/distance.html) package.
+
+(def normal-sample (repeatedly 1000 r/grand))
+(def P-observed-sample [0 2 10 55 2 0 1])
+(def Q-expected-sample [2 0 20 44 1 0 4])
+
+(stats/dissimilarity :jensen-shannon P-observed-sample Q-expected-sample)
+(stats/dissimilarity :jensen-shannon normal-sample (r/distribution :normal))
+
+;; We can select also number of bins for second case (set to 5 bins only)
+
+(stats/dissimilarity :jensen-shannon normal-sample (r/distribution :normal) {:bins 5})
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+{:head ["method" "distance between P and Q" "distance between normal sample and distribution"]
+ :rows (vec (for [ds [:euclidean, :city-block, :manhattan, :chebyshev, :minkowski, :sorensen, :gower, :soergel, :kulczynski, :canberra, :lorentzian, :non-intersection, :wave-hedges, :czekanowski, :motyka, :tanimoto, :jaccard, :dice, :bhattacharyya, :hellinger, :matusita, :squared-chord, :euclidean-sq, :squared-euclidean, :pearson-chisq, :chisq, :neyman-chisq, :squared-chisq, :symmetric-chisq, :divergence, :clark, :additive-symmetric-chisq, :kullback-leibler, :jeffreys, :k-divergence, :topsoe, :jensen-shannon, :jensen-difference, :taneja, :kumar-johnson, :avg]]
+              [ds (stats/dissimilarity ds P-observed-sample Q-expected-sample)
+               (stats/dissimilarity ds normal-sample r/default-normal)]))}
+
+;; And similarity
+
+(stats/similarity :ruzicka P-observed-sample Q-expected-sample)
+(stats/similarity :ruzicka normal-sample (r/distribution :normal))
+
+;; With changed number of bins to 5
+
+(stats/similarity :ruzicka normal-sample (r/distribution :normal) {:bins 5})
+
+^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
+{:head ["method" "similarity of P and Q" "similarity of normal sample and distribution"]
+ :rows (vec (for [ds [:intersection, :czekanowski, :motyka, :kulczynski, :ruzicka, :inner-product, :harmonic-mean, :cosine, :jaccard, :dice, :fidelity, :squared-chord]]
+              [ds (stats/similarity ds P-observed-sample Q-expected-sample)
+               (stats/similarity ds normal-sample r/default-normal)]))}
+
 
 ;; ## Correlation
 
@@ -609,21 +657,21 @@ stats/binomial-ci-methods
   [spearman-correlation "Spearman's correlation"]
   [pearson-correlation "Pearson's correlation"]
   [kendall-correlation "Kendall's correlation"]
-  [kullback-leibler-divergence "Kullback-Leibler divergence"]
-  [jensen-shannon-divergence "Jensen-Shannon divergence"]
+  [kullback-leibler-divergence "Kullback-Leibler divergence, deprecated, use: dissimilarity function"]
+  [jensen-shannon-divergence "Jensen-Shannon divergence, deprecated, use: dissimilarity function"]
   [correlation-matrix "correlation matrix"]
   [covariance-matrix "covariance martrix"]
   [coefficient-matrix "create any coefficient matrix for seq of seqs"]])
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (stats/covariance (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/correlation (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/pearson-correlation (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/spearman-correlation (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/kendall-correlation (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/kullback-leibler-divergence (u/mtcars :mpg) (u/mtcars :cyl))
- (stats/jensen-shannon-divergence (u/mtcars :mpg) (u/mtcars :cyl))) 
+  (stats/covariance (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/correlation (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/pearson-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/spearman-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/kendall-correlation (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/kullback-leibler-divergence (u/mtcars :mpg) (u/mtcars :cyl))
+  (stats/jensen-shannon-divergence (u/mtcars :mpg) (u/mtcars :cyl))) 
 
 ;; Matrices are created by applying given correlation method (on any function) for every pair of given sequences. For:
 ;; * `covariance-matrix` - covariance
@@ -631,8 +679,6 @@ stats/binomial-ci-methods
 ;;    * `:pearsons` - default
 ;;    * `:spearman`
 ;;    * `:kendall`
-;;    * `:kullback-leibler`
-;;    * `:jensen-shannon`
 ;; * `coefficient-matrix` - apply any function (`pearson-correlation` by default) to every pair of sequences. Last argument indicates if function is commutative or not (to speedup calculations)
 
 (def three-irises (u/by u/iris :species :sepal-width))
@@ -1433,7 +1479,8 @@ stats/binomial-ci-methods
   [freeman-tukey-test "Freeman-Tukey test" -1/2]
   [cressie-read-test "Cressie-Read test" 2/3]])
 
-;; Divergence tests work accept contingency table or sequence of numbers (in this case goodness-of-fit is performed for given `p` probabilities). Parameters:
+;; Divergence tests work accept contingency table or sequence of numbers (in this case goodness-of-fit is performed for given `p` probabilities). Additional options:
+
 ;; * `:lambda` - test parameter (for `power-divergence-test` only)
 ;; * `:p` - probabilites/weights for goodness-of-fit test (default: $p_i=\frac{1}{n}$)
 ;; * `:ci-sides` - sides for confidence intervals (the same values as for `:sides`) (default: `:both`)
@@ -1448,12 +1495,13 @@ stats/binomial-ci-methods
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (stats/chisq-test ctab)
- (stats/multinomial-likelihood-ratio-test ctab)
- (stats/minimum-discrimination-information-test ctab)
- (stats/neyman-modified-chisq-test ctab)
- (stats/freeman-tukey-test ctab)
- (stats/cressie-read-test ctab))
+  (stats/power-divergence-test ctab {:lambda 2})
+  (stats/chisq-test ctab)
+  (stats/multinomial-likelihood-ratio-test ctab)
+  (stats/minimum-discrimination-information-test ctab)
+  (stats/neyman-modified-chisq-test ctab)
+  (stats/freeman-tukey-test ctab)
+  (stats/cressie-read-test ctab))
 
 ;; Chart of `chi2` statistic for different `lambda`
 ^{::clerk/visibility :hide}
@@ -1461,13 +1509,15 @@ stats/binomial-ci-methods
 
 ;; ### Goodness of fit
 
+;; When goodness of fit is performed, `p` should contain probabilities or weights for given counts. There is a possibility to use power divergence tests for continuous data, see the next section.
+
 (def counts [1 1 2 10])
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (stats/chisq-test counts)
- (stats/chisq-test counts {:p [1 10 2 50]})
- (stats/chisq-test counts {:p [1 1 2 11]}))
+  (stats/chisq-test counts)
+  (stats/chisq-test counts {:p [1 10 2 50]})
+  (stats/chisq-test counts {:p [1 1 2 11]}))
 
 ;; Chart of `chi2` statistic for different `lambda`
 ^{::clerk/visibility :hide}
@@ -1491,16 +1541,22 @@ stats/binomial-ci-methods
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (stats/ad-test-one-sample normal-data1)
- (stats/ad-test-one-sample normal-data1 normal-data1)
- (stats/ad-test-one-sample normal-data1 normal-data2)
- (stats/ad-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
- (stats/ks-test-one-sample normal-data1)
- (stats/ks-test-one-sample normal-data1 normal-data1)
- (stats/ks-test-one-sample normal-data1 normal-data2)
- (stats/ks-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
- (stats/ks-test-two-samples normal-data1 normal-data1)
- (stats/ks-test-two-samples normal-data1 normal-data2)) 
+  (stats/ad-test-one-sample normal-data1)
+  (stats/ad-test-one-sample normal-data1 normal-data1)
+  (stats/ad-test-one-sample normal-data1 normal-data2)
+  (stats/ad-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
+  (stats/ks-test-one-sample normal-data1)
+  (stats/ks-test-one-sample normal-data1 normal-data1)
+  (stats/ks-test-one-sample normal-data1 normal-data2)
+  (stats/ks-test-one-sample normal-data1 normal-data2 {:kernel :epanechnikov})
+  (stats/ks-test-two-samples normal-data1 normal-data1)
+  (stats/ks-test-two-samples normal-data1 normal-data2)) 
+
+;; #### Goodness of fit
+
+;; Power divergence tests can be used on continuous data. In such case, histogram will be created for input and `p` option has to be a distribution object.
+
+(stats/chisq-test normal-data2 {:p (r/distribution :normal)})
 
 ;; ### Rank
 

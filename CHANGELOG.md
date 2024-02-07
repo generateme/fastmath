@@ -1,6 +1,27 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [2.4.0]
+
+### Added
+
+* Power divergence tests can work on histograms / distribution
+* `dissimilarity` and `similarity` distance function of PDF (stats)
+
+### Changed
+
+* `SMILE` downgraded to 2.6.0 due to licence issue (3.0.2 is GPL, 2.6.0 is LGPL)
+* [breaking] `correlation-matrix` can use only correlation methods (`:pearson`, `:kendall` and `:spearman`)
+* some SMILE based methods are rewritten to Java or Clojure
+
+### Deprecated
+
+* `kullback-leibler-divergence` and `jensen-shannon-divergence`, use `dissimilarity` function instead.
+
+### Fixed
+
+* stats distances type inconsistency on some cases
+
 ## [2.3.0]
 
 ### Added

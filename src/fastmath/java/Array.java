@@ -293,4 +293,187 @@ public final class Array {
         return t;
     }
 
+    // array ops
+
+    public static double min(double[] a) {
+        double m = Double.POSITIVE_INFINITY;
+        int l = a.length;
+        
+        for(int i=0; i<l; i++) {
+            if(a[i] < m) {
+                m = a[i];
+            }
+        }
+
+        return m;
+    }
+
+    public static int which_min(double[] a) {
+        double m = Double.POSITIVE_INFINITY;
+        int wm = -1;
+        int l = a.length;
+        
+        for(int i=0; i<l; i++) {
+            if(a[i] < m) {
+                m = a[i];
+                wm = i;
+            }
+        }
+
+        return wm;
+    }
+
+    public static double max(double[] a) {
+        double m = Double.NEGATIVE_INFINITY;
+        int l = a.length;
+        
+        for(int i=0; i<l; i++) {
+            if(a[i] > m) {
+                m = a[i];
+            }
+        }
+
+        return m;
+    }
+
+    public static double which_max(double[] a) {
+        double m = Double.NEGATIVE_INFINITY;
+        int wm = -1;
+        int l = a.length;
+        
+        for(int i=0; i<l; i++) {
+            if(a[i] > m) {
+                m = a[i];
+                wm = i;
+            }
+        }
+
+        return wm;
+    }
+    
+    public static double sum(double[] a) {
+        double s = 0.0;
+        int l = a.length;
+        
+        for(int i=0; i<l; i++) {
+            s += a[i];
+        }
+
+        return s;
+    }
+
+    public static double product(double[] a) {
+        int l = a.length;
+        if(l==0) return 0.0;
+
+        double s = 1.0;
+        for(int i=0; i<l; i++) {
+            s *= a[i];
+        }
+
+        return s;
+    }
+
+    public static double mean(double[] a) {
+        return sum(a)/a.length;
+    }
+
+    public static double dot(double[] a, double[] b) {
+        double s = 0.0;
+        int l = Math.min(a.length, b.length);
+
+        for(int i=0;i<l;i++) {
+            s += a[i]*b[i];
+        }
+
+        return s;
+    }
+
+    public static double[] add(double[] a, double[] b) {
+        int l = Math.min(a.length, b.length);
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = a[i]+b[i];
+        }
+
+        return res;
+    }
+
+    public static double[] sub(double[] a, double[] b) {
+        int l = Math.min(a.length, b.length);
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = a[i]-b[i];
+        }
+
+        return res;
+    }
+
+    public static double[] emult(double[] a, double[] b) {
+        int l = Math.min(a.length, b.length);
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = a[i]*b[i];
+        }
+
+        return res;
+    }
+
+    public static double[] emin(double[] a, double[] b) {
+        int l = Math.min(a.length, b.length);
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = Math.min(a[i],b[i]);
+        }
+
+        return res;
+    }
+
+    public static double[] emax(double[] a, double[] b) {
+        int l = Math.min(a.length, b.length);
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = Math.max(a[i],b[i]);
+        }
+
+        return res;
+    }
+
+    public static double[] shift(double[] a, double v) {
+        int l = a.length;
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = a[i]+v;
+        }
+
+        return res;
+    }
+
+    public static double[] scale(double[] a, double v) {
+        int l = a.length;
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = a[i]*v;
+        }
+
+        return res;
+    }
+
+    public static double[] abs(double[] a) {
+        int l = a.length;
+        double[] res = new double[l];
+        
+        for(int i=0;i<l;i++) {
+            res[i] = Math.abs(a[i]);
+        }
+
+        return res;
+    }
 }

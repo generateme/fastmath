@@ -146,7 +146,7 @@
 
 (defn- make-L
   ^Matrix [^Matrix m]
-  (let [dim (.nrow m)]
+  (let [dim (.nrows m)]
     (doseq [^long r (range (dec dim))]
       (doseq [^long c (range (inc r) dim)]
         (.set m r c 0.0))))

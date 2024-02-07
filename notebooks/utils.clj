@@ -3,6 +3,7 @@
   (:require [fastmath.core :as m]
             [fastmath.stats :as stats]
             [clojure2d.core :as c2d]
+            [clojure2d.extra.utils :as c2du]
             [nextjournal.clerk :as clerk]
             [nextjournal.clerk.viewer :as viewer]
             [nextjournal.clerk.tap]
@@ -12,8 +13,9 @@
             [clojure.string :as str]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
-            [fastmath.vector :as v]
-            [fastmath.complex :as cmplx]))
+            [fastmath.vector :as v]))
+
+(def show-image c2du/show-image)
 
 (def ^:const size 200)
 

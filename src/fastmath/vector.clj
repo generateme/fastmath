@@ -49,7 +49,8 @@
   (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry IReduce IReduceInit]
            [clojure.core Vec]
            [org.apache.commons.math3.linear ArrayRealVector RealVector]
-           [org.apache.commons.math3.analysis UnivariateFunction]))
+           [org.apache.commons.math3.analysis UnivariateFunction]
+           [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs 'zero?})
@@ -96,8 +97,8 @@
    :emn #(mapv m/fast-min %1 %2)
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
-   :sum (fn ^double [v] (reduce m/fast+ v))
-   :prod (fn ^double [v] (reduce m/fast* v))
+   :sum (fn ^double [v] (reduce m/fast+ 0.0 v))
+   :prod (fn ^double [v] (if (seq v) (reduce m/fast* v) 0.0))
    :permute #(map (fn [idx] (%1 idx)) %2)
    :reciprocal #(map (fn [^double v] (/ v)) %)
    :heading (fn ^double [v] (angle-between v (reduce conj [1.0] (repeatedly (dec (count v)) (constantly 0.0)))))
@@ -134,8 +135,8 @@
    :emn #(mapv m/fast-min %1 %2)
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
-   :sum (fn ^double [v] (reduce m/fast+ v))
-   :prod (fn ^double [v] (reduce m/fast* v))
+   :sum (fn ^double [v] (reduce m/fast+ 0.0 v))
+   :prod (fn ^double [v] (if (seq v) (reduce m/fast* v) 0.0))
    :permute #(mapv (fn [idx] (%1 idx)) %2)
    :reciprocal #(mapv (fn [^double v] (/ v)) %)
    :heading #(angle-between % (reduce conj [1.0] (repeatedly (dec (count %)) (constantly 0.0))))
@@ -143,6 +144,54 @@
    :einterpolate (fn [v1 v2 v f] (mapv #(f %1 %2 %3) v1 v2 v))
    :econstrain (fn [v val1 val2] (mapv #(m/constrain ^double %1 ^double val1 ^double val2) v))
    :is-zero? #(every? clojure.core/zero? %)})
+
+(defn- aevery
+  "Array version of every"
+  [^doubles arr pred]
+  (let [s (alength arr)]
+    (loop [idx (unchecked-long 0)]
+      (if (< idx s)
+        (if (pred (aget arr idx))
+          (recur (inc idx))
+          false)
+        true))))
+
+(extend (Class/forName "[D")
+  prot/VectorProto
+  {:to-double-array identity
+   :to-acm-vec (fn [^doubles arr] (ArrayRealVector. arr))
+   :to-vec (fn [^doubles arr] (let [^Vec v (vector-of :double)]
+                               (Vec. (.am v) (alength arr) (.shift v) (.root v) arr (.meta v))))
+   :as-vec (fn ([v xs] (double-array (take (alength ^doubles v) xs)))
+             ([v] (prot/as-vec v (repeat 0.0))))
+   :fmap (fn [^doubles arr f] (amap arr idx _ret ^double (f (aget arr idx))))
+   :approx (fn ([^doubles arr] (amap arr idx _ret (m/approx (aget arr idx))))
+             ([^doubles arr d] (amap arr idx _ret ^double (m/approx (aget arr idx) d))))
+   :magsq (fn [^doubles arr] (Array/dot arr arr))
+   :mag (fn [^doubles arr] (m/sqrt (Array/dot arr arr)))
+   :dot (fn [^doubles arr ^doubles v2] (Array/dot arr v2))
+   :add (fn [^doubles arr ^doubles v2] (Array/add arr v2))
+   :sub (fn [^doubles arr ^doubles v2] (Array/sub arr v2))
+   :shift (fn [^doubles arr ^double v] (Array/shift arr v))
+   :mult (fn [^doubles arr ^double v] (Array/scale arr v))
+   :emult (fn [^doubles arr ^doubles v2] (Array/emult arr v2))
+   :abs (fn [^doubles arr] (Array/abs arr))
+   :mx (fn [^doubles arr] (Array/max arr))
+   :mn (fn [^doubles arr] (Array/min arr))
+   :maxdim (fn [^doubles arr] (Array/which_max arr))
+   :mindim (fn [^doubles arr] (Array/which_min arr))
+   :emx (fn [^doubles arr ^doubles v2] (Array/emax arr v2))
+   :emn (fn [^doubles arr ^doubles v2] (Array/emin arr v2))
+   :sum (fn [^doubles arr] (Array/sum arr))
+   :prod (fn [^doubles arr] (Array/product arr))
+   :heading (fn [^doubles arr] (let [v (double-array (alength arr) 0.0)]
+                                (aset v 0 1.0)
+                                (angle-between arr v)))
+   :reciprocal (fn [^doubles arr] (amap arr idx _ret (/ (aget arr idx))))
+   :interpolate (fn [^doubles arr ^doubles v2 ^double t f] (amap arr idx _ret ^double (f (aget arr idx) (aget v2 idx) t)))
+   :einterpolate (fn [^doubles arr ^doubles v2 ^doubles v f] (amap arr idx _ret ^double (f (aget arr idx) (aget v2 idx) (aget v idx))))
+   :econstrain (fn [^doubles arr ^double val1 ^double val2] (amap arr idx _ret ^double (m/constrain (aget arr idx) val1 val2)))
+   :is-zero? (fn [^doubles arr] (aevery arr #(m/zero? ^double %)))})
 
 (extend ArrayRealVector
   prot/VectorProto
@@ -189,60 +238,6 @@
                  (ArrayRealVector. v ^doubles (prot/econstrain (.getDataRef v) v1 v2)))
    :is-zero? (fn [^ArrayRealVector v] (prot/is-zero? (.getDataRef v)))})
 
-(defn- aevery
-  "Array version of every"
-  [^doubles arr pred]
-  (let [s (alength arr)]
-    (loop [idx (unchecked-long 0)]
-      (if (< idx s)
-        (if (pred (aget arr idx))
-          (recur (inc idx))
-          false)
-        true))))
-
-(extend (Class/forName "[D")
-  prot/VectorProto
-  {:to-double-array identity
-   :to-acm-vec (fn [arr] (ArrayRealVector. ^doubles  arr))
-   :to-vec (fn [arr] (let [^Vec v (vector-of :double)]
-                      (Vec. (.am v) (alength ^doubles arr) (.shift v) (.root v) arr (.meta v))))
-   :as-vec (fn ([v xs] (double-array (take (alength ^doubles v) xs)))
-             ([v] (prot/as-vec v (repeat 0.0))))
-   :fmap (fn [arr f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx))))
-   :approx (fn ([arr] (amap ^doubles arr idx _ret ^double (m/approx (aget ^doubles arr idx))))
-             ([arr d] (amap ^doubles arr idx _ret ^double (m/approx (aget ^doubles arr idx) d))))
-   :magsq (fn [arr] (smile.math.MathEx/dot ^doubles arr ^doubles arr))
-   :mag (fn [v1] (m/sqrt (prot/magsq v1)))
-   :dot (fn [arr v2] (smile.math.MathEx/dot ^doubles arr ^doubles v2))
-   :add (fn [arr v2] (let [b (aclone ^doubles arr)]
-                      (smile.math.MathEx/add b ^doubles v2)
-                      b))
-   :sub (fn [arr v2] (let [b (aclone ^doubles arr)]
-                      (smile.math.MathEx/sub b ^doubles v2)
-                      b))
-   :shift (fn [arr v] (amap ^doubles arr idx _ret (+ (aget ^doubles arr idx) ^double v)))
-   :mult (fn [arr v] (let [b (aclone ^doubles arr)]
-                      (smile.math.MathEx/scale ^double v ^doubles b)
-                      b))
-   :emult (fn [arr v2] (amap ^doubles arr idx _ret (* (aget ^doubles arr idx) (aget ^doubles v2 idx))))
-   :abs (fn [arr] (amap ^doubles arr idx _ret (m/abs (aget ^doubles arr idx))))
-   :mx (fn [arr] (smile.math.MathEx/max ^doubles arr))
-   :mn (fn [arr] (smile.math.MathEx/min ^doubles arr))
-   :maxdim (fn [arr] (smile.math.MathEx/whichMax ^doubles arr))
-   :mindim (fn [arr] (smile.math.MathEx/whichMin ^doubles arr))
-   :emx (fn [arr v2] (amap ^doubles arr idx _ret (max (aget ^doubles arr idx) (aget ^doubles v2 idx))))
-   :emn (fn [arr v2] (amap ^doubles arr idx _ret (min (aget ^doubles arr idx) (aget ^doubles v2 idx))))
-   :sum (fn [arr] (smile.math.MathEx/sum ^doubles arr))
-   :prod (fn [arr] (areduce ^doubles arr idx ret 1.0 (* ret (aget ^doubles arr idx))))
-   :heading (fn [arr] (let [v (double-array (alength ^doubles arr) 0.0)]
-                       (aset v 0 1.0)
-                       (angle-between arr v)))
-   :reciprocal (fn [arr] (amap ^doubles arr idx _ret (/ (aget ^doubles arr idx))))
-   :interpolate (fn [arr v2 t f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) t)))
-   :einterpolate (fn [arr v2 v f] (amap ^doubles arr idx _ret ^double (f (aget ^doubles arr idx) (aget ^doubles v2 idx) (aget ^doubles v idx))))
-   :econstrain (fn [arr val1 val2] (amap ^doubles arr idx _ret ^double (m/constrain ^double (aget ^doubles arr idx) ^double val1 ^double val2)))
-   :is-zero? (fn [arr] (aevery arr #(m/zero? ^double %)))})
-
 (defn- vec-id-check
   [^long len id]
   (and (number? id) (< (unchecked-int id) len)))
@@ -259,7 +254,7 @@
                                     (vec array))))
   (equals [_ v]
     (and (instance? ArrayVec v)
-         (smile.math.MathEx/equals array ^doubles (.array ^ArrayVec v) m/MACHINE-EPSILON)))
+         (java.util.Arrays/equals array ^doubles (.array ^ArrayVec v))))
   (hashCode [_]
     (mix-collection-hash (java.util.Arrays/hashCode array) (alength array)))
   clojure.lang.IHashEq 
@@ -311,23 +306,23 @@
   (fmap [_ f] (ArrayVec. (prot/fmap array f)))
   (approx [_] (ArrayVec. (prot/approx array)))
   (approx [_ d] (ArrayVec. (prot/approx array d)))
-  (magsq [_] (smile.math.MathEx/dot array array))
-  (mag [v1] (m/sqrt (prot/magsq v1)))
-  (dot [_ v2] (smile.math.MathEx/dot array ^doubles (.array ^ArrayVec v2)))
+  (magsq [_] (Array/dot array array))
+  (mag [_] (m/sqrt (Array/dot array array)))
+  (dot [_ v2] (Array/dot array ^doubles (.array ^ArrayVec v2)))
   (add [_ v2] (ArrayVec. (prot/add array (.array ^ArrayVec v2))))
   (sub [_ v2] (ArrayVec. (prot/sub array (.array ^ArrayVec v2))))
   (shift [_ v] (ArrayVec. (prot/shift array v)))
   (mult [_ v] (ArrayVec. (prot/mult array v)))
   (emult [_ v2] (ArrayVec. (prot/emult array (.array ^ArrayVec v2))))
   (abs [_] (ArrayVec. (prot/abs array)))
-  (mx [_] (smile.math.MathEx/max array))
-  (mn [_] (smile.math.MathEx/min array))
-  (maxdim [_] (smile.math.MathEx/whichMax array))
-  (mindim [_] (smile.math.MathEx/whichMin array))
+  (mx [_] (Array/max array))
+  (mn [_] (Array/min array))
+  (maxdim [_] (Array/which_max array))
+  (mindim [_] (Array/which_min array))
   (emx [_ v2] (ArrayVec. (prot/emx array (.array ^ArrayVec v2))))
   (emn [_ v2] (ArrayVec. (prot/emn array (.array ^ArrayVec v2))))
-  (sum [_] (smile.math.MathEx/sum array))
-  (prod [_] (areduce array idx ret 1.0 (* ret (aget array idx))))
+  (sum [_] (Array/sum array))
+  (prod [_] (Array/product array))
   (heading [_] (prot/heading array))
   (reciprocal [_] (ArrayVec. (prot/reciprocal array)))
   (interpolate [_ v2 t f] (ArrayVec. (prot/interpolate array (.array ^ArrayVec v2) t f))) 

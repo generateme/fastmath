@@ -752,6 +752,12 @@
     (factorial20-table n)
     (exp (log-gamma (double (inc n))))))
 
+(defn inv-factorial "Inverse of factorial, 1/n!"
+  ^double [^long n]
+  (if (< n 21)
+    (/ 1.0 (long (factorial20-table n)))
+    (exp (- (log-gamma (double (inc n)))))))
+
 (defn ^{:doc "Log factorial, alias to log-gamma"} log-factorial
   ^double [^long x] (log-gamma (double (inc x))))
 

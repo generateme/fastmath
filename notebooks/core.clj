@@ -930,20 +930,22 @@
 (u/table
  [[factorial20 false "factorial up to 20!, returns long"]
   [factorial false "factorial, accepts long and returns double"]
+  [inv-factorial false "inverse of factorial, accepts long and returns double"]
   [log-factorial false "log of factorial, accepts long and returns double"]
   [combinations false "n choose k, returns double"]
   [log-combinations false "log of binomial coefficient"]])
 
 ^{::clerk/visibility :hide}
 (clerk/example
- (map m/factorial20 (range 21))
- (m/factorial 100)
- (m/log-factorial 9)
- (m/exp (m/log-factorial 9))
- (m/combinations 10 5)
- (m/combinations 1000 456)
- (m/log-combinations 1000 456)
- (m/exp (m/log-combinations 10 5)))
+  (map m/factorial20 (range 21))
+  (m/factorial 100)
+  (m/inv-factorial 100)
+  (m/log-factorial 9)
+  (m/exp (m/log-factorial 9))
+  (m/combinations 10 5)
+  (m/combinations 1000 456)
+  (m/log-combinations 1000 456)
+  (m/exp (m/log-combinations 10 5)))
 
 ;; ## Seq <-> double array
 

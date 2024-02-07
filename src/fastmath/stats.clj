@@ -58,7 +58,8 @@
            [org.apache.commons.math3.stat.correlation KendallsCorrelation SpearmansCorrelation PearsonsCorrelation]
            [org.apache.commons.math3.stat.regression SimpleRegression]
            [org.apache.commons.math3.analysis.integration RombergIntegrator]
-           [org.apache.commons.math3.analysis UnivariateFunction]))
+           [org.apache.commons.math3.analysis UnivariateFunction]
+           [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -533,14 +534,14 @@
   "Minimum value from sequence."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.MathEx/min ^doubles vs)
+    (Array/min ^doubles vs)
     (reduce clojure.core/min vs)))
 
 (defn maximum
   "Maximum value from sequence."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.MathEx/max ^doubles vs)
+    (Array/max ^doubles vs)
     (reduce clojure.core/max vs)))
 
 (defn span
@@ -560,8 +561,8 @@
   "Sum of all `vs` values."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
-    (smile.math.MathEx/sum ^doubles vs)
-    (reduce (fn [^double x ^double y] (+ x y)) 0.0 vs)))
+    (Array/sum ^doubles vs)
+    (reduce m/fast+ vs)))
 
 (defn moment
   "Calculate moment (central or/and absolute) of given order (default: 2).
@@ -704,9 +705,9 @@
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
          sz (alength avs)
-         mn (smile.math.MathEx/min avs)
-         mx (smile.math.MathEx/max avs)
-         sm (smile.math.MathEx/sum avs)
+         mn (Array/min avs)
+         mx (Array/max avs)
+         sm (Array/sum avs)
          u (/ sm sz)
          mdn (median avs)
          q1 (percentile avs 25.0 estimation-strategy)
@@ -810,13 +811,24 @@
   "Covariance of two sequences."
   (^double [[vs1 vs2]] (covariance vs1 vs2))
   (^double [vs1 vs2]
-   (smile.math.MathEx/cov (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (let [avs1 (m/seq->double-array vs1)
+         avs2 (m/seq->double-array vs2)]
+     (/ (v/dot (v/shift avs1 (- (mean avs1)))
+               (v/shift avs2 (- (mean avs2))))
+        (dec (alength avs1))))))
 
 (defn correlation
   "Correlation of two sequences."
   (^double [[vs1 vs2]] (correlation vs1 vs2))
   (^double [vs1 vs2]
-   (smile.math.MathEx/cor (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (let [avs1 (m/seq->double-array vs1)
+         avs2 (m/seq->double-array vs2)
+         cov (covariance avs1 avs2)
+         v1 (variance avs1)
+         v2 (variance avs2)]
+     (if (or (zero? v1) (zero? v2))
+       ##NaN
+       (/ cov (m/sqrt (* v1 v2)))))))
 
 (defn spearman-correlation
   "Spearman's correlation of two sequences."
@@ -836,24 +848,29 @@
   (^double [vs1 vs2]
    (.correlation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
-(defn kullback-leibler-divergence
+(defn ^{:deprecated "Use [[dissimilarity]]."} kullback-leibler-divergence
   "Kullback-Leibler divergence of two sequences."
   (^double [[vs1 vs2]] (kullback-leibler-divergence vs1 vs2))
   (^double [vs1 vs2]
-   (smile.math.MathEx/KullbackLeiblerDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (let [res (->> (map vector vs1 vs2)
+                  (remove #(zero? (v/prod %)))
+                  (map (fn [[^double p ^double q]] (* p (m/log (/ p q))))))]
+     (if (seq res) (reduce m/fast+ res) ##Inf))))
 
-(defn jensen-shannon-divergence
+(defn ^{:deprecated "Use [[dissimilarity]]."} jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
   (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
   (^double [vs1 vs2]
-   (smile.math.MathEx/JensenShannonDivergence (m/seq->double-array vs1) (m/seq->double-array vs2))))
+   (let [m (v/mult (mapv m/fast+ vs1 vs2) 0.5)]
+     (* 0.5 (+ (kullback-leibler-divergence vs1 m)
+               (kullback-leibler-divergence vs2 m))))))
 
 (defn coefficient-matrix
   "Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.
 
   Default method: pearson-correlation"
   ([vss] (coefficient-matrix vss pearson-correlation))
-  ([vss measure-fn] (coefficient-matrix vss measure-fn true))
+  ([vss measure-fn] (coefficient-matrix vss measure-fn false))
   ([vss measure-fn symmetric?]
    (if symmetric?
      (let [avss (map-indexed (fn [id v] [id (m/seq->double-array v)]) vss)
@@ -873,46 +890,48 @@
 (defn correlation-matrix
   "Generate correlation matrix from seq of seqs. Row order.
 
-  Possible measures: `:pearson` (default), `:kendall`, `:spearman`, `:kullback-leibler` and `jensen-shannon`."
+  Possible measures: `:pearson` (default), `:kendall`, `:spearman`."
   ([vss] (correlation-matrix vss :pearson))
   ([vss measure]
    (let [measure (get {:pearson pearson-correlation
                        :kendall kendall-correlation
-                       :spearman spearman-correlation
-                       :kullback-leibler kullback-leibler-divergence
-                       :jensen-shannon jensen-shannon-divergence} measure pearson-correlation)]
+                       :spearman spearman-correlation} measure pearson-correlation)]
      (coefficient-matrix vss measure true))))
 
 (defn covariance-matrix
   "Generate covariance matrix from seq of seqs. Row order."
   [vss] (coefficient-matrix vss covariance true))
 
-(defn- maybe-number->seq [v] (if (number? v) (repeat v) v))
+(defn- maybe-number->seq [vs1 vs2] (if (number? vs2) [(seq vs1) (repeat (count vs1) vs2)] [vs1 vs2]))
 
 (defn me
   "Mean error"
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (mean (map m/fast- vs1 (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (mean (map m/fast- v1 v2)))))
 
 (defn mae
   "Mean absolute error"
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (mean (map (comp m/abs m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (mean (map (comp m/abs m/fast-) v1 v2)))))
 
 (defn mape
   "Mean absolute percentage error"
   (^double [[vs1 vs2-or-val]] (mape vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (mean (map (fn [^double a ^double b]
-                (m/abs (/ (- a b) a))) vs1 (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (mean (map (fn [^double a ^double b]
+                  (m/abs (/ (- a b) a))) v1 v2)))))
 
 (defn rss
   "Residual sum of squares"
   (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (sum (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (sum (map (comp m/sq m/fast-) v1 v2)))))
 
 (defn r2
   "R2"
@@ -925,7 +944,8 @@
   "Mean squared error"
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (mean (map (comp m/sq m/fast-) vs1 (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (mean (map (comp m/sq m/fast-) v1 v2)))))
 
 (defn rmse
   "Root mean squared error"
@@ -937,7 +957,8 @@
   "Count equal values in both seqs. Same as [[L0]]"
   (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
   (^long [vs1 vs2-or-val]
-   (count (filter (fn [^double v] (zero? v)) (map m/fast- vs1 (maybe-number->seq vs2-or-val))))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (count (filter (fn [^double v] (zero? v)) (map m/fast- v1 v2))))))
 
 (def ^{:doc "Count equal values in both seqs. Same as [[count==]]"} L0 count=)
 
@@ -945,25 +966,29 @@
   "Manhattan distance"
   (^double [[vs1 vs2-or-val]] (L1 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (d/manhattan vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (d/manhattan v1 v2))))
 
 (defn L2sq
   "Squared euclidean distance"
   (^double [[vs1 vs2-or-val]] (L2sq vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (d/euclidean-sq vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (d/euclidean-sq v1 v2))))
 
 (defn L2
   "Euclidean distance"
   (^double [[vs1 vs2-or-val]] (L2 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (d/euclidean vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (d/euclidean v1 v2))))
 
 (defn LInf
   "Chebyshev distance"
   (^double [[vs1 vs2-or-val]] (LInf vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (d/chebyshev vs1 (take (count vs1) (maybe-number->seq vs2-or-val)))))
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (d/chebyshev v1 v2))))
 
 (defn psnr
   "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
@@ -1052,6 +1077,190 @@
       :min mn
       :max mx
       :bins (map vector search-array buff)})))
+
+;; distances
+
+(defn- quantize-distribution
+  "Find probabilities from distribution for given intervals from histogram."
+  [xs distr bins]
+  (let [{:keys [^double step bins]} (if (map? xs) xs (histogram xs bins))
+        last-idx (dec (count bins))
+        counts (map second bins)]
+    [counts (map-indexed (fn [^long id [^double s]]
+                           (condp = id
+                             0 (r/cdf distr (+ s step))
+                             last-idx (- 1.0 (r/cdf distr s))
+                             (r/cdf distr s (+ s step)))) bins)]))
+
+(defn- normalize-PQ
+  [P-observed Q-expected bins probabilities?]
+  (let [[P Q] (if (r/distribution? Q-expected)
+                (quantize-distribution P-observed Q-expected bins)
+                [P-observed Q-expected])]
+    (cond
+      (r/distribution? Q-expected) [(v/div P (v/sum P)) Q]
+      probabilities? [(v/div P (v/sum P)) (v/div Q (v/sum Q))]
+      :else [P Q])))
+
+(defn- safe-div
+  ^double [^double n ^double d ^double e]
+  (if (zero? d) (/ n e) (/ n d)))
+
+(defn- make-safe-log
+  [^double ex ^double e]
+  (cond
+    (== ex m/E) (fn ^double [^double v] (m/log (if (zero? v) e v)))
+    (== ex 2.0) (fn ^double [^double v] (m/log2 (if (zero? v) e v)))
+    (== ex 10.0) (fn ^double [^double v] (m/log10 (if (zero? v) e v)))
+    :else (fn ^double [^double v] (m/logb ex (if (zero? v) e v)))))
+
+(defn dissimilarity
+  "Various PDF distance between two histograms (frequencies) or probabilities.
+
+  Q can be a distribution object. Then, histogram will be created out of P.
+
+  Arguments:
+
+  * `method` - distance method
+  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution)
+  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data)
+  
+  Options:
+
+  * `:probabilities?` - should P/Q be converted to a probabilities, default: `true`.
+  * `:epsilon` - small number which replaces `0.0` when division or logarithm is used`
+  * `:log-base` - base for logarithms, default: `e`
+  * `:power` - exponent for `:minkowski` distance, default: `2.0`
+  * `:bins` - number of bins or bins estimation method, see [[histogram]].
+
+  The list of methods: `:euclidean`, `:city-block`, `:manhattan`, `:chebyshev`, `:minkowski`, `:sorensen`, `:gower`, `:soergel`, `:kulczynski`, `:canberra`, `:lorentzian`, `:non-intersection`, `:wave-hedges`, `:czekanowski`, `:motyka`, `:tanimoto`, `:jaccard`, `:dice`, `:bhattacharyya`, `:hellinger`, `:matusita`, `:squared-chord`, `:euclidean-sq`, `:squared-euclidean`, `:pearson-chisq`, `:chisq`, `:neyman-chisq`, `:squared-chisq`, `:symmetric-chisq`, `:divergence`, `:clark`, `:additive-symmetric-chisq`, `:kullback-leibler`, `:jeffreys`, `:k-divergence`, `:topsoe`, `:jensen-shannon`, `:jensen-difference`, `:taneja`, `:kumar-johnson`, `:avg`
+
+  See more: Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha"
+  (^double [method P-observed Q-expected] (dissimilarity method P-observed Q-expected nil))
+  (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon ^double log-base ^double power]
+                                          :or {probabilities? true epsilon 1.0e-6 log-base m/E power 2.0}}]
+   (let [[P Q] (normalize-PQ P-observed Q-expected bins probabilities?)
+         log (make-safe-log log-base epsilon)]
+     (case method
+       :euclidean (L2 P Q)
+       :city-block (L1 P Q)
+       :manhattan (L1 P Q)
+       :chebyshev (LInf P Q)
+       :minkowski (m/pow (v/sum (map (fn [^double p ^double q] (m/pow (m/abs (- p q)) power)) P Q))
+                         (/ power))
+       :sorensen (safe-div (L1 P Q) (+ (v/sum P) (v/sum Q)) epsilon)
+       :gower (safe-div (L1 P Q) (count P) epsilon)
+       :soergel (safe-div (L1 P Q) (v/sum (v/emx P Q)) epsilon)
+       :kulczynski (safe-div (L1 P Q) (v/sum (v/emn P Q)) epsilon)
+       :canberra (v/sum (map (fn [^double p ^double q]
+                               (safe-div (m/abs (- p q)) (+ p q) epsilon)) P Q))
+       :lorentzian (v/sum (map (fn [^double p ^double q] (log (m/inc (m/abs (- p q))))) P Q))
+       :non-intersection (* 0.5 (L1 P Q))
+       :wave-hedges (v/sum (map (fn [^double p ^double q]
+                                  (safe-div (m/abs (- p q)) (m/max p q) epsilon)) P Q))
+       :czekanowski (safe-div (L1 P Q) (+ (v/sum P) (v/sum Q)) epsilon)
+       :motyka (safe-div (v/sum (v/emx P Q)) (+ (v/sum P) (v/sum Q)) epsilon)
+       :tanimoto (let [mx (v/emx P Q)]
+                   (safe-div (v/sum (v/sub mx (v/emn P Q))) (v/sum mx) epsilon))
+       :jaccard (safe-div (L2sq P Q) (- (+ (v/sum (v/sq P))
+                                           (v/sum (v/sq Q)))
+                                        (v/sum (v/emult P Q))) epsilon)
+       :dice (safe-div (L2sq P Q) (+ (v/sum (v/sq P))
+                                     (v/sum (v/sq Q))) epsilon)
+       :bhattacharyya (- ^double (log (v/sum (v/sqrt (v/emult P Q)))))
+       :hellinger (* 2.0 (m/sqrt (- 1.0 (v/sum (v/sqrt (v/emult P Q))))))
+       :matusita (m/sqrt (- 2.0 (* 2.0 (v/sum (v/sqrt (v/emult P Q))))))
+       :squared-chord (L2sq (v/sqrt P) (v/sqrt Q))
+       :euclidean-sq (L2sq P Q)
+       :squared-euclidean (L2sq P Q)
+       :pearson-chisq (v/sum (map (fn [^double p ^double q]
+                                    (safe-div (m/sq (- p q)) q epsilon)) P Q))
+       :chisq (v/sum (map (fn [^double p ^double q]
+                            (safe-div (m/sq (- p q)) q epsilon)) P Q))
+       :neyman-chisq (v/sum (map (fn [^double p ^double q]
+                                   (safe-div (m/sq (- p q)) p epsilon)) P Q))
+       :squared-chisq (v/sum (map (fn [^double p ^double q]
+                                    (safe-div (m/sq (- p q)) (+ p q) epsilon)) P Q))
+       :symmetric-chisq (* 2.0 (v/sum (map (fn [^double p ^double q]
+                                             (safe-div (m/sq (- p q)) (+ p q) epsilon)) P Q)))
+       :divergence (* 2.0 (v/sum (map (fn [^double p ^double q]
+                                        (safe-div (m/sq (- p q)) (m/sq (+ p q)) epsilon)) P Q)))
+       :clark (m/sqrt (v/sum (map (fn [^double p ^double q]
+                                    (m/sq (safe-div (m/abs (- p q)) (+ p q) epsilon))) P Q)))
+       :additive-symmetric-chisq (v/sum (map (fn [^double p ^double q]
+                                               (safe-div (* (m/sq (- p q)) (+ p q))
+                                                         (* p q)
+                                                         epsilon)) P Q))
+       :kullback-leibler (v/sum (map (fn [^double p ^double q]
+                                       (* p ^double (log (safe-div p q epsilon)))) P Q))
+       :jeffreys (v/sum (map (fn [^double p ^double q]
+                               (* (- p q) ^double (log (safe-div p q epsilon)))) P Q))
+       :k-divergence (v/sum (map (fn [^double p ^double q]
+                                   (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))) P Q))
+       :topsoe (v/sum (map (fn [^double p ^double q]
+                             (+ (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))
+                                (* q ^double (log (safe-div (* 2.0 q) (+ p q) epsilon))))) P Q))
+       :jensen-shannon (* 0.5 (+ (v/sum (map (fn [^double p ^double q]
+                                               (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))) P Q))
+                                 (v/sum (map (fn [^double p ^double q]
+                                               (* q ^double (log (safe-div (* 2.0 q) (+ p q) epsilon)))) P Q))))
+       :jensen-difference (v/sum (map (fn [^double p ^double q]
+                                        (let [pq2 (* 0.5 (+ p q))]
+                                          (- (* 0.5 (+ (* p ^double (log p))
+                                                       (* q ^double (log q)))) (* pq2 ^double (log pq2))))) P Q))
+       :taneja (v/sum (map (fn [^double p ^double q]
+                             (let [pq2 (* 0.5 (+ p q))]
+                               (* pq2 ^double (log (safe-div pq2 (m/sqrt (* p q)) epsilon))))) P Q))
+       :kumar-johnson (v/sum (map (fn [^double p ^double q]
+                                    (safe-div (m/sq (- (m/sq p) (m/sq q)))
+                                              (* 2.0 (m/sqrt (m/cb (* p q)))) epsilon)) P Q))
+       :avg (* 0.5 (+ (L1 P Q) (LInf P Q)))))))
+
+(defn similarity
+  "Various PDF similarities between two histograms (frequencies) or probabilities.
+
+  Q can be a distribution object. Then, histogram will be created out of P.
+
+  Arguments:
+
+  * `method` - distance method
+  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution)
+  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data)
+  
+  Options:
+
+  * `:probabilities?` - should P/Q be converted to a probabilities, default: `true`.
+  * `:epsilon` - small number which replaces `0.0` when division or logarithm is used`
+  * `:bins` - number of bins or bins estimation method, see [[histogram]].
+
+  The list of methods: `:intersection`, `:czekanowski`, `:motyka`, `:kulczynski`, `:ruzicka`, `:inner-product`, `:harmonic-mean`, `:cosine`, `:jaccard`, `:dice`, `:fidelity`, `:squared-chord`
+
+  See more: Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha"
+  (^double [method P-observed Q-expected] (similarity method P-observed Q-expected nil))
+  (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon]
+                                          :or {probabilities? true epsilon 1.0e-6}}]
+   (let [[P Q] (normalize-PQ P-observed Q-expected bins probabilities?)]
+     (case method
+       :intersection (v/sum (v/emn P Q))
+       :czekanowski (safe-div (* 2.0 (v/sum (v/emn P Q))) (+ (v/sum P) (v/sum Q)) epsilon)
+       :motyka (safe-div (v/sum (v/emn P Q)) (+ (v/sum P) (v/sum Q)) epsilon)
+       :kulczynski (safe-div (v/sum (v/emn P Q)) (L1 P Q) epsilon)
+       :ruzicka (safe-div (v/sum (v/emn P Q)) (v/sum (v/emx P Q)) epsilon)
+       :inner-product (v/dot P Q)
+       :harmonic-mean (* 2.0 (v/sum (map (fn [^double p ^double q]
+                                           (safe-div (* p q) (+ p q) epsilon)) P Q)))
+       :cosine (safe-div (v/sum (v/emult P Q)) (* (v/mag P) (v/mag Q)) epsilon)
+       ;; as in Kumar/Hassebrook paper
+       #_#_:kumar-hassebrook (/ (safe-div (v/sq (v/sum (v/emult P Q)))
+                                          (v/sum (v/emult (v/sq P) (v/sq Q)))
+                                          epsilon)
+                                (count P))
+       :jaccard (let [pq (v/sum (v/emult P Q))]
+                  (safe-div pq (- (+ (v/magsq P) (v/magsq Q)) pq) epsilon))
+       :dice (let [pq (v/sum (v/emult P Q))]
+               (safe-div (* 2.0 pq) (+ (v/magsq P) (v/magsq Q)) epsilon))
+       :fidelity (v/sum (v/sqrt (v/emult P Q)))
+       :squared-chord (dec (* 2.0 (v/sum (v/sqrt (v/emult P Q)))))))))
 
 ;;
 
@@ -2261,6 +2470,7 @@
                                        [0.0 (/ F ^double (r/icdf distr alpha))])})))
 
 (defn- pdt-gof
+  "Goodness of fit"
   [xs p ^double lambda]
   (let [cnt (count xs)
         n (double (reduce m/fast+ xs))
@@ -2279,6 +2489,11 @@
                                                  (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
     {:stat stat :df df :n n :expected xhat :p p
      :estimate (map (fn [^double v] (/ v n)) xs)}))
+
+(defn- pdt-distribution
+  [xs distr bins ^double lambda]
+  (let [[counts probabilities] (quantize-distribution xs distr bins)]
+    (pdt-gof counts probabilities lambda)))
 
 (defn- pdt-bootstrap-ci
   [{:keys [estimate ^long n ^double alpha ci-sides]} samples]
@@ -2320,15 +2535,49 @@
      :estimate (into {} (map (fn [[k ^long v]] [k (/ v n)]) xs))}))
 
 (defn power-divergence-test
+  "Power divergence test.
+
+  First argument should be one of:
+  
+  * contingency table
+  * sequence of counts (for goodness of fit)
+  * sequence of data (for goodness of fit against distribution)
+
+  For goodness of fit there are two options:
+  
+  * comparison of observed counts vs expected probabilities or weights (`:p`)
+  * comparison of data against given distribution (`:p`), in this case histogram from data is created and compared to distribution PDF in bins ranges. Use `:bins` option to control histogram creation.
+
+  Options are:
+  
+  * `:lambda` - test type:
+      * `1.0` - [[chisq-test]]
+      * `0.0` - [[multinomial-likelihood-ratio-test]]
+      * `-1.0` - [[minimum-discrimination-information-test]]
+      * `-2.0` - [[neyman-modified-chisq-test]]
+      * `-0.5` - [[freeman-tukey-test]]
+      * `2/3` - [[cressie-read-test]] - default
+  * `:p` - probabilites, weights or distribution object.
+  * `:alpha` - significance level (default: 0.05)
+  * `:ci-sides` - confidence interval sides (default: `:two-sided`)
+  * `:sides`  - p-value sides (`:two-sided`, `:one-side-greater` - default, `:one-side-less`)
+  * `:bootstrap-samples` - number of samples to estimate confidence intervals (default: 1000)
+  * `:ddof` - delta degrees of freedom, adjustment for dof (default: 0.0)
+  * `:bins` - number of bins or estimator name for histogram"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {}))
   ([contingency-table-or-xs {:keys [^double lambda ci-sides sides p ^double alpha ^long bootstrap-samples
-                                    ^long ddof]
+                                    ^long ddof bins]
                              :or {lambda m/TWO_THIRD sides :one-sided-greater ci-sides :two-sided
                                   alpha 0.05 bootstrap-samples 1000 ddof 0}}]
-   (let [{:keys [df stat] :as res} (-> (if (and (sequential? contingency-table-or-xs)
-                                                (every? number? contingency-table-or-xs))
+   (let [{:keys [df stat] :as res} (-> (cond
+                                         (and p (r/distribution? p))
+                                         (pdt-distribution contingency-table-or-xs p bins lambda)
+
+                                         (and (sequential? contingency-table-or-xs)
+                                              (every? number? contingency-table-or-xs))
                                          (pdt-gof contingency-table-or-xs p lambda)
-                                         (pdt-multi contingency-table-or-xs lambda))
+
+                                         :else (pdt-multi contingency-table-or-xs lambda))
                                        (update :df (fn [^long df] (- df ddof))))
          distr (r/distribution :chi-squared {:degrees-of-freedom df})
          res (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
@@ -2336,34 +2585,45 @@
      (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
 
 (defn chisq-test
+  "Chi square test, a power divergence test for `lambda` 1.0"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda 1.0}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda 1.0))))
 
 (defn multinomial-likelihood-ratio-test
+  "Multinomial likelihood ratio test, a power divergence test for `lambda` 0.0"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda 0.0}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda 0.0))))
 
 (defn minimum-discrimination-information-test
+  "Minimum discrimination information test, a power divergence test for `lambda` -1.0"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -1.0}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda -1.0))))
 
 (defn neyman-modified-chisq-test
+  "Neyman modifield chi square test, a power divergence test for `lambda` -2.0"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -2.0}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda -2.0))))
 
 (defn freeman-tukey-test
+  "Freeman-Tukey test, a power divergence test for `lambda` -0.5"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda -0.5}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda -0.5))))
 
 (defn cressie-read-test
+  "Cressie-Read test, a power divergence test for `lambda` 2/3"
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {:lambda m/TWO_THIRD}))
   ([contingency-table-or-xs params]
    (power-divergence-test contingency-table-or-xs (assoc params :lambda m/TWO_THIRD))))
+
+;; copy docs
+(doseq [v [#'chisq-test #'multinomial-likelihood-ratio-test #'minimum-discrimination-information-test
+           #'neyman-modified-chisq-test #'freeman-tukey-test #'cressie-read-test]]
+  (alter-meta! v update :doc str "\n\n" (:doc (meta #'power-divergence-test))))
 
 ;;
 
@@ -2541,3 +2801,4 @@
       :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
 
 #_(m/unuse-primitive-operators)
+

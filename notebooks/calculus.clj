@@ -8,8 +8,7 @@
             [utils :as u]
             [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.random :as r]
-            [fastmath.fields.n :as n]))
+            [fastmath.random :as r]))
 
 ;; # Calculus
 

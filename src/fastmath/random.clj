@@ -107,7 +107,7 @@
             [fastmath.protocols :as prot]
             [fastmath.interpolation :as i]
             [fastmath.solver :as solver]
-            [clojure.data.int-map :as im])
+            [clojure.data.int-map :as im]            )
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
@@ -116,11 +116,11 @@
            [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [umontreal.ssj.probdistmulti DirichletDist MultinomialDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
-           [smile.stat.distribution Distribution DiscreteDistribution NegativeBinomialDistribution]
+           [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
            [org.apache.commons.math3.analysis UnivariateFunction]
-           [org.apache.commons.math3.analysis.integration RombergIntegrator IterativeLegendreGaussIntegrator]
+           [org.apache.commons.math3.analysis.integration RombergIntegrator]
            [smile.math MathEx]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -1045,32 +1045,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
       (->seq [_ n] (repeatedly n #(unchecked-long (icdf-fn (prot/drandom rng)))))
       (set-seed! [d seed] (prot/set-seed! rng seed) d))))
 
-;; smile
-(extend DiscreteDistribution
-  prot/DistributionProto
-  {:cdf (fn
-          (^double [^Distribution d ^double v] (.cdf d (m/floor v)))
-          (^double [^Distribution d ^double v1 ^double v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1)))))
-   :pdf (fn ^double [^Distribution d ^double v] (.p d (m/floor v)))
-   :lpdf (fn ^double [^Distribution d ^double v] (.logp d (m/floor v)))
-   :icdf (fn ^double [^Distribution d ^double p] (.quantile d p))
-   :probability (fn ^double [^Distribution d ^double v] (.p d (m/floor v)))
-   :sample (fn ^double [^Distribution d] (.rand d))
-   :dimensions (constantly 1)
-   :source-object identity
-   :continuous? (constantly false)}  
-  prot/UnivariateDistributionProto
-  {:mean (fn ^double [^Distribution d] (.mean d))
-   :variance (fn ^double [^Distribution d] (.variance d))}
-  prot/RNGProto
-  {:drandom (fn ^double [^Distribution d] (.rand d))
-   :frandom (fn [^Distribution d] (unchecked-float (.rand d)))
-   :lrandom (fn ^long [^Distribution d] (m/round-even (.rand d)))
-   :irandom (fn ^long [^Distribution d] (unchecked-int (m/round-even (.rand d))))
-   :->seq (fn
-            ([^Distribution d] (repeatedly #(.rand d)))
-            ([^Distribution d n] (repeatedly n #(.rand d))))})
-
 (extend IntegerDistribution
   prot/DistributionProto
   {:cdf (fn
@@ -1237,18 +1211,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   ([_] (distribution :enumerated-real {})))
 
 ;; integer
-
-(extend NegativeBinomialDistribution
-  prot/DistributionIdProto
-  {:distribution? (constantly true)
-   :distribution-id (fn [_] :negative-binomial)
-   :distribution-parameters (fn [_] [:r :p :rng])})
-
-(defmethod distribution :negative-binomial
-  ([_ {:keys [^double r ^double p]
-       :or {r 20.0 p 0.5}}]
-   (NegativeBinomialDistribution. r p))
-  ([_] (distribution :negative-binomial {})))
 
 (defmethod distribution :bernoulli
   ([_ {:keys [^double p]
@@ -1533,9 +1495,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
            (map #(vector % (f %)))
            (filter #(pos? ^double (second %)))
            (ffirst))
-      (do
-        (println (first xs) (f (first xs)))
-        (first xs))))
+      (first xs)))
 
 (defn- narrow-range
   [kd [^double mn ^double mx ^double step] ^long steps]
@@ -1551,8 +1511,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
          [^double mn ^double mx] (narrow-range kd [mn mx step] (* 4 steps))
          [cdf-fn icdf-fn] (integrate-pdf kd (merge all {:mn mn :mx mx :steps steps}))
          r (or (:rng all) (rng :jvm))
-         m (delay (smile.math.MathEx/mean (m/seq->double-array data)))
-         v (delay (smile.math.MathEx/var (m/seq->double-array data)))]
+         m (delay (StatUtils/mean (m/seq->double-array data)))
+         v (delay (StatUtils/variance (m/seq->double-array data) ^double @m))]
      (reify
        prot/DistributionProto
        (pdf [_ v] (kd v))
@@ -1630,6 +1590,43 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           (->seq [_# n#] (repeatedly n# #(~'icdf-fn (prot/drandom ~'r))))
           (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
      ([_#] (distribution ~d-name {}))))
+
+(defn- discrete-binary-search
+  ([cdf-fn ^double p [mid step]] (discrete-binary-search cdf-fn step p [0 mid]))
+  ([cdf-fn ^long step ^double p [^long mn ^long mx]]
+   (cond
+     (> p ^double (cdf-fn mx)) (recur cdf-fn (* 2 step) p [mx (+ mx step)])
+     (m/one? (- mx mn)) (if (>= ^double (cdf-fn mn) p) mn mx)
+     :else (let [mid (/ (+ mn mx) 2)]
+             (if (> ^double (cdf-fn mid) p)
+               (recur cdf-fn step p [mn mid])
+               (recur cdf-fn step p [mid mx]))))))
+
+(distribution-template :negative-binomial
+    {:continuous? false :lower-bound 0 :upper-bound Integer/MAX_VALUE :mean mmean
+     :distribution-parameters [:r :p :rng]}
+  {:keys [^double r ^double p] :or {r 20.0 p 0.5}} args
+  p- (- 1.0 p)
+  mmean (/ (* r p-) p)
+  variance (/ mmean p)
+  lgr (m/log-gamma r)
+  lp- (m/log (- 1.0 p))
+  lpr (* r (m/log p))
+  lpdf-fn (fn [^long k]
+            (if (neg? k)
+              ##-Inf
+              (+ (- (m/log-gamma (+ r k))
+                    (+ (m/log-factorial k) lgr))
+                 (* k lp-) lpr)))
+  cdf-fn (fn [^double k]
+           (if (neg? k)
+             0.0
+             (m/regularized-beta p r (inc (m/rint k)))))
+  icdf-fn (fn [^double p]
+            (cond
+              (m/not-pos? p) 0
+              (>= p 1.0) ##Inf
+              :else (discrete-binary-search cdf-fn p [(long mmean) (long (m/sqrt variance))]))))
 
 (defn- build-discrete
   [kind data probabilities]
@@ -1786,70 +1783,70 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                    (prot/icdf gamma-dist (/ (- p nu) -nu)))))
 
 (distribution-template :nbi
-                       {:mean mu
-                        :distribution-parameters [:mi :sigma :rng]
-                        :continuous? false
-                        :lower-bound 0.0 :upper-bound ##Inf}
-                       {:keys [^double mu ^double sigma]
-                        :or {mu 1.0 sigma 1.0}} args
-                       variance (+ mu (* sigma mu mu))
-                       distr (if (< sigma 0.0001)
-                               (distribution :poisson {:p mu :rng r})
-                               (let [nbinom-r (/ sigma)]
-                                 (distribution :pascal {:r nbinom-r
-                                                        :p (/ nbinom-r (+ nbinom-r mu))
-                                                        :rng r})))
-                       lpdf-fn (fn ^double [^double v] (prot/lpdf distr v))
-                       cdf-fn (fn ^double [^double v] (prot/cdf distr v))
-                       icdf-fn (fn ^double [^double v] (prot/icdf distr v)))
+    {:mean mu
+     :distribution-parameters [:mu :sigma :rng]
+     :continuous? false
+     :lower-bound 0.0 :upper-bound ##Inf}
+  {:keys [^double mu ^double sigma]
+   :or {mu 1.0 sigma 1.0}} args
+  variance (+ mu (* sigma mu mu))
+  distr (if (< sigma 0.0001)
+          (distribution :poisson {:p mu :rng r})
+          (let [nbinom-r (/ sigma)]
+            (distribution :negative-binomial {:r nbinom-r
+                                              :p (/ nbinom-r (+ nbinom-r mu))
+                                              :rng r})))
+  lpdf-fn (fn ^double [^double v] (prot/lpdf distr v))
+  cdf-fn (fn ^double [^double v] (prot/cdf distr v))
+  icdf-fn (fn ^double [^double v] (prot/icdf distr v)))
 
 (distribution-template :zinbi
-                       {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-                       {:keys [^double mu ^double sigma ^double nu]
-                        :or {mu 1.0 sigma 1.0 nu 0.3}} args
-                       nu- (- 1.0 nu)
-                       lnu- (m/log nu-)
-                       mmean (* nu- mu)
-                       variance (+ mmean (* mmean mu (+ sigma nu)))
-                       distr (distribution :nbi {:mu mu :sigma sigma :rng r})
-                       lpdf-fn (fn ^double [^double x]
-                                 (let [fy (lpdf distr x)]
-                                   (if (zero? x)
-                                     (m/log (+ nu (* nu- (m/exp fy))))
-                                     (+ lnu- fy))))
-                       cdf-fn (fn ^double [^double x]
-                                (+ nu (* nu- (cdf distr x))))
-                       icdf-fn (fn ^double [^double x]
-                                 (let [pnew (max 0.0 (- (/ (- x nu) nu-) 1.0e-7))]
-                                   (prot/icdf distr pnew))))
+    {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
+     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
+  {:keys [^double mu ^double sigma ^double nu]
+   :or {mu 1.0 sigma 1.0 nu 0.3}} args
+  nu- (- 1.0 nu)
+  lnu- (m/log nu-)
+  mmean (* nu- mu)
+  variance (+ mmean (* mmean mu (+ sigma nu)))
+  distr (distribution :nbi {:mu mu :sigma sigma :rng r})
+  lpdf-fn (fn ^double [^double x]
+            (let [fy (lpdf distr x)]
+              (if (zero? x)
+                (m/log (+ nu (* nu- (m/exp fy))))
+                (+ lnu- fy))))
+  cdf-fn (fn ^double [^double x]
+           (+ nu (* nu- (cdf distr x))))
+  icdf-fn (fn ^double [^double x]
+            (let [pnew (max 0.0 (- (/ (- x nu) nu-) 1.0e-7))]
+              (prot/icdf distr pnew))))
 
 (distribution-template :zanbi
-                       {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-                       {:keys [^double mu ^double sigma ^double nu]
-                        :or {mu 1.0 sigma 1.0 nu 0.3}} args
-                       lnu (m/log nu)
-                       nu- (- 1.0 nu)
-                       lnu- (m/log nu-)
-                       c (/ nu- (- 1.0 (m/pow (inc (* mu sigma)) (- (/ sigma)))))
-                       mmean (* mu c)
-                       variance (+ mmean (* mmean mu (inc (- sigma c))))
-                       distr (distribution :nbi {:mu mu :sigma sigma :rng r})
-                       lfy0 (- (m/log (- 1.0 (m/exp (lpdf distr 0.0)))))
-                       lpdf-fn (fn ^double [^double x]
-                                 (let [fy (lpdf distr x)]                                   
-                                   (if (zero? x) lnu (+ lnu- fy lfy0))))
-                       cdf0 (cdf distr 0.0)
-                       rcdf0- (/ (- 1.0 cdf0))
-                       cdf-fn (fn ^double [^double x]
-                                (if (zero? x)
-                                  nu
-                                  (+ nu (* nu- (- (cdf distr x) cdf0) rcdf0-))))
-                       icdf-fn (fn ^double [^double x]
-                                 (let [pnew (- (/ (- x nu) nu-) 1.0e-10)
-                                       pnew2 (+ (* cdf0 (- 1.0 pnew)) pnew)]
-                                   (prot/icdf distr (max 0.0 pnew2)))))
+    {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
+     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
+  {:keys [^double mu ^double sigma ^double nu]
+   :or {mu 1.0 sigma 1.0 nu 0.3}} args
+  lnu (m/log nu)
+  nu- (- 1.0 nu)
+  lnu- (m/log nu-)
+  c (/ nu- (- 1.0 (m/pow (inc (* mu sigma)) (- (/ sigma)))))
+  mmean (* mu c)
+  variance (+ mmean (* mmean mu (inc (- sigma c))))
+  distr (distribution :nbi {:mu mu :sigma sigma :rng r})
+  lfy0 (- (m/log (- 1.0 (m/exp (lpdf distr 0.0)))))
+  lpdf-fn (fn ^double [^double x]
+            (let [fy (lpdf distr x)]                                   
+              (if (zero? x) lnu (+ lnu- fy lfy0))))
+  cdf0 (cdf distr 0.0)
+  rcdf0- (/ (- 1.0 cdf0))
+  cdf-fn (fn ^double [^double x]
+           (if (zero? x)
+             nu
+             (+ nu (* nu- (- (cdf distr x) cdf0) rcdf0-))))
+  icdf-fn (fn ^double [^double x]
+            (let [pnew (- (/ (- x nu) nu-) 1.0e-10)
+                  pnew2 (+ (* cdf0 (- 1.0 pnew)) pnew)]
+              (prot/icdf distr (max 0.0 pnew2)))))
 
 (distribution-template :zip
                        {:mean mmean :distribution-parameters [:mu :sigma :rng]

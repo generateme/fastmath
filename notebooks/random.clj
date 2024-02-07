@@ -1354,25 +1354,24 @@
 
 ;; #### Negative binomial
 
-;; The same as `:pascal`
-
-;; * Name: `:pascal`
+;; * Name: `:negative-binomial`
 ;; * Default parameters
-;;    * `:r`, number of successes: $20$
+;;    * `:r`, number of successes: $20$, can be a real number.
 ;;    * `:p`, probability of success: $0.5$
-;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution), [source](http://haifengl.github.io/api/java/smile/stat/distribution/NegativeBinomialDistribution.html)
+;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution)
 
 ^{::clerk/visibility :hide}
 (clerk/table
- [[{:r 20 :p 0.5} {:r 100 :p 0.95}]
+ [[{:r 20 :p 0.5} {:r 100 :p 0.95} {:r 21.2345 :p 0.7}]
   [(u/dgraphi (r/distribution :negative-binomial) {:pdf [0 40]})
-   (u/dgraphi (r/distribution :negative-binomial {:r 100 :p 0.95}) {:pdf [0 20]})]])
+   (u/dgraphi (r/distribution :negative-binomial {:r 100 :p 0.95}) {:pdf [0 20]})
+   (u/dgraphi (r/distribution :negative-binomial {:r 21.2345 :p 0.7}) {:pdf [0 30]})]])
 
 ;; #### Pascal
 
-;; The same as `:negative-binomial`
+;; The same as `:negative-binomial` but `r` is strictly integer
 
-;; * Name: `:negative-binomial`
+;; * Name: `:pascal`
 ;; * Default parameters
 ;;    * `:r`, number of successes: $20$
 ;;    * `:p`, probability of success: $0.5$

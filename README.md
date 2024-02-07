@@ -24,8 +24,14 @@ Math library.
 ## Installation
 
 ```clojure
-[generateme/fastmath "2.3.0"]
+[generateme/fastmath "2.4.0"]
 ```
+
+### 2.3.0 GPL warning
+
+**Important Note**
+
+Fastmath `2.3.0` depends on SMILE 3.0.x which is GPL. That means that Fastmath 2.3.0 also should be treated as GPL. Version `2.4.x` fixes it and brings back SMILE LGPL 2.x dependency.
 
 ### MKL
 
@@ -36,13 +42,13 @@ Fastmath relies on [SMILE](https://haifengl.github.io/) 2.6.0 which relies on BL
 #### lein / project.clj
 
 ```clojure
-[generateme/fastmath "2.2.1" :exclusions [com.github.haifengl/smile-mkl]]
+[generateme/fastmath "2.4.0" :exclusions [com.github.haifengl/smile-mkl]]
 ```
 
 #### deps.edn
 
 ```clojure
-{:deps {generateme/fastmath {:mvn/version "2.2.1"
+{:deps {generateme/fastmath {:mvn/version "2.4.0"
                              :exclusions [com.github.haifengl/smile-mkl]}}}
 ```
 
@@ -231,6 +237,6 @@ If you see place of improvement, I'm accepting PRs.
 ## Licence
 
 * The Unlicence - up to 1.5.2
-* MIT License - from 1.5.3
+* MIT License - from 1.5.3 (with te exception of 2.3.0 which should be treated as GPL)
 
-Copyright (c) 2023 generateme
+Copyright (c) 2024 generateme
