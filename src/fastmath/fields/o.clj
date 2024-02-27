@@ -199,3 +199,4 @@
      (let [r (/ amount (+ m/EPSILON (v/magsq v)))]
        (v/emult (v/mult v r) (Vec2. x y))))))
 
+(m/unuse-primitive-operators)

@@ -960,3 +960,5 @@
            cr (* amount (m/cos r))
            icr (/ 1.0 (if (zero? cr) m/EPSILON cr))]
        (Vec2. (* amount (.x v)) icr)))))
+
+(m/unuse-primitive-operators)

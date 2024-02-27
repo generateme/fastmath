@@ -260,3 +260,5 @@
                         (m/atan)
                         (* 2.5)
                         (- (* 0.625 m/PI)))) amount))))
+
+(m/unuse-primitive-operators)

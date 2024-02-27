@@ -501,6 +501,20 @@
 
 (clerk/code (walk/macroexpand-all '(m/mevalpoly -2.0 2.5 1.0 0.0 7.0 3.0)))
 
+;; ### Laguerre
+
+;; Generalized Laguerre polynomials with order $\alpha$ and degree `n`, $L^{(\alpha)}_n$
+;; [wiki](https://en.wikipedia.org/wiki/Laguerre_polynomials#Generalized_Laguerre_polynomials)
+
+^{::clerk/visibility :hide}
+(u/table
+ [[laguerre-polynomials "Generalized Laguerre polynomials"]])
+
+^{::clerk/visibility :hide}
+(clerk/example
+  (m/laguerre-polynomials 2 0.5)
+  (m/laguerre-polynomials 2 2 0.5))
+
 ;; ## Trigonometric 
 
 ;; ### Basic
@@ -741,10 +755,13 @@
   [log-beta true "log of beta function"]
   [regularized-beta true "regularized beta function"]
   [bessel-j true "Bessel J function for given order and argument"]
+  [bessel-k-half false "Bessel K for a = order/2"]
   [jinc false "Bessel J of order 1 divided by x"]
   [I0 false "Modified Bessel function of the first kind and order 0"]
   [log-I0 false "log of I0"]
-  [minkowski false "Minkowski's question mark function, ?(x)"]])
+  [minkowski false "Minkowski's question mark function, ?(x)"]
+  [kummers-M false "Kummer's (confluent hypergeometric, 1F1) function for real arguments"]
+  [whittaker-M false "Whittaker's M"]])
 
 ^{::clerk/visibility :hide ::clerk/viewer u/unpaginated-table}
 [["erf" "inv-erf"]
@@ -759,6 +776,12 @@
  [(u/fgraph m/I0) (u/fgraph m/log-I0)]
  ["jinc" "minkowski"]
  [(u/fgraph m/jinc [0 5] nil) (u/fgraph m/minkowski [-0.1 1.1])]]
+
+^{::clerk/visibility :hide}
+(clerk/example
+  (m/kummers-M 3 2 0.5)
+  (m/whittaker-M -1.5 1.0 0.5)
+  (m/bessel-k-half 1 0.5))
 
 ;; ## Interpolation
 

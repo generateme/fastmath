@@ -200,3 +200,5 @@
              x (+ x (* local-amp cos-tot2))
              y (+ y (* local-amp sin-tot2))]
          (Vec2. (* amount x) (* amount y)))))))
+
+(m/unuse-primitive-operators)

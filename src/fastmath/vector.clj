@@ -1319,3 +1319,5 @@
 
 (defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Vec4 [v w] (print-method v w))
+
+(m/unuse-primitive-operators #{'abs 'zero?})

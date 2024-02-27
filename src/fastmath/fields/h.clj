@@ -615,3 +615,5 @@
              vr (/ amount (+ (* c c) (* d d)))]
          (Vec2. (* vr (+ (* a c) (* b d)))
                 (* vr (- (* b c) (* a d)))))))))
+
+(m/unuse-primitive-operators)

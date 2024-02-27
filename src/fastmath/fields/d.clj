@@ -200,3 +200,5 @@
                  (< w 0.75) (v/div v 3.0)
                  :else (Vec2. (+ m/TWO_THIRD (/ (.x v) 3.0))
                               (/ (.y v) 3.0))) amount)))))
+
+(m/unuse-primitive-operators)

@@ -15,3 +15,5 @@
              s (m/sin (.x v))
              c (m/cos (.x v))]
          (Vec2. (* r s) (* r c)))))))
+
+(m/unuse-primitive-operators)

@@ -434,3 +434,4 @@
 
 ;; TODO Multivariate
 
+(m/unuse-primitive-operators)

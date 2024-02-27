@@ -34,3 +34,5 @@
                    (* q-ode04 xy) (* q-ode05 (.y v)) (* q-ode06 yy))
                 (+ q-ode07 (* q-ode08 (.x v)) (* q-ode09 xx)
                    (* q-ode10 xy) (* aq-ode11 (.y v)) (* q-ode12 yy))))))))
+
+(m/unuse-primitive-operators)

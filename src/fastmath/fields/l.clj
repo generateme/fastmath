@@ -300,3 +300,5 @@
    (fn [^Vec2 v]
      (Vec2. (* amount (+ (- c (* a (m/abs (.x v)))) (.y v)))
             (* amount b (.x v))))))
+
+(m/unuse-primitive-operators)

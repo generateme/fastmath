@@ -431,3 +431,4 @@
              ad (/ amount d)]
          (v/mult v (* amount ad re)))))))
 
+(m/unuse-primitive-operators)

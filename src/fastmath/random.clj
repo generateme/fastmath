@@ -2406,3 +2406,5 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
      (if (distribution? rng)
        (map (partial icdf rng) ((spacings sampling-method uniform-spacings) n))
        ((spacings sampling-method uniform-spacings) rng n)))))
+
+(m/unuse-primitive-operators)

@@ -108,3 +108,5 @@
                                    (* iamount yy RR-)))))
            outside (v/mult v amount)
            :else u/zerov))))))
+
+(m/unuse-primitive-operators)

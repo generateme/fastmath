@@ -50,7 +50,7 @@
             [fastmath.distance :as d]
             [fastmath.vector :as v]
             [fastmath.interpolation :as interp]
-            [fastmath.optimization :as opt]
+            [fastmath.optimization.lbfgsb :as lbfgsb]
             [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
@@ -1434,14 +1434,15 @@
   (^double [group1 group2 estimation-strategy]
    (let [g1 (m/seq->double-array group1)
          g2 (m/seq->double-array group2)
-         target (fn [^double p]
-                  (let [p (m/constrain p 4.9E-324 0.9999999999999999)                        
-                        q1 (quantiles g1 [p (- 1.0 p)] estimation-strategy)
-                        q2 (quantiles g2 [(- 1.0 p) p] estimation-strategy)]
-                    (-> (v/sub q1 q2)
-                        (v/abs)
-                        (v/mn))))]
-     (ffirst (opt/minimize :brent target {:bounds [[0.5 1.0]] :initial [0.75]})))))
+         target (-> (fn [^double p]
+                      (let [p (m/constrain p 4.9E-324 0.9999999999999999)                        
+                            q1 (quantiles g1 [p (- 1.0 p)] estimation-strategy)
+                            q2 (quantiles g2 [(- 1.0 p) p] estimation-strategy)]
+                        (-> (v/sub q1 q2)
+                            (v/abs)
+                            (v/mn))))
+                    (lbfgsb/grad-function :minimize))]
+     (first (.minimize (lbfgsb/->lbfgsb) target (double-array [0.75]) (double-array [0.5]) (double-array [1.0]))))))
 
 (defn cohens-u3
   "Cohen's U3, the proportion of the second group that is smaller than the median of the first group."
@@ -2800,5 +2801,4 @@
      {:stat stat :n n :df df :k k :sides sides
       :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
 
-#_(m/unuse-primitive-operators)
-
+(m/unuse-primitive-operators)

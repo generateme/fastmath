@@ -491,3 +491,4 @@
      (let [r (/ (* amount 4.0) (inc (v/mag v)))]
        (Vec2. (* r (.x v)) (* r (.y v)))))))
 
+(m/unuse-primitive-operators)

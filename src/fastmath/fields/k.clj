@@ -143,3 +143,5 @@
                      (c/add (.b mat))
                      (c/div (-> (c/mult win (.c mat))
                                 (c/add (.d mat))))) amount))))))
+
+(m/unuse-primitive-operators)

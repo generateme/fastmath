@@ -592,3 +592,5 @@
                      (c/scale (/ -1.0 aa)))
                  k)]
          (c/scale k amount))))))
+
+(m/unuse-primitive-operators)

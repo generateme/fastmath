@@ -274,3 +274,5 @@
            xx (* amount (+ x (* sym (- dx x))))
            yy (* amount dy)]
        (Vec2. xx yy)))))
+
+(m/unuse-primitive-operators)

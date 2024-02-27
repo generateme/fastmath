@@ -82,3 +82,4 @@
   ([distance ^double lambda]
    (gen-fn (fn [a b] (- 1.0 (m/exp (* -1.0 lambda ^double (distance a b))))))))
 
+(m/unuse-primitive-operators)

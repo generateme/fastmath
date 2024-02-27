@@ -8,7 +8,7 @@
             RealMatrix MatrixUtils LUDecomposition CholeskyDecomposition]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
-(set! *warn-on-reflection* true)
+#_(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs})
 
@@ -1187,3 +1187,5 @@
 
 (defmethod print-method Mat4x4 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Mat4x4 [v w] (print-method v w))
+
+(m/unuse-primitive-operators #{'abs})

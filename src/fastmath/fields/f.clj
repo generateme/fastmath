@@ -223,3 +223,5 @@
                      (* amount))
              yy (* as (m/tan k))]
          (Vec2. xx yy))))))
+
+(m/unuse-primitive-operators)

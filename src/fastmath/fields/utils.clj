@@ -152,3 +152,5 @@
           y1 (- ^double (noise-fn (.y vv) m/E (.x vv)) 0.5)]
       (v/add v (Vec2. (* amount x1)
                       (* amount y1))))))
+
+(m/unuse-primitive-operators)

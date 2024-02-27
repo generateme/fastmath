@@ -101,3 +101,5 @@
            nx (* (.x v) m/PI)]
        (Vec2. (* ny (m/sin nx))
               (* ny (m/cos ny)))))))
+
+(m/unuse-primitive-operators)

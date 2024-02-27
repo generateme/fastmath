@@ -741,3 +741,5 @@
    (fn [^Vec2 v]
      (Vec2. (* amount (m/log-beta (+ m/EPSILON (m/abs (.x v))) (+ m/EPSILON (m/abs (.y v)))))
             (* amount (v/heading v))))))
+
+(m/unuse-primitive-operators)

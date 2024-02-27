@@ -3,7 +3,7 @@
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
             :url "https://opensource.org/licenses/MIT"}
-  :dependencies [[org.clojure/clojure "1.11.1"]
+  :dependencies [[org.clojure/clojure "1.12.0-alpha7"]
                  [net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
 
@@ -35,8 +35,9 @@
                                                         calculus]}}
              :dev {:dependencies [[io.github.nextjournal/clerk "0.15.957"]
                                   [clojure2d "1.4.6-SNAPSHOT" :exclusions [generateme/fastmath]]
-                                  [org.clojure/data.csv "1.0.1"]
-                                  [org.scicloj/clay "2-alpha78"]]
+                                  [org.clojure/data.csv "1.1.0"]
+                                  [org.scicloj/clay "2-alpha81"]
+                                  [scicloj/clojisr "1.0.0-BETA22"]]
                    :source-paths ["notebooks"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}})

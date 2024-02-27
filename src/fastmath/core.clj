@@ -41,7 +41,8 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma]))
+           [org.apache.commons.math3.special Gamma])
+  (:require [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -243,7 +244,7 @@
   [x & coeffs]
   (let [cnt (count coeffs)]
     (condp clojure.core/= cnt
-      0 `0.0
+      0 0.0
       1 `~(first coeffs)
       2 (let [[z y] coeffs]
           `(muladd ~x ~y ~z))
@@ -624,10 +625,82 @@
                (if p? y (+ y d))))
       (+ y d))))
 
+(defn kummers-M
+  "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
+  ^double [^double a ^double b ^double x]
+  (cond
+    (== a b -1.0) ##NaN
+    (zero? b) (FastMath/copySign ##Inf (* a x))
+    (zero? x) 1.0
+    (== a b) (exp x)
+    (== a -1.0) (- 1.0 (/ x b))
+    :else
+    (loop [i (int 0)
+           sum (double 0.0)
+           term (double 1.0)
+           aterm Double/MAX_VALUE
+           apterm Double/MAX_VALUE]
+      (let [s (* 8.0 (FastMath/abs sum) MACHINE-EPSILON)] ;; Julia approach for termination
+        (if (or (== i 100000) (and (< aterm s) (< apterm s)))
+          sum
+          (let [nsum (+ sum term)
+                ratio (/ (* x (+ a i)) (* (+ b i) (inc i)))
+                nterm (* ratio term)]
+            (recur (inc i) nsum nterm (FastMath/abs nterm) aterm)))))))
+
+(defn whittaker-M
+  "Whittaker's M"
+  ^double [^double kappa ^double mu ^double x]
+  (let [mu+05 (+ 0.5 mu)
+        z (m/exp (+ (* -0.5 x) (* mu+05 (m/log x))))]
+    (* z (kummers-M (- mu+05 kappa) (inc (* 2.0 mu)) x))))
+
+;; Laguerre
+
+(deftype DPair [^double x ^double y])
+
+;; recursive formula: https://en.wikipedia.org/wiki/Laguerre_polynomials#Generalized_Laguerre_polynomials
+
+(defn laguerre-polynomials
+  "(Generalized) Laguerre polynomials"
+  (^double [^long degree ^double x] (laguerre-polynomials degree 0.0 x))
+  (^double [^long degree ^double order ^double x]
+   (case (int degree)
+     0 1.0
+     1 (- (inc order) x)
+     (loop [i (long 2)
+            ^DPair pair (DPair. 1.0 (- (inc order) x))
+            ]
+       (if (> i degree)
+         (.y pair)
+         (recur (inc i) (DPair. (.y pair)
+                                (/ (- (* (+ order (- (* 2.0 i) 1.0 x)) (.y pair))
+                                      (* (+ order (dec i)) (.x pair))) i))))))))
+
+
 ;; Beta
 
 (beta-proxy :two ^{:doc "Logarithm of Beta function."} log-beta logBeta)
 (beta-proxy :three ^{:doc "Regularized `Beta`."} regularized-beta regularizedBeta)
+
+;; N.M.Temme, On the numerical evaluation of the modified bessel function of the third kind
+;; (formulas 1.6 and 1.9)
+;; https://www.researchgate.net/publication/242441899_On_the_numerical_evaluation_of_the_modified_bessel_function_of_the_third_kind
+
+(defn bessel-k-half
+  "Bessel K_a function for a = order/2
+
+  Function accepts only odd integers for order"
+  ^double [^long order ^double x]
+  (case (int order)
+    1 (* (m/sqrt (/ m/HALF_PI x)) (m/exp (- x)))
+    3 (* (m/sqrt (/ m/HALF_PI x)) (m/exp (- x)) (inc (/ x)))
+    (loop [i (long 5)
+           ^DPair pair (DPair. (bessel-k-half 1 x) (bessel-k-half 3 x))]
+      (if (> i order)
+        (.y pair)
+        (recur (+ i 2) (DPair. (.y pair) (+ (* (.y pair) (/ (- i 2.0) x))
+                                            (.x pair))))))))
 
 ;; BesselJ
 (besselj-proxy :two ^{:doc "Bessel J function value for given order and argument."} bessel-j value)
@@ -1660,9 +1733,10 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 (defn unuse-primitive-operators
   "Undoes the work of [[use-primitive-operators]]. This is idempotent."
-  []
-  (when (using-primitive-operators?)
-    (doseq [v vars-to-exclude]
-      (ns-unmap *ns* v))
-    (refer 'clojure.core)))
+  ([] (unuse-primitive-operators #{}))
+  ([skip-set]
+   (when (using-primitive-operators?)
+     (doseq [v (remove skip-set vars-to-exclude)]
+       (ns-unmap *ns* v))
+     (refer 'clojure.core))))
 

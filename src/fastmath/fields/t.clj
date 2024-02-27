@@ -602,3 +602,5 @@
      (v/mult v (if (pos? (.x v))
                  (/ amount (v/magsq v))
                  amount)))))
+
+(m/unuse-primitive-operators)

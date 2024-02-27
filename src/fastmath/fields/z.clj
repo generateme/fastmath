@@ -82,3 +82,4 @@
            (v/mult (m/pow (v/mag v) p2))
            (v/mult amount))))))
 
+(m/unuse-primitive-operators)

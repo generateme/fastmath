@@ -486,3 +486,5 @@
                  (+ (* ra (.x v) -rr) (* (.y v) -rr) ^double (b c))
                  (+ (* ra (.x v) -rr) (* (.y v) rr)  ^double (b c)))]
          (Vec2. (* amount x) (* amount y)))))))
+
+(m/unuse-primitive-operators)

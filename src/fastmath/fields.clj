@@ -371,3 +371,5 @@ Resulting value is from range `[-PI,PI]`."}
   "Create randomized field (optional depth can be provided)."
   ([] (combine))
   ([depth] (combine (random-configuration depth))))
+
+(m/unuse-primitive-operators)

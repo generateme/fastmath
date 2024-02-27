@@ -206,3 +206,5 @@
              Alpha (+ (.x alphabeta) ms2a)
              Beta (+ (.y alphabeta) ns2b)]
          (v/mult (inverse-trilinear Alpha Beta) amount))))))
+
+(m/unuse-primitive-operators)

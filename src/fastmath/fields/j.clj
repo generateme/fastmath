@@ -325,3 +325,5 @@
      (let [a (+ (* 0.5 (m/atan2 (.x v) (.y v))) (* m/PI (r/lrand 2)))
            r (* amount (m/sqrt (v/mag v)))]
        (Vec2. (* r (m/cos a)) (* r (m/sin a)))))))
+
+(m/unuse-primitive-operators)

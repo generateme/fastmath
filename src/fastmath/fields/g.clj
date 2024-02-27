@@ -515,3 +515,5 @@
   ([amount cfg]
    (let [n (r/random-noise-fn cfg)]
      (u/make-noise-variation2 amount (:scale cfg) n))))
+
+(m/unuse-primitive-operators)

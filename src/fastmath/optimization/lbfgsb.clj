@@ -77,5 +77,7 @@
 
 (defn ->lbfgsb
   "Create lbfgsb object"
-  [params]
-  (LBFGSB. (parameters params)))
+  (^LBFGSB [] (->lbfgsb nil))
+  (^LBFGSB [params] (LBFGSB. (parameters params))))
+
+(m/unuse-primitive-operators)

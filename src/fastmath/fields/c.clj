@@ -1027,3 +1027,5 @@
      (fn [^Vec2 v]
        (let [diff (v/sub v o)]
          (v/mult (v/add o (v/div (v/mult diff r2) (v/magsq diff))) amount))))))
+
+(m/unuse-primitive-operators)
