@@ -17,42 +17,6 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
-(comment
-  (require '[portal.api :as portal]
-           '[portal.viewer :as pview]
-           '[clojisr.v1.applications.plotting :as rplot]
-           '[clojisr.v1.r :as r]
-           '[tablecloth.api :as tc])
-  (def portal (portal/open {:launcher :emacs}))
-  (add-tap #'portal/submit)
-  (portal/close)
-  (portal/clear))
-
-(r/require-r '[ggplot2 :as gg])
-
-(defn function
-  [f {:keys [x y steps]
-      :or {steps 400}}]
-  (let [[min-x max-x] (or x [0.0 1.0])
-        xs (m/slice-range min-x max-x steps)
-        ys (map f xs)]
-    (rplot/plot->file "img.png" (-> (tc/dataset {:x xs :y ys})
-                                    (gg/ggplot (gg/aes :x :x :y :y))
-                                    (r/r+ (gg/geom_line))) :width 500 :height 300)))
-
-(function #(m/cos %) {:x [-3 3]})
-
-#_(defn function
-    [f {:keys [x y steps]
-        :or {steps 400}}]
-    (let [[min-x max-x] (or x [0.0 1.0])
-          xs (m/slice-range min-x max-x steps)
-          data (map (fn [x] {"x" x "y" (f x)}) xs)]
-      {:data {:values data}
-       :layer [{:mark "line"
-                :encoding {:x {:field "x" :type "quantitative"}
-                           :y {:field "y" :type "quantitative" :scale {:domain y}}}}]}))
-
 (defmulti rbf
   "RBF kernel creator. RBF is double->double function.
 
@@ -127,7 +91,6 @@
 
 (emit-rbf :whittaker rbf/whittaker [alpha k beta])
 
-(tap> (pview/html (function (rbf :whittaker {:alpha 1.0 :k 2 :beta 1}) {:x [-1 1]})))
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Various kernels

@@ -38,6 +38,6 @@
                                   [org.clojure/data.csv "1.1.0"]
                                   [org.scicloj/clay "2-alpha81"]
                                   [scicloj/clojisr "1.0.0-BETA22"]]
-                   :source-paths ["notebooks"]}
+                   :source-paths ["notebooks" "utils"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}})

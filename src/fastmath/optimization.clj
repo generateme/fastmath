@@ -77,9 +77,7 @@
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
            [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
            [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]
-           [smile.math BFGS DifferentiableMultivariateFunction]
-           [org.generateme.lbfgsb LBFGSB])
-  )
+           [org.generateme.lbfgsb LBFGSB]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -262,39 +260,6 @@
            (sequential? (first bounds)))
     (first bounds) bounds))
 
-(defn- smile-fn
-  [^MultivariateFunction mf ^double gradient-h]
-  (reify DifferentiableMultivariateFunction
-    (f [_ xs] (.value mf xs))
-    (g [_ xs gout]
-      (let [^doubles gradient (finite-differences mf xs gradient-h)]
-        (System/arraycopy gradient 0 gout 0 (alength gradient))
-        (.value mf xs)))))
-
-(defn- bfgs
-  [f {:keys [^int max-iters ^int m ^double tolerance goal bounds bounded? ^double gradient-h]
-      :or {max-iters 1000 m 5 tolerance 1.0e-8 goal :minimize bounded? true gradient-h 0.0001}}]
-  (let [dim (find-dimensions bounds)
-        mf (if (= goal :minimize)
-             (multivariate-function f)
-             (negative-multivariate-function f))
-        ^DifferentiableMultivariateFunction sf (smile-fn mf gradient-h)]
-    (if bounded?
-      (let [l (double-array (map first bounds))
-            u (double-array (map second bounds))]
-        (fn smile-bounded
-          ([] (smile-bounded nil))
-          ([init]
-           (let [i (double-array (or init (mid-point bounds)))
-                 res (BFGS/minimize sf m i l u tolerance max-iters)]
-             [(seq i) (if (= goal :minimize) res (- res))]))))
-      (fn smile-unbounded
-        ([] (smile-unbounded nil))
-        ([init]
-         (let [i (double-array (or init (repeat dim 0.0)))
-               res (BFGS/minimize sf m i tolerance max-iters)]
-           [(seq i) (if (= goal :minimize) res (- res))]))))))
-
 (defn- lbfgsb
   [f {:keys [goal bounds bounded? gradient-f gradient-h stats?] :as config}]
   (assert (and bounded? bounds) "L-BFGS-B is constrained optimization, bounds should be provided")
@@ -328,9 +293,8 @@
   [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
              :or {gradient-h 0.0001}
              :as config}]
-  (case method
-    :bfgs (bfgs f config)
-    :lbfgsb (lbfgsb f (assoc config :bounded? true))
+  (if (= method :lbfgsb)
+    (lbfgsb f (assoc config :bounded? true))
     (do
       (assert (not (nil? bounds)) "Provide bounds")
       (let [bounds (fix-brent-bounds method bounds)

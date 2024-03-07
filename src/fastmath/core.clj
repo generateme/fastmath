@@ -669,13 +669,26 @@
      0 1.0
      1 (- (inc order) x)
      (loop [i (long 2)
-            ^DPair pair (DPair. 1.0 (- (inc order) x))
-            ]
+            ^DPair pair (DPair. 1.0 (- (inc order) x))]
        (if (> i degree)
          (.y pair)
          (recur (inc i) (DPair. (.y pair)
                                 (/ (- (* (+ order (- (* 2.0 i) 1.0 x)) (.y pair))
                                       (* (+ order (dec i)) (.x pair))) i))))))))
+
+
+(defn chebyshev-polynomials
+  "Chebyshev polynomials"
+  (^double [^long degree ^double x]
+   (case (int degree)
+     0 1.0
+     1 x
+     (loop [i (long 2)
+            ^DPair pair (DPair. 1.0 x)]
+       (if (> i degree)
+         (.y pair)
+         (recur (inc i) (DPair. (.y pair)
+                                (- (* 2.0 x (.y pair)) (.x pair)))))))))
 
 
 ;; Beta
@@ -1662,8 +1675,8 @@ where n is the mathematical integer closest to dividend/divisor. Returned value 
 
 ;;
 
-(def ^:const double-array-type (Class/forName "[D"))
-(def ^:const double-double-array-type (Class/forName "[[D"))
+(def double-array-type (Class/forName "[D"))
+(def double-double-array-type (Class/forName "[[D"))
 
 (def ^{:doc "Convert double array into sequence.
 

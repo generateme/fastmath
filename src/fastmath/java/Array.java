@@ -34,8 +34,12 @@ public final class Array {
 
     public static int div(int[] a, int idx, int v) { a[idx]/=v; return a[idx]; }
     public static long div(long[] a, int idx, long v) { a[idx]/=v; return a[idx]; }
-    public static double div(double[] a, int idx, double v) { a[idx]/=v; return a[idx]; }
+    public static double div(double[] a, int idx, double v) { a[idx]/=v; return a[idx];}
 
+    public static double aget(double[] a, int idx) { return a[idx]; }
+    public static double aget2d(double[][] a, int i, int j) { return a[i][j];}
+    public static double[] aset(double[] a, int idx, double v) { a[idx]=v; return a; }
+    
     // 2d
     
     public static int inc2d(int[] a, int cols, int x, int y) { int idx=y*cols+x; return ++a[idx]; }
@@ -153,63 +157,63 @@ public final class Array {
 
     public static float[] mat2array(float a00, float a01, float a02,
                                     float a10, float a11, float a12,
-                                    float a20, float a21, float a22) {
-        return new float[] {a00,a01,a02,
-                            a10,a11,a12,
-                            a20,a21,a22};
-    }
+                                        float a20, float a21, float a22) {
+            return new float[] {a00,a01,a02,
+                                a10,a11,a12,
+                                a20,a21,a22};
+        }
 
-    public static float[] mat2array(float a00, float a01,
-                                    float a10, float a11) {
-        return new float[] {a00,a01,a10,a11};
-    }
+        public static float[] mat2array(float a00, float a01,
+                                        float a10, float a11) {
+            return new float[] {a00,a01,a10,a11};
+        }
 
-    public static ArrayList<double[]> mat2cols(double[][] m) {
-        int rows = m.length;
-        int cols = m[0].length;
+        public static ArrayList<double[]> mat2cols(double[][] m) {
+            int rows = m.length;
+            int cols = m[0].length;
 
-        ArrayList<double[]> l = new ArrayList<double[]>();
+            ArrayList<double[]> l = new ArrayList<double[]>();
 
-        for(int c=0;c<cols;c++) {
+            for(int c=0;c<cols;c++) {
+                double[] t = new double[rows];
+                for(int r=0;r<rows;r++) {
+                    t[r] = m[r][c];
+                }
+                l.add(t);
+            }
+
+            return l;
+        }
+
+        public static double[] mat2column(double[][] m, int col) {
+            int rows = m.length;
+
             double[] t = new double[rows];
             for(int r=0;r<rows;r++) {
-                t[r] = m[r][c];
+                t[r] = m[r][col];
             }
-            l.add(t);
+
+            return t;
         }
 
-        return l;
-    }
+        public static double[] mat2diag(double[][] m) {
+            int rows = m.length;
 
-    public static double[] mat2column(double[][] m, int col) {
-        int rows = m.length;
+            double[] t = new double[rows];
+            for(int r=0;r<rows;r++) {
+                t[r] = m[r][r];
+            }
 
-        double[] t = new double[rows];
-        for(int r=0;r<rows;r++) {
-            t[r] = m[r][col];
+            return t;
         }
 
-        return t;
-    }
+        public static double[][] matadd(double[][] m1, double[][] m2) {
+            int rows = m1.length;
+            int cols = m1[0].length;
 
-    public static double[] mat2diag(double[][] m) {
-        int rows = m.length;
+            double[][] t = new double[rows][cols];
 
-        double[] t = new double[rows];
-        for(int r=0;r<rows;r++) {
-            t[r] = m[r][r];
-        }
-
-        return t;
-    }
-
-    public static double[][] matadd(double[][] m1, double[][] m2) {
-        int rows = m1.length;
-        int cols = m1[0].length;
-
-        double[][] t = new double[rows][cols];
-
-        for(int c=0;c<cols;c++) {
+            for(int c=0;c<cols;c++) {
             for(int r=0;r<rows;r++) {
                 t[r][c] = m1[r][c] + m2[r][c];
             }

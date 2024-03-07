@@ -75,8 +75,11 @@
   ([^long order ^double shape]
    (let [v (* 0.5 order)
          rg (m/exp (- (* (- 1.0 v) m/LN2) (m/log-gamma v)))]
-     (fn ^double [^double x] (let [ex (m/abs (* shape x))]
-                              (* rg (m/pow ex v) (m/bessel-k-half order ex)))))))
+     (fn ^double [^double x]
+       (let [ex (m/abs (* shape x))]
+         (if (< ex 1.0e-20)
+           1.0
+           (* rg (m/pow ex v) (m/bessel-k-half order ex))))))))
 
 ;; [1] p. 43
 
@@ -131,15 +134,21 @@
 
 (defn whittaker-integration [^double alpha ^double k ^double beta]
   (let [k- (dec k)]
-    (fn ^double [^double r]
-      (let [f (cond
-                (and (zero? r) (zero? alpha))
-                (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
-                                          (m/exp (- (* t beta)))))
-                (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
-                                          (m/pow t alpha)
-                                          (m/exp (- (* t beta))))))]
-        (calc/gk-quadrature f 0.0 ##Inf {:max-iters 1000 :abs 1.0e-6 :rel 1.0e-6})))))
+    (if (zero? alpha)
+      (fn ^double [^double r]
+        (let [f (if (zero? r)
+                  (fn ^double [^double t] (m/exp (- (* t beta))))
+                  (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
+                                            (m/exp (- (* t beta))))))]
+          (calc/gk-quadrature f 0.0 ##Inf {:max-iters 1000 :abs 1.0e-6 :rel 1.0e-6})))
+      (fn ^double [^double r]
+        (let [f (if (zero? r)
+                  (fn ^double [^double t] (* (m/pow t alpha)
+                                            (m/exp (- (* t beta)))))
+                  (fn ^double [^double t] (* (m/pow (max 0.0 (- 1.0 (* r t))) k-)
+                                            (m/pow t alpha)
+                                            (m/exp (- (* t beta))))))]
+          (calc/gk-quadrature f 0.0 ##Inf {:max-iters 1000 :abs 1.0e-6 :rel 1.0e-6}))))))
 
 (defn whittaker
   ([^double alpha ^double k ^double beta] (whittaker alpha k beta 1.0))

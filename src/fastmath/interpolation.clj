@@ -164,18 +164,18 @@
   (let [^Interpolation interp (LinearInterpolation. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.interpolate interp x))))
 
-(defn rbf
-  "RBF (Radial Basis Function) interpolation.
+#_(defn rbf
+    "RBF (Radial Basis Function) interpolation.
 
   Default kernel: `:gaussian`
   
   Source: Smile"
-  ([xs ys] (rbf (k/rbf :gaussian) xs ys))
-  ([rbf-fn normalize? xs ys]
-   (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) (k/smile-rbf rbf-fn) normalize?)]
-     (fn ^double [^double x] (.interpolate interp x))))
-  ([rbf-fn xs ys]
-   (rbf rbf-fn false xs ys)))
+    ([xs ys] (rbf (k/rbf :gaussian) xs ys))
+    ([rbf-fn normalize? xs ys]
+     (let [^Interpolation interp (RBFInterpolation1D. (m/seq->double-array xs) (m/seq->double-array ys) (k/smile-rbf rbf-fn) normalize?)]
+       (fn ^double [^double x] (.interpolate interp x))))
+    ([rbf-fn xs ys]
+     (rbf rbf-fn false xs ys)))
 
 (defn shepard
   "Shepard interpolation.
@@ -413,7 +413,7 @@
                          :cubic-spline cubic-spline
                          :kriging-spline kriging-spline
                          :linear-smile linear-smile
-                         :rbf rbf
+                         #_#_:rbf rbf
                          :shepard shepard
                          :microsphere microsphere-projection
                          :step-after step-after

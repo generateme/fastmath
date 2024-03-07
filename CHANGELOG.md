@@ -1,6 +1,24 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [3.0.0] - unreleased
+
+First release without SMILE dependency.
+
+### Added
+
+* kringing interpolation is enhanced to work with various variograms
+* semi-variograms for kringing
+* rbf interpolation accepts polynomial term
+
+### Changed
+
+* [breaking] `fastmath.clustering` namespace is moved to the separate [fastmath-clustering](https://github.com/generateme/fastmath-clustering) library.
+* [breaking] `fastmath.gp` moved to the `fastmath.interpolation.gp`
+* [breaking] `fastmath.kernel` is rewritten with changed API for `rbf` and `kernel`
+* [breaking] `fastmath.interpolation` is rewritten with changed API, part of the methods are implemented directly in Clojure, names are unified
+* [breaking] `fastmath.distance` rewritten
+
 ## [2.4.0]
 
 ### Added

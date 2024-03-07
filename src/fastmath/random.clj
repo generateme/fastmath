@@ -120,8 +120,7 @@
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
            [org.apache.commons.math3.analysis UnivariateFunction]
-           [org.apache.commons.math3.analysis.integration RombergIntegrator]
-           [smile.math MathEx]))
+           [org.apache.commons.math3.analysis.integration RombergIntegrator]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -2332,21 +2331,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (prot/set-seed rng v)))
 
 (defn set-seed!
-  "Sets seed.
-
-  If `rng` is `:smile` calls `smile.math.MathEx/setSeed()`.
-
-  Without `rng` sets both `:smile` and `default-rng`"
-  ([]
-   (MathEx/setSeed (lrand))
-   (prot/set-seed! default-rng (lrand)))
-  ([^long v]
-   (MathEx/setSeed v)
-   (prot/set-seed! default-rng v))
-  ([rng ^long v]
-   (if (= rng :smile)
-     (MathEx/setSeed v)
-     (prot/set-seed! rng v))))
+  "Sets seed."
+  ([] (prot/set-seed! default-rng (lrand)))
+  ([^long v] (prot/set-seed! default-rng v))
+  ([rng ^long v] (prot/set-seed! rng v)))
 
 ;;
 
