@@ -49,7 +49,8 @@
             [fastmath.random :as r]
             [fastmath.distance :as d]
             [fastmath.vector :as v]
-            [fastmath.interpolation :as interp]
+            [fastmath.interpolation.step :as step-interp]
+            [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
             [fastmath.kernel :as k])
   (:import [org.apache.commons.math3.stat StatUtils]
@@ -149,12 +150,12 @@
         ^double wsum (reduce m/fast+ probabilities)
         weights (conj (reductions m/fast+ (map (fn [^double p] (/ p wsum)) probabilities)) 0.0)]
     (case method
-      :linear (interp/linear-smile weights data)
-      :average (let [interp1 (interp/step-before weights data)
-                     interp2 (interp/step-after weights data)]
+      :linear (linear-interp/linear weights data)
+      :average (let [interp1 (step-interp/step-before weights data)
+                     interp2 (step-interp/step-after weights data)]
                  (fn [^double x] (* 0.5 (+ ^double (interp1 x)
                                           ^double (interp2 x)))))
-      :step (interp/step-before weights data))))
+      :step (step-interp/step-before weights data))))
 
 ;; based on spatstat.geom::weighted.quantile
 

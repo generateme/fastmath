@@ -10,8 +10,11 @@ First release without SMILE dependency.
 * kringing interpolation is enhanced to work with various variograms
 * semi-variograms for kringing
 * rbf interpolation accepts polynomial term
+* barycentric interpolation
 
 ### Changed
+
+Removed all functions based on SMILE library, most of them are replaced/rewritten.
 
 * [breaking] `fastmath.clustering` namespace is moved to the separate [fastmath-clustering](https://github.com/generateme/fastmath-clustering) library.
 * [breaking] `fastmath.gp` moved to the `fastmath.interpolation.gp`

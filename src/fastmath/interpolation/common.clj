@@ -13,7 +13,7 @@
 ;;  -1   0   -2    1       -3     2   -4       3     -5
 ;;   0   0    0    1        1     2    2       2      2 
 
-(defn- binary-search-id
+(defn binary-search-id
   "Find array index after binary search snapping to the lower value. The last segment snaps to the previous segment."
   ^long [^long bsres ^long n]
   (if (m/neg? bsres)

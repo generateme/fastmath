@@ -153,7 +153,7 @@
            (let [n (count found)
                  buff (conj buff {:n n
                                   :h (stats/mean (map first found))
-                                  :gamma (m/* 0.5 (estimator-fn n (map second found)))})]
+                                  :gamma (m/* 0.5 ^double (estimator-fn n (map second found)))})]
              (if (seq rsplits)
                (recur buff (drop n distances) rsplits)
                buff))))))))
@@ -162,7 +162,7 @@
   ^double [variogram empirical-variogram]
   (->> empirical-variogram
        (map (fn [{:keys [^double gamma ^double h]}]
-              (m/sq (m/- gamma (variogram h)))))
+              (m/sq (m/- gamma ^double (variogram h)))))
        (reduce m/fast+)))
 
 (defn fit-params

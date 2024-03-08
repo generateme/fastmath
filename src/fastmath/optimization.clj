@@ -66,7 +66,7 @@
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
-            [fastmath.gp :as gp]
+            [fastmath.interpolation.gp :as gp]
             [fastmath.optimization.lbfgsb :as lbfgsb])
   (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
            [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
@@ -604,6 +604,8 @@
           (.optimize solver)
           (parse-result nil)
           (maybe-stats? stats? solver)))))
+
+(m/unuse-primitive-operators)
 
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))

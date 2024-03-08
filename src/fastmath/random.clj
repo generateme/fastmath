@@ -105,7 +105,10 @@
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
             [fastmath.protocols :as prot]
-            [fastmath.interpolation :as i]
+            [fastmath.interpolation.linear :as linear-interp]
+            [fastmath.interpolation.cubic :as cubic-interp]
+            [fastmath.interpolation.monotone :as monotone-interp]
+            [fastmath.interpolation.step :as step-interp]
             [fastmath.solver :as solver]
             [clojure.data.int-map :as im]            )
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
@@ -862,7 +865,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   * `mx` - upper bound for integration
   * `steps` - how much subintervals to integrate (default 1000)
   * `min-iterations` - minimum iterations for RombergIntegrator (default 3)
-  * `interpolator` - interpolation method between integrated points (default :spline)
+  * `interpolator` - interpolation method between integrated points (default :linear)
 
   Possible interpolation methods: `:linear` (default), `:spline`, `:monotone` or any function from `fastmath.interpolation`"
   ([pdf-func mn mx steps]
@@ -897,10 +900,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
          xs (m/seq->double-array (map first points))
          ys (m/seq->double-array (map second points))
          intpol (case interpolator
-                  :linear i/linear-smile
-                  :spline i/cubic-spline
-                  :monotone i/monotone
-                  (if (fn? interpolator) interpolator i/linear))]
+                  :linear linear-interp/linear
+                  :cubic cubic-interp/cubic
+                  :monotone monotone-interp/monotone
+                  (if (fn? interpolator) interpolator linear-interp/linear))]
      ;; interpolate points lineary, return cdf and icdf
      [(intpol xs ys)
       (intpol ys xs)])))
@@ -1010,9 +1013,9 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
         icdf-fn (case nm
                   :logarithmic (let [upper (/ 25.0 (- 1.0 ^double (get m :theta 0.5)))
                                      r (range 0 (inc upper))]                                 
-                                 (i/step-before (rest (reductions
-                                                       (fn [^double s ^double v]
-                                                         (+ s (.prob d v))) 0.0 r)) r))
+                                 (step-interp/step-before (rest (reductions
+                                                                 (fn [^double s ^double v]
+                                                                   (+ s (.prob d v))) 0.0 r)) r))
                   (fn [^double v] (.inverseF d v)))]
     (reify
       prot/DistributionProto
@@ -1640,10 +1643,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
         cumsum (reductions m/fast+ (vals pmf))
         ks (keys pmf)
         ^double mnk (first ks)
-        icdf (let [stepf (i/step-before cumsum ks)]
+        icdf (let [stepf (step-interp/step-before cumsum ks)]
                (fn [^double x]
                  (corr (stepf x))))
-        cdf (let [stepf (i/step-after ks cumsum)]
+        cdf (let [stepf (step-interp/step-after ks cumsum)]
               (fn [^double x]
                 (if (< x mnk) 0.0 (stepf x))))]
     [pmf cdf icdf mnk (last ks)]))
@@ -1935,72 +1938,72 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                          (solver/find-root h1 interval mu)))))))
 
 (distribution-template :bb
-                       {:mean mmean :distribution-parameters [:mu :sigma :bd :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound bd}
-                       {:keys [^double mu ^double sigma ^long bd]
-                        :or {mu 0.5 sigma 1.0 bd 10}} args
-                       mmean (* bd mu)
-                       variance (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd))
-                                                            (inc sigma))))
-                       dist (distribution :binomial {:p mu :trials bd :rng r})
-                       lpdf-fn (if (< sigma 0.00001)
-                                 (fn ^double [^long x] (prot/lpdf dist x))
-                                 (let [rsigma (/ sigma)
-                                       mursigma (* mu rsigma)
-                                       mu-rsigma (* (- 1.0 mu) rsigma)
-                                       lgamma-part (- (+ (m/log-gamma (inc bd))
-                                                         (m/log-gamma rsigma))
-                                                      (m/log-gamma mursigma)
-                                                      (m/log-gamma mu-rsigma)
-                                                      (m/log-gamma (+ bd rsigma)))]
-                                   (fn ^double [^long x]
-                                     (+ (- lgamma-part
-                                           (m/log-gamma (inc x))
-                                           (m/log-gamma (inc (- bd x))))
-                                        (m/log-gamma (+ x mursigma))
-                                        (m/log-gamma (- (+ bd mu-rsigma) x))))))
-                       cdf-fn (if (< sigma 0.00001)
-                                (fn ^double [^long x] (prot/cdf dist x))
-                                (memoize (fn ^double [^long q]
-                                           (reduce m/fast+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
-                       icdf-fn (if (< sigma 0.00001)
-                                 (fn ^double [^double p] (prot/icdf dist p))
-                                 (let [r (range 0 (inc bd))]
-                                   (i/step-before (rest (reductions
-                                                         (fn [^double s ^double v]
-                                                           (+ s (m/exp (lpdf-fn v)))) 0.0 r)) r))))
+    {:mean mmean :distribution-parameters [:mu :sigma :bd :rng]
+     :continuous? false :lower-bound 0.0 :upper-bound bd}
+  {:keys [^double mu ^double sigma ^long bd]
+   :or {mu 0.5 sigma 1.0 bd 10}} args
+  mmean (* bd mu)
+  variance (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd))
+                                       (inc sigma))))
+  dist (distribution :binomial {:p mu :trials bd :rng r})
+  lpdf-fn (if (< sigma 0.00001)
+            (fn ^double [^long x] (prot/lpdf dist x))
+            (let [rsigma (/ sigma)
+                  mursigma (* mu rsigma)
+                  mu-rsigma (* (- 1.0 mu) rsigma)
+                  lgamma-part (- (+ (m/log-gamma (inc bd))
+                                    (m/log-gamma rsigma))
+                                 (m/log-gamma mursigma)
+                                 (m/log-gamma mu-rsigma)
+                                 (m/log-gamma (+ bd rsigma)))]
+              (fn ^double [^long x]
+                (+ (- lgamma-part
+                      (m/log-gamma (inc x))
+                      (m/log-gamma (inc (- bd x))))
+                   (m/log-gamma (+ x mursigma))
+                   (m/log-gamma (- (+ bd mu-rsigma) x))))))
+  cdf-fn (if (< sigma 0.00001)
+           (fn ^double [^long x] (prot/cdf dist x))
+           (memoize (fn ^double [^long q]
+                      (reduce m/fast+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
+  icdf-fn (if (< sigma 0.00001)
+            (fn ^double [^double p] (prot/icdf dist p))
+            (let [r (range 0 (inc bd))]
+              (step-interp/step-before (rest (reductions
+                                              (fn [^double s ^double v]
+                                                (+ s (m/exp (lpdf-fn v)))) 0.0 r)) r))))
 
 
 (distribution-template :zabi
-                       {:mean mmean
-                        :distribution-parameters [:mu :sigma :bd :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound bd}
-                       {:keys [^double mu ^double sigma ^long bd]
-                        :or {mu 0.5 sigma 0.1 bd 1}} args
-                       sigma- (- 1.0 sigma)
-                       mmean (/ (* sigma- bd mu)
-                                (- 1.0 (m/pow (- 1.0 mu) bd)))
-                       variance (- (* mmean (+ (- 1.0 mu) (* bd mu))) (* mmean mmean))
-                       lsigma (m/log sigma)
-                       lsigma- (m/log sigma-)
-                       dist (distribution :binomial {:trials bd :p mu :rng r})
-                       lpdf0- (m/log (- 1.0 (pdf dist 0.0)))
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (zero? x)
-                                   lsigma
-                                   (- (+ lsigma- (lpdf dist x)) lpdf0-)))
-                       cdf2 (cdf dist 0.0)
-                       rcdf2- (/ (- 1.0 cdf2))
-                       cdf-fn (fn ^double [^double q]
-                                (if (zero? q)
-                                  sigma
-                                  (let [cdf1 (cdf dist q)]
-                                    (+ sigma (* sigma- (- cdf1 cdf2) rcdf2-)))))
-                       icdf-fn (fn ^double [^double p]
-                                 (let [pnew (- (/ (- p sigma) sigma-) 1.0e-10)]
-                                   (if (pos? pnew)
-                                     (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew))
-                                     0.0))))
+    {:mean mmean
+     :distribution-parameters [:mu :sigma :bd :rng]
+     :continuous? false :lower-bound 0.0 :upper-bound bd}
+  {:keys [^double mu ^double sigma ^long bd]
+   :or {mu 0.5 sigma 0.1 bd 1}} args
+  sigma- (- 1.0 sigma)
+  mmean (/ (* sigma- bd mu)
+           (- 1.0 (m/pow (- 1.0 mu) bd)))
+  variance (- (* mmean (+ (- 1.0 mu) (* bd mu))) (* mmean mmean))
+  lsigma (m/log sigma)
+  lsigma- (m/log sigma-)
+  dist (distribution :binomial {:trials bd :p mu :rng r})
+  lpdf0- (m/log (- 1.0 (pdf dist 0.0)))
+  lpdf-fn (fn ^double [^double x]
+            (if (zero? x)
+              lsigma
+              (- (+ lsigma- (lpdf dist x)) lpdf0-)))
+  cdf2 (cdf dist 0.0)
+  rcdf2- (/ (- 1.0 cdf2))
+  cdf-fn (fn ^double [^double q]
+           (if (zero? q)
+             sigma
+             (let [cdf1 (cdf dist q)]
+               (+ sigma (* sigma- (- cdf1 cdf2) rcdf2-)))))
+  icdf-fn (fn ^double [^double p]
+            (let [pnew (- (/ (- p sigma) sigma-) 1.0e-10)]
+              (if (pos? pnew)
+                (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew))
+                0.0))))
 
 (distribution-template :zibi
                        {:mean mmean

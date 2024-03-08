@@ -168,7 +168,7 @@
             [clojure.java.io :refer [file make-parents output-stream input-stream]]
             [fastmath.vector :as v]
             [fastmath.random :as r]
-            [fastmath.interpolation :as i])
+            [fastmath.interpolation.linear :as linear-interp])
   (:import [fastmath.vector Vec3]
            [clojure.lang IFn]
            [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
@@ -970,7 +970,7 @@
   * sig - signal as sequence
   * seconds - duration
   * interpolator - interpolation (see [[fastmath.interpolation]]). Default: [[linear-smile]]."
-  ([sig ^double seconds] (signal->oscillator sig seconds i/linear-smile))
+  ([sig ^double seconds] (signal->oscillator sig seconds linear-interp/linear))
   ([sig ^double seconds interpolator]
    (let [c (count sig)
          step (/ seconds c)] 

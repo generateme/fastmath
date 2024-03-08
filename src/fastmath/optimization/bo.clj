@@ -1,5 +1,5 @@
 (ns fastmath.optimization.bo
-  (:require [fastmath.gp :as gp]
+  (:require [fastmath.interpolation.gp :as gp]
             [fastmath.random :as r]
             [fastmath.kernel :as k]
             [fastmath.core :as m]
@@ -167,53 +167,32 @@
 ;;     (categorical-drop :c #(not= (:b %) :z)))
 
 
-(require '[fastmath.clustering :as clust])
 
 (def example-data
   (shuffle (concat
             (r/->seq (r/distribution :weibull {:alpha 3 :beta 5}) 1000)
             (r/->seq (r/distribution :gamma {:shape 10.0}) 1000))))
 
-(defn target
-  [{:keys [clustering d1 d2] :as args}]
-  (let [clusters (clust/regroup ((get {:x-means clust/x-means
-                                       :clarans clust/clarans
-                                       :deterministic-annealing clust/deterministic-annealing} clustering) example-data 2))
-        distr1 (r/distribution d1 args)
-        distr2 (r/distribution d2 args)]
-    (+ (r/log-likelihood distr1 (:data (first clusters)))
-       (r/log-likelihood distr2 (:data (second clusters))))))
-
-(target {:clustering :x-means
-         :d1 :gamma
-         :d2 :weibull
-         :alpha 3.0
-         :beta 5.0
-         :shape 10.0
-         :scale 4.0
-         :k 2.0
-         :lambda 2.0})
-
 (def args (-> {:clustering #{:x-means :clarans :deterministic-annealing}
-               :d1 #{:gamma :weibull :erlang}
-               :d2 #{:gamma :weibull :erlang}
-               :dist #{:euclidean :manhattan :chebyshev}
-               :alpha [0.01 10]
-               :beta [0.01 10]
-               :shape [1.0 20.0]
-               :scale [1.0 10.0]
-               :k [1.0 10.0]
-               :lambda [0.1 10.0]}
-              (continuous-restrict-key :d1 {:erlang [:k :lambda]
-                                            :weibull [:alpha :beta]
-                                            :gamma [:shape :scale]}) ;; replaces continuous list with provided for given pair key/val from categorical
-              (continuous-append-key :d2 {:erlang [:k :lambda]
+             :d1 #{:gamma :weibull :erlang}
+             :d2 #{:gamma :weibull :erlang}
+             :dist #{:euclidean :manhattan :chebyshev}
+             :alpha [0.01 10]
+             :beta [0.01 10]
+             :shape [1.0 20.0]
+             :scale [1.0 10.0]
+             :k [1.0 10.0]
+             :lambda [0.1 10.0]}
+            (continuous-restrict-key :d1 {:erlang [:k :lambda]
                                           :weibull [:alpha :beta]
-                                          :gamma [:shape :scale]})
-              (categorical-drop #(= (:d1 %) (:d2 %))) ;; removes categorical when pred is true
-              (categorical-keep :dist #(= (:clustering %) :clarans)) ;; keeps given key only when pred is true
-              (categorical-drop #(and (= (:d1 %) :weibull)
-                                      (not= (:clustering %) :x-means)))))
+                                          :gamma [:shape :scale]}) ;; replaces continuous list with provided for given pair key/val from categorical
+            (continuous-append-key :d2 {:erlang [:k :lambda]
+                                        :weibull [:alpha :beta]
+                                        :gamma [:shape :scale]})
+            (categorical-drop #(= (:d1 %) (:d2 %))) ;; removes categorical when pred is true
+            (categorical-keep :dist #(= (:clustering %) :clarans)) ;; keeps given key only when pred is true
+            (categorical-drop #(and (= (:d1 %) :weibull)
+                                    (not= (:clustering %) :x-means)))))
 
 (def args-cont {:alpha [0.01 10]
                 :beta [0.01 10]
