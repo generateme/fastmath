@@ -7,7 +7,7 @@
 #_(set! *warn-on-reflection* true)
 
 (defn shepard
-  ([xss ys] (shepard xss ys))
+  ([xss ys] (shepard xss ys nil))
   ([xss ys {:keys [^double p distance]
             :or {p 2.0}}]
    (let [dist (or distance (if (number? (first xss)) d/euclidean-1d d/euclidean))

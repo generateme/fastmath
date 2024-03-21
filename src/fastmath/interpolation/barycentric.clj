@@ -32,15 +32,15 @@
 
 (defn barycentric
   ([xs ys] (barycentric xs ys nil))
-  ([xs ys {:keys [^long degree]
-           :or {degree 0}}]
-   (assert (and (m/not-neg? degree)
-                (m/< degree (count xs)))
+  ([xs ys {:keys [^long order]
+           :or {order 1}}]
+   (assert (and (m/not-neg? order)
+                (m/< order (count xs)))
            "Degree should be non-negative and lower than count of xs.")
    (let [xs (m/seq->double-array xs)
          ys (m/seq->double-array ys)
          n (alength xs)
-         ^doubles coeffs (coeffs-array xs degree n)]
+         ^doubles coeffs (coeffs-array xs order n)]
      (fn ^double [^double x]
        (let [bsid (java.util.Arrays/binarySearch xs x)]
          (if (m/not-neg? bsid)

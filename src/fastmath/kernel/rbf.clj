@@ -61,7 +61,6 @@
      (== d 4) (fn ^double [^double x] (let [ex (m/abs (* shape x))] (if (m/near-zero? ex 1.0e-13) 0.5
                                                                        (/ (m/bessel-j 1 ex) ex))))
      :else (let [p (dec (* 0.5 d))]
-             (println "here" p)
              (fn ^double [^double x] (let [ex (m/max 1.0e-13 (m/abs (* shape x)))]
                                       (/ (m/bessel-j p ex) (m/pow ex p))))))))
 

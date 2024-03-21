@@ -22,6 +22,12 @@
                                                        (m/- (Array/aget xs i+) x1))))))))))
 
 (defn linear
+  "1d linear interpolation.
+
+  * `xs` - x coordinate
+  * `ys` - y coordinate
+
+  Function extrapolates when `x` is outside a domain."
   [xs ys]
   (let [xs (m/seq->double-array xs)
         coeffs (coeffs-array xs (m/seq->double-array ys))]

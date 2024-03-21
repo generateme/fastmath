@@ -51,7 +51,7 @@
 (emit-rbf :gaussians-laguerre-11 rbf/gaussians-laguerre [] [1.0 1.0])
 (emit-rbf :gaussians-laguerre-12 rbf/gaussians-laguerre [] [1.0 2.0])
 (emit-rbf :gaussians-laguerre-21 rbf/gaussians-laguerre [] [2.0 1.0])
-(emit-rbf :gaussians-laguerre-22 rbf/gaussians-laguerre [] [2.0 1.0])
+(emit-rbf :gaussians-laguerre-22 rbf/gaussians-laguerre [] [2.0 2.0])
 
 (emit-rbf :poisson rbf/poisson [d])
 (emit-rbf :poisson-2 rbf/poisson [] [2.0])
@@ -90,7 +90,6 @@
 (emit-rbf :wu-33 rbf/wu [] [3.0 3.0])
 
 (emit-rbf :whittaker rbf/whittaker [alpha k beta])
-
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Various kernels

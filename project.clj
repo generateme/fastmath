@@ -36,7 +36,7 @@
              :dev {:dependencies [[io.github.nextjournal/clerk "0.15.957"]
                                   [clojure2d "1.4.6-SNAPSHOT" :exclusions [generateme/fastmath]]
                                   [org.clojure/data.csv "1.1.0"]
-                                  [org.scicloj/clay "2-alpha81"]
+                                  [org.scicloj/clay "2-alpha87"]
                                   [scicloj/clojisr "1.0.0-BETA22"]]
                    :source-paths ["notebooks" "utils"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"

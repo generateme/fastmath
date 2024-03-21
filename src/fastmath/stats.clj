@@ -459,7 +459,7 @@
   * LIF (Lower Inner Fence) equals `(- Q1 (* 1.5 IQR))`.
   * UIF (Upper Inner Fence) equals `(+ Q3 (* 1.5 IQR))`.
 
-  Returns sequence.
+  Returns a sequence of outliers.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
   ([vs]
@@ -470,14 +470,38 @@
          q3 (percentile avs 75.0 estimation-strategy)]
      (outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
-   (let [ ;;avs (m/seq->double-array vs)
-         iqr (* 1.5 (- q3 q1))
+   (let [iqr (* 1.5 (- q3 q1))
          lif-thr (- q1 iqr)
          uif-thr (+ q3 iqr)]
-     ;; (java.util.Arrays/sort avs)
-     (filter #(let [v (double %)]
-                (or (< v lif-thr)
-                    (> v uif-thr))) vs))))
+     (filter (fn [^double v]
+               (or (< v lif-thr)
+                   (> v uif-thr))) vs))))
+
+(defn remove-outliers
+  "Remove outliers defined as values outside inner fences.
+
+  Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
+
+  * LIF (Lower Inner Fence) equals `(- Q1 (* 1.5 IQR))`.
+  * UIF (Upper Inner Fence) equals `(+ Q3 (* 1.5 IQR))`.
+
+  Returns a sequence without outliers.
+
+  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
+  ([vs]
+   (outliers vs :legacy))
+  ([vs estimation-strategy]
+   (let [avs (m/seq->double-array vs)
+         q1 (percentile avs 25.0 estimation-strategy)
+         q3 (percentile avs 75.0 estimation-strategy)]
+     (outliers avs q1 q3)))
+  ([vs ^double q1 ^double q3]
+   (let [iqr (* 1.5 (- q3 q1))
+         lif-thr (- q1 iqr)
+         uif-thr (+ q3 iqr)]
+     (remove (fn [^double v]
+               (or (< v lif-thr)
+                   (> v uif-thr))) vs))))
 
 (declare histogram)
 

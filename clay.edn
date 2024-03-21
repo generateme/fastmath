@@ -1,0 +1,11 @@
+{:remote-repo {:git-url "https://github.com/generateme/fastmath/"
+               :branch "master"}
+ :quarto {:format {:html {:toc true
+                          :toc-location :right
+                          :toc-depth 4
+                          :theme [:cosmo "../../clay/custom.scss"]
+                          :anchor-sections true
+                          :reference-location :margin
+                          :fontsize "0.9em"}}
+          :code-block-background true
+          :title "Fastmath documentation"}}

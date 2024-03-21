@@ -13,7 +13,10 @@
                 (for [xs2 xss]
                   (variogram (distance xs1 xs2))))
               (mat/rows->RealMatrix))]
-    (if (or (and (number? error) (m/zero? (double error))) (not (seq error)))
+    (if (or (not error)                                 ;; not exists
+            (v/zero? error)                             ;; maybe zero?
+            (and (sequential? error) (not (seq error))) ;; exists but empty sequence
+            )
       m
       (mat/sub m (MatrixUtils/createRealDiagonalMatrix
                   (m/seq->double-array (if (sequential? error)

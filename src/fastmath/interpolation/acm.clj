@@ -51,14 +51,18 @@
             ^UnivariateFunction poly (aget polys i)]
         (.value poly (m/- x (Array/aget xs i)))))))
 
+(defn- infer-elements
+  [x ^long cnt]
+  (max (if (number? x) 5 (m/+ 4 (count x))) (m// cnt 5)))
+
 (defn microsphere-projection
   ([xss ys] (microsphere-projection xss ys nil))
   ([xss ys {:keys [^int elements ^double exponent ^double max-dark-friction
                    ^double dark-threshold ^double background ^double no-interpolation-tolerance]
-            :or {elements (count xss)
+            :or {elements (infer-elements (first xss) (count xss))
                  exponent 1.0
                  max-dark-friction 0.9
-                 dark-threshold 0.1
+                 dark-threshold 0.01
                  background 0.0
                  no-interpolation-tolerance 1.0e-6}}]
    (let [d1? (number? (first xss))
