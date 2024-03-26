@@ -1,4 +1,4 @@
-;; ## n-dimentional vector utilities
+;; ## n-dimensional vector utilities
 ;;
 ;; Main goal for this namespace is to provide various utility functions which operate on
 ;; mathematical vectors: 2d, 3d and 4d 

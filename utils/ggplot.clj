@@ -29,6 +29,7 @@
 (defn aes [& aes-opts] (apply gg/aes aes-opts))
 (defn line [obj data & opts] (r/r+ obj (apply gg/geom_line :data (tc/dataset data) opts)))
 (defn point [obj data & opts] (r/r+ obj (apply gg/geom_point :data (tc/dataset data) opts)))
+(defn histogram [obj data & opts] (r/r+ obj (apply gg/geom_histogram :data (tc/dataset data) opts)))
 (defn xlim [obj [x-min x-max]] (r/r+ obj (gg/xlim (or x-min 'NA) (or x-max 'NA))))
 (defn ylim [obj [y-min y-max]] (r/r+ obj (gg/ylim (or y-min 'NA) (or y-max 'NA))))
 (defn title [obj title] (r/r+ obj (gg/labs :title title)))
@@ -133,6 +134,7 @@
      (r/r+ (function2d f (assoc opts :x [x-min x-max] :y [y-min y-max]))
            (gg/geom_point :data data :color "blue" :fill "light blue"
                           :shape "circle filled" :size 3 :alpha 0.8)))))
+
 
 
 #_(->file (function2d+scatter (fn [[x y]] (* (m/sin (* m/TWO_PI x))

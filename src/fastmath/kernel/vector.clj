@@ -1,47 +1,85 @@
 (ns fastmath.kernel.vector
+  "Various vector based kernels"
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]))
+
+;; http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/
+;; Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective
+;; http://www.jmlr.org/papers/volume2/genton01a/genton01a.pdf
+
 
 ;; https://www.cnblogs.com/chenying99/p/5226126.html
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn linear [] (fn ^double [x y] (v/dot x y)))
+(defn linear
+  "Dot product kernel"
+  ([] (fn ^double [x y] (v/dot x y)))
+  ([_] (fn ^double [x y] (v/dot x y))))
 
 (defn polynomial
+  "Polynomial (power of dot product).
+
+  Parameters:
+
+  * `:alpha` - dot product multiplier (default: 1.0)
+  * `:c` - shift (default: 0.0)
+  * `:p` - exponent (default: 2.0)"
   ([] (fn ^double [x y] (m/sq (v/dot x y))))
-  ([^double alpha ^double c ^double p]
+  ([{:keys [^double alpha ^double c ^double p]
+     :or {alpha 1.0 c 0.0 p 2.0}}]
    (fn ^double [x y] (m/pow (m/+ c (m/* alpha (v/dot x y))) p))))
 
 (defn gaussian
-  ([] (gaussian 1.0))
-  ([^double sigma] (gaussian sigma nil))
-  ([^double sigma distance]
-   (let [d (or distance v/dist)
-         -s2halfinv (m// (m/* -2.0 sigma sigma))]
-     (fn ^double [x y] (m/exp (m/* -s2halfinv (m/sq (d x y))))))))
+  "Gaussian kernel.
+
+  Parameters:
+
+  * `:sigma` - shape of the kernel (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (gaussian nil))
+  ([{:keys [^double sigma distance]
+     :or {sigma 1.0 distance v/dist}}]
+   (let [-s2halfinv (m// (m/* -2.0 sigma sigma))]
+     (fn ^double [x y] (m/exp (m/* -s2halfinv (m/sq (distance x y))))))))
 
 (defn exponential
-  ([] (exponential 1.0))
-  ([^double sigma] (exponential sigma nil))
-  ([^double sigma distance]
-   (let [d (or distance v/dist)
-         -s2halfinv (m// (m/* -2.0 sigma sigma))]
-     (fn ^double [x y] (m/exp (m/* -s2halfinv ^double (d x y)))))))
+  "Exponential kernel.
+
+  Parameters:
+
+  * `:sigma` - shape of the kernel (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (exponential nil))
+  ([{:keys [^double sigma distance]
+     :or {sigma 1.0 distance v/dist}}]
+   (let [-s2halfinv (m// (m/* -2.0 sigma sigma))]
+     (fn ^double [x y] (m/exp (m/* -s2halfinv ^double (distance x y)))))))
 
 (defn laplacian
-  ([] (laplacian 1.0))
-  ([^double sigma] (laplacian sigma nil))
-  ([^double sigma distance]
-   (let [d (or distance v/dist)
-         -sinv (m// -1.0 sigma)]
-     (fn ^double [x y] (m/exp (m/* -sinv ^double (d x y)))))))
+  "Laplacian kernel.
+
+  Parameters:
+
+  * `:sigma` - shape of the kernel (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (laplacian nil))
+  ([{:keys [^double sigma distance]
+     :or {sigma 1.0 distance v/dist}}]
+   (let [-sinv (m// -1.0 sigma)]
+     (fn ^double [x y] (m/exp (m/* -sinv ^double (distance x y)))))))
 
 (defn anova
-  ([] (anova 1.0))
-  ([^double sigma] (anova sigma 1.0 1.0))
-  ([^double sigma ^double k ^double d]
+  "Anova kernel.
+
+  Parameters:
+
+  * `:sigma` - multiplier (default: 1.0)
+  * `:k` and `:d` - exponents (default: 1.0)"
+  ([] (anova nil))
+  ([{:keys [^double sigma ^double k ^double d]
+     :or {sigma 1.0 k 1.0 d 1.0}}]
    (let [powk (fn ^double [^double v] (m/pow v k))
          powd (fn ^double [^double v] (m/pow v d))
          -s (m/- sigma)]
@@ -56,71 +94,59 @@
              (v/sum)))))))
 
 (defn hyperbolic-tangent
-  ([] (hyperbolic-tangent 1.0))
-  ([^double alpha] (hyperbolic-tangent alpha 0.0))
-  ([^double alpha ^double c]
+  "Hyperbolic tangent of the dot product.
+
+  Parameters:
+
+  * `:alpha` - dot product multiplier (default: 1.0)
+  * `:c` - shift (default: 0.0)"
+  ([] (hyperbolic-tangent nil))
+  ([{:keys [^double alpha ^double c]
+     :or {alpha 1.0 c 0.0}}]
    (fn ^double [x y] (m/tanh (m/+ c (m/* alpha (v/dot x y)))))))
 
 (defn rational-quadratic
-  ([] (rational-quadratic 1.0))
-  ([^double c] (rational-quadratic c nil))
-  ([^double c distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y] (let [dist (m/sq (d x y))]
-                        (m/- 1.0 (m// dist (m/+ dist c))))))))
+  "Rational quadratic kernel.
+
+  Parameters:
+
+  `:c` - shift (default: 1.0)
+  `:distance` - distance function (default: euclidean)"
+  ([] (rational-quadratic nil))
+  ([{:keys [^double c distance]
+     :or {c 1.0 distance v/dist}}]
+   (fn ^double [x y] (let [dist (m/sq (distance x y))]
+                      (m/- 1.0 (m// dist (m/+ dist c)))))))
 
 (defn multiquadratic
-  ([] (multiquadratic 1.0))
-  ([^double c] (multiquadratic c nil))
-  ([^double c distance]
-   (let [d (or distance v/dist)
-         c2 (m/* c c)]
-     (fn ^double [x y] (let [dist (m/sq (d x y))]
+  "Multiquadratic kernel.
+
+  Parameters:
+
+  `:c` - shift (default: 1.0)
+  `:distance` - distance function (default: euclidean)"
+  ([] (multiquadratic nil))
+  ([{:keys [^double c distance]
+     :or {c 1.0 distance v/dist}}]
+   (let [c2 (m/* c c)]
+     (fn ^double [x y] (let [dist (m/sq (distance x y))]
                         (m/sqrt (m/+ dist c2)))))))
 
 (defn inverse-multiquadratic
-  ([] (inverse-multiquadratic 1.0))
-  ([^double c] (inverse-multiquadratic c nil))
-  ([^double c distance]
-   (let [d (or distance v/dist)
-         c2 (m/* c c)]
-     (fn ^double [x y] (let [dist (m/sq (d x y))]
+  "Inverse multiquadratic kernel.
+
+  Parameters:
+
+  `:c` - shift (default: 1.0)
+  `:distance` - distance function (default: euclidean)"
+  ([] (inverse-multiquadratic nil))
+  ([{:keys [^double c distance]
+     :or {c 1.0 distance v/dist}}]
+   (let [c2 (m/* c c)]
+     (fn ^double [x y] (let [dist (m/sq (distance x y))]
                         (m// (m/sqrt (m/+ dist c2))))))))
 
 ;; http://perso.lcpc.fr/tarel.jean-philippe/publis/jpt-icann05b.pdf
-
-(defn triangular
-  ([] (triangular 1.0))
-  ([^double r] (triangular r nil))
-  ([^double r distance]
-   (let [d (or distance v/dist)
-         r2 (m/* 2.0 r)]
-     (fn ^double [x y] (let [^double dist (d x y)]
-                        (if (>= dist r2) 0.0
-                            (m/- 1.0 (m// dist r2))))))))
-
-(defn circular
-  ([] (circular 1.0))
-  ([^double r] (circular r nil))
-  ([^double r distance]
-   (let [d (or distance v/dist)
-         r2 (m/* 2.0 r)]
-     (fn ^double [x y] (let [^double dist (d x y)]
-                        (if (>= dist r2) 0.0
-                            (let [ds (m// dist r2)]
-                              (m/- (m/acos ds)
-                                   (m/* ds (m/sqrt (m/- 1.0 (m/* ds ds))))))))))))
-
-(defn spherical
-  ([] (spherical 1.0))
-  ([^double r] (spherical r nil))
-  ([^double r distance]
-   (let [d (or distance v/dist)
-         r2 (m/* 2.0 r)]
-     (fn ^double [x y] (let [^double dist (d x y)]
-                        (if (>= dist r2) 0.0
-                            (let [ds (m// dist r2)]
-                              (m/+ (m/- 1.0 (m/* 1.5 ds)) (m/* 0.5 ds ds ds)))))))))
 
 (defn- geometric-internal
   ^double [^long n ^double ds]
@@ -136,67 +162,109 @@
         (recur (m/inc k) curr p1)))))
 
 (defn geometric
-  "Geometric Compactly Supported kernel"
-  ([^long n] (geometric n 1.0))
-  ([^long n ^double r] (geometric n r nil))
-  ([^long n ^double r distance]
-   (case (int n)
-     1 (triangular r distance)
-     2 (circular r distance)
-     3 (spherical r distance)
-     (let [d (or distance v/dist)
-           r2 (m/* 2.0 r)
-           z (geometric-internal n 0.0)]
-       (fn ^double [x y] (let [^double dist (d x y)]
-                          (if (m/>= dist r2) 0.0
-                              (m// (geometric-internal n (m// dist r2)) z))))))))
+  "Geometric Compactly Supported kernel
+
+  Parameters:
+
+  * `:n` - dimension
+  * `:r` - shape (default: 1.0)
+  * `:distance` - distance function (default: euclidean)
+
+  Specific kernel names for `:n`:
+  
+  * 1 - triangular
+  * 2 - circular
+  * 3 - spherical"
+  ([] (geometric nil))
+  ([{:keys [^long n ^double r distance]
+     :or {r 1.0 distance v/dist}}]
+   (let [r2 (m/* 2.0 r)]
+     (case (int n)
+       1 (fn ^double [x y] (let [^double dist (distance x y)]
+                            (if (>= dist r2) 0.0
+                                (m/- 1.0 (m// dist r2)))))
+       2 (fn ^double [x y] (let [^double dist (distance x y)]
+                            (if (>= dist r2) 0.0
+                                (let [ds (m// dist r2)]
+                                  (m/- (m/acos ds)
+                                       (m/* ds (m/sqrt (m/- 1.0 (m/* ds ds)))))))))
+       3 (fn ^double [x y] (let [^double dist (distance x y)]
+                            (if (>= dist r2) 0.0
+                                (let [ds (m// dist r2)]
+                                  (m/+ (m/- 1.0 (m/* 1.5 ds)) (m/* 0.5 ds ds ds))))))
+       (let [r2 (m/* 2.0 r)
+             z (geometric-internal n 0.0)]
+         (fn ^double [x y] (let [^double dist (distance x y)]
+                            (if (m/>= dist r2) 0.0
+                                (m// (geometric-internal n (m// dist r2)) z)))))))))
 
 (defn wave
-  ([] (wave 1.0))
-  ([^double sigma] (wave sigma nil))
-  ([^double sigma distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y] (let [^double dist (d x y)]
-                        (if (m/zero? dist) 1.0
-                            (m/* (m// sigma dist) (m/sin (m// dist sigma)))))))))
+  "Wave (sinc) kernel.
+
+  Parameters:
+
+  * `:sigma` - scale (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (wave nil))
+  ([{:keys [^double sigma distance]
+     :or {sigma 1.0 distance v/dist}}]
+   (fn ^double [x y] (let [^double dist (distance x y)]
+                      (if (m/zero? dist) 1.0
+                          (m/* (m// sigma dist) (m/sin (m// dist sigma))))))))
 
 (defn periodic
-  ([] (periodic 1.0))
-  ([^double sigma] (periodic sigma 1.0))
-  ([^double sigma periodicity] (periodic sigma periodicity nil))
-  ([^double sigma ^double periodicity distance]
-   (let [d (or distance v/dist)
-         p (m// m/PI periodicity)
+  "Periodic kernel.
+
+  Parameters:
+
+  * `:sigma` - scale (default: 1.0)
+  * `:periodicity` - periodicity (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (periodic nil))
+  ([{:keys [^double sigma ^double periodicity distance]
+     :or {sigma 1.0 periodicity 1.0 distance v/dist}}]
+   (let [p (m// m/PI periodicity)
          s2 (m/* sigma sigma)]
-     (fn ^double [x y] (let [^double dist (d x y)]
+     (fn ^double [x y] (let [^double dist (distance x y)]
                         (m/exp (m// (m/* -2.0 (m/sq (m/sin (m/* p dist)))) s2)))))))
 
 (defn power
-  ([] (power 2.0))
-  ([^double p] (power p nil))
-  ([^double p distance]
-   (let [d (or distance v/dist)]
-     (fn [x y] (m/- (m/pow (d x y) p))))))
+  "Power (negative) of distance.
+
+  Parameters:
+
+  * `:p` - exponent (default: 2.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (power nil))
+  ([{:keys [^double p distance]
+     :or {p 2.0 distance v/dist}}]
+   (fn [x y] (m/- (m/pow (distance x y) p)))))
 
 (defn log
-  ([] (log 2.0))
-  ([^double p] (log p nil))
-  ([^double p distance]
-   (let [d (or distance v/dist)]
-     (fn [x y] (m/- (m/log (m/inc (m/pow (d x y) p))))))))
+  "Logarithmic.
+
+  Parameters:
+
+  * `:p` - exponent (default: 2.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (log nil))
+  ([{:keys [^double p distance]}]
+   (fn [x y] (m/- (m/log (m/inc (m/pow (distance x y) p)))))))
 
 (defn spline
-  [] (fn [x y]
-       (reduce m/fast* 1.0 (map (fn [^double xi ^double yi]
-                                  (let [xiyi (m/* xi yi)
-                                        m (min xi yi)
-                                        m2 (m/* m m)]
-                                    (inc (m/+ xiyi
-                                              (m/* xiyi m)
-                                              (m/* -0.5 (m/+ xi yi) m2)
-                                              (m/* m/THIRD m2 m)))))
-                                (if (number? x) [x] x)
-                                (if (number? y) [y] y)))))
+  "Spline kernel."
+  ([] (spline nil))
+  ([_] (fn [x y]
+         (reduce m/fast* 1.0 (map (fn [^double xi ^double yi]
+                                    (let [xiyi (m/* xi yi)
+                                          m (min xi yi)
+                                          m2 (m/* m m)]
+                                      (inc (m/+ xiyi
+                                                (m/* xiyi m)
+                                                (m/* -0.5 (m/+ xi yi) m2)
+                                                (m/* m/THIRD m2 m)))))
+                                  (if (number? x) [x] x)
+                                  (if (number? y) [y] y))))))
 
 
 ;; https://www.researchgate.net/publication/2538959_Inverse_B-spline_interpolation
@@ -218,8 +286,10 @@
                               (m/fpow (m/- nx k) n))))))))
 
 (defn b-spline
-  ([] (b-spline 2))
-  ([^long n]
+  "B-spline kernel with degree `:n` (default: 2.0)."
+  ([] (b-spline nil))
+  ([{:keys [^long n]
+     :or {n 2.0}}]
    (let [nn (m/inc (m/* 2 n))]
      (fn ^double [x y]
        (-> (v/sub x y)
@@ -228,64 +298,87 @@
            (v/prod))))))
 
 (defn bessel
-  ([] (bessel 1.0))
-  ([^double sigma] (bessel sigma 2.0))
-  ([^double sigma ^double n] (bessel sigma n -1.0))
-  ([^double sigma ^double n ^double v] (bessel sigma n v nil))
-  ([^double sigma ^double n ^double v distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y] (let [^double dist (d x y)
-                            v+ (m/inc v)]
-                        (/ (m/bessel-j v+ (m/* sigma dist))
-                           (m/pow dist (m/- (m/* n v+)))))))))
+  "Bessel (of the first kind) kernel
+
+  Parameters:
+
+  * `:sigma` - shape (default: 1.0)
+  * `:n` - exponent factor (default: 2.0)
+  * `:v` - Bessel J order - 1 (default: -1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (bessel nil))
+  ([{:keys [^double sigma ^double n ^double v distance]
+     :or {sigma 1.0 n 2.0 v -1.0 distance v/dist}}]
+   (fn ^double [x y] (let [^double dist (distance x y)
+                          v+ (m/inc v)]
+                      (/ (m/bessel-j v+ (m/* sigma dist))
+                         (m/pow dist (m/- (m/* n v+))))))))
 
 ;; R kernlab
 (defn bessel2
-  ([] (bessel2 1.0))
-  ([^double sigma] (bessel2 sigma 0.0))
-  ([^double sigma ^double order] (bessel2 sigma order 1.0))
-  ([^double sigma ^double order ^double degree] (bessel2 sigma order degree nil))
-  ([^double sigma ^double order ^double degree distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y]
-       (let [lim (m// (m/* (m/gamma (m/inc order)) (m/pow 2.0 order)))
-             bkt (m/* sigma ^double (d x y))]
-         (if (m/< bkt 1.0e-5)
-           1.0
-           (m/pow (m// (m/* (m/bessel-j order bkt)
-                            (m/pow bkt (m/- order))) lim) degree)))))))
+  "Bessel (of the first kind) kernel, R kernlab implementation.
+
+  Parameters:
+
+  * `:sigma` - shape (default: 1.0)
+  * `:degree` - exponent (default: 1.0)
+  * `:order` - Bessel J order (default: 0.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (bessel2 nil))
+  ([{:keys [^double sigma ^double order ^double degree distance]
+     :or {sigma 1.0 order 0.0 degree 1.0 distance v/dist}}]
+   (fn ^double [x y]
+     (let [lim (m// (m/* (m/gamma (m/inc order)) (m/pow 2.0 order)))
+           bkt (m/* sigma ^double (distance x y))]
+       (if (m/< bkt 1.0e-5)
+         1.0
+         (m/pow (m// (m/* (m/bessel-j order bkt)
+                          (m/pow bkt (m/- order))) lim) degree))))))
 
 (defn cauchy
-  ([] (cauchy 1.0))
-  ([^double sigma] (cauchy sigma nil))
-  ([^double sigma distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y] (m// (m/inc (m/sq (m// ^double (d x y) sigma))))))))
+  "Cauchy kernel.
 
-(defn chi-square []
-  (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                              (m// (m/* 2.0 xi yi)
-                                                   (m/+ xi yi)))
-                                            (if (number? x) [x] x)
-                                            (if (number? y) [y] y)))))
+  Parameters:
 
-(defn chi-square2 []
-  (fn ^double [x y]
-    (- 1.0 ^double (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                              (m// (m/sq (m/- xi yi))
-                                                   (m/* 0.5 (m/+ xi yi))))
-                                            (if (number? x) [x] x)
-                                            (if (number? y) [y] y))))))
+  * `sigma` - scale (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (cauchy nil))
+  ([{:keys [^double sigma distance]
+     :or {sigma 1.0 distance v/dist}}]
+   (fn ^double [x y] (m// (m/inc (m/sq (m// ^double (distance x y) sigma)))))))
 
-(defn histogram []
-  (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                              (min xi yi))
-                                            (if (number? x) [x] x)
-                                            (if (number? y) [y] y)))))
+(defn chi-square
+  "Chi-square kernel."
+  ([] (chi-square nil))
+  ([_] (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
+                                                   (m// (m/* 2.0 xi yi)
+                                                        (m/+ xi yi)))
+                                                 (if (number? x) [x] x)
+                                                 (if (number? y) [y] y))))))
+
+(defn chi-square2
+  "Chi-square kernel, second version"
+  ([] (chi-square2 nil))
+  ([_] (fn ^double [x y]
+         (- 1.0 ^double (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
+                                                   (m// (m/sq (m/- xi yi))
+                                                        (m/* 0.5 (m/+ xi yi))))
+                                                 (if (number? x) [x] x)
+                                                 (if (number? y) [y] y)))))))
+
+(defn histogram
+  "Histogram kernel."
+  ([] (histogram nil))
+  ([_] (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
+                                                   (min xi yi))
+                                                 (if (number? x) [x] x)
+                                                 (if (number? y) [y] y))))))
 
 (defn generalized-histogram
-  ([] (generalized-histogram 2.0))
-  ([^double p]
+  "Generalized histogram with `:p` exponent (default: 2.0)."
+  ([] (generalized-histogram nil))
+  ([{:keys [^double p]
+     :or {p 2.0}}]
    (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
                                                (min (m/pow (m/abs xi) p)
                                                     (m/pow (m/abs yi) p)))
@@ -293,11 +386,15 @@
                                              (if (number? y) [y] y))))))
 
 (defn generalized-t-student
-  ([] (generalized-t-student 1.0))
-  ([^double p] (generalized-t-student p nil))
-  ([^double p distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y] (m// (m/inc (m/pow (d x y) p)))))))
+  "Generalized t-student.
+
+  Parameters:
+
+  * `:p` - exponent
+  * `:distance` - distance function (default: euclidean)"
+  ([] (generalized-t-student nil))
+  ([{:keys [^double p distance]}]
+   (fn ^double [x y] (m// (m/inc (m/pow (distance x y) p))))))
 
 (defn- dirichlet-dim
   ^double [^double nhalf ^double delta]
@@ -309,8 +406,10 @@
         (m// (m/sin (m/* nhalf delta)) den)))))
 
 (defn dirichlet
-  ([] (dirichlet 1.0))
-  ([^double n]
+  "Dirichlet kernel with `:n` dimensionality (default: 1.0)."
+  ([] (dirichlet nil))
+  ([{:keys [^double n]
+     :or {n 1.0}}]
    (let [nhalf (m/+ 0.5 n)]
      (fn ^double [x y]
        (let [diff (v/sub x y)]
@@ -318,39 +417,64 @@
            (dirichlet-dim nhalf diff)
            (reduce m/fast* 1.0 (map (partial dirichlet-dim nhalf) diff))))))))
 
-(defn hellinger []
-  (fn ^double [x y] (-> (v/emult x y) v/safe-sqrt v/sum)))
+(defn hellinger
+  "Hellinger kernel."
+  ([] (hellinger nil))
+  ([_] (fn ^double [x y] (-> (v/emult x y) v/safe-sqrt v/sum))))
 
 (defn pearson
-  ([] (pearson 1.0 1.0))
-  ([^double sigma ^double omega] (pearson sigma omega nil))
-  ([^double sigma ^double omega distance]
-   (let [d (or distance v/dist)
-         c (m// (m/* 4.0 (m/sqrt (m/dec (m/pow 2.0 (m// omega)))))
+  "Pearson VII kernel
+
+  Parameters:
+
+  * `:sigma` - scale (default: 1.0)
+  * `:omega` - exponent (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (pearson nil))
+  ([{:keys [^double sigma ^double omega distance]
+     :or {sigma 1.0 omega 1.0 distance v/dist}}]
+   (let [c (m// (m/* 4.0 (m/sqrt (m/dec (m/pow 2.0 (m// omega)))))
                 (m/sq sigma))]
      (fn ^double [x y]
-       (m// (m/pow (m/inc (m/* c (m/sq (d x y)))) omega))))))
+       (m// (m/pow (m/inc (m/* c (m/sq (distance x y)))) omega))))))
 
 (defn hyperbolic-secant
-  ([] (hyperbolic-secant 1.0))
-  ([^double a] (hyperbolic-secant a nil))
-  ([^double a distance]
-   (let [d (or distance v/dist)]
-     (fn ^double [x y]
-       (m/sech (m/* a ^double (d x y)))))))
+  "Hyperbolic secant kernel.
+
+  Parameters:
+
+  * `:a` scaling factor (default: 1.0)
+  * `:distance` - distance function (default: euclidean)"
+  ([] (hyperbolic-secant nil))
+  ([{:keys [^double a distance]
+     :or {a 1.0 distance v/dist}}]
+   (fn ^double [x y]
+     (m/sech (m/* a ^double (distance x y))))))
 
 (defn matern
-  ([] (matern 1))
-  ([^long order] (matern order nil))
-  ([^long order distance] (matern order 1.0 distance))
-  ([^long order ^double theta distance]
-   (let [d (or distance v/dist)
-         mu (/ order 2.0)
+  "Matern kernel.
+
+  Parameters:
+
+  * `:order` - order of the kernel, should be odd (default: 1).
+  * `:theta` - shape (default: 1.0)
+  * `:distance` - distance function (default: euclidean)
+
+  Order of the Bessel K function is a half of `:order` parameter. For example to get Matern 5/2 kernel, call `(matern 5)`."
+  ([] (matern nil))
+  ([{:keys [^long order ^double theta distance]
+     :or {order 1 theta 1.0 distance v/dist}}]
+   (let [mu (m// order 2.0)
          gf (m// (m/* (m/pow 2.0 (m/- 1.0 mu))) (m/gamma mu))
          s (m// (m/* 2.0 (m/sqrt mu)) theta)]
      (fn ^double [x y]
-       (let [v (m/* s ^double (d x y))]
+       (let [v (m/* s ^double (distance x y))]
          (if (m/< v 1.0e-16)
            1.0
            (m/* gf (m/pow v mu) (m/bessel-k-half order v))))))))
 
+(defn rbf->kernel
+  "Convert RBF kernel as vector kernel using a `distance` function (default: euclidean)."
+  ([rbf-kernel] (rbf->kernel rbf-kernel v/dist))
+  ([rbf-kernel distance]
+   (fn [x y] (rbf-kernel (distance x y)))))

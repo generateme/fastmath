@@ -359,7 +359,7 @@
                           :highly-robust highly-robust-estimator
                           :dowd dowd-estimator
                           :quantile (->quantile-estimator quantile)
-                          :m-robust M-robust-estimator))]
+                          :m-robust robust-m-estimator))]
      (loop [buff []
             distances distances
             [^double c & rsplits] splits]

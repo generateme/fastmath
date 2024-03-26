@@ -6,405 +6,159 @@
   * density estimation
   * some kernel operations"
   (:require [fastmath.core :as m]
-            [fastmath.distance :as d]
-            [fastmath.vector :as v]
-            [fastmath.kernel.rbf :as rbf])
-  (:import [smile.math.kernel MercerKernel]
-           [smile.stat.distribution KernelDensity]
-           [clojure.lang IFn]
-           [org.apache.commons.math3.distribution NormalDistribution]))
+            [fastmath.kernel.rbf :as rbf]
+            [fastmath.kernel.vector :as vk])
+  (:import [org.apache.commons.math3.distribution NormalDistribution]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
 
+(defmacro ^:private emit
+  ([kind nm f] `(emit ~kind ~nm ~f nil))
+  ([kind nm f params]
+   (if params
+     `(defmethod ~kind ~nm
+        ([_#] (~f ~params))
+        ([_# params#] (~f (merge params# ~params))))
+     `(defmethod ~kind ~nm
+        ([_#] (~f))
+        ([_# params#] (~f params#))))))
+
+
 (defmulti rbf
   "RBF kernel creator. RBF is double->double function.
 
-  Parameters:
-
-  All kernels accept `scale` parameter (as last parameter).
-
-  Following kernels also accept `beta`: `:multiquadratic`, `:inverse-multiquadratic`, `:truncated-power`, `:radial-powers` and `:thin-plate`."
+  Refer `fastmath.kernel.rbf` namespace for details."
   (fn [k & _] k))
 
 (defmacro ^:private emit-rbf
-  ([nm f] `(emit-rbf ~nm ~f []))
-  ([nm f argnames] `(emit-rbf ~nm ~f ~argnames nil))
-  ([nm f argnames params]
-   (let [argnames (conj argnames 'shape)
-         orargnames '{shape 1.0}]
-     `(defmethod rbf ~nm
-        ([_#] (rbf ~nm nil))
-        ([_# {:keys ~argnames :or ~orargnames}] (~f ~@params ~@argnames))))))
+  ([nm f] `(emit ~'rbf ~nm ~f))
+  ([nm f params] `(emit ~'rbf ~nm ~f ~params)))
 
 (emit-rbf :linear rbf/linear)
 (emit-rbf :gaussian rbf/gaussian)
 
-(emit-rbf :truncated-power rbf/truncated-power [k])
-(emit-rbf :truncated-power-1 rbf/truncated-power [] [1.0])
-(emit-rbf :truncated-power-2 rbf/truncated-power [] [2.0])
-(emit-rbf :truncated-power-3 rbf/truncated-power [] [3.0])
-(emit-rbf :truncated-power-half rbf/truncated-power [] [0.5])
-(emit-rbf :truncated-power-third rbf/truncated-power [] [m/THIRD])
+(emit-rbf :truncated-power rbf/truncated-power)
+(emit-rbf :truncated-power-1 rbf/truncated-power {:k 1.0})
+(emit-rbf :truncated-power-2 rbf/truncated-power {:k 2.0})
+(emit-rbf :truncated-power-3 rbf/truncated-power {:k [3.0]})
+(emit-rbf :truncated-power-half rbf/truncated-power {:k 0.5})
+(emit-rbf :truncated-power-third rbf/truncated-power {:k m/THIRD})
 
-(emit-rbf :gaussians-laguerre rbf/gaussians-laguerre [dimension degree])
-(emit-rbf :gaussians-laguerre-11 rbf/gaussians-laguerre [] [1.0 1.0])
-(emit-rbf :gaussians-laguerre-12 rbf/gaussians-laguerre [] [1.0 2.0])
-(emit-rbf :gaussians-laguerre-21 rbf/gaussians-laguerre [] [2.0 1.0])
-(emit-rbf :gaussians-laguerre-22 rbf/gaussians-laguerre [] [2.0 2.0])
+(emit-rbf :gaussians-laguerre rbf/gaussians-laguerre)
+(emit-rbf :gaussians-laguerre-11 rbf/gaussians-laguerre {:dimension 1.0 :degree 1.0})
+(emit-rbf :gaussians-laguerre-12 rbf/gaussians-laguerre {:dimension 1.0 :degree 2.0})
+(emit-rbf :gaussians-laguerre-21 rbf/gaussians-laguerre {:dimension 2.0 :degree 1.0})
+(emit-rbf :gaussians-laguerre-22 rbf/gaussians-laguerre {:dimension 2.0 :degree 2.0})
 
-(emit-rbf :poisson rbf/poisson [d])
-(emit-rbf :poisson-2 rbf/poisson [] [2.0])
-(emit-rbf :poisson-3 rbf/poisson [] [3.0])
-(emit-rbf :poisson-4 rbf/poisson [] [4.0])
+(emit-rbf :poisson rbf/poisson)
+(emit-rbf :poisson-2 rbf/poisson {:d 2.0})
+(emit-rbf :poisson-3 rbf/poisson {:d 3.0})
+(emit-rbf :poisson-4 rbf/poisson {:d 4.0})
 
-(emit-rbf :matern rbf/matern [order])
-(emit-rbf :matern-c0 rbf/matern [] [1.0])
-(emit-rbf :matern-c2 rbf/matern [] [3.0])
-(emit-rbf :matern-c4 rbf/matern [] [5.0])
+(emit-rbf :matern rbf/matern)
+(emit-rbf :matern-c0 rbf/matern {:order 1.0})
+(emit-rbf :matern-c2 rbf/matern {:order 3.0})
+(emit-rbf :matern-c4 rbf/matern {:order 5.0})
 
-(emit-rbf :generalized-multiquadratic rbf/generalized-multiquadratic [beta negate?])
-(emit-rbf :multiquadratic rbf/generalized-multiquadratic [] [0.5 false])
-(emit-rbf :inverse-multiquadratic rbf/generalized-multiquadratic [] [-0.5 false])
+(emit-rbf :generalized-multiquadratic rbf/generalized-multiquadratic)
+(emit-rbf :multiquadratic rbf/generalized-multiquadratic {:beta 0.5 :negate? false})
+(emit-rbf :inverse-multiquadratic rbf/generalized-multiquadratic {:beta -0.5 :negate? false})
 
-(emit-rbf :radial-powers rbf/radial-powers [beta negate?])
-(emit-rbf :radial-powers-3 rbf/radial-powers [] [3.0 false])
+(emit-rbf :radial-powers rbf/radial-powers)
+(emit-rbf :radial-powers-3 rbf/radial-powers {:beta 3.0 :negate? false})
 
-(emit-rbf :thin-plate-splines rbf/thin-plate-splines [beta negate?])
-(emit-rbf :thin-plate rbf/thin-plate-splines [] [1.0 false])
+(emit-rbf :thin-plate-splines rbf/thin-plate-splines)
+(emit-rbf :thin-plate rbf/thin-plate-splines {:beta 1.0 :negate? false})
 
-(emit-rbf :shifted-surface-splines rbf/shifted-surface-splines [s beta])
+(emit-rbf :shifted-surface-splines rbf/shifted-surface-splines)
 
-(emit-rbf :wendland rbf/wendland [s k])
-(emit-rbf :gneiting rbf/gneiting [s l])
+(emit-rbf :wendland rbf/wendland)
+(emit-rbf :gneiting rbf/gneiting)
 
-(emit-rbf :wu rbf/wu [l k])
-(emit-rbf :wu-10 rbf/wu [] [1.0 0.0])
-(emit-rbf :wu-11 rbf/wu [] [1.0 1.0])
-(emit-rbf :wu-20 rbf/wu [] [2.0 0.0])
-(emit-rbf :wu-21 rbf/wu [] [2.0 1.0])
-(emit-rbf :wu-22 rbf/wu [] [2.0 2.0])
-(emit-rbf :wu-30 rbf/wu [] [3.0 0.0])
-(emit-rbf :wu-31 rbf/wu [] [3.0 1.0])
-(emit-rbf :wu-32 rbf/wu [] [3.0 2.0])
-(emit-rbf :wu-33 rbf/wu [] [3.0 3.0])
+(emit-rbf :wu rbf/wu)
+(emit-rbf :wu-10 rbf/wu {:l 1.0 :k 0.0})
+(emit-rbf :wu-11 rbf/wu {:l 1.0 :k 1.0})
+(emit-rbf :wu-20 rbf/wu {:l 2.0 :k 0.0})
+(emit-rbf :wu-21 rbf/wu {:l 2.0 :k 1.0})
+(emit-rbf :wu-22 rbf/wu {:l 2.0 :k 2.0})
+(emit-rbf :wu-30 rbf/wu {:l 3.0 :k 0.0})
+(emit-rbf :wu-31 rbf/wu {:l 3.0 :k 1.0})
+(emit-rbf :wu-32 rbf/wu {:l 3.0 :k 2.0})
+(emit-rbf :wu-33 rbf/wu {:l 3.0 :k 3.0})
 
-(emit-rbf :whittaker rbf/whittaker [alpha k beta])
+(emit-rbf :whittaker rbf/whittaker)
 
-;;;;;;;;;;;;;;;;;;;;;
-;; Various kernels
-
-(defn rbf->kernel
-  "Treat RBF kernel as vector kernel using distance function (default [[euclidean]]."
-  ([rbf-kernel] (rbf->kernel rbf-kernel d/euclidean))
-  ([rbf-kernel distance]
-   (fn [x y] (rbf-kernel (distance x y)))))
-
-;; http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/
-;; Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective
-;; http://www.jmlr.org/papers/volume2/genton01a/genton01a.pdf
+;;
 
 (defmulti kernel
-  "Crated vector kernel.
+  "Create vector kernel.
 
-  Kernels can be Mercer, positive definite, conditional positive definite, positive semi-definite or other.
-  
-  Optional parameters:
+  Vector kernel returns a number for two vectors (or numbers)
 
-  For `:gaussian`, `:exponential`, `:laplacian`, `:rational-quadratic`, `:multiquadratic`, `:inverse-multiquadratic`, `:circular`, `:spherical`, `:wave`, `:power`, `:log`, `:cauchy`, `:generalized-t-student`, `:hyperbolic-secant`, `:thin-plate`, `:mattern-12`, `:mattern-32`, `:mattern-52` and `::hyperbolic-secant` you can provide scaling parameter and `distance` (see [[fastmath.distance]], default is [[euclidean]]).
-
-  Others:
-
-  * `:linear` - `alpha`, scaling parameter
-  * `:polynomial` - `alpha` (scaling), `c` (shift) and `d` (power)
-  * `:anova` - `sigma` (scaling), `k` and `d` (power)
-  * `:hyperbolic-tangent` - `alpha` (scaling), `c` (shift)
-  * `:periodic` - `sigma` (scaling), `periodicity` and `distance`
-  * `:bessel` - `sigma` (scaling), `n` and `v` (power factors) and `distance`
-  * `:generalized-histogram` - `alpha` and `beta` (power factors)
-  * `:dirichlet` - `N`
-  * `:pearson` - `sigma` (scaling) and `omega` (power)
-
-  Additionally there are two special kernels build from funcitons:
-
-  * `:scalar-functions` - provide one or two double->double functions
-  * `:variance-function` - provide any variance function (smooth, vector->double type)
-
-  The rest of the kernels do not require parameters."
+  Kernels can be Mercer, positive definite, conditional positive definite, positive semi-definite or other."
   (fn [k & _] k))
 
-(defmethod kernel :linear
-  ([_] (fn [x y] (v/dot x y)))
-  ([_ ^double alpha] (fn [x y] (* alpha (v/dot x y)))))
+(defmacro ^:private emit-kernel
+  ([nm f] `(emit ~'kernel ~nm ~f))
+  ([nm f params] `(emit ~'kernel ~nm ~f ~params)))
 
-(defmethod kernel :polynomial
-  ([_] (fn [x y] (m/sq (v/dot x y))))
-  ([_ ^double alpha ^double c ^double d] (fn [x y] (m/pow (+ c (* alpha (v/dot x y))) d))))
+(emit-kernel :linear vk/linear)
+(emit-kernel :polynomial vk/polynomial)
+(emit-kernel :gaussian vk/gaussian)
+(emit-kernel :exponential vk/exponential)
+(emit-kernel :laplacian vk/laplacian)
+(emit-kernel :anova vk/anova)
 
-(defmethod kernel :gaussian
-  ([_] (kernel :gaussian 1.0))
-  ([_ sigma] (kernel :gaussian sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (let [s2r  (/ (* sigma sigma))]
-     (fn [x y] (m/exp (* -0.5 s2r (m/sq (distance x y))))))))
+(emit-kernel :hyperbolic-tangent vk/hyperbolic-tangent)
+(emit-kernel :hyperbolic-secant vk/hyperbolic-secant)
 
-(defmethod kernel :exponential
-  ([_] (kernel :exponential 1.0))
-  ([_ sigma] (kernel :exponential sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (let [s2r (/ (* sigma sigma))]
-     (fn [x y] (m/exp (* -0.5 s2r ^double (distance x y)))))))
+(emit-kernel :rational-quadratic vk/rational-quadratic)
+(emit-kernel :multiquadratic vk/multiquadratic)
+(emit-kernel :inverse-multiquadratic vk/inverse-multiquadratic)
 
-(defmethod kernel :laplacian
-  ([_] (kernel :laplacian 1.0))
-  ([_ sigma] (kernel :laplacian sigma d/euclidean))
-  ([_ ^double sigma distance] (fn [x y] (m/exp (- (/ ^double (distance x y) sigma))))))
+(emit-kernel :triangular vk/geometric {:n 1})
+(emit-kernel :circular vk/geometric {:n 2})
+(emit-kernel :spherical vk/geometric {:n 3})
+(emit-kernel :geometric vk/geometric)
 
-(defmethod kernel :anova
-  ([_] (kernel :anova 1.0))
-  ([_ ^double sigma] (kernel :anova sigma 1.0 1.0))
-  ([_ ^double sigma ^double k ^double d]
-   (let [powk #(m/pow ^double % k)
-         powd #(m/pow ^double % d)]
-     (fn [x y]
-       (let [xk (v/fmap x powk)
-             yk (v/fmap y powk)]
-         (-> (v/sub xk yk)
-             (v/sq)
-             (v/mult (- sigma))
-             (v/exp)
-             (v/fmap powd)
-             (v/sum)))))))
+(emit-kernel :wave vk/wave)
+(emit-kernel :periodic vk/periodic)
 
-(defmethod kernel :hyperbolic-tangent
-  ([_] (kernel :hyperbolic-tangent 1.0))
-  ([_ ^double alpha] (kernel :hyperbolic-tangent alpha 0.0))
-  ([_ ^double alpha ^double c]
-   (fn [x y] (m/tanh (+ c (* alpha (v/dot x y)))))))
+(emit-kernel :power vk/power)
+(emit-kernel :log vk/log)
 
-(defmethod kernel :rational-quadratic
-  ([_] (kernel :rational-quadratic 1.0))
-  ([_ ^double c] (kernel :rational-quadratic c d/euclidean))
-  ([_ ^double c distance]
-   (fn [x y] (let [d (m/sq (distance x y))]
-              (- 1.0 (/ d (+ d c)))))))
+(emit-kernel :spline vk/spline)
+(emit-kernel :b-spline vk/b-spline)
 
-(defmethod kernel :multiquadratic
-  ([_] (kernel :multiquadratic 1.0))
-  ([_ ^double c] (kernel :multiquadratic c d/euclidean))
-  ([_ ^double c distance]
-   (fn [x y] (let [d (m/sq (distance x y))]
-              (m/sqrt (+ d (* c c)))))))
+(emit-kernel :bessel vk/bessel)
+(emit-kernel :bessel2 vk/bessel2)
 
-(defmethod kernel :inverse-multiquadratic
-  ([_] (kernel :inverse-multiquadratic 1.0))
-  ([_ ^double c] (kernel :inverse-multiquadratic c d/euclidean))
-  ([_ ^double c distance]
-   (fn [x y] (let [d (m/sq (distance x y))]
-              (/ (m/sqrt (+ d (* c c))))))))
+(emit-kernel :cauchy vk/cauchy)
 
-(defmethod kernel :circular
-  ([_] (kernel :circular 1.0))
-  ([_ ^double sigma] (kernel :circular sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [^double d (distance x y)]
-              (if (>= d sigma) 0.0
-                  (let [ds (/ d sigma)]
-                    (* 0.6366197723675814 (- (m/acos ds)
-                                             (* ds (m/sqrt (- 1.0 (* ds ds))))))))))))
+(emit-kernel :chi-square vk/chi-square)
+(emit-kernel :chi-square2 vk/chi-square2)
 
-(defmethod kernel :spherical
-  ([_] (kernel :spherical 1.0))
-  ([_ ^double sigma] (kernel :spherical sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [^double d (distance x y)]
-              (if (>= d sigma) 0.0
-                  (let [ds (/ d sigma)]
-                    (+ (- 1.0 (* 1.5 ds)) (* 0.5 ds ds ds))))))))
+(emit-kernel :histogram vk/histogram)
+(emit-kernel :generalized-histogram vk/generalized-histogram)
+(emit-kernel :generalized-t-student vk/generalized-t-student)
 
-(defmethod kernel :wave
-  ([_] (kernel :wave 1.0))
-  ([_ ^double sigma] (kernel :wave sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [^double d (distance x y)]
-              (if (zero? d) 1.0
-                  (* (/ sigma d) (m/sin (/ d sigma))))))))
+(emit-kernel :dirichlet vk/dirichlet)
+(emit-kernel :hellinger vk/hellinger)
+(emit-kernel :pearson vk/pearson)
 
-(defmethod kernel :periodic
-  ([_] (kernel :periodic 1.0))
-  ([_ sigma] (kernel :periodic sigma 1.0))
-  ([_ sigma periodicity] (kernel :periodic sigma periodicity d/euclidean))
-  ([_ ^double sigma ^double periodicity distance]
-   (let [p (/ m/PI periodicity)
-         s2 (* sigma sigma)]
-     (fn [x y] (let [^double d (distance x y)]
-                (m/exp (/ (* -2.0 (m/sq (m/sin (* p d)))) s2)))))))
-
-(defmethod kernel :power
-  ([_] (kernel :power 2.0))
-  ([_ d] (kernel :power d d/euclidean))
-  ([_ ^double d distance]
-   (fn [x y] (- (m/pow (distance x y) d)))))
-
-(defmethod kernel :log
-  ([_] (kernel :log 2.0))
-  ([_ d] (kernel :log d d/euclidean))
-  ([_ ^double d distance]
-   (fn [x y] (- (m/log1p (m/pow (distance x y) d))))))
-
-(defmethod kernel :spline
-  [_] (fn [x y]
-        (reduce #(* ^double %1 ^double %2) 1.0 (map (fn [^double xi ^double yi]
-                                                      (let [xiyi (* xi yi)
-                                                            m (min xi yi)
-                                                            m2 (* m m)]
-                                                        (inc (+ xiyi
-                                                                (* xiyi m)
-                                                                (* -0.5 (+ xi yi) m2)
-                                                                (* m/THIRD m2 m))))) x y))))
-
-(defmethod kernel :bessel
-  ([_] (kernel :bessel 2.0))
-  ([_ sigma] (kernel :bessel sigma 2.0))
-  ([_ sigma n] (kernel :bessel sigma n -1.0))
-  ([_ sigma n v] (kernel :bessel sigma n v d/euclidean))
-  ([_ sigma n v distance]
-   (fn [x y] (let [^double d (distance x y)
-                  v+ (inc ^double v)]
-              (/ (m/bessel-j v+ (* ^double sigma d))
-                 (m/pow d (- (* ^double n v+))))))))
-
-(defmethod kernel :cauchy
-  ([_] (kernel :cauchy 1.0))
-  ([_ ^double sigma] (kernel :cauchy sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (/ (inc (m/sq (/ ^double (distance x y) sigma)))))))
-
-(defmethod kernel :chi-square-pd
-  [_] (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
-                                                             (/ (* 2.0 xi yi)
-                                                                (+ xi yi))) x y))))
-
-(defmethod kernel :chi-square-cpd
-  [_] (fn [x y] (- 1.0 ^double (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
-                                                                            (/ (m/sq (- xi yi))
-                                                                               (* 0.5 (+ xi yi)))) x y)))))
-
-(defmethod kernel :histogram
-  [_] (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
-                                                             (min xi yi)) x y))))
-
-(defmethod kernel :generalized-histogram
-  ([_] (kernel :generalized-histogram 1.0 1.0))
-  ([_ ^double alpha ^double beta]
-   (fn [x y] (reduce #(+ ^double %1 ^double %2) 0.0 (map (fn [^double xi ^double yi]
-                                                          (min (m/pow (m/abs xi) alpha)
-                                                               (m/pow (m/abs yi) beta))) x y)))))
-
-(defmethod kernel :generalized-t-student
-  ([_] (kernel :generalized-t-student 1.0))
-  ([_ ^double d] (kernel :generalized-t-student d d/euclidean))
-  ([_ ^double d distance]
-   (fn [x y] (/ (inc (m/pow (distance x y) d))))))
-
-(defmethod kernel :dirichlet
-  ([_] (kernel :dirichlet 1.0))
-  ([_ ^double N]
-   (let [N5 (+ 0.5 N)]
-     (fn [x y] (reduce #(* ^double %1 ^double %2) 1.0 (map (fn [^double xi ^double yi]
-                                                            (let [delta (- xi yi)
-                                                                  num (m/sin (* N5 delta))
-                                                                  den (* 2.0 (m/sin (* 0.5 delta)))]
-                                                              (/ num den))) x y))))))
-
-(defmethod kernel :hellinger
-  ([_] (fn [x y] (v/dot (v/safe-sqrt x)
-                       (v/safe-sqrt y)))))
-
-(defmethod kernel :pearson
-  ([_] (kernel :pearson 1.0 1.0))
-  ([_ ^double sigma ^double omega]
-   (let [c (/ (* 2.0 (m/sqrt (dec (m/pow 2.0 (/ omega))))) sigma)]
-     (fn [x y] (let [xx (v/sum (v/sq x))
-                    yy (v/sum (v/sq y))
-                    xy (v/sum (v/emult x y))
-                    m (* c (m/sqrt (+ (* -2.0 xy) xx yy)))]
-                (/ (m/pow (inc (* m m)) omega)))))))
-
-(defmethod kernel :thin-plate
-  ([_] (kernel :thin-plate 1.0))
-  ([_ sigma] (kernel :thin-plate sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y]
-     (let [ds (/ ^double (distance x y) sigma)]
-       (if-not (pos? ds) 0.0 (* (m/sq ds) (m/log ds)))))))
-
-(defmethod kernel :mattern-12
-  ([_] (kernel :mattern-12 1.0))
-  ([_ ^double sigma] (kernel :mattern-12 sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (m/exp (- (/ ^double (distance x y) sigma))))))
-
-(defmethod kernel :mattern-32
-  ([_] (kernel :mattern-32 1.0))
-  ([_ ^double sigma] (kernel :mattern-32 sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [d (/ (* m/SQRT3 ^double (distance x y)) sigma)]
-              (* (inc d) (m/exp (- d)))))))
-
-(defmethod kernel :mattern-52
-  ([_] (kernel :mattern-52 1.0))
-  ([_ ^double sigma] (kernel :mattern-52 sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [d (/ (* m/SQRT5 ^double (distance x y)) sigma)]
-              (* (inc (+ d (* d d m/THIRD))) (m/exp (- d)))))))
-
-(defmethod kernel :hyperbolic-secant
-  ([_] (kernel :hyperbolic-secant 1.0))
-  ([_ ^double sigma] (kernel :hyperbolic-secant sigma d/euclidean))
-  ([_ ^double sigma distance]
-   (fn [x y] (let [d (* sigma ^double (distance x y))]
-              (+ (/ 2.0 (m/exp d)) (m/exp (- d)))))))
-
-(defmethod kernel :scalar-functions
-  ([_] (kernel :scalar-functions v/mag))
-  ([_ f] (kernel :scalar-functions f f))
-  ([_ f1 f2] (fn [x y] (* ^double (f1 x) ^double (f2 y)))))
-
-(defmethod kernel :variance-function
-  ([_] (kernel :variance-function v/mag))
-  ([_ h] (fn [x y] (* 0.25 (- ^double (h (v/add x y)) ^double (h (v/sub x y)))))))
+(emit-kernel :matern vk/matern)
+(emit-kernel :matern-12 vk/matern {:order 1})
+(emit-kernel :matern-32 vk/matern {:order 3})
+(emit-kernel :matern-52 vk/matern {:order 5})
 
 (def kernels-list ^{:doc "List of available vector kernels."} (sort (keys (methods kernel))))
-
-(defn smile-mercer
-  "Create Smile Mercer Kernel object
-
-  Used to pass to Smile constructors/functions."
-  [k]
-  (reify
-    MercerKernel (k [_ x y] (k x y))
-    IFn (invoke ^double [_ x y] (k x y))))
-
-;; kernel manipulation functions
-
-(defn kernel->rbf
-  "Convert vector kernel to RBF kernel. `center` is fixed `y` vector (default contains [[EPSILON]] values)."
-  ([k] (kernel->rbf k m/EPSILON))
-  ([k center]
-   (let [c (vector center)]
-     (fn [x] (k [x] c)))))
 
 (defn exp
   "Kernel wraper. exp of kernel `k` with optional scaling value `t`."
   ([k] (exp k 1.0))
   ([k ^double t]
    (fn [x y] (m/exp (* t ^double (k x y))))))
-
-(defn approx
-  "Kernel wrapper. Round value returned by kernel using [[fastmath.core/approx]] function."
-  ([k precision] (comp #(m/approx % precision) k))
-  ([k] (comp m/approx k)))
 
 (defn scale
   "Kernel wrapper. Scale kernel result."
@@ -421,36 +175,11 @@
      (if-not (seq r) k
              (apply mult k r)))))
 
-(defn wadd
-  "Kernel wrapper. Add kernels (weighted)."
-  ([kernels] (wadd (repeat (count kernels) 1.0) kernels))
-  ([weights kernels]
-   (fn [x y] (reduce #(+ ^double %1 ^double %2)
-                    (map (fn [^double w k] (* w ^double (k x y))) weights kernels)))))
-
-(defn fields
-  "Kernel wrapper. Apply vector field for each input before applying kernel function."
-  ([k f] (fields k f f))
-  ([k f1 f2]
-   (fn [x y] (k (f1 x) (f2 y)))))
-
-(defn- zero-vec [c] (vec (repeat c 0.0)))
-(def ^:private zero-vec-m (memoize zero-vec))
-
-;; doesn't work well
-(defn cpd->pd
-  "Convert conditionally positive definite kernel into positive definite.
-
-  Formula is based on this [SO answer](https://stats.stackexchange.com/questions/149889/prove-that-a-kernel-is-conditionally-positive-definite). `x0` is equal `0`.
-  
-  Doesn't work well."
-  [k]
-  (fn [x y] (let [zero (zero-vec-m (count x))]
-             (float (* 0.5 (+ ^double (k zero zero)
-                              (- ^double (k x y)
-                                 ^double (k x zero)
-                                 ^double (k zero y))))))))
-
+(defn wmean
+  "Kernel wrapper. (Weighted) mean of kernel results."
+  ([kernels] (wmean kernels (repeat (count kernels) 1.0)))
+  ([kernels weights]
+   (fn [x y] (wmean (map (fn [k] (k x y)) kernels) weights))))
 
 
 ;;;;;;;;; density
@@ -565,14 +294,6 @@
                                    (if all?# kded# (first kded#))))))))
 
 (make-kernel-density-fns (keys kde-integral))
-
-(defmethod kernel-density :smile
-  ([_ vs h] (if h
-              (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs) h)]
-                (fn [x] (.p k x)))
-              (kernel-density :smile vs)))
-  ([_ vs] (let [^KernelDensity k (KernelDensity. (m/seq->double-array vs))]
-            (fn [x] (.p k x)))))
 
 (defmethod kernel-density :default [_ & r] (apply kernel-density :gaussian r))
 
