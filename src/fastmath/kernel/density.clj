@@ -1,11 +1,9 @@
 (ns fastmath.kernel.density
   (:require [fastmath.core :as m]
-            [fastmath.random :as r]
-            [fastmath.stats.bootstrap :as boot]
-            [fastmath.stats :as stats]
             [fastmath.optimization :as optim]
             [fastmath.calculus :as calc])
-  (:import [org.apache.commons.math3.stat StatUtils]))
+  (:import [org.apache.commons.math3.stat StatUtils]
+           [org.apache.commons.math3.distribution NormalDistribution]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -13,33 +11,40 @@
 (def ^{:const true :private true :tag 'double} gaussian-factor (/ (m/sqrt m/TWO_PI)))
 
 (defn uniform
+  "Uniform kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) 0.5 0.0))
 
 (defn gaussian
+  "Gaussian kernel"
   ^double [^double x]
   (m/* gaussian-factor (m/exp (m/* -0.5 x x))))
 
 (defn triangular
+  "Triangular kernel"
   ^double [^double x]
   (let [absx (m/abs x)]
     (if (m/<= absx 1.0) (m/- 1.0 absx) 0.0)))
 
 (defn epanechnikov
+  "Epanechnikov kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) (m/* 0.75 (m/- 1.0 (m/* x x))) 0.0))
 
 (defn quartic
+  "Quartic kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) (m/* 0.9375 (m/sq (m/- 1.0 (m/* x x)))) 0.0))
 
 (defn triweight
+  "Triweight kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0)
     (let [v (m/- 1.0 (m/* x x))]
       (m/* 1.09375 v v v)) 0.0))
 
 (defn tricube
+  "Tricube kernel"
   ^double [^double x]
   (let [absx (m/abs x)]
     (if (m/<= absx 1.0)
@@ -47,32 +52,40 @@
         (m/* 0.8641975308641975 v v v)) 0.0)))
 
 (defn cosine
+  "Cosine kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) (m/* m/QUARTER_PI (m/cos (m/* m/HALF_PI x))) 0.0))
 
 (defn logistic
+  "Logistic kernel"
   ^double [^double x]
   (m// (m/+ 2.0 (m/exp x) (m/exp (m/- x)))))
 
 (defn sigmoid
+  "Sigmoid kernel"
   ^double [^double x]
   (m/* m/TWO_INV_PI (m// (m/+ (m/exp x) (m/exp (m/- x))))))
 
 (defn silverman
+  "Silverman kernel"
   ^double [^double x]
   (let [xx (m// (m/abs x) m/SQRT2)]
     (m/* 0.5 (m/exp (m/- xx)) (m/sin (m/+ xx m/QUARTER_PI)))))
 
 ;; experimental
 (defn laplace
+  "Laplace kernel, experimental"
   ^double [^double x]
   (m/* 0.5 (m/exp (m/- (m/abs x)))))
 
 (defn wigner
+  "Wigner kernel, experimental"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) (m/* m/TWO_INV_PI (m/sqrt (m/- 1.0 (m/* x x)))) 0.0))
 
-(defn cauchy ^double [^double x]
+(defn cauchy
+  "Cauchy kernel, experimental"
+  ^double [^double x]
   (m// (m/* m/HALF_PI (m/inc (m/sq (m/* 2.0 x))))))
 
 ;; Canonical kernels for density estimation
@@ -152,7 +165,7 @@
      :kernel (if (fn? kernel) kernel
                  (get-in kde-data [kernel :kernel]))}))
 
-(defn preprocess-data
+(defn- preprocess-data
   "Returns preprocessed kde data."
   [data kernel]
   (preprocess-data->map (let [a (m/seq->double-array data)]
@@ -234,20 +247,7 @@
       (let [k (kde- kdata h)
             b (rlcv-b k a)
             lf (map (->rlcv-log a la-) (kde-i kdata h))]
-        (m/- (stats/mean lf) b)))))
-
-(defn- rlcv
-  [kdata]
-  (let [sd (m/sqrt (StatUtils/variance (:data kdata)))
-        init-h (nrd kdata sd 1.06)
-        nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))]
-    (-> (optim/maximize :lbfgsb
-                        (rlcv-target nkdata)
-                        {:bounds [[(m/* 0.2 init-h)
-                                   (m/* 5.0 init-h)]]
-                         :init [init-h]})
-        ^double (ffirst)
-        (m/* sd))))
+        (m/- (StatUtils/mean (double-array lf)) b)))))
 
 (defn- lcv-target
   [kdata]
@@ -255,40 +255,26 @@
     (->> (kde-i kdata h)
          (filter pos?)
          (map (fn [^double v] (m/log v)))
-         (stats/mean))))
-
-(defn- lcv
-  [kdata]
-  (let [sd (m/sqrt (StatUtils/variance (:data kdata)))
-        init-h (nrd kdata sd 1.06)
-        nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))]
-    (-> (optim/maximize :lbfgsb
-                        (lcv-target nkdata)
-                        {:bounds [[(m/* 0.2 init-h)
-                                   (m/* 5.0 init-h)]]
-                         :init [init-h]})
-        ^double (ffirst)
-        (m/* sd))))
-
+         (double-array)
+         (StatUtils/mean))))
 
 (defn- lscv-target
   [kdata]
   (fn ^double [^double h]
     (let [{:keys [kde ^double mn ^double mx]} (kde- kdata h)
           in (double (calc/integrate (fn [^double v] (m/sq (kde v))) mn mx))
-          lf (stats/sum (kde-i kdata h))]
-      (m/- in (m/* 2.0 (stats/mean lf))))))
+          lf (kde-i kdata h)]
+      (m/- in (m/* 2.0 (StatUtils/mean (double-array lf)))))))
 
-(defn- lscv
-  [kdata]
+(defn- cv
+  [kdata opt target]
   (let [sd (m/sqrt (StatUtils/variance (:data kdata)))
         init-h (nrd kdata sd 1.06)
         nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))]
-    (-> (optim/minimize :lbfgsb
-                        (lscv-target nkdata)
-                        {:bounds [[(m/* 0.2 init-h)
-                                   (m/* 5.0 init-h)]]
-                         :init [init-h]})
+    (-> (opt :lbfgsb (target nkdata)
+             {:bounds [[(m/* 0.2 init-h)
+                        (m/* 5.0 init-h)]]
+              :init [init-h]})
         ^double (ffirst)
         (m/* sd))))
 
@@ -299,9 +285,9 @@
       :nrd (nrd kdata 1.06)
       :nrd-adjust (nrd-adjust kdata)
       :nrd0 (nrd kdata 0.9)
-      :rlcv (rlcv kdata)
-      :lcv (lcv kdata)
-      :lscv (lscv kdata))
+      :rlcv (cv kdata optim/maximize rlcv-target)
+      :lcv (cv kdata optim/maximize lcv-target)
+      :lscv (cv kdata optim/minimize lscv-target))
     (or h (nrd kdata 1.06))))
 
 (defn bandwidth
@@ -311,37 +297,80 @@
 
   * `:nrd` - rule-of-thumb (scale=1.06)
   * `:nrd0` - rule-of-thumb (scake=0.9)
-  * `:nrd-adjust` - kernel specific adjustment of `:nrd`
-  * `:rlcv` - robust "
-  [data k h]
+  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
+  * `:rlcv` - robust likelihood cross-validation
+  * `:lcv` - likelihood cross-validation
+  * `:lscv` - least squares cross-validation"
+  [kernel data h]
   (-> data
-      (preprocess-data k)
+      (preprocess-data kernel)
       (infer-h h)))
 
-(defn kde
-  "Returns kernel density estimation function"
-  ([data k] (kde data k nil))
-  ([data k h] (let [kdata (preprocess-data data k)
-                    h (infer-h kdata h)]
-                (println "h=" h)
-                (kde- kdata h))))
+(defn kernel-density+
+  "Returns kernel density estimation function with additional information, 1d.
+
+  Returns a map:
+
+  * `:kde` - density function
+  * `:factor` - 1/nh
+  * `:h` - provided or infered bandwidth
+  * `:mn` and `:mx` - infered extent of the kde`
+
+  For arguments see [[kernel-density]]"
+  ([kernel data] (kernel-density+ kernel data nil))
+  ([kernel data bandwidth] (let [kdata (preprocess-data data kernel)
+                                 h (infer-h kdata bandwidth)]
+                             (kde- kdata h))))
+
+(defn kernel-density
+  "Returns kernel density estimation function, 1d
+  
+  Arguments:
+  * `data` - data
+  * `kernel` - kernel name or kernel function
+  * `bandwidth` - bandwitdth h  
+
+  `bandwidth` can be a number or one of:
+
+  * `:nrd` - rule-of-thumb (scale=1.06)
+  * `:nrd0` - rule-of-thumb (scake=0.9)
+  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
+  * `:rlcv` - robust likelihood cross-validation
+  * `:lcv` - likelihood cross-validation
+  * `:lscv` - least squares cross-validation"
+  ([kernel data] (kernel-density kernel data nil))
+  ([kernel data bandwidth] (:kde (kernel-density+ kernel data bandwidth))))
+
+(defn kernel-density-ci
+  "Create function which returns confidence intervals for given kde method.
+
+  Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html
+
+  Arguments:
+
+  * `data` - sequence of data values
+  * `kernel` - kernel name  
+  * `bandwidth` - as in `kde`
+  * `alpha` - confidence level parameter
+
+  Returns three values: density, lower confidence value and upper confidence value"
+  ([kernel data] (kernel-density-ci kernel data nil))
+  ([kernel data bandwidth] (kernel-density-ci kernel data bandwidth 0.05))
+  ([kernel data bandwidth ^double alpha]
+   (assert (contains? kde-data kernel) "No information about given kernel for CI calculation. ")
+   (let [^double kded (:k2 (kde-data kernel))
+         ^NormalDistribution local-normal (NormalDistribution.)
+         za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
+         {:keys [kde ^double factor]} (kernel-density+ kernel data bandwidth)]
+     (fn [^double x]
+       (let [^double fx (kde x)
+             band (* za (m/sqrt (* factor ^double kded fx)))]
+         [fx (- fx band) (+ fx band)])))))
 
 
 
-
-
-
-
-
-(m/* 1.06 (m// (m// (:delta0 (:gaussian kde-data)) (:delta0 (:quartic kde-data)))))
-
-
-
-
-
-
-(require '[fastmath.calculus])
 (require '[ggplot])
+(require '[fastmath.random :as r])
 (require '[fastmath.stats.bootstrap :as boot])
 
 (def mixture (let [d1 (r/distribution :laplace {:mu 0})
@@ -360,16 +389,15 @@
 (optim/minimize :lbfgsb
                 (let [z (partial r/pdf mixture)]
                   (fn [^double h]
-                    (error (kde mdata triangular h) z))) {:bounds [[0.001 10]]})
+                    (error (kernel-density+ :triangular mdata h) z))) {:bounds [[0.001 10]]})
 ;; => 0.031145928740074845
 ;; => 0.032285504370544026
 
-(-> (ggplot/function (:kde (kde mdata :laplace :nrd-adjust)) {:x [-5 5]})
+(-> (ggplot/function-ci (kernel-density-ci :triangular mdata :nrd-adjust) {:x [-10 15]})
     (ggplot/->file))
 
 
 
-(m/* 1.03 (get-in kde-data [:triangular :nrd-scale]))
 
 (ggplot/gg-> (ggplot/histogram {:x mdata2} :mapping (ggplot/aes :x :x))
              (ggplot/->file))
