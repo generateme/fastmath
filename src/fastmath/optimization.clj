@@ -260,27 +260,6 @@
            (sequential? (first bounds)))
     (first bounds) bounds))
 
-(defn- lbfgsb
-  [f {:keys [goal bounds bounded? gradient-f gradient-h stats?] :as config}]
-  (assert (and bounded? bounds) "L-BFGS-B is constrained optimization, bounds should be provided")
-  (let [target (if (fn? gradient-f) [f gradient-f] f)
-        mf (lbfgsb/grad-function target goal gradient-h)
-        l (double-array (map first bounds))
-        u (double-array (map second bounds))
-        ^LBFGSB obj (lbfgsb/->lbfgsb config)]
-    (fn local-lbfgsb
-      ([] (local-lbfgsb nil))
-      ([init]
-       (let [i (double-array (or init (mid-point bounds)))
-             x (.minimize obj mf i l u)
-             res (.-fx obj)
-             result [(seq x) (if (= goal :minimize) res (- res))]]
-         (if-not stats?
-           result
-           {:result result
-            :iterations (.-k obj)
-            :gradient (seq (.m_grad obj))}))))))
-
 (defn- maybe-stats?
   [stats? ^BaseOptimizer optimizer res]
   (if-not stats?
@@ -294,7 +273,7 @@
              :or {gradient-h 0.0001}
              :as config}]
   (if (= method :lbfgsb)
-    (lbfgsb f (assoc config :bounded? true))
+    (lbfgsb/lbfgsb-fn f (assoc config :bounded? true))
     (do
       (assert (not (nil? bounds)) "Provide bounds")
       (let [bounds (fix-brent-bounds method bounds)

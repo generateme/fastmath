@@ -1,13 +1,48 @@
 (ns fastmath.stats-test
   (:require [fastmath.stats :as sut]
             [clojure.test :as t]
-            [utils :as u]
-            [fastmath.core :as m]))
+            [fastmath.core :as m]
+            [clojure.data.csv :as csv]
+            [clojure.java.io :as io]))
+
+(defn transform [spec data]
+  (if (sequential? spec)
+    (let [[nm f] spec] [nm (f data)])
+    [spec (read-string data)]))
+(defn zip [header row] (into {} (map transform header row)))
+(defn parse-rows  [header rows]  (map (partial zip header) rows))
+(defn read-csv
+  [fname header]
+  (->> (io/resource fname)
+       (slurp)
+       (csv/read-csv)
+       (rest)
+       (parse-rows header)))
+
+(defn data->fn
+  [data]
+  (memoize (fn
+             ([] data)
+             ([selector] (map selector data))
+             ([selector filter-pred] (map selector (filter filter-pred data))))))
+
+(defn by
+  ([data f]
+   (mapv second (sort-by first (group-by f (data)))))
+  ([data f selector]
+   (vec (for [group (by data f)]
+          (map selector group)))))
+
+(def iris (data->fn (read-csv "iris.csv"
+                            [:sepal-length :sepal-width :petal-length :petal-width [:species keyword]])))
+(def mtcars (data->fn (read-csv "mtcars.csv"
+                              [[:name identity] :mpg :cyl :disp :hp :drat :wt :qsec :vs :am :gear :carb])))
+
 
 ;; basic
 
 (t/deftest basic-test
-  (t/are [f res] (m/delta= res (f (u/mtcars :mpg)))
+  (t/are [f res] (m/delta= res (f (mtcars :mpg)))
     sut/minimum 10.4
     sut/maximum 33.9
     sut/sum 642.9))
@@ -15,11 +50,11 @@
 ;; means
 
 (t/deftest means-test
-  (t/are [f res] (m/delta= res (f (u/mtcars :carb)))
+  (t/are [f res] (m/delta= res (f (mtcars :carb)))
     sut/mean 2.8125
     sut/geomean 2.395987
     sut/harmean 2.026385)
-  (t/are [power res] (m/delta= res (sut/powmean (u/mtcars :carb) power))
+  (t/are [power res] (m/delta= res (sut/powmean (mtcars :carb) power))
     -10.0 1.163977
     -1.0 2.026385
     0.0 2.395987
@@ -32,7 +67,7 @@
 ;; deviations
 
 (t/deftest deviations-test
-  (t/are [f res] (m/delta= res (f (u/mtcars :drat)))
+  (t/are [f res] (m/delta= res (f (mtcars :drat)))
     sut/population-variance 0.2769476
     sut/variance 0.2858814
     sut/population-stddev 0.5262581
@@ -41,7 +76,7 @@
     sut/mean-absolute-deviation 0.4532422
     sut/median-absolute-deviation 0.475
     sut/sem 0.09451874)
-  (let [d (u/mtcars :drat)]
+  (let [d (mtcars :drat)]
     (t/is (m/delta= 0.4459375 (sut/mean-absolute-deviation d (sut/median d))))
     (t/is (m/delta= 3.5965625 (sut/mean-absolute-deviation d 0.0)))
     (t/is (m/delta= 0.465 (sut/median-absolute-deviation d (sut/mean d))))
@@ -50,7 +85,7 @@
 
 ;; effect size
 
-(def mpgs (u/by u/mtcars :am :mpg))
+(def mpgs (by mtcars :am :mpg))
 
 (t/deftest effect-size-test
   (t/are [res f attr] (m/delta= res (apply f (mpgs 0) (mpgs 1) attr))
@@ -76,34 +111,34 @@
 ;; effect size - correlations
 
 (t/deftest effect-size-correlation-test
-  (t/are [res f] (m/delta= res (f (u/mtcars :cyl) (u/mtcars :mpg)))
+  (t/are [res f] (m/delta= res (f (mtcars :cyl) (mtcars :mpg)))
     -0.852162 sut/pearson-r
     0.72618 sut/r2-determination
     0.72618 sut/eta-sq
     0.7105671 sut/omega-sq
     0.7170527 sut/epsilon-sq)
-  (t/are [method res] (m/delta= res (sut/cohens-f2 (u/mtcars :cyl) (u/mtcars :mpg) method))
+  (t/are [method res] (m/delta= res (sut/cohens-f2 (mtcars :cyl) (mtcars :mpg) method))
     :eta 2.652034
     :omega 2.455032
     :epsilon 2.534227)
-  (t/are [method res] (m/delta= res (sut/cohens-f (u/mtcars :cyl) (u/mtcars :mpg) method))
+  (t/are [method res] (m/delta= res (sut/cohens-f (mtcars :cyl) (mtcars :mpg) method))
     :eta 1.628507
     :omega 1.566854
     :epsilon 1.5919255)
   (t/is (m/delta= 2.0921305 (sut/cohens-q (sut/pearson-correlation
-                                           (u/iris :petal-width) (u/iris :petal-length))
+                                           (iris :petal-width) (iris :petal-length))
                                           (sut/pearson-correlation
-                                           (u/iris :sepal-width) (u/iris :sepal-length)))))
-  (t/is (m/delta= 2.0921305 (sut/cohens-q (u/iris :petal-width) (u/iris :petal-length)
-                                          (u/iris :sepal-width) (u/iris :sepal-length))))
-  (t/is (m/delta= -1.9568811 (sut/cohens-q (u/mtcars :mpg)
-                                           (u/mtcars :cyl) (u/mtcars :am)))))
+                                           (iris :sepal-width) (iris :sepal-length)))))
+  (t/is (m/delta= 2.0921305 (sut/cohens-q (iris :petal-width) (iris :petal-length)
+                                          (iris :sepal-width) (iris :sepal-length))))
+  (t/is (m/delta= -1.9568811 (sut/cohens-q (mtcars :mpg)
+                                           (mtcars :cyl) (mtcars :am)))))
 
 ;; kruskal effect size
 
 (t/deftest effect-size-kruskal
-  (t/is (m/delta= 0.8305211 (sut/rank-epsilon-sq (u/by u/mtcars :cyl :mpg))))
-  (t/is (m/delta= 0.818833 (sut/rank-eta-sq (u/by u/mtcars :cyl :mpg)))))
+  (t/is (m/delta= 0.8305211 (sut/rank-epsilon-sq (by mtcars :cyl :mpg))))
+  (t/is (m/delta= 0.818833 (sut/rank-eta-sq (by mtcars :cyl :mpg)))))
 
 ;; 2x2 contingency
 
@@ -192,14 +227,22 @@
 
 ;; histogram
 
-(def one {:size 1, :step 0.0, :samples 1, :min 1, :max 1, :bins '([1.0 1])})
-(def one2 {:size 1, :step 1.0, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 2])})
-(def two {:size 2, :step 0.5, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 1] [1.5 1])})
+(def one {:size 1, :step 0.0, :samples 1, :min 1.0, :max 1.0, :bins '([1.0 1])
+        :bins-maps '({:min 1.0, :max 1.0, :count 1, :step 0.0, :avg 1.0}), :frequencies {1.0 1}})
+(def one2 {:size 1, :step 1.0, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 2])
+         :bins-maps '({:min 1.0, :max 2.0, :count 2, :step 1.0, :avg 1.5}), :frequencies {1.5 2}})
+(def two {:size 2, :step 0.5, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 1] [1.5 1])
+        :bins-maps '({:min 1.0, :max 1.5, :count 1, :step 0.5, :avg 1.0}
+                     {:min 1.5, :max 2.0, :count 1, :step 0.5, :avg 2.0}), :frequencies {1.0 1, 2.0 1}})
 
 (t/deftest histogram-tests
   (t/are [in method res] (= res (sut/histogram in method))
-    [1 1 1 1] :sqrt  {:size 1, :step 0.0, :samples 4, :min 1.0, :max 1.0, :bins '([1.0 4])}
-    [1 1] :sturges {:size 1, :step 0.0, :samples 2, :min 1.0, :max 1.0, :bins '([1.0 2])}
+    [1 1 1 1] :sqrt  {:size 1, :step 0.0, :samples 4, :min 1.0, :max 1.0, :bins '([1.0 4])
+                      :bins-maps '({:min 1.0, :max 1.0, :count 4, :step 0.0, :avg 1.0}),
+                      :frequencies {1.0 4}}
+    [1 1] :sturges {:size 1, :step 0.0, :samples 2, :min 1.0, :max 1.0, :bins '([1.0 2])
+                    :bins-maps '({:min 1.0, :max 1.0, :count 2, :step 0.0, :avg 1.0}),
+                    :frequencies {1.0 2}}
     [1] :rice one
     [1] :doane one
     [1 2] :sqrt one2

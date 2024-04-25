@@ -1,5 +1,6 @@
 {:remote-repo {:git-url "https://github.com/generateme/fastmath/"
                :branch "master"}
+
  :quarto {:format {:html {:toc true
                           :toc-location :right
                           :toc-depth 4
@@ -8,4 +9,9 @@
                           :reference-location :margin
                           :fontsize "0.9em"}}
           :code-block-background true
-          :title "Fastmath documentation"}}
+          :title "Fastmath documentation"}
+ :subdirs-to-sync nil
+ :clean-up-target-dir true
+ :format [:quarto :html]
+ :base-source-path "clay/"
+ :base-target-path "docs/clay"}

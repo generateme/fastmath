@@ -54,6 +54,9 @@
       (name pal))
     pal))
 
+(defn paletter-d [pal]
+  (r/r->clj (pal/paletteer_d (->palette pal))))
+
 (defn slice
   [x steps]
   (let [[min-x max-x] (or x [0.0 1.0])]

@@ -12,7 +12,7 @@
 (defn- phi-matrix [xss kernel ^double kscale distance]
   (->> (for [xs1 xss]
          (for [xs2 xss]
-           (* kscale (kernel (distance xs1 xs2)))))
+           (* kscale ^double (kernel (distance xs1 xs2)))))
        (mat/rows->RealMatrix)))
 
 (defn- solve
@@ -29,7 +29,7 @@
 
 (defn- phi-vector [xss x kernel kscale distance]
   (let [s (double kscale)]
-    (mapv (fn [xs] (* s (kernel (distance xs x)))) xss)))
+    (mapv (fn [xs] (* s ^double (kernel (distance xs x)))) xss)))
 
 (defn rbf
   ([xss ys] (rbf xss ys nil))

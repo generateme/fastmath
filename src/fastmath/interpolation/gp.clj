@@ -152,7 +152,7 @@
   [^GaussianProcess gp-object xvals]
   (let [xvals (ensure-vectors xvals)
         cov-vectors (cov-matrix xvals (.kernel gp-object) (.kscale gp-object) (.noise gp-object))
-        L (.getL ^CholeskyDecomposition (CholeskyDecomposition. cov-vectors))]
+        L (.getL (CholeskyDecomposition. cov-vectors))]
     (->> (repeatedly (count xvals) r/grand)
          (v/vec->RealVector)
          (mat/mulv L)
@@ -163,7 +163,7 @@
   ([gp-object xvals] (posterior-samples gp-object xvals false))
   ([^GaussianProcess gp-object xvals stddev?]
    (let [[mu sd] (predict-all- gp-object xvals true)
-         L (.getL ^CholeskyDecomposition (CholeskyDecomposition. sd 1.0e-6 1.0e-10))
+         L (.getL (CholeskyDecomposition. sd 1.0e-6 1.0e-10))
          post (->> (repeatedly (count xvals) r/grand)
                    (v/vec->RealVector)
                    (mat/mulv L)

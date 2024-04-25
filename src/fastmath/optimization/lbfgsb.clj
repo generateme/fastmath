@@ -80,4 +80,31 @@
   (^LBFGSB [] (->lbfgsb nil))
   (^LBFGSB [params] (LBFGSB. (parameters params))))
 
+(defn lbfgsb-fn
+  [f {:keys [goal bounds bounded? gradient-f gradient-h stats?]
+      :or {bounded? true}
+      :as config}]
+  (assert (and bounded? bounds) "L-BFGS-B is constrained optimization, bounds should be provided")
+  (let [target (if (fn? gradient-f) [f gradient-f] f)
+        mf (grad-function target goal gradient-h)
+        l (double-array (map first bounds))
+        u (double-array (map second bounds))
+        ^LBFGSB obj (->lbfgsb config)
+        midpoint (map (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds)]
+    (fn local-lbfgsb
+      ([] (local-lbfgsb nil))
+      ([init]
+       (let [i (double-array (or init midpoint))
+             x (.minimize obj mf i l u)
+             res (.-fx obj)
+             result [(seq x) (if (= goal :minimize) res (- res))]]
+         (if-not stats?
+           result
+           {:result result
+            :iterations (.-k obj)
+            :gradient (seq (.m_grad obj))}))))))
+
+(defn minimize [f options] ((lbfgsb-fn f (assoc options :goal :minimize)) (:initial options)))
+(defn maximize [f options] ((lbfgsb-fn f (assoc options :goal :maximize)) (:initial options)))
+
 (m/unuse-primitive-operators)

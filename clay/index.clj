@@ -39,10 +39,6 @@
 
 ^:kindly/hide-code
 (comment
-  (clay/make! {:clean-up-target-dir true
-               :format [:quarto :html]
-               :base-source-path "clay/"
-               :base-target-path "docs/clay"
-               :source-path ["index.clj"
-                             "interpolation.clj"]
+  (clay/make! {:source-path ["index.clj"
+                             "kernel.clj"]
                :book {:title "Fastmath documentation"}}))

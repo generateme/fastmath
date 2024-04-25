@@ -15,17 +15,25 @@
 
   ### Fourier
 
-  DFT."
+  DFT, FFT, DHT."
   (:require [fastmath.core :as m]
             [fastmath.stats :as stat]
-            [fastmath.protocols :as prot])
+            [fastmath.protocols :as prot]
+            [fastmath.optimization :as optim]
+            [fastmath.vector :as v])
   (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
             BasicTransform DiscreteFourierTransform]
            [jwave.exceptions JWaveFailure]
-           [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer
-            DstNormalization DctNormalization TransformType]))
+           [jwave.compressions CompressorPeaksAverage CompressorMagnitude]
+           [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer DstNormalization DctNormalization TransformType]
+           [org.jtransforms.fft DoubleFFT_1D DoubleFFT_2D]
+           [org.jtransforms.dht DoubleDHT_1D DoubleDHT_2D]
+           [org.jtransforms.dct DoubleDCT_1D DoubleDCT_2D]
+           [org.jtransforms.dst DoubleDST_1D DoubleDST_2D]
+           [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 ;;
@@ -142,15 +150,16 @@
 (defmethod transformer :decomposed-fast [_ w] (AncientEgyptianDecomposition. (transformer :fast w)))
 (defmethod transformer :decomposed-packet [_ w] (AncientEgyptianDecomposition. (transformer :packet w)))
 
-(defmethod transformer :standard [_ t] (cond
-                                         (= t :sine) (FastSineTransformer. DstNormalization/STANDARD_DST_I)
-                                         (= t :cosine) (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
-                                         (= t :hadamard) (FastHadamardTransformer.)
-                                         (= t :dft) (DiscreteFourierTransform.)))
+(defmethod transformer :standard [_ t] (case t
+                                         :sine (FastSineTransformer. DstNormalization/STANDARD_DST_I)
+                                         :cosine (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
+                                         :hadamard (FastHadamardTransformer.)
+                                         :dft (DiscreteFourierTransform.)))
 
-(defmethod transformer :orthogonal [_ t] (cond
-                                           (= t :sine) (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
-                                           (= t :cosine) (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)))
+
+(defmethod transformer :orthogonal [_ t] (case t
+                                           :sine (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
+                                           :cosine (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)))
 
 (extend BasicTransform
   prot/TransformProto
@@ -163,6 +172,180 @@
   prot/TransformProto
   {:forward-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/FORWARD))
    :reverse-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/INVERSE))})
+
+
+;; jtransform
+
+(defn- jt-forward-fft [xs]
+  (let [^DoubleFFT_1D t (DoubleFFT_1D. (count xs))
+        out (double-array xs)]
+    (.realForward t out)
+    out))
+
+(defn- jt-reverse-fft [xs]
+  (let [^DoubleFFT_1D t (DoubleFFT_1D. (count xs))
+        out (double-array xs)]
+    (.realInverse t out true)
+    out))
+
+(defn- jt-forward2-fft [xss]
+  (let [^DoubleFFT_2D t (DoubleFFT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.realForward t ^"[[D" out)
+    out))
+
+(defn- jt-reverse2-fft [xss]
+  (let [^DoubleFFT_2D t (DoubleFFT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.realInverse t ^"[[D" out true)
+    out))
+
+(defn- jt-forward-cfft [xs]
+  (let [^DoubleFFT_1D t (DoubleFFT_1D. (m// (count xs) 2))
+        out (double-array xs)]
+    (.complexForward t out)
+    out))
+
+(defn- jt-reverse-cfft [xs]
+  (let [^DoubleFFT_1D t (DoubleFFT_1D. (m// (count xs) 2))
+        out (double-array xs)]
+    (.complexInverse t out true)
+    out))
+
+(defn- jt-forward2-cfft [xss]
+  (let [s (m// (count (first xss)) 2)
+        s2 (m/* s 2)
+        ^DoubleFFT_2D t (DoubleFFT_2D. (count xss) s)
+        out (into-array (map (fn [xs] (double-array (take s2 xs))) xss))]
+    (.complexForward t ^"[[D" out)
+    out))
+
+(defn- jt-reverse2-cfft [xss]
+  (let [s (m// (count (first xss)) 2)
+        s2 (m/* s 2)
+        ^DoubleFFT_2D t (DoubleFFT_2D. (count xss) s)
+        out (into-array (map (fn [xs] (double-array (take s2 xs))) xss))]
+    (.complexInverse t ^"[[D" out true)
+    out))
+
+(defn- jt-forward-cfftr [xs]
+  (let [s (count xs)
+        ^DoubleFFT_1D t (DoubleFFT_1D. s)
+        in (double-array xs)
+        out (double-array (* 2 s))]
+    (System/arraycopy in 0 out 0 s)
+    (.realForwardFull t out)
+    out))
+
+(defn- jt-forward2-cfftr [xss]
+  (let [r (count xss)
+        s (count (first xss))
+        s2 (m/* s 2)
+        ^DoubleFFT_2D t (DoubleFFT_2D. r s)
+        in (map double-array xss)
+        out (repeatedly r #(double-array s2))]
+    (doseq [[i o] (map vector in out)]
+      (System/arraycopy i 0 o 0 s))
+    (.realForwardFull t ^"[[D" (into-array out))
+    out))
+
+(defn- jt-forward-dht [xs]
+  (let [^DoubleDHT_1D t (DoubleDHT_1D. (count xs))
+        out (double-array xs)]
+    (.forward t out)
+    out))
+
+(defn- jt-reverse-dht [xs]
+  (let [^DoubleDHT_1D t (DoubleDHT_1D. (count xs))
+        out (double-array xs)]
+    (.inverse t out true)
+    out))
+
+(defn- jt-forward2-dht [xss]
+  (let [^DoubleDHT_2D t (DoubleDHT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.forward t ^"[[D" out)
+    out))
+
+(defn- jt-reverse2-dht [xss]
+  (let [^DoubleDHT_2D t (DoubleDHT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.inverse t ^"[[D" out true)
+    out))
+
+(defn- jt-forward-dct [xs]
+  (let [^DoubleDCT_1D t (DoubleDCT_1D. (count xs))
+        out (double-array xs)]
+    (.forward t out true)
+    out))
+
+(defn- jt-reverse-dct [xs]
+  (let [^DoubleDCT_1D t (DoubleDCT_1D. (count xs))
+        out (double-array xs)]
+    (.inverse t out true)
+    out))
+
+(defn- jt-forward2-dct [xss]
+  (let [^DoubleDCT_2D t (DoubleDCT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.forward t ^"[[D" out true)
+    out))
+
+(defn- jt-reverse2-dct [xss]
+  (let [^DoubleDCT_2D t (DoubleDCT_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.inverse t ^"[[D" out true)
+    out))
+
+(defn- jt-forward-dst [xs]
+  (let [^DoubleDST_1D t (DoubleDST_1D. (count xs))
+        out (double-array xs)]
+    (.forward t out true)
+    out))
+
+(defn- jt-reverse-dst [xs]
+  (let [^DoubleDST_1D t (DoubleDST_1D. (count xs))
+        out (double-array xs)]
+    (.inverse t out true)
+    out))
+
+(defn- jt-forward2-dst [xss]
+  (let [^DoubleDST_2D t (DoubleDST_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.forward t ^"[[D" out true)
+    out))
+
+(defn- jt-reverse2-dst [xss]
+  (let [^DoubleDST_2D t (DoubleDST_2D. (count xss) (count (first xss)))
+        out (into-array (map double-array xss))]
+    (.inverse t ^"[[D" out true)
+    out))
+
+(defn- jt-reify
+  [f r f2 r2]
+  (reify prot/TransformProto
+    (forward-1d [_ xs] (f xs))
+    (reverse-1d [_ xs] (r xs))
+    (forward-2d [_ xss] (f2 xss))
+    (reverse-2d [_ xss] (r2 xss))))
+
+(defmethod transformer :real [_ t]
+  (case t
+    :fft (jt-reify jt-forward-fft jt-reverse-fft jt-forward2-fft jt-reverse2-fft)
+    :dht (jt-reify jt-forward-dht jt-reverse-dht jt-forward2-dht jt-reverse2-dht)
+    :dct (jt-reify jt-forward-dct jt-reverse-dct jt-forward2-dct jt-reverse2-dct)
+    :dst (jt-reify jt-forward-dst jt-reverse-dst jt-forward2-dst jt-reverse2-dst)
+    :sine (FastSineTransformer. DstNormalization/STANDARD_DST_I)
+    :cosine (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
+    :hadamard (FastHadamardTransformer.)
+    :dft (DiscreteFourierTransform.)))
+
+(defmethod transformer :complex [_ t]
+  (case t
+    :fft (jt-reify jt-forward-cfft jt-reverse-cfft jt-forward2-cfft jt-reverse2-cfft)
+    :fftr (jt-reify jt-forward-cfftr jt-reverse-cfft jt-forward2-cfftr jt-reverse2-cfft)))
+
+;;
 
 (defn forward-1d
   "Forward transform of sequence or array."
@@ -188,36 +371,150 @@
                      [prot/forward-1d prot/reverse-1d])]
      (->> xs
           (fwd trans)
-          (.compress (jwave.compressions.CompressorMagnitude. mag))
+          (.compress (CompressorMagnitude. mag))
           (rev trans))))
   ([xs ^double mag]
-   (.compress (jwave.compressions.CompressorMagnitude. mag) xs)))
+   (.compress (CompressorMagnitude. mag) xs)))
+
+(defn compress-peaks-average
+  "Compress transformed signal `xs` with peaks average as a magnitude"
+  ([trans xs]
+   (let [[fwd rev] (if (seqable? (first xs))
+                     [prot/forward-2d prot/reverse-2d]
+                     [prot/forward-1d prot/reverse-1d])]
+     (->> xs
+          (fwd trans)
+          (.compress (CompressorPeaksAverage.))
+          (rev trans))))
+  ([xs]
+   (.compress (CompressorPeaksAverage.) xs)))
+
+;; https://www.diva-portal.org/smash/get/diva2:1003644/FULLTEXT01.pdf
+
+(defn- sure
+  ^double [xs ^long n]
+  (let [sxs (double-array (sort (map m/abs xs)))]
+    (loop [k (long 1)
+           curr (Array/get sxs 0)
+           s (* curr curr)
+           minrisk ##Inf]
+      (if (> k n)
+        curr
+        (let [v (Array/get sxs (dec k))
+              v2 (* v v)
+              risk (+ (- n (* 2 k)) s (* (- n k) v2))]
+          (if (< risk minrisk)
+            (recur (inc k) v (+ s v2) risk)
+            (recur (inc k) curr (+ s v2) minrisk)))))))
+
+(defn denoise-threshold
+  "Calculate optimal denoise threshold.
+
+  `threshold` is one of the following
+  
+  * `:visu` - based on median absolute deviation estimate (default)
+  * `:universal` - based on standard deviation estimate
+  * `:sure` or `:rigrsure` - based on SURE estimator
+  * `:hybrid` or `:heursure` - hybrid SURE estimator"
+  ^double [xs threshold]
+  (let [n (count xs)]
+    (if (number? threshold)
+      threshold
+      (case threshold
+        :visu (-> (drop (/ n 2) xs)
+                  (stat/median-absolute-deviation)
+                  (/ 0.6745)
+                  (* (m/sqrt (* 2.0 (m/log n)))))
+        :universal (-> (drop (/ n 2) xs)
+                       (stat/stddev)
+                       (* (m/sqrt (* 2.0 (m/log n)))))
+        (:sure :rigrsure) (sure xs n)
+        (:hybrid :heursure) (let [eta (/ (- (v/dot xs xs) n) n)
+                                  crit (/ (m/pow (m/log2 n) 1.5) (m/sqrt n))]
+                              (if (< eta crit)
+                                (m/sqrt (* 2.0 (m/log n)))
+                                (min (sure xs n) (m/sqrt (* 2.0 (m/log n))))))))))
 
 (defn denoise
-  "Adaptive denoising of time series (1d).
+  "Wavelet shrinkage with some threshold.
 
-  Use on transformed sequences or call with transformer object.
+  Methods can be:
+  * `:hard` (default)  
+  * `:soft`
+  * `:garrote`
+  * `:hyperbole`
 
-  SMILE implementation of WaveletShrinkage denoise function."
-  ([xs soft?]
+  `:threshold` can be a number of one of the [[denoise-threshold]] methods (default: `:visu`)
+
+  `:skip` can be used to leave `:skip` number of coefficients unaffected (default: 0)
+
+  Use on transformed sequences or call with transformer object."
+  ([xs {:keys [method threshold ^long skip]
+        :or {method :hard threshold :universal skip 0}}]
    (let [t (double-array xs)
          n (alength t)
-         nh (m/>> n 1)
-         wc (double-array nh)]
-     (System/arraycopy t nh wc 0 nh)
-     (let [error (/ (stat/median-absolute-deviation wc) 0.6745)
-           lambda (* error (m/sqrt (* 2.0 (m/log n))))]
-       (if soft?
-         (dotimes [i (- n 2)]
-           (let [i2 (+ i 2)
-                 v (aget t i2)]
-             (aset-double t i2 (* (m/signum v) (max (- (m/abs v) lambda) 0.0)))))
-         (dotimes [i (- n 2)]
-           (let [i2 (+ i 2)
-                 v (aget t i2)]
-             (when (< (m/abs v) lambda) (aset-double t i2 0.0)))))
-       t)))
-  ([trans xs soft?]
+         lambda (denoise-threshold xs threshold )
+         ids (range skip n)]
+     (println "lambda:" lambda)
+     (case method
+       :soft (doseq [^long i ids]
+               (let [v (Array/aget t i)]
+                 (Array/aset t i (* (m/signum v) (max (- (m/abs v) lambda) 0.0)))))
+       :hard (doseq [^long i ids]
+               (let [v (Array/aget t i)]
+                 (when (< (m/abs v) lambda) (Array/aset t i 0.0))))
+       :garrote (let [l2 (m/sq lambda)]
+                  (doseq [^long i ids]
+                    (let [v (Array/aget t i)]
+                      (Array/aset t i (if (> (m/abs v) lambda)
+                                        (- v (/ l2 v))
+                                        0.0)))))
+       :hyperbole (let [l2 (m/sq lambda)]
+                    (doseq [^long i ids]
+                      (let [v (Array/aget t i)]
+                        (Array/aset t i (if (> (m/abs v) lambda)
+                                          (* (m/signum v) (m/sqrt (- (* v v) l2)))
+                                          0.0))))))
+     t))
+  ([trans xs method]
    (let [v (prot/forward-1d trans xs)]
-     (prot/reverse-1d trans (denoise v soft?))))
-  ([xs] (denoise xs false)))
+     (prot/reverse-1d trans (denoise v method))))
+  ([xs] (denoise xs nil)))
+
+(m/unuse-primitive-operators)
+
+
+(comment
+  (require '[ggplot])
+
+
+  (defn- error [x1 x2]
+    (reduce m/fast+ (map #(m/sq (- %1 %2)) x1 x2)))
+
+  (def xx (m/slice-range 0 10 512))
+  (def s (map #(m/sin %) xx))
+  (def d (map #(+ % (* 0.2 (- (rand) 0.5))) s))
+  (def t (transformer :fast :daubechies-10))
+
+
+  (optim/minimize :lbfgsb (fn [x]
+                            (error s (denoise t d {:method :garrote :threshold x :skip 0})))
+                  {:bounds [[0 (m/sqrt (* 2 (m/log 512)))]]
+                   :initial [0.1]})
+
+  (ggplot/->file (ggplot/function
+                  (fn [x]
+                    (error s (denoise t d {:method :hyperbole :threshold x :skip 0})))
+                  {:x [0 (m/sqrt (* 2 (m/log 512)))]}))
+
+  (let [res (denoise t d {:method :hyperbole :threshold :heursure :skip 0})
+        data (map (fn [x y] {:x x :y y}) xx res)
+        data2 (map (fn [x s y] {:x x :y (- s y)}) xx s res)]
+    (ggplot/->file (ggplot/ggaes+ (ggplot/aes :x :x :y :y) (ggplot/line data) (ggplot/line data2 :color "red")))
+    (error s res))
+  ;; => [0.0054888943941000514 0.0022685134312533306 0.0034123146526252967 0.0027147518947475057]
+  ;; => [0.005699029380586008 0.002268315211977693 0.0034120129587574197 0.002714501585972715]
+
+
+  (seq (denoise (transformer :packet :daubechies-4) [2 3 1 2 3 1 -1 3] :hyperbole)))
+

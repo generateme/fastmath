@@ -52,7 +52,7 @@
             [fastmath.interpolation.step :as step-interp]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
-            [fastmath.kernel :as k])
+            [fastmath.kernel.density :as kd])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -76,6 +76,13 @@
                               :r7 Percentile$EstimationType/R_7
                               :r8 Percentile$EstimationType/R_8
                               :r9 Percentile$EstimationType/R_9})
+
+(defn sum
+  "Sum of all `vs` values."
+  ^double [vs]
+  (if (= (type vs) m/double-array-type)
+    (Array/sum ^doubles vs)
+    (reduce m/fast+ vs)))
 
 (defn percentile
   "Calculate percentile of a `vs`.
@@ -147,7 +154,7 @@
         probabilities (map second sorted)
         data (map first sorted)
         data (conj data (first data))
-        ^double wsum (reduce m/fast+ probabilities)
+        wsum (sum probabilities)
         weights (conj (reductions m/fast+ (map (fn [^double p] (/ p wsum)) probabilities)) 0.0)]
     (case method
       :linear (linear-interp/linear weights data)
@@ -242,8 +249,7 @@
   "Weighted mean"
   (^double [vs] (mean vs))
   (^double [vs weights]
-   (/ ^double (reduce m/fast+ (map m/fast* vs weights))
-      ^double (reduce m/fast+ weights))))
+   (/ (sum (map m/fast* vs weights)) (sum weights))))
 
 (defn population-variance
   "Calculate population variance of `vs`.
@@ -251,8 +257,17 @@
   See [[variance]]."
   (^double [vs]
    (StatUtils/populationVariance (m/seq->double-array vs)))
-  (^double [vs ^double u]
-   (StatUtils/populationVariance (m/seq->double-array vs) u)))
+  (^double [vs ^double mu]
+   (StatUtils/populationVariance (m/seq->double-array vs) mu)))
+
+(defn population-wvariance
+  "Calculate population weighted variance of `vs`."
+  ^double [vs freqs]
+  (let [sw (sum freqs)
+        mu (/ (sum (map m/fast* vs freqs)) sw)
+        v (sum (map (fn [^double x ^double w]
+                      (* w (m/sq (- x mu)))) vs freqs))]
+    (/ v sw)))
 
 (defn variance
   "Calculate variance of `vs`.
@@ -260,8 +275,17 @@
   See [[population-variance]]."
   (^double [vs]
    (StatUtils/variance (m/seq->double-array vs)))
-  (^double [vs ^double u]
-   (StatUtils/variance (m/seq->double-array vs) u)))
+  (^double [vs ^double mu]
+   (StatUtils/variance (m/seq->double-array vs) mu)))
+
+(defn wvariance
+  "Calculate weighted (unbiased) variance of `vs`."
+  ^double [vs freqs]
+  (let [sw (sum freqs)
+        mu (/ (sum (map m/fast* vs freqs)) sw)
+        v (sum (map (fn [^double x ^double w]
+                      (* w (m/sq (- x mu)))) vs freqs))]
+    (/ v (dec sw))))
 
 (defn population-stddev
   "Calculate population standard deviation of `vs`.
@@ -269,8 +293,13 @@
   See [[stddev]]."
   (^double [vs]
    (m/sqrt (population-variance vs)))
-  (^double [vs u]
-   (m/sqrt (population-variance vs u))))
+  (^double [vs ^double mu]
+   (m/sqrt (population-variance vs mu))))
+
+(defn population-wstddev
+  "Calculate population weighted standard deviation of `vs`"
+  ^doubles [vs weights]
+  (m/sqrt (population-wvariance vs weights)))
 
 (defn stddev
   "Calculate standard deviation of `vs`.
@@ -278,8 +307,13 @@
   See [[population-stddev]]."
   (^double [vs]
    (m/sqrt (variance vs)))
-  (^double [vs u]
-   (m/sqrt (variance vs u))))
+  (^double [vs ^double mu]
+   (m/sqrt (variance vs mu))))
+
+(defn wstddev
+  "Calculate weighted (unbiased) standard deviation of `vs`"
+  ^doubles [vs freqs]
+  (m/sqrt (wvariance vs freqs)))
 
 (defn variation
   "Coefficient of variation CV = stddev / mean"
@@ -528,7 +562,7 @@
        :pearson (let [mu (mean avs)
                       m (median avs (:estimation-strategy opts))]
                   [(- (* 3.0 m) (* 2.0 mu))])
-       :kde (let [kde (k/kernel-density (get opts :kernel :gaussian) avs (:bandwidth opts))]
+       :kde (let [kde (kd/kernel-density (get opts :kernel :gaussian) avs opts)]
               (->> (map (fn [^double v] [v (- ^double (kde v))]) vs)
                    (sort-by second)
                    (map first)))
@@ -581,13 +615,6 @@
   (let [^double fv (first vs)]
     (conj (reduce (fn [[^double mn ^double mx] ^double v]
                     [(min mn v) (max mx v)]) [fv fv] (rest vs)) (mean vs))))
-
-(defn sum
-  "Sum of all `vs` values."
-  ^double [vs]
-  (if (= (type vs) m/double-array-type)
-    (Array/sum ^doubles vs)
-    (reduce m/fast+ vs)))
 
 (defn moment
   "Calculate moment (central or/and absolute) of given order (default: 2).
@@ -880,7 +907,7 @@
    (let [res (->> (map vector vs1 vs2)
                   (remove #(zero? (v/prod %)))
                   (map (fn [[^double p ^double q]] (* p (m/log (/ p q))))))]
-     (if (seq res) (reduce m/fast+ res) ##Inf))))
+     (if (seq res) (sum res) ##Inf))))
 
 (defn ^{:deprecated "Use [[dissimilarity]]."} jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
@@ -963,7 +990,13 @@
   (^double [[vs1 vs2-or-val]] (r2 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (- 1.0 (/ (rss vs1 vs2-or-val)
-             (moment vs1 2 {:mean? false})))))
+             (moment vs1 2 {:mean? false}))))
+  (^double [vs1 vs2-or-val ^double no-of-variables]
+   (let [rr (r2 vs1 vs2-or-val)
+         n (count vs1)]
+     (- 1.0 (* (- 1.0 rr)
+               (/ (dec n)
+                  (- n no-of-variables 1.0)))))))
 
 (defn mse
   "Mean squared error"
@@ -1043,8 +1076,8 @@
   Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default).
 
   The number returned is not higher than number of samples."
-  ([vs] (estimate-bins vs :freedman-diaconis))
-  ([vs bins-or-estimate-method]
+  (^long [vs] (estimate-bins vs :freedman-diaconis))
+  (^long [vs bins-or-estimate-method]
    (if-not (keyword? bins-or-estimate-method)
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
@@ -1065,43 +1098,72 @@
                                 (m/cbrt n))]
                        (scott-fd-helper vvs h)))))))))
 
+(defn- process-vs-and-bins
+  [vs bins-or-estimate-method ^double mn ^double mx]
+  (if (sequential? bins-or-estimate-method)
+    (let [[^double nmn ^double nmx] (extent bins-or-estimate-method)]
+      [(filter (fn [^double v] (<= nmn v nmx)) vs) nmn nmx
+       (dec (count bins-or-estimate-method)) (sort bins-or-estimate-method)])
+    (let [nvs (filter (fn [^double v] (<= mn v mx)) vs)
+          bins (estimate-bins nvs bins-or-estimate-method)]
+      [nvs mn mx bins (m/slice-range mn mx (inc bins))])))
+
 (defn histogram
   "Calculate histogram.
+
+  Estimation method can be a number, named method: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default) or a sequence of points used as intervals.
+  In the latter case or when `mn` and `mx` values are provided - data will be filtered to fit in desired interval(s).
 
   Returns map with keys:
 
   * `:size` - number of bins
-  * `:step` - distance between bins
-  * `:bins` - list of pairs of range lower value and number of hits
+  * `:step` - average distance between bins
+  * `:bins` - seq of pairs of range lower value and number of elements
   * `:min` - min value
   * `:max` - max value
   * `:samples` - number of used samples
-
-  For estimation methods check [[estimate-bins]].
+  * `:frequencies` - a map containing counts for bin's average
+  * `:bins-maps` - seq of maps containing:
+    * `:min` - lower bound
+    * `:max` - upper bound
+    * `:step` - actual distance between bins 
+    * `:count` - number of elements
+    * `:avg` - average value
 
   If difference between min and max values is `0`, number of bins is set to 1."
   ([vs] (histogram vs :freedman-diaconis))
   ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent vs)))
-  ([vs bins-or-estimate-method [^double mn ^double mx]]
-   (let [vs (filter (fn [^double v] (<= mn v mx)) vs)
-         ^long bins (estimate-bins vs bins-or-estimate-method)
+  ([vs bins-or-estimate-method [^double mn ^double mx]] (histogram vs bins-or-estimate-method mn mx))
+  ([vs bins-or-estimate-method ^double mn ^double mx]
+   (let [[vs ^double mn ^double mx
+          ^long bins intervals]  (process-vs-and-bins vs bins-or-estimate-method mn mx)
          diff (- mx mn)
          bins (if (zero? diff) 1 bins)
+         bins- (dec bins)
          step (/ diff bins)
-         search-array (double-array (butlast (m/slice-range mn mx (inc bins))))
-         buff (long-array bins)]
+         search-array (double-array intervals)
+         buff (long-array bins)
+         sum (double-array bins)]
 
      (doseq [^double v vs]
        (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
-             ^int pos (if (neg? b) (m/abs (+ b 2)) b)]
-         (fastmath.java.Array/inc ^longs buff pos)))
+             pos (unchecked-int (min bins- (long (if (neg? b) (m/abs (+ b 2)) b))))]
+         (fastmath.java.Array/inc ^longs buff pos)
+         (fastmath.java.Array/add ^doubles sum pos v)))
 
-     {:size bins
-      :step step
-      :samples (count vs)
-      :min mn
-      :max mx
-      :bins (map vector search-array buff)})))
+     (let [bins-map (map (fn [[^double mn ^double mx] ^long cnt ^double s]
+                           {:min mn :max mx :count cnt
+                            :step (- mx mn)
+                            :avg (/ s cnt)}) (partition 2 1 search-array) buff sum)]
+       {:size bins
+        :step step
+        :samples (count vs)
+        :min mn
+        :max mx
+        :bins (map (juxt :min :count) bins-map)
+        :bins-maps bins-map
+        :frequencies (into {} (map (juxt :avg :count) bins-map))}))))
+
 
 ;; distances
 
@@ -1307,11 +1369,11 @@
    (let [agroups (map m/seq->double-array groups)]
      (case method
        :biased (/ (weighted-variance-average agroups)
-                  ^double (reduce m/fast+ (map alength agroups)))
-       :avg (/ ^double (reduce m/fast+ (map variance agroups))
+                  (sum (map alength agroups)))
+       :avg (/ (sum (map variance agroups))
                (count groups))
        (/ (weighted-variance-average agroups)
-          (- ^double (reduce m/fast+ (map alength agroups)) (count groups)))))))
+          (- (sum (map alength agroups)) (count groups)))))))
 
 (defn pooled-stddev
   "Calculate pooled standard deviation for samples and method"
@@ -1403,9 +1465,9 @@
   "Cliff's delta effect size for ordinal data."
   (^double [[group1 group2]] (cliffs-delta group1 group2))
   (^double [group1 group2]
-   (/ ^double (reduce m/fast+ (for [a group1
-                                    b group2]
-                                (m/signum (compare a b))))
+   (/ (sum (for [a group1
+                 b group2]
+             (m/signum (compare a b))))
       (* (count group1) (count group2)))))
 
 ;;
@@ -1416,7 +1478,7 @@
   (^double [group1 group2]
    (let [m (count group1)
          n (count group2)
-         ^double r1 (reduce m/fast+ (take m (m/rank1 (concat group1 group2))))]
+         r1 (sum (take m (m/rank1 (concat group1 group2))))]
      (/ (- (+ r1 r1) (* m (inc m)))
         (* 2.0 m n)))))
 
@@ -1441,8 +1503,10 @@
   (^double [group1 group2] (p-overlap group1 group2 {}))
   (^double [group1 group2 {:keys [kde bandwidth ^long min-iterations ^long steps]
                            :or {kde :gaussian min-iterations 3 steps 500}}]
-   (let [[kde1 _ ^double h1 ^double mn1 ^double mx1] (k/kernel-density kde group1 bandwidth true)
-         [kde2 _ ^double h2 ^double mn2 ^double mx2] (k/kernel-density kde group2 bandwidth true)
+   (let [{kde1 :kde ^double h1 :h
+          ^double mn1 :mn ^double mx1 :mx} (kd/kernel-density+ kde group1 {:bandwidth bandwidth})
+         {kde2 :kde ^double h2 :h
+          ^double mn2 :mn ^double mx2 :mx} (kd/kernel-density+ kde group2 {:bandwidth bandwidth})
          h (* 2.0 (+ h1 h2))
          mn (- (m/min mn1 mn2) h)
          mx (+ (m/max mx1 mx2) h)
@@ -1450,7 +1514,7 @@
          ranges (partition 2 1 (m/slice-range mn mx steps))
          i1 (integrate-kde iters kde1 ranges)
          i2 (integrate-kde iters kde2 ranges)]
-     (reduce m/fast+ (map m/fast-min i1 i2)))))
+     (sum (map m/fast-min i1 i2)))))
 
 (defn cohens-u2
   "Cohen's U2, the proportion of one of the groups that exceeds the same proportion in the other group."
@@ -1511,6 +1575,11 @@
    (let [lm (local-linear-regression group1 group2)
          mse (.getMeanSquareError lm)]
      (/ (- (.getRegressionSumSquares lm) mse)
+        (+ (.getTotalSumSquares lm) mse))))
+  (^double [group1 group2 ^double degrees-of-freedom]
+   (let [lm (local-linear-regression group1 group2)
+         mse (.getMeanSquareError lm)]
+     (/ (- (.getRegressionSumSquares lm) (* degrees-of-freedom mse))
         (+ (.getTotalSumSquares lm) mse)))))
 
 (defn epsilon-sq
@@ -1595,14 +1664,14 @@
 (defn- ct-marginals-sum
   [m]
   (->> (map (fn [[k v]]
-              [k (reduce clojure.core/+ (map second v))]) m)
+              [k (sum (map second v))]) m)
        (sort-by first)))
 
 (defn contingency-table->marginals
   [ct]
   (let [rows (ct-marginals-sum (group-by ffirst ct))
         cols (ct-marginals-sum (group-by (comp second first) ct))
-        n (reduce clojure.core/+ (vals ct))
+        n (sum (vals ct))
         diag (filter (fn [[[a b]]] (= a b)) ct)]
     {:rows rows :cols cols :n n :diag diag}))
 
@@ -2012,13 +2081,12 @@
    (let [acfs (vec (acf data lags))
          phis (reductions (fn [curr ^long id]
                             (let [phi (/ (- ^double (acfs id)
-                                            ^double (reduce m/fast+
-                                                            (map-indexed (fn [^long idx ^double c]
-                                                                           (* c ^double (acfs (dec (- id idx))))) curr)))
+                                            (sum
+                                             (map-indexed (fn [^long idx ^double c]
+                                                            (* c ^double (acfs (dec (- id idx))))) curr)))
                                          (- 1.0
-                                            ^double (reduce m/fast+
-                                                            (map-indexed (fn [^long id ^double c]
-                                                                           (* c ^double (acfs (inc id)))) curr))))]
+                                            ^double (sum (map-indexed (fn [^long id ^double c]
+                                                                        (* c ^double (acfs (inc id)))) curr))))]
 
                               (conj (mapv (fn [^double p1 ^double p2]
                                             (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acfs 1)] (range 2 (inc lags)))]
@@ -2499,20 +2567,20 @@
   "Goodness of fit"
   [xs p ^double lambda]
   (let [cnt (count xs)
-        n (double (reduce m/fast+ xs))
+        n (sum xs)
         df (dec cnt)
         p (or p (repeat cnt 1.0))
         psum (sum p)
         p (map (fn [^double p] (/ p psum)) p)
         xhat (map (fn [^double p] (* n p)) p)
         stat (condp = (double lambda)
-               0.0 (* 2.0 ^double (reduce m/fast+ (map (fn [^long a ^double b]
-                                                         (* a (- (m/log a) (m/log b)))) xs xhat)))
-               -1.0 (* 2.0 ^double (reduce m/fast+ (map (fn [^double a ^long b]
-                                                          (* a (- (m/log a) (m/log b)))) xhat xs)))
+               0.0 (* 2.0 (sum (map (fn [^long a ^double b]
+                                      (* a (- (m/log a) (m/log b)))) xs xhat)))
+               -1.0 (* 2.0 (sum (map (fn [^double a ^long b]
+                                       (* a (- (m/log a) (m/log b)))) xhat xs)))
                (* (/ 2.0 (* lambda (inc lambda)))
-                  ^double (reduce m/fast+ (map (fn [^long a ^double b]
-                                                 (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
+                  (sum (map (fn [^long a ^double b]
+                              (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
     {:stat stat :df df :n n :expected xhat :p p
      :estimate (map (fn [^double v] (/ v n)) xs)}))
 
@@ -2812,12 +2880,12 @@
          n (count xs)
          r (m/rank1 xs)
          ties (vals (frequencies xs))
-         ^double stat (->> (map vector r groups)
-                           (group-by second)
-                           (vals)
-                           (map #(let [ranks (map first %)]
-                                   (/ (m/sq (sum ranks)) (count ranks))))
-                           (reduce m/fast+))
+         stat (->> (map vector r groups)
+                   (group-by second)
+                   (vals)
+                   (map #(let [ranks (map first %)]
+                           (/ (m/sq (sum ranks)) (count ranks))))
+                   (sum))
          stat (/ (- (/ (* 12.0 stat)
                        (* n (inc n)))
                     (* 3.0 (inc n)))

@@ -103,29 +103,30 @@
   To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."  
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.kernel :as k]
+            [fastmath.kernel.density :as k]
             [fastmath.protocols :as prot]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.interpolation.cubic :as cubic-interp]
             [fastmath.interpolation.monotone :as monotone-interp]
             [fastmath.interpolation.step :as step-interp]
+            [fastmath.calculus.quadrature :as quad]
             [fastmath.solver :as solver]
             [clojure.data.int-map :as im]            )
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
-           [fastmath.java R2]
+           [fastmath.java R2 Array]
            [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [umontreal.ssj.probdistmulti DirichletDist MultinomialDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
-           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]
-           [org.apache.commons.math3.analysis UnivariateFunction]
-           [org.apache.commons.math3.analysis.integration RombergIntegrator]))
+           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
+
 
 (set! *unchecked-math* :warn-on-boxed)
+#_(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 ;; Helper macro which creates RNG object of given class and/or seed.
@@ -864,48 +865,35 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   * `mn` - lower bound for integration, value of pdf-func should be 0.0 at this point
   * `mx` - upper bound for integration
   * `steps` - how much subintervals to integrate (default 1000)
-  * `min-iterations` - minimum iterations for RombergIntegrator (default 3)
   * `interpolator` - interpolation method between integrated points (default :linear)
+
+  Also other integration related parameters are accepted (`:gauss-kronrod` integration is used).
 
   Possible interpolation methods: `:linear` (default), `:spline`, `:monotone` or any function from `fastmath.interpolation`"
   ([pdf-func mn mx steps]
    (integrate-pdf pdf-func {:mn mn :mx mx :steps steps}))
-  ([pdf-func {:keys [^double mn ^double mx ^long steps
-                     interpolator ^long min-iterations]
-              :or {mn 0.0 mx 1.0 steps 1000
-                   min-iterations 3 interpolator :linear}}]
-   (let [step (/ (- mx mn) steps)
-         u-pdf-func (reify UnivariateFunction
-                      (value [_ x] (pdf-func x)))
-         ^RombergIntegrator romberg-integrator (RombergIntegrator. (max 2 min-iterations) RombergIntegrator/ROMBERG_MAX_ITERATIONS_COUNT)
-         ;; go through the intervals and integrate them, assuming that kde of `mn` is 0.0
-         points (second (reduce (fn [[^double curr lst] [^double x1 ^double x2]]
-                                  (let [i (.integrate romberg-integrator Integer/MAX_VALUE u-pdf-func x1 x2) ;; integration can be very slow on very narrow spikes
-                                        curr-new (m/constrain (+ i curr) 0.0 1.0)
-                                        res (if (> curr-new curr)
-                                              [curr-new (conj lst [x2 curr-new])]
-                                              [curr-new lst])]
-                                    (if (== curr-new 1.0) ;; avoid overflow of integration (usually it's underestimated)
-                                      (reduced res)
-                                      res))) [0.0 [[mn 0.0]]]
-                                (partition 2 1 (m/slice-range mn mx steps))))
-         [^double lx ^double ly] (last points)
-         points (if (< ly 1.0)
-                  (if (< lx mx)
-                    (conj points [mx 1.0])
-                    (conj points [(+ mx step) 1.0]))
-                  (if (< lx mx)
-                    (conj points [mx (m/next-double 1.0)])
-                    (conj points [(+ mx step) (m/next-double 1.0)]))) ;; fix upper endpoint
-         xs (m/seq->double-array (map first points))
-         ys (m/seq->double-array (map second points))
+  ([pdf-func {:keys [^double mn ^double mx ^long steps interpolator]
+              :or {mn 0.0 mx 1.0 steps 1000 interpolator :linear}
+              :as options}]
+   (let [diff3 (* 5.0 (/ (- mx mn) steps))
+         mn (- mn diff3)
+         mx (+ mx diff3)
+         xs (m/slice-range mn mx steps)
+         f (fn [^double x] (if (<= mn x mx) (pdf-func x) 0.0))
+         int-options (assoc options :info? false)
+         ys (->> (partition 2 1 xs)
+                 (map (fn [[^double x1 ^double x2]]
+                        (m/max m/MACHINE-EPSILON ;; in case if integration is zero
+                               ^double (quad/gk-quadrature f x1 x2 int-options))))
+                 (reductions m/fast+ 0.0)
+                 (m/seq->double-array))
+         ys (v/div ys (Array/aget ys (dec steps))) ;; normalize to ensure 1 at the endpoint
          intpol (case interpolator
                   :linear linear-interp/linear
                   :cubic cubic-interp/cubic
                   :monotone monotone-interp/monotone
                   (if (fn? interpolator) interpolator linear-interp/linear))]
-     ;; interpolate points lineary, return cdf and icdf
-     [(intpol xs ys)
+     [(let [i (intpol xs ys)] (fn [^double x] (m/constrain (double (i x)) 0.0 1.0)))
       (intpol ys xs)])))
 
 ;; apache commons math
@@ -1508,21 +1496,21 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   ([_ {:keys [data ^long steps kde bandwidth]
        :or {data [-1 0 1] steps 5000 kde :epanechnikov}
        :as all}]
-   (let [[kd _ _ ^double mn ^double mx] (k/kernel-density kde data bandwidth true)
+   (let [{:keys [kde ^double mn ^double mx]} (k/kernel-density+ kde data {:bandwidth bandwidth})
          step (/ (- mx mn) steps)
-         [^double mn ^double mx] (narrow-range kd [mn mx step] (* 4 steps))
-         [cdf-fn icdf-fn] (integrate-pdf kd (merge all {:mn mn :mx mx :steps steps}))
+         [^double mn ^double mx] (narrow-range kde [mn mx step] (* 4 steps))
+         [cdf-fn icdf-fn] (integrate-pdf kde (merge all {:mn mn :mx mx :steps steps}))
          r (or (:rng all) (rng :jvm))
          m (delay (StatUtils/mean (m/seq->double-array data)))
          v (delay (StatUtils/variance (m/seq->double-array data) ^double @m))]
      (reify
        prot/DistributionProto
-       (pdf [_ v] (kd v))
-       (lpdf [_ v] (m/log (kd v)))
+       (pdf [_ v] (kde v))
+       (lpdf [_ v] (m/log (kde v)))
        (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
        (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
        (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
-       (probability [_ v] (kd v))
+       (probability [_ v] (kde v))
        (sample [_] (icdf-fn (prot/drandom r)))
        (dimensions [_] 1)
        (source-object [d] d)

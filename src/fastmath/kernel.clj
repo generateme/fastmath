@@ -7,10 +7,11 @@
   * some kernel operations"
   (:require [fastmath.core :as m]
             [fastmath.kernel.rbf :as rbf]
-            [fastmath.kernel.vector :as vk])
-  (:import [org.apache.commons.math3.distribution NormalDistribution]))
+            [fastmath.kernel.vector :as vk]
+            [fastmath.kernel.density :as dens]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 (defmacro ^:private emit
@@ -181,150 +182,62 @@
   ([kernels weights]
    (fn [x y] (wmean (map (fn [k] (k x y)) kernels) weights))))
 
+;; kernel density estimation
 
-;;;;;;;;; density
+(defn bandwidth
+  "Returns infered bandwidth (h).
 
-(def ^{:const true :private true :tag 'double} gaussian-factor (/ (m/sqrt m/TWO_PI)))
+  h can be one of:
 
-(defn uniform-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) 0.5 0.0))
-(defn gaussian-density-kernel ^double [^double x] (* gaussian-factor (m/exp (* -0.5 x x))))
-(defn triangular-density-kernel ^double [^double x] (let [absx (m/abs x)]
-                                                   (if (<= absx 1.0) (- 1.0 absx) 0.0)))
-(defn epanechnikov-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.75 (- 1.0 (* x x))) 0.0))
-(defn quartic-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* 0.9375 (m/sq (- 1.0 (* x x)))) 0.0))
-(defn triweight-density-kernel
-  ^double [^double x]
-  (if (<= (m/abs x) 1.0)
-    (let [v (- 1.0 (* x x))]
-      (* 1.09375 v v v)) 0.0))
+  * `:nrd` - rule-of-thumb (scale=1.06)
+  * `:nrd0` - rule-of-thumb (scake=0.9)
+  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
+  * `:rlcv` - robust likelihood cross-validation
+  * `:lcv` - likelihood cross-validation
+  * `:lscv` - least squares cross-validation"
+  [kernel data h] (dens/bandwidth kernel data h))
 
-(defn tricube-density-kernel
-  ^double [^double x]
-  (let [absx (m/abs x)]
-    (if (<= absx 1.0)
-      (let [v (- 1.0 (* absx absx absx))]
-        (* 0.8875 v v v)) 0.0)))
+(defn kernel-density
+  "Returns kernel density estimation function, 1d
+  
+  Arguments:
+  * `kernel` - kernel name or kernel function  
+  * `data` - data
+  * `params` - a map containing:
+      * `:bandwidth` - bandwidth h
+      * `:binned?` - if data should be binned, if `true` the width of the bin is `bandwidth` divided by 5, if is a number then it will be used as denominator. Default: `false`.
 
-(defn cosine-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (* m/QUARTER_PI (m/cos (* m/HALF_PI x))) 0.0))
-(defn logistic-density-kernel ^double [^double x] (/ (+ 2.0 (m/exp x) (m/exp (- x)))))
-(defn sigmoid-density-kernel ^double [^double x] (/ (/ 2.0 (+ (m/exp x) (m/exp (- x)))) m/PI))
-(defn silverman-density-kernel
-  ^double [^double x]
-  (let [xx (/ (m/abs x) m/SQRT2)]
-    (* 0.5 (m/exp (- xx)) (m/sin (+ xx m/QUARTER_PI)))))
+  `:bandwidth` can be a number or one of:
 
-;; experimental
-(defn laplace-density-kernel ^double [^double x] (* 0.5 (m/exp (- (m/abs x)))))
-(defn wigner-density-kernel ^double [^double x] (if (<= (m/abs x) 1.0) (/ (* 2.0 (m/sqrt (- 1.0 (* x x)))) m/PI) 0.0))
-(defn cauchy-density-kernel ^double [^double x] (/ (* m/HALF_PI (inc (m/sq (/ x 0.5))))))
-
-;;
-
-(defn- nrd
-  ^double [data]
-  (let [adata (m/seq->double-array data)
-        sd (smile.math.MathEx/sd adata)
-        iqr (- (smile.math.MathEx/q3 adata)
-               (smile.math.MathEx/q1 adata))
-        res (double (cond
-                      (and (pos? sd) (pos? iqr)) (min sd (/ iqr 1.34))
-                      (pos? sd) sd
-                      (pos? iqr) (/ iqr 1.34)
-                      :else 1.0))]
-    (* 1.06 res (m/pow (alength ^doubles adata) -0.2))))
-
-(defn- kde
-  "Return kernel density estimation function"
-  ([data k] (kde data k nil))
-  ([data k h]
-   (let [data (let [a (m/seq->double-array data)] (java.util.Arrays/sort a) a)
-         last-idx (dec (alength data))
-         h (double (or h (nrd data)))
-         hrev (/ h)
-         span (* 6.0 h)
-         factor (/ (* (alength data) h))
-         mn (aget data 0)
-         mx (aget data last-idx)]
-     [(fn [^double x]
-        (let [start (java.util.Arrays/binarySearch data (- x span))
-              start (long (if (neg? start) (dec (- start)) start))
-              end (java.util.Arrays/binarySearch data (+ x span))
-              end (min last-idx (long (if (neg? end) (dec (- end)) end)))]
-          (loop [i start
-                 sum 0.0]
-            (if (<= i end)
-              (recur (inc i) (+ sum ^double (k (* hrev (- x (aget data i))))))
-              (* factor sum)))))
-      factor h (- mn span) (+ mx span)])))
-
-(defonce ^:private kde-integral
-  {:uniform 0.5
-   :triangular m/TWO_THIRD
-   :epanechnikov 0.6
-   :quartic (/ 5.0 7.0)
-   :triweight (/ 350.0 429.0)
-   :tricube (/ 175.0 247.0)
-   :gaussian (* 0.5 (/ m/SQRTPI))
-   :cosine (* 0.0625 m/PI m/PI)
-   :logistic m/SIXTH
-   :sigmoid (/ 2.0 (* m/PI m/PI))
-   :silverman (* 0.0625 3.0 m/SQRT2)
-   :wigner (/ 16.0 (* 3 m/PI m/PI))
-   :cauchy m/M_1_PI
-   :laplace 0.25})
-
-(defmulti kernel-density
-  "Create kernel density estimator.
-
-  Parameters:
-
-  * kernel name, see [[kernel-density-list]].
-  * sequence of data values
-  * optional: bandwidth (by default, bandwidth is estimated using nrd method)"
-  (fn [k & _] k))
-
-(defmacro ^:private make-kernel-density-fns
-  [lst]
-  `(do ~@(for [v (eval lst)
-               :let [n (symbol (str (name v) "-density-kernel"))]]
-           `(defmethod kernel-density ~v
-              ([k# vs#] (first (kde vs# ~n)))
-              ([k# vs# h#] (first (kde vs# ~n h#)))
-              ([k# vs# h# all?#] (let [kded# (kde vs# ~n h#)]
-                                   (if all?# kded# (first kded#))))))))
-
-(make-kernel-density-fns (keys kde-integral))
-
-(defmethod kernel-density :default [_ & r] (apply kernel-density :gaussian r))
-
-(def kernel-density-list ^{:doc "List of available density kernels."} (sort (keys (methods kernel-density))))
+  * `:nrd` - rule-of-thumb (scale=1.06)
+  * `:nrd0` - rule-of-thumb (scake=0.9)
+  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
+  * `:rlcv` - robust likelihood cross-validation
+  * `:lcv` - likelihood cross-validation
+  * `:lscv` - least squares cross-validation"
+  ([kernel data] (kernel-density kernel data {:bandwidth :nrd}))
+  ([kernel data bandwidth] (kernel-density kernel data bandwidth false))
+  ([kernel data bandwidth info?]
+   (let [h (if (number? bandwidth) {:bandwidth bandwidth} bandwidth)
+         f (if info? dens/kernel-density+ dens/kernel-density)]
+     (f kernel data h))))
 
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
 
   Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html
 
-  Parameters:
+  Arguments:
 
-  * `method` - kernel name
+  * `kernel` - kernel name  
   * `data` - sequence of data values
-  * `bandwidth`
-  * `alpha` - confidence level parameter
+  * `params` - map with other parameters (including [[kernel-density]] parameters)
+      * `alpha` - confidence level, default: 0.05
 
-  Returns three values: density, lower confidence, upper confidence"
-  ([method data] (kernel-density-ci method data nil))
-  ([method data bandwidth] (kernel-density-ci method data bandwidth 0.05))
-  ([method data bandwidth ^double alpha]
-   (if (contains? kde-integral method)
-     (let [^NormalDistribution local-normal (NormalDistribution.)
-           za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
-           [kde-f ^double factor] (kernel-density method data bandwidth true)]
-       (fn [^double x]
-         (let [^double fx (kde-f x)
-               band (* za (m/sqrt (* factor ^double (kde-integral method) fx)))]
-           [fx (- fx band) (+ fx band)])))
-     (let [kde-f (kernel-density method data bandwidth)]
-       (fn [x] (let [fx (kde-f x)]
-                [fx fx fx]))))))
+  Returns three values: density, lower confidence value and upper confidence value"
+  ([kernel data] (kernel-density-ci kernel data {:bandwidth :nrd}))
+  ([kernel data bandwidth-or-params]
+   (let [p (if (number? bandwidth-or-params) {:bandwidth bandwidth-or-params} bandwidth-or-params)]
+     (dens/kernel-density-ci kernel data p))))
 
 (m/unuse-primitive-operators)

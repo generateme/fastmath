@@ -41,8 +41,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma])
-  (:require [fastmath.core :as m]))
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -652,7 +651,7 @@
   "Whittaker's M"
   ^double [^double kappa ^double mu ^double x]
   (let [mu+05 (+ 0.5 mu)
-        z (m/exp (+ (* -0.5 x) (* mu+05 (m/log x))))]
+        z (exp (+ (* -0.5 x) (* mu+05 (log x))))]
     (* z (kummers-M (- mu+05 kappa) (inc (* 2.0 mu)) x))))
 
 ;; Laguerre
@@ -706,8 +705,8 @@
   Function accepts only odd integers for order"
   ^double [^long order ^double x]
   (case (int order)
-    1 (* (m/sqrt (/ m/HALF_PI x)) (m/exp (- x)))
-    3 (* (m/sqrt (/ m/HALF_PI x)) (m/exp (- x)) (inc (/ x)))
+    1 (* (sqrt (/ HALF_PI x)) (exp (- x)))
+    3 (* (sqrt (/ HALF_PI x)) (exp (- x)) (inc (/ x)))
     (loop [i (long 5)
            ^DPair pair (DPair. (bessel-k-half 1 x) (bessel-k-half 3 x))]
       (if (> i order)

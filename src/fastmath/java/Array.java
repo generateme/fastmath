@@ -39,6 +39,15 @@ public final class Array {
     public static double aget(double[] a, int idx) { return a[idx]; }
     public static double aget2d(double[][] a, int i, int j) { return a[i][j];}
     public static double[] aset(double[] a, int idx, double v) { a[idx]=v; return a; }
+
+    public static int aget(  int[] a, int idx) { return a[idx]; }
+    public static int aget2d(int[][] a, int i, int j) { return a[i][j];}
+    public static int[] aset(int[] a, int idx, int v) { a[idx]=v; return a; }
+
+    public static long aget(  long[] a, int idx) { return a[idx]; }
+    public static long aget2d(long[][] a, int i, int j) { return a[i][j];}
+    public static long[] aset(long[] a, int idx, long v) { a[idx]=v; return a; }
+
     
     // 2d
     

@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0] - unreleased
+## [3.0.0-SNAPSHOT]
 
 First release without SMILE dependency.
 
@@ -11,6 +11,8 @@ First release without SMILE dependency.
 * semi-variograms for kringing
 * rbf interpolation accepts polynomial term
 * barycentric interpolation
+* `:frequencies` and `:bins-maps` data in histogram result
+* JTransform fft,dct,dst,dht transformations
 
 ### Changed
 
@@ -21,6 +23,8 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 * [breaking] `fastmath.kernel` is rewritten with changed API for `rbf` and `kernel`
 * [breaking] `fastmath.interpolation` is rewritten with changed API, part of the methods are implemented directly in Clojure, names are unified
 * [breaking] `fastmath.distance` rewritten
+* `integrate-pdf` rewritten to use `:gauss-kronrod` integration (safer and faster)
+
 
 ## [2.4.0]
 

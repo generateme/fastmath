@@ -1,9 +1,10 @@
 (ns fastmath.kernel.density
   (:require [fastmath.core :as m]
-            [fastmath.optimization :as optim]
-            [fastmath.calculus :as calc])
+            [fastmath.optimization.lbfgsb :as optim]
+            [fastmath.calculus.quadrature :as calc])
   (:import [org.apache.commons.math3.stat StatUtils]
-           [org.apache.commons.math3.distribution NormalDistribution]))
+           [org.apache.commons.math3.distribution NormalDistribution]
+           [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -111,66 +112,128 @@
   * `:k2` - integral of K(x)^2
   * `:x2k` - integral of x^2K(x)
   * `:delta0` - canonical bandwidth
-  * `:efficiency` - absolute efficiency"
-  (let [in {:uniform {:k2 0.5 :x2k m/THIRD :kernel uniform}
-            :triangular {:k2 m/TWO_THIRD :x2k m/SIXTH :kernel triangular}
-            :epanechnikov {:k2 0.6 :x2k 0.2 :kernel epanechnikov}
-            :quartic {:k2 (m// 5.0 7.0) :x2k (m// 7.0) :kernel quartic}
-            :triweight {:k2 (m// 350.0 429.0) :x2k (m// 9.0) :kernel triweight}
-            :tricube {:k2 (m// 175.0 247.0) :x2k (m// 35.0 243.0) :kernel tricube}
-            :gaussian {:k2 (m/* 0.5 (m// m/SQRTPI)) :x2k 1.0 :kernel gaussian}
-            :cosine {:k2 (m/* 0.0625 m/PI m/PI) :x2k (m/- 1.0 (m// 8.0 (m/* m/PI m/PI))) :kernel cosine}
-            :logistic {:k2 m/SIXTH :x2k (m// (m/* m/PI m/PI) 3.0) :kernel logistic}
-            :sigmoid {:k2 (m// 2.0 (* m/PI m/PI)) :x2k (m// (* m/PI m/PI) 4.0) :kernel sigmoid}
-            :silverman {:k2 (m/* 0.0625 3.0 m/SQRT2) :x2k 0.0 :kernel silverman}
-            :wigner {:k2 (m// 16.0 (m/* 3.0 m/PI m/PI)) :x2k 0.25 :kernel wigner}
-            :cauchy {:k2 m/M_1_PI :x2k ##Inf :kernel cauchy}
-            :laplace {:k2 0.25 :x2k 2.0 :kernel laplace}}]
+  * `:efficiency` - absolute efficiency
+  * `:radius` - radius of the function where function is positive or greater than 1.0e-10"
+  (let [in {:uniform {:k2 0.5 :x2k m/THIRD :kernel uniform :radius 1.0}
+            :triangular {:k2 m/TWO_THIRD :x2k m/SIXTH :kernel triangular :radius 1.0}
+            :epanechnikov {:k2 0.6 :x2k 0.2 :kernel epanechnikov :radius 1.0}
+            :quartic {:k2 (m// 5.0 7.0) :x2k (m// 7.0) :kernel quartic :radius 1.0}
+            :triweight {:k2 (m// 350.0 429.0) :x2k (m// 9.0) :kernel triweight :radius 1.0}
+            :tricube {:k2 (m// 175.0 247.0) :x2k (m// 35.0 243.0) :kernel tricube :radius 1.0}
+            :gaussian {:k2 (m/* 0.5 (m// m/SQRTPI)) :x2k 1.0 :kernel gaussian :radius 6.65}
+            :cosine {:k2 (m/* 0.0625 m/PI m/PI) :x2k (m/- 1.0 (m// 8.0 (m/* m/PI m/PI)))
+                     :kernel cosine :radius 1.0}
+            :logistic {:k2 m/SIXTH :x2k (m// (m/* m/PI m/PI) 3.0) :kernel logistic :radius 23.1}
+            :sigmoid {:k2 (m// 2.0 (* m/PI m/PI)) :x2k (m// (* m/PI m/PI) 4.0) :kernel sigmoid :radius 22.6}
+            :silverman {:k2 (m/* 0.0625 3.0 m/SQRT2) :x2k 0.0 :kernel silverman :radius 29.7}
+            :wigner {:k2 (m// 16.0 (m/* 3.0 m/PI m/PI)) :x2k 0.25 :kernel wigner :radius 1.0}
+            :cauchy {:k2 m/M_1_PI :x2k ##Inf :kernel cauchy :radius 30}
+            :laplace {:k2 0.25 :x2k 2.0 :kernel laplace :radius 22.4}}]
     
     (reduce (fn [m k] (update m k calc-additional-consts)) in (keys in))))
 
-;; 
-
-(defn- kde-
-  "Expects sorted data as double-array"
-  ([{:keys [^doubles data ^long len ^double mn ^double mx ^long last-idx kernel]} ^double h]
-   (let [hrev (m// h)
-         span (m/* 6.0 h)
-         factor (m// (* len h))]
-     {:kde (fn ^double [^double x]
-             (let [start (java.util.Arrays/binarySearch data (- x span))
-                   start (long (if (neg? start) (dec (- start)) start))
-                   end (java.util.Arrays/binarySearch data (+ x span))
-                   end (min last-idx (long (if (neg? end) (dec (- end)) end)))]
-               (loop [i start
-                      sum 0.0]
-                 (if (<= i end)
-                   (recur (inc i) (+ sum ^double (kernel (* hrev (- x (aget data i))))))
-                   (* factor sum)))))
-      :factor factor
-      :h h
-      :mn (- mn span)
-      :mx (+ mx span)})))
+;;
 
 (defn- preprocess-data->map
-  [^doubles adata kernel]
+  [^doubles adata kernel binned?]
   (let [len (alength adata)
         len- (m/dec len)]
     {:data adata
      :len len
-     :last-idx len-
-     :mn (aget adata 0)
-     :mx (aget adata len-)
+     :mn (Array/aget adata 0)
+     :mx (Array/aget adata len-)
+     :binned? binned?
      :kernel-name kernel
      :kernel (if (fn? kernel) kernel
                  (get-in kde-data [kernel :kernel]))}))
 
 (defn- preprocess-data
   "Returns preprocessed kde data."
-  [data kernel]
+  [data kernel binned?]
   (preprocess-data->map (let [a (m/seq->double-array data)]
                           (java.util.Arrays/sort a)
-                          a) kernel))
+                          a) kernel binned?))
+
+
+;; 
+
+(defn- maybe-binned
+  "Bin data and calculate averages and frequencies"
+  [^doubles data ^double h ^long len binned?]
+  (if-not binned?
+    [data]
+    (let [width (m// h (if (number? binned?) (double binned?) 5.0))]
+      (loop [id (int 0)
+             mx (m/+ width (Array/get data 0))
+             arr []
+             ws []
+             curr-sum (double 0.0)
+             curr-cnt (int 0)]
+        (if (m/== id len)
+          (if (zero? curr-cnt)
+            [(double-array arr) (int-array ws)]
+            [(double-array (conj arr (m// curr-sum curr-cnt))) (int-array (conj ws curr-cnt))])
+          (let [curr-v (Array/get data id)]
+            (if (m/< curr-v mx)
+              (recur (inc id) mx arr ws (m/+ curr-sum curr-v) (m/inc curr-cnt))
+              (if (m/zero? curr-cnt)
+                (recur id (m/+ mx width) arr ws 0.0 0)
+                (recur id (m/+ mx width)
+                       (conj arr (m// curr-sum curr-cnt))
+                       (conj ws curr-cnt)
+                       0.0 0)))))))))
+
+(defn- kde-
+  "Expects sorted data as double-array"
+  ([{:keys [^doubles data ^long len ^double mn ^double mx kernel kernel-name binned?]} ^double h]
+   (let [[^doubles data ^ints weights] (maybe-binned data h len binned?)
+         last-idx (m/dec (alength data))
+         hrev (m// h)
+         span (m/* 1.01 h (double (get-in kde-data [kernel-name :radius] 5.0)))
+         -span (m/- span)
+         factor (m// (m/* len h))
+         kf (if binned?
+              (fn ^double [^long i ^double diff]
+                (m/* (Array/aget weights i)
+                     ^double (kernel (m/* hrev diff))))
+              (fn ^double [_ ^double diff]
+                (kernel (m/* hrev diff))))]
+     {:kde (fn ^double [^double x]
+             (let [id (as-> (java.util.Arrays/binarySearch data x) id
+                        (if (m/neg? id) (m/- (m/- id) 2) id)
+                        (m/constrain (long id) 0 last-idx))
+                   ^double k+ (loop [i id
+                                     s (double 0.0)]
+                                (if (m/== i len)
+                                  s
+                                  (let [diff (m/- x (Array/get data i))
+                                        ^double kv (kf i diff)]
+                                    (if (m/<= -span diff span)
+                                      (recur (m/inc i) (m/+ s kv))
+                                      (m/+ s kv)))))
+                   ^double k-all (loop [i (m/dec id)
+                                        s k+]
+                                   (if (m/neg? i)
+                                     s
+                                     (let [diff (m/- x (Array/get data i))
+                                           ^double kv (kf i diff)]
+                                       (if (m/<= -span diff span)
+                                         (recur (m/dec i) (m/+ s kv))
+                                         (m/+ s kv)))))]
+               (m/* factor k-all))
+             #_(let [start (java.util.Arrays/binarySearch data (m/- x span))
+                     start (m/max 0 (long (if (m/neg? start) (m/- (m/- start) 2) start)))
+                     end (java.util.Arrays/binarySearch data (m/+ x span))
+                     end (m/min last-idx (long (if (m/neg? end) (m/dec (m/- end)) end)))]
+                 (loop [i start
+                        sum (double 0.0)]
+                   (if (m/<= i end)
+                     (recur (m/inc i) (m/+ sum ^double (kf i x)))
+                     (m/* factor sum)))))
+      :factor factor
+      :h h
+      :mn (m/- mn span)
+      :mx (m/+ mx span)})))
 
 ;; bandwidth estimation
 
@@ -187,9 +250,9 @@
 ;; nrd 1.06
 (defn- nrd
   (^double [{:keys [^doubles data ^long len]} ^double sd ^double scale]
-   (let [iqr- (/ (m/- (StatUtils/percentile data 75.0)
-                      (StatUtils/percentile data 25.0)) 1.34)]
-     (* scale (select-one sd iqr-) (m/pow len -0.2))))
+   (let [iqr- (m// (m/- (StatUtils/percentile data 75.0)
+                        (StatUtils/percentile data 25.0)) 1.34)]
+     (m/* scale (select-one sd iqr-) (m/pow len -0.2))))
   (^double [kdata ^double scale]
    (let [sd (m/sqrt (StatUtils/variance ^doubles (:data kdata)))]
      (nrd kdata sd scale))))
@@ -202,21 +265,18 @@
       (m/* nrd-raw nrd-scale)
       nrd-raw)))
 
-(defn- array-loo
-  [^doubles arr ^long cnt ^long idx]
-  (let [narr (double-array (m/dec cnt))]
-    (System/arraycopy arr 0 narr 0 idx)
-    (System/arraycopy arr (m/inc idx) narr idx (m/- cnt idx 1))
-    narr))
+;;
 
-(defn- kde-i
-  "Loo kde values"
-  [{:keys [data kernel ^long len]} ^double h]
-  (let [kdes (->> (range len)
-                  (map (partial array-loo data len))
-                  (map (fn [arr]
-                         (:kde (kde- (preprocess-data->map arr kernel) h)))))]
-    (map #(%1 %2) kdes data)))
+(defn- kde-loo
+  "KDE with removed x0 and corrected scaling"
+  [{:keys [^doubles data kernel ^long len] :as kdata} ^double h]
+  (let [{kf :kde ^double factor :factor} (kde- kdata h)
+        ^double k0 (kernel 0.0)
+        fact (m// len (m/- len 1.0))]
+    (map (fn [^double x]
+           (let [^double v (kf x)]
+             (m/* fact (m/- v (m/* factor k0))))) data)))
+
 
 ;; https://www.researchgate.net/publication/322358754_Robust_Likelihood_Cross_Validation_for_Kernel_Density_Estimation
 
@@ -230,7 +290,7 @@
         bhx (fn ^double [^double x]
               (let [^double v (kde x)]
                 (if (m/>= v a) v (m/* v v a-))))]
-    (calc/integrate bhx mn mx)))
+    (calc/gk-quadrature bhx mn mx)))
 
 (defn- ->rlcv-log
   [^double a ^double la-]
@@ -239,56 +299,62 @@
       (m/ln x)
       (m/+ la- (m// x a)))))
 
-(defn- rlcv-target
+(defn rlcv-target
+  "Create target function to estimate bandwidth using Robust Likelihood Cross Validation."
   [kdata]
   (let [a (rlcv-a kdata)
         la- (m/dec (m/ln a))]
     (fn ^double [^double h]
       (let [k (kde- kdata h)
             b (rlcv-b k a)
-            lf (map (->rlcv-log a la-) (kde-i kdata h))]
+            lf (map (->rlcv-log a la-) (kde-loo kdata h))]
         (m/- (StatUtils/mean (double-array lf)) b)))))
 
-(defn- lcv-target
+(defn lcv-target
+  "Create target function to estimate bandwidth using Likelihood Cross Validation."
   [kdata]
   (fn ^double [^double h]
-    (->> (kde-i kdata h)
-         (filter pos?)
-         (map (fn [^double v] (m/log v)))
+    (->> (kde-loo kdata h)
+         #_ (filter (fn [^double v] (m/pos? v)))
+         (map (fn [^double v] (m/log (m/max v 1.0e-3))))
          (double-array)
          (StatUtils/mean))))
 
-(defn- lscv-target
+(defn lscv-target
+  "Create target function to estimate bandwidth using Least Squares Cross Validation."
   [kdata]
   (fn ^double [^double h]
     (let [{:keys [kde ^double mn ^double mx]} (kde- kdata h)
-          in (double (calc/integrate (fn [^double v] (m/sq (kde v))) mn mx))
-          lf (kde-i kdata h)]
+          in (double (calc/gk-quadrature (fn [^double v] (m/sq (kde v))) mn mx))
+          lf (kde-loo kdata h)]
       (m/- in (m/* 2.0 (StatUtils/mean (double-array lf)))))))
 
 (defn- cv
+  "Cross validation method optimizer."
   [kdata opt target]
   (let [sd (m/sqrt (StatUtils/variance (:data kdata)))
-        init-h (nrd kdata sd 1.06)
-        nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))]
-    (-> (opt :lbfgsb (target nkdata)
-             {:bounds [[(m/* 0.2 init-h)
-                        (m/* 5.0 init-h)]]
-              :init [init-h]})
+        nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))
+        f (target nkdata)
+        init-h (nrd kdata sd 1.0) 
+        mn (m/* 0.2 init-h)
+        mx (m/* 3.0 init-h)]
+    (-> (opt f {:initial [init-h]
+                :bounds [[mn mx]]})
         ^double (ffirst)
         (m/* sd))))
 
 (defn- infer-h
   ^double [kdata h]
-  (if (keyword? h)
-    (case h
-      :nrd (nrd kdata 1.06)
-      :nrd-adjust (nrd-adjust kdata)
-      :nrd0 (nrd kdata 0.9)
-      :rlcv (cv kdata optim/maximize rlcv-target)
-      :lcv (cv kdata optim/maximize lcv-target)
-      :lscv (cv kdata optim/minimize lscv-target))
-    (or h (nrd kdata 1.06))))
+  (let [kdata (assoc kdata :binned? false)]
+    (if (keyword? h)
+      (case h
+        :nrd (nrd kdata 1.06)
+        :nrd-adjust (nrd-adjust kdata)
+        :nrd0 (nrd kdata 0.9)
+        :rlcv (cv kdata optim/maximize rlcv-target)
+        :lcv (cv kdata optim/maximize lcv-target)
+        :lscv (cv kdata optim/minimize lscv-target))
+      (or h (nrd kdata 1.06)))))
 
 (defn bandwidth
   "Returns infered bandwidth (h).
@@ -303,7 +369,7 @@
   * `:lscv` - least squares cross-validation"
   [kernel data h]
   (-> data
-      (preprocess-data kernel)
+      (preprocess-data kernel nil)
       (infer-h h)))
 
 (defn kernel-density+
@@ -318,19 +384,21 @@
 
   For arguments see [[kernel-density]]"
   ([kernel data] (kernel-density+ kernel data nil))
-  ([kernel data bandwidth] (let [kdata (preprocess-data data kernel)
-                                 h (infer-h kdata bandwidth)]
-                             (kde- kdata h))))
+  ([kernel data {:keys [^double bandwidth binned?]}] (let [kdata (preprocess-data data kernel binned?)
+                                                           h (infer-h kdata bandwidth)]
+                                                       (kde- kdata h))))
 
 (defn kernel-density
   "Returns kernel density estimation function, 1d
   
   Arguments:
+  * `kernel` - kernel name or kernel function  
   * `data` - data
-  * `kernel` - kernel name or kernel function
-  * `bandwidth` - bandwitdth h  
+  * `params` - a map containing:
+      * `:bandwidth` - bandwidth h
+      * `:binned?` - if data should be binned, if `true` the width of the bin is `bandwidth` divided by 5, if is a number then it will be used as denominator. Default: `false`.
 
-  `bandwidth` can be a number or one of:
+  `:bandwidth` can be a number or one of:
 
   * `:nrd` - rule-of-thumb (scale=1.06)
   * `:nrd0` - rule-of-thumb (scake=0.9)
@@ -339,7 +407,7 @@
   * `:lcv` - likelihood cross-validation
   * `:lscv` - least squares cross-validation"
   ([kernel data] (kernel-density kernel data nil))
-  ([kernel data bandwidth] (:kde (kernel-density+ kernel data bandwidth))))
+  ([kernel data params] (:kde (kernel-density+ kernel data params))))
 
 (defn kernel-density-ci
   "Create function which returns confidence intervals for given kde method.
@@ -355,53 +423,113 @@
 
   Returns three values: density, lower confidence value and upper confidence value"
   ([kernel data] (kernel-density-ci kernel data nil))
-  ([kernel data bandwidth] (kernel-density-ci kernel data bandwidth 0.05))
-  ([kernel data bandwidth ^double alpha]
+  ([kernel data {:keys [^double alpha]
+                 :or {alpha 0.05}
+                 :as params}]
    (assert (contains? kde-data kernel) "No information about given kernel for CI calculation. ")
    (let [^double kded (:k2 (kde-data kernel))
          ^NormalDistribution local-normal (NormalDistribution.)
          za (.inverseCumulativeProbability local-normal (- 1.0 (* 0.5 (or alpha 0.05))))
-         {:keys [kde ^double factor]} (kernel-density+ kernel data bandwidth)]
+         {:keys [kde ^double factor]} (kernel-density+ kernel data params)]
      (fn [^double x]
        (let [^double fx (kde x)
              band (* za (m/sqrt (* factor ^double kded fx)))]
          [fx (- fx band) (+ fx band)])))))
 
+(comment
+
+  (require '[ggplot])
+  (require '[fastmath.random :as r])
+
+  (def mixture (let [d1 (r/distribution :laplace {:mu 0})
+                   d2 (r/distribution :normal {:mu -3})
+                   d3 (r/distribution :laplace {:mu 3})
+                   d4 (r/distribution :gamma)]
+               (r/distribution :mixture {:distrs [d1 d2 d3 d4]})))
+
+  (def mdata (r/->seq mixture 1000))
+  (def mdata2 (repeatedly 500 r/grand))
+  
+  (defn error
+    [{:keys [kde ^double mn ^double mx]} fb]
+    (m/sqrt (calc/gk-quadrature (fn [x] (m/sq (m/- ^double (kde x) ^double (fb x)))) mn mx)))
+
+  (optim/minimize :lbfgsb
+                  (let [z (partial r/pdf mixture)]
+                    (fn [^double h]
+                      (error (kernel-density+ :triangular mdata h) z))) {:bounds [[0.001 10]]})
+  ;; => 0.031145928740074845
+  ;; => 0.032285504370544026
+
+  (defn diff-b []
+    (let [f1 (kernel-density :epanechnikov mdata {:bandwidth :nrd-adjust})
+          f2 (kernel-density :epanechnikov mdata {:bandwidth :nrd-adjust
+                                                  :binned? 5})]
+      (fn [^double x] (m/abs (- (f1 x) (f2 x))))))
+  
+  (time (-> (ggplot/function (kernel-density :triangular mdata {:bandwidth :lscv
+                                                                :binned? false})
+                             {:x [-10 15]
+                              :palette (ggplot/paletter-d :wesanderson/Royal1)})
+            (ggplot/->file)))
+
+  (require '[criterium.core :as crit])
+  
+  (crit/quick-bench (let [kdata (preprocess-data mdata :gaussian false)]
+                      (reduce m/fast+ (kde-loo kdata 0.2))))
+
+  (take 5 (drop 150 (kde-loo2 (preprocess-data mdata :gaussian false) 0.5)))
+  ;; => (0.047971176833162335
+  ;;     0.048028494833802386
+  ;;     0.048073927630125524
+  ;;     0.04809236379383182
+  ;;     0.048167195335382065)
+  ;; => (0.04797117683316232
+  ;;     0.048028494833802386
+  ;;     0.048073927630125524
+  ;;     0.04809236379383182
+  ;;     0.04816719533538206)
+  
+  ;; => 458.3142188267523
+  ;; => 458.31421882335604
+  
+  (let [data (concat mdata mdata2)
+        k :epanechnikov
+        kdata (preprocess-data data k false)
+        init-h (nrd kdata 1.0)]
+    (time (println init-h (bandwidth k data :rlcv)))
+    (-> (ggplot/function (rlcv-target kdata) {:x [(m/* 0.2 init-h)
+                                                  (m/* 3.0 init-h)]
+                                              :steps 200})
+        (ggplot/->file)))
 
 
-(require '[ggplot])
-(require '[fastmath.random :as r])
-(require '[fastmath.stats.bootstrap :as boot])
+  (time ((lcv-target (preprocess-data mdata :epanechnikov false)) 0.5))
+  
+  (prof/profile (time (bandwidth :gaussian mdata :lcv)))
 
-(def mixture (let [d1 (r/distribution :laplace {:mu 0})
-                 d2 (r/distribution :normal {:mu -3})
-                 d3 (r/distribution :laplace {:mu 3})
-                 d4 (r/distribution :gamma)]
-             (r/distribution :mixture {:distrs [d1 d2 d3 d4]})))
+  (time (bandwidth :epanechnikov mdata :lscv))
+  ;; => 0.4199722051981471
+  ;; => 0.4199722051981471
+  ;; => 0.5077160785575244
+  ;; => 0.507716078554091
 
-(def mdata (r/->seq mixture 500))
-(def mdata2 (repeatedly 5000 r/grand))
+  
+  (prof/profile (reduce m/fast+ (mapv epanechnikov (repeatedly 100000 r/grand))))
 
-(defn error
-  [{:keys [kde ^double mn ^double mx]} fb]
-  (m/sqrt (calc/integrate (fn [x] (m/sq (m/- ^double (kde x) ^double (fb x)))) mn mx)))
-
-(optim/minimize :lbfgsb
-                (let [z (partial r/pdf mixture)]
-                  (fn [^double h]
-                    (error (kernel-density+ :triangular mdata h) z))) {:bounds [[0.001 10]]})
-;; => 0.031145928740074845
-;; => 0.032285504370544026
-
-(-> (ggplot/function-ci (kernel-density-ci :triangular mdata :nrd-adjust) {:x [-10 15]})
-    (ggplot/->file))
+  (ggplot/gg-> (ggplot/histogram {:x mdata2} :mapping (ggplot/aes :x :x))
+               (ggplot/->file))
 
 
+  (require '[clj-async-profiler.core :as prof])
 
+  (prof/profile (dotimes [i 10000] (reduce + (range i))))
 
-(ggplot/gg-> (ggplot/histogram {:x mdata2} :mapping (ggplot/aes :x :x))
-             (ggplot/->file))
-
-
-(-> (ggplot/function (partial r/pdf mixture) {:x [-7 15]})
-    (ggplot/->file))
+  (prof/serve-ui 8080)
+  
+  (-> (ggplot/function (partial r/pdf mixture) {:x [-7 15]})
+      (ggplot/->file)))
+;; => nil
+;; => nil
+;; => nil
+;; => nil

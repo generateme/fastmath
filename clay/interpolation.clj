@@ -31,7 +31,7 @@
 ;; * Kernel based interpolation
 ;; * Smoothing
 
-;; All methods are accessible from `fastmath.interpolation` namespace via a multimethod `interpolation`. Additionally each method is implemented as a regular function in the dedicated namespace. `interpolation` returns an interpolant function.
+;; All methods are accessible from `fastmath.interpolation` namespace via a multimethod `interpolation`. Additionally each method is implemented as a regular function in the dedicated namespace. `interpolation` returns an interpolant function
 
 ;; Both examples below are equivalent:
 

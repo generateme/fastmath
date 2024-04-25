@@ -22,7 +22,7 @@
         l (dec (alength xs))]
     (fn ^double [^double x]
       (let [b (java.util.Arrays/binarySearch xs x)
-            i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
+            ^long i (if (neg? b) (m/constrain (dec (- b)) 0 l) b)]
         (Array/aget ys i)))))
 
 (defn step
@@ -36,16 +36,16 @@
          lst (dec (- l))]
      (fn ^double [^double x]
        (let [b (java.util.Arrays/binarySearch ^doubles xs x) 
-             i (cond
-                 (== b -1) 0
-                 (< b lst) l
-                 (< b -1) (let [b-2 (- (- b) 2)
-                                b-1 (dec (- b))
-                                x1 (Array/aget xs b-2)
-                                x2 (Array/aget xs b-1)
-                                diff (+ x1 (* point (- x2 x1)))]
-                            (if (< x diff) b-2 b-1))
-                 :else b)]
+             ^long i (cond
+                       (== b -1) 0
+                       (< b lst) l
+                       (< b -1) (let [b-2 (- (- b) 2)
+                                      b-1 (dec (- b))
+                                      x1 (Array/aget xs b-2)
+                                      x2 (Array/aget xs b-1)
+                                      diff (+ x1 (* point (- x2 x1)))]
+                                  (if (< x diff) b-2 b-1))
+                       :else b)]
          (Array/aget ys i))))))
 
 (m/unuse-primitive-operators)

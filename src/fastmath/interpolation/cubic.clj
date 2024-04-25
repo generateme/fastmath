@@ -50,7 +50,7 @@
 (defn- coeffs-array
   [^doubles xs ^doubles ys]
   (let [n (m/dec (alength xs))
-        y2 (y'' xs ys)]
+        ^doubles y2 (y'' xs ys)]
     (loop [i (long 0)
            arr []]
       (if (m/== i n)
