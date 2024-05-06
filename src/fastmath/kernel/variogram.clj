@@ -428,7 +428,7 @@
                                                  (est-fn gamma- gamma)) svh gammas)
                                           (stats/wmean weights-seq))))
 
-                      :ngg2 (let [ng (map m/fast* ns gammas)]
+                      :ngg2 (let [ng (map m/* ns gammas)]
                               (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
                                              svh (map sv hs)
                                              weights-seq (weights-n-v3 ng svh)]

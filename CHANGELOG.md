@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file. This change
 ## [3.0.0-SNAPSHOT]
 
 First release without SMILE dependency.
+Also a lot of refactoring [breaking] was done.
 
 ### Added
 
@@ -13,6 +14,7 @@ First release without SMILE dependency.
 * barycentric interpolation
 * `:frequencies` and `:bins-maps` data in histogram result
 * JTransform fft,dct,dst,dht transformations
+* Data transformations (Power/Box-Cox/Yeo-Johnson)
 
 ### Changed
 
@@ -24,7 +26,6 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 * [breaking] `fastmath.interpolation` is rewritten with changed API, part of the methods are implemented directly in Clojure, names are unified
 * [breaking] `fastmath.distance` rewritten
 * `integrate-pdf` rewritten to use `:gauss-kronrod` integration (safer and faster)
-
 
 ## [2.4.0]
 

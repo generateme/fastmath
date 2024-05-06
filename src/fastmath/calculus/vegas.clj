@@ -135,8 +135,8 @@
 
 (defn volume
   ^double [[left right]]
-  (->> (map m/fast- right left)
-       (reduce m/fast*)))
+  (->> (map m/- right left)
+       (reduce m/*)))
 
 (defn build-hypercubes
   [{:keys [nstrats ^long nevals ^long nintervals ^long dims]

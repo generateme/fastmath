@@ -180,7 +180,7 @@
     (fn [^double x] (->> (range 1 100)
                         (map (fn [^long v]
                                (m/cos (m// x v))))
-                        (reduce m/fast* (m// (m/sin (m/* 4.0 x)) x)))) 0 ##Inf m/HALF_PI
+                        (reduce m/* (m// (m/sin (m/* 4.0 x)) x)))) 0 ##Inf m/HALF_PI
     (fn [^double x] (m// (m/ln x) (m/inc (m/sq x)))) 0 ##Inf 0.0
     (fn [^double x] (m// (m/cosh x))) ##-Inf ##Inf m/PI
     (partial r/pdf (r/distribution :laplace)) ##-Inf ##Inf 1.0))

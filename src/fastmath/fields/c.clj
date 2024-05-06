@@ -8,7 +8,7 @@
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators)
+(m/use-primitive-operators #{'chunk})
 
 (defn cpow2
   "CPow2"
@@ -1028,4 +1028,4 @@
        (let [diff (v/sub v o)]
          (v/mult (v/add o (v/div (v/mult diff r2) (v/magsq diff))) amount))))))
 
-(m/unuse-primitive-operators)
+(m/unuse-primitive-operators #{'chunk})

@@ -5,6 +5,44 @@
 
 (m/use-primitive-operators)
 
+;; primitive ops
+
+(let [numbers (repeatedly 10000 #(* 100.0 (- (rand) 0.5)))]
+  (t/deftest add
+    (t/is (int? (+ 1 2 3)))
+    (t/is (double? (+ 1 2 3.0)))
+    (t/is (== 6 (+ 1 2 3)))
+    (t/is (== 6.0 (+ 1 2 3.0)))
+    (t/is (== 6 (m/long-add 1 2 3)))
+    (t/is (== 6 (m/long-add 1 2 3.0)))
+    (t/is (== (reduce clojure.core/+ numbers)
+              (reduce + numbers)))
+    (t/is (== (apply clojure.core/+ numbers)
+              (apply + numbers)))
+    (t/is (== (reduce clojure.core/+ (map long numbers))
+              (reduce m/long-add numbers)))))
+
+(let [numbers (repeatedly 10000 #(* 100.0 (- (rand) 0.5)))]
+  (t/deftest sub
+    (t/is (int? (- 1)))
+    (t/is (double? (- 1.0)))
+    (t/is (== -1.0 (- 1.0)))
+    (t/is (== -1 (- 1)))
+    (t/is (int? (- 1 2 3)))
+    (t/is (double? (- 1 2 3.0)))
+    (t/is (== -4 (- 1 2 3)))
+    (t/is (== -4.0 (- 1 2 3.0)))
+    (t/is (== -4 (m/long-sub 1 2 3)))
+    (t/is (== -4 (m/long-sub 1 2 3.0)))
+    (t/is (== (reduce clojure.core/- numbers)
+              (reduce - numbers)))
+    (t/is (== (apply clojure.core/- numbers)
+              (apply - numbers)))
+    (t/is (== (reduce clojure.core/- (map long numbers))
+              (reduce m/long-sub numbers)))))
+
+
+
 (t/deftest angles
   (t/is (= 180.0 (m/degrees m/PI)))
   (t/is (= m/PI (m/radians 180.0))))

@@ -402,8 +402,8 @@
          cpow (c/complex zpow 0.0)
          HSTerm (c/complex (if (< N 1)
                              0.0
-                             (reduce m/fast+ (map (fn [^double i]
-                                                    (/ (inc i))) (range N)))) 0.0)
+                             (reduce m/+ (map (fn [^double i]
+                                                (/ (inc i))) (range N)))) 0.0)
          series (mapv #(c/complex (m/pow % (- N)) 0.0) (range 1 20))]
      (fn [^Vec2 v]
        (let [z (-> v (c/pow cpow))

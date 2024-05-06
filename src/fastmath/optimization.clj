@@ -76,8 +76,7 @@
            [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction MultivariateVectorFunction]
            [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
            [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
-           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]
-           [org.generateme.lbfgsb LBFGSB]))
+           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -158,12 +157,6 @@
   (reify
     MultivariateFunction
     (value [_ xs] (apply f xs))))
-
-(defn- negative-multivariate-function [f]
-  (reify
-    MultivariateFunction
-    (value [_ xs] (- ^double (apply f xs)))))
-
 
 (defn- wrap-multivariate-function [f] (ObjectiveFunction. (multivariate-function f)))
 

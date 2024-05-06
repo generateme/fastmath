@@ -615,9 +615,9 @@
   prot/MatrixProto
   {:fmap (fn [^RealMatrix m f] (Array2DRowRealMatrix. ^"[[D" (prot/fmap (.getData m) f)))
    :rows (fn [^RealMatrix m] (map (fn [idx] (.getRowVector m (unchecked-int idx)))
-                                 (range (.getRowDimension m))))
+                                  (range (.getRowDimension m))))
    :cols (fn [^RealMatrix m] (map (fn [idx] (.getColumnVector m (unchecked-int idx)))
-                                 (range (.getColumnDimension m))))
+                                  (range (.getColumnDimension m))))
    :to-double-array2d (fn [^RealMatrix m] (.getData m))
    :to-float-array2d (fn [^RealMatrix m] (prot/to-float-array2d (.getData m)))
    :to-double-array (fn [^RealMatrix m] (prot/to-double-array (.getData m)))
@@ -631,10 +631,10 @@
    :transpose (fn [^RealMatrix m] (.transpose m))
    :inverse (fn [^RealMatrix m] (MatrixUtils/inverse m))
    :diag (fn [^RealMatrix m] (let [size (.getRowDimension m)
-                                  v (ArrayRealVector. size)]
-                              (doseq [^int idx (range size)]
-                                (.setEntry v idx (.getEntry m idx idx)))
-                              v))
+                                   v (ArrayRealVector. size)]
+                               (doseq [^int idx (range size)]
+                                 (.setEntry v idx (.getEntry m idx idx)))
+                               v))
    :det (fn [^RealMatrix m] (.getDeterminant (LUDecomposition. m)))
    :add (fn [^RealMatrix m1 ^RealMatrix m2] (.add m1 m2))
    :adds (fn [^RealMatrix m ^double v] (.scalarAdd m v))
@@ -675,9 +675,9 @@
                                           (m/pow (/ q))))))
                                 (condp = t
                                   :inf (.getNorm (.transpose m))
-                                  :max (reduce m/fast-max (for [^int r (range (.getRowDimension m))
-                                                                ^int c (range (.getColumnDimension m))]
-                                                            (m/abs (.getEntry m r c))))
+                                  :max (reduce m/max (for [^int r (range (.getRowDimension m))
+                                                           ^int c (range (.getColumnDimension m))]
+                                                       (m/abs (.getEntry m r c))))
                                   (.getNorm m))))})
 
 
@@ -1078,12 +1078,12 @@
   (^double [A norm-type]
    (cond
      (= norm-type :frobenius) (prot/norm A [2 2])
-     (= norm-type 2) (reduce m/fast-max (singular-values A))
+     (= norm-type 2) (reduce m/max (singular-values A))
      (and (sequential? norm-type)
-          (= 1 (count norm-type))) (let [^double p (first norm-type)]
+          (= 1 (count norm-type))) (let [p (double (first norm-type))]
                                      (m/pow (->> (singular-values A)
                                                  (map (fn [^double s] (m/pow s p)))
-                                                 (reduce m/fast+)) (/ p)))
+                                                 (reduce m/+)) (/ p)))
      :else (prot/norm A norm-type))))
 
 (defn condition
@@ -1166,11 +1166,10 @@
   (let [v (symbol "vector")]
     `(do ~@(for [f fns
                  :let [nm (symbol (name f))
-                       doc (str "Apply " nm " to matrix elements.")
-                       wfn (if (:macro (meta (resolve f))) `(fn [v#] (~f v#)) f)]] ;; wrap macro into function
+                       doc (str "Apply " nm " to matrix elements.")]]
              `(defn ~nm ~doc
                 [~v]
-                (prot/fmap ~v ~wfn))))))
+                (prot/fmap ~v ~f))))))
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch

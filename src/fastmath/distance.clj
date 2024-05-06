@@ -61,21 +61,21 @@
 (defn minkowski
   "Minkowski distance for order `p` and optional `weights` for each dimension."
   ([v1 v2 ^double p]
-   (m/pow (reduce m/fast+ 0.0 (map (fn [^double xx ^double yy]
-                                     (m/pow (m/abs (- xx yy)) p)) v1 v2)) (/ p)))
+   (m/pow (reduce m/+ 0.0 (map (fn [^double xx ^double yy]
+                                 (m/pow (m/abs (- xx yy)) p)) v1 v2)) (/ p)))
   ([v1 v2 ^double p weights]
-   (m/pow (reduce m/fast+ 0.0 (map (fn [^double w ^double xx ^double yy]
-                                     (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) (/ p)))
+   (m/pow (reduce m/+ 0.0 (map (fn [^double w ^double xx ^double yy]
+                                 (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) (/ p)))
   ([^double p weights]
    (let [rp (/ p)]
      (fn ^double [v1 v2]
-       (m/pow (reduce m/fast+ 0.0 (map (fn [^double w ^double xx ^double yy]
-                                         (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) rp))))
+       (m/pow (reduce m/+ 0.0 (map (fn [^double w ^double xx ^double yy]
+                                     (* w (m/pow (m/abs (- xx yy)) p))) weights v1 v2)) rp))))
   ([^double p]
    (let [rp (/ p)]
      (fn ^double [v1 v2]
-       (m/pow (reduce m/fast+ 0.0 (map (fn [^double xx ^double yy]
-                                         (m/pow (m/abs (- xx yy)) p)) v1 v2)) rp)))))
+       (m/pow (reduce m/+ 0.0 (map (fn [^double xx ^double yy]
+                                     (m/pow (m/abs (- xx yy)) p)) v1 v2)) rp)))))
 ;;
 
 (defn bound

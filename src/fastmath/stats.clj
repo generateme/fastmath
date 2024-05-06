@@ -82,7 +82,7 @@
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (Array/sum ^doubles vs)
-    (reduce m/fast+ vs)))
+    (reduce + vs)))
 
 (defn percentile
   "Calculate percentile of a `vs`.
@@ -155,7 +155,7 @@
         data (map first sorted)
         data (conj data (first data))
         wsum (sum probabilities)
-        weights (conj (reductions m/fast+ (map (fn [^double p] (/ p wsum)) probabilities)) 0.0)]
+        weights (conj (reductions + (map (fn [^double p] (/ p wsum)) probabilities)) 0.0)]
     (case method
       :linear (linear-interp/linear weights data)
       :average (let [interp1 (step-interp/step-before weights data)
@@ -249,7 +249,7 @@
   "Weighted mean"
   (^double [vs] (mean vs))
   (^double [vs weights]
-   (/ (sum (map m/fast* vs weights)) (sum weights))))
+   (/ (sum (map * vs weights)) (sum weights))))
 
 (defn population-variance
   "Calculate population variance of `vs`.
@@ -264,7 +264,7 @@
   "Calculate population weighted variance of `vs`."
   ^double [vs freqs]
   (let [sw (sum freqs)
-        mu (/ (sum (map m/fast* vs freqs)) sw)
+        mu (/ (sum (map * vs freqs)) sw)
         v (sum (map (fn [^double x ^double w]
                       (* w (m/sq (- x mu)))) vs freqs))]
     (/ v sw)))
@@ -282,7 +282,7 @@
   "Calculate weighted (unbiased) variance of `vs`."
   ^double [vs freqs]
   (let [sw (sum freqs)
-        mu (/ (sum (map m/fast* vs freqs)) sw)
+        mu (/ (sum (map * vs freqs)) sw)
         v (sum (map (fn [^double x ^double w]
                       (* w (m/sq (- x mu)))) vs freqs))]
     (/ v (dec sw))))
@@ -635,12 +635,12 @@
          nf (if normalize? (m/pow (variance in) (* 0.5 order)) 1.0)
          ^double center (or center (mean in))
          f (cond
-             (m/one? order) m/fast-identity
+             (m/one? order) m/identity-double
              (== order 2.0) m/sq
              (== order 3.0) m/cb
              (== order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
              :else (fn ^double [^double diff] (m/pow diff order)))
-         a (if absolute? m/abs m/fast-identity)]
+         a (if absolute? m/abs m/identity-double)]
      (loop [idx (int 0)]
        (when (< idx cin)
          (aset out idx ^double (f (a (- (aget in idx) center))))
@@ -913,7 +913,7 @@
   "Jensen-Shannon divergence of two sequences."
   (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
   (^double [vs1 vs2]
-   (let [m (v/mult (mapv m/fast+ vs1 vs2) 0.5)]
+   (let [m (v/mult (mapv + vs1 vs2) 0.5)]
      (* 0.5 (+ (kullback-leibler-divergence vs1 m)
                (kullback-leibler-divergence vs2 m))))))
 
@@ -961,14 +961,14 @@
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map m/fast- v1 v2)))))
+     (mean (map - v1 v2)))))
 
 (defn mae
   "Mean absolute error"
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/abs m/fast-) v1 v2)))))
+     (mean (map (comp m/abs -) v1 v2)))))
 
 (defn mape
   "Mean absolute percentage error"
@@ -983,7 +983,7 @@
   (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (sum (map (comp m/sq m/fast-) v1 v2)))))
+     (sum (map (comp m/sq -) v1 v2)))))
 
 (defn r2
   "R2"
@@ -1003,7 +1003,7 @@
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/sq m/fast-) v1 v2)))))
+     (mean (map (comp m/sq -) v1 v2)))))
 
 (defn rmse
   "Root mean squared error"
@@ -1016,7 +1016,7 @@
   (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
   (^long [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (count (filter (fn [^double v] (zero? v)) (map m/fast- v1 v2))))))
+     (count (filter (fn [^double v] (zero? v)) (map - v1 v2))))))
 
 (def ^{:doc "Count equal values in both seqs. Same as [[count==]]"} L0 count=)
 
@@ -1514,7 +1514,7 @@
          ranges (partition 2 1 (m/slice-range mn mx steps))
          i1 (integrate-kde iters kde1 ranges)
          i2 (integrate-kde iters kde2 ranges)]
-     (sum (map m/fast-min i1 i2)))))
+     (sum (map min i1 i2)))))
 
 (defn cohens-u2
   "Cohen's U2, the proportion of one of the groups that exceeds the same proportion in the other group."
@@ -2045,7 +2045,7 @@
 
 (defn- cov-for-acf
   ^double [xs1 xs2]
-  (reduce m/fast+ 0.0 (map m/fast* xs1 xs2)))
+  (reduce + 0.0 (map * xs1 xs2)))
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l12
 (defn acf
@@ -2495,7 +2495,7 @@
                       (> nx 1) (> ny 1))) "Not enough observations.")
      (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
      (if paired?
-       (-> (t-test-one-sample (map m/fast- xs ys) params)
+       (-> (t-test-one-sample (map - xs ys) params)
            (assoc :paired? true))
        (let [{:keys [test-type ^double stat ^double alpha ^double df ^double mu ^double stderr]
               :as res} (test-two-samples-not-paired xs ys params)
@@ -2524,7 +2524,7 @@
                       (> nx 1) (> ny 1))) "Not enough observations.")
      (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
      (if paired?
-       (-> (z-test-one-sample (map m/fast- xs ys) params)
+       (-> (z-test-one-sample (map - xs ys) params)
            (assoc :paired? true))
        (let [{:keys [test-type ^double stat ^double alpha ^double ^double mu ^double stderr]
               :as res} (test-two-samples-not-paired xs ys params)
@@ -2796,10 +2796,10 @@
 (defn- a2-stat
   ^double [^doubles xs d]
   (let [n (alength xs)]
-    (reduce m/fast- (- n) (map (fn [^long idx]
-                                 (* (/ (+ idx idx 1.0) n)
-                                    (+ (m/log (r/cdf d (aget xs idx)))
-                                       (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
+    (reduce - (- n) (map (fn [^long idx]
+                           (* (/ (+ idx idx 1.0) n)
+                              (+ (m/log (r/cdf d (aget xs idx)))
+                                 (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
   "Anderson-Darling test"
@@ -2834,8 +2834,8 @@
          dn (/ (double n))
          idxs (map (fn [^long i] (* i dn)) (range (inc n)))
          cdfs (map (partial r/cdf d) (sort xs))
-         ^double dp (reduce m/fast-max (map m/fast- (rest idxs) cdfs))
-         dn (- ^double (reduce m/fast-min (map m/fast- (butlast idxs) cdfs)))
+         ^double dp (reduce max (map - (rest idxs) cdfs))
+         dn (- ^double (reduce min (map - (butlast idxs) cdfs)))
          d (max dp dn)]
      {:n n :dp dp :dn dn :d d :sides sides
       :stat (sides-case sides d dp dn) 
@@ -2854,7 +2854,7 @@
          ny (count ys)
          sort-idxs (m/order (concat xs ys))
          pdf-diffs (map (vec (concat (repeat nx (/ 1.0 nx)) (repeat ny (/ -1.0 ny)))) sort-idxs)
-         [^double dn dp] (extent (reductions m/fast+ pdf-diffs))
+         [^double dn dp] (extent (reductions + pdf-diffs))
          dn (- dn)
          dp (double dp) ;; 
          d (max dn dp)
@@ -2893,5 +2893,64 @@
                            (- (m/cb n) n))))]
      {:stat stat :n n :df df :k k :sides sides
       :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
+
+;; transformations
+
+(defn power-transformation
+  "Power transformation of data.
+
+  All values should be positive.
+
+  Arguments:
+  * `lambda` - power parameter (default: 0.0)
+  * `alpha` - shift parameter (optional)"
+  ([xs] (power-transformation xs 0.0))
+  ([xs ^double lambda]
+   (let [gm (geomean xs)]
+     (if (m/zero? lambda)
+       (map (fn [^double x] (* gm (m/log x))) xs)
+       (let [fact (* lambda (m/pow gm (dec lambda)))]
+         (map (fn [^double x] (/ (dec (m/pow x lambda)) fact)) xs)))))
+  ([xs ^double lambda ^double alpha]
+   (power-transformation (v/shift xs alpha) lambda)))
+
+(defn modified-power-transformation
+  "Modified power transformation (Box-Cox transformation) of data.
+
+  There is no scaling by geometric mean.
+
+  Arguments:
+  * `lambda` - power parameter (default: 0.0)
+  * `alpha` - shift parameter (optional)"
+  ([xs] (modified-power-transformation xs 0.0))
+  ([xs ^double lambda]
+   (if (m/zero? lambda)
+     (map (fn [^double x]
+            (if (m/zero? x)
+              0.0
+              (* (m/signum x) (m/log (m/abs x))))) xs)
+     (map (fn [^double x] (* (m/signum x) (/ (dec (m/pow (m/abs x) lambda)) lambda))) xs)))
+  ([xs ^double lambda ^double alpha]
+   (modified-power-transformation (v/shift xs alpha) lambda)))
+
+(defn yeo-johnson-transformation
+  "Yeo-Johnson transformation
+
+  Arguments:
+  * `lambda` - power parameter (default: 0.0)
+  * `alpha` - shift parameter (optional)"
+  ([xs] (yeo-johnson-transformation xs 0.0))
+  ([xs ^double lambda]
+   (let [l2 (- 2.0 lambda)]
+     (map (fn [^double x]
+            (if (m/neg? x)
+              (if (== lambda 2.0)
+                (- (m/log (- 1.0 x)))
+                (- (/ (dec (m/pow (- 1.0 x) l2)) l2)))
+              (if (m/zero? lambda)
+                (m/log (inc x))
+                (/ (dec (m/pow (inc x) lambda)) lambda)))) xs)))
+  ([xs ^double lambda ^double alpha]
+   (yeo-johnson-transformation (v/shift xs alpha) lambda)))
 
 (m/unuse-primitive-operators)

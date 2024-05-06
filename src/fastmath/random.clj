@@ -885,7 +885,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                  (map (fn [[^double x1 ^double x2]]
                         (m/max m/MACHINE-EPSILON ;; in case if integration is zero
                                ^double (quad/gk-quadrature f x1 x2 int-options))))
-                 (reductions m/fast+ 0.0)
+                 (reductions m/+ 0.0)
                  (m/seq->double-array))
          ys (v/div ys (Array/aget ys (dec steps))) ;; normalize to ensure 1 at the endpoint
          intpol (case interpolator
@@ -1371,8 +1371,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defn- dirichlet-rev-log-beta
   ^double [alpha]
-  (let [d (m/log-gamma (reduce m/fast+ alpha))
-        ^double n (reduce m/fast+ (map #(m/log-gamma %) alpha))]
+  (let [d (m/log-gamma (reduce m/+ alpha))
+        ^double n (reduce m/+ (map #(m/log-gamma %) alpha))]
     (- d n)))
 
 #_(defn- dirichlet-lpdf
@@ -1385,8 +1385,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (defn- dirichlet-lpdf
   ^double [alpha- values ^double lbeta]
-  (let [v (reduce m/fast+ lbeta (map (fn [^double ai ^double x] 
-                                       (* ai (m/log x))) alpha- values))]
+  (let [v (reduce m/+ lbeta (map (fn [^double ai ^double x] 
+                                   (* ai (m/log x))) alpha- values))]
     (if (m/invalid-double? v) ##-Inf v)))
 
 (defmethod distribution :dirichlet
@@ -1449,7 +1449,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
          cv (delay (mapv vec (MultinomialDist/getCovariance trials ps)))
          dim (count ps)
          binom-probs (mapv (fn [^double prob ^double sum]
-                             (/ prob (- 1.0 sum))) ps (reductions m/fast+ 0 ps))]
+                             (/ prob (- 1.0 sum))) ps (reductions m/+ 0.0 ps))]
      (reify
        prot/DistributionProto
        (pdf [_ v] (MultinomialDist/prob trials ps (int-array v)))
@@ -1598,7 +1598,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   {:keys [^double r ^double p] :or {r 20.0 p 0.5}} args
   p- (- 1.0 p)
   mmean (/ (* r p-) p)
-  variance (/ mmean p)
+  vvariance (/ mmean p)
   lgr (m/log-gamma r)
   lp- (m/log (- 1.0 p))
   lpr (* r (m/log p))
@@ -1616,19 +1616,19 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
             (cond
               (m/not-pos? p) 0
               (>= p 1.0) ##Inf
-              :else (discrete-binary-search cdf-fn p [(long mmean) (long (m/sqrt variance))]))))
+              :else (discrete-binary-search cdf-fn p [(long mmean) (long (m/sqrt vvariance))]))))
 
 (defn- build-discrete
   [kind data probabilities]
   (let [cnt (count data)
         probabilities (or probabilities (repeat cnt 1))
-        ^double sum (reduce m/fast+ probabilities)
+        ^double sum (reduce m/+ probabilities)
         [emptymap upd corr] (if (= :int kind)
                               [(im/int-map) im/update unchecked-long]
                               [(sorted-map) update unchecked-double])
         pmf (reduce (fn [m [v ^double p]]
-                      (upd m v (fnil m/fast+ 0.0) (/ p sum))) emptymap (map vector data probabilities))
-        cumsum (reductions m/fast+ (vals pmf))
+                      (upd m v (fnil m/+ 0.0) (/ p sum))) emptymap (map vector data probabilities))
+        cumsum (reductions m/+ (vals pmf))
         ks (keys pmf)
         ^double mnk (first ks)
         icdf (let [stepf (step-interp/step-before cumsum ks)]
@@ -1953,7 +1953,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   cdf-fn (if (< sigma 0.00001)
            (fn ^double [^long x] (prot/cdf dist x))
            (memoize (fn ^double [^long q]
-                      (reduce m/fast+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
+                      (reduce m/+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
   icdf-fn (if (< sigma 0.00001)
             (fn ^double [^double p] (prot/icdf dist p))
             (let [r (range 0 (inc bd))]
@@ -2097,88 +2097,88 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                  (icdf distr (+ left-cdf (* x cdf-diff)))))
 
 (distribution-template :mixture
-                       {:pdf? true :distribution-parameters [:distrs :weights :rng]
-                        :mean mean-val
-                        :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
-                       {:keys [distrs weights]
-                        :or {distrs [default-normal]}} args
-                       cnt (count distrs)
-                       weights (vec (or weights (repeat cnt 1.0)))
-                       weights (v/div weights (v/sum weights))
-                       continuous? (continuous? (first distrs))
-                       lower-bound (reduce m/fast-min (map lower-bound distrs))
-                       upper-bound (reduce m/fast-max (map upper-bound distrs))
-                       mean-val (reduce m/fast+ (map (fn ^double [^double w d]
-                                                       (* w (mean d))) weights distrs))
-                       variance (- ^double (reduce m/fast+ (map (fn ^double [^double w d]
-                                                                  (* w (+ (m/sq (mean d))
-                                                                          (variance d)))) weights distrs))
-                                   (m/sq mean-val))
-                       pdf-fn (fn ^double [^double x]
-                                (reduce m/fast+ (map (fn ^double [^double w d]
-                                                       (* w (pdf d x))) weights distrs)))
-                       cdf-fn (fn ^double [^double x]
-                                (reduce m/fast+ (map (fn ^double [^double w d]
-                                                       (* w (cdf d x))) weights distrs)))
-                       icdf-fn (fn [^double x]
-                                 (let [icdfs (map #(icdf % x) distrs)
-                                       mn (reduce m/fast-min icdfs)
-                                       mx (reduce m/fast-max icdfs)
-                                       target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
-                                   (solver/find-root target-fn mn mx))))
+    {:pdf? true :distribution-parameters [:distrs :weights :rng]
+     :mean mean-val
+     :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
+  {:keys [distrs weights]
+   :or {distrs [default-normal]}} args
+  cnt (count distrs)
+  weights (vec (or weights (repeat cnt 1.0)))
+  weights (v/div weights (v/sum weights))
+  continuous? (continuous? (first distrs))
+  lower-bound (reduce m/min (map lower-bound distrs))
+  upper-bound (reduce m/max (map upper-bound distrs))
+  mean-val (reduce m/+ (map (fn ^double [^double w d]
+                              (* w (mean d))) weights distrs))
+  variance (- ^double (reduce m/+ (map (fn ^double [^double w d]
+                                         (* w (+ (m/sq (mean d))
+                                                 (variance d)))) weights distrs))
+              (m/sq mean-val))
+  pdf-fn (fn ^double [^double x]
+           (reduce m/+ (map (fn ^double [^double w d]
+                              (* w (pdf d x))) weights distrs)))
+  cdf-fn (fn ^double [^double x]
+           (reduce m/+ (map (fn ^double [^double w d]
+                              (* w (cdf d x))) weights distrs)))
+  icdf-fn (fn [^double x]
+            (let [icdfs (map #(icdf % x) distrs)
+                  mn (reduce m/min icdfs)
+                  mx (reduce m/max icdfs)
+                  target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
+              (solver/find-root target-fn mn mx))))
 
 ;; from Julia
 (distribution-template :kolmogorov
-                       {:pdf? true :distribution-parameters [:rng]
-                        :mean 0.8687311606361591 :variance 0.0677732039638651
-                        :continuous? true :lower-bound 0.0 :upper-bound ##Inf}
-                       cdf-raw (fn ^double [^double x]
-                                 (let [a (- (m/sq (/ m/PI x)))
-                                       f (m/exp a)
-                                       f2 (* f f)
-                                       u (inc (* f (inc f2)))]
-                                   (/ (* m/SQRT2PI (m/exp (* 0.125 a)) u) x)))
-                       ccdf-raw (fn [^double ^double x]
-                                  (let [f (m/exp (* -2.0 x x))
-                                        f2 (* f f)
-                                        f3 (* f f2)
-                                        f5 (* f2 f3)
-                                        f7 (* f2 f5)
-                                        u (- 1.0 (* f3 (- 1.0 (* f5 (- 1.0 f7)))))]
-                                    (* 2.0 f u)))
-                       cdf-fn (fn ^double [^double x]
-                                (cond
-                                  (not (pos? x)) 0.0
-                                  (<= x 1.0) (cdf-raw x)
-                                  :else (- 1.0 ^double (ccdf-raw x))))
-                       pdf-fn (fn ^double [^double x]
-                                (cond
-                                  (not (pos? x)) 0.0
-                                  (<= x 1.0) (let [c (/ m/PI (* 2.0 x))
-                                                   ks (map (fn [^long i]
-                                                             (let [k (m/sq (* i c))]
-                                                               (* (dec k) (m/exp (* -0.5 k)))))
-                                                           (range 1 40 2))
-                                                   ^double s (reduce m/fast+ ks)]
-                                               (/ (* m/SQRT2PI s) (* x x)))
-                                  :else (let [ks (map (fn [^double a ^long i]
-                                                        (* a i i (m/exp (* -2.0 (m/sq (* i x))))))
-                                                      (cycle [1.0 -1.0]) (range 1 21))
-                                              ^double s (reduce m/fast+ ks)]
-                                          (* 8.0 x s))))
-                       icdf-fn (fn ^double [^double p]
-                                 (let [h1 (fn ^double [^double q] (- ^double (cdf-fn q) p))]
-                                   (if (< 0.5626816957524641 p) ;; cdf(mean)
-                                     (loop [interval 1.1290640320985719 ;; mean + sigma
-                                            j 2]
-                                       (if (< ^double (cdf-fn interval) p)
-                                         (recur (+ 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
-                                         (solver/find-root h1 0.8687311606361591 interval)))
-                                     (loop [interval 0.6083982891737463 ;; mean - sigma
-                                            j 2]
-                                       (if (> ^double (cdf-fn interval) p)
-                                         (recur (- 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
-                                         (solver/find-root h1 interval 0.8687311606361591)))))))
+    {:pdf? true :distribution-parameters [:rng]
+     :mean 0.8687311606361591 :variance 0.0677732039638651
+     :continuous? true :lower-bound 0.0 :upper-bound ##Inf}
+  cdf-raw (fn ^double [^double x]
+            (let [a (- (m/sq (/ m/PI x)))
+                  f (m/exp a)
+                  f2 (* f f)
+                  u (inc (* f (inc f2)))]
+              (/ (* m/SQRT2PI (m/exp (* 0.125 a)) u) x)))
+  ccdf-raw (fn [^double ^double x]
+             (let [f (m/exp (* -2.0 x x))
+                   f2 (* f f)
+                   f3 (* f f2)
+                   f5 (* f2 f3)
+                   f7 (* f2 f5)
+                   u (- 1.0 (* f3 (- 1.0 (* f5 (- 1.0 f7)))))]
+               (* 2.0 f u)))
+  cdf-fn (fn ^double [^double x]
+           (cond
+             (not (pos? x)) 0.0
+             (<= x 1.0) (cdf-raw x)
+             :else (- 1.0 ^double (ccdf-raw x))))
+  pdf-fn (fn ^double [^double x]
+           (cond
+             (not (pos? x)) 0.0
+             (<= x 1.0) (let [c (/ m/PI (* 2.0 x))
+                              ks (map (fn [^long i]
+                                        (let [k (m/sq (* i c))]
+                                          (* (dec k) (m/exp (* -0.5 k)))))
+                                      (range 1 40 2))
+                              ^double s (reduce m/+ ks)]
+                          (/ (* m/SQRT2PI s) (* x x)))
+             :else (let [ks (map (fn [^double a ^long i]
+                                   (* a i i (m/exp (* -2.0 (m/sq (* i x))))))
+                                 (cycle [1.0 -1.0]) (range 1 21))
+                         ^double s (reduce m/+ ks)]
+                     (* 8.0 x s))))
+  icdf-fn (fn ^double [^double p]
+            (let [h1 (fn ^double [^double q] (- ^double (cdf-fn q) p))]
+              (if (< 0.5626816957524641 p) ;; cdf(mean)
+                (loop [interval 1.1290640320985719 ;; mean + sigma
+                       j 2]
+                  (if (< ^double (cdf-fn interval) p)
+                    (recur (+ 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
+                    (solver/find-root h1 0.8687311606361591 interval)))
+                (loop [interval 0.6083982891737463 ;; mean - sigma
+                       j 2]
+                  (if (> ^double (cdf-fn interval) p)
+                    (recur (- 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
+                    (solver/find-root h1 interval 0.8687311606361591)))))))
 
 ;; from Julia
 (distribution-template :fishers-noncentral-hypergeometric
@@ -2332,7 +2332,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 (defn- uniform-spacings
   ([^long n] (uniform-spacings default-rng n))
   ([rng ^long n]
-   (let [xs (reductions m/fast+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
+   (let [xs (reductions m/+ (repeatedly (inc n) #(- (m/log (drandom rng)))))
          l (/ ^double (last xs))]
      (map (fn [^double x] (* x l)) (butlast xs)))))
 

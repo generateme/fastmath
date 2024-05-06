@@ -36,6 +36,7 @@ public final class PrimitiveMath {
     public static long bitOr(long a, long b) { return a | b; }
     public static long bitNor(long a, long b) { return ~(a | b); }
     public static long bitXor(long a, long b) { return a ^ b; }
+    public static long bitXNor(long a, long b) { return ~(a ^ b); }
     public static long bitNot(long a) { return ~a; }
 
     public static long bitSet (long a, long n) {return a | (1L << n);}
@@ -85,6 +86,9 @@ public final class PrimitiveMath {
     public static boolean gte(double a, long b) { return a>=b; }
     public static boolean gte(long a, double b) { return a>=b; }
     public static boolean gte(double a, double b) { return a>=b; }
+
+    public static boolean eq(long a) { return true; }
+    public static boolean eq(double a) { return true; }
 
     public static boolean eq(long a, long b) { return a==b; }
     public static boolean eq(double a, long b) { return a==b; }

@@ -42,7 +42,7 @@
   ([{:keys [^double sigma distance]
      :or {sigma 1.0 distance v/dist}}]
    (let [-s2halfinv (m// (m/* -2.0 sigma sigma))]
-     (fn ^double [x y] (m/exp (m/* -s2halfinv (m/sq (distance x y))))))))
+     (fn ^double [x y] (m/exp (m/* -s2halfinv (m/sq (double (distance x y)))))))))
 
 (defn exponential
   "Exponential kernel.
@@ -115,7 +115,7 @@
   ([] (rational-quadratic nil))
   ([{:keys [^double c distance]
      :or {c 1.0 distance v/dist}}]
-   (fn ^double [x y] (let [dist (m/sq (distance x y))]
+   (fn ^double [x y] (let [dist (m/sq (double (distance x y)))]
                       (m/- 1.0 (m// dist (m/+ dist c)))))))
 
 (defn multiquadratic
@@ -129,7 +129,7 @@
   ([{:keys [^double c distance]
      :or {c 1.0 distance v/dist}}]
    (let [c2 (m/* c c)]
-     (fn ^double [x y] (let [dist (m/sq (distance x y))]
+     (fn ^double [x y] (let [dist (m/sq (double (distance x y)))]
                         (m/sqrt (m/+ dist c2)))))))
 
 (defn inverse-multiquadratic
@@ -143,7 +143,7 @@
   ([{:keys [^double c distance]
      :or {c 1.0 distance v/dist}}]
    (let [c2 (m/* c c)]
-     (fn ^double [x y] (let [dist (m/sq (distance x y))]
+     (fn ^double [x y] (let [dist (m/sq (double (distance x y)))]
                         (m// (m/sqrt (m/+ dist c2))))))))
 
 ;; http://perso.lcpc.fr/tarel.jean-philippe/publis/jpt-icann05b.pdf
@@ -255,16 +255,16 @@
   "Spline kernel."
   ([] (spline nil))
   ([_] (fn [x y]
-         (reduce m/fast* 1.0 (map (fn [^double xi ^double yi]
-                                    (let [xiyi (m/* xi yi)
-                                          m (min xi yi)
-                                          m2 (m/* m m)]
-                                      (inc (m/+ xiyi
-                                                (m/* xiyi m)
-                                                (m/* -0.5 (m/+ xi yi) m2)
-                                                (m/* m/THIRD m2 m)))))
-                                  (if (number? x) [x] x)
-                                  (if (number? y) [y] y))))))
+         (reduce m/* 1.0 (map (fn [^double xi ^double yi]
+                                (let [xiyi (m/* xi yi)
+                                      m (min xi yi)
+                                      m2 (m/* m m)]
+                                  (inc (m/+ xiyi
+                                            (m/* xiyi m)
+                                            (m/* -0.5 (m/+ xi yi) m2)
+                                            (m/* m/THIRD m2 m)))))
+                              (if (number? x) [x] x)
+                              (if (number? y) [y] y))))))
 
 
 ;; https://www.researchgate.net/publication/2538959_Inverse_B-spline_interpolation
@@ -350,40 +350,40 @@
 (defn chi-square
   "Chi-square kernel."
   ([] (chi-square nil))
-  ([_] (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                                   (m// (m/* 2.0 xi yi)
-                                                        (m/+ xi yi)))
-                                                 (if (number? x) [x] x)
-                                                 (if (number? y) [y] y))))))
+  ([_] (fn ^double [x y] (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
+                                               (m// (m/* 2.0 xi yi)
+                                                    (m/+ xi yi)))
+                                             (if (number? x) [x] x)
+                                             (if (number? y) [y] y))))))
 
 (defn chi-square2
   "Chi-square kernel, second version"
   ([] (chi-square2 nil))
   ([_] (fn ^double [x y]
-         (- 1.0 ^double (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                                   (m// (m/sq (m/- xi yi))
-                                                        (m/* 0.5 (m/+ xi yi))))
-                                                 (if (number? x) [x] x)
-                                                 (if (number? y) [y] y)))))))
+         (- 1.0 ^double (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
+                                               (m// (m/sq (m/- xi yi))
+                                                    (m/* 0.5 (m/+ xi yi))))
+                                             (if (number? x) [x] x)
+                                             (if (number? y) [y] y)))))))
 
 (defn histogram
   "Histogram kernel."
   ([] (histogram nil))
-  ([_] (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                                   (min xi yi))
-                                                 (if (number? x) [x] x)
-                                                 (if (number? y) [y] y))))))
+  ([_] (fn ^double [x y] (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
+                                               (min xi yi))
+                                             (if (number? x) [x] x)
+                                             (if (number? y) [y] y))))))
 
 (defn generalized-histogram
   "Generalized histogram with `:p` exponent (default: 2.0)."
   ([] (generalized-histogram nil))
   ([{:keys [^double p]
      :or {p 2.0}}]
-   (fn ^double [x y] (reduce m/fast+ 0.0 (map (fn [^double xi ^double yi]
-                                               (min (m/pow (m/abs xi) p)
-                                                    (m/pow (m/abs yi) p)))
-                                             (if (number? x) [x] x)
-                                             (if (number? y) [y] y))))))
+   (fn ^double [x y] (reduce m/+ 0.0 (map (fn [^double xi ^double yi]
+                                           (min (m/pow (m/abs xi) p)
+                                                (m/pow (m/abs yi) p)))
+                                         (if (number? x) [x] x)
+                                         (if (number? y) [y] y))))))
 
 (defn generalized-t-student
   "Generalized t-student.
@@ -415,7 +415,7 @@
        (let [diff (v/sub x y)]
          (if (number? diff)
            (dirichlet-dim nhalf diff)
-           (reduce m/fast* 1.0 (map (partial dirichlet-dim nhalf) diff))))))))
+           (reduce m/* 1.0 (map (partial dirichlet-dim nhalf) diff))))))))
 
 (defn hellinger
   "Hellinger kernel."
@@ -436,7 +436,7 @@
    (let [c (m// (m/* 4.0 (m/sqrt (m/dec (m/pow 2.0 (m// omega)))))
                 (m/sq sigma))]
      (fn ^double [x y]
-       (m// (m/pow (m/inc (m/* c (m/sq (distance x y)))) omega))))))
+       (m// (m/pow (m/inc (m/* c (m/sq (double (distance x y))))) omega))))))
 
 (defn hyperbolic-secant
   "Hyperbolic secant kernel.

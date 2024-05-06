@@ -61,7 +61,7 @@
     
     [(fn [v] (mapv (fn [f ^double vi] (f vi)) subst-v v))
      (fn [v] (->> (mapv (fn [f ^double vi] (f vi)) subst-m v)
-                 (reduce m/fast*)))
+                 (reduce m/*)))
      (apply map vector nbounds)]))
 
 (defn subst-multi

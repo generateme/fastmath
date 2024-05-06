@@ -1043,7 +1043,9 @@
    (let [fc (/ (dec length) 2)
          coeffs (map (fn [^long v]
                        (kernel 0 (* step v))) (range (- fc) (inc fc)))
-         ^double sum (reduce m/fast+ coeffs)
+         ^double sum (reduce m/+ coeffs)
          coeffs (double-array (map (fn [^double v]
                                      (/ v sum)) coeffs))]
      (partial perform-convolution coeffs fc))))
+
+(m/unuse-primitive-operators)
