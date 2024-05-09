@@ -220,33 +220,44 @@
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
-  "Calculate mean of `vs`"
-  (^double [vs] (StatUtils/mean (m/seq->double-array vs))))
+  "Calculate mean of `vs` with optional `weights`."
+  (^double [vs] (StatUtils/mean (m/seq->double-array vs)))
+  (^double [vs weights] (/ (sum (map * vs weights)) (sum weights))))
 
 (defn geomean
-  "Geometric mean for positive values only"
-  ^double [vs]
-  (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
+  "Geometric mean for positive values only with optional `weights`"
+  (^double [vs] (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
+  (^double [vs weights] (m/exp (mean (map (fn [^double v] (m/log v)) vs) weights))))
 
 (defn harmean
-  "Harmonic mean"
-  ^double [vs]
-  (/ (mean (map (fn [^double v] (/ v)) vs))))
+  "Harmonic mean with optional `weights`"
+  (^double [vs] (/ (mean (map (fn [^double v] (/ v)) vs))))
+  (^double [vs weights] (/ (mean (map (fn [^double v] (/ v)) vs) weights))))
 
 (defn powmean
   "Generalized power mean"
-  ^double [vs ^double power]
-  (cond
-    (zero? power) (geomean vs)
-    (m/one? power) (mean vs)
-    (== power m/THIRD) (m/cb (mean (map #(m/cbrt %) vs)))
-    (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
-    (== power 2.0) (m/sqrt (mean (map m/sq vs)))
-    (== power 3.0) (m/cbrt (mean (map m/cb vs))) 
-    :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (/ power))))
+  (^double [vs ^double power]
+   (cond
+     (zero? power) (geomean vs)
+     (m/one? power) (mean vs)
+     (== power m/THIRD) (m/cb (mean (map #(m/cbrt %) vs)))
+     (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
+     (== power 2.0) (m/sqrt (mean (map m/sq vs)))
+     (== power 3.0) (m/cbrt (mean (map m/cb vs))) 
+     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (/ power))))
+  (^double [vs weights ^double power]
+   (cond
+     (zero? power) (geomean vs weights)
+     (m/one? power) (mean vs weights)
+     (== power m/THIRD) (m/cb (mean (map m/cbrt vs) weights))
+     (== power 0.5) (m/sq (mean (map m/sqrt vs) weights))
+     (== power 2.0) (m/sqrt (mean (map m/sq vs) weights))
+     (== power 3.0) (m/cbrt (mean (map m/cb vs) weights)) 
+     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs) weights) (/ power)))))
 
 (defn wmean
   "Weighted mean"
+  {:deprecated "Use `mean`"}
   (^double [vs] (mean vs))
   (^double [vs weights]
    (/ (sum (map * vs weights)) (sum weights))))
@@ -411,7 +422,6 @@
   ([vs ^double size estimation-strategy]
    (let [a (* 0.5 (- 1.0 size))]
      (quantile-extent vs a (- 1.0 a) estimation-strategy))))
-
 
 (defn hpdi-extent
   "Higher Posterior Density interval + median.
@@ -1778,6 +1788,12 @@
                            (* ^double (wfn R idr idc) v)) ct)) n)]
      (/ (- p0 pe) (- 1.0 pe)))))
 
+(defn durbin-watson
+  "Lag-1 Autocorrelation test for residuals"
+  [rs]
+  (let [es (map (fn [[^double x1 ^double x2]] (- x1 x2)) (partition 2 1 rs))]
+    (/ (v/dot es es) (v/dot rs rs))))
+
 ;; binary classification statistics
 
 (defn- binary-measures-all-calc
@@ -2330,6 +2346,85 @@
                                       (r/ccdf distribution stat2))))
                  (r/ccdf distribution stat2)
                  (r/cdf distribution stat)))))
+
+(defn skewness-test
+  "Normality test for skewness."
+  ([xs] (skewness-test xs nil))
+  ([xs params] (skewness-test xs nil params))
+  ([xs skew {:keys [sides type]
+             :or {sides :two-sided type :g1}}]
+   (let [skew (or skew (skewness xs type))
+         n (count xs)
+         y (* skew (m/sqrt (/ (* (inc n) (+ n 3))
+                              (* 6.0 (- n 2)))))
+         beta2- (dec (/ (* 3.0 (+ (* n n) (* 27 n) -70) (+ n 1) (+ n 3))
+                        (* (- n 2) (+ n 5) (+ n 7) (+ n 9))))
+         w2 (dec (m/sqrt (* 2.0 beta2-)))
+         delta (/ 1.0 (m/sqrt (* 0.5 (m/log w2))))
+         alpha (m/sqrt (/ 2.0 (dec w2)))
+         ya (double (if (zero? y) (/ 1.0 alpha) (/ y alpha)))
+         Z (* delta (m/log (+ ya (m/sqrt (inc (* ya ya))))))]
+     {:p-value (p-value r/default-normal Z sides)
+      :Z Z
+      :skewness skew})))
+
+(defn kurtosis-test
+  "Normality test for kurtosis"
+  ([xs] (kurtosis-test xs nil))
+  ([xs params] (kurtosis-test xs nil params))
+  ([xs kurt {:keys [sides type]
+             :or {sides :two-sided type :kurt}}]
+   (let [kurt (or kurt (kurtosis xs type))
+         n (count xs)
+         e (/ (* 3.0 (dec n)) (inc n))
+         varb2 (/ (* 24.0 (* n (- n 2) (- n 3)))
+                  (* (m/sq (inc n)) (+ n 3) (+ n 5)))
+         x (/ (- kurt e) (m/sqrt varb2))
+         sqrtbeta1 (* (/ (* 6.0 (+ (* n n) (* -5 n) 2))
+                         (* (+ n 7) (+ n 9)))
+                      (m/sqrt (/ (* 6.0 (* (+ n 3) (+ n 5)))
+                                 (* n (- n 2) (- n 3)))))
+         a (+ 6.0 (* (/ 8.0 sqrtbeta1) (+ (/ 2.0 sqrtbeta1)
+                                          (m/sqrt (inc (/ 4.0 (* sqrtbeta1 sqrtbeta1)))))))
+         term1 (- 1.0 (/ 2.0 (* 9.0 a)))
+         denom (inc (* x (m/sqrt (/ 2.0 (- a 4.0)))))
+         term2 (* (m/signum denom) (m/cbrt (/ (- 1.0 (/ 2.0 a))
+                                              (m/abs denom))))
+         Z (/ (- term1 term2)
+              (m/sqrt (/ 2.0 (* 9.0 a))))]
+     {:p-value (p-value r/default-normal Z sides)
+      :Z Z
+      :kurtosis kurt})))
+
+(defn normality-test
+  "Normality test based on skewness and kurtosis"
+  ([xs] (normality-test xs nil))
+  ([xs params] (normality-test xs nil nil params))
+  ([xs skew kurt {:keys [sides]
+                  :or {sides :one-sided-greater}}]
+   (let [{^double skew-Z :Z skew :skewness} (skewness-test xs skew nil)
+         {^double kurt-Z :Z kurt :kurtosis} (kurtosis-test xs kurt nil)
+         Z (+ (* skew-Z skew-Z)
+              (* kurt-Z kurt-Z))]
+     {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
+      :Z Z
+      :skewness skew
+      :kurtosis kurt})))
+
+(defn jarque-bera-test
+  "Goodness of fit test whether skewness and kurtosis of data match normal distribution"
+  ([xs] (jarque-bera-test xs nil))
+  ([xs params] (jarque-bera-test xs nil nil params))
+  ([xs skew kurt {:keys [sides]
+                  :or {sides :one-sided-greater}}]
+   (let [skew (or skew (skewness xs :g1))
+         kurt (or kurt (kurtosis xs :kurt))
+         n (count xs)
+         Z (* n m/SIXTH (+ (* skew skew) (* 0.25 (m/sq (m/- kurt 3.0)))))]
+     {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
+      :Z Z
+      :skewness skew
+      :kurtosis (+ kurt 3.0)})))
 
 (defn binomial-test
   "Binomial test

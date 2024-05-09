@@ -133,3 +133,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (cell->mid [g cell] [g q r] "Converts cell coordinates to cell midpoint")
   (grid-type [g] "Returns type of the cell.")
   (corners [g coords] [g coords scale] [g x y scale] "Returns list of cell vertices for given 2d space coordinates."))
+
+(defprotocol PredictProto
+  "Prediction API"
+  (predict [obj xs] "Predict value from the model"))

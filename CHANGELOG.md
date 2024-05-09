@@ -15,6 +15,9 @@ Also a lot of refactoring [breaking] was done.
 * `:frequencies` and `:bins-maps` data in histogram result
 * JTransform fft,dct,dst,dht transformations
 * Data transformations (Power/Box-Cox/Yeo-Johnson)
+* all *mean functions accept optional weights
+* `skewness-test`, `kurtosis-test`, `normality-test`
+* `durbin-watson` stat
 
 ### Changed
 
