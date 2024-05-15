@@ -101,6 +101,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (base-from [v] "List of perpendicular vectors (basis)")
   (sum [v1] "Sum of elements")
   (prod [v1] "Product of elements")
+  (size [v] "Length of the vector")
   (permute [v idxs] "Permute vector elements with given indices.")
   (reciprocal [v] "Reciprocal of elements.")
   (interpolate [v1 v2 t f] "Interpolate vectors, optionally set interpolation fn")

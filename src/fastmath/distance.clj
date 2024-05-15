@@ -91,10 +91,19 @@
    (fn ^double [v1 v2] (- 1.0 (m/exp (* -1.0 lambda ^double (distance v1 v2)))))))
 
 (defn ->acm-distance
-  "Create DistanceMeasure Apache Commons Math object based on given distance."
+  "Create DistanceMeasure Apache Commons Math object based on given distance function."
   [distance]
-  (reify
-    IFn (invoke [_ x y] (distance x y))
-    DistanceMeasure (compute [_ x y] (distance x y))))
+  (if (instance? DistanceMeasure distance)
+
+    (reify
+      DistanceMeasure
+      (compute [_ x y] (.compute ^DistanceMeasure distance (v/vec->array x) (v/vec->array y)))
+
+      IFn
+      (invoke [_ x y] (.compute ^DistanceMeasure distance (v/vec->array x) (v/vec->array y))))
+
+    (reify
+      IFn (invoke [_ x y] (distance x y))
+      DistanceMeasure (compute [_ x y] (distance x y)))))
 
 (m/unuse-primitive-operators)

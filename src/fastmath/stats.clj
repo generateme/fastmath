@@ -63,6 +63,7 @@
            [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 (def ^{:doc "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
@@ -854,9 +855,10 @@
      (trim vs qlow qhigh qmid)))
   ([vs ^double low ^double high nan]
    (let [[^double low ^double high] (if (< low high) [low high] [high low])]
-     (->> (filter (fn [^double v]
+     (->> vs
+          (filter (fn [^double v]
                     (or (m/nan? v)
-                        (<= low v high))) vs)
+                        (<= low v high))))
           (map (fn [^double v] (if (m/nan? v) nan v)))))))
 
 (defn rescale
@@ -2353,7 +2355,7 @@
   ([xs params] (skewness-test xs nil params))
   ([xs skew {:keys [sides type]
              :or {sides :two-sided type :g1}}]
-   (let [skew (or skew (skewness xs type))
+   (let [skew (double (or skew (skewness xs type)))
          n (count xs)
          y (* skew (m/sqrt (/ (* (inc n) (+ n 3))
                               (* 6.0 (- n 2)))))
@@ -2372,9 +2374,9 @@
   "Normality test for kurtosis"
   ([xs] (kurtosis-test xs nil))
   ([xs params] (kurtosis-test xs nil params))
-  ([xs kurt {:keys [sides type]
-             :or {sides :two-sided type :kurt}}]
-   (let [kurt (or kurt (kurtosis xs type))
+  ([xs ^double kurt {:keys [sides type]
+                     :or {sides :two-sided type :kurt}}]
+   (let [kurt (double (or kurt (kurtosis xs type)))
          n (count xs)
          e (/ (* 3.0 (dec n)) (inc n))
          varb2 (/ (* 24.0 (* n (- n 2) (- n 3)))
@@ -2417,10 +2419,10 @@
   ([xs params] (jarque-bera-test xs nil nil params))
   ([xs skew kurt {:keys [sides]
                   :or {sides :one-sided-greater}}]
-   (let [skew (or skew (skewness xs :g1))
-         kurt (or kurt (kurtosis xs :kurt))
+   (let [skew (double (or skew (skewness xs :g1)))
+         kurt (double (or kurt (kurtosis xs :g2)))
          n (count xs)
-         Z (* n m/SIXTH (+ (* skew skew) (* 0.25 (m/sq (m/- kurt 3.0)))))]
+         Z (* n m/SIXTH (+ (* skew skew) (* 0.25 kurt kurt)))]
      {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
       :Z Z
       :skewness skew

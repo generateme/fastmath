@@ -8,7 +8,7 @@
             RealMatrix MatrixUtils LUDecomposition CholeskyDecomposition]
            [fastmath.vector Vec2 Vec3 Vec4]))
 
-#_(set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs})
 
@@ -765,8 +765,21 @@
            [^double a03 ^double a13 ^double a23 ^double a33]]
   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
 
+(defn rows->RealMatrix
+  "Return Apache Commons Math Array2DRowMatrix from sequence of rows"
+  [rows]
+  (if (= (type rows) m/double-double-array-type)
+    (Array2DRowRealMatrix. ^"[[D" rows)
+    (Array2DRowRealMatrix. ^"[[D" (m/seq->double-double-array (map v/vec->array rows)))))
+
+(defn cols->RealMatrix
+  "Return Apache Commons Math Array2DRowMatrix from sequence of columns"
+  [cols]
+  (prot/transpose (rows->RealMatrix cols)))
+
 (defn mat
-  "Create mat2x2, mat3x3 or mat4x4"
+  "Create mat2x2, mat3x3 or mat4x4 or RealMatrix from rows"
+  ([real-matrix-rows] (rows->RealMatrix real-matrix-rows))
   ([^double a00 ^double a01 ^double a10 ^double a11] (Mat2x2. a00 a01 a10 a11))
   ([a00 a01 a02 a10 a11 a12 a20 a21 a22] (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
   ([a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33]
@@ -774,6 +787,7 @@
 
 (defn rows->mat
   "Create nxn matrix from nd vectors (rows)."
+  ([real-matrix-rows] (rows->RealMatrix real-matrix-rows))
   ([[^double a00 ^double a01]
     [^double a10 ^double a11]]
    (Mat2x2. a00 a01 a10 a11))
@@ -789,6 +803,7 @@
 
 (defn cols->mat
   "Create nxn matrix from nd vectors (columns)."
+  ([real-matrix-cols] (cols->RealMatrix real-matrix-cols))
   ([[^double a00 ^double a10]
     [^double a01 ^double a11]]
    (Mat2x2. a00 a01 a10 a11))
@@ -801,7 +816,6 @@
     [^double a02 ^double a12 ^double a22 ^double a32]
     [^double a03 ^double a13 ^double a23 ^double a33]]
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
-
 
 (def ^{:docs "Identity matrix for given size"} eye
   [nil 1.0
@@ -893,13 +907,8 @@
   "Return doubles of doubles"
   [A] (prot/to-float-array A))
 
-(defn rows->RealMatrix
-  "Return Apache Commons Math Array2DRowMatrix from sequence of rows"
-  [rows]
-  (Array2DRowRealMatrix. ^"[[D" (m/seq->double-double-array rows)))
-
 (defn mat->RealMatrix
-  "Return Apache Commons Math Array2DRowMatrix from a matrix"
+  "Return Apache Commons Math Array2DRowMatrix from a 2x2, 3x3 or 4x4 matrix"
   [A]
   (if (instance? RealMatrix A)
     A
@@ -1042,12 +1051,56 @@
   ([A] (normalize A false))
   ([A rows?]
    (if rows?
-     (->> (rows A)
-          (map v/normalize)
-          (apply rows->mat))
-     (->> (cols A)
-          (map v/normalize)
-          (apply cols->mat)))))
+     (let [nA (map v/normalize (rows A))]
+       (if (instance? RealMatrix A)
+         (rows->RealMatrix nA)
+         (apply rows->mat nA)))
+     (let [nA (map v/normalize (cols A))]
+       (if (instance? RealMatrix A)
+         (cols->RealMatrix nA)
+         (apply cols->mat nA))))))
+
+(defn shift-rows
+  "Shift rows by a value or a result of the function (mean by default)"
+  ([A] (shift-rows A v/average))
+  ([A shift]
+   (let [sf (comp - (if (fn? shift) shift (constantly (double shift))))
+         nA (map #(v/shift % (sf (v/vec->seq %))) (rows A))]
+     (if (instance? RealMatrix A)
+       (rows->RealMatrix nA)
+       (apply rows->mat nA)))))
+
+(defn shift-cols
+  "Shift columns by a value or a result of the function (mean by default)"
+  ([A] (shift-cols A v/average))
+  ([A shift]
+   (let [sf (comp - (if (fn? shift) shift (constantly (double shift))))
+         nA (map #(v/shift % (sf (v/vec->seq %))) (cols A))]
+     (if (instance? RealMatrix A)
+       (cols->RealMatrix nA)
+       (apply cols->mat nA)))))
+
+(defn- default-scaler [v] (m/sqrt (/ (v/dot v v) (dec (v/size v)))))
+
+(defn scale-rows
+  "Shift rows by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function"
+  ([A] (scale-rows A default-scaler))
+  ([A scale]
+   (let [sf (if (fn? scale) scale (constantly (double scale)))
+         nA (map #(v/div % (sf %)) (rows A))]
+     (if (instance? RealMatrix A)
+       (rows->RealMatrix nA)
+       (apply rows->mat nA)))))
+
+(defn scale-cols
+  "Shift columns by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function"
+  ([A] (scale-cols A default-scaler))
+  ([A scale]
+   (let [sf (if (fn? scale) scale (constantly (double scale)))
+         nA (map #(v/div % (sf %)) (cols A))]
+     (if (instance? RealMatrix A)
+       (cols->RealMatrix nA)
+       (apply cols->mat nA)))))
 
 (defn eigenvectors
   "Return eigenvectors as a matrix (columns). Vectors can be normalized."
@@ -1167,8 +1220,7 @@
     `(do ~@(for [f fns
                  :let [nm (symbol (name f))
                        doc (str "Apply " nm " to matrix elements.")]]
-             `(defn ~nm ~doc
-                [~v]
+             `(defn ~nm ~doc [~v]
                 (prot/fmap ~v ~f))))))
 
 (primitive-ops [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh

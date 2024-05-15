@@ -99,6 +99,7 @@
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/+ 0.0 v))
    :prod (fn ^double [v] (if (seq v) (reduce m/* v) 0.0))
+   :size count
    :permute #(map (fn [idx] (%1 idx)) %2)
    :reciprocal #(map (fn [^double v] (/ v)) %)
    :heading (fn ^double [v] (angle-between v (reduce conj [1.0] (repeatedly (dec (count v)) (constantly 0.0)))))
@@ -137,6 +138,7 @@
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/+ 0.0 v))
    :prod (fn ^double [v] (if (seq v) (reduce m/* v) 0.0))
+   :size count
    :permute #(mapv (fn [idx] (%1 idx)) %2)
    :reciprocal #(mapv (fn [^double v] (/ v)) %)
    :heading #(angle-between % (reduce conj [1.0] (repeatedly (dec (count %)) (constantly 0.0))))
@@ -184,6 +186,7 @@
    :emn (fn [^doubles arr ^doubles v2] (Array/emin arr v2))
    :sum (fn [^doubles arr] (Array/sum arr))
    :prod (fn [^doubles arr] (Array/product arr))
+   :size alength
    :heading (fn [^doubles arr] (let [v (double-array (alength arr) 0.0)]
                                 (aset v 0 1.0)
                                 (angle-between arr v)))
@@ -226,6 +229,7 @@
    :mindim (fn [^ArrayRealVector v1] (.getMinIndex v1))
    :sum (fn [^ArrayRealVector v1] (prot/sum (.getDataRef v1)))
    :prod (fn [^ArrayRealVector v1] (prot/prod (.getDataRef v1)))
+   :size (fn ^long [^ArrayRealVector v1] (.getDimension v1))
    :heading (fn [^ArrayRealVector v1] (prot/heading (.getDataRef v1)))
    :reciprocal (fn [v1] (prot/fmap v1 #(/ ^double %)))
    :interpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 t f]
@@ -323,6 +327,7 @@
   (emn [_ v2] (ArrayVec. (prot/emn array (.array ^ArrayVec v2))))
   (sum [_] (Array/sum array))
   (prod [_] (Array/product array))
+  (size [_] (alength array))
   (heading [_] (prot/heading array))
   (reciprocal [_] (ArrayVec. (prot/reciprocal array)))
   (interpolate [_ v2 t f] (ArrayVec. (prot/interpolate array (.array ^ArrayVec v2) t f))) 
@@ -359,6 +364,7 @@
   (mindim [_] 0)
   (sum [v] v)
   (prod [v] v)
+  (size [_] 1)
   (reciprocal [v] (/ (double v)))
   (interpolate [v1 v2 t f] (f v1 v2 t))
   (einterpolate [v1 v2 t f] (f v1 v2 t))
@@ -430,8 +436,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
-  (to-double-array [_] (double-array [x y]))
-  (to-acm-vec [_] (ArrayRealVector. (double-array [x y])))
+  (to-double-array [v] (double-array v))
+  (to-acm-vec [v] (ArrayRealVector. (double-array v)))
   (to-vec [_] (vector-of :double x y))
   (as-vec [_ [x y]] (Vec2. x y))
   (as-vec [_] (Vec2. 0.0 0.0))
@@ -465,6 +471,7 @@
     [v (prot/perpendicular v)])
   (sum [_] (+ x y))
   (prod [_] (* x y))
+  (size [_] 2)
   (permute [p [^long i1 ^long i2]]
     (Vec2. (p i1) (p i2)))
   (reciprocal [_] (Vec2. (/ x) (/ y)))
@@ -555,8 +562,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
-  (to-double-array [_] (double-array [x y z]))
-  (to-acm-vec [_] (ArrayRealVector. (double-array [x y z])))
+  (to-double-array [v] (double-array v))
+  (to-acm-vec [v] (ArrayRealVector. (double-array v)))
   (to-vec [_] (vector-of :double x y z))
   (as-vec [_ [x y z]] (Vec3. x y z))
   (as-vec [_] (Vec3. 0.0 0.0 0.0))
@@ -597,6 +604,7 @@
       [v v2 (prot/cross v v2)]))
   (sum [_] (+ x y z))
   (prod [_] (* x y z))
+  (size [_] 3)
   (permute [p [^long i1 ^long i2 ^long i3]]
     (Vec3. (p i1) (p i2) (p i3)))
   (reciprocal [_] (Vec3. (/ x) (/ y) (/ z)))
@@ -759,8 +767,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
-  (to-double-array [_] (double-array [x y z w]))
-  (to-acm-vec [_] (ArrayRealVector. (double-array [x y z w])))
+  (to-double-array [v] (double-array v))
+  (to-acm-vec [v] (ArrayRealVector. (double-array v)))
   (to-vec [_] (vector-of :double x y z w))
   (as-vec [_ [x y z w]] (Vec4. x y z w))
   (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
@@ -792,6 +800,7 @@
     (min-key [x y z w] 0 1 2 3))
   (sum [_] (+ x y z w))
   (prod [_] (* x y z w))
+  (size [_] 4)
   (permute [p [^long i1 ^long i2 ^long i3 ^long i4]]
     (Vec4. (p i1) (p i2) (p i3) (p i4)))
   (reciprocal [_] (Vec4. (/ x) (/ y) (/ z) (/ w)))
@@ -825,6 +834,14 @@
   "Convert to double array"
   ^doubles [v] (prot/to-double-array v))
 
+(defn vec->seq
+  "Convert to sequence (same as seq)"
+  [v]
+  (cond
+    (instance? RealVector v) (seq (prot/to-double-array v))
+    (number? v) (list v)
+    :else (seq v)))
+
 (defn vec->RealVector
   "Convert to Apache Commons Math RealVector"
   ^RealVector [v]
@@ -839,6 +856,10 @@
   "Create vector from sequence as given type. If there is no sequence fill with `0.0`."
   ([v] (prot/as-vec v))
   ([v xs] (prot/as-vec v xs)))
+
+(defn size
+  "Length of the vector."
+  ^long [v] (prot/size v))
 
 (defn fmap
   "Apply function to all vector values (like map but returns the same type)."
@@ -1086,12 +1107,12 @@
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
   ([init vs]
-   (div (reduce prot/add init vs) (inc (count vs))))
+   (div (reduce prot/add init vs) (inc (size vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
 
 (defn average
   "Mean or weighted average of the vector"
-  (^double [v] (/ (sum v) (count v)))
+  (^double [v] (/ (sum v) (size v)))
   (^double [v weights] (/ (dot v weights) (sum weights))))
 
 (defn dist

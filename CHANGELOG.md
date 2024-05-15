@@ -18,6 +18,9 @@ Also a lot of refactoring [breaking] was done.
 * all *mean functions accept optional weights
 * `skewness-test`, `kurtosis-test`, `normality-test`
 * `durbin-watson` stat
+* shifting and scaling matrix columns/rows
+* `lm` and `glm`  in `fastmath.ml.regression` with full analysis
+* `fastmath.ml.clustering` - (fuzzy) kmeans++ and dbscan clustering algorithms
 
 ### Changed
 

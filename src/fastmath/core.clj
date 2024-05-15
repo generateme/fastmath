@@ -1196,8 +1196,17 @@
 
 (defn cloglog
   "log(-log(1-x))"
+  {:inline (fn [x] `(FastMath/log (- (FastMath/log1p (- (double ~x))))))
+   :inline-arities #{1}}
   ^double [^double x]
   (FastMath/log (- (FastMath/log1p (- x)))))
+
+(defn loglog
+  "-log(-log(x))"
+  {:inline (fn [x] `(- (FastMath/log (- (FastMath/log ~x)))))
+   :inline-arities #{1}}
+  ^double [^double x]
+  (- (FastMath/log (- (FastMath/log x)))))
 
 (defn xexpx
   "x * exp(x)"
@@ -1218,6 +1227,13 @@
    :inline-arities #{1}}
   ^double [^double x]
   (- (FastMath/expm1 (- (FastMath/exp x)))))
+
+(defn expexp
+  "exp(-exp(-x))"
+  {:inline (fn [x] `(FastMath/exp (- (FastMath/exp (- (double ~x))))))
+   :inline-arities #{1}}
+  ^double [^double x]
+  (FastMath/exp (- (FastMath/exp (- x)))))
 
 ;; Quick logarithm
 (defn qlog
