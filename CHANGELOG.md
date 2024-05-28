@@ -21,6 +21,7 @@ Also a lot of refactoring [breaking] was done.
 * shifting and scaling matrix columns/rows
 * `lm` and `glm`  in `fastmath.ml.regression` with full analysis
 * `fastmath.ml.clustering` - (fuzzy) kmeans++ and dbscan clustering algorithms
+* `dissimilarity` and `similarity` can accept data for histograms
 
 ### Changed
 

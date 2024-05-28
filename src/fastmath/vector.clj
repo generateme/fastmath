@@ -126,8 +126,8 @@
    :dot (fn ^double [v1 v2] (reduce m/+ (map m/* v1 v2)))
    :add (fn [v1 v2] (mapv m/+ v1 v2))
    :sub (fn [v1 v2] (mapv m/- v1 v2))
-   :shift (fn [v1 ^double v] (mapv #(m/+ ^double % v) v1))
-   :mult (fn [v1 ^double v] (mapv #(m/* ^double % v) v1))
+   :shift (fn [v1 ^double v] (mapv (fn [^double x] (m/+ x v)) v1))
+   :mult (fn [v1 ^double v] (mapv (fn [^double x] (m/* x v)) v1))
    :emult #(mapv m/* %1 %2)
    :abs #(mapv m/abs %)
    :mx #(reduce m/max %)
@@ -1330,6 +1330,34 @@
     (+ m (m/log (average (exp (shift v (- m))))))))
 
 ;;
+
+;; orthogonal and orthonormal polynomial vectors
+
+(defn orthogonal-polynomials
+  "Creates orthogonal list of vectors based on `xs`, starting from degree 1"
+  [xs]
+  (let [cnt (count xs)
+        m (m// (sum xs) cnt)
+        p0 (repeat cnt 1.0)
+        p1 (shift xs (m/- m))]
+    (->> (iterate (fn [[prev curr ^double nprev ^double ncurr]]
+                    (let [sigma (m// (sum (emult xs (sq curr))) ncurr)
+                          gamma (m// ncurr nprev)
+                          np (sub (emult curr (shift xs (- sigma)))
+                                  (mult prev gamma))]
+                      [curr np ncurr (sum (sq np))]))
+                  [p0 p1 cnt (sum (sq p1))])
+         (rest) ;; drop zero degree
+         (map first)
+         (take (count xs)))))
+
+(defn orthonormal-polynomials
+  "Creates orthonormal list of vector based on `xs`, starting from degree 1"
+  [xs]
+  (map normalize (orthogonal-polynomials xs)))
+
+;;
+
 
 (defmethod print-method Vec2 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-dup Vec2 [v w] (print-method v w))

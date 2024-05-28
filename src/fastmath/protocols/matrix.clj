@@ -1,6 +1,8 @@
 (ns fastmath.protocols.matrix)
 
 (defprotocol MatrixProto
+  (entry [m row col])
+  (->seq [m])
   (fmap [m f])
   (cols [m])
   (rows [m])

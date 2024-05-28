@@ -101,6 +101,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
+  (->seq [_] (list a00 a01 a10 a11))
+  (entry [_ x y] (gen-condition-2 2 ^long x ^long y (mat2x2-throw-ioobe [x y])))
   (fmap [_ f] (Mat2x2. (f a00) (f a01) (f a10) (f a11)))
   (cols [_] [(Vec2. a00 a10)
              (Vec2. a01 a11)])
@@ -224,6 +226,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
+  (->seq [_] (list a00 a01 a02 a10 a11 a12 a20 a21 a22))
+  (entry [_ x y] (gen-condition-2 3 ^long x ^long y (mat3x3-throw-ioobe [x y])))
   (fmap [_ f] (Mat3x3. (f a00) (f a01) (f a02) (f a10) (f a11) (f a12) (f a20) (f a21) (f a22)))
   (cols [_] [(Vec3. a00 a10 a20)
              (Vec3. a01 a11 a21)
@@ -378,6 +382,8 @@
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/MatrixProto
+  (->seq [_] (list a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
+  (entry [_ x y] (gen-condition-2 4 ^long x ^long y (mat4x4-throw-ioobe [x y])))
   (fmap [_ f] (Mat4x4. (f a00) (f a01) (f a02) (f a03)
                        (f a10) (f a11) (f a12) (f a13)
                        (f a20) (f a21) (f a22) (f a23)
@@ -546,7 +552,9 @@
 
 (extend (Class/forName "[[D")
   prot/MatrixProto
-  {:fmap (fn [arrs f] (into-array (map #(v/fmap % f) arrs)))
+  {:->seq (fn [arrs] (m/double-double-array->seq arrs))
+   :entry (fn [^"[[D" arrs ^long x ^long y] (fastmath.java.Array/aget2d arrs x y))
+   :fmap (fn [arrs f] (into-array (map #(v/fmap % f) arrs)))
    :rows seq
    :cols (fn [arrs] (fastmath.java.Array/mat2cols arrs))
    :to-double-array2d identity
@@ -613,11 +621,13 @@
 
 (extend RealMatrix
   prot/MatrixProto
-  {:fmap (fn [^RealMatrix m f] (Array2DRowRealMatrix. ^"[[D" (prot/fmap (.getData m) f)))
+  {:->seq (fn [^RealMatrix m] (m/double-double-array->seq (.getData m)))
+   :entry (fn ^double [^RealMatrix m ^long x ^long y] (.getEntry m x y))
+   :fmap (fn [^RealMatrix m f] (Array2DRowRealMatrix. ^"[[D" (prot/fmap (.getData m) f)))
    :rows (fn [^RealMatrix m] (map (fn [idx] (.getRowVector m (unchecked-int idx)))
-                                  (range (.getRowDimension m))))
+                                 (range (.getRowDimension m))))
    :cols (fn [^RealMatrix m] (map (fn [idx] (.getColumnVector m (unchecked-int idx)))
-                                  (range (.getColumnDimension m))))
+                                 (range (.getColumnDimension m))))
    :to-double-array2d (fn [^RealMatrix m] (.getData m))
    :to-float-array2d (fn [^RealMatrix m] (prot/to-float-array2d (.getData m)))
    :to-double-array (fn [^RealMatrix m] (prot/to-double-array (.getData m)))
@@ -631,10 +641,10 @@
    :transpose (fn [^RealMatrix m] (.transpose m))
    :inverse (fn [^RealMatrix m] (MatrixUtils/inverse m))
    :diag (fn [^RealMatrix m] (let [size (.getRowDimension m)
-                                   v (ArrayRealVector. size)]
-                               (doseq [^int idx (range size)]
-                                 (.setEntry v idx (.getEntry m idx idx)))
-                               v))
+                                  v (ArrayRealVector. size)]
+                              (doseq [^int idx (range size)]
+                                (.setEntry v idx (.getEntry m idx idx)))
+                              v))
    :det (fn [^RealMatrix m] (.getDeterminant (LUDecomposition. m)))
    :add (fn [^RealMatrix m1 ^RealMatrix m2] (.add m1 m2))
    :adds (fn [^RealMatrix m ^double v] (.scalarAdd m v))
@@ -879,6 +889,11 @@
 
 ;;
 
+(defn entry
+  "Get entry at given row and column"
+  ^double [A row col]
+  (prot/entry A row col))
+
 (defn fmap
   "Apply a function `f` to each matrix element."
   [A f] (prot/fmap A f))
@@ -891,6 +906,10 @@
   "Return matrix rows"
   [A] (prot/rows A))
 
+(defn mat->seq
+  "Return flat sequence of entries (row order)"
+  [A] (prot/->seq A))
+
 (defn mat->array2d
   "Return doubles of doubles"
   [A] (prot/to-double-array2d A))
@@ -900,11 +919,11 @@
   [A] (prot/to-float-array2d A))
 
 (defn mat->array
-  "Return doubles of doubles"
+  "Return flat double array of entries (row order)"
   [A] (prot/to-double-array A))
 
 (defn mat->float-array
-  "Return doubles of doubles"
+  "Return flat float array of entries (row order)"
   [A] (prot/to-float-array A))
 
 (defn mat->RealMatrix

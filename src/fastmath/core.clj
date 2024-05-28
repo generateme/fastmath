@@ -1883,9 +1883,10 @@
 
 (defn approx-eq
   "Checks equality approximately. See [[approx]]."
-  ([^double a ^double b] (== (approx a) (approx b)))
-  ([^double a ^double b ^long digits] (== (approx a digits)
-                                          (approx b digits))))
+  ([^double a ^double b] (or (== (approx a) (approx b)) (== a b)))
+  ([^double a ^double b ^long digits] (or (== (approx a digits)
+                                              (approx b digits))
+                                          (== a b))))
 
 (defn delta-eq
   "Checks equality for given absolute accuracy (default `1.0e-6`).
@@ -1893,9 +1894,9 @@
   Version with 4-arity accepts absolute and relative accuracy."
   ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
-   (< (abs (- a b)) accuracy))
+   (or (< (abs (- a b)) accuracy) (== a b)))
   ([^double a ^double b ^double abs-tol ^double rel-tol]
-   (< (abs (- a b)) (max abs-tol (* rel-tol (max (abs a) (abs b)))))))
+   (or (< (abs (- a b)) (max abs-tol (* rel-tol (max (abs a) (abs b))))) (== a b))))
 
 (def ^{:doc "Alias for [[approx-eq]]"} approx= approx-eq)
 (def ^{:doc "Alias for [[delta-eq]]"} delta= delta-eq)

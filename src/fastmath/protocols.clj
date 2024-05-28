@@ -137,4 +137,4 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
 (defprotocol PredictProto
   "Prediction API"
-  (predict [obj xs] "Predict value from the model"))
+  (predict [obj xs] [obj xs info?] "Predict value from the model"))

@@ -60,7 +60,8 @@
            [org.apache.commons.math3.stat.regression SimpleRegression]
            [org.apache.commons.math3.analysis.integration RombergIntegrator]
            [org.apache.commons.math3.analysis UnivariateFunction]
-           [fastmath.java Array]))
+           [fastmath.java Array]
+           [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -1093,7 +1094,7 @@
    (if-not (keyword? bins-or-estimate-method)
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
-       (min n (int (condp = bins-or-estimate-method
+       (min n (int (case bins-or-estimate-method
                      :sqrt (m/sqrt n)
                      :sturges (inc (m/ceil (m/log2 n)))
                      :rice (m/ceil (* 2.0 (m/cbrt n)))
@@ -1110,15 +1111,52 @@
                                 (m/cbrt n))]
                        (scott-fd-helper vvs h)))))))))
 
+(defn- constrain-data
+  [vs ^double mn ^double mx]
+  (filter (fn [^double v] (<= mn v mx)) vs))
+
 (defn- process-vs-and-bins
   [vs bins-or-estimate-method ^double mn ^double mx]
   (if (sequential? bins-or-estimate-method)
     (let [[^double nmn ^double nmx] (extent bins-or-estimate-method)]
-      [(filter (fn [^double v] (<= nmn v nmx)) vs) nmn nmx
-       (dec (count bins-or-estimate-method)) (sort bins-or-estimate-method)])
-    (let [nvs (filter (fn [^double v] (<= mn v mx)) vs)
-          bins (estimate-bins nvs bins-or-estimate-method)]
-      [nvs mn mx bins (m/slice-range mn mx (inc bins))])))
+      [(constrain-data vs nmn nmx)
+       nmn nmx (sort bins-or-estimate-method)])
+    (let [nvs (constrain-data vs mn mx)
+          bins (if (== mn mx) 1 (estimate-bins nvs bins-or-estimate-method))]
+      [nvs mn mx (m/slice-range mn mx (inc bins))])))
+
+(defn- histogram-internal
+  [[vs ^double mn ^double mx intervals]]
+  (let [diff (- mx mn)
+        bins (if (zero? diff) 1 (dec (count intervals)))
+        bins- (dec bins)
+        step (/ diff bins)
+        search-array (double-array intervals)
+        buff (long-array bins)
+        sum (double-array bins)
+        size (count vs)
+        dsize (double size)]
+
+    (doseq [^double v vs]
+      (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
+            pos (unchecked-int (min bins- (long (if (neg? b) (m/abs (+ b 2)) b))))]
+        (fastmath.java.Array/inc ^longs buff pos)
+        (fastmath.java.Array/add ^doubles sum pos v)))
+
+    (let [bins-map (map (fn [[^double mn ^double mx] ^long cnt ^double s]
+                          {:min mn :max mx :count cnt
+                           :step (- mx mn)
+                           :avg (/ s cnt)
+                           :probability (/ cnt dsize)}) (partition 2 1 search-array) buff sum)]
+      {:size bins
+       :step step
+       :samples size
+       :min mn
+       :max mx
+       :bins (map (juxt :min :count) bins-map)
+       :bins-maps bins-map
+       :intervals intervals
+       :frequencies (into {} (map (juxt :avg :count) bins-map))})))
 
 (defn histogram
   "Calculate histogram.
@@ -1135,47 +1173,38 @@
   * `:max` - max value
   * `:samples` - number of used samples
   * `:frequencies` - a map containing counts for bin's average
+  * `:intervals` - intervals used to create bins
   * `:bins-maps` - seq of maps containing:
     * `:min` - lower bound
     * `:max` - upper bound
     * `:step` - actual distance between bins 
     * `:count` - number of elements
     * `:avg` - average value
+    * `:probability` - probability for bin
 
   If difference between min and max values is `0`, number of bins is set to 1."
   ([vs] (histogram vs :freedman-diaconis))
-  ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent vs)))
+  ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent
+                                                                       (if (sequential? (first vs))
+                                                                         (flatten vs) vs))))
   ([vs bins-or-estimate-method [^double mn ^double mx]] (histogram vs bins-or-estimate-method mn mx))
   ([vs bins-or-estimate-method ^double mn ^double mx]
-   (let [[vs ^double mn ^double mx
-          ^long bins intervals]  (process-vs-and-bins vs bins-or-estimate-method mn mx)
-         diff (- mx mn)
-         bins (if (zero? diff) 1 bins)
-         bins- (dec bins)
-         step (/ diff bins)
-         search-array (double-array intervals)
-         buff (long-array bins)
-         sum (double-array bins)]
-
-     (doseq [^double v vs]
-       (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
-             pos (unchecked-int (min bins- (long (if (neg? b) (m/abs (+ b 2)) b))))]
-         (fastmath.java.Array/inc ^longs buff pos)
-         (fastmath.java.Array/add ^doubles sum pos v)))
-
-     (let [bins-map (map (fn [[^double mn ^double mx] ^long cnt ^double s]
-                           {:min mn :max mx :count cnt
-                            :step (- mx mn)
-                            :avg (/ s cnt)}) (partition 2 1 search-array) buff sum)]
-       {:size bins
-        :step step
-        :samples (count vs)
-        :min mn
-        :max mx
-        :bins (map (juxt :min :count) bins-map)
-        :bins-maps bins-map
-        :frequencies (into {} (map (juxt :avg :count) bins-map))}))))
-
+   (if (sequential? (first vs))
+     (let [sbins? (sequential? bins-or-estimate-method)
+           [^double nmn ^double nmx] (if sbins? (extent bins-or-estimate-method) [mn mx])
+           nvs (map #(constrain-data % nmn nmx) vs)
+           intervals (if sbins?
+                       (sort bins-or-estimate-method)
+                       (if (== nmn nmx)
+                         [nmn nmx]
+                         (->> nvs
+                              (map #(estimate-bins % bins-or-estimate-method))
+                              (reduce m/max 1.0)
+                              (int)
+                              (inc)
+                              (m/slice-range nmn nmx))))]
+       (map (fn [vs] (histogram-internal [vs nmn nmx intervals])) nvs))
+     (histogram-internal (process-vs-and-bins vs bins-or-estimate-method mn mx)))))
 
 ;; distances
 
@@ -1191,15 +1220,28 @@
                              last-idx (- 1.0 (r/cdf distr s))
                              (r/cdf distr s (+ s step)))) bins)]))
 
+(defn- pq-from-histograms
+  [P Q bins]
+  (let [[Ph Qh] (histogram [P Q] bins)]
+    [(map second (:bins Ph))
+     (map second (:bins Qh))]))
+
 (defn- normalize-PQ
   [P-observed Q-expected bins probabilities?]
-  (let [[P Q] (if (r/distribution? Q-expected)
-                (quantize-distribution P-observed Q-expected bins)
-                [P-observed Q-expected])]
+  (let [[P Q] (cond (r/distribution? Q-expected) (quantize-distribution P-observed Q-expected bins)
+                    bins (pq-from-histograms P-observed Q-expected bins) 
+                    :else [P-observed Q-expected])]
     (cond
       (r/distribution? Q-expected) [(v/div P (v/sum P)) Q]
       probabilities? [(v/div P (v/sum P)) (v/div Q (v/sum Q))]
       :else [P Q])))
+
+(defn- remove-zeros-pairwise
+  [[P Q]]
+  (let [pairs (->> (map v/vec2 P Q)
+                   (remove (fn [^Vec2 v] (or (zero? (.x v))
+                                            (zero? (.y v))))))]
+    [(map first pairs) (map second pairs)]))
 
 (defn- safe-div
   ^double [^double n ^double d ^double e]
@@ -1221,9 +1263,9 @@
   Arguments:
 
   * `method` - distance method
-  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution)
-  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data)
-  
+  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution of `:bins` is set)
+  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data or `:bins` is set)
+
   Options:
 
   * `:probabilities?` - should P/Q be converted to a probabilities, default: `true`.
@@ -1236,9 +1278,10 @@
 
   See more: Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha"
   (^double [method P-observed Q-expected] (dissimilarity method P-observed Q-expected nil))
-  (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon ^double log-base ^double power]
+  (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon ^double log-base ^double power remove-zeros?]
                                           :or {probabilities? true epsilon 1.0e-6 log-base m/E power 2.0}}]
-   (let [[P Q] (normalize-PQ P-observed Q-expected bins probabilities?)
+   (let [pq (normalize-PQ P-observed Q-expected bins probabilities?)
+         [P Q] (if remove-zeros? (remove-zeros-pairwise pq) pq)
          log (make-safe-log log-base epsilon)]
      (case method
        :euclidean (L2 P Q)
