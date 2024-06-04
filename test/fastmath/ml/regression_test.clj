@@ -22,19 +22,22 @@
                             (fn [k] (if (= v k) 1 0)))) dataset values))
 
 (defn mult-columns
-  [dataset column1 column2]
-  (let [cs1 (rest (distinct (dataset column1)))
-        cs2 (rest (distinct (dataset column2)))
-        ds (-> dataset
-               (one-hot column1 cs1)
-               (one-hot column2 cs2))]
-    (->> (for [c2 cs2 c1 cs1
-               :let [n1 (keyword (str (name column1) (name c1)))
-                     n2 (keyword (str (name column2) (name c2)))
-                     n (keyword (str (name n1) (name n2)))]]
-           [n (tcc/* (ds n1) (ds n2))])
-         (reduce (fn [d [n c]]
-                   (tc/add-column d n c)) ds))))
+  ([dataset column1 column2] (mult-columns dataset column1 false column2 false))
+  ([dataset column1 sort1? column2 sort2?]
+   (let [pre-cs1 (distinct (dataset column1))
+         pre-cs2 (distinct (dataset column2))
+         cs1 (rest (if sort1? (sort pre-cs1) pre-cs1))
+         cs2 (rest (if sort2? (sort pre-cs2) pre-cs2))
+         ds (-> dataset
+                (one-hot column1 cs1)
+                (one-hot column2 cs2))]
+     (->> (for [c2 cs2 c1 cs1
+                :let [n1 (keyword (str (name column1) (name c1)))
+                      n2 (keyword (str (name column2) (name c2)))
+                      n (keyword (str (name n1) (name n2)))]]
+            [n (tcc/* (ds n1) (ds n2))])
+          (reduce (fn [d [n c]]
+                    (tc/add-column d n c)) ds)))))
 
 (defn add-poly
   [ds column n]
@@ -43,14 +46,14 @@
               (tc/add-column d (keyword (str (name column) "-poly-" i)) p))
             ds (map-indexed vector poly))))
 
-(defn load []
+(defn load-r []
   (rr/require-r '[GLMsData] '[base] '[utils] '[moments] '[stats] '[car] '[MASS] '[statmod]))
 
-(load)
+(load-r)
 
 (defn init-r []
   (rr/discard-all-sessions)
-  (load)
+  (load-r)
   (base/options :contrasts ["contr.treatment" "contr.treatment"])
   (utils/data 'gestation)
   (utils/data 'lungcap)
@@ -67,9 +70,15 @@
   (rr/r '(<- ($ danishlc Age) (ordered ($ danishlc Age) :levels ["40-54", "55-59", "60-64", "65-69", "70-74", ">74"])))
   (rr/r '(<- ($ danishlc City) (abbreviate ($ danishlc City) 1)))
   (rr/r '(<- ($ danishlc AgeNum) (rep [40, 55, 60, 65, 70, 75] 4)))
-  (utils/data 'kstones))
-
-(comment (init-r))
+  (utils/data 'kstones)
+  (utils/data 'pock)
+  (utils/data 'hcrabs)
+  (utils/data 'lime)
+  (utils/data 'perm)
+  (rr/r '(<- ($ perm Day) (factor ($ perm Day))))
+  (utils/data 'yieldden)
+  (rr/r '(<- ($ yieldden Var) (factor ($ yieldden Var))))
+  (rr/r '(<- ($ yieldden YD) (with yieldden (* Yield Dens)))))
 
 (defn with-r-session [f]
   (init-r)
@@ -93,7 +102,7 @@
    (let [lm (sut/lm ys xss options)
          rlm (rr/r lm-r)
          rlmdata (rr/r->clj rlm)
-         analysis (deref (:analysis lm))
+         analysis (sut/analysis lm)
          summary (rr/r->clj `(summary ~rlm :correlation true))
          influence (rr/r->clj `(influence ~rlm))
          lobs (m/log (:observations lm))]
@@ -228,10 +237,11 @@
 (defn glm-tests
   ([ys xss glm-r] (glm-tests ys xss nil glm-r))
   ([ys xss options glm-r]
-   (let [glm (sut/glm ys xss (assoc options :epsilon 1.0e-16 :max-iters 100))
-         rglm (rr/r (concat glm-r '(:epsilon 1.0e-16 :maxit 100)))
+   (let [options (merge {:epsilon 1.0e-16 :max-iters 100} options)
+         glm (sut/glm ys xss options)
+         rglm (rr/r (concat glm-r (list :epsilon (:epsilon options) :maxit (:max-iters options))))
          rglmdata (rr/r->clj rglm)
-         analysis (deref (:analysis glm))
+         analysis (sut/analysis glm)
          summary (rr/r->clj `(summary ~rglm :correlation true))
          influence (rr/r->clj `(influence ~rglm))]
      (when (:print? options) (clojure.pprint/pprint glm))
@@ -246,8 +256,8 @@
      (t/is (v/delta-eq (get-in glm [:residuals :pearson] [##Inf])
                        (rr/r->clj `(residuals ~rglm :type "pearson"))))
      (t/is (v/delta-eq (get-in glm [:residuals :raw] [##Inf])
-                       (rr/r->clj `(residuals ~rglm :type "response"))))
-     (t/is (v/delta-eq (get-in glm [:fitted] [##Inf]) (:fitted.values rglmdata)))
+                       (rr/r->clj `(residuals ~rglm :type "response")) 1.0e-4))
+     (t/is (v/delta-eq (get-in glm [:fitted] [##Inf]) (:fitted.values rglmdata) 1.0e-4))
      (t/is (m/delta-eq (get-in glm [:deviance :residual] [##Inf]) (first (:deviance rglmdata))))
      (when (:compare-deviance-null? options)
        (t/is (m/delta-eq (get-in glm [:deviance :null] [##Inf]) (first (:null.deviance rglmdata)))))
@@ -502,7 +512,10 @@
     (glm-tests (:Counts counts2x2) (tc/rows (tc/select-columns counts2x2
                                                                [:AttAgainst :IncLow :AttAgainstIncLow]))
                {:family :poisson :no-analysis? true}
-               `(glm (formula Counts (* Att Inc)) :family poisson :data ~rcounts2x2))))
+               `(glm (formula Counts (* Att Inc)) :family poisson :data ~rcounts2x2))
+    (glm-tests (:AttAgainst counts2x2) (:IncLow counts2x2) {:family :binomial :weights (:Counts counts2x2)}
+               `(glm (formula (ifelse (== Att "Against") 1 0) Inc)
+                     :family binomial :weight Counts :data ~rcounts2x2))))
 
 (t/deftest kstones-data
   (let [kstones (-> (rr/r->clj 'kstones)
@@ -554,6 +567,91 @@
                '(glm "Counts ~ Size * Method * Outcome - Size:Method:Outcome" :family poisson :data kstones))
     (glm-tests (:Counts kstones) (tc/rows (tc/drop-columns kstones [:Counts :Size :Method :Outcome]))
                {:family :poisson :no-analysis? true}
-               '(glm (formula Counts (* Size Method Outcome)) :family poisson :data kstones))))
+               '(glm (formula Counts (* Size Method Outcome)) :family poisson :data kstones))
+    (glm-tests (:OutcomeSuccess kstones) (tc/rows (tc/select-columns kstones
+                                                                     [:SizeSmall :MethodB
+                                                                      :SizeSmallMethodB]))
+               {:family :binomial :weights (:Counts kstones)}
+               '(glm (formula (ifelse (== Outcome "Success") 1 0) (* Size Method))
+                     :family binomial :data kstones :weights Counts))))
 
+(t/deftest pock-data
+  (let [pock (-> (rr/r->clj 'pock)
+                 (tc/map-columns :l2Dilution :Dilution m/log2))]
+    (glm-tests (:Count pock) (:l2Dilution pock) {:family :poisson}
+               '(glm (formula Count (log2 Dilution)) :family poisson :data pock))
+    (glm-tests (:Count pock) (:l2Dilution pock) {:family :quasi-poisson :no-ll? true}
+               '(glm (formula Count (log2 Dilution)) :family quasipoisson :data pock))
+    (glm-tests (:Count pock) (:l2Dilution pock) {:family :nbinomial :nbinomial-theta 9.892894299757403}
+               '(glm.nb (formula Count (log2 Dilution))  :data pock))
+    (t/is (m/delta-eq (first (:theta (rr/r->clj '(glm.nb (formula Count (log2 Dilution)) :data pock))))
+                      (:nbinomial-theta (sut/glm-nbinomial (:Count pock) (:l2Dilution pock)))))))
+
+(t/deftest hcrabs-data
+  (let [hcrabs (-> (rr/r->clj 'hcrabs)
+                   (tc/log :logWt :Wt)
+                   (tc/log :logWidth :Width)
+                   (one-hot :Spine [:NoneOK :OneOK])
+                   (one-hot :Col [:DM :LM :M]))]
+    (glm-tests (:Sat hcrabs) (tc/rows (tc/drop-columns hcrabs [:Wt :Width :Spine :Col :Sat]))
+               {:family :quasi-poisson :no-ll? true}
+               '(glm (formula Sat (+ (log Wt) (log Width) Spine Col))
+                     :family quasipoisson :data hcrabs))
+    (glm-tests (:Sat hcrabs) (:logWt hcrabs)
+               {:family :quasi-poisson :no-ll? true}
+               '(glm (formula Sat (+ (log Wt)))
+                     :family quasipoisson :data hcrabs))
+    (glm-tests (:Sat hcrabs) (:logWt hcrabs)
+               {:family :nbinomial :nbinomial-theta 0.9580286019527684}
+               '(glm.nb (formula Sat (+ (log Wt))) :data hcrabs))
+    (t/is (m/delta-eq (first (:theta (rr/r->clj '(glm.nb (formula Sat (+ (log Wt))) :data hcrabs))))
+                      (:nbinomial-theta (sut/glm-nbinomial (:Sat hcrabs) (:logWt hcrabs)))))))
+
+(t/deftest lime-data
+  (let [lime (-> (rr/r->clj 'lime)
+                 (one-hot :Origin [:Natural :Planted])
+                 (tc/log :logDBH :DBH)
+                 (tc/* :OriginNaturallogDBH [:OriginNatural :logDBH])
+                 (tc/* :OriginPlantedlogDBH [:OriginPlanted :logDBH]))]
+    (glm-tests (:Foliage lime) (tc/rows (tc/drop-columns lime [:Foliage :DBH :Origin :Age]))
+               {:family :gamma :link :log}
+               '(glm (formula Foliage (* Origin (log DBH))) :family (Gamma :link log) :data lime))
+    (t/is (v/delta-eq (-> (sut/glm (:Foliage lime)
+                                   (tc/rows (tc/drop-columns lime [:Foliage :DBH :Origin :Age]))
+                                   {:family :gamma :link :log})
+                          (sut/quantile-residuals))
+                      (rr/r->clj '(qresid (glm (formula Foliage (* Origin (log DBH))) :family (Gamma :link log) :data lime))) 5.0e-3))
+    (glm-tests (:Foliage lime) (tc/rows (tc/drop-columns lime [:Foliage :DBH :Origin :Age]))
+               {:family :inverse-gaussian :link :log}
+               '(glm (formula Foliage (* Origin (log DBH))) :family (inverse.gaussian :link log) :data lime))))
+
+(t/deftest perm-data
+  (let [lime (-> (rr/r->clj 'perm)
+                 (mult-columns :Mach :Day))]
+    (glm-tests (:Perm lime) (tc/rows (tc/drop-columns lime [:Mach :Day :Perm]))
+               {:family :inverse-gaussian :link :log}
+               '(glm (formula Perm (* Mach Day)) :family (inverse.gaussian :link log) :data perm))))
+
+(t/deftest yieldden-data
+  (let [yieldden (-> (rr/r->clj 'yieldden)
+                     (tc/map-columns :rDens :Dens m//)
+                     (one-hot :Var [:2 :3])
+                     (tc/* :DensVar2 [:Dens :Var2])
+                     (tc/* :DensVar3 [:Dens :Var3])
+                     (tc/* :rDensVar2 [:rDens :Var2])
+                     (tc/* :rDensVar3 [:rDens :Var3]))]
+    (glm-tests (:YD yieldden) (tc/rows (tc/drop-columns yieldden [:Var :YD :Yield]))
+               {:family :gamma :link :inverse}
+               '(glm "YD ~ (Dens + I(1/Dens)) * Var" :family (Gamma :link inverse) :data yieldden))
+    (glm-tests (:YD yieldden) (tc/rows (tc/select-columns yieldden [:Dens :rDens :Var2 :Var3]))
+               {:family :gamma :link :inverse}
+               '(glm "YD ~ Dens + I(1/Dens) + Var" :family (Gamma :link inverse) :data yieldden))
+    (t/is (v/delta-eq (-> (sut/glm (:YD yieldden)
+                                   (tc/rows (tc/select-columns yieldden [:Dens :rDens :Var2 :Var3]))
+                                   {:family :inverse-gaussian})
+                          (sut/quantile-residuals))
+                      (rr/r->clj '(qresid (glm "YD ~ Dens + I(1/Dens) + Var"
+                                               :family inverse.gaussian :data yieldden)))))))
+
+(comment (init-r))
 

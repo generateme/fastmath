@@ -495,6 +495,24 @@
                           (m// (m/- y mu) mu))))
        ys mus weights))
 
+(defn- gamma-aic
+  [ys _ns fitted weights deviance _observations rank]
+  (let [disp (m// (double deviance) (v/sum weights))
+        rdisp (m// disp)]
+    (m/+ (m/* -2.0 (v/sum (map (fn [^double y ^double mu ^double w]
+                                 (m/* w (r/lpdf
+                                         (r/distribution :gamma {:shape rdisp :scale (m/* mu disp)})
+                                         y)))
+                               ys fitted weights)))
+         2.0 (m/* 2.0 (int rank)))))
+
+(defn- gamma-quantile-residuals
+  [{:keys [ys fitted ^double dispersion weights]}]
+  (map (fn [^double y ^double mu ^double w]
+         (->> (m// (m// (m/* w y) mu) dispersion)
+              (r/cdf (r/distribution :gamma {:shape (m// w dispersion) :scale 1.0}))
+              (r/icdf r/default-normal))) ys fitted (:initial weights)))
+
 (defn- poisson-initalize
   [ys weights ^long obs]
   [ys (v/shift ys 0.1) weights (repeat obs 1.0)])
@@ -530,12 +548,31 @@
                      (m/* y mu mu))))
        ys mus weights))
 
+(defn- inverse-gaussian-aic
+  [ys _ns _fitted weights deviance _observations rank]
+  (let [sumw (v/sum weights)
+        d (double deviance)]
+    (m/+ (m/* sumw (m/inc (m/log (m/* m/TWO_PI (m// d sumw)))))
+         (m/* 3.0 (v/sum (map (fn [^double y ^double w] (m/* (m/log y) w)) ys weights)))
+         2.0 (m/* 2.0 (int rank)))))
+
+(defn- inverse-gaussian-quantile-residuals
+  [{:keys [ys fitted dispersions]}]
+  (let [rdispersion (m// (double (:mean-deviance dispersions)))]
+    (map (fn [^double y ^double mu]
+           (if (m/== y mu)
+             y
+             (let [distr (r/distribution :inverse-gaussian {:mu mu :lambda rdispersion})]
+               (if (m/< y mu)
+                 (r/icdf r/default-normal (r/cdf distr y))
+                 (m/- (double (r/icdf r/default-normal (r/ccdf distr y)))))))) ys fitted)))
+
 (defn- nbinomial-initialize
   [ys weights ^long obs]
   [ys (map (fn ^double [^double y]
-             (if (m/zero? y) m/SIXTH y))) weights (repeat obs 1.0)])
+             (if (m/zero? y) m/SIXTH y)) ys) weights (repeat obs 1.0)])
 
-(defn- nbinomial-residual-deviance
+(defn- ->nbinomial-residual-deviance
   [^double theta]
   (fn [ys mus weights]
     (map (fn [^double y ^double mu ^double w]
@@ -544,6 +581,30 @@
                              (m/* y+theta
                                   (m/log (m// y+theta (m/+ mu theta))))))))
          ys mus weights)))
+
+(defn- ->nbinomial-quantile-residuals
+  [^double theta]
+  (fn [{:keys [ys fitted]}]
+    (map (fn [^double y ^double mu]
+           (let [p (m// theta (m/+ theta mu))
+                 a (if (m/pos? y)
+                     (r/cdf (r/distribution :beta {:alpha theta :beta (m/max y 1.0)}) p)
+                     0.0)
+                 b (r/cdf (r/distribution :beta {:alpha theta :beta (m/inc y)}) p)]
+             (r/icdf r/default-normal (r/drand a b)))) ys fitted)))
+
+(defn- ->nbinomial-aic
+  [^double theta]
+  (let [lgt-tlt (m/- (m/log-gamma theta) (m/* theta (m/log theta)))]
+    (fn [ys _ns fitted weights _deviance _observations rank]
+      (m/+ (m/* 2.0 (v/sum (map (fn [^double y ^double mu ^double w]
+                                  (let [y+t (m/+ y theta)]
+                                    (m/* w (m/- (m/+ (m/* y+t (m/log (m/+ mu theta)))
+                                                     (m/log-gamma (m/inc y))
+                                                     lgt-tlt)
+                                                (m/* y (m/log mu))
+                                                (m/log-gamma y+t))))) ys fitted weights)))
+           (m/* 2.0 (m/inc (int rank)))))))
 
 (defn- estimate-dispersion
   ^double [residuals weights ^long df]
@@ -601,13 +662,13 @@
                                (fn ^double [^double x] (let [e (m/exp x)]
                                                         (m// e (m// (m/sq (m/- 1.0 e))
                                                                     nbinomial-theta))))))
-          :power (fn [{:keys [^double exponent]
-                      :or {exponent 1.0}}]
-                   (let [rexponent (m// exponent)]
-                     (->Link (fn ^double [^double x] (m/pow x exponent))
+          :power (fn [{:keys [^double power-exponent]
+                      :or {power-exponent 1.0}}]
+                   (let [rexponent (m// power-exponent)]
+                     (->Link (fn ^double [^double x] (m/pow x power-exponent))
                              (fn ^double [^double x] (m/pow x rexponent))
                              (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
-                                                                                 (m/- 1.0 exponent))))))))
+                                                                                 (m/- 1.0 power-exponent))))))))
           :distribution (fn [{:keys [distribution]
                              :or {distribution (r/distribution :normal)}}]
                           (->Link (partial r/icdf distribution)
@@ -621,32 +682,39 @@
                                  binomial-aic binomial-quantile-residuals 1.0)
              :quasi-binomial (->Family :logit (fn ^double [^double x] (m/* x (m/- 1.0 x)))
                                        binomial-initialize binomial-residual-deviance
-                                       (constantly ##NaN) nil :estimate)
+                                       (constantly ##NaN) binomial-quantile-residuals :estimate)
              :gaussian (->Family :identity constantly-1
                                  default-initialize gaussian-residual-deviance gaussian-aic nil :estimate)
              :gamma (->Family :inverse m/sq
-                              default-initialize gamma-residual-deviance nil nil :estimate)
+                              default-initialize gamma-residual-deviance gamma-aic
+                              gamma-quantile-residuals :estimate)
              :poisson (->Family :log m/identity-double 
                                 poisson-initalize poisson-residual-deviance poisson-aic
                                 poisson-quantile-residuals 1.0)
              :quasi-poisson (->Family :log m/identity-double 
                                       poisson-initalize poisson-residual-deviance
-                                      (constantly ##NaN) nil :estimate)
+                                      (constantly ##NaN) poisson-quantile-residuals :estimate)
              :inverse-gaussian (->Family :inversesq m/cb
-                                         default-initialize inverse-gaussian-residual-deviance nil nil
+                                         default-initialize inverse-gaussian-residual-deviance
+                                         inverse-gaussian-aic inverse-gaussian-quantile-residuals
                                          :estimate)
              :nbinomial (fn [{:keys [^double nbinomial-theta]
                              :or {nbinomial-theta 1.0}}]
                           (->Family :log (fn ^double [^double x] (m/+ x (m// (m/* x x) nbinomial-theta)))
-                                    nbinomial-initialize (nbinomial-residual-deviance nbinomial-theta) nil nil
-                                    :estimate))})
+                                    nbinomial-initialize
+                                    (->nbinomial-residual-deviance nbinomial-theta)
+                                    (->nbinomial-aic nbinomial-theta)
+                                    (->nbinomial-quantile-residuals nbinomial-theta)
+                                    1.0))})
 
 (defn family-with-link
-  "Returns family with optional link"
+  "Returns family with a link as single map."
+  ([family] (family-with-link family nil))
+  ([family params] (family-with-link family nil params))
   ([family link params]
    (let [fm (families family family)
          fm-data (if (fn? fm) (fm params) fm)
-         link (or link (:default-link fm))
+         link (or link (:default-link fm-data))
          lk (links link link)
          lk-data (if (fn? lk) (lk params) lk)]
      (assoc (merge fm-data lk-data) :family family :link link))))
@@ -667,21 +735,20 @@
            ##NaN)) residuals hat))
 
 (defn- glm-studentized-residuals
-  [dresiduals presiduals sigmas hat dispersion]
-  (let [d (double dispersion)]
-    (map (fn [^double dr ^double dp ^double s ^double h]
-           (if (m/< h 1.0)
-             (m// (m/* (m/signum dr)
-                       (m/sqrt (m/+ (m/* dr dr)
-                                    (m// (m/* h dp dp)
-                                         (m/- 1.0 h))))) s)
-             ##NaN)) dresiduals presiduals (if (m/one? d)
-                                             (repeat 1.0)
-                                             sigmas) hat)))
+  [dresiduals presiduals sigmas hat family]
+  (map (fn [^double dr ^double dp ^double s ^double h]
+         (if (m/< h 1.0)
+           (m// (m/* (m/signum dr)
+                     (m/sqrt (m/+ (m/* dr dr)
+                                  (m// (m/* h dp dp)
+                                       (m/- 1.0 h))))) s)
+           ##NaN)) dresiduals presiduals (if (#{:poisson :binomial} family)
+                                           (repeat 1.0)
+                                           sigmas) hat))
 
 (defn- glm-extra-analysis
   [{:keys [weights residuals ^double dispersion
-           ^long observations ^RealMatrix xtxinv] :as model} ^RealMatrix xss]
+           ^long observations ^RealMatrix xtxinv family] :as model} ^RealMatrix xss]
   (let [weights (:weights weights)        
         presiduals (:pearson residuals)
         dresiduals (:deviance residuals)
@@ -704,7 +771,7 @@
                    :covratio (covratio dresiduals hat sigmas p)}]
     {:residuals {:standardized {:pearson (glm-standardize-residuals presiduals hat inv-sqrt-dispersion)
                                 :deviance (glm-standardize-residuals dresiduals hat inv-sqrt-dispersion)}
-                 :studentized (glm-studentized-residuals dresiduals presiduals sigmas hat dispersion)}
+                 :studentized (glm-studentized-residuals dresiduals presiduals sigmas hat family)}
      :laverage {:hat hat
                 :sigmas sigmas
                 :coefficients (mapv seq (mat/mat->array2d laverage-coeffs))}
@@ -717,7 +784,7 @@
                     ^double intercept  beta coefficients ^long observations
                     residuals fitted weights offset
                     deviance df ^double dispersion dispersions estimated-dispersion?
-                    family link mean-fun link-fun iters
+                    family link mean-fun link-fun iters quantile-residuals
                     ^double q ^double chi2 ^double p-value
                     ll analysis]
   IFn
@@ -741,6 +808,74 @@
         (mean-fun (m/+ off intercept (v/dot beta xs)))))))
 
 (defn glm
+  "Fit a generalized linear model using IRLS method.
+
+  Arguments:
+
+  * `ys` - response vector
+  * `xss` - terms of systematic component
+  * optional parameters
+
+  Parameters:
+
+  * `:tol` - tolerance for matrix decomposition (SVD and Cholesky), default: `1.0e-8`
+  * `:epsilon` - tolerance for IRLS (stopping condition), default: `1.0e-8`
+  * `:max-iters` - maximum numbers of iterations, default: `25`
+  * `:weights` - optional weights
+  * `:offset` - optional offset
+  * `:alpha` - significance level, default: `0.05`
+  * `:intercept?` - should intercept term be included, default: `true`
+  * `:init-mu` - initial response vector for IRLS
+  * `:simple?` - returns simplified result
+  * `:dispersion-estimator` - `:pearson`, `:mean-deviance` or any number, replaces default one.
+  * `:family` - family, default: `:gaussian`
+  * `:link` - link 
+  * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
+
+  Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial` or custom `Family` record (see [[->family]]).
+
+  Link is one of the: `:probit`, `:identity`, `:loglog`, `:sqrt`, `:inverse`, `:logit`, `:power`, `:nbinomial`, `:cauchit`, `:distribution`, `:cloglog`, `:inversesq`, `:log`, `:clog` or custom `Link` record (see [[->link]])
+
+  Notes:
+  
+  * SVD decomposition is used instead of more common QR
+  * intercept term is added implicitely if `intercept?` is set to `true` (by default)
+  * `:nbinomial` family requires `:nbinomial-theta` parameter
+  * Each family has its own default (canonical) link.
+
+  Returned record implementes `IFn` protocol and contains:
+  
+  * `:model` - set to `:glm`
+  * `:intercept?` - whether intercept term is included or not
+  * `:xtxinv` - (X^T X)^-1
+  * `:intercept` - intercept term value
+  * `:beta` - vector of model coefficients (without intercept)
+  * `:coefficients` - coefficient analysis, a list of maps containing `:estimate`, `:stderr`, `:t-value`, `:p-value` and `:confidence-interval`
+  * `:weights` - weights, `:weights` (working) and `:initial`
+  * `:residuals` - a map containing `:raw`, `:working`, `:pearsons` and `:deviance` residuals
+  * `:fitted` - fitted values for xss
+  * `:df` - degrees of freedom: `:residual`, `:null` and `:intercept`
+  * `:observations` - number of observations
+  * `:deviance` - deviances: `:residual` and `:null` 
+  * `:dispersion` - default or calculated, used in a model
+  * `:dispersions` - `:pearson` and `:mean-deviance`
+  * `:family` - family used
+  * `:link` - link used
+  * `:link-fun` - link function, `g`
+  * `:mean-fun` - mean function, `g^-1`
+  * `:q` - (1-alpha/2) quantile of T or Normal distribution for residual degrees of freedom
+  * `:chi2` and `:p-value` - Chi-squared statistic and respective p-value
+  * `:ll` - a map containing log-likelihood and AIC/BIC
+  * `:analysis` - laverage, residual and influence analysis - a delay
+  * `:iters` and `:converged?` - number of iterations and convergence indicator
+
+  Analysis, delay containing a map:
+  
+  * `:residuals` - `:standardized` and `:studentized` residuals (pearsons and deviance)
+  * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
+  * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
+  * `:influential` - list of influential observations (ids) for influence measures
+  * `:correlation` - correlation matrix of estimated parameters"
   ([ys xss] (glm ys xss nil))
   ([ys xss {:keys [^long max-iters ^double tol ^double epsilon family link weights ^double alpha offset
                    dispersion-estimator intercept? init-mu simple?]
@@ -758,7 +893,8 @@
           residual-deviance :residual-deviance
           dispersion :dispersion
           link :link family :family
-          aic-fun :aic} (family-with-link family link params)
+          aic-fun :aic
+          :as family+link} (family-with-link family link params)
 
          m (mat/nrow xss)
          n (mat/ncol xss)
@@ -766,14 +902,14 @@
          weights (or weights (repeat m 1.0))
 
          [ys start-t ^doubles weights ns] (initialize (seq ys) (seq weights) m)
-
+         
          ^doubles ys (m/seq->double-array ys)
          ^doubles weights (m/seq->double-array weights)
 
          offset? (boolean offset)
          ^doubles offset (m/seq->double-array (or offset (repeat m 0.0)))
          ^RealVector rvoffset (v/vec->RealVector offset)
-
+         
          init-t (double-array (map link-fun (or init-mu start-t)))
          
          ^doubles buff-g (double-array m)
@@ -805,7 +941,7 @@
 
            (let [^RealVector new-t (->> (-> (mat/mulm uts (mat/mulm (DiagonalMatrix. buff-W) ut))
                                             #_(QRDecomposition. tol)
-                                            (CholeskyDecomposition. tol 1.0e-16)
+                                            (CholeskyDecomposition. tol 1.0e-18)
                                             (.getSolver)
                                             (.solve (.operate uts (v/vec->RealVector buff-Wz))))
                                         (mat/mulv ut))
@@ -906,7 +1042,8 @@
                                                             (map link-mean offset)) weights)))
 
              aic (if aic-fun (double (aic-fun ys ns fitted weights dev m n)) ##Inf)
-             [log-likelihood bic] (let [p (if (#{:gaussian :inverse-gaussian :gamma} family) (m/inc n) n)
+             [log-likelihood bic] (let [p (if (#{:gaussian :inverse-gaussian
+                                                 :gamma :nbinomial} family) (m/inc n) n)
                                         ll (m/- p (m// aic 2.0))]
                                     [ll (m/- (m/* p (m/log m)) (m/* 2.0 ll))])
              
@@ -919,6 +1056,7 @@
                               :fitted fitted
                               :dispersions {:pearson pearson-dispersion
                                             :mean-deviance mean-deviance}
+                              :quantile-residuals (:quantile-residuals family+link)
                               :chi2 chi2
                               :p-value (if (m/zero? df)
                                          ##Inf
@@ -935,12 +1073,97 @@
 
          (map->GLMData (assoc model :analysis analysis)))))))
 
+;; fit nbinomial theta
+
+(defn- nbinomial-theta-score [ys mus weights]
+  (fn ^double [^double theta]
+    (let [dg (m/digamma theta)
+          lt (m/log theta)]
+      (v/sum (map (fn [^double y ^double mu ^double w]
+                    (let [y+th (m/+ y theta)
+                          mu+th (m/+ mu theta)]
+                      (m/* w (m/- (m/+ (m/digamma y+th) lt 1.0)
+                                  dg (m/log mu+th) (m// y+th mu+th)))))
+                  ys mus weights)))))
+
+(defn- nbinomial-theta-score' [ys mus weights]
+  (fn [^double theta]
+    (let [tg (m/trigamma theta)
+          rt (m// theta)]
+      (v/sum (map (fn [^double y ^double mu ^double w]
+                    (let [y+th (m/+ y theta)
+                          mu+th (m/+ mu theta)]
+                      (m/* w (m/- (m/+ tg (m// 2.0 mu+th))
+                                  (m/trigamma y+th) rt (m// y+th (m/sq mu+th))))))
+                  ys mus weights)))))
+
+(defn- nbinomial-theta-init [ys mus weights ^long n]
+  (m// n (v/sum (map (fn [^double y ^double mu ^double w]
+                       (m/* w (m/sq (m/dec (m// y mu))))) ys mus weights))))
+
+(defn- optimize-theta
+  ^double [{:keys [ys fitted weights]} ^long max-iters ^double epsilon]
+  (let [w (:initial weights)
+        n (v/sum w)
+        init (nbinomial-theta-init ys fitted w n)
+        f    (nbinomial-theta-score ys fitted w)
+        f'   (nbinomial-theta-score' ys fitted w)]
+    (loop [i (long 0)
+           theta (double init)
+           delta 1.0]
+      (if (or (m/< delta epsilon) (m/== i max-iters))
+        theta
+        (let [ndelta (m// (double (f theta))
+                          (double (f' theta)))]
+          (recur (m/inc i) (m/+ theta ndelta) ndelta))))))
+
+(defn glm-nbinomial
+  "Fits theta for negative binomial glm in iterative process.
+
+  Returns fitted model with `:nbinomial-theta` key.
+
+  Arguments and parameters are the same as for `glm`.
+
+  Additional parameters:
+
+  * `:nbinomial-theta` - initial theta used as a starting point for optimization."
+  ([ys xss] (glm-nbinomial ys xss nil))
+  ([ys xss {:keys [nbinomial-theta ^long max-iters ^double epsilon]
+            :or {max-iters 25 epsilon 1.0e-8}
+            :as params}]
+   (let [fit0 (if nbinomial-theta
+                (glm ys xss (assoc params :family :nbinomial))
+                (glm ys xss (assoc params :family :poisson)))
+         theta0 (optimize-theta fit0 max-iters epsilon)
+         init-mu (:fitted fit0)]
+     (loop [iter (long 0)
+            model fit0
+            theta theta0
+            ll ##Inf
+            check false]
+       (if (or check (m/>= iter max-iters))
+         (assoc model :nbinomial-theta theta)
+         (let [nmodel (glm ys xss (assoc params
+                                         :family :nbinomial
+                                         :nbinomial-theta theta
+                                         :init-mu init-mu))
+               ntheta (optimize-theta nmodel max-iters epsilon)
+               nll (double (get-in nmodel [:ll :log-likelihood]))
+               ncheck (m/+ (m/abs (m// (m/- nll ll)))
+                           (m/abs (m/- ntheta theta)))]
+           (recur (m/inc iter) nmodel ntheta nll (m/< ncheck epsilon))))))))
+
 (defn quantile-residuals
   "Quantile residuals for a model, possibly randomized."
-  [{:keys [family residuals ^double dispersion] :as model}]
-  (if-let [qres (get-in families [family :quantile-residuals])]
-    (qres model)
+  [{:keys [quantile-residuals residuals dispersion] :as model}]
+  (if quantile-residuals
+    (quantile-residuals model)
     (v/div (:deviance residuals) (m/sqrt dispersion))))
+
+(defn analysis
+  "Influence analysis, laverage, standardized and studentized residuals, correlation."
+  [model]
+  (deref (:analysis model)))
 
 (defn dose
   "Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
