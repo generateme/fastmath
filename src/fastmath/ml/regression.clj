@@ -427,7 +427,86 @@
 ;; GLM https://bwlewis.github.io/GLM/
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; link
+
 (defn- constantly-1 ^double [^double _] 1.0)
+
+(defrecord Link [g mean derivative])
+
+(defn ->link
+  "Creates link record.
+
+  Args:
+
+  * `g` - link function
+  * `mean` - mean, inverse link function
+  * `mean-derivative` - derivative of mean"
+  ([link-map] (map->Link link-map))
+  ([g mean mean-derivative]
+   (->Link g mean mean-derivative)))
+
+(def links {:logit (->Link m/logit
+                         m/sigmoid
+                         (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
+          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (m/inv-erf (m/dec (m/* 2.0 x)))))
+                          (fn ^double [^double x] (-> (m// x m/SQRT2)
+                                                     (m/-)
+                                                     (m/erfc)
+                                                     (m/* 0.5)))
+                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
+                                                                               (m/exp (m/* -0.5 x x))))))
+          :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
+                           (fn ^double [^double x] (-> x
+                                                      (m/atan)
+                                                      (m// m/PI)
+                                                      (m/+ 0.5)))
+                           (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
+          :cloglog (->Link m/cloglog
+                           (fn ^double [^double x] (m/constrain (m/cexpexp x)
+                                                               m/MACHINE-EPSILON
+                                                               0.9999999999999999))
+                           (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
+          :loglog (->Link m/loglog
+                          m/expexp
+                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON
+                                                        (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
+          :identity (->Link m/identity-double
+                            m/identity-double
+                            constantly-1)
+          :log (->Link m/log
+                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
+                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
+          :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
+                        (fn ^double [^double x] (m/- 1.0 (m/exp x)))
+                        (fn ^double [^double x] (m/- (m/exp x))))
+          :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
+          :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
+                             (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
+                             (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
+          :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
+          :nbinomial (fn [{:keys [^double nbinomial-theta]
+                          :or {nbinomial-theta 1.0}}]
+                       (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
+                               (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
+                                                                     nbinomial-theta)))
+                               (fn ^double [^double x] (let [e (m/exp x)]
+                                                        (m// e (m// (m/sq (m/- 1.0 e))
+                                                                    nbinomial-theta))))))
+          :power (fn [{:keys [^double power-exponent]
+                      :or {power-exponent 1.0}}]
+                   (let [rexponent (m// power-exponent)]
+                     (->Link (fn ^double [^double x] (m/pow x power-exponent))
+                             (fn ^double [^double x] (m/pow x rexponent))
+                             (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
+                                                                                 (m/- 1.0 power-exponent))))))))
+          :distribution (fn [{:keys [distribution]
+                             :or {distribution (r/distribution :normal)}}]
+                          (->Link (partial r/icdf distribution)
+                                  (partial r/cdf distribution)
+                                  (partial r/pdf distribution)))})
+
+;; family
+
 (defn- default-initialize [ys weights ^long obs] [ys ys weights (repeat obs 1.0)])
 
 (defn- binomial-initialize
@@ -606,76 +685,27 @@
                                                 (m/log-gamma y+t))))) ys fitted weights)))
            (m/* 2.0 (m/inc (int rank)))))))
 
-(defn- estimate-dispersion
-  ^double [residuals weights ^long df]
-  (m// (v/sum (map (fn [^double r ^double w]
-                     (m/* w r r))
-                   residuals weights))
-       df))
-
-(defrecord Link [g mean derivative])
-
-(def links {:logit (->Link m/logit
-                         m/sigmoid
-                         (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
-          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (m/inv-erf (m/dec (m/* 2.0 x)))))
-                          (fn ^double [^double x] (-> (m// x m/SQRT2)
-                                                     (m/-)
-                                                     (m/erfc)
-                                                     (m/* 0.5)))
-                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
-                                                                               (m/exp (m/* -0.5 x x))))))
-          :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
-                           (fn ^double [^double x] (-> x
-                                                      (m/atan)
-                                                      (m// m/PI)
-                                                      (m/+ 0.5)))
-                           (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
-          :cloglog (->Link m/cloglog
-                           (fn ^double [^double x] (m/constrain (m/cexpexp x)
-                                                               m/MACHINE-EPSILON
-                                                               0.9999999999999999))
-                           (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
-          :loglog (->Link m/loglog
-                          m/expexp
-                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON
-                                                        (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
-          :identity (->Link m/identity-double
-                            m/identity-double
-                            constantly-1)
-          :log (->Link m/log
-                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
-                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
-          :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
-                        (fn ^double [^double x] (m/- 1.0 (m/exp x)))
-                        (fn ^double [^double x] (m/- (m/exp x))))
-          :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
-          :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
-                             (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
-                             (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
-          :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
-          :nbinomial (fn [{:keys [^double nbinomial-theta]
-                          :or {nbinomial-theta 1.0}}]
-                       (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
-                               (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
-                                                                     nbinomial-theta)))
-                               (fn ^double [^double x] (let [e (m/exp x)]
-                                                        (m// e (m// (m/sq (m/- 1.0 e))
-                                                                    nbinomial-theta))))))
-          :power (fn [{:keys [^double power-exponent]
-                      :or {power-exponent 1.0}}]
-                   (let [rexponent (m// power-exponent)]
-                     (->Link (fn ^double [^double x] (m/pow x power-exponent))
-                             (fn ^double [^double x] (m/pow x rexponent))
-                             (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
-                                                                                 (m/- 1.0 power-exponent))))))))
-          :distribution (fn [{:keys [distribution]
-                             :or {distribution (r/distribution :normal)}}]
-                          (->Link (partial r/icdf distribution)
-                                  (partial r/cdf distribution)
-                                  (partial r/pdf distribution)))})
-
 (defrecord Family [default-link variance initialize residual-deviance aic quantile-residuals dispersion])
+
+(defn ->family
+  "Create `Family` record.
+  
+  Arguments:
+
+  * `default-link` - canonical link function, default: `:identity`
+  * `variance` - variance function in terms of mean
+  * `initialize` - initialization of glm, default: the same as in `:gaussian`
+  * `residual-deviance` - calculates residual deviance
+  * `aic` - calculates AIC, default `(constantly ##NaN)`
+  * `quantile-residuals` - calculates quantile residuals, default as in `:gaussian`
+  * `disperation` - value or `:estimate` (default)
+
+  Minimum version should define `variance` and `residual-deviance`."
+  ([family-map] (map->Family family-map))
+  ([default-link variance initialize residual-deviance aic quantile-residuals dispersion]
+   (->Family default-link variance initialize residual-deviance aic quantile-residuals dispersion))
+  ([variance residual-deviance]
+   (->Family :identity variance default-initialize residual-deviance (constantly ##NaN) nil :esitmate)))
 
 (def families {:binomial (->Family :logit (fn ^double [^double x] (m/* x (m/- 1.0 x)))
                                  binomial-initialize binomial-residual-deviance
@@ -718,6 +748,13 @@
          lk (links link link)
          lk-data (if (fn? lk) (lk params) lk)]
      (assoc (merge fm-data lk-data) :family family :link link))))
+
+(defn- estimate-dispersion
+  ^double [residuals weights ^long df]
+  (m// (v/sum (map (fn [^double r ^double w]
+                     (m/* w r r))
+                   residuals weights))
+       df))
 
 (defn- glm-cooks-distance
   [residuals hat ^double dp]
