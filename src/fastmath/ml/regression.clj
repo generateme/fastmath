@@ -507,10 +507,10 @@
 
 ;; family
 
-(defn- default-initialize [ys weights ^long obs] [ys ys weights (repeat obs 1.0)])
+(defn- default-initialize [ys weights] [ys ys weights])
 
 (defn- binomial-initialize
-  [ys weights ^long obs]
+  [ys weights]
   (if (sequential? (first ys)) ;; check if we have pairs of successes and failures
     (let [n (map (fn [[^double s ^double f]] (m/+ s f)) ys)
           y (v/ediv (map first ys) n)]
@@ -522,10 +522,10 @@
      (map (fn [^double y ^double w]
             (m// (m/+ 0.5 (m/* w y))
                  (m/inc w))) ys weights)
-     weights (repeat obs 1.0)]))
+     weights (repeat (count ys) 1.0)]))
 
 (defn- binomial-aic
-  [ys ns fitted weights _deviance _observations rank]
+  [ys fitted weights _deviance _observations rank ns]
   (let [ms (if (some (fn [^long n] (m/> n 1)) ns) ns weights)]
     (m/+ (m/* -2.0 (v/sum (map (fn [^double y ^double m ^double mu ^double wt]
                                  (if (m/not-pos? m)
@@ -561,7 +561,7 @@
        ys mus weights))
 
 (defn- gaussian-aic
-  [_ys _ns _fitted weights deviance observations rank]
+  [_ys _fitted weights deviance observations rank _ns]
   (let [nobs (long observations)]
     (m/+ (m/* nobs (m/inc (m/log (m/* m/TWO_PI (m// (double deviance) nobs)))))
          2.0 (m/- (v/sum (v/log weights)))
@@ -575,7 +575,7 @@
        ys mus weights))
 
 (defn- gamma-aic
-  [ys _ns fitted weights deviance _observations rank]
+  [ys fitted weights deviance _observations rank _ns]
   (let [disp (m// (double deviance) (v/sum weights))
         rdisp (m// disp)]
     (m/+ (m/* -2.0 (v/sum (map (fn [^double y ^double mu ^double w]
@@ -592,9 +592,9 @@
               (r/cdf (r/distribution :gamma {:shape (m// w dispersion) :scale 1.0}))
               (r/icdf r/default-normal))) ys fitted (:initial weights)))
 
-(defn- poisson-initalize
-  [ys weights ^long obs]
-  [ys (v/shift ys 0.1) weights (repeat obs 1.0)])
+(defn- poisson-initialize
+  [ys weights]
+  [ys (v/shift ys 0.1) weights])
 
 (defn- poisson-residual-deviance [ys mus weights]
   (map (fn [^double y ^double mu ^double w]
@@ -607,7 +607,7 @@
        ys mus weights))
 
 (defn- poisson-aic
-  [ys _ns fitted weights _deviance _observations rank]
+  [ys fitted weights _deviance _observations rank _ns]
   (m/+ (m/* -2.0 (v/sum (map (fn [^double y ^double mu ^double w]
                                (m/* w (r/lpdf (r/distribution :poisson {:p mu}) y))) ys fitted weights)))
        (m/* 2.0 (int rank))))
@@ -628,7 +628,7 @@
        ys mus weights))
 
 (defn- inverse-gaussian-aic
-  [ys _ns _fitted weights deviance _observations rank]
+  [ys _fitted weights deviance _observations rank _ns]
   (let [sumw (v/sum weights)
         d (double deviance)]
     (m/+ (m/* sumw (m/inc (m/log (m/* m/TWO_PI (m// d sumw)))))
@@ -647,9 +647,9 @@
                  (m/- (double (r/icdf r/default-normal (r/ccdf distr y)))))))) ys fitted)))
 
 (defn- nbinomial-initialize
-  [ys weights ^long obs]
+  [ys weights]
   [ys (map (fn ^double [^double y]
-             (if (m/zero? y) m/SIXTH y)) ys) weights (repeat obs 1.0)])
+             (if (m/zero? y) m/SIXTH y)) ys) weights])
 
 (defn- ->nbinomial-residual-deviance
   [^double theta]
@@ -675,7 +675,7 @@
 (defn- ->nbinomial-aic
   [^double theta]
   (let [lgt-tlt (m/- (m/log-gamma theta) (m/* theta (m/log theta)))]
-    (fn [ys _ns fitted weights _deviance _observations rank]
+    (fn [ys fitted weights _deviance _observations rank _ns]
       (m/+ (m/* 2.0 (v/sum (map (fn [^double y ^double mu ^double w]
                                   (let [y+t (m/+ y theta)]
                                     (m/* w (m/- (m/+ (m/* y+t (m/log (m/+ mu theta)))
@@ -698,7 +698,16 @@
   * `residual-deviance` - calculates residual deviance
   * `aic` - calculates AIC, default `(constantly ##NaN)`
   * `quantile-residuals` - calculates quantile residuals, default as in `:gaussian`
-  * `disperation` - value or `:estimate` (default)
+  * `disperation` - value or `:estimate` (default), `:pearson` or `:mean-deviance`
+
+  Initialization will be called with `ys` and `weights` and should return:
+  
+  * ys, possibly changed if any adjustment is necessary 
+  * init-mu, starting point
+  * weights, possibly changes or orignal
+  * (optional) any other data used to calculate AIC
+
+  AIC function should accept: `ys`, `fitted`, `weights`, `deviance`, `observation`, `rank` (fitted parameters) and additional data created by initialization
 
   Minimum version should define `variance` and `residual-deviance`."
   ([family-map] (map->Family family-map))
@@ -719,10 +728,10 @@
                               default-initialize gamma-residual-deviance gamma-aic
                               gamma-quantile-residuals :estimate)
              :poisson (->Family :log m/identity-double 
-                                poisson-initalize poisson-residual-deviance poisson-aic
+                                poisson-initialize poisson-residual-deviance poisson-aic
                                 poisson-quantile-residuals 1.0)
              :quasi-poisson (->Family :log m/identity-double 
-                                      poisson-initalize poisson-residual-deviance
+                                      poisson-initialize poisson-residual-deviance
                                       (constantly ##NaN) poisson-quantile-residuals :estimate)
              :inverse-gaussian (->Family :inversesq m/cb
                                          default-initialize inverse-gaussian-residual-deviance
@@ -869,9 +878,9 @@
   * `:link` - link 
   * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
 
-  Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial` or custom `Family` record (see [[->family]]).
+  Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [[->family]]) or a function returning Family (accepting a map as an argument)
 
-  Link is one of the: `:probit`, `:identity`, `:loglog`, `:sqrt`, `:inverse`, `:logit`, `:power`, `:nbinomial`, `:cauchit`, `:distribution`, `:cloglog`, `:inversesq`, `:log`, `:clog` or custom `Link` record (see [[->link]])
+  Link is one of the: `:probit`, `:identity`, `:loglog`, `:sqrt`, `:inverse`, `:logit`, `:power`, `:nbinomial`, `:cauchit`, `:distribution`, `:cloglog`, `:inversesq`, `:log`, `:clog`, custom `Link` record (see [[->link]]) or a function returning Link (accepting a map as an argument)
 
   Notes:
   
@@ -938,7 +947,7 @@
 
          weights (or weights (repeat m 1.0))
 
-         [ys start-t ^doubles weights ns] (initialize (seq ys) (seq weights) m)
+         [ys start-t weights optional-data] (initialize (seq ys) (seq weights))
          
          ^doubles ys (m/seq->double-array ys)
          ^doubles weights (m/seq->double-array weights)
@@ -1078,7 +1087,7 @@
                                                             (repeat m (stats/mean ys weights))
                                                             (map link-mean offset)) weights)))
 
-             aic (if aic-fun (double (aic-fun ys ns fitted weights dev m n)) ##Inf)
+             aic (if aic-fun (double (aic-fun ys fitted weights dev m n optional-data)) ##Inf)
              [log-likelihood bic] (let [p (if (#{:gaussian :inverse-gaussian
                                                  :gamma :nbinomial} family) (m/inc n) n)
                                         ll (m/- p (m// aic 2.0))]
