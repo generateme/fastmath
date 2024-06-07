@@ -26,6 +26,13 @@ Math library.
 ```clojure
 [generateme/fastmath "2.4.0"]
 ```
+### Snapshot
+
+```clojure
+[generateme/fastmath "3.0.0-SNAPSHOT"]
+```
+
+Source code in the `3.x` branch.
 
 ### 2.3.0 GPL warning
 
