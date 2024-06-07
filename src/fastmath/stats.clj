@@ -2417,8 +2417,8 @@
   "Normality test for kurtosis"
   ([xs] (kurtosis-test xs nil))
   ([xs params] (kurtosis-test xs nil params))
-  ([xs ^double kurt {:keys [sides type]
-                     :or {sides :two-sided type :kurt}}]
+  ([xs kurt {:keys [sides type]
+             :or {sides :two-sided type :kurt}}]
    (let [kurt (double (or kurt (kurtosis xs type)))
          n (count xs)
          e (/ (* 3.0 (dec n)) (inc n))

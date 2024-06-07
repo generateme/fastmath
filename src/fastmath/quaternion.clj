@@ -5,8 +5,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.matrix :as mat]
-            [fastmath.complex :as c]
-            [fastmath.random :as r])
+            [fastmath.complex :as c])
   (:import [fastmath.vector Vec2 Vec3 Vec4]
            [fastmath.matrix Mat3x3]))
 

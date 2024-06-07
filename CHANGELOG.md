@@ -33,6 +33,7 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 * [breaking] `fastmath.interpolation` is rewritten with changed API, part of the methods are implemented directly in Clojure, names are unified
 * [breaking] `fastmath.distance` rewritten
 * `integrate-pdf` rewritten to use `:gauss-kronrod` integration (safer and faster)
+* `fastmath.core` functionality based on functions with inline code not macros
 
 ## [2.4.0]
 

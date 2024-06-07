@@ -426,7 +426,7 @@
                                           weights-seq (weights-n-v2 ns svh)]
                                       (-> (map (fn [^double gamma- ^double gamma]
                                                  (est-fn gamma- gamma)) svh gammas)
-                                          (stats/wmean weights-seq))))
+                                          (stats/mean weights-seq))))
 
                       :ngg2 (let [ng (map m/* ns gammas)]
                               (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
@@ -434,7 +434,7 @@
                                              weights-seq (weights-n-v3 ng svh)]
                                          (-> (map (fn [^double gamma- ^double gamma]
                                                     (est-fn gamma- gamma)) svh gammas)
-                                             (stats/wmean weights-seq)))))
+                                             (stats/mean weights-seq)))))
                       
                       (let [weights-seq (cond
                                           (not weights) (repeat (count empirical-semivariogram) 1.0)
@@ -445,7 +445,7 @@
                         (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))]
                                    (-> (map (fn [^double h ^double gamma]
                                               (est-fn (sv h) gamma)) hs gammas)
-                                       (stats/wmean weights-seq))))))
+                                       (stats/mean weights-seq))))))
              
              m (optim/scan-and-minimize :lbfgsb target {:bounds bounds})]
 

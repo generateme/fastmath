@@ -125,7 +125,7 @@
                :confidence-interval [(m/- b scale)
                                      (m/+ b scale)]})) coefficients stderrs)))
 
-(def ^:private ^:const ME100 (m/- 1.0 (m/* 100.0 m/MACHINE-EPSILON)))
+(def ^{:tag 'double :private true :const true} ME100 (m/- 1.0 (m/* 100.0 m/MACHINE-EPSILON)))
 
 (defn- hat-matrix
   [^RealMatrix xtxinv ^RealMatrix xss weights]
@@ -337,8 +337,8 @@
                                                  (CholeskyDecomposition. tol 1.0e-16)
                                                  (.getSolver)
                                                  (.solve ^RealVector (mat/mulv uts rvwys)))
-                                             (mat/mulv ut))]
-
+                                             (mat/mulv ut))]                              
+                              
                               (->> singular-values
                                    (v/emult (mat/mulv uts new-t))
                                    (mat/mulv (.getV S))))
@@ -685,7 +685,7 @@
                                                 (m/log-gamma y+t))))) ys fitted weights)))
            (m/* 2.0 (m/inc (int rank)))))))
 
-(defrecord Family [default-link variance initialize residual-deviance aic quantile-residuals dispersion])
+(defrecord Family [default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion])
 
 (defn ->family
   "Create `Family` record.
@@ -697,7 +697,7 @@
   * `initialize` - initialization of glm, default: the same as in `:gaussian`
   * `residual-deviance` - calculates residual deviance
   * `aic` - calculates AIC, default `(constantly ##NaN)`
-  * `quantile-residuals` - calculates quantile residuals, default as in `:gaussian`
+  * `quantile-residuals-fun` - calculates quantile residuals, default as in `:gaussian`
   * `disperation` - value or `:estimate` (default), `:pearson` or `:mean-deviance`
 
   Initialization will be called with `ys` and `weights` and should return:
@@ -711,8 +711,8 @@
 
   Minimum version should define `variance` and `residual-deviance`."
   ([family-map] (map->Family family-map))
-  ([default-link variance initialize residual-deviance aic quantile-residuals dispersion]
-   (->Family default-link variance initialize residual-deviance aic quantile-residuals dispersion))
+  ([default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion]
+   (->Family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion))
   ([variance residual-deviance]
    (->Family :identity variance default-initialize residual-deviance (constantly ##NaN) nil :esitmate)))
 
@@ -830,7 +830,7 @@
                     ^double intercept  beta coefficients ^long observations
                     residuals fitted weights offset
                     deviance df ^double dispersion dispersions estimated-dispersion?
-                    family link mean-fun link-fun iters quantile-residuals
+                    family link mean-fun link-fun iters quantile-residuals-fun
                     ^double q ^double chi2 ^double p-value
                     ll analysis]
   IFn
@@ -1102,7 +1102,7 @@
                               :fitted fitted
                               :dispersions {:pearson pearson-dispersion
                                             :mean-deviance mean-deviance}
-                              :quantile-residuals (:quantile-residuals family+link)
+                              :quantile-residuals-fun (:quantile-residuals-fun family+link)
                               :chi2 chi2
                               :p-value (if (m/zero? df)
                                          ##Inf
@@ -1201,9 +1201,9 @@
 
 (defn quantile-residuals
   "Quantile residuals for a model, possibly randomized."
-  [{:keys [quantile-residuals residuals dispersion] :as model}]
-  (if quantile-residuals
-    (quantile-residuals model)
+  [{:keys [quantile-residuals-fun residuals dispersion] :as model}]
+  (if quantile-residuals-fun
+    (quantile-residuals-fun model)
     (v/div (:deviance residuals) (m/sqrt dispersion))))
 
 (defn analysis

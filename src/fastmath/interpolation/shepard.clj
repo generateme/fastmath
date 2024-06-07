@@ -17,4 +17,4 @@
        (or (cache xs)
            (->> (map (fn [xs']
                        (m/pow (dist xs xs') p-)) xss)
-                (stats/wmean ys)))))))
+                (stats/mean ys)))))))

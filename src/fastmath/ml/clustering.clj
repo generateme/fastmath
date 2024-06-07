@@ -2,8 +2,7 @@
   (:require [fastmath.distance :as dists]
             [fastmath.random :as r]
             [fastmath.core :as m]
-            [fastmath.vector :as v]
-            [fastmath.stats :as stats])
+            [fastmath.vector :as v])
   (:import [org.apache.commons.math3.ml.clustering
             KMeansPlusPlusClusterer
             KMeansPlusPlusClusterer$EmptyClusterStrategy

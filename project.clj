@@ -3,7 +3,7 @@
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
             :url "https://opensource.org/licenses/MIT"}
-  :dependencies [ [org.clojure/clojure "1.12.0-alpha9"]
+  :dependencies [ [org.clojure/clojure "1.12.0-alpha12"]
                  ;; [org.clojure/clojure "1.11.3"]
                  [net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
@@ -13,8 +13,8 @@
                  
                  [ca.umontreal.iro.simul/ssj "3.3.1"]
 
-                 [org.clojure/data.int-map "1.2.1"]
-                 [org.clojure/math.combinatorics "0.2.0"]]
+                 [org.clojure/data.int-map "1.3.0"]
+                 [org.clojure/math.combinatorics "0.3.0"]]
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src" "LBFGSBJava/src"]
@@ -25,15 +25,15 @@
              :1.11 {:dependencies [[org.clojure/clojure "1.11.3"]]}
              :eastwood {:plugins [[jonase/eastwood "1.4.2"]]
                         :dependencies [[org.clojure/data.csv "1.1.0"]]
-                        :eastwood {:add-linters [:performance :boxed-math]
-                                   :exclude-namespaces [stats random utils bootstrap core complex-quaternion
-                                                        calculus]}}
+                        :eastwood {:add-linters [:performance :boxed-math :wrong-tag]
+                                   :source-paths ["src"]
+                                   :exclude-namespaces [:test-paths]}}
              :dev {:dependencies [;; [io.github.nextjournal/clerk "0.15.957"]
                                   ;; [clojure2d "1.4.6-SNAPSHOT" :exclusions [generateme/fastmath]]
                                   [org.clojure/data.csv "1.1.0"]
-                                  [org.scicloj/clay "2-beta8"]
+                                  [org.scicloj/clay "2-beta10"]
                                   [scicloj/clojisr "1.0.0"]
-                                  [com.github.lread/test-doc-blocks "1.1.19"]]
+                                  [com.github.lread/test-doc-blocks "1.1.20"]]
                    :source-paths ["notebooks" "utils"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}}

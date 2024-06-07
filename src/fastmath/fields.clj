@@ -42,7 +42,34 @@
   * [[randomize-configuration]] - change parametrization for given configuration."
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+
+            [fastmath.fields.a]
+            [fastmath.fields.b]
+            [fastmath.fields.c]
+            [fastmath.fields.d]
+            [fastmath.fields.e]
+            [fastmath.fields.f]
+            [fastmath.fields.g]
+            [fastmath.fields.h]
+            [fastmath.fields.i]
+            [fastmath.fields.j]
+            [fastmath.fields.k]
+            [fastmath.fields.l]
+            [fastmath.fields.m]
+            [fastmath.fields.n]
+            [fastmath.fields.o]
+            [fastmath.fields.p]
+            [fastmath.fields.q]
+            [fastmath.fields.r]
+            [fastmath.fields.s]
+            [fastmath.fields.t]
+            [fastmath.fields.u]
+            [fastmath.fields.v]
+            [fastmath.fields.w]
+            [fastmath.fields.x]
+            [fastmath.fields.y]
+            [fastmath.fields.z])
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -86,12 +113,11 @@
 
 ;;;;;
 
-(defmacro ^:private load-fields-from-namespace
+(defmacro ^:private make-fields-from-namespace
   [letter-char]
   (let [ns-sym (symbol (str "fastmath.fields." letter-char))]
     (require ns-sym)
-    `(do (require (quote ~ns-sym))
-         ~@(for [[sym v] (ns-publics ns-sym)
+    `(do ~@(for [[sym v] (ns-publics ns-sym)
                  :when (= (first (name sym)) letter-char)
                  :let [{:keys [type config]} (v)
                        k (keyword sym)
@@ -109,12 +135,12 @@
                         ([k#] (~f 1.0 ~cfg)))
                       (register-field ~type ~k))))))))
 
-(defmacro ^:private load-fields
+(defmacro ^:private make-fields
   [letters]
   `(do ~@(for [l letters]
-           `(load-fields-from-namespace ~l))))
+           `(make-fields-from-namespace ~l))))
 
-(load-fields "abcdefghijklmnopqrstuvwxyz")
+(make-fields "abcdefghijklmnopqrstuvwxyz")
 
 ;; ## Lists
 
