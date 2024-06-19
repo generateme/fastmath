@@ -817,3 +817,51 @@
                                        (+ ii (* rm1 rm1)))))
                      (* 0.5 (- (m/atan2 y rp1)
                                (m/atan2 y rm1))))))))
+
+;; polynomials
+
+(defn muladd
+  "`(x y z)` -> `(+ z (* x y))`"
+  ^Vec2 [x y z]
+  (add z (mult x y)))
+
+(defmacro mevalpoly
+  "Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+...."
+  [x & coeffs]
+  (let [cnt (count coeffs)]
+    (condp clojure.core/= cnt
+      0 0.0
+      1 `~(first coeffs)
+      2 (let [[z y] coeffs]
+          `(muladd ~x ~y ~z))
+      `(muladd ~x (mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
+
+(defn evalpoly
+  "Evaluate complex polynomial"
+  [x & coeffs]
+  (if-not (seq coeffs)
+    0.0
+    (let [rc (reverse coeffs)]
+      (loop [rcoeffs (rest rc)
+             ex (first rc)]
+        (if-not (seq rcoeffs)
+          ex
+          (recur (rest rcoeffs)
+                 (muladd x ex (first rcoeffs))))))))
+
+(defn makepoly
+  "Create complex polynomial function for given coefficients"
+  [coeffs]
+  (cond
+    (not (seq coeffs)) (constantly 0.0)
+    (= 1 (count coeffs)) (constantly (first coeffs))
+    :else (let [rc (reverse coeffs)]
+            (fn [x]
+              (loop [rcoeffs (rest rc)
+                     ex (first rc)]
+                (if-not (seq rcoeffs)
+                  ex
+                  (recur (rest rcoeffs)
+                         (muladd x ex (first rcoeffs)))))))))
+
+(m/unuse-primitive-operators #{'abs 'zero?})

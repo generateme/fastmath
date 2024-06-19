@@ -885,6 +885,15 @@
   ([v1 v2 ^double abs-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol))
   ([v1 v2 ^double abs-tol ^double rel-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol)))
 
+(defn edelta-eq
+  "Element-wise equality with given absolute (and/or relative) toleance."
+  ([v1 v2] (edelta-eq v1 v2 1.0e-6))
+  ([v1 v2 ^double abs-tol] (every? identity (map (fn [^double a ^double b]
+                                                   (m/delta-eq a b abs-tol)) v1 v2)))
+  ([v1 v2 ^double abs-tol ^double rel-tol]
+   (every? identity (map (fn [^double a ^double b]
+                           (m/delta-eq a b abs-tol rel-tol)) v1 v2))))
+
 (defn dot
   "Dot product of two vectors."
   ^double [v1 v2] (prot/dot v1 v2))

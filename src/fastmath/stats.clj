@@ -661,58 +661,155 @@
 
 (def ^{:deprecated "Use [[moment]] function"} second-moment moment)
 
+(defn winsor
+  "Return winsorized data. Trim is done by using quantiles, by default is set to 0.2."
+  ([vs] (winsor vs 0.2))
+  ([vs quantile] (winsor vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
+                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+     (winsor vs qlow qhigh qmid)))
+  ([vs ^double low ^double high nan]
+   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+     (map (fn [^double v]
+            (if (m/nan? v)
+              nan
+              (m/constrain v low high))) vs))))
+
+(defn trim
+  "Return trimmed data. Trim is done by using quantiles, by default is set to 0.2."
+  ([vs] (trim vs 0.2))
+  ([vs quantile] (trim vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
+                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+     (trim vs qlow qhigh qmid)))
+  ([vs ^double low ^double high nan]
+   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+     (->> vs
+          (filter (fn [^double v]
+                    (or (m/nan? v)
+                        (<= low v high))))
+          (map (fn [^double v] (if (m/nan? v) nan v)))))))
+
+(defn trim-lower
+  "Trim data below given quanitle, default: 0.2."
+  ([vs] (trim-lower vs 0.2))
+  ([vs quantile] (trim-lower vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[q qmid] (quantiles (remove m/nan? vs) [quantile 0.5] estimation-strategy)]
+     (trim vs q ##Inf qmid))))
+
+(defn trim-upper
+  "Trim data above given quanitle, default: 0.2."
+  ([vs] (trim-upper vs 0.2))
+  ([vs quantile] (trim-upper vs quantile :legacy))
+  ([vs ^double quantile estimation-strategy]
+   (let [[q qmid] (quantiles (remove m/nan? vs) [quantile 0.5] estimation-strategy)]
+     (trim vs ##-Inf q qmid))))
+
+;; On More Robust Estimation of Skewness and Kurtosis: Simulation and Application to the S&P500 Index
+
 (defn- yule-skewness
   ^double [vs ^double u]
   (let [[^double q1 ^double q2 ^double q3] (quantiles vs [u 0.5 (- 1.0 u)])]
     (/ (+ q3 (* -2.0 q2) q1)
        (- q3 q1))))
 
+(defn- bowley-skewness
+  ^double [vs]
+  (let [[^double q1 ^double q3] (quantiles vs [0.25 0.75])]
+    (/ (+ q3 q1) (- q3 q1))))
+
+(defn- hogg-skewness
+  ^double [vs]
+  (let [m25 (mean (trim vs 0.25))
+        u005 (mean (trim-lower vs 0.95))
+        l005 (mean (trim-upper vs 0.05))]
+    (/ (- u005 m25) (- m25 l005))))
+
 (defn skewness
   "Calculate skewness from sequence.
 
-  Possible types: `:G1` (default), `:g1` (`:pearson`), `:b1`, `:B1` (`:yule`), `:B3`, `:skew`, `:mode` or `:median`."
+  Possible types: `:G1` (default), `:g1` (`:pearson`), `:b1`, `:B1` (`:yule`), `:B3`, `:skew`, `:mode`, `:bowley`, `:hogg` or `:median`."
   (^double [vs] (skewness vs :G1))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)]
-     (cond
-       (sequential? typ) (cond
-                           (= :mode (first typ)) (let [[_ method opts] typ]
-                                                   (/ (- (mean vs) (mode vs method opts)) (stddev vs)))
-                           (#{:B1 :yule} (first typ)) (yule-skewness vs (second typ)))
-       (= :mode typ) (/ (- (mean vs) (mode vs)) (stddev vs))
-       (= :median typ) (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
-       (#{:B1 :yule} typ) (yule-skewness vs 0.25)
-       (= :B3 typ) (let [v (median vs)]
-                     (/ (- (mean vs) v)
-                        (moment vs 1.0 {:absolute? true :center v})))
-       :else (let [^Skewness k (Skewness.)
-                   n (alength vs)
-                   v (.evaluate k vs)]
-               (cond
-                 (= :b1 typ) (* v (/ (* (- n 2.0) (dec n)) (* n n)))
-                 (#{:pearson :g1} typ) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
-                 (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
-                 :else v))))))
+     (if (sequential? typ)
+       (cond
+         (= :mode (first typ)) (let [[_ method opts] typ]
+                                 (/ (- (mean vs) (mode vs method opts)) (stddev vs)))
+         (#{:B1 :yule} (first typ)) (yule-skewness vs (second typ)))
+       (case typ
+         :mode (/ (- (mean vs) (mode vs)) (stddev vs))
+         :median (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
+         :bowley (bowley-skewness vs)
+         :hogg (hogg-skewness vs)
+         (:B1 :yule) (yule-skewness vs 0.25)
+         :B3 (let [v (median vs)]
+               (/ (- (mean vs) v)
+                  (moment vs 1.0 {:absolute? true :center v})))
+         (let [^Skewness k (Skewness.)
+               n (alength vs)
+               v (.evaluate k vs)]
+           (cond
+             (= :b1 typ) (* v (/ (* (- n 2.0) (dec n)) (* n n)))
+             (#{:pearson :g1} typ) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
+             (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
+             :else v)))))))
+
+;; centered
+(defn- moors-kurtosis
+  ^double [vs]
+  (let [[^double e1 ^double e2 ^double e3
+         ^double e5 ^double e6 ^double e7] (quantiles vs [0.125 0.25 0.375 0.625 0.75 0.875])]
+    (- (/ (+ (- e7 e5) (- e3 e1))
+          (- e6 e2)) 1.23)))
+
+;; centered
+(defn- crow-kurtosis
+  (^double [vs] (crow-kurtosis vs 0.025 0.25))
+  (^double [vs ^double alpha ^double beta]
+   (let [[^double a1 ^double a2 ^double b1 ^double b2] (quantiles vs [alpha (- 1.0 alpha)
+                                                                      beta (- 1.0 beta)])]
+     (- (/ (- a2 a1) (- b2 b1)) 2.91))))
+
+;; centered
+(defn- hogg-kurtosis
+  (^double [vs] (hogg-kurtosis vs 0.05 0.5))
+  (^double [vs ^double alpha ^double beta]
+   (let [ua (mean (trim-lower vs (- 1.0 alpha)))
+         ub (mean (trim-lower vs (- 1.0 beta)))
+         la (mean (trim-upper vs alpha))
+         lb (mean (trim-upper vs beta))]
+     (- (/ (- ua la) (- ub lb)) 2.59))))
 
 (defn kurtosis
   "Calculate kurtosis from sequence.
 
-  Possible typs: `:G2` (default), `:g2` (or `:excess`), `:geary` or `:kurt`."
+  Possible typs: `:G2` (default), `:g2` (or `:excess`), `:geary`, ,`:crow`, `:moors`, `:hogg` or `:kurt`."
   (^double [vs] (kurtosis vs nil))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)
-         n (alength vs)         ]
-     (if (= typ :geary)
-       (/ (mean-absolute-deviation vs)
-          (population-stddev vs))
-       (let [^Kurtosis k (Kurtosis.)
-             v (.evaluate k vs)]
-         (cond
-           (#{:excess :g2} typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                                   (inc n))
-           (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                                   (inc n)))
-           :else v))))))
+         n (alength vs)]
+     (if (sequential? typ)
+       (condp = (first typ)
+         :crow (apply crow-kurtosis vs (rest typ))
+         :hogg (apply hogg-kurtosis vs (rest typ)))
+       (condp = typ
+         :geary (/ (mean-absolute-deviation vs)
+                   (population-stddev vs))
+         :moors (moors-kurtosis vs)
+         :crow (crow-kurtosis vs)
+         :hogg (hogg-kurtosis vs)
+         (let [^Kurtosis k (Kurtosis.)
+               v (.evaluate k vs)]
+           (cond
+             (#{:excess :g2} typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                                     (inc n))
+             (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
+                                     (inc n)))
+             :else v)))))))
 
 (defn ci
   "T-student based confidence interval for given data. Alpha value defaults to 0.05.
@@ -830,37 +927,6 @@
   (let [m (mean vs)]
     (map (fn [^double v]
            (- v m)) vs)))
-
-(defn winsor
-  "Return winsorized data. Trim is done by using quantiles, by default is set to 0.2."
-  ([vs] (winsor vs 0.2))
-  ([vs quantile] (winsor vs quantile :legacy))
-  ([vs ^double quantile estimation-strategy]
-   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
-                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
-     (winsor vs qlow qhigh qmid)))
-  ([vs ^double low ^double high nan]
-   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
-     (map (fn [^double v]
-            (if (m/nan? v)
-              nan
-              (m/constrain v low high))) vs))))
-
-(defn trim
-  "Return trimmed data. Trim is done by using quantiles, by default is set to 0.2."
-  ([vs] (trim vs 0.2))
-  ([vs quantile] (trim vs quantile :legacy))
-  ([vs ^double quantile estimation-strategy]
-   (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
-                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
-     (trim vs qlow qhigh qmid)))
-  ([vs ^double low ^double high nan]
-   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
-     (->> vs
-          (filter (fn [^double v]
-                    (or (m/nan? v)
-                        (<= low v high))))
-          (map (fn [^double v] (if (m/nan? v) nan v)))))))
 
 (defn rescale
   "Lineary rascale data to desired range, [0,1] by default"

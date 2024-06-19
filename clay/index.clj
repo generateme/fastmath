@@ -2,13 +2,15 @@
 (ns index
   (:require [scicloj.kindly.v4.kind :as kind]
             [scicloj.kindly.v4.api :as kindly]
-            [scicloj.clay.v2.api :as clay]))
+            [scicloj.clay.v2.api :as clay]
+
+            [codox]))
 
 ^:kindly/hide-code
 (def md (comp kindly/hide-code
             kind/md))
 
-(md "# Preface ")
+(md "# Preface {.unnumbered}")
 
 ^{:kindly/kind :kind/table}
 [[1 2 3] [:a :b :c]]
@@ -34,11 +36,10 @@
 {:column-names ["A" "B" "C"]
  :row-vectors [[1 2 3] [:a :b :c]]}
 
-
 ;; some
 
 ^:kindly/hide-code
 (comment
   (clay/make! {:source-path ["index.clj"
-                             "kernel.clj"]
+                             "core.clj"]
                :book {:title "Fastmath documentation"}}))

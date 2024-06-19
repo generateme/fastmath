@@ -617,7 +617,7 @@
   (fma-macro x y z))
 
 (defn negmuladd
-  "`(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+"
+  "`(x y z)` -> `(+ z (* -x y))` or `Math/fma` for java 9+"
   {:inline (fn [x y z] (->fma x y z))
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
@@ -708,9 +708,12 @@
                                      (recur (* d 0.5))
                                      d)))))
 
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD (/ 3.0))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD (/ 2.0 3.0))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH (/ 6.0))
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD      0.333333333333333333333333)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} ONE_THIRD  0.333333333333333333333333)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD  0.666666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRDS 0.666666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH      0.166666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} ONE_SIXTH  0.166666666666666666666666)
 
 (defn sin
   "sin(x)"
@@ -1475,18 +1478,97 @@
 
 
 (defn chebyshev-polynomials
-  "Chebyshev polynomials"
-  (^double [^long degree ^double x]
-   (case (int degree)
-     0 1.0
-     1 x
-     (loop [i (long 2)
-            ^DPair pair (DPair. 1.0 x)]
-       (if (> i degree)
-         (.y pair)
-         (recur (inc i) (DPair. (.y pair)
-                                (- (* 2.0 x (.y pair)) (.x pair)))))))))
+  "Chebyshev polynomials of the first kind"
+  ^double [^long degree ^double x]
+  (case (int degree)
+    0 1.0
+    1 x
+    2 (dec (* 2.0 x x))
+    3 (* x (- (* 4.0 x x) 3.0))
+    4 (let [x2 (* x x)] (inc (* 8.0 x2 (dec x2))))
+    (cos (* degree (acos x)))))
 
+(defn chebyshev-polynomials-2
+  "Chebyshev polynomials of the second kind"
+  ^double [^long degree ^double x]
+  (case (int degree)
+    0 1.0
+    1 (* 2.0 x)
+    2 (dec (* 4.0 x x))
+    3 (* 4.0 x (dec (* 2.0 x x)))
+    4 (let [x2 (* x x)] (inc (- (* 16.0 x2 x2) (* 12.0 x2))))
+    (let [near-one (- 1.0 (* x x))
+          degree+ (inc degree)]
+      (if (< near-one (/ (sqrt 1.2E-8) (* degree+ degree+)))
+        (let [v (* degree+ (- 1.0 (* SIXTH degree (+ degree 2) near-one)))]
+          (if (and (odd? degree) (neg? x)) (- v) v))
+        (let [t (acos x)]
+          (/ (sin (* t degree+))
+             (sin t)))))))
+
+(defn legendre-polynomials
+  ^double [^long degree ^double x]
+  (case (int degree)
+    0 1.0
+    1 x
+    (loop [i (long 2)
+           ^DPair pair (DPair. 1.0 x)]
+      (if (> i degree)
+        (.y pair)
+        (recur (inc i) (DPair. (.y pair)
+                               (/ (- (* (dec (* 2.0 i)) x (.y pair))
+                                     (* (dec i) (.x pair))) i)))))))
+
+(defn gegenbauer-polynomials
+  "Gegenbauer (ultraspherical) polynomials"
+  (^double [^long degree ^double x] (gegenbauer-polynomials degree 1.0 x))
+  (^double [^long degree ^double order ^double x]
+   (condp == order
+     1.0 (chebyshev-polynomials-2 degree x)
+     0.5 (legendre-polynomials degree x)
+     (case (int degree)
+       0 1.0
+       1 (* 2.0 order x)
+       (loop [i (long 2)
+              ^DPair pair (DPair. 1.0 (* 2.0 order x))]
+         (if (> i degree)
+           (.y pair)
+           (recur (inc i) (DPair. (.y pair)
+                                  (/ (- (* 2.0 (dec (+ order i)) x (.y pair))
+                                        (* (+ i (* 2.0 order) -2.0) (.x pair))) i)))))))))
+
+(defn hermite-polynomials
+  "Hermite polynomials"
+  ^double [^long degree ^double x]
+  (case (int degree)
+    0 1.0
+    1 (* 2.0 x)
+    (loop [i (long 2)
+           ^DPair pair (DPair. 1.0 (* 2.0 x))]
+      (if (> i degree)
+        (.y pair)
+        (recur (inc i) (DPair. (.y pair)
+                               (* 2.0 (- (* x (.y pair)) (* (dec i) (.x pair))))))))))
+
+
+(defn jacobi-polynomials
+  "Jacobi polynomials"
+  ^double [^long degree ^double alpha ^double beta ^double x]
+  (case (int degree)
+    0 1.0
+    1 (+ (inc alpha) (* 0.5 (+ alpha beta 2.0) (dec x)))
+    (loop [i (long 2)
+           ^DPair pair (DPair. 1.0 (+ (inc alpha) (* 0.5 (+ alpha beta 2.0) (dec x))))]
+      (if (> i degree)
+        (.y pair)
+        (let [a (+ i alpha)
+              b (+ i beta)
+              c (+ a b)]
+          (recur (inc i) (DPair. (.y pair)
+                                 (/ (- (* (dec c) (+ (* c (- c 2.0) x)
+                                                     (* (- a b) (- c (* 2.0 i)))) (.y pair))
+                                       (* 2.0 (dec a) (dec b) c (.x pair)))
+                                    (* 2.0 i (- c i) (- c 2.0))))))))))
 
 ;; N.M.Temme, On the numerical evaluation of the modified bessel function of the third kind
 ;; (formulas 1.6 and 1.9)
@@ -1628,11 +1710,13 @@
 
 ;; Powers (normal, quick)
 
+;; use Math here due to some fastmath innacuracies
+
 (defn pow
   "Power of a number"
-  {:inline (fn [x exponent] `(. FastMath (pow (double ~x) (double ~exponent))))
+  {:inline (fn [x exponent] `(. Math (pow (double ~x) (double ~exponent))))
    :inline-arities #{2}}
-  ^double [^double x ^double exponent] (. FastMath (pow x exponent)))
+  ^double [^double x ^double exponent] (. Math (pow x exponent)))
 
 (defn qpow
   "Fast and less accurate version of [[pow]]."
@@ -2064,12 +2148,12 @@
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\pi}\\\\)"} M_1_PI (/ PI))
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\pi}\\\\)"} M_2_PI (/ 2.0 PI))
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\sqrt\\pi}\\\\)"} M_2_SQRTPI (/ 2.0 SQRTPI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2\\pi}}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
+(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRTPI (/ 1.0 SQRTPI))
+(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\frac{2}{\\pi}}\\\\)"} SQRT_2_PI (sqrt M_2_PI))
 (def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2}\\\\)"} M_SQRT2 SQRT2)
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} M_SQRT1_2 (/ SQRT2))
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} INV_SQRT_2 M_SQRT1_2)
-
-
 (def ^{:const true :tag 'double :doc "\\\\(2\\pi\\\\)"} M_TWOPI TWO_PI)
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{3\\pi}{4}\\\\)"} M_3PI_4 (* PI 0.75))
 (def ^{:const true :tag 'double :doc "\\\\(\\sqrt\\pi\\\\)"} M_SQRT_PI SQRTPI)

@@ -14,4 +14,5 @@
  :clean-up-target-dir true
  :format [:quarto :html]
  :base-source-path "clay/"
- :base-target-path "docs/clay"}
+ :base-target-path "docs/clay"
+ :kindly/options {:kinds-that-hide-code #{ :kind/hiccup :kind/fragment :kind/image :kind/table}}}
