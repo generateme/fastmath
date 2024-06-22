@@ -3,6 +3,7 @@
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.complex :as c]
+            [fastmath.special :as special]
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
@@ -374,15 +375,15 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (m/erf (.x v)))
-            (* amount (m/erf (.y v)))))))
+     (Vec2. (* amount (special/erf (.x v)))
+            (* amount (special/erf (.y v)))))))
 
 (defn erf2
   "Erf"
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (m/erf (.x v) (.y v)))
+     (Vec2. (* amount (special/erf (.x v) (.y v)))
             (* amount (v/heading v))))))
 
 

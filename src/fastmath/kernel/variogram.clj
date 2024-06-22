@@ -9,7 +9,8 @@
             [fastmath.distance :as dist]
             [fastmath.stats :as stats]
             [fastmath.optimization :as optim]
-            [fastmath.random :as r])
+            [fastmath.random :as r]
+            [fastmath.special :as special])
   (:import [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -163,12 +164,12 @@
 (defn ->bessel
   "Creator of the Bessel (of the first kind) semivariogram model."
   [^double alpha]
-  (let [g (m/gamma (m/inc alpha))]
+  (let [g (special/gamma (m/inc alpha))]
     (fn [{:keys [^double nugget ^double psill ^double range ^double beta]}]
       (fn ^double [^double x]
         (if (m/zero? x) 0.0
             (->> (m/* g (m/pow (m// (m/* 2.0 range) x) beta)
-                      (m/bessel-j alpha (m// x range)))
+                      (special/bessel-j alpha (m// x range)))
                  (m/- 1.0)
                  (m/* psill)
                  (m/+ nugget)))))))

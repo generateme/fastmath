@@ -2,6 +2,7 @@
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
+            [fastmath.special :as special]
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2 Vec3]))
 
@@ -49,7 +50,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (m/log-gamma (v/mag v)))
+     (Vec2. (* amount (special/log-gamma (v/mag v)))
             (* amount (v/heading v))))))
 
 (defn gaussianblur

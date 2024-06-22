@@ -3,7 +3,8 @@
             [clojure.test :as t]
             [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.random :as r]))
+            [fastmath.random :as r]
+            [fastmath.special :as special]))
 
 ;; https://github.com/JohannesBuchner/cuba/blob/master/demo/demo-c.c
 ;; + wolfram alpha results
@@ -141,7 +142,7 @@
   (let [hdims (m/* 0.5 dims)]
     (m/* (m/fpow radius dims)
          (m// (m/pow m/PI hdims)
-              (m/gamma (m/inc hdims))))))
+              (special/gamma (m/inc hdims))))))
 
 (def ^{:const true :tag 'double} fdata 0.1)
 
@@ -236,7 +237,7 @@
 
 ;; https://docs.scipy.org/doc/scipy/tutorial/integrate.html
 (t/deftest scipy-example
-  (t/is (m/delta-eq (sut/integrate (fn [^double x] (m/bessel-j 2.5 x)) 0.0 4.5)
+  (t/is (m/delta-eq (sut/integrate (fn [^double x] (special/bessel-j 2.5 x)) 0.0 4.5)
                     1.117817938088701 1.0e-11))
   (t/is (v/delta-eq (map (fn [^double x]
                            (sut/integrate (fn [^double t] (m// (m/exp (m/* -1.0 x t))

@@ -2,6 +2,7 @@
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
+            [fastmath.special :as special]
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
@@ -80,7 +81,7 @@
   (let [lp (mod (m/abs x) 4.0)
         p (mod (m/abs x) 2.0)
         p (if (> p 1.0) (- 2.0 p) p)
-        mink (if altwave? (- (m/minkowski p) p) (m/minkowski p))]
+        mink (if altwave? (- (special/minkowski p) p) (special/minkowski p))]
     (if (m/bool-xor (< lp 2.0) (pos? x))
       mink (- mink))))
 

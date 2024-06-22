@@ -5,7 +5,8 @@
             [fastmath.vector :as v]
             [fastmath.protocols :as prot]
             [fastmath.random :as r]
-            [fastmath.matrix :as mat])
+            [fastmath.matrix :as mat]
+            [fastmath.special :as special])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
             CholeskyDecomposition RealMatrix RealVector]
            [fastmath.java Array]
@@ -448,10 +449,10 @@
 (def links {:logit (->Link m/logit
                          m/sigmoid
                          (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
-          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (m/inv-erf (m/dec (m/* 2.0 x)))))
+          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (special/inv-erf (m/dec (m/* 2.0 x)))))
                           (fn ^double [^double x] (-> (m// x m/SQRT2)
                                                      (m/-)
-                                                     (m/erfc)
+                                                     (special/erfc)
                                                      (m/* 0.5)))
                           (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
                                                                                (m/exp (m/* -0.5 x x))))))
@@ -674,15 +675,15 @@
 
 (defn- ->nbinomial-aic
   [^double theta]
-  (let [lgt-tlt (m/- (m/log-gamma theta) (m/* theta (m/log theta)))]
+  (let [lgt-tlt (m/- (special/log-gamma theta) (m/* theta (m/log theta)))]
     (fn [ys fitted weights _deviance _observations rank _ns]
       (m/+ (m/* 2.0 (v/sum (map (fn [^double y ^double mu ^double w]
                                   (let [y+t (m/+ y theta)]
                                     (m/* w (m/- (m/+ (m/* y+t (m/log (m/+ mu theta)))
-                                                     (m/log-gamma (m/inc y))
+                                                     (special/log-gamma (m/inc y))
                                                      lgt-tlt)
                                                 (m/* y (m/log mu))
-                                                (m/log-gamma y+t))))) ys fitted weights)))
+                                                (special/log-gamma y+t))))) ys fitted weights)))
            (m/* 2.0 (m/inc (int rank)))))))
 
 (defrecord Family [default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion])
@@ -1123,24 +1124,24 @@
 
 (defn- nbinomial-theta-score [ys mus weights]
   (fn ^double [^double theta]
-    (let [dg (m/digamma theta)
+    (let [dg (special/digamma theta)
           lt (m/log theta)]
       (v/sum (map (fn [^double y ^double mu ^double w]
                     (let [y+th (m/+ y theta)
                           mu+th (m/+ mu theta)]
-                      (m/* w (m/- (m/+ (m/digamma y+th) lt 1.0)
+                      (m/* w (m/- (m/+ (special/digamma y+th) lt 1.0)
                                   dg (m/log mu+th) (m// y+th mu+th)))))
                   ys mus weights)))))
 
 (defn- nbinomial-theta-score' [ys mus weights]
   (fn [^double theta]
-    (let [tg (m/trigamma theta)
+    (let [tg (special/trigamma theta)
           rt (m// theta)]
       (v/sum (map (fn [^double y ^double mu ^double w]
                     (let [y+th (m/+ y theta)
                           mu+th (m/+ mu theta)]
                       (m/* w (m/- (m/+ tg (m// 2.0 mu+th))
-                                  (m/trigamma y+th) rt (m// y+th (m/sq mu+th))))))
+                                  (special/trigamma y+th) rt (m// y+th (m/sq mu+th))))))
                   ys mus weights)))))
 
 (defn- nbinomial-theta-init [ys mus weights ^long n]

@@ -41,7 +41,7 @@
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
-           [org.apache.commons.math3.special Gamma Erf Beta BesselJ]))
+           [org.apache.commons.math3.special Gamma Beta]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -623,47 +623,6 @@
   ^double [^double x ^double y ^double z]
   (fma-macro (- x) y z))
 
-(defmacro mevalpoly
-  "Evaluate polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+...."
-  [x & coeffs]
-  (let [cnt (count coeffs)]
-    (condp clojure.core/= cnt
-      0 0.0
-      1 `~(first coeffs)
-      2 (let [[z y] coeffs]
-          `(muladd ~x ~y ~z))
-      `(muladd ~x (mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
-
-(defn evalpoly
-  "Evaluate polynomial"
-  {:inline (fn [x & coeffs] `(mevalpoly ~x ~@coeffs))
-   :inline-arities >=1?}
-  [x & coeffs]
-  (if-not (seq coeffs)
-    0.0
-    (let [rc (reverse coeffs)]
-      (loop [rcoeffs (rest rc)
-             ^double ex (first rc)]
-        (if-not (seq rcoeffs)
-          ex
-          (recur (rest rcoeffs)
-                 (muladd ^double x ex ^double (first rcoeffs))))))))
-
-(defn makepoly
-  "Create polynomial function for given coefficients"
-  [coeffs]
-  (cond
-    (not (seq coeffs)) (constantly 0.0)
-    (= 1 (count coeffs)) (constantly (first coeffs))
-    :else (let [rc (reverse coeffs)]
-            (fn [^double x]
-              (loop [rcoeffs (rest rc)
-                     ^double ex (first rc)]
-                (if-not (seq rcoeffs)
-                  ex
-                  (recur (rest rcoeffs)
-                         (muladd x ex ^double (first rcoeffs)))))))))
-
 ;; some stuff from pbrt
 (defn difference-of-products
   "Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation."
@@ -1117,8 +1076,7 @@
   ^double [^double x]
   (let [r (/ x (+ 2.0 x))
         t (* r r)
-        w (mevalpoly t 6.66666666666666667e-1 4.00000000000000000e-1 2.85714285714285714e-1 2.22222222222222222e-1
-                     1.81818181818181818e-1 1.53846153846153846e-1 1.33333333333333333e-1 1.17647058823529412e-1)
+        w (muladd t (muladd t (muladd t (muladd t (muladd t (muladd t (muladd t 0.11764705882352941 0.13333333333333333) 0.15384615384615385) 0.18181818181818182) 0.2222222222222222) 0.2857142857142857) 0.4) 0.6666666666666666)
         hxsq (* 0.5 x x)]
     (- (* r (+ hxsq (* w t))) hxsq)))
 
@@ -1281,374 +1239,6 @@
    :inline-arities #{1}}
   ^double [^double rad] (* rad-in-deg rad))
 
-;; Erf
-
-(defn erf
-  "Error function. For two arguments return difference between `(erf x2)` and `(erf x1)`."
-  {:inline (fn ([x] `(. Erf (erf (double ~x))))
-             ([x1 x2] `(. Erf (erf (double ~x1) (double ~x2)))))
-   :inline-arities #{1 2}}
-  (^double [^double x] (. Erf (erf x)))
-  (^double [^double x1 ^double x2] (. Erf (erf x1 x2))))
-
-(defn erfc
-  "Complementary error funciton."
-  {:inline (fn ([x] `(. Erf (erfc (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Erf (erfc x)))
-
-(defn inv-erf
-  "Inverse [[erf]]."
-  {:inline (fn ([x] `(. Erf (erfInv (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Erf (erfInv x)))
-
-(defn inv-erfc
-  "Inverse [[erfc]]."
-  {:inline (fn ([x] `(. Erf (erfcInv (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Erf (erfcInv x)))
-
-;; Gamma
-
-(defn gamma
-  "Gamma function \\\\(\\Gamma(x)\\\\)"
-  {:inline (fn ([x] `(. Gamma (gamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (gamma x)))
-
-(defn log-gamma
-  "Log of Gamma function \\\\(\\ln\\Gamma(x)\\\\)"
-  {:inline (fn ([x] `(. Gamma (logGamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (logGamma x)))
-
-(defn log-gamma-1p
-  "Log of Gamma function \\\\(\\ln\\Gamma(1+x)\\\\ for -0.5≤x≤1.5.)"
-  {:inline (fn ([x] `(. Gamma (logGamma1p (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (logGamma1p x)))
-
-(defn digamma
-  "Logarithmic derivative of \\\\(\\Gamma\\\\)."
-  {:inline (fn ([x] `(. Gamma (digamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (digamma x)))
-
-(defn trigamma
-  "Derivative of [[digamma]]."
-  {:inline (fn ([x] `(. Gamma (trigamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (trigamma x)))
-
-(defn inv-gamma-1pm1
-  "\\\\(\\frac{1}{\\Gamma(1+x)}-1\\\\) for -0.5≤x≤1.5."
-  {:inline (fn ([x] `(. Gamma (invGamma1pm1 (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (invGamma1pm1 x)))
-
-(defn regularized-gamma-p
-  "Regularized `gamma` P(a,x)"
-  {:inline (fn ([a x] `(. Gamma (regularizedGammaP (double ~a) (double ~x)))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (. Gamma (regularizedGammaP a x)))
-
-(defn regularized-gamma-q
-  "Regularized `gamma` Q(a,x)"
-  {:inline (fn ([a x] `(. Gamma (regularizedGammaQ (double ~a) (double ~x)))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (. Gamma (regularizedGammaQ a x)))
-
-(defn lower-incomplete-gamma
-  "Lower incomplete gamma function"
-  {:inline (fn [a x] `(let [a# (double ~a)]
-                       (exp (+ (log (. Gamma (regularizedGammaP a# (double ~x)))) (. Gamma (logGamma a#))))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (exp (+ (log (. Gamma (regularizedGammaP a x)))
-                                        (. Gamma (logGamma a)))))
-
-(defn upper-incomplete-gamma
-  "Upper incomplete gamma function"
-  {:inline (fn [a x] `(let [a# (double ~a)]
-                       (exp (+ (log (. Gamma (regularizedGammaQ a# (double ~x)))) (. Gamma (logGamma a#))))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (exp (+ (log (. Gamma (regularizedGammaQ a x)))
-                                        (. Gamma (logGamma a)))))
-
-;; Beta
-
-(defn log-beta
-  "Logarithm of Beta function."
-  {:inline (fn ([p q] `(. Beta (logBeta (double ~p) (double ~q)))))
-   :inline-arities #{2}}
-  ^double [^double p ^double q] (. Beta (logBeta ~p ~q)))
-
-(defn beta
-  "Beta function"
-  {:inline (fn ([p q] `(exp (. Beta (logBeta (double ~p) (double ~q))))))
-   :inline-arities #{2}}
-  ^double [^double p ^double q] (exp (. Beta (logBeta ~p ~q))))
-
-(defn regularized-beta
-  "Regularized Beta I_x(a,b)"
-  {:inline (fn ([x a b] `(. Beta (regularizedBeta (double ~x) (double ~a) (double ~b)))))
-   :inline-arities #{3}}
-  ^double [^double x ^double a ^double b] (. Beta (regularizedBeta x a b)))
-
-(defn incomplete-beta
-  "Incomplete Beta B(x,a,b)"
-  {:inline (fn ([x a b] `(let [a# (double ~a) b# (double ~b)]
-                          (exp (+ (log (. Beta (regularizedBeta (double ~x) a# b#)))
-                                  (. Beta (logBeta a# b#)))))))
-   :inline-arities #{3}}
-  ^double [^double x ^double a ^double b] (exp (+ (log (. Beta (regularizedBeta x a b)))
-                                                  (. Beta (logBeta a b)))))
-
-
-;;
-
-(defn minkowski
-  "Minkowski's question mark function ?(x)"
-  ^double [^double x]
-  (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
-    (if (< it 20)
-      (let [d (* d 0.5)
-            m (+ p r)
-            n (+ q s)
-            p? (< x (/ m n))]
-        (recur (inc it)
-               (if p? p m)
-               (if p? q n)
-               (if p? m r)
-               (if p? n s)
-               d
-               (if p? y (+ y d))))
-      (+ y d))))
-
-(defn kummers-M
-  "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
-  ^double [^double a ^double b ^double x]
-  (cond
-    (== a b -1.0) ##NaN
-    (zero? b) (FastMath/copySign ##Inf (* a x))
-    (zero? x) 1.0
-    (== a b) (exp x)
-    (== a -1.0) (- 1.0 (/ x b))
-    :else
-    (loop [i (int 0)
-           sum (double 0.0)
-           term (double 1.0)
-           aterm Double/MAX_VALUE
-           apterm Double/MAX_VALUE]
-      (let [s (* 8.0 (FastMath/abs sum) MACHINE-EPSILON)] ;; Julia approach for termination
-        (if (or (== i 100000) (and (< aterm s) (< apterm s)))
-          sum
-          (let [nsum (+ sum term)
-                ratio (/ (* x (+ a i)) (* (+ b i) (inc i)))
-                nterm (* ratio term)]
-            (recur (inc i) nsum nterm (FastMath/abs nterm) aterm)))))))
-
-(defn whittaker-M
-  "Whittaker's M"
-  ^double [^double kappa ^double mu ^double x]
-  (let [mu+05 (+ 0.5 mu)
-        z (exp (+ (* -0.5 x) (* mu+05 (log x))))]
-    (* z (kummers-M (- mu+05 kappa) (inc (* 2.0 mu)) x))))
-
-;; Laguerre
-
-(deftype DPair [^double x ^double y])
-
-;; recursive formula: https://en.wikipedia.org/wiki/Laguerre_polynomials#Generalized_Laguerre_polynomials
-
-(defn laguerre-polynomials
-  "(Generalized) Laguerre polynomials"
-  (^double [^long degree ^double x] (laguerre-polynomials degree 0.0 x))
-  (^double [^long degree ^double order ^double x]
-   (case (int degree)
-     0 1.0
-     1 (- (inc order) x)
-     (loop [i (long 2)
-            ^DPair pair (DPair. 1.0 (- (inc order) x))]
-       (if (> i degree)
-         (.y pair)
-         (recur (inc i) (DPair. (.y pair)
-                                (/ (- (* (+ order (- (* 2.0 i) 1.0 x)) (.y pair))
-                                      (* (+ order (dec i)) (.x pair))) i))))))))
-
-
-(defn chebyshev-polynomials
-  "Chebyshev polynomials of the first kind"
-  ^double [^long degree ^double x]
-  (case (int degree)
-    0 1.0
-    1 x
-    2 (dec (* 2.0 x x))
-    3 (* x (- (* 4.0 x x) 3.0))
-    4 (let [x2 (* x x)] (inc (* 8.0 x2 (dec x2))))
-    (cos (* degree (acos x)))))
-
-(defn chebyshev-polynomials-2
-  "Chebyshev polynomials of the second kind"
-  ^double [^long degree ^double x]
-  (case (int degree)
-    0 1.0
-    1 (* 2.0 x)
-    2 (dec (* 4.0 x x))
-    3 (* 4.0 x (dec (* 2.0 x x)))
-    4 (let [x2 (* x x)] (inc (- (* 16.0 x2 x2) (* 12.0 x2))))
-    (let [near-one (- 1.0 (* x x))
-          degree+ (inc degree)]
-      (if (< near-one (/ (sqrt 1.2E-8) (* degree+ degree+)))
-        (let [v (* degree+ (- 1.0 (* SIXTH degree (+ degree 2) near-one)))]
-          (if (and (odd? degree) (neg? x)) (- v) v))
-        (let [t (acos x)]
-          (/ (sin (* t degree+))
-             (sin t)))))))
-
-(defn legendre-polynomials
-  ^double [^long degree ^double x]
-  (case (int degree)
-    0 1.0
-    1 x
-    (loop [i (long 2)
-           ^DPair pair (DPair. 1.0 x)]
-      (if (> i degree)
-        (.y pair)
-        (recur (inc i) (DPair. (.y pair)
-                               (/ (- (* (dec (* 2.0 i)) x (.y pair))
-                                     (* (dec i) (.x pair))) i)))))))
-
-(defn gegenbauer-polynomials
-  "Gegenbauer (ultraspherical) polynomials"
-  (^double [^long degree ^double x] (gegenbauer-polynomials degree 1.0 x))
-  (^double [^long degree ^double order ^double x]
-   (condp == order
-     1.0 (chebyshev-polynomials-2 degree x)
-     0.5 (legendre-polynomials degree x)
-     (case (int degree)
-       0 1.0
-       1 (* 2.0 order x)
-       (loop [i (long 2)
-              ^DPair pair (DPair. 1.0 (* 2.0 order x))]
-         (if (> i degree)
-           (.y pair)
-           (recur (inc i) (DPair. (.y pair)
-                                  (/ (- (* 2.0 (dec (+ order i)) x (.y pair))
-                                        (* (+ i (* 2.0 order) -2.0) (.x pair))) i)))))))))
-
-(defn hermite-polynomials
-  "Hermite polynomials"
-  ^double [^long degree ^double x]
-  (case (int degree)
-    0 1.0
-    1 (* 2.0 x)
-    (loop [i (long 2)
-           ^DPair pair (DPair. 1.0 (* 2.0 x))]
-      (if (> i degree)
-        (.y pair)
-        (recur (inc i) (DPair. (.y pair)
-                               (* 2.0 (- (* x (.y pair)) (* (dec i) (.x pair))))))))))
-
-
-(defn jacobi-polynomials
-  "Jacobi polynomials"
-  ^double [^long degree ^double alpha ^double beta ^double x]
-  (case (int degree)
-    0 1.0
-    1 (+ (inc alpha) (* 0.5 (+ alpha beta 2.0) (dec x)))
-    (loop [i (long 2)
-           ^DPair pair (DPair. 1.0 (+ (inc alpha) (* 0.5 (+ alpha beta 2.0) (dec x))))]
-      (if (> i degree)
-        (.y pair)
-        (let [a (+ i alpha)
-              b (+ i beta)
-              c (+ a b)]
-          (recur (inc i) (DPair. (.y pair)
-                                 (/ (- (* (dec c) (+ (* c (- c 2.0) x)
-                                                     (* (- a b) (- c (* 2.0 i)))) (.y pair))
-                                       (* 2.0 (dec a) (dec b) c (.x pair)))
-                                    (* 2.0 i (- c i) (- c 2.0))))))))))
-
-;; N.M.Temme, On the numerical evaluation of the modified bessel function of the third kind
-;; (formulas 1.6 and 1.9)
-;; https://www.researchgate.net/publication/242441899_On_the_numerical_evaluation_of_the_modified_bessel_function_of_the_third_kind
-
-(defn bessel-k-half
-  "Bessel K_a function for a = order/2
-
-  Function accepts only odd integers for order"
-  ^double [^long order ^double x]
-  (case (int order)
-    1 (* (sqrt (/ HALF_PI x)) (exp (- x)))
-    3 (* (sqrt (/ HALF_PI x)) (exp (- x)) (inc (/ x)))
-    (loop [i (long 5)
-           ^DPair pair (DPair. (bessel-k-half 1 x) (bessel-k-half 3 x))]
-      (if (> i order)
-        (.y pair)
-        (recur (+ i 2) (DPair. (.y pair) (+ (* (.y pair) (/ (- i 2.0) x))
-                                            (.x pair))))))))
-
-;; BesselJ
-(defn bessel-j
-  "Bessel J function value for given order and argument."
-  {:inline (fn [order x] `(. BesselJ (value ~order ~x)))
-   :inline-arities #{2}}
-  ^double [^double order ^double x] (. BesselJ (value order x)))
-
-;; jinc-c4 (/ (* PI PI PI PI) 192.0)
-;; jinc-c2 (/ (* PI PI) -8.0)
-
-(defn jinc
-  "Besselj1 devided by `x`"
-  ^double [^double x]
-  (if (< (FastMath/abs x) 0.002)
-    (let [x2 (* x x)]
-      (mevalpoly x2 1.0 -1.2337005501361697 0.5073390158020964))
-    (let [pix (* PI x)]
-      (* 2.0 (/ (bessel-j 1 pix) pix)))))
-
-;; I0
-
-(defn I0
-  "Modified Bessel function of the first kind, order 0."
-  ^double [^double x]
-  (let [x2 (* x x)
-        ;; i=1
-        val (inc (/ x2 4))
-        x2i (* x2 x2)
-        ;; i=2
-        val (+ val (/ x2i 64))
-        x2i (* x2i x2)
-        ;; i=3
-        val (+ val (/ x2i 2304))
-        x2i (* x2i x2)
-        ;; i=4
-        val (+ val (/ x2i 147456))
-        x2i (* x2i x2)
-        ;; i=5
-        val (+ val (/ x2i 14745600))
-        x2i (* x2i x2)
-        ;; i=6
-        val (+ val (/ x2i 2123366400))
-        x2i (* x2i x2)
-        ;; i=7
-        val (+ val (/ x2i 416179814400))
-        x2i (* x2i x2)
-        ;; i=8
-        val (+ val (/ x2i 106542032486400))
-        x2i (* x2i x2)]
-    (+ val (/ x2i 34519618525593600))))
-
-(defn bessel-i0
-  "Modified Bessel function of the first kind, order 0. Alias of [[I0]]."
-  ^double [^double x] (I0 x))
-
-(defn log-I0
-  "Log of [[I0]]."
-  ^double [^double x]
-  (FastMath/log (I0 x)))
-
 ;; Sinc
 (defn sinc
   "Sinc function."
@@ -1744,19 +1334,19 @@
   ^double [^long n]
   (if (< n 21)
     (factorial20-table n)
-    (exp (log-gamma (double (inc n))))))
+    (exp (Gamma/logGamma (double (inc n))))))
 
 (defn inv-factorial "Inverse of factorial, 1/n!"
   ^double [^long n]
   (if (< n 21)
     (/ 1.0 (long (factorial20-table n)))
-    (exp (- (log-gamma (double (inc n)))))))
+    (exp (- (Gamma/logGamma (double (inc n)))))))
 
 (defn log-factorial
   "Log factorial, alias to log-gamma"
-  {:inline (fn [x] `(log-gamma (double (inc (long ~x)))))
+  {:inline (fn [x] `(Gamma/logGamma (double (inc (long ~x)))))
    :inline-arities #{1}}
-  ^double [^long x] (log-gamma (double (inc x))))
+  ^double [^long x] (Gamma/logGamma (double (inc x))))
 
 (defn combinations
   "Binomial coefficient (n choose k)"
@@ -1771,7 +1361,7 @@
                    r
                    (recur (inc j) (* r (/ (inc (- n j)) (double j))))))
       :else (exp (- (- (ln (inc n)))
-                    (log-beta (inc (- n k)) (inc k)))))))
+                    (Beta/logBeta (inc (- n k)) (inc k)))))))
 
 (defn log-combinations
   "Log of binomial coefficient (n choose k)"
@@ -1784,7 +1374,7 @@
       (< n k) ##-Inf
       (== n k) 0.0
       :else (- (- (ln (inc n)))
-               (log-beta (inc (- n k)) (inc k))))))
+               (Beta/logBeta (inc (- n k)) (inc k))))))
 
 ;; Square and cubic
 (defn sq "Same as [[pow2]]. \\\\(x^2\\\\)"
@@ -2564,145 +2154,6 @@
                           clojure.core/>
                           clojure.core/<))
         (map first))))
-
-;; sinint / cosint
-
-(defn Si
-  "Integral of sin(t)/t from 0 to x"
-  ^double [^double x]
-  (if (nan? x)
-    ##NaN
-    (let [t (* x x)]
-      (cond
-        (<= t 36.0) (* x (/ (mevalpoly t 1.00000000000000000000E0 -0.44663998931312457298E-1 0.11209146443112369449E-2
-                                       -0.13276124407928422367E-4 0.85118014179823463879E-7 -0.29989314303147656479E-9
-                                       0.55401971660186204711E-12 -0.42406353433133212926E-15)
-                            (mevalpoly t 1.00000000000000000000E0 0.10891556624243098264E-1 0.59334456769186835896E-4
-                                       0.21231112954641805908E-6 0.54747121846510390750E-9 0.10378561511331814674E-11
-                                       0.13754880327250272679E-14 0.10223981202236205703E-17)))
-        (<= t 144.0) (let [invt (/ t)
-                           p (if (neg? x) -HALF_PI HALF_PI)]
-                       (- p
-                          (* (cos x) (/ (mevalpoly invt 0.99999999962173909991E0 0.36451060338631902917E3
-                                                   0.44218548041288440874E5 0.22467569405961151887E7
-                                                   0.49315316723035561922E8 0.43186795279670283193E9
-                                                   0.11847992519956804350E10 0.45573267593795103181E9)
-                                        (* x (mevalpoly invt 1.00000000000000000000E0 0.36651060273229347594E3
-                                                        0.44927569814970692777E5 0.23285354882204041700E7
-                                                        0.53117852017228262911E8 0.50335310667241870372E9
-                                                        0.16575285015623175410E10 0.11746532837038341076E10))))
-                          (* (sin x) invt (/ (mevalpoly invt 0.99999999920484901956E0 0.51385504875307321394E3
-                                                        0.92293483452013810811E5 0.74071341863359841727E7
-                                                        0.28142356162841356551E9 0.49280890357734623984E10
-                                                        0.35524762685554302472E11 0.79194271662085049376E11
-                                                        0.17942522624413898907E11)
-                                             (mevalpoly invt 1.00000000000000000000E0 0.51985504708814870209E3
-                                                        0.95292615508125947321E5 0.79215459679762667578E7
-                                                        0.31977567790733781460E9 0.62273134702439012114E10
-                                                        0.54570971054996441467E11 0.18241750166645704670E12
-                                                        0.15407148148861454434E12)))))
-        (< t ##Inf) (let [invt (/ t)
-                          p (if (neg? x) -HALF_PI HALF_PI)]
-                      (- p
-                         (* (/ (cos x) x) (- 1.0 (* invt
-                                                    (/ (mevalpoly invt 0.19999999999999978257E1 0.22206119380434958727E4
-                                                                  0.84749007623988236808E6 0.13959267954823943232E9
-                                                                  0.10197205463267975592E11 0.30229865264524075951E12
-                                                                  0.27504053804288471142E13 0.21818989704686874983E13)
-                                                       (mevalpoly invt 1.00000000000000000000E0 0.11223059690217167788E4
-                                                                  0.43685270974851313242E6 0.74654702140658116258E8
-                                                                  0.58580034751805687471E10 0.20157980379272098841E12
-                                                                  0.26229141857684496445E13 0.87852907334918467516E13)))))
-                         (* (sin x) invt (- 1.0 (* invt
-                                                   (/ (mevalpoly invt 0.59999999999999993089E1 0.96527746044997139158E4
-                                                                 0.56077626996568834185E7 0.15022667718927317198E10
-                                                                 0.19644271064733088465E12 0.12191368281163225043E14
-                                                                 0.31924389898645609533E15 0.25876053010027485934E16
-                                                                 0.12754978896268878403E16)
-                                                      (mevalpoly invt 1.00000000000000000000E0 0.16287957674166143196E4
-                                                                 0.96636303195787870963E6 0.26839734750950667021E9
-                                                                 0.37388510548029219241E11 0.26028585666152144496E13
-                                                                 0.85134283716950697226E14 0.11304079361627952930E16
-                                                                 0.42519841479489798424E16)))))))
-        
-        :else (if (neg? x) -HALF_PI HALF_PI)))))
-
-(def ^:private ^:const ^{:tag 'double} ci-r0 0.616505485620716233797110404100)
-(def ^:private ^:const ^{:tag 'double} ci-r1 3.384180422551186426397851146402)
-(def ^:private ^:const ^{:tag 'double} ci-r01 0.6162109375)
-(def ^:private ^:const ^{:tag 'double} ci-r02 0.29454812071623379711E-3)
-(def ^:private ^:const ^{:tag 'double} ci-r11 3.3837890625)
-(def ^:private ^:const ^{:tag 'double} ci-r12 0.39136005118642639785E-3)
-
-(defn Ci
-  "Negative of integral of cos(t)/t from x to inf"
-  ^double [^double x]
-  (assert (not (neg? x)) "x must be non-negative")
-  (if (nan? x)
-    ##NaN
-    (let [t (* x x)]
-      (cond
-        (<= x 3.0) (+ (log (/ x ci-r0)) (* (- (- x ci-r01) ci-r02)
-                                           (+ x ci-r0)
-                                           (/ (mevalpoly t -0.24607411378767540707E0 0.72113492241301534559E-2
-                                                         -0.11867127836204767056E-3 0.90542655466969866243E-6
-                                                         -0.34322242412444409037E-8 0.51950683460656886834E-11)
-                                              (mevalpoly t 1.00000000000000000000E0 0.12670095552700637845E-1
-                                                         0.78168450570724148921E-4 0.29959200177005821677E-6
-                                                         0.73191677761328838216E-9 0.94351174530907529061E-12))))
-        (<= x 6.0) (+ (log (/ x ci-r1)) (* (- (- x ci-r11) ci-r12)
-                                           (+ x ci-r1)
-                                           (/ (mevalpoly t -0.15684781827145408780E0 0.66253165609605468916E-2
-                                                         -0.12822297297864512864E-3 0.12360964097729408891E-5
-                                                         -0.66450975112876224532E-8 0.20326936466803159446E-10
-                                                         -0.33590883135343844613E-13 0.23686934961435015119E-16)
-                                              (mevalpoly t 1.00000000000000000000E0 0.96166044388828741188E-2
-                                                         0.45257514591257035006E-4 0.13544922659627723233E-6
-                                                         0.27715365686570002081E-9 0.37718676301688932926E-12
-                                                         0.27706844497155995398E-15))))
-        (<= x 12.0) (let [invt (/ t)]
-                      (- (* (sin x) (/ (mevalpoly invt 0.99999999962173909991E0 0.36451060338631902917E3
-                                                  0.44218548041288440874E5 0.22467569405961151887E7
-                                                  0.49315316723035561922E8 0.43186795279670283193E9
-                                                  0.11847992519956804350E10 0.45573267593795103181E9)
-                                       (* x (mevalpoly invt 1.00000000000000000000E0 0.36651060273229347594E3
-                                                       0.44927569814970692777E5 0.23285354882204041700E7
-                                                       0.53117852017228262911E8 0.50335310667241870372E9
-                                                       0.16575285015623175410E10 0.11746532837038341076E10))))
-                         (* (cos x) invt (/ (mevalpoly invt 0.99999999920484901956E0 0.51385504875307321394E3
-                                                       0.92293483452013810811E5 0.74071341863359841727E7
-                                                       0.28142356162841356551E9 0.49280890357734623984E10
-                                                       0.35524762685554302472E11 0.79194271662085049376E11
-                                                       0.17942522624413898907E11)
-                                            (mevalpoly invt 1.00000000000000000000E0 0.51985504708814870209E3
-                                                       0.95292615508125947321E5 0.79215459679762667578E7
-                                                       0.31977567790733781460E9 0.62273134702439012114E10
-                                                       0.54570971054996441467E11 0.18241750166645704670E12
-                                                       0.15407148148861454434E12)))))
-        (< x ##Inf) (let [invt (/ t)]
-                      (- (* (/ (sin x) x) (- 1.0 (* invt
-                                                    (/ (mevalpoly invt 0.19999999999999978257E1 0.22206119380434958727E4
-                                                                  0.84749007623988236808E6 0.13959267954823943232E9
-                                                                  0.10197205463267975592E11 0.30229865264524075951E12
-                                                                  0.27504053804288471142E13 0.21818989704686874983E13)
-                                                       (mevalpoly invt 1.00000000000000000000E0 0.11223059690217167788E4
-                                                                  0.43685270974851313242E6 0.74654702140658116258E8
-                                                                  0.58580034751805687471E10 0.20157980379272098841E12
-                                                                  0.26229141857684496445E13 0.87852907334918467516E13)))))
-                         (* (cos x) invt (- 1.0 (* invt
-                                                   (/ (mevalpoly invt 0.59999999999999993089E1 0.96527746044997139158E4
-                                                                 0.56077626996568834185E7 0.15022667718927317198E10
-                                                                 0.19644271064733088465E12 0.12191368281163225043E14
-                                                                 0.31924389898645609533E15 0.25876053010027485934E16
-                                                                 0.12754978896268878403E16)
-                                                      (mevalpoly invt 1.00000000000000000000E0 0.16287957674166143196E4
-                                                                 0.96636303195787870963E6 0.26839734750950667021E9
-                                                                 0.37388510548029219241E11 0.26028585666152144496E13
-                                                                 0.85134283716950697226E14 0.11304079361627952930E16
-                                                                 0.42519841479489798424E16)))))))        
-        :else 0.0))))
-
-
 
 ;;
 

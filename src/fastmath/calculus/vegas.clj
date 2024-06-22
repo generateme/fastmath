@@ -4,6 +4,7 @@
             [fastmath.vector :as v]
             [fastmath.stats :as stats]
             [fastmath.calculus.common :as cc]
+            [fastmath.special :as special]
             [clojure.math.combinatorics :as combo])
   (:import [fastmath.vector Vec2]
            [fastmath.java Array]))
@@ -317,7 +318,7 @@
                             :evaluations evaluations
                             :chi2-avg (/ chisq dof)
                             :dof dof
-                            :Q (m/regularized-gamma-q (m// dof 2.0) (m// chisq 2.0))}]
+                            :Q (special/regularized-gamma-q (m// dof 2.0) (m// chisq 2.0))}]
                    (if record-data?
                      (assoc res :data ndata :hcubes hcubes)
                      res))

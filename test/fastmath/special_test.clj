@@ -354,10 +354,57 @@
     (t/is (v/edelta-eq (map #(sut/bessel-k % 142.1) vs) (rr/r->clj (base/besselK 142.1 vs)) 1.0e-13 1.0e-13)))
   (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
           nu (range -50 0 0.25)
-          :let [xx (m/abs (m/* nu x))]]
+          :let [xx (m/abs (* nu x))]]
     (t/is (m/delta-eq (sut/bessel-k nu xx) (first (rr/r->clj (Bessel/BesselK xx nu))) 1.0e-13 1.0e-13)))
   (t/are [v x] (m/delta-eq (sut/bessel-k v x) (first (rr/r->clj (Bessel/BesselK x v))) 1.0e-14 1.0e-14)
     12.0 3.2
     -8.0 4.2
     12.3 8.2
     -12.3 8.2))
+
+(t/deftest bessel-k-half
+  (doseq [o (range 1 100 2)
+          x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
+          :let [xx (* o x)
+                oh (* o 0.5)]]
+    (t/is (m/delta-eq (sut/bessel-k oh xx) (sut/bessel-k-half o xx) 1.0e-13 1.0e-13))))
+
+;;
+
+;; Abramowitz and Stegun p.511
+(t/deftest kummers-m
+  (t/are [a b x res] (m/delta-eq res (sut/kummers-M a b x))
+    0.3 0.2 -0.1 0.8578490
+    -0.1 0.2 0.1 (* 0.8578490 (m/pow m/E 0.1))
+    17 16 1 2.8881744
+    -1 16 -1 1.0625
+    -1.3 0.2 0.1 0.3582123
+    -1.3 1.2 0.1 0.8924108
+    -0.3 1.2 0.1 0.9745952
+    1 1 1 m/E
+    2 2 2 (m/exp 2)
+    0.3 0.4 0.5 (/ 1.724128 (/ 0.7 0.6))
+    ;; p.533
+    -1 1 9 -8
+    -1 0.6 9 -14
+    0 1 9 1
+    1 1 9 (m/exp 9))
+  (t/are [a b x res acc] (m/delta-eq res (sut/kummers-M a b x) acc)
+    0.9 0.1 10 1227235 1
+    -52.5 0.1 1 -16.34 0.2)
+  (t/is (m/pos-inf? (sut/kummers-M 1 0 1)))
+  (t/is (m/neg-inf? (sut/kummers-M -1 0 1)))
+  (t/is (m/pos-inf? (sut/kummers-M -1 0 -1)))
+  (t/is (m/neg-inf? (sut/kummers-M 1 0 -1)))
+  (t/is (m/nan? (sut/kummers-M -1 -1 2)))) ;; example 4
+
+(t/deftest whittaker-m
+  (t/is (m/delta-eq 1.10622 (sut/whittaker-M 0 -0.4 1) 1.0e-5)))
+
+(t/deftest besselk
+  (t/are [order ress] (v/delta-eq ress (mapv (partial sut/bessel-k-half order) [0.5 1 1.33 2.5 5]))
+    1 [1.075047603 0.461068504 0.287423621 0.065065943 0.003776613]
+    3 [3.225142810 0.922137009 0.503531608 0.091092320 0.004531936]
+    5 [20.425904466  3.227479531  1.423209202  0.174376728  0.006495775]
+    7 [207.48418748  17.05953466   5.85394214   0.43984578   0.01102771]
+    9 [2.925204529e+03 1.226442222e+02 3.223343101e+01 1.405944900e+00 2.193457048e-02]))

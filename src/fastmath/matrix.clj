@@ -1246,7 +1246,7 @@
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch
                 m/sq m/cb m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
-                m/radians m/degrees m/sinc m/jinc m/sigmoid m/logit m/xlogx
+                m/radians m/degrees m/sinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
 (defmethod print-method Mat2x2 [v ^java.io.Writer w] (.write w (str v)))

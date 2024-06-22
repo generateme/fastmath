@@ -52,7 +52,8 @@
             [fastmath.interpolation.step :as step-interp]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
-            [fastmath.kernel.density :as kd])
+            [fastmath.kernel.density :as kd]
+            [fastmath.special :as special])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -1545,9 +1546,9 @@
   (^double [group1 group2]
    (let [df (+ (count group1) (count group2) -2)
          df2 (* 0.5 df)
-         j (m/exp (- (m/log-gamma df2)
+         j (m/exp (- (special/log-gamma df2)
                      (m/log (m/sqrt df2))
-                     (m/log-gamma (* 0.5 (dec df)))))]
+                     (special/log-gamma (* 0.5 (dec df)))))]
      (* j (hedges-g group1 group2)))))
 
 (defn glass-delta

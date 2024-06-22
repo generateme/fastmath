@@ -1,7 +1,8 @@
 (ns fastmath.kernel.vector
   "Various vector based kernels"
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v]))
+            [fastmath.vector :as v]
+            [fastmath.special :as special]))
 
 ;; http://crsouza.com/2010/03/17/kernel-functions-for-machine-learning-applications/
 ;; Marc G. Genton, Classes of Kernels for Machine Learning: A Statistics Perspective
@@ -311,7 +312,7 @@
      :or {sigma 1.0 n 2.0 v -1.0 distance v/dist}}]
    (fn ^double [x y] (let [^double dist (distance x y)
                           v+ (m/inc v)]
-                      (/ (m/bessel-j v+ (m/* sigma dist))
+                      (/ (special/bessel-j v+ (m/* sigma dist))
                          (m/pow dist (m/- (m/* n v+))))))))
 
 ;; R kernlab
@@ -328,11 +329,11 @@
   ([{:keys [^double sigma ^double order ^double degree distance]
      :or {sigma 1.0 order 0.0 degree 1.0 distance v/dist}}]
    (fn ^double [x y]
-     (let [lim (m// (m/* (m/gamma (m/inc order)) (m/pow 2.0 order)))
+     (let [lim (m// (m/* (special/gamma (m/inc order)) (m/pow 2.0 order)))
            bkt (m/* sigma ^double (distance x y))]
        (if (m/< bkt 1.0e-5)
          1.0
-         (m/pow (m// (m/* (m/bessel-j order bkt)
+         (m/pow (m// (m/* (special/bessel-j order bkt)
                           (m/pow bkt (m/- order))) lim) degree))))))
 
 (defn cauchy
@@ -465,13 +466,13 @@
   ([{:keys [^long order ^double theta distance]
      :or {order 1 theta 1.0 distance v/dist}}]
    (let [mu (m// order 2.0)
-         gf (m// (m/* (m/pow 2.0 (m/- 1.0 mu))) (m/gamma mu))
+         gf (m// (m/* (m/pow 2.0 (m/- 1.0 mu))) (special/gamma mu))
          s (m// (m/* 2.0 (m/sqrt mu)) theta)]
      (fn ^double [x y]
        (let [v (m/* s ^double (distance x y))]
          (if (m/< v 1.0e-16)
            1.0
-           (m/* gf (m/pow v mu) (m/bessel-k-half order v))))))))
+           (m/* gf (m/pow v mu) (special/bessel-k-half order v))))))))
 
 (defn rbf->kernel
   "Convert RBF kernel as vector kernel using a `distance` function (default: euclidean)."

@@ -7,7 +7,9 @@
   Each kernel supports `scale` parameter."
   (:require [fastmath.core :as m]
             [fastmath.calculus.quadrature :as calc]
-            [fastmath.calculus.finite :as finite]))
+            [fastmath.calculus.finite :as finite]
+            [fastmath.special :as special]
+            [fastmath.polynomials :as poly]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators)
@@ -57,10 +59,11 @@
   ([] (gaussians-laguerre nil))
   ([{:keys [^double dimension ^long degree ^double scale]
      :or {scale 1.0}}]
-   (let [hdimension (* 0.5 dimension)]
+   (let [hdimension (* 0.5 dimension)
+         L (poly/laguerre-L-polynomial degree hdimension)]
      (fn ^double [^double x]
        (let [ex (m/sq (/ x scale))]
-         (* (m/exp (- ex)) (m/laguerre-polynomials degree hdimension ex)))))))
+         (* (m/exp (- ex)) (poly/evaluate L ex)))))))
 
 ;; [1] p.33
 
@@ -70,14 +73,14 @@
   ([{:keys [^double d ^double scale]
      :or {scale 1.0}}]
    (cond
-     (== d 2) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (m/bessel-j 0 ex)))
+     (== d 2) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (special/bessel-j0 ex)))
      (== d 3) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (* 0.7978845608028654
                                                                       (if (m/near-zero? ex 1.0e-13) 1.0 (/ (m/sin ex) ex)))))
      (== d 4) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (m/near-zero? ex 1.0e-13) 0.5
-                                                                       (/ (m/bessel-j 1 ex) ex))))
+                                                                       (/ (special/bessel-j1 ex) ex))))
      :else (let [p (dec (* 0.5 d))]
              (fn ^double [^double x] (let [ex (m/max 1.0e-13 (m/abs (/ x scale)))]
-                                      (/ (m/bessel-j p ex) (m/pow ex p))))))))
+                                      (/ (special/bessel-j p ex) (m/pow ex p))))))))
 
 
 ;; [1] p. 34
@@ -92,12 +95,12 @@
   ([{:keys [^long order ^double scale]
      :or {scale 1.0}}]
    (let [v (* 0.5 order)
-         rg (m/exp (- (* (- 1.0 v) m/LN2) (m/log-gamma v)))]
+         rg (m/exp (- (* (- 1.0 v) m/LN2) (special/log-gamma v)))]
      (fn ^double [^double x]
        (let [ex (m/abs (/ x scale))]
          (if (< ex 1.0e-20)
            1.0
-           (* rg (m/pow ex v) (m/bessel-k-half order ex))))))))
+           (* rg (m/pow ex v) (special/bessel-k-half order ex))))))))
 
 ;; [1] p. 43
 
@@ -243,27 +246,27 @@
        1 (fn ^double [^double x] (let [r (m/abs (/ x scale))]
                                   (if (<= r 1.0)
                                     (* (m/pow (- 1.0 r) p) (inc (* p r))) 0.0)))
-       2 (let [f2 (m/mevalpoly l 3.0 4.0 1.0)
-               f1 (m/mevalpoly l 6.0 3.0)]
+       2 (let [f2 (poly/mevalpoly l 3.0 4.0 1.0)
+               f1 (poly/mevalpoly l 6.0 3.0)]
            (fn ^double [^double x] (let [r (m/abs (/ x scale))]
                                     (if (<= r 1.0)
                                       (/ (* (m/pow (- 1.0 r) p)
-                                            (m/mevalpoly r 3.0 f1 f2)) 3.0) 0.0))))
-       3 (let [f3 (m/mevalpoly l 15.0 23.0 9.0 1.0)
-               f2 (m/mevalpoly l 45.0 36.0 6.0)
-               f1 (m/mevalpoly l 45.0 15.0)]
+                                            (poly/mevalpoly r 3.0 f1 f2)) 3.0) 0.0))))
+       3 (let [f3 (poly/mevalpoly l 15.0 23.0 9.0 1.0)
+               f2 (poly/mevalpoly l 45.0 36.0 6.0)
+               f1 (poly/mevalpoly l 45.0 15.0)]
            (fn ^double [^double x] (let [r (m/abs (/ x scale))]
                                     (if (<= r 1.0)
                                       (/ (* (m/pow (- 1.0 r) p)
-                                            (m/mevalpoly r 15.0 f1 f2 f3)) 15.0) 0.0))))
-       4 (let [f4 (m/mevalpoly l 105.0 176.0 86.0 16.0 1.0)
-               f3 (* 5.0 (m/mevalpoly l 84.0 85.0 24.0 2.0))
-               f2 (* 45.0 (m/mevalpoly l 14.0 8.0 1.0))
-               f1 (* 105 (m/mevalpoly l 4.0 1.0))]
+                                            (poly/mevalpoly r 15.0 f1 f2 f3)) 15.0) 0.0))))
+       4 (let [f4 (poly/mevalpoly l 105.0 176.0 86.0 16.0 1.0)
+               f3 (* 5.0 (poly/mevalpoly l 84.0 85.0 24.0 2.0))
+               f2 (* 45.0 (poly/mevalpoly l 14.0 8.0 1.0))
+               f1 (* 105 (poly/mevalpoly l 4.0 1.0))]
            (fn ^double [^double x] (let [r (m/abs (/ x scale))]
                                     (if (<= r 1.0)
                                       (/ (* (m/pow (- 1.0 r) p)
-                                            (m/mevalpoly r 105.0 f1 f2 f3 f4)) 105.0) 0.0))))))))
+                                            (poly/mevalpoly r 105.0 f1 f2 f3 f4)) 105.0) 0.0))))))))
 
 ;; [2] p. 91
 
@@ -276,7 +279,7 @@
      (fn [^double x]
        (let [ex (m/abs (/ x scale))]
          (if (<= ex 1.0) (* (m/pow (- 1.0 ex) l)
-                            (m/mevalpoly ex 1.0 l f)) 0.0))))))
+                            (poly/mevalpoly ex 1.0 l f)) 0.0))))))
 
 ;;
 
@@ -315,31 +318,31 @@
      [0.0 0] (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (max 0.0 (- 1.0 ex))))
      [1.0 0] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (* (m/cb (max 0.0 (- 1.0 ex)))
-                                         (m/mevalpoly ex 1.0 3.0 1.0))))
+                                         (poly/mevalpoly ex 1.0 3.0 1.0))))
      [1.0 1] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (* 0.5 (m/sq (max 0.0 (- 1.0 ex)))
-                                         (m/mevalpoly ex 2.0 1.0))))
+                                         (poly/mevalpoly ex 2.0 1.0))))
      [2.0 0] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (* (m/fpow (max 0.0 (- 1.0 ex)) 5)
-                                         (m/mevalpoly ex 1.0 5.0 9.0 5.0 1.0))))
+                                         (poly/mevalpoly ex 1.0 5.0 9.0 5.0 1.0))))
      [2.0 1] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (* 0.25 (m/fpow (max 0.0 (- 1.0 ex)) 4)
-                                         (m/mevalpoly ex 4.0 16.0 12.0 3.0))))
+                                         (poly/mevalpoly ex 4.0 16.0 12.0 3.0))))
      [2.0 2] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (* 0.125 (m/cb (max 0.0 (- 1.0 ex)))
-                                         (m/mevalpoly ex 8.0 9.0 3.0))))
+                                         (poly/mevalpoly ex 8.0 9.0 3.0))))
      [3.0 0] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (/ (* (m/fpow (max 0.0 (- 1.0 ex)) 7)
-                                            (m/mevalpoly ex 5.0 35.0 101.0 147.0 101.0 35.0 5.0)) 5.0)))
+                                            (poly/mevalpoly ex 5.0 35.0 101.0 147.0 101.0 35.0 5.0)) 5.0)))
      [3.0 1] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (/ (* (m/fpow (max 0.0 (- 1.0 ex)) 6)
-                                            (m/mevalpoly ex 6.0 36.0 82.0 72.0 30.0 5.0)) 6.0)))
+                                            (poly/mevalpoly ex 6.0 36.0 82.0 72.0 30.0 5.0)) 6.0)))
      [3.0 2] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (/ (* (m/fpow (max 0.0 (- 1.0 ex)) 5)
-                                            (m/mevalpoly ex 8.0 40.0 48.0 25.0 5.0)) 8.0)))
+                                            (poly/mevalpoly ex 8.0 40.0 48.0 25.0 5.0)) 8.0)))
      [3.0 3] (fn ^double [^double x] (let [ex (m/abs (/ x scale))]
                                       (/ (* (m/fpow (max 0.0 (- 1.0 ex)) 4)
-                                            (m/mevalpoly ex 16.0 29.0 20.0 5.0)) 16.0)))
+                                            (poly/mevalpoly ex 16.0 29.0 20.0 5.0)) 16.0)))
      (let [integr (wu-integration l)
            phi (wu-differentiation integr k)
            fact (/ ^double (phi 0.0))]

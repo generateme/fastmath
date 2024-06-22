@@ -2,6 +2,7 @@
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.random :as r]
+            [fastmath.special :as special]
             [fastmath.fields.utils :as u])
   (:import [fastmath.vector Vec2]))
 
@@ -731,7 +732,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (v/mag v) (m/bessel-j (m/abs (.x v)) (min 10000.0 (m/abs (.y v)))))
+     (Vec2. (* amount (v/mag v) (special/bessel-j (m/abs (.x v)) (min 10000.0 (m/abs (.y v)))))
             (* amount (v/heading v))))))
 
 (defn beta
@@ -739,7 +740,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (m/log-beta (+ m/EPSILON (m/abs (.x v))) (+ m/EPSILON (m/abs (.y v)))))
+     (Vec2. (* amount (special/log-beta (+ m/EPSILON (m/abs (.x v))) (+ m/EPSILON (m/abs (.y v)))))
             (* amount (v/heading v))))))
 
 (m/unuse-primitive-operators)

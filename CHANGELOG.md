@@ -22,6 +22,7 @@ Also a lot of refactoring [breaking] was done.
 * `lm` and `glm`  in `fastmath.ml.regression` with full analysis
 * `fastmath.ml.clustering` - (fuzzy) kmeans++ and dbscan clustering algorithms
 * `dissimilarity` and `similarity` can accept data for histograms
+* `bessel-j0`, `bessel-j1`, `bessel-j`, `bessel-i0`, `bessel-i1`, `bessel-i`, `bessel-y0`, `bessel-y1`, `bessel-y`, `bessel-k0`, `bessel-k1`, `bessel-k` add to `fastmath.special`
 
 ### Changed
 
@@ -34,6 +35,8 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 * [breaking] `fastmath.distance` rewritten
 * `integrate-pdf` rewritten to use `:gauss-kronrod` integration (safer and faster)
 * `fastmath.core` functionality based on functions with inline code not macros
+* [breaking] polynomial funcitons moved to `fastmath.polynomials`
+* [breaking] special funcitons (gamma, beta, erf, kummers, bessel, Si/Ci etc) moved to `fastmath.special`
 
 ## [2.4.0]
 
