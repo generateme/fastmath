@@ -160,6 +160,10 @@
   (lm-tests ys xss {:weights weights}
             `(lm (formula ~ys (* ~xss-1 ~xss-2)) :weights ~weights)))
 
+(t/deftest basic-weights-intercept-transformer
+  (lm-tests ys xss {:weights weights :transformer (fn [[a b c]] [(m/exp a) a b c])}
+            `(lm (formula ~ys (+ (exp ~xss-1) (* ~xss-1 ~xss-2))) :weights ~weights)))
+
 (t/deftest basic-weights-intercept-offset
   (lm-tests ys xss {:weights weights :offset offset}
             `(lm (formula ~ys (* ~xss-1 ~xss-2)) :weights ~weights :offset ~offset)))
@@ -333,7 +337,10 @@
   (glm-tests nys xss {:family :binomial :link :probit :intercept? false}
              `(glm (formula ~nys (+ 0 (* ~xss-1 ~xss-2))) :family (binomial :link probit)))
   (glm-tests nys xss {:family :binomial :link :cloglog :intercept? false}
-             `(glm (formula ~nys (+ 0 (* ~xss-1 ~xss-2))) :family (binomial :link cloglog))))
+             `(glm (formula ~nys (+ 0 (* ~xss-1 ~xss-2))) :family (binomial :link cloglog)))
+  (glm-tests nys xss {:family :binomial
+                      :transformer (fn [[a b c]] [(m/exp a) a b c])}
+             `(glm (formula ~nys (+ (exp ~xss-1) (* ~xss-1 ~xss-2))) :family binomial)))
 
 (t/deftest turbunes-data
   (let [turbines (-> (rr/r->clj 'turbines)

@@ -487,7 +487,7 @@
 (comment
   (require '[ggplot])
 
-
+  
   (defn- error [x1 x2]
     (reduce m/fast+ (map #(m/sq (- %1 %2)) x1 x2)))
 

@@ -37,7 +37,7 @@
   ([model xs] (prot/predict model xs))
   ([model xs stderr?] (prot/predict model xs stderr?)))
 
-(defrecord LMData [model intercept? offset?
+(defrecord LMData [model intercept? offset? transformer
                    ^RealMatrix xtxinv
                    ^double intercept beta coefficients
                    offset weights residuals fitted df ^long observations
@@ -52,7 +52,8 @@
   prot/PredictProto
   (predict [m xs] (prot/predict m xs false))
   (predict [_ xs stderr?]
-    (let [^double off xs] (with-offset xs offset?)
+    (let [xs (if transformer (transformer xs) xs)
+          ^double off xs] (with-offset xs offset?)
          (if stderr?
            (let [[^double off xs] (with-offset xs offset?)
                  arr (double-array (if intercept? (conj xs 1.0) xs))
@@ -272,6 +273,7 @@
   * `:offset` - optional offset
   * `:alpha` - significance level, default: `0.05`
   * `:intercept?` - should intercept term be included, default: `true`
+  * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
 
   Notes:
   
@@ -310,11 +312,12 @@
   * `:correlation` - correlation matrix of estimated parameters
   * `:normality` - residuals normality tests: `:skewness`, `:kurtosis`, `:durbin-watson` (for raw and weighted), `:jarque-berra` and `:omnibus` (normality)"
   ([ys xss] (lm ys xss nil))
-  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset]
+  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer]
             :or {tol 1.0e-8 alpha 0.05 intercept? true}}]
 
    
-   (let [[^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss tol intercept?)
+   (let [xss (if transformer (map transformer xss) xss)
+         [^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss tol intercept?)
          uts (.getUT S)
          ut (.getU S)
 
@@ -399,6 +402,7 @@
          stderrs (standard-errors xtx-1 sigma2)
          
          model {:model (if weights? :wls :ols)
+                :transformer transformer
                 :intercept? intercept?
                 :offset? offset?
                 :xtxinv xtx-1
@@ -826,7 +830,7 @@
      :influential (measures-influential-rows influence hat observations p)
      :correlation (correlation xtxinv dispersion)}))
 
-(defrecord GLMData [model
+(defrecord GLMData [model transformer
                     ^RealMatrix xtxinv ys intercept? offset?
                     ^double intercept  beta coefficients ^long observations
                     residuals fitted weights offset
@@ -840,7 +844,8 @@
   prot/PredictProto
   (predict [m xs] (prot/predict m xs false))
   (predict [_ xs stderr?]
-    (let [[^double off xs] (with-offset xs offset?)]
+    (let [xs (if transformer (transformer xs) xs)
+          [^double off xs] (with-offset xs offset?)]
       (if stderr?
         (let [[^double off xs] (with-offset xs offset?)
               arr (double-array (conj xs 1.0))
@@ -878,6 +883,8 @@
   * `:family` - family, default: `:gaussian`
   * `:link` - link 
   * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
+  * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
+
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [[->family]]) or a function returning Family (accepting a map as an argument)
 
@@ -925,12 +932,13 @@
   * `:correlation` - correlation matrix of estimated parameters"
   ([ys xss] (glm ys xss nil))
   ([ys xss {:keys [^long max-iters ^double tol ^double epsilon family link weights ^double alpha offset
-                   dispersion-estimator intercept? init-mu simple?]
+                   dispersion-estimator intercept? init-mu simple? transformer]
             :or {max-iters 25 tol 1.0e-8 epsilon 1.0e-8 family :gaussian alpha 0.05 intercept? true
                  simple? false}
             :as params}]
 
-   (let [[^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss epsilon intercept?)
+   (let [xss (if transformer (map transformer xss) xss)
+         [^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss epsilon intercept?)
          uts (.getUT S)
          ut (.getU S)
 
@@ -1041,6 +1049,7 @@
          stderrs (standard-errors xtx-1 dispersion-value)
 
          model {:model :glm
+                :transformer transformer
                 :xtxinv xtx-1
                 :intercept? intercept?
                 :offset? offset?
@@ -1082,6 +1091,7 @@
                              (get-in (glm ys :intercept
                                           (assoc params
                                                  :simple? true
+                                                 :transformer nil
                                                  :init-t fitted)) [:deviance :residual])
                              ;; offset is not set
                              (v/sum (residual-deviance ys (if intercept?
