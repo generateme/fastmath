@@ -24,7 +24,7 @@
 
 (defn evalpoly
   "Evaluate polynomial for given coefficients"
-  {:inline (fn [x & coeffs] `(mevalpoly ~x ~@coeffs))
+  {:inline (fn [x & coeffs] `(let [x# ~x] (mevalpoly x# ~@coeffs)))
    :inline-arities (fn [^long a] (m/>= a 1))}
   [x & coeffs]
   (if-not (seq coeffs)
@@ -178,21 +178,20 @@
                                          (assoc! t pos (+' (t pos) (*' (cfs i1) ((.cfs p2) i2)))))) target)
                              (persistent!))]
                 (PolynomialR. res nd)))))
-  #_(derivative [p order]
-      (let [order (long order)]
-        (if (m/zero? order) p
-            (let [size (m/inc (m/- d order))
-                  ^doubles target (double-array size)
-                  ^doubles source coeffs]
-              (loop [i (long 0)
-                     pos order
-                     fact (m/factorial order)]
-                (if (m/== i size)
-                  (Polynomial. target (m/dec size))
-                  (let [i+ (m/inc i)
-                        pos+ (m/inc pos)]
-                    (Array/aset target i (m/* fact (Array/aget source pos)))
-                    (recur i+ pos+ (m/* (m// fact i+) pos+)))))))))
+  (derivative [p order]
+    (let [order (long order)]
+      (if (m/zero? order) p
+          (let [size (m/inc (m/- d order))]
+            (loop [i (long 0)
+                   pos order
+                   fact (rationalize (m/factorial order))
+                   target (transient (vec (repeat size 0)))]
+              (if (m/== i size)
+                (PolynomialR. (persistent! target) (m/dec size))
+                (let [i+ (m/inc i)
+                      pos+ (m/inc pos)]
+                  (recur i+ pos+ (* (/ fact i+) pos+)
+                         (assoc! target i (*' fact (cfs pos)))))))))))
   (evaluate [_ x]
     (let [rx (rationalize x)]
       (loop [i d
