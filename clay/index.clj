@@ -10,6 +10,8 @@
 (def md (comp kindly/hide-code
             kind/md))
 
+;; zzz
+
 (md "# Preface {.unnumbered}")
 
 ^{:kindly/kind :kind/table}
@@ -41,5 +43,5 @@
 ^:kindly/hide-code
 (comment
   (clay/make! {:source-path ["index.clj"
-                             "core.clj"]
-               :book {:title "Fastmath documentation"}}))
+                             "special.clj"
+                             "core.clj"]}))

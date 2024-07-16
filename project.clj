@@ -31,7 +31,7 @@
              :dev {:dependencies [;; [io.github.nextjournal/clerk "0.15.957"]
                                   ;; [clojure2d "1.4.6-SNAPSHOT" :exclusions [generateme/fastmath]]
                                   [org.clojure/data.csv "1.1.0"]
-                                  [org.scicloj/clay "2-beta11"]
+                                  [org.scicloj/clay "2-beta12-SNAPSHOT"]
                                   [scicloj/clojisr "1.0.0"]
                                   [com.github.lread/test-doc-blocks "1.1.20"]]
                    :source-paths ["notebooks" "utils"]}

@@ -266,7 +266,6 @@
   ^double [poly ^double x]
   (prot/evaluate poly x))
 
-
 ;; Orthogonal polynomials
 
 (defn laguerre-L

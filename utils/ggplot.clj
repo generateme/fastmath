@@ -10,10 +10,25 @@
              '[paletteer :as pal]
              '[base])
 
+(defn ->palette
+  [pal]
+  (if (keyword? pal)
+    (if-let [n (namespace pal)]
+      (str n "::" (name pal))
+      (name pal))
+    pal))
+
+(defn paletter-d [pal]
+  (r/r->clj (pal/paletteer_d (->palette pal))))
+
+(defn paletter-c [pal n]
+  (r/r->clj (pal/paletteer_c (->palette pal) n)))
+
 (def color-main "#000e60")
 (def color-light "#87a5ff")
-(def palette-blue [color-main "#3c5fff", "#526dff", "#637bff", "#7189ff", "#7d97ff",
-                 "#87a5ff", "#91b3ff", "#9ac2ff", "#a2d0ff", "#aadfff", "#b1eeff"])
+(def palette-blue-0 [color-main "#3c5fff", "#526dff", "#637bff", "#7189ff", "#7d97ff",
+                   "#87a5ff", "#91b3ff", "#9ac2ff", "#a2d0ff", "#aadfff", "#b1eeff"])
+(def palette-blue-1 (repeat 12 color-main))
 
 (defn ->file
   ([obj] (->file obj nil))
@@ -46,17 +61,6 @@
 
 ;; data processing
 
-(defn ->palette
-  [pal]
-  (if (keyword? pal)
-    (if-let [n (namespace pal)]
-      (str n "::" (name pal))
-      (name pal))
-    pal))
-
-(defn paletter-d [pal]
-  (r/r->clj (pal/paletteer_d (->palette pal))))
-
 (defn slice
   [x steps]
   (let [[min-x max-x] (or x [0.0 1.0])]
@@ -88,20 +92,23 @@
 
 (defn function2d->data
   ([f] (function2d->data f nil))
-  ([f {:keys [x y steps]
-       :or {steps 200}}]
+  ([f {:keys [x y steps varg?]
+       :or {steps 200 varg? true}}]
    (let [xs (slice x steps)
-         ys (slice y steps)]
+         ys (slice y steps)
+         f (if varg? f (fn [[x y]] (f x y)))]
      (for [x xs y ys] {:x x :y y :z (f [x y])}))))
 
 ;; plots
 
-(defn maybe-add-labs
-  [object {:keys [title xlab ylab]}]
+(defn add-common
+  [object {:keys [title xlab ylab xlim ylim]}]
   (r/r+ object
         (when title (gg/labs :title title))
         (when xlab (gg/xlab xlab))
-        (when ylab (gg/ylab ylab))))
+        (when ylab (gg/ylab ylab))
+        (when xlim (gg/xlim xlim))
+        (when ylim (gg/ylim ylim))))
 
 (defn function
   "Single function"
@@ -111,13 +118,26 @@
        :as opts}]
    (-> (ggaes+ (gg/aes :x :x :y :y)
          (line (function->data f opts) :color color))
-       (maybe-add-labs opts))))
+       (add-common opts))))
+
+(defn line-points
+  ([xs ys]
+   (-> (tc/dataset {:x xs :y ys})
+       (gg/ggplot (gg/aes :x :x :y :y))
+       (r/r+ (gg/geom_line :color "blue")))))
+
+(defn lollipop
+  ([xs ys]
+   (-> (tc/dataset {:x xs :y ys})
+       (gg/ggplot (gg/aes :x :x :y :y))
+       (r/r+ (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue")))))
+
 
 (defn functions
   "Functions"
   ([fs] (functions fs nil))
   ([fs {:keys [palette legend-name linetype?]
-        :or {palette palette-blue legend-name "Functions" linetype? true}
+        :or {palette palette-blue-0 legend-name "Functions" linetype? true}
         :as opts}]
    (let [data (functions->data fs opts)
          breaks (distinct (map :fname data))]
@@ -127,7 +147,7 @@
            (line data)
            (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
            (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
-         (maybe-add-labs opts)))))
+         (add-common opts)))))
 
 (defn function2d
   ([f] (function2d f nil))
@@ -138,7 +158,7 @@
      (-> (ggaes+ (gg/aes :x :x :y :y :fill :z)
            (raster data :interpolate true)
            (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
-         (maybe-add-labs opts)))))
+         (add-common opts)))))
 
 (defn function-ci
   ([f] (function-ci f nil))
@@ -149,36 +169,7 @@
      (-> (ggaes+ (gg/aes :x :x :y :y :ymin :ymin :ymax :ymax)
            (ribbon data :alpha alpha :fill fill)
            (line data :color color))
-         (maybe-add-labs opts)))))
-
-(->file (function2d (fn [[x y]] (m/* (m/sq (m/sin x))
-                                    (m/cb (m/cos y)))) {:x [-4 4] :y [-4 4] :title "ddd" :xlab "333"}))
-
-(->file (function m/sinc {:x [-4 4] :color "red" :title "asdf" :xlab 333}))
-
-(->file (function-ci (fn [x]
-                       (let [v (m/sinc x)]
-                         [v (* 0.5 v) (* 1.5 v)])) {:x [-4 4] :title "asdf" :xlab 333}))
-
-
-(->file (functions [["a" #(m/sin %)]
-                    ["b" #(m/cos %)]
-                    ["c" m/sinc]
-                    ["d" #(m/sinh %)]
-                    ["e" #(m/cosh %)]
-                    ["f" #(m/sech %)]] {:x [-2 2]}))
-
-
-
-
-
-
-
-
-
-
-
-
+         (add-common opts)))))
 
 
 (defn function+scatter

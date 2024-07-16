@@ -363,6 +363,9 @@
   "Forward transform of sequence or array."
   [t xss] (prot/reverse-2d t xss))
 
+(set! *warn-on-reflection* false)
+;; 1d or 2d unknown in the compilation time
+
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
   ([trans xs ^double mag]
@@ -388,6 +391,9 @@
           (rev trans))))
   ([xs]
    (.compress (CompressorPeaksAverage.) xs)))
+
+(set! *warn-on-reflection* true)
+
 
 ;; https://www.diva-portal.org/smash/get/diva2:1003644/FULLTEXT01.pdf
 
@@ -455,7 +461,6 @@
          n (alength t)
          lambda (denoise-threshold xs threshold )
          ids (range skip n)]
-     (println "lambda:" lambda)
      (case method
        :soft (doseq [^long i ids]
                (let [v (Array/aget t i)]
@@ -516,5 +521,56 @@
   ;; => [0.005699029380586008 0.002268315211977693 0.0034120129587574197 0.002714501585972715]
 
 
-  (seq (denoise (transformer :packet :daubechies-4) [2 3 1 2 3 1 -1 3] :hyperbole)))
+  (seq (denoise (transformer :packet :daubechies-4) [2 3 1 2 3 1 -1 3] :hyperbole))
+
+  (def cfft (transformer :complex :fftr))
+  (def res-1 (forward-1d cfft [1 2 3]))
+  res-1
+  ;; => [6.0, 0.0, -1.5, 0.8660254037844387, -1.5, -0.8660254037844387]
+  (seq (reverse-1d cfft res-1))
+  ;; => (1.0 0.0 2.0 0.0 3.0 0.0)
+
+  (def rfft (transformer :real :fft))
+  (def rres-1 (forward-1d rfft [1 2 3]))
+  rres-1
+  ;; => [6.0, 0.8660254037844387, -1.5]
+  (seq (reverse-1d rfft rres-1))
+  ;; => (1.0 2.0 3.0)
+
+  (def packet-symlet-5 (transformer :packet :symlet-5))
+
+  (def res-symlet (forward-1d packet-symlet-5 [1 2 -1 -2]))
+
+  res-symlet
+  ;; => [-6.9087374710008476E-12, 2.9275731889992005, 2.82142711971467E-12,
+  ;;     -1.1955397203974003]
+
+  (reverse-1d packet-symlet-5 res-symlet)
+  ;; => [0.9999999999994849, 1.9999999999989695, -0.9999999999994843,
+  ;;     -1.9999999999989686]
+
+  (def res-symlet-2d (forward-2d packet-symlet-5 [[1 2 3 1] [4 0 -1 2] [5 5 9 1] [9 8 -2 -3]]))
+
+  res-symlet-2d
+  ;; => [[10.999999999985063, 5.921050975270259, 3.0000000000306537,
+  ;;      -1.3932535120463374],
+  ;;     [-5.087986539484961, -4.487244758825454, -2.0945087533205813,
+  ;;      3.2633503021589165],
+  ;;     [2.5000000000411826, -6.782439224284976, 1.500000000025788,
+  ;;      -4.061836797399661],
+  ;;     [-1.1672159070148709, 4.7633503021476145, -1.3649296986674757,
+  ;;      -1.0127552411825524]]
+
+  (reverse-2d packet-symlet-5 res-symlet-2d)
+  ;; => [[1.0000000000015503, 2.000000000000519, 3.0000000000010374,
+  ;;      1.0000000000002596],
+  ;;     [4.000000000000007, 2.5801027980776325E-12, -0.9999999999989707,
+  ;;      1.9999999999981963],
+  ;;     [5.000000000000007, 4.9999999999982006, 8.999999999997437,
+  ;;      1.0000000000010316],
+  ;;     [8.999999999995888, 7.9999999999951115, -1.999999999996907,
+  ;;      -2.9999999999958775]]
+
+
+  )
 

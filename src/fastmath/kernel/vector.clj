@@ -312,7 +312,7 @@
      :or {sigma 1.0 n 2.0 v -1.0 distance v/dist}}]
    (fn ^double [x y] (let [^double dist (distance x y)
                           v+ (m/inc v)]
-                      (/ (special/bessel-j v+ (m/* sigma dist))
+                      (/ (special/bessel-J v+ (m/* sigma dist))
                          (m/pow dist (m/- (m/* n v+))))))))
 
 ;; R kernlab
@@ -333,7 +333,7 @@
            bkt (m/* sigma ^double (distance x y))]
        (if (m/< bkt 1.0e-5)
          1.0
-         (m/pow (m// (m/* (special/bessel-j order bkt)
+         (m/pow (m// (m/* (special/bessel-J order bkt)
                           (m/pow bkt (m/- order))) lim) degree))))))
 
 (defn cauchy
@@ -472,7 +472,7 @@
        (let [v (m/* s ^double (distance x y))]
          (if (m/< v 1.0e-16)
            1.0
-           (m/* gf (m/pow v mu) (special/bessel-k-half order v))))))))
+           (m/* gf (m/pow v mu) (special/bessel-K-half-odd order v))))))))
 
 (defn rbf->kernel
   "Convert RBF kernel as vector kernel using a `distance` function (default: euclidean)."

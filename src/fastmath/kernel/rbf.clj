@@ -73,14 +73,14 @@
   ([{:keys [^double d ^double scale]
      :or {scale 1.0}}]
    (cond
-     (== d 2) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (special/bessel-j0 ex)))
+     (== d 2) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (special/bessel-J0 ex)))
      (== d 3) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (* 0.7978845608028654
                                                                       (if (m/near-zero? ex 1.0e-13) 1.0 (/ (m/sin ex) ex)))))
      (== d 4) (fn ^double [^double x] (let [ex (m/abs (/ x scale))] (if (m/near-zero? ex 1.0e-13) 0.5
-                                                                       (/ (special/bessel-j1 ex) ex))))
+                                                                       (/ (special/bessel-J1 ex) ex))))
      :else (let [p (dec (* 0.5 d))]
              (fn ^double [^double x] (let [ex (m/max 1.0e-13 (m/abs (/ x scale)))]
-                                      (/ (special/bessel-j p ex) (m/pow ex p))))))))
+                                      (/ (special/bessel-J p ex) (m/pow ex p))))))))
 
 
 ;; [1] p. 34
@@ -100,7 +100,7 @@
        (let [ex (m/abs (/ x scale))]
          (if (< ex 1.0e-20)
            1.0
-           (* rg (m/pow ex v) (special/bessel-k-half order ex))))))))
+           (* rg (m/pow ex v) (special/bessel-K-half-odd order ex))))))))
 
 ;; [1] p. 43
 

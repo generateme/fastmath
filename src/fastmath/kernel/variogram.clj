@@ -38,7 +38,7 @@
              (m/+ nugget)))))
 
 (defn expower
-  "Exponential-power semivariogram model."
+  "Exponential-power (stable) semivariogram model."
   [{:keys [^double nugget ^double psill ^double range ^double beta]}]
   (fn ^double [^double x]
     (if (m/zero? x) 0.0
@@ -61,6 +61,18 @@
              (m/- 1.0)
              (m/* psill)
              (m/+ nugget)))))
+
+(defn rational
+  "Rational semivariogram model."
+  [{:keys [^double nugget ^double psill ^double range ^double beta]}]
+  (let [b (m/copy-sign (m/max (m/abs beta) m/EPSILON) beta)
+        -b (m/- b)]
+    (fn ^double [^double x]
+      (if (m/zero? x) 0.0
+          (->> (m/pow (m/inc (m// (m/sq (m// x range)) b)) -b)
+               (m/- 1.0)
+               (m/* psill)
+               (m/+ nugget))))))
 
 (defn spherical
   "Spherical semivariogram model."
@@ -136,6 +148,18 @@
                  (m/* psill)
                  (m/+ nugget)))))
 
+(defn tpower
+  "Trunctated power semivariogram model."
+  [{:keys [^double nugget ^double psill ^double range ^double beta]}]
+  (fn ^double [^double x]
+    (cond
+      (m/zero? x) 0.0
+      (m/< range x) (m/+ nugget psill)
+      :else (->> (m/pow (m/- 1.0 (m// x range)) beta)
+                 (m/- 1.0)
+                 (m/* psill)
+                 (m/+ nugget)))))
+
 (defn hole
   "Hole effect semivariogram model."
   [{:keys [^double nugget ^double psill ^double range]}]
@@ -162,18 +186,34 @@
              (m/+ nugget)))))
 
 (defn ->bessel
-  "Creator of the Bessel (of the first kind) semivariogram model."
-  [^double alpha]
-  (let [g (special/gamma (m/inc alpha))]
-    (fn [{:keys [^double nugget ^double psill ^double range ^double beta]}]
-      (fn ^double [^double x]
-        (if (m/zero? x) 0.0
-            (->> (m/* g (m/pow (m// (m/* 2.0 range) x) beta)
-                      (special/bessel-j alpha (m// x range)))
-                 (m/- 1.0)
-                 (m/* psill)
-                 (m/+ nugget)))))))
+  "Creator of the BesselJ semivariogram model."
+  ([] (->bessel 0.0))
+  ([^double order]
+   (let [g (special/gamma (m/inc order))]
+     (fn [{:keys [^double nugget ^double psill ^double range]}]
+       (fn ^double [^double x]
+         (if (m/zero? x) 0.0
+             (let [d (m// x range)]
+               (->> (m/* g (m/pow (m// 2.0 d) order)
+                         (special/bessel-J order d))
+                    (m/- 1.0)
+                    (m/* psill)
+                    (m/+ nugget)))))))))
 
+(defn ->matern
+  "Creator of the Matern semivariogram model."
+  ([] (->matern 1.0))
+  ([^double order]
+   (let [g (m// (m/pow 2.0 (m/- 1.0 order)) (special/gamma order))
+         f (m/sqrt (m/* 2.0 order))]
+     (fn [{:keys [^double nugget ^double psill ^double range]}]
+       (fn ^double [^double x]
+         (if (m/zero? x) 0.0
+             (let [d (m/* f (m// x range))]
+               (->> (m/* g (m/pow d order) (special/bessel-K order d))
+                    (m/- 1.0)
+                    (m/* psill)
+                    (m/+ nugget)))))))))
 
 (defn rbf->variogram
   "Build semivariogram model based on RBF kernel.
@@ -190,18 +230,20 @@
                (m/+ nugget))))))
 
 (def ^:private semivariograms {:linear linear
-                              :pentaspherical pentaspherical
-                              :spherical spherical
-                              :gaussian gaussian
-                              :exponential exponential
-                              :power power
-                              :expower expower
-                              :hole hole
-                              :circular circular
-                              :cubic cubic
-                              :cauchy cauchy})
+                             :pentaspherical pentaspherical
+                             :spherical spherical
+                             :gaussian gaussian
+                             :exponential exponential
+                             :power power
+                             :tpower power
+                             :expower expower
+                             :hole hole
+                             :circular circular
+                             :cubic cubic
+                             :cauchy cauchy
+                             :rational rational})
 
-(def ^:private power-semivariograms #{:power :expower :cauchy :bessel})
+(def ^:private power-semivariograms #{:power :expower :cauchy :rational :tpower})
 
 ;; Highly Robust Variogram Estimation
 ;; Marc G. Genton
@@ -392,11 +434,12 @@
 (defn fit-params
   "Fits a model and a pair of selected semivariogram model and fitted parameters."
   ([empirical-semivariogram semivariogram-model] (fit-params empirical-semivariogram semivariogram-model nil))
-  ([empirical-semivariogram semivariogram-model {:keys [estimation weights defaults ^double order]
-                                                 :or {estimation :sq order 0.0}}]
+  ([empirical-semivariogram semivariogram-model {:keys [estimation weights defaults order]
+                                                 :or {estimation :sq}}]
    (let [semivariogram-fn (cond
                             (fn? semivariogram-model) (rbf->variogram semivariogram-model)
-                            (= :bessel semivariogram-model) (->bessel order)
+                            (= :bessel semivariogram-model) (if order (->bessel order) (->bessel))
+                            (= :matern semivariogram-model) (if order (->matern order) (->matern))
                             :else (semivariograms semivariogram-model))
          
          target-args (infer-target-args defaults (if (power-semivariograms semivariogram-model)

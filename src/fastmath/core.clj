@@ -37,7 +37,7 @@
 
   Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing."
   (:refer-clojure
-   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs])
+   :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
   (:import [net.jafama FastMath]
            [fastmath.java PrimitiveMath]
            [org.apache.commons.math3.util Precision]
@@ -588,6 +588,12 @@
    :doc "Identity on double."}
   ^long [^long a] a)
 
+(defn integer?
+  "Check if given real number is an integer."
+  {:inline (fn [v] `(== ~v (FastMath/rint ~v))) :inline-arities #{1}}
+  [^double v]
+  (== v (FastMath/rint v)))
+
 ;; macros for polynomials
 
 (defn- ->fma
@@ -661,11 +667,14 @@
 (def ^{:const true :tag 'double :doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
 (def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.915965594177219015054603514932384110774)
 
-(defonce ^{:const true :tag 'double :doc "Smallest machine number. Value is calculated during evaluation and may differ on different processors."}
+(defonce ^{:const true :tag 'double :doc "ULP(1)/2. Half of the smallest difference between 1.0 and next possible double floating point number."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
                                    (if (not== 1.0 (+ 1.0 (* d 0.5)))
                                      (recur (* d 0.5))
                                      d)))))
+
+(def ^{:const true :tag 'double :doc "5*ULP(1)"}
+  MACHINE-EPSILON10 (* 10.0 MACHINE-EPSILON))
 
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD      0.333333333333333333333333)
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} ONE_THIRD  0.333333333333333333333333)
@@ -680,17 +689,35 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (sin x)))
 
+(defn sinpi
+  "sin(pi*x)"
+  {:inline (fn [x] `(. FastMath (sin (* PI (double ~x)))))
+   :inline-arities #{1}}
+  ^double [^double x] (. FastMath (sin (* PI x))))
+
 (defn cos
   "cos(x)"
   {:inline (fn [x] `(. FastMath (cos (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (cos x)))
 
+(defn cospi
+  "cos(pi*x)"
+  {:inline (fn [x] `(. FastMath (cos (* PI (double ~x)))))
+   :inline-arities #{1}}
+  ^double [^double x] (. FastMath (cos (* PI x))))
+
 (defn tan
   "tan(x)"
   {:inline (fn [x] `(. FastMath (tan (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (tan x)))
+
+(defn tanpi
+  "tan(pi*x)"
+  {:inline (fn [x] `(. FastMath (tan (* PI (double ~x)))))
+   :inline-arities #{1}}
+  ^double [^double x] (. FastMath (tan (* PI x))))
 
 (defn asin
   "asin(x)"
@@ -766,17 +793,35 @@
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/tan x))))
 
+(defn cotpi
+  "cot(pi*x)"
+  {:inline (fn [x] `(/ (tan (* PI (double ~x)))))
+   :inline-arities #{1}}
+  (^double [^double x] (/ (FastMath/tan (* PI x)))))
+
 (defn sec
   "sec(x)"
   {:inline (fn [x] `(/ (cos (double ~x))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/cos x))))
 
+(defn secpi
+  "sec(pi*x)"
+  {:inline (fn [x] `(/ (cos (* PI (double ~x)))))
+   :inline-arities #{1}}
+  (^double [^double x] (/ (FastMath/cos (* PI x)))))
+
 (defn csc
   "csc(x)"
   {:inline (fn [x] `(/ (sin (double ~x))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/sin x))))
+
+(defn cscpi
+  "csc(pi*x)"
+  {:inline (fn [x] `(/ (sin (* PI (double ~x)))))
+   :inline-arities #{1}}
+  (^double [^double x] (/ (FastMath/sin (* PI x)))))
 
 ;; Additional cyclometric functions
 
@@ -1001,9 +1046,12 @@
   ^double [^double x] (. FastMath (exp x)))
 
 (defn log
-  "log(x)=ln(x)"
-  {:inline (fn [x] `(. FastMath (log (double ~x))))}
-  ^double [^double x] (. FastMath (log x)))
+  "log(x)=ln(x) or logarithm with given `base`."
+  {:inline (fn ([x] `(. FastMath (log (double ~x))))
+             ([base x] `(/ (. FastMath (log (double ~x))) (. FastMath (log (double ~base))))))
+   :inline-arities #{1 2}}
+  (^double [^double x] (. FastMath (log x)))
+  (^double [^double base ^double x] (/ (. FastMath (log x)) (. FastMath (log base)))))
 
 (defn ln
   "log(x)=ln(x)"
@@ -1348,6 +1396,43 @@
    :inline-arities #{1}}
   ^double [^long x] (Gamma/logGamma (double (inc x))))
 
+(defn falling-factorial-int
+  "Falling (descending) factorial for integer n."
+  ^double [^long n ^double x]
+  (if (not-neg? n)
+    (loop [i (long 0)
+           v 1.0]
+      (if (== i n) v
+          (recur (inc i) (* v (- x i)))))
+    (/ (falling-factorial-int (- n) (- x n)))))
+
+(defn falling-factorial
+  "Falling (descending) factorial."
+  ^double [^double n ^double x]
+  (if (integer? n)
+    (falling-factorial-int n x)
+    (let [x+ (inc x)]
+      (/ (Gamma/gamma x+)
+         (Gamma/gamma (- x+ n))))))
+
+(defn rising-factorial-int
+  "Rising (Pochhammer) factorial for integer n."
+  ^double [^long n ^double x]
+  (if (not-neg? n)
+    (loop [i (long 0)
+           v 1.0]
+      (if (== i n) v
+          (recur (inc i) (* v (+ x i)))))
+    (/ (rising-factorial-int (- n) (+ x n)))))
+
+(defn rising-factorial
+  "Rising (Pochhammer) factorial."
+  ^double [^double n ^double x]
+  (if (integer? n)
+    (rising-factorial-int n x)
+    (/ (Gamma/gamma (+ x n))
+       (Gamma/gamma x))))
+
 (defn combinations
   "Binomial coefficient (n choose k)"
   ^double [^long n ^long k]
@@ -1597,19 +1682,19 @@
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
   "Find greatest exponent (power of 2) which is lower or equal `x`. See [[high-2-exp]]."
-  ^long [^double x] (-> x log2 floor unchecked-long))
+  ^long [^double x] (-> x abs log2 floor unchecked-long))
 
 (defn high-2-exp
   "Find lowest exponent (power of 2) which is greater or equal `x`. See [[low-2-exp]]."
-  ^long [^double v] (-> v log2 ceil unchecked-long))
+  ^long [^double x] (-> x abs log2 ceil unchecked-long))
 
 (defn low-exp
   "Find greatest exponent for base `b` which is lower or equal `x`. See also [[high-exp]]."
-  ^long [^double b ^double x] (->> x (logb b) floor unchecked-long))
+  ^long [^double b ^double x] (->> x abs (logb b) floor unchecked-long))
 
 (defn high-exp
   "Find lowest exponent for base `b` which is higher or equal`x`. See also [[low-exp]]."
-  ^long [^double b ^double x] (->> x (logb b) ceil unchecked-long))
+  ^long [^double b ^double x] (->> x abs (logb b) ceil unchecked-long))
 
 (defn round-up-pow2
   "Round long to the next power of 2"
@@ -1952,37 +2037,37 @@
 ;;
 
 (defn nan?
-  "Check if number is NaN"
+  "Check if a number is a NaN"
   {:inline (fn [v] `(Double/isNaN (double ~v))) :inline-arities #{1}}
   [^double v]
   (Double/isNaN v))
 
 (defn inf?
-  "Check if number is infinite"
+  "Check if a number is an infinite (positive or negative)."
   {:inline (fn [v] `(Double/isInfinite (double ~v))) :inline-arities #{1}}
   [^double v]
   (Double/isInfinite v))
 
 (defn pos-inf?
-  "Check if number is positively infinite"
+  "Check if a number is positively infinite."
   {:inline (fn [v] `(== (double ~v) ##Inf)) :inline-arities #{1}}
   [^double v]
   (== v ##Inf))
 
 (defn neg-inf?
-  "Check if number is negatively infinite"
+  "Check if a number is negatively infinite."
   {:inline (fn [v] `(== (double ~v) ##-Inf)) :inline-arities #{1}}
   [^double v]
   (== v ##-Inf))
 
 (defn invalid-double?
-  "Check if number is invalid"
+  "Check if a number is not finite double (NaN or ±Inf)."
   {:inline (fn [v] `(bool-not (Double/isFinite (double ~v)))) :inline-arities #{1}}
   [^double v]
   (bool-not (Double/isFinite v)))
 
 (defn valid-double?
-  "Check if number is invalid"
+  "Check if a number is finite double."
   {:inline (fn [v] `(Double/isFinite (double ~v))) :inline-arities #{1}}
   [^double v]
   (Double/isFinite v))

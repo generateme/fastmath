@@ -1,9 +1,23 @@
 (ns fastmath.special
-  "Bessel functions implemented directly in Clojure."
+  "Special functions for real arguments and value.
+
+  * Bessel J, Y, jinc
+  * Modified Bessel I, K 
+  * Gamma, log, digamma, trigamma, polygamma, regularized, lower/upper incomplete
+  * Beta, log, regularized, incomplete
+  * Erf, inverse
+  * Airy A, B with derivatives
+  * Zeta (Riemann, Hurwitz), Eta (Dirichlet), Xi (Landau), Beta (Dirichlet)
+  * Integrals: Si, Ci, li/Li, Ei, En, Ein
+  * Hypergeometric 0F0, 0F1, 1F0, 1F1, 2F1, 2F0, 0F2, pFq, Kummers M, Tricomis U, Whittaker M and W
+  * Lambert W (0 and -1)
+  * Minkowski
+  * Harmonic H"
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.special.poly :as spoly]
             [fastmath.special.airy :as airy]
+            [fastmath.special.hypergeometric :as hg]
             [fastmath.polynomials :as poly]
             [fastmath.complex :as cplx])
   (:import [fastmath.java Array]
@@ -16,7 +30,9 @@
 ;; Erf
 
 (defn erf
-  "Error function. For two arguments return difference between `(erf x2)` and `(erf x1)`."
+  "Error function.
+
+  For two arguments returns a difference between `(erf x2)` and `(erf x1)`."
   {:inline (fn ([x] `(. Erf (erf (double ~x))))
              ([x1 x2] `(. Erf (erf (double ~x1) (double ~x2)))))
    :inline-arities #{1 2}}
@@ -24,19 +40,19 @@
   (^double [^double x1 ^double x2] (. Erf (erf x1 x2))))
 
 (defn erfc
-  "Complementary error funciton."
+  "Complementary error function."
   {:inline (fn ([x] `(. Erf (erfc (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfc x)))
 
 (defn inv-erf
-  "Inverse [[erf]]."
+  "Inverse of [[erf]] function."
   {:inline (fn ([x] `(. Erf (erfInv (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfInv x)))
 
 (defn inv-erfc
-  "Inverse [[erfc]]."
+  "Inverse of [[erfc]] function."
   {:inline (fn ([x] `(. Erf (erfcInv (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfcInv x)))
@@ -44,68 +60,66 @@
 ;; Gamma
 
 (defn gamma
-  "Gamma function \\\\(\\Gamma(x)\\\\)"
+  "Gamma function $\\Gamma(x)$. Extension of the factorial."
   {:inline (fn ([x] `(. Gamma (gamma (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (gamma x)))
 
 (defn log-gamma
-  "Log of Gamma function \\\\(\\ln\\Gamma(x)\\\\)"
+  "Log of Gamma function $\\log\\Gamma(x)$."
   {:inline (fn ([x] `(. Gamma (logGamma (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (logGamma x)))
 
 (defn log-gamma-1p
-  "Log of Gamma function \\\\(\\ln\\Gamma(1+x)\\\\ for -0.5≤x≤1.5.)"
+  "$\\ln\\Gamma(1+x)$ for $-0.5≤x≤1.5$."
   {:inline (fn ([x] `(. Gamma (logGamma1p (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (logGamma1p x)))
 
-(defn digamma
-  "Logarithmic derivative of \\\\(\\Gamma\\\\)."
-  {:inline (fn ([x] `(. Gamma (digamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (digamma x)))
-
-(defn trigamma
-  "Derivative of [[digamma]]."
-  {:inline (fn ([x] `(. Gamma (trigamma (double ~x)))))
-   :inline-arities #{1}}
-  ^double [^double x] (. Gamma (trigamma x)))
-
 (defn inv-gamma-1pm1
-  "\\\\(\\frac{1}{\\Gamma(1+x)}-1\\\\) for -0.5≤x≤1.5."
+  "$\\frac{1}{\\Gamma(1+x)}-1$ for $-0.5≤x≤1.5$."
   {:inline (fn ([x] `(. Gamma (invGamma1pm1 (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (invGamma1pm1 x)))
 
-(defn regularized-gamma-p
-  "Regularized `gamma` P(a,x)"
-  {:inline (fn ([a x] `(. Gamma (regularizedGammaP (double ~a) (double ~x)))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (. Gamma (regularizedGammaP a x)))
+(defn digamma
+  "First derivative of log of Gamma function."
+  ^double [^double x]
+  (let [^Vec2 psix (if (m/not-pos? x)
+                     (Vec2. (m/* m/-PI (m/cot (m/* m/PI x))) (m/- 1.0 x))
+                     (Vec2. 0.0 x))
+        x (.y psix)
+        ^Vec2 psix (if (m/< x 8.0)
+                     (let [n (unchecked-long (m/- 8.0 (m/floor x)))]
+                       (loop [v (long 1)
+                              psi (.x psix)]
+                         (if (m/== v n)
+                           (Vec2. (m/- psi (m// x)) (m/+ x n))
+                           (recur (m/inc v) (m/- psi (m// (m/+ x v)))))))
+                     psix)
+        t (m// (.y psix))
+        psi (m/+ (.x psix) (m/- (m/log (.y psix)) (m/* 0.5 t)))
+        t (m/* t t)]
+    (m/- psi (m/* t (poly/mevalpoly t 0.08333333333333333,-0.008333333333333333,0.003968253968253968,-0.004166666666666667,0.007575757575757576,-0.021092796092796094,0.08333333333333333,-0.4432598039215686)))))
 
-(defn regularized-gamma-q
-  "Regularized `gamma` Q(a,x)"
-  {:inline (fn ([a x] `(. Gamma (regularizedGammaQ (double ~a) (double ~x)))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (. Gamma (regularizedGammaQ a x)))
-
-(defn lower-incomplete-gamma
-  "Lower incomplete gamma function"
-  {:inline (fn [a x] `(let [a# (double ~a)]
-                        (m/exp (+ (m/log (. Gamma (regularizedGammaP a# (double ~x)))) (. Gamma (logGamma a#))))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (m/exp (m/+ (m/log (. Gamma (regularizedGammaP a x)))
-                                            (. Gamma (logGamma a)))))
-
-(defn upper-incomplete-gamma
-  "Upper incomplete gamma function"
-  {:inline (fn [a x] `(let [a# (double ~a)]
-                        (m/exp (+ (m/log (. Gamma (regularizedGammaQ a# (double ~x)))) (. Gamma (logGamma a#))))))
-   :inline-arities #{2}}
-  ^double [^double a ^double x] (m/exp (m/+ (m/log (. Gamma (regularizedGammaQ a x)))
-                                            (. Gamma (logGamma a)))))
+(defn trigamma
+  "Second derivative of log of Gamma function."
+  ^double [^double x]
+  (if (m/not-pos? x)
+    (m/- (m/sq (m// m/PI (m/sin (m/* m/PI x)))) (trigamma (m/- 1.0 x)))
+    (let [^Vec2 psix (if (m/< x 10.0)
+                       (let [n (unchecked-long (m/- 10.0 (m/floor x)))]
+                         (loop [v (long 1)
+                                psi (m/sq (m// x))]
+                           (if (m/== v n)
+                             (Vec2. psi (m/+ x n))
+                             (recur (m/inc v) (m/+ psi (m/sq (m// 1.0 (m/+ x v))))))))
+                       (Vec2. 0.0 x))
+          t (m// (.y psix))
+          w (m/* t t)
+          psi (m/+ (.x psix) t (m/* 0.5 w))]
+      (m/+ psi (m/* t w (poly/mevalpoly w 0.16666666666666666,-0.03333333333333333,0.023809523809523808,-0.03333333333333333,0.07575757575757576,-0.2531135531135531,1.1666666666666667,-7.092156862745098))))))
 
 ;; Beta
 
@@ -113,35 +127,239 @@
   "Logarithm of Beta function."
   {:inline (fn ([p q] `(. Beta (logBeta (double ~p) (double ~q)))))
    :inline-arities #{2}}
-  ^double [^double p ^double q] (. Beta (logBeta ~p ~q)))
+  ^double [^double p ^double q] (. Beta (logBeta p q)))
 
 (defn beta
   "Beta function"
-  {:inline (fn ([p q] `(m/exp (. Beta (logBeta (double ~p) (double ~q))))))
-   :inline-arities #{2}}
-  ^double [^double p ^double q] (m/exp (. Beta (logBeta ~p ~q))))
+  ^double [^double p ^double q]
+  (if (and (m/pos? p) (m/pos? q))
+    (m/exp (. Beta (logBeta p q)))
+    (m// (m/* (gamma p) (gamma q)) (gamma (m/+ p q)))))
 
 (defn regularized-beta
   "Regularized Beta I_x(a,b)"
-  {:inline (fn ([x a b] `(. Beta (regularizedBeta (double ~x) (double ~a) (double ~b)))))
-   :inline-arities #{3}}
-  ^double [^double x ^double a ^double b] (. Beta (regularizedBeta x a b)))
+  ^double [^double x ^double a ^double b]
+  (if (and (m/pos? a) (m/pos? b))
+    (. Beta (regularizedBeta x a b))
+    (m// (m/* (m// (m/pow x a) a)
+              (hg/hypergeometric-2F1 a (m/- 1.0 b) (m/inc a) x))
+         (m// (m/* (gamma a) (gamma b)) (gamma (m/+ a b))))))
 
 (defn incomplete-beta
   "Incomplete Beta B(x,a,b)"
-  {:inline (fn ([x a b] `(let [a# (double ~a) b# (double ~b)]
-                          (m/exp (m/+ (m/log (. Beta (regularizedBeta (double ~x) a# b#)))
-                                      (. Beta (logBeta a# b#)))))))
-   :inline-arities #{3}}
-  ^double [^double x ^double a ^double b] (m/exp (m/+ (m/log (. Beta (regularizedBeta x a b)))
-                                                      (. Beta (logBeta a b)))))
+  ^double [^double x ^double a ^double b]
+  (if (and (m/pos? a) (m/pos? b))
+    (m/exp (m/+ (m/log (. Beta (regularizedBeta x a b)))
+                (. Beta (logBeta a b))))
+    (m/* (m// (m/pow x a) a)
+         (hg/hypergeometric-2F1 a (m/- 1.0 b) (m/inc a) x))))
 
+;; zeta
+;; https://github.com/JuliaMath/SpecialFunctions.jl/blob/master/src/gamma.jl
+
+(defmacro ^:private horner
+  [x m & p]
+  (let [^doubles p (double-array p)
+        cnt (count p)
+        ka (m/dec (m/* 2 cnt))
+        kb (m/dec ka)]
+    (loop [k (m/dec cnt)
+           ex `(m/* (m/+ ~m ~ka)
+                    (m/+ ~m ~kb)
+                    ~(m// (Array/aget p (m/dec cnt))
+                          (m/* ka kb)))]
+      (if (m/>= k 2)
+        (let [ka (m/dec (m/* 2 k))
+              kb (m/dec ka)
+              cdiv (m// 1.0 (m/* ka kb))]
+          (recur (m/dec k) `(m/* ~cdiv (m/+ ~m ~ka) (m/+ ~m ~kb)
+                                 (m/+ ~(Array/aget p (m/dec k)) (m/* ~x ~ex)))))
+        `(m/* (m/inc ~m) (m/+ ~(Array/aget p 0) (m/* ~x ~ex)))))))
+
+(defn- zeta-sz-inner
+  ^Vec2 [^double s ^double z ^double cutoff]
+  (let [zf (m/floor z)
+        nz (unchecked-int zf)
+        n (m/ceil (m/- cutoff nz))
+        -s (m/- s)
+        zt (double (if (m/neg? nz)
+                     (let [-z (m/- z)
+                           -nz (m/- nz)
+                           zt (m/pow -z -s)
+                           zt (if (m/not== zf z) (m/+ zt (m/pow (m/- z nz) -s)) zt)]
+                       (if (m/pos? s)
+                         (loop [v (m/dec -nz) zt zt]
+                           (let [nzt (m/+ zt (m/pow (m/- -z v) -s))]
+                             (if (or (m/== nzt zt) (m/zero? v))
+                               zt (recur (m/dec v) nzt))))
+                         (loop [v (long 1) zt zt]
+                           (let [nzt (m/+ zt (m/pow (m/- -z v) -s))]
+                             (if (or (m/== nzt zt) (m/== v -nz))
+                               zt (recur (m/inc v) nzt))))))
+                     (m/pow z -s)))
+        mnz (m/max 1 (m/- 1 nz))
+        smnz (m/dec mnz)]
+    (Vec2. (if (m/pos? s)
+             (loop [v mnz zt zt]
+               (let [nzt (m/+ zt (m/pow (m/+ z v) -s))]
+                 (if (or (m/== nzt zt) (m/== v n))
+                   zt (recur (m/inc v) nzt))))
+             (loop [v (m/dec n) zt zt]
+               (let [nzt (m/+ zt (m/pow (m/+ z v) -s))]
+                 (if (or (m/== nzt zt) (m/== v smnz))
+                   zt (recur (m/dec v) nzt)))))
+           (m/+ z n))))
+
+(defn zeta
+  "Riemann and Hurwitz zeta functions for real arguments"
+  (^double [^double s]
+   (cond
+     (m/zero? s) -0.5
+     (or (m/one? s) (m/nan? s) (m/neg-inf? s)) ##NaN
+     (m/pos-inf? s) 1.0
+     (m/< (m/abs s) 1.0e-3) (poly/mevalpoly s -0.5,
+                                            -0.918938533204672741780329736405617639861,
+                                            -1.0031782279542924256050500133649802190,
+                                            -1.00078519447704240796017680222772921424,
+                                            -0.9998792995005711649578008136558752359121)
+     (m/< s 0.5) (let [oms (m/- 1.0 s)]
+                   (m/* (zeta oms) (gamma oms) (m/sin (m/* m/HALF_PI s)) (m/pow m/TWO_PI s) m/INV_PI))
+     :else (let [m (m/dec s)
+                 zt (m/inc (m/+ (m/pow 0.5 s)
+                                (m/pow m/THIRD s)
+                                (m/pow 0.25 s)
+                                (m/pow 0.2 s)
+                                (m/pow m/SIXTH s)))
+                 w (m/pow 0.14285714285714285 m) ;; (1/7)^m
+                 zt (m/+ zt (m/* w (m/+ (m// 1.0 m) 0.07142857142857142)))] ;; 0.5*(1/7)
+             ;; 1/49 = 0.02040816326530612
+             (m/+ zt (m/* w 0.02040816326530612 (horner 0.02040816326530612 m 0.08333333333333333,-0.008333333333333333,0.003968253968253968,-0.004166666666666667,0.007575757575757576,-0.021092796092796094,0.08333333333333333,-0.4432598039215686,3.0539543302701198))))))
+  (^double [^double s ^double z]
+   (cond
+     (or (m/zero? z) (m/one? z)) (zeta s)
+     (m/== s 2.0) (trigamma z)
+     (or (m/nan? s) (m/nan? z) (m/neg-inf? s)
+         (and (m/inf? s) (m/neg? z))) ##NaN
+     (and (m/inf? s) (m/> z 1.0)) 0.0
+     (m/inf? s) ##Inf
+     :else (let [m (m/dec s)
+                 cutoff (m/+ 7.0 m)
+                 ^Vec2 ztz (if (m/< z cutoff) (zeta-sz-inner s z cutoff) (Vec2. 0.0 z))
+                 t (m// 1.0 (.y ztz))
+                 w (m/pow t m)
+                 zt (m/+ (.x ztz) (m/* w (m/+ (m// 1.0 m) (m/* 0.5 t))))
+                 t (m/* t t)]
+             (m/+ zt (m/* w t (horner t m 0.08333333333333333,-0.008333333333333333,0.003968253968253968,-0.004166666666666667,0.007575757575757576,-0.021092796092796094,0.08333333333333333,-0.4432598039215686,3.0539543302701198)))))))
+
+(defn eta
+  "Dirichlet Eta function"
+  ^double [^double x]
+  (if (m/zero? x)
+    0.5
+    (let [dx (m/- 1.0 x)]
+      (if (m/< (m/abs dx) 7.0e-3)
+        (m/* 0.6931471805599453094172321214581765
+             (poly/mevalpoly dx 1.0,
+                             -0.23064207462156020589789602935331414700440,
+                             -0.047156357547388879740146103148112380421254,
+                             -0.002263576552598880778433550956278702759143568,
+                             0.001081837223249910136105931217561387128141157))
+        (m/* (m/- (zeta x)) (m/expm1 (m/* 0.6931471805599453094 dx)))))))
+
+(defn dirichlet-beta
+  "Dirichlet Beta function"
+  ^double [^double x]
+  (m/* (m/exp (m/* -1.38629436111989061883 x))
+       (m/- (zeta x 0.25) (zeta x 0.75))))
+
+(defn xi
+  "Riemann (Landau's) Xi function"
+  ^double [^double s]
+  (cond
+    (m/neg? s) (xi (m/- 1.0 s))
+    (m/one? s) 0.5
+    (m/zero? s) 0.5
+    :else (let [hs (m/* 0.5 s)]
+            (m/* hs (m/dec s) (m/pow m/INV_PI hs) (gamma hs) (zeta s)))))
+
+(def ^:private cotderiv-q-memo
+  (memoize
+   (fn ^doubles [^long m]
+     (case (int m)
+       0 (double-array [1.0])
+       1 (double-array [1.0 1.0])
+       (let [^doubles q- (cotderiv-q-memo (m/dec m))
+             d (m/dec (alength q-))]
+         (if (m/odd? (m/dec m))
+           (let [rm (m// 2.0 m)
+                 ^doubles q (double-array (alength q-))]
+             (Array/aset q d (m/* d rm (Array/aget q- d)))
+             (dotimes [i d]
+               (let [i+ (m/inc i)]
+                 (Array/aset q i (m/* rm (m/+ (m/* i (Array/aget q- i))
+                                              (m/* i+ (Array/aget q- i+)))))))
+             q)
+           (let [rm (m// 1.0 m)
+                 ^doubles q (double-array (m/inc (alength q-)))
+                 end (alength q-)]
+             (Array/aset q 0 (m/* rm (Array/aget q- 0)))
+             (Array/aset q end (m/* (m/inc (m/* 2.0 d)) rm (Array/aget q- d)))
+             (dotimes [i d]
+               (let [i+ (m/inc i)]
+                 (Array/aset q i+ (m/* rm (m/+ (m/* (m/inc (m/* 2.0 i+)) (Array/aget q- i+))
+                                               (m/* (m/inc (m/* 2.0 i)) (Array/aget q- i)))))))
+             q)))))))
+
+(def ^{:private true :tag "[[D"} cotderiv-q (into-array (map cotderiv-q-memo (range 100))))
+
+(defn- cotderiv
+  ^double [^long m ^double z]
+  (cond
+    (m/neg? m) ##NaN
+    (m/zero? m) (m/* m/PI (m/cot (m/* m/PI z)))
+    (m/< m 100) (let [^doubles q (Array/arrayget2d cotderiv-q m)
+                      lq (alength q)
+                      x (m/cot (m/* m/PI z))
+                      y (m/* x x)]
+                  (loop [i (long 2)
+                         s (m/+ (Array/aget q 0)
+                                (m/* (Array/aget q 1) y))
+                         t y]
+                    (if (m/== i lq)
+                      (m/* (m/pow m/PI (m/inc m))
+                           (if (m/odd? m) s (m/* x s)))
+                      (let [newt (m/* t y)]
+                        (recur (m/inc i) (m/+ s (m/* (Array/aget q i) newt)) newt)))))
+    :else (let [p (m/inc m)
+                z (m/- z (m/round z))]
+            (loop [n (long 1)
+                   s (m// 1.0 (m/pow z p))]
+              (let [a (m/pow (m/+ z n) p)
+                    b (m/pow (m/- z n) p)
+                    news (m/+ s (m// (m/+ a b) (m/* a b)))]
+                (if (m/== s news) s (recur (m/inc n) news)))))))
+
+(defn polygamma
+  "Polygamma function of order `m` and real argument."
+  ^double [^long m ^double x]
+  (if (m/neg? m)
+    ##NaN
+    (case (int m)
+      0 (digamma x)
+      1 (trigamma x)
+      (let [s (m/inc m)]
+        (if (m/not-pos? x)
+          (let [v (cotderiv m x)]
+            (m/* (m/+ (zeta s (m/- 1.0 x)) (if (m/even? m) v (m/- v)))
+                 (m/- (gamma s))))
+          (let [v (m/* (zeta s x) (m/- (gamma s)))]
+            (if (m/even? m) v (m/- v))))))))
 
 ;; https://github.com/JuliaMath/Bessels.jl/blob/master/src/BesselFunctions/besselk.jl
 
 ;; Bessel J
 
-(defn bessel-j0
+(defn bessel-J0
   "Bessel function of the first kind of order 0, J_0(x)"
   ^double [^double x]
   (let [x (m/abs x)]
@@ -171,7 +389,7 @@
                   b (m/sin (m/+ x m/QUARTER_PI xn))]
               (m/* a b)))))
 
-(defn bessel-j1
+(defn bessel-J1
   "Bessel function of the first kind of order 1, J_1(x)"
   ^double [^double x]
   (let [s (m/sgn x)
@@ -212,7 +430,7 @@
     (let [x2 (m/* x x)]
       (poly/mevalpoly x2 1.0 -1.2337005501361697 0.5073390158020964))
     (let [pix (m/* m/PI x)]
-      (m/* 2.0 (m// (bessel-j1 pix) pix)))))
+      (m/* 2.0 (m// (bessel-J1 pix) pix)))))
 
 
 ;;;;;;
@@ -351,14 +569,14 @@
               co (m/round (m/cos piao))]
           (m/* sgn (m/- (m/* bessel-j-val co) (m/* bessel-y-val so))))))))
 
-(defn bessel-j
+(defn bessel-J
   "Bessel function of the first kind of order v, J_v(x)"
   ^double [^double order ^double x]
   (cond
-    (m/zero? order) (bessel-j0 x)
-    (m/one? order) (bessel-j1 x)
+    (m/zero? order) (bessel-J0 x)
+    (m/one? order) (bessel-J1 x)
     (m/invalid-double? x) x
-    (m/== order (m/round order)) (bessel-j-integer-order order x)
+    (m/integer? order) (bessel-j-integer-order order x)
     (m/neg? x) ##NaN
     (m/not-neg? order) (bessel-j-positive-args (m/abs order) (m/abs x))
     :else (let [ao (m/abs order)
@@ -372,7 +590,7 @@
 
 ;; Bessel Y
 
-(defn bessel-y0
+(defn bessel-Y0
   "Bessel function of the second kind of order 0, Y_0(x)"
   ^double [^double x]
   (cond
@@ -381,32 +599,32 @@
     (or (m/neg? x) (m/invalid-double? x)) ##NaN
     (m/< x 5.0) (let [z (m/* x x)
                       w (m// (poly/mevalpoly z -1.84950800436986690637E16, 4.42733268572569800351E16,
-                                          -3.46628303384729719441E15, 8.75906394395366999549E13,
-                                          -9.82136065717911466409E11, 5.43526477051876500413E9,
-                                          -1.46639295903971606143E7, 1.55924367855235737965E4)
+                                             -3.46628303384729719441E15, 8.75906394395366999549E13,
+                                             -9.82136065717911466409E11, 5.43526477051876500413E9,
+                                             -1.46639295903971606143E7, 1.55924367855235737965E4)
                              (poly/mevalpoly z 2.50596256172653059228E17, 3.17157752842975028269E15,
-                                          2.02979612750105546709E13, 8.64002487103935000337E10,
-                                          2.68919633393814121987E8, 6.26107330137134956842E5,
-                                          1.04128353664259848412E3, 1.00000000000000000000E0))]
-                  (m/+ w (m/* m/M_2_PI (m/log x) (bessel-j0 x))))
+                                             2.02979612750105546709E13, 8.64002487103935000337E10,
+                                             2.68919633393814121987E8, 6.26107330137134956842E5,
+                                             1.04128353664259848412E3, 1.00000000000000000000E0))]
+                  (m/+ w (m/* m/M_2_PI (m/log x) (bessel-J0 x))))
     (m/< x 25.0) (let [w (m// 5.0 x)
                        z (m/* w w)
                        p (m// (poly/mevalpoly z 9.99999999999999997821E-1, 5.30324038235394892183E0,
-                                           8.74716500199817011941E0, 5.44725003058768775090E0,
-                                           1.23953371646414299388E0, 8.28352392107440799803E-2,
-                                           7.96936729297347051624E-4)
+                                              8.74716500199817011941E0, 5.44725003058768775090E0,
+                                              1.23953371646414299388E0, 8.28352392107440799803E-2,
+                                              7.96936729297347051624E-4)
                               (poly/mevalpoly z 1.00000000000000000218E0, 5.30605288235394617618E0,
-                                           8.76190883237069594232E0, 5.47097740330417105182E0,
-                                           1.25352743901058953537E0, 8.56288474354474431428E-2,
-                                           9.24408810558863637013E-4))
+                                              8.76190883237069594232E0, 5.47097740330417105182E0,
+                                              1.25352743901058953537E0, 8.56288474354474431428E-2,
+                                              9.24408810558863637013E-4))
                        q (m// (poly/mevalpoly z -6.05014350600728481186E0, -5.14105326766599330220E1,
-                                           -1.47077505154951170175E2, -1.77681167980488050595E2,
-                                           -9.32060152123768231369E1, -1.95539544257735972385E1,
-                                           -1.28252718670509318512E0, -1.13663838898469149931E-2)
+                                              -1.47077505154951170175E2, -1.77681167980488050595E2,
+                                              -9.32060152123768231369E1, -1.95539544257735972385E1,
+                                              -1.28252718670509318512E0, -1.13663838898469149931E-2)
                               (poly/mevalpoly z 2.42005740240291393179E2, 2.06209331660327847417E3,
-                                           5.93072701187316984827E3, 7.24046774195652478189E3,
-                                           3.88240183605401609683E3, 8.56430025976980587198E2,
-                                           6.43178256118178023184E1, 1.00000000000000000000E0))
+                                              5.93072701187316984827E3, 7.24046774195652478189E3,
+                                              3.88240183605401609683E3, 8.56430025976980587198E2,
+                                              6.43178256118178023184E1, 1.00000000000000000000E0))
                        xn (m/- x m/QUARTER_PI)
                        s (m/sin xn)
                        c (m/cos xn)]
@@ -416,15 +634,15 @@
                 x2 (m/* xinv xinv)
                 ^Vec2 pq (if (m/< x 125.0)
                            (Vec2. (poly/mevalpoly x2 1.0 -0.0625 0.103515625 -0.5428466796875 5.848699569702148
-                                               -106.8867939710617 2968.142937842757 -116538.4796968361)
+                                                  -106.8867939710617 2968.142937842757 -116538.4796968361)
                                   (poly/mevalpoly x2 -0.125 0.06510416666666667 -0.2095703125 1.638065883091518
-                                               -23.47512774997287 535.640519510616 -17837.27968894748))
+                                                  -23.47512774997287 535.640519510616 -17837.27968894748))
                            (Vec2. (poly/mevalpoly x2 1.0 -0.0625 0.103515625 -0.5428466796875)
                                   (poly/mevalpoly x2 -0.125 0.06510416666666667 -0.2095703125 1.638065883091518)))]
             (m/* m/SQRT_2_PI (m/sqrt xinv) (.x pq)
                  (m/sin (m/+ x m/-QUARTER_PI (m/* xinv (.y pq))))))))
 
-(defn bessel-y1
+(defn bessel-Y1
   "Bessel function of the second kind of order 1, Y_1(x)"
   ^double [^double x]
   (cond
@@ -433,32 +651,32 @@
     (or (m/neg? x) (m/invalid-double? x)) ##NaN
     (m/< x 5.0) (let [z (m/* x x)
                       w (* x (m// (poly/mevalpoly z -7.78877196265950026825E17, 2.02439475713594898196E17,
-                                               -8.12770255501325109621E15, 1.14509511541823727583E14,
-                                               -6.47355876379160291031E11, 1.26320474790178026440E9)
+                                                  -8.12770255501325109621E15, 1.14509511541823727583E14,
+                                                  -6.47355876379160291031E11, 1.26320474790178026440E9)
                                   (poly/mevalpoly z 3.97270608116560655612E18, 6.87141087355300489866E16,
-                                               6.20557727146953693363E14, 3.88231277496238566008E12,
-                                               1.87601316108706159478E10, 7.34811944459721705660E7,
-                                               2.35564092943068577943E5, 5.94301592346128195359E2,
-                                               1.00000000000000000000E0)))]
-                  (m/+ w (m/* m/M_2_PI (m/- (m/* (bessel-j1 x) (m/log x)) (m// x)))))
+                                                  6.20557727146953693363E14, 3.88231277496238566008E12,
+                                                  1.87601316108706159478E10, 7.34811944459721705660E7,
+                                                  2.35564092943068577943E5, 5.94301592346128195359E2,
+                                                  1.00000000000000000000E0)))]
+                  (m/+ w (m/* m/M_2_PI (m/- (m/* (bessel-J1 x) (m/log x)) (m// x)))))
     (m/< x 25.0) (let [w (m// 5.0 x)
                        z (m/* w w)
                        p (m// (poly/mevalpoly z 1.00000000000000000254E0, 5.21451598682361504063E0,
-                                           8.42404590141772420927E0, 5.11207951146807644818E0,
-                                           1.12719608129684925192E0, 7.31397056940917570436E-2,
-                                           7.62125616208173112003E-4)
+                                              8.42404590141772420927E0, 5.11207951146807644818E0,
+                                              1.12719608129684925192E0, 7.31397056940917570436E-2,
+                                              7.62125616208173112003E-4)
                               (poly/mevalpoly z 9.99999999999999997461E-1, 5.20982848682361821619E0,
-                                           8.39985554327604159757E0, 5.07386386128601488557E0,
-                                           1.10514232634061696926E0, 6.88455908754495404082E-2,
-                                           5.71323128072548699714E-4))
+                                              8.39985554327604159757E0, 5.07386386128601488557E0,
+                                              1.10514232634061696926E0, 6.88455908754495404082E-2,
+                                              5.71323128072548699714E-4))
                        q (m// (poly/mevalpoly z 2.52070205858023719784E1, 2.11688757100572135698E2,
-                                           5.97489612400613639965E2, 7.10856304998926107277E2,
-                                           3.66779609360150777800E2, 7.58238284132545283818E1,
-                                           4.98213872951233449420E0, 5.10862594750176621635E-2)
+                                              5.97489612400613639965E2, 7.10856304998926107277E2,
+                                              3.66779609360150777800E2, 7.58238284132545283818E1,
+                                              4.98213872951233449420E0, 5.10862594750176621635E-2)
                               (poly/mevalpoly z 3.36093607810698293419E2, 2.82619278517639096600E3,
-                                           7.99704160447350683650E3, 9.56231892404756170795E3,
-                                           4.98641058337653607651E3, 1.05644886038262816351E3,
-                                           7.42373277035675149943E1, 1.00000000000000000000E0))
+                                              7.99704160447350683650E3, 9.56231892404756170795E3,
+                                              4.98641058337653607651E3, 1.05644886038262816351E3,
+                                              7.42373277035675149943E1, 1.00000000000000000000E0))
                        xn (m/- x m/M_3PI_4)
                        s (m/sin xn)
                        c (m/cos xn)]
@@ -468,9 +686,9 @@
                 x2 (m/* xinv xinv)
                 ^Vec2 pq (if (m/< x 135.0)
                            (Vec2. (poly/mevalpoly x2 1.0 0.1875 -0.193359375 0.8052978515625 -7.739953994750977
-                                               132.7618242502213 -3543.303665366024 135394.2285691809)
+                                                  132.7618242502213 -3543.303665366024 135394.2285691809)
                                   (poly/mevalpoly x2 0.375 -0.1640625 0.3708984375 -2.369397844587054
-                                               30.6240119934082 -659.185221823779 21156.31404552781))
+                                                  30.6240119934082 -659.185221823779 21156.31404552781))
                            (Vec2. (poly/mevalpoly x2 1.0 0.1875 -0.193359375 0.8052978515625)
                                   (poly/mevalpoly x2 0.375 -0.1640625 0.3708984375 -2.369397844587054)))]
             (m/* m/SQRT_2_PI (m/sqrt xinv) (.x pq)
@@ -530,8 +748,8 @@
 (defn- bessel-y-positive-args
   ^double [^double v ^double x]
   (cond
-    (and (m/== v (m/round v))
-         (m/< v 250)) (.x ^Vec2 (bessel-j-up-recurrence x (Vec2. (bessel-y1 x) (bessel-y0 x))
+    (and (m/integer? v)
+         (m/< v 250)) (.x ^Vec2 (bessel-j-up-recurrence x (Vec2. (bessel-Y1 x) (bessel-Y0 x))
                                                         (Vec2. 1.0 v)))
     (m/> v (jy-debye-fit x)) (.y ^Vec2 (bessel-jy-debye v x))
     (m/> x (m/max 20.0 (m/* 1.65 v))) (.y ^Vec2 (bessel-jy-large-argument v x))
@@ -546,14 +764,14 @@
         y (bessel-y-positive-args ao x)]
     (if (and (m/neg? order) (m/odd? ao)) (m/- y) y)))
 
-(defn bessel-y
+(defn bessel-Y
   "Bessel function of the second kind of order v, Y_v(x)"
   ^double [^double order ^double x]
   (cond
-    (m/zero? order) (bessel-y0 x)
-    (m/one? order) (bessel-y1 x)
+    (m/zero? order) (bessel-Y0 x)
+    (m/one? order) (bessel-Y1 x)
     (or (m/nan? order) (m/nan? x) (m/neg? x)) ##NaN
-    (m/== order (m/round order)) (bessel-y-integer-order order x)
+    (m/integer? order) (bessel-y-integer-order order x)
     (m/not-neg? order) (bessel-y-positive-args (m/abs order) x)
     :else (let [ao (m/abs order)
                 aopi (m/* ao m/PI)
@@ -568,25 +786,25 @@
 ;; (formulas 1.6 and 1.9)
 ;; https://www.researchgate.net/publication/242441899_On_the_numerical_evaluation_of_the_modified_bessel_function_of_the_third_kind
 
-(defn bessel-k-half
+(defn bessel-K-half-odd
   "Bessel K_a function for a = order/2
 
   Function accepts only odd integers for order"
-  ^double [^long order ^double x]
-  (case (int order)
+  ^double [^long odd-numerator ^double x]
+  (case (int odd-numerator)
     1 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)))
     3 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)) (m/inc (m// x)))
     (loop [i (long 5)
            ^Vec2 pair (let [b1 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)))
                             b3 (m/* b1 (m/inc (m// x)))]
                         (Vec2. b1 b3))]
-      (if (m/> i order)
+      (if (m/> i odd-numerator)
         (.y pair)
         (recur (m/+ i 2) (Vec2. (.y pair) (m/+ (m/* (.y pair) (m// (m/- i 2.0) x))
                                                (.x pair))))))))
 
 
-(defn bessel-k0
+(defn bessel-K0
   "Modified Bessel function of the second kind of order 0, K_0(x)"
   ^double [^double x]
   (cond
@@ -597,34 +815,34 @@
                        a (m/* 0.25 x2)
                        s (m/muladd
                           (poly/mevalpoly a -1.372509002685546267e-1, 2.574916117833312855e-1,
-                                       1.395474602146869316e-2, 5.445476986653926759e-4,
-                                       7.125159422136622118e-6)
+                                          1.395474602146869316e-2, 5.445476986653926759e-4,
+                                          7.125159422136622118e-6)
                           (m// (poly/mevalpoly a 1.000000000000000000e+00, -5.458333438017788530e-02,
-                                            1.291052816975251298e-03, -1.367653946978586591e-05))
+                                               1.291052816975251298e-03, -1.367653946978586591e-05))
                           1.137250900268554688)
                        a (m/muladd s a 1.0)]
                    (m/muladd (m/- a)
                              (m/log x)
                              (poly/mevalpoly x2 1.159315156584124484e-01, 2.789828789146031732e-01,
-                                          2.524892993216121934e-02, 8.460350907213637784e-04,
-                                          1.491471924309617534e-05, 1.627106892422088488e-07,
-                                          1.208266102392756055e-09, 6.611686391749704310e-12)))
+                                             2.524892993216121934e-02, 8.460350907213637784e-04,
+                                             1.491471924309617534e-05, 1.627106892422088488e-07,
+                                             1.208266102392756055e-09, 6.611686391749704310e-12)))
     :else (let [rx (m// x)
                 a (m/muladd
                    (poly/mevalpoly rx 2.533141373155002416e-1, 3.628342133984595192e0,
-                                1.868441889406606057e1, 4.306243981063412784e1,
-                                4.424116209627428189e1, 1.562095339356220468e1,
-                                -1.810138978229410898e0, -1.414237994269995877e0,
-                                -9.369168119754924625e-2)
+                                   1.868441889406606057e1, 4.306243981063412784e1,
+                                   4.424116209627428189e1, 1.562095339356220468e1,
+                                   -1.810138978229410898e0, -1.414237994269995877e0,
+                                   -9.369168119754924625e-2)
                    (m// (poly/mevalpoly rx 1.000000000000000000e0, 1.494194694879908328e1,
-                                     8.265296455388554217e1, 2.162779506621866970e2,
-                                     2.845145155184222157e2, 1.851714491916334995e2,
-                                     5.486540717439723515e1, 6.118075837628957015e0,
-                                     1.586261269326235053e-1))
+                                        8.265296455388554217e1, 2.162779506621866970e2,
+                                        2.845145155184222157e2, 1.851714491916334995e2,
+                                        5.486540717439723515e1, 6.118075837628957015e0,
+                                        1.586261269326235053e-1))
                    1.0)]
             (m/* (m// a (m/sqrt x)) (m/exp (m/- x))))))
 
-(defn bessel-k1
+(defn bessel-K1
   "Modified Bessel function of the second kind of order 1, K_1(x)"
   ^double [^double x]
   (cond
@@ -635,31 +853,31 @@
                        a (m/* 0.25 x2)
                        pq (m/muladd
                            (poly/mevalpoly a -3.62137953440350228e-3, 7.11842087490330300e-3,
-                                        1.00302560256614306e-5, 1.77231085381040811e-6)
+                                           1.00302560256614306e-5, 1.77231085381040811e-6)
                            (m// (poly/mevalpoly a 1.00000000000000000e0, -4.80414794429043831e-2,
-                                             9.85972641934416525e-4, -8.91196859397070326e-6))
+                                                9.85972641934416525e-4, -8.91196859397070326e-6))
                            8.69547128677368164e-2)
                        pq (m/muladd (m/* pq a) a (m/inc (m/* a 0.5)))
                        a (m/* pq x 0.5)
                        pq (m/muladd
                            (m// (poly/mevalpoly x2 -3.07965757829206184e-1, -7.80929703673074907e-02,
-                                             -2.70619343754051620e-3, -2.49549522229072008e-5)
+                                                -2.70619343754051620e-3, -2.49549522229072008e-5)
                                 (poly/mevalpoly x2 1.00000000000000000e0, -2.36316836412163098e-2,
-                                             2.64524577525962719e-4, -1.49749618004162787e-6))
+                                                2.64524577525962719e-4, -1.49749618004162787e-6))
                            x (m// x))]
                    (m/muladd a (m/log x) pq))
     :else (let [rx (m// x)
                 a (m/muladd
                    (poly/mevalpoly rx -1.97028041029226295e-1, -2.32408961548087617e0,
-                                -7.98269784507699938e0, -2.39968410774221632e0,
-                                3.28314043780858713e1, 5.67713761158496058e1,
-                                3.30907788466509823e1, 6.62582288933739787e0,
-                                3.08851840645286691e-1)
+                                   -7.98269784507699938e0, -2.39968410774221632e0,
+                                   3.28314043780858713e1, 5.67713761158496058e1,
+                                   3.30907788466509823e1, 6.62582288933739787e0,
+                                   3.08851840645286691e-1)
                    (m// (poly/mevalpoly rx 1.00000000000000000e0, 1.41811409298826118e1,
-                                     7.35979466317556420e1, 1.77821793937080859e2,
-                                     2.11014501598705982e2, 1.19425262951064454e2,
-                                     2.88448064302447607e1, 2.27912927104139732e0,
-                                     2.50358186953478678e-2))
+                                        7.35979466317556420e1, 1.77821793937080859e2,
+                                        2.11014501598705982e2, 1.19425262951064454e2,
+                                        2.88448064302447607e1, 2.27912927104139732e0,
+                                        2.50358186953478678e-2))
                    1.45034217834472656)]
             (m/* (m// a (m/sqrt x)) (m/exp (m/- x))))))
 
@@ -816,13 +1034,13 @@
               nt2 (m/* t2 (m// x2 (m/* 4.0 k (m/+ k v))))]
           (recur (m/inc k) ns1 ns2 nt1 nt2))))))
 
-(defn bessel-k
+(defn bessel-K
   "Modified Bessel function of the second kind and real order v, K_v(x)"
   ^double [^double order ^double x]
   (let [v (m/abs order)]
     (cond
-      (m/zero? v) (bessel-k0 x)
-      (m/one? v) (bessel-k1 x)
+      (m/zero? v) (bessel-K0 x)
+      (m/one? v) (bessel-K1 x)
       (m/nan? x) ##NaN
       (m/zero? x) ##Inf
       (m/neg? x) ##NaN
@@ -837,7 +1055,7 @@
                                   ^Vec2 res (bessel-k-up-recurrence x (Vec2. kv kvp1) (Vec2. v-floor+1 v))]
                               (m/* (m/exp (m/- x)) (.x res)))
                 
-                (m/< (m/abs (m/- v (m/round v))) 1.0e-5)
+                (m/< (m/abs (m/- v (m/rint v))) 1.0e-5)
                 (let [v-floor (if (m/> v-floor 0.5) (m/dec v-floor) v-floor)
                       kv (bessel-k-temme-series v-floor x)
                       ^Vec2 res (bessel-k-up-recurrence x kv (Vec2. (m/inc v-floor) v))]
@@ -847,7 +1065,7 @@
 
 ;; Bessel I
 
-(defn bessel-i0
+(defn bessel-I0
   "Modified Bessel function of the first kind of order 0, I_0(x)"
   ^double [^double x]
   (cond
@@ -873,7 +1091,7 @@
                                           1.239942074380968e15)
                           (m/sqrt x))))))))
 
-(defn bessel-i1
+(defn bessel-I1
   "Modified Bessel function of the first kind of order 1, I_0(x)"
   ^double [^double x]
   (cond
@@ -968,20 +1186,20 @@
         bessel-i-val
         (m/- bessel-i-val)))))
 
-(defn bessel-i
+(defn bessel-I
   "Modified Bessel function of the first kind of order v, I_v(x)"
   ^double [^double order ^double x]
   (cond
-    (m/zero? order) (bessel-i0 x)
-    (m/one? order) (bessel-i1 x)
+    (m/zero? order) (bessel-I0 x)
+    (m/one? order) (bessel-I1 x)
     (m/invalid-double? x) x
-    (m/== order (m/round order)) (bessel-i-integer-order (m/abs order) x)
+    (m/integer? order) (bessel-i-integer-order (m/abs order) x)
     (m/neg? x) ##NaN
     (m/zero? x) 0.0
     (m/not-neg? order) (bessel-i-positive-args (m/abs order) x)
     :else (let [a (m/abs order)]
             (m/+ (bessel-i-positive-args a x)
-                 (m/* m/M_2_PI (m/sin (m/* m/PI a)) (bessel-k a x))))))
+                 (m/* m/M_2_PI (m/sin (m/* m/PI a)) (bessel-K a x))))))
 
 ;;
 
@@ -1002,35 +1220,6 @@
                d
                (if p? y (m/+ y d))))
       (m/+ y d))))
-
-(defn kummers-M
-  "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
-  ^double [^double a ^double b ^double x]
-  (cond
-    (m/== a b -1.0) ##NaN
-    (m/zero? b) (m/copy-sign ##Inf (m/* a x))
-    (m/zero? x) 1.0
-    (m/== a b) (m/exp x)
-    (m/== a -1.0) (m/- 1.0 (m// x b))
-    :else (loop [i (long 0)
-                 sum 0.0
-                 term 1.0
-                 aterm Double/MAX_VALUE
-                 apterm Double/MAX_VALUE]
-            (let [s (m/* 8.0 (m/abs sum) m/MACHINE-EPSILON)] ;; Julia approach for termination
-              (if (or (m/== i 100000) (and (m/< aterm s) (m/< apterm s)))
-                sum
-                (let [nsum (m/+ sum term)
-                      ratio (m// (m/* x (m/+ a i)) (m/* (m/+ b i) (inc i)))
-                      nterm (m/* ratio term)]
-                  (recur (m/inc i) nsum nterm (m/abs nterm) aterm)))))))
-
-(defn whittaker-M
-  "Whittaker's M"
-  ^double [^double kappa ^double mu ^double x]
-  (let [mu+05 (m/+ 0.5 mu)
-        z (m/exp (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x))))]
-    (m/* z (kummers-M (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x))))
 
 ;;
 
@@ -1218,6 +1407,11 @@
   `(m/- (poly/mevalpoly ~x ~@(e1-taylor-coefficients n))
         (m/log ~x)))
 
+(defn E0
+  "Exponential integral E0"
+  ^double [^double x]
+  (if (m/zero? x) ##Inf (m// (m/exp (m/- x)) x)))
+
 (defn E1
   "Exponential integral E1 for positive real numbers"
   ^double [^double x]
@@ -1244,6 +1438,217 @@
               (m/> x 0.053) (e1-taylor64 x 15)
               (m/> x 4.4e-3) (e1-taylor64 x 8)
               :else (e1-taylor64 x 4)))))
+
+(defn Ein
+  "Exponential integral."
+  ^double [^double x]
+  (if (m/zero? x)
+    0.0
+    (m/+ (E1 x) (m/log x) m/GAMMA)))
+
+(defn- en-safe-expfact
+  ^double [^long v ^double x]
+  (if (m/< v 100)
+    (let [-x (m/- x)]
+      (loop [i (long 1)
+             powerterm 1.0]
+        (if (m/> i v)
+          powerterm
+          (recur (m/inc i) (m/* powerterm (m// -x i))))))
+    (let [sgn (if (m/not-pos? x) 1.0 (if (m/odd? v) -1.0 1.0))]
+      (m/* sgn (m/exp (m/- (m/* v (m/log (m/abs x))) (log-gamma (m/inc v))))))))
+
+(defn- en-expand-origin-posint
+  ^double [^long v ^double x]
+  (let [gamma-term (m/* (en-safe-expfact (m/dec v) x)
+                        (m/- (digamma v) (m/log x)))
+        sum-term (if (m/one? v) 0.0 (m// 1.0 (m/- 1.0 v)))
+        eps (m/* 10.0 (m/ulp sum-term))
+        v- (m/dec v)
+        -x (m/- x)]
+    (loop [k (long 1)
+           frac 1.0
+           sum-term sum-term]
+      (let [nfrac (m/* frac (m// -x k))]
+        (if (m/not== k v-)
+          (let [nsum-term (m/+ sum-term (m// nfrac (m/- k v-)))]
+            (if (or (m/> k 1000) (m/delta-eq sum-term nsum-term eps))
+              (m/- gamma-term nsum-term)
+              (recur (m/inc k) nfrac nsum-term)))
+          (recur (m/inc k) nfrac sum-term))))))
+
+(def ^{:private true :const true :tag 'double} SQPI 9.869604401089358)
+(def ^{:private true :const true :tag 'double} SQPI2 19.739208802178716)
+(def ^{:private true :const true :tag 'double} SQPI10 98.69604401089359)
+(def ^{:private true :const true :tag 'double} SQSQPI7 681.863637238017)
+
+(defn- en-expand-origin-general
+  ^double [^double v ^double x]
+  (let [omv (m/- 1.0 v)
+        invomv (m// omv)
+        aomv (m/abs omv)
+        -x (m/- x)        
+        gamma-term (m/* (gamma omv) (m/pow x (m/dec v)))
+        ^Vec2 bs (loop [k (long 1)
+                        frac 1.0
+                        blowup (if (m/< aomv 0.5) invomv 0.0)
+                        sum-term (if (m/< aomv 0.5) 0.0 invomv)]                   
+                   (let [nfrac (m/* frac (m// -x k))
+                         den (m/+ k omv)]
+                     (if (m/< (m/abs den) 0.5)
+                       (recur (m/inc k) nfrac (m/+ blowup (m// nfrac den)) sum-term)
+                       (let [nsum-term (m/+ sum-term (m// nfrac den))]
+                         (if (or (m/< (m/abs (m/- nsum-term sum-term))
+                                      (m/* m/MACHINE-EPSILON10 (m/abs sum-term)))
+                                 (m/== k 1000))
+                           (Vec2. blowup sum-term)
+                           (recur (m/inc k) nfrac blowup nsum-term))))))]
+    (if (m/< (m/abs (m/- gamma-term (.x bs))) (m/* 1.0e-3 (m/abs (.x bs))))
+      (let [delta (m/- (m/round v) v)
+            delta2 (m/* delta delta)
+            delta3 (m/* delta2 delta)
+            delta4 (m/* delta3 delta)
+            n (m/dec (m/round v))
+            n+ (m/inc n)
+            logx (m/log x)
+            logx2 (m/* logx logx)
+            logx3 (m/* logx2 logx)
+            logx4 (m/* logx3 logx)
+            logx5 (m/* logx4 logx)
+            series1 (m/- (m/- logx)
+                         (m// (m/* logx2 delta) 2.0)
+                         (m// (m/* logx3 delta2) 6.0)
+                         (m// (m/* logx4 delta3) 24.0)
+                         (m// (m/* logx5 delta4) 120.0))
+            psi0 (polygamma 0 n+)
+            psi02 (m/* psi0 psi0)
+            psi03 (m/* psi02 psi0)
+            psi04 (m/* psi03 psi0)
+            psi05 (m/* psi04 psi0)
+            psi1 (polygamma 1 n+)
+            psi13 (m/* 3.0 psi1)
+            psi2 (polygamma 2 n+)
+            psi3 (polygamma 3 n+)
+            psi4 (polygamma 4 n+)
+            series2 (m/+ psi0
+                         (m// (m/* delta (m/+ (m/* 3.0 psi02) SQPI (m/* -3.0 psi1))) 6.0)
+                         (m// (m/* delta2 (m/+ psi03 psi2 (m/* psi0 (m/- SQPI psi13)))) 6.0)
+                         (m// (m/* delta3 (m/+ SQSQPI7 (m/* -15.0 psi3)
+                                               (m/* 15.0 (m/+ psi04 (m/* 4.0 psi0 psi2)
+                                                              (m/* 2.0 psi02 (m/- SQPI psi13))
+                                                              (m/* psi1 (m/- psi13 SQPI2)))))) 360.0)
+                         (m// (m/* delta4 (m/+ (m/* 3.0 psi05) (m/* -30.0 psi1 psi2)
+                                               (m/* SQPI10 psi2) (m/* 3.0 psi4)
+                                               (m/* psi03 (m/- SQPI10 (m/* 30.0 psi1)))
+                                               (m/* 30.0 psi02 psi2)
+                                               (m/* psi0 (m/+ (m/* 45.0 psi1 psi1)
+                                                              (m/* -3.0 SQPI10 psi1)
+                                                              (m/* -15.0 psi3)
+                                                              SQSQPI7)))) 360.0))]
+        (m/- (m/* (m/+ series1 series2)
+                  (en-safe-expfact n x)
+                  (m/pow x (m/- v n 1.0)))
+             (.y bs)))
+      (m/- gamma-term (.x bs) (.y bs)))))
+
+(defn- en-safe-gamma-term
+  ^double [^double v ^double x]
+  (let [v1 (m/- 1.0 v)
+        g (gamma v1)]
+    (m/* (m/sgn g) (m/exp (m/+ (m/* (m/dec v) (m/log x)) (m/log (m/abs g)))))))
+
+(def ^{:private true :const true :tag 'double} SQRTMAXDOUBLE 1.3407807929942596E154)
+
+(defn- en-cf-gamma
+  ^Vec2 [^double v ^double x]
+  (loop [i (long 1)
+         A (m/- 1.0 v)
+         B 1.0
+         Ap 1.0
+         Bp 0.0]
+    (let [i+ (m/inc i)
+          a (if (m/even? i)
+              (m/* x (m// i 2))
+              (m/* -1.0 x (m/- (m// i+ 2) v)))
+          b (m/- i+ v)
+          nA (m/+ (m/* b A) (m/* a Ap))
+          nB (m/+ (m/* b B) (m/* a Bp))
+          q (m/* A nB)]
+      (if (or (m/< (m/abs (m/- q (m/* nA B))) (m/* m/MACHINE-EPSILON10 (m/abs q)))
+              (m/== i 1000))
+        (Vec2. (en-safe-gamma-term v x)
+               (m// (m/- B) A))
+        (if (m/> (m/abs nA) SQRTMAXDOUBLE)
+          (recur (m/inc i)
+                 (m// nA SQRTMAXDOUBLE) (m// nB SQRTMAXDOUBLE)
+                 (m// A SQRTMAXDOUBLE) (m// B SQRTMAXDOUBLE))
+          (recur (m/inc i) nA nB A B))))))
+
+(defn- en-cf-no-gamma
+  ^double [^double v ^double x]
+  (let [B (m/+ v x)
+        eps (m/* 10.0 (m/ulp B))]
+    (loop [i (long 2)
+           A 1.0
+           B B
+           Ap 1.0
+           Bp x]
+      (let [i- (m/dec i)
+            nA (m/+ (m/* x A) (m/* i- Ap))
+            nB (m/+ (m/* x B) (m/* i- Bp))]
+        (if (or (m/inf? nA) (m/inf? nB))
+          (m// nA nB)
+          (let [v+ (m/+ v i-)
+                nAp nA
+                nA (m/+ nA (m/* v+ A))
+                nBp nB
+                nB (m/+ nB (m/* v+ B))]
+            (if (or (and (m/> i 4)
+                         (m/< (m/abs (m/- (m/* nAp nB) (m/* nA nBp))) (m/* eps (m/abs (m/* nB nBp)))))
+                    (m/== i 1000))
+              (m// nA nB)
+              (if (m/> (m/abs nA) SQRTMAXDOUBLE)
+                (recur (m/inc i)
+                       (m// nA SQRTMAXDOUBLE) (m// nB SQRTMAXDOUBLE)
+                       (m// nAp SQRTMAXDOUBLE) (m// nBp SQRTMAXDOUBLE))
+                (recur (m/inc i) nA nB nAp nBp)))))))))
+
+(defn- en-cf
+  ^Vec2 [^double v ^double x]
+  (if (m/pos? (m/- 1.0 v))
+    (let [^Vec2 gcf (en-cf-gamma v x)
+          ag (m/abs (.x gcf))
+          acf (m/abs (.y gcf))]
+      (if (and (m/valid-double? ag) (m/> ag 1.0) (m/> ag acf))
+        gcf
+        (Vec2. 0.0 (en-cf-no-gamma v x))))
+    (Vec2. 0.0 (en-cf-no-gamma v x))))
+
+(defn En
+  "Generalized exponential integral En"
+  ^double [^double n ^double x]
+  (cond
+    (m/zero? n) (E0 x)
+    (m/one? n) (E1 x)
+    (and (m/zero? x) (m/neg? n)) ##Inf
+    (m/zero? x) (m// 1.0 (m/dec n))
+    (or (m/nan? n) (m/nan? x)
+        (if (m/integer? n)
+          (and (m/neg? x) (m/pos? n))
+          (m/neg? x))) ##NaN
+    (m/> x 745.0) 0.0
+    (m/< (m/sq x) 9.0) (if (and (m/integer? n) (m/pos? n))
+                         (en-expand-origin-posint n x)
+                         (en-expand-origin-general n x))
+    :else (let [^Vec2 gcf (if (m/pos? x)
+                            (en-cf n x)
+                            (Vec2. 0.0 (en-cf-no-gamma n x)))
+                cf (.y gcf)
+                e (m/exp (m/- x))
+                em (if (or (m/inf? e) (m/zero? e))
+                     (m/* (m/sgn cf) (m/exp (m/- (m/log (m/abs cf)) x)))
+                     (m/* e cf))]
+            (m/+ em (.x gcf)))))
 
 (defmacro ^:private ei-taylor64
   [x n]
@@ -1296,9 +1701,36 @@
   ^double [^double x]
   (m/- (Ei (m/ln x)) 1.04516378011749278484))
 
+;;
+
+(defn upper-incomplete-gamma
+  "Upper incomplete gamma function"
+  ^double [^double s ^double x]
+  (if (pos? s)
+    (m/exp (m/+ (m/log (. Gamma (regularizedGammaQ s x))) (. Gamma (logGamma s))))
+    (m/* (m/pow x s) (En (m/- 1.0 s) x))))
+
+(defn lower-incomplete-gamma
+  "Lower incomplete gamma function"
+  ^double [^double s ^double x] (m/- (gamma s) (upper-incomplete-gamma s x)))
+
+(defn regularized-gamma-p
+  "Regularized gamma P(a,x)"
+  ^double [^double a ^double x]
+  (if (m/pos? a)
+    (. Gamma (regularizedGammaP a x))
+    (m// (lower-incomplete-gamma a x) (gamma a))))
+
+(defn regularized-gamma-q
+  "Regularized gamma Q(a,x)"
+  ^double [^double a ^double x]
+  (if (m/pos? a)
+    (. Gamma (regularizedGammaQ a x))
+    (m// (upper-incomplete-gamma a x) (gamma a))))
+
 ;; Airy
 
-(defn Ai
+(defn airy-Ai
   "Airy Ai function"
   ^double [^double x]
   (cond
@@ -1307,7 +1739,7 @@
     (m/> x -1.0e8) (airy/ai-neg-args x)
     :else ##NaN))
 
-(defn Ai'
+(defn airy-Ai'
   "First derivative of the Airy Ai function"
   ^double [^double x]
   (cond
@@ -1316,7 +1748,7 @@
     (m/> x -1.0e8) (airy/aip-neg-args x)
     :else ##NaN))
 
-(defn Bi
+(defn airy-Bi
   "Airy Bi function"
   ^double [^double x]
   (cond
@@ -1325,7 +1757,7 @@
     (m/> x -1.0e8) (airy/bi-neg-args x)
     :else ##NaN))
 
-(defn Bi'
+(defn airy-Bi'
   "First derivative of the Airy Bi function"
   ^double [^double x]
   (cond
@@ -1334,3 +1766,215 @@
     (m/> x -1.0e8) (airy/bip-neg-args x)
     :else ##NaN))
 
+;;
+
+(defn harmonic-number
+  "Harmonic number H_n or generalized harmonic number H_n,m"
+  (^double [^double n]
+   (if (m/zero? n)
+     0.0
+     (m/+ (digamma (m/inc n)) m/GAMMA)))
+  (^double [^double n ^double m]
+   (cond
+     (m/zero? m) n 
+     (m/one? m) (harmonic-number n)
+     :else (m/- (zeta m) (zeta m (m/inc n))))))
+
+;;
+
+(def ^{:private true :const true :tag 'double} -INVE -0.36787944117144232159552)
+
+;;  approximated by the quadratic-rate recursive formula of R. Iacono and J.P. Boyd
+
+(defn- lambert-W-recursive
+  ^double [^double w0 ^double x]
+  (loop [i (long 0)
+         w w0]
+    (let [nw (m/* (m// w (m/inc w))
+                  (m/inc (m/log (m// x w))))]
+      (if (or (m/delta-eq w nw m/MACHINE-EPSILON m/MACHINE-EPSILON)
+              (m/== i 1000))
+        nw
+        (recur (m/inc i) nw)))))
+
+(defn lambert-W
+  "Lambert W function. W(xe^x)=x for x>=-1.0."
+  ^double [^double x]
+  (cond
+    (m/< x -INVE) ##NaN
+    (m/== x -INVE) -1.0
+    (m/zero? x) 0.0
+    (m/one? x) 0.567143290409783873
+    (m/== m/E x ) 1.0
+    (m/neg? x) (let [ex (m/* m/E x)
+                     f (m/inc (m/sqrt (m/inc ex)))]
+                 (lambert-W-recursive (m// (m/* ex (m/log f)) (m/+ ex f)) x))
+    (m/< x m/E) (lambert-W-recursive (m// x m/E) x)
+    :else (let [lx (m/log x)]
+            (lambert-W-recursive (m/- lx (m/log lx)) x))))
+
+(defn lambert-W-1
+  "Lambert W_1 function. W_1(xe^x)=x for x<=-1.0."
+  ^double [^double x]
+  (cond
+    (or (m/< x -INVE) (m/pos? x)) ##NaN
+    (m/== -INVE x ) -1.0
+    (m/zero? x) ##-Inf
+    (m/< x -0.25) (lambert-W-recursive (m/- -1.0 (m/* m/SQRT2 (m/sqrt (m/inc (m/* m/E x))))) x)
+    :else (let [lx (m/log (m/- x))]
+            (lambert-W-recursive (m/- lx (m/log (m/- lx))) x))))
+
+
+;;
+
+(defn kummers-M
+  "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
+  ^double [^double a ^double b ^double x]
+  (cond
+    (or (m/== a b -1.0)
+        (and (m/neg? b)
+             (m/integer? a)
+             (m/integer? b)
+             (or (m/pos? a)
+                 (and (m/neg? a) (m/< a b))))) ##NaN
+    (m/near-zero? a (m/ulp a)) 1.0
+    (m/zero? b) (m/copy-sign ##Inf (m/* a x))
+    (m/near-zero? x m/MACHINE-EPSILON) 1.0
+    (m/== a b) (m/exp x)
+    (m/== a -1.0) (m/- 1.0 (m// x b))
+    (and (m/one? a) (m/== b 2.0)) (let [hx (m/* 0.5 x)]
+                                    (m/* (m// (m/exp hx) hx) (m/sinh hx)))
+    (m/pos? x) (loop [i (long 1)
+                      s0 1.0
+                      s1 (m/inc (m// (m/* a x) b))]
+                 (if (or (and (m/valid-double? s0) (m/valid-double? s1)
+                              (m/delta-eq s0 s1 m/MACHINE-EPSILON m/MACHINE-EPSILON))
+                         (m/== i 1000000))
+                   s1
+                   (let [rj (m// (m/* (m/+ a i) x) (m/* (m/+ b i) (m/inc i)))]
+                     (recur (m/inc i) s1 (m/+ s1 (m/* (m/- s1 s0) rj))))))
+    :else (hg/weniger-1F1 a b x)))
+
+(defn whittaker-M
+  "Whittaker's M"
+  ^double [^double kappa ^double mu ^double x]
+  (let [mu+05 (m/+ 0.5 mu)
+        z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
+    (m/* z (kummers-M (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))
+
+(defn hypergeometric-0F0
+  "Hypergeometric ₀F₀ function, exp(x)"
+  ^double [^double x] (m/exp x))
+
+(defn hypergeometric-1F0
+  "Hypergeometric ₁F₀ function."
+  ^double [^double a ^double x]
+  (m/pow (m/- 1.0 x) (m/- a)))
+
+(defn hypergeometric-0F1
+  "Confluent hypergeometric ₀F₁ limit function."
+  ^double [^double a ^double x]
+  (cond
+    (m/zero? x) 1.0
+    (m/neg? x) (let [xx (m/* 2.0 (m/sqrt (m/abs x)))
+                     a- (m/dec a)]
+                 (m// (m/* (bessel-J a- xx) (gamma a))
+                      (m/pow (m/* 0.5 xx ) a-)))
+    :else (let [xx (m/* 2.0 (m/sqrt x))
+                a- (m/dec a)]
+            (m// (m/* (bessel-I a- xx) (gamma a))
+                 (m/pow (m/* 0.5 xx ) a-)))))
+
+(defn hypergeometric-1F1
+  "Confluent hypergeometric ₁F₁ function of the first kind, Kummer's M."
+  ^double [^double a ^double b ^double x]
+  (kummers-M a b x))
+
+(defn hypergeometric-0F2
+  "Generalized hypergeometric ₀F₂ function."
+  ^double [^double a ^double b ^double x]
+  (if (m/pos? x)
+    (hg/maclaurin-0F2 a b x)
+    (hg/weniger-0F2 a b x)))
+
+(defn hypergeometric-2F0
+  "Generalized hypergeometric ₂F₀ function."
+  ^double [^double a ^double b ^double x]
+  (hg/weniger-2F0 a b x))
+
+(defn tricomis-U
+  "Confluent hypergeometric function U of the second kind."
+  ^double [^double a ^double b ^double x]
+  (cond
+    ;; wolfram alpha
+    (m/zero? x) (if (m/< b 1.0)
+                  (m// (gamma (m/- 1.0 b)) (gamma (m/inc (m/- a b))))
+                  ##NaN)
+    (m/== a b) (m/* (m/exp x) (upper-incomplete-gamma (m/- 1.0 a) x))
+    (m/== a (m/dec b)) (m/pow x (m/- a))    
+    :else (m/* (m/pow x (m/- a)) (hg/weniger-2F0 a (m/inc (m/- a b)) (m/- (m// x))))))
+
+(defn whittaker-W
+  "Whittaker's W"
+  ^double [^double kappa ^double mu ^double x]
+  (let [mu+05 (m/+ 0.5 mu)
+        z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
+    (m/* z (tricomis-U (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))
+
+(defn hypergeometric-2F1
+  "Gauss's hypergeometric ₂F₁ function."
+  ^double [^double a ^double b ^double c ^double x]
+  (hg/hypergeometric-2F1 a b c x))
+
+;;
+
+(defn- reduce-m-pFq
+  ^double [^doubles a ^long l ^long k ^double r]
+  (loop [i (long 0) r r]
+    (if (m/== i l) r
+        (recur (m/inc i) (m/* r (m/+ (Array/aget a i) k))))))
+
+(defn- reduce-d-pFq
+  ^double [^doubles a ^long l ^long k ^double r]
+  (loop [i (long 0) r r]
+    (if (m/== i l) r
+        (recur (m/inc i) (m// r (m/+ (Array/aget a i) k))))))
+
+(defn hypergeometric-pFq
+  "hypergeometric-pFq using MacLaurin series."
+  ^double [ps qs ^double z]
+  (let [a (double-array ps)
+        la (alength a)
+        b (double-array qs)
+        lb (alength b)]
+    (loop [k (long 1)
+           s0 1.0
+           s1 (m/inc (m// (m/* z (v/prod a)) (v/prod b)))]
+      (if (and (m/< k 1000000)
+               (not (m/delta-eq s0 s1 m/MACHINE-EPSILON10 m/MACHINE-EPSILON10)))
+        (let [rk (m// z (m/inc k)) 
+              rk (reduce-m-pFq a la k rk)
+              rk (reduce-d-pFq b lb k rk)]
+          (recur (m/inc k) s1 (m/+ s1 (m/* (m/- s1 s0) rk))))
+        s1))))
+
+(set! *unchecked-math* true)
+
+(defn hypergeometric-pFq-ratio
+  "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow."
+  (^double [ps qs z] (hypergeometric-pFq-ratio ps qs z 100000))
+  (^double [ps qs z ^long iters]
+   (let [a (map rationalize ps)
+         b (map rationalize qs)
+         z (rationalize z)
+         eps (rationalize m/MACHINE-EPSILON10)]
+     (loop [k (long 1)
+            s0 (rationalize 1)
+            s1 (+ 1 (/ (* z (reduce * a)) (reduce * b)))]
+       (if (and (m/< k iters)
+                (> (abs (- s1 s0)) (max eps (* eps (max s1 s0)))))
+         (let [rk (/ z (+ k 1))
+               rk (reduce (fn [r va] (* r (+ va k))) rk a)
+               rk (reduce (fn [r vb] (/ r (+ vb k))) rk b)]
+           (recur (m/inc k) s1 (+ s1 (* (- s1 s0) rk))))
+         s1)))))

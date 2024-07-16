@@ -272,7 +272,7 @@
 
 (defn linear->db
   "Linear to DB"
-  ^double [x]
+  ^double [^double x]
   (* 20.0 (m/log10 x)))
 
 ;; ## Effects / Filters

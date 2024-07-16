@@ -10,9 +10,11 @@
                           :fontsize "0.9em"}}
           :code-block-background true
           :title "Fastmath documentation"}
- :subdirs-to-sync nil
+ :book {:favicon "clay/resources/favicon.png"
+        :title "Fastmath documentation"}
+ :subdirs-to-sync ["clay/resources/"]
  :clean-up-target-dir true
  :format [:quarto :html]
  :base-source-path "clay/"
  :base-target-path "docs/clay"
- :kindly/options {:kinds-that-hide-code #{ :kind/hiccup :kind/fragment :kind/image :kind/table}}}
+ :kindly/options {:kinds-that-hide-code #{:kind/hiccup :kind/fragment :kind/image :kind/table}}}
