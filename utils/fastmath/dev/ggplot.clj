@@ -1,4 +1,4 @@
-(ns ggplot
+(ns fastmath.dev.ggplot
   "Fastmath charts"
   (:require [clojisr.v1.r :as r]
             [clojisr.v1.applications.plotting :as rplot]

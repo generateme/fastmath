@@ -457,62 +457,59 @@
   ^double [^double a ^double b ^double c ^double x]
   (let [absa (m/abs a)
         absb (m/abs b)
-        ab (m/* a b)]
-    (if (or (m/< (m/abs x) m/MACHINE-EPSILON)
-            (m/< (m/abs ab) (m/ulp (m/* absa absb))))
-      1.0
-      (let [ulo (m// ab c)
-            rlo 1.0
-            a0 (m/* (m/inc a) (m/inc b))
-            b0 (m/* 2.0 (m/inc c))
-            umid (m// (m/- b0 (m/* a0 x)))
-            rmid (m/+ rlo (m/* b0 x umid ulo))]
-        (if (m/< (m/abs a0) (m/ulp (m/* (m/inc absa) (m/inc absb))))
-          rmid
-          (let [umid (m/* umid a0)
-                a0 (m/* (m/+ a 2.0) (m/+ b 2.0))
-                b0 (m/* 6.0 (m/+ c 2.0))
-                b1 (m/* -6.0 c)
-                t0 (m/- b0 (m/* (m/- 6.0 (m/* 3.0 ab)) x))
-                t1 (m/+ b1 (m/* 2.0 (m/+ (m/* 2.0 ab) a b -1.0) x))
-                uhi (m// (m/+ t0 (m/* t1 x umid)))
-                rhi (m/* (m/+ (m/* t0 rmid)
-                              (m/* (m/+ (m/* t1 rlo)
-                                        (m/* b1 x ulo)) x umid)) uhi)]
-            (if (m/< (m/abs a0) (m/ulp (m/* (m/+ absa 2.0) (m/+ absb 2.0))))
-              rhi
-              (let [uhi (m/* uhi a0)
-                    z2 (m/* x x)]
-                (loop [k (long 2)
-                       uhi uhi umid umid
-                       rhi rhi rmid rmid rlo rlo]
-                  (if (or (m/< k 5)                          
-                          (and (m/< k 1048576) (m/> (m/abs (m/- rmid rhi)) (m/* m/MACHINE-EPSILON10
-                                                                                (m/max (m/abs rmid)
-                                                                                       (m/abs rhi))))))
-                    (let [k+ (m/inc k)
-                          k2 (m/* 2 k)
-                          k3 (m/* 3 k)
-                          k2+ (m/inc k2)
-                          k2- (m/dec k2)
-                          k42 (m/+ (m/* 4 k) 2)
-                          a+b+ (m/* (m/inc a) (m/inc b))
-                          a0 (m/* (m/+ a k+) (m/+ b k+))
-                          a2 (m/* z2 (m// (m/* (m/inc (m/- a k)) (m/inc (m/- b k)) k2+) k2-))
-                          b0 (m/* k42 (m/+ c k+))
-                          b1 (m/* k42 (m/- k c 1.0))
-                          t0 (m/- b0 (m/* x (m// (m/* (m/- (m/* k (m/+ a b k3)) a+b+) k2+) k2-)))
-                          t1 (m/- b1 (m/* x (m/- (m/* k (m/- k3 a b)) a+b+)))
-                          nuhi (m// (m/+ t0 (m/* (m/- t1 (m/* a2 umid)) x uhi)))
-                          nrhi (m/* nuhi (m/+ (m/* t0 rhi)
-                                              (m/* (m/- (m/* t1 rmid) (m/* a2 rlo umid)) x uhi)))]
-                      (if (m/< (m/abs a0) (m/ulp (m/* (m/+ absa k+) (m/+ absb k+))))
-                        nrhi
-                        (recur (m/inc k) (m/* a0 nuhi) uhi nrhi rhi rmid)))
-                    (cond
-                      (m/valid-double? rhi) rhi
-                      (m/valid-double? rmid) rmid
-                      :else rlo)))))))))))
+        ab (m/* a b)
+        ulo (m// ab c)
+        rlo 1.0
+        a0 (m/* (m/inc a) (m/inc b))
+        b0 (m/* 2.0 (m/inc c))
+        umid (m// (m/- b0 (m/* a0 x)))
+        rmid (m/+ rlo (m/* b0 x umid ulo))]
+    (if (m/< (m/abs a0) (m/ulp (m/* (m/inc absa) (m/inc absb))))
+      rmid
+      (let [umid (m/* umid a0)
+            a0 (m/* (m/+ a 2.0) (m/+ b 2.0))
+            b0 (m/* 6.0 (m/+ c 2.0))
+            b1 (m/* -6.0 c)
+            t0 (m/- b0 (m/* (m/- 6.0 (m/* 3.0 ab)) x))
+            t1 (m/+ b1 (m/* 2.0 (m/+ (m/* 2.0 ab) a b -1.0) x))
+            uhi (m// (m/+ t0 (m/* t1 x umid)))
+            rhi (m/* (m/+ (m/* t0 rmid)
+                          (m/* (m/+ (m/* t1 rlo)
+                                    (m/* b1 x ulo)) x umid)) uhi)]
+        (if (m/< (m/abs a0) (m/ulp (m/* (m/+ absa 2.0) (m/+ absb 2.0))))
+          rhi
+          (let [uhi (m/* uhi a0)
+                z2 (m/* x x)]
+            (loop [k (long 2)
+                   uhi uhi umid umid
+                   rhi rhi rmid rmid rlo rlo]
+              (if (or (m/< k 5)                          
+                      (and (m/< k 1048576) (m/> (m/abs (m/- rmid rhi)) (m/* m/MACHINE-EPSILON10
+                                                                            (m/max (m/abs rmid)
+                                                                                   (m/abs rhi))))))
+                (let [k+ (m/inc k)
+                      k2 (m/* 2 k)
+                      k3 (m/* 3 k)
+                      k2+ (m/inc k2)
+                      k2- (m/dec k2)
+                      k42 (m/+ (m/* 4 k) 2)
+                      a+b+ (m/* (m/inc a) (m/inc b))
+                      a0 (m/* (m/+ a k+) (m/+ b k+))
+                      a2 (m/* z2 (m// (m/* (m/inc (m/- a k)) (m/inc (m/- b k)) k2+) k2-))
+                      b0 (m/* k42 (m/+ c k+))
+                      b1 (m/* k42 (m/- k c 1.0))
+                      t0 (m/- b0 (m/* x (m// (m/* (m/- (m/* k (m/+ a b k3)) a+b+) k2+) k2-)))
+                      t1 (m/- b1 (m/* x (m/- (m/* k (m/- k3 a b)) a+b+)))
+                      nuhi (m// (m/+ t0 (m/* (m/- t1 (m/* a2 umid)) x uhi)))
+                      nrhi (m/* nuhi (m/+ (m/* t0 rhi)
+                                          (m/* (m/- (m/* t1 rmid) (m/* a2 rlo umid)) x uhi)))]
+                  (if (m/< (m/abs a0) (m/ulp (m/* (m/+ absa k+) (m/+ absb k+))))
+                    nrhi
+                    (recur (m/inc k) (m/* a0 nuhi) uhi nrhi rhi rmid)))
+                (cond
+                  (m/valid-double? rhi) rhi
+                  (m/valid-double? rmid) rmid
+                  :else rlo)))))))))
 
 (defn general-2F1
   ^double [^double a ^double b ^double c ^double x]
@@ -547,56 +544,56 @@
                                                    (one-2F1 a (m/- c b) c (m// x (m/dec x))))
     :else (weniger-2F1 a b c x)))
 
-(general-2F1 1.1 2.2 4.1 0.9)
-
-
 (defn hypergeometric-2F1
   "Gauss's hypergeometric ₂F₁ function."
   ^double [^double a ^double b ^double c ^double x]
-  (cond
-    (m/zero? x) 1.0
-    (m/< b a) (hypergeometric-2F1 b a c x)
-    (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
-    (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
-    (m/== c 0.5) (let [a+b (m/+ a b)]
-                   (cond
-                     (m/zero? a+b) (cosnasinsqrt (m/* 2.0 b) x)
-                     (m/one? a+b) (m/* (cosnasinsqrt (m/- 1.0 (m/* 2.0 b)) x)
-                                       (m/exp (m/* -0.5 (m/log1p (m/- x)))))
-                     (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/* -2.0 a) x)
-                     :else (general-2F1 a b c x)))
-    (m/== c 1.5) (cond
-                   (m/== a b 0.5) (sqrtasinsqrt x)
-                   (m/== a b 1.0) (m/* (sqrtasinsqrt x)
-                                       (m/exp (m/* -0.5 (m/log1p (m/- x)))))
-                   (and (m/== a 0.5)
-                        (m/one? b)) (sqrtatanhsqrt x)
-                   (m/one? (m/+ a b)) (sinnasinsqrt (m/- 1.0 (m/* 2.0 b)) x)
-                   (m/== (m/+ a b) 2.0) (m/* (sinnasinsqrt (m/- 2.0 (m/* 2.0 b)) x)
-                                             (m/exp (m/* -0.5 (m/log1p (m/- x)))))
-                   (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/- 1.0 (m/* -2.0 a)) x)
-                   :else (general-2F1 a b c x))
-    (m/== c 2.0) (cond
-                   (m/== a b 1.0) (log1pover (m/- x))
-                   (and (m/one? b) (m/== (m/rint a) a)) (expm1nlog1p (m/- 1.0 a) (m/- x))
-                   (and (m/one? a) (m/== (m/rint b) b)) (expm1nlog1p (m/- 1.0 b) (m/- x))
-                   :else (general-2F1 a b c x))
-    (and (m/== c 4.0)
-         (m/== a b 2.0)) (if (m/> (m/abs x) 0.2)
-                           (m// (m/* 6.0 (m/+ (m/* -2.0 x)
-                                              (m/* (m/- x 2.0) (m/log1p (m/- x))))) (m/* x x x))
-                           (poly/mevalpoly x 1.0, 1.0, 0.9, 0.8, 0.7142857142857143, 0.6428571428571429, 0.5833333333333334, 0.5333333333333333, 0.4909090909090909, 0.45454545454545453, 0.4230769230769231, 0.3956043956043956, 0.37142857142857144, 0.35, 0.33088235294117646, 0.3137254901960784, 0.2982456140350877, 0.28421052631578947, 0.2714285714285714, 0.2597402597402597))
-    (and (m/== c 2.5)
-         (m/one? a)
-         (m/== b 1.5)) (cond
-                         (m/> x 0.2) (let [s (m/sqrt x)]
-                                       (m// (m/* 3.0 (m/- (m/atanh s) s))
-                                            (m/* s s s)))
-                         (m/< x -0.2) (let [s (m/sqrt (m/- x))]
-                                        (m// (m/* 3.0 (m/- s (m/atan s)))
-                                             (m/* s s s)))
-                         :else (spoly/clenshaw-chebyshev (m/* 5.0 x) spoly/hg-2F1-poly))
-    :else (general-2F1 a b c x)))
+  (let [absa (m/abs a)
+        absb (m/abs b)]
+    (cond
+      (or (m/< (m/abs x) m/MACHINE-EPSILON)
+          (m/< (m/abs (m/* a b)) (m/ulp (m/* absa absb)))) 1.0
+      (m/< b a) (hypergeometric-2F1 b a c x)
+      (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
+      (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
+      (m/== c 0.5) (let [a+b (m/+ a b)]
+                     (cond
+                       (m/zero? a+b) (cosnasinsqrt (m/* 2.0 b) x)
+                       (m/one? a+b) (m/* (cosnasinsqrt (m/- 1.0 (m/* 2.0 b)) x)
+                                         (m/exp (m/* -0.5 (m/log1p (m/- x)))))
+                       (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/* -2.0 a) x)
+                       :else (general-2F1 a b c x)))
+      (m/== c 1.5) (cond
+                     (m/== a b 0.5) (sqrtasinsqrt x)
+                     (m/== a b 1.0) (m/* (sqrtasinsqrt x)
+                                         (m/exp (m/* -0.5 (m/log1p (m/- x)))))
+                     (and (m/== a 0.5)
+                          (m/one? b)) (sqrtatanhsqrt x)
+                     (m/one? (m/+ a b)) (sinnasinsqrt (m/- 1.0 (m/* 2.0 b)) x)
+                     (m/== (m/+ a b) 2.0) (m/* (sinnasinsqrt (m/- 2.0 (m/* 2.0 b)) x)
+                                               (m/exp (m/* -0.5 (m/log1p (m/- x)))))
+                     (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/- 1.0 (m/* -2.0 a)) x)
+                     :else (general-2F1 a b c x))
+      (m/== c 2.0) (cond
+                     (m/== a b 1.0) (log1pover (m/- x))
+                     (and (m/one? b) (m/== (m/rint a) a)) (expm1nlog1p (m/- 1.0 a) (m/- x))
+                     (and (m/one? a) (m/== (m/rint b) b)) (expm1nlog1p (m/- 1.0 b) (m/- x))
+                     :else (general-2F1 a b c x))
+      (and (m/== c 4.0)
+           (m/== a b 2.0)) (if (m/> (m/abs x) 0.2)
+                             (m// (m/* 6.0 (m/+ (m/* -2.0 x)
+                                                (m/* (m/- x 2.0) (m/log1p (m/- x))))) (m/* x x x))
+                             (poly/mevalpoly x 1.0, 1.0, 0.9, 0.8, 0.7142857142857143, 0.6428571428571429, 0.5833333333333334, 0.5333333333333333, 0.4909090909090909, 0.45454545454545453, 0.4230769230769231, 0.3956043956043956, 0.37142857142857144, 0.35, 0.33088235294117646, 0.3137254901960784, 0.2982456140350877, 0.28421052631578947, 0.2714285714285714, 0.2597402597402597))
+      (and (m/== c 2.5)
+           (m/one? a)
+           (m/== b 1.5)) (cond
+                           (m/> x 0.2) (let [s (m/sqrt x)]
+                                         (m// (m/* 3.0 (m/- (m/atanh s) s))
+                                              (m/* s s s)))
+                           (m/< x -0.2) (let [s (m/sqrt (m/- x))]
+                                          (m// (m/* 3.0 (m/- s (m/atan s)))
+                                               (m/* s s s)))
+                           :else (spoly/clenshaw-chebyshev (m/* 5.0 x) spoly/hg-2F1-poly))
+      :else (general-2F1 a b c x))))
 
 ;;
 

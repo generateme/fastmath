@@ -3,8 +3,9 @@
   (:require [scicloj.kindly.v4.kind :as kind]
             [scicloj.kindly.v4.api :as kindly]
             [scicloj.clay.v2.api :as clay]
-
-            [codox]))
+            
+            [fastmath.dev.clay :as utls]
+            [fastmath.core :as m]))
 
 ^:kindly/hide-code
 (def md (comp kindly/hide-code
@@ -38,10 +39,72 @@
 {:column-names ["A" "B" "C"]
  :row-vectors [[1 2 3] [:a :b :c]]}
 
+;; ::: {layout="[50,50]"}
+
+;; ::: {#first-column}
+
+^:kindly/hide-code
+(kind/code "(+ 1 2 3)")
+
+^:kindly/hide-code
+(+ 1 2 3)
+
+^:kindly/hide-code
+(kind/code "(* 3 4 5 6 7)")
+
+^:kindly/hide-code
+(* 3 4 5 6 7)
+
+^:kindly/hide-code
+(kind/code "(range 25)")
+
+;; :::
+
+;; ::: {#second-column}
+
+^:kindly/hide-code
+(range 25)
+
+^:kindly/hide-code
+(kind/code
+ "(filter (fn [v] (odd? v))
+(map (fn [v] (inc v) 
+(range 5)))")
+
+^:kindly/hide-code
+(filter odd? (map inc (range 5)))
+
+^:kindly/hide-code
+(kind/code
+ "(filter (fn [v] (odd? v))
+(map (fn [v] (inc v) 
+(range 5)))")
+
+^:kindly/hide-code
+(filter odd? (map inc (range 5)))
+
+;; :::
+
+;; :::
+
+
+
+(utls/examples-note (+ 1 2) [1] m/PI)
+
+
 ;; some
 
 ^:kindly/hide-code
 (comment
   (clay/make! {:source-path ["index.clj"
-                             "special.clj"
-                             "core.clj"]}))
+                             "core.clj"
+                             "vector_matrix.clj"
+                             "random.clj"
+                             "stats.clj"
+                             "integration.clj"
+                             "complex_quaternions.clj"
+                             "special.clj"]
+               :book {:favicon "clay/resources/favicon.png"
+                      :title "Fastmath documentation"}}))
+
+

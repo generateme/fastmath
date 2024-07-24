@@ -378,7 +378,7 @@ public final class Array {
 
     public static double product(double[] a) {
         int l = a.length;
-        if(l==0) return 0.0;
+        if(l==0) return 1.0;
 
         double s = 1.0;
         for(int i=0; i<l; i++) {

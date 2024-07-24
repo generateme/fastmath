@@ -112,7 +112,7 @@
   [{:keys [^double nugget ^double psill ^double range]}]
   (fn ^double [^double x]
     (cond
-      (zero? x) 0.0
+      (m/zero? x) 0.0
       (m/< range x) (m/+ nugget psill)
       :else (let [xr (m// x range)
                   xr2 (m/* xr xr)]
@@ -215,6 +215,58 @@
                     (m/* psill)
                     (m/+ nugget)))))))))
 
+;; https://gmd.copernicus.org/preprints/gmd-2021-301/gmd-2021-301.pdf
+(defn ->hyperspherical
+  "Creator of the hyperspherical semivariogram model."
+  ([] (->hyperspherical 2.0))
+  ([^double order]
+   (let [d (m/* (m/dec order) -0.5)
+         denom (special/hypergeometric-2F1 0.5 d 1.5 1.0)]
+     (fn [{:keys [^double nugget ^double psill ^double range]}]
+       (fn ^double [^double x]
+         (cond
+           (m/zero? x) 0.0
+           (m/< range x) (m/+ nugget psill)
+           :else (let [h (m// x range)]
+                   (->> (m/* h (m// (special/hypergeometric-2F1 0.5 d 1.5 (m/* h h))
+                                    denom))
+                        (m/* psill)
+                        (m/+ nugget)))))))))
+
+(defn ->superspherical
+  "Creator of the superspherical semivariogram model."
+  ([] (->superspherical 1.0))
+  ([^double order]
+   (let [d (m/- order)
+         denom (special/hypergeometric-2F1 0.5 d 1.5 1.0)]
+     (fn [{:keys [^double nugget ^double psill ^double range]}]
+       (fn ^double [^double x]
+         (cond
+           (m/zero? x) 0.0
+           (m/< range x) (m/+ nugget psill)
+           :else (let [h (m// x range)]
+                   (->> (m/* h (m// (special/hypergeometric-2F1 0.5 d 1.5 (m/* h h))
+                                    denom))
+                        (m/* psill)
+                        (m/+ nugget)))))))))
+
+(defn ->tplstable
+  "Creator of the superspherical semivariogram model."
+  ([] (->tplstable 0.5))
+  ([^double H]
+   (let [H2 (m/* 2.0 H)]
+     (fn [{:keys [^double nugget ^double psill ^double range ^double beta]}]
+       (fn ^double [^double x]
+         (if (m/zero? x) 0.0
+             (let [h (m// x range)
+                   Ha (m// H2 beta)]
+               (->> (m/pow h beta)
+                    (special/En (m/inc Ha))
+                    (m/* Ha)
+                    (m/- 1.0)
+                    (m/* psill)
+                    (m/+ nugget)))))))))
+
 (defn rbf->variogram
   "Build semivariogram model based on RBF kernel.
 
@@ -243,7 +295,13 @@
                              :cauchy cauchy
                              :rational rational})
 
-(def ^:private power-semivariograms #{:power :expower :cauchy :rational :tpower})
+(def ^:private power-semivariograms #{:power :expower :cauchy :rational :tpower :tplstable})
+
+(def ^:private ->semivariograms {:bessel ->bessel
+                               :matern ->matern
+                               :superspherical ->superspherical
+                               :hyperspherical ->hyperspherical
+                               :tplstable ->tplstable})
 
 ;; Highly Robust Variogram Estimation
 ;; Marc G. Genton
@@ -434,13 +492,13 @@
 (defn fit-params
   "Fits a model and a pair of selected semivariogram model and fitted parameters."
   ([empirical-semivariogram semivariogram-model] (fit-params empirical-semivariogram semivariogram-model nil))
-  ([empirical-semivariogram semivariogram-model {:keys [estimation weights defaults order]
+  ([empirical-semivariogram semivariogram-model {:keys [estimation weights defaults parameter]
                                                  :or {estimation :sq}}]
-   (let [semivariogram-fn (cond
-                            (fn? semivariogram-model) (rbf->variogram semivariogram-model)
-                            (= :bessel semivariogram-model) (if order (->bessel order) (->bessel))
-                            (= :matern semivariogram-model) (if order (->matern order) (->matern))
-                            :else (semivariograms semivariogram-model))
+   (let [semivariogram-fn (if (fn? semivariogram-model)
+                            (rbf->variogram semivariogram-model)
+                            (if-let [->sv (->semivariograms semivariogram-model)]
+                              (if parameter (->sv parameter) (->sv))
+                              (semivariograms semivariogram-model)))
          
          target-args (infer-target-args defaults (if (power-semivariograms semivariogram-model)
                                                    [:nugget :psill :range :beta]
@@ -510,7 +568,7 @@
   * parameters:
       * `:estimation` - estimation used to fit the model, `:sq` - least squares (default), `:abs` - least absolute values
       * `:weights` - fitting weights (default: `nil`, no weights)
-      * `:order` - order for `:bessel` semivariogram model
+      * `:parameter` - order for `:bessel`, `:matern` and `:supershperical`, H for `:tplstable` or d for `:hyperspherical` semivariogram models
       * `:defaults` - a map containing semivariogram model parameters which should be a fixed value, fitting will be done for the lacking ones only.
 
   Weights can be a sequence of weights or one of the following methods:

@@ -1,21 +1,9 @@
-;; # Namespace scope
-;;
-;; Collection of math function:
-;;
-;; * Several constants from Java, C, Processing, etc.
-;; * Functions based on FastMath exposed as macros or functions (trigonometry, powers/logarithms/roots, rounding)
-;; * Primitive operators (as in primitive-math package)
-;; * Additional math functions (signum, constrain, interpolation)
-;; * Statistics
-
 (ns fastmath.core
   "Collection of fast math functions and plethora of constants known from other math libraries.
 
   ### Primitive math operators
 
-  Based on [Primitive Math by Zach Tellman](https://github.com/ztellman/primitive-math) several operators are introduced and replace `clojure.core` functions. All operators are macros and can't be used as functions. List includes:
-
-  Known from Clojure: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-and-not` `bit-set` `bit-clear` `bit-test` `bit-flip` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
+  Inlined function operating on double/longs as a replacement of Clojure numerical tower: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-and-not` `bit-set` `bit-clear` `bit-test` `bit-flip` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
 
   And additionally:
 
@@ -24,18 +12,12 @@
   * `>>>` - unsigned bit shift right
   * `not==` - not equal
 
-  Warning: All `bool-` evaluate all parameters.
-  
   To turn on primitive math on your namespace call [[use-primitive-operators]].
-  To turn off and revert original versions call [[unuse-primitive-operators]]
+  To turn off and revert original versions call [[unuse-primitive-operators]] which is recomended when Clojure 1.12+ is used.
 
-  ### Fast Math
+  ### FastMath
 
-  Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Most of them are macros. Some of them are wrapped in Clojure functions. Almost all operates on primitive `double` and returns `double` (with an exception [[round]] or [[qround]] which returns `long`).
-
-  ### Other functions
-
-  Additionally namespace contains functions which are common in frameworks like OpenFrameworks and Processing."
+  Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Almost all operates on primitive `double` and returns `double` or `long`"
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
   (:import [net.jafama FastMath]
@@ -103,7 +85,7 @@
 (defn long-add
   {:inline (primitivemath-nary-inline-long 'add nil 0)
    :inline-arities >=0?
-   :doc "Primitive and inlined `+`. Coerces arguments and returned values to longs."}
+   :doc "Primitive and inlined `+`. Coerces arguments and returned value to a long."}
   (^long [] 0)
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (add a b)))
@@ -126,7 +108,7 @@
 (defn long-sub
   {:inline (primitivemath-nary-inline-long 'subtract 'negate)
    :inline-arities >=1?
-   :doc "Primitive and inlined `-`. Coerces arguments and returned values to longs."}
+   :doc "Primitive and inlined `-`. Coerces arguments and returned value to a long."}
   (^long [^long a] (. PrimitiveMath (negate a)))
   (^long [^long a ^long b] (. PrimitiveMath (subtract a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (subtract (. PrimitiveMath (subtract a b)) c)))
@@ -149,7 +131,7 @@
 (defn long-mult
   {:inline (primitivemath-nary-inline-long 'multiply nil 1)
    :inline-arities >=0?
-   :doc "Primitive and inlined `*`. Coerces arguments and returned values to longs."}
+   :doc "Primitive and inlined `*`. Coerces arguments and returned value to a long."}
   (^long [] 1)
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (multiply a b)))
@@ -172,7 +154,7 @@
 (defn long-div
   {:inline (primitivemath-nary-inline-long 'subtract 'reciprocal)
    :inline-arities >=1?
-   :doc "Primitive and inlined `/`. Coerces to arguments and returned values to longs."}
+   :doc "Primitive and inlined `/`. Coerces to arguments and returned value to a long."}
   (^double [^long a] (. PrimitiveMath (reciprocal a)))
   (^long [^long a ^long b] (. PrimitiveMath (divide a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (divide (. PrimitiveMath (divide a b)) c)))
@@ -665,7 +647,7 @@
 (def ^{:const true :tag 'double :doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
 (def ^{:const true :tag 'double :doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
 (def ^{:const true :tag 'double :doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
-(def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.915965594177219015054603514932384110774)
+(def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.915965594177219)
 
 (defonce ^{:const true :tag 'double :doc "ULP(1)/2. Half of the smallest difference between 1.0 and next possible double floating point number."}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
@@ -863,7 +845,7 @@
   ^double [^double x] (/ (FastMath/cosh x)))
 
 (defn csch
-  "Hyperbilic cosecant"
+  "Hyperbolic cosecant"
   {:inline (fn [x] `(/ (sinh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (/ (FastMath/sinh x)))

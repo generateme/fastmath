@@ -4,7 +4,7 @@
             [fastmath.interpolation :as i]
             [fastmath.interpolation.linear :as linear]
             [fastmath.core :as m]
-            [ggplot]
+            [fastmath.dev.ggplot :as ggplot]
             [clojisr.v1.r :as R]
             [fastmath.random :as r]
             [fastmath.interpolation.cubic :as cubic]
@@ -533,6 +533,8 @@
         (ggplot/ylim [0 nil])
         (ggplot/->file))))
 
+(def empirical-matheron-1d (variogram/empirical xs1 ys1))
+
 (def empirical-matheron (variogram/empirical xss ys3 {:size 20}))
 empirical-matheron
 
@@ -577,6 +579,15 @@ empirical-highly-robust
 (def variogram-pentaspherical (variogram/fit empirical-highly-robust :pentaspherical))
 (def variogram-rbf-wendland-2-3 (variogram/fit empirical-highly-robust (kernel/rbf :wendland {:s 2 :k 3})))
 
+(def variogram-superspherical (variogram/fit empirical-matheron :superspherical))
+(def variogram-superspherical-1d (variogram/fit empirical-matheron-1d :tplstable {:order 1.9 :defaults {:beta 14.0}}))
+
+(((variogram/->superspherical 1.0) {:nugget 0.1 :psill 0.5 :range 1.0}) 0.4)
+
+(ggplot/->file (ggplot/function variogram-superspherical-1d {:x [0 5]}))
+
+(variogram-superspherical-1d)
+
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 {:row-vectors [[(svar-image variogram-linear empirical-quantile "Linear")
                 (svar-image variogram-gaussian empirical-highly-robust "Linear")]
@@ -587,6 +598,11 @@ empirical-highly-robust
 (def kriging-gaussian (kriging/kriging xss ys3 variogram-gaussian))
 (def kriging-pentaspherical (kriging/kriging xss ys3 variogram-pentaspherical))
 (def kriging-rbf-wendland-2-3 (kriging/kriging xss ys3 variogram-rbf-wendland-2-3))
+
+(def kriging-superspherical (kriging/kriging xss ys3 variogram-superspherical))
+
+(-> (ggplot/function2d kriging-superspherical {:x [20 180] :y [20 180] :steps 100})
+    (ggplot/->file))
 
 (error-2d kriging-linear)
 

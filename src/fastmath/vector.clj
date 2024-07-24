@@ -137,7 +137,7 @@
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/+ 0.0 v))
-   :prod (fn ^double [v] (if (seq v) (reduce m/* v) 0.0))
+   :prod (fn ^double [v] (reduce m/* 1.0 v))
    :size count
    :permute #(mapv (fn [idx] (%1 idx)) %2)
    :reciprocal #(mapv (fn [^double v] (/ v)) %)

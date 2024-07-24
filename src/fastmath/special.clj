@@ -3,6 +3,8 @@
 
   * Bessel J, Y, jinc
   * Modified Bessel I, K 
+  * Spherical Bessel j, y
+  * Modified spherical Bessel i1, i2, k
   * Gamma, log, digamma, trigamma, polygamma, regularized, lower/upper incomplete
   * Beta, log, regularized, incomplete
   * Erf, inverse
@@ -1201,32 +1203,161 @@
             (m/+ (bessel-i-positive-args a x)
                  (m/* m/M_2_PI (m/sin (m/* m/PI a)) (bessel-K a x))))))
 
+;; spherical
+
+(defn spherical-bessel-j0
+  "Spherical Bessel function of the first kind and order 0."
+  ^double [^double x]
+  (if (m/zero? x) 1.0
+      (m// (m/sin x) x)))
+
+(defn spherical-bessel-j1
+  "Spherical Bessel function of the first kind and order 1."
+  ^double [^double x]
+  (if (m/zero? x) 0.0
+      (m/- (m// (m/sin x) (m/* x x))
+           (m// (m/cos x) x))))
+
+(defn spherical-bessel-j2
+  "Spherical Bessel function of the first kind and order 2."
+  ^double [^double x]
+  (if (m/zero? x) 0.0
+      (let [x32 (m// 3.0 (m/* x x))]
+        (m/- (m/* (m/- (m// x32 x) (m// x)) (m/sin x))
+             (m/* x32 (m/cos x))))))
+
+(defn spherical-bessel-j
+  "Spherical Bessel function of the first kind."
+  ^double [^double order ^double x]
+  (condp m/== order
+    0.0 (spherical-bessel-j0 x)
+    1.0 (spherical-bessel-j1 x)
+    2.0 (spherical-bessel-j2 x)
+    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-J (m/+ order 0.5) x))))
+
+(defn spherical-bessel-y0
+  "Spherical Bessel function of the second kind and order 0."
+  ^double [^double x]
+  (if (m/zero? x) ##-Inf
+      (m/- (m// (m/cos x) x))))
+
+(defn spherical-bessel-y1
+  "Spherical Bessel function of the second kind and order 1."
+  ^double [^double x]
+  (if (m/zero? x) ##-Inf
+      (m/- (m/- (m// (m/cos x) (m/* x x)))
+           (m// (m/sin x) x))))
+
+(defn spherical-bessel-y2
+  "Spherical Bessel function of the second kind and order 2."
+  ^double [^double x]
+  (if (m/zero? x) ##-Inf
+      (let [x32 (m// 3.0 (m/* x x))]
+        (m/- (m/* (m/- (m// x) (m// x32 x)) (m/cos x))
+             (m/* x32 (m/sin x))))))
+
+(defn spherical-bessel-y
+  "Spherical Bessel function of the second kind."
+  ^double [^double order ^double x]
+  (condp m/== order
+    0.0 (spherical-bessel-y0 x)
+    1.0 (spherical-bessel-y1 x)
+    2.0 (spherical-bessel-y2 x)
+    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-Y (m/+ order 0.5) x))))
+
+(defn spherical-bessel-1-i0
+  "First modified spherical Bessel function of the first kind and order 0."
+  ^double [^double x]
+  (if (m/zero? x) 1.0
+      (m// (m/sinh x) x)))
+
+(defn spherical-bessel-1-i1
+  "First modified spherical Bessel function of the first kind and order 1."
+  ^double [^double x]
+  (if (m/zero? x) 0.0
+      (m/- (m// (m/cosh x) x) (m// (m/sinh x) (m/* x x)))))
+
+(defn spherical-bessel-1-i2
+  "First modified spherical Bessel function of the first kind and order 2."
+  ^double [^double x]
+  (if (m/zero? x) 0.0
+      (let [x32 (m// 3.0 (m/* x x))]
+        (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/sinh x))
+             (m/* x32 (m/cosh x))))))
+
+(defn spherical-bessel-1-i
+  "First modified spherical Bessel function of the first kind."
+  ^double [^double order ^double x]
+  (condp m/== order
+    0.0 (spherical-bessel-1-i0 x)
+    1.0 (spherical-bessel-1-i1 x)
+    2.0 (spherical-bessel-1-i2 x)
+    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/+ order 0.5) x))))
+
+(defn spherical-bessel-2-i0
+  "Second modified spherical Bessel function of the first kind and order 0."
+  ^double [^double x] (m// (m/cosh x) x))
+
+(defn spherical-bessel-2-i1
+  "Second modified spherical Bessel function of the first kind and order 1."
+  ^double [^double x] (m/- (m// (m/sinh x) x) (m// (m/cosh x) (m/* x x))))
+
+(defn spherical-bessel-2-i2
+  "Second modified spherical Bessel function of the first kind and order 2."
+  ^double [^double x] (let [x32 (m// 3.0 (m/* x x))]
+                        (m/- (m/* (m/+ (m// x) (m// x32 x)) (m/cosh x))
+                             (m/* x32 (m/sinh x)))))
+
+(defn spherical-bessel-2-i
+  "Second modified spherical Bessel function of the first kind."
+  ^double [^double order ^double x]
+  (condp m/== order
+    0.0 (spherical-bessel-2-i0 x)
+    1.0 (spherical-bessel-2-i1 x)
+    2.0 (spherical-bessel-2-i2 x)
+    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-I (m/- (m/+ order 0.5)) x))))
+
+(defn spherical-bessel-k0
+  "Modified spherical Bessel function of the second kind and order 0."
+  ^double [^double x] (m/* m/HALF_PI (m// (m/exp (m/- x)) x)))
+
+(defn spherical-bessel-k1
+  "Modified spherical Bessel function of the second kind and order 1."
+  ^double [^double x] (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) (m// (m/* x x)))))
+
+(defn spherical-bessel-k2
+  "Modified spherical Bessel function of the second kind and order 2."
+  ^double [^double x] (let [x32 (m// 3.0 (m/* x x))]
+                        (m/* m/HALF_PI (m/exp (m/- x)) (m/+ (m// x) x32 (m// x32 x)))))
+
+(defn spherical-bessel-k
+  "Modified spherical Bessel function of the second kind."
+  ^double [^double order ^double x]
+  (condp m/== order
+    0.0 (spherical-bessel-k0 x)
+    1.0 (spherical-bessel-k1 x)
+    2.0 (spherical-bessel-k2 x)
+    (m/* (m/sqrt (m// m/HALF_PI x)) (bessel-K (m/+ order 0.5) x))))
+
 ;;
 
 (defn minkowski
   "Minkowski's question mark function ?(x)"
-  ^double [^double x]
-  (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
-    (if (m/< it 20)
-      (let [d (m/* d 0.5)
-            m (m/+ p r)
-            n (m/+ q s)
-            p? (m/< x (m// m n))]
-        (recur (inc it)
-               (if p? p m)
-               (if p? q n)
-               (if p? m r)
-               (if p? n s)
-               d
-               (if p? y (m/+ y d))))
-      (m/+ y d))))
-
-;;
+  (^double [^double x]
+   (loop [it (long 0) p 0.0 q 1.0 r 1.0 s 1.0 d 1.0 y 0.0]
+     (if (m/< d (m/ulp y))
+       (m/+ y d)
+       (let [d (m/* d 0.5)
+             m (m/+ p r)
+             n (m/+ q s)]
+         (if (m/< x (m// m n))
+           (recur (m/inc it) p q m n d y)
+           (recur (m/inc it) m n r s d (m/+ y d))))))))
 
 ;; sinint / cosint
 
 (defn Si
-  "Integral of sin(t)/t from 0 to x"
+  "Sine integral"
   ^double [^double x]
   (if (m/nan? x)
     ##NaN
@@ -1288,6 +1419,10 @@
                                                                      0.42519841479489798424E16)))))))
         :else (if (neg? x) m/-HALF_PI m/HALF_PI)))))
 
+(defn si
+  "Sine integral, Si shifted by -pi/2"
+  ^double [^double x] (m/- (Si x) m/HALF_PI))
+
 (def ^:private ^:const ^{:tag 'double} ci-r0 0.616505485620716233797110404100)
 (def ^:private ^:const ^{:tag 'double} ci-r1 3.384180422551186426397851146402)
 (def ^:private ^:const ^{:tag 'double} ci-r01 0.6162109375)
@@ -1296,7 +1431,7 @@
 (def ^:private ^:const ^{:tag 'double} ci-r12 0.39136005118642639785E-3)
 
 (defn Ci
-  "Negative of integral of cos(t)/t from x to inf"
+  "Cosine integral"
   ^double [^double x]
   (assert (not (neg? x)) "x must be non-negative")
   (if (m/nan? x)
@@ -1369,6 +1504,11 @@
                                                                      0.42519841479489798424E16)))))))        
         :else 0.0))))
 
+(defn Cin
+  "Cosine integral, alternative definition"
+  ^double [^double x]
+  (m/- (m/+ m/GAMMA (m/log x)) (Ci x)))
+
 ;; ei
 
 (defn- e1-cf-poly-approx
@@ -1440,7 +1580,7 @@
               :else (e1-taylor64 x 4)))))
 
 (defn Ein
-  "Exponential integral."
+  "Exponential integral, alternative definition"
   ^double [^double x]
   (if (m/zero? x)
     0.0
@@ -1798,7 +1938,7 @@
         (recur (m/inc i) nw)))))
 
 (defn lambert-W
-  "Lambert W function. W(xe^x)=x for x>=-1.0."
+  "Lambert W_0 function. W(xe^x)=x for x>=-1.0."
   ^double [^double x]
   (cond
     (m/< x -INVE) ##NaN
@@ -1941,29 +2081,34 @@
         (recur (m/inc i) (m// r (m/+ (Array/aget a i) k))))))
 
 (defn hypergeometric-pFq
-  "hypergeometric-pFq using MacLaurin series."
-  ^double [ps qs ^double z]
-  (let [a (double-array ps)
-        la (alength a)
-        b (double-array qs)
-        lb (alength b)]
-    (loop [k (long 1)
-           s0 1.0
-           s1 (m/inc (m// (m/* z (v/prod a)) (v/prod b)))]
-      (if (and (m/< k 1000000)
-               (not (m/delta-eq s0 s1 m/MACHINE-EPSILON10 m/MACHINE-EPSILON10)))
-        (let [rk (m// z (m/inc k)) 
-              rk (reduce-m-pFq a la k rk)
-              rk (reduce-d-pFq b lb k rk)]
-          (recur (m/inc k) s1 (m/+ s1 (m/* (m/- s1 s0) rk))))
-        s1))))
+  "hypergeometric-pFq using MacLaurin series.
+
+  `max-iters` is set to 1000000 by default."
+  (^double [ps qs ^double z] (hypergeometric-pFq ps qs z 1000000))
+  (^double [ps qs ^double z ^long max-iters]
+   (let [a (double-array ps)
+         la (alength a)
+         b (double-array qs)
+         lb (alength b)]
+     (loop [k (long 1)
+            s0 1.0
+            s1 (m/inc (m// (m/* z (v/prod a)) (v/prod b)))]
+       (if (and (m/< k max-iters)
+                (not (m/delta-eq s0 s1 m/MACHINE-EPSILON10 m/MACHINE-EPSILON10)))
+         (let [rk (m// z (m/inc k)) 
+               rk (reduce-m-pFq a la k rk)
+               rk (reduce-d-pFq b lb k rk)]
+           (recur (m/inc k) s1 (m/+ s1 (m/* (m/- s1 s0) rk))))
+         s1)))))
 
 (set! *unchecked-math* true)
 
 (defn hypergeometric-pFq-ratio
-  "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow."
-  (^double [ps qs z] (hypergeometric-pFq-ratio ps qs z 100000))
-  (^double [ps qs z ^long iters]
+  "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
+
+  `max-iters` is set to 10000 by default."
+  (^double [ps qs z] (hypergeometric-pFq-ratio ps qs z 10000))
+  (^double [ps qs z ^long max-iters]
    (let [a (map rationalize ps)
          b (map rationalize qs)
          z (rationalize z)
@@ -1971,7 +2116,7 @@
      (loop [k (long 1)
             s0 (rationalize 1)
             s1 (+ 1 (/ (* z (reduce * a)) (reduce * b)))]
-       (if (and (m/< k iters)
+       (if (and (m/< k max-iters)
                 (> (abs (- s1 s0)) (max eps (* eps (max s1 s0)))))
          (let [rk (/ z (+ k 1))
                rk (reduce (fn [r va] (* r (+ va k))) rk a)
