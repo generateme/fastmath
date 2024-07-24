@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-99.9.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Fastmath documentation – Complex numbers and quaternions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./special.html" rel="next">
+<link href="./stats.html" rel="prev">
+<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./complex_quaternions.html">Complex numbers and quaternions</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Fastmath documentation</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vectors and matrices</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./random.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistics</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Complex numbers and quaternions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./special.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Special functions</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#complex-numbers" id="toc-complex-numbers" class="nav-link active" data-scroll-target="#complex-numbers">Complex numbers</a>
+  <ul>
+  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a>
+  <ul>
+  <li><a href="#fastmath.complex" id="toc-fastmath.complex" class="nav-link" data-scroll-target="#fastmath.complex">fastmath.complex</a>
+  <ul class="collapse">
+  <li><a href="#i" id="toc-i" class="nav-link" data-scroll-target="#i">-I</a></li>
+  <li><a href="#i-1" id="toc-i-1" class="nav-link" data-scroll-target="#i-1">I</a></li>
+  <li><a href="#i-" id="toc-i-" class="nav-link" data-scroll-target="#i-">I-</a></li>
+  <li><a href="#one" id="toc-one" class="nav-link" data-scroll-target="#one">ONE</a></li>
+  <li><a href="#two" id="toc-two" class="nav-link" data-scroll-target="#two">TWO</a></li>
+  <li><a href="#zero" id="toc-zero" class="nav-link" data-scroll-target="#zero">ZERO</a></li>
+  <li><a href="#abs" id="toc-abs" class="nav-link" data-scroll-target="#abs">abs</a></li>
+  <li><a href="#acos" id="toc-acos" class="nav-link" data-scroll-target="#acos">acos</a></li>
+  <li><a href="#acosh" id="toc-acosh" class="nav-link" data-scroll-target="#acosh">acosh</a></li>
+  <li><a href="#acot" id="toc-acot" class="nav-link" data-scroll-target="#acot">acot</a></li>
+  <li><a href="#acoth" id="toc-acoth" class="nav-link" data-scroll-target="#acoth">acoth</a></li>
+  <li><a href="#acsc" id="toc-acsc" class="nav-link" data-scroll-target="#acsc">acsc</a></li>
+  <li><a href="#acsch" id="toc-acsch" class="nav-link" data-scroll-target="#acsch">acsch</a></li>
+  <li><a href="#add" id="toc-add" class="nav-link" data-scroll-target="#add">add</a></li>
+  <li><a href="#arg" id="toc-arg" class="nav-link" data-scroll-target="#arg">arg</a></li>
+  <li><a href="#asec" id="toc-asec" class="nav-link" data-scroll-target="#asec">asec</a></li>
+  <li><a href="#asech" id="toc-asech" class="nav-link" data-scroll-target="#asech">asech</a></li>
+  <li><a href="#asin" id="toc-asin" class="nav-link" data-scroll-target="#asin">asin</a></li>
+  <li><a href="#asinh" id="toc-asinh" class="nav-link" data-scroll-target="#asinh">asinh</a></li>
+  <li><a href="#atan" id="toc-atan" class="nav-link" data-scroll-target="#atan">atan</a></li>
+  <li><a href="#atanh" id="toc-atanh" class="nav-link" data-scroll-target="#atanh">atanh</a></li>
+  <li><a href="#complex" id="toc-complex" class="nav-link" data-scroll-target="#complex">complex</a></li>
+  <li><a href="#conjugate" id="toc-conjugate" class="nav-link" data-scroll-target="#conjugate">conjugate</a></li>
+  <li><a href="#cos" id="toc-cos" class="nav-link" data-scroll-target="#cos">cos</a></li>
+  <li><a href="#cosh" id="toc-cosh" class="nav-link" data-scroll-target="#cosh">cosh</a></li>
+  <li><a href="#cot" id="toc-cot" class="nav-link" data-scroll-target="#cot">cot</a></li>
+  <li><a href="#coth" id="toc-coth" class="nav-link" data-scroll-target="#coth">coth</a></li>
+  <li><a href="#csc" id="toc-csc" class="nav-link" data-scroll-target="#csc">csc</a></li>
+  <li><a href="#csch" id="toc-csch" class="nav-link" data-scroll-target="#csch">csch</a></li>
+  <li><a href="#csgn" id="toc-csgn" class="nav-link" data-scroll-target="#csgn">csgn</a></li>
+  <li><a href="#delta-eq" id="toc-delta-eq" class="nav-link" data-scroll-target="#delta-eq">delta-eq</a></li>
+  <li><a href="#div" id="toc-div" class="nav-link" data-scroll-target="#div">div</a></li>
+  <li><a href="#evalpoly" id="toc-evalpoly" class="nav-link" data-scroll-target="#evalpoly">evalpoly</a></li>
+  <li><a href="#exp" id="toc-exp" class="nav-link" data-scroll-target="#exp">exp</a></li>
+  <li><a href="#flip" id="toc-flip" class="nav-link" data-scroll-target="#flip">flip</a></li>
+  <li><a href="#im" id="toc-im" class="nav-link" data-scroll-target="#im">im</a></li>
+  <li><a href="#imaginary" id="toc-imaginary" class="nav-link" data-scroll-target="#imaginary">imaginary?</a></li>
+  <li><a href="#inf" id="toc-inf" class="nav-link" data-scroll-target="#inf">inf?</a></li>
+  <li><a href="#log" id="toc-log" class="nav-link" data-scroll-target="#log">log</a></li>
+  <li><a href="#logb" id="toc-logb" class="nav-link" data-scroll-target="#logb">logb</a></li>
+  <li><a href="#makepoly" id="toc-makepoly" class="nav-link" data-scroll-target="#makepoly">makepoly</a></li>
+  <li><a href="#mevalpoly-macro" id="toc-mevalpoly-macro" class="nav-link" data-scroll-target="#mevalpoly-macro">mevalpoly <sup><sub>MACRO</sub></sup></a></li>
+  <li><a href="#muladd" id="toc-muladd" class="nav-link" data-scroll-target="#muladd">muladd</a></li>
+  <li><a href="#mult" id="toc-mult" class="nav-link" data-scroll-target="#mult">mult</a></li>
+  <li><a href="#mult-i" id="toc-mult-i" class="nav-link" data-scroll-target="#mult-i">mult-I</a></li>
+  <li><a href="#mult-i-" id="toc-mult-i-" class="nav-link" data-scroll-target="#mult-i-">mult-I-</a></li>
+  <li><a href="#nan" id="toc-nan" class="nav-link" data-scroll-target="#nan">nan?</a></li>
+  <li><a href="#neg" id="toc-neg" class="nav-link" data-scroll-target="#neg">neg</a></li>
+  <li><a href="#norm" id="toc-norm" class="nav-link" data-scroll-target="#norm">norm</a></li>
+  <li><a href="#pow" id="toc-pow" class="nav-link" data-scroll-target="#pow">pow</a></li>
+  <li><a href="#re" id="toc-re" class="nav-link" data-scroll-target="#re">re</a></li>
+  <li><a href="#real" id="toc-real" class="nav-link" data-scroll-target="#real">real?</a></li>
+  <li><a href="#reciprocal" id="toc-reciprocal" class="nav-link" data-scroll-target="#reciprocal">reciprocal</a></li>
+  <li><a href="#scale" id="toc-scale" class="nav-link" data-scroll-target="#scale">scale</a></li>
+  <li><a href="#sec" id="toc-sec" class="nav-link" data-scroll-target="#sec">sec</a></li>
+  <li><a href="#sech" id="toc-sech" class="nav-link" data-scroll-target="#sech">sech</a></li>
+  <li><a href="#sin" id="toc-sin" class="nav-link" data-scroll-target="#sin">sin</a></li>
+  <li><a href="#sinh" id="toc-sinh" class="nav-link" data-scroll-target="#sinh">sinh</a></li>
+  <li><a href="#sq" id="toc-sq" class="nav-link" data-scroll-target="#sq">sq</a></li>
+  <li><a href="#sqrt" id="toc-sqrt" class="nav-link" data-scroll-target="#sqrt">sqrt</a></li>
+  <li><a href="#sqrt1z" id="toc-sqrt1z" class="nav-link" data-scroll-target="#sqrt1z">sqrt1z</a></li>
+  <li><a href="#sub" id="toc-sub" class="nav-link" data-scroll-target="#sub">sub</a></li>
+  <li><a href="#tan" id="toc-tan" class="nav-link" data-scroll-target="#tan">tan</a></li>
+  <li><a href="#tanh" id="toc-tanh" class="nav-link" data-scroll-target="#tanh">tanh</a></li>
+  <li><a href="#zero-1" id="toc-zero-1" class="nav-link" data-scroll-target="#zero-1">zero?</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#quaternions" id="toc-quaternions" class="nav-link" data-scroll-target="#quaternions">Quaternions</a>
+  <ul>
+  <li><a href="#reference-1" id="toc-reference-1" class="nav-link" data-scroll-target="#reference-1">Reference</a>
+  <ul>
+  <li><a href="#fastmath.quaternion" id="toc-fastmath.quaternion" class="nav-link" data-scroll-target="#fastmath.quaternion">fastmath.quaternion</a>
+  <ul class="collapse">
+  <li><a href="#i-2" id="toc-i-2" class="nav-link" data-scroll-target="#i-2">-I</a></li>
+  <li><a href="#j" id="toc-j" class="nav-link" data-scroll-target="#j">-J</a></li>
+  <li><a href="#k" id="toc-k" class="nav-link" data-scroll-target="#k">-K</a></li>
+  <li><a href="#i-3" id="toc-i-3" class="nav-link" data-scroll-target="#i-3">I</a></li>
+  <li><a href="#j-1" id="toc-j-1" class="nav-link" data-scroll-target="#j-1">J</a></li>
+  <li><a href="#k-1" id="toc-k-1" class="nav-link" data-scroll-target="#k-1">K</a></li>
+  <li><a href="#one-1" id="toc-one-1" class="nav-link" data-scroll-target="#one-1">ONE</a></li>
+  <li><a href="#zero-2" id="toc-zero-2" class="nav-link" data-scroll-target="#zero-2">ZERO</a></li>
+  <li><a href="#acos-1" id="toc-acos-1" class="nav-link" data-scroll-target="#acos-1">acos</a></li>
+  <li><a href="#acosh-1" id="toc-acosh-1" class="nav-link" data-scroll-target="#acosh-1">acosh</a></li>
+  <li><a href="#acot-1" id="toc-acot-1" class="nav-link" data-scroll-target="#acot-1">acot</a></li>
+  <li><a href="#acoth-1" id="toc-acoth-1" class="nav-link" data-scroll-target="#acoth-1">acoth</a></li>
+  <li><a href="#acsc-1" id="toc-acsc-1" class="nav-link" data-scroll-target="#acsc-1">acsc</a></li>
+  <li><a href="#acsch-1" id="toc-acsch-1" class="nav-link" data-scroll-target="#acsch-1">acsch</a></li>
+  <li><a href="#add-1" id="toc-add-1" class="nav-link" data-scroll-target="#add-1">add</a></li>
+  <li><a href="#arg-1" id="toc-arg-1" class="nav-link" data-scroll-target="#arg-1">arg</a></li>
+  <li><a href="#asec-1" id="toc-asec-1" class="nav-link" data-scroll-target="#asec-1">asec</a></li>
+  <li><a href="#asech-1" id="toc-asech-1" class="nav-link" data-scroll-target="#asech-1">asech</a></li>
+  <li><a href="#asin-1" id="toc-asin-1" class="nav-link" data-scroll-target="#asin-1">asin</a></li>
+  <li><a href="#asinh-1" id="toc-asinh-1" class="nav-link" data-scroll-target="#asinh-1">asinh</a></li>
+  <li><a href="#atan-1" id="toc-atan-1" class="nav-link" data-scroll-target="#atan-1">atan</a></li>
+  <li><a href="#atanh-1" id="toc-atanh-1" class="nav-link" data-scroll-target="#atanh-1">atanh</a></li>
+  <li><a href="#complex-quaternion" id="toc-complex-quaternion" class="nav-link" data-scroll-target="#complex-quaternion">complex-&gt;quaternion</a></li>
+  <li><a href="#conjugate-1" id="toc-conjugate-1" class="nav-link" data-scroll-target="#conjugate-1">conjugate</a></li>
+  <li><a href="#cos-1" id="toc-cos-1" class="nav-link" data-scroll-target="#cos-1">cos</a></li>
+  <li><a href="#cosh-1" id="toc-cosh-1" class="nav-link" data-scroll-target="#cosh-1">cosh</a></li>
+  <li><a href="#cot-1" id="toc-cot-1" class="nav-link" data-scroll-target="#cot-1">cot</a></li>
+  <li><a href="#coth-1" id="toc-coth-1" class="nav-link" data-scroll-target="#coth-1">coth</a></li>
+  <li><a href="#csc-1" id="toc-csc-1" class="nav-link" data-scroll-target="#csc-1">csc</a></li>
+  <li><a href="#csch-1" id="toc-csch-1" class="nav-link" data-scroll-target="#csch-1">csch</a></li>
+  <li><a href="#delta-eq-1" id="toc-delta-eq-1" class="nav-link" data-scroll-target="#delta-eq-1">delta-eq</a></li>
+  <li><a href="#div-1" id="toc-div-1" class="nav-link" data-scroll-target="#div-1">div</a></li>
+  <li><a href="#exp-1" id="toc-exp-1" class="nav-link" data-scroll-target="#exp-1">exp</a></li>
+  <li><a href="#from-angles" id="toc-from-angles" class="nav-link" data-scroll-target="#from-angles">from-angles</a></li>
+  <li><a href="#from-euler" id="toc-from-euler" class="nav-link" data-scroll-target="#from-euler">from-euler</a></li>
+  <li><a href="#from-rotation-matrix" id="toc-from-rotation-matrix" class="nav-link" data-scroll-target="#from-rotation-matrix">from-rotation-matrix</a></li>
+  <li><a href="#im-i" id="toc-im-i" class="nav-link" data-scroll-target="#im-i">im-i</a></li>
+  <li><a href="#im-j" id="toc-im-j" class="nav-link" data-scroll-target="#im-j">im-j</a></li>
+  <li><a href="#im-k" id="toc-im-k" class="nav-link" data-scroll-target="#im-k">im-k</a></li>
+  <li><a href="#imaginary-1" id="toc-imaginary-1" class="nav-link" data-scroll-target="#imaginary-1">imaginary?</a></li>
+  <li><a href="#inf-1" id="toc-inf-1" class="nav-link" data-scroll-target="#inf-1">inf?</a></li>
+  <li><a href="#log-1" id="toc-log-1" class="nav-link" data-scroll-target="#log-1">log</a></li>
+  <li><a href="#logb-1" id="toc-logb-1" class="nav-link" data-scroll-target="#logb-1">logb</a></li>
+  <li><a href="#mult-1" id="toc-mult-1" class="nav-link" data-scroll-target="#mult-1">mult</a></li>
+  <li><a href="#nan-1" id="toc-nan-1" class="nav-link" data-scroll-target="#nan-1">nan?</a></li>
+  <li><a href="#neg-1" id="toc-neg-1" class="nav-link" data-scroll-target="#neg-1">neg</a></li>
+  <li><a href="#norm-1" id="toc-norm-1" class="nav-link" data-scroll-target="#norm-1">norm</a></li>
+  <li><a href="#normalize" id="toc-normalize" class="nav-link" data-scroll-target="#normalize">normalize</a></li>
+  <li><a href="#pow-1" id="toc-pow-1" class="nav-link" data-scroll-target="#pow-1">pow</a></li>
+  <li><a href="#qsgn" id="toc-qsgn" class="nav-link" data-scroll-target="#qsgn">qsgn</a></li>
+  <li><a href="#quaternion" id="toc-quaternion" class="nav-link" data-scroll-target="#quaternion">quaternion</a></li>
+  <li><a href="#re-1" id="toc-re-1" class="nav-link" data-scroll-target="#re-1">re</a></li>
+  <li><a href="#real-1" id="toc-real-1" class="nav-link" data-scroll-target="#real-1">real?</a></li>
+  <li><a href="#reciprocal-1" id="toc-reciprocal-1" class="nav-link" data-scroll-target="#reciprocal-1">reciprocal</a></li>
+  <li><a href="#rotate" id="toc-rotate" class="nav-link" data-scroll-target="#rotate">rotate</a></li>
+  <li><a href="#rotation-quaternion" id="toc-rotation-quaternion" class="nav-link" data-scroll-target="#rotation-quaternion">rotation-quaternion</a></li>
+  <li><a href="#scalar" id="toc-scalar" class="nav-link" data-scroll-target="#scalar">scalar</a></li>
+  <li><a href="#scale-1" id="toc-scale-1" class="nav-link" data-scroll-target="#scale-1">scale</a></li>
+  <li><a href="#sec-1" id="toc-sec-1" class="nav-link" data-scroll-target="#sec-1">sec</a></li>
+  <li><a href="#sech-1" id="toc-sech-1" class="nav-link" data-scroll-target="#sech-1">sech</a></li>
+  <li><a href="#sin-1" id="toc-sin-1" class="nav-link" data-scroll-target="#sin-1">sin</a></li>
+  <li><a href="#sinh-1" id="toc-sinh-1" class="nav-link" data-scroll-target="#sinh-1">sinh</a></li>
+  <li><a href="#slerp" id="toc-slerp" class="nav-link" data-scroll-target="#slerp">slerp</a></li>
+  <li><a href="#sq-1" id="toc-sq-1" class="nav-link" data-scroll-target="#sq-1">sq</a></li>
+  <li><a href="#sqrt-1" id="toc-sqrt-1" class="nav-link" data-scroll-target="#sqrt-1">sqrt</a></li>
+  <li><a href="#sub-1" id="toc-sub-1" class="nav-link" data-scroll-target="#sub-1">sub</a></li>
+  <li><a href="#tan-1" id="toc-tan-1" class="nav-link" data-scroll-target="#tan-1">tan</a></li>
+  <li><a href="#tanh-1" id="toc-tanh-1" class="nav-link" data-scroll-target="#tanh-1">tanh</a></li>
+  <li><a href="#to-angles" id="toc-to-angles" class="nav-link" data-scroll-target="#to-angles">to-angles</a></li>
+  <li><a href="#to-euler" id="toc-to-euler" class="nav-link" data-scroll-target="#to-euler">to-euler</a></li>
+  <li><a href="#to-rotation-matrix" id="toc-to-rotation-matrix" class="nav-link" data-scroll-target="#to-rotation-matrix">to-rotation-matrix</a></li>
+  <li><a href="#vector" id="toc-vector" class="nav-link" data-scroll-target="#vector">vector</a></li>
+  <li><a href="#zero-3" id="toc-zero-3" class="nav-link" data-scroll-target="#zero-3">zero?</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Complex numbers and quaternions</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style></style>
+<style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style>
+<style>.clay-limit-image-width .clay-image {max-width: 100%}
+</style>
+<script src="complex_quaternions_files/md-default0.js" type="text/javascript"></script>
+<script src="complex_quaternions_files/md-default1.js" type="text/javascript"></script>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> complex-quaternions</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.complex <span class="at">:as</span> cplx]</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [fastmath.quaternion <span class="at">:as</span> quat]</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.codox <span class="at">:as</span> codox]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="complex-numbers" class="level2">
+<h2 class="anchored" data-anchor-id="complex-numbers">Complex numbers</h2>
+<section id="reference" class="level3">
+<h3 class="anchored" data-anchor-id="reference">Reference</h3>
+<section id="fastmath.complex" class="level4">
+<h4 class="anchored" data-anchor-id="fastmath.complex">fastmath.complex</h4>
+<p>Complex numbers functions.</p>
+<p>Complex number is represented as <code>Vec2</code> type (from <a href="#LOS-clojure2d.math.vector">clojure2d.math.vector</a> namespace).</p>
+<p>To create complex number use <a href="#LOS-complex">complex</a>, <a href="#LOS-vec2">vec2</a> or <a href="#LOS--%3EVec2">-&gt;Vec2</a>.</p>
+<p>Implementation checks for ##Inf, ##NaN and some of the function distinguish +0.0 and -0.0</p>
+<span id="#LOS--I"></span>
+<section id="i" class="level5">
+<h5 class="anchored" data-anchor-id="i">-I</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L24">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-I"></span>
+</section>
+<section id="i-1" class="level5">
+<h5 class="anchored" data-anchor-id="i-1">I</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L22">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-I-"></span>
+</section>
+<section id="i-" class="level5">
+<h5 class="anchored" data-anchor-id="i-">I-</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L23">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ONE"></span>
+</section>
+<section id="one" class="level5">
+<h5 class="anchored" data-anchor-id="one">ONE</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L25">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-TWO"></span>
+</section>
+<section id="two" class="level5">
+<h5 class="anchored" data-anchor-id="two">TWO</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L26">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ZERO"></span>
+</section>
+<section id="zero" class="level5">
+<h5 class="anchored" data-anchor-id="zero">ZERO</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L27">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-abs"></span>
+</section>
+<section id="abs" class="level5">
+<h5 class="anchored" data-anchor-id="abs">abs</h5>
+<ul>
+<li><code>(abs z)</code></li>
+</ul>
+<p>Absolute value, magnitude</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L65">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acos"></span>
+</section>
+<section id="acos" class="level5">
+<h5 class="anchored" data-anchor-id="acos">acos</h5>
+<ul>
+<li><code>(acos z)</code></li>
+</ul>
+<p>acos</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L527">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acosh"></span>
+</section>
+<section id="acosh" class="level5">
+<h5 class="anchored" data-anchor-id="acosh">acosh</h5>
+<ul>
+<li><code>(acosh z)</code></li>
+</ul>
+<p>acosh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L675">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acot"></span>
+</section>
+<section id="acot" class="level5">
+<h5 class="anchored" data-anchor-id="acot">acot</h5>
+<ul>
+<li><code>(acot z)</code></li>
+</ul>
+<p>acot</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L627">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acoth"></span>
+</section>
+<section id="acoth" class="level5">
+<h5 class="anchored" data-anchor-id="acoth">acoth</h5>
+<ul>
+<li><code>(acoth z)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L794">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsc"></span>
+</section>
+<section id="acsc" class="level5">
+<h5 class="anchored" data-anchor-id="acsc">acsc</h5>
+<ul>
+<li><code>(acsc z)</code></li>
+</ul>
+<p>acsc</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L600">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsch"></span>
+</section>
+<section id="acsch" class="level5">
+<h5 class="anchored" data-anchor-id="acsch">acsch</h5>
+<ul>
+<li><code>(acsch z)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L761">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-add"></span>
+</section>
+<section id="add" class="level5">
+<h5 class="anchored" data-anchor-id="add">add</h5>
+<ul>
+<li><code>(add z1 z2)</code></li>
+</ul>
+<p>Sum of two complex numbers</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L84">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-arg"></span>
+</section>
+<section id="arg" class="level5">
+<h5 class="anchored" data-anchor-id="arg">arg</h5>
+<ul>
+<li><code>(arg z)</code></li>
+</ul>
+<p>Argument (angle) of the complex number</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L79">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asec"></span>
+</section>
+<section id="asec" class="level5">
+<h5 class="anchored" data-anchor-id="asec">asec</h5>
+<ul>
+<li><code>(asec z)</code></li>
+</ul>
+<p>asec</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L574">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asech"></span>
+</section>
+<section id="asech" class="level5">
+<h5 class="anchored" data-anchor-id="asech">asech</h5>
+<ul>
+<li><code>(asech z)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L727">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asin"></span>
+</section>
+<section id="asin" class="level5">
+<h5 class="anchored" data-anchor-id="asin">asin</h5>
+<ul>
+<li><code>(asin z)</code></li>
+</ul>
+<p>asin</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L506">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asinh"></span>
+</section>
+<section id="asinh" class="level5">
+<h5 class="anchored" data-anchor-id="asinh">asinh</h5>
+<ul>
+<li><code>(asinh z)</code></li>
+</ul>
+<p>asinh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L652">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atan"></span>
+</section>
+<section id="atan" class="level5">
+<h5 class="anchored" data-anchor-id="atan">atan</h5>
+<ul>
+<li><code>(atan z)</code></li>
+</ul>
+<p>atan</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L547">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atanh"></span>
+</section>
+<section id="atanh" class="level5">
+<h5 class="anchored" data-anchor-id="atanh">atanh</h5>
+<ul>
+<li><code>(atanh z)</code></li>
+</ul>
+<p>atanh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L701">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-complex"></span>
+</section>
+<section id="complex" class="level5">
+<h5 class="anchored" data-anchor-id="complex">complex</h5>
+<ul>
+<li><code>(complex a b)</code></li>
+<li><code>(complex a)</code></li>
+<li><code>(complex)</code></li>
+</ul>
+<p>Create complex number. Represented as <code>Vec2</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L29">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-conjugate"></span>
+</section>
+<section id="conjugate" class="level5">
+<h5 class="anchored" data-anchor-id="conjugate">conjugate</h5>
+<ul>
+<li><code>(conjugate z)</code></li>
+</ul>
+<p>Complex conjugate. <span class="math inline">\(\bar{z}\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L123">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cos"></span>
+</section>
+<section id="cos" class="level5">
+<h5 class="anchored" data-anchor-id="cos">cos</h5>
+<ul>
+<li><code>(cos z)</code></li>
+</ul>
+<p>cos</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L356">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cosh"></span>
+</section>
+<section id="cosh" class="level5">
+<h5 class="anchored" data-anchor-id="cosh">cosh</h5>
+<ul>
+<li><code>(cosh z)</code></li>
+</ul>
+<p>cosh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L437">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cot"></span>
+</section>
+<section id="cot" class="level5">
+<h5 class="anchored" data-anchor-id="cot">cot</h5>
+<ul>
+<li><code>(cot z)</code></li>
+</ul>
+<p>csc</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L410">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-coth"></span>
+</section>
+<section id="coth" class="level5">
+<h5 class="anchored" data-anchor-id="coth">coth</h5>
+<ul>
+<li><code>(coth z)</code></li>
+</ul>
+<p>coth</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L490">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csc"></span>
+</section>
+<section id="csc" class="level5">
+<h5 class="anchored" data-anchor-id="csc">csc</h5>
+<ul>
+<li><code>(csc z)</code></li>
+</ul>
+<p>csc</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L396">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csch"></span>
+</section>
+<section id="csch" class="level5">
+<h5 class="anchored" data-anchor-id="csch">csch</h5>
+<ul>
+<li><code>(csch z)</code></li>
+</ul>
+<p>csch</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L476">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csgn"></span>
+</section>
+<section id="csgn" class="level5">
+<h5 class="anchored" data-anchor-id="csgn">csgn</h5>
+<ul>
+<li><code>(csgn re im)</code></li>
+<li><code>(csgn z)</code></li>
+</ul>
+<p>Complex sgn.</p>
+<p>Returns <code>0</code> for <code>0+0i</code> or calls <code>m/sgn</code> on real part otherwise.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-delta-eq"></span>
+</section>
+<section id="delta-eq" class="level5">
+<h5 class="anchored" data-anchor-id="delta-eq">delta-eq</h5>
+<ul>
+<li><code>(delta-eq q1 q2)</code></li>
+<li><code>(delta-eq q1 q2 accuracy)</code></li>
+</ul>
+<p>Compare complex numbers with given accuracy (10e-6 by default)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-div"></span>
+</section>
+<section id="div" class="level5">
+<h5 class="anchored" data-anchor-id="div">div</h5>
+<ul>
+<li><code>(div z1 z2)</code></li>
+</ul>
+<p>Divide two complex numbers.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L128">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-evalpoly"></span>
+</section>
+<section id="evalpoly" class="level5">
+<h5 class="anchored" data-anchor-id="evalpoly">evalpoly</h5>
+<ul>
+<li><code>(evalpoly x &amp; coeffs)</code></li>
+</ul>
+<p>Evaluate complex polynomial</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L839">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-exp"></span>
+</section>
+<section id="exp" class="level5">
+<h5 class="anchored" data-anchor-id="exp">exp</h5>
+<ul>
+<li><code>(exp z)</code></li>
+</ul>
+<p>exp</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L180">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-flip"></span>
+</section>
+<section id="flip" class="level5">
+<h5 class="anchored" data-anchor-id="flip">flip</h5>
+<ul>
+<li><code>(flip z)</code></li>
+</ul>
+<p>Exchange imaginary and real parts</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-im"></span>
+</section>
+<section id="im" class="level5">
+<h5 class="anchored" data-anchor-id="im">im</h5>
+<ul>
+<li><code>(im z)</code></li>
+</ul>
+<p>Imaginary part</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L36">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-imaginary?"></span>
+</section>
+<section id="imaginary" class="level5">
+<h5 class="anchored" data-anchor-id="imaginary">imaginary?</h5>
+<ul>
+<li><code>(imaginary? z)</code></li>
+</ul>
+<p>Is z is a pure imaginary number?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L39">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-inf?"></span>
+</section>
+<section id="inf" class="level5">
+<h5 class="anchored" data-anchor-id="inf">inf?</h5>
+<ul>
+<li><code>(inf? z)</code></li>
+</ul>
+<p>Is infinite?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L41">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log"></span>
+</section>
+<section id="log" class="level5">
+<h5 class="anchored" data-anchor-id="log">log</h5>
+<ul>
+<li><code>(log z)</code></li>
+</ul>
+<p>log, principal value</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L194">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logb"></span>
+</section>
+<section id="logb" class="level5">
+<h5 class="anchored" data-anchor-id="logb">logb</h5>
+<ul>
+<li><code>(logb z b)</code></li>
+</ul>
+<p>log with base b</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L210">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-makepoly"></span>
+</section>
+<section id="makepoly" class="level5">
+<h5 class="anchored" data-anchor-id="makepoly">makepoly</h5>
+<ul>
+<li><code>(makepoly coeffs)</code></li>
+</ul>
+<p>Create complex polynomial function for given coefficients</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L852">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mevalpoly"></span>
+</section>
+<section id="mevalpoly-macro" class="level5">
+<h5 class="anchored" data-anchor-id="mevalpoly-macro">mevalpoly <sup><sub>MACRO</sub></sup></h5>
+<ul>
+<li><code>(mevalpoly x &amp; coeffs)</code></li>
+</ul>
+<p>Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]<em>x+coeffs[2]</em>x^2+….</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L828">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-muladd"></span>
+</section>
+<section id="muladd" class="level5">
+<h5 class="anchored" data-anchor-id="muladd">muladd</h5>
+<ul>
+<li><code>(muladd x y z)</code></li>
+</ul>
+<p><code>(x y z)</code> -&gt; <code>(+ z (* x y))</code></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L823">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mult"></span>
+</section>
+<section id="mult" class="level5">
+<h5 class="anchored" data-anchor-id="mult">mult</h5>
+<ul>
+<li><code>(mult z1 z2)</code></li>
+</ul>
+<p>Multiply two complex numbers.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mult-I"></span>
+</section>
+<section id="mult-i" class="level5">
+<h5 class="anchored" data-anchor-id="mult-i">mult-I</h5>
+<ul>
+<li><code>(mult-I z)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L112">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mult-I-"></span>
+</section>
+<section id="mult-i-" class="level5">
+<h5 class="anchored" data-anchor-id="mult-i-">mult-I-</h5>
+<ul>
+<li><code>(mult-I- z)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-nan?"></span>
+</section>
+<section id="nan" class="level5">
+<h5 class="anchored" data-anchor-id="nan">nan?</h5>
+<ul>
+<li><code>(nan? z)</code></li>
+</ul>
+<p>Is NaN?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L43">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-neg"></span>
+</section>
+<section id="neg" class="level5">
+<h5 class="anchored" data-anchor-id="neg">neg</h5>
+<ul>
+<li><code>(neg z)</code></li>
+</ul>
+<p>Negate complex number. <span class="math inline">\(-z\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-norm"></span>
+</section>
+<section id="norm" class="level5">
+<h5 class="anchored" data-anchor-id="norm">norm</h5>
+<ul>
+<li><code>(norm z)</code></li>
+</ul>
+<p>Norm (Guass) of the complex number, absolute value squared</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L72">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-pow"></span>
+</section>
+<section id="pow" class="level5">
+<h5 class="anchored" data-anchor-id="pow">pow</h5>
+<ul>
+<li><code>(pow z1 z2)</code></li>
+</ul>
+<p>Power. <span class="math inline">\(z_1^{z_2}\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L315">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-re"></span>
+</section>
+<section id="re" class="level5">
+<h5 class="anchored" data-anchor-id="re">re</h5>
+<ul>
+<li><code>(re z)</code></li>
+</ul>
+<p>Real part</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L35">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-real?"></span>
+</section>
+<section id="real" class="level5">
+<h5 class="anchored" data-anchor-id="real">real?</h5>
+<ul>
+<li><code>(real? z)</code></li>
+</ul>
+<p>Is z is a real number?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L38">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-reciprocal"></span>
+</section>
+<section id="reciprocal" class="level5">
+<h5 class="anchored" data-anchor-id="reciprocal">reciprocal</h5>
+<ul>
+<li><code>(reciprocal z)</code></li>
+</ul>
+<p><span class="math inline">\(\frac{1}{z}\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L139">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scale"></span>
+</section>
+<section id="scale" class="level5">
+<h5 class="anchored" data-anchor-id="scale">scale</h5>
+<ul>
+<li><code>(scale z v)</code></li>
+</ul>
+<p>Multiply by real number</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L96">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sec"></span>
+</section>
+<section id="sec" class="level5">
+<h5 class="anchored" data-anchor-id="sec">sec</h5>
+<ul>
+<li><code>(sec z)</code></li>
+</ul>
+<p>sec</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L382">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sech"></span>
+</section>
+<section id="sech" class="level5">
+<h5 class="anchored" data-anchor-id="sech">sech</h5>
+<ul>
+<li><code>(sech z)</code></li>
+</ul>
+<p>sech</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L462">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sin"></span>
+</section>
+<section id="sin" class="level5">
+<h5 class="anchored" data-anchor-id="sin">sin</h5>
+<ul>
+<li><code>(sin z)</code></li>
+</ul>
+<p>sin</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L345">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinh"></span>
+</section>
+<section id="sinh" class="level5">
+<h5 class="anchored" data-anchor-id="sinh">sinh</h5>
+<ul>
+<li><code>(sinh z)</code></li>
+</ul>
+<p>sinh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L426">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sq"></span>
+</section>
+<section id="sq" class="level5">
+<h5 class="anchored" data-anchor-id="sq">sq</h5>
+<ul>
+<li><code>(sq z)</code></li>
+</ul>
+<p>Square complex number. <span class="math inline">\(z^2\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L115">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sqrt"></span>
+</section>
+<section id="sqrt" class="level5">
+<h5 class="anchored" data-anchor-id="sqrt">sqrt</h5>
+<ul>
+<li><code>(sqrt z)</code></li>
+</ul>
+<p>Sqrt of complex number. <span class="math inline">\(\sqrt{z}\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L158">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sqrt1z"></span>
+</section>
+<section id="sqrt1z" class="level5">
+<h5 class="anchored" data-anchor-id="sqrt1z">sqrt1z</h5>
+<ul>
+<li><code>(sqrt1z z)</code></li>
+</ul>
+<p><span class="math inline">\(\sqrt{1-z^2}\)</span></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L170">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sub"></span>
+</section>
+<section id="sub" class="level5">
+<h5 class="anchored" data-anchor-id="sub">sub</h5>
+<ul>
+<li><code>(sub z1 z2)</code></li>
+</ul>
+<p>Difference of two complex numbers</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L90">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tan"></span>
+</section>
+<section id="tan" class="level5">
+<h5 class="anchored" data-anchor-id="tan">tan</h5>
+<ul>
+<li><code>(tan z)</code></li>
+</ul>
+<p>tan</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L368">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tanh"></span>
+</section>
+<section id="tanh" class="level5">
+<h5 class="anchored" data-anchor-id="tanh">tanh</h5>
+<ul>
+<li><code>(tanh z)</code></li>
+</ul>
+<p>tanh</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-zero?"></span>
+</section>
+<section id="zero-1" class="level5">
+<h5 class="anchored" data-anchor-id="zero-1">zero?</h5>
+<ul>
+<li><code>(zero? z)</code></li>
+</ul>
+<p>Is zero?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/complex.clj#L40">source</a></small><hr style="margin: 0"></div>
+</section>
+</section>
+</section>
+</section>
+<section id="quaternions" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="quaternions">Quaternions</h2>
+<section id="reference-1" class="level3">
+<h3 class="anchored" data-anchor-id="reference-1">Reference</h3>
+<section id="fastmath.quaternion" class="level4">
+<h4 class="anchored" data-anchor-id="fastmath.quaternion">fastmath.quaternion</h4>
+<span id="#LOS--I"></span>
+<section id="i-2" class="level5">
+<h5 class="anchored" data-anchor-id="i-2">-I</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L20">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS--J"></span>
+</section>
+<section id="j" class="level5">
+<h5 class="anchored" data-anchor-id="j">-J</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L21">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS--K"></span>
+</section>
+<section id="k" class="level5">
+<h5 class="anchored" data-anchor-id="k">-K</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L22">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-I"></span>
+</section>
+<section id="i-3" class="level5">
+<h5 class="anchored" data-anchor-id="i-3">I</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L17">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-J"></span>
+</section>
+<section id="j-1" class="level5">
+<h5 class="anchored" data-anchor-id="j-1">J</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L18">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-K"></span>
+</section>
+<section id="k-1" class="level5">
+<h5 class="anchored" data-anchor-id="k-1">K</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L19">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ONE"></span>
+</section>
+<section id="one-1" class="level5">
+<h5 class="anchored" data-anchor-id="one-1">ONE</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L16">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ZERO"></span>
+</section>
+<section id="zero-2" class="level5">
+<h5 class="anchored" data-anchor-id="zero-2">ZERO</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L15">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acos"></span>
+</section>
+<section id="acos-1" class="level5">
+<h5 class="anchored" data-anchor-id="acos-1">acos</h5>
+<ul>
+<li><code>(acos q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L351">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acosh"></span>
+</section>
+<section id="acosh-1" class="level5">
+<h5 class="anchored" data-anchor-id="acosh-1">acosh</h5>
+<ul>
+<li><code>(acosh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L357">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acot"></span>
+</section>
+<section id="acot-1" class="level5">
+<h5 class="anchored" data-anchor-id="acot-1">acot</h5>
+<ul>
+<li><code>(acot q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L355">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acoth"></span>
+</section>
+<section id="acoth-1" class="level5">
+<h5 class="anchored" data-anchor-id="acoth-1">acoth</h5>
+<ul>
+<li><code>(acoth q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L361">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsc"></span>
+</section>
+<section id="acsc-1" class="level5">
+<h5 class="anchored" data-anchor-id="acsc-1">acsc</h5>
+<ul>
+<li><code>(acsc q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L354">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsch"></span>
+</section>
+<section id="acsch-1" class="level5">
+<h5 class="anchored" data-anchor-id="acsch-1">acsch</h5>
+<ul>
+<li><code>(acsch q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L360">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-add"></span>
+</section>
+<section id="add-1" class="level5">
+<h5 class="anchored" data-anchor-id="add-1">add</h5>
+<ul>
+<li><code>(add q1 q2)</code></li>
+</ul>
+<p>Sum of two quaternions</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L85">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-arg"></span>
+</section>
+<section id="arg-1" class="level5">
+<h5 class="anchored" data-anchor-id="arg-1">arg</h5>
+<ul>
+<li><code>(arg quaternion)</code></li>
+</ul>
+<p>Argument of quaternion, atan2(|vector(q)|, re(q))</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asec"></span>
+</section>
+<section id="asec-1" class="level5">
+<h5 class="anchored" data-anchor-id="asec-1">asec</h5>
+<ul>
+<li><code>(asec q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L353">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asech"></span>
+</section>
+<section id="asech-1" class="level5">
+<h5 class="anchored" data-anchor-id="asech-1">asech</h5>
+<ul>
+<li><code>(asech q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L359">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asin"></span>
+</section>
+<section id="asin-1" class="level5">
+<h5 class="anchored" data-anchor-id="asin-1">asin</h5>
+<ul>
+<li><code>(asin q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L350">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asinh"></span>
+</section>
+<section id="asinh-1" class="level5">
+<h5 class="anchored" data-anchor-id="asinh-1">asinh</h5>
+<ul>
+<li><code>(asinh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L356">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atan"></span>
+</section>
+<section id="atan-1" class="level5">
+<h5 class="anchored" data-anchor-id="atan-1">atan</h5>
+<ul>
+<li><code>(atan q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L352">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atanh"></span>
+</section>
+<section id="atanh-1" class="level5">
+<h5 class="anchored" data-anchor-id="atanh-1">atanh</h5>
+<ul>
+<li><code>(atanh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L358">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-complex->quaternion"></span>
+</section>
+<section id="complex-quaternion" class="level5">
+<h5 class="anchored" data-anchor-id="complex-quaternion">complex-&gt;quaternion</h5>
+<ul>
+<li><code>(complex-&gt;quaternion z)</code></li>
+</ul>
+<p>Create quaternion from complex number</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-conjugate"></span>
+</section>
+<section id="conjugate-1" class="level5">
+<h5 class="anchored" data-anchor-id="conjugate-1">conjugate</h5>
+<ul>
+<li><code>(conjugate quaternion)</code></li>
+</ul>
+<p>Returns conjugate of quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cos"></span>
+</section>
+<section id="cos-1" class="level5">
+<h5 class="anchored" data-anchor-id="cos-1">cos</h5>
+<ul>
+<li><code>(cos q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L339">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cosh"></span>
+</section>
+<section id="cosh-1" class="level5">
+<h5 class="anchored" data-anchor-id="cosh-1">cosh</h5>
+<ul>
+<li><code>(cosh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L345">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cot"></span>
+</section>
+<section id="cot-1" class="level5">
+<h5 class="anchored" data-anchor-id="cot-1">cot</h5>
+<ul>
+<li><code>(cot q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L343">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-coth"></span>
+</section>
+<section id="coth-1" class="level5">
+<h5 class="anchored" data-anchor-id="coth-1">coth</h5>
+<ul>
+<li><code>(coth q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csc"></span>
+</section>
+<section id="csc-1" class="level5">
+<h5 class="anchored" data-anchor-id="csc-1">csc</h5>
+<ul>
+<li><code>(csc q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L342">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csch"></span>
+</section>
+<section id="csch-1" class="level5">
+<h5 class="anchored" data-anchor-id="csch-1">csch</h5>
+<ul>
+<li><code>(csch q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L348">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-delta-eq"></span>
+</section>
+<section id="delta-eq-1" class="level5">
+<h5 class="anchored" data-anchor-id="delta-eq-1">delta-eq</h5>
+<ul>
+<li><code>(delta-eq q1 q2)</code></li>
+<li><code>(delta-eq q1 q2 accuracy)</code></li>
+</ul>
+<p>Compare quaternions with given accuracy (10e-6 by default)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-div"></span>
+</section>
+<section id="div-1" class="level5">
+<h5 class="anchored" data-anchor-id="div-1">div</h5>
+<ul>
+<li><code>(div q1 q2)</code></li>
+</ul>
+<p>Divide two quaternions</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L130">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-exp"></span>
+</section>
+<section id="exp-1" class="level5">
+<h5 class="anchored" data-anchor-id="exp-1">exp</h5>
+<ul>
+<li><code>(exp q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L185">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-from-angles"></span>
+</section>
+<section id="from-angles" class="level5">
+<h5 class="anchored" data-anchor-id="from-angles">from-angles</h5>
+<ul>
+<li><code>(from-angles [x y z])</code></li>
+<li><code>(from-angles x y z)</code></li>
+</ul>
+<p>Convert Tait–Bryan angles z-y′-x” to quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L286">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-from-euler"></span>
+</section>
+<section id="from-euler" class="level5">
+<h5 class="anchored" data-anchor-id="from-euler">from-euler</h5>
+<ul>
+<li><code>(from-euler [roll pitch yaw])</code></li>
+<li><code>(from-euler roll pitch yaw)</code></li>
+</ul>
+<p>Convert Euler ZYX (body 3-2-1) representation to quaternion</p>
+<p>Input should be 3d vector contating roll (x), pitch (y) and yaw (z) angles, or individual values.</p>
+<ul>
+<li>roll and yaw should be from <code>[-pi, pi]</code> range</li>
+<li>pitch should be from <code>[-pi/2, pi/2]</code> range</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L244">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-from-rotation-matrix"></span>
+</section>
+<section id="from-rotation-matrix" class="level5">
+<h5 class="anchored" data-anchor-id="from-rotation-matrix">from-rotation-matrix</h5>
+<ul>
+<li><code>(from-rotation-matrix m)</code></li>
+</ul>
+<p>Convert rotation 3x3 matrix to a quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L317">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-im-i"></span>
+</section>
+<section id="im-i" class="level5">
+<h5 class="anchored" data-anchor-id="im-i">im-i</h5>
+<ul>
+<li><code>(im-i quaternion)</code></li>
+</ul>
+<p>Return i imaginary part</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-im-j"></span>
+</section>
+<section id="im-j" class="level5">
+<h5 class="anchored" data-anchor-id="im-j">im-j</h5>
+<ul>
+<li><code>(im-j quaternion)</code></li>
+</ul>
+<p>Return j imaginary part</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L50">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-im-k"></span>
+</section>
+<section id="im-k" class="level5">
+<h5 class="anchored" data-anchor-id="im-k">im-k</h5>
+<ul>
+<li><code>(im-k quaternion)</code></li>
+</ul>
+<p>Return k imaginary part</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L51">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-imaginary?"></span>
+</section>
+<section id="imaginary-1" class="level5">
+<h5 class="anchored" data-anchor-id="imaginary-1">imaginary?</h5>
+<ul>
+<li><code>(imaginary? quaternion)</code></li>
+</ul>
+<p>Is q is a pure imaginary number?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L54">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-inf?"></span>
+</section>
+<section id="inf-1" class="level5">
+<h5 class="anchored" data-anchor-id="inf-1">inf?</h5>
+<ul>
+<li><code>(inf? quaternion)</code></li>
+</ul>
+<p>Is infinitive?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L56">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log"></span>
+</section>
+<section id="log-1" class="level5">
+<h5 class="anchored" data-anchor-id="log-1">log</h5>
+<ul>
+<li><code>(log q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L186">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logb"></span>
+</section>
+<section id="logb-1" class="level5">
+<h5 class="anchored" data-anchor-id="logb-1">logb</h5>
+<ul>
+<li><code>(logb quaternion b)</code></li>
+</ul>
+<p>log with base b</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L188">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mult"></span>
+</section>
+<section id="mult-1" class="level5">
+<h5 class="anchored" data-anchor-id="mult-1">mult</h5>
+<ul>
+<li><code>(mult q1 q2)</code></li>
+</ul>
+<p>Multiply two quaternions.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-nan?"></span>
+</section>
+<section id="nan-1" class="level5">
+<h5 class="anchored" data-anchor-id="nan-1">nan?</h5>
+<ul>
+<li><code>(nan? quaternion)</code></li>
+</ul>
+<p>Is NaN?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L60">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-neg"></span>
+</section>
+<section id="neg-1" class="level5">
+<h5 class="anchored" data-anchor-id="neg-1">neg</h5>
+<ul>
+<li><code>(neg quaternion)</code></li>
+</ul>
+<p>Negation of quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L135">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-norm"></span>
+</section>
+<section id="norm-1" class="level5">
+<h5 class="anchored" data-anchor-id="norm-1">norm</h5>
+<ul>
+<li><code>(norm quaternion)</code></li>
+</ul>
+<p>Norm of the quaternion, length of the vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize"></span>
+</section>
+<section id="normalize" class="level5">
+<h5 class="anchored" data-anchor-id="normalize">normalize</h5>
+<ul>
+<li><code>(normalize quaternion)</code></li>
+</ul>
+<p>Normalize quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L81">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-pow"></span>
+</section>
+<section id="pow-1" class="level5">
+<h5 class="anchored" data-anchor-id="pow-1">pow</h5>
+<ul>
+<li><code>(pow q p)</code></li>
+</ul>
+<p>Quaternion power</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L193">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-qsgn"></span>
+</section>
+<section id="qsgn" class="level5">
+<h5 class="anchored" data-anchor-id="qsgn">qsgn</h5>
+<ul>
+<li><code>(qsgn re im-i im-j im-k)</code></li>
+<li><code>(qsgn q)</code></li>
+</ul>
+<p>sgn of the quaternion.</p>
+<p>Returns <code>0</code> for <code>0+0i+0j+0k</code> or calls <code>m/sgn</code> on real part otherwise.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L152">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-quaternion"></span>
+</section>
+<section id="quaternion" class="level5">
+<h5 class="anchored" data-anchor-id="quaternion">quaternion</h5>
+<ul>
+<li><code>(quaternion a b c d)</code></li>
+<li><code>(quaternion scalar [i j k])</code></li>
+<li><code>(quaternion a)</code></li>
+</ul>
+<p>Create quaternion from individual values or scalar and vector parts, reprezented as <code>Vec4</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L24">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-re"></span>
+</section>
+<section id="re-1" class="level5">
+<h5 class="anchored" data-anchor-id="re-1">re</h5>
+<ul>
+<li><code>(re quaternion)</code></li>
+</ul>
+<p>Returns scalar part of quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L39">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-real?"></span>
+</section>
+<section id="real-1" class="level5">
+<h5 class="anchored" data-anchor-id="real-1">real?</h5>
+<ul>
+<li><code>(real? quaternion)</code></li>
+</ul>
+<p>Is q is a real number?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L53">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-reciprocal"></span>
+</section>
+<section id="reciprocal-1" class="level5">
+<h5 class="anchored" data-anchor-id="reciprocal-1">reciprocal</h5>
+<ul>
+<li><code>(reciprocal quaternion)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L105">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotate"></span>
+</section>
+<section id="rotate" class="level5">
+<h5 class="anchored" data-anchor-id="rotate">rotate</h5>
+<ul>
+<li><code>(rotate in rotq)</code></li>
+<li><code>(rotate in angle u)</code></li>
+</ul>
+<p>Rotate 3d <code>in</code> vector around axis <code>u</code>, the same as <code>fastmath.vector/axis-rotate</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L205">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-quaternion"></span>
+</section>
+<section id="rotation-quaternion" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-quaternion">rotation-quaternion</h5>
+<ul>
+<li><code>(rotation-quaternion angle u)</code></li>
+</ul>
+<p>Create rotation quaternion around vector u and angle alpha</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L198">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scalar"></span>
+</section>
+<section id="scalar" class="level5">
+<h5 class="anchored" data-anchor-id="scalar">scalar</h5>
+<ul>
+<li><code>(scalar quaternion)</code></li>
+</ul>
+<p>Returns scalar part of quaternion, double</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scale"></span>
+</section>
+<section id="scale-1" class="level5">
+<h5 class="anchored" data-anchor-id="scale-1">scale</h5>
+<ul>
+<li><code>(scale quaternion scale)</code></li>
+</ul>
+<p>Scale the quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L93">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sec"></span>
+</section>
+<section id="sec-1" class="level5">
+<h5 class="anchored" data-anchor-id="sec-1">sec</h5>
+<ul>
+<li><code>(sec q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L341">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sech"></span>
+</section>
+<section id="sech-1" class="level5">
+<h5 class="anchored" data-anchor-id="sech-1">sech</h5>
+<ul>
+<li><code>(sech q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L347">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sin"></span>
+</section>
+<section id="sin-1" class="level5">
+<h5 class="anchored" data-anchor-id="sin-1">sin</h5>
+<ul>
+<li><code>(sin q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L338">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinh"></span>
+</section>
+<section id="sinh-1" class="level5">
+<h5 class="anchored" data-anchor-id="sinh-1">sinh</h5>
+<ul>
+<li><code>(sinh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L344">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-slerp"></span>
+</section>
+<section id="slerp" class="level5">
+<h5 class="anchored" data-anchor-id="slerp">slerp</h5>
+<ul>
+<li><code>(slerp q1 q2 t)</code></li>
+</ul>
+<p>Interpolate quaternions</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sq"></span>
+</section>
+<section id="sq-1" class="level5">
+<h5 class="anchored" data-anchor-id="sq-1">sq</h5>
+<ul>
+<li><code>(sq quaternion)</code></li>
+</ul>
+<p>Square of quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sqrt"></span>
+</section>
+<section id="sqrt-1" class="level5">
+<h5 class="anchored" data-anchor-id="sqrt-1">sqrt</h5>
+<ul>
+<li><code>(sqrt q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L184">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sub"></span>
+</section>
+<section id="sub-1" class="level5">
+<h5 class="anchored" data-anchor-id="sub-1">sub</h5>
+<ul>
+<li><code>(sub q1 q2)</code></li>
+</ul>
+<p>Difference of two quaternions</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L89">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tan"></span>
+</section>
+<section id="tan-1" class="level5">
+<h5 class="anchored" data-anchor-id="tan-1">tan</h5>
+<ul>
+<li><code>(tan q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L340">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tanh"></span>
+</section>
+<section id="tanh-1" class="level5">
+<h5 class="anchored" data-anchor-id="tanh-1">tanh</h5>
+<ul>
+<li><code>(tanh q)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L346">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-to-angles"></span>
+</section>
+<section id="to-angles" class="level5">
+<h5 class="anchored" data-anchor-id="to-angles">to-angles</h5>
+<ul>
+<li><code>(to-angles q)</code></li>
+</ul>
+<p>Convert quaternion to Tait–Bryan angles, z-y′-x”.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L269">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-to-euler"></span>
+</section>
+<section id="to-euler" class="level5">
+<h5 class="anchored" data-anchor-id="to-euler">to-euler</h5>
+<ul>
+<li><code>(to-euler q)</code></li>
+</ul>
+<p>Convert quaternion to Euler ZYX (body 3-2-1). Quaternion will be normalized before calculations.</p>
+<p>Output will contain roll (x), pitch (y) and yaw (z) angles.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L226">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-to-rotation-matrix"></span>
+</section>
+<section id="to-rotation-matrix" class="level5">
+<h5 class="anchored" data-anchor-id="to-rotation-matrix">to-rotation-matrix</h5>
+<ul>
+<li><code>(to-rotation-matrix q)</code></li>
+</ul>
+<p>Convert quaternion to rotation 3x3 matrix</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L304">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vector"></span>
+</section>
+<section id="vector" class="level5">
+<h5 class="anchored" data-anchor-id="vector">vector</h5>
+<ul>
+<li><code>(vector quaternion)</code></li>
+</ul>
+<p>Returns vector part of quaternion, <code>Vec3</code> type</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L43">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-zero?"></span>
+</section>
+<section id="zero-3" class="level5">
+<h5 class="anchored" data-anchor-id="zero-3">zero?</h5>
+<ul>
+<li><code>(zero? quaternion)</code></li>
+</ul>
+<p>Is zero?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/quaternion.clj#L55">source</a></small><hr style="margin: 0"></div>
+<div style="background-color:grey;height:2px;width:100%;"></div>
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/complex_quaternions.clj">clay/complex_quaternions.clj</a></small></small></pre></div>
+
+
+</section>
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./stats.html" class="pagination-link" aria-label="Statistics">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Statistics</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./special.html" class="pagination-link" aria-label="Special functions">
+        <span class="nav-page-text">Special functions</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
