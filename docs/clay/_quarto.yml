@@ -1,0 +1,15 @@
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+  revealjs: {theme: solarized, navigation-mode: vertical, transition: slide, background-transition: fade, incremental: true}
+project: {type: book}
+book:
+  chapters: [index.qmd, core.qmd, vector_matrix.qmd, random.qmd, stats.qmd, complex_quaternions.qmd, special.qmd]
+  favicon: clay/resources/favicon.png
+  title: Fastmath documentation

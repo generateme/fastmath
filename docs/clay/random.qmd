@@ -1,0 +1,1569 @@
+
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: random.html
+fontsize: 0.9em
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+</style>
+<script src="random_files/md-default0.js" type="text/javascript"></script><script src="random_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns random
+  (:require [fastmath.random :as r]
+
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# Random {.unnumbered}
+
+
+## Reference
+
+### fastmath.random
+
+Various random and noise functions.
+
+  Namespace defines various random number generators (RNGs), different types of random functions, sequence generators and noise functions.
+
+  ### RNGs
+
+  You can use a selection of various RNGs defined in [Apache Commons Math](http://commons.apache.org/proper/commons-math/apidocs/org/apache/commons/math3/random/package-summary.html) library.
+
+  Currently supported RNGs:
+
+  * `:jdk` - default java.util.Random
+  * `:mersenne` - MersenneTwister
+  * `:isaac` - ISAAC
+  * `:well512a`, `:well1024a`, `:well19937a`, `:well19937c`, `:well44497a`, `:well44497b` - several WELL variants
+
+  To create your RNG use [rng](#LOS-rng) multimethod. Pass RNG name and (optional) seed. Returned RNG is equipped with [RNGProto](#LOS-RNGProto) protocol with methods: [irandom](#LOS-irandom), [lrandom](#LOS-lrandom), [frandom](#LOS-frandom) [drandom](#LOS-drandom), [grandom](#LOS-grandom), [brandom](#LOS-brandom) which return random primitive value with given RNG.
+
+  ```
+  (let [rng (rng :isaac 1337)]
+    (irandom rng))
+  ```
+
+  For conveniency default RNG (`:jdk`) with following functions are created: [irand](#LOS-irand), [lrand](#LOS-lrand), [frand](#LOS-frand), [drand](#LOS-drand), [grand](#LOS-grand), [brand](#LOS-brand).
+
+  Each prefix denotes returned type:
+
+  * i - int
+  * l - long
+  * f - float
+  * d - double
+  * g - gaussian (double)
+  * b - boolean
+
+  Check individual function for parameters description.
+
+  ### Random Vector Sequences
+
+  Couple of functions to generate sequences of numbers or vectors.
+
+  To create generator call [sequence-generator](#LOS-sequence-generator) with generator name and vector size.
+  Following generators are available:
+
+  * `:halton` - Halton low-discrepancy sequence; range [0,1]
+  * `:sobol` - Sobol low-discrepancy sequence; range [0,1]
+  * `:r2` - R2 low-discrepancy sequence; range [0,1], [more...](http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
+  * `:sphere` - uniformly random distributed on unit sphere
+  * `:ball` - uniformly random distributed from unit ball
+  * `:gaussian` - gaussian distributed (mean=0, stddev=1)
+  * `:default` - uniformly random; range:[0,1]
+
+  `:halton`, `:sobol` and `:r2` can be also randomly jittered according to this [article](http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/). Call [jittered-sequence-generator](#LOS-jittered-sequence-generator).
+  
+  After creation you get lazy sequence
+
+  ### Noise
+
+  List of continuous noise functions (1d, 2d and 3d):
+
+  * `:value` - value noise
+  * `:gradient` - gradient noise (improved Ken Perlin version)
+  * `:simplex` - simplex noise
+
+  First two (`:value` and `:gradient`) can use 4 different interpolation types: `:none`, `:linear`, `:hermite` (cubic) and `:quintic`.
+  
+  All can be combined in following variants:
+
+  * Noise - pure noise value, create with [single-noise](#LOS-single-noise)
+  * FBM - fractal brownian motion, create with [fbm-noise](#LOS-fbm-noise)
+  * Billow - billow noise, [billow-noise](#LOS-billow-noise)
+  * RidgedMulti - ridged multi, [ridgedmulti-noise](#LOS-ridgedmulti-noise)
+
+  Noise creation requires detailed configuration which is simple map of following keys:
+
+  * `:seed` - seed as integer
+  * `:noise-type` - type of noise: `:value`, `:gradient` (default), `:simplex`
+  * `:interpolation` - type of interpolation (for value and gradient): `:none`, `:linear`, `:hermite` (default) or `:quintic`
+  * `:octaves` - number of octaves for combined noise (like FBM), default: 6
+  * `:lacunarity` - scaling factor for combined noise, default: 2.00
+  * `:gain` - amplitude scaling factor for combined noise, default: 0.5
+  * `:normalize?` - should be normalized to `[0,1]` range (true, default) or to `[-1,1]` range (false)
+
+  For usage convenience 3 ready to use functions are prepared. Returning value from `[0,1]` range:
+
+  * [noise](#LOS-noise) - Perlin Noise (gradient noise, 6 octaves, quintic interpolation)
+  * [vnoise](#LOS-vnoise) - Value Noise (as in Processing, 6 octaves, hermite interpolation)
+  * [simplex](#LOS-simplex) - Simplex Noise (6 octaves)
+
+  For random noise generation you can use [random-noise-cfg](#LOS-random-noise-cfg) and [random-noise-fn](#LOS-random-noise-fn). Both can be feed with configuration. Additional configuration:
+
+  * `:generator` can be set to one of the noise variants, defaults to `:fbm`
+  * `:warp-scale` - 0.0 - do not warp, >0.0 warp
+  * `:warp-depth` - depth for warp (default 1.0, if warp-scale is positive)
+  
+  #### Discrete Noise
+
+  [discrete-noise](#LOS-discrete-noise) is a 1d or 2d hash function for given integers. Returns double from `[0,1]` range.
+
+  ### Distribution
+
+  Various real and integer distributions. See [DistributionProto](#LOS-DistributionProto) and [RNGProto](#LOS-RNGProto) for functions.
+
+  To create distribution call [distribution](#LOS-distribution) multimethod with name as a keyword and map as parameters.
+
+
+```{=html}
+<span id="#LOS--&gt;seq"></span>
+```
+
+
+#### ->seq
+
++ `(->seq)`
++ `(->seq rng)`
++ `(->seq rng n)`
++ `(->seq rng n sampling-method)`
+
+Returns lazy sequence of random samples (can be limited to optional `n` values).
+
+  Additionally one of the sampling methods can be provided, ie: `:uniform`, `:antithetic`, `:systematic` and `:stratified`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2376">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ball-random"></span>
+```
+
+
+#### ball-random
+
++ `(ball-random dims)`
++ `(ball-random rng dims)`
+
+Return random vector from a ball
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L432">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-billow-noise"></span>
+```
+
+
+#### billow-noise
+
++ `(billow-noise)`
++ `(billow-noise cfg__60237__auto__)`
+
+Create billow-noise function with optional configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L628">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-brand"></span>
+```
+
+
+#### brand
+
+Random boolean with default RNG.
+
+Returns true or false with equal probability. You can set `p` probability for `true`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L317">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-brandom"></span>
+```
+
+
+#### brandom
+
++ `(brandom rng)`
++ `(brandom rng p)`
+
+Random boolean with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L216">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ccdf"></span>
+```
+
+
+#### ccdf
+
++ `(ccdf d v)`
+
+Complementary cumulative probability.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L761">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cdf"></span>
+```
+
+
+#### cdf
+
++ `(cdf d v)`
++ `(cdf d v1 v2)`
+
+Cumulative probability.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L756">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-continuous?"></span>
+```
+
+
+#### continuous?
+
++ `(continuous? d)`
+
+Does distribution support continuous domain?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L793">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-covariance"></span>
+```
+
+
+#### covariance
+
++ `(covariance d)`
+
+Distribution covariance matrix (for multivariate distributions)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L831">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-default-normal"></span>
+```
+
+
+#### default-normal
+
+Default normal distribution (u=0.0, sigma=1.0).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2074">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-default-rng"></span>
+```
+
+
+#### default-rng
+
+Default RNG - JDK
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L315">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-dimensions"></span>
+```
+
+
+#### dimensions
+
++ `(dimensions d)`
+
+Distribution dimensionality
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L785">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-discrete-noise"></span>
+```
+
+
+#### discrete-noise
+
++ `(discrete-noise X Y)`
++ `(discrete-noise X)`
+
+Discrete noise. Parameters:
+
+  * X (long)
+  * Y (long, optional)
+
+  Returns double value from [0,1] range
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L725">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-distribution"></span>
+```
+
+
+#### distribution
+
+Create distribution object.
+
+* First parameter is distribution as a `:key`.
+* Second parameter is a map with configuration.
+
+All distributions accept `rng` under `:rng` key (default: [default-rng](#LOS-default-rng)) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L737">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-distribution-id"></span>
+```
+
+
+#### distribution-id
+
++ `(distribution-id d)`
+
+Distribution identifier as keyword.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L843">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-distribution-parameters"></span>
+```
+
+
+#### distribution-parameters
+
++ `(distribution-parameters d)`
++ `(distribution-parameters d all?)`
+
+Distribution highest supported value.
+
+  When `all?` is true, technical parameters are included, ie: `:rng` and `:inverser-cumm-accuracy`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L847">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-distribution?"></span>
+```
+
+
+#### distribution?
+
++ `(distribution? distr)`
+
+Checks if `distr` is a distribution object.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L750">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-distributions-list"></span>
+```
+
+
+#### distributions-list
+
+List of distributions.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2311">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-drand"></span>
+```
+
+
+#### drand
+
++ `(drand)`
++ `(drand mx)`
++ `(drand mn mx)`
+
+Random double number with default RNG.
+
+  As default returns random double from `[0,1)` range.
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L331">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-drandom"></span>
+```
+
+
+#### drandom
+
++ `(drandom rng)`
++ `(drandom rng mx)`
++ `(drandom rng mn mx)`
+
+Random double number with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L192">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-fbm-noise"></span>
+```
+
+
+#### fbm-noise
+
++ `(fbm-noise)`
++ `(fbm-noise cfg__60237__auto__)`
+
+Create fbm-noise function with optional configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L627">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-flip"></span>
+```
+
+
+#### flip
+
++ `(flip p)`
++ `(flip)`
+
+Returns 1 with given probability, 0 otherwise
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L378">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-flip-rng"></span>
+```
+
+
+#### flip-rng
+
++ `(flip-rng rng p)`
++ `(flip-rng rng)`
+
+Returns 1 with given probability, 0 otherwise, for given rng
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L410">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-flipb"></span>
+```
+
+
+#### flipb
+
++ `(flipb p)`
++ `(flipb)`
+
+Returns true with given probability, false otherwise
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L385">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-flipb-rng"></span>
+```
+
+
+#### flipb-rng
+
++ `(flipb-rng rng p)`
++ `(flipb-rng rng)`
+
+Returns true with given probability, false otherwise, for given rng
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L417">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-frand"></span>
+```
+
+
+#### frand
+
++ `(frand)`
++ `(frand mx)`
++ `(frand mn mx)`
+
+Random double number with default RNG.
+
+  As default returns random float from `[0,1)` range.
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L322">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-frandom"></span>
+```
+
+
+#### frandom
+
++ `(frandom rng)`
++ `(frandom rng mx)`
++ `(frandom rng mn mx)`
+
+Random double number with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L186">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-grand"></span>
+```
+
+
+#### grand
+
++ `(grand)`
++ `(grand stddev)`
++ `(grand mean stddev)`
+
+Random gaussian double number with default RNG.
+
+  As default returns random double from `N(0,1)`.
+  When `std` is passed, `N(0,std)` is used. When `mean` is passed, distribution is set to `N(mean, std)`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L340">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-grandom"></span>
+```
+
+
+#### grandom
+
++ `(grandom rng)`
++ `(grandom rng stddev)`
++ `(grandom rng mean stddev)`
+
+Random gaussian double number with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L198">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-icdf"></span>
+```
+
+
+#### icdf
+
++ `(icdf d v)`
+
+Inverse cumulative probability
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L773">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-integrate-pdf"></span>
+```
+
+
+#### integrate-pdf
+
++ `(integrate-pdf pdf-func mn mx steps)`
++ `(integrate-pdf pdf-func {:keys [mn mx steps interpolator], :or {mn 0.0, mx 1.0, steps 1000, interpolator :linear}, :as options})`
+
+Integrate PDF function, returns CDF and iCDF
+
+  Parameters:
+  * `pdf-func` - univariate function
+  * `mn` - lower bound for integration, value of pdf-func should be 0.0 at this point
+  * `mx` - upper bound for integration
+  * `steps` - how much subintervals to integrate (default 1000)
+  * `interpolator` - interpolation method between integrated points (default :linear)
+
+  Also other integration related parameters are accepted (`:gauss-kronrod` integration is used).
+
+  Possible interpolation methods: `:linear` (default), `:spline`, `:monotone` or any function from `fastmath.interpolation`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L861">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-irand"></span>
+```
+
+
+#### irand
+
++ `(irand)`
++ `(irand mx)`
++ `(irand mn mx)`
+
+Random integer number with default RNG.
+
+  As default returns random integer from full integer range. 
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L349">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-irandom"></span>
+```
+
+
+#### irandom
+
++ `(irandom rng)`
++ `(irandom rng mx)`
++ `(irandom rng mn mx)`
+
+Random integer number with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L204">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jittered-sequence-generator"></span>
+```
+
+
+#### jittered-sequence-generator
+
++ `(jittered-sequence-generator seq-generator dimensions)`
++ `(jittered-sequence-generator seq-generator dimensions jitter)`
+
+Create jittered sequence generator.
+
+  Suitable for `:r2`, `:sobol` and `:halton` sequences.
+
+  `jitter` parameter range is from `0` (no jitter) to `1` (full jitter). Default: 0.25.
+
+  See also [sequence-generator](#LOS-sequence-generator).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L528">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-likelihood"></span>
+```
+
+
+#### likelihood
+
++ `(likelihood d vs)`
+
+Likelihood of samples
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L814">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-log-likelihood"></span>
+```
+
+
+#### log-likelihood
+
++ `(log-likelihood d vs)`
+
+Log likelihood of samples
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L802">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-lower-bound"></span>
+```
+
+
+#### lower-bound
+
++ `(lower-bound d)`
+
+Distribution lowest supported value
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L835">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-lpdf"></span>
+```
+
+
+#### lpdf
+
++ `(lpdf d v)`
+
+Log density
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L769">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-lrand"></span>
+```
+
+
+#### lrand
+
++ `(lrand)`
++ `(lrand mx)`
++ `(lrand mn mx)`
+
+Random long number with default RNG.
+
+  As default returns random long from full integer range. 
+  When `mx` is passed, range is set to `[0, mx)`. When `mn` is passed, range is set to `[mn, mx)`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L358">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-lrandom"></span>
+```
+
+
+#### lrandom
+
++ `(lrandom rng)`
++ `(lrandom rng mx)`
++ `(lrandom rng mn mx)`
+
+Random long number with provided RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L210">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mean"></span>
+```
+
+
+#### mean
+
++ `(mean d)`
+
+Distribution mean
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L819">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-means"></span>
+```
+
+
+#### means
+
++ `(means d)`
+
+Distribution means (for multivariate distributions)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L823">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-noise"></span>
+```
+
+
+#### noise
+
++ `(noise x)`
++ `(noise x y)`
++ `(noise x y z)`
+
+Improved Perlin Noise.
+
+  6 octaves, quintic interpolation.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L599">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-noise-generators"></span>
+```
+
+
+#### noise-generators
+
+List of possible noise generators as a map of names and functions.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L686">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-noise-interpolations"></span>
+```
+
+
+#### noise-interpolations
+
+List of possible noise interpolations as a map of names and values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L556">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-noise-types"></span>
+```
+
+
+#### noise-types
+
+List of possible noise types as a map of names and values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L562">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-observe"></span>
+```
+
+
+#### observe ^~MACRO~^
+
++ `(observe d vs)`
+
+Log likelihood of samples. Alias for [log-likelihood](#LOS-log-likelihood).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L809">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-observe1"></span>
+```
+
+
+#### observe1
+
++ `(observe1 d v)`
+
+Log of probability/density of the value. Alias for [lpdf](#LOS-lpdf).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L797">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-pdf"></span>
+```
+
+
+#### pdf
+
++ `(pdf d v)`
+
+Density
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L765">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-probability"></span>
+```
+
+
+#### probability
+
++ `(probability d v)`
+
+Probability (PMF)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L777">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-random-noise-cfg"></span>
+```
+
+
+#### random-noise-cfg
+
++ `(random-noise-cfg pre-config)`
++ `(random-noise-cfg)`
+
+Create random noise configuration.
+
+  Optional map with fixed values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L693">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-random-noise-fn"></span>
+```
+
+
+#### random-noise-fn
+
++ `(random-noise-fn cfg)`
++ `(random-noise-fn)`
+
+Create random noise function from all possible options.
+
+  Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L710">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-randval"></span>
+```
+
+
+#### randval ^~MACRO~^
+
++ `(randval v1 v2)`
++ `(randval prob v1 v2)`
++ `(randval prob)`
++ `(randval)`
+
+Return value with given probability (default 0.5)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L367">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-randval-rng"></span>
+```
+
+
+#### randval-rng ^~MACRO~^
+
++ `(randval-rng rng v1 v2)`
++ `(randval-rng rng prob v1 v2)`
++ `(randval-rng rng prob)`
++ `(randval-rng rng)`
+
+Return value with given probability (default 0.5), for given rng
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L399">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ridgedmulti-noise"></span>
+```
+
+
+#### ridgedmulti-noise
+
++ `(ridgedmulti-noise)`
++ `(ridgedmulti-noise cfg__60237__auto__)`
+
+Create ridgedmulti-noise function with optional configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L629">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-rng"></span>
+```
+
+
+#### rng
+
+Create RNG for given name (as keyword) and optional seed. Return object enhanced with [RNGProto](#LOS-RNGProto). See: [rngs-list](#LOS-rngs-list) for names.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L141">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-rngs-list"></span>
+```
+
+
+#### rngs-list
+
+List of all possible RNGs.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L182">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-roll-a-dice"></span>
+```
+
+
+#### roll-a-dice
+
++ `(roll-a-dice sides)`
++ `(roll-a-dice dices sides)`
+
+Roll a dice with given sides
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L390">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-roll-a-dice-rng"></span>
+```
+
+
+#### roll-a-dice-rng
+
++ `(roll-a-dice-rng rng sides)`
++ `(roll-a-dice-rng rng dices sides)`
+
+Roll a dice with given sides and given rng
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L422">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sample"></span>
+```
+
+
+#### sample
+
++ `(sample d)`
+
+Random sample
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L781">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sequence-generator"></span>
+```
+
+
+#### sequence-generator
+
+Create Sequence generator. See [sequence-generators-list](#LOS-sequence-generators-list) for names.
+
+Values:
+
+* `:r2`, `:halton`, `:sobol`, `:default`/`:uniform` - range `[0-1] for each dimension`
+* `:gaussian` - from `N(0,1)` distribution
+* `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)
+* `:ball` - from an unit ball
+
+Possible dimensions:
+
+* `:r2` - 1-15
+* `:halton` - 1-40
+* `:sobol` - 1-1000
+* the rest - 1+
+
+See also [jittered-sequence-generator](#LOS-jittered-sequence-generator).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L500">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sequence-generators-list"></span>
+```
+
+
+#### sequence-generators-list
+
+List of random sequence generator. See [sequence-generator](#LOS-sequence-generator).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L551">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-set-seed"></span>
+```
+
+
+#### set-seed
+
++ `(set-seed)`
++ `(set-seed v)`
++ `(set-seed rng v)`
+
+Create and return new RNG
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2316">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-set-seed!"></span>
+```
+
+
+#### set-seed!
+
++ `(set-seed!)`
++ `(set-seed! v)`
++ `(set-seed! rng v)`
+
+Sets seed.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L2325">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-simplex"></span>
+```
+
+
+#### simplex
+
++ `(simplex x)`
++ `(simplex x y)`
++ `(simplex x y z)`
+
+Simplex noise. 6 octaves.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L607">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-single-noise"></span>
+```
+
+
+#### single-noise
+
++ `(single-noise)`
++ `(single-noise cfg__60237__auto__)`
+
+Create single-noise function with optional configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L626">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-source-object"></span>
+```
+
+
+#### source-object
+
++ `(source-object d)`
+
+Returns Java or proxy object from backend library (if available)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L789">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-synced-rng"></span>
+```
+
+
+#### synced-rng
+
++ `(synced-rng m)`
++ `(synced-rng m seed)`
+
+Create synchronized RNG for given name and optional seed. Wraps [rng](#LOS-rng) method.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L176">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-upper-bound"></span>
+```
+
+
+#### upper-bound
+
++ `(upper-bound d)`
+
+Distribution highest supported value
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L839">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-variance"></span>
+```
+
+
+#### variance
+
++ `(variance d)`
+
+Distribution variance
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L827">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-vnoise"></span>
+```
+
+
+#### vnoise
+
++ `(vnoise x)`
++ `(vnoise x y)`
++ `(vnoise x y z)`
+
+Value Noise.
+
+  6 octaves, Hermite interpolation (cubic, h01).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L591">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-warp-noise-fn"></span>
+```
+
+
+#### warp-noise-fn
+
++ `(warp-noise-fn noise scale depth)`
++ `(warp-noise-fn noise scale)`
++ `(warp-noise-fn noise)`
++ `(warp-noise-fn)`
+
+Create warp noise (see [Inigo Quilez article](http://www.iquilezles.org/www/articles/warp/warp.htm)).
+
+  Parameters:
+
+  * noise function, default: vnoise
+  * scale factor, default: 4.0
+  * depth (1 or 2), default 1
+
+  Normalization of warp noise depends on normalization of noise function.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/blob/master/src/fastmath/random.clj#L664">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/random.clj">clay/random.clj</a></small></small></pre></div>
+```
