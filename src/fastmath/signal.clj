@@ -922,13 +922,13 @@
 (defmethod oscillator :triangle [_ ^double f ^double a ^double p]
   (let [saw (oscillator :saw f a p)]
     (fn ^double [^double x]
-      (- (* 2.0 (m/abs (saw x))) a))))
+      (- (* 2.0 (m/abs (double (saw x)))) a))))
 
 (defmethod oscillator :cut-triangle [_ ^double f ^double a ^double p]
   (let [tri (oscillator :triangle f a p)]
     (fn ^double [^double x]
       (let [namp (* 0.5 a)]
-        (* 2.0 (m/constrain ^double (tri x) (- namp) namp))))))
+        (* 2.0 (m/constrain (double (tri x)) (- namp) namp))))))
 
 (defmethod oscillator :constant [_ _ ^double a _] (constantly a))
 

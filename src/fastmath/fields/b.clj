@@ -732,7 +732,7 @@
   ([] {:type :regular})
   ([^double amount _]
    (fn [^Vec2 v]
-     (Vec2. (* amount (v/mag v) (special/bessel-j (m/abs (.x v)) (min 10000.0 (m/abs (.y v)))))
+     (Vec2. (* amount (v/mag v) (special/bessel-J (m/abs (.x v)) (min 10000.0 (m/abs (.y v)))))
             (* amount (v/heading v))))))
 
 (defn beta

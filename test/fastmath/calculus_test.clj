@@ -237,7 +237,7 @@
 
 ;; https://docs.scipy.org/doc/scipy/tutorial/integrate.html
 (t/deftest scipy-example
-  (t/is (m/delta-eq (sut/integrate (fn [^double x] (special/bessel-j 2.5 x)) 0.0 4.5)
+  (t/is (m/delta-eq (sut/integrate (fn [^double x] (special/bessel-J 2.5 x)) 0.0 4.5)
                     1.117817938088701 1.0e-11))
   (t/is (v/delta-eq (map (fn [^double x]
                            (sut/integrate (fn [^double t] (m// (m/exp (m/* -1.0 x t))

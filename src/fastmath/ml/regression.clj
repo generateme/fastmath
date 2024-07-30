@@ -53,17 +53,16 @@
   (predict [m xs] (prot/predict m xs false))
   (predict [_ xs stderr?]
     (let [xs (if transformer (transformer xs) xs)
-          ^double off xs] (with-offset xs offset?)
-         (if stderr?
-           (let [[^double off xs] (with-offset xs offset?)
-                 arr (double-array (if intercept? (conj xs 1.0) xs))
-                 fit (double (m/+ off intercept (v/dot beta xs)))
-                 stderr (m/sqrt (m/* sigma2 (v/dot arr (mat/mulv xtxinv arr))))
-                 scale (m/* stderr qt)]
-             {:fit fit
-              :stderr stderr
-              :confidence-interval [(m/- fit scale) (m/+ fit scale)]})
-           (m/+ off intercept (v/dot beta xs))))))
+          [^double off xs] (with-offset xs offset?)]
+      (if stderr?
+        (let [arr (double-array (if intercept? (conj xs 1.0) xs))
+              fit (double (m/+ off intercept (v/dot beta xs)))
+              stderr (m/sqrt (m/* sigma2 (v/dot arr (mat/mulv xtxinv arr))))
+              scale (m/* stderr qt)]
+          {:fit fit
+           :stderr stderr
+           :confidence-interval [(m/- fit scale) (m/+ fit scale)]})
+        (m/+ off intercept (v/dot beta xs))))))
 
 ;;
 
@@ -847,8 +846,7 @@
     (let [xs (if transformer (transformer xs) xs)
           [^double off xs] (with-offset xs offset?)]
       (if stderr?
-        (let [[^double off xs] (with-offset xs offset?)
-              arr (double-array (conj xs 1.0))
+        (let [arr (double-array (conj xs 1.0))
               linear (m/+ off intercept (v/dot beta xs))
               fit (double (mean-fun linear))
               stderr (m/sqrt (m/* dispersion (v/dot arr (mat/mulv xtxinv arr))))

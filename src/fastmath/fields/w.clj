@@ -210,12 +210,12 @@
          (Vec2. (case modex
                   0 (let [^JacobiData jacobi (u/jacobi-elliptic (* (.y v) freqx) jacok)]
                       (* amount (+ (.x v) (* csx (.sn jacobi)))))
-                  1 (* amount (+ (.x v) (* csx (special/bessel-j1 (m/abs (* (.y v) freqx))))))
+                  1 (* amount (+ (.x v) (* csx (special/bessel-J1 (m/abs (* (.y v) freqx))))))
                   2 (* amount (+ (.x v) (* csx (m/sin (* (m/sgn (.y v)) (m/pow (+ (m/abs (.y v)) m/EPSILON) pwx) freqx))))))
                 (case modey
                   0 (let [^JacobiData jacobi (u/jacobi-elliptic (* (.x v) freqy) jacok)]
                       (* amount (+ (.y v) (* csy (.sn jacobi)))))
-                  1 (* amount (+ (.y v) (* csy (special/bessel-j1 (m/abs (* (.x v) freqy))))))
+                  1 (* amount (+ (.y v) (* csy (special/bessel-J1 (m/abs (* (.x v) freqy))))))
                   2 (* amount (+ (.y v) (* csy (m/sin (* (m/sgn (.x v)) (m/pow (+ (m/abs (.x v)) m/EPSILON) pwy) freqy))))))))))))
 
 (defn waves2

@@ -1,7 +1,20 @@
 (ns fastmath.core
-  "Collection of fast math functions and plethora of constants known from other math libraries.
+  "Collection of basic math functions and constants.
 
-  ### Primitive math operators
+  Contains:
+  
+  * Basic math functions
+  * Predicates
+  * Bitwise operations
+  * Trigonometry
+  * Log/power
+  * Floating point format operations
+  * Factorial, combinations, gcd/lcd
+  * Additional functions: sampling, rank, lerp
+
+  Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Almost all operates on primitive `double` and returns `double` or `long` and are inlined.
+
+  #### Primitive math operators
 
   Inlined function operating on double/longs as a replacement of Clojure numerical tower: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-and-not` `bit-set` `bit-clear` `bit-test` `bit-flip` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
 
@@ -13,11 +26,7 @@
   * `not==` - not equal
 
   To turn on primitive math on your namespace call [[use-primitive-operators]].
-  To turn off and revert original versions call [[unuse-primitive-operators]] which is recomended when Clojure 1.12+ is used.
-
-  ### FastMath
-
-  Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Almost all operates on primitive `double` and returns `double` or `long`"
+  To turn off and revert original versions call [[unuse-primitive-operators]] which is recomended when Clojure 1.12+ is used."
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
   (:import [net.jafama FastMath]
@@ -152,7 +161,7 @@
   ([a b c d & r] (reduce / (/ (double a) (double b) (double c) (double d)) r)))
 
 (defn long-div
-  {:inline (primitivemath-nary-inline-long 'subtract 'reciprocal)
+  {:inline (primitivemath-nary-inline-long 'divide 'reciprocal)
    :inline-arities >=1?
    :doc "Primitive and inlined `/`. Coerces to arguments and returned value to a long."}
   (^double [^long a] (. PrimitiveMath (reciprocal a)))
@@ -578,11 +587,16 @@
 
 ;; macros for polynomials
 
-(defn- ->fma
-  [x y z]
-  (if (< jvm-version 9)
-    `(+ ~z (* ~x ~y))
-    `(Math/fma (double ~x) (double ~y) (double ~z))))
+(defn ^:private ->fma
+  ([] (->fma false))
+  ([n?]
+   (if-not n?
+     (if (< jvm-version 9)
+       (fn [x y z] `(+ ~z (* ~x ~y)))
+       (fn [x y z] `(Math/fma (double ~x) (double ~y) (double ~z))))
+     (if (< jvm-version 9)
+       (fn [x y z] `(+ ~z (* (- ~x) ~y)))
+       (fn [x y z] `(Math/fma (- (double ~x)) (double ~y) (double ~z)))))))
 
 (defmacro ^:private fma-macro
   [x y z]
@@ -592,21 +606,21 @@
 
 (defn muladd
   "`(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+"
-  {:inline (fn [x y z] (->fma x y z))
+  {:inline (->fma)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
   (fma-macro x y z))
 
 (defn fma
   "`(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+"
-  {:inline (fn [x y z] (->fma x y z))
+  {:inline (->fma)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
   (fma-macro x y z))
 
 (defn negmuladd
   "`(x y z)` -> `(+ z (* -x y))` or `Math/fma` for java 9+"
-  {:inline (fn [x y z] (->fma x y z))
+  {:inline (->fma true)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
   (fma-macro (- x) y z))
@@ -1147,9 +1161,9 @@
 (defn logsubexp
   "log(abs(exp(x)-exp(y)))"
   ^double [^double x ^double y]
-  (+ (max x y)
+  (+ (PrimitiveMath/max x y)
      (log1mexp (- (if (and (== x y)
-                           (or (Double/isFinite x) (neg? x))) 0.0 (FastMath/abs (- x y)))))))
+                           (or (Double/isFinite x) (neg? x))) 0.0 (Math/abs (- x y)))))))
 
 
 (defn logsumexp
@@ -1273,7 +1287,7 @@
 (defn sinc
   "Sinc function."
   ^double [^double v]
-  (let [x (* PI (FastMath/abs v))]
+  (let [x (* PI (Math/abs v))]
     (if (< x 1.0e-5) 1.0
         (/ (FastMath/sin x) x))))
 
@@ -1315,11 +1329,11 @@
 
 (defn logcosh
   "log(cosh(x))"
-  {:inline (fn [x] `(let [absx# (FastMath/abs (double ~x))]
+  {:inline (fn [x] `(let [absx# (Math/abs (double ~x))]
                      (- (+ absx# (log1pexp (* -2.0 absx#))) LN2)))
    :inline-arities #{1}}
   ^double [^double x]
-  (let [absx (FastMath/abs x)]
+  (let [absx (Math/abs x)]
     (- (+ absx (log1pexp (* -2.0 absx))) LN2)))
 
 ;; \\(\log_2 e\\)
@@ -1597,16 +1611,23 @@
   (. FastMath (remainder dividend divisor)))
 
 (defn abs
-  "\\\\(|x|\\\\) - `double` version. See [[iabs]]."
-  {:inline (fn [x] `(. FastMath (abs (double ~x))))
+  "Primitive and inlined version of abs."
+  {:inline (fn [x] `(. Math (abs ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/abs x))
+  ^double [^double x] (Math/abs x))
 
 (defn iabs
   "\\\\(|x|\\\\) - `long` version. See [[abs]]."
-  {:inline (fn [x] `(. Math (abs (long ~x))))
+  {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
+   :inline-arities #{1}
+   :deprecated "Use long-abs."}
+  ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
+
+(defn long-abs
+  "\\\\(|x|\\\\) - `long` version. See [[abs]]."
+  {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}}
-  ^long [^long x] (Math/abs x))
+  ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
 
 (defn trunc
   "Truncate fractional part, keep sign. Returns `double`."
@@ -1618,7 +1639,7 @@
 
 ;; return approximate value
 (defn approx
-  "Round `v` to specified (default: 2) decimal places. Be aware of `double` number accuracy."
+  "Round `v` to specified (default: 2) decimal places. Be aware of floating point number accuracy."
   (^double [^double v] (Precision/round v (int 2)))
   (^double [^double v ^long digits] (Precision/round v (int digits))))
 
@@ -1635,9 +1656,9 @@
   Version with 4-arity accepts absolute and relative accuracy."
   ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
-   (or (< (abs (- a b)) accuracy) (== a b)))
+   (or (< (Math/abs (- a b)) accuracy) (== a b)))
   ([^double a ^double b ^double abs-tol ^double rel-tol]
-   (or (< (abs (- a b)) (max abs-tol (* rel-tol (max (abs a) (abs b))))) (== a b))))
+   (or (< (Math/abs (- a b)) (max abs-tol (* rel-tol (max (Math/abs a) (Math/abs b))))) (== a b))))
 
 (def ^{:doc "Alias for [[approx-eq]]"} approx= approx-eq)
 (def ^{:doc "Alias for [[delta-eq]]"} delta= delta-eq)
@@ -1645,13 +1666,13 @@
 (defn near-zero?
   "Checks if given value is near zero with absolute (default: `1.0e-6`) and/or relative (default `0.0`) tolerance."
   ([^double x] (near-zero? x 1.0e-6))
-  ([^double x ^double abs-tol] (< (abs x) abs-tol))
+  ([^double x ^double abs-tol] (< (Math/abs x) abs-tol))
   ([^double x ^double abs-tol ^double rel-tol]
-   (let [ax (abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
+   (let [ax (Math/abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
 
 (defn frac
   "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."
-  ^double [^double v] (abs (- v (unchecked-long v))))
+  ^double [^double v] (Math/abs (- v (unchecked-long v))))
 
 (defn sfrac
   "Fractional part, always returns values from -1.0 to 1.0 (exclusive). See [[frac]] for unsigned version."
@@ -1664,19 +1685,19 @@
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
   "Find greatest exponent (power of 2) which is lower or equal `x`. See [[high-2-exp]]."
-  ^long [^double x] (-> x abs log2 floor unchecked-long))
+  ^long [^double x] (-> x Math/abs log2 floor unchecked-long))
 
 (defn high-2-exp
   "Find lowest exponent (power of 2) which is greater or equal `x`. See [[low-2-exp]]."
-  ^long [^double x] (-> x abs log2 ceil unchecked-long))
+  ^long [^double x] (-> x Math/abs log2 ceil unchecked-long))
 
 (defn low-exp
   "Find greatest exponent for base `b` which is lower or equal `x`. See also [[high-exp]]."
-  ^long [^double b ^double x] (->> x abs (logb b) floor unchecked-long))
+  ^long [^double b ^double x] (->> x Math/abs (logb b) floor unchecked-long))
 
 (defn high-exp
   "Find lowest exponent for base `b` which is higher or equal`x`. See also [[low-exp]]."
-  ^long [^double b ^double x] (->> x abs (logb b) ceil unchecked-long))
+  ^long [^double b ^double x] (->> x Math/abs (logb b) ceil unchecked-long))
 
 (defn round-up-pow2
   "Round long to the next power of 2"
@@ -1820,19 +1841,8 @@
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} M_INVLN2 (/ LN2))
 
 (defn signum
-  "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]].
-
-  \\\\(
-  \\left\\\\{
-  \\begin{array}{lr}
-  1.0 & : x > 0\\\\\\\\
-  -1.0 & : x < 0\\\\\\\\
-  0.0 & : x = 0
-  \\end{array}
-  \\\\right.
-  \\\\)"
-  {:inline (fn [value] `(let [v# (double ~value)]
-                         (if (pos? v#) 1.0 (if (neg? v#) -1.0 0.0))))
+  "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
+  {:inline (fn [v] `(if (pos? ~v) 1.0 (if (neg? ~v) -1.0 0.0)))
    :inline-arities #{1}}
   ^double [^double value]
   (cond (pos? value) 1.0
@@ -1840,21 +1850,11 @@
         :else 0.0))
 
 (defn sgn
-  "Return -1 when `value` is negative, 1 otherwise. See also [[signum]].
-
-  \\\\(
-  \\left\\\\{
-  \\begin{array}{lr}
-  1.0 & : x \\geq 0\\\\\\\\
-  -1.0 & : x < 0\\\\\\\\
-  \\end{array}
-  \\\\right.
-  \\\\)"
-  {:inline (fn [value] `(if (neg? (double ~value)) -1.0 1.0))
+  "Return -1 when `value` is negative, 1 otherwise. See also [[signum]]."
+  {:inline (fn [v] `(if (neg? ~v) -1.0 1.0))
    :inline-arities #{1}}
   ^double [^double value]
   (if (neg? value) -1.0 1.0))
-
 
 ;; copy-sign
 
@@ -2010,7 +2010,7 @@
      :mellowmax (/ (- (logsumexp (scale-xs xs alpha))
                       (log (count xs))) alpha)
      :p-norm (pow (reduce + (map (fn [^double x]
-                                   (pow (abs x) alpha)) xs)) (/ alpha))
+                                   (pow (Math/abs x) alpha)) xs)) (/ alpha))
      :smu (let [epsilon (/ alpha)]
             (reduce (fn [^double a ^double b]
                       (* 0.5 (+ a b (sqrt (+ (sq (- a b))
@@ -2138,14 +2138,14 @@
 (defn gcd
   "Fast binary greatest common divisor (Stein's algorithm)"
   ^long [^long a ^long b]
-  (gcd- (iabs a) (iabs b)))
+  (gcd- (long-abs a) (long-abs b)))
 
 (defn lcm
   "Fast binary least common multiplier."
   ^long [^long a ^long b]
   (if (> a b)
-    (* b (/ a (gcd- (iabs a) (iabs b))))
-    (* a (/ b (gcd- (iabs a) (iabs b))))))
+    (* b (/ a (gcd- (long-abs a) (long-abs b))))
+    (* a (/ b (gcd- (long-abs a) (long-abs b))))))
 
 ;;
 

@@ -43,21 +43,26 @@
          :or {width 500 height 400}}]
    (rplot/plot->buffered-image obj :width width :height height)))
 
-(defn ->data [data] (tc/dataset data))
-(defmacro r+ [& forms] `(r/r+ ~@forms))
-(defmacro gg+ [& forms]  `(r/r+ (gg/ggplot) ~@forms))
-(defmacro ggaes+ [aes & forms]  `(r/r+ (gg/ggplot :mapping ~aes) (gg/theme_light) ~@forms))
-(defn aes [& aes-opts] (apply gg/aes aes-opts))
-(defn line [data & opts] (apply gg/geom_line :data (tc/dataset data) opts))
-(defn point [data & opts] (apply gg/geom_point :data (tc/dataset data) opts))
-(defn raster [data & opts] (apply gg/geom_raster :data (tc/dataset data) opts))
-(defn histogram [data & opts] (apply gg/geom_histogram :data (tc/dataset data) opts))
-(defn ribbon [data & opts] (apply gg/geom_ribbon :data (tc/dataset data) opts))
-(defn xlim [[x-min x-max]] (gg/xlim (or x-min 'NA) (or x-max 'NA)))
-(defn ylim [[y-min y-max]] (gg/ylim (or y-min 'NA) (or y-max 'NA)))
-(defn title [title] (gg/labs :title title))
-(defn xlab [title] (gg/xlab title))
-(defn ylab [title] (gg/ylab title))
+;; (defn ->data [data] (tc/dataset data))
+;; (defmacro r+ [& forms] `(r/r+ ~@forms))
+;; (defmacro gg+ [& forms]  `(r/r+ (gg/ggplot) ~@forms))
+;; (defmacro ggaes+ [aes & forms]  `(r/r+ (gg/ggplot :mapping ~aes) (gg/theme_light) ~@forms))
+;; (defn aes [& aes-opts] (apply gg/aes aes-opts))
+;; (defn line [data & opts] (apply gg/geom_line :data (tc/dataset data) opts))
+;; (defn point [data & opts] (apply gg/geom_point :data (tc/dataset data) opts))
+;; (defn raster [data & opts] (apply gg/geom_raster :data (tc/dataset data) opts))
+;; (defn histogram [data & opts] (apply gg/geom_histogram :data (tc/dataset data) opts))
+;; (defn ribbon [data & opts] (apply gg/geom_ribbon :data (tc/dataset data) opts))
+;; (defn xlim [[x-min x-max]] (gg/xlim (or x-min 'NA) (or x-max 'NA)))
+;; (defn ylim [[y-min y-max]] (gg/ylim (or y-min 'NA) (or y-max 'NA)))
+;; (defn title [title] (gg/labs :title title))
+;; (defn xlab [title] (gg/xlab title))
+;; (defn ylab [title] (gg/ylab title))
+
+;; primitives
+
+(defn aes [& opts] (apply gg/aes opts))
+(defn geom-hline [obj & opts] (r/r+ obj (apply gg/geom_hline obj opts)))
 
 ;; data processing
 
@@ -116,21 +121,24 @@
   ([f {:keys [color]
        :or {color color-main}
        :as opts}]
-   (-> (ggaes+ (gg/aes :x :x :y :y)
-         (line (function->data f opts) :color color))
+   (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+             (gg/theme_light)
+             (gg/geom_line (function->data f opts) :color color))
        (add-common opts))))
 
 (defn line-points
   ([xs ys]
    (-> (tc/dataset {:x xs :y ys})
-       (gg/ggplot (gg/aes :x :x :y :y))
-       (r/r+ (gg/geom_line :color "blue")))))
+       (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+             (gg/theme_light)
+             (gg/geom_line :color "blue")))))
 
 (defn lollipop
   ([xs ys]
    (-> (tc/dataset {:x xs :y ys})
-       (gg/ggplot (gg/aes :x :x :y :y))
-       (r/r+ (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue")))))
+       (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+             (gg/theme_light)
+             (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue")))))
 
 
 (defn functions
@@ -141,12 +149,13 @@
         :as opts}]
    (let [data (functions->data fs opts)
          breaks (distinct (map :fname data))]
-     (-> (ggaes+ (if linetype?
-                   (gg/aes :linetype :fname :color :fname :x :x :y :y)
-                   (gg/aes :color :fname :x :x :y :y)) 
-           (line data)
-           (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
-           (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
+     (-> (r/r+ (gg/ggplot (if linetype?
+                            (gg/aes :linetype :fname :color :fname :x :x :y :y)
+                            (gg/aes :color :fname :x :x :y :y)))
+               (gg/theme_light)
+               (gg/geom_line data)
+               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
+               (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
          (add-common opts)))))
 
 (defn function2d
@@ -155,9 +164,10 @@
        :or {palette :pals/ocean.ice}
        :as opts}]
    (let [data (function2d->data f opts)]
-     (-> (ggaes+ (gg/aes :x :x :y :y :fill :z)
-           (raster data :interpolate true)
-           (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
+     (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y :fill :z))
+               (gg/theme_light)
+               (gg/geom_raster data :interpolate true)
+               (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
          (add-common opts)))))
 
 (defn function-ci
@@ -166,9 +176,10 @@
        :or {color color-main alpha 0.4 fill color-light}
        :as opts}]
    (let [data (function-ci->data f opts)]
-     (-> (ggaes+ (gg/aes :x :x :y :y :ymin :ymin :ymax :ymax)
-           (ribbon data :alpha alpha :fill fill)
-           (line data :color color))
+     (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y :ymin :ymin :ymax :ymax))
+               (gg/theme_light)
+               (gg/geom_ribbon data :alpha alpha :fill fill)
+               (gg/geom_line data :color color))
          (add-common opts)))))
 
 
@@ -182,6 +193,7 @@
          data (tc/dataset {:x xs :y ys})
          ff (if (sequential? f) functions function)]
      (r/r+ (ff f (assoc opts :x [x-min x-max]))
+           (gg/theme_light)
            (gg/geom_point :mapping (aes :x :x :y :y) :data data :color "blue" :fill "light blue"
                           :shape "circle filled" :size 3 :alpha 0.8)))))
 
@@ -189,14 +201,16 @@
   ([xs ys]
    (-> (tc/dataset {:x xs :y ys})
        (gg/ggplot (gg/aes :x :x :y :y))
-       (r/r+ (gg/geom_point :color "blue" :fill "light blue"
+       (r/r+ (gg/theme_light)
+             (gg/geom_point :color "blue" :fill "light blue"
                             :shape "circle filled" :size 3 :alpha 0.8)))))
 
 (defn scatters
   [data aes]
   (-> (tc/dataset data)
       (gg/ggplot (apply gg/aes aes))
-      (r/r+ (gg/geom_point :shape "circle filled" :size 3))))
+      (r/r+ (gg/theme_light)
+            (gg/geom_point :shape "circle filled" :size 3))))
 
 (defn function2d+scatter
   ([f xs ys] (function2d+scatter f xs ys nil))

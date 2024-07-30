@@ -11,9 +11,8 @@
                              "vector_matrix.clj"
                              "random.clj"
                              "stats.clj"
+                             "calculus.clj"
                              "complex_quaternions.clj"
                              "special.clj"]
                :book {:favicon "clay/resources/favicon.png"
                       :title "Fastmath documentation"}}))
-
-

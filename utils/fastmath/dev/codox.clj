@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]
             [scicloj.kindly.v4.kind :as kind]))
 
-(def source-files "https://github.com/generateme/fastmath/blob/master/src/")
+(def source-files "https://github.com/generateme/fastmath/tree/3.x/src/")
 
 (defn args->call [f args] (conj (seq args) f))
 (defn fix-tex [s]  (str/replace s #"\\\\\(|\\\\\)" "\\$"))
