@@ -121,9 +121,9 @@
   ([f {:keys [color]
        :or {color color-main}
        :as opts}]
-   (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+   (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y))
              (gg/theme_light)
-             (gg/geom_line (function->data f opts) :color color))
+             (gg/geom_line :data (tc/dataset (function->data f opts)) :color color))
        (add-common opts))))
 
 (defn line-points
@@ -192,10 +192,11 @@
          x-max (or x-max-p x-max-e)
          data (tc/dataset {:x xs :y ys})
          ff (if (sequential? f) functions function)]
-     (r/r+ (ff f (assoc opts :x [x-min x-max]))
-           (gg/theme_light)
-           (gg/geom_point :mapping (aes :x :x :y :y) :data data :color "blue" :fill "light blue"
-                          :shape "circle filled" :size 3 :alpha 0.8)))))
+     (-> (r/r+ (ff f (assoc opts :x [x-min x-max]))
+               (gg/theme_light)
+               (gg/geom_point :mapping (aes :x :x :y :y) :data data :color "blue" :fill "light blue"
+                              :shape "circle filled" :size 3 :alpha 0.8))
+         (add-common opts)))))
 
 (defn scatter
   ([xs ys]

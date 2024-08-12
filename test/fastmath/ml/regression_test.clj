@@ -660,5 +660,11 @@
                       (rr/r->clj '(qresid (glm "YD ~ Dens + I(1/Dens) + Var"
                                                :family inverse.gaussian :data yieldden)))))))
 
+;; from Daniel, simplest case
+
+(t/deftest lm-simplest-case
+  (let [model (sut/lm [3 3 5 6] [[1 1] [2 1] [3 2] [4 2]])]
+    (t/is (m/delta-eq 4.25 (model [1 2])))))
+
 (comment (init-r))
 

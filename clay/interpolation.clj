@@ -65,8 +65,11 @@
 
 ^{:kindly/hide-code true}
 (-> (ggplot/function+scatter target-1d xs1 ys1 {:x [0.0 7.0]})
-    (ggplot/title "Target function with sampled points")
-    (ggplot/->image))
+    #_(ggplot/title "Target function with sampled points")
+    (ggplot/->file))
+
+(-> (ggplot/function+scatter (ssj/b-spline xs1 ys1) xs1 ys1 {:x [0.5 6.5]})
+    (ggplot/->file))
 
 ;; ## 2d target
 
