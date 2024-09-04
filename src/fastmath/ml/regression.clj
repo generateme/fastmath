@@ -6,7 +6,8 @@
             [fastmath.protocols :as prot]
             [fastmath.random :as r]
             [fastmath.matrix :as mat]
-            [fastmath.special :as special])
+            [fastmath.special :as special]
+            [clojure.pprint :as pprint])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
             CholeskyDecomposition RealMatrix RealVector]
            [fastmath.java Array]
@@ -29,7 +30,7 @@
   If model is fitted with offset, first element of data point should contain provided offset.
 
   Expected data point:
-  
+
   * `[x1,x2,...,xn]` - when model was trained without offset
   * `[offset,x1,x2,...,xn]` - when offset was used for training
   * `[]` or `nil` - when model was trained with intercept only
@@ -41,6 +42,7 @@
                    ^RealMatrix xtxinv
                    ^double intercept beta coefficients
                    offset weights residuals fitted df ^long observations
+                   names
                    ^double r-squared ^double adjusted-r-squared ^double sigma2 ^double sigma
                    ^double tss ^double rss ^double regss ^double msreg
                    ^double qt
@@ -78,7 +80,7 @@
         xss (if intercept?
               (map (fn [xs] (conj (v/vec->seq xs) 1.0)) xss)
               (map v/vec->seq xss))
-        
+
         ^RealMatrix xss (mat/mat xss)
         ^SingularValueDecomposition S (SingularValueDecomposition. xss)
         singular-values (.getSingularValues S)
@@ -125,6 +127,21 @@
                :p-value (stats/p-value distr -value :both)
                :confidence-interval [(m/- b scale)
                                      (m/+ b scale)]})) coefficients stderrs)))
+
+(defn- coefficients-names
+  [names intercept? ^long term-count]
+  (let [namesv (if (nil? names)
+                 "X"
+                 names)]
+    (cond-> []
+      intercept? (conj "Intercept")
+      (string? namesv) (into
+                        (take term-count (map #(str namesv "_" %) (range))))
+      (vector? namesv) (into namesv)
+      ;; If we have less names than term-count
+      (and (vector? namesv) (m/< (count namesv) term-count))
+      (into
+       (take (m/- term-count (count namesv)) (map #(str "X_" %) (range)))))))
 
 (def ^{:tag 'double :private true :const true} ME100 (m/- 1.0 (m/* 100.0 m/MACHINE-EPSILON)))
 
@@ -235,10 +252,10 @@
         wresiduals (:weighted residuals)
         {^double df :residual} (:df model)
         p (mat/ncol xss)
-        hat (hat-matrix xtxinv xss weights)        
-        
+        hat (hat-matrix xtxinv xss weights)
+
         df- (m/dec df)
-        
+
         sigmas (sigmas wresiduals hat rss df-)
         ^RealMatrix laverage-coeffs (laverage-coeffs xtxinv xss rresiduals weights hat p observations)
 
@@ -273,15 +290,16 @@
   * `:alpha` - significance level, default: `0.05`
   * `:intercept?` - should intercept term be included, default: `true`
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
+  * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
 
   Notes:
-  
+
   * SVD decomposition is used instead of more common QR
   * intercept term is added implicitely if `intercept?` is set to `true` (by default)
   * Two variants of AIC/BIC are calculated, one based on log-likelihood, second on RSS/n
 
   Returned record implementes `IFn` protocol and contains:
-  
+
   * `:model` - `:ols` or `:wls`
   * `:intercept?` - whether intercept term is included or not
   * `:xtxinv` - (X^T X)^-1
@@ -295,7 +313,7 @@
   * `:observations` - number of observations
   * `:r-squared` and `:adjusted-r-squared`
   * `:sigma` and `:sigma2` - deviance and variance
-  * `:msreg` - regression mean squared 
+  * `:msreg` - regression mean squared
   * `:rss`, `:regss`, `:tss` - residual, regression and total sum of squares
   * `:qt` - (1-alpha/2) quantile of T distribution for residual degrees of freedom
   * `:f-statistic` and `:p-value` - F statistic and respective p-value
@@ -303,7 +321,7 @@
   * `:analysis` - laverage, residual and influence analysis - a delay
 
   Analysis, delay containing a map:
-  
+
   * `:residuals` - `:standardized` and `:studentized` weighted residuals
   * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
@@ -311,10 +329,9 @@
   * `:correlation` - correlation matrix of estimated parameters
   * `:normality` - residuals normality tests: `:skewness`, `:kurtosis`, `:durbin-watson` (for raw and weighted), `:jarque-berra` and `:omnibus` (normality)"
   ([ys xss] (lm ys xss nil))
-  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer]
+  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer names]
             :or {tol 1.0e-8 alpha 0.05 intercept? true}}]
 
-   
    (let [xss (if transformer (map transformer xss) xss)
          [^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss tol intercept?)
          uts (.getUT S)
@@ -328,30 +345,30 @@
 
          ^doubles ys-orig (m/seq->double-array ys)
          ^doubles ys (v/sub ys-orig offset)
-         
+
          ;; maybe separate wls and ols...
-         weights? (sequential? weights)           
+         weights? (sequential? weights)
          weights (vec (or weights (repeat m 1.0)))
          ^doubles daweights (m/seq->double-array weights)
          ^DiagonalMatrix dweights (DiagonalMatrix. daweights)
-         ^RealVector rvwys (v/vec->RealVector (v/emult daweights ys)) 
-         
+         ^RealVector rvwys (v/vec->RealVector (v/emult daweights ys))
+
          ^RealVector result (let [new-t (->> (-> (mat/mulm uts (mat/mulm dweights ut))
                                                  (CholeskyDecomposition. tol 1.0e-16)
                                                  (.getSolver)
                                                  (.solve ^RealVector (mat/mulv uts rvwys)))
-                                             (mat/mulv ut))]                              
-                              
+                                             (mat/mulv ut))]
+
                               (->> singular-values
                                    (v/emult (mat/mulv uts new-t))
                                    (mat/mulv (.getV S))))
 
          fitted (v/vec->seq (mat/mulv xss result))
          result-array (v/vec->array result)
-         
+
          intercept (if intercept? (Array/aget result-array 0) 0.0)
          beta (vec (if intercept? (rest result-array) result-array))
-         
+
          df (m/- m n)
          model-df (count beta)
          intercept-df (long (if intercept? 1 0))
@@ -360,11 +377,11 @@
          wresiduals (if weights?
                       (mapv (fn [^double r ^double w] (m/* r (m/sqrt w))) raw-residuals weights)
                       raw-residuals)
-         
+
          rss (v/dot wresiduals wresiduals)
          sigma2 (m// rss df)
          sigma (m/sqrt sigma2)
-         
+
          tss (if intercept?
                (if weights?
                  (let [mean-ys (stats/mean ys weights)]
@@ -374,7 +391,7 @@
                (if weights?
                  (v/sum (map (fn [^double y ^double w] (m/* w y y)) ys weights))
                  (v/dot ys ys)))
-         
+
          regss (m/- tss rss)
          rsquared (m/- 1.0 (m// rss tss))
          adjusted-rsquared (m/- 1.0 (m/* (m// (m/- m intercept-df) (double df)) (m/- 1.0 rsquared)))
@@ -399,7 +416,8 @@
 
          xtx-1 (xtxinv xss dweights tol)
          stderrs (standard-errors xtx-1 sigma2)
-         
+         namev (coefficients-names names intercept? model-df)
+
          model {:model (if weights? :wls :ols)
                 :transformer transformer
                 :intercept? intercept?
@@ -409,6 +427,7 @@
                 :beta beta
                 :offset offset
                 :coefficients (coefficients-analysis result-array stderrs tdistr qt)
+                :names namev
                 :weights weights
                 :residuals {:weighted wresiduals :raw raw-residuals}
                 :fitted (v/add fitted (seq offset))
@@ -450,64 +469,64 @@
    (->Link g mean mean-derivative)))
 
 (def links {:logit (->Link m/logit
-                         m/sigmoid
-                         (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
-          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (special/inv-erf (m/dec (m/* 2.0 x)))))
-                          (fn ^double [^double x] (-> (m// x m/SQRT2)
-                                                     (m/-)
-                                                     (special/erfc)
-                                                     (m/* 0.5)))
-                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
-                                                                               (m/exp (m/* -0.5 x x))))))
-          :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
-                           (fn ^double [^double x] (-> x
-                                                      (m/atan)
-                                                      (m// m/PI)
-                                                      (m/+ 0.5)))
-                           (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
-          :cloglog (->Link m/cloglog
-                           (fn ^double [^double x] (m/constrain (m/cexpexp x)
-                                                               m/MACHINE-EPSILON
-                                                               0.9999999999999999))
-                           (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
-          :loglog (->Link m/loglog
-                          m/expexp
-                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON
-                                                        (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
-          :identity (->Link m/identity-double
-                            m/identity-double
-                            constantly-1)
-          :log (->Link m/log
-                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
-                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
-          :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
-                        (fn ^double [^double x] (m/- 1.0 (m/exp x)))
-                        (fn ^double [^double x] (m/- (m/exp x))))
-          :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
-          :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
-                             (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
-                             (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
-          :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
-          :nbinomial (fn [{:keys [^double nbinomial-theta]
-                          :or {nbinomial-theta 1.0}}]
-                       (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
-                               (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
-                                                                     nbinomial-theta)))
-                               (fn ^double [^double x] (let [e (m/exp x)]
-                                                        (m// e (m// (m/sq (m/- 1.0 e))
-                                                                    nbinomial-theta))))))
-          :power (fn [{:keys [^double power-exponent]
-                      :or {power-exponent 1.0}}]
-                   (let [rexponent (m// power-exponent)]
-                     (->Link (fn ^double [^double x] (m/pow x power-exponent))
-                             (fn ^double [^double x] (m/pow x rexponent))
-                             (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
-                                                                                 (m/- 1.0 power-exponent))))))))
-          :distribution (fn [{:keys [distribution]
-                             :or {distribution (r/distribution :normal)}}]
-                          (->Link (partial r/icdf distribution)
-                                  (partial r/cdf distribution)
-                                  (partial r/pdf distribution)))})
+                           m/sigmoid
+                           (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
+            :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (special/inv-erf (m/dec (m/* 2.0 x)))))
+                            (fn ^double [^double x] (-> (m// x m/SQRT2)
+                                                        (m/-)
+                                                        (special/erfc)
+                                                        (m/* 0.5)))
+                            (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
+                                                                                  (m/exp (m/* -0.5 x x))))))
+            :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
+                             (fn ^double [^double x] (-> x
+                                                         (m/atan)
+                                                         (m// m/PI)
+                                                         (m/+ 0.5)))
+                             (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
+            :cloglog (->Link m/cloglog
+                             (fn ^double [^double x] (m/constrain (m/cexpexp x)
+                                                                  m/MACHINE-EPSILON
+                                                                  0.9999999999999999))
+                             (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
+            :loglog (->Link m/loglog
+                            m/expexp
+                            (fn ^double [^double x] (m/max m/MACHINE-EPSILON
+                                                           (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
+            :identity (->Link m/identity-double
+                              m/identity-double
+                              constantly-1)
+            :log (->Link m/log
+                         (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
+                         (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
+            :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
+                          (fn ^double [^double x] (m/- 1.0 (m/exp x)))
+                          (fn ^double [^double x] (m/- (m/exp x))))
+            :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
+            :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
+                               (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
+                               (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
+            :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
+            :nbinomial (fn [{:keys [^double nbinomial-theta]
+                             :or {nbinomial-theta 1.0}}]
+                         (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
+                                 (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
+                                                                        nbinomial-theta)))
+                                 (fn ^double [^double x] (let [e (m/exp x)]
+                                                           (m// e (m// (m/sq (m/- 1.0 e))
+                                                                       nbinomial-theta))))))
+            :power (fn [{:keys [^double power-exponent]
+                         :or {power-exponent 1.0}}]
+                     (let [rexponent (m// power-exponent)]
+                       (->Link (fn ^double [^double x] (m/pow x power-exponent))
+                               (fn ^double [^double x] (m/pow x rexponent))
+                               (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
+                                                                                    (m/- 1.0 power-exponent))))))))
+            :distribution (fn [{:keys [distribution]
+                                :or {distribution (r/distribution :normal)}}]
+                            (->Link (partial r/icdf distribution)
+                                    (partial r/cdf distribution)
+                                    (partial r/pdf distribution)))})
 
 ;; family
 
@@ -693,7 +712,7 @@
 
 (defn ->family
   "Create `Family` record.
-  
+
   Arguments:
 
   * `default-link` - canonical link function, default: `:identity`
@@ -705,8 +724,8 @@
   * `disperation` - value or `:estimate` (default), `:pearson` or `:mean-deviance`
 
   Initialization will be called with `ys` and `weights` and should return:
-  
-  * ys, possibly changed if any adjustment is necessary 
+
+  * ys, possibly changed if any adjustment is necessary
   * init-mu, starting point
   * weights, possibly changes or orignal
   * (optional) any other data used to calculate AIC
@@ -721,34 +740,34 @@
    (->Family :identity variance default-initialize residual-deviance (constantly ##NaN) nil :esitmate)))
 
 (def families {:binomial (->Family :logit (fn ^double [^double x] (m/* x (m/- 1.0 x)))
-                                 binomial-initialize binomial-residual-deviance
-                                 binomial-aic binomial-quantile-residuals 1.0)
-             :quasi-binomial (->Family :logit (fn ^double [^double x] (m/* x (m/- 1.0 x)))
-                                       binomial-initialize binomial-residual-deviance
-                                       (constantly ##NaN) binomial-quantile-residuals :estimate)
-             :gaussian (->Family :identity constantly-1
-                                 default-initialize gaussian-residual-deviance gaussian-aic nil :estimate)
-             :gamma (->Family :inverse m/sq
-                              default-initialize gamma-residual-deviance gamma-aic
-                              gamma-quantile-residuals :estimate)
-             :poisson (->Family :log m/identity-double 
-                                poisson-initialize poisson-residual-deviance poisson-aic
-                                poisson-quantile-residuals 1.0)
-             :quasi-poisson (->Family :log m/identity-double 
-                                      poisson-initialize poisson-residual-deviance
-                                      (constantly ##NaN) poisson-quantile-residuals :estimate)
-             :inverse-gaussian (->Family :inversesq m/cb
-                                         default-initialize inverse-gaussian-residual-deviance
-                                         inverse-gaussian-aic inverse-gaussian-quantile-residuals
-                                         :estimate)
-             :nbinomial (fn [{:keys [^double nbinomial-theta]
-                             :or {nbinomial-theta 1.0}}]
-                          (->Family :log (fn ^double [^double x] (m/+ x (m// (m/* x x) nbinomial-theta)))
-                                    nbinomial-initialize
-                                    (->nbinomial-residual-deviance nbinomial-theta)
-                                    (->nbinomial-aic nbinomial-theta)
-                                    (->nbinomial-quantile-residuals nbinomial-theta)
-                                    1.0))})
+                                   binomial-initialize binomial-residual-deviance
+                                   binomial-aic binomial-quantile-residuals 1.0)
+               :quasi-binomial (->Family :logit (fn ^double [^double x] (m/* x (m/- 1.0 x)))
+                                         binomial-initialize binomial-residual-deviance
+                                         (constantly ##NaN) binomial-quantile-residuals :estimate)
+               :gaussian (->Family :identity constantly-1
+                                   default-initialize gaussian-residual-deviance gaussian-aic nil :estimate)
+               :gamma (->Family :inverse m/sq
+                                default-initialize gamma-residual-deviance gamma-aic
+                                gamma-quantile-residuals :estimate)
+               :poisson (->Family :log m/identity-double
+                                  poisson-initialize poisson-residual-deviance poisson-aic
+                                  poisson-quantile-residuals 1.0)
+               :quasi-poisson (->Family :log m/identity-double
+                                        poisson-initialize poisson-residual-deviance
+                                        (constantly ##NaN) poisson-quantile-residuals :estimate)
+               :inverse-gaussian (->Family :inversesq m/cb
+                                           default-initialize inverse-gaussian-residual-deviance
+                                           inverse-gaussian-aic inverse-gaussian-quantile-residuals
+                                           :estimate)
+               :nbinomial (fn [{:keys [^double nbinomial-theta]
+                                :or {nbinomial-theta 1.0}}]
+                            (->Family :log (fn ^double [^double x] (m/+ x (m// (m/* x x) nbinomial-theta)))
+                                      nbinomial-initialize
+                                      (->nbinomial-residual-deviance nbinomial-theta)
+                                      (->nbinomial-aic nbinomial-theta)
+                                      (->nbinomial-quantile-residuals nbinomial-theta)
+                                      1.0))})
 
 (defn family-with-link
   "Returns family with a link as single map."
@@ -799,16 +818,16 @@
 (defn- glm-extra-analysis
   [{:keys [weights residuals ^double dispersion
            ^long observations ^RealMatrix xtxinv family] :as model} ^RealMatrix xss]
-  (let [weights (:weights weights)        
+  (let [weights (:weights weights)
         presiduals (:pearson residuals)
         dresiduals (:deviance residuals)
         rss (v/dot dresiduals dresiduals)
         inv-sqrt-dispersion (m// (m/sqrt dispersion))
-        
+
         {^double df :residual} (:df model)
         p (mat/ncol xss)
-        hat (hat-matrix xtxinv xss weights)                
-        
+        hat (hat-matrix xtxinv xss weights)
+
         df- (m/dec df)
         sigmas (sigmas dresiduals hat rss df-)
         ^RealMatrix laverage-coeffs (laverage-coeffs xtxinv xss dresiduals
@@ -833,6 +852,7 @@
                     ^RealMatrix xtxinv ys intercept? offset?
                     ^double intercept  beta coefficients ^long observations
                     residuals fitted weights offset
+                    names
                     deviance df ^double dispersion dispersions estimated-dispersion?
                     family link mean-fun link-fun iters quantile-residuals-fun
                     ^double q ^double chi2 ^double p-value
@@ -879,9 +899,10 @@
   * `:simple?` - returns simplified result
   * `:dispersion-estimator` - `:pearson`, `:mean-deviance` or any number, replaces default one.
   * `:family` - family, default: `:gaussian`
-  * `:link` - link 
+  * `:link` - link
   * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
+  * `:names` - an optional vector of names to use when printing the model
 
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [[->family]]) or a function returning Family (accepting a map as an argument)
@@ -889,14 +910,14 @@
   Link is one of the: `:probit`, `:identity`, `:loglog`, `:sqrt`, `:inverse`, `:logit`, `:power`, `:nbinomial`, `:cauchit`, `:distribution`, `:cloglog`, `:inversesq`, `:log`, `:clog`, custom `Link` record (see [[->link]]) or a function returning Link (accepting a map as an argument)
 
   Notes:
-  
+
   * SVD decomposition is used instead of more common QR
   * intercept term is added implicitely if `intercept?` is set to `true` (by default)
   * `:nbinomial` family requires `:nbinomial-theta` parameter
   * Each family has its own default (canonical) link.
 
   Returned record implementes `IFn` protocol and contains:
-  
+
   * `:model` - set to `:glm`
   * `:intercept?` - whether intercept term is included or not
   * `:xtxinv` - (X^T X)^-1
@@ -908,7 +929,7 @@
   * `:fitted` - fitted values for xss
   * `:df` - degrees of freedom: `:residual`, `:null` and `:intercept`
   * `:observations` - number of observations
-  * `:deviance` - deviances: `:residual` and `:null` 
+  * `:deviance` - deviances: `:residual` and `:null`
   * `:dispersion` - default or calculated, used in a model
   * `:dispersions` - `:pearson` and `:mean-deviance`
   * `:family` - family used
@@ -922,7 +943,7 @@
   * `:iters` and `:converged?` - number of iterations and convergence indicator
 
   Analysis, delay containing a map:
-  
+
   * `:residuals` - `:standardized` and `:studentized` residuals (pearsons and deviance)
   * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
@@ -930,7 +951,7 @@
   * `:correlation` - correlation matrix of estimated parameters"
   ([ys xss] (glm ys xss nil))
   ([ys xss {:keys [^long max-iters ^double tol ^double epsilon family link weights ^double alpha offset
-                   dispersion-estimator intercept? init-mu simple? transformer]
+                   dispersion-estimator intercept? init-mu simple? transformer names]
             :or {max-iters 25 tol 1.0e-8 epsilon 1.0e-8 family :gaussian alpha 0.05 intercept? true
                  simple? false}
             :as params}]
@@ -955,16 +976,16 @@
          weights (or weights (repeat m 1.0))
 
          [ys start-t weights optional-data] (initialize (seq ys) (seq weights))
-         
+
          ^doubles ys (m/seq->double-array ys)
          ^doubles weights (m/seq->double-array weights)
 
          offset? (boolean offset)
          ^doubles offset (m/seq->double-array (or offset (repeat m 0.0)))
          ^RealVector rvoffset (v/vec->RealVector offset)
-         
+
          init-t (double-array (map link-fun (or init-mu start-t)))
-         
+
          ^doubles buff-g (double-array m)
          ^doubles buff-z (double-array m)
          ^doubles buff-W (double-array m)
@@ -983,14 +1004,14 @@
                    g' (double (link-derivative eta))]
                (when (or (m/zero? v) (m/nan? v) (m/nan? g))
                  (throw (ex-info "Invalid variance of mean." {:mean g :variance v :coeff idx})))
-               
+
                (let [off (Array/aget offset idx)
                      z (m/+ (m/- eta off) (m// (m/- (Array/aget ys idx) g) g'))
                      w (m/* (Array/aget weights idx) (m// (m/* g' g') v))]
                  (Array/aset buff-g idx g)
                  (Array/aset buff-z idx z)
                  (Array/aset buff-W idx w)
-                 (Array/aset buff-Wz idx (m/* w z)))))           
+                 (Array/aset buff-Wz idx (m/* w z)))))
 
            (let [^RealVector new-t (->> (-> (mat/mulm uts (mat/mulm (DiagonalMatrix. buff-W) ut))
                                             #_(QRDecomposition. tol)
@@ -999,7 +1020,7 @@
                                             (.solve (.operate uts (v/vec->RealVector buff-Wz))))
                                         (mat/mulv ut))
                  new-dev (v/sum (residual-deviance ys buff-g weights))]
-             
+
              (if (or (m/< (m// (m/abs (m/- new-dev dev))
                                (m/+ 0.1 (m/abs new-dev))) epsilon)
                      (m/== iter max-iters))
@@ -1009,7 +1030,7 @@
                 (v/add (v/vec->array new-t) offset)
                 new-dev
                 iter]
-               
+
                (recur (m/inc iter)
                       (v/add (v/vec->array new-t) offset)
                       new-dev))))
@@ -1027,7 +1048,7 @@
 
          raw-residuals (map m/- ys fitted)
          residuals (v/ediv raw-residuals (map link-derivative t))
-         
+
          estimated-dispersion? (or (= :estimate dispersion) dispersion-estimator)
          pearson-dispersion (estimate-dispersion residuals buff-W df)
          mean-deviance (m// dev df)
@@ -1037,14 +1058,15 @@
                             (number? dispersion-estimator) (double dispersion-estimator)
                             (= dispersion-estimator :mean-deviance) mean-deviance
                             :else pearson-dispersion)
-         
+
          distr (if estimated-dispersion?
                  (r/distribution :t {:degrees-of-freedom df})
                  (r/distribution :normal))
          q (double (r/icdf distr (m/- 1.0 (m/* (double alpha) 0.5))))
-         
+
          xtx-1 (xtxinv xss (DiagonalMatrix. buff-W) tol)
          stderrs (standard-errors xtx-1 dispersion-value)
+         namev (coefficients-names names intercept? null-df)
 
          model {:model :glm
                 :transformer transformer
@@ -1062,8 +1084,9 @@
                 :dispersion dispersion-value
                 :family family
                 :link link
+                :names namev
                 :mean-fun link-mean
-                :link-fun link-fun                
+                :link-fun link-fun
                 :iters iters
                 :converged? (m/< iters max-iters)
                 :q q :chi2 ##NaN
@@ -1080,7 +1103,7 @@
                                      (map m/safe-sqrt)
                                      (map (fn [^double y ^double mu ^double r]
                                             (if (m/<= y mu) (m/- r) r)) ys fitted))
-             
+
              chi2 (v/sum (map m/sq pearson-residuals))
 
              null-deviance (if (and offset? intercept?)
@@ -1101,7 +1124,7 @@
                                                  :gamma :nbinomial} family) (m/inc n) n)
                                         ll (m/- p (m// aic 2.0))]
                                     [ll (m/- (m/* p (m/log m)) (m/* 2.0 ll))])
-             
+
              model (-> model
                        (assoc :ys (v/vec->seq ys)
                               :coefficients (coefficients-analysis result-array stderrs distr q)
@@ -1123,7 +1146,7 @@
                        (assoc-in [:residuals :pearson] pearson-residuals)
                        (assoc-in [:residuals :deviance] deviance-residuals)
                        (assoc-in [:deviance :null] null-deviance))
-             
+
              analysis (delay (glm-extra-analysis model xss))]
 
          (map->GLMData (assoc model :analysis analysis)))))))
@@ -1222,7 +1245,7 @@
 
 (defn dose
   "Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
-  
+
   * intercept-id - id of intercept, default: 0
   * coeff-id is the coefficient used for calculating dose, default: 1"
   ([glm-model] (dose glm-model 0.5))
@@ -1246,3 +1269,64 @@
      {:dose ##Inf
       :p p
       :stderr ##Inf})))
+
+(defn- residuals-analysis
+  "Summary statistics used for printing residuals with model"
+  [residuals]
+  [{:min (apply min residuals)
+    :1q (stats/quantile residuals 0.25)
+    :median (stats/median residuals)
+    :3q (stats/quantile residuals 0.75)
+    :max (apply max residuals)}])
+
+;; Model printing methods
+(defmulti ->string class)
+
+(defmethod ->string LMData [{:keys [model weights names coefficients residuals
+                                    r-squared adjusted-r-squared f-statistic
+                                    p-value df sigma ll]}]
+  (let [weights? (some (fn [x] (not (= 1.0 x))) weights)
+        residuals-label (str (when weights? "Weighted ") "Residuals:")]
+    (with-out-str
+      (println residuals-label) ;; Print residuals
+      (-> (residuals-analysis (:weighted residuals))
+          pprint/print-table)
+      (println)
+      (println "Coefficients:")
+      (->> coefficients
+           (map-indexed #(assoc %2 :name (nth names %1)))
+           pprint/print-table)
+      (println)
+      (println (str "F-statistic: " f-statistic " on degrees of freedom: " df))
+      (println (str "p-value: " p-value))
+      (println)
+      (println (str "R2: " r-squared))
+      (println (str "Adjusted R2: " adjusted-r-squared))
+      (println (str "Residual standard error: " sigma " on " (:residual df) " degrees of freedom"))
+      (println (str "AIC: " (:aic ll))))))
+
+(defmethod ->string GLMData [{:keys [model weights residuals coefficients family link dispersion iters
+                                     converged? ll deviance df names]}]
+  (let [weights? (some (fn [x] (not (= 1.0 x))) (:weights weights))
+        residuals-label (str (when weights? "Weighted ") "Deviance Residuals:")]
+    (with-out-str
+      (println residuals-label)
+      (-> (residuals-analysis (:deviance residuals))
+          pprint/print-table)
+      (println)
+      (println "Coefficients:")
+      (->> coefficients
+           (map-indexed #(assoc %2 :name (nth names %1)))
+           pprint/print-table)
+      (println)
+      (println "Null deviance: " (:null deviance) " on " (:null df) " degrees of freedom")
+      (println "Residual deviance: " (:residual deviance) " on " (:residual df) " degrees of freedom")
+      (println (str "AIC: " (:aic ll)))
+      (println)
+      (println (str "Family: " family ", Link: " link))
+      (println (str "Fisher Scoring Iterations: " iters)))))
+
+(defmethod print-method LMData [data w]
+  (.write w (->string data)))
+(defmethod print-method GLMData [data w]
+  (.write w (->string data)))
