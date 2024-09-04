@@ -68,8 +68,14 @@
     #_(ggplot/title "Target function with sampled points")
     (ggplot/->file))
 
-(-> (ggplot/function+scatter (ssj/b-spline xs1 ys1) xs1 ys1 {:x [0.5 6.5]})
-    (ggplot/->file))
+#_(-> (ggplot/function+scatter  [["13" (ssj/b-spline xs1 ys1)]
+                                 ["10" (ssj/b-spline xs1 ys1 {:degree 10})]
+                                 ["2" (ssj/b-spline xs1 ys1 {:degree 2})]
+                                 ["1" (ssj/b-spline xs1 ys1 {:degree 1})]] xs1 ys1
+                                {:x [0.5 6.5]
+                                 :legend-name "degree"
+                                 :title "(b-spline xs ys {:degree ...}"})
+      (ggplot/->file))
 
 ;; ## 2d target
 

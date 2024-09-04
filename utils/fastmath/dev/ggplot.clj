@@ -149,11 +149,11 @@
         :as opts}]
    (let [data (functions->data fs opts)
          breaks (distinct (map :fname data))]
-     (-> (r/r+ (gg/ggplot (if linetype?
-                            (gg/aes :linetype :fname :color :fname :x :x :y :y)
-                            (gg/aes :color :fname :x :x :y :y)))
+     (-> (r/r+ (gg/ggplot)
                (gg/theme_light)
-               (gg/geom_line data)
+               (gg/geom_line :data (tc/dataset data) :mapping (if linetype?
+                                                                (gg/aes :linetype :fname :color :fname :x :x :y :y)
+                                                                (gg/aes :color :fname :x :x :y :y)))
                (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
                (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
          (add-common opts)))))
@@ -192,11 +192,9 @@
          x-max (or x-max-p x-max-e)
          data (tc/dataset {:x xs :y ys})
          ff (if (sequential? f) functions function)]
-     (-> (r/r+ (ff f (assoc opts :x [x-min x-max]))
-               (gg/theme_light)
-               (gg/geom_point :mapping (aes :x :x :y :y) :data data :color "blue" :fill "light blue"
-                              :shape "circle filled" :size 3 :alpha 0.8))
-         (add-common opts)))))
+     (r/r+ (ff f (assoc opts :x [x-min x-max]))
+           (gg/geom_point :color "blue" :fill "light blue" :data data :mapping (gg/aes :x :x :y :y)
+                          :shape "circle filled" :size 3 :alpha 0.8)))))
 
 (defn scatter
   ([xs ys]
