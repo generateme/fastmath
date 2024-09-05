@@ -153,8 +153,6 @@
 (emit-kernel :matern-32 vk/matern {:order 3})
 (emit-kernel :matern-52 vk/matern {:order 5})
 
-(def kernels-list ^{:doc "List of available vector kernels."} (sort (keys (methods kernel))))
-
 (defn exp
   "Kernel wraper. exp of kernel `k` with optional scaling value `t`."
   ([k] (exp k 1.0))
@@ -239,5 +237,12 @@
   ([kernel data bandwidth-or-params]
    (let [p (if (number? bandwidth-or-params) {:bandwidth bandwidth-or-params} bandwidth-or-params)]
      (dens/kernel-density-ci kernel data p))))
+
+;;
+
+(def kernel-list ^{:doc "List of available kernels: vector, rbf and kde"}
+  {:vector (sort (keys (methods kernel)))
+   :rbf (sort (keys (methods rbf)))
+   :kde (sort (keys dens/kde-data))})
 
 (m/unuse-primitive-operators)

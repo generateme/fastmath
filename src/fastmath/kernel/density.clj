@@ -529,7 +529,3 @@
   
   (-> (ggplot/function (partial r/pdf mixture) {:x [-7 15]})
       (ggplot/->file)))
-;; => nil
-;; => nil
-;; => nil
-;; => nil

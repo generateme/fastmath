@@ -15,11 +15,17 @@
             [fastmath.interpolation.shepard :as shepard]
             [fastmath.kernel :as kernel]
             [fastmath.kernel.vector :as kvector]
+            [fastmath.kernel.density :as kd]
             [fastmath.interpolation.rbf :as rbf]
             [fastmath.vector :as v]
             [fastmath.stats :as stats]
             [fastmath.optimization :as opt]
             [fastmath.interpolation.kriging :as kriging]))
+
+(r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
+                                          :steps 100})
+
+(kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})
 
 ;; # Interpolation
 
