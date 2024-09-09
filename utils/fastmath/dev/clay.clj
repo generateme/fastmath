@@ -25,6 +25,13 @@
   `(callout "note" "Examples" (examples ~@forms)))
 
 
+(defmacro symbol-info-table
+  [rows]
+  `(kind/table {:column-names ["Symbol" "Info"]
+                :row-vectors [~@(for [[s i] rows]
+                                  `[(kind/code (pr-str (quote ~s))) (or ~i "-")])]}))
+
+
 ;; build whole book
 (comment
   (clay/make! {:source-path ["index.clj"

@@ -4,10 +4,12 @@
             [clojisr.v1.applications.plotting :as rplot]
             [tablecloth.api :as tc]
             [fastmath.core :as m]
+            [fastmath.random :as fr]
             [fastmath.stats :as stats]))
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
+             '[patchwork :as pw]
              '[base])
 
 (defn ->palette
@@ -18,9 +20,11 @@
       (name pal))
     pal))
 
+#_{:clj-kondo/ignore [:unresolved-namespace]}
 (defn paletter-d [pal]
   (r/r->clj (pal/paletteer_d (->palette pal))))
 
+#_{:clj-kondo/ignore [:unresolved-namespace]}
 (defn paletter-c [pal n]
   (r/r->clj (pal/paletteer_c (->palette pal) n)))
 
@@ -61,6 +65,7 @@
 
 ;; primitives
 
+#_{:clj-kondo/ignore [:unresolved-namespace]}
 (defn aes [& opts] (apply gg/aes opts))
 (defn geom-hline [obj & opts] (r/r+ obj (apply gg/geom_hline obj opts)))
 
@@ -135,10 +140,13 @@
 
 (defn lollipop
   ([xs ys]
-   (-> (tc/dataset {:x xs :y ys})
-       (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+   (lollipop xs ys nil))
+  ([xs ys {:keys [title]
+           :or {title ""}}]
+   (-> (r/r+ (gg/ggplot :data (tc/dataset {:x xs :y ys}) :mapping (gg/aes :x :x :y :y))
              (gg/theme_light)
-             (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue")))))
+             (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue"))
+       (add-common {:title title}))))
 
 
 (defn functions
@@ -164,9 +172,9 @@
        :or {palette :pals/ocean.ice}
        :as opts}]
    (let [data (function2d->data f opts)]
-     (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y :fill :z))
+     (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y :fill :z))
                (gg/theme_light)
-               (gg/geom_raster data :interpolate true)
+               (gg/geom_raster :data (tc/dataset data) :interpolate true)
                (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
          (add-common opts)))))
 
@@ -176,9 +184,9 @@
        :or {color color-main alpha 0.4 fill color-light}
        :as opts}]
    (let [data (function-ci->data f opts)]
-     (-> (r/r+ (gg/ggplot (gg/aes :x :x :y :y :ymin :ymin :ymax :ymax))
+     (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y :ymin :ymin :ymax :ymax))
                (gg/theme_light)
-               (gg/geom_ribbon data :alpha alpha :fill fill)
+               (gg/geom_ribbon :data (tc/dataset data) :alpha alpha :fill fill)
                (gg/geom_line data :color color))
          (add-common opts)))))
 
@@ -197,12 +205,30 @@
                           :shape "circle filled" :size 3 :alpha 0.8)))))
 
 (defn scatter
+  "plot scatter graph.
+  `xs` and `ys` are the data points.
+  
+  options `opts`:
+  `aspect-ratio`: default `nil`.
+                  `nil` means letting the scale of the coordinate-system follows
+                  drawing-window's aspect ratio.
+                  set to any positive whole number to set fixed ratio y/x
+                  for the coordinate-system.
+                  setting aspect-ratio to true or 1 is useful if we want
+                  to draw plots depicting any perfect circle.
+  "
   ([xs ys]
+   (scatter xs ys nil))
+  ([xs ys {:keys [aspect-ratio]
+           :or {aspect-ratio nil}}]
    (-> (tc/dataset {:x xs :y ys})
        (gg/ggplot (gg/aes :x :x :y :y))
        (r/r+ (gg/theme_light)
              (gg/geom_point :color "blue" :fill "light blue"
-                            :shape "circle filled" :size 3 :alpha 0.8)))))
+                            :shape "circle filled" :size 1 :alpha 0.8))
+       (cond-> 
+           aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio))))))
+
 
 (defn scatters
   [data aes]
@@ -238,3 +264,92 @@
       (title (r.base/expression (symbol "ABC~x^2~frac(1,2)~sqrt(2,3)")))
       (->file))
 
+
+(defn fgraph-int
+  ([f domain]
+   (fgraph-int f domain {:title ""}))
+  ([f domain {:keys [title]}]
+   (function f {:x domain
+                :title title})))
+
+
+(defn sample-int
+  [f ^long dx ^long dy]
+  (map (fn [v] [(+ v 0.5) (f v)]) (range dx (inc dy))))
+
+
+(defn bgraph-int
+  ([f] (bgraph-int f nil))
+  ([f domain] (bgraph-int f domain {:title ""}))
+  ([f domain opts]
+   (let [[dx dy] domain
+         xsys (if (map? f)
+                (seq f)
+                (sample-int f dx dy))
+         xs (map first xsys)
+         ys (map second xsys)]
+     (lollipop xs ys opts))))
+
+
+(defn dgraph-cont
+  "params:
+  `opts`:
+     keys:`:pdf` a vector of pdf range, default 0 to 1
+          `:icdf` a vector of icdf range, default 0 0.999
+          `:data` supplied data"
+  ([pdf-graph distr] (dgraph-cont pdf-graph distr nil))
+  ([pdf-graph distr {:keys [pdf icdf data]
+                     :or {pdf [0 1] icdf [0 0.999]}}]
+   (let [pdf-plot (pdf-graph (if data data (partial fr/pdf distr)) pdf {:title "PDF"})
+         cdf-plot (fgraph-int (partial fr/cdf distr) pdf {:title "CDF"})
+         icdf-plot (fgraph-int (partial fr/icdf distr) icdf {:title "ICDF"})]
+     (->image
+      #_{:clj-kondo/ignore [:unresolved-namespace]}
+      (pw/wrap_plots pdf-plot cdf-plot icdf-plot :ncol 3)))))
+
+
+(defmacro fgraph
+  ([f] `(->image (fgraph-int (fn [x#] (~f x#)))))
+  ([f domain] `(->image (fgraph-int (fn [x#] (~f x#)) ~domain)))
+  ([f domain opts] `(->image (fgraph-int (fn [x#] (~f x#)) ~domain ~opts))))
+
+
+(defn dgraph
+  "given a distribution `distr` create an image containing PDF, CDF, and ICDF plots of that distribution.
+  use `fgraph-int` to plot pdf.
+
+  params:
+  `opts`: see docs for `dgraph-cont`."
+  ([distr]
+   (dgraph distr nil))
+  ([distr opts]
+   (dgraph-cont fgraph-int distr opts)))
+
+
+(defn dgraphi
+  "given a distribution `distr` create an image containing PDF, CDF, and ICDF plots of that distribution.
+  use `bgraph-int` to plot pdf.
+
+  params:
+  `opts`: see docs for `dgraph-cont`"
+  ([distr]
+   (dgraph distr nil))
+  ([distr opts]
+   (dgraph-cont bgraph-int distr opts)))
+
+
+(defn graph2d
+  ([f] (graph2d f nil nil nil))
+  ([f dx dy] (graph2d f dx dy {}))
+  ([f dx dy opts]
+   (let [[dx1 dx2] (or dx [0.0 1.0])
+         [dy1 dy2] (or dy [0.0 1.0])]
+     (->image (function2d f (merge opts {:x [dx1 dx2] :y [dy1 dy2]}))))))
+
+
+(defn graph-scatter
+  "draw scatter plot.
+  see `scatter` doc for the `opts` description."
+  ([xy] (graph-scatter xy nil))
+  ([xy opts]
+   (->image (scatter (map first xy) (map second xy) opts))))
