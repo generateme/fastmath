@@ -21,7 +21,7 @@ title: Fastmath documentation
 }
 </style><style>.clay-limit-image-width .clay-image {max-width: 100%}
 </style>
-<script src="random_files/md-default247.js" type="text/javascript"></script><script src="random_files/md-default248.js" type="text/javascript"></script>
+<script src="random_files/md-default579.js" type="text/javascript"></script><script src="random_files/md-default580.js" type="text/javascript"></script>
 
 # Random {.unnumbered}
 
@@ -53,7 +53,7 @@ Set initial seed
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.JDKRandomGenerator 0x66ec8ec2 "org.apache.commons.math3.random.JDKRandomGenerator@66ec8ec2"]
+#object[org.apache.commons.math3.random.JDKRandomGenerator 0x125e032a "org.apache.commons.math3.random.JDKRandomGenerator@125e032a"]
 
 ```
 :::
@@ -150,9 +150,9 @@ To create PRNG, call `rng` with algorithm name (as a keyword) and optional seed 
 
 ::: {.sourceClojure}
 ```clojure
-(r/rng :isaac) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0xfec6c91 "org.apache.commons.math3.random.ISAACRandom@fec6c91"]
-(r/rng :isaac 5336) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x3b794449 "org.apache.commons.math3.random.ISAACRandom@3b794449"]
-(r/synced-rng (r/rng :isaac)) ;; => #object[org.apache.commons.math3.random.SynchronizedRandomGenerator 0x71cf2d46 "org.apache.commons.math3.random.SynchronizedRandomGenerator@71cf2d46"]
+(r/rng :isaac) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x458d6888 "org.apache.commons.math3.random.ISAACRandom@458d6888"]
+(r/rng :isaac 5336) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x4d0e5b0b "org.apache.commons.math3.random.ISAACRandom@4d0e5b0b"]
+(r/synced-rng (r/rng :isaac)) ;; => #object[org.apache.commons.math3.random.SynchronizedRandomGenerator 0x382f5fb8 "org.apache.commons.math3.random.SynchronizedRandomGenerator@382f5fb8"]
 ```
 :::
 
@@ -196,21 +196,21 @@ All examples will use Mersenne Twister PRNG with random seed
 
 ::: {.sourceClojure}
 ```clojure
-(r/irandom my-prng) ;; => -1288920385
-(r/irandom my-prng 5) ;; => 0
-(r/irandom my-prng 10 20) ;; => 11
-(r/lrandom my-prng) ;; => -5601227250026431579
-(r/lrandom my-prng 5) ;; => 4
-(r/lrandom my-prng 10 20) ;; => 13
-(r/frandom my-prng) ;; => 0.8250451
-(r/frandom my-prng 2.5) ;; => 1.8744171
-(r/frandom my-prng 10.1 10.11) ;; => 10.102425
-(r/drandom my-prng) ;; => 0.501582979378931
-(r/drandom my-prng 2.5) ;; => 1.2613013440813563
-(r/drandom my-prng 10.1 10.11) ;; => 10.106774883638437
-(r/grandom my-prng) ;; => -0.1993582367527933
-(r/grandom my-prng 20.0) ;; => -29.5759262742231
-(r/grandom my-prng 10.0 20.0) ;; => 40.349429784124744
+(r/irandom my-prng) ;; => 455174229
+(r/irandom my-prng 5) ;; => 2
+(r/irandom my-prng 10 20) ;; => 13
+(r/lrandom my-prng) ;; => 8305343593572555149
+(r/lrandom my-prng 5) ;; => 0
+(r/lrandom my-prng 10 20) ;; => 11
+(r/frandom my-prng) ;; => 0.64220655
+(r/frandom my-prng 2.5) ;; => 1.9439763
+(r/frandom my-prng 10.1 10.11) ;; => 10.107388
+(r/drandom my-prng) ;; => 0.16969396152550775
+(r/drandom my-prng 2.5) ;; => 2.169999316588439
+(r/drandom my-prng 10.1 10.11) ;; => 10.101568579522086
+(r/grandom my-prng) ;; => -1.389655297267027
+(r/grandom my-prng 20.0) ;; => -3.4475426372107836
+(r/grandom my-prng 10.0 20.0) ;; => 26.749940842172254
 (r/brandom my-prng) ;; => true
 (r/brandom my-prng 0.01) ;; => false
 (r/brandom my-prng 0.99) ;; => true
@@ -228,12 +228,12 @@ All examples will use Mersenne Twister PRNG with random seed
 
 ::: {.sourceClojure}
 ```clojure
-(take 2 (r/->seq my-prng)) ;; => (0.4885078825668323 0.15425525692104602)
-(r/->seq my-prng 2) ;; => (0.48123476900291196 0.1719564716464419)
-(r/->seq my-prng 5 :antithetic) ;; => (0.6323930340757877 0.36760696592421227 0.957265845484343 0.042734154515656986 0.13880057194340023)
-(r/->seq my-prng 5 :uniform) ;; => (0.029369326314847757 0.16613132046622597 0.552987795373908 0.6143919048695375 0.7421264053684221)
-(r/->seq my-prng 5 :systematic) ;; => (0.12207801919447712 0.32207801919447715 0.522078019194477 0.7220780191944771 0.9220780191944771)
-(r/->seq my-prng 5 :stratified) ;; => (0.15036576820310113 0.39288747613351066 0.4024569446899115 0.6813400263610344 0.9067794745388689)
+(take 2 (r/->seq my-prng)) ;; => (0.2695232984080389 0.4876430896518895)
+(r/->seq my-prng 2) ;; => (0.12725015761617797 0.9759827207525451)
+(r/->seq my-prng 5 :antithetic) ;; => (0.4818697515105228 0.5181302484894772 0.4972785762756886 0.5027214237243114 0.6918776856112852)
+(r/->seq my-prng 5 :uniform) ;; => (0.119250116841303 0.15713179103726052 0.5007760529205386 0.6235870695158976 0.699730474180551)
+(r/->seq my-prng 5 :systematic) ;; => (0.09985422997251621 0.2998542299725162 0.4998542299725163 0.6998542299725163 0.8998542299725163)
+(r/->seq my-prng 5 :stratified) ;; => (0.05050413252367134 0.2282362236890769 0.5072591802744121 0.6881901760595488 0.9407395934572513)
 ```
 :::
 
@@ -290,7 +290,7 @@ Let's now reseed both PRNGs
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.ISAACRandom 0x7e7ba061 "org.apache.commons.math3.random.ISAACRandom@7e7ba061"]
+#object[org.apache.commons.math3.random.ISAACRandom 0x1b8e0d20 "org.apache.commons.math3.random.ISAACRandom@1b8e0d20"]
 
 ```
 :::
@@ -307,7 +307,7 @@ Let's now reseed both PRNGs
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.ISAACRandom 0x11e3dbfe "org.apache.commons.math3.random.ISAACRandom@11e3dbfe"]
+#object[org.apache.commons.math3.random.ISAACRandom 0x166c2630 "org.apache.commons.math3.random.ISAACRandom@166c2630"]
 
 ```
 :::
@@ -364,11 +364,11 @@ There is defined one global variable `default-rng` which is synchonized `:jvm` P
 (r/brand 0.01) ;; => false
 (r/brand 0.99) ;; => true
 (take 3 (r/->seq)) ;; => (0.8820950564851541 0.8432355490117891 0.7757833765798361)
-r/default-rng ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x66ec8ec2 "org.apache.commons.math3.random.JDKRandomGenerator@66ec8ec2"]
-(r/set-seed) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x38c4e95e "org.apache.commons.math3.random.JDKRandomGenerator@38c4e95e"]
-(r/set-seed 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x4ee2a9f5 "org.apache.commons.math3.random.JDKRandomGenerator@4ee2a9f5"]
-(r/set-seed!) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x66ec8ec2 "org.apache.commons.math3.random.JDKRandomGenerator@66ec8ec2"]
-(r/set-seed! 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x66ec8ec2 "org.apache.commons.math3.random.JDKRandomGenerator@66ec8ec2"]
+r/default-rng ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x125e032a "org.apache.commons.math3.random.JDKRandomGenerator@125e032a"]
+(r/set-seed) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0xe78fb6e "org.apache.commons.math3.random.JDKRandomGenerator@e78fb6e"]
+(r/set-seed 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x537975cd "org.apache.commons.math3.random.JDKRandomGenerator@537975cd"]
+(r/set-seed!) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x125e032a "org.apache.commons.math3.random.JDKRandomGenerator@125e032a"]
+(r/set-seed! 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x125e032a "org.apache.commons.math3.random.JDKRandomGenerator@125e032a"]
 ```
 :::
 
@@ -476,8 +476,8 @@ Collection of probability distributions.
 
 ::: {.sourceClojure}
 ```clojure
-(r/distribution :cauchy) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x6833db1c "org.apache.commons.math3.distribution.CauchyDistribution@6833db1c"]
-(r/distribution :cauchy {:median 2.0, :scale 2.0}) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x412f3f72 "org.apache.commons.math3.distribution.CauchyDistribution@412f3f72"]
+(r/distribution :cauchy) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x64996a20 "org.apache.commons.math3.distribution.CauchyDistribution@64996a20"]
+(r/distribution :cauchy {:median 2.0, :scale 2.0}) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0xfbe61a5 "org.apache.commons.math3.distribution.CauchyDistribution@fbe61a5"]
 ```
 :::
 
@@ -522,11 +522,11 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/drandom log-logistic) ;; => 9.38119207031292
-(r/frandom log-logistic) ;; => 9.632276
-(r/lrandom log-logistic) ;; => 5
-(r/irandom log-logistic) ;; => 7
-(r/sample log-logistic) ;; => 8.365576487707175
+(r/drandom log-logistic) ;; => 11.480831240946756
+(r/frandom log-logistic) ;; => 5.579531
+(r/lrandom log-logistic) ;; => 11
+(r/irandom log-logistic) ;; => 11
+(r/sample log-logistic) ;; => 3.6038192926674424
 (r/distribution? log-logistic) ;; => true
 (r/distribution? 2.3) ;; => false
 (r/pdf log-logistic 1) ;; => 0.008695578691184421
@@ -569,7 +569,7 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample dirichlet) ;; => [0.5266513175880663 0.20201103895118547 0.2713376434607484]
+(r/sample dirichlet) ;; => [0.11548648360228615 0.19712496004117566 0.6873885563565383]
 (reduce + (r/sample dirichlet)) ;; => 1.0
 (r/distribution? dirichlet) ;; => true
 (r/pdf dirichlet [0.5 0.1 0.4]) ;; => 0.9600000000000001
@@ -577,9 +577,9 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 (r/observe1 dirichlet [0.5 0.1 0.4]) ;; => -0.040821994520255034
 (r/dimensions dirichlet) ;; => 3
 (r/continuous? dirichlet) ;; => true
-(r/log-likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 13.684664778905477
-(r/observe dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 13.748577940989582
-(r/likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 39299.27282047337
+(r/log-likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 12.859079201149505
+(r/observe dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 14.446108905854214
+(r/likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 2.6818554249660652E7
 (r/means dirichlet) ;; => (0.16666666666666666 0.3333333333333333 0.5)
 (r/covariance dirichlet) ;; => [[0.019841269841269844 -0.007936507936507936 -0.011904761904761904] [-0.007936507936507936 0.03174603174603175 -0.023809523809523808] [-0.011904761904761904 -0.023809523809523808 0.03571428571428571]]
 (r/distribution-id dirichlet) ;; => :dirichlet
@@ -609,11 +609,11 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/drandom poisson) ;; => 5.0
-(r/frandom poisson) ;; => 7.0
-(r/lrandom poisson) ;; => 6
-(r/irandom poisson) ;; => 7
-(r/sample poisson) ;; => 13
+(r/drandom poisson) ;; => 7.0
+(r/frandom poisson) ;; => 10.0
+(r/lrandom poisson) ;; => 9
+(r/irandom poisson) ;; => 6
+(r/sample poisson) ;; => 8
 (r/distribution? poisson) ;; => true
 (r/pdf poisson 5) ;; => 0.03783327480207072
 (r/lpdf poisson 5) ;; => -3.274566277811817
@@ -722,8 +722,8 @@ Let's compare cdf and icdf to integrated pdf of beta distribution
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample weibull) ;; => 1.660596406669419
-(r/->seq weibull 3) ;; => (1.429808601277931 0.6239351187186042 0.22901862086355926)
+(r/sample weibull) ;; => 1.078444843936788
+(r/->seq weibull 3) ;; => (1.222468464187552 0.9625206430337994 0.695108003419516)
 (r/->seq weibull 5 :antithetic) ;; => (0.8789298248121516 0.7871567720020644 0.3359031152662685 1.4959111180822753 0.5761405777290171)
 (r/->seq weibull 5 :uniform) ;; => (0.27819628819981307 0.5105865483391676 0.6372189139644687 1.1425580683435526 1.7502730290537003)
 (r/->seq weibull 5 :systematic) ;; => (0.42415794076771685 0.6734882729621214 0.911929539913042 1.2027888245275842 1.8282741464907257)
@@ -754,7 +754,7 @@ All distributions accept `:rng` optional parameter which is used internally for 
 ```clojure
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [-0.1079136480774541 -5.558982159984645 -3.127061922456471]
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [8.13804818209913 1.6141542337020716 -0.6694661861436221]
-(r/set-seed! cauchy-mersenne-2288 2288) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x22f767ce "org.apache.commons.math3.distribution.CauchyDistribution@22f767ce"]
+(r/set-seed! cauchy-mersenne-2288 2288) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x67102e1d "org.apache.commons.math3.distribution.CauchyDistribution@67102e1d"]
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [-0.1079136480774541 -5.558982159984645 -3.127061922456471]
 ```
 :::
@@ -779,7 +779,7 @@ All distributions accept `:rng` optional parameter which is used internally for 
 
 ::: {.sourceClojure}
 ```clojure
-(r/->seq r/default-normal 3) ;; => (0.27270306571120556 -0.11068556832645735 0.8582708703487653)
+(r/->seq r/default-normal 3) ;; => (0.9197931519563896 0.383566276481942 0.49076746179611647)
 (r/pdf r/default-normal 0.0) ;; => 0.3989422804014327
 (r/cdf r/default-normal 0.0) ;; => 0.5
 (r/icdf r/default-normal 0.5) ;; => 0.0
@@ -870,7 +870,7 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/0.png" /></td><td><img class="clay-image" src="random_files/1.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><div><img class="clay-image" src="random_files/0.png" /><img class="clay-image" src="random_files/1.png" /><img class="clay-image" src="random_files/2.png" /></div></td><td><div><img class="clay-image" src="random_files/3.png" /><img class="clay-image" src="random_files/4.png" /><img class="clay-image" src="random_files/5.png" /></div></td></tr></tbody></table>
 ```
 
 :::
@@ -890,9 +890,9 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 1, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 0.5, :beta 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/2.png" /></td><td><img class="clay-image" src="random_files/3.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 3, :beta 3}
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/6.png" /></td><td><img class="clay-image" src="random_files/7.png" /></td><td><img class="clay-image" src="random_files/8.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/9.png" /></td><td><img class="clay-image" src="random_files/10.png" /></td><td><img class="clay-image" src="random_files/11.png" /></td></tr></tbody></table></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 3, :beta 3}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 5, :beta 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/4.png" /></td><td><img class="clay-image" src="random_files/5.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/12.png" /></td><td><img class="clay-image" src="random_files/13.png" /></td><td><img class="clay-image" src="random_files/14.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/15.png" /></td><td><img class="clay-image" src="random_files/16.png" /></td><td><img class="clay-image" src="random_files/17.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -912,7 +912,7 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:median 0, :scale 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:median 1, :scale 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/6.png" /></td><td><img class="clay-image" src="random_files/7.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><div><img class="clay-image" src="random_files/18.png" /><img class="clay-image" src="random_files/19.png" /><img class="clay-image" src="random_files/20.png" /></div></td><td><div><img class="clay-image" src="random_files/21.png" /><img class="clay-image" src="random_files/22.png" /><img class="clay-image" src="random_files/23.png" /></div></td></tr></tbody></table>
 ```
 
 :::
@@ -931,7 +931,7 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 3}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/8.png" /></td><td><img class="clay-image" src="random_files/9.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/24.png" /></td><td><img class="clay-image" src="random_files/25.png" /></td><td><img class="clay-image" src="random_files/26.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/27.png" /></td><td><img class="clay-image" src="random_files/28.png" /></td><td><img class="clay-image" src="random_files/29.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -950,7 +950,7 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:degrees-of-freedom 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:degrees-of-freedom 3}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/10.png" /></td><td><img class="clay-image" src="random_files/11.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/30.png" /></td><td><img class="clay-image" src="random_files/31.png" /></td><td><img class="clay-image" src="random_files/32.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/33.png" /></td><td><img class="clay-image" src="random_files/34.png" /></td><td><img class="clay-image" src="random_files/35.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -970,7 +970,7 @@ Distribution of Anderson-Darling statistic $A^2$ on $n$ independent uniforms $U[
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 1, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 3, :lambda 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/12.png" /></td><td><img class="clay-image" src="random_files/13.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/36.png" /></td><td><img class="clay-image" src="random_files/37.png" /></td><td><img class="clay-image" src="random_files/38.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/39.png" /></td><td><img class="clay-image" src="random_files/40.png" /></td><td><img class="clay-image" src="random_files/41.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -993,7 +993,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/14.png" /></td><td><img class="clay-image" src="random_files/15.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/42.png" /></td><td><img class="clay-image" src="random_files/43.png" /></td><td><img class="clay-image" src="random_files/44.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/45.png" /></td><td><img class="clay-image" src="random_files/46.png" /></td><td><img class="clay-image" src="random_files/47.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1013,7 +1013,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:k 1, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:k 7, :lambda 2.0}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/16.png" /></td><td><img class="clay-image" src="random_files/17.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/48.png" /></td><td><img class="clay-image" src="random_files/49.png" /></td><td><img class="clay-image" src="random_files/50.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/51.png" /></td><td><img class="clay-image" src="random_files/52.png" /></td><td><img class="clay-image" src="random_files/53.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1034,7 +1034,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :sigma 1, :nu 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu -2, :sigma 0.5, :nu 4}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/18.png" /></td><td><img class="clay-image" src="random_files/19.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/54.png" /></td><td><img class="clay-image" src="random_files/55.png" /></td><td><img class="clay-image" src="random_files/56.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/57.png" /></td><td><img class="clay-image" src="random_files/58.png" /></td><td><img class="clay-image" src="random_files/59.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1053,7 +1053,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mean 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mean 3}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/20.png" /></td><td><img class="clay-image" src="random_files/21.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/60.png" /></td><td><img class="clay-image" src="random_files/61.png" /></td><td><img class="clay-image" src="random_files/62.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/63.png" /></td><td><img class="clay-image" src="random_files/64.png" /></td><td><img class="clay-image" src="random_files/65.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1072,8 +1072,8 @@ Note: PDF is calculated using finite difference method from CDF.
 
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:numerator-degrees-of-freedom 1, :denominator-degrees-of-freedom 1}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/22.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:numerator-degrees-of-freedom 10, :denominator-degrees-of-freedom 15}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/23.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/66.png" /></td><td><img class="clay-image" src="random_files/67.png" /></td><td><img class="clay-image" src="random_files/68.png" /></td></tr></tbody></table></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:numerator-degrees-of-freedom 10, :denominator-degrees-of-freedom 15}
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/69.png" /></td><td><img class="clay-image" src="random_files/70.png" /></td><td><img class="clay-image" src="random_files/71.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1094,7 +1094,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :beta 1, :gamma 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu -1, :beta 3, :gamma 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/24.png" /></td><td><img class="clay-image" src="random_files/25.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/72.png" /></td><td><img class="clay-image" src="random_files/73.png" /></td><td><img class="clay-image" src="random_files/74.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/75.png" /></td><td><img class="clay-image" src="random_files/76.png" /></td><td><img class="clay-image" src="random_files/77.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1114,7 +1114,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :sigma 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 2, :sigma 1}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/26.png" /></td><td><img class="clay-image" src="random_files/27.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/78.png" /></td><td><img class="clay-image" src="random_files/79.png" /></td><td><img class="clay-image" src="random_files/80.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/81.png" /></td><td><img class="clay-image" src="random_files/82.png" /></td><td><img class="clay-image" src="random_files/83.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1135,7 +1135,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:delta 0, :alpha 1, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:delta 1, :alpha 3, :beta 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/28.png" /></td><td><img class="clay-image" src="random_files/29.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/84.png" /></td><td><img class="clay-image" src="random_files/85.png" /></td><td><img class="clay-image" src="random_files/86.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/87.png" /></td><td><img class="clay-image" src="random_files/88.png" /></td><td><img class="clay-image" src="random_files/89.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1155,7 +1155,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:shape 2, :scale 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:shape 5, :scale 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/30.png" /></td><td><img class="clay-image" src="random_files/31.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/90.png" /></td><td><img class="clay-image" src="random_files/91.png" /></td><td><img class="clay-image" src="random_files/92.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/93.png" /></td><td><img class="clay-image" src="random_files/94.png" /></td><td><img class="clay-image" src="random_files/95.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1175,7 +1175,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :beta 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :beta 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/32.png" /></td><td><img class="clay-image" src="random_files/33.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/96.png" /></td><td><img class="clay-image" src="random_files/97.png" /></td><td><img class="clay-image" src="random_files/98.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/99.png" /></td><td><img class="clay-image" src="random_files/100.png" /></td><td><img class="clay-image" src="random_files/101.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1194,7 +1194,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/34.png" /></td><td><img class="clay-image" src="random_files/35.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/102.png" /></td><td><img class="clay-image" src="random_files/103.png" /></td><td><img class="clay-image" src="random_files/104.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/105.png" /></td><td><img class="clay-image" src="random_files/106.png" /></td><td><img class="clay-image" src="random_files/107.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1213,7 +1213,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:sigma 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:sigma 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/36.png" /></td><td><img class="clay-image" src="random_files/37.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/108.png" /></td><td><img class="clay-image" src="random_files/109.png" /></td><td><img class="clay-image" src="random_files/110.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/111.png" /></td><td><img class="clay-image" src="random_files/112.png" /></td><td><img class="clay-image" src="random_files/113.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1233,7 +1233,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :sigma 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :sigma 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/38.png" /></td><td><img class="clay-image" src="random_files/39.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/114.png" /></td><td><img class="clay-image" src="random_files/115.png" /></td><td><img class="clay-image" src="random_files/116.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/117.png" /></td><td><img class="clay-image" src="random_files/118.png" /></td><td><img class="clay-image" src="random_files/119.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1252,7 +1252,7 @@ Note: PDF is calculated using finite difference method from CDF.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lambdas [1]}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lambdas [1 2 3 4 1]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/40.png" /></td><td><img class="clay-image" src="random_files/41.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/120.png" /></td><td><img class="clay-image" src="random_files/121.png" /></td><td><img class="clay-image" src="random_files/122.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/123.png" /></td><td><img class="clay-image" src="random_files/124.png" /></td><td><img class="clay-image" src="random_files/125.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1275,7 +1275,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 1, :k 1, :h 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 5, :h 0.5, :k 6}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/42.png" /></td><td><img class="clay-image" src="random_files/43.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/126.png" /></td><td><img class="clay-image" src="random_files/127.png" /></td><td><img class="clay-image" src="random_files/128.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/129.png" /></td><td><img class="clay-image" src="random_files/130.png" /></td><td><img class="clay-image" src="random_files/131.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1295,7 +1295,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 2, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 1.5, :beta 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/44.png" /></td><td><img class="clay-image" src="random_files/45.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/132.png" /></td><td><img class="clay-image" src="random_files/133.png" /></td><td><img class="clay-image" src="random_files/134.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/135.png" /></td><td><img class="clay-image" src="random_files/136.png" /></td><td><img class="clay-image" src="random_files/137.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1315,7 +1315,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 2, :lambda 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/46.png" /></td><td><img class="clay-image" src="random_files/47.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/138.png" /></td><td><img class="clay-image" src="random_files/139.png" /></td><td><img class="clay-image" src="random_files/140.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/141.png" /></td><td><img class="clay-image" src="random_files/142.png" /></td><td><img class="clay-image" src="random_files/143.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1337,7 +1337,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0, :delta 1, :xi 0, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0.5, :delta 2, :xi 0, :lambda 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/48.png" /></td><td><img class="clay-image" src="random_files/49.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/144.png" /></td><td><img class="clay-image" src="random_files/145.png" /></td><td><img class="clay-image" src="random_files/146.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/147.png" /></td><td><img class="clay-image" src="random_files/148.png" /></td><td><img class="clay-image" src="random_files/149.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1359,7 +1359,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0, :delta 1, :xi 0, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0.5, :delta 2, :xi 0, :lambda 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/50.png" /></td><td><img class="clay-image" src="random_files/51.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/150.png" /></td><td><img class="clay-image" src="random_files/151.png" /></td><td><img class="clay-image" src="random_files/152.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/153.png" /></td><td><img class="clay-image" src="random_files/154.png" /></td><td><img class="clay-image" src="random_files/155.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1381,7 +1381,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0, :delta 1, :xi 0, :lambda 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:gamma 0.5, :delta 2, :xi 0, :lambda 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/52.png" /></td><td><img class="clay-image" src="random_files/53.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/156.png" /></td><td><img class="clay-image" src="random_files/157.png" /></td><td><img class="clay-image" src="random_files/158.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/159.png" /></td><td><img class="clay-image" src="random_files/160.png" /></td><td><img class="clay-image" src="random_files/161.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1393,13 +1393,18 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 * Name: `:kolmogorov`
 * [wiki](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test#Kolmogorov_distribution), [info](https://www.math.ucla.edu/~tom/distributions/Kolmogorov.html)
 
-::: {.clay-image}
+
+::: {.sourceClojure}
+```clojure
+(gg/dgraph (r/distribution :kolmogorov) {:pdf [0 2]})
+```
+:::
+
+
 
 ```{=html}
-<img src="random_files/54.png" />
+<div><p>[</p><div class="clay-sequential" style="margin-left:10%;width:110%;"><img class="clay-image" src="random_files/162.png" /><img class="clay-image" src="random_files/163.png" /><img class="clay-image" src="random_files/164.png" /></div><p>]</p></div>
 ```
-
-:::
 
 
 
@@ -1415,7 +1420,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 10}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/55.png" /></td><td><img class="clay-image" src="random_files/56.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/165.png" /></td><td><img class="clay-image" src="random_files/166.png" /></td><td><img class="clay-image" src="random_files/167.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/168.png" /></td><td><img class="clay-image" src="random_files/169.png" /></td><td><img class="clay-image" src="random_files/170.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1434,7 +1439,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 10}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/57.png" /></td><td><img class="clay-image" src="random_files/58.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/171.png" /></td><td><img class="clay-image" src="random_files/172.png" /></td><td><img class="clay-image" src="random_files/173.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/174.png" /></td><td><img class="clay-image" src="random_files/175.png" /></td><td><img class="clay-image" src="random_files/176.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1454,7 +1459,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :beta 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/59.png" /></td><td><img class="clay-image" src="random_files/60.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/177.png" /></td><td><img class="clay-image" src="random_files/178.png" /></td><td><img class="clay-image" src="random_files/179.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/180.png" /></td><td><img class="clay-image" src="random_files/181.png" /></td><td><img class="clay-image" src="random_files/182.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1474,7 +1479,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :c 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :c 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/61.png" /></td><td><img class="clay-image" src="random_files/62.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/183.png" /></td><td><img class="clay-image" src="random_files/184.png" /></td><td><img class="clay-image" src="random_files/185.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/186.png" /></td><td><img class="clay-image" src="random_files/187.png" /></td><td><img class="clay-image" src="random_files/188.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1494,7 +1499,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 3, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 5, :beta 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/63.png" /></td><td><img class="clay-image" src="random_files/64.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/189.png" /></td><td><img class="clay-image" src="random_files/190.png" /></td><td><img class="clay-image" src="random_files/191.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/192.png" /></td><td><img class="clay-image" src="random_files/193.png" /></td><td><img class="clay-image" src="random_files/194.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1514,7 +1519,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 1, :shape 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 2, :shape 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/65.png" /></td><td><img class="clay-image" src="random_files/66.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/195.png" /></td><td><img class="clay-image" src="random_files/196.png" /></td><td><img class="clay-image" src="random_files/197.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/198.png" /></td><td><img class="clay-image" src="random_files/199.png" /></td><td><img class="clay-image" src="random_files/200.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1534,7 +1539,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :scale 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :scale 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/67.png" /></td><td><img class="clay-image" src="random_files/68.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/201.png" /></td><td><img class="clay-image" src="random_files/202.png" /></td><td><img class="clay-image" src="random_files/203.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/204.png" /></td><td><img class="clay-image" src="random_files/205.png" /></td><td><img class="clay-image" src="random_files/206.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1554,7 +1559,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :omega 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :omega 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/69.png" /></td><td><img class="clay-image" src="random_files/70.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/207.png" /></td><td><img class="clay-image" src="random_files/208.png" /></td><td><img class="clay-image" src="random_files/209.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/210.png" /></td><td><img class="clay-image" src="random_files/211.png" /></td><td><img class="clay-image" src="random_files/212.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1574,7 +1579,7 @@ Hypoexponential distribution, where $\lambda_i=(n+1-i)h,\text{ for } i=1\dots k$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :sd 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sd 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/71.png" /></td><td><img class="clay-image" src="random_files/72.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/213.png" /></td><td><img class="clay-image" src="random_files/214.png" /></td><td><img class="clay-image" src="random_files/215.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/216.png" /></td><td><img class="clay-image" src="random_files/217.png" /></td><td><img class="clay-image" src="random_files/218.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1598,7 +1603,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 1, :beta 0, :mu 0, :delta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 2, :beta 1, :mu 0, :delta 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/73.png" /></td><td><img class="clay-image" src="random_files/74.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/219.png" /></td><td><img class="clay-image" src="random_files/220.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -1628,7 +1633,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>CDF</td><td>iCDF</td></tr><tr><td><img class="clay-image" src="random_files/75.png" /></td><td><img class="clay-image" src="random_files/76.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>CDF</td><td>iCDF</td></tr><tr><td><img class="clay-image" src="random_files/221.png" /></td><td><img class="clay-image" src="random_files/222.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -1648,7 +1653,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 1, :shape 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 2, :shape 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/77.png" /></td><td><img class="clay-image" src="random_files/78.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/223.png" /></td><td><img class="clay-image" src="random_files/224.png" /></td><td><img class="clay-image" src="random_files/225.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/226.png" /></td><td><img class="clay-image" src="random_files/227.png" /></td><td><img class="clay-image" src="random_files/228.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1669,7 +1674,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha1 1, :alpha2 1, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:scale 2, :shape 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/79.png" /></td><td><img class="clay-image" src="random_files/80.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/229.png" /></td><td><img class="clay-image" src="random_files/230.png" /></td><td><img class="clay-image" src="random_files/231.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/232.png" /></td><td><img class="clay-image" src="random_files/233.png" /></td><td><img class="clay-image" src="random_files/234.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1690,7 +1695,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 0, :b 1, :c 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 1, :b 2, :c 1.25}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/81.png" /></td><td><img class="clay-image" src="random_files/82.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/235.png" /></td><td><img class="clay-image" src="random_files/236.png" /></td><td><img class="clay-image" src="random_files/237.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/238.png" /></td><td><img class="clay-image" src="random_files/239.png" /></td><td><img class="clay-image" src="random_files/240.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1710,7 +1715,7 @@ Only PDF is supported, you may call `integrate-pdf` to get CDF and iCDF pair.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 0, :b 1, :c 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 1, :b 2, :c 1.25}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/83.png" /></td><td><img class="clay-image" src="random_files/84.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/241.png" /></td><td><img class="clay-image" src="random_files/242.png" /></td><td><img class="clay-image" src="random_files/243.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/244.png" /></td><td><img class="clay-image" src="random_files/245.png" /></td><td><img class="clay-image" src="random_files/246.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1730,7 +1735,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a 2}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/85.png" /></td><td><img class="clay-image" src="random_files/86.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/247.png" /></td><td><img class="clay-image" src="random_files/248.png" /></td><td><img class="clay-image" src="random_files/249.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/250.png" /></td><td><img class="clay-image" src="random_files/251.png" /></td><td><img class="clay-image" src="random_files/252.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1749,7 +1754,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:degrees-of-freedom 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:degrees-of-freedom 50}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/87.png" /></td><td><img class="clay-image" src="random_files/88.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/253.png" /></td><td><img class="clay-image" src="random_files/254.png" /></td><td><img class="clay-image" src="random_files/255.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/256.png" /></td><td><img class="clay-image" src="random_files/257.png" /></td><td><img class="clay-image" src="random_files/258.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1770,7 +1775,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a -1, :b 1, :c 0}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:a -0.5, :b 1, :c 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/89.png" /></td><td><img class="clay-image" src="random_files/90.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/259.png" /></td><td><img class="clay-image" src="random_files/260.png" /></td><td><img class="clay-image" src="random_files/261.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/262.png" /></td><td><img class="clay-image" src="random_files/263.png" /></td><td><img class="clay-image" src="random_files/264.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1790,7 +1795,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lower 0, :upper 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lower -1, :upper 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/91.png" /></td><td><img class="clay-image" src="random_files/92.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/265.png" /></td><td><img class="clay-image" src="random_files/266.png" /></td><td><img class="clay-image" src="random_files/267.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/268.png" /></td><td><img class="clay-image" src="random_files/269.png" /></td><td><img class="clay-image" src="random_files/270.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1809,7 +1814,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 10}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/93.png" /></td><td><img class="clay-image" src="random_files/94.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/271.png" /></td><td><img class="clay-image" src="random_files/272.png" /></td><td><img class="clay-image" src="random_files/273.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/274.png" /></td><td><img class="clay-image" src="random_files/275.png" /></td><td><img class="clay-image" src="random_files/276.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1828,7 +1833,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 2}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:n 10}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/95.png" /></td><td><img class="clay-image" src="random_files/96.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/277.png" /></td><td><img class="clay-image" src="random_files/278.png" /></td><td><img class="clay-image" src="random_files/279.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/280.png" /></td><td><img class="clay-image" src="random_files/281.png" /></td><td><img class="clay-image" src="random_files/282.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1848,7 +1853,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 2, :beta 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha 1.2, :beta 0.8}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/97.png" /></td><td><img class="clay-image" src="random_files/98.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/283.png" /></td><td><img class="clay-image" src="random_files/284.png" /></td><td><img class="clay-image" src="random_files/285.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/286.png" /></td><td><img class="clay-image" src="random_files/287.png" /></td><td><img class="clay-image" src="random_files/288.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1870,7 +1875,7 @@ $\operatorname{PDF}(x)=\frac{1}{\sqrt{x}}, x\in(a,(\frac{1}{2}(1+2\sqrt{a}))^2)$
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0, :sigma 1, :nu 0.1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :sigma 1, :nu 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/99.png" /></td><td><img class="clay-image" src="random_files/100.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/289.png" /></td><td><img class="clay-image" src="random_files/290.png" /></td><td><img class="clay-image" src="random_files/291.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/292.png" /></td><td><img class="clay-image" src="random_files/293.png" /></td><td><img class="clay-image" src="random_files/294.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1929,7 +1934,7 @@ Parameters $\mu,\sigma$ in terms of $\alpha, \beta$ (Wikipedia definition)
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sigma 1, :bd 10}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.65, :sigma 0.3, :bd 20}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/101.png" /></td><td><img class="clay-image" src="random_files/102.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/295.png" /></td><td><img class="clay-image" src="random_files/296.png" /></td><td><img class="clay-image" src="random_files/297.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/298.png" /></td><td><img class="clay-image" src="random_files/299.png" /></td><td><img class="clay-image" src="random_files/300.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1950,7 +1955,7 @@ The same as Binomial with trials=1.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 0.25}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/103.png" /></td><td><img class="clay-image" src="random_files/104.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/301.png" /></td><td><img class="clay-image" src="random_files/302.png" /></td><td><img class="clay-image" src="random_files/303.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/304.png" /></td><td><img class="clay-image" src="random_files/305.png" /></td><td><img class="clay-image" src="random_files/306.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1970,7 +1975,7 @@ The same as Binomial with trials=1.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:trials 20, :p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:trials 50, :p 0.25}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/105.png" /></td><td><img class="clay-image" src="random_files/106.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/307.png" /></td><td><img class="clay-image" src="random_files/308.png" /></td><td><img class="clay-image" src="random_files/309.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/310.png" /></td><td><img class="clay-image" src="random_files/311.png" /></td><td><img class="clay-image" src="random_files/312.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -1992,7 +1997,7 @@ The same as Binomial with trials=1.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:ns 10, :nf 10, :n 5, :omega 1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:ns 30, :nf 60, :n 20, :omega 0.75}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/107.png" /></td><td><img class="clay-image" src="random_files/108.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/313.png" /></td><td><img class="clay-image" src="random_files/314.png" /></td><td><img class="clay-image" src="random_files/315.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/316.png" /></td><td><img class="clay-image" src="random_files/317.png" /></td><td><img class="clay-image" src="random_files/318.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2011,7 +2016,7 @@ The same as Binomial with trials=1.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 0.15}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/109.png" /></td><td><img class="clay-image" src="random_files/110.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/319.png" /></td><td><img class="clay-image" src="random_files/320.png" /></td><td><img class="clay-image" src="random_files/321.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/322.png" /></td><td><img class="clay-image" src="random_files/323.png" /></td><td><img class="clay-image" src="random_files/324.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2031,8 +2036,8 @@ The same as Binomial with trials=1.
 
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:population-size 100, :number-of-successes 50, :sample-size 25}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/111.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:population-size 2000, :number-of-successes 20, :sample-size 200}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/112.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/325.png" /></td><td><img class="clay-image" src="random_files/326.png" /></td><td><img class="clay-image" src="random_files/327.png" /></td></tr></tbody></table></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:population-size 2000, :number-of-successes 20, :sample-size 200}
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/328.png" /></td><td><img class="clay-image" src="random_files/329.png" /></td><td><img class="clay-image" src="random_files/330.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2051,7 +2056,7 @@ The same as Binomial with trials=1.
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:theta 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:theta 0.99}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/113.png" /></td><td><img class="clay-image" src="random_files/114.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/331.png" /></td><td><img class="clay-image" src="random_files/332.png" /></td><td><img class="clay-image" src="random_files/333.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/334.png" /></td><td><img class="clay-image" src="random_files/335.png" /></td><td><img class="clay-image" src="random_files/336.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2072,7 +2077,7 @@ The same as Binomial with trials=1.
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:r 20, :p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:r 100, :p 0.95}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:r 21.2345, :p 0.7}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/115.png" /></td><td><img class="clay-image" src="random_files/116.png" /></td><td><img class="clay-image" src="random_files/117.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/337.png" /></td><td><img class="clay-image" src="random_files/338.png" /></td><td><img class="clay-image" src="random_files/339.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/340.png" /></td><td><img class="clay-image" src="random_files/341.png" /></td><td><img class="clay-image" src="random_files/342.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/343.png" /></td><td><img class="clay-image" src="random_files/344.png" /></td><td><img class="clay-image" src="random_files/345.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2094,7 +2099,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:r 20, :p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:r 100, :p 0.95}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/118.png" /></td><td><img class="clay-image" src="random_files/119.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/346.png" /></td><td><img class="clay-image" src="random_files/347.png" /></td><td><img class="clay-image" src="random_files/348.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/349.png" /></td><td><img class="clay-image" src="random_files/350.png" /></td><td><img class="clay-image" src="random_files/351.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2113,7 +2118,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 0.5}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:p 4}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/120.png" /></td><td><img class="clay-image" src="random_files/121.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/352.png" /></td><td><img class="clay-image" src="random_files/353.png" /></td><td><img class="clay-image" src="random_files/354.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/355.png" /></td><td><img class="clay-image" src="random_files/356.png" /></td><td><img class="clay-image" src="random_files/357.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2133,7 +2138,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lower 0, :upper 20}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:lower -5, :upper 5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/122.png" /></td><td><img class="clay-image" src="random_files/123.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/358.png" /></td><td><img class="clay-image" src="random_files/359.png" /></td><td><img class="clay-image" src="random_files/360.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/361.png" /></td><td><img class="clay-image" src="random_files/362.png" /></td><td><img class="clay-image" src="random_files/363.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2155,7 +2160,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sigma 0.1, :bd 10, :nu 0.1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 0.1, :mu 0.65, :sigma 0.3, :bd 20}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/124.png" /></td><td><img class="clay-image" src="random_files/125.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/364.png" /></td><td><img class="clay-image" src="random_files/365.png" /></td><td><img class="clay-image" src="random_files/366.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/367.png" /></td><td><img class="clay-image" src="random_files/368.png" /></td><td><img class="clay-image" src="random_files/369.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2176,7 +2181,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sigma 0.1, :bd 10}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.65, :sigma 0.3, :bd 20}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/126.png" /></td><td><img class="clay-image" src="random_files/127.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/370.png" /></td><td><img class="clay-image" src="random_files/371.png" /></td><td><img class="clay-image" src="random_files/372.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/373.png" /></td><td><img class="clay-image" src="random_files/374.png" /></td><td><img class="clay-image" src="random_files/375.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2197,7 +2202,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :sigma 1, :nu 0.3}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 0.1, :mu 2, :sigma 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/128.png" /></td><td><img class="clay-image" src="random_files/129.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/376.png" /></td><td><img class="clay-image" src="random_files/377.png" /></td><td><img class="clay-image" src="random_files/378.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/379.png" /></td><td><img class="clay-image" src="random_files/380.png" /></td><td><img class="clay-image" src="random_files/381.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2219,7 +2224,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sigma 0.5, :bd 10, :nu 0.1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 0.1, :mu 0.65, :sigma 1, :bd 20}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/130.png" /></td><td><img class="clay-image" src="random_files/131.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/382.png" /></td><td><img class="clay-image" src="random_files/383.png" /></td><td><img class="clay-image" src="random_files/384.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/385.png" /></td><td><img class="clay-image" src="random_files/386.png" /></td><td><img class="clay-image" src="random_files/387.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2240,7 +2245,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.5, :sigma 0.1, :bd 10}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 0.65, :sigma 0.3, :bd 20}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/132.png" /></td><td><img class="clay-image" src="random_files/133.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/388.png" /></td><td><img class="clay-image" src="random_files/389.png" /></td><td><img class="clay-image" src="random_files/390.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/391.png" /></td><td><img class="clay-image" src="random_files/392.png" /></td><td><img class="clay-image" src="random_files/393.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2261,7 +2266,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 1, :sigma 1, :nu 0.3}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:nu 0.1, :mu 2, :sigma 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/134.png" /></td><td><img class="clay-image" src="random_files/135.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/394.png" /></td><td><img class="clay-image" src="random_files/395.png" /></td><td><img class="clay-image" src="random_files/396.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/397.png" /></td><td><img class="clay-image" src="random_files/398.png" /></td><td><img class="clay-image" src="random_files/399.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2281,7 +2286,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 5, :sigma 0.1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 2, :sigma 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/136.png" /></td><td><img class="clay-image" src="random_files/137.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/400.png" /></td><td><img class="clay-image" src="random_files/401.png" /></td><td><img class="clay-image" src="random_files/402.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/403.png" /></td><td><img class="clay-image" src="random_files/404.png" /></td><td><img class="clay-image" src="random_files/405.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2301,7 +2306,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 5, :sigma 0.1}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:mu 2, :sigma 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/138.png" /></td><td><img class="clay-image" src="random_files/139.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/406.png" /></td><td><img class="clay-image" src="random_files/407.png" /></td><td><img class="clay-image" src="random_files/408.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/409.png" /></td><td><img class="clay-image" src="random_files/410.png" /></td><td><img class="clay-image" src="random_files/411.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2321,7 +2326,7 @@ The same as `:negative-binomial` but `r` is strictly integer
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:number-of-elements 100, :exponent 3}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:number-of-elements 20, :exponent 0.5}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/140.png" /></td><td><img class="clay-image" src="random_files/141.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/412.png" /></td><td><img class="clay-image" src="random_files/413.png" /></td><td><img class="clay-image" src="random_files/414.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/415.png" /></td><td><img class="clay-image" src="random_files/416.png" /></td><td><img class="clay-image" src="random_files/417.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2363,10 +2368,10 @@ Projections of the 2d and 3d Dirichlet distributions.
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [0.6 0.6]}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [3 3]}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [0.5 2]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/142.png" /></td><td><img class="clay-image" src="random_files/143.png" /></td><td><img class="clay-image" src="random_files/144.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [3 1 3]}
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/418.png" /></td><td><img class="clay-image" src="random_files/419.png" /></td><td><img class="clay-image" src="random_files/420.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [3 1 3]}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [3 3 3]}
 </code></pre></div></td><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:alpha [1 3 1]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/145.png" /></td><td><img class="clay-image" src="random_files/146.png" /></td><td><img class="clay-image" src="random_files/147.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/421.png" /></td><td><img class="clay-image" src="random_files/422.png" /></td><td><img class="clay-image" src="random_files/423.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -2385,8 +2390,8 @@ Projections of the 2d and 3d Dirichlet distributions.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample dirichlet3) ;; => [0.35468848696827415 0.04162425855397151 0.6036872544777543]
-(r/sample dirichlet3) ;; => [0.427520149833052 0.2788316379022029 0.2936482122647451]
+(r/sample dirichlet3) ;; => [0.466976567594134 0.42311989089958246 0.10990354150628358]
+(r/sample dirichlet3) ;; => [0.8411587080742298 0.03006536497253119 0.12877592695323895]
 (r/pdf dirichlet3 [0.2 0.3 0.5]) ;; => 1.8000000000000003
 (r/pdf dirichlet3 [0.3 0.5 0.2]) ;; => 0.648
 (r/pdf dirichlet3 [0.5 0.2 0.3]) ;; => 4.05
@@ -2411,9 +2416,9 @@ Projections of the 2d and 3d Dirichlet distributions.
 
 ```{=html}
 <table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:means [0 0], :convariances [[1 0] [0 1]]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/148.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:means [0.5 0], :convariances [[0.5 -0.1] [0.1 0.1]]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/149.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:means [0 -0.5], :convariances [[1 0.2] [0.3 1]]}
-</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/150.png" /></td></tr></tbody></table>
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/424.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:means [0.5 0], :convariances [[0.5 -0.1] [0.1 0.1]]}
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/425.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure printed-clojure">{:means [0 -0.5], :convariances [[1 0.2] [0.3 1]]}
+</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/426.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -2441,8 +2446,8 @@ Projections of the 2d and 3d Dirichlet distributions.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample multinomial) ;; => [15 18 28 31 58]
-(r/sample multinomial) ;; => [7 20 29 39 55]
+(r/sample multinomial) ;; => [11 21 29 42 47]
+(r/sample multinomial) ;; => [16 17 26 40 51]
 (r/pdf multinomial [10 10 10 10 110]) ;; => 3.9088379874482466E-28
 (r/pdf multinomial [10 20 30 40 50]) ;; => 8.791729390927823E-5
 (r/pdf multinomial [110 10 10 10 10]) ;; => 4.955040820983416E-98
@@ -2506,7 +2511,7 @@ Please note: `set-seed!` doesn't affect distributions which are part of the mixt
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>three normals</td><td>gamma, laplace and log-logistic</td></tr><tr><td><img class="clay-image" src="random_files/151.png" /></td><td><img class="clay-image" src="random_files/152.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>three normals</td><td>gamma, laplace and log-logistic</td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/427.png" /></td><td><img class="clay-image" src="random_files/428.png" /></td><td><img class="clay-image" src="random_files/429.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/430.png" /></td><td><img class="clay-image" src="random_files/431.png" /></td><td><img class="clay-image" src="random_files/432.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2517,8 +2522,8 @@ Please note: `set-seed!` doesn't affect distributions which are part of the mixt
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample mixture-of-three) ;; => 2.1024222728688975
-(r/sample mixture-of-three) ;; => 0.24936552466521975
+(r/sample mixture-of-three) ;; => 1.0289215629882789
+(r/sample mixture-of-three) ;; => 0.561279275283213
 (r/pdf mixture-of-three 0) ;; => 0.08333333333333333
 (r/pdf mixture-of-three 1) ;; => 0.45620084174033965
 (r/pdf mixture-of-three 2) ;; => 0.14666525453903217
@@ -2583,7 +2588,7 @@ Please note: derived `mean` or `variance` is not calculated. Also, `set-seed!` d
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>truncated normal</td><td>trucated levy (left side)</td></tr><tr><td><img class="clay-image" src="random_files/153.png" /></td><td><img class="clay-image" src="random_files/154.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>truncated normal</td><td>trucated levy (left side)</td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/433.png" /></td><td><img class="clay-image" src="random_files/434.png" /></td><td><img class="clay-image" src="random_files/435.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/436.png" /></td><td><img class="clay-image" src="random_files/437.png" /></td><td><img class="clay-image" src="random_files/438.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2594,8 +2599,8 @@ Please note: derived `mean` or `variance` is not calculated. Also, `set-seed!` d
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample truncated-normal) ;; => 0.15195389659943073
-(r/sample truncated-normal) ;; => -1.3725954153838884
+(r/sample truncated-normal) ;; => -0.7548283976981577
+(r/sample truncated-normal) ;; => 0.06988061964898433
 (r/pdf truncated-normal 2.0000001) ;; => 0.0
 (r/pdf truncated-normal 2.0) ;; => 0.0565646741125192
 (r/cdf truncated-normal 2.0) ;; => 1.0
@@ -2668,7 +2673,7 @@ Continous distribution build from data is based on KDE (Kernel Density Estimatio
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>default</td><td>bandwidth=1.0</td></tr><tr><td><img class="clay-image" src="random_files/155.png" /></td><td><img class="clay-image" src="random_files/156.png" /></td></tr><tr><td>gaussian kernel</td><td>triangular kernel, bandwidth=0.1</td></tr><tr><td><img class="clay-image" src="random_files/157.png" /></td><td><img class="clay-image" src="random_files/158.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>default</td><td>bandwidth=1.0</td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/439.png" /></td><td><img class="clay-image" src="random_files/440.png" /></td><td><img class="clay-image" src="random_files/441.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/442.png" /></td><td><img class="clay-image" src="random_files/443.png" /></td><td><img class="clay-image" src="random_files/444.png" /></td></tr></tbody></table></td></tr><tr><td>gaussian kernel</td><td>triangular kernel, bandwidth=0.1</td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/445.png" /></td><td><img class="clay-image" src="random_files/446.png" /></td><td><img class="clay-image" src="random_files/447.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/448.png" /></td><td><img class="clay-image" src="random_files/449.png" /></td><td><img class="clay-image" src="random_files/450.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2679,8 +2684,8 @@ Continous distribution build from data is based on KDE (Kernel Density Estimatio
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample kde-distr) ;; => 1.3010180190418532
-(r/sample kde-distr) ;; => -0.7693030506440562
+(r/sample kde-distr) ;; => 0.2012005763639136
+(r/sample kde-distr) ;; => 4.958092924573209
 (r/pdf kde-distr 0.0) ;; => 0.2895732291670891
 (r/cdf kde-distr 0.0) ;; => 0.31552593767229803
 (map (partial r/icdf kde-distr) [1.0E-4 0.5 0.9999]) ;; => (-4.036565369328684 0.49883262884502827 5.012273231015241)
@@ -2810,7 +2815,7 @@ KDE kernels
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:cauchy</code></pre></div></td><td><img class="clay-image" src="random_files/159.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:cosine</code></pre></div></td><td><img class="clay-image" src="random_files/160.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:epanechnikov</code></pre></div></td><td><img class="clay-image" src="random_files/161.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:gaussian</code></pre></div></td><td><img class="clay-image" src="random_files/162.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:laplace</code></pre></div></td><td><img class="clay-image" src="random_files/163.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:logistic</code></pre></div></td><td><img class="clay-image" src="random_files/164.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quartic</code></pre></div></td><td><img class="clay-image" src="random_files/165.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:sigmoid</code></pre></div></td><td><img class="clay-image" src="random_files/166.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:silverman</code></pre></div></td><td><img class="clay-image" src="random_files/167.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:triangular</code></pre></div></td><td><img class="clay-image" src="random_files/168.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:tricube</code></pre></div></td><td><img class="clay-image" src="random_files/169.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:triweight</code></pre></div></td><td><img class="clay-image" src="random_files/170.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:uniform</code></pre></div></td><td><img class="clay-image" src="random_files/171.png" /></td></tr><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:wigner</code></pre></div></td><td><img class="clay-image" src="random_files/172.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:cauchy</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/451.png" /></td><td><img class="clay-image" src="random_files/452.png" /></td><td><img class="clay-image" src="random_files/453.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:cosine</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/454.png" /></td><td><img class="clay-image" src="random_files/455.png" /></td><td><img class="clay-image" src="random_files/456.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:epanechnikov</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/457.png" /></td><td><img class="clay-image" src="random_files/458.png" /></td><td><img class="clay-image" src="random_files/459.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:gaussian</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/460.png" /></td><td><img class="clay-image" src="random_files/461.png" /></td><td><img class="clay-image" src="random_files/462.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:laplace</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/463.png" /></td><td><img class="clay-image" src="random_files/464.png" /></td><td><img class="clay-image" src="random_files/465.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:logistic</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/466.png" /></td><td><img class="clay-image" src="random_files/467.png" /></td><td><img class="clay-image" src="random_files/468.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quartic</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/469.png" /></td><td><img class="clay-image" src="random_files/470.png" /></td><td><img class="clay-image" src="random_files/471.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:sigmoid</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/472.png" /></td><td><img class="clay-image" src="random_files/473.png" /></td><td><img class="clay-image" src="random_files/474.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:silverman</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/475.png" /></td><td><img class="clay-image" src="random_files/476.png" /></td><td><img class="clay-image" src="random_files/477.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:triangular</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/478.png" /></td><td><img class="clay-image" src="random_files/479.png" /></td><td><img class="clay-image" src="random_files/480.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:tricube</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/481.png" /></td><td><img class="clay-image" src="random_files/482.png" /></td><td><img class="clay-image" src="random_files/483.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:triweight</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/484.png" /></td><td><img class="clay-image" src="random_files/485.png" /></td><td><img class="clay-image" src="random_files/486.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:uniform</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/487.png" /></td><td><img class="clay-image" src="random_files/488.png" /></td><td><img class="clay-image" src="random_files/489.png" /></td></tr></tbody></table></dd></dl></td></tr><tr><td><dl><dt><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:wigner</code></pre></div></dt><dd><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/490.png" /></td><td><img class="clay-image" src="random_files/491.png" /></td><td><img class="clay-image" src="random_files/492.png" /></td></tr></tbody></table></dd></dl></td></tr></tbody></table>
 ```
 
 :::
@@ -2838,7 +2843,7 @@ Empirical distribution calculates PDF, CDF and iCDF from a histogram.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>default</td><td>bin-count=10</td></tr><tr><td><img class="clay-image" src="random_files/173.png" /></td><td><img class="clay-image" src="random_files/174.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>default</td><td>bin-count=10</td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/493.png" /></td><td><img class="clay-image" src="random_files/494.png" /></td><td><img class="clay-image" src="random_files/495.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/496.png" /></td><td><img class="clay-image" src="random_files/497.png" /></td><td><img class="clay-image" src="random_files/498.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2849,8 +2854,8 @@ Empirical distribution calculates PDF, CDF and iCDF from a histogram.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample empirical-distr) ;; => -0.7442668749782081
-(r/sample empirical-distr) ;; => 0.517789387526483
+(r/sample empirical-distr) ;; => 3.4073575047898195
+(r/sample empirical-distr) ;; => 1.3824435019415011
 (r/pdf empirical-distr 0.0) ;; => 0.3367652060230363
 (r/cdf empirical-distr 0.0) ;; => 0.3060844150814384
 (map (partial r/icdf empirical-distr) [1.0E-4 0.5 0.9999]) ;; => (-3.8445695885397138 0.49402601627672765 4.820277450226245)
@@ -2899,7 +2904,7 @@ Please note:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:real-discrete-distribution</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:enumerated-real</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/175.png" /></td><td><img class="clay-image" src="random_files/176.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:real-discrete-distribution</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:enumerated-real</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/499.png" /></td><td><img class="clay-image" src="random_files/500.png" /></td><td><img class="clay-image" src="random_files/501.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/502.png" /></td><td><img class="clay-image" src="random_files/503.png" /></td><td><img class="clay-image" src="random_files/504.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2949,7 +2954,7 @@ Please note:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:integer-discrete-distribution</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:enumerated-int</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/177.png" /></td><td><img class="clay-image" src="random_files/178.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:integer-discrete-distribution</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:enumerated-int</code></pre></div></td></tr><tr><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/505.png" /></td><td><img class="clay-image" src="random_files/506.png" /></td><td><img class="clay-image" src="random_files/507.png" /></td></tr></tbody></table></td><td><table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="random_files/508.png" /></td><td><img class="clay-image" src="random_files/509.png" /></td><td><img class="clay-image" src="random_files/510.png" /></td></tr></tbody></table></td></tr></tbody></table>
 ```
 
 :::
@@ -2969,7 +2974,7 @@ Please note:
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample int-distr) ;; => 10
+(r/sample int-distr) ;; => 30
 (r/sample int-distr) ;; => 20
 (r/pdf int-distr 10) ;; => 0.375
 (r/pdf int-distr 15) ;; => 0.0
@@ -3010,12 +3015,12 @@ Order for CDF/iCDF is created by calling `(distinct data)`. If sorted data is ne
 
 ::: {.sourceClojure}
 ```clojure
+(r/sample cat-distr) ;; => :b
 (r/sample cat-distr) ;; => nil
-(r/sample cat-distr) ;; => "s"
-(r/pdf cat-distr nil) ;; => 0.22000000000000006
+(r/pdf cat-distr nil) ;; => 0.16
 (r/pdf cat-distr "ss") ;; => 0.0
-(r/cdf cat-distr :b) ;; => 0.4900000000000001
-(map (partial r/icdf cat-distr) [1.0E-4 0.5 0.9999]) ;; => ("s" nil :a)
+(r/cdf cat-distr :b) ;; => 1.0000000000000002
+(map (partial r/icdf cat-distr) [1.0E-4 0.5 0.9999]) ;; => (nil "s" :b)
 ```
 :::
 
@@ -3070,7 +3075,7 @@ There are 3 types of sequences:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>:sobol</td><td>:halton</td><td>:r2</td></tr><tr><td><img class="clay-image" src="random_files/179.png" /></td><td><img class="clay-image" src="random_files/180.png" /></td><td><img class="clay-image" src="random_files/181.png" /></td></tr><tr><td>:sobol (jittered)</td><td>:halton (jittered)</td><td>:r2 (jittered)</td></tr><tr><td><img class="clay-image" src="random_files/182.png" /></td><td><img class="clay-image" src="random_files/183.png" /></td><td><img class="clay-image" src="random_files/184.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>:sobol</td><td>:halton</td><td>:r2</td></tr><tr><td><img class="clay-image" src="random_files/511.png" /></td><td><img class="clay-image" src="random_files/512.png" /></td><td><img class="clay-image" src="random_files/513.png" /></td></tr><tr><td>:sobol (jittered)</td><td>:halton (jittered)</td><td>:r2 (jittered)</td></tr><tr><td><img class="clay-image" src="random_files/514.png" /></td><td><img class="clay-image" src="random_files/515.png" /></td><td><img class="clay-image" src="random_files/516.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3192,7 +3197,7 @@ Unit sphere or unit ball sequences can generate any dimension.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:sphere</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:ball</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/185.png" /></td><td><img class="clay-image" src="random_files/186.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:sphere</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:ball</code></pre></div></td></tr><tr><td><img class="clay-image" src="random_files/517.png" /></td><td><img class="clay-image" src="random_files/518.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3203,7 +3208,7 @@ Unit sphere or unit ball sequences can generate any dimension.
 
 ::: {.sourceClojure}
 ```clojure
-(first (r/sequence-generator :sphere 4)) ;; => #vec4 [-0.48707850521560003, -0.028816200946707938, -0.4911066450850289, -0.7216220752397083]
+(first (r/sequence-generator :sphere 4)) ;; => #vec4 [-0.3302907363058977, -0.2956735878128057, 0.5483820390931555, -0.7090573306725232]
 (first (r/sequence-generator :ball 3)) ;; => #vec3 [0.6106439662537149, -0.19719273807051046, -0.5338472481721354]
 ```
 :::
@@ -3224,46 +3229,46 @@ Unit sphere or unit ball sequences can generate any dimension.
 
 ::: {.printedClojure}
 ```clojure
-([0.34564087547651245
-  -0.22780922628555975
-  0.02082362544317918
-  -0.0014336599229924855
-  0.1353450904572586
-  -0.07211011060847775
-  -0.03647395340371338
-  0.22598931553390525
-  -0.0677910169860069
-  -0.35916833943523097
-  -0.5691422042849846
-  -0.1512659853863761
-  0.12847597803081956
-  0.1813940732319407
-  0.14388126723920308
-  -0.2325041017248038
-  -0.2664805994590524
-  0.1877384907940976
-  -0.09080529612207176
-  -0.1822226673141288]
- [0.21550664778694553
-  -0.3172247093989102
-  -0.029535920768301763
-  -0.14597945472306073
-  0.07758777326820529
-  -0.054343879105732004
-  0.3383562835562005
-  -0.21535678282385634
-  0.24697155121121514
-  -0.2026315513588496
-  -0.19618560066523433
-  -0.15595154789040414
-  -0.5535928185557034
-  -0.21870188172752264
-  -0.27523452551873406
-  0.11877956336500128
-  0.17617156459598105
-  -0.07809022283095265
-  -0.010607142473992654
-  0.12098357494733271])
+([0.30994315746637535
+  0.07378635115508941
+  0.02286796497223574
+  -0.37092349490589505
+  0.26558442493765577
+  0.03664325010868639
+  -0.02227990400535501
+  -0.2575658119582207
+  -0.358402770272915
+  -0.2144755659221329
+  0.06031277195470352
+  -0.24107477140925604
+  -0.36499749853833163
+  -0.29892898810960644
+  0.3371551214535542
+  -0.1706068359276542
+  0.10067992619276034
+  -0.0354364267555417
+  0.02632025725596054
+  0.08952853399533901]
+ [-0.055546627194238106
+  0.07423947646864859
+  -0.4472873254860393
+  0.017068845193308698
+  -0.04382800197267643
+  -0.3106189333467401
+  0.03213809511771947
+  0.16166839144055564
+  0.2906544772992155
+  0.028129724964698326
+  -0.26309888376622836
+  0.3007406356709395
+  0.1485627458907792
+  0.2049401256328963
+  0.026421136317892696
+  -0.19262666713639065
+  0.391339460286334
+  -0.3489426668655491
+  -0.02109366417160346
+  0.2081033881983499])
 
 ```
 :::
@@ -3282,7 +3287,7 @@ Additionally uniform and gaussian N(0,1) sequences can generate any number of di
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>:default</td><td>:gaussian</td></tr><tr><td><img class="clay-image" src="random_files/187.png" /></td><td><img class="clay-image" src="random_files/188.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>:default</td><td>:gaussian</td></tr><tr><td><img class="clay-image" src="random_files/519.png" /></td><td><img class="clay-image" src="random_files/520.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3369,7 +3374,7 @@ Single octave of simplex noise:
 ::: {.clay-image}
 
 ```{=html}
-<img src="random_files/189.png" />
+<img src="random_files/521.png" />
 ```
 
 :::
@@ -3380,7 +3385,7 @@ Value and gradient single noise for different interpolations
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:none</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:linear</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:hermite</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quintic</code></pre></div></td></tr><tr><td>value</td><td><img class="clay-image" src="random_files/190.png" /></td><td><img class="clay-image" src="random_files/191.png" /></td><td><img class="clay-image" src="random_files/192.png" /></td><td><img class="clay-image" src="random_files/193.png" /></td></tr><tr><td>gradient</td><td><img class="clay-image" src="random_files/194.png" /></td><td><img class="clay-image" src="random_files/195.png" /></td><td><img class="clay-image" src="random_files/196.png" /></td><td><img class="clay-image" src="random_files/197.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:none</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:linear</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:hermite</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quintic</code></pre></div></td></tr><tr><td>value</td><td><img class="clay-image" src="random_files/522.png" /></td><td><img class="clay-image" src="random_files/523.png" /></td><td><img class="clay-image" src="random_files/524.png" /></td><td><img class="clay-image" src="random_files/525.png" /></td></tr><tr><td>gradient</td><td><img class="clay-image" src="random_files/526.png" /></td><td><img class="clay-image" src="random_files/527.png" /></td><td><img class="clay-image" src="random_files/528.png" /></td><td><img class="clay-image" src="random_files/529.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3416,7 +3421,7 @@ Value and gradient single noise for different interpolations
 ::: {.clay-image}
 
 ```{=html}
-<img src="random_files/198.png" />
+<img src="random_files/530.png" />
 ```
 
 :::
@@ -3427,7 +3432,7 @@ Value and gradient FBM noise for different interpolations
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light"></code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:none</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:linear</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:hermite</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quintic</code></pre></div></td></tr><tr><td>value</td><td><img class="clay-image" src="random_files/199.png" /></td><td><img class="clay-image" src="random_files/200.png" /></td><td><img class="clay-image" src="random_files/201.png" /></td><td><img class="clay-image" src="random_files/202.png" /></td></tr><tr><td>gradient</td><td><img class="clay-image" src="random_files/203.png" /></td><td><img class="clay-image" src="random_files/204.png" /></td><td><img class="clay-image" src="random_files/205.png" /></td><td><img class="clay-image" src="random_files/206.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light"></code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:none</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:linear</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:hermite</code></pre></div></td><td><div><pre><code class="sourceCode language-clojure source-clojure bg-light">:quintic</code></pre></div></td></tr><tr><td>value</td><td><img class="clay-image" src="random_files/531.png" /></td><td><img class="clay-image" src="random_files/532.png" /></td><td><img class="clay-image" src="random_files/533.png" /></td><td><img class="clay-image" src="random_files/534.png" /></td></tr><tr><td>gradient</td><td><img class="clay-image" src="random_files/535.png" /></td><td><img class="clay-image" src="random_files/536.png" /></td><td><img class="clay-image" src="random_files/537.png" /></td><td><img class="clay-image" src="random_files/538.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3438,7 +3443,7 @@ Different number of octaves for FBM gradient noise
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>octaves=2</td><td>octaves=4</td><td>octaves=6</td><td>octaves=8</td></tr><tr><td><img class="clay-image" src="random_files/207.png" /></td><td><img class="clay-image" src="random_files/208.png" /></td><td><img class="clay-image" src="random_files/209.png" /></td><td><img class="clay-image" src="random_files/210.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>octaves=2</td><td>octaves=4</td><td>octaves=6</td><td>octaves=8</td></tr><tr><td><img class="clay-image" src="random_files/539.png" /></td><td><img class="clay-image" src="random_files/540.png" /></td><td><img class="clay-image" src="random_files/541.png" /></td><td><img class="clay-image" src="random_files/542.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3449,7 +3454,7 @@ Different gains and lacunarities for FBM gradient noise
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td></td><td>lacunarity=0.5</td><td>lacunarity=2</td><td>lacunarity=5</td><td>lacunarity=8</td></tr><tr><td>gain=0.25</td><td><img class="clay-image" src="random_files/211.png" /></td><td><img class="clay-image" src="random_files/212.png" /></td><td><img class="clay-image" src="random_files/213.png" /></td><td><img class="clay-image" src="random_files/214.png" /></td></tr><tr><td>gain=0.5</td><td><img class="clay-image" src="random_files/215.png" /></td><td><img class="clay-image" src="random_files/216.png" /></td><td><img class="clay-image" src="random_files/217.png" /></td><td><img class="clay-image" src="random_files/218.png" /></td></tr><tr><td>gain=0.75</td><td><img class="clay-image" src="random_files/219.png" /></td><td><img class="clay-image" src="random_files/220.png" /></td><td><img class="clay-image" src="random_files/221.png" /></td><td><img class="clay-image" src="random_files/222.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td></td><td>lacunarity=0.5</td><td>lacunarity=2</td><td>lacunarity=5</td><td>lacunarity=8</td></tr><tr><td>gain=0.25</td><td><img class="clay-image" src="random_files/543.png" /></td><td><img class="clay-image" src="random_files/544.png" /></td><td><img class="clay-image" src="random_files/545.png" /></td><td><img class="clay-image" src="random_files/546.png" /></td></tr><tr><td>gain=0.5</td><td><img class="clay-image" src="random_files/547.png" /></td><td><img class="clay-image" src="random_files/548.png" /></td><td><img class="clay-image" src="random_files/549.png" /></td><td><img class="clay-image" src="random_files/550.png" /></td></tr><tr><td>gain=0.75</td><td><img class="clay-image" src="random_files/551.png" /></td><td><img class="clay-image" src="random_files/552.png" /></td><td><img class="clay-image" src="random_files/553.png" /></td><td><img class="clay-image" src="random_files/554.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3469,7 +3474,7 @@ Different gains and lacunarities for FBM gradient noise
 ::: {.clay-image}
 
 ```{=html}
-<img src="random_files/223.png" />
+<img src="random_files/555.png" />
 ```
 
 :::
@@ -3478,7 +3483,7 @@ Different gains and lacunarities for FBM gradient noise
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>simplex noise</td><td>value noise</td><td>gradient noise, 1 octave</td></tr><tr><td><img class="clay-image" src="random_files/224.png" /></td><td><img class="clay-image" src="random_files/225.png" /></td><td><img class="clay-image" src="random_files/226.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>simplex noise</td><td>value noise</td><td>gradient noise, 1 octave</td></tr><tr><td><img class="clay-image" src="random_files/556.png" /></td><td><img class="clay-image" src="random_files/557.png" /></td><td><img class="clay-image" src="random_files/558.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3512,7 +3517,7 @@ Different gains and lacunarities for FBM gradient noise
 ::: {.clay-image}
 
 ```{=html}
-<img src="random_files/227.png" />
+<img src="random_files/559.png" />
 ```
 
 :::
@@ -3521,7 +3526,7 @@ Different gains and lacunarities for FBM gradient noise
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>simplex noise</td><td>value noise</td><td>gradient noise, 1 octave</td></tr><tr><td><img class="clay-image" src="random_files/228.png" /></td><td><img class="clay-image" src="random_files/229.png" /></td><td><img class="clay-image" src="random_files/230.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>simplex noise</td><td>value noise</td><td>gradient noise, 1 octave</td></tr><tr><td><img class="clay-image" src="random_files/560.png" /></td><td><img class="clay-image" src="random_files/561.png" /></td><td><img class="clay-image" src="random_files/562.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3558,7 +3563,7 @@ There are three ready to use preconfigured noises:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td>vnoise</td><td>noise</td><td>simplex</td></tr><tr><td><img class="clay-image" src="random_files/231.png" /></td><td><img class="clay-image" src="random_files/232.png" /></td><td><img class="clay-image" src="random_files/233.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td>vnoise</td><td>noise</td><td>simplex</td></tr><tr><td><img class="clay-image" src="random_files/563.png" /></td><td><img class="clay-image" src="random_files/564.png" /></td><td><img class="clay-image" src="random_files/565.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3569,15 +3574,15 @@ There are three ready to use preconfigured noises:
 
 ::: {.sourceClojure}
 ```clojure
-(r/vnoise 0.2) ;; => 0.647640204817908
-(r/vnoise 0.2 0.3) ;; => 0.5122428466559017
-(r/vnoise 0.2 0.3 0.4) ;; => 0.611841591392663
-(r/noise 0.2) ;; => 0.40716749206349206
-(r/noise 0.2 0.3) ;; => 0.46690703571301584
-(r/noise 0.2 0.3 0.4) ;; => 0.47163620141223744
-(r/simplex 0.2) ;; => 0.3699264548571428
-(r/simplex 0.2 0.3) ;; => 0.22110281086915717
-(r/simplex 0.2 0.3 0.4) ;; => 0.3985014003809524
+(r/vnoise 0.2) ;; => 0.7565349840903781
+(r/vnoise 0.2 0.3) ;; => 0.4953761850813492
+(r/vnoise 0.2 0.3 0.4) ;; => 0.5381099869537125
+(r/noise 0.2) ;; => 0.48960761904761907
+(r/noise 0.2 0.3) ;; => 0.5115921637180952
+(r/noise 0.2 0.3 0.4) ;; => 0.6069659999345258
+(r/simplex 0.2) ;; => 0.46833813382095235
+(r/simplex 0.2 0.3) ;; => 0.4236776541086313
+(r/simplex 0.2 0.3 0.4) ;; => 0.35089493214814804
 ```
 :::
 
@@ -3606,7 +3611,7 @@ Default parameters:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td></td><td>vnoise</td><td>noise</td><td>simplex</td></tr><tr><td>scale=2</td><td><img class="clay-image" src="random_files/234.png" /></td><td><img class="clay-image" src="random_files/235.png" /></td><td><img class="clay-image" src="random_files/236.png" /></td></tr><tr><td>scale=4</td><td><img class="clay-image" src="random_files/237.png" /></td><td><img class="clay-image" src="random_files/238.png" /></td><td><img class="clay-image" src="random_files/239.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td></td><td>vnoise</td><td>noise</td><td>simplex</td></tr><tr><td>scale=2</td><td><img class="clay-image" src="random_files/566.png" /></td><td><img class="clay-image" src="random_files/567.png" /></td><td><img class="clay-image" src="random_files/568.png" /></td></tr><tr><td>scale=4</td><td><img class="clay-image" src="random_files/569.png" /></td><td><img class="clay-image" src="random_files/570.png" /></td><td><img class="clay-image" src="random_files/571.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3639,14 +3644,14 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.printedClojure}
 ```clojure
-{:interpolation :none,
+{:interpolation :hermite,
  :warp-scale 0.0,
  :seed 665844940,
  :normalize? true,
- :noise-type :value,
+ :noise-type :simplex,
  :lacunarity 1.90872786462909,
  :gain 0.24908653479282347,
- :generator :single,
+ :generator :billow,
  :warp-depth 1,
  :octaves 6}
 
@@ -3665,14 +3670,14 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.printedClojure}
 ```clojure
-{:interpolation :linear,
+{:interpolation :quintic,
  :warp-scale 4.0,
  :seed 1,
  :normalize? true,
  :noise-type :gradient,
  :lacunarity 1.8874943472437105,
  :gain 0.508204375355278,
- :generator :single,
+ :generator :billow,
  :warp-depth 1,
  :octaves 3}
 
@@ -3691,7 +3696,7 @@ Optional parameter is a map with values user wants to fix.
 ::: {.clay-image}
 
 ```{=html}
-<img src="random_files/240.png" />
+<img src="random_files/572.png" />
 ```
 
 :::
@@ -3702,9 +3707,9 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.sourceClojure}
 ```clojure
-(some-random-noise 0.2) ;; => 0.6132986748816055
-(some-random-noise 0.2 0.3) ;; => 0.4610298555750632
-(some-random-noise 0.2 0.3 0.4) ;; => 0.3832626675062615
+(some-random-noise 0.2) ;; => 0.346627107824676
+(some-random-noise 0.2 0.3) ;; => 0.8439477234886865
+(some-random-noise 0.2 0.3 0.4) ;; => 0.8350485358458254
 ```
 :::
 
@@ -3714,7 +3719,7 @@ Optional parameter is a map with values user wants to fix.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="random_files/241.png" /></td><td><img class="clay-image" src="random_files/242.png" /></td><td><img class="clay-image" src="random_files/243.png" /></td></tr><tr><td><img class="clay-image" src="random_files/244.png" /></td><td><img class="clay-image" src="random_files/245.png" /></td><td><img class="clay-image" src="random_files/246.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="random_files/573.png" /></td><td><img class="clay-image" src="random_files/574.png" /></td><td><img class="clay-image" src="random_files/575.png" /></td></tr><tr><td><img class="clay-image" src="random_files/576.png" /></td><td><img class="clay-image" src="random_files/577.png" /></td><td><img class="clay-image" src="random_files/578.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -3908,7 +3913,7 @@ Return random vector from a ball
 #### billow-noise
 
 + `(billow-noise)`
-+ `(billow-noise cfg__15508__auto__)`
++ `(billow-noise cfg__16519__auto__)`
 
 Create billow-noise function with optional configuration.
 
@@ -4248,7 +4253,7 @@ Random double number with provided RNG
 #### fbm-noise
 
 + `(fbm-noise)`
-+ `(fbm-noise cfg__15508__auto__)`
++ `(fbm-noise cfg__16519__auto__)`
 
 Create fbm-noise function with optional configuration.
 
@@ -4922,7 +4927,7 @@ Return value with given probability (default 0.5), for given rng
 #### ridgedmulti-noise
 
 + `(ridgedmulti-noise)`
-+ `(ridgedmulti-noise cfg__15508__auto__)`
++ `(ridgedmulti-noise cfg__16519__auto__)`
 
 Create ridgedmulti-noise function with optional configuration.
 
@@ -5137,7 +5142,7 @@ Simplex noise. 6 octaves.
 #### single-noise
 
 + `(single-noise)`
-+ `(single-noise cfg__15508__auto__)`
++ `(single-noise cfg__16519__auto__)`
 
 Create single-noise function with optional configuration.
 

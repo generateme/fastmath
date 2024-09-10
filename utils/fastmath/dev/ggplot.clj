@@ -9,7 +9,6 @@
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
-             '[patchwork :as pw]
              '[base])
 
 (defn ->palette
@@ -141,11 +140,12 @@
 (defn lollipop
   ([xs ys]
    (lollipop xs ys nil))
-  ([xs ys {:keys [title]
-           :or {title ""}}]
+  ([xs ys {:keys [title color]
+           :or {title ""
+                color color-main}}]
    (-> (r/r+ (gg/ggplot :data (tc/dataset {:x xs :y ys}) :mapping (gg/aes :x :x :y :y))
              (gg/theme_light)
-             (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color "blue"))
+             (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color color))
        (add-common {:title title}))))
 
 
@@ -216,15 +216,19 @@
                   for the coordinate-system.
                   setting aspect-ratio to true or 1 is useful if we want
                   to draw plots depicting any perfect circle.
+  `color`: default `color-main`.
+  `fill-color`: default `color-light`.
   "
   ([xs ys]
    (scatter xs ys nil))
-  ([xs ys {:keys [aspect-ratio]
-           :or {aspect-ratio nil}}]
+  ([xs ys {:keys [aspect-ratio color fill-color]
+           :or {aspect-ratio nil
+                color color-main
+                fill-color color-light}}]
    (-> (tc/dataset {:x xs :y ys})
        (gg/ggplot (gg/aes :x :x :y :y))
        (r/r+ (gg/theme_light)
-             (gg/geom_point :color "blue" :fill "light blue"
+             (gg/geom_point :color color :fill fill-color
                             :shape "circle filled" :size 1 :alpha 0.8))
        (cond-> 
            aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio))))))
@@ -303,9 +307,10 @@
    (let [pdf-plot (pdf-graph (if data data (partial fr/pdf distr)) pdf {:title "PDF"})
          cdf-plot (fgraph-int (partial fr/cdf distr) pdf {:title "CDF"})
          icdf-plot (fgraph-int (partial fr/icdf distr) icdf {:title "ICDF"})]
-     (->image
+     (into [] (map #(->image % {:width 400 :height 400}))
+           [pdf-plot cdf-plot icdf-plot]
       #_{:clj-kondo/ignore [:unresolved-namespace]}
-      (pw/wrap_plots pdf-plot cdf-plot icdf-plot :ncol 3)))))
+      #_(pw/wrap_plots pdf-plot cdf-plot icdf-plot :ncol 3)))))
 
 
 (defmacro fgraph
@@ -315,7 +320,7 @@
 
 
 (defn dgraph
-  "given a distribution `distr` create an image containing PDF, CDF, and ICDF plots of that distribution.
+  "given a distribution `distr`, return PDF, CDF, and ICDF plot images of that distribution.
   use `fgraph-int` to plot pdf.
 
   params:
@@ -327,7 +332,7 @@
 
 
 (defn dgraphi
-  "given a distribution `distr` create an image containing PDF, CDF, and ICDF plots of that distribution.
+  "given a distribution `distr`, return PDF, CDF, and ICDF plot images of that distribution.
   use `bgraph-int` to plot pdf.
 
   params:

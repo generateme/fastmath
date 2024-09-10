@@ -491,7 +491,8 @@
 ;;    * `:n`: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1AndersonDarlingDist.html)
 
-(kind/table
+
+(utls/dgraph-table-v1
  [[{:n 1} {:n 5}]
   [(gg/dgraph (r/distribution :anderson-darling {:n 1}) {:pdf [0 3]})
    (gg/dgraph (r/distribution :anderson-darling {:n 5}) {:pdf [0 3]})]])
@@ -504,7 +505,7 @@
 ;;    * `:beta`: $5.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Beta_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/BetaDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:alpha 1 :beta 1} {:alpha 0.5 :beta 0.5}]
   [(gg/dgraph (r/distribution :beta {:alpha 1 :beta 1}) {:pdf [0.01 0.99]})
    (gg/dgraph (r/distribution :beta {:alpha 0.5 :beta 0.5}) {:pdf [0.01 0.99]})]
@@ -520,7 +521,7 @@
 ;;    * `:scale`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Cauchy_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/CauchyDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v1
  [[{:median 0 :scale 1} {:median 1 :scale 0.5}]
   [(gg/dgraph (r/distribution :cauchy {:median 0 :scale 1}) {:pdf [-4 4] :icdf [0.02 0.95]})
    (gg/dgraph (r/distribution :cauchy {:median 1 :scale 0.5}) {:pdf [-3 4] :icdf [0.02 0.95]})]])
@@ -532,7 +533,7 @@
 ;;    * `:nu`, degrees of freedom: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ChiDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:nu 1} {:nu 3}]
   [(gg/dgraph (r/distribution :chi {:nu 1}) {:pdf [0.01 5]})
    (gg/dgraph (r/distribution :chi {:nu 3}) {:pdf [0 5]})]])
@@ -544,7 +545,7 @@
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi-squared_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ChiSquaredDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:degrees-of-freedom 1} {:degrees-of-freedom 3}]
   [(gg/dgraph (r/distribution :chi-squared) {:pdf [0 5]})
    (gg/dgraph (r/distribution :chi-squared {:degrees-of-freedom 3}) {:pdf [0 6]})]])
@@ -557,7 +558,7 @@
 ;;    * `:lambda`, noncentrality: $1.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ChiSquareNoncentralDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:nu 1 :lambda 1} {:nu 3 :lambda 2}]
   [(gg/dgraph (r/distribution :chi-squared-noncentral) {:pdf [0 5]})
    (gg/dgraph (r/distribution :chi-squared-noncentral {:nu 3 :lambda 2}) {:pdf [0 6]})]])
@@ -573,7 +574,7 @@
 
 ;; Note: PDF is calculated using finite difference method from CDF.
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 1} {:n 5}]
   [(gg/dgraph (r/distribution :cramer-von-mises {:n 1}) {:pdf [0 0.5]})
    (gg/dgraph (r/distribution :cramer-von-mises {:n 5}) {:pdf [0 1]})]])
@@ -586,7 +587,7 @@
 ;;    * `:lambda`, scale: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Erlang_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ErlangDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:k 1 :lambda 1} {:k 7 :lambda 2.0}]
   [(gg/dgraph (r/distribution :erlang) {:pdf [0 5]})
    (gg/dgraph (r/distribution :erlang {:k 7 :lambda 2.0}) {:pdf [0 8]})]])
@@ -600,7 +601,7 @@
 ;;    * `:nu`, mean of exponential variable: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Exponentially_modified_Gaussian_distribution), [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/exGAUS.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :sigma 1 :nu 1} {:mu -2 :sigma 0.5 :nu 4}]
   [(gg/dgraph (r/distribution :exgaus) {:pdf [-5 5] :icdf [0.001 0.999]})
    (gg/dgraph (r/distribution :exgaus {:mu -2 :sigma 0.5 :nu 4}) {:pdf [-6 10] :icdf [0.001 0.999]})]])
@@ -612,7 +613,7 @@
 ;;    * `:mean`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Exponential_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ExponentialDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mean 1} {:mean 3}]
   [(gg/dgraph (r/distribution :exponential) {:pdf [0 5]})
    (gg/dgraph (r/distribution :exponential {:mean 3}) {:pdf [0 10]})]])
@@ -625,7 +626,7 @@
 ;;    * `:denominator-degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/F-distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/FDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:numerator-degrees-of-freedom 1 :denominator-degrees-of-freedom 1}]
   [(gg/dgraph (r/distribution :f) {:pdf [0 10] :icdf [0.0 0.9]})]
   [{:numerator-degrees-of-freedom 10 :denominator-degrees-of-freedom 15}]
@@ -640,7 +641,7 @@
 ;;    * `:gamma`, shape: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Birnbaum%E2%80%93Saunders_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FatigueLifeDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :beta 1 :gamma 1} {:mu -1 :beta 3 :gamma 0.5}]
   [(gg/dgraph (r/distribution :fatigue-life) {:pdf [-0.5 5]})
    (gg/dgraph (r/distribution :fatigue-life {:mu -1 :beta 3 :gamma 0.5}) {:pdf [-2 7]})]])
@@ -653,7 +654,7 @@
 ;;    * `:sigma`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Folded_normal_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FoldedNormalDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :sigma 1} {:mu 2 :sigma 1}]
   [(gg/dgraph (r/distribution :folded-normal) {:pdf [-0.5 3]})
    (gg/dgraph (r/distribution :folded-normal {:mu 2 :sigma 1}) {:pdf [-0.5 5]})]])
@@ -667,7 +668,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Fr%C3%A9chet_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FrechetDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:delta 0 :alpha 1 :beta 1} {:delta 1 :alpha 3 :beta 0.5}]
   [(gg/dgraph (r/distribution :frechet) {:pdf [-0.5 5] :icdf [0 0.9]})
    (gg/dgraph (r/distribution :frechet {:delta 1 :alpha 3 :beta 2}) {:pdf [-0.1 7]})]])
@@ -680,7 +681,7 @@
 ;;    * `:scale`: $2.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Gamma_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GammaDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:shape 2 :scale 2} {:shape 5 :scale 0.5}]
   [(gg/dgraph (r/distribution :gamma) {:pdf [-0.5 15]})
    (gg/dgraph (r/distribution :gamma {:shape 5 :scale 0.5}) {:pdf [-0.1 7]})]])
@@ -693,7 +694,7 @@
 ;;    * `:beta`, scale: $2.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Gumbel_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GumbelDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 1 :beta 2} {:mu 1 :beta 0.5}]
   [(gg/dgraph (r/distribution :gumbel) {:pdf [-5 10]})
    (gg/dgraph (r/distribution :gumbel {:mu 1 :beta 0.5}) {:pdf [-1 5]})]])
@@ -705,7 +706,7 @@
 ;;    * `:scale`: $1.0$
 ;; * [info](https://distribution-explorer.github.io/continuous/halfcauchy.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:scale 1} {:scale 2}]
   [(gg/dgraph (r/distribution :half-cauchy) {:pdf [0 8] :icdf [0 0.95]})
    (gg/dgraph (r/distribution :half-cauchy {:scale 2}) {:pdf [0 8] :icdf [0 0.95]})]])
@@ -717,7 +718,7 @@
 ;;    * `:sigma`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Half-normal_distribution)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:sigma 1} {:sigma 2}]
   [(gg/dgraph (r/distribution :half-normal) {:pdf [0 5]})
    (gg/dgraph (r/distribution :half-normal {:sigma 2}) {:pdf [0 7]})]])
@@ -730,7 +731,7 @@
 ;;    * `:sigma`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Hyperbolic_secant_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HyperbolicSecantDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :sigma 1} {:mu 1 :sigma 2}]
   [(gg/dgraph (r/distribution :hyperbolic-secant) {:pdf [-5 5]})
    (gg/dgraph (r/distribution :hyperbolic-secant {:mu 1 :sigma 2}) {:pdf [-7 7]})]])
@@ -742,7 +743,7 @@
 ;;    * `:lambdas`, list of rates: `[1.0]`
 ;; * [wiki](https://en.wikipedia.org/wiki/Hypoexponential_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HypoExponentialDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:lambdas [1]} {:lambdas [1 2 3 4 1]}]
   [(gg/dgraph (r/distribution :hypoexponential) {:pdf [0 5]})
    (gg/dgraph (r/distribution :hypoexponential {:lambdas [1 2 3 4 1]}) {:pdf [0 10]})]])
@@ -758,7 +759,7 @@
 ;;    * `:n` $=\frac{\lambda_1}{h}$: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HypoExponentialDistEqual.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 1 :k 1 :h 1} {:n 5 :h 0.5 :k 6}]
   [(gg/dgraph (r/distribution :hypoexponential-equal) {:pdf [0 5]})
    (gg/dgraph (r/distribution :hypoexponential-equal {:n 8 :h 0.5 :k 6}) {:pdf [0 10]})]])
@@ -771,7 +772,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; *[wiki](https://en.wikipedia.org/wiki/Inverse-gamma_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1InverseGammaDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:alpha 2 :beta 1} {:alpha 1.5 :beta 2}]
   [(gg/dgraph (r/distribution :inverse-gamma) {:pdf [0 3]})
    (gg/dgraph (r/distribution :inverse-gamma {:alpha 1.5 :beta 2}) {:pdf [0 7] :icdf [0.01 0.95]})]])
@@ -784,7 +785,7 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; *[wiki](https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1InverseGaussianDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 1 :lambda 1} {:mu 2 :lambda 0.5}]
   [(gg/dgraph (r/distribution :inverse-gaussian) {:pdf [0 3]})
    (gg/dgraph (r/distribution :inverse-gaussian {:mu 2 :lambda 0.5}) {:pdf [0 3]})]])
@@ -799,7 +800,7 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Johnson%27s_SU-distribution#Johnson's_SB-distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSBDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
   [(gg/dgraph (r/distribution :johnson-sb) {:pdf [0 1]})
    (gg/dgraph (r/distribution :johnson-sb {:gamma 0.5 :delta 2 :xi 0 :lambda 2}) {:pdf [0 3]})]])
@@ -814,7 +815,7 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSLDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
   [(gg/dgraph (r/distribution :johnson-sl) {:pdf [0 4]})
    (gg/dgraph (r/distribution :johnson-sl {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [0 6]})]])
@@ -829,7 +830,7 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Johnson%27s_SU-distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSUDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
   [(gg/dgraph (r/distribution :johnson-su) {:pdf [-3 3]})
    (gg/dgraph (r/distribution :johnson-su {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [-3 4]})]])
@@ -848,7 +849,7 @@
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 1} {:n 10}]
   [(gg/dgraph (r/distribution :kolmogorov-smirnov) {:pdf [0 1]})
    (gg/dgraph (r/distribution :kolmogorov-smirnov {:n 10}) {:pdf [0 1]})]])
@@ -860,7 +861,7 @@
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovPlusDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 1} {:n 10}]
   [(gg/dgraph (r/distribution :kolmogorov-smirnov+) {:pdf [0 1]})
    (gg/dgraph (r/distribution :kolmogorov-smirnov+ {:n 10}) {:pdf [0 1]})]])
@@ -873,7 +874,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Laplace_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LaplaceDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :beta 1} {:mu 1 :beta 2}]
   [(gg/dgraph (r/distribution :laplace) {:pdf [-4 4]})
    (gg/dgraph (r/distribution :laplace {:mu 1 :beta 2}) {:pdf [-5 7]})]])
@@ -886,7 +887,7 @@
 ;;    * `:c`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/L%C3%A9vy_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LevyDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :c 1} {:mu 1 :c 2}]
   [(gg/dgraph (r/distribution :levy) {:pdf [0 7] :icdf [0.0 0.85]})
    (gg/dgraph (r/distribution :levy {:mu 1 :c 2}) {:pdf [0 10] :icdf [0.0 0.85]})]])
@@ -899,7 +900,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Log-logistic_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1LoglogisticDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:alpha 3 :beta 1} {:alpha 5 :beta 2}]
   [(gg/dgraph (r/distribution :log-logistic) {:pdf [0 3]})
    (gg/dgraph (r/distribution :log-logistic {:alpha 5 :beta 2}) {:pdf [0 5]})]])
@@ -912,7 +913,7 @@
 ;;    * `:shape`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Log-normal_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LogNormalDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:scale 1 :shape 1} {:scale 2 :shape 2}]
   [(gg/dgraph (r/distribution :log-normal) {:pdf [0 8]})
    (gg/dgraph (r/distribution :log-normal {:scale 0.5 :shape 2}) {:pdf [0 8] :icdf [0.0 0.9]})]])
@@ -925,7 +926,7 @@
 ;;    * `:s`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Logistic_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LogisticDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :scale 1} {:mu 1 :scale 0.5}]
   [(gg/dgraph (r/distribution :logistic) {:pdf [-6 6]})
    (gg/dgraph (r/distribution :logistic {:mu 1 :scale 0.5}) {:pdf [-6 8]})]])
@@ -938,7 +939,7 @@
 ;;    * `:omega`, spread: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Nakagami_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/NakagamiDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 1 :omega 1} {:mu 0.5 :omega 0.5}]
   [(gg/dgraph (r/distribution :nakagami) {:pdf [0 3]})
    (gg/dgraph (r/distribution :nakagami {:mu 0.5 :omega 0.5}) {:pdf [0 3]})]])
@@ -951,7 +952,7 @@
 ;;    * `:sd`, standard deviation: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Normal_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/NormalDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :sd 1} {:mu 0.5 :sd 0.5}]
   [(gg/dgraph (r/distribution :normal) {:pdf [-3 3]})
    (gg/dgraph (r/distribution :normal {:mu 0.5 :sd 0.5}) {:pdf [-3 3]})]])
@@ -996,7 +997,7 @@
 ;;    * `:scale`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Pareto_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ParetoDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:scale 1 :shape 1} {:scale 2 :shape 2}]
   [(gg/dgraph (r/distribution :pareto) {:pdf [0 8] :icdf [0.01 0.95]})
    (gg/dgraph (r/distribution :pareto {:scale 2 :shape 2}) {:pdf [0 8]})]])
@@ -1010,7 +1011,7 @@
 ;;    * `:beta`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Pearson_distribution#The_Pearson_type_VI_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1Pearson6Dist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:alpha1 1 :alpha2 1 :beta 1} {:scale 2 :shape 2}]
   [(gg/dgraph (r/distribution :pearson-6) {:pdf [0 8] :icdf [0.01 0.95]})
    (gg/dgraph (r/distribution :pearson-6 {:alpha1 2 :alpha2 2 :beta 2}) {:pdf [0 8] :icdf [0.0 0.98]})]])
@@ -1024,7 +1025,7 @@
 ;;    * `:c`: $2.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1PowerDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:a 0 :b 1 :c 2} {:a 1 :b 2 :c 1.25}]
   [(gg/dgraph (r/distribution :power) {:pdf [0 2]})
    (gg/dgraph (r/distribution :power {:a 1 :b 2 :c 1.25}) {:pdf [0 2]})]])
@@ -1037,7 +1038,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Rayleigh_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1RayleighDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:a 0 :b 1 :c 2} {:a 1 :b 2 :c 1.25}]
   [(gg/dgraph (r/distribution :rayleigh) {:pdf [0 4]})
    (gg/dgraph (r/distribution :rayleigh {:a 1 :beta 0.5}) {:pdf [0 3]})]])
@@ -1050,7 +1051,7 @@
 ;; * Default parameters
 ;;    * `:a`, location, lower limit: $0.5$
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:a 0.5} {:a 2}]
   [(gg/dgraph (r/distribution :reciprocal-sqrt) {:pdf [0 2]})
    (gg/dgraph (r/distribution :reciprocal-sqrt {:a 2}) {:pdf [0 4]})]])
@@ -1062,7 +1063,7 @@
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Student%27s_t-distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/TDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:degrees-of-freedom 1} {:degrees-of-freedom 50}]
   [(gg/dgraph (r/distribution :t) {:pdf [-5 5] :icdf [0.04 0.96]})
    (gg/dgraph (r/distribution :t {:degrees-of-freedom 50}) {:pdf [-5 5]})]])
@@ -1076,7 +1077,7 @@
 ;;    * `:c`, upper limit: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Triangular_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/TriangularDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:a -1 :b 1 :c 0} {:a -0.5 :b 1 :c 0.5}]
   [(gg/dgraph (r/distribution :triangular) {:pdf [-1.5 1.5]})
    (gg/dgraph (r/distribution :triangular {:a -0.5 :c 0.5}) {:pdf [-1.5 1.5]})]])
@@ -1089,7 +1090,7 @@
 ;;    * `:upper`, upper limit: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Continuous_uniform_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/UniformRealDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:lower 0 :upper 1} {:lower -1 :upper 0.5}]
   [(gg/dgraph (r/distribution :uniform-real) {:pdf [-1.1 1.1]})
    (gg/dgraph (r/distribution :uniform-real {:lower -1 :upper 0.5}) {:pdf [-1.1 1.1]})]])
@@ -1101,7 +1102,7 @@
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonGDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 2} {:n 10}]
   [(gg/dgraph (r/distribution :watson-g) {:pdf [0 1.5]})
    (gg/dgraph (r/distribution :watson-g {:n 10}) {:pdf [0 1.5]})]])
@@ -1113,7 +1114,7 @@
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonUDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:n 2} {:n 10}]
   [(gg/dgraph (r/distribution :watson-u) {:pdf [0 0.5]})
    (gg/dgraph (r/distribution :watson-u {:n 10}) {:pdf [0 0.5]})]])
@@ -1126,7 +1127,7 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Weibull_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/WeibullDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:alpha 2 :beta 1} {:alpha 1.2 :beta 0.8}]
   [(gg/dgraph (r/distribution :weibull) {:pdf [0 3]})
    (gg/dgraph (r/distribution :weibull {:alpha 1.2 :beta 0.8}) {:pdf [0 3]})]])
@@ -1141,7 +1142,7 @@
 ;;    * `:lower-tail?` - true
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZAGA.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0 :sigma 1 :nu 0.1} {:mu 1 :sigma 1 :nu 0.5}]
   [(gg/dgraph (r/distribution :zaga) {:pdf [0 3]})
    (gg/dgraph (r/distribution :zaga {:mu 1 :sigma 0.5 :nu 0.7}) {:pdf [0 3]})]])
@@ -1168,7 +1169,7 @@
 ;; * probability: $\mu=\frac{\alpha}{\alpha+\beta}$
 ;; * dispersion: $\sigma=\frac{1}{\alpha+\beta}$
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0.5 :sigma 1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
   [(gg/dgraphi (r/distribution :bb) {:pdf [0 11]})
    (gg/dgraphi (r/distribution :bb {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]})]])
@@ -1182,7 +1183,7 @@
 ;;    * `:p`, probability, $0.5$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Bernoulli_distribution)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:p 0.5} {:p 0.25}]
   [(gg/dgraphi (r/distribution :bernoulli) {:pdf [0 2]})
    (gg/dgraphi (r/distribution :bernoulli {:p 0.25}) {:pdf [0 2]})]])
@@ -1195,7 +1196,7 @@
 ;;    * `:trials`: $20$
 ;; * [wiki](https://en.wikipedia.org/wiki/Binomial_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/BinomialDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:trials 20 :p 0.5} {:trials 50 :p 0.25}]
   [(gg/dgraphi (r/distribution :binomial) {:pdf [0 20]})
    (gg/dgraphi (r/distribution :binomial {:trials 50 :p 0.25}) {:pdf [0 30]})]])
@@ -1210,7 +1211,7 @@
 ;;    * `:omega`, odds ratio: $1$
 ;; * [wiki](https://en.wikipedia.org/wiki/Fisher%27s_noncentral_hypergeometric_distribution), [source](https://github.com/JuliaStats/Distributions.jl/blob/master/src/univariate/discrete/noncentralhypergeometric.jl)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:ns 10 :nf 10 :n 5 :omega 1} {:ns 30 :nf 60 :n 20 :omega 0.75}]
   [(gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric) {:pdf [0 6]})
    (gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric
@@ -1223,7 +1224,7 @@
 ;;    * `:p`, probability: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Geometric_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GeometricDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:p 0.5} {:p 0.15}]
   [(gg/dgraphi (r/distribution :geometric) {:pdf [0 10]})
    (gg/dgraphi (r/distribution :geometric {:p 0.15}) {:pdf [0 20]})]])
@@ -1237,7 +1238,7 @@
 ;;    * `:sample-size`: $25%
 ;; * [wiki](https://en.wikipedia.org/wiki/Hypergeometric_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/HypergeometricDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:population-size 100
     :number-of-successes 50
     :sample-size 25}]
@@ -1256,7 +1257,7 @@
 ;;    * `:theta`, shape: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Logarithmic_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1LogarithmicDist.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:theta 0.5} {:theta 0.99}]
   [(gg/dgraphi (r/distribution :logarithmic) {:pdf [0 10]})
    (gg/dgraphi (r/distribution :logarithmic {:theta 0.9}) {:pdf [0 20]})]])
@@ -1269,7 +1270,7 @@
 ;;    * `:p`, probability of success: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:r 20 :p 0.5} {:r 100 :p 0.95} {:r 21.2345 :p 0.7}]
   [(gg/dgraphi (r/distribution :negative-binomial) {:pdf [0 40]})
    (gg/dgraphi (r/distribution :negative-binomial {:r 100 :p 0.95}) {:pdf [0 20]})
@@ -1285,7 +1286,7 @@
 ;;    * `:p`, probability of success: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/PascalDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:r 20 :p 0.5} {:r 100 :p 0.95}]
   [(gg/dgraphi (r/distribution :pascal {:r 20 :p 0.5}) {:pdf [0 40]})
    (gg/dgraphi (r/distribution :pascal {:r 100 :p 0.95}) {:pdf [0 20]})]])
@@ -1297,7 +1298,7 @@
 ;;    * `:p`, lambda, mean: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Poisson_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/PoissonDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:p 0.5} {:p 4}]
   [(gg/dgraphi (r/distribution :poisson) {:pdf [0 5]})
    (gg/dgraphi (r/distribution :poisson {:p 4}) {:pdf [0 11]})]])
@@ -1310,7 +1311,7 @@
 ;;    * `:upper`, upper bound: $2147483647$
 ;; * [wiki](https://en.wikipedia.org/wiki/Discrete_uniform_distribution),[source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/UniformIntegerDistribution.html) 
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:lower 0 :upper 20} {:lower -5 :upper 5}]
   [(gg/dgraphi (r/distribution :uniform-int {:upper 20}) {:pdf [-1 22]})
    (gg/dgraphi (r/distribution :uniform-int {:lower -5 :upper 5}) {:pdf [-6 7]})]])
@@ -1325,7 +1326,7 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABB.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0.5 :sigma 0.1 :bd 10 :nu 0.1} {:nu 0.1 :mu 0.65 :sigma 0.3 :bd 20}]
   [(gg/dgraphi (r/distribution :zabb {:bd 10}) {:pdf [0 12]})
    (gg/dgraphi (r/distribution :zabb {:nu 0.1 :mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]})]])
@@ -1339,7 +1340,7 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0.5 :sigma 0.1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
   [(gg/dgraphi (r/distribution :zabi {:bd 10}) {:pdf [0 11]})
    (gg/dgraphi (r/distribution :zabi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]})]])
@@ -1353,7 +1354,7 @@
 ;;    * `:nu`, probability at 0.0: $0.3$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZANBI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 1 :sigma 1 :nu 0.3} {:nu 0.1 :mu 2 :sigma 0.5}]
   [(gg/dgraphi (r/distribution :zanbi) {:pdf [0 9]})
    (gg/dgraphi (r/distribution :zanbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]})]])
@@ -1368,7 +1369,7 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABB.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0.5 :sigma 0.5 :bd 10 :nu 0.1} {:nu 0.1 :mu 0.65 :sigma 1 :bd 20}]
   [(gg/dgraphi (r/distribution :zibb {:bd 10}) {:pdf [0 15]})
    (gg/dgraphi (r/distribution :zibb {:nu 0.1 :mu 0.65 :sigma 1 :bd 20}) {:pdf [0 21]})]])
@@ -1382,7 +1383,7 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 0.5 :sigma 0.1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
   [(gg/dgraphi (r/distribution :zibi {:bd 10}) {:pdf [0 11]})
    (gg/dgraphi (r/distribution :zibi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]})]])
@@ -1396,7 +1397,7 @@
 ;;    * `:nu`, probability factor at 0.0: $0.3$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZANBI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 1 :sigma 1 :nu 0.3} {:nu 0.1 :mu 2 :sigma 0.5}]
   [(gg/dgraphi (r/distribution :zinbi) {:pdf [0 9]})
    (gg/dgraphi (r/distribution :zinbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]})]])
@@ -1409,7 +1410,7 @@
 ;;    * `:sigma`, probability at 0.0: $0.1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZIP.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 5 :sigma 0.1} {:mu 2 :sigma 0.5}]
   [(gg/dgraphi (r/distribution :zip) {:pdf [0 14]})
    (gg/dgraphi (r/distribution :zip {:mu 2 :sigma 0.5}) {:pdf [0 7]})]])
@@ -1422,7 +1423,7 @@
 ;;    * `:sigma`, probability at 0.0: $0.1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZIP2.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:mu 5 :sigma 0.1} {:mu 2 :sigma 0.5}]
   [(gg/dgraphi (r/distribution :zip2) {:pdf [0 14]})
    (gg/dgraphi (r/distribution :zip2 {:mu 2 :sigma 0.5}) {:pdf [0 9]})]])
@@ -1435,7 +1436,7 @@
 ;;    * `:exponent`: $3.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Zipf%27s_law), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ZipfDistribution.html)
 
-(kind/table
+(utls/dgraph-table-v2
  [[{:number-of-elements 100 :exponent 3} {:number-of-elements 20 :exponent 0.5}]
   [(gg/dgraphi (r/distribution :zipf) {:pdf [0 8]})
    (gg/dgraphi (r/distribution :zipf {:number-of-elements 20 :exponent 0.5}) {:pdf [0 21]})]])
@@ -1569,7 +1570,7 @@
                                      (r/distribution :log-logistic)]
                             :weights [2 1 3]}))
 
-(kind/table
+(utls/dgraph-table-v2
  [["three normals" "gamma, laplace and log-logistic"]
   [(gg/dgraph three-normals {:pdf [-5 5]})
    (gg/dgraph mixture-of-three {:pdf [-5 5]})]])
@@ -1614,7 +1615,7 @@
 (def left-truncated-laplace (r/distribution :truncated {:distr (r/distribution :laplace)
                                                         :left -0.5}))
 
-(kind/table
+(utls/dgraph-table-v2
  [["truncated normal" "trucated levy (left side)"]
   [(gg/dgraph truncated-normal {:pdf [-2.5 2.5]})
    (gg/dgraph left-truncated-laplace {:pdf [-1 6]})]])
@@ -1672,7 +1673,7 @@
 
 (let [build-distr (fn [pars]
                     (r/distribution :continuous-distribution (assoc pars :data random-data)))]
-  (kind/table
+  (utls/dgraph-table-v2
    [["default", "bandwidth=1.0"]
     [(gg/dgraph kde-distr {:pdf [-5 5]})
      (gg/dgraph (build-distr {:bandwidth 1.0}) {:pdf [-5 5]})]
@@ -1713,9 +1714,14 @@
 (def kde-kernels (:kde k/kernel-list))
 
 (kind/table
- (for [k kde-kernels]
-   [(kind/code (str k)) (gg/dgraph (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
-                                                                             :kde k :steps 100}) {:pdf [-3 3]})]))
+ (->> kde-kernels
+      (map (fn [k]
+             [(kind/hiccup [:dl
+                             [:dt (kind/code (str k))]
+                             [:dd (kind/table [(gg/dgraph (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
+                                                                                                    :kde k :steps 100}) {:pdf [-3 3]})])]])]))
+      (into [])))
+
 
 ;; #### Empirical
 
@@ -1729,7 +1735,7 @@
 
 (def empirical-distr (r/distribution :empirical {:data random-data}))
 
-(kind/table
+(utls/dgraph-table-v2
  [["default", "bin-count=10"]
   [(gg/dgraph empirical-distr {:pdf [-5 5]})
    (gg/dgraph (r/distribution :empirical {:data random-data :bin-count 10}) {:pdf [-5 5]})]])
@@ -1774,10 +1780,10 @@
   (let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
         real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
         dist (distinct data-doubles)]
-    [(gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
-                                                               dist))})
-     (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
-                                                                 dist))})])])
+    [(kind/table [(gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
+                                                                            dist))})])
+     (kind/table [(gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
+                                                                 dist))})])])])
 
 (def real-distr (r/distribution :real-discrete-distribution {:data [0.1 0.2 0.3 0.4 0.3 0.2 0.1]
                                                              :probabilities [5 4 3 2 1 5 4]}))
@@ -1803,10 +1809,10 @@
   (let [enumerated-int (r/distribution :enumerated-int {:data data-ints})
         int-discrete (r/distribution :integer-discrete-distribution {:data data-ints})
         dist (distinct data-ints)]
-    [(gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
-                                                               dist))})
-     (gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %))
-                                                                 dist))})])])
+    [(kind/table [(gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
+                                                                            dist))})])
+     (kind/table [(gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %))
+                                                                              dist))})])])])
 
 (def int-distr (r/distribution :integer-discrete-distribution {:data [10 20 30 40 30 20 10]
                                                                :probabilities [5 4 3 2 1 5 4]}))
