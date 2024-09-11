@@ -28,6 +28,14 @@
 
 ;; List of the functions which work with PRNG and distribution objects:
 
+;; ::: {.callout-tip title="Defined functions"}
+;; * `irandom`, `lrandom`, `frandom`, `drandom`
+;; * `->seq`
+;; * `set-seed!`, `set-seed`
+;; * `rand-val`, `flip`, `flipb`, `roll-a-dice`
+;; * `rand-val-rng`, `flip-rng`, `flipb-rng`, `roll-a-dice-rng`
+;; :::
+
 ;; ### Random number generation
 
 ;; * First argument should be PRNG or distribution object
@@ -68,6 +76,15 @@
 ;; * `set-seed` is implemented only for PRNGs currently
 
 ;; ## PRNG
+
+;; Related functions:
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `rng`, `synced-rng`
+;; * `grandom`, `brandom`
+;; * `irand`, `lrand`, `frand`, `drand`, `grand`, `brand`
+;; :::
+
 
 ;; Random number generation is based on PRNG (Pseudorandom Numeber Generator) objects which are responsible for keeping the state. All PRNGs are based on Apache Commons Math 3.6.1 algorithms.
 
@@ -265,6 +282,20 @@
 ;; ## Distributions
 
 ;; Collection of probability distributions. 
+
+;; Related functions:
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `distribution`, `distribution?`, 
+;; * `pdf`, `lpdf`, `observe1`
+;; * `cdf`, `ccdf`, `icdf`
+;; * `sample`, `dimensions`, `continuous?`
+;; * `log-likelihood`, `observe`, `likelihood`
+;; * `mean`, `means`, `variance`, `covariance`
+;; * `lower-bound`, `upper-bound`
+;; * `distribution-id`, `distribution-parameters`
+;; * `integrate-pdf`
+;; :::
 
 (utls/symbol-info-table
  [[distribution "Distribution creator, a multimethod"]])
@@ -1596,7 +1627,7 @@
 
 (kind/table
  {:column-names ["name" "parameters"]
-  :row-vectors [[:truncated (r/distribution-parameters (r/distribution :truncated) true)]]})
+  :row-vectors [[(kind/code ":truncated") (r/distribution-parameters (r/distribution :truncated) true)]]})
 
 ;; * Name: `:truncated`
 ;; * Default parameters
@@ -1852,6 +1883,13 @@
 
 ;; ## Sequences
 
+;; Related functions:
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `sequence-generator`, `jittered-sequence-generator`
+;; :::
+
+
 ;; Sequence generators can create random or quasi random vector with certain property like low discrepancy or from ball/sphere.
 
 ;; There are two multimethods:
@@ -1960,6 +1998,15 @@ For given dimensionality, returns sequence of:
 ;; ## Noise
 
 ;; Value, gradient and simplex noises plus various combinations. 1d ,2d and 3d versions are prepared.
+
+;; Related functions:
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `single-noise`, `fbm-noise`, `billow-noise`, `ridgemulti-noise`
+;; * `vnoise`, `noise`, `simplex`
+;; * `random-noise-cfg`, `random-noise-fn`
+;; * `discrete-noise`
+;; :::
 
 ;; ### Generation
 
