@@ -32,8 +32,6 @@
 ;; * `irandom`, `lrandom`, `frandom`, `drandom`
 ;; * `->seq`
 ;; * `set-seed!`, `set-seed`
-;; * `rand-val`, `flip`, `flipb`, `roll-a-dice`
-;; * `rand-val-rng`, `flip-rng`, `flipb-rng`, `roll-a-dice-rng`
 ;; :::
 
 ;; ### Random number generation
@@ -83,6 +81,10 @@
 ;; * `rng`, `synced-rng`
 ;; * `grandom`, `brandom`
 ;; * `irand`, `lrand`, `frand`, `drand`, `grand`, `brand`
+;; * `->seq`
+;; * `set-seed`, `set-seed!`
+;; * `randval`, `flip`, `flipb`, `roll-a-dice`
+;; * `randval-rng`, `flip-rng`, `flipb-rng`, `roll-a-dice-rng`
 ;; :::
 
 
