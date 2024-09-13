@@ -3,10 +3,10 @@
             [fastmath.vector :as v]
             [clojure.string :as str]
             [fastmath.protocols.polynomials :as prot])
-  (:import [fastmath.vector Vec2]
-           [fastmath.java Array]
+  (:import [fastmath.java Array]
            [java.text DecimalFormat]
-           [clojure.lang IFn]))
+           [clojure.lang IFn]
+           [org.apache.commons.math3.linear MatrixUtils RealMatrix EigenDecomposition]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -206,9 +206,7 @@
 (def ^:private RONE (PolynomialR. [1] 0))
 
 (defmethod print-method Polynomial [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Polynomial [v w] (print-method v w))
 (defmethod print-method PolynomialR [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup PolynomialR [v w] (print-method v w))
 
 (defn polynomial
   "Create polynomial object."
@@ -613,7 +611,7 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 
-(defn- jacobi-P-polynomial
+(defn jacobi-P-polynomial
   [^long degree ^double alpha ^double beta]
   (polynomial (coeffs (jacobi-P-ratio-polynomial degree alpha beta))))
 
@@ -729,3 +727,150 @@
 (defn meixner-pollaczek-P-polynomial
   [^long degree ^double lambda ^double phi]
   (polynomial (coeffs (meixner-pollaczek-P-ratio-polynomial degree lambda phi))))
+
+;; Ince polynomials
+
+;; https://www.mathworks.com/matlabcentral/fileexchange/44932-ince-polynomials
+;; https://dlmf.nist.gov/28.31
+;; Miguel A. Bandres and Julio C. Gutierrez-Vega Ince–Gaussian modes of the paraxial wave equation and stable resonators
+
+(defn- ev
+  ^doubles [^RealMatrix m ^long order]
+  (let [ed (EigenDecomposition. m)
+        ;; be sure the order of eigenvalues is increasing
+        ro (long (nth (m/order (seq (.getRealEigenvalues ed))) order))]
+    (-> (.getEigenvector ed ro)
+        (v/vec->array))))
+
+(defn- ince-c-coeffs-even
+  [^long p ^long m ^double e]
+  (let [n (m// p 2)
+        N (m/inc n)
+        order (m// m 2)
+        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)]
+    (doseq [^long i (range 1 N)]
+      (.setEntry mat i i (m/* 4.0 i i)))
+    (doseq [^long i (range 0 n)
+            :let [i+ (m/inc i)]]
+      (.setEntry mat i i+ (m/* e (m/+ n i+)))
+      (.setEntry mat i+ i (m/* e (m/- n i))))
+    (.setEntry mat 1 0 (m/* 2.0 (.getEntry mat 1 0)))
+    (let [^doubles a (ev mat order)
+          sgn (m/sgn (v/sum a))
+          ^doubles a2 (v/sq a)
+          norm (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2)))]
+      (v/mult (v/div a norm) sgn))))
+
+(defn- ince-s-coeffs-even
+  [^long p ^long m ^double e]
+  (let [n (m// p 2)
+        order (m/dec (m// m 2))
+        ^RealMatrix mat (MatrixUtils/createRealMatrix n n)]
+    (doseq [^long i (range 0 n)]
+      (.setEntry mat i i (m/* 4.0 (m/sq (m/inc i)))))
+    (doseq [^long i (range 0 (m/dec n))
+            :let [i+ (m/inc i)]]
+      (.setEntry mat i i+ (m/* e (m/+ n i 2.0)))
+      (.setEntry mat i+ i (m/* e (m/- n i+))))
+    (let [scaler (m/seq->double-array (range 1 (m/inc n)))
+          ^doubles a (ev mat order)
+          sgn (m/sgn (v/sum (v/emult a scaler)))]
+      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+
+(defn- ince-c-coeffs-odd
+  [^long p ^long m ^double e]
+  (let [n (m// (m/dec p) 2)
+        N (m/inc n)
+        order (m// (m/dec m) 2)
+        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)
+        he (m/* 0.5 e)]
+    (doseq [^long i (range 1 N)]
+      (.setEntry mat i i (m/sq (m/inc (m/* 2.0 i)))))
+    (.setEntry mat 0 0 (m/+ he (m/* he p) 1.0))
+    (doseq [^long i (range 0 n)
+            :let [i+ (m/inc i)]]
+      (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
+      (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
+    (let [^doubles a (ev mat order)
+          sgn (m/sgn (v/sum a))]
+      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+
+(defn- ince-s-coeffs-odd
+  [^long p ^long m ^double e]
+  (let [n (m// (m/dec p) 2)
+        N (m/inc n)
+        order (m// (m/dec m) 2)
+        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)
+        he (m/* 0.5 e)]
+    (doseq [^long i (range 1 N)]
+      (.setEntry mat i i (m/sq (m/inc (m/* 2.0 i)))))
+    (.setEntry mat 0 0 (m/- 1.0 he (m/* he p)))
+    (doseq [^long i (range 0 n)
+            :let [i+ (m/inc i)]]
+      (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
+      (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
+    (let [scaler (m/seq->double-array (map (fn [^long v] (m/inc (m/* 2.0 v))) (range N)))
+          ^doubles a (ev mat order)
+          sgn (m/sgn (v/sum (v/emult a scaler)))]
+      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+
+(defn- ince-c-coeffs
+  [^long p ^long m ^double e]
+  (if (m/even? p)
+    (ince-c-coeffs-even p m e)
+    (ince-c-coeffs-odd p m e)))
+
+(defn- ince-s-coeffs
+  [^long p ^long m ^double e]
+  (if (m/even? p)
+    (ince-s-coeffs-even p m e)
+    (ince-s-coeffs-odd p m e)))
+
+(defmacro ^:private ince-loop
+  [s form]
+  `(loop [~'r (long 0)
+          sum# (double 0.0)]
+     (if (m/== ~'r ~s)
+       sum#
+       (recur (m/inc ~'r) (m/+ sum# (m/* (Array/aget ~'coeffs ~'r) ~form))))))
+
+(defn ince-C-polynomial
+  "Ince C polynomial of order p and degree m."
+  [^long p ^long m ^double e]
+  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+  (let [^doubles coeffs (ince-c-coeffs p m e)
+        s (alength coeffs)]
+    (if (m/even? p)
+      (fn ^double [^double x] (ince-loop s (m/cos (m/* 2.0 r x))))
+      (fn ^double [^double x] (ince-loop s (m/cos (m/* (m/inc (m/* 2.0 r)) x)))))))
+
+(defn ince-S-polynomial
+  "Ince S polynomial of order p and degree m."
+  [^long p ^long m ^double e]
+  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+  (let [^doubles coeffs (ince-s-coeffs p m e)
+        s (alength coeffs)]
+    (if (m/even? p)
+      (fn ^double [^double x] (ince-loop s (m/sin (m/* 2.0 (m/inc r) x))))
+      (fn ^double [^double x] (ince-loop s (m/sin (m/* (m/inc (m/* 2.0 r)) x)))))))
+
+(defn ince-radial-C-polynomial
+  "Ince C polynomial of order p and degree m."
+  [^long p ^long m ^double e]
+  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+  (let [^doubles coeffs (ince-c-coeffs p m e)
+        s (alength coeffs)]
+    (if (m/even? p)
+      (fn ^double [^double x] (ince-loop s (m/cosh (m/* 2.0 r x))))
+      (fn ^double [^double x] (ince-loop s (m/cosh (m/* (m/inc (m/* 2.0 r)) x)))))))
+
+(defn ince-radial-S-polynomial
+  "Ince S polynomial of order p and degree m."
+  [^long p ^long m ^double e]
+  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+  (let [^doubles coeffs (ince-s-coeffs p m e)
+        s (alength coeffs)]
+    (if (m/even? p)
+      (fn ^double [^double x] (ince-loop s (m/sinh (m/* 2.0 (m/inc r) x))))
+      (fn ^double [^double x] (ince-loop s (m/sinh (m/* (m/inc (m/* 2.0 r)) x)))))))
+

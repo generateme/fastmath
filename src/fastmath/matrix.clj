@@ -827,22 +827,32 @@
     [^double a03 ^double a13 ^double a23 ^double a33]]
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
 
-(def ^{:docs "Identity matrix for given size"} eye
-  [nil 1.0
-   (Mat2x2. 1.0 0.0 0.0 1.0)
-   (Mat3x3. 1.0 0.0 0.0
-            0.0 1.0 0.0
-            0.0 0.0 1.0)
-   (Mat4x4. 1.0 0.0 0.0 0.0
-            0.0 1.0 0.0 0.0
-            0.0 0.0 1.0 0.0
-            0.0 0.0 0.0 1.0)])
+(defn eye
+  "Identity matrix for given size"
+  [^long size]
+  (case (int size)
+    0 nil
+    1 1.0
+    2 (Mat2x2. 1.0 0.0 0.0 1.0)
+    3 (Mat3x3. 1.0 0.0 0.0
+               0.0 1.0 0.0
+               0.0 0.0 1.0)
+    4 (Mat4x4. 1.0 0.0 0.0 0.0
+               0.0 1.0 0.0 0.0
+               0.0 0.0 1.0 0.0
+               0.0 0.0 0.0 1.0)
+    (MatrixUtils/createRealIdentityMatrix size)))
 
-(def ^{:docs "Zero matrix for given size"} zero
-  [nil 0.0
-   (mat2x2 0.0)
-   (mat3x3 0.0)
-   (mat4x4 0.0)])
+(defn zero
+  "Zero matrix for given size"
+  [^long size]
+  (case (int size)
+    0 nil
+    1 0.0
+    2 (mat2x2 0.0)
+    3 (mat3x3 0.0)
+    4 (mat4x4 0.0)
+    (Array2DRowRealMatrix. size size)))
 
 (defn diagonal
   "Create diagonal matrix"
@@ -850,7 +860,8 @@
          1 (first v)
          2 (apply mat2x2 v)
          3 (apply mat3x3 v)
-         4 (apply mat4x4 v)))
+         4 (apply mat4x4 v)
+         (MatrixUtils/createRealDiagonalMatrix (m/seq->double-array v))))
   ([^double a11 ^double a22] (mat2x2 a11 a22))
   ([^double a11 ^double a22 ^double a33] (mat3x3 a11 a22 a33))
   ([^double a11 ^double a22 ^double a33 ^double a44] (mat4x4 a11 a22 a33 a44)))
@@ -1250,12 +1261,7 @@
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
 (defmethod print-method Mat2x2 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Mat2x2 [v w] (print-method v w))
-
 (defmethod print-method Mat3x3 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Mat3x3 [v w] (print-method v w))
-
 (defmethod print-method Mat4x4 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Mat4x4 [v w] (print-method v w))
 
 (m/unuse-primitive-operators #{'abs})

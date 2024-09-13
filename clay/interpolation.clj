@@ -25,7 +25,26 @@
 (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
                                           :steps 100})
 
-(kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})
+(defn- find-first-non-zero
+  ^double [f xs]
+  (or (->> xs
+           (map #(vector % (f %)))
+           (filter #(pos? ^double (second %)))
+           (ffirst))
+      (first xs)))
+
+(defn- narrow-range
+  [kd [^double mn ^double mx ^double step] ^long steps]
+  [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
+   (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
+
+((:kde (kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})) 0)
+
+(let [steps 5000
+      {:keys [kde ^double mn ^double mx]} (kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})
+      step (/ (- mx mn) steps)
+      _ (println step)
+      [^double mn ^double mx] (narrow-range kde [mn mx step] (* 4 steps))])
 
 ;; # Interpolation
 
@@ -646,6 +665,7 @@ empirical-highly-robust
 
 (opt/scan-and-minimize :lbfgsb target {:bounds [[0.0 0.2]
                                                 [0.0 1.0]
+
                                                 [10.0 100.0]]})
 
 (-> (ggplot/function2d (kriging/kriging xss ys3 vl) {:x [20 180] :y [20 180] :steps 100})
