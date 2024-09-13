@@ -139,14 +139,14 @@
 
 (defn lollipop
   ([xs ys]
-   (lollipop xs ys nil))
+   (lollipop xs ys {}))
   ([xs ys {:keys [title color]
-           :or {title ""
-                color color-main}}]
+           :or {color color-main}
+           :as opts}]
    (-> (r/r+ (gg/ggplot :data (tc/dataset {:x xs :y ys}) :mapping (gg/aes :x :x :y :y))
              (gg/theme_light)
              (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color color))
-       (add-common {:title title}))))
+       (add-common opts))))
 
 
 (defn functions
@@ -222,16 +222,17 @@
   ([xs ys]
    (scatter xs ys nil))
   ([xs ys {:keys [aspect-ratio color fill-color]
-           :or {aspect-ratio nil
-                color color-main
-                fill-color color-light}}]
+           :or {color color-main
+                fill-color color-light}
+           :as opts}]
    (-> (tc/dataset {:x xs :y ys})
        (gg/ggplot (gg/aes :x :x :y :y))
        (r/r+ (gg/theme_light)
              (gg/geom_point :color color :fill fill-color
                             :shape "circle filled" :size 1 :alpha 0.8))
        (cond-> 
-           aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio))))))
+           aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio)))
+       (add-common opts))))
 
 
 (defn scatters
@@ -271,10 +272,9 @@
 
 (defn fgraph-int
   ([f domain]
-   (fgraph-int f domain {:title ""}))
-  ([f domain {:keys [title]}]
-   (function f {:x domain
-                :title title})))
+   (fgraph-int f domain {}))
+  ([f domain opts]
+   (function f (assoc opts :x domain))))
 
 
 (defn sample-int
@@ -284,7 +284,7 @@
 
 (defn bgraph-int
   ([f] (bgraph-int f nil))
-  ([f domain] (bgraph-int f domain {:title ""}))
+  ([f domain] (bgraph-int f domain {}))
   ([f domain opts]
    (let [[dx dy] domain
          xsys (if (map? f)
@@ -292,11 +292,14 @@
                 (sample-int f dx dy))
          xs (map first xsys)
          ys (map second xsys)]
-     (lollipop xs ys opts))))
+     (lollipop xs ys (assoc opts :x domain)))))
 
 
 (defn dgraph-cont
-  "params:
+  "returns a vector of [pdf-plot cdf-plot icdf-plot] of a `distr`.
+  Use supplied `pdf-graph` to plot PDF.
+  Use `fgraph-int` to plot CDF and iCDF.
+  params:
   `opts`:
      keys:`:pdf` a vector of pdf range, default 0 to 1
           `:icdf` a vector of icdf range, default 0 0.999
@@ -307,16 +310,7 @@
    (let [pdf-plot (pdf-graph (if data data (partial fr/pdf distr)) pdf {:title "PDF"})
          cdf-plot (fgraph-int (partial fr/cdf distr) pdf {:title "CDF"})
          icdf-plot (fgraph-int (partial fr/icdf distr) icdf {:title "ICDF"})]
-     (into [] (map #(->image % {:width 400 :height 400}))
-           [pdf-plot cdf-plot icdf-plot]
-      #_{:clj-kondo/ignore [:unresolved-namespace]}
-      #_(pw/wrap_plots pdf-plot cdf-plot icdf-plot :ncol 3)))))
-
-
-(defmacro fgraph
-  ([f] `(->image (fgraph-int (fn [x#] (~f x#)))))
-  ([f domain] `(->image (fgraph-int (fn [x#] (~f x#)) ~domain)))
-  ([f domain opts] `(->image (fgraph-int (fn [x#] (~f x#)) ~domain ~opts))))
+     [pdf-plot cdf-plot icdf-plot])))
 
 
 (defn dgraph
@@ -326,7 +320,7 @@
   params:
   `opts`: see docs for `dgraph-cont`."
   ([distr]
-   (dgraph distr nil))
+   (dgraph distr {}))
   ([distr opts]
    (dgraph-cont fgraph-int distr opts)))
 
@@ -338,23 +332,15 @@
   params:
   `opts`: see docs for `dgraph-cont`"
   ([distr]
-   (dgraph distr nil))
+   (dgraph distr {}))
   ([distr opts]
    (dgraph-cont bgraph-int distr opts)))
 
 
-(defn graph2d
-  ([f] (graph2d f nil nil nil))
-  ([f dx dy] (graph2d f dx dy {}))
-  ([f dx dy opts]
-   (let [[dx1 dx2] (or dx [0.0 1.0])
-         [dy1 dy2] (or dy [0.0 1.0])]
-     (->image (function2d f (merge opts {:x [dx1 dx2] :y [dy1 dy2]}))))))
-
-
 (defn graph-scatter
-  "draw scatter plot.
+  "return scatter plot.
+  xy is a sequence of points. ex: [[x1 y1] [x2 y2] ... [xn..yn]].
   see `scatter` doc for the `opts` description."
   ([xy] (graph-scatter xy nil))
   ([xy opts]
-   (->image (scatter (map first xy) (map second xy) opts))))
+   (scatter (map first xy) (map second xy) opts)))

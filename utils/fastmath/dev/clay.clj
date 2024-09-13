@@ -25,51 +25,24 @@
   `(callout "note" "Examples" (examples ~@forms)))
 
 
-(defmacro symbol-info-table
-  [rows]
-  `(kind/table {:column-names ["Symbol" "Info"]
-                :row-vectors [~@(for [[s i] rows]
-                                  `[(kind/code (pr-str (quote ~s))) (or ~i "-")])]}))
-
-(defmacro dgraph-table-v1
-  "Helper macro to render rows to a table containing PDF, CDF, iCDF graphs images of distributions.
+(defmacro dgraph-table
+  "Helper macro to render `rows` to a table containing PDF, CDF, iCDF graphs images of distributions.
   
-  The rows has even length. Starting from the first row, a pair of adjacent rows perform a group.
+  The `rows` has even length. Starting from the first row, a pair of adjacent rows perform a group.
   The first row in a group has columns containing the parameter of a distribution.
-  The next row in the same group has columns containing PDF, CDF, iCDF graphs images of a distribution
-  whose parameters are in the same column in the previous row. 
-
-  the images are displayed side-by-side in the same column."
-  [rows]
-  `(kind/table ~(->> (map-indexed (fn [i r]
-                                    (if (even? i)
-                                      r
-                                      (into []
-                                            (map (fn [v]
-                                                   `(kind/hiccup (into [:div nil] ~v))))
-                                            r)))
-                                  rows)
-                     (into []))))
-
-
-(defmacro dgraph-table-v2
-  "Helper macro to render rows to a table containing PDF, CDF, iCDF graphs images of distributions.
-  
-  The rows has even length. Starting from the first row, a pair of adjacent rows perform a group.
-  The first row in a group has columns containing the parameter of a distribution.
-  The next row in the same group has columns containing PDF, CDF, iCDF graphs images of a distribution
+  The next row in the same group has columns containing a vector of PDF, CDF, iCDF charts of a distribution
   whose parameters are in the same column in the previous row.
-  
-  The images are put into columns inside a table."
+
+  Generates a table like this:
+  | Param-1      |
+  | Charts-1     |
+  | Param-2      |
+  | Charts-2     |
+  "
   [rows]
-  `(kind/table ~(->> (map-indexed (fn [i r]
-                                    (if (even? i)
-                                      r
-                                      (into []
-                                            (map (fn [v]
-                                                   `(kind/table [~v])))
-                                            r)))
-                                  rows)
+  `(kind/table ~(->> (map (fn [p g]
+                            [(kind/hiccup [:dl [:dt nil `(kind/code (str ~p))] [:dd nil `(kind/table [~g])]])])
+                          (mapcat identity (take-nth 2 rows)) (mapcat identity (take-nth 2 (rest rows))))
                      (into []))))
 
 

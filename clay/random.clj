@@ -1,6 +1,5 @@
 ^:kindly/hide-code
 (ns random
-  {:clj-kondo/config '{:config-in-call {fastmath.dev.clay/symbol-info-table {:ignore [:unresolved-symbol]}}}}
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.kernel :as k]
@@ -8,6 +7,7 @@
             [fastmath.dev.ggplot :as gg]
             [fastmath.dev.clay :as utls]
             [fastmath.dev.codox :as codox]))
+
 
 ;; # Random {.unnumbered}
 
@@ -28,14 +28,16 @@
 
 ;; List of the functions which work with PRNG and distribution objects:
 
-;; ::: {.callout-tip title="Defined functions"}
-;; * `irandom`, `lrandom`, `frandom`, `drandom`
-;; * `->seq`
-;; * `set-seed!`, `set-seed`
-;; :::
-
 ;; ### Random number generation
 
+;; ::: {.callout-tip title="Defined functions"}
+;; * `irandom`, `lrandom`, `frandom`, `drandom`
+;; :::
+
+;; * `irandom`, for random integer, returns long
+;; * `lrandom`, returns long
+;; * `frandom`, for random float, returns boxed float
+;; * `drandom`, random double
 ;; * First argument should be PRNG or distribution object
 ;; * With no additional arguments, functions return:
 ;;     * full range for integers and longs
@@ -44,13 +46,19 @@
 ;;     * With one additional argument, number from $[0,max)$ range is returned
 ;;     * With two additional arguments, number form $[min,max)$ range is returned
 
-(utls/symbol-info-table
- [[irandom "random integer, returns long"]
-  [lrandom "random long"]
-  [frandom "random float, returns boxed float"]
-  [drandom "random double"]])
+(utls/examples-note
+  (r/irandom (r/rng :mersenne))
+  (r/drandom (r/rng :mersenne) 0 10))
+
+;; For PRNGs, see more examples in PRNG > Functions section.
+
+;; For Distributions, see more examples in Distributions > Functions > Examples section.
 
 ;; ### Sampling
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `->seq`
+;; :::
 
 ;; To generate infinite lazy sequence of random values, call `->seq` on given PRNG or distribution.
 ;; Second (optional) argument can limit number of returned numbers.
@@ -61,17 +69,24 @@
 ;; * `:systematic` - the same spacing with random starting point
 ;; * `:stratified` - divide $[0,1]$ into `n` intervals and get random value from each subinterval
 
-(utls/symbol-info-table
- [[->seq "sequence of random doubles, sampling"]])
+(utls/examples-note
+  (take 3 (r/->seq (r/rng :mersenne)))
+  (r/->seq (r/rng :mersenne) 3))
+
+;; For PRNGs, see more examples in PRNG > Functions section.
+
+;; For Distributions, see more examples in Distributions > Functions > Examples section.
 
 ;; ### Seed
 
-(utls/symbol-info-table
- [[set-seed! "sets seed, possibly mutating, returns PRNG or distribution object"]
-  [set-seed "creates new instance with given seed"]])
+;; ::: {.callout-tip title="Defined functions"}
+;; * `set-seed!`, `set-seed`
+;; :::
 
 ;; * `set-seed!` mutates object if it's supported by underlying Java implementation, can also return newly created object.
 ;; * `set-seed` is implemented only for PRNGs currently
+
+;; See examples in PRNG > Seed section.
 
 ;; ## PRNG
 
@@ -86,7 +101,6 @@
 ;; * `randval`, `flip`, `flipb`, `roll-a-dice`
 ;; * `randval-rng`, `flip-rng`, `flipb-rng`, `roll-a-dice-rng`
 ;; :::
-
 
 ;; Random number generation is based on PRNG (Pseudorandom Numeber Generator) objects which are responsible for keeping the state. All PRNGs are based on Apache Commons Math 3.6.1 algorithms.
 
@@ -103,10 +117,8 @@
                 [(kind/code ":jdk") "java.util.Random instance, thread safe"]]})
 
 ;; To create PRNG, call `rng` with algorithm name (as a keyword) and optional seed parameter.
-
-(utls/symbol-info-table
- [[rng "Create PRNG with optional seed"]
-  [synced-rng "Wrap PRNG to ensure thread safety"]])
+;; `rng` creates a PRNG with optional seed
+;; `synced-rng` wraps PRNG to ensure thread safety
 
 (utls/examples-note
  (r/rng :isaac)
@@ -116,10 +128,6 @@
 ;; ### Functions
 
 ;; Two additional functions are supported by PRNGs
-
-(utls/symbol-info-table
- [[grandom "random gaussian"]
-  [brandom "random boolean"]])
 
 ;; * `grandom`
 ;;    * 1-arity - returns random number from Normal (Gaussian) distribution, N(0,1)
@@ -163,7 +171,7 @@
  (r/->seq my-prng 5 :systematic)
  (r/->seq my-prng 5 :stratified))
 
-;; ### Seed 
+;; ### Seed
 
 ;; Let's define two copies of the same PRNG with the same seed. Second one is obtained by setting a seed new seed.
 
@@ -188,20 +196,20 @@
  (r/->seq isaac-prng 3)
  (r/->seq isaac-prng2 3))
 
+
 ;; ### Default PRNG
 
 ;; There is defined one global variable `default-rng` which is synchonized `:jvm` PRNG. Following set of functions work on this particular PRNG. The are the same as `xrandom`, ie `(irand)` is the same as `(irandom default-rng)`.
 
-(utls/symbol-info-table
- [[irand "random integer, as long"]
-  [lrand "random long"]
-  [frand "random float as boxed Float"]
-  [drand "random double"]
-  [grand "random gaussian"]
-  [brand "random boolean"]
-  [->seq "returns infinite lazy sequence"]
-  [set-seed "seeds default-rng, returns new instance"]
-  [set-seed! "seeds default-rng and Smile's RNG"]])
+;; * `irand`, random integer, as long
+;; * `lrand`, random long
+;; * `frand`, random float as boxed Float
+;; * `drand`, random double
+;; * `grand`, random gaussian
+;; * `brand`, random boolean
+;; * `->seq`, returns infinite lazy sequence
+;; * `set-seed`, seeds default-rng, returns new instance
+;; * `set-seed!`, seeds default-rng and Smile's RNG
 
 (utls/examples-note
  (r/irand)
@@ -231,11 +239,10 @@
 
 ;; Additionally there are some helpers:
 
-(utls/symbol-info-table
- [[randval "A macro, returns value with given probability (default true/false with prob=0.5)"]
-  [flip "Returns 1 with given probability (or 0)"]
-  [flipb "Returns true with given probability"]
-  [roll-a-dice "Returns a result of rolling a n-sides dice(s)"]])
+;; * `randval`, A macro, returns value with given probability (default true/false with prob=0.5)
+;; * `flip`, Returns 1 with given probability (or 0)
+;; * `flipb`, Returns true with given probability (default probability 0.5)
+;; * `roll-a-dice`, Returns a result of rolling a n-sides dice(s)
 
 (utls/examples-note
  (r/randval)
@@ -258,11 +265,10 @@
 
 (def isaac3-prng (r/rng :isaac 1234))
 
-(utls/symbol-info-table
- [[randval-rng "A macro, returns value with given probability (default true/false with prob=0.5)"]
-  [flip-rng "Returns 1 with given probability (or 0)"]
-  [flipb-rng "Returns true with given probability"]
-  [roll-a-dice-rng "Returns a result of rolling a n-sides dice(s)"]])
+;; * `randval-rng`, A macro, returns value with given probability (default true/false with prob=0.5)
+;; * `flip-rng`, Returns 1 with given probability (or 0)
+;; * `flipb-rng`, Returns true with given probability
+;; * `roll-a-dice-rng`, Returns a result of rolling a n-sides dice(s)
 
 (utls/examples-note
  (r/randval-rng isaac3-prng)
@@ -280,6 +286,7 @@
  (r/roll-a-dice-rng isaac3-prng 6)
  (r/roll-a-dice-rng isaac3-prng 100)
  (r/roll-a-dice-rng isaac3-prng 10 6))
+
 
 ;; ## Distributions
 
@@ -299,8 +306,10 @@
 ;; * `integrate-pdf`
 ;; :::
 
-(utls/symbol-info-table
- [[distribution "Distribution creator, a multimethod"]])
+;; `distribution` is Distribution creator, a multimethod.
+;; 
+;; * First parameter is distribution as a `:key`.
+;; * Second parameter is a map with configuration.
 
 (utls/examples-note
  (r/distribution :cauchy)
@@ -308,29 +317,32 @@
 
 ;; ### Functions
 
-(utls/symbol-info-table
- [[distribution? "checks if given object is a distribution"]
-  [pdf "probability density (for continuous) or probability mass (for discrete)"]
-  [lpdf "log of pdf"]
-  [observe1 "log of pdf, alias of lpdf"]
-  [cdf "cumulative density or probability, distribution"]
-  [ccdf "complementary cdf, 1-cdf"]
-  [icdf "inverse cdf, quantiles"]
-  [sample "returns random sample"]
-  [dimensions "number of dimensions"]
-  [continuous? "is distribution continuous (true) or discrete (false)?"]
-  [log-likelihood "sum of lpdfs for given seq of samples"]
-  [observe "macro version of log-likelihood"]
-  [likelihood "exp of log-likelihood"]
-  [mean "distribution mean"]
-  [means "distribution means for multivariate distributions"]
-  [variance "distribution variance"]
-  [covariance "covariance for multivariate distributions"]
-  [lower-bound "support lower bound"]
-  [upper-bound "support upper bound"]
-  [distribution-id "name of distribution"]
-  [distribution-parameters "list of parameters"]
-  [integrate-pdf "construct cdf and icdf out of pdf function"]])
+;; Here are the quick description of available functions:
+
+;; * `distribution?`, checks if given object is a distribution
+;; * `pdf`, probability density (for continuous) or probability mass (for discrete)
+;; * `lpdf`, log of pdf
+;; * `observe1`, log of pdf, alias of lpdf
+;; * `cdf`, cumulative density or probability, distribution
+;; * `ccdf`, complementary cdf, 1-cdf
+;; * `icdf`, inverse cdf, quantiles
+;; * `sample`, returns random sample
+;; * `dimensions`, number of dimensions
+;; * `continuous?`, is distribution continuous (true) or discrete (false)?
+;; * `log-likelihood`, sum of lpdfs for given seq of samples
+;; * `observe`, macro version of log-likelihood
+;; * `likelihood`, exp of log-likelihood
+;; * `mean`, distribution mean
+;; * `means`, distribution means for multivariate distributions
+;; * `variance`, distribution variance
+;; * `covariance`, covariance for multivariate distributions
+;; * `lower-bound`, support lower bound
+;; * `upper-bound`, support upper bound
+;; * `distribution-id`, name of distribution
+;; * `distribution-parameters`, list of parameters
+;; * `integrate-pdf`, construct cdf and icdf out of pdf function
+
+;; Notes:
 
 ;; * `distribution-parameters` by default returns only obligatory parameters, when last argument is `true`, returns also optional parameters, for example `:rng`
 ;; * `drandom`, `frandom`, `lrandom` and `irandom` work only on univariate distributions
@@ -430,15 +442,13 @@
 
 ;; `integrate-pdf` returns a pair of CDF and iCDF functions using Romberg integration and interpolation. Given interval is divided into `steps` number of subinterval. Each subinteval is integrated and added to cumulative sum. All points a later interpolated to build CDF and iCDF.
 
-;; Parameters list:
+;; Parameters:
 
-(utls/symbol-info-table
- [[pdf-func "PDF, univariate double->double function"]
-  [:mn "lower bound, value of PDF(mn) should be 0.0"]
-  [:mx "upper bound"]
-  [:steps "number of subintervals"]
-  [:min-iterations "minimum number of Romberg integrator iterations (default: 3, minimum 2)"]
-  [:interpolator "one of: `:linear` (default), `:spline`, `:monotone` or any `fastmath.interpolator` method"]])
+;; * `pdf-func` - univariate function, double->double
+;; * `mn` - lower bound for integration, value of pdf-func should be 0.0 at this point
+;; * `mx` - upper bound for integration
+;; * `steps` - how much subintervals to integrate (default 1000)
+;; * `interpolator` - interpolation method between integrated points (default :linear)
 
 ;; Let's compare cdf and icdf to integrated pdf of beta distribution
 
@@ -484,8 +494,7 @@
 
 ;; ### Default Normal
 
-(utls/symbol-info-table
- [[default-normal "public var which is a normal distribution N(0,1), thread-safe"]])
+;; `default-normal` is a public var which is a normal distribution N(0,1), thread-safe.
 
 (utls/examples-note
  (r/->seq r/default-normal 3)
@@ -524,11 +533,10 @@
 ;;    * `:n`: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1AndersonDarlingDist.html)
 
-
-(utls/dgraph-table-v1
+(utls/dgraph-table
  [[{:n 1} {:n 5}]
-  [(gg/dgraph (r/distribution :anderson-darling {:n 1}) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :anderson-darling {:n 5}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :anderson-darling {:n 1}) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :anderson-darling {:n 5}) {:pdf [0 3]}))]])
 
 ;; #### Beta
 
@@ -538,13 +546,13 @@
 ;;    * `:beta`: $5.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Beta_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/BetaDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:alpha 1 :beta 1} {:alpha 0.5 :beta 0.5}]
-  [(gg/dgraph (r/distribution :beta {:alpha 1 :beta 1}) {:pdf [0.01 0.99]})
-   (gg/dgraph (r/distribution :beta {:alpha 0.5 :beta 0.5}) {:pdf [0.01 0.99]})]
+  [(mapv gg/->image (gg/dgraph (r/distribution :beta {:alpha 1 :beta 1}) {:pdf [0.01 0.99]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :beta {:alpha 0.5 :beta 0.5}) {:pdf [0.01 0.99]}))]
   [{:alpha 3 :beta 3} {:alpha 5 :beta 2}]
-  [(gg/dgraph (r/distribution :beta {:alpha 3 :beta 3}) {:pdf [0 1]})
-   (gg/dgraph (r/distribution :beta {:alpha 5 :beta 2}) {:pdf [0 1]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :beta {:alpha 3 :beta 3}) {:pdf [0 1]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :beta {:alpha 5 :beta 2}) {:pdf [0 1]}))]])
 
 ;; #### Cauchy
 
@@ -554,10 +562,10 @@
 ;;    * `:scale`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Cauchy_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/CauchyDistribution.html)
 
-(utls/dgraph-table-v1
+(utls/dgraph-table
  [[{:median 0 :scale 1} {:median 1 :scale 0.5}]
-  [(gg/dgraph (r/distribution :cauchy {:median 0 :scale 1}) {:pdf [-4 4] :icdf [0.02 0.95]})
-   (gg/dgraph (r/distribution :cauchy {:median 1 :scale 0.5}) {:pdf [-3 4] :icdf [0.02 0.95]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :cauchy {:median 0 :scale 1}) {:pdf [-4 4] :icdf [0.02 0.95]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :cauchy {:median 1 :scale 0.5}) {:pdf [-3 4] :icdf [0.02 0.95]}))]])
 
 ;; #### Chi
 
@@ -566,10 +574,10 @@
 ;;    * `:nu`, degrees of freedom: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ChiDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:nu 1} {:nu 3}]
-  [(gg/dgraph (r/distribution :chi {:nu 1}) {:pdf [0.01 5]})
-   (gg/dgraph (r/distribution :chi {:nu 3}) {:pdf [0 5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :chi {:nu 1}) {:pdf [0.01 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :chi {:nu 3}) {:pdf [0 5]}))]])
 
 ;; #### Chi-squared
 
@@ -578,10 +586,10 @@
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Chi-squared_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ChiSquaredDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:degrees-of-freedom 1} {:degrees-of-freedom 3}]
-  [(gg/dgraph (r/distribution :chi-squared) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :chi-squared {:degrees-of-freedom 3}) {:pdf [0 6]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :chi-squared) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :chi-squared {:degrees-of-freedom 3}) {:pdf [0 6]}))]])
 
 ;; #### Chi-squared noncentral
 
@@ -591,10 +599,10 @@
 ;;    * `:lambda`, noncentrality: $1.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ChiSquareNoncentralDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:nu 1 :lambda 1} {:nu 3 :lambda 2}]
-  [(gg/dgraph (r/distribution :chi-squared-noncentral) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :chi-squared-noncentral {:nu 3 :lambda 2}) {:pdf [0 6]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :chi-squared-noncentral) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :chi-squared-noncentral {:nu 3 :lambda 2}) {:pdf [0 6]}))]])
 
 ;; #### Cramer-von Mises
 
@@ -607,10 +615,10 @@
 
 ;; Note: PDF is calculated using finite difference method from CDF.
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 1} {:n 5}]
-  [(gg/dgraph (r/distribution :cramer-von-mises {:n 1}) {:pdf [0 0.5]})
-   (gg/dgraph (r/distribution :cramer-von-mises {:n 5}) {:pdf [0 1]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :cramer-von-mises {:n 1}) {:pdf [0 0.5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :cramer-von-mises {:n 5}) {:pdf [0 1]}))]])
 
 ;; #### Erlang
 
@@ -620,10 +628,10 @@
 ;;    * `:lambda`, scale: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Erlang_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1ErlangDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:k 1 :lambda 1} {:k 7 :lambda 2.0}]
-  [(gg/dgraph (r/distribution :erlang) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :erlang {:k 7 :lambda 2.0}) {:pdf [0 8]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :erlang) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :erlang {:k 7 :lambda 2.0}) {:pdf [0 8]}))]])
 
 ;; #### ex-Gaussian
 
@@ -634,10 +642,10 @@
 ;;    * `:nu`, mean of exponential variable: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Exponentially_modified_Gaussian_distribution), [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/exGAUS.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :sigma 1 :nu 1} {:mu -2 :sigma 0.5 :nu 4}]
-  [(gg/dgraph (r/distribution :exgaus) {:pdf [-5 5] :icdf [0.001 0.999]})
-   (gg/dgraph (r/distribution :exgaus {:mu -2 :sigma 0.5 :nu 4}) {:pdf [-6 10] :icdf [0.001 0.999]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :exgaus) {:pdf [-5 5] :icdf [0.001 0.999]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :exgaus {:mu -2 :sigma 0.5 :nu 4}) {:pdf [-6 10] :icdf [0.001 0.999]}))]])
 
 ;; #### Exponential
 
@@ -646,10 +654,10 @@
 ;;    * `:mean`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Exponential_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ExponentialDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mean 1} {:mean 3}]
-  [(gg/dgraph (r/distribution :exponential) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :exponential {:mean 3}) {:pdf [0 10]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :exponential) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :exponential {:mean 3}) {:pdf [0 10]}))]])
 
 ;; #### F
 
@@ -659,11 +667,11 @@
 ;;    * `:denominator-degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/F-distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/FDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:numerator-degrees-of-freedom 1 :denominator-degrees-of-freedom 1}]
-  [(gg/dgraph (r/distribution :f) {:pdf [0 10] :icdf [0.0 0.9]})]
+  [(mapv gg/->image (gg/dgraph (r/distribution :f) {:pdf [0 10] :icdf [0.0 0.9]}))]
   [{:numerator-degrees-of-freedom 10 :denominator-degrees-of-freedom 15}]
-  [(gg/dgraph (r/distribution :f {:numerator-degrees-of-freedom 10 :denominator-degrees-of-freedom 15}) {:pdf [0 10]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :f {:numerator-degrees-of-freedom 10 :denominator-degrees-of-freedom 15}) {:pdf [0 10]}))]])
 
 ;; #### Fatigue life
 
@@ -674,10 +682,10 @@
 ;;    * `:gamma`, shape: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Birnbaum%E2%80%93Saunders_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FatigueLifeDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :beta 1 :gamma 1} {:mu -1 :beta 3 :gamma 0.5}]
-  [(gg/dgraph (r/distribution :fatigue-life) {:pdf [-0.5 5]})
-   (gg/dgraph (r/distribution :fatigue-life {:mu -1 :beta 3 :gamma 0.5}) {:pdf [-2 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :fatigue-life) {:pdf [-0.5 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :fatigue-life {:mu -1 :beta 3 :gamma 0.5}) {:pdf [-2 7]}))]])
 
 ;; #### Folded Normal
 
@@ -687,10 +695,10 @@
 ;;    * `:sigma`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Folded_normal_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FoldedNormalDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :sigma 1} {:mu 2 :sigma 1}]
-  [(gg/dgraph (r/distribution :folded-normal) {:pdf [-0.5 3]})
-   (gg/dgraph (r/distribution :folded-normal {:mu 2 :sigma 1}) {:pdf [-0.5 5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :folded-normal) {:pdf [-0.5 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :folded-normal {:mu 2 :sigma 1}) {:pdf [-0.5 5]}))]])
 
 ;; #### Frechet
 
@@ -701,10 +709,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Fr%C3%A9chet_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1FrechetDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:delta 0 :alpha 1 :beta 1} {:delta 1 :alpha 3 :beta 0.5}]
-  [(gg/dgraph (r/distribution :frechet) {:pdf [-0.5 5] :icdf [0 0.9]})
-   (gg/dgraph (r/distribution :frechet {:delta 1 :alpha 3 :beta 2}) {:pdf [-0.1 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :frechet) {:pdf [-0.5 5] :icdf [0 0.9]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :frechet {:delta 1 :alpha 3 :beta 2}) {:pdf [-0.1 7]}))]])
 
 ;; #### Gamma
 
@@ -714,10 +722,10 @@
 ;;    * `:scale`: $2.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Gamma_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GammaDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:shape 2 :scale 2} {:shape 5 :scale 0.5}]
-  [(gg/dgraph (r/distribution :gamma) {:pdf [-0.5 15]})
-   (gg/dgraph (r/distribution :gamma {:shape 5 :scale 0.5}) {:pdf [-0.1 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :gamma) {:pdf [-0.5 15]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :gamma {:shape 5 :scale 0.5}) {:pdf [-0.1 7]}))]])
 
 ;; #### Gumbel
 
@@ -727,10 +735,10 @@
 ;;    * `:beta`, scale: $2.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Gumbel_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GumbelDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 1 :beta 2} {:mu 1 :beta 0.5}]
-  [(gg/dgraph (r/distribution :gumbel) {:pdf [-5 10]})
-   (gg/dgraph (r/distribution :gumbel {:mu 1 :beta 0.5}) {:pdf [-1 5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :gumbel) {:pdf [-5 10]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :gumbel {:mu 1 :beta 0.5}) {:pdf [-1 5]}))]])
 
 ;; #### Half Cauchy
 
@@ -739,10 +747,10 @@
 ;;    * `:scale`: $1.0$
 ;; * [info](https://distribution-explorer.github.io/continuous/halfcauchy.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:scale 1} {:scale 2}]
-  [(gg/dgraph (r/distribution :half-cauchy) {:pdf [0 8] :icdf [0 0.95]})
-   (gg/dgraph (r/distribution :half-cauchy {:scale 2}) {:pdf [0 8] :icdf [0 0.95]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :half-cauchy) {:pdf [0 8] :icdf [0 0.95]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :half-cauchy {:scale 2}) {:pdf [0 8] :icdf [0 0.95]}))]])
 
 ;; #### Half Normal
 
@@ -751,10 +759,10 @@
 ;;    * `:sigma`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Half-normal_distribution)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:sigma 1} {:sigma 2}]
-  [(gg/dgraph (r/distribution :half-normal) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :half-normal {:sigma 2}) {:pdf [0 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :half-normal) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :half-normal {:sigma 2}) {:pdf [0 7]}))]])
 
 ;; #### Hyperbolic secant
 
@@ -764,10 +772,10 @@
 ;;    * `:sigma`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Hyperbolic_secant_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HyperbolicSecantDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :sigma 1} {:mu 1 :sigma 2}]
-  [(gg/dgraph (r/distribution :hyperbolic-secant) {:pdf [-5 5]})
-   (gg/dgraph (r/distribution :hyperbolic-secant {:mu 1 :sigma 2}) {:pdf [-7 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :hyperbolic-secant) {:pdf [-5 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :hyperbolic-secant {:mu 1 :sigma 2}) {:pdf [-7 7]}))]])
 
 ;; #### Hypoexponential
 
@@ -776,10 +784,10 @@
 ;;    * `:lambdas`, list of rates: `[1.0]`
 ;; * [wiki](https://en.wikipedia.org/wiki/Hypoexponential_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HypoExponentialDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:lambdas [1]} {:lambdas [1 2 3 4 1]}]
-  [(gg/dgraph (r/distribution :hypoexponential) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :hypoexponential {:lambdas [1 2 3 4 1]}) {:pdf [0 10]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :hypoexponential) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :hypoexponential {:lambdas [1 2 3 4 1]}) {:pdf [0 10]}))]])
 
 ;; #### Hypoexponential equal
 
@@ -792,10 +800,10 @@
 ;;    * `:n` $=\frac{\lambda_1}{h}$: $1$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1HypoExponentialDistEqual.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 1 :k 1 :h 1} {:n 5 :h 0.5 :k 6}]
-  [(gg/dgraph (r/distribution :hypoexponential-equal) {:pdf [0 5]})
-   (gg/dgraph (r/distribution :hypoexponential-equal {:n 8 :h 0.5 :k 6}) {:pdf [0 10]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :hypoexponential-equal) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :hypoexponential-equal {:n 8 :h 0.5 :k 6}) {:pdf [0 10]}))]])
 
 ;; #### Inverse Gamma
 
@@ -805,10 +813,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; *[wiki](https://en.wikipedia.org/wiki/Inverse-gamma_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1InverseGammaDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:alpha 2 :beta 1} {:alpha 1.5 :beta 2}]
-  [(gg/dgraph (r/distribution :inverse-gamma) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :inverse-gamma {:alpha 1.5 :beta 2}) {:pdf [0 7] :icdf [0.01 0.95]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :inverse-gamma) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :inverse-gamma {:alpha 1.5 :beta 2}) {:pdf [0 7] :icdf [0.01 0.95]}))]])
 
 ;; #### Inverse Gaussian
 
@@ -818,10 +826,10 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; *[wiki](https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1InverseGaussianDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 1 :lambda 1} {:mu 2 :lambda 0.5}]
-  [(gg/dgraph (r/distribution :inverse-gaussian) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :inverse-gaussian {:mu 2 :lambda 0.5}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :inverse-gaussian) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :inverse-gaussian {:mu 2 :lambda 0.5}) {:pdf [0 3]}))]])
 
 ;; #### Johnson Sb
 
@@ -833,10 +841,10 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Johnson%27s_SU-distribution#Johnson's_SB-distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSBDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
-  [(gg/dgraph (r/distribution :johnson-sb) {:pdf [0 1]})
-   (gg/dgraph (r/distribution :johnson-sb {:gamma 0.5 :delta 2 :xi 0 :lambda 2}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :johnson-sb) {:pdf [0 1]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :johnson-sb {:gamma 0.5 :delta 2 :xi 0 :lambda 2}) {:pdf [0 3]}))]])
 
 ;; #### Johnson Sl
 
@@ -848,10 +856,10 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSLDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
-  [(gg/dgraph (r/distribution :johnson-sl) {:pdf [0 4]})
-   (gg/dgraph (r/distribution :johnson-sl {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [0 6]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :johnson-sl) {:pdf [0 4]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :johnson-sl {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [0 6]}))]])
 
 ;; #### Johnson Su
 
@@ -863,17 +871,19 @@
 ;;    * `:lambda`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Johnson%27s_SU-distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1JohnsonSUDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:gamma 0 :delta 1 :xi 0 :lambda 1} {:gamma 0.5 :delta 2 :xi 0 :lambda 2}]
-  [(gg/dgraph (r/distribution :johnson-su) {:pdf [-3 3]})
-   (gg/dgraph (r/distribution :johnson-su {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [-3 4]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :johnson-su) {:pdf [-3 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :johnson-su {:gamma 0.5 :delta 2 :xi 1 :lambda 2}) {:pdf [-3 4]}))]])
 
 ;; #### Kolmogorov
 
 ;; * Name: `:kolmogorov`
 ;; * [wiki](https://en.wikipedia.org/wiki/Kolmogorov%E2%80%93Smirnov_test#Kolmogorov_distribution), [info](https://www.math.ucla.edu/~tom/distributions/Kolmogorov.html)
 
-(gg/dgraph (r/distribution :kolmogorov) {:pdf [0 2]})
+(kind/table
+ [(mapv gg/->image (gg/dgraph (r/distribution :kolmogorov) {:pdf [0 2]}))])
+
 
 ;; #### Kolmogorov-Smirnov
 
@@ -882,10 +892,10 @@
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 1} {:n 10}]
-  [(gg/dgraph (r/distribution :kolmogorov-smirnov) {:pdf [0 1]})
-   (gg/dgraph (r/distribution :kolmogorov-smirnov {:n 10}) {:pdf [0 1]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :kolmogorov-smirnov) {:pdf [0 1]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :kolmogorov-smirnov {:n 10}) {:pdf [0 1]}))]])
 
 ;; #### Kolmogorov-Smirnov+
 
@@ -894,10 +904,10 @@
 ;;    * `:n`, sample size: 1
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1KolmogorovSmirnovPlusDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 1} {:n 10}]
-  [(gg/dgraph (r/distribution :kolmogorov-smirnov+) {:pdf [0 1]})
-   (gg/dgraph (r/distribution :kolmogorov-smirnov+ {:n 10}) {:pdf [0 1]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :kolmogorov-smirnov+) {:pdf [0 1]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :kolmogorov-smirnov+ {:n 10}) {:pdf [0 1]}))]])
 
 ;; #### Laplace
 
@@ -907,10 +917,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Laplace_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LaplaceDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :beta 1} {:mu 1 :beta 2}]
-  [(gg/dgraph (r/distribution :laplace) {:pdf [-4 4]})
-   (gg/dgraph (r/distribution :laplace {:mu 1 :beta 2}) {:pdf [-5 7]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :laplace) {:pdf [-4 4]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :laplace {:mu 1 :beta 2}) {:pdf [-5 7]}))]])
 
 ;; #### Levy
 
@@ -920,10 +930,10 @@
 ;;    * `:c`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/L%C3%A9vy_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LevyDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :c 1} {:mu 1 :c 2}]
-  [(gg/dgraph (r/distribution :levy) {:pdf [0 7] :icdf [0.0 0.85]})
-   (gg/dgraph (r/distribution :levy {:mu 1 :c 2}) {:pdf [0 10] :icdf [0.0 0.85]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :levy) {:pdf [0 7] :icdf [0.0 0.85]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :levy {:mu 1 :c 2}) {:pdf [0 10] :icdf [0.0 0.85]}))]])
 
 ;; #### Log Logistic
 
@@ -933,10 +943,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Log-logistic_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1LoglogisticDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:alpha 3 :beta 1} {:alpha 5 :beta 2}]
-  [(gg/dgraph (r/distribution :log-logistic) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :log-logistic {:alpha 5 :beta 2}) {:pdf [0 5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :log-logistic) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :log-logistic {:alpha 5 :beta 2}) {:pdf [0 5]}))]])
 
 ;; #### Log Normal
 
@@ -946,10 +956,10 @@
 ;;    * `:shape`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Log-normal_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LogNormalDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:scale 1 :shape 1} {:scale 2 :shape 2}]
-  [(gg/dgraph (r/distribution :log-normal) {:pdf [0 8]})
-   (gg/dgraph (r/distribution :log-normal {:scale 0.5 :shape 2}) {:pdf [0 8] :icdf [0.0 0.9]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :log-normal) {:pdf [0 8]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :log-normal {:scale 0.5 :shape 2}) {:pdf [0 8] :icdf [0.0 0.9]}))]])
 
 ;; #### Logistic
 
@@ -959,10 +969,10 @@
 ;;    * `:s`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Logistic_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/LogisticDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :scale 1} {:mu 1 :scale 0.5}]
-  [(gg/dgraph (r/distribution :logistic) {:pdf [-6 6]})
-   (gg/dgraph (r/distribution :logistic {:mu 1 :scale 0.5}) {:pdf [-6 8]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :logistic) {:pdf [-6 6]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :logistic {:mu 1 :scale 0.5}) {:pdf [-6 8]}))]])
 
 ;; #### Nakagami
 
@@ -972,10 +982,10 @@
 ;;    * `:omega`, spread: $1.0$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Nakagami_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/NakagamiDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 1 :omega 1} {:mu 0.5 :omega 0.5}]
-  [(gg/dgraph (r/distribution :nakagami) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :nakagami {:mu 0.5 :omega 0.5}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :nakagami) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :nakagami {:mu 0.5 :omega 0.5}) {:pdf [0 3]}))]])
 
 ;; #### Normal
 
@@ -985,17 +995,17 @@
 ;;    * `:sd`, standard deviation: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Normal_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/NormalDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :sd 1} {:mu 0.5 :sd 0.5}]
-  [(gg/dgraph (r/distribution :normal) {:pdf [-3 3]})
-   (gg/dgraph (r/distribution :normal {:mu 0.5 :sd 0.5}) {:pdf [-3 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :normal) {:pdf [-3 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :normal {:mu 0.5 :sd 0.5}) {:pdf [-3 3]}))]])
 
 ;; #### Normal-Inverse Gaussian
 
 ;; * Name: `:normal-inverse-gaussian`
 ;; * Default parameters
 ;;    * `:alpha`, tail heavyness: $1.0$
-;;    * `:beta`, assymetry: $0.0$
+;;    * `:beta`, asymmetry: $0.0$
 ;;    * `:mu`, location: $0.0$
 ;;    * `:delta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Normal-inverse_Gaussian_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1NormalInverseGaussianDist.html)
@@ -1004,8 +1014,8 @@
 
 (kind/table
  [[{:alpha 1 :beta 0 :mu 0 :delta 1} {:alpha 2 :beta 1 :mu 0 :delta 0.5}]
-  [(gg/fgraph (partial r/pdf (r/distribution :normal-inverse-gaussian)) [-3 3])
-   (gg/fgraph (partial r/pdf (r/distribution :normal-inverse-gaussian {:alpha 5 :beta 4 :mu 0 :delta 0.5})) [-2 3])]])
+  [(gg/->image (gg/fgraph-int (partial r/pdf (r/distribution :normal-inverse-gaussian)) [-3 3]))
+   (gg/->image (gg/fgraph-int (partial r/pdf (r/distribution :normal-inverse-gaussian {:alpha 5 :beta 4 :mu 0 :delta 0.5})) [-2 3]))]])
 
 (let [[cdf icdf] (r/integrate-pdf
                   (partial r/pdf (r/distribution :normal-inverse-gaussian))
@@ -1013,14 +1023,16 @@
                    :interpolator :monotone})]
   [(cdf 0.0) (icdf 0.5)])
 
+
 (let [[cdf icdf] (r/integrate-pdf
                   (partial r/pdf (r/distribution :normal-inverse-gaussian))
                   {:mn -800.0 :mx 800.0 :steps 5000
                    :interpolator :monotone})]
   (kind/table
    [["CDF" "iCDF"]
-    [(gg/fgraph cdf [-3 3])
-     (gg/fgraph icdf [0.01 0.99])]]))
+    [(gg/->image (gg/fgraph-int cdf [-3 3]))
+     (gg/->image (gg/fgraph-int icdf [0.01 0.99]))]]))
+
 
 ;; #### Pareto
 
@@ -1030,10 +1042,10 @@
 ;;    * `:scale`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Pareto_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ParetoDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:scale 1 :shape 1} {:scale 2 :shape 2}]
-  [(gg/dgraph (r/distribution :pareto) {:pdf [0 8] :icdf [0.01 0.95]})
-   (gg/dgraph (r/distribution :pareto {:scale 2 :shape 2}) {:pdf [0 8]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :pareto) {:pdf [0 8] :icdf [0.01 0.95]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :pareto {:scale 2 :shape 2}) {:pdf [0 8]}))]])
 
 ;; #### Pearson VI
 
@@ -1044,10 +1056,10 @@
 ;;    * `:beta`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Pearson_distribution#The_Pearson_type_VI_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1Pearson6Dist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:alpha1 1 :alpha2 1 :beta 1} {:scale 2 :shape 2}]
-  [(gg/dgraph (r/distribution :pearson-6) {:pdf [0 8] :icdf [0.01 0.95]})
-   (gg/dgraph (r/distribution :pearson-6 {:alpha1 2 :alpha2 2 :beta 2}) {:pdf [0 8] :icdf [0.0 0.98]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :pearson-6) {:pdf [0 8] :icdf [0.01 0.95]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :pearson-6 {:alpha1 2 :alpha2 2 :beta 2}) {:pdf [0 8] :icdf [0.0 0.98]}))]])
 
 ;; #### Power
 
@@ -1058,10 +1070,10 @@
 ;;    * `:c`: $2.0$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1PowerDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:a 0 :b 1 :c 2} {:a 1 :b 2 :c 1.25}]
-  [(gg/dgraph (r/distribution :power) {:pdf [0 2]})
-   (gg/dgraph (r/distribution :power {:a 1 :b 2 :c 1.25}) {:pdf [0 2]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :power) {:pdf [0 2]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :power {:a 1 :b 2 :c 1.25}) {:pdf [0 2]}))]])
 
 ;; #### Rayleigh
 
@@ -1071,10 +1083,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Rayleigh_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1RayleighDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:a 0 :b 1 :c 2} {:a 1 :b 2 :c 1.25}]
-  [(gg/dgraph (r/distribution :rayleigh) {:pdf [0 4]})
-   (gg/dgraph (r/distribution :rayleigh {:a 1 :beta 0.5}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :rayleigh) {:pdf [0 4]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :rayleigh {:a 1 :beta 0.5}) {:pdf [0 3]}))]])
 
 ;; #### Reciprocal Sqrt
 
@@ -1084,10 +1096,10 @@
 ;; * Default parameters
 ;;    * `:a`, location, lower limit: $0.5$
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:a 0.5} {:a 2}]
-  [(gg/dgraph (r/distribution :reciprocal-sqrt) {:pdf [0 2]})
-   (gg/dgraph (r/distribution :reciprocal-sqrt {:a 2}) {:pdf [0 4]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :reciprocal-sqrt) {:pdf [0 2]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :reciprocal-sqrt {:a 2}) {:pdf [0 4]}))]])
 
 ;; #### Student's t
 
@@ -1096,10 +1108,10 @@
 ;;    * `:degrees-of-freedom`: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Student%27s_t-distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/TDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:degrees-of-freedom 1} {:degrees-of-freedom 50}]
-  [(gg/dgraph (r/distribution :t) {:pdf [-5 5] :icdf [0.04 0.96]})
-   (gg/dgraph (r/distribution :t {:degrees-of-freedom 50}) {:pdf [-5 5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :t) {:pdf [-5 5] :icdf [0.04 0.96]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :t {:degrees-of-freedom 50}) {:pdf [-5 5]}))]])
 
 ;; #### Triangular
 
@@ -1110,10 +1122,10 @@
 ;;    * `:c`, upper limit: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Triangular_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/TriangularDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:a -1 :b 1 :c 0} {:a -0.5 :b 1 :c 0.5}]
-  [(gg/dgraph (r/distribution :triangular) {:pdf [-1.5 1.5]})
-   (gg/dgraph (r/distribution :triangular {:a -0.5 :c 0.5}) {:pdf [-1.5 1.5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :triangular) {:pdf [-1.5 1.5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :triangular {:a -0.5 :c 0.5}) {:pdf [-1.5 1.5]}))]])
 
 ;; #### Uniform
 
@@ -1123,10 +1135,10 @@
 ;;    * `:upper`, upper limit: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Continuous_uniform_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/UniformRealDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:lower 0 :upper 1} {:lower -1 :upper 0.5}]
-  [(gg/dgraph (r/distribution :uniform-real) {:pdf [-1.1 1.1]})
-   (gg/dgraph (r/distribution :uniform-real {:lower -1 :upper 0.5}) {:pdf [-1.1 1.1]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :uniform-real) {:pdf [-1.1 1.1]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :uniform-real {:lower -1 :upper 0.5}) {:pdf [-1.1 1.1]}))]])
 
 ;; #### Watson G
 
@@ -1135,10 +1147,10 @@
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonGDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 2} {:n 10}]
-  [(gg/dgraph (r/distribution :watson-g) {:pdf [0 1.5]})
-   (gg/dgraph (r/distribution :watson-g {:n 10}) {:pdf [0 1.5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :watson-g) {:pdf [0 1.5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :watson-g {:n 10}) {:pdf [0 1.5]}))]])
 
 ;; #### Watson U
 
@@ -1147,10 +1159,10 @@
 ;;    * `:n`: $2$
 ;; * [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1WatsonUDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:n 2} {:n 10}]
-  [(gg/dgraph (r/distribution :watson-u) {:pdf [0 0.5]})
-   (gg/dgraph (r/distribution :watson-u {:n 10}) {:pdf [0 0.5]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :watson-u) {:pdf [0 0.5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :watson-u {:n 10}) {:pdf [0 0.5]}))]])
 
 ;; #### Weibull
 
@@ -1160,10 +1172,10 @@
 ;;    * `:beta`, scale: $1.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Weibull_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/WeibullDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:alpha 2 :beta 1} {:alpha 1.2 :beta 0.8}]
-  [(gg/dgraph (r/distribution :weibull) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :weibull {:alpha 1.2 :beta 0.8}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :weibull) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :weibull {:alpha 1.2 :beta 0.8}) {:pdf [0 3]}))]])
 
 ;; #### Zero adjusted Gamma (zaga)
 
@@ -1175,10 +1187,10 @@
 ;;    * `:lower-tail?` - true
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZAGA.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0 :sigma 1 :nu 0.1} {:mu 1 :sigma 1 :nu 0.5}]
-  [(gg/dgraph (r/distribution :zaga) {:pdf [0 3]})
-   (gg/dgraph (r/distribution :zaga {:mu 1 :sigma 0.5 :nu 0.7}) {:pdf [0 3]})]])
+  [(mapv gg/->image (gg/dgraph (r/distribution :zaga) {:pdf [0 3]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :zaga {:mu 1 :sigma 0.5 :nu 0.7}) {:pdf [0 3]}))]])
 
 ;; ### Univariate, discr.
 
@@ -1202,10 +1214,10 @@
 ;; * probability: $\mu=\frac{\alpha}{\alpha+\beta}$
 ;; * dispersion: $\sigma=\frac{1}{\alpha+\beta}$
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0.5 :sigma 1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
-  [(gg/dgraphi (r/distribution :bb) {:pdf [0 11]})
-   (gg/dgraphi (r/distribution :bb {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :bb) {:pdf [0 11]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :bb {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]}))]])
 
 ;; #### Bernoulli
 
@@ -1216,10 +1228,10 @@
 ;;    * `:p`, probability, $0.5$ 
 ;; * [wiki](https://en.wikipedia.org/wiki/Bernoulli_distribution)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:p 0.5} {:p 0.25}]
-  [(gg/dgraphi (r/distribution :bernoulli) {:pdf [0 2]})
-   (gg/dgraphi (r/distribution :bernoulli {:p 0.25}) {:pdf [0 2]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :bernoulli) {:pdf [0 2]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :bernoulli {:p 0.25}) {:pdf [0 2]}))]])
 
 ;; #### Binomial
 
@@ -1229,10 +1241,10 @@
 ;;    * `:trials`: $20$
 ;; * [wiki](https://en.wikipedia.org/wiki/Binomial_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/BinomialDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:trials 20 :p 0.5} {:trials 50 :p 0.25}]
-  [(gg/dgraphi (r/distribution :binomial) {:pdf [0 20]})
-   (gg/dgraphi (r/distribution :binomial {:trials 50 :p 0.25}) {:pdf [0 30]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :binomial) {:pdf [0 20]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :binomial {:trials 50 :p 0.25}) {:pdf [0 30]}))]])
 
 ;; #### Fisher's noncentral hypergeometric
 
@@ -1244,11 +1256,11 @@
 ;;    * `:omega`, odds ratio: $1$
 ;; * [wiki](https://en.wikipedia.org/wiki/Fisher%27s_noncentral_hypergeometric_distribution), [source](https://github.com/JuliaStats/Distributions.jl/blob/master/src/univariate/discrete/noncentralhypergeometric.jl)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:ns 10 :nf 10 :n 5 :omega 1} {:ns 30 :nf 60 :n 20 :omega 0.75}]
-  [(gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric) {:pdf [0 6]})
-   (gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric
-                               {:ns 30 :nf 60 :n 20 :omega 0.75}) {:pdf [0 20]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric) {:pdf [0 6]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :fishers-noncentral-hypergeometric
+                               {:ns 30 :nf 60 :n 20 :omega 0.75}) {:pdf [0 20]}))]])
 
 ;; #### Geometric
 
@@ -1257,10 +1269,10 @@
 ;;    * `:p`, probability: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Geometric_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/GeometricDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:p 0.5} {:p 0.15}]
-  [(gg/dgraphi (r/distribution :geometric) {:pdf [0 10]})
-   (gg/dgraphi (r/distribution :geometric {:p 0.15}) {:pdf [0 20]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :geometric) {:pdf [0 10]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :geometric {:p 0.15}) {:pdf [0 20]}))]])
 
 ;; #### Hypergeometric
 
@@ -1271,17 +1283,17 @@
 ;;    * `:sample-size`: $25%
 ;; * [wiki](https://en.wikipedia.org/wiki/Hypergeometric_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/HypergeometricDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:population-size 100
     :number-of-successes 50
     :sample-size 25}]
-  [(gg/dgraphi (r/distribution :hypergeometric) {:pdf [0 26]})]
+  [(mapv gg/->image (gg/dgraphi (r/distribution :hypergeometric) {:pdf [0 26]}))]
   [{:population-size 2000
     :number-of-successes 20
     :sample-size 200}]
-  [(gg/dgraphi (r/distribution :hypergeometric {:population-size 2000
+  [(mapv gg/->image (gg/dgraphi (r/distribution :hypergeometric {:population-size 2000
                                                 :number-of-successes 20
-                                                :sample-size 200}) {:pdf [0 20]})]])
+                                                :sample-size 200}) {:pdf [0 20]}))]])
 
 ;; #### Logarithmic
 
@@ -1290,10 +1302,10 @@
 ;;    * `:theta`, shape: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Logarithmic_distribution), [source](http://umontreal-simul.github.io/ssj/docs/master/classumontreal_1_1ssj_1_1probdist_1_1LogarithmicDist.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:theta 0.5} {:theta 0.99}]
-  [(gg/dgraphi (r/distribution :logarithmic) {:pdf [0 10]})
-   (gg/dgraphi (r/distribution :logarithmic {:theta 0.9}) {:pdf [0 20]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :logarithmic) {:pdf [0 10]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :logarithmic {:theta 0.9}) {:pdf [0 20]}))]])
 
 ;; #### Negative binomial
 
@@ -1303,11 +1315,11 @@
 ;;    * `:p`, probability of success: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:r 20 :p 0.5} {:r 100 :p 0.95} {:r 21.2345 :p 0.7}]
-  [(gg/dgraphi (r/distribution :negative-binomial) {:pdf [0 40]})
-   (gg/dgraphi (r/distribution :negative-binomial {:r 100 :p 0.95}) {:pdf [0 20]})
-   (gg/dgraphi (r/distribution :negative-binomial {:r 21.2345 :p 0.7}) {:pdf [0 30]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :negative-binomial) {:pdf [0 40]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :negative-binomial {:r 100 :p 0.95}) {:pdf [0 20]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :negative-binomial {:r 21.2345 :p 0.7}) {:pdf [0 30]}))]])
 
 ;; #### Pascal
 
@@ -1319,10 +1331,10 @@
 ;;    * `:p`, probability of success: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Negative_binomial_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/PascalDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:r 20 :p 0.5} {:r 100 :p 0.95}]
-  [(gg/dgraphi (r/distribution :pascal {:r 20 :p 0.5}) {:pdf [0 40]})
-   (gg/dgraphi (r/distribution :pascal {:r 100 :p 0.95}) {:pdf [0 20]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :pascal {:r 20 :p 0.5}) {:pdf [0 40]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :pascal {:r 100 :p 0.95}) {:pdf [0 20]}))]])
 
 ;; #### Poisson
 
@@ -1331,10 +1343,10 @@
 ;;    * `:p`, lambda, mean: $0.5$
 ;; * [wiki](https://en.wikipedia.org/wiki/Poisson_distribution), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/PoissonDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:p 0.5} {:p 4}]
-  [(gg/dgraphi (r/distribution :poisson) {:pdf [0 5]})
-   (gg/dgraphi (r/distribution :poisson {:p 4}) {:pdf [0 11]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :poisson) {:pdf [0 5]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :poisson {:p 4}) {:pdf [0 11]}))]])
 
 ;; #### Uniform
 
@@ -1344,10 +1356,10 @@
 ;;    * `:upper`, upper bound: $2147483647$
 ;; * [wiki](https://en.wikipedia.org/wiki/Discrete_uniform_distribution),[source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/UniformIntegerDistribution.html) 
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:lower 0 :upper 20} {:lower -5 :upper 5}]
-  [(gg/dgraphi (r/distribution :uniform-int {:upper 20}) {:pdf [-1 22]})
-   (gg/dgraphi (r/distribution :uniform-int {:lower -5 :upper 5}) {:pdf [-6 7]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :uniform-int {:upper 20}) {:pdf [-1 22]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :uniform-int {:lower -5 :upper 5}) {:pdf [-6 7]}))]])
 
 ;; #### Zero Adjusted Beta Binomial (zabb)
 
@@ -1359,10 +1371,10 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABB.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0.5 :sigma 0.1 :bd 10 :nu 0.1} {:nu 0.1 :mu 0.65 :sigma 0.3 :bd 20}]
-  [(gg/dgraphi (r/distribution :zabb {:bd 10}) {:pdf [0 12]})
-   (gg/dgraphi (r/distribution :zabb {:nu 0.1 :mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zabb {:bd 10}) {:pdf [0 12]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zabb {:nu 0.1 :mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 22]}))]])
 
 ;; #### Zero Adjusted Binomial (zabi)
 
@@ -1373,10 +1385,10 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0.5 :sigma 0.1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
-  [(gg/dgraphi (r/distribution :zabi {:bd 10}) {:pdf [0 11]})
-   (gg/dgraphi (r/distribution :zabi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zabi {:bd 10}) {:pdf [0 11]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zabi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]}))]])
 
 ;; #### Zero Adjusted Negative Binomial (zanbi)
 
@@ -1387,10 +1399,10 @@
 ;;    * `:nu`, probability at 0.0: $0.3$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZANBI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 1 :sigma 1 :nu 0.3} {:nu 0.1 :mu 2 :sigma 0.5}]
-  [(gg/dgraphi (r/distribution :zanbi) {:pdf [0 9]})
-   (gg/dgraphi (r/distribution :zanbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zanbi) {:pdf [0 9]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zanbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]}))]])
 
 ;; #### Zero Inflated Beta Binomial (zibb)
 
@@ -1402,10 +1414,10 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABB.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0.5 :sigma 0.5 :bd 10 :nu 0.1} {:nu 0.1 :mu 0.65 :sigma 1 :bd 20}]
-  [(gg/dgraphi (r/distribution :zibb {:bd 10}) {:pdf [0 15]})
-   (gg/dgraphi (r/distribution :zibb {:nu 0.1 :mu 0.65 :sigma 1 :bd 20}) {:pdf [0 21]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zibb {:bd 10}) {:pdf [0 15]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zibb {:nu 0.1 :mu 0.65 :sigma 1 :bd 20}) {:pdf [0 21]}))]])
 
 ;; #### Zero Inflated Binomial (zibi)
 
@@ -1416,10 +1428,10 @@
 ;;    * `:bd`, binomial denominator: $1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZABI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 0.5 :sigma 0.1 :bd 10} {:mu 0.65 :sigma 0.3 :bd 20}]
-  [(gg/dgraphi (r/distribution :zibi {:bd 10}) {:pdf [0 11]})
-   (gg/dgraphi (r/distribution :zibi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zibi {:bd 10}) {:pdf [0 11]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zibi {:mu 0.65 :sigma 0.3 :bd 20}) {:pdf [0 21]}))]])
 
 ;; #### Zero Inflated Negative Binomial (zinbi)
 
@@ -1430,10 +1442,10 @@
 ;;    * `:nu`, probability factor at 0.0: $0.3$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZANBI.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 1 :sigma 1 :nu 0.3} {:nu 0.1 :mu 2 :sigma 0.5}]
-  [(gg/dgraphi (r/distribution :zinbi) {:pdf [0 9]})
-   (gg/dgraphi (r/distribution :zinbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zinbi) {:pdf [0 9]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zinbi {:nu 0.1 :mu 2 :sigma 0.5}) {:pdf [0 13]}))]])
 
 ;; #### Zero Inflated Poisson (zip)
 
@@ -1443,10 +1455,10 @@
 ;;    * `:sigma`, probability at 0.0: $0.1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZIP.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 5 :sigma 0.1} {:mu 2 :sigma 0.5}]
-  [(gg/dgraphi (r/distribution :zip) {:pdf [0 14]})
-   (gg/dgraphi (r/distribution :zip {:mu 2 :sigma 0.5}) {:pdf [0 7]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zip) {:pdf [0 14]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zip {:mu 2 :sigma 0.5}) {:pdf [0 7]}))]])
 
 ;; #### Zero Inflated Poisson, type 2 (zip2)
 
@@ -1456,10 +1468,10 @@
 ;;    * `:sigma`, probability at 0.0: $0.1$
 ;; * [source](https://search.r-project.org/CRAN/refmans/gamlss.dist/html/ZIP2.html), [book](https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:mu 5 :sigma 0.1} {:mu 2 :sigma 0.5}]
-  [(gg/dgraphi (r/distribution :zip2) {:pdf [0 14]})
-   (gg/dgraphi (r/distribution :zip2 {:mu 2 :sigma 0.5}) {:pdf [0 9]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zip2) {:pdf [0 14]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zip2 {:mu 2 :sigma 0.5}) {:pdf [0 9]}))]])
 
 ;; #### Zipf
 
@@ -1469,10 +1481,10 @@
 ;;    * `:exponent`: $3.0$
 ;; * [wiki](https://en.wikipedia.org/wiki/Zipf%27s_law), [source](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/distribution/ZipfDistribution.html)
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [[{:number-of-elements 100 :exponent 3} {:number-of-elements 20 :exponent 0.5}]
-  [(gg/dgraphi (r/distribution :zipf) {:pdf [0 8]})
-   (gg/dgraphi (r/distribution :zipf {:number-of-elements 20 :exponent 0.5}) {:pdf [0 21]})]])
+  [(mapv gg/->image (gg/dgraphi (r/distribution :zipf) {:pdf [0 8]}))
+   (mapv gg/->image (gg/dgraphi (r/distribution :zipf {:number-of-elements 20 :exponent 0.5}) {:pdf [0 21]}))]])
 
 ;; ### Multivariate
 
@@ -1495,20 +1507,20 @@
 ^:kindly/hide-code
 (defn dirichlet-1d [alpha]
   (let [d (r/distribution :dirichlet {:alpha alpha})]
-    (gg/fgraph (fn [^double x]
-                 (let [v [x (- 1.0 x)]]
-                   (r/pdf d v))) [0.0 1.0])))
+    (gg/fgraph-int (fn [^double x]
+                     (let [v [x (- 1.0 x)]]
+                       (r/pdf d v))) [0.0 1.0])))
 
 ^:kindly/hide-code
 (defn dirichlet-2d [alpha]
   (let [d (r/distribution :dirichlet {:alpha alpha})]
-    (gg/graph2d (fn [^double x ^double y]
-                  (let [lv (- 1.0 x y)
-                        v [x y lv]]
-                    (if (neg? lv)
-                      ##NaN
-                      (r/pdf d v))))
-                nil nil {:varg? false})))
+    (gg/function2d (fn [^double x ^double y]
+                     (let [lv (- 1.0 x y)
+                           v [x y lv]]
+                       (if (neg? lv)
+                         ##NaN
+                         (r/pdf d v))))
+                   {:varg? false})))
 
 ;; Projections of the 2d and 3d Dirichlet distributions.
 
@@ -1517,9 +1529,9 @@
 
 (kind/table
  [[{:alpha [0.6 0.6]} {:alpha [3 3]} {:alpha [0.5 2]}]
-  [(dirichlet-1d [0.6 0.6]) (dirichlet-1d [3 3]) (dirichlet-1d [0.5 2])]
+  [(gg/->image (dirichlet-1d [0.6 0.6])) (gg/->image (dirichlet-1d [3 3])) (gg/->image (dirichlet-1d [0.5 2]))]
   [{:alpha [3 1 3]} {:alpha [3 3 3]} {:alpha [1 3 1]}]
-  [(dirichlet-2d [3 1 3]) (dirichlet-2d [3 3 3]) (dirichlet-2d [1 3 1])]])
+  [(gg/->image (dirichlet-2d [3 1 3])) (gg/->image (dirichlet-2d [3 3 3])) (gg/->image (dirichlet-2d [1 3 1]))]])
 
 (def dirichlet3 (r/distribution :dirichlet {:alpha [3 1 3]}))
 
@@ -1543,16 +1555,16 @@
 ^:kindly/hide-code
 (defn multi-normal-2d [means covariances]
   (let [d (r/distribution :multi-normal {:means means :covariances covariances})]
-    (gg/graph2d (fn [^double x ^double y]
-                  (r/pdf d [x y])) [-3 3] [-3 3] {:varg? false})))
+    (gg/function2d (fn [^double x ^double y]
+                     (r/pdf d [x y])) {:x [-3 3] :y [-3 3] :varg? false})))
 
 (kind/table
  [[{:means [0 0] :convariances [[1 0] [0 1]]}]
-  [(multi-normal-2d nil nil)]
+  [(gg/->image (multi-normal-2d nil nil))]
   [{:means [0.5 0] :convariances [[0.5 -0.1] [0.1 0.1]]}]
-  [(multi-normal-2d [0.5 0] [[0.5 -0.1] [0.1 0.1]])]
+  [(gg/->image (multi-normal-2d [0.5 0] [[0.5 -0.1] [0.1 0.1]]))]
   [{:means [0 -0.5] :convariances [[1 0.2] [0.3 1]]}]
-  [(multi-normal-2d [0 -0.5] [[1 0.2] [0.3 1]])]])
+  [(gg/->image (multi-normal-2d [0 -0.5] [[1 0.2] [0.3 1]]))]])
 
 ;; #### Multinomial
 
@@ -1603,10 +1615,10 @@
                                      (r/distribution :log-logistic)]
                             :weights [2 1 3]}))
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [["three normals" "gamma, laplace and log-logistic"]
-  [(gg/dgraph three-normals {:pdf [-5 5]})
-   (gg/dgraph mixture-of-three {:pdf [-5 5]})]])
+  [(mapv gg/->image (gg/dgraph three-normals {:pdf [-5 5]}))
+   (mapv gg/->image (gg/dgraph mixture-of-three {:pdf [-5 5]}))]])
 
 (utls/examples-note
  (r/sample mixture-of-three)
@@ -1648,10 +1660,10 @@
 (def left-truncated-laplace (r/distribution :truncated {:distr (r/distribution :laplace)
                                                         :left -0.5}))
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [["truncated normal" "trucated levy (left side)"]
-  [(gg/dgraph truncated-normal {:pdf [-2.5 2.5]})
-   (gg/dgraph left-truncated-laplace {:pdf [-1 6]})]])
+  [(mapv gg/->image (gg/dgraph truncated-normal {:pdf [-2.5 2.5]}))
+   (mapv gg/->image (gg/dgraph left-truncated-laplace {:pdf [-1 6]}))]])
 
 (utls/examples-note
  (r/sample truncated-normal)
@@ -1671,8 +1683,8 @@
 
 (kind/table
  {:column-names ["name" "parameters" "continuous?"]
-  :row-vectors (mapv (fn [[k v]]
-                       [(kind/code (str k)) v])
+  :row-vectors (mapv (fn [[k v b]]
+                       [(kind/code (str k)) v (kind/code (str b))])
                      [[:continuous-distribution (r/distribution-parameters (r/distribution :continuous-distribution) true) true]
                       [:kde (r/distribution-parameters (r/distribution :kde) true) true]
                       [:empirical (r/distribution-parameters (r/distribution :empirical) true) true]
@@ -1706,13 +1718,13 @@
 
 (let [build-distr (fn [pars]
                     (r/distribution :continuous-distribution (assoc pars :data random-data)))]
-  (utls/dgraph-table-v2
+  (utls/dgraph-table
    [["default", "bandwidth=1.0"]
-    [(gg/dgraph kde-distr {:pdf [-5 5]})
-     (gg/dgraph (build-distr {:bandwidth 1.0}) {:pdf [-5 5]})]
+    [(mapv gg/->image (gg/dgraph kde-distr {:pdf [-5 5]}))
+     (mapv gg/->image (gg/dgraph (build-distr {:bandwidth 1.0}) {:pdf [-5 5]}))]
     ["gaussian kernel" "triangular kernel, bandwidth=0.1"]
-    [(gg/dgraph (build-distr {:kde :gaussian}) {:pdf [-5 5]})
-     (gg/dgraph (build-distr {:kde :triangular :bandwidth 0.1}) {:pdf [-5 5]})]]))
+    [(mapv gg/->image (gg/dgraph (build-distr {:kde :gaussian}) {:pdf [-5 5]}))
+     (mapv gg/->image (gg/dgraph (build-distr {:kde :triangular :bandwidth 0.1}) {:pdf [-5 5]}))]]))
 
 (utls/examples-note
  (r/sample kde-distr)
@@ -1748,12 +1760,12 @@
 
 (kind/table
  (->> kde-kernels
-      (map (fn [k]
-             [(kind/hiccup [:dl
-                             [:dt (kind/code (str k))]
-                             [:dd (kind/table [(gg/dgraph (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
-                                                                                                    :kde k :steps 100}) {:pdf [-3 3]})])]])]))
-      (into [])))
+      (mapv (fn [k]
+              [(kind/hiccup
+                [:dl
+                 [:dt (kind/code (str k))]
+                 [:dd (kind/table [(mapv gg/->image (gg/dgraph (r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
+                                                                                                         :kde k :steps 100}) {:pdf [-3 3]}))])]])]))))
 
 
 ;; #### Empirical
@@ -1768,10 +1780,10 @@
 
 (def empirical-distr (r/distribution :empirical {:data random-data}))
 
-(utls/dgraph-table-v2
+(utls/dgraph-table
  [["default", "bin-count=10"]
-  [(gg/dgraph empirical-distr {:pdf [-5 5]})
-   (gg/dgraph (r/distribution :empirical {:data random-data :bin-count 10}) {:pdf [-5 5]})]])
+  [(mapv gg/->image (gg/dgraph empirical-distr {:pdf [-5 5]}))
+   (mapv gg/->image (gg/dgraph (r/distribution :empirical {:data random-data :bin-count 10}) {:pdf [-5 5]}))]])
 
 (utls/examples-note
  (r/sample empirical-distr)
@@ -1813,10 +1825,10 @@
   (let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
         real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
         dist (distinct data-doubles)]
-    [(kind/table [(gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
-                                                                            dist))})])
-     (kind/table [(gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
-                                                                 dist))})])])])
+    [(kind/table [(mapv gg/->image (gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
+                                                                                             dist))}))])
+     (kind/table [(mapv gg/->image (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
+                                                                                               dist))}))])])])
 
 (def real-distr (r/distribution :real-discrete-distribution {:data [0.1 0.2 0.3 0.4 0.3 0.2 0.1]
                                                              :probabilities [5 4 3 2 1 5 4]}))
@@ -1837,15 +1849,20 @@
 
 (def data-ints (repeatedly 500 #(int (m/sqrt (r/drand 100.0)))))
 
-(kind/table
- [[(kind/code ":integer-discrete-distribution") (kind/code ":enumerated-int")]
-  (let [enumerated-int (r/distribution :enumerated-int {:data data-ints})
-        int-discrete (r/distribution :integer-discrete-distribution {:data data-ints})
-        dist (distinct data-ints)]
-    [(kind/table [(gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
-                                                                            dist))})])
-     (kind/table [(gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %))
-                                                                              dist))})])])])
+(let [enumerated-int (r/distribution :enumerated-int {:data data-ints})
+      int-discrete (r/distribution :integer-discrete-distribution {:data data-ints})
+      dist (distinct data-ints)]
+  (kind/table
+   [[(kind/hiccup
+      [:dl
+       [:dt nil (kind/code ":integer-discrete-distribution")]
+       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
+                                                                                                        dist))}))])]])]
+    [(kind/hiccup
+      [:dl
+       [:dt nil (kind/code ":enumerated-int")]
+       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %)) dist))}))])]])]]))
+
 
 (def int-distr (r/distribution :integer-discrete-distribution {:data [10 20 30 40 30 20 10]
                                                                :probabilities [5 4 3 2 1 5 4]}))
@@ -1896,29 +1913,24 @@
 
 ;; There are two multimethods:
 
-(utls/symbol-info-table
- [[sequence-generator "Lazy sequence of generated vectors (for dim>1) or primitives (for dim=1)"]
-  [jittered-sequence-generator "Adds jittering, works only for low discrepancy sequences"]])
+;; 1. `sequence-generator`, returns lazy sequence of generated vectors (for dim>1) or primitives (for dim=1)
+;; 2. `jittered-sequence-generator`, returns lazy sequence like above and also add jittering, works only for low discrepancy sequences.
 
+;; Parameters:
 
-^:kindly/hide-code
-(kind/md "
-Parameters:
+;;    * `seq-generator` - generator name
+;;    * `dimensions` - vector dimensionality, 1 for primitive
+;;    * `jitter` - only for jittered sequences, from 0.0 to 1.0, default 0.25
 
-   * `seq-generator` - generator name
-   * `dimensions` - vector dimensionality, 1 for primitive
-   * `jitter` - only for jittered sequences, from 0.0 to 1.0, default 0.25
+;; For given dimensionality, returns sequence of:
 
-For given dimensionality, returns sequence of:
+;;    * 1 - doubles
+;;    * 2 - `Vec2` type
+;;    * 3 - `Vec3` type
+;;    * 4 - `Vec4` type
+;;    * n>4 - Clojure vector
 
-   * 1 - doubles
-   * 2 - `Vec2` type
-   * 3 - `Vec3` type
-   * 4 - `Vec4` type
-   * n>4 - Clojure vector
-
-`Vec2`, `Vec3` and `Vec4` are fixed size vectors optimized for speed. They act exactly like 2,3 and 4 elements Clojure vectors
-")
+;; `Vec2`, `Vec3` and `Vec4` are fixed size vectors optimized for speed. They act exactly like 2,3 and 4 elements Clojure vectors
 
 
 ;; ### Low discrepancy
@@ -1933,13 +1945,13 @@ For given dimensionality, returns sequence of:
 
 (kind/table
  [[":sobol" ":halton" ":r2"]
-  [(gg/graph-scatter (take 1000 (r/sequence-generator :sobol 2)))
-   (gg/graph-scatter (take 1000 (r/sequence-generator :halton 2)))
-   (gg/graph-scatter (take 1000 (r/sequence-generator :r2 2)))]
+  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :sobol 2))))
+   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :halton 2))))
+   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :r2 2))))]
   [":sobol (jittered)" ":halton (jittered)" ":r2 (jittered)"]
-  [(gg/graph-scatter (take 1000 (r/jittered-sequence-generator :sobol 2)))
-   (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :halton 2)))
-   (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :r2 2)))]])
+  [(gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :sobol 2))))
+   (gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :halton 2))))
+   (gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :r2 2))))]])
 
 (utls/examples-note
  (first (r/sequence-generator :sobol 4))
@@ -1967,8 +1979,8 @@ For given dimensionality, returns sequence of:
 
 (kind/table
  [[(kind/code ":sphere") (kind/code ":ball")]
-  [(gg/graph-scatter (take 1000 (r/sequence-generator :sphere 2)) {:aspect-ratio 1})
-   (gg/graph-scatter (take 500 (r/sequence-generator :ball 2)) {:aspect-ratio 1})]])
+  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :sphere 2)) {:aspect-ratio 1}))
+   (gg/->image (gg/graph-scatter (take 500 (r/sequence-generator :ball 2)) {:aspect-ratio 1}))]])
 
 
 (utls/examples-note
@@ -1989,9 +2001,9 @@ For given dimensionality, returns sequence of:
 ;; 1000 samples
 
 (kind/table
- [[":default" ":gaussian"]
-  [(gg/graph-scatter (take 1000 (r/sequence-generator :default 2)))
-   (gg/graph-scatter (take 1000 (r/sequence-generator :gaussian 2)))]])
+ [[(kind/code (str :default)) (kind/code (str :gaussian))]
+  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :default 2))))
+   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :gaussian 2))))]])
 
 (utls/examples-note
  (first (r/sequence-generator :default 4))
@@ -2014,11 +2026,10 @@ For given dimensionality, returns sequence of:
 
 ;; There are four main methods of noise creation:
 
-(utls/symbol-info-table
- [[single-noise "single frequency (octave) noise"]
-  [fbm-noise "multi frequency (octaves), fractal brownian motion"]
-  [billow-noise "multi frequency, \"billowy\" noise"]
-  [ridgemulti-noise "multi frequency, ridged multi-fractal"]])
+;; * `single-noise`,  single frequency (octave) noise
+;; * `fbm-noise`, multi frequency (octaves), fractal brownian motion
+;; *.`billow-noise`, multi frequency, "billowy" noise
+;; * `ridgemulti-noise`, multi frequency, ridged multi-fractal
 
 ;; Each noise can be configured in, here is the list of options:
 
@@ -2050,21 +2061,21 @@ For given dimensionality, returns sequence of:
 
 ;; Single octave of simplex noise:
 
-(gg/graph2d (r/single-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2] {:varg? false})
+(gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :simplex}) {:x [-2 2] :y [-2 2] :varg? false}))
 
 ;; Value and gradient single noise for different interpolations
 (kind/table
  [["" (kind/code ":none") (kind/code ":linear") (kind/code ":hermite") (kind/code ":quintic")]
   [:value
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :none}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :linear}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :hermite}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :value :interpolation :quintic}) [-2 2] [-2 2] {:varg? false})]
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :value :interpolation :none}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :value :interpolation :linear}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :value :interpolation :hermite}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :value :interpolation :quintic}) {:x [-2 2] :y [-2 2] :varg? false}))]
   [:gradient
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :none}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :linear}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) [-2 2] [-2 2] {:varg? false})]])
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :none}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :linear}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/single-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; #### FBM
 
@@ -2077,63 +2088,63 @@ For given dimensionality, returns sequence of:
 
 ;; 6 octave of simplex noise:
 
-(gg/graph2d (r/fbm-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2] {:varg? false})
+(gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :simplex}) {:x [-2 2] :y [-2 2] :varg? false}))
 
 ;; Value and gradient FBM noise for different interpolations
 
 (kind/table
  [(mapv (comp kind/code str) ["" :none :linear :hermite :quintic])
   [:value
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :none}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :linear}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :hermite}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :quintic}) [-2 2] [-2 2] {:varg? false})]
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :none}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :linear}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :hermite}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :value :interpolation :quintic}) {:x [-2 2] :y [-2 2] :varg? false}))]
   [:gradient
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :none}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :linear}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) [-2 2] [-2 2] {:varg? false})]])
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :none}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :linear}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :hermite}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :interpolation :quintic}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; Different number of octaves for FBM gradient noise
 
 (kind/table
  [["octaves=2" "octaves=4" "octaves=6" "octaves=8"]
-  [(gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 2}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 4}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 6}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 8}) [-2 2] [-2 2] {:varg? false})]])
+  [(gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 2}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 4}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 6}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :octaves 8}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; Different gains and lacunarities for FBM gradient noise
 
 (kind/table
  [["" "lacunarity=0.5" "lacunarity=2" "lacunarity=5" "lacunarity=8"]
   ["gain=0.25"
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 0.5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 2}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 8}) [-2 2] [-2 2] {:varg? false})]
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 0.5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 2}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.25 :lacunarity 8}) {:x [-2 2] :y [-2 2] :varg? false}))]
   ["gain=0.5"
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 0.5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 2}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 8}) [-2 2] [-2 2] {:varg? false})]
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 0.5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 2}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :lacunarity 8}) {:x [-2 2] :y [-2 2] :varg? false}))]
   ["gain=0.75"
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 0.5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 2}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 5}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 8}) [-2 2] [-2 2] {:varg? false})]])
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 0.5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 2}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 5}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/fbm-noise {:seed 1 :noise-type :gradient :gain 0.75 :lacunarity 8}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; #### Billow
 
 (def billow-noise (r/billow-noise {:seed 1}))
 
-(gg/graph2d billow-noise [-2 2] [-2 2] {:varg? false})
+(gg/->image (gg/function2d billow-noise {:x [-2 2] :y [-2 2] :varg? false}))
 
 (kind/table
  [["simplex noise" "value noise" "gradient noise, 1 octave"]
-  [(gg/graph2d (r/billow-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/billow-noise {:seed 1 :noise-type :value}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/billow-noise {:seed 1 :noise-type :gradient :octaves 1}) [-2 2] [-2 2] {:varg? false})]])
+  [(gg/->image (gg/function2d (r/billow-noise {:seed 1 :noise-type :simplex}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/billow-noise {:seed 1 :noise-type :value}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/billow-noise {:seed 1 :noise-type :gradient :octaves 1}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 (utls/examples-note
  (billow-noise 0.2)
@@ -2144,13 +2155,13 @@ For given dimensionality, returns sequence of:
 
 (def ridgedmulti-noise (r/ridgedmulti-noise {:seed 1}))
 
-(gg/graph2d ridgedmulti-noise [-2 2] [-2 2] {:varg? false})
+(gg/->image (gg/function2d ridgedmulti-noise {:x [-2 2] :y [-2 2] :varg? false}))
 
 (kind/table
  [["simplex noise" "value noise" "gradient noise, 1 octave"]
-  [(gg/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :simplex}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :value}) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/ridgedmulti-noise {:seed 1 :noise-type :gradient :octaves 1}) [-2 2] [-2 2] {:varg? false})]])
+  [(gg/->image (gg/function2d (r/ridgedmulti-noise {:seed 1 :noise-type :simplex}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/ridgedmulti-noise {:seed 1 :noise-type :value}) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/ridgedmulti-noise {:seed 1 :noise-type :gradient :octaves 1}) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 (utls/examples-note
  (ridgedmulti-noise 0.2)
@@ -2161,16 +2172,15 @@ For given dimensionality, returns sequence of:
 
 ;; There are three ready to use preconfigured noises:
 
-(utls/symbol-info-table
- [[vnoise "FBM value noise, 6 octaves, hermite interpolation"]
-  [noise "Perlin noise, FBM gradient noise, 6 octaves, quintic interpolation"]
-  [simplex "FBM simplex noise"]])
+;; * `vnoise`, FBM value noise, 6 octaves, hermite interpolation
+;; * `noise`, Perlin noise, FBM gradient noise, 6 octaves, quintic interpolation
+;; * `simplex`, FBM simplex noise, 6 octaves
 
 (kind/table
- [["vnoise" "noise" "simplex"]
-  [(gg/graph2d r/vnoise [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d r/noise [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d r/simplex [-2 2] [-2 2] {:varg? false})]])
+ [[(kind/code "vnoise") (kind/code "noise") (kind/code "simplex")]
+  [(gg/->image (gg/function2d r/vnoise {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d r/noise {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d r/simplex {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 (utls/examples-note
  (r/vnoise 0.2)
@@ -2187,8 +2197,7 @@ For given dimensionality, returns sequence of:
 
 ;; Warp noise [info](http://www.iquilezles.org/www/articles/warp/warp.htm)
 
-(utls/symbol-info-table
- [[warp-noise-fn "Create warp noise"]])
+;; `warp-noise-fn`, create warp noise.
 
 ;; Default parameters:
 ;;  * `noise` - any noise function: `vnoise`
@@ -2196,23 +2205,22 @@ For given dimensionality, returns sequence of:
 ;;  * `depth`: $1$
 
 (kind/table
- [["" "vnoise" "noise" "simplex"]
+ [["" (kind/code "vnoise") (kind/code "noise") (kind/code "simplex")]
   ["scale=2"
-   (gg/graph2d (r/warp-noise-fn r/vnoise 2.0 1) [-2 2] [-2 2]  {:varg? false})
-   (gg/graph2d (r/warp-noise-fn r/noise 2.0 1) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/warp-noise-fn r/simplex 2.0 1) [-2 2] [-2 2] {:varg? false})]
+   (gg/->image (gg/function2d (r/warp-noise-fn r/vnoise 2.0 1) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/warp-noise-fn r/noise 2.0 1) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/warp-noise-fn r/simplex 2.0 1) {:x [-2 2] :y [-2 2] :varg? false}))]
   ["scale=4"
-   (gg/graph2d (r/warp-noise-fn r/vnoise 4.0 1) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/warp-noise-fn r/noise 4.0 1) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/warp-noise-fn r/simplex 4.0 1) [-2 2] [-2 2] {:varg? false})]])
+   (gg/->image (gg/function2d (r/warp-noise-fn r/vnoise 4.0 1) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/warp-noise-fn r/noise 4.0 1) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/warp-noise-fn r/simplex 4.0 1) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; ### Random configuration
 
 ;; For generative art purposes it's good to generate random configuration and noise based on it.
 
-(utls/symbol-info-table
- [[random-noise-cfg "Create random configuration"]
-  [random-noise-fn "Create random noise from random configuration"]])
+;; * `random-noise-cfg`, create random configuration
+;; * `random-noise-fn`, create random noise from random configuration
 
 ;; Optional parameter is a map with values user wants to fix.
 
@@ -2221,7 +2229,7 @@ For given dimensionality, returns sequence of:
 
 (def some-random-noise (r/random-noise-fn {:seed 1}))
 
-(gg/graph2d some-random-noise [-2 2] [-2 2] {:varg? false})
+(gg/->image (gg/function2d some-random-noise {:x [-2 2] :y [-2 2] :varg? false}))
 
 (utls/examples-note
  (some-random-noise 0.2)
@@ -2229,19 +2237,16 @@ For given dimensionality, returns sequence of:
  (some-random-noise 0.2 0.3 0.4))
 
 (kind/table
- [[(gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})]
-  [(gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})
-   (gg/graph2d (r/random-noise-fn) [-2 2] [-2 2] {:varg? false})]])
+ [[(gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))]
+  [(gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))
+   (gg/->image (gg/function2d (r/random-noise-fn) {:x [-2 2] :y [-2 2] :varg? false}))]])
 
 ;; ### Discrete noise
 
-;; Discrete noise is a function which hashes long or two longs and converts it to a double from `[0,1]` range.
-
-(utls/symbol-info-table
- [[discrete-noise "1d or 2d hashing function"]])
+;; `discrete-noise` is a 1d or 2d hashing function which hashes long or two longs and converts it to a double from `[0,1]` range.
 
 (utls/examples-note
  (r/discrete-noise 100)
