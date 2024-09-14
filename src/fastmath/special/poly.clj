@@ -49,12 +49,12 @@
         (if (m/odd? N)
           (let [out (cplx/mult out x)]
             [(cplx/sub out2 out) (cplx/add out2 out)])
-          (let [out (cplx/muladd xx out (Vec2. (Array/aget P 0) 0.0))
+          (let [out (poly/complex-muladd xx out (Vec2. (Array/aget P 0) 0.0))
                 out2 (cplx/mult out2 x)]
             [(cplx/sub out out2) (cplx/add out out2)]))
         (recur (m/- i 2)
-               (cplx/muladd xx out (Vec2. (Array/aget P i) 0.0))
-               (cplx/muladd xx out2 (Vec2. (Array/aget P (m/dec i)) 0.0)))))))
+               (poly/complex-muladd xx out (Vec2. (Array/aget P i) 0.0))
+               (poly/complex-muladd xx out2 (Vec2. (Array/aget P (m/dec i)) 0.0)))))))
 
 (defn split-phase-poly
   ^Vec2 [^double x ^doubles P]

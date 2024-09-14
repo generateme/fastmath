@@ -1,12 +1,15 @@
 (ns fastmath.polynomials
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
+            [fastmath.complex :as cplx]
             [clojure.string :as str]
             [fastmath.protocols.polynomials :as prot])
   (:import [fastmath.java Array]
+           [fastmath.vector Vec2]
            [java.text DecimalFormat]
            [clojure.lang IFn]
-           [org.apache.commons.math3.linear MatrixUtils RealMatrix EigenDecomposition]))
+           [org.apache.commons.math3.linear MatrixUtils RealMatrix EigenDecomposition]
+           [org.apache.commons.math3.special Gamma]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -52,6 +55,57 @@
                   ex
                   (recur (rest rcoeffs)
                          (m/muladd x ex (double (first rcoeffs))))))))))
+
+;; complex
+
+;; polynomials
+
+(defn complex-muladd
+  "`(x y z)` -> `(+ z (* x y))`"
+  ^Vec2 [x y z]
+  (cplx/add z (cplx/mult x y)))
+
+(defmacro complex-mevalpoly
+  "Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+...."
+  [x & coeffs]
+  (let [cnt (count coeffs)]
+    (condp clojure.core/= cnt
+      0 0.0
+      1 `~(first coeffs)
+      2 (let [[z y] coeffs]
+          `(complex-muladd ~x ~y ~z))
+      `(complex-muladd ~x (complex-mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
+
+(defn complex-evalpoly
+  "Evaluate complex polynomial"
+  [x & coeffs]
+  (if-not (seq coeffs)
+    0.0
+    (let [rc (reverse coeffs)]
+      (loop [rcoeffs (rest rc)
+             ex (first rc)]
+        (if-not (seq rcoeffs)
+          ex
+          (recur (rest rcoeffs)
+                 (complex-muladd x ex (first rcoeffs))))))))
+
+(defn complex-makepoly
+  "Create complex polynomial function for given coefficients"
+  [coeffs]
+  (cond
+    (not (seq coeffs)) (constantly 0.0)
+    (= 1 (count coeffs)) (constantly (first coeffs))
+    :else (let [rc (reverse coeffs)]
+            (fn [x]
+              (loop [rcoeffs (rest rc)
+                     ex (first rc)]
+                (if-not (seq rcoeffs)
+                  ex
+                  (recur (rest rcoeffs)
+                         (complex-muladd x ex (first rcoeffs)))))))))
+
+
+;;
 
 (defn- degrees->vars
   ([^long v] (degrees->vars v '()))
@@ -266,9 +320,9 @@
 
 ;; Orthogonal polynomials
 
-(defn laguerre-L
-  "Generalized Laguerre polynomial"
-  (^double [^long degree ^double x] (laguerre-L degree 0.0 x))
+(defn eval-laguerre-L
+  "Evaluate generalized Laguerre polynomial"
+  (^double [^long degree ^double x] (eval-laguerre-L degree 0.0 x))
   (^double [^long degree ^double order ^double x]
    (case (int degree)
      0 1.0
@@ -282,7 +336,7 @@
                 (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
                           (m/* (m/+ order (m/dec i)) pprev)) i)))))))
 
-(defn- laguerre-L-ratio-polynomial
+(defn- laguerre-L-ratio
   [^long degree ^double order]
   (case (int degree)
     0 RONE
@@ -296,15 +350,15 @@
                (scale (sub (mult prev (ratio-polynomial [(m/+ order (m/* 2 i) -1) -1]))
                            (scale pprev (m/dec (m/+ order i)))) (/ 1 i)))))))
 
-(defn laguerre-L-polynomial
+(defn laguerre-L
   "Generalized Laguerre polynomials"
-  ([^long degree] (laguerre-L-polynomial degree 0.0))
+  ([^long degree] (laguerre-L degree 0.0))
   ([^long degree ^double order]
-   (polynomial (coeffs (laguerre-L-ratio-polynomial degree order)))))
+   (polynomial (coeffs (laguerre-L-ratio degree order)))))
 
 ;;
 
-(defn chebyshev-T
+(defn eval-chebyshev-T
   "Chebyshev polynomial of the first kind"
   ^double [^long degree ^double x]
   (case (int degree)
@@ -315,7 +369,7 @@
     4 (let [x2 (* x x)] (inc (* 8.0 x2 (dec x2))))
     (m/cos (* degree (m/acos x)))))
 
-(defn- chebyshev-T-ratio-polynomial
+(defn- chebyshev-T-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -328,11 +382,11 @@
         (recur (m/inc i) prev
                (sub (mult prev (ratio-polynomial [0 2])) pprev))))))
 
-(defn chebyshev-T-polynomial
+(defn chebyshev-T
   [^long degree]
-  (polynomial (coeffs (chebyshev-T-ratio-polynomial degree))))
+  (polynomial (coeffs (chebyshev-T-ratio degree))))
 
-(defn chebyshev-U
+(defn eval-chebyshev-U
   "Chebyshev polynomials of the second kind"
   ^double [^long degree ^double x]
   (case (int degree)
@@ -350,7 +404,7 @@
           (m// (m/sin (m/* t degree+))
                (m/sin t)))))))
 
-(defn- chebyshev-U-ratio-polynomial
+(defn- chebyshev-U-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -363,17 +417,17 @@
         (recur (m/inc i) prev
                (sub (mult prev (ratio-polynomial [0 2])) pprev))))))
 
-(defn chebyshev-U-polynomial
+(defn chebyshev-U
   [^long degree]
-  (polynomial (coeffs (chebyshev-U-ratio-polynomial degree))))
+  (polynomial (coeffs (chebyshev-U-ratio degree))))
 
-(defn chebyshev-V
+(defn eval-chebyshev-V
   "Chebyshev polynomials of the third kind"
   ^double [^long degree ^double x]
   (m/* (m/sqrt (m// 2.0 (m/inc x)))
-       (chebyshev-T (m/inc (m/* 2 degree)) (m/sqrt (m/* 0.5 (m/inc x))))))
+       (eval-chebyshev-T (m/inc (m/* 2 degree)) (m/sqrt (m/* 0.5 (m/inc x))))))
 
-(defn- chebyshev-V-ratio-polynomial
+(defn- chebyshev-V-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -386,16 +440,16 @@
         (recur (m/inc i) prev
                (sub (mult prev (ratio-polynomial [0 2])) pprev))))))
 
-(defn chebyshev-V-polynomial
+(defn chebyshev-V
   [^long degree]
-  (polynomial (coeffs (chebyshev-V-ratio-polynomial degree))))
+  (polynomial (coeffs (chebyshev-V-ratio degree))))
 
-(defn chebyshev-W
+(defn eval-chebyshev-W
   "Chebyshev polynomials of the fourth kind"
   ^double [^long degree ^double x]
-  (m/* (chebyshev-U (m/* 2 degree) (m/sqrt (m/* 0.5 (m/inc x))))))
+  (m/* (eval-chebyshev-U (m/* 2 degree) (m/sqrt (m/* 0.5 (m/inc x))))))
 
-(defn- chebyshev-W-ratio-polynomial
+(defn- chebyshev-W-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -408,13 +462,13 @@
         (recur (m/inc i) prev
                (sub (mult prev (ratio-polynomial [0 2])) pprev))))))
 
-(defn chebyshev-W-polynomial
+(defn chebyshev-W
   [^long degree]
-  (polynomial (coeffs (chebyshev-W-ratio-polynomial degree))))
+  (polynomial (coeffs (chebyshev-W-ratio degree))))
 
 ;;
 
-(defn legendre-P
+(defn eval-legendre-P
   ^double [^long degree ^double x]
   (case (int degree)
     0 1.0
@@ -428,7 +482,7 @@
                (m// (m/- (m/* (m/dec (m/* 2.0 i)) x prev)
                          (m/* (m/dec i) pprev)) i))))))
 
-(defn- legendre-P-ratio-polynomial
+(defn- legendre-P-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -442,19 +496,19 @@
                (scale (sub (mult prev (ratio-polynomial [0 (m/dec (m/* 2.0 i))]))
                            (scale pprev (m/dec i))) (/ 1 i)))))))
 
-(defn legendre-P-polynomial
+(defn legendre-P
   [^long degree]
-  (polynomial (coeffs (legendre-P-ratio-polynomial degree))))
+  (polynomial (coeffs (legendre-P-ratio degree))))
 
 ;;
 
-(defn gegenbauer-C
+(defn eval-gegenbauer-C
   "Gegenbauer (ultraspherical) polynomials"
-  (^double [^long degree ^double x] (gegenbauer-C degree 1.0 x))
+  (^double [^long degree ^double x] (eval-gegenbauer-C degree 1.0 x))
   (^double [^long degree ^double order ^double x]
    (condp == order
-     1.0 (chebyshev-U degree x)
-     0.5 (legendre-P degree x)
+     1.0 (eval-chebyshev-U degree x)
+     0.5 (eval-legendre-P degree x)
      (case (int degree)
        0 1.0
        1 (m/* 2.0 order x)
@@ -468,11 +522,11 @@
                     (m// (m/- (m/* 2.0 (m/dec (m/+ order i)) x prev)
                               (m/* (m/+ i o2 -2.0) pprev)) i)))))))))
 
-(defn- gegenbauer-C-ratio-polynomial
+(defn- gegenbauer-C-ratio
   [^long degree ^double order]
   (condp == order
-    1.0 (chebyshev-U-ratio-polynomial degree)
-    0.5 (legendre-P-ratio-polynomial degree)
+    1.0 (chebyshev-U-ratio degree)
+    0.5 (legendre-P-ratio degree)
     (case (int degree)
       0 RONE
       1 (ratio-polynomial [0 (m/* 2.0 order)])
@@ -487,13 +541,13 @@
                                (scale pprev (m/+ i o2 -2.0)))
                           (/ 1 i)))))))))
 
-(defn gegenbauer-C-polynomial
-  ([^long degree] (gegenbauer-C-polynomial degree 1.0))
-  ([^long degree ^double order] (polynomial (coeffs (gegenbauer-C-ratio-polynomial degree order)))))
+(defn gegenbauer-C
+  ([^long degree] (gegenbauer-C degree 1.0))
+  ([^long degree ^double order] (polynomial (coeffs (gegenbauer-C-ratio degree order)))))
 
 ;;
 
-(defn hermite-H
+(defn eval-hermite-H
   "Hermite polynomials"
   ^double [^long degree ^double x]
   (case (int degree)
@@ -508,7 +562,7 @@
                (m/* 2.0 (m/- (m/* x prev)
                              (m/* (m/dec i) pprev))))))))
 
-(defn- hermite-H-ratio-polynomial
+(defn- hermite-H-ratio
   "Hermite polynomials"
   [^long degree]
   (case (int degree)
@@ -523,11 +577,11 @@
                (scale (sub (mult prev (ratio-polynomial [0 1]))
                            (scale pprev (m/dec i))) 2))))))
 
-(defn hermite-H-polynomial
+(defn hermite-H
   [^long degree]
-  (polynomial (coeffs (hermite-H-ratio-polynomial degree))))
+  (polynomial (coeffs (hermite-H-ratio degree))))
 
-(defn hermite-He
+(defn eval-hermite-He
   "Hermite polynomials"
   ^double [^long degree ^double x]
   (case (int degree)
@@ -542,7 +596,7 @@
                (m/- (m/* x prev)
                     (m/* (m/dec i) pprev)))))))
 
-(defn- hermite-He-ratio-polynomial
+(defn- hermite-He-ratio
   "Hermite polynomials"
   [^long degree]
   (case (int degree)
@@ -557,14 +611,14 @@
                (sub (mult prev (ratio-polynomial [0 1]))
                     (scale pprev (m/dec i))))))))
 
-(defn hermite-He-polynomial
+(defn hermite-He
   [^long degree]
-  (polynomial (coeffs (hermite-He-ratio-polynomial degree))))
+  (polynomial (coeffs (hermite-He-ratio degree))))
 
 
 ;;
 
-(defn jacobi-P
+(defn eval-jacobi-P
   "Jacobi polynomials"
   ^double [^long degree ^double alpha ^double beta ^double x]
   (case (int degree)
@@ -584,9 +638,9 @@
                            (m/* 2.0 (m/dec a) (m/dec b) c pprev))
                       (m/* 2.0 i (m/- c i) (m/- c 2.0)))))))))
 
-(set! *unchecked-math* false)
+(set! *unchecked-math* true)
 
-(defn- jacobi-P-ratio-polynomial
+(defn- jacobi-P-ratio
   "Jacobi polynomials"
   [^long degree ^double alpha ^double beta]
   (case (int degree)
@@ -611,13 +665,13 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 
-(defn jacobi-P-polynomial
+(defn jacobi-P
   [^long degree ^double alpha ^double beta]
-  (polynomial (coeffs (jacobi-P-ratio-polynomial degree alpha beta))))
+  (polynomial (coeffs (jacobi-P-ratio degree alpha beta))))
 
 ;;
 
-(defn bessel-y
+(defn eval-bessel-y
   ^double [^long degree ^double x]
   (case (int degree)
     0 1.0
@@ -632,7 +686,7 @@
                     pprev))))))
 
 
-(defn- bessel-y-ratio-polynomial
+(defn- bessel-y-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -645,11 +699,11 @@
         (recur (inc i) prev
                (add (mult prev (ratio-polynomial [0 (m/dec (m/* 2 i))])) pprev))))))
 
-(defn bessel-y-polynomial
+(defn bessel-y
   [^long degree]
-  (polynomial (coeffs (bessel-y-ratio-polynomial degree))))
+  (polynomial (coeffs (bessel-y-ratio degree))))
 
-(defn bessel-t
+(defn eval-bessel-t
   ^double [^long degree ^double x]
   (case (int degree)
     0 1.0
@@ -663,7 +717,7 @@
                (m/+ (m/* (m/dec (m/* 2 i)) prev)
                     (m/* x x pprev)))))))
 
-(defn- bessel-t-ratio-polynomial
+(defn- bessel-t-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -678,13 +732,13 @@
                  (add (scale prev (m/dec (m/* 2 i)))
                       (mult pprev p001))))))))
 
-(defn bessel-t-polynomial
+(defn bessel-t
   [^long degree]
-  (polynomial (coeffs (bessel-t-ratio-polynomial degree))))
+  (polynomial (coeffs (bessel-t-ratio degree))))
 
 ;;
 
-(defn meixner-pollaczek-P
+(defn eval-meixner-pollaczek-P
   ^double [^long degree ^double lambda ^double phi ^double x]
   (case (int degree)
     0 1.0
@@ -704,7 +758,7 @@
                                          (m/* (m/dec (m/+ i lambda)) cp)) prev)
                            (m/* (m/+ i l2 -2) pprev)) i)))))))
 
-(defn- meixner-pollaczek-P-ratio-polynomial
+(defn- meixner-pollaczek-P-ratio
   [^long degree ^double lambda ^double phi]
   (case (int degree)
     0 RONE
@@ -724,9 +778,9 @@
                                                                   sp])) 2)
                              (scale pprev (m/+ i l2 -2))) (/ 1 i))))))))
 
-(defn meixner-pollaczek-P-polynomial
+(defn meixner-pollaczek-P
   [^long degree ^double lambda ^double phi]
-  (polynomial (coeffs (meixner-pollaczek-P-ratio-polynomial degree lambda phi))))
+  (polynomial (coeffs (meixner-pollaczek-P-ratio degree lambda phi))))
 
 ;; Ince polynomials
 
@@ -734,35 +788,47 @@
 ;; https://dlmf.nist.gov/28.31
 ;; Miguel A. Bandres and Julio C. Gutierrez-Vega Ince–Gaussian modes of the paraxial wave equation and stable resonators
 
-(defn- ev
+(defn- ince-ev
   ^doubles [^RealMatrix m ^long order]
   (let [ed (EigenDecomposition. m)
         ;; be sure the order of eigenvalues is increasing
-        ro (long (nth (m/order (seq (.getRealEigenvalues ed))) order))]
+        ro (long (nth (m/order (.getRealEigenvalues ed)) order))]
     (-> (.getEigenvector ed ro)
         (v/vec->array))))
 
+(defn- ince-pmv-gamma
+  [^long start ^long p]
+  (map (fn [^long mv]
+         (m/exp (m/* 0.5 (m/+ (Gamma/logGamma (m/inc (m/* 0.5 (m/+ p mv))))
+                              (Gamma/logGamma (m/inc (m/* 0.5 (m/- p mv)))))))) (range start (m/inc p) 2)))
+
 (defn- ince-c-coeffs-even
-  [^long p ^long m ^double e]
-  (let [n (m// p 2)
-        N (m/inc n)
-        order (m// m 2)
-        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)]
-    (doseq [^long i (range 1 N)]
-      (.setEntry mat i i (m/* 4.0 i i)))
-    (doseq [^long i (range 0 n)
-            :let [i+ (m/inc i)]]
-      (.setEntry mat i i+ (m/* e (m/+ n i+)))
-      (.setEntry mat i+ i (m/* e (m/- n i))))
-    (.setEntry mat 1 0 (m/* 2.0 (.getEntry mat 1 0)))
-    (let [^doubles a (ev mat order)
-          sgn (m/sgn (v/sum a))
-          ^doubles a2 (v/sq a)
-          norm (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2)))]
-      (v/mult (v/div a norm) sgn))))
+  ([^long p ^long m ^double e normalization]
+   (let [n (m// p 2)
+         N (m/inc n)
+         order (m// m 2)
+         ^RealMatrix mat (MatrixUtils/createRealMatrix N N)]
+     (doseq [^long i (range 1 N)]
+       (.setEntry mat i i (m/* 4.0 i i)))
+     (doseq [^long i (range 0 n)
+             :let [i+ (m/inc i)]]
+       (.setEntry mat i i+ (m/* e (m/+ n i+)))
+       (.setEntry mat i+ i (m/* e (m/- n i))))
+     (.setEntry mat 1 0 (m/* 2.0 (.getEntry mat 1 0)))
+     (let [^doubles a (ince-ev mat order)
+           sgn (m/sgn (v/sum a))
+           norm (case normalization
+                  :trigonometric (let [^doubles a2 (v/sq a)]
+                                   (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2))))
+                  :millers (m/sqrt (m/+ (m/* 2.0 (m/sq (Array/aget a 0)) (m/sq (Gamma/gamma N)))
+                                        (v/sum (map-indexed (fn [^long id ^double gs]
+                                                              (m/sq (m/* gs (Array/aget a (m/inc id)))))
+                                                            (ince-pmv-gamma 2 p)))))
+                  1.0)]
+       (v/mult (v/div a norm) sgn)))))
 
 (defn- ince-s-coeffs-even
-  [^long p ^long m ^double e]
+  [^long p ^long m ^double e normalization]
   (let [n (m// p 2)
         order (m/dec (m// m 2))
         ^RealMatrix mat (MatrixUtils/createRealMatrix n n)]
@@ -773,12 +839,17 @@
       (.setEntry mat i i+ (m/* e (m/+ n i 2.0)))
       (.setEntry mat i+ i (m/* e (m/- n i+))))
     (let [scaler (m/seq->double-array (range 1 (m/inc n)))
-          ^doubles a (ev mat order)
-          sgn (m/sgn (v/sum (v/emult a scaler)))]
-      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+          ^doubles a (ince-ev mat order)
+          sgn (m/sgn (v/sum (v/emult a scaler)))
+          norm (case normalization
+                 :trigonometric (m/sqrt (v/sum (v/sq a)))
+                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
+                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 2 p))))
+                 1.0)]
+      (v/mult (v/div a norm) sgn))))
 
 (defn- ince-c-coeffs-odd
-  [^long p ^long m ^double e]
+  [^long p ^long m ^double e normalization]
   (let [n (m// (m/dec p) 2)
         N (m/inc n)
         order (m// (m/dec m) 2)
@@ -791,12 +862,17 @@
             :let [i+ (m/inc i)]]
       (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
       (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
-    (let [^doubles a (ev mat order)
-          sgn (m/sgn (v/sum a))]
-      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+    (let [^doubles a (ince-ev mat order)
+          sgn (m/sgn (v/sum a))
+          norm (case normalization
+                 :trigonometric (m/sqrt (v/sum (v/sq a)))
+                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
+                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 1 p))))
+                 1.0)]
+      (v/mult (v/div a norm) sgn))))
 
 (defn- ince-s-coeffs-odd
-  [^long p ^long m ^double e]
+  [^long p ^long m ^double e normalization]
   (let [n (m// (m/dec p) 2)
         N (m/inc n)
         order (m// (m/dec m) 2)
@@ -810,67 +886,95 @@
       (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
       (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
     (let [scaler (m/seq->double-array (map (fn [^long v] (m/inc (m/* 2.0 v))) (range N)))
-          ^doubles a (ev mat order)
-          sgn (m/sgn (v/sum (v/emult a scaler)))]
-      (v/mult (v/div a (m/sqrt (v/sum (v/sq a)))) sgn))))
+          ^doubles a (ince-ev mat order)
+          sgn (m/sgn (v/sum (v/emult a scaler)))
+          norm (case normalization
+                 :trigonometric (m/sqrt (v/sum (v/sq a)))
+                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
+                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 1 p))))
+                 1.0)]
+      (v/mult (v/div a norm) sgn))))
 
-(defn- ince-c-coeffs
-  [^long p ^long m ^double e]
+(defn ince-C-coeffs
+  [^long p ^long m ^double e normalization]
   (if (m/even? p)
-    (ince-c-coeffs-even p m e)
-    (ince-c-coeffs-odd p m e)))
+    (ince-c-coeffs-even p m e normalization)
+    (ince-c-coeffs-odd p m e normalization)))
 
-(defn- ince-s-coeffs
-  [^long p ^long m ^double e]
+(defn ince-S-coeffs
+  [^long p ^long m ^double e normalization]
   (if (m/even? p)
-    (ince-s-coeffs-even p m e)
-    (ince-s-coeffs-odd p m e)))
+    (ince-s-coeffs-even p m e normalization)
+    (ince-s-coeffs-odd p m e normalization)))
 
 (defmacro ^:private ince-loop
-  [s form]
-  `(loop [~'r (long 0)
+  [coeffs s x f]
+  `(loop [r# (long 0)
           sum# (double 0.0)]
-     (if (m/== ~'r ~s)
+     (if (m/== r# ~s)
        sum#
-       (recur (m/inc ~'r) (m/+ sum# (m/* (Array/aget ~'coeffs ~'r) ~form))))))
+       (recur (m/inc r#) (m/+ sum# (m/* (Array/aget ~coeffs r#) (~f r# ~x)))))))
 
-(defn ince-C-polynomial
-  "Ince C polynomial of order p and degree m."
-  [^long p ^long m ^double e]
-  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
-  (let [^doubles coeffs (ince-c-coeffs p m e)
-        s (alength coeffs)]
-    (if (m/even? p)
-      (fn ^double [^double x] (ince-loop s (m/cos (m/* 2.0 r x))))
-      (fn ^double [^double x] (ince-loop s (m/cos (m/* (m/inc (m/* 2.0 r)) x)))))))
+(defn- ince-cos-even ^double [^long r ^double x] (m/cos (m/* 2.0 r x)))
+(defn- ince-cos-odd ^double [^long r ^double x] (m/cos (m/* (m/inc (m/* 2.0 r)) x)))
 
-(defn ince-S-polynomial
-  "Ince S polynomial of order p and degree m."
-  [^long p ^long m ^double e]
-  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
-  (let [^doubles coeffs (ince-s-coeffs p m e)
-        s (alength coeffs)]
-    (if (m/even? p)
-      (fn ^double [^double x] (ince-loop s (m/sin (m/* 2.0 (m/inc r) x))))
-      (fn ^double [^double x] (ince-loop s (m/sin (m/* (m/inc (m/* 2.0 r)) x)))))))
+(defn ince-C
+  "Ince C polynomial of order p and degree m.
 
-(defn ince-radial-C-polynomial
-  "Ince C polynomial of order p and degree m."
-  [^long p ^long m ^double e]
-  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
-  (let [^doubles coeffs (ince-c-coeffs p m e)
-        s (alength coeffs)]
-    (if (m/even? p)
-      (fn ^double [^double x] (ince-loop s (m/cosh (m/* 2.0 r x))))
-      (fn ^double [^double x] (ince-loop s (m/cosh (m/* (m/inc (m/* 2.0 r)) x)))))))
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  ([^long p ^long m ^double e] (ince-C p m e :none))
+  ([^long p ^long m ^double e normalization]
+   (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+   (let [^doubles coeffs (ince-C-coeffs p m e normalization)
+         s (alength coeffs)]
+     (if (m/even? p)
+       (fn ^double [^double x] (ince-loop coeffs s x ince-cos-even))
+       (fn ^double [^double x] (ince-loop coeffs s x ince-cos-odd))))))
 
-(defn ince-radial-S-polynomial
-  "Ince S polynomial of order p and degree m."
-  [^long p ^long m ^double e]
-  (assert (m/even? (m/- p m)) "p and m must be the same parity!")
-  (let [^doubles coeffs (ince-s-coeffs p m e)
-        s (alength coeffs)]
-    (if (m/even? p)
-      (fn ^double [^double x] (ince-loop s (m/sinh (m/* 2.0 (m/inc r) x))))
-      (fn ^double [^double x] (ince-loop s (m/sinh (m/* (m/inc (m/* 2.0 r)) x)))))))
+(defn- ince-sin-even ^double [^long r ^double x] (m/sin (m/* 2.0 (m/inc r) x)))
+(defn- ince-sin-odd ^double [^long r ^double x] (m/sin (m/* (m/inc (m/* 2.0 r)) x)))
 
+(defn ince-S
+  "Ince S polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  ([^long p ^long m ^double e] (ince-S p m e :none))
+  ([^long p ^long m ^double e normalization]
+   (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+   (let [^doubles coeffs (ince-S-coeffs p m e normalization)
+         s (alength coeffs)]
+     (if (m/even? p)
+       (fn ^double [^double x] (ince-loop coeffs s x ince-sin-even))
+       (fn ^double [^double x] (ince-loop coeffs s x ince-sin-odd))))))
+
+(defn- ince-cosh-even ^double [^long r ^double x] (m/cosh (m/* 2.0 r x)))
+(defn- ince-cosh-odd ^double [^long r ^double x] (m/cosh (m/* (m/inc (m/* 2.0 r)) x)))
+
+(defn ince-radial-C
+  "Ince C polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  ([^long p ^long m ^double e] (ince-radial-C p m e :none))
+  ([^long p ^long m ^double e normalization]
+   (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+   (let [^doubles coeffs (ince-C-coeffs p m e normalization)
+         s (alength coeffs)]
+     (if (m/even? p)
+       (fn ^double [^double x] (ince-loop coeffs s x ince-cosh-even))
+       (fn ^double [^double x] (ince-loop coeffs s x ince-cosh-odd))))))
+
+(defn- ince-sinh-even ^double [^long r ^double x] (m/sinh (m/* 2.0 (m/inc r) x)))
+(defn- ince-sinh-odd ^double [^long r ^double x] (m/sinh (m/* (m/inc (m/* 2.0 r)) x)))
+
+(defn ince-radial-S
+  "Ince S polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  ([^long p ^long m ^double e] (ince-radial-S p m e :none))
+  ([^long p ^long m ^double e normalization]
+   (assert (m/even? (m/- p m)) "p and m must be the same parity!")
+   (let [^doubles coeffs (ince-S-coeffs p m e normalization)
+         s (alength coeffs)]
+     (if (m/even? p)
+       (fn ^double [^double x] (ince-loop coeffs s x ince-sinh-even))
+       (fn ^double [^double x] (ince-loop coeffs s x ince-sinh-odd))))))
