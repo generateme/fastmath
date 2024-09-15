@@ -1,11 +1,9 @@
 ^{:kindly/hide-code true}
 (ns interpolation
-  (:require [scicloj.kindly.v4.kind :as kind]
-            [fastmath.interpolation :as i]
+  (:require [fastmath.interpolation :as i]
             [fastmath.interpolation.linear :as linear]
             [fastmath.core :as m]
             [fastmath.dev.ggplot :as ggplot]
-            [clojisr.v1.r :as R]
             [fastmath.random :as r]
             [fastmath.interpolation.cubic :as cubic]
             [fastmath.calculus :as calc]
@@ -15,38 +13,11 @@
             [fastmath.interpolation.shepard :as shepard]
             [fastmath.kernel :as kernel]
             [fastmath.kernel.vector :as kvector]
-            [fastmath.kernel.density :as kd]
             [fastmath.interpolation.rbf :as rbf]
-            [fastmath.vector :as v]
-            [fastmath.stats :as stats]
             [fastmath.optimization :as opt]
             [fastmath.interpolation.kriging :as kriging]))
 
-(r/distribution :continuous-distribution {:data [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]
-                                          :steps 100})
-
-(defn- find-first-non-zero
-  ^double [f xs]
-  (or (->> xs
-           (map #(vector % (f %)))
-           (filter #(pos? ^double (second %)))
-           (ffirst))
-      (first xs)))
-
-(defn- narrow-range
-  [kd [^double mn ^double mx ^double step] ^long steps]
-  [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
-   (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
-
-((:kde (kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})) 0)
-
-(let [steps 5000
-      {:keys [kde ^double mn ^double mx]} (kd/kernel-density+ :anova [-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2] {:bandwidth nil})
-      step (/ (- mx mn) steps)
-      _ (println step)
-      [^double mn ^double mx] (narrow-range kde [mn mx step] (* 4 steps))])
-
-;; # Interpolation
+;; # Interpolation {.unnumbered}
 
 ;; Interpolation namespace defines the unified API for various interpolation methods. Most of them also extrapolates. Methods include:
 
@@ -90,17 +61,16 @@
 
 ^{:kindly/hide-code true}
 (-> (ggplot/function+scatter target-1d xs1 ys1 {:x [0.0 7.0]})
-    #_(ggplot/title "Target function with sampled points")
-    (ggplot/->file))
+    (ggplot/->image))
 
-#_(-> (ggplot/function+scatter  [["13" (ssj/b-spline xs1 ys1)]
-                                 ["10" (ssj/b-spline xs1 ys1 {:degree 10})]
-                                 ["2" (ssj/b-spline xs1 ys1 {:degree 2})]
-                                 ["1" (ssj/b-spline xs1 ys1 {:degree 1})]] xs1 ys1
-                                {:x [0.5 6.5]
-                                 :legend-name "degree"
-                                 :title "(b-spline xs ys {:degree ...}"})
-      (ggplot/->file))
+(-> (ggplot/function+scatter  [["13" (ssj/b-spline xs1 ys1)]
+                               ["10" (ssj/b-spline xs1 ys1 {:degree 10})]
+                               ["2" (ssj/b-spline xs1 ys1 {:degree 2})]
+                               ["1" (ssj/b-spline xs1 ys1 {:degree 1})]] xs1 ys1
+                              {:x [0.5 6.5]
+                               :legend-name "degree"
+                               :title "(b-spline xs ys {:degree ...}"})
+    (ggplot/->image))
 
 ;; ## 2d target
 
@@ -123,10 +93,9 @@
            (target-2d [x y]))))
 
 ^{:kindly/hide-code true}
-(let [points (->> (for [x xs2 y ys2] [x y]) (apply map vector))]
-  (-> (ggplot/function2d+scatter target-2d (first points) (second points))
-      (ggplot/title "Target 2d function with grid points")
-      (ggplot/->image)))
+#_(let [points (->> (for [x xs2 y ys2] [x y]) (apply map vector))]
+    (-> (ggplot/function2d+scatter target-2d (first points) (second points))
+        (ggplot/->image)))
 
 ;; ### Random
 
@@ -139,9 +108,8 @@
 (def ys3 (map target-2d xss))
 
 ^{:kindly/hide-code true}
-(-> (ggplot/function2d+scatter target-2d (map first xss) (map second xss))
-    (ggplot/title "Target 2d function with random points")
-    (ggplot/->image))
+#_(-> (ggplot/function2d+scatter target-2d (map first xss) (map second xss))
+      (ggplot/->image))
 
 ;; ### Error
 
@@ -175,9 +143,8 @@
 (defn chart-1d
   [f title]
   (-> (ggplot/function+scatter [["interp" f]
-                                ["orig" target-1d]] xs1 ys1 {:x [0.0 7.5]})
-      (ggplot/ylim [-1.2 1.2])
-      (ggplot/title title)
+                                ["orig" target-1d]] xs1 ys1 {:x [0.0 7.5]
+                                                             :title title})
       (ggplot/->image)))
 
 ;; ### Linear
@@ -394,8 +361,7 @@
 ^{:kindly/hide-code true}
 (defn chart-2d
   ([f title]
-   (-> (ggplot/function2d f {:steps 100 :x [20 180] :y [20 180]})
-       (ggplot/title title)
+   (-> (ggplot/function2d f {:steps 100 :x [20 180] :y [20 180] :title title})
        (ggplot/->image))))
 
 ;; ### Bilinear
@@ -404,7 +370,7 @@
 
 (def bilinear (linear/bilinear xs2 ys2 zss))
 
-(chart-2d bilinear "Bilinear")
+#_(chart-2d bilinear "Bilinear")
 
 (error-2d bilinear)
 
@@ -414,7 +380,7 @@
 
 (def bicubic (acm/bicubic xs2 ys2 zss))
 
-(chart-2d bicubic "Bicubic")
+#_(chart-2d bicubic "Bicubic")
 
 (error-2d bicubic)
 
@@ -424,7 +390,7 @@
 
 (def cubic-2d (cubic/cubic-2d xs2 ys2 zss))
 
-(chart-2d cubic-2d "Cubic 2d")
+#_(chart-2d cubic-2d "Cubic 2d")
 
 (error-2d cubic-2d)
 
@@ -436,7 +402,7 @@
 
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 [[(chart-1d (acm/microsphere-projection xs1 ys1) "Microsphere projection (1d)")
-  (chart-2d (acm/microsphere-projection xss ys3) "Microsphere projection (2d)")]]
+  #_(chart-2d (acm/microsphere-projection xss ys3) "Microsphere projection (2d)")]]
 
 (error-1d (acm/microsphere-projection xs1 ys1))
 (error-2d (acm/microsphere-projection xss ys3))
@@ -448,22 +414,21 @@
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 {:column-names ["" ""]
  :row-vectors [[(chart-1d (shepard/shepard xs1 ys1) "Shepard (1d)")
-                (chart-2d (shepard/shepard xss ys3) "Shepard (2d)")]
+                #_(chart-2d (shepard/shepard xss ys3) "Shepard (2d)")]
                [(chart-1d (shepard/shepard xs1 ys1 {:p 3}) "Shepard (1d, p=3)")
-                (chart-2d (shepard/shepard xss ys3 {:p 3}) "Shepard (2d, p=3)")]]}
+                #_(chart-2d (shepard/shepard xss ys3 {:p 3}) "Shepard (2d, p=3)")]]}
 
-(defn chart-2d->file
-  ([f]
-   (-> (ggplot/function2d f {:steps 100 :x [20 180] :y [20 180]})
-       (ggplot/->file))))
+#_(defn chart-2d->file
+    ([f]
+     (-> (ggplot/function2d f {:steps 100 :x [20 180] :y [20 180]})
+         (ggplot/->file))))
 
 ;; ### Radial Basis Function
 
 (require '[fastmath.interpolation.rbf :as rbf])
 
-(defn chart-f [f title] (-> (ggplot/function f {:x [-5 5]})
-                            (ggplot/title title)
-                            (ggplot/->image)))
+(defn chart-f [f title] (-> (ggplot/function f {:x [-5 5] :title title})
+                         (ggplot/->image)))
 
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 {:column-names ["" ""]
@@ -475,15 +440,15 @@
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 {:column-names ["" ""]
  :row-vectors [[(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussian)) "Gaussian (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1})) "Gaussian (2d, shape=0.1)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1})) "Gaussian (2d, shape=0.1)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :matern-c2)) "Matern C2, 3/2 (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :matern-c2 {:shape 0.15}))
-                          "Matern C2, 3/2 (2d, shape=0.15)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :matern-c2 {:shape 0.15}))
+                            "Matern C2, 3/2 (2d, shape=0.15)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussians-laguerre-22)) "Gaussians-Laguerre (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussians-laguerre-22 {:shape 0.07}))
-                          "Gaussians-Laguerre (2d, dim=2, deg=2, shape=0.07)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussians-laguerre-22 {:shape 0.07}))
+                            "Gaussians-Laguerre (2d, dim=2, deg=2, shape=0.07)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :thin-plate)) "Thin plate (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :thin-plate)) "Thin plate (2d)")]]}
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :thin-plate)) "Thin plate (2d)")]]}
 
 ;; #### Polynomial term
 
@@ -498,25 +463,25 @@
  :row-vectors [[(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussian)
                                    {:polynomial-terms polynomial-terms-1d})
                           "Gaussian (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1})
-                                   {:polynomial-terms polynomial-terms-2d})
-                          "Gaussian (2d, shape=0.1)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1})
+                                     {:polynomial-terms polynomial-terms-2d})
+                            "Gaussian (2d, shape=0.1)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :matern-c2)
                                    {:polynomial-terms polynomial-terms-1d})
                           "Matern C2, 3/2 (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :matern-c2 {:shape 0.15})
-                                   {:polynomial-terms polynomial-terms-2d})
-                          "Matern C2, 3/2 (2d, shape=0.15)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :matern-c2 {:shape 0.15})
+                                     {:polynomial-terms polynomial-terms-2d})
+                            "Matern C2, 3/2 (2d, shape=0.15)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussians-laguerre-22)
                                    {:polynomial-terms polynomial-terms-1d})
                           "Gaussians-Laguerre (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussians-laguerre-22 {:shape 0.07})
-                                   {:polynomial-terms polynomial-terms-2d})
-                          "Gaussians-Laguerre (2d, dim=2, deg=2, shape=0.07)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussians-laguerre-22 {:shape 0.07})
+                                     {:polynomial-terms polynomial-terms-2d})
+                            "Gaussians-Laguerre (2d, dim=2, deg=2, shape=0.07)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :thin-plate) {:polynomial-terms polynomial-terms-1d})
                           "Thin plate (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :thin-plate) {:polynomial-terms polynomial-terms-2d})
-                          "Thin plate (2d)")]]}
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :thin-plate) {:polynomial-terms polynomial-terms-2d})
+                            "Thin plate (2d)")]]}
 
 
 (error-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1})))
@@ -530,18 +495,18 @@
 {:row-vectors [[(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussian) {:lambda 0.0
                                                                    :polynomial-terms polynomial-terms-1d})
                           "Gaussian (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 0.0
-                                                                                :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 0.0
+                                                                                  :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussian) {:lambda 1.0
                                                                    :polynomial-terms polynomial-terms-1d})
                           "Gaussian (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 1.0
-                                                                                :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 1.0
+                                                                                  :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]
                [(chart-1d (rbf/rbf xs1 ys1 (kernel/rbf :gaussian) {:lambda 5.0
                                                                    :polynomial-terms polynomial-terms-1d})
                           "Gaussian (1d)")
-                (chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 5.0
-                                                                                :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]]}
+                #_(chart-2d (rbf/rbf xss ys3 (kernel/rbf :gaussian {:shape 0.1}) {:lambda 5.0
+                                                                                  :polynomial-terms polynomial-terms-2d}) "Gaussian (2d, shape=0.1)")]]}
 
 #_(defn chart-f->file [f] (-> (ggplot/function f {:x [0 7]})                         
                               (ggplot/->file)))
@@ -562,10 +527,8 @@
 (defn svar-image [f emp title]
   (let [x (map :h emp)
         y (map :gamma emp)]
-    (-> (ggplot/function+scatter f x y)
-        (ggplot/title title)
-        (ggplot/ylim [0 nil])
-        (ggplot/->file))))
+    (-> (ggplot/function+scatter f x y {:title title :ylim [0 nil]})
+        (ggplot/->image))))
 
 (def empirical-matheron-1d (variogram/empirical xs1 ys1))
 
@@ -575,8 +538,8 @@ empirical-matheron
 (let [x (map :h empirical-matheron)
       y (map :gamma empirical-matheron)]
   (-> (ggplot/function+scatter (linear/linear x y) x y)
-      (ggplot/title "Classical (Matheron) variogram estimation"                    )
-      (ggplot/ylim [0 nil])
+      #_      (ggplot/title "Classical (Matheron) variogram estimation"                    )
+      #_(ggplot/ylim [0 nil])
       (ggplot/->image)))
 
 (def empirical-cressie (variogram/empirical xss ys3 {:estimator :cressie :size 20}))
@@ -584,8 +547,8 @@ empirical-matheron
 (let [x (map :h empirical-cressie)
       y (map :gamma empirical-cressie)]
   (-> (ggplot/function+scatter (linear/linear x y) x y)
-      (ggplot/title "Cressie variogram estimation")
-      (ggplot/ylim [0 nil])
+      #_      (ggplot/title "Cressie variogram estimation")
+      #_ (ggplot/ylim [0 nil])
       (ggplot/->image)))
 
 (def empirical-highly-robust (variogram/empirical xss ys3 {:estimator :highly-robust :size 20
@@ -602,8 +565,8 @@ empirical-highly-robust
 (let [x (map :h empirical-highly-robust)
       y (map :gamma empirical-highly-robust)]
   (-> (ggplot/function+scatter (linear/linear x y) x y)
-      (ggplot/title "Highly robust (quantiles) variogram estimation")
-      (ggplot/ylim [0 nil])
+      #_(ggplot/title "Highly robust (quantiles) variogram estimation")
+      #_(ggplot/ylim [0 nil])
       (ggplot/->image)))
 
 ;; #### Semi-variograms
@@ -613,14 +576,12 @@ empirical-highly-robust
 (def variogram-pentaspherical (variogram/fit empirical-highly-robust :pentaspherical))
 (def variogram-rbf-wendland-2-3 (variogram/fit empirical-highly-robust (kernel/rbf :wendland {:s 2 :k 3})))
 
-(def variogram-superspherical (variogram/fit empirical-matheron :superspherical))
+#_(def variogram-superspherical (variogram/fit empirical-matheron :superspherical))
 (def variogram-superspherical-1d (variogram/fit empirical-matheron-1d :tplstable {:order 1.9 :defaults {:beta 14.0}}))
 
 (((variogram/->superspherical 1.0) {:nugget 0.1 :psill 0.5 :range 1.0}) 0.4)
 
-(ggplot/->file (ggplot/function variogram-superspherical-1d {:x [0 5]}))
-
-(variogram-superspherical-1d)
+(ggplot/->image (ggplot/function variogram-superspherical-1d {:x [0 5]}))
 
 ^{:kindly/kind :kind/table :kindly/hide-code true}
 {:row-vectors [[(svar-image variogram-linear empirical-quantile "Linear")
@@ -633,22 +594,22 @@ empirical-highly-robust
 (def kriging-pentaspherical (kriging/kriging xss ys3 variogram-pentaspherical))
 (def kriging-rbf-wendland-2-3 (kriging/kriging xss ys3 variogram-rbf-wendland-2-3))
 
-(def kriging-superspherical (kriging/kriging xss ys3 variogram-superspherical))
+#_(def kriging-superspherical (kriging/kriging xss ys3 variogram-superspherical))
 
-(-> (ggplot/function2d kriging-superspherical {:x [20 180] :y [20 180] :steps 100})
-    (ggplot/->file))
+#_(-> (ggplot/function2d kriging-superspherical {:x [20 180] :y [20 180] :steps 100})
+      (ggplot/->file))
 
 (error-2d kriging-linear)
 
 ^{:kindly/kind :kind/table :kindly/hide-code true}
-{:row-vectors [[(-> (ggplot/function2d kriging-linear {:x [20 180] :y [20 180] :steps 100})
-                    (ggplot/->file))
-                (-> (ggplot/function2d kriging-gaussian {:x [20 180] :y [20 180] :steps 100})
-                    (ggplot/->file))]
-               [(-> (ggplot/function2d kriging-pentaspherical {:x [20 180] :y [20 180] :steps 100})
-                    (ggplot/->file))
-                (-> (ggplot/function2d kriging-rbf-wendland-2-3 {:x [20 180] :y [20 180] :steps 100})
-                    (ggplot/->file))]]}
+#_{:row-vectors [[(-> (ggplot/function2d kriging-linear {:x [20 180] :y [20 180] :steps 100})
+                      (ggplot/->file))
+                  (-> (ggplot/function2d kriging-gaussian {:x [20 180] :y [20 180] :steps 100})
+                      (ggplot/->file))]
+                 [(-> (ggplot/function2d kriging-pentaspherical {:x [20 180] :y [20 180] :steps 100})
+                      (ggplot/->file))
+                  (-> (ggplot/function2d kriging-rbf-wendland-2-3 {:x [20 180] :y [20 180] :steps 100})
+                      (ggplot/->file))]]}
 
 (defn target [^double n ^double s ^double r]
   (let [l (variogram/gaussian {:nugget n :sill s :range r})
@@ -656,30 +617,30 @@ empirical-highly-robust
     (error-2d k)))
 
 (def vl (variogram/linear {:nugget 0.03 :sill 0.5 :range 14.0}))
-(svar-image vl empirical-cressie "Linear")
+#_(svar-image vl empirical-cressie "Linear")
 
-(error-2d (kriging/kriging xss ys3 vl))
-
-
+#_(error-2d (kriging/kriging xss ys3 vl))
 
 
-(opt/scan-and-minimize :lbfgsb target {:bounds [[0.0 0.2]
-                                                [0.0 1.0]
 
-                                                [10.0 100.0]]})
 
-(-> (ggplot/function2d (kriging/kriging xss ys3 vl) {:x [20 180] :y [20 180] :steps 100})
-    (ggplot/->file))
+#_(opt/scan-and-minimize :lbfgsb target {:bounds [[0.0 0.2]
+                                                  [0.0 1.0]
+
+                                                  [10.0 100.0]]})
+
+#_(-> (ggplot/function2d (kriging/kriging xss ys3 vl) {:x [20 180] :y [20 180] :steps 100})
+      (ggplot/->file))
 
 ;; #### Smoothing
 
-(-> (ggplot/function2d (kriging/kriging xss ys3 variogram-pentaspherical {:error 5})
-                       {:x [20 180] :y [20 180] :steps 100})
-    (ggplot/->image))
+#_(-> (ggplot/function2d (kriging/kriging xss ys3 variogram-pentaspherical {:error 5})
+                         {:x [20 180] :y [20 180] :steps 100})
+      (ggplot/->image))
 
 ;; ### Gaussian processes
 
-(let [k (kvector/triangular 2)]
-  (-> (ggplot/function2d (fn [[x y]] (k x y)) {:x [-6 6] :y [-6 6]}) ;; tst
-      (ggplot/->image))
-  )
+#_(let [k (kvector/triangular 2)]
+    (-> (ggplot/function2d (fn [[x y]] (k x y)) {:x [-6 6] :y [-6 6]}) ;; tst
+        (ggplot/->image))
+    )
