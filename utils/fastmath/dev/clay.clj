@@ -19,7 +19,6 @@
         kind/code
         kindly/hide-code))
 
-
 (defmacro examples-note
   [& forms]
   `(callout "note" "Examples" (examples ~@forms)))
@@ -53,9 +52,17 @@
                              "vector_matrix.clj"
                              "random.clj"
                              "stats.clj"
+                             "polynomials.clj"
+                             "special.clj"
                              "calculus.clj"
+                             "interpolation.clj"
+                             "optimization.clj"
+                             "transform.clj"
+                             "ml.clj"
                              "complex_quaternions.clj"
-                             "special.clj"]
+                             "easings.clj"
+                             "fields.clj"
+                             "efloat.clj"]
                :format [:quarto :html]
                :book {:favicon "clay/resources/favicon.png"
                       :title "Fastmath documentation"}}))

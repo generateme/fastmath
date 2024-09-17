@@ -60,7 +60,7 @@
   ([{:keys [^double dimension ^long degree ^double scale]
      :or {scale 1.0}}]
    (let [hdimension (* 0.5 dimension)
-         L (poly/laguerre-L-polynomial degree hdimension)]
+         L (poly/laguerre-L degree hdimension)]
      (fn ^double [^double x]
        (let [ex (m/sq (/ x scale))]
          (* (m/exp (- ex)) (poly/evaluate L ex)))))))
