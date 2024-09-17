@@ -39,10 +39,9 @@
   | Charts-2     |
   "
   [rows]
-  `(kind/table ~(->> (map (fn [p g]
-                            [(kind/hiccup [:dl [:dt nil `(kind/code (str ~p))] [:dd nil `(kind/table [~g])]])])
-                          (mapcat identity (take-nth 2 rows)) (mapcat identity (take-nth 2 (rest rows))))
-                     (into []))))
+  `(kind/table ~(mapv (fn [p g]
+                        [(kind/hiccup [:dl [:dt nil `(kind/code (str ~p))] [:dd nil `(kind/table [~g])]])])
+                      (mapcat identity (take-nth 2 rows)) (mapcat identity (take-nth 2 (rest rows))))))
 
 
 ;; build whole book
