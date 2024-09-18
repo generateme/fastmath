@@ -1740,23 +1740,28 @@
 ;; ##### Kernels
 
 ;; Distributions for various kernels:
+
 ;; * `:data`: `[-2 -2 -2 -1 0 1 2 -1 0 1 2 0 1 2 1 2 2]`
 ;; * `:steps`: `100`
 ;; * `:bandwidth`: auto
 
 ;; `fastmath.kernel/kernel-list` contains three types of kernels: RBF, KDE and what we can call "vector kernels" which includes Marcer, positive definite, and similar.
 
-(kind/table
- {:column-names ["Type" "Kernels"]
-  :row-vectors (->> k/kernel-list
-                    (map (fn [[k v]]
-                           [(kind/code (str k)) v]))
-                    (into []))})
 
 ;; KDE kernels
 
+;; Here's the list of KDE kernels
+
+^:kindly/hide-code
+(kind/md
+ (->> (:kde k/kernel-list)
+      (map #(str "`" % "`"))
+      (interpose ",")))
+
 ^:kindly/hide-code
 (def kde-kernels (:kde k/kernel-list))
+
+;; KDE kernels distribution plots
 
 (kind/table
  (->> kde-kernels
@@ -1806,6 +1811,7 @@
 ;; Please note: data can contain duplicates.
 
 ;; There are four discrete distributions:
+
 ;; * `:enumerated-int` for integers, backed by Apache Commons Math
 ;; * `:enumerated-real` for doubles, backed by Apache Commons Math
 ;; * `:integer-discrete-distribution` - for longs, custom implementation
@@ -1820,15 +1826,21 @@
 
 (def data-doubles (repeatedly 100 #(m/sq (m/approx (r/drand 2.0) 1))))
 
-(kind/table
- [[(kind/code ":real-discrete-distribution") (kind/code ":enumerated-real")]
-  (let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
-        real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
-        dist (distinct data-doubles)]
-    [(kind/table [(mapv gg/->image (gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
-                                                                                             dist))}))])
-     (kind/table [(mapv gg/->image (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
-                                                                                               dist))}))])])])
+(let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
+      real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
+      dist (distinct data-doubles)]
+  (kind/table
+   [[(kind/hiccup
+      [:dl
+       [:dt nil (kind/code ":real-discrete-distribution")]
+       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
+                                                                                                        dist))}))])]])]
+    [(kind/hiccup
+      [:dl
+       [:dt nil (kind/code ":enumerated-real")]
+       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
+                                                                                                          dist))}))])]])]]))
+
 
 (def real-distr (r/distribution :real-discrete-distribution {:data [0.1 0.2 0.3 0.4 0.3 0.2 0.1]
                                                              :probabilities [5 4 3 2 1 5 4]}))
@@ -2200,9 +2212,12 @@
 ;; `warp-noise-fn`, create warp noise.
 
 ;; Default parameters:
-;;  * `noise` - any noise function: `vnoise`
-;;  * `scale`: $4.0$
-;;  * `depth`: $1$
+
+;; Parameters:
+
+;; * `noise` function, default: `vnoise`
+;; * `scale` factor, default: 4.0
+;; * `depth` (1 or 2), default 1
 
 (kind/table
  [["" (kind/code "vnoise") (kind/code "noise") (kind/code "simplex")]
