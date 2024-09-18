@@ -1829,17 +1829,12 @@
 (let [enumerated-real (r/distribution :enumerated-real {:data data-doubles})
       real-discrete (r/distribution :real-discrete-distribution {:data data-doubles})
       dist (distinct data-doubles)]
-  (kind/table
-   [[(kind/hiccup
-      [:dl
-       [:dt nil (kind/code ":real-discrete-distribution")]
-       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
-                                                                                                        dist))}))])]])]
-    [(kind/hiccup
-      [:dl
-       [:dt nil (kind/code ":enumerated-real")]
-       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
-                                                                                                          dist))}))])]])]]))
+  (utls/dgraph-table
+   [[:real-discrete-distribution :enumerated-real]
+    [(mapv gg/->image (gg/dgraphi real-discrete {:pdf [0 5] :data (into {} (map #(vector % (r/pdf real-discrete %))
+                                                                                dist))}))
+     (mapv gg/->image (gg/dgraphi enumerated-real {:pdf [0 5] :data (into {} (map #(vector % (r/pdf enumerated-real %))
+                                                                                  dist))}))]]))
 
 
 (def real-distr (r/distribution :real-discrete-distribution {:data [0.1 0.2 0.3 0.4 0.3 0.2 0.1]
@@ -1864,16 +1859,10 @@
 (let [enumerated-int (r/distribution :enumerated-int {:data data-ints})
       int-discrete (r/distribution :integer-discrete-distribution {:data data-ints})
       dist (distinct data-ints)]
-  (kind/table
-   [[(kind/hiccup
-      [:dl
-       [:dt nil (kind/code ":integer-discrete-distribution")]
-       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %))
-                                                                                                        dist))}))])]])]
-    [(kind/hiccup
-      [:dl
-       [:dt nil (kind/code ":enumerated-int")]
-       [:dd nil (kind/table [(mapv gg/->image (gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %)) dist))}))])]])]]))
+  (utls/dgraph-table
+   [[:integer-discrete-distribution :enumerated-int]
+    [(mapv gg/->image (gg/dgraphi int-discrete {:pdf [0 10] :data (into {} (map #(vector % (r/pdf int-discrete %)) dist))}))
+     (mapv gg/->image (gg/dgraphi enumerated-int {:pdf [0 10] :data (into {} (map #(vector % (r/pdf enumerated-int %)) dist))}))]]))
 
 
 (def int-distr (r/distribution :integer-discrete-distribution {:data [10 20 30 40 30 20 10]
