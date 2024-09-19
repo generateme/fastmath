@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-99.9.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Fastmath documentation – Machine Learning</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./complex_quaternions.html" rel="next">
+<link href="./transform.html" rel="prev">
+<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ml.html">Machine Learning</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Fastmath documentation</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vectors and matrices</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./random.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistics</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./polynomials.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Polynomials</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./special.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Special functions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./calculus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calculus</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./interpolation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpolation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Optimization</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ml.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Machine Learning</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Complex numbers and quaternions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./easings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Easings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vector fields</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./efloat.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFloat</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#regression" id="toc-regression" class="nav-link active" data-scroll-target="#regression">Regression</a></li>
+  <li><a href="#clustering" id="toc-clustering" class="nav-link" data-scroll-target="#clustering">Clustering</a>
+  <ul>
+  <li><a href="#fastmath.ml.regression" id="toc-fastmath.ml.regression" class="nav-link" data-scroll-target="#fastmath.ml.regression">fastmath.ml.regression</a>
+  <ul>
+  <li><a href="#family" id="toc-family" class="nav-link" data-scroll-target="#family">-&gt;Family</a></li>
+  <li><a href="#glmdata" id="toc-glmdata" class="nav-link" data-scroll-target="#glmdata">-&gt;GLMData</a></li>
+  <li><a href="#lmdata" id="toc-lmdata" class="nav-link" data-scroll-target="#lmdata">-&gt;LMData</a></li>
+  <li><a href="#link" id="toc-link" class="nav-link" data-scroll-target="#link">-&gt;Link</a></li>
+  <li><a href="#family-1" id="toc-family-1" class="nav-link" data-scroll-target="#family-1">-&gt;family</a></li>
+  <li><a href="#link-1" id="toc-link-1" class="nav-link" data-scroll-target="#link-1">-&gt;link</a></li>
+  <li><a href="#string" id="toc-string" class="nav-link" data-scroll-target="#string">-&gt;string</a></li>
+  <li><a href="#analysis" id="toc-analysis" class="nav-link" data-scroll-target="#analysis">analysis</a></li>
+  <li><a href="#dose" id="toc-dose" class="nav-link" data-scroll-target="#dose">dose</a></li>
+  <li><a href="#families" id="toc-families" class="nav-link" data-scroll-target="#families">families</a></li>
+  <li><a href="#family-with-link" id="toc-family-with-link" class="nav-link" data-scroll-target="#family-with-link">family-with-link</a></li>
+  <li><a href="#glm" id="toc-glm" class="nav-link" data-scroll-target="#glm">glm</a></li>
+  <li><a href="#glm-nbinomial" id="toc-glm-nbinomial" class="nav-link" data-scroll-target="#glm-nbinomial">glm-nbinomial</a></li>
+  <li><a href="#links" id="toc-links" class="nav-link" data-scroll-target="#links">links</a></li>
+  <li><a href="#lm" id="toc-lm" class="nav-link" data-scroll-target="#lm">lm</a></li>
+  <li><a href="#map-family" id="toc-map-family" class="nav-link" data-scroll-target="#map-family">map-&gt;Family</a></li>
+  <li><a href="#map-glmdata" id="toc-map-glmdata" class="nav-link" data-scroll-target="#map-glmdata">map-&gt;GLMData</a></li>
+  <li><a href="#map-lmdata" id="toc-map-lmdata" class="nav-link" data-scroll-target="#map-lmdata">map-&gt;LMData</a></li>
+  <li><a href="#map-link" id="toc-map-link" class="nav-link" data-scroll-target="#map-link">map-&gt;Link</a></li>
+  <li><a href="#predict" id="toc-predict" class="nav-link" data-scroll-target="#predict">predict</a></li>
+  <li><a href="#quantile-residuals" id="toc-quantile-residuals" class="nav-link" data-scroll-target="#quantile-residuals">quantile-residuals</a></li>
+  </ul></li>
+  <li><a href="#fastmath.ml.clustering" id="toc-fastmath.ml.clustering" class="nav-link" data-scroll-target="#fastmath.ml.clustering">fastmath.ml.clustering</a>
+  <ul>
+  <li><a href="#dbscan" id="toc-dbscan" class="nav-link" data-scroll-target="#dbscan">dbscan</a></li>
+  <li><a href="#fuzzy-kmeans" id="toc-fuzzy-kmeans" class="nav-link" data-scroll-target="#fuzzy-kmeans">fuzzy-kmeans</a></li>
+  <li><a href="#infer-dbscan-radius" id="toc-infer-dbscan-radius" class="nav-link" data-scroll-target="#infer-dbscan-radius">infer-dbscan-radius</a></li>
+  <li><a href="#kmeans" id="toc-kmeans" class="nav-link" data-scroll-target="#kmeans">kmeans++</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Machine Learning</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style></style>
+<style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style>
+<style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="ml_files/md-default0.js" type="text/javascript"></script>
+<script src="ml_files/md-default1.js" type="text/javascript"></script>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> ml</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.ml.regression <span class="at">:as</span> regr]</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [fastmath.ml.clustering <span class="at">:as</span> clust]</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.codox <span class="at">:as</span> codox]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="regression" class="level2">
+<h2 class="anchored" data-anchor-id="regression">Regression</h2>
+</section>
+<section id="clustering" class="level2">
+<h2 class="anchored" data-anchor-id="clustering">Clustering</h2>
+<section id="fastmath.ml.regression" class="level3">
+<h3 class="anchored" data-anchor-id="fastmath.ml.regression">fastmath.ml.regression</h3>
+<p>OLS, WLS and GLM regression models with analysis.</p>
+<span id="#LOS-->Family"></span>
+<section id="family" class="level4">
+<h4 class="anchored" data-anchor-id="family">-&gt;Family</h4>
+<ul>
+<li><code>(-&gt;Family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.ml.regression.Family.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L711">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->GLMData"></span>
+</section>
+<section id="glmdata" class="level4">
+<h4 class="anchored" data-anchor-id="glmdata">-&gt;GLMData</h4>
+<ul>
+<li><code>(-&gt;GLMData model transformer xtxinv ys intercept? offset? intercept beta coefficients observations residuals fitted weights offset names deviance df dispersion dispersions estimated-dispersion? &amp; overage)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.ml.regression.GLMData.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L851">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->LMData"></span>
+</section>
+<section id="lmdata" class="level4">
+<h4 class="anchored" data-anchor-id="lmdata">-&gt;LMData</h4>
+<ul>
+<li><code>(-&gt;LMData model intercept? offset? transformer xtxinv intercept beta coefficients offset weights residuals fitted df observations names r-squared adjusted-r-squared sigma2 sigma tss &amp; overage)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.ml.regression.LMData.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L41">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Link"></span>
+</section>
+<section id="link" class="level4">
+<h4 class="anchored" data-anchor-id="link">-&gt;Link</h4>
+<ul>
+<li><code>(-&gt;Link g mean derivative)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.ml.regression.Link.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L457">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->family"></span>
+</section>
+<section id="family-1" class="level4">
+<h4 class="anchored" data-anchor-id="family-1">-&gt;family</h4>
+<ul>
+<li><code>(-&gt;family family-map)</code></li>
+<li><code>(-&gt;family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion)</code></li>
+<li><code>(-&gt;family variance residual-deviance)</code></li>
+</ul>
+<p>Create <code>Family</code> record.</p>
+<p>Arguments:</p>
+<ul>
+<li><code>default-link</code> - canonical link function, default: <code>:identity</code></li>
+<li><code>variance</code> - variance function in terms of mean</li>
+<li><code>initialize</code> - initialization of glm, default: the same as in <code>:gaussian</code></li>
+<li><code>residual-deviance</code> - calculates residual deviance</li>
+<li><code>aic</code> - calculates AIC, default <code>(constantly ##NaN)</code></li>
+<li><code>quantile-residuals-fun</code> - calculates quantile residuals, default as in <code>:gaussian</code></li>
+<li><code>disperation</code> - value or <code>:estimate</code> (default), <code>:pearson</code> or <code>:mean-deviance</code></li>
+</ul>
+<p>Initialization will be called with <code>ys</code> and <code>weights</code> and should return:</p>
+<ul>
+<li>ys, possibly changed if any adjustment is necessary</li>
+<li>init-mu, starting point</li>
+<li>weights, possibly changes or orignal</li>
+<li>(optional) any other data used to calculate AIC</li>
+</ul>
+<p>AIC function should accept: <code>ys</code>, <code>fitted</code>, <code>weights</code>, <code>deviance</code>, <code>observation</code>, <code>rank</code> (fitted parameters) and additional data created by initialization</p>
+<p>Minimum version should define <code>variance</code> and <code>residual-deviance</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L713">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->link"></span>
+</section>
+<section id="link-1" class="level4">
+<h4 class="anchored" data-anchor-id="link-1">-&gt;link</h4>
+<ul>
+<li><code>(-&gt;link link-map)</code></li>
+<li><code>(-&gt;link g mean mean-derivative)</code></li>
+</ul>
+<p>Creates link record.</p>
+<p>Args:</p>
+<ul>
+<li><code>g</code> - link function</li>
+<li><code>mean</code> - mean, inverse link function</li>
+<li><code>mean-derivative</code> - derivative of mean</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L459">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->string"></span>
+</section>
+<section id="string" class="level4">
+<h4 class="anchored" data-anchor-id="string">-&gt;string</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1283">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-analysis"></span>
+</section>
+<section id="analysis" class="level4">
+<h4 class="anchored" data-anchor-id="analysis">analysis</h4>
+<ul>
+<li><code>(analysis model)</code></li>
+</ul>
+<p>Influence analysis, laverage, standardized and studentized residuals, correlation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1241">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dose"></span>
+</section>
+<section id="dose" class="level4">
+<h4 class="anchored" data-anchor-id="dose">dose</h4>
+<ul>
+<li><code>(dose glm-model)</code></li>
+<li><code>(dose glm-model p)</code></li>
+<li><code>(dose glm-model p coeff-id)</code></li>
+<li><code>(dose {:keys [link-fun xtxinv coefficients]} p intercept-id coeff-id)</code></li>
+</ul>
+<p>Predict Lethal/Effective dose for given <code>p</code> (default: p=0.5, median).</p>
+<ul>
+<li>intercept-id - id of intercept, default: 0</li>
+<li>coeff-id is the coefficient used for calculating dose, default: 1</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1246">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-families"></span>
+</section>
+<section id="families" class="level4">
+<h4 class="anchored" data-anchor-id="families">families</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L742">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-family-with-link"></span>
+</section>
+<section id="family-with-link" class="level4">
+<h4 class="anchored" data-anchor-id="family-with-link">family-with-link</h4>
+<ul>
+<li><code>(family-with-link family)</code></li>
+<li><code>(family-with-link family params)</code></li>
+<li><code>(family-with-link family link params)</code></li>
+</ul>
+<p>Returns family with a link as single map.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L772">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-glm"></span>
+</section>
+<section id="glm" class="level4">
+<h4 class="anchored" data-anchor-id="glm">glm</h4>
+<ul>
+<li><code>(glm ys xss)</code></li>
+<li><code>(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false}, :as params})</code></li>
+</ul>
+<p>Fit a generalized linear model using IRLS method.</p>
+<p>Arguments:</p>
+<ul>
+<li><code>ys</code> - response vector</li>
+<li><code>xss</code> - terms of systematic component</li>
+<li>optional parameters</li>
+</ul>
+<p>Parameters:</p>
+<ul>
+<li><code>:tol</code> - tolerance for matrix decomposition (SVD and Cholesky), default: <code>1.0e-8</code></li>
+<li><code>:epsilon</code> - tolerance for IRLS (stopping condition), default: <code>1.0e-8</code></li>
+<li><code>:max-iters</code> - maximum numbers of iterations, default: <code>25</code></li>
+<li><code>:weights</code> - optional weights</li>
+<li><code>:offset</code> - optional offset</li>
+<li><code>:alpha</code> - significance level, default: <code>0.05</code></li>
+<li><code>:intercept?</code> - should intercept term be included, default: <code>true</code></li>
+<li><code>:init-mu</code> - initial response vector for IRLS</li>
+<li><code>:simple?</code> - returns simplified result</li>
+<li><code>:dispersion-estimator</code> - <code>:pearson</code>, <code>:mean-deviance</code> or any number, replaces default one.</li>
+<li><code>:family</code> - family, default: <code>:gaussian</code></li>
+<li><code>:link</code> - link</li>
+<li><code>:nbinomial-theta</code> - theta for <code>:nbinomial</code> family, default: <code>1.0</code>.</li>
+<li><code>:transformer</code> - an optional function which will be used to transform systematic component <code>xs</code> before fitting and prediction</li>
+<li><code>:names</code> - an optional vector of names to use when printing the model</li>
+</ul>
+<p>Family is one of the: <code>:gaussian</code> (default), <code>:binomial</code>, <code>:quasi-binomial</code>, <code>:poisson</code>, <code>:quasi-poisson</code>, <code>:gamma</code>, <code>:inverse-gaussian</code>, <code>:nbinomial</code>, custom <code>Family</code> record (see <a href="#LOS--%3Efamily">-&gt;family</a>) or a function returning Family (accepting a map as an argument)</p>
+<p>Link is one of the: <code>:probit</code>, <code>:identity</code>, <code>:loglog</code>, <code>:sqrt</code>, <code>:inverse</code>, <code>:logit</code>, <code>:power</code>, <code>:nbinomial</code>, <code>:cauchit</code>, <code>:distribution</code>, <code>:cloglog</code>, <code>:inversesq</code>, <code>:log</code>, <code>:clog</code>, custom <code>Link</code> record (see <a href="#LOS--%3Elink">-&gt;link</a>) or a function returning Link (accepting a map as an argument)</p>
+<p>Notes:</p>
+<ul>
+<li>SVD decomposition is used instead of more common QR</li>
+<li>intercept term is added implicitely if <code>intercept?</code> is set to <code>true</code> (by default)</li>
+<li><code>:nbinomial</code> family requires <code>:nbinomial-theta</code> parameter</li>
+<li>Each family has its own default (canonical) link.</li>
+</ul>
+<p>Returned record implementes <code>IFn</code> protocol and contains:</p>
+<ul>
+<li><code>:model</code> - set to <code>:glm</code></li>
+<li><code>:intercept?</code> - whether intercept term is included or not</li>
+<li><code>:xtxinv</code> - (X^T X)^-1</li>
+<li><code>:intercept</code> - intercept term value</li>
+<li><code>:beta</code> - vector of model coefficients (without intercept)</li>
+<li><code>:coefficients</code> - coefficient analysis, a list of maps containing <code>:estimate</code>, <code>:stderr</code>, <code>:t-value</code>, <code>:p-value</code> and <code>:confidence-interval</code></li>
+<li><code>:weights</code> - weights, <code>:weights</code> (working) and <code>:initial</code></li>
+<li><code>:residuals</code> - a map containing <code>:raw</code>, <code>:working</code>, <code>:pearsons</code> and <code>:deviance</code> residuals</li>
+<li><code>:fitted</code> - fitted values for xss</li>
+<li><code>:df</code> - degrees of freedom: <code>:residual</code>, <code>:null</code> and <code>:intercept</code></li>
+<li><code>:observations</code> - number of observations</li>
+<li><code>:deviance</code> - deviances: <code>:residual</code> and <code>:null</code></li>
+<li><code>:dispersion</code> - default or calculated, used in a model</li>
+<li><code>:dispersions</code> - <code>:pearson</code> and <code>:mean-deviance</code></li>
+<li><code>:family</code> - family used</li>
+<li><code>:link</code> - link used</li>
+<li><code>:link-fun</code> - link function, <code>g</code></li>
+<li><code>:mean-fun</code> - mean function, <code>g^-1</code></li>
+<li><code>:q</code> - (1-alpha/2) quantile of T or Normal distribution for residual degrees of freedom</li>
+<li><code>:chi2</code> and <code>:p-value</code> - Chi-squared statistic and respective p-value</li>
+<li><code>:ll</code> - a map containing log-likelihood and AIC/BIC</li>
+<li><code>:analysis</code> - laverage, residual and influence analysis - a delay</li>
+<li><code>:iters</code> and <code>:converged?</code> - number of iterations and convergence indicator</li>
+</ul>
+<p>Analysis, delay containing a map:</p>
+<ul>
+<li><code>:residuals</code> - <code>:standardized</code> and <code>:studentized</code> residuals (pearsons and deviance)</li>
+<li><code>:laverage</code> - <code>:hat</code>, <code>:sigmas</code> and laveraged <code>:coefficients</code> (leave-one-out)</li>
+<li><code>:influence</code> - <code>:cooks-distance</code>, <code>:dffits</code>, <code>:dfbetas</code> and <code>:covratio</code></li>
+<li><code>:influential</code> - list of influential observations (ids) for influence measures</li>
+<li><code>:correlation</code> - correlation matrix of estimated parameters</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L880">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-glm-nbinomial"></span>
+</section>
+<section id="glm-nbinomial" class="level4">
+<h4 class="anchored" data-anchor-id="glm-nbinomial">glm-nbinomial</h4>
+<ul>
+<li><code>(glm-nbinomial ys xss)</code></li>
+<li><code>(glm-nbinomial ys xss {:keys [nbinomial-theta max-iters epsilon], :or {max-iters 25, epsilon 1.0E-8}, :as params})</code></li>
+</ul>
+<p>Fits theta for negative binomial glm in iterative process.</p>
+<p>Returns fitted model with <code>:nbinomial-theta</code> key.</p>
+<p>Arguments and parameters are the same as for <code>glm</code>.</p>
+<p>Additional parameters:</p>
+<ul>
+<li><code>:nbinomial-theta</code> - initial theta used as a starting point for optimization.</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1198">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-links"></span>
+</section>
+<section id="links" class="level4">
+<h4 class="anchored" data-anchor-id="links">links</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L471">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-lm"></span>
+</section>
+<section id="lm" class="level4">
+<h4 class="anchored" data-anchor-id="lm">lm</h4>
+<ul>
+<li><code>(lm ys xss)</code></li>
+<li><code>(lm ys xss {:keys [tol weights alpha intercept? offset transformer names], :or {tol 1.0E-8, alpha 0.05, intercept? true}})</code></li>
+</ul>
+<p>Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.</p>
+<p>Arguments:</p>
+<ul>
+<li><code>ys</code> - response vector</li>
+<li><code>xss</code> - terms of systematic component</li>
+<li>optional parameters</li>
+</ul>
+<p>Parameters:</p>
+<ul>
+<li><code>:tol</code> - tolerance for matrix decomposition (SVD and Cholesky), default: <code>1.0e-8</code></li>
+<li><code>:weights</code> - optional weights for WLS</li>
+<li><code>:offset</code> - optional offset</li>
+<li><code>:alpha</code> - significance level, default: <code>0.05</code></li>
+<li><code>:intercept?</code> - should intercept term be included, default: <code>true</code></li>
+<li><code>:transformer</code> - an optional function which will be used to transform systematic component <code>xs</code> before fitting and prediction</li>
+<li><code>:names</code> - sequence or string, used as name for coefficient when pretty-printing model, default <code>'X'</code></li>
+</ul>
+<p>Notes:</p>
+<ul>
+<li>SVD decomposition is used instead of more common QR</li>
+<li>intercept term is added implicitely if <code>intercept?</code> is set to <code>true</code> (by default)</li>
+<li>Two variants of AIC/BIC are calculated, one based on log-likelihood, second on RSS/n</li>
+</ul>
+<p>Returned record implementes <code>IFn</code> protocol and contains:</p>
+<ul>
+<li><code>:model</code> - <code>:ols</code> or <code>:wls</code></li>
+<li><code>:intercept?</code> - whether intercept term is included or not</li>
+<li><code>:xtxinv</code> - (X^T X)^-1</li>
+<li><code>:intercept</code> - intercept term value</li>
+<li><code>:beta</code> - vector of model coefficients (without intercept)</li>
+<li><code>:coefficients</code> - coefficient analysis, a list of maps containing <code>:estimate</code>, <code>:stderr</code>, <code>:t-value</code>, <code>:p-value</code> and <code>:confidence-interval</code></li>
+<li><code>:weights</code> - initial weights</li>
+<li><code>:residuals</code> - a map containing <code>:raw</code> and <code>:weighted</code> residuals</li>
+<li><code>:fitted</code> - fitted values for xss</li>
+<li><code>:df</code> - degrees of freedom: <code>:residual</code>, <code>:model</code> and <code>:intercept</code></li>
+<li><code>:observations</code> - number of observations</li>
+<li><code>:r-squared</code> and <code>:adjusted-r-squared</code></li>
+<li><code>:sigma</code> and <code>:sigma2</code> - deviance and variance</li>
+<li><code>:msreg</code> - regression mean squared</li>
+<li><code>:rss</code>, <code>:regss</code>, <code>:tss</code> - residual, regression and total sum of squares</li>
+<li><code>:qt</code> - (1-alpha/2) quantile of T distribution for residual degrees of freedom</li>
+<li><code>:f-statistic</code> and <code>:p-value</code> - F statistic and respective p-value</li>
+<li><code>:ll</code> - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS</li>
+<li><code>:analysis</code> - laverage, residual and influence analysis - a delay</li>
+</ul>
+<p>Analysis, delay containing a map:</p>
+<ul>
+<li><code>:residuals</code> - <code>:standardized</code> and <code>:studentized</code> weighted residuals</li>
+<li><code>:laverage</code> - <code>:hat</code>, <code>:sigmas</code> and laveraged <code>:coefficients</code> (leave-one-out)</li>
+<li><code>:influence</code> - <code>:cooks-distance</code>, <code>:dffits</code>, <code>:dfbetas</code> and <code>:covratio</code></li>
+<li><code>:influential</code> - list of influential observations (ids) for influence measures</li>
+<li><code>:correlation</code> - correlation matrix of estimated parameters</li>
+<li><code>:normality</code> - residuals normality tests: <code>:skewness</code>, <code>:kurtosis</code>, <code>:durbin-watson</code> (for raw and weighted), <code>:jarque-berra</code> and <code>:omnibus</code> (normality)</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L276">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-map->Family"></span>
+</section>
+<section id="map-family" class="level4">
+<h4 class="anchored" data-anchor-id="map-family">map-&gt;Family</h4>
+<ul>
+<li><code>(map-&gt;Family m__7997__auto__)</code></li>
+</ul>
+<p>Factory function for class fastmath.ml.regression.Family, taking a map of keywords to field values.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L711">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-map->GLMData"></span>
+</section>
+<section id="map-glmdata" class="level4">
+<h4 class="anchored" data-anchor-id="map-glmdata">map-&gt;GLMData</h4>
+<ul>
+<li><code>(map-&gt;GLMData m__7997__auto__)</code></li>
+</ul>
+<p>Factory function for class fastmath.ml.regression.GLMData, taking a map of keywords to field values.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L851">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-map->LMData"></span>
+</section>
+<section id="map-lmdata" class="level4">
+<h4 class="anchored" data-anchor-id="map-lmdata">map-&gt;LMData</h4>
+<ul>
+<li><code>(map-&gt;LMData m__7997__auto__)</code></li>
+</ul>
+<p>Factory function for class fastmath.ml.regression.LMData, taking a map of keywords to field values.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L41">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-map->Link"></span>
+</section>
+<section id="map-link" class="level4">
+<h4 class="anchored" data-anchor-id="map-link">map-&gt;Link</h4>
+<ul>
+<li><code>(map-&gt;Link m__7997__auto__)</code></li>
+</ul>
+<p>Factory function for class fastmath.ml.regression.Link, taking a map of keywords to field values.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L457">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-predict"></span>
+</section>
+<section id="predict" class="level4">
+<h4 class="anchored" data-anchor-id="predict">predict</h4>
+<ul>
+<li><code>(predict model xs)</code></li>
+<li><code>(predict model xs stderr?)</code></li>
+</ul>
+<p>Predict from the given model and data point.</p>
+<p>If <code>stderr?</code> is true, standard error and confidence interval is added. If model is fitted with offset, first element of data point should contain provided offset.</p>
+<p>Expected data point:</p>
+<ul>
+<li><code>[x1,x2,...,xn]</code> - when model was trained without offset</li>
+<li><code>[offset,x1,x2,...,xn]</code> - when offset was used for training</li>
+<li><code>[]</code> or <code>nil</code> - when model was trained with intercept only</li>
+<li><code>[offset]</code> - when model was trained with intercept and offset</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L26">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-quantile-residuals"></span>
+</section>
+<section id="quantile-residuals" class="level4">
+<h4 class="anchored" data-anchor-id="quantile-residuals">quantile-residuals</h4>
+<ul>
+<li><code>(quantile-residuals {:keys [quantile-residuals-fun residuals dispersion], :as model})</code></li>
+</ul>
+<p>Quantile residuals for a model, possibly randomized.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1234">source</a></small><hr style="margin: 0"></div>
+</section>
+</section>
+<section id="fastmath.ml.clustering" class="level3">
+<h3 class="anchored" data-anchor-id="fastmath.ml.clustering">fastmath.ml.clustering</h3>
+<span id="#LOS-dbscan"></span>
+<section id="dbscan" class="level4">
+<h4 class="anchored" data-anchor-id="dbscan">dbscan</h4>
+<ul>
+<li><code>(dbscan xss)</code></li>
+<li><code>(dbscan xss {:keys [eps points distance add-data?], :or {distance :euclidean, add-data? true}})</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/clustering.clj#L85">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fuzzy-kmeans"></span>
+</section>
+<section id="fuzzy-kmeans" class="level4">
+<h4 class="anchored" data-anchor-id="fuzzy-kmeans">fuzzy-kmeans</h4>
+<ul>
+<li><code>(fuzzy-kmeans xss)</code></li>
+<li><code>(fuzzy-kmeans xss {:keys [clusters fuzziness max-iters distance epsilon rng add-data?], :or {clusters 1, fuzziness 2, max-iters -1, distance :euclidean, epsilon 0.001, rng (r/rng :default), add-data? true}})</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/clustering.clj#L65">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-infer-dbscan-radius"></span>
+</section>
+<section id="infer-dbscan-radius" class="level4">
+<h4 class="anchored" data-anchor-id="infer-dbscan-radius">infer-dbscan-radius</h4>
+<ul>
+<li><code>(infer-dbscan-radius xss dist)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/clustering.clj#L74">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-kmeans++"></span>
+</section>
+<section id="kmeans" class="level4">
+<h4 class="anchored" data-anchor-id="kmeans">kmeans++</h4>
+<ul>
+<li><code>(kmeans++ xss)</code></li>
+<li><code>(kmeans++ xss {:keys [clusters max-iters distance rng empty-cluster-strategy trials add-data?], :or {clusters 1, max-iters -1, distance :euclidean, empty-cluster-strategy :largest-variance, trials 1, rng (r/rng :default), add-data? true}})</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/clustering.clj#L52">source</a></small><hr style="margin: 0"></div>
+<div style="background-color:grey;height:2px;width:100%;"></div>
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/ml.clj">clay/ml.clj</a></small></small></pre></div>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./transform.html" class="pagination-link" aria-label="Transforms">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Transforms</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./complex_quaternions.html" class="pagination-link" aria-label="Complex numbers and quaternions">
+        <span class="nav-page-text">Complex numbers and quaternions</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

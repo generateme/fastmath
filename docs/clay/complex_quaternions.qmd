@@ -1,0 +1,2387 @@
+
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: complex_quaternions.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="complex_quaternions_files/md-default0.js" type="text/javascript"></script><script src="complex_quaternions_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns complex-quaternions
+  (:require [fastmath.complex :as cplx]
+            [fastmath.quaternion :as quat]
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# Complex numbers and quaternions {.unnumbered}
+
+
+## Complex numbers
+
+
+### Reference
+
+#### fastmath.complex
+
+Complex numbers functions.
+
+  Complex number is represented as `Vec2` type (from [clojure2d.math.vector](#LOS-clojure2d.math.vector) namespace).
+
+  To create complex number use [complex](#LOS-complex), [vec2](#LOS-vec2) or [->Vec2](#LOS-->Vec2).
+
+  Implementation checks for ##Inf, ##NaN and some of the function distinguish +0.0 and -0.0
+
+
+```{=html}
+<span id="#LOS--I"></span>
+```
+
+
+##### -I
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L24">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-I"></span>
+```
+
+
+##### I
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L22">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-I-"></span>
+```
+
+
+##### I-
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L23">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ONE"></span>
+```
+
+
+##### ONE
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L25">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-TWO"></span>
+```
+
+
+##### TWO
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L26">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ZERO"></span>
+```
+
+
+##### ZERO
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L27">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-abs"></span>
+```
+
+
+##### abs
+
++ `(abs z)`
+
+Absolute value, magnitude
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L65">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acos"></span>
+```
+
+
+##### acos
+
++ `(acos z)`
+
+acos
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L527">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acosh"></span>
+```
+
+
+##### acosh
+
++ `(acosh z)`
+
+acosh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L675">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acot"></span>
+```
+
+
+##### acot
+
++ `(acot z)`
+
+acot
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L627">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acoth"></span>
+```
+
+
+##### acoth
+
++ `(acoth z)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L794">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acsc"></span>
+```
+
+
+##### acsc
+
++ `(acsc z)`
+
+acsc
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L600">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acsch"></span>
+```
+
+
+##### acsch
+
++ `(acsch z)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L761">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-add"></span>
+```
+
+
+##### add
+
++ `(add z1 z2)`
+
+Sum of two complex numbers
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L84">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-arg"></span>
+```
+
+
+##### arg
+
++ `(arg z)`
+
+Argument (angle) of the complex number
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L79">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asec"></span>
+```
+
+
+##### asec
+
++ `(asec z)`
+
+asec
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L574">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asech"></span>
+```
+
+
+##### asech
+
++ `(asech z)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L727">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asin"></span>
+```
+
+
+##### asin
+
++ `(asin z)`
+
+asin
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L506">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asinh"></span>
+```
+
+
+##### asinh
+
++ `(asinh z)`
+
+asinh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L652">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-atan"></span>
+```
+
+
+##### atan
+
++ `(atan z)`
+
+atan
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L547">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-atanh"></span>
+```
+
+
+##### atanh
+
++ `(atanh z)`
+
+atanh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L701">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex"></span>
+```
+
+
+##### complex
+
++ `(complex a b)`
++ `(complex a)`
++ `(complex)`
+
+Create complex number. Represented as `Vec2`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L29">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-conjugate"></span>
+```
+
+
+##### conjugate
+
++ `(conjugate z)`
+
+Complex conjugate. $\bar{z}$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L123">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cos"></span>
+```
+
+
+##### cos
+
++ `(cos z)`
+
+cos
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L356">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cosh"></span>
+```
+
+
+##### cosh
+
++ `(cosh z)`
+
+cosh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L437">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cot"></span>
+```
+
+
+##### cot
+
++ `(cot z)`
+
+csc
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L410">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-coth"></span>
+```
+
+
+##### coth
+
++ `(coth z)`
+
+coth
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L490">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-csc"></span>
+```
+
+
+##### csc
+
++ `(csc z)`
+
+csc
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L396">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-csch"></span>
+```
+
+
+##### csch
+
++ `(csch z)`
+
+csch
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L476">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-csgn"></span>
+```
+
+
+##### csgn
+
++ `(csgn re im)`
++ `(csgn z)`
+
+Complex sgn.
+
+  Returns `0` for `0+0i` or calls `m/sgn` on real part otherwise.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-delta-eq"></span>
+```
+
+
+##### delta-eq
+
++ `(delta-eq q1 q2)`
++ `(delta-eq q1 q2 accuracy)`
+
+Compare complex numbers with given accuracy (10e-6 by default)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-div"></span>
+```
+
+
+##### div
+
++ `(div z1 z2)`
+
+Divide two complex numbers.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L128">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-exp"></span>
+```
+
+
+##### exp
+
++ `(exp z)`
+
+exp
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L180">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-flip"></span>
+```
+
+
+##### flip
+
++ `(flip z)`
+
+Exchange imaginary and real parts
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-im"></span>
+```
+
+
+##### im
+
++ `(im z)`
+
+Imaginary part
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L36">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-imaginary?"></span>
+```
+
+
+##### imaginary?
+
++ `(imaginary? z)`
+
+Is z is a pure imaginary number?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L39">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-inf?"></span>
+```
+
+
+##### inf?
+
++ `(inf? z)`
+
+Is infinite?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L41">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-log"></span>
+```
+
+
+##### log
+
++ `(log z)`
+
+log, principal value
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L194">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-logb"></span>
+```
+
+
+##### logb
+
++ `(logb z b)`
+
+log with base b
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L210">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mult"></span>
+```
+
+
+##### mult
+
++ `(mult z1 z2)`
+
+Multiply two complex numbers.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mult-I"></span>
+```
+
+
+##### mult-I
+
++ `(mult-I z)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L112">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mult-I-"></span>
+```
+
+
+##### mult-I-
+
++ `(mult-I- z)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-nan?"></span>
+```
+
+
+##### nan?
+
++ `(nan? z)`
+
+Is NaN?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L43">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-neg"></span>
+```
+
+
+##### neg
+
++ `(neg z)`
+
+Negate complex number. $-z$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-norm"></span>
+```
+
+
+##### norm
+
++ `(norm z)`
+
+Norm (Guass) of the complex number, absolute value squared
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L72">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-pow"></span>
+```
+
+
+##### pow
+
++ `(pow z1 z2)`
+
+Power. $z_1^{z_2}$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L315">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-re"></span>
+```
+
+
+##### re
+
++ `(re z)`
+
+Real part
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L35">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-real?"></span>
+```
+
+
+##### real?
+
++ `(real? z)`
+
+Is z is a real number?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L38">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-reciprocal"></span>
+```
+
+
+##### reciprocal
+
++ `(reciprocal z)`
+
+$\frac{1}{z}$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L139">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scale"></span>
+```
+
+
+##### scale
+
++ `(scale z v)`
+
+Multiply by real number
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L96">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sec"></span>
+```
+
+
+##### sec
+
++ `(sec z)`
+
+sec
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L382">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sech"></span>
+```
+
+
+##### sech
+
++ `(sech z)`
+
+sech
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L462">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sin"></span>
+```
+
+
+##### sin
+
++ `(sin z)`
+
+sin
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L345">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sinh"></span>
+```
+
+
+##### sinh
+
++ `(sinh z)`
+
+sinh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L426">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sq"></span>
+```
+
+
+##### sq
+
++ `(sq z)`
+
+Square complex number. $z^2$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L115">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sqrt"></span>
+```
+
+
+##### sqrt
+
++ `(sqrt z)`
+
+Sqrt of complex number. $\sqrt{z}$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L158">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sqrt1z"></span>
+```
+
+
+##### sqrt1z
+
++ `(sqrt1z z)`
+
+$\sqrt{1-z^2}$
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L170">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sub"></span>
+```
+
+
+##### sub
+
++ `(sub z1 z2)`
+
+Difference of two complex numbers
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L90">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-tan"></span>
+```
+
+
+##### tan
+
++ `(tan z)`
+
+tan
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L368">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-tanh"></span>
+```
+
+
+##### tanh
+
++ `(tanh z)`
+
+tanh
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-zero?"></span>
+```
+
+
+##### zero?
+
++ `(zero? z)`
+
+Is zero?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L40">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+## Quaternions {.unnumbered}
+
+
+### Reference
+
+#### fastmath.quaternion
+
+
+
+
+
+```{=html}
+<span id="#LOS--I"></span>
+```
+
+
+##### -I
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L20">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS--J"></span>
+```
+
+
+##### -J
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L21">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS--K"></span>
+```
+
+
+##### -K
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L22">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-I"></span>
+```
+
+
+##### I
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L17">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-J"></span>
+```
+
+
+##### J
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L18">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-K"></span>
+```
+
+
+##### K
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L19">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ONE"></span>
+```
+
+
+##### ONE
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L16">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ZERO"></span>
+```
+
+
+##### ZERO
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L15">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acos"></span>
+```
+
+
+##### acos
+
++ `(acos q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L351">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acosh"></span>
+```
+
+
+##### acosh
+
++ `(acosh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L357">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acot"></span>
+```
+
+
+##### acot
+
++ `(acot q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L355">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acoth"></span>
+```
+
+
+##### acoth
+
++ `(acoth q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L361">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acsc"></span>
+```
+
+
+##### acsc
+
++ `(acsc q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L354">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acsch"></span>
+```
+
+
+##### acsch
+
++ `(acsch q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L360">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-add"></span>
+```
+
+
+##### add
+
++ `(add q1 q2)`
+
+Sum of two quaternions
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L85">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-arg"></span>
+```
+
+
+##### arg
+
++ `(arg quaternion)`
+
+Argument of quaternion, atan2(|vector(q)|, re(q))
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asec"></span>
+```
+
+
+##### asec
+
++ `(asec q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L353">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asech"></span>
+```
+
+
+##### asech
+
++ `(asech q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L359">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asin"></span>
+```
+
+
+##### asin
+
++ `(asin q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L350">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-asinh"></span>
+```
+
+
+##### asinh
+
++ `(asinh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L356">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-atan"></span>
+```
+
+
+##### atan
+
++ `(atan q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L352">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-atanh"></span>
+```
+
+
+##### atanh
+
++ `(atanh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L358">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex-&gt;quaternion"></span>
+```
+
+
+##### complex->quaternion
+
++ `(complex->quaternion z)`
+
+Create quaternion from complex number
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-conjugate"></span>
+```
+
+
+##### conjugate
+
++ `(conjugate quaternion)`
+
+Returns conjugate of quaternion
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cos"></span>
+```
+
+
+##### cos
+
++ `(cos q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L339">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cosh"></span>
+```
+
+
+##### cosh
+
++ `(cosh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L345">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cot"></span>
+```
+
+
+##### cot
+
++ `(cot q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L343">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-coth"></span>
+```
+
+
+##### coth
+
++ `(coth q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-csc"></span>
+```
+
+
+##### csc
+
++ `(csc q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L342">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-csch"></span>
+```
+
+
+##### csch
+
++ `(csch q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L348">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-delta-eq"></span>
+```
+
+
+##### delta-eq
+
++ `(delta-eq q1 q2)`
++ `(delta-eq q1 q2 accuracy)`
+
+Compare quaternions with given accuracy (10e-6 by default)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-div"></span>
+```
+
+
+##### div
+
++ `(div q1 q2)`
+
+Divide two quaternions
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L130">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-exp"></span>
+```
+
+
+##### exp
+
++ `(exp q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L185">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-from-angles"></span>
+```
+
+
+##### from-angles
+
++ `(from-angles [x y z])`
++ `(from-angles x y z)`
+
+Convert Tait–Bryan angles z-y′-x" to quaternion.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L286">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-from-euler"></span>
+```
+
+
+##### from-euler
+
++ `(from-euler [roll pitch yaw])`
++ `(from-euler roll pitch yaw)`
+
+Convert Euler ZYX (body 3-2-1) representation to quaternion
+
+  Input should be 3d vector contating roll (x), pitch (y) and yaw (z) angles, or individual values.
+
+  * roll and yaw should be from `[-pi, pi]` range
+  * pitch should be from `[-pi/2, pi/2]` range
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L244">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-from-rotation-matrix"></span>
+```
+
+
+##### from-rotation-matrix
+
++ `(from-rotation-matrix m)`
+
+Convert rotation 3x3 matrix to a quaternion
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L317">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-im-i"></span>
+```
+
+
+##### im-i
+
++ `(im-i quaternion)`
+
+Return i imaginary part
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-im-j"></span>
+```
+
+
+##### im-j
+
++ `(im-j quaternion)`
+
+Return j imaginary part
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L50">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-im-k"></span>
+```
+
+
+##### im-k
+
++ `(im-k quaternion)`
+
+Return k imaginary part
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L51">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-imaginary?"></span>
+```
+
+
+##### imaginary?
+
++ `(imaginary? quaternion)`
+
+Is q is a pure imaginary number?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L54">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-inf?"></span>
+```
+
+
+##### inf?
+
++ `(inf? quaternion)`
+
+Is infinitive?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L56">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-log"></span>
+```
+
+
+##### log
+
++ `(log q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L186">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-logb"></span>
+```
+
+
+##### logb
+
++ `(logb quaternion b)`
+
+log with base b
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L188">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mult"></span>
+```
+
+
+##### mult
+
++ `(mult q1 q2)`
+
+Multiply two quaternions.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-nan?"></span>
+```
+
+
+##### nan?
+
++ `(nan? quaternion)`
+
+Is NaN?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L60">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-neg"></span>
+```
+
+
+##### neg
+
++ `(neg quaternion)`
+
+Negation of quaternion.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L135">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-norm"></span>
+```
+
+
+##### norm
+
++ `(norm quaternion)`
+
+Norm of the quaternion, length of the vector
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-normalize"></span>
+```
+
+
+##### normalize
+
++ `(normalize quaternion)`
+
+Normalize quaternion
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L81">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-pow"></span>
+```
+
+
+##### pow
+
++ `(pow q p)`
+
+Quaternion power
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L193">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-qsgn"></span>
+```
+
+
+##### qsgn
+
++ `(qsgn re im-i im-j im-k)`
++ `(qsgn q)`
+
+sgn of the quaternion.
+
+  Returns `0` for `0+0i+0j+0k` or calls `m/sgn` on real part otherwise.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L152">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-quaternion"></span>
+```
+
+
+##### quaternion
+
++ `(quaternion a b c d)`
++ `(quaternion scalar [i j k])`
++ `(quaternion a)`
+
+Create quaternion from individual values or scalar and vector parts, reprezented as `Vec4`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L24">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-re"></span>
+```
+
+
+##### re
+
++ `(re quaternion)`
+
+Returns scalar part of quaternion
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L39">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-real?"></span>
+```
+
+
+##### real?
+
++ `(real? quaternion)`
+
+Is q is a real number?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L53">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-reciprocal"></span>
+```
+
+
+##### reciprocal
+
++ `(reciprocal quaternion)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L105">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-rotate"></span>
+```
+
+
+##### rotate
+
++ `(rotate in rotq)`
++ `(rotate in angle u)`
+
+Rotate 3d `in` vector around axis `u`, the same as `fastmath.vector/axis-rotate`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L205">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-rotation-quaternion"></span>
+```
+
+
+##### rotation-quaternion
+
++ `(rotation-quaternion angle u)`
+
+Create rotation quaternion around vector u and angle alpha
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L198">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scalar"></span>
+```
+
+
+##### scalar
+
++ `(scalar quaternion)`
+
+Returns scalar part of quaternion, double
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scale"></span>
+```
+
+
+##### scale
+
++ `(scale quaternion scale)`
+
+Scale the quaternion
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L93">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sec"></span>
+```
+
+
+##### sec
+
++ `(sec q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L341">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sech"></span>
+```
+
+
+##### sech
+
++ `(sech q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L347">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sin"></span>
+```
+
+
+##### sin
+
++ `(sin q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L338">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sinh"></span>
+```
+
+
+##### sinh
+
++ `(sinh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L344">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-slerp"></span>
+```
+
+
+##### slerp
+
++ `(slerp q1 q2 t)`
+
+Interpolate quaternions
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sq"></span>
+```
+
+
+##### sq
+
++ `(sq quaternion)`
+
+Square of quaternion.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sqrt"></span>
+```
+
+
+##### sqrt
+
++ `(sqrt q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L184">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sub"></span>
+```
+
+
+##### sub
+
++ `(sub q1 q2)`
+
+Difference of two quaternions
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L89">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-tan"></span>
+```
+
+
+##### tan
+
++ `(tan q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L340">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-tanh"></span>
+```
+
+
+##### tanh
+
++ `(tanh q)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L346">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-to-angles"></span>
+```
+
+
+##### to-angles
+
++ `(to-angles q)`
+
+Convert quaternion to Tait–Bryan angles, z-y′-x".
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L269">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-to-euler"></span>
+```
+
+
+##### to-euler
+
++ `(to-euler q)`
+
+Convert quaternion to Euler ZYX (body 3-2-1). Quaternion will be normalized before calculations.
+
+  Output will contain roll (x), pitch (y) and yaw (z) angles.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L226">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-to-rotation-matrix"></span>
+```
+
+
+##### to-rotation-matrix
+
++ `(to-rotation-matrix q)`
+
+Convert quaternion to rotation 3x3 matrix
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L304">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-vector"></span>
+```
+
+
+##### vector
+
++ `(vector quaternion)`
+
+Returns vector part of quaternion, `Vec3` type
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L43">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-zero?"></span>
+```
+
+
+##### zero?
+
++ `(zero? quaternion)`
+
+Is zero?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L55">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/complex_quaternions.clj">clay/complex_quaternions.clj</a></small></small></pre></div>
+```
