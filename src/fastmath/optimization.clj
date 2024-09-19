@@ -357,7 +357,7 @@
         N (int N)
         N (max (m/fpow 3 dim) N)
         n (double n)
-        nbest (max 10 (long (if (> n 1.0) n (m/floor (* n N)))))
+        nbest (max 1 (long (if (> n 1.0) n (m/floor (* n N)))))
         gen (r/jittered-sequence-generator (if (< dim 15) :r2 :sobol) dim jitter)]
     (->> (take N (if (and (not= method :brent)
                           (m/one? dim)) (map vector gen) gen))
@@ -374,16 +374,17 @@
 
   * N - number of total grid points
   * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
-  [optimizer-fn goal method f {:keys [bounds ^int N ^double n ^double jitter]
-                               :or {N 100 n 0.05 jitter 0.25}
+  [optimizer-fn goal method f {:keys [bounds ^int N ^double n ^double jitter parallel?]
+                               :or {N 100 n 0.05 jitter 0.25 parallel? true}
                                :as config}]
   (assert (not (nil? bounds)) "Provide search bounds.")
   (let [goal (or goal (get config :goal :minimize))
         samples (generate-points method f bounds goal N n jitter)
         opt (repeatedly (count samples) #(optimizer-fn method f config))
         ^int tk (get config :take 1)
-        taker (if (> tk 1) (partial take tk) first)]
-    (->> (pmap #(%1 %2) opt samples)
+        taker (if (> tk 1) (partial take tk) first)
+        mapper (if parallel? pmap map)]
+    (->> (mapper #(%1 %2) opt samples)
          (sort-by second (goal-comparator goal))
          (taker))))
 
@@ -465,7 +466,7 @@
   * `:bounds` - bounds for each dimension
   * `:utility-function-type` - one of `:ei`, `:poi` or `:ucb`
   * `:utility-param` - parameter for utility function (kappa for `ucb` and xi for `ei` and `poi`)
-  * `:kernel` - kernel, default `:mattern-52`, see [[fastmath.kernel]]
+  * `:kernel` - kernel, default `:matern-52`, see [[fastmath.kernel]]
   * `:kscale` - scaling factor for kernel
   * `:jitter` - jitter factor for sequence generator (used to find initial points)
   * `:noise` - noise (lambda) factor for gaussian process
@@ -484,7 +485,7 @@
   * `:util-best` - best x in utility function"
   [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?]
       :or {kscale 1.0
-           kernel (k/kernel :mattern-52)
+           kernel :matern-52
            warm-up (* ^int (count bounds) 1000)
            init-points 3
            utility-function-type :ucb
@@ -492,7 +493,8 @@
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
+  (let [kernel (if (keyword? kernel) (k/kernel kernel) kernel)
+        optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))

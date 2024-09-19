@@ -40,8 +40,8 @@
 (declare predict)
 (declare predict-all)
 
-(deftype GaussianProcess [^double kscale kernel ^double noise xss ys ^double ymean ^double ystddev
-                          chol w ^long n ^double L]
+(defrecord GaussianProcess [^double kscale kernel ^double noise xss ys ^double ymean ^double ystddev
+                            chol w ^long n ^double L]
   IFn
   (invoke [this xs]
     (if (and (sequential? xs)

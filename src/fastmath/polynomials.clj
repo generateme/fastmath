@@ -790,6 +790,7 @@
 
 (defn- ince-ev
   ^doubles [^RealMatrix m ^long order]
+  (println m)
   (let [ed (EigenDecomposition. m)
         ;; be sure the order of eigenvalues is increasing
         ro (long (nth (m/order (.getRealEigenvalues ed)) order))]
@@ -924,6 +925,8 @@
   `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
   ([^long p ^long m ^double e] (ince-C p m e :none))
   ([^long p ^long m ^double e normalization]
+   (println [p m e normalization])
+
    (assert (m/even? (m/- p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-C-coeffs p m e normalization)
          s (alength coeffs)]
@@ -950,11 +953,11 @@
 (defn- ince-cosh-even ^double [^long r ^double x] (m/cosh (m/* 2.0 r x)))
 (defn- ince-cosh-odd ^double [^long r ^double x] (m/cosh (m/* (m/inc (m/* 2.0 r)) x)))
 
-(defn ince-radial-C
+(defn ince-C-radial
   "Ince C polynomial of order p and degree m.
 
   `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
-  ([^long p ^long m ^double e] (ince-radial-C p m e :none))
+  ([^long p ^long m ^double e] (ince-C-radial p m e :none))
   ([^long p ^long m ^double e normalization]
    (assert (m/even? (m/- p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-C-coeffs p m e normalization)
@@ -966,11 +969,11 @@
 (defn- ince-sinh-even ^double [^long r ^double x] (m/sinh (m/* 2.0 (m/inc r) x)))
 (defn- ince-sinh-odd ^double [^long r ^double x] (m/sinh (m/* (m/inc (m/* 2.0 r)) x)))
 
-(defn ince-radial-S
+(defn ince-S-radial
   "Ince S polynomial of order p and degree m.
 
   `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
-  ([^long p ^long m ^double e] (ince-radial-S p m e :none))
+  ([^long p ^long m ^double e] (ince-S-radial p m e :none))
   ([^long p ^long m ^double e normalization]
    (assert (m/even? (m/- p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-S-coeffs p m e normalization)

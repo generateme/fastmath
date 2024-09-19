@@ -1270,7 +1270,7 @@
       :p p
       :stderr ##Inf})))
 
-(defn- residuals-analysis
+(defn- residuals-quantiles
   "Summary statistics used for printing residuals with model"
   [residuals]
   [{:min (apply min residuals)
@@ -1282,51 +1282,49 @@
 ;; Model printing methods
 (defmulti ->string class)
 
-(defmethod ->string LMData [{:keys [model weights names coefficients residuals
+(defmethod ->string LMData [{:keys [model names coefficients residuals
                                     r-squared adjusted-r-squared f-statistic
                                     p-value df sigma ll]}]
-  (let [weights? (some (fn [x] (not (= 1.0 x))) weights)
-        residuals-label (str (when weights? "Weighted ") "Residuals:")]
-    (with-out-str
-      (println residuals-label) ;; Print residuals
-      (-> (residuals-analysis (:weighted residuals))
-          pprint/print-table)
-      (println)
-      (println "Coefficients:")
-      (->> coefficients
-           (map-indexed #(assoc %2 :name (nth names %1)))
-           pprint/print-table)
-      (println)
-      (println (str "F-statistic: " f-statistic " on degrees of freedom: " df))
-      (println (str "p-value: " p-value))
-      (println)
-      (println (str "R2: " r-squared))
-      (println (str "Adjusted R2: " adjusted-r-squared))
-      (println (str "Residual standard error: " sigma " on " (:residual df) " degrees of freedom"))
-      (println (str "AIC: " (:aic ll))))))
+  (with-out-str
+    (println (str (when (= model :wls) "Weighted ") "Residuals:")) ;; Print residuals
+    (-> (residuals-quantiles (:weighted residuals))
+        pprint/print-table)
+    (println)
+    (println "Coefficients:")
+    (->> coefficients
+         (map-indexed #(assoc %2 :name (nth names %1)))
+         pprint/print-table)
+    (println)
+    (println (str "F-statistic: " f-statistic " on degrees of freedom: " df))
+    (println (str "p-value: " p-value))
+    (println)
+    (println (str "R2: " r-squared))
+    (println (str "Adjusted R2: " adjusted-r-squared))
+    (println (str "Residual standard error: " sigma " on " (:residual df) " degrees of freedom"))
+    (println (str "AIC: " (:aic ll)))))
 
-(defmethod ->string GLMData [{:keys [model weights residuals coefficients family link dispersion iters
+(defmethod ->string GLMData [{:keys [residuals coefficients family link dispersion iters
                                      converged? ll deviance df names]}]
-  (let [weights? (some (fn [x] (not (= 1.0 x))) (:weights weights))
-        residuals-label (str (when weights? "Weighted ") "Deviance Residuals:")]
-    (with-out-str
-      (println residuals-label)
-      (-> (residuals-analysis (:deviance residuals))
-          pprint/print-table)
-      (println)
-      (println "Coefficients:")
-      (->> coefficients
-           (map-indexed #(assoc %2 :name (nth names %1)))
-           pprint/print-table)
-      (println)
-      (println "Null deviance: " (:null deviance) " on " (:null df) " degrees of freedom")
-      (println "Residual deviance: " (:residual deviance) " on " (:residual df) " degrees of freedom")
-      (println (str "AIC: " (:aic ll)))
-      (println)
-      (println (str "Family: " family ", Link: " link))
-      (println (str "Fisher Scoring Iterations: " iters)))))
+  (with-out-str
+    (println "Deviance Residuals:")
+    (-> (residuals-quantiles (:deviance residuals))
+        pprint/print-table)
+    (println)
+    (println "Coefficients:")
+    (->> coefficients
+         (map-indexed #(assoc %2 :name (nth names %1)))
+         pprint/print-table)
+    (println)
+    (println "Dispersion: " dispersion)
+    (println)
+    (println "Null deviance: " (:null deviance) " on " (:null df) " degrees of freedom")
+    (println "Residual deviance: " (:residual deviance) " on " (:residual df) " degrees of freedom")
+    (println (str "AIC: " (:aic ll)))
+    (println)
+    (println (str "Family: " family ", Link: " link))
+    (println (str "Fisher Scoring Iterations (converged? " (if converged? "yes" "no") "): " iters))))
 
-(defmethod print-method LMData [data w]
-  (.write w (->string data)))
-(defmethod print-method GLMData [data w]
-  (.write w (->string data)))
+(defmethod print-method LMData [data ^java.io.Writer w]
+  (.write w (str (->string data))))
+(defmethod print-method GLMData [data  ^java.io.Writer w]
+  (.write w (str (->string data))))
