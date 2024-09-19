@@ -790,7 +790,6 @@
 
 (defn- ince-ev
   ^doubles [^RealMatrix m ^long order]
-  (println m)
   (let [ed (EigenDecomposition. m)
         ;; be sure the order of eigenvalues is increasing
         ro (long (nth (m/order (.getRealEigenvalues ed)) order))]
@@ -925,8 +924,6 @@
   `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
   ([^long p ^long m ^double e] (ince-C p m e :none))
   ([^long p ^long m ^double e normalization]
-   (println [p m e normalization])
-
    (assert (m/even? (m/- p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-C-coeffs p m e normalization)
          s (alength coeffs)]

@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0-SNAPSHOT]
+## [3.0.0 (alpha)]
 
 First release without SMILE dependency.
 Also a lot of refactoring [breaking] was done.
@@ -23,6 +23,7 @@ Also a lot of refactoring [breaking] was done.
 * `fastmath.ml.clustering` - (fuzzy) kmeans++ and dbscan clustering algorithms
 * `dissimilarity` and `similarity` can accept data for histograms
 * `bessel-j0`, `bessel-j1`, `bessel-j`, `bessel-i0`, `bessel-i1`, `bessel-i`, `bessel-y0`, `bessel-y1`, `bessel-y`, `bessel-k0`, `bessel-k1`, `bessel-k` add to `fastmath.special`
+* `ince-C` and `ince-S` (with radial versions) polynomials
 
 ### Changed
 
