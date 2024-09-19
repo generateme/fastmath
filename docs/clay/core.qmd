@@ -10,7 +10,6 @@ format:
     reference-location: margin
     fontsize: 0.9em
     output-file: core.html
-fontsize: 0.9em
 code-block-background: true
 
 ---
@@ -19,6 +18,8 @@ code-block-background: true
   border-style: none;
 }
 </style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
 </style>
 <script src="core_files/md-default15.js" type="text/javascript"></script><script src="core_files/md-default16.js" type="text/javascript"></script>
 
@@ -233,7 +234,7 @@ Increment and decrement
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="core_files/0.png" /></td><td><img class="clay-image" src="core_files/1.png" /></td></tr><tr><td><img class="clay-image" src="core_files/2.png" /></td><td><img class="clay-image" src="core_files/3.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/0.png" /></td><td><img class="clay-image" src="core_files/1.png" /></td></tr><tr><td><img class="clay-image" src="core_files/2.png" /></td><td><img class="clay-image" src="core_files/3.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -309,7 +310,7 @@ The following plots show value of the smooth max for different $\alpha$ and set 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="core_files/4.png" /></td><td><img class="clay-image" src="core_files/5.png" /></td></tr><tr><td><img class="clay-image" src="core_files/6.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/4.png" /></td><td><img class="clay-image" src="core_files/5.png" /></td></tr><tr><td><img class="clay-image" src="core_files/6.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -320,7 +321,7 @@ The following plots are defined only for positive $\alpha$.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="core_files/7.png" /></td><td><img class="clay-image" src="core_files/8.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/7.png" /></td><td><img class="clay-image" src="core_files/8.png" /></td></tr></tbody></table>
 ```
 
 :::
@@ -425,7 +426,7 @@ Various rounding functions.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive"><tbody><tr><td><img class="clay-image" src="core_files/9.png" /></td><td><img class="clay-image" src="core_files/10.png" /></td></tr><tr><td><img class="clay-image" src="core_files/11.png" /></td><td><img class="clay-image" src="core_files/12.png" /></td></tr><tr><td><img class="clay-image" src="core_files/13.png" /></td><td><img class="clay-image" src="core_files/14.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/9.png" /></td><td><img class="clay-image" src="core_files/10.png" /></td></tr><tr><td><img class="clay-image" src="core_files/11.png" /></td><td><img class="clay-image" src="core_files/12.png" /></td></tr><tr><td><img class="clay-image" src="core_files/13.png" /></td><td><img class="clay-image" src="core_files/14.png" /></td></tr></tbody></table>
 ```
 
 :::

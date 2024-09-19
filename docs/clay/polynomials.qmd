@@ -1,0 +1,992 @@
+
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: polynomials.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="polynomials_files/md-default0.js" type="text/javascript"></script><script src="polynomials_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns polynomials
+
+  (:require [fastmath.polynomials :as poly]
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# Polynomials {.unnumbered}
+
+
+## Reference
+
+### fastmath.polynomials
+
+
+
+
+
+```{=html}
+<span id="#LOS--&gt;Polynomial"></span>
+```
+
+
+#### ->Polynomial
+
++ `(->Polynomial cfs d)`
+
+Positional factory function for class fastmath.polynomials.Polynomial.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L133">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS--&gt;PolynomialR"></span>
+```
+
+
+#### ->PolynomialR
+
++ `(->PolynomialR cfs d)`
+
+Positional factory function for class fastmath.polynomials.PolynomialR.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L193">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-add"></span>
+```
+
+
+#### add
+
++ `(add poly)`
++ `(add poly1 poly2)`
+
+Add two polynomials.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L283">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bessel-t"></span>
+```
+
+
+#### bessel-t
+
++ `(bessel-t degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L735">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bessel-y"></span>
+```
+
+
+#### bessel-y
+
++ `(bessel-y degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L702">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-chebyshev-T"></span>
+```
+
+
+#### chebyshev-T
+
++ `(chebyshev-T degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L385">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-chebyshev-U"></span>
+```
+
+
+#### chebyshev-U
+
++ `(chebyshev-U degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L420">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-chebyshev-V"></span>
+```
+
+
+#### chebyshev-V
+
++ `(chebyshev-V degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L443">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-chebyshev-W"></span>
+```
+
+
+#### chebyshev-W
+
++ `(chebyshev-W degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L465">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-coeffs"></span>
+```
+
+
+#### coeffs
+
++ `(coeffs poly)`
+
+Coefficients of polynomial
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L304">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-coeffs-&gt;polynomial"></span>
+```
+
+
+#### coeffs->polynomial
+
++ `(coeffs->polynomial & coeffs)`
+
+Create polynomial object for unrolled coefficients.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L275">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-coeffs-&gt;ratio-polynomial"></span>
+```
+
+
+#### coeffs->ratio-polynomial
+
++ `(coeffs->ratio-polynomial & coeffs)`
+
+Create ratio based polynomial object for unrolled coefficients.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L279">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex-evalpoly"></span>
+```
+
+
+#### complex-evalpoly
+
++ `(complex-evalpoly x & coeffs)`
+
+Evaluate complex polynomial
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L79">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex-makepoly"></span>
+```
+
+
+#### complex-makepoly
+
++ `(complex-makepoly coeffs)`
+
+Create complex polynomial function for given coefficients
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L92">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex-mevalpoly"></span>
+```
+
+
+#### complex-mevalpoly ^~MACRO~^
+
++ `(complex-mevalpoly x & coeffs)`
+
+Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L68">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-complex-muladd"></span>
+```
+
+
+#### complex-muladd
+
++ `(complex-muladd x y z)`
+
+`(x y z)` -> `(+ z (* x y))`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L63">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-degree"></span>
+```
+
+
+#### degree
+
++ `(degree poly)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L308">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-derivative"></span>
+```
+
+
+#### derivative
+
++ `(derivative poly)`
++ `(derivative poly order)`
+
+Derivative of the polynomial.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L311">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-bessel-t"></span>
+```
+
+
+#### eval-bessel-t
+
++ `(eval-bessel-t degree x)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L706">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-bessel-y"></span>
+```
+
+
+#### eval-bessel-y
+
++ `(eval-bessel-y degree x)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L674">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-chebyshev-T"></span>
+```
+
+
+#### eval-chebyshev-T
+
++ `(eval-chebyshev-T degree x)`
+
+Chebyshev polynomial of the first kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L361">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-chebyshev-U"></span>
+```
+
+
+#### eval-chebyshev-U
+
++ `(eval-chebyshev-U degree x)`
+
+Chebyshev polynomials of the second kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L389">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-chebyshev-V"></span>
+```
+
+
+#### eval-chebyshev-V
+
++ `(eval-chebyshev-V degree x)`
+
+Chebyshev polynomials of the third kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L424">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-chebyshev-W"></span>
+```
+
+
+#### eval-chebyshev-W
+
++ `(eval-chebyshev-W degree x)`
+
+Chebyshev polynomials of the fourth kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L447">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-gegenbauer-C"></span>
+```
+
+
+#### eval-gegenbauer-C
+
++ `(eval-gegenbauer-C degree x)`
++ `(eval-gegenbauer-C degree order x)`
+
+Gegenbauer (ultraspherical) polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L505">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-hermite-H"></span>
+```
+
+
+#### eval-hermite-H
+
++ `(eval-hermite-H degree x)`
+
+Hermite polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L550">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-hermite-He"></span>
+```
+
+
+#### eval-hermite-He
+
++ `(eval-hermite-He degree x)`
+
+Hermite polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L584">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-jacobi-P"></span>
+```
+
+
+#### eval-jacobi-P
+
++ `(eval-jacobi-P degree alpha beta x)`
+
+Jacobi polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L621">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-laguerre-L"></span>
+```
+
+
+#### eval-laguerre-L
+
++ `(eval-laguerre-L degree x)`
++ `(eval-laguerre-L degree order x)`
+
+Evaluate generalized Laguerre polynomial
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L323">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-legendre-P"></span>
+```
+
+
+#### eval-legendre-P
+
++ `(eval-legendre-P degree x)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L471">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-meixner-pollaczek-P"></span>
+```
+
+
+#### eval-meixner-pollaczek-P
+
++ `(eval-meixner-pollaczek-P degree lambda phi x)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L741">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-evalpoly"></span>
+```
+
+
+#### evalpoly
+
++ `(evalpoly x & coeffs)`
+
+Evaluate polynomial for given coefficients
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L28">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-evaluate"></span>
+```
+
+
+#### evaluate
+
++ `(evaluate poly x)`
+
+Evaluate polynomial
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L316">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-gegenbauer-C"></span>
+```
+
+
+#### gegenbauer-C
+
++ `(gegenbauer-C degree)`
++ `(gegenbauer-C degree order)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L544">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-hermite-H"></span>
+```
+
+
+#### hermite-H
+
++ `(hermite-H degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L580">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-hermite-He"></span>
+```
+
+
+#### hermite-He
+
++ `(hermite-He degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L614">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-C"></span>
+```
+
+
+#### ince-C
+
++ `(ince-C p m e)`
++ `(ince-C p m e normalization)`
+
+Ince C polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L922">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-C-coeffs"></span>
+```
+
+
+#### ince-C-coeffs
+
++ `(ince-C-coeffs p m e normalization)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L899">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-C-radial"></span>
+```
+
+
+#### ince-C-radial
+
++ `(ince-C-radial p m e)`
++ `(ince-C-radial p m e normalization)`
+
+Ince C polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-S"></span>
+```
+
+
+#### ince-S
+
++ `(ince-S p m e)`
++ `(ince-S p m e normalization)`
+
+Ince S polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L940">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-S-coeffs"></span>
+```
+
+
+#### ince-S-coeffs
+
++ `(ince-S-coeffs p m e normalization)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L905">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ince-S-radial"></span>
+```
+
+
+#### ince-S-radial
+
++ `(ince-S-radial p m e)`
++ `(ince-S-radial p m e normalization)`
+
+Ince S polynomial of order p and degree m.
+
+  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-P"></span>
+```
+
+
+#### jacobi-P
+
++ `(jacobi-P degree alpha beta)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L668">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-laguerre-L"></span>
+```
+
+
+#### laguerre-L
+
++ `(laguerre-L degree)`
++ `(laguerre-L degree order)`
+
+Generalized Laguerre polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L353">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-legendre-P"></span>
+```
+
+
+#### legendre-P
+
++ `(legendre-P degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L499">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-makepoly"></span>
+```
+
+
+#### makepoly
+
++ `(makepoly coeffs)`
+
+Create polynomial function for given coefficients
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L44">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-meixner-pollaczek-P"></span>
+```
+
+
+#### meixner-pollaczek-P
+
++ `(meixner-pollaczek-P degree lambda phi)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L781">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mevalpoly"></span>
+```
+
+
+#### mevalpoly ^~MACRO~^
+
++ `(mevalpoly x & coeffs)`
+
+Evaluate polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L17">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mult"></span>
+```
+
+
+#### mult
+
++ `(mult poly)`
++ `(mult poly1 poly2)`
+
+Multiply two polynomials.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L298">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-polynomial"></span>
+```
+
+
+#### polynomial
+
++ `(polynomial coeffs)`
+
+Create polynomial object.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L265">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ratio-polynomial"></span>
+```
+
+
+#### ratio-polynomial
+
++ `(ratio-polynomial coeffs)`
+
+Create polynomial operating on ratios.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L270">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scale"></span>
+```
+
+
+#### scale
+
++ `(scale poly v)`
+
+Multiply polynomial by scalar
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L294">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sub"></span>
+```
+
+
+#### sub
+
++ `(sub poly)`
++ `(sub poly1 poly2)`
+
+Subtract two polynomials
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L288">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/polynomials.clj">clay/polynomials.clj</a></small></small></pre></div>
+```

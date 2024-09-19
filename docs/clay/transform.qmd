@@ -1,0 +1,295 @@
+
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: transform.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="transform_files/md-default0.js" type="text/javascript"></script><script src="transform_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns transform
+  (:require [fastmath.transform :as t]
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# Transforms {.unnumbered}
+
+
+## FFT
+
+
+## Wavelets
+
+
+## Reference
+
+### fastmath.transform
+
+Transforms.
+
+  See [transformer](#LOS-transformer) and [TransformProto](#LOS-TransformProto) for details.
+  
+  ### Wavelet
+  
+  Based on [JWave](https://github.com/cscheiblich/JWave/) library.
+
+  Be aware that some of the wavelet types doesn't work properly. `:battle-23`, `:cdf-53`, `:cdf-97`.
+
+  ### Cos/Sin/Hadamard
+
+  Orthogonal or standard fast sine/cosine/hadamard 1d transforms.
+
+  ### Fourier
+
+  DFT, FFT, DHT.
+
+
+```{=html}
+<span id="#LOS-compress"></span>
+```
+
+
+#### compress
+
++ `(compress trans xs mag)`
++ `(compress xs mag)`
+
+Compress transformed signal `xs` with given magnitude `mag`.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L369">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-compress-peaks-average"></span>
+```
+
+
+#### compress-peaks-average
+
++ `(compress-peaks-average trans xs)`
++ `(compress-peaks-average xs)`
+
+Compress transformed signal `xs` with peaks average as a magnitude
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L382">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-denoise"></span>
+```
+
+
+#### denoise
+
++ `(denoise xs {:keys [method threshold skip], :or {method :hard, threshold :universal, skip 0}})`
++ `(denoise trans xs method)`
++ `(denoise xs)`
+
+Wavelet shrinkage with some threshold.
+
+  Methods can be:
+  * `:hard` (default)  
+  * `:soft`
+  * `:garrote`
+  * `:hyperbole`
+
+  `:threshold` can be a number of one of the [denoise-threshold](#LOS-denoise-threshold) methods (default: `:visu`)
+
+  `:skip` can be used to leave `:skip` number of coefficients unaffected (default: 0)
+
+  Use on transformed sequences or call with transformer object.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L444">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-denoise-threshold"></span>
+```
+
+
+#### denoise-threshold
+
++ `(denoise-threshold xs threshold)`
+
+Calculate optimal denoise threshold.
+
+  `threshold` is one of the following
+  
+  * `:visu` - based on median absolute deviation estimate (default)
+  * `:universal` - based on standard deviation estimate
+  * `:sure` or `:rigrsure` - based on SURE estimator
+  * `:hybrid` or `:heursure` - hybrid SURE estimator
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L416">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-forward-1d"></span>
+```
+
+
+#### forward-1d
+
++ `(forward-1d t xs)`
+
+Forward transform of sequence or array.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L350">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-forward-2d"></span>
+```
+
+
+#### forward-2d
+
++ `(forward-2d t xss)`
+
+Forward transform of sequence or array.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L358">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-reverse-1d"></span>
+```
+
+
+#### reverse-1d
+
++ `(reverse-1d t xs)`
+
+Forward transform of sequence or array.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L354">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-reverse-2d"></span>
+```
+
+
+#### reverse-2d
+
++ `(reverse-2d t xss)`
+
+Forward transform of sequence or array.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L362">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-transformer"></span>
+```
+
+
+#### transformer
+
+Create transform object for given wavelet.
+
+  #### Wavelets
+
+  * `:fast` for 1d or 2d Fast Wavelet Transform. Size of data should be power of `2`.
+  * `:packet` for 1d or 2d Wavelet Packet Transform. Size of data should be power of `2`.
+  * `:decomposed-fast` for 1d Fast Wavelet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
+  * `:decomposed-packet` for 1d Wavelet Packet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
+
+  Second argument is wavelet name as key. See [wavelets-list](#LOS-wavelets-list) for all supported names.
+
+  #### Sine/Cosine/Hadamard
+
+  * `:standard` for 1d `:sine`, `:cosine`, `:hadamard`.
+  * `:orthogonal` for 1d `:sine`, `:cosine`.
+
+  Note that `:sine` and `:cosine` require first element to be equal `0`. Size of data should be power of 2.
+
+  #### Fourier
+
+  * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L124">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-wavelets-list"></span>
+```
+
+
+#### wavelets-list
+
+List of all possible wavelets.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/transform.clj#L121">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/transform.clj">clay/transform.clj</a></small></small></pre></div>
+```

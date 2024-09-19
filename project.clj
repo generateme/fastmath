@@ -1,11 +1,9 @@
-(defproject generateme/fastmath "3.0.0-SNAPSHOT"
+(defproject generateme/fastmath "3.0.0-alpha1"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
             :url "https://opensource.org/licenses/MIT"}
-  :dependencies [ [org.clojure/clojure "1.12.0-beta1"]
-                 ;; [org.clojure/clojure "1.11.3"]
-                 [net.jafama/jafama "2.3.2"]
+  :dependencies [[net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
 
                  [de.sciss/jwave "1.0.3"]
@@ -28,12 +26,11 @@
                         :eastwood {:add-linters [:performance :boxed-math :wrong-tag]
                                    :source-paths ["src"]
                                    :exclude-namespaces [:test-paths]}}
-             :dev {:dependencies [;; [io.github.nextjournal/clerk "0.15.957"]
-                                  ;; [clojure2d "1.4.6-SNAPSHOT" :exclusions [generateme/fastmath]]
-                                  [org.clojure/data.csv "1.1.0"]
-                                  [org.scicloj/clay "2-beta14"]
+             :dev {:dependencies [[org.clojure/data.csv "1.1.0"]
+                                  [org.scicloj/clay "2-beta16"]
                                   [scicloj/clojisr "1.0.0"]
-                                  [com.github.lread/test-doc-blocks "1.1.20"]]
+                                  [com.github.lread/test-doc-blocks "1.1.20"]
+                                  [org.clojure/clojure "1.12.0"]]
                    :source-paths ["notebooks" "utils"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}}
