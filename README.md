@@ -6,9 +6,15 @@ Math library.
 
 ## Documentation
 
+### 3.0.0-alpha1 (WIP)
+
+[Fastmath book](https://generateme.github.io/fastmath/clay/)
+
+### 2.4.0
+
 [Codox documentation](https://generateme.github.io/fastmath/index.html)
 
-### Clerk notebooks - WIP
+### Clerk notebooks
 
 [Index](https://generateme.github.io/fastmath/notebooks/)
 
@@ -26,10 +32,10 @@ Math library.
 ```clojure
 [generateme/fastmath "2.4.0"]
 ```
-### Snapshot
+### Alpha
 
 ```clojure
-[generateme/fastmath "3.0.0-SNAPSHOT"]
+[generateme/fastmath "3.0.0-alpha1"]
 ```
 
 Source code in the `3.x` branch.
