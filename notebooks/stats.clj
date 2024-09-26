@@ -89,7 +89,7 @@
 
 ;; Power mean generalizes mean calculation, exponent:
 ;; * `-1.0` - harmonic mean
-;; * `0.0` - gemetric mean
+;; * `0.0` - geometric mean
 ;; * `1.0` - regular mean
 
 ^{::clerk/visibility :hide}
