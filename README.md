@@ -2,7 +2,7 @@
 
 # fastmath
 
-Math library.
+A Clojure math library.
 
 ## Documentation
 
@@ -25,7 +25,6 @@ Math library.
 * [fastmath.calculus](https://generateme.github.io/fastmath/notebooks/notebooks/calculus/)
 * [fastmath.complex](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#complex-numbers)
 * [fastmath.quaternion](https://generateme.github.io/fastmath/notebooks/notebooks/complex_quaternion/index.html#quaternions)
-
 
 ## Installation
 
@@ -84,6 +83,16 @@ java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
 java.lang.ClassNotFoundException: smile.math.blas.mkl.MKL
 [...]
 ```
+
+## Contribution
+
+**NOTE** Currently we work on the 3.x branch only. PRs to master branch will not be accepted.
+
+We accept PRs!
+
+* when fixing a bug/typo/docstring - just push a PR
+* if you want to add a new function or have an idea - please consult it before starting a work
+* if you want to enhance a documentation - please read [this wiki page](https://github.com/generateme/fastmath/wiki/Documenting-Fastmath-in-Clay)
 
 ## Content
 
