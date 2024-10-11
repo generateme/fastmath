@@ -686,7 +686,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L922">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L921">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -702,7 +702,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L899">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L898">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -723,7 +723,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L953">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -744,7 +744,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L940">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L937">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -760,7 +760,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L905">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L904">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -781,7 +781,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L969">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

@@ -46,7 +46,7 @@
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
-  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry IReduce IReduceInit]
+  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry IReduce IReduceInit IPersistentStack]
            [clojure.core Vec]
            [org.apache.commons.math3.linear ArrayRealVector RealVector]
            [org.apache.commons.math3.analysis UnivariateFunction]
@@ -386,128 +386,129 @@
   [^long id len]
   (throw (IndexOutOfBoundsException. (str "Index " id " out of bounds for length " len))))
 
-;; Create Vec2 and add all necessary protocols
-(deftype Vec2 [^double x ^double y]
+(declare vec3)
+
+;; Create Vec4 and add all necessary protocols
+(deftype Vec4 [^double x ^double y ^double z ^double w]
   Object
-  (toString [_] (str "#vec2 [" x ", " y "]"))
+  (toString [_] (str "#vec4 [" x ", " y ", " z ", " w "]"))
   (equals [_ v]
-    (and (instance? Vec2 v)
-         (let [^Vec2 v v]
+    (and (instance? Vec4 v)
+         (let [^Vec4 v v]
            (and (== x (.x v))
-                (== y (.y v))))))
-  (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
+                (== y (.y v))
+                (== z (.z v))
+                (== w (.w v))))))
+  (hashCode [_]
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
   clojure.lang.IHashEq 
-  (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
+  (hasheq [_]
+    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
   Sequential
   Seqable
-  (seq [_] (list x y))
+  (seq [_] (list x y z w))
   Reversible
-  (rseq [_] (list y x))
+  (rseq [_] (list w z y x))
+
   Indexed
-  (nth [_ id] (case (unchecked-int id) 0 x 1 y (vec-throw-ioobe id 2)))
-  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y not-found))
+  (nth [_ id] (case (unchecked-int id) 0 x 1 y 2 z 3 w (vec-throw-ioobe id 4)))
+  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found))
   ILookup
-  (valAt [_ id] (when (vec-id-check 2 id) (case (unchecked-int id) 0 x 1 y)))
-  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y not-found) not-found))
+  (valAt [_ id] (when (vec-id-check 4 id) (case (unchecked-int id) 0 x 1 y 2 z 3 w)))
+  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found) not-found))
   Associative
-  (containsKey [_ id] (boolean (#{0 1} id)))
+  (containsKey [_ id] (boolean (#{0 1 2 3} id)))
   (assoc [_ k vl]
     (assert-number k)
     (case (unchecked-int k)
-      0 (Vec2. vl y)
-      1 (Vec2. x vl)
+      0 (Vec4. vl y z w)
+      1 (Vec4. x vl z w)
+      2 (Vec4. x y vl w)
+      3 (Vec4. x y z vl)
       (vec-throw-ioobe k 2)))
   (entryAt [v k] (MapEntry. k (v k)))
   Counted
-  (count [_] 2)
+  (count [_] 4)
   IFn
   (invoke [_ id]
     (assert-number id)
     (case (unchecked-int id)
       0 x
       1 y
+      2 z
+      3 w
       (vec-throw-ioobe id 2)))
   IReduce
-  (reduce [_ f] (f x y))
+  (reduce [_ f] (f (f (f x y) z) w))
   IReduceInit
-  (reduce [_ f start] (f (f start x) y))
+  (reduce [_ f start] (f (f (f (f start x) y) z) w))
   IPersistentVector
-  (length [_] 2)
+  (length [_] 4)
+  (assocN [v i x] (assoc v i x))
+  (cons [_ v] [x y z w v])
+  IPersistentStack
+  (pop [_] (vec3 x y z))
+  (peek [_] w)
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
   (to-double-array [v] (double-array v))
   (to-acm-vec [v] (ArrayRealVector. (double-array v)))
-  (to-vec [_] (vector-of :double x y))
-  (as-vec [_ [x y]] (Vec2. x y))
-  (as-vec [_] (Vec2. 0.0 0.0))
-  (fmap [_ f] (Vec2. (f x) (f y)))
-  (approx [_] (Vec2. (m/approx x) (m/approx y)))
-  (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
-  (magsq [_] (+ (* x x) (* y y)))
-  (mag [_] (m/hypot-sqrt x y))
-  (dot [_ v2] 
-    (let [^Vec2 v2 v2] (+ (* x (.x v2)) (* y (.y v2)))))
-  (add [_ v2] 
-    (let [^Vec2 v2 v2] (Vec2. (+ x (.x v2)) (+ y (.y v2)))))
-  (sub [_ v2]
-    (let [^Vec2 v2 v2] (Vec2. (- x (.x v2)) (- y (.y v2)))))
-  (shift [_ v] (Vec2. (+ x ^double v) (+ y ^double v)))
-  (mult [_ v] (Vec2. (* x ^double v) (* y ^double v)))
-  (emult [_ v] 
-    (let [^Vec2 v v] (Vec2. (* x (.x v)) (* y (.y v)))))
-  (abs [_] (Vec2. (m/abs x) (m/abs y)))
-  (mx [_] (max x y))
-  (mn [_] (min x y))
+  (to-vec [_] (vector-of :double x y z w))
+  (as-vec [_ [x y z w]] (Vec4. x y z w))
+  (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
+  (fmap [_ f] (Vec4. (f x) (f y) (f z) (f w)))
+  (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
+  (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
+  (magsq [_] (+ (* x x) (* y y) (* z z) (* w w)))
+  (mag [v1] (m/sqrt (prot/magsq v1)))
+  (dot [_ v2]
+    (let [^Vec4 v2 v2] (+ (* x (.x v2)) (* y (.y v2)) (* z (.z v2)) (* w (.w v2)))))
+  (add [_ v2]
+    (let [^Vec4 v2 v2] (Vec4. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)) (+ w (.w v2)))))
+  (sub [_ v2] 
+    (let [^Vec4 v2 v2] (Vec4. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)) (- w (.w v2)))))
+  (shift [_ v] (Vec4. (+ x ^double v) (+ y ^double v) (+ z ^double v) (+ w ^double v)))
+  (mult [_ v] (Vec4. (* x ^double v) (* y ^double v) (* z ^double v) (* w ^double v)))
+  (emult [_ v]
+    (let [^Vec4 v v] (Vec4. (* x (.x v)) (* y (.y v)) (* z (.z v)) (* w (.w v)))))
+  (abs [_] (Vec4. (m/abs x) (m/abs y) (m/abs z) (m/abs w)))
+  (mx [_] (max x y z w))
+  (mn [_] (min x y z w))
   (emx [_ v]
-    (let [^Vec2 v v] (Vec2. (max (.x v) x) (max (.y v) y))))
+    (let [^Vec4 v v] (Vec4. (max (.x v) x) (max (.y v) y) (max (.z v) z) (max (.w v) w))))
   (emn [_ v]
-    (let [^Vec2 v v] (Vec2. (min (.x v) x) (min (.y v) y))))
+    (let [^Vec4 v v] (Vec4. (min (.x v) x) (min (.y v) y) (min (.z v) z) (min (.w v) w))))
   (maxdim [_]
-    (if (> x y) 0 1))
+    (max-key [x y z w] 0 1 2 3))
   (mindim [_]
-    (if (< x y) 0 1))
-  (base-from [v]
-    [v (prot/perpendicular v)])
-  (sum [_] (+ x y))
-  (prod [_] (* x y))
-  (size [_] 2)
-  (permute [p [^long i1 ^long i2]]
-    (Vec2. (p i1) (p i2)))
-  (reciprocal [_] (Vec2. (/ x) (/ y)))
+    (min-key [x y z w] 0 1 2 3))
+  (sum [_] (+ x y z w))
+  (prod [_] (* x y z w))
+  (size [_] 4)
+  (permute [p [^long i1 ^long i2 ^long i3 ^long i4]]
+    (Vec4. (p i1) (p i2) (p i3) (p i4)))
+  (reciprocal [_] (Vec4. (/ x) (/ y) (/ z) (/ w)))
   (interpolate [_ v2 t f]
-    (let [^Vec2 v2 v2] (Vec2. (f x (.x v2) t)
-                              (f y (.y v2) t))))
+    (let [^Vec4 v2 v2] (Vec4. (f x (.x v2) t)
+                              (f y (.y v2) t)
+                              (f z (.z v2) t)
+                              (f w (.w v2) t))))
   (einterpolate [_ v2 v f]
-    (let [^Vec2 v2 v2
-          ^Vec2 v v]
-      (Vec2. (f x (.x v2) (.x v))
-             (f y (.y v2) (.y v)))))
-  (econstrain [_ val1 val2] (Vec2. (m/constrain x ^double val1 ^double val2)
-                                   (m/constrain y ^double val1 ^double val2)))
-  (is-zero? [_] (and (m/zero? x) (m/zero? y)))
-  (heading [_] (m/atan2 y x))
-  (cross [_ v]
-    (let [^Vec2 v v]
-      (- (* x (.y v)) (* y (.x v)))))
-  (rotate [_ angle]
-    (let [sa (m/sin angle)
-          ca (m/cos angle)
-          nx (- (* x ca) (* y sa))
-          ny (+ (* x sa) (* y ca))]
-      (Vec2. nx ny)))
-  (perpendicular [_]
-    (normalize (Vec2. (- y) x)))
-  (transform [_ o vx vy]
-    (let [^Vec2 o o
-          ^Vec2 vx vx
-          ^Vec2 vy vy]
-      (Vec2. (+ (.x o) (* x (.x vx)) (* y (.x vy))) (+ (.y o) (* x (.y vx)) (* y (.y vy))))))
-  (to-polar [v]
-    (Vec2. (prot/mag v) (prot/heading v)))
-  (from-polar [_]
-    (Vec2. (* x (m/cos y))
-           (* x (m/sin y)))))
+    (let [^Vec4 v2 v2
+          ^Vec4 v v]
+      (Vec4. (f x (.x v2) (.x v))
+             (f y (.y v2) (.y v))
+             (f z (.z v2) (.z v))
+             (f w (.w v2) (.w v)))))
+  (econstrain [_ val1 val2] (Vec4. (m/constrain x ^double val1 ^double val2)
+                                   (m/constrain y ^double val1 ^double val2)
+                                   (m/constrain z ^double val1 ^double val2)
+                                   (m/constrain w ^double val1 ^double val2)))
+  (is-zero? [_] (and (m/zero? x) (m/zero? y) (m/zero? z) (m/zero? w)))
+  (heading [v1] (angle-between v1 (Vec4. 1 0 0 0))))
+
+(declare vec2)
 
 ;; Create Vec3 and add all necessary protocols
 (deftype Vec3 [^double x ^double y ^double z]
@@ -559,6 +560,11 @@
   (reduce [_ f start] (f (f (f start x) y) z))
   IPersistentVector
   (length [_] 3)
+  (assocN [v i x] (assoc v i x))
+  (cons [_ v] (Vec4. x y z (double v)))
+  IPersistentStack
+  (pop [_] (vec2 x y))
+  (peek [_] z)
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
@@ -708,120 +714,133 @@
              (* x st sp)
              (* x ct)))))
 
-;; Create Vec4 and add all necessary protocols
-(deftype Vec4 [^double x ^double y ^double z ^double w]
+;; Create Vec2 and add all necessary protocols
+(deftype Vec2 [^double x ^double y]
   Object
-  (toString [_] (str "#vec4 [" x ", " y ", " z ", " w "]"))
+  (toString [_] (str "#vec2 [" x ", " y "]"))
   (equals [_ v]
-    (and (instance? Vec4 v)
-         (let [^Vec4 v v]
+    (and (instance? Vec2 v)
+         (let [^Vec2 v v]
            (and (== x (.x v))
-                (== y (.y v))
-                (== z (.z v))
-                (== w (.w v))))))
-  (hashCode [_]
-    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
+                (== y (.y v))))))
+  (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
   clojure.lang.IHashEq 
-  (hasheq [_]
-    (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
+  (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
   Sequential
   Seqable
-  (seq [_] (list x y z w))
+  (seq [_] (list x y))
   Reversible
-  (rseq [_] (list w z y x))
-
+  (rseq [_] (list y x))
   Indexed
-  (nth [_ id] (case (unchecked-int id) 0 x 1 y 2 z 3 w (vec-throw-ioobe id 4)))
-  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found))
+  (nth [_ id] (case (unchecked-int id) 0 x 1 y (vec-throw-ioobe id 2)))
+  (nth [_ id not-found] (case (unchecked-int id) 0 x 1 y not-found))
   ILookup
-  (valAt [_ id] (when (vec-id-check 4 id) (case (unchecked-int id) 0 x 1 y 2 z 3 w)))
-  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found) not-found))
+  (valAt [_ id] (when (vec-id-check 2 id) (case (unchecked-int id) 0 x 1 y)))
+  (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y not-found) not-found))
   Associative
-  (containsKey [_ id] (boolean (#{0 1 2 3} id)))
+  (containsKey [_ id] (boolean (#{0 1} id)))
   (assoc [_ k vl]
     (assert-number k)
     (case (unchecked-int k)
-      0 (Vec4. vl y z w)
-      1 (Vec4. x vl z w)
-      2 (Vec4. x y vl w)
-      3 (Vec4. x y z vl)
+      0 (Vec2. vl y)
+      1 (Vec2. x vl)
       (vec-throw-ioobe k 2)))
   (entryAt [v k] (MapEntry. k (v k)))
   Counted
-  (count [_] 4)
+  (count [_] 2)
   IFn
   (invoke [_ id]
     (assert-number id)
     (case (unchecked-int id)
       0 x
       1 y
-      2 z
-      3 w
       (vec-throw-ioobe id 2)))
   IReduce
-  (reduce [_ f] (f (f (f x y) z) w))
+  (reduce [_ f] (f x y))
   IReduceInit
-  (reduce [_ f start] (f (f (f (f start x) y) z) w))
+  (reduce [_ f start] (f (f start x) y))
   IPersistentVector
-  (length [_] 4)
+  (length [_] 2)
+  (assocN [v i x] (assoc v i x))
+  (cons [_ v] (Vec3. x y (double v)))
+  IPersistentStack
+  (pop [_] [x])
+  (peek [_] y)
   IPersistentCollection
   (equiv [v1 v2] (.equals v1 v2))
   prot/VectorProto
   (to-double-array [v] (double-array v))
   (to-acm-vec [v] (ArrayRealVector. (double-array v)))
-  (to-vec [_] (vector-of :double x y z w))
-  (as-vec [_ [x y z w]] (Vec4. x y z w))
-  (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
-  (fmap [_ f] (Vec4. (f x) (f y) (f z) (f w)))
-  (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
-  (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
-  (magsq [_] (+ (* x x) (* y y) (* z z) (* w w)))
-  (mag [v1] (m/sqrt (prot/magsq v1)))
-  (dot [_ v2]
-    (let [^Vec4 v2 v2] (+ (* x (.x v2)) (* y (.y v2)) (* z (.z v2)) (* w (.w v2)))))
-  (add [_ v2]
-    (let [^Vec4 v2 v2] (Vec4. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)) (+ w (.w v2)))))
-  (sub [_ v2] 
-    (let [^Vec4 v2 v2] (Vec4. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)) (- w (.w v2)))))
-  (shift [_ v] (Vec4. (+ x ^double v) (+ y ^double v) (+ z ^double v) (+ w ^double v)))
-  (mult [_ v] (Vec4. (* x ^double v) (* y ^double v) (* z ^double v) (* w ^double v)))
-  (emult [_ v]
-    (let [^Vec4 v v] (Vec4. (* x (.x v)) (* y (.y v)) (* z (.z v)) (* w (.w v)))))
-  (abs [_] (Vec4. (m/abs x) (m/abs y) (m/abs z) (m/abs w)))
-  (mx [_] (max x y z w))
-  (mn [_] (min x y z w))
+  (to-vec [_] (vector-of :double x y))
+  (as-vec [_ [x y]] (Vec2. x y))
+  (as-vec [_] (Vec2. 0.0 0.0))
+  (fmap [_ f] (Vec2. (f x) (f y)))
+  (approx [_] (Vec2. (m/approx x) (m/approx y)))
+  (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
+  (magsq [_] (+ (* x x) (* y y)))
+  (mag [_] (m/hypot-sqrt x y))
+  (dot [_ v2] 
+    (let [^Vec2 v2 v2] (+ (* x (.x v2)) (* y (.y v2)))))
+  (add [_ v2] 
+    (let [^Vec2 v2 v2] (Vec2. (+ x (.x v2)) (+ y (.y v2)))))
+  (sub [_ v2]
+    (let [^Vec2 v2 v2] (Vec2. (- x (.x v2)) (- y (.y v2)))))
+  (shift [_ v] (Vec2. (+ x ^double v) (+ y ^double v)))
+  (mult [_ v] (Vec2. (* x ^double v) (* y ^double v)))
+  (emult [_ v] 
+    (let [^Vec2 v v] (Vec2. (* x (.x v)) (* y (.y v)))))
+  (abs [_] (Vec2. (m/abs x) (m/abs y)))
+  (mx [_] (max x y))
+  (mn [_] (min x y))
   (emx [_ v]
-    (let [^Vec4 v v] (Vec4. (max (.x v) x) (max (.y v) y) (max (.z v) z) (max (.w v) w))))
+    (let [^Vec2 v v] (Vec2. (max (.x v) x) (max (.y v) y))))
   (emn [_ v]
-    (let [^Vec4 v v] (Vec4. (min (.x v) x) (min (.y v) y) (min (.z v) z) (min (.w v) w))))
+    (let [^Vec2 v v] (Vec2. (min (.x v) x) (min (.y v) y))))
   (maxdim [_]
-    (max-key [x y z w] 0 1 2 3))
+    (if (> x y) 0 1))
   (mindim [_]
-    (min-key [x y z w] 0 1 2 3))
-  (sum [_] (+ x y z w))
-  (prod [_] (* x y z w))
-  (size [_] 4)
-  (permute [p [^long i1 ^long i2 ^long i3 ^long i4]]
-    (Vec4. (p i1) (p i2) (p i3) (p i4)))
-  (reciprocal [_] (Vec4. (/ x) (/ y) (/ z) (/ w)))
+    (if (< x y) 0 1))
+  (base-from [v]
+    [v (prot/perpendicular v)])
+  (sum [_] (+ x y))
+  (prod [_] (* x y))
+  (size [_] 2)
+  (permute [p [^long i1 ^long i2]]
+    (Vec2. (p i1) (p i2)))
+  (reciprocal [_] (Vec2. (/ x) (/ y)))
   (interpolate [_ v2 t f]
-    (let [^Vec4 v2 v2] (Vec4. (f x (.x v2) t)
-                              (f y (.y v2) t)
-                              (f z (.z v2) t)
-                              (f w (.w v2) t))))
+    (let [^Vec2 v2 v2] (Vec2. (f x (.x v2) t)
+                              (f y (.y v2) t))))
   (einterpolate [_ v2 v f]
-    (let [^Vec4 v2 v2
-          ^Vec4 v v]
-      (Vec4. (f x (.x v2) (.x v))
-             (f y (.y v2) (.y v))
-             (f z (.z v2) (.z v))
-             (f w (.w v2) (.w v)))))
-  (econstrain [_ val1 val2] (Vec4. (m/constrain x ^double val1 ^double val2)
-                                   (m/constrain y ^double val1 ^double val2)
-                                   (m/constrain z ^double val1 ^double val2)
-                                   (m/constrain w ^double val1 ^double val2)))
-  (is-zero? [_] (and (m/zero? x) (m/zero? y) (m/zero? z) (m/zero? w)))
-  (heading [v1] (angle-between v1 (Vec4. 1 0 0 0))))
+    (let [^Vec2 v2 v2
+          ^Vec2 v v]
+      (Vec2. (f x (.x v2) (.x v))
+             (f y (.y v2) (.y v)))))
+  (econstrain [_ val1 val2] (Vec2. (m/constrain x ^double val1 ^double val2)
+                                   (m/constrain y ^double val1 ^double val2)))
+  (is-zero? [_] (and (m/zero? x) (m/zero? y)))
+  (heading [_] (m/atan2 y x))
+  (cross [_ v]
+    (let [^Vec2 v v]
+      (- (* x (.y v)) (* y (.x v)))))
+  (rotate [_ angle]
+    (let [sa (m/sin angle)
+          ca (m/cos angle)
+          nx (- (* x ca) (* y sa))
+          ny (+ (* x sa) (* y ca))]
+      (Vec2. nx ny)))
+  (perpendicular [_]
+    (normalize (Vec2. (- y) x)))
+  (transform [_ o vx vy]
+    (let [^Vec2 o o
+          ^Vec2 vx vx
+          ^Vec2 vy vy]
+      (Vec2. (+ (.x o) (* x (.x vx)) (* y (.x vy))) (+ (.y o) (* x (.y vx)) (* y (.y vy))))))
+  (to-polar [v]
+    (Vec2. (prot/mag v) (prot/heading v)))
+  (from-polar [_]
+    (Vec2. (* x (m/cos y))
+           (* x (m/sin y)))))
 
 ;;
 
@@ -1367,14 +1386,8 @@
 
 ;;
 
-
 (defmethod print-method Vec2 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Vec2 [v w] (print-method v w))
-
 (defmethod print-method Vec3 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Vec3 [v w] (print-method v w))
-
 (defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
-(defmethod print-dup Vec4 [v w] (print-method v w))
 
 (m/unuse-primitive-operators #{'abs 'zero?})

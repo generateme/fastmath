@@ -1946,13 +1946,13 @@
 
 (kind/table
  [[":sobol" ":halton" ":r2"]
-  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :sobol 2))))
-   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :halton 2))))
-   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :r2 2))))]
+  [(gg/->image (gg/scatter (take 1000 (r/sequence-generator :sobol 2))))
+   (gg/->image (gg/scatter (take 1000 (r/sequence-generator :halton 2))))
+   (gg/->image (gg/scatter (take 1000 (r/sequence-generator :r2 2))))]
   [":sobol (jittered)" ":halton (jittered)" ":r2 (jittered)"]
-  [(gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :sobol 2))))
-   (gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :halton 2))))
-   (gg/->image (gg/graph-scatter (take 1000 (r/jittered-sequence-generator :r2 2))))]])
+  [(gg/->image (gg/scatter (take 1000 (r/jittered-sequence-generator :sobol 2))))
+   (gg/->image (gg/scatter (take 1000 (r/jittered-sequence-generator :halton 2))))
+   (gg/->image (gg/scatter (take 1000 (r/jittered-sequence-generator :r2 2))))]])
 
 (utls/examples-note
  (first (r/sequence-generator :sobol 4))
@@ -1980,8 +1980,8 @@
 
 (kind/table
  [[(kind/code ":sphere") (kind/code ":ball")]
-  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :sphere 2)) {:aspect-ratio 1}))
-   (gg/->image (gg/graph-scatter (take 500 (r/sequence-generator :ball 2)) {:aspect-ratio 1}))]])
+  [(gg/->image (gg/scatter (take 1000 (r/sequence-generator :sphere 2)) {:aspect-ratio 1}))
+   (gg/->image (gg/scatter (take 500 (r/sequence-generator :ball 2)) {:aspect-ratio 1}))]])
 
 
 (utls/examples-note
@@ -2003,8 +2003,8 @@
 
 (kind/table
  [[(kind/code (str :default)) (kind/code (str :gaussian))]
-  [(gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :default 2))))
-   (gg/->image (gg/graph-scatter (take 1000 (r/sequence-generator :gaussian 2))))]])
+  [(gg/->image (gg/scatter (take 1000 (r/sequence-generator :default 2))))
+   (gg/->image (gg/scatter (take 1000 (r/sequence-generator :gaussian 2))))]])
 
 (utls/examples-note
  (first (r/sequence-generator :default 4))

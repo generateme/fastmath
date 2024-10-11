@@ -130,17 +130,19 @@
              (gg/geom_line :data (tc/dataset (function->data f opts)) :color color))
        (add-common opts))))
 
-(defn line-points
-  ([xs ys]
-   (-> (tc/dataset {:x xs :y ys})
-       (r/r+ (gg/ggplot (gg/aes :x :x :y :y))
+(defn line
+  ([xs ys] (line xs ys nil))
+  ([xs ys {:keys [color]
+           :or {color color-main}
+           :as opts}]
+   (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y))
              (gg/theme_light)
-             (gg/geom_line :color "blue")))))
+             (gg/geom_line :data (tc/dataset {:x xs :y ys}) :color color))
+       (add-common opts))))
 
 (defn lollipop
-  ([xs ys]
-   (lollipop xs ys {}))
-  ([xs ys {:keys [title color]
+  ([xs ys] (lollipop xs ys nil))
+  ([xs ys {:keys [color]
            :or {color color-main}
            :as opts}]
    (-> (r/r+ (gg/ggplot :data (tc/dataset {:x xs :y ys}) :mapping (gg/aes :x :x :y :y))
@@ -217,30 +219,23 @@
                   setting aspect-ratio to true or 1 is useful if we want
                   to draw plots depicting any perfect circle.
   `color`: default `color-main`.
-  `fill-color`: default `color-light`.
-  "
+  `fill-color`: default `color-light`. "
+  ([pairs] (scatter pairs nil))
   ([xs ys]
    (scatter xs ys nil))
   ([xs ys {:keys [aspect-ratio color fill-color]
-           :or {color color-main
-                fill-color color-light}
+           :or {color color-main fill-color color-light}
            :as opts}]
-   (-> (tc/dataset {:x xs :y ys})
-       (gg/ggplot (gg/aes :x :x :y :y))
-       (r/r+ (gg/theme_light)
-             (gg/geom_point :color color :fill fill-color
-                            :shape "circle filled" :size 1 :alpha 0.8))
-       (cond-> 
-           aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio)))
-       (add-common opts))))
-
-
-(defn scatters
-  [data aes]
-  (-> (tc/dataset data)
-      (gg/ggplot (apply gg/aes aes))
-      (r/r+ (gg/theme_light)
-            (gg/geom_point :shape "circle filled" :size 3))))
+   (let [ys? ys
+         ys (if ys? ys (map second xs))
+         xs (if ys? xs (map first xs))]
+     (-> (tc/dataset {:x xs :y ys})
+         (gg/ggplot (gg/aes :x :x :y :y))
+         (r/r+ (gg/theme_light)
+               (gg/geom_point :color color :fill fill-color
+                              :shape "circle filled" :size 1 :alpha 0.8))
+         (cond-> aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio)))
+         (add-common opts)))))
 
 (defn function2d+scatter
   ([f xs ys] (function2d+scatter f xs ys nil))
@@ -257,18 +252,6 @@
      (r/r+ (function2d f (assoc opts :x [x-min x-max] :y [y-min y-max]))
            (gg/geom_point :data data :color "blue" :fill "light blue"
                           :shape "circle filled" :size 3 :alpha 0.8)))))
-
-
-
-#_(->file (function2d+scatter (fn [[x y]] (* (m/sin (* m/TWO_PI x))
-                                            (m/sin (* m/TWO_PI y)))) [0.2 0.5 0.8] [0.2 0.5 0.8]
-                              {:x [0 1] :y [0 1]}))
-
-#_(-> (function+scatter [["sinc" m/sinc]
-                         ["sin" #(m/sin %)]] [-2 0 2] [-1 0 1])
-      (title (r.base/expression (symbol "ABC~x^2~frac(1,2)~sqrt(2,3)")))
-      (->file))
-
 
 (defn fgraph-int
   ([f domain]
@@ -335,12 +318,3 @@
    (dgraph distr {}))
   ([distr opts]
    (dgraph-cont bgraph-int distr opts)))
-
-
-(defn graph-scatter
-  "return scatter plot.
-  xy is a sequence of points. ex: [[x1 y1] [x2 y2] ... [xn..yn]].
-  see `scatter` doc for the `opts` description."
-  ([xy] (graph-scatter xy nil))
-  ([xy opts]
-   (scatter (map first xy) (map second xy) opts)))

@@ -1993,7 +1993,7 @@
 (defn- binary-process-list
   [xs true-value]
   (if-not true-value
-    xs
+    (if (every? number? xs) (map m/one? xs) xs)
     (let [f (if (sequential? true-value) (set true-value) true-value)]
       (map f xs))))
 

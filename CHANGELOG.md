@@ -1,7 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 (alpha)]
+## [3.0.0 alpha3 (unreleased)]
+
+### Added
+
+	* Vectors implement full IPersistantVector interface (to allow `conj`)
+
+## [3.0.0 alpha2]
 
 First release without SMILE dependency.
 Also a lot of refactoring [breaking] was done.
@@ -38,6 +44,10 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 * `fastmath.core` functionality based on functions with inline code not macros
 * [breaking] polynomial funcitons moved to `fastmath.polynomials`
 * [breaking] special funcitons (gamma, beta, erf, kummers, bessel, Si/Ci etc) moved to `fastmath.special`
+
+### Fixed
+
+* `binary-measures` accepts numerical sequence where `1` is treated as `true` and other values as `false` (#33)
 
 ## [2.4.0]
 

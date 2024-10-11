@@ -43,19 +43,19 @@
 
 (defn erfc
   "Complementary error function."
-  {:inline (fn ([x] `(. Erf (erfc (double ~x)))))
+  {:inline (fn [x] `(. Erf (erfc (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfc x)))
 
 (defn inv-erf
   "Inverse of [[erf]] function."
-  {:inline (fn ([x] `(. Erf (erfInv (double ~x)))))
+  {:inline (fn [x] `(. Erf (erfInv (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfInv x)))
 
 (defn inv-erfc
   "Inverse of [[erfc]] function."
-  {:inline (fn ([x] `(. Erf (erfcInv (double ~x)))))
+  {:inline (fn [x] `(. Erf (erfcInv (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Erf (erfcInv x)))
 
@@ -63,25 +63,25 @@
 
 (defn gamma
   "Gamma function $\\Gamma(x)$. Extension of the factorial."
-  {:inline (fn ([x] `(. Gamma (gamma (double ~x)))))
+  {:inline (fn [x] `(. Gamma (gamma (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (gamma x)))
 
 (defn log-gamma
   "Log of Gamma function $\\log\\Gamma(x)$."
-  {:inline (fn ([x] `(. Gamma (logGamma (double ~x)))))
+  {:inline (fn [x] `(. Gamma (logGamma (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (logGamma x)))
 
 (defn log-gamma-1p
   "$\\ln\\Gamma(1+x)$ for $-0.5≤x≤1.5$."
-  {:inline (fn ([x] `(. Gamma (logGamma1p (double ~x)))))
+  {:inline (fn [x] `(. Gamma (logGamma1p (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (logGamma1p x)))
 
 (defn inv-gamma-1pm1
   "$\\frac{1}{\\Gamma(1+x)}-1$ for $-0.5≤x≤1.5$."
-  {:inline (fn ([x] `(. Gamma (invGamma1pm1 (double ~x)))))
+  {:inline (fn [x] `(. Gamma (invGamma1pm1 (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. Gamma (invGamma1pm1 x)))
 
