@@ -76,7 +76,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L206">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L203">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -108,7 +108,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L140">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L137">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -140,7 +140,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L146">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L143">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -172,7 +172,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L179">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L176">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -188,7 +188,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L193">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L190">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -204,7 +204,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L166">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L163">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -252,7 +252,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L185">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L182">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -304,7 +304,7 @@ Create EFloat object from a single value or low and high values.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L192">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L189">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -388,7 +388,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L206">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L203">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -404,7 +404,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L196">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L193">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -436,7 +436,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L195">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L192">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -468,7 +468,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L181">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L178">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -500,7 +500,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L208">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L205">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -532,7 +532,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L150">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -596,7 +596,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L180">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L177">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -612,7 +612,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L175">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L172">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

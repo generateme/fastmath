@@ -106,14 +106,11 @@
 
 (defn difference-of-products
   ^EFloat [^EFloat a ^EFloat b ^EFloat c ^EFloat d]
-  (let [_ (println a)
-        ab0 (* (.low a) (.low b))
+  (let [ab0 (* (.low a) (.low b))
         ab1 (* (.high a) (.low b))
         ab2 (* (.low a) (.high b))
         ab3 (* (.high a) (.high b))
-        _ (println b)
         ab-low (m/min ab0 ab1 ab2 ab3)
-        _ (println c)
         ab-high (m/max ab0 ab2 ab2 ab3)
         a-low (if (or (== ab-low ab0) (== ab-low ab2)) (.low a) (.high a))
         b-low (if (or (== ab-low ab0) (== ab-low ab1)) (.low b) (.high b))

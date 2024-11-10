@@ -93,7 +93,7 @@ Positional factory function for class fastmath.vector.ArrayVec.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L254">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L254">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -111,7 +111,7 @@ Positional factory function for class fastmath.vector.Vec2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L718">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L718">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -129,7 +129,7 @@ Positional factory function for class fastmath.vector.Vec3.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L514">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L514">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -147,7 +147,7 @@ Positional factory function for class fastmath.vector.Vec4.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L392">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L392">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -165,7 +165,7 @@ Absolute value of vector elements
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L943">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L943">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -183,7 +183,7 @@ Apply acos to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -201,7 +201,7 @@ Apply acosh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -219,7 +219,7 @@ Apply acot to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -237,7 +237,7 @@ Apply acoth to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -255,7 +255,7 @@ Apply acsc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -273,7 +273,7 @@ Apply acsch to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -292,7 +292,7 @@ Sum of two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L920">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L920">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -311,7 +311,7 @@ Are vectors aligned (have the same direction)?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1248">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1251">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -331,7 +331,7 @@ Angle between two vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1227">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1230">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -349,7 +349,7 @@ Same as [fmap](#LOS-fmap). Deprecated.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L847">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L847">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -368,7 +368,7 @@ Round to 2 (or `d`) decimal places
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L896">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L896">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -386,7 +386,7 @@ Doubles array to Vec2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1288">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1291">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -404,7 +404,7 @@ Doubles array to Vec3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1293">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1296">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -422,7 +422,7 @@ Doubles array to Vec4
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1298">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1301">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -440,7 +440,7 @@ Make ArrayVec type based on provided sequence `xs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1090">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1093">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -459,7 +459,7 @@ Create vector from sequence as given type. If there is no sequence fill with `0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L874">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L874">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -477,7 +477,7 @@ Apply asec to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -495,7 +495,7 @@ Apply asech to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -513,7 +513,7 @@ Apply asin to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -531,7 +531,7 @@ Apply asinh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -549,7 +549,7 @@ Apply atan to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -567,7 +567,7 @@ Apply atanh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -586,7 +586,7 @@ Mean or weighted average of the vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1141">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1144">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -605,7 +605,7 @@ Average / centroid of vectors. Input: initial vector (optional), list of vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1135">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1138">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -624,7 +624,7 @@ Rotate vector. Only for `Vec3` types
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1042">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1042">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -642,7 +642,7 @@ List of perpendicular vectors (basis). Works only for `Vec2` and `Vec3` types.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L971">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L971">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -660,7 +660,7 @@ Apply cb to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -678,7 +678,7 @@ Apply cbrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -696,7 +696,7 @@ Apply ceil to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -715,7 +715,7 @@ Clamp elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1125">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1128">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -733,7 +733,7 @@ Apply cos to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -751,7 +751,7 @@ Apply cosh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -769,7 +769,7 @@ Apply cot to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -787,7 +787,7 @@ Apply coth to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -805,7 +805,7 @@ Cross product
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1033">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1033">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -823,7 +823,7 @@ Apply csc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -841,7 +841,7 @@ Apply csch to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -859,7 +859,7 @@ Apply degrees to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -879,7 +879,7 @@ Equality with given absolute (and/or relative) toleance.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L901">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L901">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -898,7 +898,7 @@ double hashcode
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L374">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L374">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -916,7 +916,7 @@ Euclidean distance between vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1146">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1149">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -934,7 +934,7 @@ Manhattan distance between vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1156">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1159">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -952,7 +952,7 @@ Angular distance
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1186">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1189">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -970,7 +970,7 @@ Canberra distance
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1171">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1174">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -988,7 +988,7 @@ Chebyshev distance between 2d vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1161">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1164">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1006,7 +1006,7 @@ Discrete distance between 2d vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1166">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1169">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1024,7 +1024,7 @@ Earth Mover's Distance
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1178">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1181">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1042,7 +1042,7 @@ Squared Euclidean distance between vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1151">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1154">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1056,7 +1056,7 @@ Squared Euclidean distance between vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1198">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1201">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1075,7 +1075,7 @@ Vector division or reciprocal.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1110">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1113">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1093,7 +1093,7 @@ Dot product of two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L916">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L916">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1111,7 +1111,7 @@ Element-wise constrain
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1005">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1005">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1131,7 +1131,7 @@ Element-wise equality with given absolute (and/or relative) toleance.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L907">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L907">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1149,7 +1149,7 @@ Element-wise division of two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1115">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1118">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1168,7 +1168,7 @@ Interpolate vector selement-wise, optionally set interpolation fn (default: lerp
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1000">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1000">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1186,7 +1186,7 @@ Element-wise min from two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L959">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L959">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1204,7 +1204,7 @@ Element-wise vector multiplication (Hadamard product).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L939">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L939">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1222,7 +1222,7 @@ Element-wise max from two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L955">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L955">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1240,7 +1240,7 @@ Apply exp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1258,7 +1258,7 @@ Apply expm1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1276,7 +1276,7 @@ Flip normal `n` to match the same direction as `v`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1255">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1258">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1294,7 +1294,7 @@ Apply floor to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1312,7 +1312,7 @@ Apply function to all vector values (like map but returns the same type).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L883">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L883">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1330,7 +1330,7 @@ Apply frac to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1348,7 +1348,7 @@ From polar coordinates (2d, 3d only)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1061">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1061">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1367,7 +1367,7 @@ Generate Vec2 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1267">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1270">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1386,7 +1386,7 @@ Generate Vec3 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1274">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1277">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1405,7 +1405,7 @@ Generate Vec4 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1281">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1284">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1423,7 +1423,7 @@ Angle between vector and unit vector `[1,0,...]`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1029">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1029">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1442,7 +1442,7 @@ Interpolate vectors, optionally set interpolation fn (default: lerp)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L991">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L991">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1462,7 +1462,7 @@ Equality to zero `0` with given absolute (and/or relative) toleance.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1017">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1017">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1480,7 +1480,7 @@ Is vector zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1009">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1009">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1498,7 +1498,7 @@ Linear interpolation of vectors
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L996">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L996">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1516,7 +1516,7 @@ Limit length of the vector by given value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1220">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1223">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1534,7 +1534,7 @@ Apply ln to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1552,7 +1552,7 @@ Apply log to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1570,7 +1570,7 @@ Apply log10 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1588,7 +1588,7 @@ Apply log1mexp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1606,7 +1606,7 @@ Apply log1p to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1624,7 +1624,7 @@ Apply log1pexp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1642,7 +1642,7 @@ Apply log1pmx to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1660,7 +1660,7 @@ Apply log1psq to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1678,7 +1678,7 @@ Apply log2 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1696,7 +1696,7 @@ Apply logexpm1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1714,7 +1714,7 @@ Apply logit to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1730,7 +1730,7 @@ Apply logit to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1355">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1358">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1748,7 +1748,7 @@ Apply logmxp1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1764,7 +1764,7 @@ Apply logmxp1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1344">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1347">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1780,7 +1780,7 @@ Apply logmxp1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1350">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1353">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1798,7 +1798,7 @@ Length of the vector.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L892">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L892">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1816,7 +1816,7 @@ Length of the vector squared.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L888">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L888">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1837,7 +1837,7 @@ Returns fixed size vector for given number of dimensions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1095">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1098">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1855,7 +1855,7 @@ Index of maximum value.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L963">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L963">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1873,7 +1873,7 @@ Index of minimum value.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L967">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L967">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1891,7 +1891,7 @@ Minimum value of vector elements
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L951">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L951">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1909,7 +1909,7 @@ Multiply vector by number `x`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L935">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L935">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1927,7 +1927,7 @@ Maximum value of vector elements
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L947">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L947">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1947,7 +1947,7 @@ Equality to zero `0` with given absolute (and/or relative) toleance.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1023">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1023">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1965,7 +1965,7 @@ Count non zero velues in vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1133">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1983,7 +1983,7 @@ Normalize vector (set length = 1.0)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1207">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1210">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2001,7 +2001,7 @@ Creates orthogonal list of vectors based on `xs`, starting from degree 1
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1364">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1367">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2019,7 +2019,7 @@ Creates orthonormal list of vector based on `xs`, starting from degree 1
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1382">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1385">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2037,7 +2037,7 @@ Permute vector elements with given indices.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L983">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L983">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2056,7 +2056,7 @@ Perpendicular vector. Only for `Vec2` and `Vec3` types.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1047">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1047">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2074,7 +2074,7 @@ Product of elements
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L979">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L979">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2092,7 +2092,7 @@ Project `v1` onto `v2`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1262">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1265">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2110,7 +2110,7 @@ Apply radians to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2128,7 +2128,7 @@ Reciprocal of elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L987">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L987">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2148,7 +2148,7 @@ Angle between two vectors relative to each other.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1241">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1244">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2166,7 +2166,7 @@ Apply rint to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2185,7 +2185,7 @@ Rotate vector. Only for `Vec2` and `Vec3` types.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1037">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1037">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2203,7 +2203,7 @@ Apply round to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2221,7 +2221,7 @@ Apply safe-sqrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2239,7 +2239,7 @@ Apply sec to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2257,7 +2257,7 @@ Apply sech to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2275,7 +2275,7 @@ Any seq to Vec2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1303">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1306">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2293,7 +2293,7 @@ Any seq to Vec3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1308">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1311">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2311,7 +2311,7 @@ Any seq to Vec4
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1313">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1316">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2329,7 +2329,7 @@ Set length of the vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1215">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1218">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2347,7 +2347,7 @@ Apply sfrac to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2365,7 +2365,7 @@ Apply sgn to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2384,7 +2384,7 @@ Add value to every vector element.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L930">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L930">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2402,7 +2402,7 @@ Apply sigmoid to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2420,7 +2420,7 @@ Apply signum to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2438,7 +2438,7 @@ Cosine similarity
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1191">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1194">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2456,7 +2456,7 @@ Apply sin to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2474,7 +2474,7 @@ Apply sinc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2492,7 +2492,7 @@ Apply sinh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2510,7 +2510,7 @@ Length of the vector.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L879">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L879">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2526,7 +2526,7 @@ Length of the vector.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1338">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1341">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2544,7 +2544,7 @@ Apply sq to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2562,7 +2562,7 @@ Apply sqrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2581,7 +2581,7 @@ Subtraction of two vectors.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L925">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L925">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2599,7 +2599,7 @@ Sum of elements
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L975">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L975">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2617,7 +2617,7 @@ Apply tan to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2635,7 +2635,7 @@ Apply tanh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2653,7 +2653,7 @@ To polar coordinates (2d, 3d only), first element is length, the rest angle.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1057">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1057">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2671,7 +2671,7 @@ Same as [vec->Vec](#LOS-vec->Vec). Deprecated.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L848">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L848">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2690,7 +2690,7 @@ Transform vector; map point to coordinate system defined by origin, vx and vy (a
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1052">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1052">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2708,7 +2708,7 @@ a o (b x c)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1065">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1065">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2726,7 +2726,7 @@ Apply trunc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2744,7 +2744,7 @@ Convert to Apache Commons Math RealVector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L864">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L864">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2762,7 +2762,7 @@ Convert to Clojure primitive vector `Vec`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L869">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L869">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2780,7 +2780,7 @@ Convert to double array
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L852">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L852">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2798,7 +2798,7 @@ Convert to sequence (same as seq)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L856">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L856">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2811,13 +2811,14 @@ Convert to sequence (same as seq)
 ##### vec2
 
 + `(vec2 x y)`
++ `(vec2 [x y])`
 + `(vec2)`
 
 Make 2d vector.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1072">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1072">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2831,13 +2832,14 @@ Make 2d vector.
 
 + `(vec3 x y z)`
 + `(vec3 v z)`
++ `(vec3 [x y z])`
 + `(vec3)`
 
 Make Vec2 vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1077">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1078">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2852,13 +2854,14 @@ Make Vec2 vector
 + `(vec4 x y z w)`
 + `(vec4 v w)`
 + `(vec4 v z w)`
++ `(vec4 [x y z w])`
 + `(vec4)`
 
 Make Vec4 vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1083">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1085">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2876,7 +2879,7 @@ Apply xlogx to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2894,7 +2897,7 @@ Count zeros in vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1120">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1123">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2912,7 +2915,7 @@ Is vector zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/vector.clj#L1013">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1013">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

@@ -809,6 +809,50 @@ $$k_\alpha(x)=\sqrt{\frac{\pi}{2x}}K_{\alpha+\frac{1}{2}}(x)$$
 :::
 
 
+## Henkel
+
+::: {.callout-tip title="Defined functions"}
+* `henkel-1`, `henkel-2`
+* `spherical-henkel-1`, `spherical-henkel-2`
+:::
+
+Henkel functions of the first and second kind.
+
+$$H^{(1)}_\alpha(x)=J_\alpha(x)+ i Y_\alpha(x)$$
+$$H^{(2)}_\alpha(x)=J_\alpha(x)- i Y_\alpha(x)$$
+
+::: {.callout-note title="Examples"}
+
+
+::: {.sourceClojure}
+```clojure
+(special/henkel-1 1 2.3) ;; => #vec2 [0.5398725326043137, 0.05227731584422471]
+(special/henkel-2 1 2.3) ;; => #vec2 [0.5398725326043137, -0.05227731584422471]
+```
+:::
+
+
+:::
+
+Spherical functions of the first and second kind.
+
+$$h^{(1)}_\alpha(x)=j_\alpha(x)+ i j_\alpha(x)$$
+$$h^{(2)}_\alpha(x)=j_\alpha(x)- i j_\alpha(x)$$
+
+::: {.callout-note title="Examples"}
+
+
+::: {.sourceClojure}
+```clojure
+(special/spherical-henkel-1 1 2.3) ;; => #vec2 [0.43065029510781005, -0.19826955892752984]
+(special/spherical-henkel-2 1 2.3) ;; => #vec2 [0.43065029510781005, 0.19826955892752984]
+```
+:::
+
+
+:::
+
+
 ## Erf
 
 ::: {.callout-tip title="Defined functions"}
@@ -1690,7 +1734,7 @@ Cosine integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1433">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1456">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1708,7 +1752,7 @@ Cosine integral, alternative definition
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1507">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1530">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1726,7 +1770,7 @@ Exponential integral E0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1550">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1573">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1744,7 +1788,7 @@ Exponential integral E1 for positive real numbers
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1555">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1578">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1762,7 +1806,7 @@ Exponential integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1801">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1824">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1780,7 +1824,7 @@ Exponential integral, alternative definition
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1582">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1605">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1798,7 +1842,7 @@ Generalized exponential integral En
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1767">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1790">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1816,7 +1860,7 @@ Offset logarythmic integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1839">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1862">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1834,7 +1878,7 @@ Sine integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1359">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1382">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1852,7 +1896,7 @@ Airy Ai function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1873">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1896">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1870,7 +1914,7 @@ First derivative of the Airy Ai function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1882">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1905">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1888,7 +1932,7 @@ Airy Bi function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1891">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1914">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1906,7 +1950,7 @@ First derivative of the Airy Bi function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1900">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1923">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2290,7 +2334,43 @@ Harmonic number H_n or generalized harmonic number H_n,m
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1911">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1934">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-henkel-1"></span>
+```
+
+
+#### henkel-1
+
++ `(henkel-1 order x)`
+
+Henkel function of the first kind, returns complex number.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1344">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-henkel-2"></span>
+```
+
+
+#### henkel-2
+
++ `(henkel-2 order x)`
+
+Henkel function of the second kind, returns complex number.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1349">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2308,7 +2388,7 @@ Hypergeometric ₀F₀ function, exp(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2005">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2028">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2326,7 +2406,7 @@ Confluent hypergeometric ₀F₁ limit function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2014">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2037">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2344,7 +2424,7 @@ Generalized hypergeometric ₀F₂ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2033">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2056">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2362,7 +2442,7 @@ Hypergeometric ₁F₀ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2009">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2032">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2380,7 +2460,7 @@ Confluent hypergeometric ₁F₁ function of the first kind, Kummer's M.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2028">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2051">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2398,7 +2478,7 @@ Generalized hypergeometric ₂F₀ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2040">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2063">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2416,7 +2496,7 @@ Gauss's hypergeometric ₂F₁ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2064">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2087">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2437,7 +2517,7 @@ hypergeometric-pFq using MacLaurin series.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2083">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2106">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2458,7 +2538,7 @@ Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2106">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2129">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2566,7 +2646,7 @@ Kummer's (confluent hypergeometric, 1F1) function for real arguments.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1970">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1993">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2584,7 +2664,7 @@ Lambert W_0 function. W(xe^x)=x for x>=-1.0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1940">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1963">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2602,7 +2682,7 @@ Lambert W_1 function. W_1(xe^x)=x for x<=-1.0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1956">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1979">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2620,7 +2700,7 @@ Logarythmic integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1834">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1857">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2692,7 +2772,7 @@ Lower incomplete gamma function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1853">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1876">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2710,7 +2790,7 @@ Minkowski's question mark function ?(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1344">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1367">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2764,7 +2844,7 @@ Regularized gamma P(a,x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1857">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1880">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2782,7 +2862,7 @@ Regularized gamma Q(a,x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1864">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1887">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2800,7 +2880,7 @@ Sine integral, Si shifted by -pi/2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1422">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1445">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3166,6 +3246,42 @@ Spherical Bessel function of the second kind and order 2.
 
 
 ```{=html}
+<span id="#LOS-spherical-henkel-1"></span>
+```
+
+
+#### spherical-henkel-1
+
++ `(spherical-henkel-1 order x)`
+
+Spherical Henkel function of the first kind, returns complex number.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1354">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-spherical-henkel-2"></span>
+```
+
+
+#### spherical-henkel-2
+
++ `(spherical-henkel-2 order x)`
+
+Spherical Henkel function of the second kind, returns complex number.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1359">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-tricomis-U"></span>
 ```
 
@@ -3178,7 +3294,7 @@ Confluent hypergeometric function U of the second kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2045">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2068">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3214,7 +3330,7 @@ Upper incomplete gamma function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1846">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1869">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3232,7 +3348,7 @@ Whittaker's M
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1998">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2021">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3250,7 +3366,7 @@ Whittaker's W
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2057">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2080">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

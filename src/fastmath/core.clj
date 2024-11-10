@@ -679,6 +679,32 @@
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH      0.166666666666666666666666)
 (def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} ONE_SIXTH  0.166666666666666666666666)
 
+(defn signum
+  "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
+  {:inline (fn [v] `(if (pos? ~v) 1.0 (if (neg? ~v) -1.0 0.0)))
+   :inline-arities #{1}}
+  ^double [^double value]
+  (cond (pos? value) 1.0
+        (neg? value) -1.0
+        :else 0.0))
+
+(defn sgn
+  "Return -1 when `value` is negative, 1 otherwise. See also [[signum]]."
+  {:inline (fn [v] `(if (neg? ~v) -1.0 1.0))
+   :inline-arities #{1}}
+  ^double [^double value]
+  (if (neg? value) -1.0 1.0))
+
+;; copy-sign
+
+(defn copy-sign
+  "Returns a value with a magnitude of first argument and sign of second."
+  {:inline (fn [magnitude sign] `(FastMath/copySign (double ~magnitude) (double ~sign)))
+   :inline-arities #{2}}
+  ^double [^double magnitude ^double sign]
+  (FastMath/copySign magnitude sign))
+
+
 (defn sin
   "sin(x)"
   {:inline (fn [x] `(. FastMath (sin (double ~x))))
@@ -1352,6 +1378,13 @@
    :inline-arities #{2}}
   ^double [^double x ^double exponent] (. Math (pow x exponent)))
 
+(defn spow
+  "Symmetric power of a number (keeping a sign of the argument."
+  {:inline (fn [x exponent] `(let [v# (double ~x)]
+                              (* (sgn v#) (. Math (pow (abs v#) (double ~exponent))))))
+   :inline-arities #{2}}
+  ^double [^double x ^double exponent] (* (sgn x) (. Math (pow x exponent))))
+
 (defn qpow
   "Fast and less accurate version of [[pow]]."
   {:inline (fn [x exponent] `(. FastMath (powQuick (double ~x) (double ~exponent))))
@@ -1839,31 +1872,6 @@
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{10}}\\\\)"} M_IVLN10 (/ LN10))
 (def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} M_LOG2_E LN2)
 (def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} M_INVLN2 (/ LN2))
-
-(defn signum
-  "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
-  {:inline (fn [v] `(if (pos? ~v) 1.0 (if (neg? ~v) -1.0 0.0)))
-   :inline-arities #{1}}
-  ^double [^double value]
-  (cond (pos? value) 1.0
-        (neg? value) -1.0
-        :else 0.0))
-
-(defn sgn
-  "Return -1 when `value` is negative, 1 otherwise. See also [[signum]]."
-  {:inline (fn [v] `(if (neg? ~v) -1.0 1.0))
-   :inline-arities #{1}}
-  ^double [^double value]
-  (if (neg? value) -1.0 1.0))
-
-;; copy-sign
-
-(defn copy-sign
-  "Returns a value with a magnitude of first argument and sign of second."
-  {:inline (fn [magnitude sign] `(FastMath/copySign (double ~magnitude) (double ~sign)))
-   :inline-arities #{2}}
-  ^double [^double magnitude ^double sign]
-  (FastMath/copySign magnitude sign))
 
 (defmacro constrain
   "Clamp `value` to the range `[mn,mx]`."

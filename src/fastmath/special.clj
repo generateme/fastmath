@@ -1341,6 +1341,29 @@
 
 ;;
 
+(defn henkel-1
+  "Henkel function of the first kind, returns complex number."
+  ^Vec2 [^double order ^double x]
+  (Vec2. (bessel-J order x) (bessel-Y order x)))
+
+(defn henkel-2
+  "Henkel function of the second kind, returns complex number."
+  ^Vec2 [^double order ^double x]
+  (Vec2. (bessel-J order x) (m/- (bessel-Y order x))))
+
+(defn spherical-henkel-1
+  "Spherical Henkel function of the first kind, returns complex number."
+  ^Vec2 [^double order ^double x]
+  (Vec2. (spherical-bessel-j order x) (spherical-bessel-y order x)))
+
+(defn spherical-henkel-2
+  "Spherical Henkel function of the second kind, returns complex number."
+  ^Vec2 [^double order ^double x]
+  (Vec2. (spherical-bessel-j order x) (m/- (spherical-bessel-y order x))))
+
+
+;;
+
 (defn minkowski
   "Minkowski's question mark function ?(x)"
   (^double [^double x]

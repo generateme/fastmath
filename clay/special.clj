@@ -663,6 +663,31 @@
   (special/spherical-bessel-k 3.1 3.2)
   (special/spherical-bessel-k -3.1 3.2))
 
+;; ## Henkel
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `henkel-1`, `henkel-2`
+;; * `spherical-henkel-1`, `spherical-henkel-2`
+;; :::
+
+;; Henkel functions of the first and second kind.
+
+;; $$H^{(1)}_\alpha(x)=J_\alpha(x)+ i Y_\alpha(x)$$
+;; $$H^{(2)}_\alpha(x)=J_\alpha(x)- i Y_\alpha(x)$$
+
+(utls/examples-note
+  (special/henkel-1 1 2.3)
+  (special/henkel-2 1 2.3))
+
+;; Spherical functions of the first and second kind.
+
+;; $$h^{(1)}_\alpha(x)=j_\alpha(x)+ i j_\alpha(x)$$
+;; $$h^{(2)}_\alpha(x)=j_\alpha(x)- i j_\alpha(x)$$
+
+(utls/examples-note
+  (special/spherical-henkel-1 1 2.3)
+  (special/spherical-henkel-2 1 2.3))
+
 ;; ## Erf
 
 ;; ::: {.callout-tip title="Defined functions"}

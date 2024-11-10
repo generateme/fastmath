@@ -1,11 +1,19 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 alpha3 (unreleased)]
+## [3.0.0 alpha4 SNAPSHOT]
+
+## [3.0.0 alpha3]
 
 ### Added
 
-	* Vectors implement full IPersistantVector interface (to allow `conj`)
+* Vectors implement full IPersistantVector interface (to allow `conj`)
+* `:sprague` interpolator
+* `:extrapolation` - extension to default extrapolating (zero, value, boundary values, exception)
+* LM and GLM printing rounds numbers in tables and reorder columns
+* `spow` symmetric power (keeping sign of the argument)
+* `vec2`, `vec3` and `vec4` single arity destructures input
+* `henkel-1`, `henkel-2` with spherical versions
 
 ## [3.0.0 alpha2]
 

@@ -194,7 +194,7 @@ Creates link record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1283">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1294">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

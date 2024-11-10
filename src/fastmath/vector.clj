@@ -1072,12 +1072,14 @@
 (defn vec2
   "Make 2d vector."
   ([x y] (Vec2. x y))
+  ([[x y]] (Vec2. x y))
   ([] (Vec2. 0.0 0.0)))
 
 (defn vec3
   "Make Vec2 vector"
   ([x y z] (Vec3. x y z))
   ([^Vec2 v z] (Vec3. (.x v) (.y v) z))
+  ([[x y z]] (Vec3. x y z))
   ([] (Vec3. 0.0 0.0 0.0)))
 
 (defn vec4
@@ -1085,6 +1087,7 @@
   ([x y z w] (Vec4. x y z w))
   ([^Vec3 v w] (Vec4. (.x v) (.y v) (.z v) w))
   ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w))
+  ([[x y z w]] (Vec4. x y z w))
   ([] (Vec4. 0.0 0.0 0.0 0.0)))
 
 (defn array-vec
@@ -1391,3 +1394,4 @@
 (defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
 
 (m/unuse-primitive-operators #{'abs 'zero?})
+

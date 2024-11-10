@@ -64,4 +64,5 @@
                              "efloat.clj"]
                :format [:quarto :html]
                :book {:favicon "clay/resources/favicon.png"
-                      :title "Fastmath documentation"}}))
+                      :title "Fastmath documentation"}})
+  )

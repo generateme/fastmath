@@ -1980,8 +1980,8 @@
 
 (kind/table
  [[(kind/code ":sphere") (kind/code ":ball")]
-  [(gg/->image (gg/scatter (take 1000 (r/sequence-generator :sphere 2)) {:aspect-ratio 1}))
-   (gg/->image (gg/scatter (take 500 (r/sequence-generator :ball 2)) {:aspect-ratio 1}))]])
+  [(gg/->image (gg/scatter (take 1000 (r/sequence-generator :sphere 2)) nil {:aspect-ratio 1}))
+   (gg/->image (gg/scatter (take 500 (r/sequence-generator :ball 2)) nil {:aspect-ratio 1}))]])
 
 
 (utls/examples-note

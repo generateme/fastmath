@@ -1273,11 +1273,22 @@
 (defn- residuals-quantiles
   "Summary statistics used for printing residuals with model"
   [residuals]
-  [{:min (apply min residuals)
-    :1q (stats/quantile residuals 0.25)
-    :median (stats/median residuals)
-    :3q (stats/quantile residuals 0.75)
-    :max (apply max residuals)}])
+  [(zipmap [:min :q1 :median :q3 :max]
+           (map #(m/approx % 6) [(apply min residuals)
+                                 (stats/quantile residuals 0.25)
+                                 (stats/median residuals)
+                                 (stats/quantile residuals 0.75)
+                                 (apply max residuals)]))])
+
+(defn- coefficients-table
+  [nm coefficient]
+  (zipmap [:name :estimate :stderr :t-value :p-value :confidence-interval]
+          [nm
+           (m/approx (:estimate coefficient) 6)
+           (m/approx (:stderr coefficient) 6)
+           (m/approx (:t-value coefficient) 6)
+           (m/approx (:p-value coefficient) 6)
+           (mapv #(m/approx % 6) (:confidence-interval coefficient))]))
 
 ;; Model printing methods
 (defmulti ->string class)
@@ -1292,7 +1303,7 @@
     (println)
     (println "Coefficients:")
     (->> coefficients
-         (map-indexed #(assoc %2 :name (nth names %1)))
+         (map-indexed #(coefficients-table (nth names %1) %2))
          pprint/print-table)
     (println)
     (println (str "F-statistic: " f-statistic " on degrees of freedom: " df))
@@ -1312,7 +1323,7 @@
     (println)
     (println "Coefficients:")
     (->> coefficients
-         (map-indexed #(assoc %2 :name (nth names %1)))
+         (map-indexed #(coefficients-table (nth names %1) %2))
          pprint/print-table)
     (println)
     (println "Dispersion: " dispersion)
@@ -1328,3 +1339,4 @@
   (.write w (str (->string data))))
 (defmethod print-method GLMData [data  ^java.io.Writer w]
   (.write w (str (->string data))))
+

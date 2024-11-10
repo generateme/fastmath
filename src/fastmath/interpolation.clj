@@ -9,7 +9,9 @@
             [fastmath.interpolation.kriging :as kriging]
             [fastmath.interpolation.gp :as gp]
             [fastmath.interpolation.step :as step]
-            [fastmath.interpolation.monotone :as monotone]))
+            [fastmath.interpolation.monotone :as monotone]
+            [fastmath.interpolation.sprague :as sprague]
+            [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -25,6 +27,7 @@
 (defmethod interpolation :neville [_ xs ys] (acm/neville xs ys))
 (defmethod interpolation :divided-difference [_ xs ys] (acm/divided-difference xs ys))
 (defmethod interpolation :polynomial [_ xs ys] (ssj/polynomial xs ys))
+(defmethod interpolation :sprague [_ xs ys] (sprague/sprague xs ys))
 
 (defmethod interpolation :step-before [_ xs ys] (step/step-before xs ys))
 (defmethod interpolation :step-after [_ xs ys] (step/step-after xs ys))
@@ -78,3 +81,44 @@
   ([_ xss ys] (gp/gp xss ys))
   ([_ xss ys kernel] (gp/gp xss ys kernel))
   ([_ xss ys kernel params] (gp/gp xss ys kernel params)))
+
+;;
+
+(defn extrapolation
+  "Extrapolate 1d values outside boundaries.
+
+  Possible methods:
+  
+  * `:constant` - constant values from boundaries
+  * `:zero` - always zero
+  * `:skip` - pass to interpolator
+  * `:error` - throw an exception
+  * any number - return given value
+  * two value vector or map with `:left` and `:right` keys - return given values for left and right boundaries. "
+  ([interpolator ^double start ^double end]
+   (extrapolation interpolator :skip start end))
+  ([interpolator method ^double start ^double end]
+   (cond
+     (sequential? method) (let [[^double left ^double right] method]
+                            (fn ^double [^double x]
+                              (cond (m/< x start) left
+                                    (m/> x end) right
+                                    :else (interpolator x))))
+     (number? method) (let [v (double method)]
+                        (fn ^double [^double x]
+                          (if (m/between? start end x) (interpolator x) v)))
+     (map? method) (let [{:keys [left right]} method]
+                     (extrapolation interpolator [left right] start end))
+     (keyword? method) (case method
+                         :constant (let [sv (interpolator start)
+                                         ev (interpolator end)]
+                                     (extrapolation interpolator [sv ev] start end))
+                         :zero (extrapolation interpolator 0.0 start end)
+                         :error (fn ^double [^double x]
+                                  (if (m/between? start end x)
+                                    (interpolator x)
+                                    (throw (IndexOutOfBoundsException.
+                                            (str "x=" x " not in [" start ", " end "] range")))))
+                         interpolator)
+     :else interpolator)))
+

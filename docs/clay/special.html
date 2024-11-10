@@ -294,6 +294,7 @@ window.Quarto = {
   <li><a href="#bessel-i-i" id="toc-bessel-i-i" class="nav-link" data-scroll-target="#bessel-i-i">Bessel I, i</a></li>
   <li><a href="#bessel-k-k" id="toc-bessel-k-k" class="nav-link" data-scroll-target="#bessel-k-k">Bessel K, k</a></li>
   </ul></li>
+  <li><a href="#henkel" id="toc-henkel" class="nav-link" data-scroll-target="#henkel">Henkel</a></li>
   <li><a href="#erf" id="toc-erf" class="nav-link" data-scroll-target="#erf">Erf</a></li>
   <li><a href="#airy" id="toc-airy" class="nav-link" data-scroll-target="#airy">Airy</a></li>
   <li><a href="#integrals" id="toc-integrals" class="nav-link" data-scroll-target="#integrals">Integrals</a>
@@ -366,6 +367,8 @@ window.Quarto = {
   <li><a href="#eta-1" id="toc-eta-1" class="nav-link" data-scroll-target="#eta-1">eta</a></li>
   <li><a href="#gamma-1" id="toc-gamma-1" class="nav-link" data-scroll-target="#gamma-1">gamma</a></li>
   <li><a href="#harmonic-number" id="toc-harmonic-number" class="nav-link" data-scroll-target="#harmonic-number">harmonic-number</a></li>
+  <li><a href="#henkel-1" id="toc-henkel-1" class="nav-link" data-scroll-target="#henkel-1">henkel-1</a></li>
+  <li><a href="#henkel-2" id="toc-henkel-2" class="nav-link" data-scroll-target="#henkel-2">henkel-2</a></li>
   <li><a href="#hypergeometric-0f0" id="toc-hypergeometric-0f0" class="nav-link" data-scroll-target="#hypergeometric-0f0">hypergeometric-0F0</a></li>
   <li><a href="#hypergeometric-0f1" id="toc-hypergeometric-0f1" class="nav-link" data-scroll-target="#hypergeometric-0f1">hypergeometric-0F1</a></li>
   <li><a href="#hypergeometric-0f2" id="toc-hypergeometric-0f2" class="nav-link" data-scroll-target="#hypergeometric-0f2">hypergeometric-0F2</a></li>
@@ -414,6 +417,8 @@ window.Quarto = {
   <li><a href="#spherical-bessel-y0" id="toc-spherical-bessel-y0" class="nav-link" data-scroll-target="#spherical-bessel-y0">spherical-bessel-y0</a></li>
   <li><a href="#spherical-bessel-y1" id="toc-spherical-bessel-y1" class="nav-link" data-scroll-target="#spherical-bessel-y1">spherical-bessel-y1</a></li>
   <li><a href="#spherical-bessel-y2" id="toc-spherical-bessel-y2" class="nav-link" data-scroll-target="#spherical-bessel-y2">spherical-bessel-y2</a></li>
+  <li><a href="#spherical-henkel-1" id="toc-spherical-henkel-1" class="nav-link" data-scroll-target="#spherical-henkel-1">spherical-henkel-1</a></li>
+  <li><a href="#spherical-henkel-2" id="toc-spherical-henkel-2" class="nav-link" data-scroll-target="#spherical-henkel-2">spherical-henkel-2</a></li>
   <li><a href="#tricomis-u" id="toc-tricomis-u" class="nav-link" data-scroll-target="#tricomis-u">tricomis-U</a></li>
   <li><a href="#trigamma" id="toc-trigamma" class="nav-link" data-scroll-target="#trigamma">trigamma</a></li>
   <li><a href="#upper-incomplete-gamma" id="toc-upper-incomplete-gamma" class="nav-link" data-scroll-target="#upper-incomplete-gamma">upper-incomplete-gamma</a></li>
@@ -1234,6 +1239,61 @@ Examples
 </div>
 </section>
 </section>
+<section id="henkel" class="level2">
+<h2 class="anchored" data-anchor-id="henkel">Henkel</h2>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>henkel-1</code>, <code>henkel-2</code></li>
+<li><code>spherical-henkel-1</code>, <code>spherical-henkel-2</code></li>
+</ul>
+</div>
+</div>
+<p>Henkel functions of the first and second kind.</p>
+<p><span class="math display">\[H^{(1)}_\alpha(x)=J_\alpha(x)+ i Y_\alpha(x)\]</span> <span class="math display">\[H^{(2)}_\alpha(x)=J_\alpha(x)- i Y_\alpha(x)\]</span></p>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb26"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(special/henkel<span class="dv">-1</span> <span class="dv">1</span> <span class="fl">2.3</span>) <span class="co">;; =&gt; #vec2 [0.5398725326043137, 0.05227731584422471]</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>(special/henkel<span class="dv">-2</span> <span class="dv">1</span> <span class="fl">2.3</span>) <span class="co">;; =&gt; #vec2 [0.5398725326043137, -0.05227731584422471]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<p>Spherical functions of the first and second kind.</p>
+<p><span class="math display">\[h^{(1)}_\alpha(x)=j_\alpha(x)+ i j_\alpha(x)\]</span> <span class="math display">\[h^{(2)}_\alpha(x)=j_\alpha(x)- i j_\alpha(x)\]</span></p>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb27"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>(special/spherical-henkel<span class="dv">-1</span> <span class="dv">1</span> <span class="fl">2.3</span>) <span class="co">;; =&gt; #vec2 [0.43065029510781005, -0.19826955892752984]</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>(special/spherical-henkel<span class="dv">-2</span> <span class="dv">1</span> <span class="fl">2.3</span>) <span class="co">;; =&gt; #vec2 [0.43065029510781005, 0.19826955892752984]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</section>
 <section id="erf" class="level2">
 <h2 class="anchored" data-anchor-id="erf">Erf</h2>
 <div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
@@ -1280,9 +1340,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb26"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(special/erf <span class="fl">0.4</span>) <span class="co">;; =&gt; 0.4283923550466685</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>(special/erfc <span class="fl">0.4</span>) <span class="co">;; =&gt; 0.5716076449533315</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>[(special/erf <span class="fl">0.5</span> <span class="fl">0.4</span>) (<span class="kw">-</span> (special/erf <span class="fl">0.4</span>) (special/erf <span class="fl">0.5</span>))] <span class="co">;; =&gt; [-0.09210752276637812 -0.09210752276637812]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>(special/erf <span class="fl">0.4</span>) <span class="co">;; =&gt; 0.4283923550466685</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>(special/erfc <span class="fl">0.4</span>) <span class="co">;; =&gt; 0.5716076449533315</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>[(special/erf <span class="fl">0.5</span> <span class="fl">0.4</span>) (<span class="kw">-</span> (special/erf <span class="fl">0.4</span>) (special/erf <span class="fl">0.5</span>))] <span class="co">;; =&gt; [-0.09210752276637812 -0.09210752276637812]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1317,8 +1377,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb27"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>(special/inv-erf <span class="fl">0.42839235504666856</span>) <span class="co">;; =&gt; 0.4</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>(special/inv-erfc (<span class="kw">-</span> <span class="dv">1</span> <span class="fl">0.42839235504666856</span>)) <span class="co">;; =&gt; 0.4000000000000001</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(special/inv-erf <span class="fl">0.42839235504666856</span>) <span class="co">;; =&gt; 0.4</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>(special/inv-erfc (<span class="kw">-</span> <span class="dv">1</span> <span class="fl">0.42839235504666856</span>)) <span class="co">;; =&gt; 0.4000000000000001</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1367,10 +1427,10 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb28"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>(special/airy-Ai <span class="fl">2.3</span>) <span class="co">;; =&gt; 0.02183199318062265</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>(special/airy-Bi <span class="fl">2.3</span>) <span class="co">;; =&gt; 4.885061581835644</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>(special/airy-Ai' <span class="fl">2.3</span>) <span class="co">;; =&gt; -0.03517312272081809</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>(special/airy-Bi' <span class="fl">2.3</span>) <span class="co">;; =&gt; 6.709740812723825</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(special/airy-Ai <span class="fl">2.3</span>) <span class="co">;; =&gt; 0.02183199318062265</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>(special/airy-Bi <span class="fl">2.3</span>) <span class="co">;; =&gt; 4.885061581835644</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>(special/airy-Ai' <span class="fl">2.3</span>) <span class="co">;; =&gt; -0.03517312272081809</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>(special/airy-Bi' <span class="fl">2.3</span>) <span class="co">;; =&gt; 6.709740812723825</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1424,10 +1484,10 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(special/Si <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.49310741804306674</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>(special/si <span class="fl">0.5</span>) <span class="co">;; =&gt; -1.0776889087518298</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>(special/Ci <span class="fl">0.5</span>) <span class="co">;; =&gt; -0.17778407880661298</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>(special/Cin <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.06185256314820056</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>(special/Si <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.49310741804306674</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>(special/si <span class="fl">0.5</span>) <span class="co">;; =&gt; -1.0776889087518298</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>(special/Ci <span class="fl">0.5</span>) <span class="co">;; =&gt; -0.17778407880661298</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>(special/Cin <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.06185256314820056</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1465,12 +1525,12 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(special/E0 <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.9146860601567108</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>(special/E1 <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.4543795031894021</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>(special/Ei <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.7699269875786519</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>(special/Ein <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.5207695443249443</span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>(special/En <span class="dv">2</span> <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.2761839341803851</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>(special/En -<span class="dv">2</span> <span class="fl">0.6</span>) <span class="co">;; =&gt; 9.04522881710525</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>(special/E0 <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.9146860601567108</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>(special/E1 <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.4543795031894021</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>(special/Ei <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.7699269875786519</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>(special/Ein <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.5207695443249443</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>(special/En <span class="dv">2</span> <span class="fl">0.6</span>) <span class="co">;; =&gt; 0.2761839341803851</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>(special/En -<span class="dv">2</span> <span class="fl">0.6</span>) <span class="co">;; =&gt; 9.04522881710525</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1493,8 +1553,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb31"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>(special/li <span class="fl">0.5</span>) <span class="co">;; =&gt; -0.378671043061088</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>(special/Li <span class="fl">0.5</span>) <span class="co">;; =&gt; -1.423834823178581</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>(special/li <span class="fl">0.5</span>) <span class="co">;; =&gt; -0.378671043061088</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>(special/Li <span class="fl">0.5</span>) <span class="co">;; =&gt; -1.423834823178581</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1538,9 +1598,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb32"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span>) <span class="co">;; =&gt; -0.5</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span>) <span class="co">;; =&gt; 1.4905432565068941</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span>) <span class="co">;; =&gt; 0.0048792123593036025</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span>) <span class="co">;; =&gt; -0.5</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span>) <span class="co">;; =&gt; 1.4905432565068941</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span>) <span class="co">;; =&gt; 0.0048792123593036025</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1573,12 +1633,12 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb33"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span> <span class="dv">3</span>) <span class="co">;; =&gt; -2.5</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span> <span class="dv">3</span>) <span class="co">;; =&gt; 0.27290561568286237</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span> <span class="dv">3</span>) <span class="co">;; =&gt; -5.589914207628901</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 2.7973744041931727</span></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 16.811251088887037</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 2.5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span> <span class="dv">3</span>) <span class="co">;; =&gt; -2.5</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span> <span class="dv">3</span>) <span class="co">;; =&gt; 0.27290561568286237</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span> <span class="dv">3</span>) <span class="co">;; =&gt; -5.589914207628901</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">2.2</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 2.7973744041931727</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>(special/zeta -<span class="fl">2.2</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 16.811251088887037</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>(special/zeta <span class="fl">0.0</span> -<span class="dv">3</span>) <span class="co">;; =&gt; 2.5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1601,9 +1661,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb34"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>(special/xi <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>(special/xi <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.6111280074951515</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>(special/xi (<span class="kw">-</span> <span class="fl">1.0</span> <span class="fl">3.5</span>)) <span class="co">;; =&gt; 0.6111280074951515</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>(special/xi <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>(special/xi <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.6111280074951515</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>(special/xi (<span class="kw">-</span> <span class="fl">1.0</span> <span class="fl">3.5</span>)) <span class="co">;; =&gt; 0.6111280074951515</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1626,9 +1686,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb35"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>(special/eta <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>(special/eta <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.927553577773949</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>(special/eta -<span class="fl">3.5</span>) <span class="co">;; =&gt; -0.09604760404512332</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>(special/eta <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>(special/eta <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.927553577773949</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>(special/eta -<span class="fl">3.5</span>) <span class="co">;; =&gt; -0.09604760404512332</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1651,9 +1711,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb36"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.9814025112714404</span></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta -<span class="fl">3.5</span>) <span class="co">;; =&gt; 1.0708860161983005</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta <span class="fl">0.0</span>) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta <span class="fl">3.5</span>) <span class="co">;; =&gt; 0.9814025112714404</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>(special/dirichlet-beta -<span class="fl">3.5</span>) <span class="co">;; =&gt; 1.0708860161983005</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1699,9 +1759,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb37"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> <span class="fl">0.1</span> <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.0001006141146784</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq [<span class="fl">0.1</span> <span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.0001006141146789</span></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.1</span> <span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.000100614114679</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> <span class="fl">0.1</span> <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.0001006141146784</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq [<span class="fl">0.1</span> <span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.0001006141146789</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.1</span> <span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 1.000100614114679</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1718,9 +1778,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb38"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F1 -<span class="dv">50</span> <span class="dv">3</span> <span class="fl">19.5</span>) <span class="co">;; =&gt; 864.8061702264724</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq [-<span class="dv">50</span>] [<span class="dv">3</span>] <span class="fl">19.5</span>) <span class="co">;; =&gt; -1072.5532046613325</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [-<span class="dv">50</span>] [<span class="dv">3</span>] <span class="fl">19.5</span>) <span class="co">;; =&gt; -1.195066852171838</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F1 -<span class="dv">50</span> <span class="dv">3</span> <span class="fl">19.5</span>) <span class="co">;; =&gt; 864.8061702264724</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq [-<span class="dv">50</span>] [<span class="dv">3</span>] <span class="fl">19.5</span>) <span class="co">;; =&gt; -1072.5532046613325</span></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [-<span class="dv">50</span>] [<span class="dv">3</span>] <span class="fl">19.5</span>) <span class="co">;; =&gt; -1.195066852171838</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1744,8 +1804,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb39"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F0 <span class="fl">2.3</span>) <span class="co">;; =&gt; 9.97418245481472</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>(m/exp <span class="fl">2.3</span>) <span class="co">;; =&gt; 9.97418245481472</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F0 <span class="fl">2.3</span>) <span class="co">;; =&gt; 9.97418245481472</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>(m/exp <span class="fl">2.3</span>) <span class="co">;; =&gt; 9.97418245481472</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1774,8 +1834,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb40"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [] [-<span class="fl">0.5</span>] -<span class="dv">2</span>) <span class="co">;; =&gt; -0.08000465565839093</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F1 -<span class="fl">0.5</span> -<span class="dv">2</span>) <span class="co">;; =&gt; -0.08000465565839159</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [] [-<span class="fl">0.5</span>] -<span class="dv">2</span>) <span class="co">;; =&gt; -0.08000465565839093</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F1 -<span class="fl">0.5</span> -<span class="dv">2</span>) <span class="co">;; =&gt; -0.08000465565839159</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1797,8 +1857,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb41"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [] [-<span class="fl">0.5</span> <span class="fl">0.5</span>] -<span class="dv">2</span>) <span class="co">;; =&gt; 0.1239850666953995</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F2 -<span class="fl">0.5</span> <span class="fl">0.5</span> -<span class="dv">2</span>) <span class="co">;; =&gt; 0.12398506669539959</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [] [-<span class="fl">0.5</span> <span class="fl">0.5</span>] -<span class="dv">2</span>) <span class="co">;; =&gt; 0.1239850666953995</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-0</span>F2 -<span class="fl">0.5</span> <span class="fl">0.5</span> -<span class="dv">2</span>) <span class="co">;; =&gt; 0.12398506669539959</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1820,8 +1880,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb42"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.5</span>] [] -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.8164965809277258</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F0 <span class="fl">0.5</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.816496580927726</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb44"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.5</span>] [] -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.8164965809277258</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F0 <span class="fl">0.5</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.816496580927726</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1844,9 +1904,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb43"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.5</span>] [<span class="dv">1</span>] -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397194</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F1 <span class="fl">0.5</span> <span class="dv">1</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397188</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>(special/kummers-M <span class="fl">0.5</span> <span class="dv">1</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397188</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb45"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.5</span>] [<span class="dv">1</span>] -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397194</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-1</span>F1 <span class="fl">0.5</span> <span class="dv">1</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397188</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>(special/kummers-M <span class="fl">0.5</span> <span class="dv">1</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 0.7910171621397188</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1869,9 +1929,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb44"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.1</span> -<span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 0.9998994982635961</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> -<span class="fl">0.1</span> <span class="fl">0.01</span>) <span class="co">;; =&gt; 0.9998994982635958</span></span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> -<span class="fl">0.1</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 0.987133788261332</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb46"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">0.1</span> -<span class="fl">0.1</span>] [] <span class="fl">0.01</span>) <span class="co">;; =&gt; 0.9998994982635961</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> -<span class="fl">0.1</span> <span class="fl">0.01</span>) <span class="co">;; =&gt; 0.9998994982635958</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F0 <span class="fl">0.1</span> -<span class="fl">0.1</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 0.987133788261332</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1891,8 +1951,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb45"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>(special/tricomis-U <span class="fl">0.5</span> <span class="fl">0.2</span> <span class="fl">0.1</span>) <span class="co">;; =&gt; 1.090844545544952</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>(special/tricomis-U -<span class="fl">0.5</span> <span class="fl">0.2</span> <span class="fl">0.1</span>) <span class="co">;; =&gt; 0.5507462877526579</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>(special/tricomis-U <span class="fl">0.5</span> <span class="fl">0.2</span> <span class="fl">0.1</span>) <span class="co">;; =&gt; 1.090844545544952</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>(special/tricomis-U -<span class="fl">0.5</span> <span class="fl">0.2</span> <span class="fl">0.1</span>) <span class="co">;; =&gt; 0.5507462877526579</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1915,8 +1975,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb46"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">1.1</span> -<span class="fl">0.1</span>] [<span class="fl">0.2</span>] <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5254580717634016</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F1 <span class="fl">1.1</span> -<span class="fl">0.1</span> <span class="fl">0.2</span> <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5254580717633999</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb48"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric-pFq-ratio [<span class="fl">1.1</span> -<span class="fl">0.1</span>] [<span class="fl">0.2</span>] <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5254580717634016</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>(special/hypergeometric<span class="dv">-2</span>F1 <span class="fl">1.1</span> -<span class="fl">0.1</span> <span class="fl">0.2</span> <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5254580717633999</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -1950,8 +2010,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb47"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>(special/whittaker-M <span class="fl">0.3</span> <span class="fl">0.4</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 1.0250053521045672</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>(special/whittaker-W <span class="fl">0.3</span> <span class="fl">0.4</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 0.6219095691834272</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb49"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>(special/whittaker-M <span class="fl">0.3</span> <span class="fl">0.4</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 1.0250053521045672</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>(special/whittaker-W <span class="fl">0.3</span> <span class="fl">0.4</span> <span class="fl">1.2</span>) <span class="co">;; =&gt; 0.6219095691834272</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2006,9 +2066,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb48"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>(special/lambert-W m/E) <span class="co">;; =&gt; 1.0</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>(special/lambert-W (<span class="kw">*</span> <span class="fl">2.3</span> (m/exp <span class="fl">2.3</span>))) <span class="co">;; =&gt; 2.3</span></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>(special/lambert-W<span class="dv">-1</span> (<span class="kw">*</span> -<span class="dv">2</span> (m/exp -<span class="dv">2</span>))) <span class="co">;; =&gt; -2.0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb50"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>(special/lambert-W m/E) <span class="co">;; =&gt; 1.0</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>(special/lambert-W (<span class="kw">*</span> <span class="fl">2.3</span> (m/exp <span class="fl">2.3</span>))) <span class="co">;; =&gt; 2.3</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>(special/lambert-W<span class="dv">-1</span> (<span class="kw">*</span> -<span class="dv">2</span> (m/exp -<span class="dv">2</span>))) <span class="co">;; =&gt; -2.0</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2033,10 +2093,10 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb49"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="dv">2</span>) <span class="co">;; =&gt; 1.5</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.5</span>) <span class="co">;; =&gt; 1.680372305546776</span></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="dv">3</span>) <span class="co">;; =&gt; 1.8333333333333335</span></span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number -<span class="fl">0.5</span>) <span class="co">;; =&gt; -1.3862943611198908</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb51"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="dv">2</span>) <span class="co">;; =&gt; 1.5</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.5</span>) <span class="co">;; =&gt; 1.680372305546776</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="dv">3</span>) <span class="co">;; =&gt; 1.8333333333333335</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number -<span class="fl">0.5</span>) <span class="co">;; =&gt; -1.3862943611198908</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2070,8 +2130,8 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb50"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.2</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 2.737173754376224</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.2</span> <span class="fl">0.5</span>) <span class="co">;; =&gt; 1.8306098144389147</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb52"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.2</span> -<span class="fl">0.5</span>) <span class="co">;; =&gt; 2.737173754376224</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>(special/harmonic-number <span class="fl">2.2</span> <span class="fl">0.5</span>) <span class="co">;; =&gt; 1.8306098144389147</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2093,9 +2153,9 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb51"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>(special/minkowski <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>[(special/minkowski <span class="fl">0.2</span>) (<span class="kw">-</span> <span class="fl">1.0</span> (special/minkowski <span class="fl">0.8</span>))] <span class="co">;; =&gt; [0.0625 0.0625]</span></span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>[(special/minkowski (<span class="kw">/</span> <span class="fl">0.5</span> <span class="fl">1.5</span>)) (<span class="kw">/</span> (special/minkowski <span class="fl">0.5</span>) <span class="dv">2</span>)] <span class="co">;; =&gt; [0.25 0.25]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb53"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>(special/minkowski <span class="fl">0.5</span>) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>[(special/minkowski <span class="fl">0.2</span>) (<span class="kw">-</span> <span class="fl">1.0</span> (special/minkowski <span class="fl">0.8</span>))] <span class="co">;; =&gt; [0.0625 0.0625]</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>[(special/minkowski (<span class="kw">/</span> <span class="fl">0.5</span> <span class="fl">1.5</span>)) (<span class="kw">/</span> (special/minkowski <span class="fl">0.5</span>) <span class="dv">2</span>)] <span class="co">;; =&gt; [0.25 0.25]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2129,7 +2189,7 @@ Examples
 <li><code>(Ci x)</code></li>
 </ul>
 <p>Cosine integral</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1433">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1456">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-Cin"></span>
 </section>
 <section id="cin" class="level4">
@@ -2138,7 +2198,7 @@ Examples
 <li><code>(Cin x)</code></li>
 </ul>
 <p>Cosine integral, alternative definition</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1507">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1530">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-E0"></span>
 </section>
 <section id="e0" class="level4">
@@ -2147,7 +2207,7 @@ Examples
 <li><code>(E0 x)</code></li>
 </ul>
 <p>Exponential integral E0</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1550">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1573">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-E1"></span>
 </section>
 <section id="e1" class="level4">
@@ -2156,7 +2216,7 @@ Examples
 <li><code>(E1 x)</code></li>
 </ul>
 <p>Exponential integral E1 for positive real numbers</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1555">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1578">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-Ei"></span>
 </section>
 <section id="ei" class="level4">
@@ -2165,7 +2225,7 @@ Examples
 <li><code>(Ei x)</code></li>
 </ul>
 <p>Exponential integral</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1801">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1824">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-Ein"></span>
 </section>
 <section id="ein" class="level4">
@@ -2174,7 +2234,7 @@ Examples
 <li><code>(Ein x)</code></li>
 </ul>
 <p>Exponential integral, alternative definition</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1582">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1605">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-En"></span>
 </section>
 <section id="en" class="level4">
@@ -2183,7 +2243,7 @@ Examples
 <li><code>(En n x)</code></li>
 </ul>
 <p>Generalized exponential integral En</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1767">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1790">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-Li"></span>
 </section>
 <section id="li" class="level4">
@@ -2192,7 +2252,7 @@ Examples
 <li><code>(Li x)</code></li>
 </ul>
 <p>Offset logarythmic integral</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1839">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1862">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-Si"></span>
 </section>
 <section id="si" class="level4">
@@ -2201,7 +2261,7 @@ Examples
 <li><code>(Si x)</code></li>
 </ul>
 <p>Sine integral</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1359">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1382">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-airy-Ai"></span>
 </section>
 <section id="airy-ai" class="level4">
@@ -2210,7 +2270,7 @@ Examples
 <li><code>(airy-Ai x)</code></li>
 </ul>
 <p>Airy Ai function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1873">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1896">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-airy-Ai'"></span>
 </section>
 <section id="airy-ai-1" class="level4">
@@ -2219,7 +2279,7 @@ Examples
 <li><code>(airy-Ai' x)</code></li>
 </ul>
 <p>First derivative of the Airy Ai function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1882">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1905">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-airy-Bi"></span>
 </section>
 <section id="airy-bi" class="level4">
@@ -2228,7 +2288,7 @@ Examples
 <li><code>(airy-Bi x)</code></li>
 </ul>
 <p>Airy Bi function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1891">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1914">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-airy-Bi'"></span>
 </section>
 <section id="airy-bi-1" class="level4">
@@ -2237,7 +2297,7 @@ Examples
 <li><code>(airy-Bi' x)</code></li>
 </ul>
 <p>First derivative of the Airy Bi function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1900">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1923">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-bessel-I"></span>
 </section>
 <section id="bessel-i" class="level4">
@@ -2430,7 +2490,25 @@ Examples
 <li><code>(harmonic-number n m)</code></li>
 </ul>
 <p>Harmonic number H_n or generalized harmonic number H_n,m</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1911">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1934">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-henkel-1"></span>
+</section>
+<section id="henkel-1" class="level4">
+<h4 class="anchored" data-anchor-id="henkel-1">henkel-1</h4>
+<ul>
+<li><code>(henkel-1 order x)</code></li>
+</ul>
+<p>Henkel function of the first kind, returns complex number.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1344">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-henkel-2"></span>
+</section>
+<section id="henkel-2" class="level4">
+<h4 class="anchored" data-anchor-id="henkel-2">henkel-2</h4>
+<ul>
+<li><code>(henkel-2 order x)</code></li>
+</ul>
+<p>Henkel function of the second kind, returns complex number.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1349">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-0F0"></span>
 </section>
 <section id="hypergeometric-0f0" class="level4">
@@ -2439,7 +2517,7 @@ Examples
 <li><code>(hypergeometric-0F0 x)</code></li>
 </ul>
 <p>Hypergeometric ₀F₀ function, exp(x)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2005">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2028">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-0F1"></span>
 </section>
 <section id="hypergeometric-0f1" class="level4">
@@ -2448,7 +2526,7 @@ Examples
 <li><code>(hypergeometric-0F1 a x)</code></li>
 </ul>
 <p>Confluent hypergeometric ₀F₁ limit function.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2014">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2037">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-0F2"></span>
 </section>
 <section id="hypergeometric-0f2" class="level4">
@@ -2457,7 +2535,7 @@ Examples
 <li><code>(hypergeometric-0F2 a b x)</code></li>
 </ul>
 <p>Generalized hypergeometric ₀F₂ function.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2033">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2056">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-1F0"></span>
 </section>
 <section id="hypergeometric-1f0" class="level4">
@@ -2466,7 +2544,7 @@ Examples
 <li><code>(hypergeometric-1F0 a x)</code></li>
 </ul>
 <p>Hypergeometric ₁F₀ function.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2009">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2032">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-1F1"></span>
 </section>
 <section id="hypergeometric-1f1" class="level4">
@@ -2475,7 +2553,7 @@ Examples
 <li><code>(hypergeometric-1F1 a b x)</code></li>
 </ul>
 <p>Confluent hypergeometric ₁F₁ function of the first kind, Kummer’s M.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2028">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2051">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-2F0"></span>
 </section>
 <section id="hypergeometric-2f0" class="level4">
@@ -2484,7 +2562,7 @@ Examples
 <li><code>(hypergeometric-2F0 a b x)</code></li>
 </ul>
 <p>Generalized hypergeometric ₂F₀ function.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2040">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2063">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-2F1"></span>
 </section>
 <section id="hypergeometric-2f1" class="level4">
@@ -2493,7 +2571,7 @@ Examples
 <li><code>(hypergeometric-2F1 a b c x)</code></li>
 </ul>
 <p>Gauss’s hypergeometric ₂F₁ function.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2064">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2087">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-pFq"></span>
 </section>
 <section id="hypergeometric-pfq" class="level4">
@@ -2504,7 +2582,7 @@ Examples
 </ul>
 <p>hypergeometric-pFq using MacLaurin series.</p>
 <p><code>max-iters</code> is set to 1000000 by default.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2083">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2106">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hypergeometric-pFq-ratio"></span>
 </section>
 <section id="hypergeometric-pfq-ratio" class="level4">
@@ -2515,7 +2593,7 @@ Examples
 </ul>
 <p>Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.</p>
 <p><code>max-iters</code> is set to 10000 by default.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2106">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2129">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-incomplete-beta"></span>
 </section>
 <section id="incomplete-beta" class="level4">
@@ -2569,7 +2647,7 @@ Examples
 <li><code>(kummers-M a b x)</code></li>
 </ul>
 <p>Kummer’s (confluent hypergeometric, 1F1) function for real arguments.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1970">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1993">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-lambert-W"></span>
 </section>
 <section id="lambert-w-1" class="level4">
@@ -2578,7 +2656,7 @@ Examples
 <li><code>(lambert-W x)</code></li>
 </ul>
 <p>Lambert W_0 function. W(xe^x)=x for x&gt;=-1.0.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1940">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1963">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-lambert-W-1"></span>
 </section>
 <section id="lambert-w-1-1" class="level4">
@@ -2587,7 +2665,7 @@ Examples
 <li><code>(lambert-W-1 x)</code></li>
 </ul>
 <p>Lambert W_1 function. W_1(xe^x)=x for x&lt;=-1.0.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1956">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1979">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-li"></span>
 </section>
 <section id="li-1" class="level4">
@@ -2596,7 +2674,7 @@ Examples
 <li><code>(li x)</code></li>
 </ul>
 <p>Logarythmic integral</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1834">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1857">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log-beta"></span>
 </section>
 <section id="log-beta" class="level4">
@@ -2632,7 +2710,7 @@ Examples
 <li><code>(lower-incomplete-gamma s x)</code></li>
 </ul>
 <p>Lower incomplete gamma function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1853">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1876">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-minkowski"></span>
 </section>
 <section id="minkowski" class="level4">
@@ -2641,7 +2719,7 @@ Examples
 <li><code>(minkowski x)</code></li>
 </ul>
 <p>Minkowski’s question mark function ?(x)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1344">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1367">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-polygamma"></span>
 </section>
 <section id="polygamma" class="level4">
@@ -2668,7 +2746,7 @@ Examples
 <li><code>(regularized-gamma-p a x)</code></li>
 </ul>
 <p>Regularized gamma P(a,x)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1857">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1880">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-regularized-gamma-q"></span>
 </section>
 <section id="regularized-gamma-q" class="level4">
@@ -2677,7 +2755,7 @@ Examples
 <li><code>(regularized-gamma-q a x)</code></li>
 </ul>
 <p>Regularized gamma Q(a,x)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1864">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1887">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-si"></span>
 </section>
 <section id="si-1" class="level4">
@@ -2686,7 +2764,7 @@ Examples
 <li><code>(si x)</code></li>
 </ul>
 <p>Sine integral, Si shifted by -pi/2</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1422">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1445">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-spherical-bessel-1-i"></span>
 </section>
 <section id="spherical-bessel-1-i" class="level4">
@@ -2867,6 +2945,24 @@ Examples
 </ul>
 <p>Spherical Bessel function of the second kind and order 2.</p>
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1251">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-spherical-henkel-1"></span>
+</section>
+<section id="spherical-henkel-1" class="level4">
+<h4 class="anchored" data-anchor-id="spherical-henkel-1">spherical-henkel-1</h4>
+<ul>
+<li><code>(spherical-henkel-1 order x)</code></li>
+</ul>
+<p>Spherical Henkel function of the first kind, returns complex number.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1354">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-spherical-henkel-2"></span>
+</section>
+<section id="spherical-henkel-2" class="level4">
+<h4 class="anchored" data-anchor-id="spherical-henkel-2">spherical-henkel-2</h4>
+<ul>
+<li><code>(spherical-henkel-2 order x)</code></li>
+</ul>
+<p>Spherical Henkel function of the second kind, returns complex number.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1359">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tricomis-U"></span>
 </section>
 <section id="tricomis-u" class="level4">
@@ -2875,7 +2971,7 @@ Examples
 <li><code>(tricomis-U a b x)</code></li>
 </ul>
 <p>Confluent hypergeometric function U of the second kind.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2045">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2068">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-trigamma"></span>
 </section>
 <section id="trigamma" class="level4">
@@ -2893,7 +2989,7 @@ Examples
 <li><code>(upper-incomplete-gamma s x)</code></li>
 </ul>
 <p>Upper incomplete gamma function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1846">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1869">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-whittaker-M"></span>
 </section>
 <section id="whittaker-m" class="level4">
@@ -2902,7 +2998,7 @@ Examples
 <li><code>(whittaker-M kappa mu x)</code></li>
 </ul>
 <p>Whittaker’s M</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1998">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2021">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-whittaker-W"></span>
 </section>
 <section id="whittaker-w" class="level4">
@@ -2911,7 +3007,7 @@ Examples
 <li><code>(whittaker-W kappa mu x)</code></li>
 </ul>
 <p>Whittaker’s W</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2057">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2080">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-xi"></span>
 </section>
 <section id="xi-1" class="level4">

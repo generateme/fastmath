@@ -112,6 +112,7 @@ List of all possible methods:
  :polynomial
  :rbf
  :shepard
+ :sprague
  :step
  :step-after
  :step-before)
@@ -1143,7 +1144,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-0.3233003506756821
+0.20201293127226447
 
 ```
 :::
@@ -1160,7 +1161,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-52.8327691036384
+52.77979469283332
 
 ```
 :::
@@ -1621,7 +1622,7 @@ empirical-highly-robust
 
 ::: {.printedClojure}
 ```clojure
-72.56642602823985
+56.63607635102724
 
 ```
 :::
