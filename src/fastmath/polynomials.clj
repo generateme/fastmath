@@ -8,6 +8,7 @@
            [fastmath.vector Vec2]
            [java.text DecimalFormat]
            [clojure.lang IFn]
+           [umontreal.ssj.functionfit PolInterp]
            [org.apache.commons.math3.linear MatrixUtils RealMatrix EigenDecomposition]
            [org.apache.commons.math3.special Gamma]))
 
@@ -263,14 +264,18 @@
 (defmethod print-method PolynomialR [v ^java.io.Writer w] (.write w (str v)))
 
 (defn polynomial
-  "Create polynomial object."
-  ^Polynomial [coeffs]
-  (Polynomial. (double-array coeffs) (m/dec (count coeffs))))
+  "Create polynomial object from coeffs or fitted points."
+  (^Polynomial [xs ys]
+   (polynomial (PolInterp/getCoefficients (m/seq->double-array xs) (m/seq->double-array ys))))
+  (^Polynomial [coeffs]
+   (Polynomial. (double-array coeffs) (m/dec (count coeffs)))))
 
 (defn ratio-polynomial
-  "Create polynomial operating on ratios."
-  ^PolynomialR [coeffs]
-  (PolynomialR. (mapv rationalize coeffs) (m/dec (count coeffs))))
+  "Create polynomial operating on ratios from coeffs or fitted points."
+  (^Polynomial [xs ys]
+   (ratio-polynomial (PolInterp/getCoefficients (m/seq->double-array xs) (m/seq->double-array ys))))
+  (^PolynomialR [coeffs]
+   (PolynomialR. (mapv rationalize coeffs) (m/dec (count coeffs)))))
 
 (defn coeffs->polynomial
   "Create polynomial object for unrolled coefficients."

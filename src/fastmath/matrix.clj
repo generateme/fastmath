@@ -6,7 +6,8 @@
   (:import [clojure.lang Counted IFn IPersistentCollection Seqable Reversible ILookup]
            [org.apache.commons.math3.linear Array2DRowRealMatrix RealVector ArrayRealVector EigenDecomposition
             RealMatrix MatrixUtils LUDecomposition CholeskyDecomposition]
-           [fastmath.vector Vec2 Vec3 Vec4]))
+           [fastmath.vector Vec2 Vec3 Vec4]
+           [org.apache.commons.math3.stat StatUtils]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -829,30 +830,34 @@
 
 (defn eye
   "Identity matrix for given size"
-  [^long size]
-  (case (int size)
-    0 nil
-    1 1.0
-    2 (Mat2x2. 1.0 0.0 0.0 1.0)
-    3 (Mat3x3. 1.0 0.0 0.0
-               0.0 1.0 0.0
-               0.0 0.0 1.0)
-    4 (Mat4x4. 1.0 0.0 0.0 0.0
-               0.0 1.0 0.0 0.0
-               0.0 0.0 1.0 0.0
-               0.0 0.0 0.0 1.0)
-    (MatrixUtils/createRealIdentityMatrix size)))
+  ([^long size real-matrix?]
+   (if real-matrix? (MatrixUtils/createRealIdentityMatrix size) (eye size)))
+  ([^long size]
+   (case (int size)
+     0 nil
+     1 1.0
+     2 (Mat2x2. 1.0 0.0 0.0 1.0)
+     3 (Mat3x3. 1.0 0.0 0.0
+                0.0 1.0 0.0
+                0.0 0.0 1.0)
+     4 (Mat4x4. 1.0 0.0 0.0 0.0
+                0.0 1.0 0.0 0.0
+                0.0 0.0 1.0 0.0
+                0.0 0.0 0.0 1.0)
+     (MatrixUtils/createRealIdentityMatrix size))))
 
 (defn zero
   "Zero matrix for given size"
-  [^long size]
-  (case (int size)
-    0 nil
-    1 0.0
-    2 (mat2x2 0.0)
-    3 (mat3x3 0.0)
-    4 (mat4x4 0.0)
-    (Array2DRowRealMatrix. size size)))
+  ([^long size real-matrix?]
+   (if real-matrix? (Array2DRowRealMatrix. size size) (zero size)))
+  ([^long size]
+   (case (int size)
+     0 nil
+     1 0.0
+     2 (mat2x2 0.0)
+     3 (mat3x3 0.0)
+     4 (mat4x4 0.0)
+     (Array2DRowRealMatrix. size size))))
 
 (defn diagonal
   "Create diagonal matrix"
@@ -1076,6 +1081,7 @@
        (m/double-double-array->seq)
        (apply rows->mat)))
 
+;; TODO - refactor, add cols-map and rows-map
 (defn normalize
   "Normalize columns (or rows)"
   ([A] (normalize A false))
@@ -1086,6 +1092,34 @@
          (rows->RealMatrix nA)
          (apply rows->mat nA)))
      (let [nA (map v/normalize (cols A))]
+       (if (instance? RealMatrix A)
+         (cols->RealMatrix nA)
+         (apply cols->mat nA))))))
+
+(defn demean
+  "Subract mean from columns (or rows)"
+  ([A] (demean A false))
+  ([A rows?]
+   (if rows?
+     (let [nA (map #(v/shift % (m/- (StatUtils/mean (m/seq->double-array %)))) (rows A))]
+       (if (instance? RealMatrix A)
+         (rows->RealMatrix nA)
+         (apply rows->mat nA)))
+     (let [nA (map #(v/shift % (m/- (StatUtils/mean (m/seq->double-array %)))) (cols A))]
+       (if (instance? RealMatrix A)
+         (cols->RealMatrix nA)
+         (apply cols->mat nA))))))
+
+(defn standardize
+  "Normalize columns (or rows) to have mean = 0 and stddev = 1"
+  ([A] (standardize A false))
+  ([A rows?]
+   (if rows?
+     (let [nA (map #(StatUtils/normalize (m/seq->double-array %)) (rows A))]
+       (if (instance? RealMatrix A)
+         (rows->RealMatrix nA)
+         (apply rows->mat nA)))
+     (let [nA (map #(StatUtils/normalize (m/seq->double-array %)) (cols A))]
        (if (instance? RealMatrix A)
          (cols->RealMatrix nA)
          (apply cols->mat nA))))))

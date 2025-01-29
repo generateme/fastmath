@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file. This change
 
 ## [3.0.0 alpha4 SNAPSHOT]
 
+### Added
+
+* Polynomials can be build from points which are fitted.
+* compensated summation algorithm for `sum` 
+* `matrix` demean/standardize cols/rows
+
 ## [3.0.0 alpha3]
 
 ### Added

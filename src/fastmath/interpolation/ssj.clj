@@ -44,4 +44,3 @@
   [xs ys]
   (let [^MathFunction obj (PolInterp. (m/seq->double-array xs) (m/seq->double-array ys))]
     (fn ^double [^double x] (.evaluate obj x))))
-

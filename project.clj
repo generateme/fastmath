@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "3.0.0-alpha3"
+(defproject generateme/fastmath "3.0.0-alpha4-SNAPSHOT"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"

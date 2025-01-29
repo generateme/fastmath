@@ -62,7 +62,7 @@
            [org.apache.commons.math3.analysis.integration RombergIntegrator]
            [org.apache.commons.math3.analysis UnivariateFunction]
            [fastmath.java Array]
-           [fastmath.vector Vec2]))
+           [fastmath.vector Vec2 Vec3]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -80,12 +80,45 @@
                               :r8 Percentile$EstimationType/R_8
                               :r9 Percentile$EstimationType/R_9})
 
+(defn- kahan-step
+  ^Vec2 [^Vec2 b ^double v]
+  (let [av (m/- v (.y b))
+        nsum (m/+ av (.x b))]
+    (Vec2. nsum (m/- nsum (.x b) av))))
+
+(defn- neumayer-step
+  ^Vec2 [^Vec2 b ^double v]
+  (let [t (m/+ (.x b) v)]
+    (Vec2. t (m/+ (.y b) (if (m/>= (m/abs (.x b)) (m/abs v))
+                           (m/+ (m/- (.x b) t) v)
+                           (m/+ (m/- v t) (.x b)))))))
+
+(defn- klein-step
+  ^Vec3 [^Vec3 b ^double v]
+  (let [t (m/+ (.x b) v)
+        c (if (m/>= (m/abs (.x b)) (m/abs v))
+            (m/+ (m/- (.x b) t) v)
+            (m/+ (m/- v t) (.x b)))
+        nt (m/+ (.y b) c)
+        cc (if (m/>= (m/abs (.y b)) (m/abs c))
+             (m/+ (m/- (.y b) nt) c)
+             (m/+ (m/- c nt) (.y b)))]
+    (Vec3. t nt (m/+ (.z b) cc))))
+
 (defn sum
-  "Sum of all `vs` values."
-  ^double [vs]
-  (if (= (type vs) m/double-array-type)
-    (Array/sum ^doubles vs)
-    (reduce + vs)))
+  "Sum of all `vs` values.
+
+   Possible compensated summation methods are: `:kahan`, `:neumayer` and `:klein`"
+  (^double [vs]
+   (if (= (type vs) m/double-array-type)
+     (Array/sum ^doubles vs)
+     (reduce + vs)))
+  (^double [vs compensation-method]
+   (case compensation-method
+     :kahan (let [^Vec2 r (reduce kahan-step (Vec2. 0.0 0.0) vs)] (.x r))
+     :neumayer (v/sum (reduce neumayer-step (Vec2. 0.0 0.0) vs))
+     :klein (v/sum (reduce klein-step (Vec3. 0.0 0.0 0.0) vs))
+     (sum vs))))
 
 (defn percentile
   "Calculate percentile of a `vs`.
