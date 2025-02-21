@@ -61,49 +61,58 @@
 
 ;; polynomials
 
-(defn complex-muladd
-  "`(x y z)` -> `(+ z (* x y))`"
-  ^Vec2 [x y z]
-  (cplx/add z (cplx/mult x y)))
-
-(defmacro complex-mevalpoly
+(defmacro mevalpoly-complex
   "Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+...."
   [x & coeffs]
   (let [cnt (count coeffs)]
-    (condp clojure.core/= cnt
-      0 0.0
-      1 `~(first coeffs)
+    (case (unchecked-int cnt)
+      0 `cplx/ZERO
+      1 (first coeffs)
       2 (let [[z y] coeffs]
-          `(complex-muladd ~x ~y ~z))
-      `(complex-muladd ~x (complex-mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
+          `(cplx/muladd ~x ~y ~z))
+      `(cplx/muladd ~x (mevalpoly-complex ~x ~@(rest coeffs)) ~(first coeffs)))))
 
-(defn complex-evalpoly
+(defmacro mevalpoly-scalar-complex
+  "Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
+
+  Coefficients are scalars"
+  [x & coeffs]
+  (let [cnt (count coeffs)]
+    (condp clojure.core/= cnt
+      0 `cplx/ZERO
+      1 `(Vec2. ~(first coeffs) 0.0)
+      `(cplx/muladd ~x (mevalpoly-scalar-complex~x ~@(rest coeffs)) (Vec2. ~(first coeffs) 0.0)))))
+
+(defn evalpoly-complex
   "Evaluate complex polynomial"
   [x & coeffs]
   (if-not (seq coeffs)
-    0.0
-    (let [rc (reverse coeffs)]
+    cplx/ZERO
+    (let [x (cplx/ensure-complex x)
+          rc (reverse (map cplx/ensure-complex coeffs))]
       (loop [rcoeffs (rest rc)
              ex (first rc)]
         (if-not (seq rcoeffs)
           ex
           (recur (rest rcoeffs)
-                 (complex-muladd x ex (first rcoeffs))))))))
+                 (cplx/muladd x ex (first rcoeffs))))))))
 
-(defn complex-makepoly
+(defn makepoly-complex
   "Create complex polynomial function for given coefficients"
   [coeffs]
-  (cond
-    (not (seq coeffs)) (constantly 0.0)
-    (= 1 (count coeffs)) (constantly (first coeffs))
-    :else (let [rc (reverse coeffs)]
-            (fn [x]
-              (loop [rcoeffs (rest rc)
-                     ex (first rc)]
-                (if-not (seq rcoeffs)
-                  ex
-                  (recur (rest rcoeffs)
-                         (complex-muladd x ex (first rcoeffs)))))))))
+  (let [coeffs (map cplx/ensure-complex coeffs)]
+    (cond
+      (not (seq coeffs)) (constantly cplx/ZERO)
+      (= 1 (count coeffs)) (constantly (first coeffs))
+      :else (let [rc (reverse coeffs)]
+              (fn [x]
+                (let [x (cplx/ensure-complex x)]
+                  (loop [rcoeffs (rest rc)
+                         ex (first rc)]
+                    (if-not (seq rcoeffs)
+                      ex
+                      (recur (rest rcoeffs)
+                             (cplx/muladd x ex (first rcoeffs)))))))))))
 
 
 ;;

@@ -1341,23 +1341,23 @@
 
 ;;
 
-(defn henkel-1
-  "Henkel function of the first kind, returns complex number."
+(defn hankel-1
+  "Hankel function of the first kind, returns complex number."
   ^Vec2 [^double order ^double x]
   (Vec2. (bessel-J order x) (bessel-Y order x)))
 
-(defn henkel-2
-  "Henkel function of the second kind, returns complex number."
+(defn hankel-2
+  "Hankel function of the second kind, returns complex number."
   ^Vec2 [^double order ^double x]
   (Vec2. (bessel-J order x) (m/- (bessel-Y order x))))
 
-(defn spherical-henkel-1
-  "Spherical Henkel function of the first kind, returns complex number."
+(defn spherical-hankel-1
+  "Spherical Hankel function of the first kind, returns complex number."
   ^Vec2 [^double order ^double x]
   (Vec2. (spherical-bessel-j order x) (spherical-bessel-y order x)))
 
-(defn spherical-henkel-2
-  "Spherical Henkel function of the second kind, returns complex number."
+(defn spherical-hankel-2
+  "Spherical Hankel function of the second kind, returns complex number."
   ^Vec2 [^double order ^double x]
   (Vec2. (spherical-bessel-j order x) (m/- (spherical-bessel-y order x))))
 
@@ -2091,40 +2091,25 @@
 
 ;;
 
-(defn- reduce-m-pFq
-  ^double [^doubles a ^long l ^long k ^double r]
-  (loop [i (long 0) r r]
-    (if (m/== i l) r
-        (recur (m/inc i) (m/* r (m/+ (Array/aget a i) k))))))
-
-(defn- reduce-d-pFq
-  ^double [^doubles a ^long l ^long k ^double r]
-  (loop [i (long 0) r r]
-    (if (m/== i l) r
-        (recur (m/inc i) (m// r (m/+ (Array/aget a i) k))))))
-
 (defn hypergeometric-pFq
-  "hypergeometric-pFq using MacLaurin series.
+  "Hypergeometric-pFq using MacLaurin series or Weniger acceleration.
 
-  `max-iters` is set to 1000000 by default."
-  (^double [ps qs ^double z] (hypergeometric-pFq ps qs z 1000000))
-  (^double [ps qs ^double z ^long max-iters]
-   (let [a (double-array ps)
-         la (alength a)
-         b (double-array qs)
-         lb (alength b)]
-     (loop [k (long 1)
-            s0 1.0
-            s1 (m/inc (m// (m/* z (v/prod a)) (v/prod b)))]
-       (if (and (m/< k max-iters)
-                (not (m/delta-eq s0 s1 m/MACHINE-EPSILON10 m/MACHINE-EPSILON10)))
-         (let [rk (m// z (m/inc k)) 
-               rk (reduce-m-pFq a la k rk)
-               rk (reduce-d-pFq b lb k rk)]
-           (recur (m/inc k) s1 (m/+ s1 (m/* (m/- s1 s0) rk))))
-         s1)))))
+  `max-iters` is set to 10000 by default."
+  (^double [ps qs ^double x] (hypergeometric-pFq ps qs x 10000))
+  (^double [ps qs ^double x ^long max-iters]
+   (let [p (count ps) q (count qs)]
+     (cond
+       (m/< p q) (if (m/pos? x)
+                   (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+                   (hg/hypergeometric-pFq-weniger ps qs x max-iters))
+       (m/== p (m/inc q)) (if (m/< (m/abs x) 0.72)
+                            (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+                            (hg/hypergeometric-pFq-weniger ps qs x max-iters))
+       :else (hg/hypergeometric-pFq-weniger ps qs x max-iters)))))
 
 (set! *unchecked-math* true)
+
+(defn- local-abs [a] (if (pos? a) a (- a)))
 
 (defn hypergeometric-pFq-ratio
   "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
@@ -2138,11 +2123,113 @@
          eps (rationalize m/MACHINE-EPSILON10)]
      (loop [k (long 1)
             s0 (rationalize 1)
-            s1 (+ 1 (/ (* z (reduce * a)) (reduce * b)))]
+            s1 (+ 1 (/ (* z (reduce * (rationalize 1) a)) (reduce * (rationalize 1) b)))]
        (if (and (m/< k max-iters)
-                (> (abs (- s1 s0)) (max eps (* eps (max s1 s0)))))
+                (> (local-abs (- s1 s0)) (max eps (* eps (max s1 s0)))))
          (let [rk (/ z (+ k 1))
                rk (reduce (fn [r va] (* r (+ va k))) rk a)
                rk (reduce (fn [r vb] (/ r (+ vb k))) rk b)]
            (recur (m/inc k) s1 (+ s1 (* (- s1 s0) rk))))
          s1)))))
+
+(set! *unchecked-math* :warn-on-boxed)
+
+;;;;;
+
+;; complex
+;;;;;
+
+(defn hypergeometric-pFq-complex
+  "Hypergeometric-pFq using MacLaurin series or Weniger acceleration on complex numbers.
+
+  `max-iters` is set to 10000 by default."
+  (^Vec2 [ps qs z] (hypergeometric-pFq-complex ps qs z 10000))
+  (^Vec2 [ps qs z ^long max-iters]
+   (let [p (count ps) q (count qs)
+         z (cplx/ensure-complex z)]
+     (cond
+       (m/< p q) (if (m/pos? (cplx/re z))
+                   (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
+                   (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
+       (m/== p (m/inc q)) (if (m/< (cplx/abs z) 0.72)
+                            (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
+                            (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
+       :else (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters)))))
+
+(defn- complex-log-gamma-asymptotic
+  ^Vec2 [^Vec2 z]
+  (let [zinv (cplx/reciprocal z)
+        t (cplx/sq zinv)]
+    (cplx/add (cplx/adds (cplx/sub (cplx/mult (cplx/adds z -0.5)
+                                              (cplx/log z))
+                                   z)
+                         9.1893853320467274178032927e-01)
+              (cplx/mult zinv (poly/mevalpoly-scalar-complex t
+                                8.3333333333333333333333368e-02,-2.7777777777777777777777776e-03,
+                                7.9365079365079365079365075e-04,-5.9523809523809523809523806e-04,
+                                8.4175084175084175084175104e-04,-1.9175269175269175269175262e-03,
+                                6.4102564102564102564102561e-03,-2.9550653594771241830065352e-02)))))
+
+(defn log-gamma-complex
+  "Logarithm of complex gamma function."
+  ^Vec2 [^Vec2 z]
+  (let [x (.x z)
+        y (.y z)
+        yabs (m/abs y)]
+    (cond
+      (and (m/inf? x) (m/valid-double? y)) (Vec2. x (if (m/pos? x)
+                                                      (if (m/zero? y) y (m/copy-sign ##Inf y))
+                                                      (m/copy-sign ##Inf (m/- y))))
+      (and (m/valid-double? x) (m/inf? y)) (Vec2. ##-Inf y)
+      (or (m/invalid-double? x) (m/invalid-double? y)) (Vec2. ##NaN ##NaN)
+      (and (m/zero? x) (m/zero? y)) (Vec2. ##Inf (if (m/negative-zero? x) (m/copy-sign m/PI (m/- y)) (m/- y)))
+      (and (m/integer? x) (m/neg? x) (m/zero? y)) (Vec2. ##Inf ##Inf)
+
+      (or (m/> x 7.0) (m/> yabs 7.0)) (complex-log-gamma-asymptotic z)
+      
+      (m/< x 0.1) (cplx/sub
+                   (cplx/sub (Vec2. m/LOG_PI (m/* (m/copy-sign m/TWO_PI y) (m/floor (m/+ 0.25 (m/* 0.5 x)))))
+                             (cplx/log (cplx/sin (cplx/scale z m/PI))))
+                   (log-gamma-complex (cplx/sub cplx/ONE z)))
+
+      (m/< (m/+ (m/abs (m/dec x)) yabs) 0.1)
+      (let [w (cplx/adds z -1.0)]
+        (cplx/mult w (poly/mevalpoly-scalar-complex w
+                       -5.7721566490153286060651188e-01,8.2246703342411321823620794e-01,
+                       -4.0068563438653142846657956e-01,2.705808084277845478790009e-01,
+                       -2.0738555102867398526627303e-01,1.6955717699740818995241986e-01,
+                       -1.4404989676884611811997107e-01,1.2550966952474304242233559e-01,
+                       -1.1133426586956469049087244e-01,1.000994575127818085337147e-01,
+                       -9.0954017145829042232609344e-02,8.3353840546109004024886499e-02,
+                       -7.6932516411352191472827157e-02,7.1432946295361336059232779e-02,
+                       -6.6668705882420468032903454e-02)))
+
+      (m/< (m/+ (m/abs (m/- x 2.0)) yabs) 0.1)
+      (let [w (cplx/adds z -2.0)]
+        (cplx/mult w (poly/mevalpoly-scalar-complex w
+                       4.2278433509846713939348812e-01,3.2246703342411321823620794e-01,
+                       -6.7352301053198095133246196e-02,2.0580808427784547879000897e-02,
+                       -7.3855510286739852662729527e-03,2.8905103307415232857531201e-03,
+                       -1.1927539117032609771139825e-03,5.0966952474304242233558822e-04,
+                       -2.2315475845357937976132853e-04,9.9457512781808533714662972e-05,
+                       -4.4926236738133141700224489e-05,2.0507212775670691553131246e-05)))
+
+      :else (loop [^Vec2 shiftprod (Vec2. x yabs)
+                   x (m/inc x)
+                   sb false
+                   signflips (long 0)]
+              (if (m/<= x 7.0)
+                (let [^Vec2 nsp (cplx/mult shiftprod (Vec2. x yabs))
+                      nsb (or (m/neg? (.y nsp)) (m/negative-zero? (.y nsp)))]
+                  (recur nsp (m/inc x) nsb (if (and nsb (not= sb nsb)) (m/inc signflips) signflips)))
+                (let [^Vec2 s (cplx/log shiftprod)
+                      shift (Vec2. (.x s)
+                                   (if (or (m/neg? y) (m/negative-zero? y))
+                                     (m/- (m/* m/-TWO_PI signflips) (.y s))
+                                     (m/+ (m/* m/TWO_PI signflips) (.y s))))]
+                  (cplx/sub (complex-log-gamma-asymptotic (Vec2. x y)) shift)))))))
+
+(defn gamma-complex
+  "Complex version of gamma function."
+  ^Vec2 [^Vec2 z] (cplx/exp (log-gamma-complex z)))
+

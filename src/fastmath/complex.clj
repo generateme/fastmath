@@ -32,6 +32,10 @@
   ([^double a] (Vec2. a 0.0))
   ([] ZERO))
 
+(defn ensure-complex
+  "Convert possible number to complex or return input."
+  [v] (if (number? v) (complex (double v)) v))
+
 (defn re "Real part" ^double [^Vec2 z] (.x z))
 (defn im "Imaginary part" ^double [^Vec2 z] (.y z))
 
@@ -42,6 +46,8 @@
                                      (m/inf? (.y z))))
 (defn nan? "Is NaN?" [^Vec2 z] (or (m/nan? (.x z))
                                 (m/nan? (.y z))))
+(defn invalid? "Is NaN or Inf?" [z] (or (inf? z) (nan? z)))
+(defn valid? "Is valid complex (not NaN or Inf)?" [z] (not (invalid? z)))
 
 (defn delta-eq
   "Compare complex numbers with given accuracy (10e-6 by default)"
@@ -87,6 +93,11 @@
   (Vec2. (+ (.x z1) (.x z2))
          (+ (.y z1) (.y z2))))
 
+(defn adds
+  "Add scalar to complex number."
+  ^Vec2 [^Vec2 z ^double v]
+  (Vec2. (+ (.x z) v) (.y z)))
+
 (defn sub
   "Difference of two complex numbers"
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
@@ -111,6 +122,11 @@
 
 (defn mult-I ^Vec2 [^Vec2 z] (Vec2. (- (.y z)) (.x z)))
 (defn mult-I- ^Vec2 [^Vec2 z] (Vec2. (.y z) (- (.x z))))
+
+(defn muladd
+  "`(x y z)` -> `(+ z (* x y))`"
+  ^Vec2 [x y z]
+  (add z (mult x y)))
 
 (defn sq
   "Square complex number. \\\\(z^2\\\\)"

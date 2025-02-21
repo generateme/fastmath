@@ -681,7 +681,7 @@
 
 (defn signum
   "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
-  {:inline (fn [v] `(if (pos? ~v) 1.0 (if (neg? ~v) -1.0 0.0)))
+  {:inline (fn [v] `(if (pos? (double ~v)) 1.0 (if (neg? (double ~v)) -1.0 0.0)))
    :inline-arities #{1}}
   ^double [^double value]
   (cond (pos? value) 1.0
@@ -690,7 +690,7 @@
 
 (defn sgn
   "Return -1 when `value` is negative, 1 otherwise. See also [[signum]]."
-  {:inline (fn [v] `(if (neg? ~v) -1.0 1.0))
+  {:inline (fn [v] `(if (neg? (double ~v)) -1.0 1.0))
    :inline-arities #{1}}
   ^double [^double value]
   (if (neg? value) -1.0 1.0))

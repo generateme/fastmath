@@ -96,15 +96,15 @@
   [n acc kind]
   (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc kind)
         x (with-meta (symbol "x") {:tag 'double})
-        h (with-meta (symbol "h") {:tag 'double})
-        hn (with-meta (symbol "hn") {:tag 'double})
+        h2 (with-meta (symbol "h2") {:tag 'double})
+        hn2 (with-meta (symbol "hn2") {:tag 'double})
         fname (gensym (str "local-" n "-" acc "-" (name kind)))]
     `(fn ~fname
-       ([~x] (~fname ~x ~h ~hn))
-       ([~x ~h] (~fname ~x ~h (m/fpow ~h ~n)))
-       ([~x ~h ~hn]        
+       ([~x] (~fname ~x ~'h ~'hn)) ;; external vars
+       ([~x ~h2] (~fname ~x ~h2 (m/fpow ~h2 ~n)))
+       ([~x ~h2 ~hn2]        
         (m// (m/+ ~@(map (fn [id coeff]
-                           `(m/* ~coeff (double (~'f (m/+ ~x (m/* ~id ~h)))))) offsets coeffs)) ~hn)))))
+                           `(m/* ~coeff (double (~'f (m/+ ~x (m/* ~id ~h2)))))) offsets coeffs)) ~hn2)))))
 
 (defmacro produce-case-for-methods
   [n acc]
@@ -118,8 +118,8 @@
   (let [xx (with-meta (symbol "xx") {:tag 'double})
         coeff (with-meta (symbol "coeff") {:tag 'double})
         id (with-meta (symbol "id") {:tag 'long})
-        h (with-meta (symbol "h") {:tag 'double})
-        hn (with-meta (symbol "hn") {:tag 'double})
+        h2 (with-meta (symbol "h2") {:tag 'double})
+        hn2 (with-meta (symbol "hn2") {:tag 'double})
         fname (gensym (str "local-" n))]
     `(case (unchecked-int ~'acc)
        1 (produce-case-for-methods ~n 1)
@@ -130,10 +130,10 @@
        6 (produce-case-for-methods ~n 6)
        (let [[offsets# coeffs#] (fd-coeffs-for-accuracy ~n ~'acc ~'method)]
          (fn ~fname
-           ([~xx] (~fname ~xx ~h ~hn))
-           ([~xx ~h] (~fname ~xx ~h (m/fpow ~h ~n)))
-           ([~xx ~h ~hn] (m// (v/sum (map (fn [~id  ~coeff]
-                                            (m/* ~coeff (double (~'f (m/+ ~xx (m/* ~id ~h)))))) offsets# coeffs#)) ~hn)))))))
+           ([~xx] (~fname ~xx ~'h ~'hn))
+           ([~xx ~h2] (~fname ~xx ~h2 (m/fpow ~h2 ~n)))
+           ([~xx ~h2 ~hn2] (m// (v/sum (map (fn [~id  ~coeff]
+                                              (m/* ~coeff (double (~'f (m/+ ~xx (m/* ~id ~h2)))))) offsets# coeffs#)) ~hn2)))))))
 
 (defn derivative
   ([f] (derivative f 1))
@@ -144,7 +144,7 @@
      f
      (let [h (if (m/zero? h) (m/pow m/MACHINE-EPSILON (m// (m/+ n 2.0))) h)
            hn (m/fpow h n)
-           result (case n
+           result (case (unchecked-int n)
                     1 (produce-cases-for-accuracy 1)
                     2 (produce-cases-for-accuracy 2)
                     3 (produce-cases-for-accuracy 3)
@@ -153,11 +153,11 @@
                     6 (produce-cases-for-accuracy 6)
                     (let [[offsets coeffs] (fd-coeffs-for-accuracy n acc method)]
                       (fn local-rest
-                        ([^double x] (local-rest x h hn))
-                        ([^double x ^double h] (local-rest x h (m/fpow h n)))
-                        ([^double x ^double h ^double hn] (m// (v/sum (map (fn [^long id ^double coeff]
-                                                                             (m/* coeff ^double (f (m/+ x (m/* id h))))) offsets coeffs))
-                                                               hn)))))]
+                        (^double [^double x] (local-rest x h hn))
+                        (^double [^double x ^double h2] (local-rest x h2 (m/fpow h2 n)))
+                        (^double [^double x ^double h2 ^double hn2] (m// (v/sum (map (fn [^long id ^double coeff]
+                                                                                       (m/* coeff (double (f (m/+ x (m/* id h2)))))) offsets coeffs))
+                                                                         hn2)))))]
        (if extrapolate?
          (let [eoptions (if (map? extrapolate?) extrapolate? {})]
            (extrapolate result (if (:power eoptions)

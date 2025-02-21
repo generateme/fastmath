@@ -4,7 +4,8 @@
             [clojisr.v1.r :as rr]
             [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.random :as r]))
+            [fastmath.random :as r]
+            [fastmath.complex :as cplx]))
 
 (defn init-r []
   (rr/discard-all-sessions)
@@ -435,3 +436,6 @@
     (t/is (v/delta-eq (sut/lambert-W (m/* x (m/exp x))) x)))
   (doseq [x (repeatedly 1000 #(r/drand -500.0 -1.0))]
     (t/is (v/delta-eq (sut/lambert-W-1(m/* x (m/exp x))) x))))
+
+;; hypergeometric
+

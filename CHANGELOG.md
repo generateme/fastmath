@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file. This change
 * Polynomials can be build from points which are fitted.
 * compensated summation algorithm for `sum` 
 * `matrix` demean/standardize cols/rows
+* `hypergeometric-pFq-complex`, `gamma-complex` - complex versions of functions
+* `hypergeometric-pFq` - added weniger acceleration branch
 
 ## [3.0.0 alpha3]
 
