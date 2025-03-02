@@ -14,7 +14,9 @@
 
 ;; # Statistical Functions {.unnumbered}
 
-;; The `fastmath.stats` namespace provides a comprehensive set of statistical functions for data analysis. This tutorial will cover the main components, demonstrate real-world applications, and explore most of the API functions.
+;; The `fastmath.stats` namespace provides a comprehensive set of statistical functions for data analysis. This tutorial will cover the main components, demonstrate real-world applications, and explore the API functions. It includes descriptive statistics, inferential statistics, hypothesis testing, bootstrap methods, time series analysis, and more specialized statistical techniques.
+
+;; Statistical analysis is crucial for making sense of data. It helps identify patterns, relationships, and trends that may not be immediately apparent. The functions in this namespace implement many common [statistical methods](https://en.wikipedia.org/wiki/Statistical_method) and follow standard mathematical formulations for accuracy and comparability with other statistical software.
 
 ;; First, let's require the necessary namespaces:
 
@@ -26,27 +28,43 @@
 
 ;; ## Loading Real-World Datasets
 
-;; For this tutorial, we'll load datasets from multiple sources. We'll use:
+;; For this tutorial, we'll load datasets from multiple sources to demonstrate real-world statistical analysis. Each dataset has different characteristics, allowing us to showcase various statistical techniques. We'll use:
 ;; 
-;; 1. **Iris Dataset**: Comes with the fastmath library (local resource)
-;; 2. **Motor Trend Car Road Tests (mtcars)**: Comes with the fastmath library (local resource)
-;; 3. **Rock Dataset**: Loaded from a public URL (measurements of 48 rock samples)
-;; 4. **Diamonds Dataset**: Loaded from a public URL (information about diamond prices and attributes)
+;; 1. **[Iris Dataset](https://en.wikipedia.org/wiki/Iris_flower_data_set)**: A famous multivariate dataset introduced by Ronald Fisher in 1936. It contains 150 observations of iris flowers from three different species (setosa, versicolor, and virginica), with four measurements for each flower: sepal length, sepal width, petal length, and petal width (all in centimeters). This dataset is frequently used for classification tasks and demonstrating statistical methods due to its well-formed cluster structure.
+;; 
+;; 2. **[Motor Trend Car Road Tests (mtcars)](https://www.rdocumentation.org/packages/datasets/versions/3.6.2/topics/mtcars)**: Extracted from the 1974 Motor Trend US magazine, this dataset includes fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models). Variables include miles per gallon (mpg), number of cylinders, horsepower, and transmission type.
+;; 
+;; 3. **[Rock Dataset](https://www.rdocumentation.org/packages/datasets/versions/3.6.2/topics/rock)**: Contains measurements of 48 rock samples from a petroleum reservoir. The variables include permeability, shape, and area measurements, providing data for studying the physical properties of rocks and their relationships.
+;; 
+;; 4. **[Diamonds Dataset](https://ggplot2.tidyverse.org/reference/diamonds.html)**: A dataset containing prices and attributes of approximately 54,000 diamonds (we'll use a sample). The variables include price, carat (weight), cut quality, color, clarity, and dimensions (x, y, z). This dataset is excellent for exploring price prediction and understanding how different factors affect diamond valuation.
 
 ;; ### CSV Processing Functions
 
-;; First, let's add the Charred library dependency for proper CSV parsing
+;; First, let's add the [Charred library](https://github.com/cnuernber/charred) dependency for proper CSV parsing.
+;; Charred provides high-performance CSV parsing with correct handling of quoted fields, escaped characters, 
+;; and other CSV formatting nuances according to [RFC 4180](https://tools.ietf.org/html/rfc4180) standards.
 (require '[charred.api :as csv])
 
 (defn parse-number 
-  "Parse a string to a number, if possible"
+  "Parse a string to a number, if possible.
+   This function converts numeric strings to Double values while leaving non-numeric strings unchanged.
+   It uses a regular expression to identify valid numeric formats (integers and decimals)."
   [s]
   (if (re-matches #"^-?\d+(\.\d+)?$" s)
     (Double/parseDouble s)
     s))
 
 (defn process-csv-data 
-  "Process CSV data with header into maps using Charred for proper CSV parsing"
+  "Process CSV data with header into maps using Charred for proper CSV parsing.
+   
+   This function:
+   1. Parses CSV content using the Charred library
+   2. Extracts the header row and converts each field to a keyword
+   3. Transforms the remaining rows into maps with header keywords as keys
+   4. Attempts to convert numeric string values to actual numbers
+   
+   Parameters:
+   - content: Either a CSV string or a sequence of CSV lines"
   [content]
   (let [csv-data (cond
                    (string? content) (csv/read-csv content)
@@ -60,7 +78,14 @@
          rows)))
 
 (defn load-csv-from-url
-  "Load CSV data from a URL as a string (to be parsed with Charred)"
+  "Load CSV data from a URL as a string (to be parsed with Charred).
+   
+   This function:
+   1. Opens a connection to the specified URL
+   2. Sets a User-Agent header to prevent blocking by some servers
+   3. Retrieves and returns the raw content as a string
+   
+   The returned string can be processed with `process-csv-data`."
   [url]
   (let [connection (-> url java.net.URL. .openConnection)
         _ (.setRequestProperty connection "User-Agent" "Mozilla/5.0")
@@ -1065,160 +1090,274 @@ metrics
 
 ;; ### Compensation Summation Methods
 
-;; For high precision summation of floating-point numbers, FastMath provides compensation methods:
+;; When working with floating-point numbers, standard summation can accumulate significant rounding errors.
+;; This is because floating-point arithmetic has limited precision, and small values can be "lost" when added
+;; to much larger values. For high precision summation, FastMath provides several compensation methods that
+;; track and compensate for these rounding errors:
 
 (utls/examples-note
- ;; Regular sum
+ ;; Regular sum - standard summation that can accumulate rounding errors
+ ;; Note: Theoretically, 1000 × 0.1 should equal exactly 100
  (stats/sum (repeat 1000 0.1))
  
- ;; Kahan summation algorithm - reduces numerical error
+ ;; [Kahan summation algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) - reduces numerical error
+ ;; This algorithm keeps a separate "compensation" term to track lost low-order bits
  (stats/sum (repeat 1000 0.1) :kahan)
  
- ;; Neumaier algorithm - improved Kahan algorithm
+ ;; [Neumaier algorithm](https://en.wikipedia.org/wiki/Kahan_summation_algorithm#Further_enhancements) - improved Kahan algorithm
+ ;; An enhancement to Kahan's algorithm that handles certain edge cases better
  (stats/sum (repeat 1000 0.1) :neumaier)
  
- ;; Klein algorithm - further improved summation
+ ;; Klein algorithm - further improved summation with higher precision
+ ;; A more sophisticated method that provides even better numerical stability
  (stats/sum (repeat 1000 0.1) :klein))
 
-;; [Kahan summation](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) and related algorithms help reduce numerical errors in floating-point summation by tracking the lost low-order bits.
+;; These compensation techniques are particularly important in scientific computing, financial calculations,
+;; and statistical analysis where small errors can accumulate and lead to significant inaccuracies.
+;; [Floating-point arithmetic](https://en.wikipedia.org/wiki/Floating-point_arithmetic) has inherent limitations
+;; due to how numbers are represented in binary form, and these compensation methods help mitigate those limitations.
 
-;; ### Advanced Statistical Tests
+;; ### Advanced Statistical Tests for Homogeneity of Variance
 
-;; FastMath includes several tests for checking equality of variances across groups:
+;; Many statistical procedures (like ANOVA and certain t-tests) assume that different groups have similar variances, 
+;; a property known as [homogeneity of variance](https://en.wikipedia.org/wiki/Homogeneity_of_variance) or homoscedasticity.
+;; FastMath includes several tests for checking this assumption across multiple groups:
 
-;; For these tests, let's define three samples with different dispersions
-(def normal1 (repeatedly 50 #(r/grand 100 10))) ;; Normal with SD=10
-(def normal2 (repeatedly 50 #(r/grand 100 20))) ;; Normal with SD=20
-(def skewed (map #(m/sq %) (repeatedly 50 #(r/grand 0 15)))) ;; Skewed distribution
+;; For these tests, let's define three samples with deliberately different dispersions
+(def normal1 (repeatedly 50 #(r/grand 100 10))) ;; Normal distribution with SD=10
+(def normal2 (repeatedly 50 #(r/grand 100 20))) ;; Normal distribution with SD=20 (twice the variance)
+(def skewed (map #(m/sq %) (repeatedly 50 #(r/grand 0 15)))) ;; Chi-squared-like skewed distribution
 
 (utls/examples-note
- ;; Levene's test - tests equality of variances across groups
- ;; Less sensitive to departures from normality
+ ;; [Levene's test](https://en.wikipedia.org/wiki/Levene%27s_test) - tests equality of variances across groups
+ ;; This test compares the absolute deviations from the group means
+ ;; Less sensitive to departures from normality than earlier tests like Bartlett's test
+ ;; Returns p-value (small p-value suggests variances differ significantly)
  (stats/levene-test [normal1 normal2 skewed])
  
- ;; Brown-Forsythe test - modification of Levene's test
- ;; Uses median instead of mean, more robust
+ ;; [Brown-Forsythe test](https://en.wikipedia.org/wiki/Brown%E2%80%93Forsythe_test) - modification of Levene's test
+ ;; Uses deviations from group medians instead of means, making it more robust to outliers and non-normality
+ ;; Better performance for skewed distributions
  (stats/brown-forsythe-test [normal1 normal2 skewed])
  
- ;; Fligner-Killeen test - non-parametric test for homogeneity of variances
- ;; Very robust to departures from normality
+ ;; [Fligner-Killeen test](https://en.wikipedia.org/wiki/Fligner%E2%80%93Killeen_test) - non-parametric test for homogeneity of variances
+ ;; Based on ranks of absolute deviations from group medians
+ ;; Very robust to departures from normality, recommended when data might be non-normal
  (stats/fligner-killeen-test [normal1 normal2 skewed]))
 
-;; These [tests for homogeneity of variance](https://en.wikipedia.org/wiki/Homogeneity_of_variance) are important for validating assumptions in ANOVA and other statistical procedures.
+;; These tests return p-values. A small p-value (typically < 0.05) suggests that the variances differ significantly
+;; across groups, violating the homogeneity of variance assumption. This can inform your choice of statistical methods:
+;; - If the assumption is met, you can proceed with standard ANOVA or t-tests
+;; - If violated, consider using Welch's ANOVA, non-parametric tests like Kruskal-Wallis, or transforming your data
 
 ;; ### Advanced Contingency Table Analysis
 
-;; We can analyze relationships in categorical data through contingency tables:
+;; [Contingency tables](https://en.wikipedia.org/wiki/Contingency_table) (also called cross-tabulations or crosstabs)
+;; display the frequency distribution of categorical variables. They're essential for analyzing relationships between
+;; categorical data, such as survey responses, experimental outcomes, or demographic categories.
 
-;; Create a 3x3 contingency table
-(def contingency-3x3 {[0 0] 30 [0 1] 10 [0 2] 5
-                      [1 0] 15 [1 1] 45 [1 2] 10
-                      [2 0] 5  [2 1] 15 [2 2] 25})
+;; Create a 3×3 contingency table representing counts of observations with different category combinations
+;; For example, this could represent three education levels (rows) and three income brackets (columns)
+(def contingency-3x3 {[0 0] 30 [0 1] 10 [0 2] 5    ;; Row 0: 30 in column 0, 10 in column 1, 5 in column 2
+                      [1 0] 15 [1 1] 45 [1 2] 10    ;; Row 1: 15 in column 0, 45 in column 1, 10 in column 2
+                      [2 0] 5  [2 1] 15 [2 2] 25})  ;; Row 2: 5 in column 0, 15 in column 1, 25 in column 2
 
 ;; Extract marginal totals (row and column sums)
+;; These totals provide the distribution of each variable independently
 (stats/contingency-table->marginals contingency-3x3)
 
-;; Calculate Cramer's V (measure of association)
+;; Calculate association measures to quantify the relationship strength between variables
 (utls/examples-note
- ;; Cramer's V - effect size measure for contingency tables
+ ;; [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) - effect size measure for contingency tables
+ ;; This is a normalized version of the chi-squared statistic that ranges from 0 (no association) to 1 (perfect association)
+ ;; Values around: 0.1 = small effect, 0.3 = medium effect, 0.5+ = large effect
  (stats/cramers-v contingency-3x3)
  
- ;; With bias correction for small samples
+ ;; Cramer's V with bias correction for small samples
+ ;; This adjustment improves accuracy when sample sizes are small (typically < 1000)
  (stats/cramers-v-corrected contingency-3x3)
  
- ;; Tschuprow's T - alternative to Cramer's V
+ ;; [Tschuprow's T](https://en.wikipedia.org/wiki/Tschuprow%27s_T) - alternative to Cramer's V
+ ;; Similar to Cramer's V but with a different normalization approach
+ ;; Less commonly used but can be more appropriate for tables with unequal dimensions
  (stats/tschuprows-t contingency-3x3)
  
- ;; Cohen's kappa - agreement measure for categorical data
- (stats/cohens-kappa {[0 0] 40 [0 1] 10 
-                       [1 0] 5 [1 1] 45}))
+ ;; [Cohen's kappa](https://en.wikipedia.org/wiki/Cohen%27s_kappa) - measure of agreement for categorical data
+ ;; Particularly useful for measuring inter-rater reliability or agreement between two methods
+ ;; Values range from -1 to 1, with: < 0 = poor, 0.01-0.20 = slight, 0.21-0.40 = fair, 0.41-0.60 = moderate,
+ ;; 0.61-0.80 = substantial, 0.81-1.00 = almost perfect agreement
+ ;; Here demonstrated with a 2×2 contingency table (representing two raters classifying items into two categories)
+ (stats/cohens-kappa {[0 0] 40 [0 1] 10  ;; 40 items rated as 0 by both raters, 10 as 0 by rater 1 and 1 by rater 2
+                       [1 0] 5 [1 1] 45})) ;; 5 as 1 by rater 1 and 0 by rater 2, 45 as 1 by both raters
 
-;; [Contingency table analysis](https://en.wikipedia.org/wiki/Contingency_table) helps understand relationships between categorical variables. Effect size measures like [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) quantify the strength of these relationships.
+;; These association measures quantify the strength and nature of relationships between categorical variables.
+;; They help determine if observed patterns are merely random or represent meaningful associations. Different measures
+;; are appropriate for different scenarios, depending on the table dimensions and research question.
 
 ;; ### Histogram Features and Bin Selection
 
-;; Creating histograms involves choosing an appropriate number of bins:
+;; [Histograms](https://en.wikipedia.org/wiki/Histogram) visualize the distribution of continuous data by dividing it into
+;; discrete bins or intervals and counting how many values fall into each bin. One of the most critical decisions
+;; when creating a histogram is choosing an appropriate number of bins. Too few bins can obscure important
+;; patterns (undersmoothing), while too many bins can create noise (oversmoothing).
+
+;; FastMath provides several established methods for estimating optimal bin counts:
 
 (utls/examples-note
- ;; Different bin estimation methods
- (stats/estimate-bins sepal-length :sturges)   ;; Sturges' formula
- (stats/estimate-bins sepal-length :rice)      ;; Rice rule
- (stats/estimate-bins sepal-length :scott)     ;; Scott's rule
- (stats/estimate-bins sepal-length :fd)        ;; Freedman-Diaconis rule
- (stats/estimate-bins sepal-length :sqrt))     ;; Square root rule
+ ;; Different bin estimation methods applied to the iris sepal length data
+ 
+ ;; [Sturges' formula](https://en.wikipedia.org/wiki/Histogram#Sturges'_formula): k = ⌈log₂(n)⌉ + 1
+ ;; Based on approximating data with a normal distribution
+ (stats/estimate-bins sepal-length :sturges)
+ 
+ ;; [Rice rule](https://en.wikipedia.org/wiki/Histogram#Rice_rule): k = ⌈2n^(1/3)⌉
+ ;; A slightly more conservative variant that typically uses more bins than Sturges'
+ (stats/estimate-bins sepal-length :rice)
+ 
+ ;; [Scott's rule](https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule): h = 3.49σn^(-1/3)
+ ;; Minimizes integrated mean squared error for normal data
+ ;; Returns optimal bin width, which FastMath converts to bin count
+ (stats/estimate-bins sepal-length :scott)
+ 
+ ;; [Freedman-Diaconis rule](https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule): h = 2×IQR×n^(-1/3)
+ ;; Similar to Scott's rule but uses IQR instead of standard deviation, making it more robust to outliers
+ (stats/estimate-bins sepal-length :fd)
+ 
+ ;; Square root rule: k = ⌈√n⌉
+ ;; A simple heuristic that is quick to calculate but less statistically grounded
+ (stats/estimate-bins sepal-length :sqrt))
 
-;; The choice of binning method affects how the histogram represents the data:
-;; - **Sturges' rule** works well for normally distributed data with ~30-200 observations
-;; - **Scott's rule** adapts bin width based on the data's standard deviation
-;; - **Freedman-Diaconis rule** is more robust against outliers, using the IQR
-;; - **Square root rule** is simple, using √n bins for n data points
+;; The choice of binning method can significantly affect how the histogram represents the data:
+;; - **[Sturges' rule](https://en.wikipedia.org/wiki/Histogram#Sturges'_formula)** works well for normally distributed data with approximately 30-200 observations
+;; - **[Scott's rule](https://en.wikipedia.org/wiki/Histogram#Scott's_normal_reference_rule)** adapts bin width based on the data's standard deviation, optimal for normal distributions
+;; - **[Freedman-Diaconis rule](https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule)** is more robust against outliers since it uses the interquartile range
+;; - **Square root rule** is a simple heuristic rule that uses √n bins for n data points
 
-;; Creating histograms with different bin strategies:
+;; Let's create histograms with different bin strategies and compare their results:
 (def hist-sturges (stats/histogram sepal-length :sturges))
 (def hist-scott (stats/histogram sepal-length :scott))
 (def hist-fd (stats/histogram sepal-length :fd))
 
-;; Compare the bin counts
+;; Compare the bin counts (how many bins each method creates)
 (map #(count (:bins %)) [hist-sturges hist-scott hist-fd])
+
+;; The difference in bin counts affects how we perceive the distribution's shape.
+;; When reporting histogram results, it's good practice to mention which binning rule you used,
+;; as this can influence the visual patterns and conclusions drawn from the data.
 
 ;; ### Effect Size Interpretation Guidelines
 
-;; Effect sizes have conventional interpretations for practical significance:
+;; [Effect size](https://en.wikipedia.org/wiki/Effect_size) measures quantify the magnitude of differences or relationships, 
+;; independent of sample size. Unlike p-values, which primarily indicate statistical significance, effect sizes focus on 
+;; practical significance—how substantial the effect is in real-world terms.
+
+;; Most effect size measures have conventional thresholds for interpretation based on extensive research.
+;; Here are guidelines for interpreting common effect size measures in FastMath:
 
 (utls/examples-note
- ;; For Cohen's d and Hedges' g:
- ;;   ~0.2 = small effect
- ;;   ~0.5 = medium effect
- ;;   ~0.8 = large effect
+ ;; For [Cohen's d](https://en.wikipedia.org/wiki/Effect_size#Cohen's_d) and [Hedges' g](https://en.wikipedia.org/wiki/Effect_size#Hedges'_g):
+ ;; These measure standardized mean differences between two groups
+ ;; The thresholds below come from Cohen's original proposals, based on extensive empirical work:
+ ;;   < 0.2 = negligible effect (groups are practically identical)
+ ;;   ~0.2 = small effect (difference is real but might require careful measurement to detect)
+ ;;   ~0.5 = medium effect (difference is noticeable to the naked eye of a careful observer)
+ ;;   ~0.8 = large effect (difference is obvious, grossly perceptible)
+ ;;   > 1.2 = very large effect (difference is extremely substantial)
  (let [d (stats/cohens-d sepal-length petal-length)]
-   (cond
-     (< (m/abs d) 0.2) "Negligible effect"
-     (< (m/abs d) 0.5) "Small effect"
-     (< (m/abs d) 0.8) "Medium effect"
-     :else "Large effect"))
+   {:effect-size d
+    :interpretation 
+    (cond
+      (< (m/abs d) 0.2) "Negligible effect"
+      (< (m/abs d) 0.5) "Small effect"
+      (< (m/abs d) 0.8) "Medium effect"
+      (< (m/abs d) 1.2) "Large effect"
+      :else "Very large effect")})
  
- ;; For correlation coefficients (r):
- ;;   ~0.1 = small effect
- ;;   ~0.3 = medium effect
- ;;   ~0.5 = large effect
+ ;; For [correlation coefficients (r)](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient):
+ ;; These measure the strength of linear relationship between two variables
+ ;; Guidelines initially proposed by Cohen and refined through later research:
+ ;;   < 0.1 = negligible correlation
+ ;;   ~0.1 = small correlation (relationship exists but is difficult to see)
+ ;;   ~0.3 = medium correlation (relationship is visible but not dominant)
+ ;;   ~0.5 = large correlation (substantial relationship)
+ ;;   > 0.7 = very large correlation (relationship dominates the data)
  (let [r (stats/correlation sepal-length petal-length)]
-   (cond
-     (< (m/abs r) 0.1) "Negligible correlation"
-     (< (m/abs r) 0.3) "Small correlation"
-     (< (m/abs r) 0.5) "Medium correlation"
-     :else "Large correlation"))
+   {:correlation r
+    :interpretation
+    (cond
+      (< (m/abs r) 0.1) "Negligible correlation"
+      (< (m/abs r) 0.3) "Small correlation"
+      (< (m/abs r) 0.5) "Medium correlation"
+      (< (m/abs r) 0.7) "Large correlation"
+      :else "Very large correlation")})
  
- ;; For Cohen's f (ANOVA):
- ;;   ~0.1 = small effect
- ;;   ~0.25 = medium effect
- ;;   ~0.4 = large effect
+ ;; For [Cohen's f](https://en.wikipedia.org/wiki/Effect_size#Cohen's_f) (used in ANOVA and related analyses):
+ ;; This measures the standardized variation between group means
+ ;; Cohen's guidelines for f:
+ ;;   < 0.1 = negligible effect
+ ;;   ~0.1 = small effect (groups differ slightly)
+ ;;   ~0.25 = medium effect (moderate group differences)
+ ;;   ~0.4 = large effect (substantial group differences)
  (let [f (stats/cohens-f [sepal-length petal-length petal-width])]
-   (cond
-     (< f 0.1) "Negligible effect"
-     (< f 0.25) "Small effect"
-     (< f 0.4) "Medium effect"
-     :else "Large effect")))
+   {:cohens-f f
+    :interpretation
+    (cond
+      (< f 0.1) "Negligible effect"
+      (< f 0.25) "Small effect"
+      (< f 0.4) "Medium effect"
+      :else "Large effect")}))
 
-;; ### Specialized Overlap Measures
+;; These interpretation guidelines should not be applied rigidly across all fields. Different disciplines may have
+;; different norms for what constitutes "large" or "small" effects based on the typical effect sizes observed in that field.
+;; For example:
+;; - In medical research, even a "small" effect size of d=0.2 might be meaningful if it represents mortality reduction
+;; - In psychological research, a correlation of r=0.3 might be considered substantial given the complexity of human behavior
+;; - In physics, where measurement precision is often very high, even smaller effects may be considered meaningful
 
-;; These measures help quantify the overlap or separation between two distributions:
+;; When reporting effect sizes, it's good practice to provide both the numerical value and an interpretation based on
+;; established guidelines and the specific context of your research domain.
 
-;; Create two groups with partial overlap
+;; ### Specialized Distribution Overlap Measures
+
+;; While traditional effect sizes like Cohen's d are statistically rigorous, they can be difficult to interpret
+;; intuitively. FastMath provides several specialized overlap measures that express effect sizes in more 
+;; human-understandable terms by quantifying how much two distributions overlap or separate.
+
+;; First, let's create two groups with partial overlap for demonstration:
+;; - Group A: normally distributed around mean=100 with SD=15
+;; - Group B: normally distributed around mean=130 with SD=20
+;; (These could represent test scores for two different teaching methods, for example)
 (def group-a (repeatedly 50 #(r/grand 100 15)))
 (def group-b (repeatedly 50 #(r/grand 130 20)))
 
 (utls/examples-note
- ;; Probability of superiority (a.k.a. Common Language Effect Size)
- ;; Probability that a random value from group B exceeds a random value from group A
+ ;; [Probability of superiority](https://en.wikipedia.org/wiki/Mann%E2%80%93Whitney_U_test#Common_language_effect_size)
+ ;; (also called Common Language Effect Size or CLES)
+ ;; Interpretation: The probability that a randomly selected individual from group B will have
+ ;; a higher score than a randomly selected individual from group A
+ ;; Range: 0 to 1, where 0.5 means no effect (equal chance), values near 1 indicate strong separation
+ ;; Example: A value of 0.85 means "In 85% of cases, a random person from group B outscores a random person from group A"
  (stats/wmw-odds group-a group-b)
  
- ;; Cohen's U3 - percentage of group A less than the median of group B
+ ;; [Cohen's U3](https://en.wikipedia.org/wiki/Effect_size#Cohen's_U3)
+ ;; Interpretation: The percentage of group A that falls below the median of group B
+ ;; Range: 0 to 1, where 0.5 means no effect (groups identical), values near 1 indicate strong separation
+ ;; Example: A value of 0.90 means "90% of group A falls below the median of group B"
  (stats/cohens-u3 group-a group-b)
  
- ;; Probability of overlap - proportion of shared area between distributions
+ ;; [Probability of overlap](https://en.wikipedia.org/wiki/Overlapping_coefficient)
+ ;; Interpretation: The percentage of overlap between the two distributions
+ ;; Range: 0 to 1, where 1 means complete overlap (identical distributions), values near 0 indicate strong separation
+ ;; Example: A value of 0.20 means "The distributions overlap by only 20%"
  (stats/p-overlap group-a group-b))
 
-;; These measures provide intuitive interpretations of effect size in terms of distribution overlap, which can be easier to understand than abstract statistical measures.
+;; These measures translate abstract statistical concepts into everyday language, making results more accessible
+;; to non-statisticians. For example, telling stakeholders that "There's an 85% chance that someone using method B
+;; will outperform someone using method A" is more intuitive than reporting "Cohen's d = 1.2".
+
+;; When reporting results, it's often beneficial to include both traditional effect sizes (like Cohen's d) for
+;; statistical rigor and these overlap measures for interpretability. Different overlap measures highlight different
+;; aspects of the comparison, so choose the ones most relevant to your specific research question.
 
 ;; ## Reference
 
