@@ -217,10 +217,10 @@
 (utls/examples-note
  ;; Geometric mean - for data representing multiplicative processes
  ;; Note: All values must be positive
- (stats/geomean (map #(max 0.1 %) petal-width))
+ (stats/geomean (map (partial max 0.1) petal-width))
  
  ;; Harmonic mean - often used for rates and ratios
- (stats/harmean (map #(max 0.1 %) petal-width))
+ (stats/harmean (map (partial max 0.1) petal-width))
  
  ;; Power mean with various powers
  (stats/powmean petal-width 2)  ;; Quadratic mean (or root-mean-square)
@@ -598,9 +598,9 @@ summary
 
 ;; Generate bootstrap resamples of sepal length
 (def bootstrap-samples 
-  (repeatedly 1000 
+  (repeatedly 100 
               #(stats/mean (r/->seq (r/distribution :enumerated-real 
-                                                   {:data sepal-length}) 
+                                                    {:data sepal-length}) 
                                     (count sepal-length)))))
 
 ;; Calculate bootstrap confidence intervals (BCa - bias-corrected and accelerated)
@@ -626,10 +626,10 @@ summary
 
 ;; Bootstrap to estimate confidence interval for the mean price/carat
 (def ppc-bootstrap-samples
-  (repeatedly 1000
+  (repeatedly 100
               #(stats/mean (r/->seq (r/distribution :enumerated-real
-                                                   {:data price-per-carat})
-                                   (count price-per-carat)))))
+                                                    {:data price-per-carat})
+                                    (count price-per-carat)))))
 
 ;; Calculate 95% confidence interval
 (stats/percentile-extent ppc-bootstrap-samples 2.5)
@@ -649,7 +649,7 @@ summary
 
 ;; Generate bootstrap samples of correlation
 (def area-perm-corr-samples
-  (repeatedly 1000 #(bootstrap-correlation rock-area rock-perm)))
+  (repeatedly 100 #(bootstrap-correlation rock-area rock-perm)))
 
 ;; Calculate the mean and confidence interval
 (stats/mean area-perm-corr-samples)
@@ -676,12 +676,12 @@ summary
 
 ;; Generate distribution under null hypothesis
 (def null-distribution
-  (repeatedly 1000 #(simulate-null-hypothesis auto-trans-mpg manual-trans-mpg)))
+  (repeatedly 100 #(simulate-null-hypothesis auto-trans-mpg manual-trans-mpg)))
 
 ;; Calculate the p-value (two-tailed test)
 (def p-value
   (/ (count (filter #(>= (m/abs %) (m/abs observed-diff)) null-distribution))
-     1000))
+     100))
 
 ;; Print results
 observed-diff
