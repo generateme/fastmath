@@ -12,7 +12,9 @@
             [fastmath.dev.clay :as utls]
             [fastmath.dev.codox :as codox]))
 
-;; # Statistical Functions {.unnumbered}
+;; # Statistics {.unnumbered}
+
+;; ## Statistical Functions
 
 ;; The `fastmath.stats` namespace provides a comprehensive set of statistical functions for data analysis. This tutorial will cover the main components, demonstrate real-world applications, and explore the API functions. It includes descriptive statistics, inferential statistics, hypothesis testing, bootstrap methods, time series analysis, and more specialized statistical techniques.
 
@@ -26,7 +28,7 @@
          '[clojure.string :as str]
          '[clojure.java.io :as io])
 
-;; ## Loading Real-World Datasets
+;; ### Loading Real-World Datasets
 
 ;; For this tutorial, we'll load datasets from multiple sources to demonstrate real-world statistical analysis. Each dataset has different characteristics, allowing us to showcase various statistical techniques. We'll use:
 ;; 
@@ -38,7 +40,7 @@
 ;; 
 ;; 4. **[Diamonds Dataset](https://ggplot2.tidyverse.org/reference/diamonds.html)**: A dataset containing prices and attributes of approximately 54,000 diamonds (we'll use a sample). The variables include price, carat (weight), cut quality, color, clarity, and dimensions (x, y, z). This dataset is excellent for exploring price prediction and understanding how different factors affect diamond valuation.
 
-;; ### CSV Processing Functions
+;; #### CSV Processing Functions
 
 ;; First, let's add the [Charred library](https://github.com/cnuernber/charred) dependency for proper CSV parsing.
 ;; Charred provides high-performance CSV parsing with correct handling of quoted fields, escaped characters, 
@@ -92,7 +94,7 @@
         response (slurp (.getInputStream connection))]
     response))
 
-;; ### Local Datasets
+;; #### Local Datasets
 
 ;; Load and process the Iris dataset
 (def iris-raw 
@@ -153,7 +155,7 @@
 (def auto-trans-mpg (map :mpg (filter #(zero? (:am %)) mtcars-data)))
 (def manual-trans-mpg (map :mpg (filter #(= 1.0 (:am %)) mtcars-data)))
 
-;; ### Remote Datasets (loaded at runtime)
+;; #### Remote Datasets (loaded at runtime)
 
 ;; Load and process the Rock dataset from a public URL
 (def rock-raw 
@@ -193,9 +195,9 @@
 (def diamond-y (map :y diamonds-data)) ; width in mm
 (def diamond-z (map :z diamonds-data)) ; depth in mm
 
-;; ## Comprehensive Descriptive Statistics
+;; ### Comprehensive Descriptive Statistics
 
-;; ### Basic Summary Statistics
+;; #### Basic Summary Statistics
 
 ;; Let's start by exploring some key statistics from the Iris dataset.
 ;; We'll examine sepal length to understand these fundamental measures:
@@ -218,7 +220,7 @@
 
 ;; The [minimum](https://en.wikipedia.org/wiki/Sample_maximum_and_minimum) and [maximum](https://en.wikipedia.org/wiki/Sample_maximum_and_minimum) values define the range of the data, which is useful for understanding the spread.
 
-;; ### Central Tendency Measures
+;; #### Central Tendency Measures
 
 ;; Central tendency measures help identify the "typical" value in a dataset:
 
@@ -254,7 +256,7 @@
 
 ;; The [geometric mean](https://en.wikipedia.org/wiki/Geometric_mean) is the nth root of the product of n values, useful for growth rates. The [harmonic mean](https://en.wikipedia.org/wiki/Harmonic_mean) is the reciprocal of the arithmetic mean of the reciprocals, useful for averaging rates.
 
-;; ### Weighted Statistics
+;; #### Weighted Statistics
 
 ;; Sometimes observations have different importance or frequency. 
 ;; Weighted statistics account for these differences:
@@ -281,7 +283,7 @@
 
 ;; Weighted statistics are useful when some data points should have more influence than others, such as when working with measurements of different reliability or importance.
 
-;; ### Dispersion and Variability Measures
+;; #### Dispersion and Variability Measures
 
 ;; Dispersion measures quantify how spread out the data is:
 
@@ -311,7 +313,7 @@
 
 ;; [Standard deviation](https://en.wikipedia.org/wiki/Standard_deviation) and [variance](https://en.wikipedia.org/wiki/Variance) quantify the average deviation from the mean. [Median Absolute Deviation](https://en.wikipedia.org/wiki/Median_absolute_deviation) (MAD) is more robust to outliers. The [Interquartile Range](https://en.wikipedia.org/wiki/Interquartile_range) covers the middle 50% of the data.
 
-;; ### Shape Measures
+;; #### Shape Measures
 
 ;; Shape measures describe the distribution's form:
 
@@ -330,7 +332,7 @@
 
 ;; [Kurtosis](https://en.wikipedia.org/wiki/Kurtosis) measures the "heaviness" of the tails. Higher kurtosis indicates more outliers. A normal distribution has a kurtosis of 3 (or excess kurtosis of 0).
 
-;; ### Percentiles and Quantiles
+;; #### Percentiles and Quantiles
 
 ;; Percentiles and quantiles show the distribution by dividing data into equal parts:
 
@@ -355,7 +357,7 @@
 
 ;; [Percentiles](https://en.wikipedia.org/wiki/Percentile) and [quantiles](https://en.wikipedia.org/wiki/Quantile) divide the data into equal portions. They help understand the distribution without assuming a specific shape.
 
-;; ### Extents and Ranges
+;; #### Extents and Ranges
 
 ;; Extents provide ranges around central values:
 
@@ -380,7 +382,7 @@
 
 ;; Extents provide a quick way to understand the typical range of values in a dataset. Inner fences are used in box plots to identify potential outliers.
 
-;; ### Complete Statistical Summary
+;; #### Complete Statistical Summary
 
 ;; The `stats-map` function provides a comprehensive statistical summary:
 
@@ -392,9 +394,9 @@
 ;; The full summary includes over 20 different statistics, making it a powerful way to understand your data at a glance:
 summary
 
-;; ## Data Transformation and Preprocessing
+;; ### Data Transformation and Preprocessing
 
-;; ### Standardization and Normalization
+;; #### Standardization and Normalization
 
 ;; Standardization and normalization are essential for many machine learning algorithms:
 
@@ -413,7 +415,7 @@ summary
 
 ;; [Standardization](https://en.wikipedia.org/wiki/Standard_score) makes data comparable across features with different scales. [Rescaling](https://en.wikipedia.org/wiki/Feature_scaling) is useful for algorithms that expect inputs in a specific range.
 
-;; ### Data Cleaning and Processing
+;; #### Data Cleaning and Processing
 
 ;; Functions for preparing data for analysis:
 
@@ -435,7 +437,7 @@ summary
 
 ;; [Trimming](https://en.wikipedia.org/wiki/Trimmed_estimator) and [winsorizing](https://en.wikipedia.org/wiki/Winsorizing) help deal with outliers. The former removes them, while the latter replaces them with boundary values.
 
-;; ### Statistical Transformations
+;; #### Statistical Transformations
 
 ;; Transformations can make non-normal data more normal and stabilize variance:
 
@@ -454,9 +456,9 @@ summary
 
 ;; [Power transformations](https://en.wikipedia.org/wiki/Power_transform) like Box-Cox help normalize skewed data. [Yeo-Johnson](https://en.wikipedia.org/wiki/Power_transform#Yeo%E2%80%93Johnson_transformation) is a generalization that handles negative values.
 
-;; ## Correlation and Covariance
+;; ### Correlation and Covariance
 
-;; ### Understanding Relationships Between Variables
+;; #### Understanding Relationships Between Variables
 
 ;; Correlation and covariance measure relationships between variables:
 
@@ -476,7 +478,7 @@ summary
 
 ;; [Pearson correlation](https://en.wikipedia.org/wiki/Pearson_correlation_coefficient) measures linear relationships, while [Spearman](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient) and [Kendall](https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient) measure rank-based relationships, making them more robust to outliers and non-linear patterns.
 
-;; ### Correlation and Covariance Matrices
+;; #### Correlation and Covariance Matrices
 
 ;; For multivariate data, we can compute full correlation and covariance matrices:
 
@@ -494,9 +496,9 @@ summary
 
 ;; [Correlation matrices](https://en.wikipedia.org/wiki/Correlation_and_dependence#Correlation_matrices) show all pairwise correlations at once, useful for multivariate analysis. [Covariance matrices](https://en.wikipedia.org/wiki/Covariance_matrix) are fundamental in many statistical methods, including principal component analysis.
 
-;; ## Regression Error Metrics
+;; ### Regression Error Metrics
 
-;; ### Evaluating Prediction Accuracy
+;; #### Evaluating Prediction Accuracy
 
 ;; These metrics quantify the error between predicted and actual values:
 
@@ -528,7 +530,7 @@ summary
 
 ;; These metrics help evaluate the performance of regression models. [RMSE](https://en.wikipedia.org/wiki/Root-mean-square_deviation) penalizes large errors more than MAE. [R²](https://en.wikipedia.org/wiki/Coefficient_of_determination) indicates the proportion of variance explained.
 
-;; ### Distance Metrics
+;; #### Distance Metrics
 
 ;; Distance metrics quantify the difference between vectors:
 
@@ -553,9 +555,9 @@ summary
 
 ;; [Distance metrics](https://en.wikipedia.org/wiki/Metric_(mathematics)) quantify the difference between vectors in different ways. Each has specific properties making it suitable for different applications.
 
-;; ## Histograms and Distributions
+;; ### Histograms and Distributions
 
-;; ### Creating and Analyzing Histograms
+;; #### Creating and Analyzing Histograms
 
 ;; Histograms divide data into bins to show the distribution:
 
@@ -584,7 +586,7 @@ summary
 
 ;; [Histograms](https://en.wikipedia.org/wiki/Histogram) visualize data distribution by counting values in each bin. The choice of bin count affects how the distribution appears.
 
-;; ### Comparing Distributions
+;; #### Comparing Distributions
 
 ;; There are several ways to compare distributions:
 
@@ -615,9 +617,9 @@ summary
 
 ;; [Distribution comparisons](https://en.wikipedia.org/wiki/Statistical_distance) are useful in many domains, including machine learning, information retrieval, and statistical testing.
 
-;; ## Bootstrap Methods
+;; ### Bootstrap Methods
 
-;; ### Resampling for Robust Statistics
+;; #### Resampling for Robust Statistics
 
 ;; Bootstrapping creates resamples from data to estimate statistics and their uncertainty:
 
@@ -634,11 +636,11 @@ summary
 ;; Or use simpler percentile-based intervals
 (stats/percentile-extent bootstrap-samples 2.5)
 
-;; ### Advanced Bootstrap Examples with Real-World Data
+;; #### Advanced Bootstrap Examples with Real-World Data
 
 ;; Let's apply bootstrapping to our public datasets to solve practical problems.
 
-;; #### Example 1: Confidence Interval for Diamond Price/Carat Ratio
+;; ##### Example 1: Confidence Interval for Diamond Price/Carat Ratio
 
 ;; The price-per-carat ratio is an important metric in diamond valuation.
 ;; Let's use bootstrapping to estimate the confidence interval for the mean price/carat.
@@ -659,7 +661,7 @@ summary
 ;; Calculate 95% confidence interval
 (stats/percentile-extent ppc-bootstrap-samples 2.5)
 
-;; #### Example 2: Robust Correlation Estimation for Rock Properties
+;; ##### Example 2: Robust Correlation Estimation for Rock Properties
 
 ;; We can use bootstrapping to get a more robust estimate of the correlation
 ;; between rock area and permeability, along with confidence intervals.
@@ -680,7 +682,7 @@ summary
 (stats/mean area-perm-corr-samples)
 (stats/percentile-extent area-perm-corr-samples 2.5)
 
-;; #### Example 3: Comparing Medians with Bootstrapped Hypothesis Testing
+;; ##### Example 3: Comparing Medians with Bootstrapped Hypothesis Testing
 
 ;; We'll compare the median MPG of automatic vs manual transmission cars
 ;; using a bootstrapped hypothesis test approach.
@@ -714,9 +716,9 @@ p-value
 
 ;; [Bootstrapping](https://en.wikipedia.org/wiki/Bootstrapping_(statistics)) is a powerful technique for estimating the sampling distribution of a statistic, especially when the underlying distribution is unknown or complex. It allows us to make robust inferences without relying on distributional assumptions.
 
-;; ## Hypothesis Testing
+;; ### Hypothesis Testing
 
-;; ### Statistical Tests
+;; #### Statistical Tests
 
 ;; Hypothesis tests determine if observed data supports a statistical hypothesis:
 
@@ -769,7 +771,7 @@ p-value
 
 ;; [Hypothesis testing](https://en.wikipedia.org/wiki/Statistical_hypothesis_testing) is foundational in statistical inference. The p-value from these tests indicates the probability of observing the data (or more extreme) if the null hypothesis is true.
 
-;; ### Effect Size Measures
+;; #### Effect Size Measures
 
 ;; Effect size quantifies the magnitude of an effect or relationship:
 
@@ -809,9 +811,9 @@ p-value
 
 ;; [Effect size](https://en.wikipedia.org/wiki/Effect_size) measures complement p-values by quantifying the magnitude of effects, which is often more informative than statistical significance alone.
 
-;; ## Time Series Analysis
+;; ### Time Series Analysis
 
-;; ### Autocorrelation Analysis
+;; #### Autocorrelation Analysis
 
 ;; Autocorrelation measures correlation between a time series and its lags:
 
@@ -835,9 +837,9 @@ p-value
 
 ;; [Autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation) and [partial autocorrelation](https://en.wikipedia.org/wiki/Partial_autocorrelation_function) help identify patterns in time series data, which is crucial for forecasting and model selection.
 
-;; ## Binary Classification Metrics
+;; ### Binary Classification Metrics
 
-;; ### Evaluating Classification Performance
+;; #### Evaluating Classification Performance
 
 ;; These metrics assess the performance of binary classification models:
 
@@ -864,7 +866,7 @@ metrics
 
 ;; [Classification metrics](https://en.wikipedia.org/wiki/Confusion_matrix) provide a comprehensive evaluation of a classifier's performance, emphasizing different aspects (precision, recall, etc.).
 
-;; ## Statistical Distributions
+;; ### Statistical Distributions
 
 ;; The power-divergence test and its variants help analyze contingency tables and compare distributions:
 
@@ -897,9 +899,9 @@ metrics
 
 ;; [Goodness-of-fit tests](https://en.wikipedia.org/wiki/Goodness_of_fit) like chi-squared and Kolmogorov-Smirnov determine if data follows a particular distribution or if two samples come from the same distribution.
 
-;; ## Advanced Statistics
+;; ### Advanced Statistics
 
-;; ### Pooled Statistics
+;; #### Pooled Statistics
 
 ;; Pooled statistics combine data from multiple groups:
 
@@ -916,7 +918,7 @@ metrics
 
 ;; [Pooled variance](https://en.wikipedia.org/wiki/Pooled_variance) combines variances from multiple groups, assuming equal variances, useful in t-tests and ANOVA.
 
-;; ### Confidence Intervals
+;; #### Confidence Intervals
 
 ;; Confidence intervals quantify the uncertainty in estimates:
 
@@ -934,9 +936,9 @@ metrics
 
 ;; [Confidence intervals](https://en.wikipedia.org/wiki/Confidence_interval) provide a range of plausible values for a parameter, along with a confidence level (typically 95%).
 
-;; ## Putting It All Together: Real-World Examples
+;; ### Putting It All Together: Real-World Examples
 
-;; ### Example 1: Car Performance Analysis
+;; #### Example 1: Car Performance Analysis
 
 ;; Let's analyze the relationship between car weight and miles per gallon from the mtcars dataset:
 
@@ -967,7 +969,7 @@ metrics
 ;; Check if MPG follows a normal distribution
 (stats/normality-test mpg)
 
-;; ### Example 2: Rock Properties Analysis
+;; #### Example 2: Rock Properties Analysis
 
 ;; Now, let's analyze the rock dataset we loaded from a public URL.
 ;; This dataset contains measurements of 48 rock samples from a petroleum reservoir.
@@ -1000,7 +1002,7 @@ metrics
 (def perm-hist (stats/histogram rock-perm))
 (:bins perm-hist)
 
-;; ### Example 3: Diamond Price Analysis
+;; #### Example 3: Diamond Price Analysis
 
 ;; Finally, let's explore the diamonds dataset to understand price determinants.
 
@@ -1040,7 +1042,7 @@ metrics
 ;; Test if diamond prices follow a normal distribution
 (stats/normality-test diamond-price)
 
-;; ### Example 4: Cross-Dataset Comparison
+;; #### Example 4: Cross-Dataset Comparison
 
 ;; Let's compare the distribution shapes across our different datasets
 
@@ -1086,9 +1088,9 @@ metrics
  ;; Diamond price variation
  (stats/variation diamond-price))
 
-;; ## Additional Statistical Techniques
+;; ### Additional Statistical Techniques
 
-;; ### Compensation Summation Methods
+;; #### Compensation Summation Methods
 
 ;; When working with floating-point numbers, standard summation can accumulate significant rounding errors.
 ;; This is because floating-point arithmetic has limited precision, and small values can be "lost" when added
@@ -1117,7 +1119,7 @@ metrics
 ;; [Floating-point arithmetic](https://en.wikipedia.org/wiki/Floating-point_arithmetic) has inherent limitations
 ;; due to how numbers are represented in binary form, and these compensation methods help mitigate those limitations.
 
-;; ### Advanced Statistical Tests for Homogeneity of Variance
+;; #### Advanced Statistical Tests for Homogeneity of Variance
 
 ;; Many statistical procedures (like ANOVA and certain t-tests) assume that different groups have similar variances, 
 ;; a property known as [homogeneity of variance](https://en.wikipedia.org/wiki/Homogeneity_of_variance) or homoscedasticity.
@@ -1150,7 +1152,7 @@ metrics
 ;; - If the assumption is met, you can proceed with standard ANOVA or t-tests
 ;; - If violated, consider using Welch's ANOVA, non-parametric tests like Kruskal-Wallis, or transforming your data
 
-;; ### Advanced Contingency Table Analysis
+;; #### Advanced Contingency Table Analysis
 
 ;; [Contingency tables](https://en.wikipedia.org/wiki/Contingency_table) (also called cross-tabulations or crosstabs)
 ;; display the frequency distribution of categorical variables. They're essential for analyzing relationships between
@@ -1194,7 +1196,7 @@ metrics
 ;; They help determine if observed patterns are merely random or represent meaningful associations. Different measures
 ;; are appropriate for different scenarios, depending on the table dimensions and research question.
 
-;; ### Histogram Features and Bin Selection
+;; #### Histogram Features and Bin Selection
 
 ;; [Histograms](https://en.wikipedia.org/wiki/Histogram) visualize the distribution of continuous data by dividing it into
 ;; discrete bins or intervals and counting how many values fall into each bin. One of the most critical decisions
@@ -1245,7 +1247,7 @@ metrics
 ;; When reporting histogram results, it's good practice to mention which binning rule you used,
 ;; as this can influence the visual patterns and conclusions drawn from the data.
 
-;; ### Effect Size Interpretation Guidelines
+;; #### Effect Size Interpretation Guidelines
 
 ;; [Effect size](https://en.wikipedia.org/wiki/Effect_size) measures quantify the magnitude of differences or relationships, 
 ;; independent of sample size. Unlike p-values, which primarily indicate statistical significance, effect sizes focus on 
@@ -1317,7 +1319,7 @@ metrics
 ;; When reporting effect sizes, it's good practice to provide both the numerical value and an interpretation based on
 ;; established guidelines and the specific context of your research domain.
 
-;; ### Specialized Distribution Overlap Measures
+;; #### Specialized Distribution Overlap Measures
 
 ;; While traditional effect sizes like Cohen's d are statistically rigorous, they can be difficult to interpret
 ;; intuitively. FastMath provides several specialized overlap measures that express effect sizes in more 
