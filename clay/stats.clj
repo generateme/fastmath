@@ -1061,6 +1061,165 @@ metrics
  ;; Diamond price variation
  (stats/variation diamond-price))
 
+;; ## Additional Statistical Techniques
+
+;; ### Compensation Summation Methods
+
+;; For high precision summation of floating-point numbers, FastMath provides compensation methods:
+
+(utls/examples-note
+ ;; Regular sum
+ (stats/sum (repeat 1000 0.1))
+ 
+ ;; Kahan summation algorithm - reduces numerical error
+ (stats/sum (repeat 1000 0.1) :kahan)
+ 
+ ;; Neumaier algorithm - improved Kahan algorithm
+ (stats/sum (repeat 1000 0.1) :neumaier)
+ 
+ ;; Klein algorithm - further improved summation
+ (stats/sum (repeat 1000 0.1) :klein))
+
+;; [Kahan summation](https://en.wikipedia.org/wiki/Kahan_summation_algorithm) and related algorithms help reduce numerical errors in floating-point summation by tracking the lost low-order bits.
+
+;; ### Advanced Statistical Tests
+
+;; FastMath includes several tests for checking equality of variances across groups:
+
+;; For these tests, let's define three samples with different dispersions
+(def normal1 (repeatedly 50 #(r/grand 100 10))) ;; Normal with SD=10
+(def normal2 (repeatedly 50 #(r/grand 100 20))) ;; Normal with SD=20
+(def skewed (map #(m/sq %) (repeatedly 50 #(r/grand 0 15)))) ;; Skewed distribution
+
+(utls/examples-note
+ ;; Levene's test - tests equality of variances across groups
+ ;; Less sensitive to departures from normality
+ (stats/levene-test [normal1 normal2 skewed])
+ 
+ ;; Brown-Forsythe test - modification of Levene's test
+ ;; Uses median instead of mean, more robust
+ (stats/brown-forsythe-test [normal1 normal2 skewed])
+ 
+ ;; Fligner-Killeen test - non-parametric test for homogeneity of variances
+ ;; Very robust to departures from normality
+ (stats/fligner-killeen-test [normal1 normal2 skewed]))
+
+;; These [tests for homogeneity of variance](https://en.wikipedia.org/wiki/Homogeneity_of_variance) are important for validating assumptions in ANOVA and other statistical procedures.
+
+;; ### Advanced Contingency Table Analysis
+
+;; We can analyze relationships in categorical data through contingency tables:
+
+;; Create a 3x3 contingency table
+(def contingency-3x3 {[0 0] 30 [0 1] 10 [0 2] 5
+                      [1 0] 15 [1 1] 45 [1 2] 10
+                      [2 0] 5  [2 1] 15 [2 2] 25})
+
+;; Extract marginal totals (row and column sums)
+(stats/contingency-table->marginals contingency-3x3)
+
+;; Calculate Cramer's V (measure of association)
+(utls/examples-note
+ ;; Cramer's V - effect size measure for contingency tables
+ (stats/cramers-v contingency-3x3)
+ 
+ ;; With bias correction for small samples
+ (stats/cramers-v-corrected contingency-3x3)
+ 
+ ;; Tschuprow's T - alternative to Cramer's V
+ (stats/tschuprows-t contingency-3x3)
+ 
+ ;; Cohen's kappa - agreement measure for categorical data
+ (stats/cohens-kappa {[0 0] 40 [0 1] 10 
+                       [1 0] 5 [1 1] 45}))
+
+;; [Contingency table analysis](https://en.wikipedia.org/wiki/Contingency_table) helps understand relationships between categorical variables. Effect size measures like [Cramer's V](https://en.wikipedia.org/wiki/Cram%C3%A9r%27s_V) quantify the strength of these relationships.
+
+;; ### Histogram Features and Bin Selection
+
+;; Creating histograms involves choosing an appropriate number of bins:
+
+(utls/examples-note
+ ;; Different bin estimation methods
+ (stats/estimate-bins sepal-length :sturges)   ;; Sturges' formula
+ (stats/estimate-bins sepal-length :rice)      ;; Rice rule
+ (stats/estimate-bins sepal-length :scott)     ;; Scott's rule
+ (stats/estimate-bins sepal-length :fd)        ;; Freedman-Diaconis rule
+ (stats/estimate-bins sepal-length :sqrt))     ;; Square root rule
+
+;; The choice of binning method affects how the histogram represents the data:
+;; - **Sturges' rule** works well for normally distributed data with ~30-200 observations
+;; - **Scott's rule** adapts bin width based on the data's standard deviation
+;; - **Freedman-Diaconis rule** is more robust against outliers, using the IQR
+;; - **Square root rule** is simple, using √n bins for n data points
+
+;; Creating histograms with different bin strategies:
+(def hist-sturges (stats/histogram sepal-length :sturges))
+(def hist-scott (stats/histogram sepal-length :scott))
+(def hist-fd (stats/histogram sepal-length :fd))
+
+;; Compare the bin counts
+(map #(count (:bins %)) [hist-sturges hist-scott hist-fd])
+
+;; ### Effect Size Interpretation Guidelines
+
+;; Effect sizes have conventional interpretations for practical significance:
+
+(utls/examples-note
+ ;; For Cohen's d and Hedges' g:
+ ;;   ~0.2 = small effect
+ ;;   ~0.5 = medium effect
+ ;;   ~0.8 = large effect
+ (let [d (stats/cohens-d sepal-length petal-length)]
+   (cond
+     (< (m/abs d) 0.2) "Negligible effect"
+     (< (m/abs d) 0.5) "Small effect"
+     (< (m/abs d) 0.8) "Medium effect"
+     :else "Large effect"))
+ 
+ ;; For correlation coefficients (r):
+ ;;   ~0.1 = small effect
+ ;;   ~0.3 = medium effect
+ ;;   ~0.5 = large effect
+ (let [r (stats/correlation sepal-length petal-length)]
+   (cond
+     (< (m/abs r) 0.1) "Negligible correlation"
+     (< (m/abs r) 0.3) "Small correlation"
+     (< (m/abs r) 0.5) "Medium correlation"
+     :else "Large correlation"))
+ 
+ ;; For Cohen's f (ANOVA):
+ ;;   ~0.1 = small effect
+ ;;   ~0.25 = medium effect
+ ;;   ~0.4 = large effect
+ (let [f (stats/cohens-f [sepal-length petal-length petal-width])]
+   (cond
+     (< f 0.1) "Negligible effect"
+     (< f 0.25) "Small effect"
+     (< f 0.4) "Medium effect"
+     :else "Large effect")))
+
+;; ### Specialized Overlap Measures
+
+;; These measures help quantify the overlap or separation between two distributions:
+
+;; Create two groups with partial overlap
+(def group-a (repeatedly 50 #(r/grand 100 15)))
+(def group-b (repeatedly 50 #(r/grand 130 20)))
+
+(utls/examples-note
+ ;; Probability of superiority (a.k.a. Common Language Effect Size)
+ ;; Probability that a random value from group B exceeds a random value from group A
+ (stats/wmw-odds group-a group-b)
+ 
+ ;; Cohen's U3 - percentage of group A less than the median of group B
+ (stats/cohens-u3 group-a group-b)
+ 
+ ;; Probability of overlap - proportion of shared area between distributions
+ (stats/p-overlap group-a group-b))
+
+;; These measures provide intuitive interpretations of effect size in terms of distribution overlap, which can be easier to understand than abstract statistical measures.
+
 ;; ## Reference
 
 ;; For a complete list of available functions in the `fastmath.stats` namespace:
