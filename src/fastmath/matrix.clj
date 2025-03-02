@@ -1101,11 +1101,11 @@
   ([A] (demean A false))
   ([A rows?]
    (if rows?
-     (let [nA (map #(v/shift % (m/- (StatUtils/mean (m/seq->double-array %)))) (rows A))]
+     (let [nA (map #(v/shift % (m/- (v/average %))) (rows A))]
        (if (instance? RealMatrix A)
          (rows->RealMatrix nA)
          (apply rows->mat nA)))
-     (let [nA (map #(v/shift % (m/- (StatUtils/mean (m/seq->double-array %)))) (cols A))]
+     (let [nA (map #(v/shift % (m/- (v/average %))) (cols A))]
        (if (instance? RealMatrix A)
          (cols->RealMatrix nA)
          (apply cols->mat nA))))))

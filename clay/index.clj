@@ -3,3 +3,10 @@
 
 ;; # Preface {.unnumbered}
 
+;; [XOR]
+
+;; ## Test
+
+;; ### XOR
+
+;; ### XXXXX

@@ -787,7 +787,7 @@
                                        (m/* m/MACHINE-EPSILON10
                                             (m/max (m/abs Ra)
                                                    (m/abs Rb))))))
-                   (if (m/valid-double? Rb) Rb Ra)
+                   Rb
                    (do (dotimes [j r+2]
                          (let [j+ (m/inc j)]
                            (Array/aset N j (Array/aget N j+))
@@ -1017,7 +1017,7 @@
                                        (m/* m/MACHINE-EPSILON10
                                             (m/max (cplx/abs Ra)
                                                    (cplx/abs Rb))))))
-                   (if (cplx/valid? Rb) Rb Ra)
+                   Rb
                    (do (dotimes [j r+2]
                          (let [j+ (m/inc j)]
                            (aset N j (aget N j+))

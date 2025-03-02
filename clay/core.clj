@@ -52,7 +52,7 @@
 ;; * `long-add`, `long-sub`, `long-mult`, `long-div`, `long-quot`
 ;; * `long-inc`, `long-dec`
 ;; * `long-min`, `long-max`
-;; * `long-rem`, `long-quot`, `long-mod`
+;; * `long-rem`, `long-mod`
 ;; * `long-abs`
 ;; :::
 
@@ -242,7 +242,7 @@
 
 ;; ### fma
 
-;; Fused multiply-add $fma(a,b,c)=a+b*c$ is the operation implemented with better accuracy in Java 9+ and as one instruction (see more [here](https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add) and [here](https://docs.oracle.com/javase/9/docs/api/java/lang/Math.html#fma-double-double-double-)). When Java 8 is used `fma` is replaced with direct `a+b*c` formula.
+;; Fused multiply-add $fma(a,b,c)=a+bc$ is the operation implemented with better accuracy in Java 9+ and as one instruction (see more [here](https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add) and [here](https://docs.oracle.com/javase/9/docs/api/java/lang/Math.html#fma-double-double-double-)). When Java 8 is used `fma` is replaced with direct `a+bc` formula.
 
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `fma`, `muladd`, `negmuladd`

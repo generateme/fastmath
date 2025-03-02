@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Fastmath documentation – Core</title>
+<title>Fastmath documentation</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -57,54 +57,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./vector_matrix.html" rel="next">
-<link href="./index.html" rel="prev">
-<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
-<script src="site_libs/quarto-html/quarto.js"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
-<script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
-  "copy-button": false,
-  "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
-  "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
-  }
-}</script>
+<script src="core_files/libs/clipboard/clipboard.min.js"></script>
+<script src="core_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="core_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="core_files/libs/quarto-html/popper.min.js"></script>
+<script src="core_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="core_files/libs/quarto-html/anchor.min.js"></script>
+<link href="core_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="core_files/libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="core_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="core_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="core_files/libs/bootstrap/bootstrap-6d85497e1a64b744538821a634187057.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
@@ -136,152 +101,22 @@ window.Quarto = {
 
 </head>
 
-<body class="nav-sidebar floating">
+<body>
 
-<div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-  <nav class="quarto-secondary-nav">
-    <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-        <i class="bi bi-layout-text-sidebar-reverse"></i>
-      </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./core.html">Core</a></li></ol></nav>
-        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-        </a>
-      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
-        <i class="bi bi-search"></i>
-      </button>
-    </div>
-  </nav>
-</header>
-<!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
-<!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="./">Fastmath documentation</a> 
-    </div>
-      </div>
-        <div class="mt-2 flex-shrink-0 align-items-center">
-        <div class="sidebar-search">
-        <div id="quarto-search" class="" title="Search"></div>
-        </div>
-        </div>
-    <div class="sidebar-menu-container"> 
-    <ul class="list-unstyled mt-1">
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Preface</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./core.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Core</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Vectors and matrices</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./random.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Random</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./stats.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Statistics</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./polynomials.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Polynomials</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./special.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Special functions</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./calculus.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Calculus</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./interpolation.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Interpolation</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Optimization</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./transform.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Transforms</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./ml.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Machine Learning</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Complex numbers and quaternions</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./easings.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Easings</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./fields.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Vector fields</span></a>
-  </div>
-</li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./efloat.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">EFloat</span></a>
-  </div>
-</li>
-    </ul>
-    </div>
-</nav>
-<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
-<!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#basic-operations" id="toc-basic-operations" class="nav-link active" data-scroll-target="#basic-operations">Basic operations</a>
+  <li><a href="#core" id="toc-core" class="nav-link active" data-scroll-target="#core">Core</a>
+  <ul>
+  <li><a href="#basic-operations" id="toc-basic-operations" class="nav-link" data-scroll-target="#basic-operations">Basic operations</a>
   <ul>
   <li><a href="#arithmetics" id="toc-arithmetics" class="nav-link" data-scroll-target="#arithmetics">Arithmetics</a></li>
   <li><a href="#remainders" id="toc-remainders" class="nav-link" data-scroll-target="#remainders">Remainders</a></li>
   <li><a href="#min-max-abs" id="toc-min-max-abs" class="nav-link" data-scroll-target="#min-max-abs">Min, max, abs</a>
-  <ul>
+  <ul class="collapse">
   <li><a href="#smooth-maximum" id="toc-smooth-maximum" class="nav-link" data-scroll-target="#smooth-maximum">Smooth maximum</a></li>
   </ul></li>
   <li><a href="#fma" id="toc-fma" class="nav-link" data-scroll-target="#fma">fma</a></li>
@@ -305,7 +140,7 @@ window.Quarto = {
   <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a>
   <ul>
   <li><a href="#fastmath.core" id="toc-fastmath.core" class="nav-link" data-scroll-target="#fastmath.core">fastmath.core</a>
-  <ul>
+  <ul class="collapse">
   <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section">*</a></li>
   <li><a href="#section-1" id="toc-section-1" class="nav-link" data-scroll-target="#section-1">+</a></li>
   <li><a href="#section-2" id="toc-section-2" class="nav-link" data-scroll-target="#section-2">-</a></li>
@@ -662,15 +497,15 @@ window.Quarto = {
   <li><a href="#zero" id="toc-zero" class="nav-link" data-scroll-target="#zero">zero?</a></li>
   </ul></li>
   </ul></li>
+  </ul></li>
   </ul>
 </nav>
-    </div>
-<!-- main -->
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Core</h1>
+<h1 class="title">Fastmath documentation</h1>
 </div>
 
 
@@ -699,6 +534,8 @@ window.Quarto = {
 </style>
 <script src="core_files/md-default15.js" type="text/javascript"></script>
 <script src="core_files/md-default16.js" type="text/javascript"></script>
+<section id="core" class="level1 unnumbered">
+<h1 class="unnumbered">Core</h1>
 <p>Collection of type hinted math macros and functions. Partially backed by Java static functions and exposed as macros. They are prepared to accept primitive long or double arguments and return long or double only.</p>
 <p>There is a possibility to replace <code>clojure.core</code> functions with a selection of <code>fastmath.core</code> macros. Call:</p>
 <ul>
@@ -749,7 +586,7 @@ Defined functions
 <li><code>long-add</code>, <code>long-sub</code>, <code>long-mult</code>, <code>long-div</code>, <code>long-quot</code></li>
 <li><code>long-inc</code>, <code>long-dec</code></li>
 <li><code>long-min</code>, <code>long-max</code></li>
-<li><code>long-rem</code>, <code>long-quot</code>, <code>long-mod</code></li>
+<li><code>long-rem</code>, <code>long-mod</code></li>
 <li><code>long-abs</code></li>
 </ul>
 </div>
@@ -870,9 +707,8 @@ Examples
 <li><code>wrap</code> wraps the value to be within given interval (right open) <span class="math inline">\([a,b)\)</span> `</li>
 </ul>
 <div class="clay-table">
-<div>
 <div class="table-responsive">
-<table class="table table-hover clay-table" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
 <tbody>
 <tr class="odd">
 <td><img src="core_files/0.png" class="clay-image img-fluid"></td>
@@ -884,7 +720,6 @@ Examples
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
@@ -957,9 +792,8 @@ Examples
 <p><code>:lse</code>, <code>:boltzmann</code> and <code>:mellowmax</code> are also smooth minimum for negative <span class="math inline">\(\alpha\)</span> values.</p>
 <p>The following plots show value of the smooth max for different <span class="math inline">\(\alpha\)</span> and set of the numbers equal to <code>[-3.5 -2 -1 0.1 3 4]</code>. Blue dashed horizontal lines are minimum (-3.5) and maximum values (4.0).</p>
 <div class="clay-table">
-<div>
 <div class="table-responsive">
-<table class="table table-hover clay-table" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
 <tbody>
 <tr class="odd">
 <td><img src="core_files/4.png" class="clay-image img-fluid"></td>
@@ -973,12 +807,10 @@ Examples
 </table>
 </div>
 </div>
-</div>
 <p>The following plots are defined only for positive <span class="math inline">\(\alpha\)</span>.</p>
 <div class="clay-table">
-<div>
 <div class="table-responsive">
-<table class="table table-hover clay-table" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
 <tbody>
 <tr class="odd">
 <td><img src="core_files/7.png" class="clay-image img-fluid"></td>
@@ -986,7 +818,6 @@ Examples
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
@@ -1015,7 +846,7 @@ Examples
 </section>
 <section id="fma" class="level3">
 <h3 class="anchored" data-anchor-id="fma">fma</h3>
-<p>Fused multiply-add <span class="math inline">\(fma(a,b,c)=a+b*c\)</span> is the operation implemented with better accuracy in Java 9+ and as one instruction (see more <a href="https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add">here</a> and <a href="https://docs.oracle.com/javase/9/docs/api/java/lang/Math.html#fma-double-double-double-">here</a>). When Java 8 is used <code>fma</code> is replaced with direct <code>a+b*c</code> formula.</p>
+<p>Fused multiply-add <span class="math inline">\(fma(a,b,c)=a+bc\)</span> is the operation implemented with better accuracy in Java 9+ and as one instruction (see more <a href="https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add">here</a> and <a href="https://docs.oracle.com/javase/9/docs/api/java/lang/Math.html#fma-double-double-double-">here</a>). When Java 8 is used <code>fma</code> is replaced with direct <code>a+bc</code> formula.</p>
 <div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1098,9 +929,8 @@ Defined functions
 </div>
 </div>
 <div class="clay-table">
-<div>
 <div class="table-responsive">
-<table class="table table-hover clay-table" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
 <tbody>
 <tr class="odd">
 <td><img src="core_files/9.png" class="clay-image img-fluid"></td>
@@ -1116,7 +946,6 @@ Defined functions
 </tr>
 </tbody>
 </table>
-</div>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
@@ -4459,13 +4288,13 @@ $ \{
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L278">source</a></small><hr style="margin: 0"></div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/core.clj">clay/core.clj</a></small></small></pre></div>
-
-
 </section>
 </section>
 </section>
+</section>
 
-</main> <!-- /main -->
+</main>
+<!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -4501,18 +4330,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -4544,7 +4362,45 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -4579,7 +4435,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
@@ -4627,7 +4487,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {
@@ -4853,18 +4712,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
-<nav class="page-navigation">
-  <div class="nav-page nav-page-previous">
-      <a href="./index.html" class="pagination-link" aria-label="Preface">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Preface</span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-      <a href="./vector_matrix.html" class="pagination-link" aria-label="Vectors and matrices">
-        <span class="nav-page-text">Vectors and matrices</span> <i class="bi bi-arrow-right-short"></i>
-      </a>
-  </div>
-</nav>
 </div> <!-- /content -->
 
 

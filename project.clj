@@ -29,7 +29,7 @@
                                    :exclude-namespaces [:test-paths]}}
              :dev {:dependencies [[org.clojure/clojure "1.12.0"]
                                   [org.clojure/data.csv "1.1.0"]
-                                  [org.scicloj/clay "2-beta29"]
+                                  [org.scicloj/clay "2-beta30"]
                                   [scicloj/clojisr "1.0.0"]
                                   [com.github.lread/test-doc-blocks "1.1.20"]]
                    :source-paths ["notebooks" "utils"]}
