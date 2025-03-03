@@ -10,6 +10,11 @@ All notable changes to this project will be documented in this file. This change
 * `matrix` demean/standardize cols/rows
 * `hypergeometric-pFq-complex`, `gamma-complex` - complex versions of functions
 * `hypergeometric-pFq` - added weniger acceleration branch
+* `tricomis-U-complex`
+
+### Fixed
+
+* `demean` for matrices should work on ACM matrices properly (thanks @daslu)
 
 ## [3.0.0 alpha3]
 

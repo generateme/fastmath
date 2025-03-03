@@ -1248,5 +1248,3 @@
                rk (reduce-d-pFq b lb k rk)]
            (recur (m/inc k) s1 (m/+ s1 (m/* (m/- s1 s0) rk))))
          s1)))))
-
-

@@ -25,6 +25,7 @@
 (def ONE (Vec2. 1.0 0.0))
 (def TWO (Vec2. 2.0 0.0))
 (def ZERO (Vec2. 0.0 0.0))
+(def PI (Vec2. m/PI 0.0))
 
 (defn complex
   "Create complex number. Represented as `Vec2`."

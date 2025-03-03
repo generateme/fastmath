@@ -2233,3 +2233,18 @@
   "Complex version of gamma function."
   ^Vec2 [^Vec2 z] (cplx/exp (log-gamma-complex z)))
 
+(defn tricomis-U-complex [a b z]
+  (let [a (cplx/ensure-complex a)
+        b (cplx/ensure-complex b)
+        z (cplx/ensure-complex z)
+        p1 (cplx/sub (cplx/add cplx/ONE a) b)
+        p2 (cplx/sub cplx/TWO b)]
+    (-> (cplx/sub (cplx/div (hypergeometric-pFq-complex [a] [b] z)
+                            (cplx/mult (gamma-complex p1)
+                                       (gamma-complex b)))
+                  (cplx/mult (cplx/pow z (cplx/sub cplx/ONE b))
+                             (cplx/div (hypergeometric-pFq-complex [p1] [p2] z)
+                                       (cplx/mult (gamma-complex a)
+                                                  (gamma-complex p2)))))
+        (cplx/mult (cplx/div cplx/PI (cplx/sin (cplx/scale b m/PI)))))))
+
