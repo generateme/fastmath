@@ -5,10 +5,13 @@
             [tablecloth.api :as tc]
             [fastmath.core :as m]
             [fastmath.random :as fr]
-            [fastmath.stats :as stats]))
+            [fastmath.stats :as stats]
+            [fastmath.vector :as v]
+            [fastmath.complex :as cplx]))
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
+             '[grDevices :as gr]
              '[base])
 
 (defn ->palette
@@ -108,6 +111,29 @@
          f (if varg? f (fn [[x y]] (f x y)))]
      (for [x xs y ys] {:x x :y y :z (f [x y])}))))
 
+(defn wrap
+  ^double [method ^double v]
+  (case method
+    :log2 (m/frac (m/log2 (inc v)))
+    :log10 (m/frac (m/log10 (inc v)))
+    :sin (m/norm (m/sin v) -1.0 1.0 0.0 1.0)
+    :exp (- 1.0 (m/exp (- v)))
+    :sigmoid (m/sigmoid v)
+    (m/frac v)))
+
+(defn complex-function->data
+  ([f] (complex-function->data f nil))
+  ([f {:keys [x y steps wrap-method]
+       :or {steps 200 wrap-method :log2}}]
+   (let [xs (slice x steps)
+         ys (slice y steps)]
+     (for [x xs y ys
+           :let [v (f (v/vec2 x y))
+                 arg (m/cnorm (cplx/arg v) m/-PI m/PI 0.0 1.0)
+                 wmag (m/pow (wrap wrap-method (cplx/abs v)) 0.2)
+                 sat (m/- 1.0 (m// (m/- 1.0 wmag) 4.0))]]
+       {:x x :y y :hue arg :val wmag :sat sat}))))
+
 ;; plots
 
 (defn add-common
@@ -178,6 +204,21 @@
                (gg/theme_light)
                (gg/geom_raster :data (tc/dataset data) :interpolate true)
                (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
+         (add-common opts)))))
+
+(defn complex-function
+  ([f] (complex-function f nil))
+  ([f opts]
+   (let [data (complex-function->data f opts)]
+     (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y))
+               (gg/theme_light)
+               (gg/guides :fill false)
+               (gg/scale_fill_identity)
+               (gg/coord_fixed)
+               (gg/geom_raster :data (tc/dataset data) :interpolate true
+                               :mapping (gg/aes :fill '(hsv hue sat val)))
+               (gg/xlab "Re")
+               (gg/ylab "Im"))
          (add-common opts)))))
 
 (defn function-ci

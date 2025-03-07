@@ -255,3 +255,25 @@
     [1 2] :doane one2
     [1 2] :scott one2
     [1 2] :freedman-diaconis one2))
+
+(t/deftest kruskal-wallis-test
+  (t/testing "Basic Kruskal-Wallis test with distinct groups"
+    (let [result (sut/kruskal-test [[1 2 3 4] [2 3 4 5] [6 7 8 9]])]
+      (t/is (map? result))
+      (t/is (contains? result :stat))
+      (t/is (contains? result :p-value))
+      (t/is (contains? result :df))
+      (t/is (= (:df result) 2))
+      (t/is (= (:k result) 3))
+      (t/is (= (:sides result) :right))
+      (t/is (< (:p-value result) 0.05) "Should detect significant difference")))
+
+  (t/testing "Kruskal-Wallis test with identical groups (no difference expected)"
+    (let [result (sut/kruskal-test [[5 5 5 5] [5 5 5 5] [5 5 5 1]])]
+      (t/is (map? result))
+      (t/is (contains? result :stat))
+      (t/is (contains? result :p-value))
+      (t/is (contains? result :df))
+      (t/is (= (:df result) 2))
+      (t/is (= (:k result) 3))
+      (t/is (> (:p-value result) 0.05) "Should not detect significant difference"))))

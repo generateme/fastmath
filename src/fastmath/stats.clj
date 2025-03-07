@@ -3042,10 +3042,30 @@
                                  (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
-  "Anderson-Darling test"
+  "Performs the Anderson-Darling (AD) test to assess whether a sample comes from a specified theoretical distribution.
+
+  Parameters:
+  - `xs` (seq of numbers): Sample data to be tested.
+  - `distribution-or-ys`: Distribution object (default: normal) or a second dataset for an empirical comparison. In case of dataset, kernel density destination (kde) is performed. 
+  - Options:
+    - `:sides` (keyword, default `:right`): Specifies the alternative hypothesis.
+      - `:two-sided` tests for any difference.
+      - `:right` (default) tests if `xs` is stochastically greater.
+      - `:left` tests if `xs` is stochastically smaller.
+    - `:kernel` (keyword, default `:gaussian`): Kernel method for density estimation. When kernel is set to `:enumerated`, enumerated distribution is created instead. 
+    - `:bandwidth` (double, optional): Bandwidth for kernel density estimation.
+
+  Returns a map containing:
+    - `:stat`: AD test statistic.
+    - `:A2`: Anderson-Darling test statistic.
+    - `:mean`: Mean of the sample.
+    - `:stddev`: Standard deviation of the sample.
+    - `:n`: Sample size.
+    - `:sides`: Alternative hypothesis used.
+    - `:p-value`: Probability of observing the result under the null hypothesis."
   ([xs] (ad-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ad-test-one-sample xs distribution-or-ys {}))
-  ([xs distribution-or-ys {:keys [sides kernel bandwidth] :or {sides :one-sided-greater kernel :gaussian}}]
+  ([xs distribution-or-ys {:keys [sides kernel bandwidth] :or {sides :right kernel :gaussian}}]
    (let [d (cond
              (r/distribution? distribution-or-ys) distribution-or-ys
              (= kernel :enumerated) (r/distribution :enumerated-real {:data distribution-or-ys})
@@ -3059,7 +3079,28 @@
       :p-value (p-value distr stat sides)})))
 
 (defn ks-test-one-sample
-  "One sample Kolmogorov-Smirnov test"
+  "Performs the Kolmogorov-Smirnov (KS) test to compare a sample distribution against a theoretical distribution or another empirical sample.
+
+  Parameters:
+  - `xs` (seq of numbers): Sample data to be tested.
+  - `distribution-or-ys`: Distribution object (default: normal) or a second dataset for an empirical comparison. In case of dataset, kernel density destination (kde) is performed. 
+  - Options:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default) tests for any difference.
+      - `:right` tests if `xs` is stochastically greater.
+      - `:left` tests if `xs` is stochastically smaller.
+    - `:kernel` (keyword, default `:gaussian`): Kernel method for density estimation. When kernel is set to `:enumerated`, enumerated distribution is created instead. 
+    - `:bandwidth` (double, optional): Bandwidth for kernel density estimation.
+    - `:distinct?` (boolean, default `true`): Whether to remove duplicate values before computation.
+
+  Returns:
+  - A map containing:
+    - `:n`: Sample size.
+    - `:dp`: Maximum positive difference between empirical and reference CDF.
+    - `:dn`: Maximum negative difference.
+    - `:d`: KS test statistic (max absolute difference).
+    - `:stat`: Scaled KS test statistic.
+    - `:p-value`: Probability of observing the result under the null hypothesis."
   ([xs] (ks-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ks-test-one-sample xs distribution-or-ys {}))
   ([xs distribution-or-ys {:keys [sides kernel bandwidth distinct?]
@@ -3084,33 +3125,103 @@
                            (p-value (r/distribution :kolmogorov-smirnov+ {:n n}) dp :right)
                            (p-value (r/distribution :kolmogorov-smirnov+ {:n n}) dn :right))})))
 
+(defn- process-ks-diffs
+  [vs os ^long nx ^long ny]
+  (let [cnt- (dec (count vs))
+        dx (/ 1.0 nx)
+        dy (/ -1.0 ny)]
+    (loop [i (long 0)
+           d (double 0.0)
+           dn (double 0.0)
+           dp (double 0.0)]
+      (let [id (long (os i))
+            nd (+ d (if (< id nx) dx dy))]
+        (if (= i cnt-)
+          [(min nd dn) (max nd dp)]
+          (let [v1 (double (vs id))
+                v2 (double (vs (os (inc i))))]
+            (if (m/not== v1 v2)
+              (recur (inc i) nd (min nd dn) (max nd dp))
+              (recur (inc i) nd dn dp))))))))
+
 (defn ks-test-two-samples
-  "Two samples Kolmogorov-Smirnov test"
+  "Performs the two-sample Kolmogorov-Smirnov (KS) test to compare the distributions of two independent samples, `xs` and `ys`. This test determines whether the two samples come from the same distribution.
+
+  Arguments:
+  - `xs`: First sample (a sequence of numerical values).
+  - `ys`: Second sample (a sequence of numerical values).
+  - options map:
+    - `:method`: `:exact` or `approximate` (asymptotic, default)
+    - `:sides` (default: `:two-sided`): Specifies the alternative hypothesis. 
+      Possible values:
+      - `:two-sided`: The two distributions are different.
+      - `:right`: The distribution of `xs` is stochastically greater than `ys`.
+      - `:left`: The distribution of `xs` is stochastically less than `ys`.
+    - `:distinct?` (default: `true`): If true, removes duplicate values from `xs` and `ys` before computation.
+
+  Returns:
+  A map with the following keys:
+  - `:n`: Effective sample size.
+  - `:nx`: Number of observations in `xs`.
+  - `:ny`: Number of observations in `ys`.
+  - `:dp`: Maximum positive difference between empirical cumulative distribution functions.
+  - `:dn`: Maximum negative difference between empirical cumulative distribution functions.
+  - `:d`: The maximum absolute difference between ECDFs.
+  - `:stat`: KS statistic, scaled `d` for asymptotic method.
+  - `:KS`: Alias for `:stat`.
+  - `:sides`: The alternative hypothesis used.
+  - `:p-value`: The computed p-value indicating the significance of the test.
+
+  Please note that `:right` or `:left` sides can give wrong results for `:exact` method."
   ([xs ys] (ks-test-two-samples xs ys {}))
-  ([xs ys {:keys [sides distinct?] :or {sides :two-sided distinct? true}}]
+  ([xs ys {:keys [method sides distinct?] :or {method :approximate sides :two-sided distinct? true}}]
    (let [xs (if distinct? (distinct xs) xs)
          ys (if distinct? (distinct ys) ys)
          nx (count xs)
          ny (count ys)
-         sort-idxs (m/order (concat xs ys))
-         pdf-diffs (map (vec (concat (repeat nx (/ 1.0 nx)) (repeat ny (/ -1.0 ny)))) sort-idxs)
-         [^double dn dp] (extent (reductions + pdf-diffs))
-         dn (- dn)
-         dp (double dp) ;; 
+         vs (vec (concat xs ys))
+         sort-idxs (vec (m/order vs))         
+         [dn dp] (process-ks-diffs vs sort-idxs nx ny)
+         dn (- (double dn))
+         dp (double dp)
          d (max dn dp)
-         n (/ (* nx ny) (double (+ nx ny)))
-         stat (* (m/sqrt n) (sides-case sides d dp dn))]
-     {:n n :nx nx :ny ny :dp dp :dn dn :d d
-      :stat stat
-      :KS stat
-      :sides sides
-      :p-value (sides-case sides
-                           (p-value (r/distribution :kolmogorov) stat :right)
-                           (m/exp (* -2.0 (* stat stat)))
-                           (m/exp (* -2.0 (* stat stat))))})))
+         res {:nx nx :ny ny :dp dp :dn dn :d d
+              :method method
+              :sides sides}]
+     (if (= method :exact)
+       (let [n (+ nx ny)
+             ksobj (org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest.)
+             stat (sides-case sides d dp dn)]
+         (assoc res :n n :stat stat :KS stat
+                :p-value (.exactP ksobj stat nx ny false)))
+       (let [n (/ (* nx ny) (double (+ nx ny)))
+             stat (* (m/sqrt n) (sides-case sides d dp dn))]
+         (assoc res :n n :stat stat :KS stat
+                :p-value (sides-case sides
+                                     (p-value (r/distribution :kolmogorov) stat :right)
+                                     (m/exp (* -2.0 (* stat stat)))
+                                     (m/exp (* -2.0 (* stat stat))))))))))
 
 (defn kruskal-test
-  "Kruskal-Wallis rank sum test."
+  "Performs the Kruskal-Wallis H-test (rank sum test) for independent samples.
+
+  The Kruskal-Wallis test is a non-parametric alternative to one-way ANOVA.
+  It determines whether there is a statistically significant difference between the distributions of two or more independent groups. It does not assume normality but requires that distributions have a similar shape for the test to be valid.
+
+  Parameters:
+
+  - `data-groups` (vector of sequences): A collection where each element is a sequence 
+    representing a group of observations.
+  - a map containing `:sides` key with values of: `:right` (default), `:left` or `:both`
+
+  Returns a map containing:
+
+  - `:stat`: The Kruskal-Wallis H statistic.
+  - `:n`: Total number of observations across all groups.
+  - `:df`: Degrees of freedom (number of groups - 1).
+  - `:k`: Number of groups.
+  - `:sides`: Test side
+  - `:p-value`: The p-value for the test (null hypothesis: all groups have the same distribution)."
   ([xss] (kruskal-test xss {}))
   ([xss {:keys [sides] :or {sides :right}}] ;; as in R
    (let [k (count xss)
@@ -3137,13 +3248,30 @@
 ;; transformations
 
 (defn power-transformation
-  "Power transformation of data.
+  "Applies a power transformation to a dataset.
 
-  All values should be positive.
+  This transformation is commonly used to stabilize variance and make the data more normally distributed. It is defined as:
+  
+  - If `lambda = 0`: Uses the logarithm transformation.
+  - Otherwise: Uses `(x^lambda - 1) / (lambda * gm^(lambda-1))`, where `gm` is the geometric mean of the dataset.
 
-  Arguments:
-  * `lambda` - power parameter (default: 0.0)
-  * `alpha` - shift parameter (optional)"
+  **Constraints:** All input values must be positive.
+
+  Parameters:
+  - `xs` (seq of numbers): The input dataset.
+  - `lambda` (default `0.0`): The power parameter.
+  - `alpha` (optional): A shift parameter applied before transformation.
+
+  Returns:
+  - A transformed sequence of numbers.
+
+  Edge Cases:
+  - If `lambda = 0`, the transformation defaults to a logarithm function.
+  - Negative or zero values in `xs` will cause an error.
+
+  Related:
+  - `modified-power-transformation`
+  - `yeo-johnson-transformation`"
   ([xs] (power-transformation xs 0.0))
   ([xs ^double lambda]
    (let [gm (geomean xs)]
@@ -3155,13 +3283,27 @@
    (power-transformation (v/shift xs alpha) lambda)))
 
 (defn modified-power-transformation
-  "Modified power transformation (Box-Cox transformation) of data.
+  "Applies a modified power transformation (Box-Cox transformation) to a dataset.
 
-  There is no scaling by geometric mean.
+  Unlike the standard power transformation, this version does not scale by the geometric mean. It is useful for normalizing data distributions, handling both positive and negative values.
 
-  Arguments:
-  * `lambda` - power parameter (default: 0.0)
-  * `alpha` - shift parameter (optional)"
+  Parameters:
+  - `xs`: The input dataset.
+  - `lambda` (default `0.0`): The power parameter. 
+    - If `lambda = 0`, applies the log transformation.
+    - Otherwise, uses the formula `(sign(x) * (|x|^lambda - 1) / lambda)`.
+  - `alpha` (optional): A shift parameter applied before transformation.
+
+  Returns:
+  - A transformed sequence of numbers.
+
+  Edge Cases:
+  - If `lambda = 0`, the transformation defaults to a logarithm function.
+  - Negative values are handled by taking the absolute value before transformation.
+
+  Related:
+  - `power-transformation`
+  - `yeo-johnson-transformation`"
   ([xs] (modified-power-transformation xs 0.0))
   ([xs ^double lambda]
    (if (m/zero? lambda)
@@ -3174,11 +3316,27 @@
    (modified-power-transformation (v/shift xs alpha) lambda)))
 
 (defn yeo-johnson-transformation
-  "Yeo-Johnson transformation
+  "Applies the Yeo-Johnson transformation to a dataset.
 
-  Arguments:
-  * `lambda` - power parameter (default: 0.0)
-  * `alpha` - shift parameter (optional)"
+  This transformation is used to stabilize variance and make data more normally distributed. It extends the Box-Cox transformation to allow for zero and negative values.
+
+  Parameters:
+  - `xs`: The input dataset.
+  - `lambda` (default: 0.0): The power parameter controlling the transformation.
+    - If `lambda = 0`, applies a log transformation.
+    - Otherwise, applies a piecewise power transformation.
+  - `alpha` (optional): A shift parameter applied before transformation.
+
+  Returns:
+  - A transformed sequence of numbers.
+
+  Edge Cases:
+  - If `lambda = 0`, the transformation defaults to a logarithm function.
+  - If input values are negative, a different transformation formula is applied.
+
+  Related:
+  - `power-transformation`
+  - `modified-power-transformation`"
   ([xs] (yeo-johnson-transformation xs 0.0))
   ([xs ^double lambda]
    (let [l2 (- 2.0 lambda)]

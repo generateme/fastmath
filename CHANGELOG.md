@@ -11,10 +11,12 @@ All notable changes to this project will be documented in this file. This change
 * `hypergeometric-pFq-complex`, `gamma-complex` - complex versions of functions
 * `hypergeometric-pFq` - added weniger acceleration branch
 * `tricomis-U-complex`
+* `ks-test-two-samples` - exact method added
 
 ### Fixed
 
 * `demean` for matrices should work on ACM matrices properly (thanks @daslu)
+* `ks-test-two-samples` - wrong calculation of KS statistic
 
 ## [3.0.0 alpha3]
 
