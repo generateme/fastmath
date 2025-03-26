@@ -79,6 +79,7 @@
   "Create set of samples from given data (nonparametric) or model (parametric).
 
   Input:
+
   * sequence of values (any type) or sequence of sequences for multidimensional data
   * a map containing:
       * `:data` - sequence
@@ -86,6 +87,7 @@
   * `statistic` function which returns statistic value (optional)
 
   Parameters:
+
   * `:samples` - number of bootstrapped samples (default: 500)
   * `:size` - forced size of individual sample (default: same as source)
   * `:method`
@@ -106,6 +108,7 @@
   * `:include?` - if set to `true` (default: `false`) original dataset is included in samples
 
   Model can be:
+
   * any distribution object
   * any 0-arity function which returns random sample
 

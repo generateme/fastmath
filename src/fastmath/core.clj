@@ -639,45 +639,45 @@
     (+ (fma a b cd) (fma c d (- cd)))))
 
 ;; Processing math constants
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\pi\\\\)"} PI Math/PI)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{2}\\\\)"} HALF_PI (* PI 0.5))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{3}\\\\)"} THIRD_PI (/ PI 3.0))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{\\pi}{4}\\\\)"} QUARTER_PI (* PI 0.25))
-(def ^{:const true :tag 'double :doc "Value of \\\\(2 {\\pi}\\\\)"} TWO_PI (+ PI PI))
-(def ^{:const true :tag 'double :doc "Alias for [[TWO_PI]]"} TAU TWO_PI)
-(def ^{:const true :tag 'double :doc "Value of \\\\(e\\\\)"} E Math/E)
-(def ^{:const true :tag 'double :doc "Value of \\\\(-\\pi\\\\)"} -PI (- Math/PI))
-(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{2}\\\\)"} -HALF_PI (* PI -0.5))
-(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{3}\\\\)"} -THIRD_PI (/ -PI -3.0))
-(def ^{:const true :tag 'double :doc "Value of \\\\(-\\frac{\\pi}{4}\\\\)"} -QUARTER_PI (* PI -0.25))
-(def ^{:const true :tag 'double :doc "Value of \\\\(-2 {\\pi}\\\\)"} -TWO_PI (- TWO_PI))
-(def ^{:const true :tag 'double :doc "Alias for [[TWO_PI-]]"} -TAU -TWO_PI)
-(def ^{:const true :tag 'double :doc "Value of \\\\(-e\\\\)"} -E (- Math/E))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{\\pi}\\\\)"} INV_PI (/ PI))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{\\pi}\\\\)"} TWO_INV_PI (/ 2.0 PI))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{4}{\\pi}\\\\)"} FOUR_INV_PI (/ 4.0 PI))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{2 \\pi}\\\\)"} INV_TWO_PI (/ TWO_PI))
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{4 \\pi}\\\\)"} INV_FOUR_PI (/ (* 2.0 TWO_PI)))
-(def ^{:const true :tag 'double :doc "Very small number \\\\(\\varepsilon\\\\)"} EPSILON 1.0e-10)
-(def ^{:const true :tag 'double :doc "Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
-(def ^{:const true :tag 'double :doc "Lanchos approximation `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
-(def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.915965594177219)
+(def ^{:const true :tag 'double :doc "Value of $\\pi$"} PI Math/PI)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{2}$"} HALF_PI (* PI 0.5))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{3}$"} THIRD_PI (/ PI 3.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{4}$"} QUARTER_PI (* PI 0.25))
+(def ^{:const true :tag 'double :doc "Value of $2\\pi$"} TWO_PI (+ PI PI))
+(def ^{:const true :tag 'double :doc "Value of $2\\pi$"} TAU TWO_PI)
+(def ^{:const true :tag 'double :doc "Value of $\\mathrm{e}$"} E Math/E)
+(def ^{:const true :tag 'double :doc "Value of $-\\pi$"} -PI (- Math/PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{2}$"} -HALF_PI (* PI -0.5))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{3}$"} -THIRD_PI (/ -PI -3.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{4}$"} -QUARTER_PI (* PI -0.25))
+(def ^{:const true :tag 'double :doc "Value of $-2\\pi$"} -TWO_PI (- TWO_PI))
+(def ^{:const true :tag 'double :doc "Value of $-2\\pi$"} -TAU -TWO_PI)
+(def ^{:const true :tag 'double :doc "Value of $-\\mathrm{e}$"} -E (- Math/E))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\pi}$"} INV_PI (/ PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{\\pi}$"} TWO_INV_PI (/ 2.0 PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{4}{\\pi}$"} FOUR_INV_PI (/ 4.0 PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{2\\pi}$"} INV_TWO_PI (/ TWO_PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{2\\pi}$"} INV_FOUR_PI (/ (* 2.0 TWO_PI)))
+(def ^{:const true :tag 'double :doc "$\\varepsilon$, a small number"} EPSILON 1.0e-10)
+(def ^{:const true :tag 'double :doc "$\\gamma$, Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
+(def ^{:const true :tag 'double :doc "Lanchos approximation of `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
+(def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.91596559417721901505)
 
-(defonce ^{:const true :tag 'double :doc "ULP(1)/2. Half of the smallest difference between 1.0 and next possible double floating point number."}
+(defonce ^{:const true :tag 'double :doc "$\\frac{\\operatorname{ulp}(1)}{2}$"}
   MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
                                    (if (not== 1.0 (+ 1.0 (* d 0.5)))
                                      (recur (* d 0.5))
                                      d)))))
 
-(def ^{:const true :tag 'double :doc "5*ULP(1)"}
+(def ^{:const true :tag 'double :doc "$5\\operatorname{ulp}(1)$"}
   MACHINE-EPSILON10 (* 10.0 MACHINE-EPSILON))
 
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} THIRD      0.333333333333333333333333)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{3}\\\\)"} ONE_THIRD  0.333333333333333333333333)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRD  0.666666666666666666666666)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{2}{3}\\\\)"} TWO_THIRDS 0.666666666666666666666666)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} SIXTH      0.166666666666666666666666)
-(def ^{:const true :tag 'double :doc "Value of \\\\(\\frac{1}{6}\\\\)"} ONE_SIXTH  0.166666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{3}$"} THIRD      0.333333333333333333333333)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{3}$"} ONE_THIRD  0.333333333333333333333333)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{3}$"} TWO_THIRD  0.666666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{3}$"} TWO_THIRDS 0.666666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{6}$"} SIXTH      0.166666666666666666666666)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{6}$"} ONE_SIXTH  0.166666666666666666666666)
 
 (defn signum
   "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
@@ -704,6 +704,7 @@
   ^double [^double magnitude ^double sign]
   (FastMath/copySign magnitude sign))
 
+;; trigonometry
 
 (defn sin
   "sin(x)"
@@ -1067,6 +1068,18 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (exp x)))
 
+(defn exp2
+  "exp2(x) = 2^x"
+  {:inline (fn [x] `(. Math (pow 2.0 (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (pow 2.0 x)))
+
+(defn exp10
+  "exp10(x) = 10^x"
+  {:inline (fn [x] `(. Math (pow 10.0 (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (pow 10.0 x)))
+
 (defn log
   "log(x)=ln(x) or logarithm with given `base`."
   {:inline (fn ([x] `(. FastMath (log (double ~x))))
@@ -1077,32 +1090,50 @@
 
 (defn ln
   "log(x)=ln(x)"
-  {:inline (fn [x] `(. FastMath (log (double ~x))))}
+  {:inline (fn [x] `(. FastMath (log (double ~x))))
+   :inline-arities #{1}}
   ^double [^double x] (. FastMath (log x)))
 
 (defn log10
   "log_10(x)"
-  {:inline (fn [x] `(. FastMath (log10 (double ~x))))}
+  {:inline (fn [x] `(. FastMath (log10 (double ~x))))
+   :inline-arities #{1}}
   ^double [^double x] (. FastMath (log10 x)))
 
 (defn log1p
   "log(1+x) for small x"
-  {:inline (fn [x] `(. FastMath (log1p (double ~x))))}
+  {:inline (fn [x] `(. FastMath (log1p (double ~x))))
+   :inline-arities #{1}}
   ^double [^double x] (. FastMath (log1p x)))
 
 (defn expm1
   "exp(x)-1 for small x"
-  {:inline (fn [x] `(. FastMath (expm1 (double ~x))))}
+  {:inline (fn [x] `(. FastMath (expm1 (double ~x))))
+   :inline-arities #{1}}
   ^double [^double x] (. FastMath (expm1 x)))
 
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} LN2 (log 2.0))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} INV_LN2 (/ LN2))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\ln{2}}{2}\\\\)"} LN2_2 (* 0.5 LN2))
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{10}\\\\)"} LN10 (log 10.0))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{0.5}}\\\\)"} INV_LOG_HALF (/ (log 0.5)))
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{0.5}\\\\)"} LOG_HALF (log 0.5))
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{\\pi}\\\\)"} LOG_PI (log PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{2 \\pi}\\\\)"} LOG_TWO_PI (log TWO_PI))
+(defn exprel
+  "(exp(x)-1)/x"
+  {:inline (fn [x] `(let [x# (double ~x)]
+                     (cond
+                       (< (. FastMath abs x#) MACHINE-EPSILON10) 1.0
+                       (> x# 717.0) ##Inf
+                       :else (. FastMath (expm1 x#)))))
+   :inline-arities #{1}}
+  ^double [^double x]
+  (cond
+    (< (. FastMath abs x) MACHINE-EPSILON10) 1.0
+    (> x 717.0) ##Inf
+    :else (/ (. FastMath (expm1 x)) x)))
+
+(def ^{:const true :tag 'double :doc "Value of $\\ln{2}$"} LN2 (log 2.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{2}}$"} INV_LN2 (/ LN2))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\ln{2}}{2}$"} LN2_2 (* 0.5 LN2))
+(def ^{:const true :tag 'double :doc "Value of $\\ln{10}$"} LN10 (log 10.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{\\frac{1}{2}}}$"} INV_LOG_HALF (/ (log 0.5)))
+(def ^{:const true :tag 'double :doc "Value of $\\ln{\\frac{1}{2}}$"} LOG_HALF (log 0.5))
+(def ^{:const true :tag 'double :doc "Value of $\\ln{\\pi}$"} LOG_PI (log PI))
+(def ^{:const true :tag 'double :doc "Value of $\\ln{2\\pi}$"} LOG_TWO_PI (log TWO_PI))
 
 (defn log1pexp
   "log(1+exp(x))"
@@ -1294,8 +1325,8 @@
   ^double [^double x] (. FastMath (expQuick x)))
 
 ;; Radians to degrees (and opposite) conversions
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{180}{\\pi}\\\\)"} rad-in-deg (/ 180.0 PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{180}\\\\)"} deg-in-rad (/ PI 180.0))
+(def ^{:const true :tag 'double :doc "$\\frac{180}{\\pi}$"} rad-in-deg (/ 180.0 PI))
+(def ^{:const true :tag 'double :doc "$\\frac{\\pi}{180}$"} deg-in-rad (/ PI 180.0))
 
 (defn radians
   "Convert degrees into radians."
@@ -1320,7 +1351,7 @@
 ;;
 (defn sigmoid
   "Sigmoid function"
-  {:inline (fn [x] `(/ (inc (FastMath/exp (- ~x)))))
+  {:inline (fn [x] `(/ (inc (FastMath/exp (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
   (/ (inc (FastMath/exp (- x)))))
@@ -1329,10 +1360,18 @@
 
 (defn logit
   "Logit function"
-  {:inline (fn [x] `(FastMath/log (/ ~x (- 1.0 ~x))))
+  {:inline (fn [x] `(let [x# (double ~x)]
+                     (if (< 0.3 x# 0.65)
+                       (let [s# (* 2.0 (- x# 0.5))]
+                         (- (FastMath/log1p s#)
+                            (FastMath/log1p (- s#))))
+                       (FastMath/log (/ x# (- 1.0 x#))))))
    :inline-arities #{1}}
   ^double [^double x]
-  (FastMath/log (/ x (- 1.0 x))))
+  (if (< 0.3 x 0.65)
+    (let [s (* 2.0 (- x 0.5))]
+      (- (FastMath/log1p s) (FastMath/log1p (- s))))
+    (FastMath/log (/ x (- 1.0 x)))))
 
 (defn log2
   "Logarithm with base 2.
@@ -1363,10 +1402,10 @@
     (- (+ absx (log1pexp (* -2.0 absx))) LN2)))
 
 ;; \\(\log_2 e\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\log_{2}{e}\\\\)"} LOG2E (log2 E))
+(def ^{:const true :tag 'double :doc "$\\log_{2}{\\mathrm{e}}$"} LOG2E (log2 E))
 
 ;; \\(\log_{10} e\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\log_{10}{e}\\\\)"} LOG10E (log10 E))
+(def ^{:const true :tag 'double :doc "$\\log_{10}{\\mathrm{e}}$"} LOG10E (log10 E))
 
 ;; Powers (normal, quick)
 
@@ -1501,15 +1540,22 @@
    :inline-arities #{1}}
   ^double [^double x] (* x x))
 
-(defn pow3 "\\\\(x^3\\\\)"
-  {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
-   :inline-arities #{1}}
-  ^double [^double x](* x x x))
-
 (defn cb "\\\\(x^3\\\\)"
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x x))
+
+(defn pow3 "\\\\(x^3\\\\)"
+  {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
+   :inline-arities #{1}}
+  ^double [^double x] (* x x x))
+
+(defn pow10 "\\\\(x^10\\\\)"
+  {:inline (fn [x] `(let [x# (double ~x)
+                         v# (* x# x# x#)]
+                     (* v# v# v# x#)))
+   :inline-arities #{1}}
+  ^double [^double x] (let [v (* x x x)] (* v v v x)))
 
 (defn safe-sqrt
   "Safe sqrt, for value <= 0 result is 0.
@@ -1826,52 +1872,52 @@
   double-one-minus-epsilon (Double/parseDouble "0x1.fffffffffffffp-1d"))
 
 ;; \\(\sqrt{2}\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2}\\\\)"} SQRT2 (sqrt 2.0))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{2}}{2}\\\\)"} SQRT2_2 (* 0.5 SQRT2))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{2}$"} SQRT2 (sqrt 2.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\sqrt{2}}{2}$"} SQRT2_2 (* 0.5 SQRT2))
 
 ;; \\(\sqrt{3}\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{3}\\\\)"} SQRT3 (sqrt 3.0))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{2}\\\\)"} SQRT3_2 (* 0.5 (sqrt 3.0)))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{3}\\\\)"} SQRT3_3 (/ (sqrt 3.0) 3.0))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\sqrt{3}}{4}\\\\)"} SQRT3_4 (/ (sqrt 3.0) 4.0))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{3}$"} SQRT3 (sqrt 3.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\sqrt{3}}{2}$"} SQRT3_2 (* 0.5 (sqrt 3.0)))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\sqrt{3}}{3}$"} SQRT3_3 (/ (sqrt 3.0) 3.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\sqrt{3}}{4}$"} SQRT3_4 (/ (sqrt 3.0) 4.0))
 
 ;; \\(\sqrt{5}\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{5}\\\\)"} SQRT5 (sqrt 5.0))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{5}$"} SQRT5 (sqrt 5.0))
 
 ;; \\(\sqrt{\pi}\\)
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\pi}\\\\)"} SQRTPI (sqrt PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2\\pi}\\\\)"} SQRT2PI (sqrt TWO_PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\frac{1}{2}\\pi}\\\\)"} SQRT_HALFPI (sqrt HALF_PI))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{\\pi}$"} SQRTPI (sqrt PI))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{2\\pi}$"} SQRT2PI (sqrt TWO_PI))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{\\frac{1}{2}\\pi}$"} SQRT_HALFPI (sqrt HALF_PI))
 
 ;; 
-(def ^{:const true :tag 'double :doc "Golden ratio \\\\(\\phi\\\\)"} PHI (* (inc SQRT5) 0.5))
-(def ^{:const true :tag 'double :doc "Silver ratio \\\\(\\delta_S\\\\)"} SILVER (inc SQRT2))
+(def ^{:const true :tag 'double :doc "Golden ratio $\\phi$"} PHI (* (inc SQRT5) 0.5))
+(def ^{:const true :tag 'double :doc "Silver ratio $\\delta_S$"} SILVER (inc SQRT2))
 
 ;; math.h predefined constants names
-(def ^{:const true :tag 'double :doc "\\\\(e\\\\)"} M_E E)
-(def ^{:const true :tag 'double :doc "\\\\(\\log_{2}{e}\\\\)"} M_LOG2E LOG2E)
-(def ^{:const true :tag 'double :doc "\\\\(\\log_{10}{e}\\\\)"} M_LOG10E LOG10E)
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} M_LN2 LN2)
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{10}\\\\)"} M_LN10 LN10)
-(def ^{:const true :tag 'double :doc "\\\\(\\pi\\\\)"} M_PI PI)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{2}\\\\)"} M_PI_2 HALF_PI)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{\\pi}{4}\\\\)"} M_PI_4 QUARTER_PI)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\pi}\\\\)"} M_1_PI (/ PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\pi}\\\\)"} M_2_PI (/ 2.0 PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{2}{\\sqrt\\pi}\\\\)"} M_2_SQRTPI (/ 2.0 SQRTPI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2\\pi}}\\\\)"} INV_SQRT2PI (/ 1.0 SQRT2PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt\\pi}\\\\)"} INV_SQRTPI (/ 1.0 SQRTPI))
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{\\frac{2}{\\pi}}\\\\)"} SQRT_2_PI (sqrt M_2_PI))
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{2}\\\\)"} M_SQRT2 SQRT2)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} M_SQRT1_2 (/ SQRT2))
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\sqrt{2}}\\\\)"} INV_SQRT_2 M_SQRT1_2)
-(def ^{:const true :tag 'double :doc "\\\\(2\\pi\\\\)"} M_TWOPI TWO_PI)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{3\\pi}{4}\\\\)"} M_3PI_4 (* PI 0.75))
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt\\pi\\\\)"} M_SQRT_PI SQRTPI)
-(def ^{:const true :tag 'double :doc "\\\\(\\sqrt{3}\\\\)"} M_SQRT3 SQRT3)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{10}}\\\\)"} M_IVLN10 (/ LN10))
-(def ^{:const true :tag 'double :doc "\\\\(\\ln{2}\\\\)"} M_LOG2_E LN2)
-(def ^{:const true :tag 'double :doc "\\\\(\\frac{1}{\\ln{2}}\\\\)"} M_INVLN2 (/ LN2))
+(def ^{:const true :tag 'double :doc "Value of $\\mathrm{e}$"} M_E E)
+(def ^{:const true :tag 'double :doc "Value of $\\log_{2}{e}$"} M_LOG2E LOG2E)
+(def ^{:const true :tag 'double :doc "Value of $\\log_{10}{e}$"} M_LOG10E LOG10E)
+(def ^{:const true :tag 'double :doc "Value of $\\ln{2}$"} M_LN2 LN2)
+(def ^{:const true :tag 'double :doc "Value of $\\ln{10}$"} M_LN10 LN10)
+(def ^{:const true :tag 'double :doc "Value of $\\pi$"} M_PI PI)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{2}$"} M_PI_2 HALF_PI)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{4}$"} M_PI_4 QUARTER_PI)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\pi}$"} M_1_PI (/ PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{\\pi}$"} M_2_PI (/ 2.0 PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{2}{\\sqrt\\pi}$"} M_2_SQRTPI (/ 2.0 SQRTPI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\sqrt{2\\pi}}$"} INV_SQRT2PI (/ 1.0 SQRT2PI))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\sqrt\\pi}$"} INV_SQRTPI (/ 1.0 SQRTPI))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{\\frac{2}{\\pi}}$"} SQRT_2_PI (sqrt M_2_PI))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{2}$"} M_SQRT2 SQRT2)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\sqrt{2}}$"} M_SQRT1_2 (/ SQRT2))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\sqrt{2}}$"} INV_SQRT_2 M_SQRT1_2)
+(def ^{:const true :tag 'double :doc "Value of $2\\pi$"} M_TWOPI TWO_PI)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{3\\pi}{4}$"} M_3PI_4 (* PI 0.75))
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt\\pi$"} M_SQRT_PI SQRTPI)
+(def ^{:const true :tag 'double :doc "Value of $\\sqrt{3}$"} M_SQRT3 SQRT3)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{10}}$"} M_IVLN10 (/ LN10))
+(def ^{:const true :tag 'double :doc "Value of $\\ln{2}$"} M_LOG2_E LN2)
+(def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{2}}$"} M_INVLN2 (/ LN2))
 
 (defmacro constrain
   "Clamp `value` to the range `[mn,mx]`."
@@ -2076,6 +2122,18 @@
    :inline-arities #{3}}
   ([[^double x ^double y] ^double v] (and (< x v) (<= v y)))
   ([^double x ^double y ^double v] (and (< x v) (<= v y))))
+
+;;
+
+(defn absolute-error
+  "Absolute error between two values"
+  (^double [^double v ^double v-approx]
+   (abs (- v v-approx))))
+
+(defn relative-error
+  "Relative error between two values"
+  (^double [^double v ^double v-approx]
+   (abs (/ (- v v-approx) v))))
 
 ;; intervals
 

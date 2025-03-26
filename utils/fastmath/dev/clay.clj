@@ -2,7 +2,8 @@
   (:require [clojure.string :as str]
             [scicloj.clay.v2.api :as clay]
             [scicloj.kindly.v4.kind :as kind]
-            [scicloj.kindly.v4.api :as kindly]))
+            [scicloj.kindly.v4.api :as kindly]
+            [fastmath.core :as m]))
 
 (defmacro callout
   [what title & forms]
@@ -43,6 +44,19 @@
                         [(kind/hiccup [:dl [:dt nil `(kind/code (str ~p))] [:dd nil `(kind/table [~g])]])])
                       (mapcat identity (take-nth 2 rows)) (mapcat identity (take-nth 2 (rest rows))))))
 
+
+(defn gen-constants
+  ([ns] (gen-constants ns #{}))
+  ([ns skip]
+   (let [lst (->> (ns-publics ns)
+                  (filter (comp :const meta second))
+                  (remove (comp skip first))
+                  (sort-by first)
+                  (map (fn [[s v]] [(name s) (var-get v) (kind/md (:doc (meta v)))])))]
+     (-> {:column-names ["Constant symbol" "Value" "Description"]
+          :row-vectors lst}
+         (kind/table)
+         (kindly/hide-code)))))
 
 ;; build whole book
 (comment

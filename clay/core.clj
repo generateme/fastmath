@@ -3,6 +3,7 @@
   (:require [fastmath.dev.codox :as codox]
             [fastmath.dev.ggplot :as gg]
             [fastmath.dev.clay :as utls]
+            [fastmath.dev.helpers :as hp]
             [fastmath.core :as m]
             [scicloj.kindly.v4.kind :as kind]))
 
@@ -43,7 +44,7 @@
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `+`, `-`, `*`, `/`, `quot`
 ;; * `inc`, `dec`
-;; * `min`, `max`, `smooth-max`
+;; * `min`, `max`, `smooth-max`, `constrain`
 ;; * `rem`, `mod`, `remainder`, `wrap`
 ;; * `abs`
 ;;
@@ -62,6 +63,7 @@
 ;; * subtraction, decrementation
 ;; * multiplication
 ;; * division
+;; * absolute value
 
 ;; ::: {.callout-warning title="Division differences"}
 ;; Please note that there some differences between division in `fastmath` and `clojure.core`
@@ -130,7 +132,13 @@
     (m/long-inc 4.5)
     (m/long-dec 4)
     (m/long-dec 4.5)
-    (map m/long-inc [1 2 3.5 4.5])))
+    (map m/long-inc [1 2 3.5 4.5]))
+  (kind/md "Absolute value")
+  (utls/examples
+    (m/abs -3)
+    (m/long-abs -3)
+    (m/abs -3.5)
+    (m/long-abs -3.5)))
 
 ;; ### Remainders
 
@@ -163,17 +171,18 @@
   (m/wrap -1.25 1.25 1.25)
   (m/wrap [-1.25 1.25] -1.35))
 
-;; ### Min, max, abs
+;; ### Min, max, constrain
+
+;; Constrain is a macro which is equivalent to `(max (min value mx) mn)`
 
 (utls/examples-note
   (m/min 1 2 -3)
   (m/min 1.0 2 -3)
   (m/max 1 2 -3)
   (m/max 1.0 2 -3)
-  (m/abs -3)
-  (m/long-abs -3)
-  (m/abs -3.5)
-  (m/long-abs -3.5))
+  (m/constrain 10 -1 1)
+  (m/constrain -10 -1 1)
+  (m/constrain 0 -1 1))
 
 ;; #### Smooth maximum
 
@@ -275,14 +284,6 @@
 
 ;; Various rounding functions.
 
-;; * `floor`, `ceil` and `rint` accept additional argument, `scale`, which allows to round to the nearest multiple of scale.
-;; * `round` returns `long` while `rint` returns `double`
-;; * `approx` rounds number to the given number of digits, uses `bigdec`
-;; * `trunc` returns integer part of a number, `frac` returns fractional part
-;; * `trunc` returns `double` while `itrunc` returns long
-;; * `sfrac` keeps sign of the argument
-;; * `qfloor`, `qceil` and `qround` are implemented using casting to `long`
-
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `floor`, `ceil`
 ;; * `round`, `round-even`, `rint`, `approx`, `trunc`, `itrunc`
@@ -290,6 +291,16 @@
 ;; * `frac`, `sfrac`
 ;; * `round-up-pow2`
 ;; :::
+
+;; * `floor`, `ceil` and `rint` accept additional argument, `scale`, which allows to round to the nearest multiple of scale.
+;; * `round` returns `long` while `rint` returns `double`
+;; * `round-even` performs IEEE / IEC rounding (even-odd or bankers' rounding)
+;; * `approx` rounds number to the given number of digits, uses `bigdec`
+;; * `trunc` returns integer part of a number, `frac` returns fractional part
+;; * `trunc` returns `double` while `itrunc` returns long
+;; * `sfrac` keeps sign of the argument
+;; * `qfloor`, `qceil` and `qround` are implemented using casting to `long`
+;; * `round-up-pow2` rounds to the lowest power of 2 greater than an argument, $2^{\left\lceil{\log_2{x}}\right\rceil}$, returns `long`.
 
 ^:kind/table
 [[(gg/->image (gg/function m/floor {:x [-2 2] :title "floor(x)"}))
@@ -324,6 +335,7 @@
     (map m/frac [-10.591 10.591])
     (map m/sfrac [-10.591 10.591])
     (map m/round-up-pow2 (range 10)))
+  
   (kind/md "The difference between `rint` and `round`. `round` is bounded by minimum and maximum `long` values.")
   (utls/examples
     (m/rint 1.234567890e30)
@@ -356,6 +368,10 @@
 ;; -|x| & y<0 \lor y=-0.0
 ;; \end{cases}$$
 
+^:kind/table
+[[(gg/->image (gg/function m/signum {:x [-0.1 0.1] :title "signum(x)"}))
+  (gg/->image (gg/function m/sgn {:x [-0.1 0.1] :title "sgn(x)"}))]]
+
 (utls/examples-note
   (m/signum -2.5)
   (m/signum 2.5)
@@ -370,27 +386,169 @@
 
 ;; ## Predicates
 
+;; Various predicates and comparison functions
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `==`, `eq`, `not==`, `<`, `>`, `<=`, `>=`
+;; * `approx-eq`, `approx=`, `delta-eq`, `delta=`
+;; * `zero?`, `negative-zero?`, `near-zero?`, `one?`
+;; * `neg?`, `pos?`, `not-neg?`, `not-pos?`
+;; * `even?`, `odd?`
+;; * `integer?`
+;; * `nan?`, `inf?`, `pos-inf?`, `neg-inf?`, `invalid-double?`, `valid-double?`
+;; * `between?`, `between-?`
+;; :::
+
 ;; ## Trigonometry
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `sin`, `cos`, `tan`, `cot`, `sec`, `csc`
+;; * `qsin`, `qcos`
+;; * `sinpi`, `cospi`, `tanpi`, `cotpi`, `secpi`, `cscpi`
+;; * `asin`, `acos`, `atan`, `atan2`, `acot`, `asec`, `acsc`
+;; * `sinh`, `cosh`, `tanh`, `coth`, `sech`, `scsh`
+;; * `asinh`, `acosh`, `atanh`, `acoth`, `asech`, `ascsh`
+;; * `crd`, `acrd`
+;; * `versin`, `coversin`, `vercos`, `covercos`
+;; * `aversin`, `acoversin`, `avercos`, `acovercos`
+;; * `haversin`, `hacoversin`, `havercos`, `hacovercos`
+;; * `ahaversin`, `ahacoversin`, `ahavercos`, `ahacovercos`
+;; * `exsec`, `excsc`
+;; * `aexsec`, `aexcsc`
+;; * `sinc`
+;; :::
+
+^:kind/table
+[[(gg/->image (gg/function m/sin {:x [-4 4] :title "sin(x)"}))
+  (gg/->image (gg/function m/cos {:x [-4 4] :title "cos(x)"}))]
+ [(gg/->image (gg/function m/tan {:x [-4 4] :ylim [-3 3] :title "tan(x)"}))
+  (gg/->image (gg/function m/cot {:x [-4 4] :ylim [-3 3] :title "cot(x)"}))]
+ [(gg/->image (gg/function m/sec {:x [-4 4] :ylim [-3 3] :title "sec(x)"}))
+  (gg/->image (gg/function m/csc {:x [-4 4] :ylim [-3 3] :title "csc(x)"}))]]
+
+^:kind/table
+[[(gg/->image (gg/function m/qsin {:x [-4 4] :title "qsin(x)"}))
+  (gg/->image (gg/function (hp/relative-error m/sin m/qsin) {:x [-4 4] :title "Relative error between sin(x) and qsin(x)."}))
+  ]
+ [(gg/->image (gg/function m/qcos {:x [-4 4] :title "qcos(x)"}))
+  (gg/->image (gg/function (hp/relative-error m/cos m/qcos) {:x [-4 4] :title "Relative error between cos(x) and qcos(x)."}))]]
+
+^:kind/table
+[[(gg/->image (gg/function m/asin {:x [-2 2] :title "asin(x)"}))
+  (gg/->image (gg/function m/acos {:x [-2 2] :title "acos(x)"}))]
+ [(gg/->image (gg/function m/atan {:x [-4 4] :title "atan(x)"}))
+  (gg/->image (gg/function m/acot {:x [-4 4] :title "acot(x)"}))]
+ [(gg/->image (gg/function m/asec {:x [-4 4] :ylim [-3 3] :title "asec(x)"}))
+  (gg/->image (gg/function m/acsc {:x [-4 4] :ylim [-3 3] :title "acsc(x)"}))]]
+
+
+^:kind/table
+[[(gg/->image (gg/function m/sinh {:x [-4 4] :title "sinh(x)"}))
+  (gg/->image (gg/function m/cosh {:x [-4 4] :title "cosh(x)"}))]
+ [(gg/->image (gg/function m/tanh {:x [-4 4] :title "tanh(x)"}))
+  (gg/->image (gg/function m/coth {:x [-4 4] :ylim [-3 3] :title "coth(x)"}))]
+ [(gg/->image (gg/function m/sech {:x [-4 4] :title "sech(x)"}))
+  (gg/->image (gg/function m/csch {:x [-4 4] :ylim [-3 3] :title "csch(x)"}))]]
+
+^:kind/table
+[[(gg/->image (gg/function m/asinh {:x [-4 4] :title "asinh(x)"}))
+  (gg/->image (gg/function m/acosh {:x [ 0 4] :title "acosh(x)"}))]
+ [(gg/->image (gg/function m/atanh {:x [-2 2] :title "atanh(x)"}))
+  (gg/->image (gg/function m/acoth {:x [-4 4] :ylim [-3 3] :title "acoth(x)"}))]
+ [(gg/->image (gg/function m/asech {:x [ 0 2] :title "asech(x)"}))
+  (gg/->image (gg/function m/acsch {:x [-4 4] :ylim [-3 3] :title "acsch(x)"}))]]
+
+(gg/->image (gg/function m/sinc {:x [-4 4] :title "sinc(x)"}))
+
 
 ;; ## Power and logarithms
 
+;; ::: {.callout-tip title="Defined functions"}
+;; * `exp`, `exp2`, `exp10`, `qexp`
+;; * `ln`, `log`, `logb`, `log2`, `log10`, `qlog`
+;; * `expm1`, `exprel`, `xexpx`, `xexpy`, `cexpexp`, `expexp` 
+;; * `log1p`, `log1pexp`, `log1mexp`, `log2mexp`, `log1psq`, `logexpm1`,`log1pmx`, `logmxp1`
+;; * `xlogx`, `xlogy`, `xlog1py`, `cloglog`, `loglog`, `logcosh`
+;; * `logaddexp`, `logsubexp`, `logsumexp`, `log2int`
+;; * `sigmoid`, `logit`
+;; * `sqrt`, `cbrt`, `sq`, `cb`
+;; * `safe-sqrt`, `qsqrt`, `rqsqrt`
+;; * `pow`, `spow`, `fpow`, `qpow`, `pow2`, `pow3`, `pow10`
+;; * `low-2-exp`, `high-2-exp`, `low-exp`, `high-exp`
+;; :::
+
+
 ;; ## Bitwise operations
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `bit-and`, `bit-or`, `bit-xor`,
+;; * `bit-not`, `bit-nand`, `bit-nor`, `bit-xnor`, `bit-and-not`
+;; * `bit-set`, `bit-clear`, `bit-flip`, `bit-test`
+;; * `<<`, `bit-shift-left`, `>>`, `bit-shift-right`, `>>>`, `unsigned-bit-shift-right`
+;; :::
 
 ;; ## Floating point
 
-;; ## Other
+;; ::: {.callout-tip title="Defined functions"}
+;; * `next-double`, `prev-double`, `ulp`
+;; * `double-bits`, `double-high-bits`, `double-low-bits`, `bits->double`
+;; * `double-exponent`, `double-significand`
+;; :::
 
-;; ### GCD and LCM
+;; ## Combinatorics
 
-;; ### Combinatorics
+;; ::: {.callout-tip title="Defined functions"}
+;; * `factorial20`, `factorial`, `inv-factorial`, `log-factorial`
+;; * `falling-factorial`, `falling-factorial-int`, `rising-factorial`, `rising-factorial-int`
+;; * `combinations`, `log-combinations`
+;; :::
 
-;; ### Rank and order
+;; ## Rank and order
 
-;; ### Sampling
+;; ::: {.callout-tip title="Defined functions"}
+;; * `rank`, `rank1`
+;; * `order`
+;; :::
 
-;; ### Interpolation and mapping
+;; ## Interpolation and mapping
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `norm`, `mnorm`, `cnorm`, `make-norm`
+;; * `lerp`, `mlerp`
+;; * `smoothstep`
+;; * `cos-interpolation`, `smooth-interpolation`, `quad-interpolation`
+;; :::
+
+;; ## Distance
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `dist`, `qdist`, `hypot`, `hypot-sqrt`
+;; * `haversine-dist`
+;; :::
+
+;; ## Intervals
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `slice-range`, `cut`
+;; * `co-intervals`, `group-by-intervals`
+;; :::
+
+;; ### Other
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `gcd`, `lcm`
+;; * `bool-not`, `bool-xor`, `xor`
+;; * `identity-long`, `identity-double`
+;; * `radians`, `degrees`
+;; * `sample`
+;; * `relative-error`, `absolute-error`
+;; * `seq->double-array`, `seq->double-double-array`, `double-array->seq`, `double-double-array->seq`
+;; * `use-primitive-operators`, `unuse-primitive-operators`
+;; :::
 
 ;; ## Constants
+
+(utls/gen-constants 'fastmath.core #{'jvm-version})
 
 ;; ## Reference
 

@@ -12,11 +12,29 @@ All notable changes to this project will be documented in this file. This change
 * `hypergeometric-pFq` - added weniger acceleration branch
 * `tricomis-U-complex`
 * `ks-test-two-samples` - exact method added
+* `box-cox-tranformation` - generalized power transformation
+* `box-cox-infer-lambda` and `yeo-johnson-infer-lambda` - for lambda estimation
+* `wmode` and `wmodes` - weighted mode(s)
+* `expectile` statistic
+* `l-moment` and `l-variation` - L-moment and TL-moment
+* `pooled-mad`
+* `cohens-u1-normal`, `cohens-u2-normal`, `cohens-u3-normal` - original (parametric) version of Cohen's U statistics
+* `cohens-u1` - based on Cohen's formula and `cohens-u2` value.
+* `pava` - isotonic regression
 
 ### Fixed
 
-* `demean` for matrices should work on ACM matrices properly (thanks @daslu)
+* `demean` for matrices should work on ACM matrices properly (thanks to @daslu)
 * `ks-test-two-samples` - wrong calculation of KS statistic
+* `cohens-u2` - bad optiomization method used
+
+### Deprecated
+
+* `power-transformation` and `modified-power-transformation` are replaced by `box-cox-transformation`
+
+### Changed
+
+* [breaking] `yeo-johnson-transformation` accepts a map as last argument (was `alpha`)
 
 ## [3.0.0 alpha3]
 

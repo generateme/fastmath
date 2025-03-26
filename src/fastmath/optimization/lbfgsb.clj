@@ -73,7 +73,7 @@
          (reify IGradFunction
            (evaluate [_ xs] (apply f xs)))
          (reify IGradFunction
-           (evaluate [_ xs] (- ^double (apply f xs)))))))))
+           (evaluate [_ xs] (- (double (apply f xs))))))))))
 
 (defn ->lbfgsb
   "Create lbfgsb object"

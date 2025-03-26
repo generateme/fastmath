@@ -10,7 +10,7 @@
             [clojure.pprint :as pprint])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
             CholeskyDecomposition RealMatrix RealVector]
-           [fastmath.java Array]
+           [fastmath.java Array Monotone]
            [clojure.lang IFn]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -1340,3 +1340,27 @@
 (defmethod print-method GLMData [data  ^java.io.Writer w]
   (.write w (str (->string data))))
 
+
+;; isotonic
+
+;; https://www.jstatsoft.org/article/view/v102c01
+
+(defn pava
+  "Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks variant.
+
+  Isotonic regression minimizes the (weighted) L2 loss function with a constraint that result should be monotonic (ascending or descending).
+
+  Arguments:
+  
+  - `ys` - response variable data
+  - `ws` - weights (optional)
+  - `order` - `:asc` (default) or `:desc`
+
+  Returns monotonic predicted values."
+  ([ys] (pava ys :asc))
+  ([ys order] (pava ys nil order))
+  ([ys ws order]
+   (let [^doubles y (double-array ys)
+         w (double-array (or ws (repeat (alength y) 1.0)))]
+     (Monotone/pava y w (= :asc (or order :asc)))
+     (seq y))))

@@ -52,8 +52,10 @@
             [fastmath.interpolation.step :as step-interp]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
+            [fastmath.optimization :as opt]
             [fastmath.kernel.density :as kd]
-            [fastmath.special :as special])
+            [fastmath.special :as special]
+            [fastmath.solver :as solver])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -127,7 +129,7 @@
 
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[quantile]]."
   (^double [vs ^double p]
@@ -143,7 +145,7 @@
 
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[quantile]]."
   ([vs] (percentiles vs [25 50 75 100]))
@@ -160,7 +162,7 @@
 
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[percentile]]."
   (^double [vs ^double q]
@@ -175,7 +177,7 @@
 
   See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
 
   See also [[percentiles]]."
   ([vs] (quantiles vs [0.25 0.5 0.75 1.0]))
@@ -308,7 +310,7 @@
    (StatUtils/populationVariance (m/seq->double-array vs) mu)))
 
 (defn population-wvariance
-  "Calculate population weighted variance of `vs`."
+  "Calculate weighted population variance of `vs`."
   ^double [vs freqs]
   (let [sw (sum freqs)
         mu (/ (sum (map * vs freqs)) sw)
@@ -583,6 +585,29 @@
                (or (< v lif-thr)
                    (> v uif-thr))) vs))))
 
+(defn wmodes
+  "Returns weighted modes.
+
+  `vs` can contain anything, in case of ties returns all modes."
+  ([vs] (wmodes vs (repeat 1.0)))
+  ([vs weights]
+   (let [all (->> (map vector vs weights)
+                  (reduce (fn [b [v w]]
+                            (update b v (fnil m/+ 0.0) w)) {})
+                  (sort-by second m/>))
+         best-score (-> all first second double)]
+     (->> all
+          (take-while (fn [p] (m/== best-score (double (second p)))))
+          (map first)))))
+
+(defn wmode
+  "Returns weighted mode.
+
+  `vs` can contain anything, in case of ties returns only one (possibly random) mode."
+  ([vs] (wmode vs (repeat 1.0)))
+  ([vs weights]
+   (first (wmodes vs weights))))
+
 (declare histogram)
 
 (defn modes
@@ -640,14 +665,14 @@
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (Array/min ^doubles vs)
-    (reduce clojure.core/min vs)))
+    (reduce m/min vs)))
 
 (defn maximum
   "Maximum value from sequence."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (Array/max ^doubles vs)
-    (reduce clojure.core/max vs)))
+    (reduce m/max vs)))
 
 (defn span
   "Width of the sample, maximum value minus minimum value"
@@ -656,11 +681,13 @@
     (- (maximum avs) (minimum avs))))
 
 (defn extent
-  "Return extent (min, max, mean) values from sequence"
-  [vs]
-  (let [^double fv (first vs)]
-    (conj (reduce (fn [[^double mn ^double mx] ^double v]
-                    [(min mn v) (max mx v)]) [fv fv] (rest vs)) (mean vs))))
+  "Return extent (min, max, mean) values from sequence. Mean is optional (default: true)"
+  ([vs] (extent vs true))
+  ([vs mean?]
+   (let [^double fv (first vs)
+         mm (reduce (fn [^Vec2 curr ^double v]
+                      (Vec2. (min (.x curr) v) (max (.y curr) v))) (Vec2. fv fv) (rest vs))]
+     (if mean? (conj mm (mean vs)) mm))))
 
 (defn moment
   "Calculate moment (central or/and absolute) of given order (default: 2).
@@ -694,6 +721,82 @@
      (/ (if mean? (mean out) (sum out)) nf))))
 
 (def ^{:deprecated "Use [[moment]] function"} second-moment moment)
+
+;;
+
+(defn l-moment
+  "Calculates L-moment, TL-moment (trimmed) or (T)L-moment ratios.
+
+  Options:
+  - `:s` (default: 0) - number of left trimmed values
+  - `:r` (default: 0) - number of right tirmmed values
+  - `:sorted?` (default: false) - if input is already sorted
+  - `:ratio?` (default: false) - normalized l-moment, l-moment ratio"
+  (^double [vs ^long order] (l-moment vs order nil))
+  (^double [vs ^long order {:keys [^long s ^long t sorted? ratio?]
+                            :or {s 0 t 0}
+                            :as opts}]
+   (if (m/zero? order)
+     1.0
+     (let [^doubles svs (m/seq->double-array (if sorted? vs (sort vs)))]
+       (if ratio?
+         (let [nopts (assoc opts :sorted? true :ratio? false)
+               l2 (l-moment svs 2 nopts)]
+           (m// (l-moment svs order nopts) l2))
+         (let [r- (m/dec order)
+               s+ (m/inc s)
+               n (alength svs)
+               n-t+ (m/- n t -1)]
+           (m// (double (reduce (fn [^double b1 ^long k]
+                                  (let [c1 (m/- (m/+ r- s) k)
+                                        c2 (m/+ t k)]
+                                    (-> (if (m/even? k) (m/combinations r- k) (m/- (m/combinations r- k)))
+                                        (m/* (double (reduce (fn [^double b2 ^long j]
+                                                               (let [j- (m/dec j)]
+                                                                 (-> (m/* (m/combinations j- c1)
+                                                                          (m/combinations (m/- n j) c2)
+                                                                          (Array/aget svs j-))
+                                                                     (m/+ b2)))) 0.0 (range s+ n-t+))))
+                                        (m/+ b1))))
+                                0.0 (range order)))
+                (m/* order (m/combinations n (m/+ order s t))))))))))
+
+(defn l-variation
+  "Coefficient of L-variation, L-CV"
+  ^double [vs]
+  (let [svs (m/seq->double-array vs)]
+    (java.util.Arrays/sort svs)
+    (m// (l-moment svs 2 {:sorted? true})
+         (mean svs))))
+
+;;; expectile
+
+(defn- expectile-map
+  [vs ^double tau ^double tau- ^double t]
+  (map (fn [^double v]
+         (m/* (if (m/<= v t) tau- tau) (m/- t v))) vs))
+
+(defn- expectile-target
+  ([vs weights ^double tau ^double tau-]
+   (fn ^double [^double t]
+     (let [m (expectile-map vs tau tau- t)]
+       (if weights (mean m weights) (mean m)))))  )
+
+(defn expectile
+  "Calculate expectile for given tau.
+
+  If tau=0.5, returns mean."
+  (^double [vs ^double tau] (expectile vs nil tau))
+  (^double [vs weights ^double tau]
+   (let [avg (if weights (mean vs weights) (mean vs))]
+     (if (m/== tau 0.5)
+       avg
+       (let [[^double x0 ^double x1] (if (m/> tau 0.5)
+                                       [avg (maximum vs)]
+                                       [(minimum vs) avg])]
+         (if (m/== x0 x1)
+           x0
+           (solver/find-root (expectile-target vs weights tau (m/- 1.0 tau)) x0 x1)))))))
 
 (defn winsor
   "Return winsorized data. Trim is done by using quantiles, by default is set to 0.2."
@@ -1516,9 +1619,9 @@
   "Calculate pooled variance for samples and method.
 
   Methods:
-  * `:unbiased` - sqrt of weighted average of variances (default)
-  * `:biased` - biased version of `:unbiased`
-  * `:avg` - sqrt of average of variances"
+  * `:unbiased` - weighted average of variances (default)
+  * `:biased` - biased version of `:unbiased`, no count correction.
+  * `:avg` - average of variances"
   (^double [groups] (pooled-variance groups :unbiased))
   (^double [groups method]
    (let [agroups (map m/seq->double-array groups)]
@@ -1531,12 +1634,38 @@
           (- (sum (map alength agroups)) (count groups)))))))
 
 (defn pooled-stddev
-  "Calculate pooled standard deviation for samples and method"
+  "Calculate pooled standard deviation for samples and method
+
+  Methods:
+  * `:unbiased` - sqrt of weighted average of variances (default)
+  * `:biased` - biased version of `:unbiased`, no count correction.
+  * `:avg` - sqrt of average of variances"
   (^double [groups] (m/sqrt (pooled-variance groups)))
   (^double [groups method] (m/sqrt (pooled-variance groups method))))
 
+(defn pooled-mad
+  "Calculate pooled median absolute deviation for samples.
+
+  k is a scaling constant which equals around 1.4826 by default."
+  (^double [groups] (pooled-mad groups 1.4826022185056023))
+  (^double [groups ^double const]
+   (let [Y (mapcat (fn [g] (let [md (median g)]
+                            (v/shift g (m/- md)))) groups)]
+     (m/* const (median-absolute-deviation Y)))))
+
+;; effect size
+
 (defn cohens-d
-  "Cohen's d effect size for two groups"
+  "Calculate Cohen's d effect size between two groups.
+
+  Cohen's d is a statistical measure used to quantify the magnitude of difference between two groups.
+
+  Params:
+  - group1: first sample
+  - group2: second sample
+  - method (optional): method for pooled stddev calculation (`:unbiased`, `:biased`, or `:avg`), defaults to `:unbiased`, see [[pooled-stddev]] for more info about methods.
+
+  Returns effect size as double."
   (^double [[group1 group2]] (cohens-d group1 group2))
   (^double [group1 group2] (cohens-d group1 group2 :unbiased))
   (^double [group1 group2 method]
@@ -1671,31 +1800,79 @@
          i2 (integrate-kde iters kde2 ranges)]
      (sum (map min i1 i2)))))
 
+(defn cohens-u1-normal
+  "Returns Cohen's U1 for normal samples with equal variability.
+
+  Proportion of nonoverlap between two distributions. Symmetric.
+
+  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+
+  Based on orignal definition by Cohen."
+  (^double [group1 group2] (cohens-u1-normal group1 group2 :unbiased))
+  (^double [group1 group2 method] (cohens-u1-normal (cohens-d group1 group2 method)))
+  (^double [^double d]
+   (let [p (r/cdf r/default-normal (m/* 0.5 (m/abs d)))]
+     (m// (m/dec (m/* 2.0 p)) p))))
+
+(defn cohens-u2-normal
+  "Returns Cohen's U2 for normal samples with equal variability.
+
+  The percentage of one group that exceeds the same percentage in the second group. Symmetric.
+  
+  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+
+  Based on orignal definition by Cohen."
+  (^double [group1 group2] (cohens-u2-normal group1 group2 :unbiased))
+  (^double [group1 group2 method] (cohens-u2-normal (cohens-d group1 group2 method)))
+  (^double [^double d] (r/cdf r/default-normal (m/* 0.5 (m/abs d)))))
+
+(defn cohens-u3-normal
+  "Returns Cohen's U3 for normal samples with equal variability.
+
+  Percentage of one group that is lower than median of the other group. Not symmetric.
+
+  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+
+  Based on orignal definition by Cohen."
+  (^double [group1 group2] (cohens-u3-normal group1 group2 :unbiased))
+  (^double [group1 group2 method] (cohens-u3-normal (cohens-d group1 group2 method)))
+  (^double [^double d] (r/cdf r/default-normal d)))
+
 (defn cohens-u2
-  "Cohen's U2, the proportion of one of the groups that exceeds the same proportion in the other group."
+  "Returns Cohen's U2 for any samples.
+
+  The percentage of one group that exceeds the same percentage in the second group. Symmetric."
   (^double [[group1 group2]] (cohens-u2 group1 group2))
-  (^double [group1 group2] (cohens-u2 group1 group2 :legacy))
-  (^double [group1 group2 estimation-strategy]
-   (let [g1 (m/seq->double-array group1)
-         g2 (m/seq->double-array group2)
-         target (-> (fn [^double p]
-                      (let [p (m/constrain p 4.9E-324 0.9999999999999999)                        
-                            q1 (quantiles g1 [p (- 1.0 p)] estimation-strategy)
-                            q2 (quantiles g2 [(- 1.0 p) p] estimation-strategy)]
-                        (-> (v/sub q1 q2)
-                            (v/abs)
-                            (v/mn))))
-                    (lbfgsb/grad-function :minimize))]
-     (first (.minimize (lbfgsb/->lbfgsb) target (double-array [0.75]) (double-array [0.5]) (double-array [1.0]))))))
+  (^double [group1 group2]
+   (let [g1 (r/distribution :real-discrete-distribution {:data group1})
+         g2 (r/distribution :real-discrete-distribution {:data group2})
+         target-fn (fn [^double p]
+                     (let [p (m/constrain p 4.9E-324 0.9999999999999999)
+                           p- (m/- 1.0 p)
+                           q1 (Vec2. (r/icdf g1 p) (r/icdf g1 p-))
+                           q2 (Vec2. (r/icdf g2 p-) (r/icdf g2 p))]
+                       (-> (v/sub q1 q2) v/abs v/mn)))]
+     (-> (opt/minimize :brent target-fn {:bounds [[0.5 1.0]]}) ffirst double))))
+
+(defn cohens-u1
+  "Returns Cohen's U1 for any samples.
+
+  Proportion of nonoverlap between two distributions. Symmetric."
+  (^double [[group1 group2]] (cohens-u1 group1 group2))
+  (^double [group1 group2]
+   (let [u2 (cohens-u2 group1 group2)]
+     (m// (m/dec (m/* 2.0 u2)) u2))))
 
 (defn cohens-u3
-  "Cohen's U3, the proportion of the second group that is smaller than the median of the first group."
+  "Returns Cohen's U3 for any samples.
+
+  Percentage of one group that is lower than median of the other group. Not symmetric."
   (^double [[group1 group2]] (cohens-u3 group1 group2))
   (^double [group1 group2] (cohens-u3 group1 group2 :legacy))
   (^double [group1 group2 estimation-strategy]
    (let [m (median group1 estimation-strategy)]
-     (/ (count (filter (fn [^double v] (< v m)) group2))
-        (double (count group2))))))
+     (/ (count (filter (fn [^double v] (m/< v m)) group2)) (double (count group2))))))
+
 ;;
 
 (defn pearson-r
@@ -3020,7 +3197,7 @@
                     (r/icdf r/default-normal (+ 0.5 (* rden (inc r))))) ranks)
          {:keys [^double SSt ^double SSe ^int DFt ^int DFe]
           :as res} (->> (map count xss)
-                        (reductions clojure.core/+ 0)
+                        (reductions m/+ 0)
                         (partition 2 1)
                         (map (fn [[d t]] (drop d (take t qij))))
                         (anova))
@@ -3247,73 +3424,110 @@
 
 ;; transformations
 
-(defn power-transformation
-  "Applies a power transformation to a dataset.
-
-  This transformation is commonly used to stabilize variance and make the data more normally distributed. It is defined as:
-  
-  - If `lambda = 0`: Uses the logarithm transformation.
-  - Otherwise: Uses `(x^lambda - 1) / (lambda * gm^(lambda-1))`, where `gm` is the geometric mean of the dataset.
-
-  **Constraints:** All input values must be positive.
-
-  Parameters:
-  - `xs` (seq of numbers): The input dataset.
-  - `lambda` (default `0.0`): The power parameter.
-  - `alpha` (optional): A shift parameter applied before transformation.
-
-  Returns:
-  - A transformed sequence of numbers.
-
-  Edge Cases:
-  - If `lambda = 0`, the transformation defaults to a logarithm function.
-  - Negative or zero values in `xs` will cause an error.
-
-  Related:
-  - `modified-power-transformation`
-  - `yeo-johnson-transformation`"
-  ([xs] (power-transformation xs 0.0))
-  ([xs ^double lambda]
-   (let [gm (geomean xs)]
-     (if (m/zero? lambda)
-       (map (fn [^double x] (* gm (m/log x))) xs)
-       (let [fact (* lambda (m/pow gm (dec lambda)))]
-         (map (fn [^double x] (/ (dec (m/pow x lambda)) fact)) xs)))))
-  ([xs ^double lambda ^double alpha]
-   (power-transformation (v/shift xs alpha) lambda)))
-
-(defn modified-power-transformation
-  "Applies a modified power transformation (Box-Cox transformation) to a dataset.
-
-  Unlike the standard power transformation, this version does not scale by the geometric mean. It is useful for normalizing data distributions, handling both positive and negative values.
-
-  Parameters:
-  - `xs`: The input dataset.
-  - `lambda` (default `0.0`): The power parameter. 
-    - If `lambda = 0`, applies the log transformation.
-    - Otherwise, uses the formula `(sign(x) * (|x|^lambda - 1) / lambda)`.
-  - `alpha` (optional): A shift parameter applied before transformation.
-
-  Returns:
-  - A transformed sequence of numbers.
-
-  Edge Cases:
-  - If `lambda = 0`, the transformation defaults to a logarithm function.
-  - Negative values are handled by taking the absolute value before transformation.
-
-  Related:
-  - `power-transformation`
-  - `yeo-johnson-transformation`"
-  ([xs] (modified-power-transformation xs 0.0))
-  ([xs ^double lambda]
+(defn- box-cox-scaled
+  ([nxs sgn ^double lambda] (box-cox-scaled nxs sgn lambda (geomean nxs)))
+  ([nxs sgn ^double lambda ^double gm]
    (if (m/zero? lambda)
-     (map (fn [^double x]
-            (if (m/zero? x)
-              0.0
-              (* (m/signum x) (m/log (m/abs x))))) xs)
-     (map (fn [^double x] (* (m/signum x) (/ (dec (m/pow (m/abs x) lambda)) lambda))) xs)))
-  ([xs ^double lambda ^double alpha]
-   (modified-power-transformation (v/shift xs alpha) lambda)))
+     (map (fn [^double s ^double x] (m/* gm s (m/log x))) sgn nxs)
+     (let [fact (m/* lambda (m/pow gm (m/dec lambda)))]
+       (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) fact)) sgn nxs)))))
+
+(defn- box-cox-not-scaled
+  [nxs sgn ^double lambda]
+  (if (m/zero? lambda)
+    (map (fn [^double s ^double x] (if (m/zero? x) 0.0 (m/* s (m/log x)))) sgn nxs)
+    (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) lambda)) sgn nxs)))
+
+(defn- box-cox-prepare-data
+  [xs {:keys [^double alpha negative?]
+       :or {alpha 0.0}}]
+  [(cond-> xs
+     (not (m/zero? alpha)) (v/shift alpha)
+     negative? (v/abs))
+   (if negative? (map m/signum xs) (repeat 1.0))])
+
+(defn- box-cox-maximize-ll
+  ^double [nxs sgn lambda-range]
+  (let [[^double lambda-min ^double lambda-max :as lr] (or lambda-range [-3.0 3.0])
+        lxs (v/sum (map m/log nxs))
+        n- (m/- (m/* 0.5 (count nxs)))
+        target (fn ^double [^double l]
+                 (let [res (box-cox-not-scaled nxs sgn l)
+                       v (variance res)]
+                   (m/+ (m/* n- (m/log v))
+                        (m/* (m/dec l) lxs))))]
+    (-> (lbfgsb/maximize target {:bounds [lr]
+                                 :initial [(m/lerp lambda-min lambda-max 0.51)]})
+        (ffirst))))
+
+(defn box-cox-infer-lambda
+  "Find optimal `lambda` parameter for Box-Cox tranformation using maximum log likelihood method."
+  (^double [xs] (box-cox-infer-lambda xs nil))
+  (^double [xs lambda-range] (box-cox-infer-lambda xs lambda-range nil))
+  (^double [xs lambda-range opts]
+   (let [[nxs sgn] (box-cox-prepare-data xs opts)]
+     (box-cox-maximize-ll nxs sgn lambda-range))))
+
+(defn box-cox-transformation
+  "Applies Box-Cox transformation to a data.
+
+   The Box-Cox transformation is a family of power transformations used to stabilize variance and make data more normally distributed.
+
+  Parameters:
+  - `xs` (seq of numbers): The input data.
+  - `lambda` (default `0.0`): The power parameter. If `nil` or `[lambda-min, lambda-max]`, `lambda` is inferred using maximum log likelihood.
+  - Options map:
+    - `alpha` (optional): A shift parameter applied before transformation.
+    - `scaled?` (default `false`): scale by geometric mean
+    - `negative?` (default `false`): allow negative values
+
+  Returns transformed data.
+
+  Related: `yeo-johnson-transformation`"
+  ([xs] (box-cox-transformation xs nil))
+  ([xs lambda] (box-cox-transformation xs lambda nil))
+  ([xs lambda {:keys [scaled?] :as opts}]
+   (let [[nxs sgn] (box-cox-prepare-data xs opts)
+         lambda (if (number? lambda) lambda (box-cox-maximize-ll nxs sgn lambda))]
+     (if scaled?
+       (if (number? scaled?)
+         (box-cox-scaled nxs sgn lambda scaled?)
+         (box-cox-scaled nxs sgn lambda))
+       (box-cox-not-scaled nxs sgn lambda)))))
+
+(defn- yeo-johnson
+  [nxs ^double lambda]
+  (let [l2 (- 2.0 lambda)]
+    (map (fn [^double x]
+           (if (m/neg? x)
+             (if (== lambda 2.0)
+               (- (m/log (- 1.0 x)))
+               (- (/ (dec (m/pow (- 1.0 x) l2)) l2)))
+             (if (m/zero? lambda)
+               (m/log (inc x))
+               (/ (dec (m/pow (inc x) lambda)) lambda)))) nxs)))
+
+(defn- yeo-johnson-maximize-ll
+  ^double [nxs lambda-range]
+  (let [[^double lambda-min ^double lambda-max :as lr] (or lambda-range [-3.0 3.0])
+        lxs (v/sum (map (fn [^double x] (m/* (m/signum x) (m/log (m/inc (m/abs x))))) nxs))
+        n- (m/- (m/* 0.5 (count nxs)))
+        target (fn ^double [^double l]
+                 (let [res (yeo-johnson nxs l)
+                       v (variance res)]
+                   (m/+ (m/* n- (m/log v))
+                        (m/* (m/dec l) lxs))))]
+    (-> (lbfgsb/maximize target {:bounds [lr]
+                                 :initial [(m/lerp lambda-min lambda-max 0.51)]})
+        (ffirst))))
+
+(defn yeo-johnson-infer-lambda
+  "Find optimal `lambda` parameter for Yeo-Johnson tranformation using maximum log likelihood method."
+  (^double [xs] (yeo-johnson-infer-lambda xs nil))
+  (^double [xs lambda-range] (yeo-johnson-infer-lambda xs lambda-range nil))
+  (^double [xs lambda-range {:keys [^double alpha] :or {alpha 0.0}}]
+   (let [nxs (if (m/zero? alpha) xs (v/shift xs alpha))]
+     (yeo-johnson-maximize-ll nxs lambda-range))))
 
 (defn yeo-johnson-transformation
   "Applies the Yeo-Johnson transformation to a dataset.
@@ -3322,33 +3536,41 @@
 
   Parameters:
   - `xs`: The input dataset.
-  - `lambda` (default: 0.0): The power parameter controlling the transformation.
-    - If `lambda = 0`, applies a log transformation.
-    - Otherwise, applies a piecewise power transformation.
-  - `alpha` (optional): A shift parameter applied before transformation.
+  - `lambda` (default: 0.0): The power parameter controlling the transformation. If `lambda` is `nil` or a range `[lambda-min, lambda-max]` it will be inferred using maximum log-likelihood method.
+  - Options map:
+    - `alpha` (optional): A shift parameter applied before transformation.
 
   Returns:
   - A transformed sequence of numbers.
 
-  Edge Cases:
-  - If `lambda = 0`, the transformation defaults to a logarithm function.
-  - If input values are negative, a different transformation formula is applied.
+  Related: `box-cox-tranformation`"
+  ([xs] (yeo-johnson-transformation xs nil))
+  ([xs lambda] (yeo-johnson-transformation xs lambda nil))
+  ([xs lambda {:keys [^double alpha] :or {alpha 0.0}}]
+   (let [nxs (if (m/zero? alpha) xs (v/shift xs alpha))
+         lambda (if (number? lambda) lambda (yeo-johnson-maximize-ll nxs lambda))]
+     (yeo-johnson nxs lambda))))
 
-  Related:
-  - `power-transformation`
-  - `modified-power-transformation`"
-  ([xs] (yeo-johnson-transformation xs 0.0))
+;;
+
+(defn power-transformation
+  "Applies a power transformation to a data."
+  {:deprecated "Use `(box-cox-transformation xs lambda {:scaled true})"}
+  ([xs] (power-transformation xs 0.0))
   ([xs ^double lambda]
-   (let [l2 (- 2.0 lambda)]
-     (map (fn [^double x]
-            (if (m/neg? x)
-              (if (== lambda 2.0)
-                (- (m/log (- 1.0 x)))
-                (- (/ (dec (m/pow (- 1.0 x) l2)) l2)))
-              (if (m/zero? lambda)
-                (m/log (inc x))
-                (/ (dec (m/pow (inc x) lambda)) lambda)))) xs)))
+   (box-cox-transformation xs lambda {:scaled? true}))
   ([xs ^double lambda ^double alpha]
-   (yeo-johnson-transformation (v/shift xs alpha) lambda)))
+   (box-cox-transformation xs lambda {:scaled? true :alpha alpha})))
+
+(defn modified-power-transformation
+  "Applies a modified power transformation (Bickel and Doksum) to a data."
+  {:deprecated "Use `(box-cox-transformation xs lambda {:negative? true})"}
+  ([xs] (modified-power-transformation xs 0.0))
+  ([xs ^double lambda]
+   (box-cox-transformation xs lambda {:negative? true}))
+  ([xs ^double lambda ^double alpha]
+   (box-cox-transformation xs lambda {:negative? true :alpha alpha})))
+
+
 
 (m/unuse-primitive-operators)
