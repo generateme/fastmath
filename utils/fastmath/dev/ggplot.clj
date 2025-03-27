@@ -236,7 +236,9 @@
 
 (defn function+scatter
   ([f xs ys] (function+scatter f xs ys nil))
-  ([f xs ys {:keys [x] :as opts}]
+  ([f xs ys {:keys [x dot-size dot-alpha dot-shape]
+             :or {dot-size 3.0 dot-alpha 0.8 dot-shape "circle filled"}
+             :as opts}]
    (let [[x-min-p x-max-p] x
          [x-min-e x-max-e] (stats/extent xs)
          x-min (or x-min-p x-min-e)
@@ -245,7 +247,7 @@
          ff (if (sequential? f) functions function)]
      (r/r+ (ff f (assoc opts :x [x-min x-max]))
            (gg/geom_point :color "blue" :fill "light blue" :data data :mapping (gg/aes :x :x :y :y)
-                          :shape "circle filled" :size 3 :alpha 0.8)))))
+                          :shape dot-shape :size dot-size :alpha dot-alpha)))))
 
 (defn scatter
   "plot scatter graph.

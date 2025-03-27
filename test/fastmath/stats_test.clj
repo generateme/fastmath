@@ -106,7 +106,7 @@
     -0.659919 sut/cliffs-delta nil
     0.1700405 sut/ameasure nil
     0.204878 sut/wmw-odds nil
-    #_#_#_0.8025362 sut/cohens-u2 nil ;; same as R - to be fixed and verified
+    #_#_#_0.8025362 sut/cohens-u2 nil ;; same as R - changed optimization method, current value differs
     0.1538462 sut/cohens-u3 nil))
 
 ;; effect size - correlations

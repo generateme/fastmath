@@ -4,67 +4,91 @@ package fastmath.java;
 
 public final class Monotone {
 
-    public static void pava(double[] x, double[] w, boolean asc) {
+    public static int pava_step1(double[] y, double[] w, int[] r, boolean asc) {
+        return pava_step1(null, y, w, r, asc);
+    }
+    
+    public static int pava_step1(double[] x, double[] y, double[] w, int[] r, boolean asc) {
         boolean desc = !asc;
-        int n = x.length;
-        int[] r = new int[n+1];
+        boolean do_x = (x != null);
 
-        r[0]=0;
-        r[1]=1;
+        int n = y.length;
+
+        r[0] = 0;
+        r[1] = 1;
 
         int b = 0;
 
-        double xbp = x[0];
+        double xbp = do_x ? x[0] : 0.0;
+        double ybp = y[0];
         double wbp = w[0];
 
         for(int i = 1; i < n; i++) {
             b++;
 
-            double xb = x[i];
+            double xb = do_x ? x[i] : 0.0;
+            double yb = y[i];
             double wb = w[i];
-            double sb = 0;
+            double sby = 0.0;
+            double sbx = 0.0;
             
-            if ((asc && (xbp >= xb)) || (desc && (xbp <= xb))) {
+            if ((asc && (ybp >= yb)) || (desc && (ybp <= yb))) {
                 b--;
 
-                sb = wbp * xbp + wb * xb;
+                if (do_x) sbx = wbp * xbp + wb * xb;
+                sby = wbp * ybp + wb * yb;
+                 
                 wb += wbp;
-                xb = sb / wb;
 
-                while (i<(n-1) && ((asc && (xb >= x[i+1])) || (desc && (xb <= x[i+1])))) {
+                if (do_x) xb = sbx / wb;
+                yb = sby / wb;
+                 
+                while (i<(n-1) && ((asc && (yb >= y[i+1])) || (desc && (yb <= y[i+1])))) {
                     i++;
 
-                    sb += w[i] * x[i];
+                    if (do_x) sbx += w[i] * x[i];
+                    sby += w[i] * y[i];
+
                     wb += w[i];
-                    xb = sb / wb;
-                }
 
-                while (b>0 && ((asc && (x[b-1] >= xb)) || (desc && (x[b-1] <= xb)))) {
-                    b--;
+                    if (do_x) xb = sbx / wb;
+                    yb = sby / wb;
+                 }
 
-                    sb += w[b] * x[b];
-                    wb += w[b];
-                    xb = sb / wb;
-                }
-            }
+                 while (b>0 && ((asc && (y[b-1] >= yb)) || (desc && (y[b-1] <= yb)))) {
+                     b--;
 
-            x[b] = xbp = xb;
-            w[b] = wbp = wb;
-            r[b+1] = i+1;
+                     if (do_x) sbx += w[b] * x[b];
+                     sby += w[b] * y[b];
+                     
+                     wb += w[b];
+
+                     if (do_x) xb = sbx / wb;
+                     yb = sby / wb;                 
+                 }
+             }
+
+             if (do_x) x[b] = xbp = xb;             
+             y[b] = ybp = yb;
+             w[b] = wbp = wb;
+             r[b+1] = i+1;
         }
 
-        int f = n-1;
+        return b;
+    }
+
+    public static void pava_step2(double[] y, int[] r, int b) {
+        int f = y.length - 1;
 
         for(int k = b; k >= 0; k--) {
             int t = r[k];
-            double xk = x[k];
+            double yk = y[k];
 
             for(int i = f; i >= t; i--) {
-                x[i] = xk;
+                y[i] = yk;
             }
 
             f = t - 1;
-        }
-        
+        }   
     }
 }

@@ -72,6 +72,25 @@
                                :title "(b-spline xs ys {:degree ...}"})
     (ggplot/->image))
 
+
+;; ### Monotone
+
+(def xxss (range 0 400 5))
+(def data (mapv (fn [^long v] (m/+ v (m/+ (m/* 30 (m/sin (m// v 60.0)))
+                                       (r/grand (m// v -2.0) (m// v 10.0))))) xxss))
+
+(ggplot/->file
+ (ggplot/function+scatter (i/interpolation :cir xxss data) xxss data {:dot-size 2
+                                                                      :dot-alpha 0.6
+                                                                      :title "CIR"}))
+
+(ggplot/->file
+ (ggplot/function+scatter (i/interpolation :cir xxss data {:method :monotone})
+                          xxss data {:dot-size 2
+                                     :dot-alpha 0.6
+                                     :title "CIR smoothed"}))
+
+
 ;; ## 2d target
 
 ;; $$f(x,y)=\sin\left(\frac{x-100}{10}\cos\left(\frac{y}{20}\right)\right)+\frac{x}{100}+\left(\frac{y-100}{100}\right)^2+1$$

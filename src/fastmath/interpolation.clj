@@ -11,6 +11,7 @@
             [fastmath.interpolation.step :as step]
             [fastmath.interpolation.monotone :as monotone]
             [fastmath.interpolation.sprague :as sprague]
+            [fastmath.ml.regression :as reg]
             [fastmath.core :as m]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -50,6 +51,21 @@
 (defmethod interpolation :cubic-smoothing
   ([_ xs ys] (ssj/cubic-smoothing xs ys))
   ([_ xs ys params] (ssj/cubic-smoothing xs ys params)))
+
+;; isotonic regression
+
+(defmethod interpolation :pava
+  ([_ xs ys] (interpolation :pava xs ys nil))
+  ([_ xs ys {:keys [order weights method]
+             :or {order :asc method :linear}}]
+   (interpolation method xs (reg/pava ys weights order))))
+
+(defmethod interpolation :cir
+  ([_ xs ys] (interpolation :cir xs ys nil))
+  ([_ xs ys {:keys [order weights method]
+             :or {order :asc method :linear}}]
+   (let [[nxs nys] (reg/cir xs ys weights order)]
+     (interpolation method nxs nys))))
 
 ;; 2d grid
 

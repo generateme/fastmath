@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file. This change
 * `pooled-mad`
 * `cohens-u1-normal`, `cohens-u2-normal`, `cohens-u3-normal` - original (parametric) version of Cohen's U statistics
 * `cohens-u1` - based on Cohen's formula and `cohens-u2` value.
-* `pava` - isotonic regression
+* `cir`, `pava` - isotonic regression + related interpolators.
 
 ### Fixed
 

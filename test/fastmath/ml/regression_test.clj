@@ -709,3 +709,17 @@
                                          0.165187924
                                          0.165187924])))))
 
+
+(t/deftest cir
+  (t/testing "ascending with weights"
+    (let [[xs ys] (sut/cir [-1,1,2,3,4,7,8,9,11] [2,1,7,4,5,7,6,9,7] [2,1,2,1,2,11,2,1,5] :asc)]
+      (t/is (v/delta-eq xs [ -1.0000000 -0.3333333  3.0000000  7.1538462 10.6666667 11.0000000]))
+      (t/is (v/delta-eq ys [1.666667 1.666667 5.600000 6.846154 7.333333 7.333333]))))
+  (t/testing "ascending now weights"
+    (let [[xs ys] (sut/cir [-1,1,2,3,4,7,8,9,11] [2,1,7,4,5,7,6,9,7])]
+      (t/is (v/delta-eq xs [-1.0  0.0  3.0  7.5 10.0 11.0]))
+      (t/is (v/delta-eq ys [ 1.500000 1.500000 5.333333 6.500000 8.000000 8.000000]))))
+  (t/testing "python example"
+    (let [[xs ys] (sut/cir [1 2 3 4] [1, 37, 42, 5])]
+      (t/is (v/delta-eq xs [1 3 4]))
+      (t/is (v/delta-eq ys [1 28 28])))))

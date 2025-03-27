@@ -11,6 +11,7 @@
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
             CholeskyDecomposition RealMatrix RealVector]
            [fastmath.java Array Monotone]
+           [java.util Arrays]
            [clojure.lang IFn]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -1361,6 +1362,43 @@
   ([ys order] (pava ys nil order))
   ([ys ws order]
    (let [^doubles y (double-array ys)
-         w (double-array (or ws (repeat (alength y) 1.0)))]
-     (Monotone/pava y w (= :asc (or order :asc)))
+         n (alength y)
+         w (double-array (or ws (repeat n 1.0)))
+         r (int-array (m/inc n))]
+     (->> (Monotone/pava_step1 y w r (= :asc (or order :asc)))
+          (Monotone/pava_step2 y r))
      (seq y))))
+
+(defn cir
+  "Centered Isotonic Regression.
+
+  Returns shrinked [`xs`,`ys`] pair.
+
+  Arguments:
+  - `xs` - regressor variable
+  - `ys` - response variable
+  - `ws` - weights (optional)
+  - `order` - `:asc` (default) or `:desc`"
+  ([ys] (cir (range (count ys)) ys))
+  ([xs ys] (cir xs ys :asc))
+  ([xs ys order] (cir xs ys nil order))
+  ([xs ys ws order]
+   (let [^doubles x (double-array xs)
+         ^doubles y (double-array ys)
+         n (alength y)
+         ^doubles w (double-array (or ws (repeat n 1.0)))
+         ^ints r (int-array (m/inc n))
+         b (Monotone/pava_step1 x y w r (= :asc (or order :asc)))]
+     (loop [b (long b)
+            f n
+            buff '()]
+       (if (m/neg? b)
+         [(map first buff)
+          (map second buff)]
+         (let [t (aget r b)
+               yd (Array/aget y b)
+               nbuff (cond-> buff
+                       (and (m/== f n) (m/> (m/- f t) 1)) (conj [(Array/aget x (m/dec f)) yd])
+                       true (conj [(Array/aget x b) yd])
+                       (and (m/zero? t) (m/> f 1)) (conj [(first xs) yd]))]
+           (recur (m/dec b) t nbuff)))))))
