@@ -55,8 +55,7 @@
             [fastmath.optimization :as opt]
             [fastmath.kernel.density :as kd]
             [fastmath.special :as special]
-            [fastmath.solver :as solver]
-            [clojisr.v1.r :as rr])
+            [fastmath.solver :as solver])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
