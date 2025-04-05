@@ -4,12 +4,20 @@ package fastmath.java;
 
 public final class Monotone {
 
-    public static int pava_step1(double[] y, double[] w, int[] r, boolean asc) {
-        return pava_step1(null, y, w, r, asc);
+    public static int pava_step1(double[] y, double[] w, int[] r, int order) {
+        return pava_step1(null, y, w, r, order);
     }
+
+    // order = 0: weak asc
+    // order = 1: weak desc
+    // order = 2: strict asc
+    // order = 3: string desc
     
-    public static int pava_step1(double[] x, double[] y, double[] w, int[] r, boolean asc) {
-        boolean desc = !asc;
+    public static int pava_step1(double[] x, double[] y, double[] w, int[] r, int order) {
+        boolean desc = (order == 1 || order == 3);
+        boolean asc = !desc;
+        boolean strict = (order == 2 || order == 3);
+        boolean weak = !strict;
         boolean do_x = (x != null);
 
         int n = y.length;
@@ -32,7 +40,9 @@ public final class Monotone {
             double sby = 0.0;
             double sbx = 0.0;
             
-            if ((asc && (ybp >= yb)) || (desc && (ybp <= yb))) {
+            if ((weak && ((asc && (ybp >= yb)) || (desc && (ybp <= yb)))) ||
+                (strict && ((asc && (ybp > yb)) || (desc && (ybp < yb))))) {
+                
                 b--;
 
                 if (do_x) sbx = wbp * xbp + wb * xb;
@@ -43,7 +53,9 @@ public final class Monotone {
                 if (do_x) xb = sbx / wb;
                 yb = sby / wb;
                  
-                while (i<(n-1) && ((asc && (yb >= y[i+1])) || (desc && (yb <= y[i+1])))) {
+                while (i<(n-1) && ((weak && ((asc && (yb >= y[i+1])) || (desc && (yb <= y[i+1])))) ||
+                                   (strict && ((asc && (yb > y[i+1])) || (desc && (yb < y[i+1])))))) {
+                    
                     i++;
 
                     if (do_x) sbx += w[i] * x[i];
@@ -53,25 +65,26 @@ public final class Monotone {
 
                     if (do_x) xb = sbx / wb;
                     yb = sby / wb;
-                 }
+                }
 
-                 while (b>0 && ((asc && (y[b-1] >= yb)) || (desc && (y[b-1] <= yb)))) {
-                     b--;
+                while (b>0 && ((weak && ((asc && (y[b-1] >= yb)) || (desc && (y[b-1] <= yb)))) ||
+                               (strict && ((asc && (y[b-1] > yb)) || (desc && (y[b-1] < yb)))))) {
+                    b--;
 
-                     if (do_x) sbx += w[b] * x[b];
-                     sby += w[b] * y[b];
+                    if (do_x) sbx += w[b] * x[b];
+                    sby += w[b] * y[b];
                      
-                     wb += w[b];
+                    wb += w[b];
 
-                     if (do_x) xb = sbx / wb;
-                     yb = sby / wb;                 
-                 }
-             }
+                    if (do_x) xb = sbx / wb;
+                    yb = sby / wb;                 
+                }
+            }
 
-             if (do_x) x[b] = xbp = xb;             
-             y[b] = ybp = yb;
-             w[b] = wbp = wb;
-             r[b+1] = i+1;
+            if (do_x) x[b] = xbp = xb;             
+            y[b] = ybp = yb;
+            w[b] = wbp = wb;
+            r[b+1] = i+1;
         }
 
         return b;

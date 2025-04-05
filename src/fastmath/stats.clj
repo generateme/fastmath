@@ -55,7 +55,8 @@
             [fastmath.optimization :as opt]
             [fastmath.kernel.density :as kd]
             [fastmath.special :as special]
-            [fastmath.solver :as solver])
+            [fastmath.solver :as solver]
+            [clojisr.v1.r :as rr])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -3321,6 +3322,29 @@
               (recur (inc i) nd (min nd dn) (max nd dp))
               (recur (inc i) nd dn dp))))))))
 
+;; reimplementing ACM exact version using https://arxiv.org/pdf/2102.08037
+(defn- ks-exact
+  [^double d ^long m ^long n]
+  (let [cnm (unchecked-long (m/ceil (m/* (m/- d 1.0e-12) n m)))
+        lag (double-array (map (fn [^long k]
+                                 (if (m/>= (m/* m (m/inc k)) cnm) 1.0 0.0)) (range n)))]
+    (loop [k (long 1)
+           lst (double 0.0)]
+      (if (m/> k m)
+        lst
+        (recur (m/inc k) (double (loop [l (long 1)
+                                        lst (if (m/>= (m/* k n) cnm) 1.0 0.0)]
+                                   (if (m/> l n)
+                                     lst
+                                     (let [l- (m/dec l)
+                                           v (if (m/>= (m/abs (m/- (m/* k n) (m/* l m))) cnm)
+                                               1.0
+                                               (m// (m/+ (m/* k (Array/aget lag l-))
+                                                         (m/* l lst))
+                                                    (m/+ k l)))]
+                                       (Array/aset lag l- v)
+                                       (recur (m/inc l) v))))))))))
+
 (defn ks-test-two-samples
   "Performs the two-sample Kolmogorov-Smirnov (KS) test to compare the distributions of two independent samples, `xs` and `ys`. This test determines whether the two samples come from the same distribution.
 
@@ -3367,10 +3391,9 @@
               :sides sides}]
      (if (= method :exact)
        (let [n (+ nx ny)
-             ksobj (org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest.)
              stat (sides-case sides d dp dn)]
          (assoc res :n n :stat stat :KS stat
-                :p-value (.exactP ksobj stat nx ny false)))
+                :p-value (ks-exact stat nx ny)))
        (let [n (/ (* nx ny) (double (+ nx ny)))
              stat (* (m/sqrt n) (sides-case sides d dp dn))]
          (assoc res :n n :stat stat :KS stat
@@ -3574,3 +3597,4 @@
 
 
 (m/unuse-primitive-operators)
+

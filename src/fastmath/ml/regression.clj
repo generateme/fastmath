@@ -10,8 +10,7 @@
             [clojure.pprint :as pprint])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
             CholeskyDecomposition RealMatrix RealVector]
-           [fastmath.java Array Monotone]
-           [java.util Arrays]
+           [fastmath.java Array Monotone]           
            [clojure.lang IFn]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -1346,6 +1345,17 @@
 
 ;; https://www.jstatsoft.org/article/view/v102c01
 
+(defn- ir-decode-order [order]
+  (if order
+    (case order
+      :asc 0
+      :desc 0
+      :increasing 0
+      :decreasing 1
+      :non-decreasing 2
+      :non-increasing 3)
+    0))
+
 (defn pava
   "Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks variant.
 
@@ -1355,19 +1365,21 @@
   
   - `ys` - response variable data
   - `ws` - weights (optional)
-  - `order` - `:asc` (default) or `:desc`
+  - `order` - `:asc` or `:increasing` (default), `:desc` or `:decreasing`, `:non-decreasing` and `:non-increasing`
 
   Returns monotonic predicted values."
-  ([ys] (pava ys :asc))
+  ([ys] (pava ys :increasing))
   ([ys order] (pava ys nil order))
   ([ys ws order]
    (let [^doubles y (double-array ys)
          n (alength y)
          w (double-array (or ws (repeat n 1.0)))
          r (int-array (m/inc n))]
-     (->> (Monotone/pava_step1 y w r (= :asc (or order :asc)))
+     (->> (Monotone/pava_step1 y w r (ir-decode-order order))
           (Monotone/pava_step2 y r))
      (seq y))))
+
+;; https://arxiv.org/abs/1701.05964
 
 (defn cir
   "Centered Isotonic Regression.
@@ -1378,9 +1390,9 @@
   - `xs` - regressor variable
   - `ys` - response variable
   - `ws` - weights (optional)
-  - `order` - `:asc` (default) or `:desc`"
+  - `order` - `:asc` or `:increasing` (default), `:desc` or `:decreasing`, `:non-decreasing` and `:non-increasing`."
   ([ys] (cir (range (count ys)) ys))
-  ([xs ys] (cir xs ys :asc))
+  ([xs ys] (cir xs ys :increasing))
   ([xs ys order] (cir xs ys nil order))
   ([xs ys ws order]
    (let [^doubles x (double-array xs)
@@ -1388,7 +1400,7 @@
          n (alength y)
          ^doubles w (double-array (or ws (repeat n 1.0)))
          ^ints r (int-array (m/inc n))
-         b (Monotone/pava_step1 x y w r (= :asc (or order :asc)))]
+         b (Monotone/pava_step1 x y w r (ir-decode-order order))]
      (loop [b (long b)
             f n
             buff '()]
@@ -1402,3 +1414,4 @@
                        true (conj [(Array/aget x b) yd])
                        (and (m/zero? t) (m/> f 1)) (conj [(first xs) yd]))]
            (recur (m/dec b) t nbuff)))))))
+
