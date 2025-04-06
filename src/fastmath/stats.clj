@@ -3313,7 +3313,7 @@
            dp (double 0.0)]
       (let [id (long (os i))
             nd (+ d (if (< id nx) dx dy))]
-        (if (= i cnt-)
+        (if (m/== i cnt-)
           [(min nd dn) (max nd dp)]
           (let [v1 (double (vs id))
                 v2 (double (vs (os (inc i))))]
@@ -3322,27 +3322,60 @@
               (recur (inc i) nd dn dp))))))))
 
 ;; reimplementing ACM exact version using https://arxiv.org/pdf/2102.08037
+
+(defn- ks-c-test
+  [^double v ^double x ^double y abs?]
+  (if abs?
+    (m/>= (m/abs (m/- x y)) v)
+    (m/>= (m/- x y) v)))
+
 (defn- ks-exact
-  [^double d ^long m ^long n]
+  [^double d ^long m ^long n abs?]
   (let [cnm (unchecked-long (m/ceil (m/* (m/- d 1.0e-12) n m)))
         lag (double-array (map (fn [^long k]
-                                 (if (m/>= (m/* m (m/inc k)) cnm) 1.0 0.0)) (range n)))]
+                                 (if (ks-c-test cnm 0.0 (m/* m (m/inc k)) abs?) 1.0 0.0)) (range n)))]
     (loop [k (long 1)
            lst (double 0.0)]
       (if (m/> k m)
         lst
         (recur (m/inc k) (double (loop [l (long 1)
-                                        lst (if (m/>= (m/* k n) cnm) 1.0 0.0)]
+                                        lst (if (ks-c-test cnm (m/* k n) 0.0 abs?) 1.0 0.0)]
                                    (if (m/> l n)
                                      lst
                                      (let [l- (m/dec l)
-                                           v (if (m/>= (m/abs (m/- (m/* k n) (m/* l m))) cnm)
+                                           v (if (ks-c-test cnm (m/* k n) (m/* l m) abs?)
                                                1.0
                                                (m// (m/+ (m/* k (Array/aget lag l-))
                                                          (m/* l lst))
                                                     (m/+ k l)))]
                                        (Array/aset lag l- v)
                                        (recur (m/inc l) v))))))))))
+
+(defn- ks-correction
+  ^double [^double d ^long m ^long n]
+  (let [mn (m/* m n)]
+    (m// (m/+ 0.5 (m/floor (m/- (m/* d mn) 1.0e-7))) mn)))
+
+(defn ks-jitter
+  [xs ys]
+  (let [mdiff (m/* 0.1 (double (->> (sort (concat xs ys))
+                                    (partition 2 1)
+                                    (map (fn [[^double x ^double y]] (m/- y x)))
+                                    (filter m/pos?)
+                                    (reduce m/min))))
+        mdiff- (m/- mdiff)
+        jxs (map m/+ xs (repeatedly #(r/randval (r/drand mdiff- -1.0e-15) (r/drand 1.0e-15 mdiff))))
+        jys (map m/+ ys (repeatedly #(r/randval (r/drand mdiff- -1.0e-15) (r/drand 1.0e-15 mdiff))))]
+    [jxs jys (vec (concat jxs jys))]))
+
+(defn ks-distinct
+  [xs ys distinct?]
+  (cond
+    (= :jitter distinct?) (ks-jitter xs ys)
+    distinct? (let [xs (distinct xs)
+                    ys (distinct ys)]
+                [xs ys (vec (concat xs ys))])
+    :else [xs ys (vec (concat xs ys))]))
 
 (defn ks-test-two-samples
   "Performs the two-sample Kolmogorov-Smirnov (KS) test to compare the distributions of two independent samples, `xs` and `ys`. This test determines whether the two samples come from the same distribution.
@@ -3351,14 +3384,14 @@
   - `xs`: First sample (a sequence of numerical values).
   - `ys`: Second sample (a sequence of numerical values).
   - options map:
-    - `:method`: `:exact` or `approximate` (asymptotic, default)
+    - `:method`: `:exact` (default for `nx*ny<10000`) or `approximate (default otherwise)`
     - `:sides` (default: `:two-sided`): Specifies the alternative hypothesis. 
       Possible values:
       - `:two-sided`: The two distributions are different.
       - `:right`: The distribution of `xs` is stochastically greater than `ys`.
       - `:left`: The distribution of `xs` is stochastically less than `ys`.
-    - `:distinct?` (default: `true`): If true, removes duplicate values from `xs` and `ys` before computation.
-
+    - `:distinct?` (default: `true`): If true, removes duplicate values from `xs` and `ys` before computation. When set to `:jitter` adds small random value to each value.
+    - `:correct?` (default: `true`): If true, corrects statistic before p-value computation in `:exact` method.
   Returns:
   A map with the following keys:
   - `:n`: Effective sample size.
@@ -3372,14 +3405,13 @@
   - `:sides`: The alternative hypothesis used.
   - `:p-value`: The computed p-value indicating the significance of the test.
 
-  Please note that `:right` or `:left` sides can give wrong results for `:exact` method."
+  Note: given implementation may not solve ties properly, even if `distinct?` is set to true. Try also setting `distinct?` to `:jitter`"
   ([xs ys] (ks-test-two-samples xs ys {}))
-  ([xs ys {:keys [method sides distinct?] :or {method :approximate sides :two-sided distinct? true}}]
-   (let [xs (if distinct? (distinct xs) xs)
-         ys (if distinct? (distinct ys) ys)
+  ([xs ys {:keys [method sides distinct? correct?] :or {sides :two-sided distinct? true correct? true}}]
+   (let [[xs ys vs] (ks-distinct xs ys distinct?)
          nx (count xs)
          ny (count ys)
-         vs (vec (concat xs ys))
+         method (or method (if (m/< (m/* nx ny) 10000) :exact :approximate))
          sort-idxs (vec (m/order vs))         
          [dn dp] (process-ks-diffs vs sort-idxs nx ny)
          dn (- (double dn))
@@ -3388,11 +3420,16 @@
          res {:nx nx :ny ny :dp dp :dn dn :d d
               :method method
               :sides sides}]
+     (println vs)
      (if (= method :exact)
        (let [n (+ nx ny)
-             stat (sides-case sides d dp dn)]
+             stat (sides-case sides d dp dn)
+             corrected-stat (if correct? (ks-correction stat nx ny) stat)]
          (assoc res :n n :stat stat :KS stat
-                :p-value (ks-exact stat nx ny)))
+                :p-value (sides-case sides
+                                     (ks-exact corrected-stat nx ny true)
+                                     (ks-exact corrected-stat nx ny false)
+                                     (ks-exact corrected-stat nx ny false))))
        (let [n (/ (* nx ny) (double (+ nx ny)))
              stat (* (m/sqrt n) (sides-case sides d dp dn))]
          (assoc res :n n :stat stat :KS stat

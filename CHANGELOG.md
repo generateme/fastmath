@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. This change
 * `cohens-u1-normal`, `cohens-u2-normal`, `cohens-u3-normal` - original (parametric) version of Cohen's U statistics
 * `cohens-u1` - based on Cohen's formula and `cohens-u2` value.
 * `cir`, `pava` - isotonic regression + related interpolators.
+* `ks-test-two-samples` - added jittering the data and sides calculation for `:exact` method
 
 ### Fixed
 
