@@ -397,3 +397,29 @@
     (t/is (== 2 (sut/wmode ys ws)))
     (t/is (= :a (sut/wmode ys2)))
     (t/is (= :c (sut/wmode ys2 ws)))))
+
+;; comparison with R test
+(t/deftest ks-two-samples
+  (t/testing "distinct values"
+    (let [x (range -100 101)
+          y [21.125 22.925 21.525 18.825 18.225 14.425 24.525 19.325 17.925 16.525 17.425 15.325 10.525 14.825 32.525 30.525 34.025 21.625 15.625 13.425 27.425 26.125 15.925 19.825 15.125]]
+      (t/testing "exact method"
+        (let [res (sut/ks-test-two-samples x y)
+              res+ (sut/ks-test-two-samples x y {:sides :right})
+              res- (sut/ks-test-two-samples x y {:sides :left})]
+          (t/is (m/delta-eq (:p-value res) 6.675949e-07 1.0e-12 1.0e-12))
+          (t/is (m/delta-eq (:stat res) 0.5522388))
+          (t/is (m/delta-eq (:p-value res+) 3.337974e-07 1.0e-12 1.0e-12))
+          (t/is (m/delta-eq (:stat res+) 0.5522388))
+          (t/is (m/delta-eq (:p-value res-) 0.005897501))
+          (t/is (m/delta-eq (:stat res-) 0.3283582))))
+      (t/testing "approximate method"
+        (let [res (sut/ks-test-two-samples x y {:method :approximate})
+              res+ (sut/ks-test-two-samples x y {:sides :right :method :approximate})
+              res- (sut/ks-test-two-samples x y {:sides :left :method :approximate})]
+          (t/is (m/delta-eq (:p-value res) 2.57807e-06 1.0e-12 1.0e-12))
+          (t/is (m/delta-eq (:d res) 0.5522388))
+          (t/is (m/delta-eq (:p-value res+)  1.289035e-06 1.0e-12 1.0e-12))
+          (t/is (m/delta-eq (:dp res+) 0.5522388))
+          (t/is (m/delta-eq (:p-value res-) 0.008274217))
+          (t/is (m/delta-eq (:dn res-) 0.3283582)))))))

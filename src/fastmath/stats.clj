@@ -3255,6 +3255,27 @@
      {:stat stat :A2 stat :mean (mean axs) :stddev (stddev axs) :n n :sides sides
       :p-value (p-value distr stat sides)})))
 
+(defn- ks-jitter-range
+  ^double [xs]
+  (m/* 0.1 (double (->> (sort xs)
+                        (partition 2 1)
+                        (map (fn [[^double x ^double y]] (m/- y x)))
+                        (filter m/pos?)
+                        (reduce m/min)))))
+
+(defn- ks-jitter-seq
+  [xs ^double mdiff]
+  (let [mdiff- (m/- mdiff)]
+    (map m/+ xs (repeatedly #(r/randval (r/drand mdiff- -1.0e-15) (r/drand 1.0e-15 mdiff))))))
+
+(defn- ks-jitter
+  ([xs] (ks-jitter-seq xs (ks-jitter-range xs)))
+  ([xs ys]
+   (let [mdiff (ks-jitter-range (concat xs ys))
+         jxs (ks-jitter-seq xs mdiff)
+         jys (ks-jitter-seq ys mdiff)]
+     [jxs jys (vec (concat jxs jys))])))
+
 (defn ks-test-one-sample
   "Performs the Kolmogorov-Smirnov (KS) test to compare a sample distribution against a theoretical distribution or another empirical sample.
 
@@ -3268,7 +3289,7 @@
       - `:left` tests if `xs` is stochastically smaller.
     - `:kernel` (keyword, default `:gaussian`): Kernel method for density estimation. When kernel is set to `:enumerated`, enumerated distribution is created instead. 
     - `:bandwidth` (double, optional): Bandwidth for kernel density estimation.
-    - `:distinct?` (boolean, default `true`): Whether to remove duplicate values before computation.
+    - `:distinct?` (boolean, default `true`): Whether to remove duplicate values before computation. When set to `:jitter`, adds small random value to each data point.
 
   Returns:
   - A map containing:
@@ -3287,13 +3308,16 @@
              (= kernel :enumerated) (r/distribution :enumerated-real {:data distribution-or-ys})
              :else (r/distribution :continuous-distribution {:data distribution-or-ys :kde kernel
                                                              :bandwidth bandwidth}))
-         xs (if distinct? (distinct xs) xs)
+         xs (cond
+              (= :jitter distinct?) (ks-jitter xs)
+              distinct? (distinct xs)
+              :else xs)
          n (count xs)
          dn (/ (double n))
          idxs (map (fn [^long i] (* i dn)) (range (inc n)))
          cdfs (map (partial r/cdf d) (sort xs))
-         ^double dp (reduce max (map - (rest idxs) cdfs))
-         dn (- ^double (reduce min (map - (butlast idxs) cdfs)))
+         ^double dp (reduce m/max (map m/- (rest idxs) cdfs))
+         dn (- ^double (reduce m/min (map m/- (butlast idxs) cdfs)))
          d (max dp dn)]
      {:n n :dp dp :dn dn :d d :sides sides
       :stat (sides-case sides d dp dn) 
@@ -3356,18 +3380,6 @@
   (let [mn (m/* m n)]
     (m// (m/+ 0.5 (m/floor (m/- (m/* d mn) 1.0e-7))) mn)))
 
-(defn ks-jitter
-  [xs ys]
-  (let [mdiff (m/* 0.1 (double (->> (sort (concat xs ys))
-                                    (partition 2 1)
-                                    (map (fn [[^double x ^double y]] (m/- y x)))
-                                    (filter m/pos?)
-                                    (reduce m/min))))
-        mdiff- (m/- mdiff)
-        jxs (map m/+ xs (repeatedly #(r/randval (r/drand mdiff- -1.0e-15) (r/drand 1.0e-15 mdiff))))
-        jys (map m/+ ys (repeatedly #(r/randval (r/drand mdiff- -1.0e-15) (r/drand 1.0e-15 mdiff))))]
-    [jxs jys (vec (concat jxs jys))]))
-
 (defn ks-distinct
   [xs ys distinct?]
   (cond
@@ -3420,7 +3432,6 @@
          res {:nx nx :ny ny :dp dp :dn dn :d d
               :method method
               :sides sides}]
-     (println vs)
      (if (= method :exact)
        (let [n (+ nx ny)
              stat (sides-case sides d dp dn)
