@@ -4,7 +4,8 @@
             [fastmath.core :as m]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
-            [fastmath.vector :as v]))
+            [fastmath.vector :as v]
+            [fastmath.random :as r]))
 
 (defn transform [spec data]
   (if (sequential? spec)
@@ -257,6 +258,7 @@
     [1 2] :scott one2
     [1 2] :freedman-diaconis one2))
 
+;; chatgpt :)
 (t/deftest kruskal-wallis-test
   (t/testing "Basic Kruskal-Wallis test with distinct groups"
     (let [result (sut/kruskal-test [[1 2 3 4] [2 3 4 5] [6 7 8 9]])]
@@ -422,4 +424,33 @@
           (t/is (m/delta-eq (:p-value res+)  1.289035e-06 1.0e-12 1.0e-12))
           (t/is (m/delta-eq (:dp res+) 0.5522388))
           (t/is (m/delta-eq (:p-value res-) 0.008274217))
-          (t/is (m/delta-eq (:dn res-) 0.3283582)))))))
+          (t/is (m/delta-eq (:dn res-) 0.3283582))))))
+  (t/testing "ties"
+    (let [{:keys [p-value stat]} (sut/ks-test-two-samples [1 1 1 1 1 20] [1 1 1 -1])]
+      (t/is (m/delta-eq 0.6666667 p-value))
+      (t/is (m/delta-eq 0.25 stat)))
+    (let [{:keys [p-value stat]} (sut/ks-test-two-samples [1 1 1 -1] [1 1 1 1 1 20])]
+      (t/is (m/delta-eq 0.6666667 p-value))
+      (t/is (m/delta-eq 0.25 stat)))))
+
+(t/deftest ks-one-sample
+  (t/testing "normality"
+    (t/are [side distr s pv]
+        (let [{:keys [stat p-value]} (sut/ks-test-one-sample (iris :petal-width)
+                                                             (r/distribution distr)
+                                                             {:sides side})]
+          (and (m/delta-eq stat s)
+               (m/delta-eq p-value pv 1.0e-6 1.0e-14)))
+      :both :normal 0.5686175 2.981394e-07
+      :left :normal 0.5686175 1.490697e-07
+      :right :normal 0.006209665 0.9929283))
+  (t/testing "cauchy"
+    (t/are [side distr s pv]
+        (let [{:keys [stat p-value]} (sut/ks-test-one-sample (iris :petal-width)
+                                                             (r/distribution distr)
+                                                             {:sides side})]
+          (and (m/delta-eq stat s)
+               (m/delta-eq p-value pv 1.0e-6 1.0e-14)))
+      :both :cauchy 0.5317255 2.469265e-06
+      :left :cauchy 0.5317255  1.234632e-06
+      :right :cauchy 0.1211189 0.4858579)))

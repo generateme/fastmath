@@ -281,6 +281,12 @@
    :doc "Primitive and inlined `zero?`"}
   [^double x] (. PrimitiveMath (isZero x)))
 
+(defn not-zero?
+  {:inline (fn [x] `(not (. PrimitiveMath (isZero ~x))))
+   :inline-arities #{1}
+   :doc "Primitive and inlined x<>0.0"}
+  [^double x] (not (. PrimitiveMath (isZero x))))
+
 (defn one?
   {:inline (fn [x] `(. PrimitiveMath (isOne ~x)))
    :inline-arities #{1}

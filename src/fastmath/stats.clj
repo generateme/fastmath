@@ -3274,7 +3274,7 @@
    (let [mdiff (ks-jitter-range (concat xs ys))
          jxs (ks-jitter-seq xs mdiff)
          jys (ks-jitter-seq ys mdiff)]
-     [jxs jys (vec (concat jxs jys))])))
+     [jxs jys])))
 
 (defn ks-test-one-sample
   "Performs the Kolmogorov-Smirnov (KS) test to compare a sample distribution against a theoretical distribution or another empirical sample.
@@ -3327,8 +3327,10 @@
                            (p-value (r/distribution :kolmogorov-smirnov+ {:n n}) dn :right))})))
 
 (defn- process-ks-diffs
-  [vs os ^long nx ^long ny]
-  (let [cnt- (dec (count vs))
+  [vs ^long nx ^long ny]
+  (let [vs (vec vs) ;; concatenated xs and ys
+        os (vec (m/order vs)) ;; order of it
+        cnt- (dec (count vs))
         dx (/ 1.0 nx)
         dy (/ -1.0 ny)]
     (loop [i (long 0)
@@ -3354,40 +3356,50 @@
     (m/>= (m/- x y) v)))
 
 (defn- ks-exact
-  [^double d ^long m ^long n abs?]
-  (let [cnm (unchecked-long (m/ceil (m/* (m/- d 1.0e-12) n m)))
-        lag (double-array (map (fn [^long k]
-                                 (if (ks-c-test cnm 0.0 (m/* m (m/inc k)) abs?) 1.0 0.0)) (range n)))]
-    (loop [k (long 1)
-           lst (double 0.0)]
-      (if (m/> k m)
-        lst
-        (recur (m/inc k) (double (loop [l (long 1)
-                                        lst (if (ks-c-test cnm (m/* k n) 0.0 abs?) 1.0 0.0)]
-                                   (if (m/> l n)
-                                     lst
-                                     (let [l- (m/dec l)
-                                           v (if (ks-c-test cnm (m/* k n) (m/* l m) abs?)
-                                               1.0
-                                               (m// (m/+ (m/* k (Array/aget lag l-))
-                                                         (m/* l lst))
-                                                    (m/+ k l)))]
-                                       (Array/aset lag l- v)
-                                       (recur (m/inc l) v))))))))))
+  ^double [^double d ^long m ^long n {:keys [abs? ties]}]
+  (let [not-ties? (not ties)
+        lag (double-array (m/inc n))
+        md (double m)
+        nd (double n)]
+    (dotimes [j- n]
+      (let [j (m/inc j-)]
+        (if (and (ks-c-test d 0.0 (m// j nd) abs?) (or not-ties? (ties j)))
+          (Array/aset lag j 1.0)
+          (Array/aset lag j (Array/aget lag j-)))))
+    (dotimes [i- m]
+      (let [i (m/inc i-)
+            idmd (m// i md)]
+        (when (and (ks-c-test d idmd 0.0 abs?) (or not-ties? (ties i)))
+          (Array/aset lag 0 1.0))
+        (dotimes [j- n]
+          (let [j (m/inc j-)
+                i+j (m/+ i j)]
+            (if (and (ks-c-test d idmd (m// j nd) abs?) (or not-ties? (ties i+j)))
+              (Array/aset lag j 1.0)
+              (let [di+j (double i+j)
+                    v (m// i di+j)
+                    w (m// j di+j)]
+                (Array/aset lag j (m/+ (m/* v (Array/aget lag j))
+                                       (m/* w (Array/aget lag j-))))))))))
+    (Array/aget lag n)))
 
 (defn- ks-correction
   ^double [^double d ^long m ^long n]
   (let [mn (m/* m n)]
     (m// (m/+ 0.5 (m/floor (m/- (m/* d mn) 1.0e-7))) mn)))
 
-(defn ks-distinct
+(defn- ks-distinct
   [xs ys distinct?]
   (cond
     (= :jitter distinct?) (ks-jitter xs ys)
-    distinct? (let [xs (distinct xs)
-                    ys (distinct ys)]
-                [xs ys (vec (concat xs ys))])
-    :else [xs ys (vec (concat xs ys))]))
+    (and (not (keyword? distinct?)) distinct?) [(distinct xs) (distinct ys)]
+    :else [xs ys]))
+
+(defn- ks-find-ties
+  [vs]
+  (let [svs (sort vs)
+        ties (vec (conj (map (comp m/not-zero? m/-) (rest svs) svs) false))]
+    (when (some identity ties) (conj ties true))))
 
 (defn ks-test-two-samples
   "Performs the two-sample Kolmogorov-Smirnov (KS) test to compare the distributions of two independent samples, `xs` and `ys`. This test determines whether the two samples come from the same distribution.
@@ -3396,13 +3408,17 @@
   - `xs`: First sample (a sequence of numerical values).
   - `ys`: Second sample (a sequence of numerical values).
   - options map:
-    - `:method`: `:exact` (default for `nx*ny<10000`) or `approximate (default otherwise)`
+    - `:method`: `:exact` (default for `nx*ny<10000`) or `:approximate` (default otherwise)
     - `:sides` (default: `:two-sided`): Specifies the alternative hypothesis. 
       Possible values:
       - `:two-sided`: The two distributions are different.
       - `:right`: The distribution of `xs` is stochastically greater than `ys`.
       - `:left`: The distribution of `xs` is stochastically less than `ys`.
-    - `:distinct?` (default: `true`): If true, removes duplicate values from `xs` and `ys` before computation. When set to `:jitter` adds small random value to each value.
+    - `:distinct?` What to do with duplicated values
+      - `:ties` (default) - allow duplication and solve them during p-value calculation
+      - `:jitter` - slighly jitter values
+      - `true` - apply distinct on `xs` and `ys` separately (may leave some ties unsolved)
+      - `false` - do nothing
     - `:correct?` (default: `true`): If true, corrects statistic before p-value computation in `:exact` method.
   Returns:
   A map with the following keys:
@@ -3412,20 +3428,22 @@
   - `:dp`: Maximum positive difference between empirical cumulative distribution functions.
   - `:dn`: Maximum negative difference between empirical cumulative distribution functions.
   - `:d`: The maximum absolute difference between ECDFs.
-  - `:stat`: KS statistic, scaled `d` for asymptotic method.
+  - `:stat`: KS statistic, scaled `d` for asymptotic (approximate) method.
   - `:KS`: Alias for `:stat`.
   - `:sides`: The alternative hypothesis used.
   - `:p-value`: The computed p-value indicating the significance of the test.
 
   Note: given implementation may not solve ties properly, even if `distinct?` is set to true. Try also setting `distinct?` to `:jitter`"
   ([xs ys] (ks-test-two-samples xs ys {}))
-  ([xs ys {:keys [method sides distinct? correct?] :or {sides :two-sided distinct? true correct? true}}]
-   (let [[xs ys vs] (ks-distinct xs ys distinct?)
+  ([xs ys {:keys [method sides distinct? correct?]
+           :or {sides :two-sided distinct? :ties  correct? true}}]
+   (let [[xs ys] (ks-distinct xs ys distinct?)
          nx (count xs)
          ny (count ys)
          method (or method (if (m/< (m/* nx ny) 10000) :exact :approximate))
-         sort-idxs (vec (m/order vs))         
-         [dn dp] (process-ks-diffs vs sort-idxs nx ny)
+         vs (concat xs ys)
+         ties (when (= distinct? :ties) (ks-find-ties vs))
+         [dn dp] (process-ks-diffs vs nx ny)
          dn (- (double dn))
          dp (double dp)
          d (max dn dp)
@@ -3438,9 +3456,9 @@
              corrected-stat (if correct? (ks-correction stat nx ny) stat)]
          (assoc res :n n :stat stat :KS stat
                 :p-value (sides-case sides
-                                     (ks-exact corrected-stat nx ny true)
-                                     (ks-exact corrected-stat nx ny false)
-                                     (ks-exact corrected-stat nx ny false))))
+                                     (ks-exact corrected-stat nx ny {:abs? true :ties ties})
+                                     (ks-exact corrected-stat nx ny {:abs? false :ties ties})
+                                     (ks-exact corrected-stat nx ny {:abs? false :ties ties}))))
        (let [n (/ (* nx ny) (double (+ nx ny)))
              stat (* (m/sqrt n) (sides-case sides d dp dn))]
          (assoc res :n n :stat stat :KS stat
