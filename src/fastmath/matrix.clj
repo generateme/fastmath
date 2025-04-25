@@ -957,6 +957,10 @@
   "Return number of rows"
   ^long [A] (prot/ncol A))
 
+(defn shape
+  "Return [nrows, ncols] pair."
+  [A] [(nrow A) (ncol A)])
+
 (defn row
   "Return row as a vector"
   [A ^long r] (prot/row A r))

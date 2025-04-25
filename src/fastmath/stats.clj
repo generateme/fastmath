@@ -866,17 +866,53 @@
     (/ (- u005 m25) (- m25 l005))))
 
 (defn skewness
-  "Calculate skewness from sequence.
+  "Calculate skewness from sequence, a measure of the asymmetry of the
+  probability distribution about its mean.
 
-  Possible types: `:G1` (default), `:g1` (`:pearson`), `:b1`, `:B1` (`:yule`), `:B3`, `:skew`, `:mode`, `:bowley`, `:hogg` or `:median`."
+  Parameters:
+  - `vs` (seq of numbers): The input sequence.
+  - `typ` (keyword or sequence, optional): Specifies the type of skewness measure to calculate.
+    Defaults to `:G1`.
+
+  Available `typ` values:
+  - `:G1` (Default): Sample skewness based on the third standardized moment, as
+    implemented by Apache Commons Math `Skewness`. Adjusted for sample size bias.
+  - `:g1` or `:pearson`: Pearson's moment coefficient of skewness (g1), a bias-adjusted
+    version of the third standardized moment. Expected value 0 for symmetric distributions.
+  - `:b1`: Sample skewness coefficient (b1), related to :g1.
+  - `:B1` or `:yule`: Yule's coefficient (robust), based on quantiles. Takes an optional
+    quantile `u` (default 0.25) via sequence `[:B1 u]` or `[:yule u]`.
+  - `:B3`: Robust measure comparing the mean and median relative to the mean absolute
+    deviation around the median.
+  - `:skew`: An adjusted skewness definition sometimes used in bootstrap (BCa) calculations.
+  - `:mode`: Pearson's second skewness coefficient: `(mean - mode) / stddev`. Requires
+    calculating the mode. Mode calculation method can be specified via sequence
+    `[:mode method opts]`, see [[mode]].
+  - `:median`: Robust measure: `3 * (mean - median) / stddev`.
+  - `:bowley`: Bowley's coefficient (robust), based on quartiles (Q1, Q2, Q3). Also
+    known as Yule-Bowley coefficient. Calculated as `(Q3 + Q1 - 2*Q2) / (Q3 - Q1)`.
+  - `:hogg`: Hogg's robust measure based on the ratio of differences between trimmed means.
+  - `:l-skewness`: L-skewness (τ₃), the ratio of the 3rd L-moment (λ₃) to the
+    2nd L-moment (λ₂, L-scale). Calculated directly using [[l-moment]] with the
+    `:ratio?` option set to true. It's a robust measure of asymmetry.
+    Expected value 0 for symmetric distributions.
+
+  Interpretation:
+  - Positive values generally indicate a distribution skewed to the right (tail is longer on the right).
+  - Negative values generally indicate a distribution skewed to the left (tail is longer on the left).
+  - Values near 0 suggest relative symmetry.
+
+  Returns the calculated skewness value as a double.
+
+  See also [[skewness-test]], [[normality-test]], [[jarque-bera-test]], [[l-moment]]."
   (^double [vs] (skewness vs :G1))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)]
      (if (sequential? typ)
-       (cond
-         (= :mode (first typ)) (let [[_ method opts] typ]
-                                 (/ (- (mean vs) (mode vs method opts)) (stddev vs)))
-         (#{:B1 :yule} (first typ)) (yule-skewness vs (second typ)))
+       (let [[typ a b] typ]
+         (case typ
+           :mode (/ (- (mean vs) (mode vs a b)) (stddev vs))
+           (:B1 :yule) (yule-skewness vs a)))
        (case typ
          :mode (/ (- (mean vs) (mode vs)) (stddev vs))
          :median (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
@@ -886,13 +922,14 @@
          :B3 (let [v (median vs)]
                (/ (- (mean vs) v)
                   (moment vs 1.0 {:absolute? true :center v})))
+         :l-skewness (l-moment vs 3 {:ratio? true})
          (let [^Skewness k (Skewness.)
                n (alength vs)
                v (.evaluate k vs)]
-           (cond
-             (= :b1 typ) (* v (/ (* (- n 2.0) (dec n)) (* n n)))
-             (#{:pearson :g1} typ) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
-             (= :skew typ) (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
+           (case typ
+             :b1 (* v (/ (* (- n 2.0) (dec n)) (* n n)))
+             (:pearson :g1) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
+             :skew (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
              :else v)))))))
 
 ;; centered
@@ -901,7 +938,7 @@
   (let [[^double e1 ^double e2 ^double e3
          ^double e5 ^double e6 ^double e7] (quantiles vs [0.125 0.25 0.375 0.625 0.75 0.875])]
     (- (/ (+ (- e7 e5) (- e3 e1))
-          (- e6 e2)) 1.23)))
+          (- e6 e2)) 1.233)))
 
 ;; centered
 (defn- crow-kurtosis
@@ -909,7 +946,7 @@
   (^double [vs ^double alpha ^double beta]
    (let [[^double a1 ^double a2 ^double b1 ^double b2] (quantiles vs [alpha (- 1.0 alpha)
                                                                       beta (- 1.0 beta)])]
-     (- (/ (- a2 a1) (- b2 b1)) 2.91))))
+     (- (/ (- a2 a1) (- b2 b1)) 2.906))))
 
 ;; centered
 (defn- hogg-kurtosis
@@ -919,34 +956,81 @@
          ub (mean (trim-lower vs (- 1.0 beta)))
          la (mean (trim-upper vs alpha))
          lb (mean (trim-upper vs beta))]
-     (- (/ (- ua la) (- ub lb)) 2.59))))
+     (- (/ (- ua la) (- ub lb)) 2.585))))
 
+;; https://aakinshin.net/posts/misleading-kurtosis/
 (defn kurtosis
-  "Calculate kurtosis from sequence.
+  "Calculates the kurtosis of a sequence, a measure of the 'tailedness' or 'peakedness'
+  of the distribution compared to a normal distribution.
 
-  Possible typs: `:G2` (default), `:g2` (or `:excess`), `:geary`, ,`:crow`, `:moors`, `:hogg` or `:kurt`."
-  (^double [vs] (kurtosis vs nil))
+  Parameters:
+  - `vs` (seq of numbers): The input sequence.
+  - `typ` (keyword or sequence, optional): Specifies the type of kurtosis measure to calculate.
+    Different types use different algorithms and may have different expected values
+    under normality (e.g., 0 or 3). Defaults to `:G2`.
+
+  Available `typ` values:
+  - `:G2` (Default): Sample kurtosis based on the fourth standardized moment, as
+    implemented by Apache Commons Math `Kurtosis`. Its value approaches 3 for
+    a large normal sample, but the exact expected value depends on sample size.
+  - `:g2` or `:excess`: Sample excess kurtosis. This is calculated from `:G2`
+    and adjusted for sample bias, such that the expected value for a normal
+    distribution is approximately 0.
+  - `:kurt`: Kurtosis definition where normal = 3. Calculated as `:g2` + 3.
+  - `:b2`: Kurtosis defined as fourth moment divided by standard deviation to the power of 4
+  - `:geary`: Geary's 'g', a robust measure calculated as `mean_abs_deviation / population_stddev`.
+    Expected value for normal is `sqrt(2/pi) ≈ 0.798`. Lower values indicate leptokurtosis.
+  - `:moors`: Moors' robust kurtosis measure based on octiles. The implementation
+    returns a centered version where the expected value for normal is 0.
+  - `:crow`: Crow-Siddiqui robust kurtosis measure based on quantiles. The implementation
+    returns a centered version where the expected value for normal is 0.
+    Can accept parameters `alpha` and `beta` via sequential type `[:crow alpha beta]`.
+  - `:hogg`: Hogg's robust kurtosis measure based on trimmed means. The implementation
+    returns a centered version where the expected value for normal is 0.
+    Can accept parameters `alpha` and `beta` via sequential type `[:hogg alpha beta]`.
+  - `:l-kurtosis`: L-kurtosis (τ₄), the ratio of the 4th L-moment (λ₄) to the
+    2nd L-moment (λ₂, L-scale). Calculated directly using [[l-moment]] with the
+    `:ratio?` option set to true. It's a robust measure.
+    Expected value for normal distribution is ≈ 0.1226.
+
+  Interpretation (for excess kurtosis `:g2`):
+  - Positive values indicate a leptokurtic distribution (heavier tails, more peaked than normal).
+  - Negative values indicate a platykurtic distribution (lighter tails, flatter than normal).
+  - Values near 0 suggest kurtosis similar to a normal distribution.
+
+  Returns the calculated kurtosis value as a double.
+
+  See also [[kurtosis-test]], [[bonett-seier-test]], [[normality-test]], [[jarque-bera-test]], [[l-moment]]."
+  (^double [vs] (kurtosis vs :G2))      ; Default to :G2 as per code
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)
          n (alength vs)]
      (if (sequential? typ)
-       (condp = (first typ)
-         :crow (apply crow-kurtosis vs (rest typ))
-         :hogg (apply hogg-kurtosis vs (rest typ)))
-       (condp = typ
+       (let [[typ ^double a ^double b] typ]
+         (case typ
+           :crow (crow-kurtosis vs a b)
+           :hogg (hogg-kurtosis vs a b)))
+       (case typ
          :geary (/ (mean-absolute-deviation vs)
                    (population-stddev vs))
          :moors (moors-kurtosis vs)
          :crow (crow-kurtosis vs)
          :hogg (hogg-kurtosis vs)
+         ;; Use l-moment directly with :ratio? true for L-kurtosis (λ₄ / λ₂)
+         :l-kurtosis (l-moment vs 4 {:ratio? true})
+         ;; Default case for moment-based kurtosis
          (let [^Kurtosis k (Kurtosis.)
                v (.evaluate k vs)]
-           (cond
-             (#{:excess :g2} typ) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                                     (inc n))
-             (= :kurt typ) (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0)
-                                     (inc n)))
-             :else v)))))))
+           (case typ
+             (:excess :g2) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) 
+                              (inc n))
+             :kurt (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) ; g2 + 3
+                             (inc n)))
+             :b2 (- (* (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) ; g2 + 3
+                                 (inc n)))
+                       (m/sq (- 1.0 (/ 1.0 n)))) 3.0)
+             v ; Default is :G2 (sample kurtosis from Commons Math)
+             )))))))
 
 (defn ci
   "T-student based confidence interval for given data. Alpha value defaults to 0.05.
@@ -2658,7 +2742,36 @@
      ~left))
 
 (defn p-value
-  "Calculate p-value for given distribution (default: N(0,1)), `stat`  and sides (one of `:two-sided`, `:one-sided-greater` or `:one-sided-less`/`:one-sided`)."
+  "Calculates the p-value for a given test statistic based on a reference probability distribution.
+
+  The p-value represents the probability of observing a test statistic as extreme as,
+  or more extreme than, the provided `stat`, assuming the null hypothesis is true
+  (where the null hypothesis implies `stat` follows the given `distribution`).
+
+  Parameters:
+  - `distribution` (distribution object, optional): The probability distribution object
+    (from `fastmath.random`) that the test statistic follows under the null
+    hypothesis. Defaults to the standard normal distribution (`fastmath.random/default-normal`)
+    if omitted.
+  - `stat` (double): The observed value of the test statistic.
+  - `sides` (keyword, optional): Specifies the type of alternative hypothesis and
+    how 'extremeness' is defined. Defaults to `:two-sided`.
+    - `:two-sided` or `:both`: Alternative hypothesis is that the true parameter is
+      different from the null value (tests for extremeness in either tail).
+      Calculates `2 * min(CDF(stat), CCDF(stat))` (adjusted for discrete).
+    - `:one-sided-greater` or `:right`: Alternative hypothesis is that the true
+      parameter is greater than the null value (tests for extremeness in the right tail).
+      Calculates `CCDF(stat)` (adjusted for discrete).
+    - `:one-sided-less`, `:left`, or `:one-sided`: Alternative hypothesis is that the true
+      parameter is less than the null value (tests for extremeness in the left tail).
+      Calculates `CDF(stat)`.
+
+  Note: For discrete distributions, a continuity correction (`stat - 1` for CCDF calculations)
+  is applied when calculating right-tail or two-tail probabilities involving the
+  upper tail. This ensures the probability mass *at* the statistic value is correctly
+  accounted for.
+
+  Returns the calculated p-value (a double between 0.0 and 1.0)."
   ([^double stat] (p-value r/default-normal stat))
   ([distribution ^double stat] (p-value distribution stat :two-sided))
   ([distribution ^double stat sides]
@@ -2670,7 +2783,37 @@
                  (r/cdf distribution stat)))))
 
 (defn skewness-test
-  "Normality test for skewness."
+  "Performs the D'Agostino test for normality based on sample skewness.
+
+  This test assesses the null hypothesis that the data comes from a normally
+  distributed population by checking if the sample skewness significantly deviates
+  from the zero skewness expected under normality.
+
+  The test works by:
+  1. Calculating the sample skewness (type configurable via `:type`, default `:g1`).
+  2. Standardizing the sample skewness relative to its expected value (0) and
+     standard error under the null hypothesis.
+  3. Applying a further transformation (inverse hyperbolic sine based) to this
+     standardized score to yield a final test statistic `Z` that more closely
+     follows a standard normal distribution under the null hypothesis.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `skew` (double, optional): A pre-calculated skewness value. If omitted, it's calculated from `xs`.
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The population skewness is different from 0.
+      - `:one-sided-greater`: The population skewness is greater than 0 (right-skewed).
+      - `:one-sided-less`: The population skewness is less than 0 (left-skewed).
+    - `:type` (keyword, default `:g1`): The type of skewness to calculate if `skew` is not provided. Note that the internal normalization constants are derived based on `:g1`. See [[skewness]] for options.
+
+  Returns a map containing:
+  - `:Z`: The final test statistic, approximately standard normal under H0.
+  - `:stat`: Alias for `:Z`.
+  - `:p-value`: The p-value associated with `Z` and the specified `:sides`.
+  - `:skewness`: The sample skewness value used in the test (either provided or calculated).
+
+  See also [[kurtosis-test]], [[normality-test]], [[jarque-bera-test]]."
   ([xs] (skewness-test xs nil))
   ([xs params] (skewness-test xs nil params))
   ([xs skew {:keys [sides type]
@@ -2691,7 +2834,38 @@
       :skewness skew})))
 
 (defn kurtosis-test
-  "Normality test for kurtosis"
+  "Performs a test for normality based on sample kurtosis.
+
+  This test assesses the null hypothesis that the data comes from a normally
+  distributed population by checking if the sample kurtosis significantly deviates
+  from the kurtosis expected under normality (approximately 3).
+
+  The test works by:
+  1. Calculating the sample kurtosis (type configurable via `:type`, default `:kurt`).
+  2. Standardizing the difference between the sample kurtosis and the expected
+     kurtosis under normality using the theoretical standard error.
+  3. Applying a further transformation (e.g., Anscombe-Glynn/D'Agostino) to this standardized
+     score to yield a final test statistic `Z` that more closely follows a
+     standard normal distribution under the null hypothesis, especially for
+     smaller sample sizes.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `kurt` (double, optional): A pre-calculated kurtosis value. If omitted, it's calculated from `xs`.
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The population kurtosis is different from normal.
+      - `:one-sided-greater`: The population kurtosis is greater than normal (leptokurtic).
+      - `:one-sided-less`: The population kurtosis is less than normal (platykurtic).
+    - `:type` (keyword, default `:kurt`): The type of kurtosis to calculate if `kurt` is not provided. See [[kurtosis]] for options (e.g., `:kurt`, `:G2`, `:g2`).
+
+  Returns a map containing:
+  - `:Z`: The final test statistic, approximately standard normal under H0.
+  - `:stat`: Alias for `:Z`.
+  - `:p-value`: The p-value associated with `Z` and the specified `:sides`.
+  - `:kurtosis`: The sample kurtosis value used in the test (either provided or calculated).
+
+  See also [[skewness-test]], [[normality-test]], [[jarque-bera-test]], [[bonett-seier-test]]."
   ([xs] (kurtosis-test xs nil))
   ([xs params] (kurtosis-test xs nil params))
   ([xs kurt {:keys [sides type]
@@ -2719,7 +2893,40 @@
       :kurtosis kurt})))
 
 (defn normality-test
-  "Normality test based on skewness and kurtosis"
+  "Performs the D'Agostino-Pearson K² omnibus test for normality.
+
+  This test combines the results of the skewness and kurtosis tests to provide
+  an overall assessment of whether the sample data deviates from a normal distribution
+  in terms of either asymmetry or peakedness/tailedness.
+
+  The test works by:
+  1. Calculating a normalized test statistic (Z₁) for skewness using [[skewness-test]].
+  2. Calculating a normalized test statistic (Z₂) for kurtosis using [[kurtosis-test]].
+  3. Combining these into an omnibus statistic: K² = Z₁² + Z₂².
+  4. Under the null hypothesis that the data comes from a normal distribution,
+     K² approximately follows a Chi-squared distribution with 2 degrees of freedom.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `skew` (double, optional): A pre-calculated skewness value (type `:g1` used by default in underlying test).
+  - `kurt` (double, optional): A pre-calculated kurtosis value (type `:kurt` used by default in underlying test).
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:one-sided-greater`): Specifies the side(s) of the
+      Chi-squared(2) distribution used for p-value calculation.
+      - `:one-sided-greater` (default and standard): Tests if K² is significantly large,
+        indicating departure from normality in skewness, kurtosis, or both.
+      - `:one-sided-less`: Tests if the K² statistic is significantly small.
+      - `:two-sided`: Tests if the K² statistic is extreme in either tail.
+
+  Returns a map containing:
+  - `:Z`: The calculated K² omnibus test statistic (labeled `:Z` for consistency,
+           though it follows Chi-squared(2)).
+  - `:stat`: Alias for `:Z`.
+  - `:p-value`: The p-value associated with the K² statistic and `:sides`.
+  - `:skewness`: The sample skewness value used (either provided or calculated).
+  - `:kurtosis`: The sample kurtosis value used (either provided or calculated).
+
+  See also [[skewness-test]], [[kurtosis-test]], [[jarque-bera-test]]."
   ([xs] (normality-test xs nil))
   ([xs params] (normality-test xs nil nil params))
   ([xs skew kurt {:keys [sides]
@@ -2734,7 +2941,44 @@
       :kurtosis kurt})))
 
 (defn jarque-bera-test
-  "Goodness of fit test whether skewness and kurtosis of data match normal distribution"
+  "Performs the Jarque-Bera goodness-of-fit test to determine if sample data
+  exhibits skewness and kurtosis consistent with a normal distribution.
+
+  The test assesses the null hypothesis that the data comes from a normally
+  distributed population (i.e., population skewness is 0 and population excess
+  kurtosis is 0).
+
+  The test statistic is calculated as:
+  `JB = (n/6) * (S^2 + (1/4)*K^2)`
+  where `n` is the sample size, `S` is the sample skewness (using `:g1` type),
+  and `K` is the excess kurtosis `:g2`.
+  Under the null hypothesis, the JB statistic asymptotically follows a Chi-squared
+  distribution with 2 degrees of freedom.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `skew` (double, optional): A pre-calculated sample skewness value (type `:g1`).
+    If omitted, it's calculated from `xs`.
+  - `kurt` (double, optional): A pre-calculated sample *excess* kurtosis value (type `:g2`).
+    If omitted, it's calculated from `xs`.
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:one-sided-greater`): Specifies the side(s) of the
+      Chi-squared(2) distribution used for p-value calculation.
+      - `:one-sided-greater` (default and standard for JB): Tests if the JB statistic is
+        significantly large, indicating departure from normality.
+      - `:one-sided-less`: Tests if the statistic is significantly small.
+      - `:two-sided`: Tests if the statistic is extreme in either tail.
+
+  Returns a map containing:
+  - `:Z`: The calculated Jarque-Bera test statistic (labeled `:Z` for consistency,
+           though it follows Chi-squared(2)).
+  - `:stat`: Alias for `:Z`.
+  - `:p-value`: The p-value associated with the test statistic and `:sides`, derived
+                 from the Chi-squared(2) distribution.
+  - `:skewness`: The sample skewness (type `:g1`) used in the calculation.
+  - `:kurtosis`: The sample kurtosis (type `:g2`) used in the calculation.
+
+  See also [[skewness-test]], [[kurtosis-test]], [[normality-test]], [[bonett-seier-test]]."
   ([xs] (jarque-bera-test xs nil))
   ([xs params] (jarque-bera-test xs nil nil params))
   ([xs skew kurt {:keys [sides]
@@ -2748,13 +2992,93 @@
       :skewness skew
       :kurtosis (+ kurt 3.0)})))
 
-(defn binomial-test
-  "Binomial test
+(defn bonett-seier-test
+  "Performs the Bonett-Seier test for normality based on Geary's 'g' kurtosis measure.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `ci-method` - see [[binomial-ci-methods]]
-  * `p` - tested probability"
+  This test assesses the null hypothesis that the data comes from a normally
+  distributed population by checking if the sample Geary's 'g' statistic
+  significantly deviates from the value expected under normality (`sqrt(2/pi)`).
+
+  Parameters:
+
+  - `xs` (seq of numbers): The sample data. Requires `(count xs) > 3` for variance calculation.
+  - `geary-kurtosis` (double, optional): A pre-calculated Geary's 'g' kurtosis value.
+    If omitted, it's calculated from `xs`.
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis
+      regarding the deviation from normal kurtosis.
+      - `:two-sided` (default): The population kurtosis (measured by 'g') is different from normal.
+      - `:one-sided-greater`: Population is leptokurtic ('g' < sqrt(2/pi)). Note Geary's 'g' decreases with peakedness.
+      - `:one-sided-less`: Population is platykurtic ('g' > sqrt(2/pi)). Note Geary's 'g' increases with flatness.
+
+  Returns a map containing:
+
+  - `:Z`: The final test statistic (approximately standard normal under H0).
+  - `:stat`: Alias for `:Z`.
+  - `:p-value`: The p-value associated with `Z` and the specified `:sides`.
+  - `:kurtosis`: The Geary's 'g' kurtosis value used in the test.
+  - `:n`: The sample size.
+  - `:sides`: The alternative hypothesis side used.
+
+  References:
+  - Bonett, D. G., & Seier, E. (2002). A test of normality with high uniform power.
+    Computational Statistics & Data Analysis, 40(3), 435-445. (Provides theoretical basis)
+
+  See also [[kurtosis]], [[kurtosis-test]], [[normality-test]], [[jarque-bera-test]]."
+  ([xs] (bonett-seier-test xs nil))
+  ([xs params] (bonett-seier-test xs nil params))
+  ([xs geary-kurtosis {:keys [sides] :or {sides :two-sided}}]
+   (let [n (count xs)]
+     (assert (> n 3) "Test requires sample size > 3 for variance calculation.")
+     (let [g (double (or geary-kurtosis (kurtosis xs :geary)))
+           omega (m/* -13.29 (m/log g))
+           Z (m// (m/* (m/sqrt (m/+ n 2))
+                       (m/- omega 3.0)) 3.54)]
+       {:p-value (p-value r/default-normal Z sides)
+        :stat Z :Z Z
+        :kurtosis g
+        :n n
+        :sides sides}))))
+
+(defn binomial-test
+  "Performs an exact test of a simple null hypothesis about the probability of success
+  in a Bernoulli experiment, based on the binomial distribution.
+
+  This test assesses the null hypothesis that the true probability of success (`p`)
+  in the underlying population is equal to a specified value (default 0.5).
+
+  The function can be called in two ways:
+  1. With counts: `(binomial-test number-of-successes number-of-trials params)`
+  2. With data: `(binomial-test xs params)`, where `xs` is a sequence of outcomes.
+     In this case, the outcomes in `xs` are converted to true/false based on the
+     `:true-false-conv` parameter (if provided, otherwise numeric 1s are true),
+     and the number of successes and total trials are derived from `xs`.
+
+  Parameters:
+  - `number-of-successes` (long): Observed number of successful outcomes.
+  - `number-of-trials` (long): Total number of trials.
+  - `xs` (sequence): Sample data (used in the alternative call signature).
+  - `params` (map, optional): Options map:
+    - `:p` (double, default `0.5`): The hypothesized probability of success under the null hypothesis.
+    - `:alpha` (double, default `0.05`): Significance level for confidence interval calculation.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): True probability `p` is not equal to the hypothesized `p`.
+      - `:one-sided-greater`: True probability `p` is greater than the hypothesized `p`.
+      - `:one-sided-less`: True probability `p` is less than the hypothesized `p`.
+    - `:ci-method` (keyword, default `:asymptotic`): Method used to calculate the confidence interval for the probability of success. See [[binomial-ci]] and [[binomial-ci-methods]] for available options (e.g., `:wilson`, `:clopper-pearson`).
+    - `:true-false-conv` (optional, used only with `xs`): A function, set, or map to convert elements of `xs` into boolean `true` (success) or `false` (failure). See [[binary-measures-all]] documentation for details. If `nil` and `xs` contains numbers, `1.0` is treated as success.
+
+  Returns a map containing:
+  - `:p-value`: The probability of observing a result as extreme as, or more extreme than, the observed number of successes, assuming the null hypothesis is true. Calculated using the binomial distribution.
+  - `:p`: The hypothesized probability of success used in the test.
+  - `:successes`: The observed number of successes.
+  - `:trials`: The total number of trials.
+  - `:alpha`: Significance level used for the confidence interval.
+  - `:level`: Confidence level (`1 - alpha`).
+  - `:sides` / `:test-type`: Alternative hypothesis side used.
+  - `:stat`: The test statistic (the observed number of successes).
+  - `:estimate`: The observed proportion of successes (`successes / trials`).
+  - `:confidence-interval`: A confidence interval for the true probability of success, calculated using the specified `:ci-method` and adjusted for the `:sides` parameter."
   ([xs] (binomial-test xs {}))
   ([xs maybe-params]
    (if (map? maybe-params)
@@ -2817,11 +3141,42 @@
      :level (- 1.0 alpha)}))
 
 (defn t-test-one-sample
-  "One sample Student's t-test
+  "Performs a one-sample Student's t-test to compare the sample mean against a hypothesized population mean.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)"
+  This test assesses the null hypothesis that the true population mean is equal to `mu`.
+  It is suitable when the population standard deviation is unknown and is estimated
+  from the sample.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `params` (map, optional): Options map:
+    - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The true mean is not equal to `mu`.
+      - `:one-sided-greater`: The true mean is greater than `mu`.
+      - `:one-sided-less`: The true mean is less than `mu`.
+    - `:mu` (double, default `0.0`): The hypothesized population mean under the null hypothesis.
+
+  Returns a map containing:
+  - `:t`: The calculated t-statistic.
+  - `:stat`: Alias for `:t`.
+  - `:df`: Degrees of freedom (`n-1`).
+  - `:p-value`: The p-value associated with the t-statistic and `:sides`.
+  - `:confidence-interval`: Confidence interval for the true population mean.
+  - `:estimate`: The calculated sample mean.
+  - `:n`: The sample size.
+  - `:mu`: The hypothesized population mean used in the test.
+  - `:stderr`: The standard error of the mean (calculated from the sample).
+  - `:alpha`: Significance level used.
+  - `:sides`: Alternative hypothesis side used.
+  - `:test-type`: Alias for `:sides`.
+
+  Assumptions:
+  - The data are independent observations.
+  - The data are drawn from a population that is approximately normally distributed.
+    (The t-test is relatively robust to moderate violations, especially with larger sample sizes).
+
+  See also [[z-test-one-sample]] for large samples or known population standard deviation."
   ([xs] (t-test-one-sample xs {}))
   ([xs m]
    (let [{:keys [^long n ^double stat test-type ^double alpha ^double mu ^double stderr]
@@ -2834,11 +3189,38 @@
 (def ^{:deprecated "Use [[t-test-one-sample]]"} ttest-one-sample t-test-one-sample)
 
 (defn z-test-one-sample
-  "One sample z-test
+  "Performs a one-sample Z-test to compare the sample mean against a hypothesized population mean.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided`, `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)"
+  This test assesses the null hypothesis that the true population mean is equal to `mu`.
+  It typically assumes either a known population standard deviation or relies on a
+  large sample size (e.g., n > 30) where the sample standard deviation provides a
+  reliable estimate. This implementation uses the sample standard deviation to calculate
+  the standard error.
+
+  Parameters:
+  - `xs` (seq of numbers): The sample data.
+  - `params` (map, optional): Options map:
+    - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The true mean is not equal to `mu`.
+      - `:one-sided-greater`: The true mean is greater than `mu`.
+      - `:one-sided-less`: The true mean is less than `mu`.
+    - `:mu` (double, default `0.0`): The hypothesized population mean under the null hypothesis.
+
+  Returns a map containing:
+  - `:z`: The calculated Z-statistic.
+  - `:stat`: Alias for `:z`.
+  - `:p-value`: The p-value associated with the Z-statistic and the specified `:sides`.
+  - `:confidence-interval`: Confidence interval for the true population mean.
+  - `:estimate`: The calculated sample mean.
+  - `:n`: The sample size.
+  - `:mu`: The hypothesized population mean used in the test.
+  - `:stderr`: The standard error of the mean (calculated using sample standard deviation).
+  - `:alpha`: Significance level used.
+  - `:sides`: Alternative hypothesis side used.
+  - `:test-type`: Alias for `:sides`.
+
+  See also [[t-test-one-sample]] for smaller samples or when the population standard deviation is unknown."
   ([xs] (z-test-one-sample xs {}))
   ([xs m]
    (let [{:keys [^double stat test-type ^double alpha ^double mu ^double stderr]
@@ -2894,13 +3276,53 @@
      :equal-variances? equal-variances?}))
 
 (defn t-test-two-samples
-  "Two samples Student's t-test
+  "Performs a two-sample Student's t-test to compare the means of two samples.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)
-  * `paired?` - unpaired or paired test, boolean (default: `false`)
-  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
+  This function can perform:
+  - An **unpaired t-test** (assuming independent samples) using either:
+    - **Welch's t-test** (default: `:equal-variances? false`): Does not assume equal population variances. Uses the Satterthwaite approximation for degrees of freedom. Recommended unless variances are known to be equal.
+    - **Student's t-test** (`:equal-variances? true`): Assumes equal population variances and uses a pooled variance estimate.
+  - A **paired t-test** (`:paired? true`): Assumes observations in `xs` and `ys` are paired (e.g., before/after measurements on the same subjects). This performs a one-sample t-test on the differences between paired observations.
+
+  The test assesses the null hypothesis that the true difference between the population
+  means (or the mean of the differences for paired test) is equal to `mu`.
+
+  Parameters:
+  - `xs` (seq of numbers): The first sample.
+  - `ys` (seq of numbers): The second sample.
+  - `params` (map, optional): Options map:
+    - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The true difference in means is not equal to `mu`.
+      - `:one-sided-greater`: The true difference (`mean(xs) - mean(ys)` or `mean(diff)`) is greater than `mu`.
+      - `:one-sided-less`: The true difference (`mean(xs) - mean(ys)` or `mean(diff)`) is less than `mu`.
+    - `:mu` (double, default `0.0`): The hypothesized difference in means under the null hypothesis.
+    - `:paired?` (boolean, default `false`): If `true`, performs a paired t-test (requires `xs` and `ys` to have the same length). If `false`, performs an unpaired test.
+    - `:equal-variances?` (boolean, default `false`): Used only when `paired?` is `false`. If `true`, assumes equal population variances (Student's). If `false`, does not assume equal variances (Welch's).
+
+  Returns a map containing:
+  - `:t`: The calculated t-statistic.
+  - `:stat`: Alias for `:t`.
+  - `:df`: Degrees of freedom used for the t-distribution.
+  - `:p-value`: The p-value associated with the t-statistic and `:sides`.
+  - `:confidence-interval`: Confidence interval for the true difference in means.
+  - `:estimate`: The observed difference between sample means (`mean(xs) - mean(ys)` or `mean(differences)`).
+  - `:n`: Sample sizes as `[count xs, count ys]` (or `count diffs` if paired).
+  - `:nx`: Sample size of `xs` (if unpaired).
+  - `:ny`: Sample size of `ys` (if unpaired).
+  - `:estimated-mu`: Observed sample means as `[mean xs, mean ys]` (if unpaired).
+  - `:mu`: The hypothesized difference under the null hypothesis.
+  - `:stderr`: The standard error of the difference between the means (or of the mean difference if paired).
+  - `:alpha`: Significance level used.
+  - `:sides`: Alternative hypothesis side used.
+  - `:test-type`: Alias for `:sides`.
+  - `:paired?`: Boolean indicating if a paired test was performed.
+  - `:equal-variances?`: Boolean indicating the variance assumption used (if unpaired).
+
+  Assumptions:
+  - Independence of observations (within and between groups for unpaired).
+  - Normality of the underlying populations (or of the differences for paired). The t-test is relatively robust to violations of normality, especially with larger sample sizes.
+  - Equal variances (only if `:equal-variances? true`)."
   ([xs ys] (t-test-two-samples xs ys {}))
   ([xs ys {:keys [paired? equal-variances?]
            :or {paired? false equal-variances? false}
@@ -2923,13 +3345,45 @@
 (def ^{:deprecated "Use [[t-test-two-samples]]"} ttest-two-samples t-test-two-samples)
 
 (defn z-test-two-samples
-  "Two samples z-test
+  "Performs a two-sample Z-test to compare the means of two independent or paired samples.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater`
-  * `mu` - mean (default: `0.0`)
-  * `paired?` - unpaired or paired test, boolean (default: `false`)
-  * `equal-variances?` - unequal or equal variances, boolean (default: `false`)"
+  This test assesses the null hypothesis that the difference between the population
+  means is equal to `mu` (default 0). It typically assumes known population variances
+  or relies on large sample sizes where sample variances provide good estimates.
+  This implementation calculates the standard error using the provided sample variances.
+
+  Parameters:
+  - `xs` (seq of numbers): The first sample.
+  - `ys` (seq of numbers): The second sample.
+  - `params` (map, optional): Options map:
+    - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+      - `:two-sided` (default): The true difference in means is not equal to `mu`.
+      - `:one-sided-greater`: The true difference in means (`mean(xs) - mean(ys)`) is greater than `mu`.
+      - `:one-sided-less`: The true difference in means (`mean(xs) - mean(ys)`) is less than `mu`.
+    - `:mu` (double, default `0.0`): The hypothesized difference in means under the null hypothesis.
+    - `:paired?` (boolean, default `false`): If `true`, performs a paired Z-test by applying [[z-test-one-sample]] to the differences between paired observations in `xs` and `ys` (requires `xs` and `ys` to have the same length). If `false`, performs a two-sample test assuming independence.
+    - `:equal-variances?` (boolean, default `false`): Used only when `paired?` is `false`. If `true`, assumes population variances are equal and calculates a pooled standard error. If `false`, calculates the standard error without assuming equal variances (Welch's approach adapted for Z-test). This affects the standard error calculation but the standard normal distribution is still used for inference.
+
+  Returns a map containing:
+  - `:z`: The calculated Z-statistic.
+  - `:stat`: Alias for `:z`.
+  - `:p-value`: The p-value associated with the Z-statistic and the specified `:sides`.
+  - `:confidence-interval`: Confidence interval for the true difference in means.
+  - `:estimate`: The observed difference between sample means (`mean(xs) - mean(ys)`).
+  - `:n`: Sample sizes as `[count xs, count ys]`.
+  - `:nx`: Sample size of `xs`.
+  - `:ny`: Sample size of `ys`.
+  - `:estimated-mu`: The observed sample means as `[mean xs, mean ys]`.
+  - `:mu`: The hypothesized difference under the null hypothesis.
+  - `:stderr`: The standard error of the difference between the means.
+  - `:alpha`: Significance level used.
+  - `:sides`: Alternative hypothesis side used.
+  - `:test-type`: Alias for `:sides`.
+  - `:paired?`: Boolean indicating if a paired test was performed.
+  - `:equal-variances?`: Boolean indicating the assumption used for standard error calculation (if unpaired).
+
+  See also [[t-test-two-samples]] for smaller samples or when population variances are unknown."
   ([xs ys] (z-test-two-samples xs ys {}))
   ([xs ys {:keys [paired? equal-variances?]
            :or {paired? false equal-variances? false}
@@ -2952,10 +3406,37 @@
              (dissoc :df)))))))
 
 (defn f-test
-  "Variance F-test of two samples.
+  "Performs an F-test to compare the variances of two independent samples.
 
-  * `alpha` - significance level (default: `0.05`)
-  * `sides` - one of: `:two-sided` (default), `:one-sided-less` (short: `:one-sided`) or `:one-sided-greater` "
+  The test assesses the null hypothesis that the variances of the populations
+  from which `xs` and `ys` are drawn are equal.
+
+  Assumes independence of samples. The test is sensitive to departures from
+  the assumption that both populations are normally distributed.
+
+  Parameters:
+  - `xs` (seq of numbers): The first sample.
+  - `ys` (seq of numbers): The second sample.
+  - `params` (map, optional): Options map:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis
+      regarding the ratio of variances (Var(xs) / Var(ys)).
+      - `:two-sided` (default): Variances are not equal (ratio != 1).
+      - `:one-sided-greater`: Variance of `xs` is greater than variance of `ys` (ratio > 1).
+      - `:one-sided-less`: Variance of `xs` is less than variance of `ys` (ratio < 1).
+    - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
+
+  Returns a map containing:
+  - `:F`: The calculated F-statistic (ratio of sample variances: Var(xs) / Var(ys)).
+  - `:stat`: Alias for `:F`.
+  - `:estimate`: Alias for `:F`, representing the estimated ratio of variances.
+  - `:df`: Degrees of freedom as `[numerator-df, denominator-df]`, corresponding to `[(count xs)-1, (count ys)-1]`.
+  - `:n`: Sample sizes as `[count xs, count ys]`.
+  - `:nx`: Sample size of `xs`.
+  - `:ny`: Sample size of `ys`.
+  - `:sides`: The alternative hypothesis side used (`:two-sided`, `:one-sided-greater`, or `:one-sided-less`).
+  - `:test-type`: Alias for `:sides`.
+  - `:p-value`: The p-value associated with the F-statistic and the specified `:sides`.
+  - `:confidence-interval`: A confidence interval for the true ratio of the population variances (Var(xs) / Var(ys))."
   ([xs ys] (f-test xs ys {}))
   ([xs ys {:keys [sides ^double alpha]
            :or {sides :two-sided alpha 0.05}}]
@@ -3046,35 +3527,53 @@
      :estimate (into {} (map (fn [[k ^long v]] [k (/ v n)]) xs))}))
 
 (defn power-divergence-test
-  "Power divergence test.
+  "Performs a power divergence test, which encompasses several common statistical tests
+  like Chi-squared, G-test (likelihood ratio), etc., based on the lambda parameter.
+  This function can perform either a goodness-of-fit test or a test for independence
+  in a contingency table.
 
-  First argument should be one of:
-  
-  * contingency table
-  * sequence of counts (for goodness of fit)
-  * sequence of data (for goodness of fit against distribution)
+  Usage:
 
-  For goodness of fit there are two options:
-  
-  * comparison of observed counts vs expected probabilities or weights (`:p`)
-  * comparison of data against given distribution (`:p`), in this case histogram from data is created and compared to distribution PDF in bins ranges. Use `:bins` option to control histogram creation.
+  1.  **Goodness-of-Fit (GOF):**
+      - Input: `observed-counts` (sequence of numbers) and `:p` (expected probabilities/weights).
+      - Input: `data` (sequence of numbers) and `:p` (a distribution object).
+        In this case, a histogram of `data` is created (controlled by `:bins`) and
+        compared against the probability mass/density of the distribution in those bins.
 
-  Options are:
-  
-  * `:lambda` - test type:
-      * `1.0` - [[chisq-test]]
-      * `0.0` - [[multinomial-likelihood-ratio-test]]
-      * `-1.0` - [[minimum-discrimination-information-test]]
-      * `-2.0` - [[neyman-modified-chisq-test]]
-      * `-0.5` - [[freeman-tukey-test]]
-      * `2/3` - [[cressie-read-test]] - default
-  * `:p` - probabilites, weights or distribution object.
-  * `:alpha` - significance level (default: 0.05)
-  * `:ci-sides` - confidence interval sides (default: `:two-sided`)
-  * `:sides`  - p-value sides (`:two-sided`, `:one-side-greater` - default, `:one-side-less`)
-  * `:bootstrap-samples` - number of samples to estimate confidence intervals (default: 1000)
-  * `:ddof` - delta degrees of freedom, adjustment for dof (default: 0.0)
-  * `:bins` - number of bins or estimator name for histogram"
+  2.  **Test for Independence:**
+      - Input: `contingency-table` (2D sequence or map format). The `:p` option is ignored.
+
+  Options map:
+
+  * `:lambda` (double, default: `2/3`): Determines the specific test statistic. Common values:
+      * `1.0`: Pearson Chi-squared test ([[chisq-test]]).
+      * `0.0`: G-test / Multinomial Likelihood Ratio test ([[multinomial-likelihood-ratio-test]]).
+      * `-0.5`: Freeman-Tukey test ([[freeman-tukey-test]]).
+      * `-1.0`: Minimum Discrimination Information test ([[minimum-discrimination-information-test]]).
+      * `-2.0`: Neyman Modified Chi-squared test ([[neyman-modified-chisq-test]]).
+      * `2/3`: Cressie-Read test (default, [[cressie-read-test]]).
+  * `:p` (seq of numbers or distribution): Expected probabilities/weights (for GOF with counts)
+    or a `fastmath.random` distribution object (for GOF with data). Ignored for independence tests.
+  * `:alpha` (double, default: `0.05`): Significance level for confidence intervals.
+  * `:ci-sides` (keyword, default: `:two-sided`): Sides for bootstrap confidence intervals
+    (`:two-sided`, `:one-sided-greater`, `:one-sided-less`).
+  * `:sides` (keyword, default: `:one-sided-greater`): Alternative hypothesis side for the p-value calculation
+    against the Chi-squared distribution (`:one-sided-greater`, `:one-sided-less`, `:two-sided`).
+  * `:bootstrap-samples` (long, default: `1000`): Number of bootstrap samples for confidence interval estimation.
+  * `:ddof` (long, default: `0`): Delta degrees of freedom. Adjustment subtracted from the calculated degrees of freedom.
+  * `:bins` (number, keyword, or seq): Used only for GOF test against a distribution.
+    Specifies the number of bins, an estimation method (see [[histogram]]), or explicit bin edges for histogram creation.
+
+  Returns a map containing:
+  - `:stat`: The calculated power divergence test statistic.
+  - `:chi2`: Alias for `:stat`.
+  - `:df`: Degrees of freedom for the test.
+  - `:p-value`: The p-value associated with the test statistic.
+  - `:n`: Total number of observations.
+  - `:estimate`: Observed proportions.
+  - `:expected`: Expected counts or proportions under the null hypothesis.
+  - `:confidence-interval`: Bootstrap confidence intervals for the observed proportions.
+  - `:lambda`, `:alpha`, `:sides`, `:ci-sides`: Input options used."
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {}))
   ([contingency-table-or-xs {:keys [^double lambda ci-sides sides p ^double alpha ^long bootstrap-samples
                                     ^long ddof bins]
@@ -3164,12 +3663,67 @@
            :p-value (p-value distr F sides))))
 
 (defn one-way-anova-test
+  "Performs a one-way analysis of variance (ANOVA) test.
+
+  ANOVA tests the null hypothesis that the means of two or more independent groups
+  are equal. It assumes that the data within each group are normally distributed
+  and have equal variances.
+
+  Parameters:
+  - `xss` (sequence of sequences): A collection where each element is a sequence
+    representing a group of observations.
+  - `params` (map, optional): Options map with the following key:
+    - `:sides` (keyword, default `:one-sided-greater`): Alternative hypothesis side for the F-test.
+      Possible values: `:one-sided-greater`, `:one-sided-less`, `:two-sided`.
+
+  Returns a map containing:
+  - `:F`: The F-statistic for the test.
+  - `:stat`: Alias for `:F`.
+  - `:p-value`: The p-value for the test.
+  - `:df`: Degrees of freedom for the F-statistic ([DFt, DFe]).
+  - `:n`: Sequence of sample sizes for each group.
+  - `:SSt`: Sum of squares between groups (treatment).
+  - `:SSe`: Sum of squares within groups (error).
+  - `:DFt`: Degrees of freedom between groups.
+  - `:DFe`: Degrees of freedom within groups.
+  - `:MSt`: Mean square between groups.
+  - `:MSe`: Mean square within groups.
+  - `:sides`: Test side used."
   ([xss] (one-way-anova-test xss {}))
   ([xss {:keys [sides]
          :or {sides :one-sided-greater}}]
    (update-f-p-value (anova xss) sides)))
 
 (defn levene-test
+  "Performs Levene's test for homogeneity of variances across two or more groups.
+
+  Levene's test assesses the null hypothesis that the variances of the groups are equal.
+  It calculates an ANOVA on the absolute deviations of the data points from their group
+  center (mean by default).
+
+  Parameters:
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations.
+  - `params` (map, optional): Options map with the following keys:
+    - `:sides` (keyword, default `:one-sided-greater`): Alternative hypothesis side for the F-test.
+      Possible values: `:one-sided-greater`, `:one-sided-less`, `:two-sided`.
+    - `:statistic` (fn, default [[mean]]): Function to calculate the center of each group (e.g., [[mean]], [[median]]). Using [[median]] results in the Brown-Forsythe test.
+    - `:scorediff` (fn, default [[abs]]): Function applied to the difference between each data point and its group center (e.g., [[abs]], [[sq]]).
+
+  Returns a map containing:
+  - `:W`: The Levene test statistic (which is an F-statistic).
+  - `:stat`: Alias for `:W`.
+  - `:p-value`: The p-value for the test.
+  - `:df`: Degrees of freedom for the F-statistic ([DFt, DFe]).
+  - `:n`: Sequence of sample sizes for each group.
+  - `:SSt`: Sum of squares between groups (treatment).
+  - `:SSe`: Sum of squares within groups (error).
+  - `:DFt`: Degrees of freedom between groups.
+  - `:DFe`: Degrees of freedom within groups.
+  - `:MSt`: Mean square between groups.
+  - `:MSe`: Mean square within groups.
+  - `:sides`: Test side used.
+
+  See also [[brown-forsythe-test]]."
   ([xss] (levene-test xss {}))
   ([xss {:keys [sides statistic scorediff]
          :or {sides :one-sided-greater statistic mean scorediff abs}}]
@@ -3181,10 +3735,47 @@
          (dissoc :F)))))
 
 (defn brown-forsythe-test
+  "Brown-Forsythe test for homogeneity of variances.
+
+  This test is a modification of Levene's test, using the median instead of the mean
+  for calculating the spread within each group. This makes the test more robust
+  against non-normally distributed data.
+
+  Calls [[levene-test]] with `:statistic` set to [[median]]. Accepts the same parameters
+  as [[levene-test]], except for `:statistic`.
+
+  Parameters:
+  - `xss` (sequence of sequences): A collection of data groups.
+  - `params` (map, optional): Options map (see [[levene-test]])."
   ([xss] (levene-test xss {:statistic median}))
   ([xss params] (levene-test xss (assoc params :statistic median))))
 
 (defn fligner-killeen-test
+  "Performs the Fligner-Killeen test for homogeneity of variances across two or more groups.
+
+  The Fligner-Killeen test is a non-parametric test that assesses the null hypothesis
+  that the variances of the groups are equal. It is robust against departures from normality.
+  The test is based on ranks of the absolute deviations from the group medians.
+
+  Parameters:
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations.
+  - `params` (map, optional): Options map with the following key:
+    - `:sides` (keyword, default `:one-sided-greater`): Alternative hypothesis side for the Chi-squared test.
+      Possible values: `:one-sided-greater`, `:one-sided-less`, `:two-sided`.
+
+  Returns a map containing:
+  - `:chi2`: The Fligner-Killeen test statistic (Chi-squared value).
+  - `:stat`: Alias for `:chi2`.
+  - `:p-value`: The p-value for the test.
+  - `:df`: Degrees of freedom for the test (number of groups - 1).
+  - `:n`: Sequence of sample sizes for each group.
+  - `:SSt`: Sum of squares between groups (treatment) based on transformed ranks.
+  - `:SSe`: Sum of squares within groups (error) based on transformed ranks.
+  - `:DFt`: Degrees of freedom between groups.
+  - `:DFe`: Degrees of freedom within groups.
+  - `:MSt`: Mean square between groups.
+  - `:MSe`: Mean square within groups.
+  - `:sides`: Test side used."
   ([xss] (fligner-killeen-test xss {}))
   ([xss {:keys [sides]
          :or {sides :one-sided-greater}}]
@@ -3219,27 +3810,41 @@
                                  (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
-  "Performs the Anderson-Darling (AD) test to assess whether a sample comes from a specified theoretical distribution.
+  "Performs the Anderson-Darling (AD) test for goodness-of-fit.
+
+  This test assesses the null hypothesis that a sample `xs` comes from a
+  specified theoretical distribution or another empirical distribution. It is
+  sensitive to differences in the tails of the distributions.
 
   Parameters:
-  - `xs` (seq of numbers): Sample data to be tested.
-  - `distribution-or-ys`: Distribution object (default: normal) or a second dataset for an empirical comparison. In case of dataset, kernel density destination (kde) is performed. 
-  - Options:
-    - `:sides` (keyword, default `:right`): Specifies the alternative hypothesis.
-      - `:two-sided` tests for any difference.
-      - `:right` (default) tests if `xs` is stochastically greater.
-      - `:left` tests if `xs` is stochastically smaller.
-    - `:kernel` (keyword, default `:gaussian`): Kernel method for density estimation. When kernel is set to `:enumerated`, enumerated distribution is created instead. 
-    - `:bandwidth` (double, optional): Bandwidth for kernel density estimation.
+  - `xs` (seq of numbers): The sample data to be tested.
+  - `distribution-or-ys` (optional):
+    - A `fastmath.random` distribution object to test against. If omitted, defaults
+      to the standard normal distribution (`fastmath.random/default-normal`).
+    - A sequence of numbers (`ys`). In this case, an empirical distribution is
+      estimated from `ys` using Kernel Density Estimation (KDE) or an enumerated
+      distribution (see `:kernel` option).
+  - `opts` (map, optional): Options map:
+    - `:sides` (keyword, default `:right`): Specifies the side(s) of the
+      A^2 statistic's distribution used for p-value calculation.
+      - `:right` (default): Tests if the observed A^2 statistic is significantly
+        large (standard approach for AD test, indicating poor fit).
+      - `:left`: Tests if the observed A^2 statistic is significantly small.
+      - `:two-sided`: Tests if the observed A^2 statistic is extreme in either tail.
+    - `:kernel` (keyword, default `:gaussian`): Used only when `distribution-or-ys`
+      is a sequence. Specifies the method to estimate the empirical distribution:
+        - `:gaussian` (or other KDE kernels): Uses Kernel Density Estimation.
+        - `:enumerated`: Creates a discrete empirical distribution from `ys`.
+    - `:bandwidth` (double, optional): Bandwidth for KDE (if applicable).
 
   Returns a map containing:
-    - `:stat`: AD test statistic.
-    - `:A2`: Anderson-Darling test statistic.
-    - `:mean`: Mean of the sample.
-    - `:stddev`: Standard deviation of the sample.
-    - `:n`: Sample size.
-    - `:sides`: Alternative hypothesis used.
-    - `:p-value`: Probability of observing the result under the null hypothesis."
+  - `:A2`: The Anderson-Darling test statistic (A^2).
+  - `:stat`: Alias for `:A2`.
+  - `:p-value`: The p-value associated with the test statistic and the specified `:sides`.
+  - `:n`: Sample size of `xs`.
+  - `:mean`: Mean of the sample `xs` (for context).
+  - `:stddev`: Standard deviation of the sample `xs` (for context).
+  - `:sides`: The alternative hypothesis side used for p-value calculation."
   ([xs] (ad-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ad-test-one-sample xs distribution-or-ys {}))
   ([xs distribution-or-ys {:keys [sides kernel bandwidth] :or {sides :right kernel :gaussian}}]
@@ -3277,28 +3882,45 @@
      [jxs jys])))
 
 (defn ks-test-one-sample
-  "Performs the Kolmogorov-Smirnov (KS) test to compare a sample distribution against a theoretical distribution or another empirical sample.
+  "Performs the one-sample Kolmogorov-Smirnov (KS) test.
+
+  This test compares the empirical cumulative distribution function (ECDF) of a
+  sample `xs` against a specified theoretical distribution or the ECDF of
+  another empirical sample. It assesses the null hypothesis that `xs` is drawn
+  from the reference distribution.
 
   Parameters:
-  - `xs` (seq of numbers): Sample data to be tested.
-  - `distribution-or-ys`: Distribution object (default: normal) or a second dataset for an empirical comparison. In case of dataset, kernel density destination (kde) is performed. 
-  - Options:
-    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
-      - `:two-sided` (default) tests for any difference.
-      - `:right` tests if `xs` is stochastically greater.
-      - `:left` tests if `xs` is stochastically smaller.
-    - `:kernel` (keyword, default `:gaussian`): Kernel method for density estimation. When kernel is set to `:enumerated`, enumerated distribution is created instead. 
-    - `:bandwidth` (double, optional): Bandwidth for kernel density estimation.
-    - `:distinct?` (boolean, default `true`): Whether to remove duplicate values before computation. When set to `:jitter`, adds small random value to each data point.
+  - `xs` (seq of numbers): The sample data to be tested.
+  - `distribution-or-ys` (optional):
+    - A `fastmath.random` distribution object to test against. If omitted, defaults
+      to the standard normal distribution (`fastmath.random/default-normal`).
+    - A sequence of numbers (`ys`). In this case, an empirical distribution is
+      estimated from `ys` using Kernel Density Estimation (KDE) or an enumerated
+      distribution (see `:kernel` option).
+  - `opts` (map, optional): Options map:
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis
+      regarding the difference between the ECDF of `xs` and the reference CDF.
+      - `:two-sided` (default): Tests if the ECDF of `xs` is different from the reference CDF.
+      - `:right`: Tests if the ECDF of `xs` is significantly *below* the reference CDF (i.e., `xs` tends to have larger values, stochastically greater).
+      - `:left`: Tests if the ECDF of `xs` is significantly *above* the reference CDF (i.e., `xs` tends to have smaller values, stochastically smaller).
+    - `:kernel` (keyword, default `:gaussian`): Used only when `distribution-or-ys`
+      is a sequence. Specifies the method to estimate the empirical distribution:
+      - `:gaussian` (or other KDE kernels): Uses Kernel Density Estimation.
+      - `:enumerated`: Creates a discrete empirical distribution from `ys`.
+    - `:bandwidth` (double, optional): Bandwidth for KDE (if applicable).
+    - `:distinct?` (boolean or keyword, default `true`): How to handle duplicate values in `xs`.
+      - `true` (default): Removes duplicate values from `xs` before computation.
+      - `false`: Uses all values in `xs`, including duplicates.
+      - `:jitter`: Adds a small amount of random noise to each value in `xs` to break ties.
 
-  Returns:
-  - A map containing:
-    - `:n`: Sample size.
-    - `:dp`: Maximum positive difference between empirical and reference CDF.
-    - `:dn`: Maximum negative difference.
-    - `:d`: KS test statistic (max absolute difference).
-    - `:stat`: Scaled KS test statistic.
-    - `:p-value`: Probability of observing the result under the null hypothesis."
+  Returns a map containing:
+  - `:n`: Sample size of `xs` (after applying `:distinct?`).
+  - `:dp`: Maximum positive difference (ECDF(xs) - CDF(ref)).
+  - `:dn`: Maximum positive difference (CDF(ref) - ECDF(xs)).
+  - `:d`: The KS test statistic (max absolute difference: `max(dp, dn)`).
+  - `:stat`: The specific statistic used for p-value calculation, depending on `:sides` (`d`, `dp`, or `dn`).
+  - `:p-value`: The p-value associated with the test statistic and the specified `:sides`.
+  - `:sides`: The alternative hypothesis side used."
   ([xs] (ks-test-one-sample xs r/default-normal))
   ([xs distribution-or-ys] (ks-test-one-sample xs distribution-or-ys {}))
   ([xs distribution-or-ys {:keys [sides kernel bandwidth distinct?]
@@ -3328,7 +3950,7 @@
 
 (defn- process-ks-diffs
   [vs ^long nx ^long ny]
-  (let [vs (vec vs) ;; concatenated xs and ys
+  (let [vs (vec vs)           ;; concatenated xs and ys
         os (vec (m/order vs)) ;; order of it
         cnt- (dec (count vs))
         dx (/ 1.0 nx)
@@ -3346,8 +3968,6 @@
             (if (m/not== v1 v2)
               (recur (inc i) nd (min nd dn) (max nd dp))
               (recur (inc i) nd dn dp))))))))
-
-;; reimplementing ACM exact version using https://arxiv.org/pdf/2102.08037
 
 (defn- ks-c-test
   [^double v ^double x ^double y abs?]
@@ -3402,38 +4022,45 @@
     (when (some identity ties) (conj ties true))))
 
 (defn ks-test-two-samples
-  "Performs the two-sample Kolmogorov-Smirnov (KS) test to compare the distributions of two independent samples, `xs` and `ys`. This test determines whether the two samples come from the same distribution.
+  "Performs the two-sample Kolmogorov-Smirnov (KS) test.
 
-  Arguments:
-  - `xs`: First sample (a sequence of numerical values).
-  - `ys`: Second sample (a sequence of numerical values).
-  - options map:
-    - `:method`: `:exact` (default for `nx*ny<10000`) or `:approximate` (default otherwise)
-    - `:sides` (default: `:two-sided`): Specifies the alternative hypothesis. 
-      Possible values:
-      - `:two-sided`: The two distributions are different.
-      - `:right`: The distribution of `xs` is stochastically greater than `ys`.
-      - `:left`: The distribution of `xs` is stochastically less than `ys`.
-    - `:distinct?` What to do with duplicated values
-      - `:ties` (default) - allow duplication and solve them during p-value calculation
-      - `:jitter` - slighly jitter values
-      - `true` - apply distinct on `xs` and `ys` separately (may leave some ties unsolved)
-      - `false` - do nothing
-    - `:correct?` (default: `true`): If true, corrects statistic before p-value computation in `:exact` method.
-  Returns:
-  A map with the following keys:
-  - `:n`: Effective sample size.
-  - `:nx`: Number of observations in `xs`.
-  - `:ny`: Number of observations in `ys`.
-  - `:dp`: Maximum positive difference between empirical cumulative distribution functions.
-  - `:dn`: Maximum negative difference between empirical cumulative distribution functions.
-  - `:d`: The maximum absolute difference between ECDFs.
-  - `:stat`: KS statistic, scaled `d` for asymptotic (approximate) method.
+  This test compares the empirical cumulative distribution functions (ECDFs) of two
+  independent samples, `xs` and `ys`, to assess the null hypothesis that they
+  are drawn from the same continuous distribution.
+
+  Parameters:
+  - `xs` (seq of numbers): The first sample.
+  - `ys` (seq of numbers): The second sample.
+  - `opts` (map, optional): Options map:
+    - `:method` (keyword, optional): Specifies the calculation method for the p-value.
+        - `:exact`: Attempts an exact calculation (suitable for small samples, sensitive to ties). Default if `nx * ny < 10000`.
+        - `:approximate`: Uses the asymptotic Kolmogorov distribution (suitable for larger samples). Default otherwise.
+    - `:sides` (keyword, default `:two-sided`): Specifies the alternative hypothesis.
+        - `:two-sided` (default): Tests if the distributions differ (ECDFs are different).
+        - `:right`: Tests if `xs` is stochastically greater than `ys` (ECDF(xs) is below ECDF(ys)).
+        - `:left`: Tests if `xs` is stochastically smaller than `ys` (ECDF(xs) is above ECDF(ys)).
+    - `:distinct?` (keyword or boolean, default `:ties`): How to handle duplicate values (ties).
+        - `:ties` (default): Includes all points. Passes information about ties to the `:exact` calculation method. Accuracy depends on the exact method's tie handling.
+        - `:jitter`: Adds a small amount of random noise to break ties before comparison. A practical approach if exact tie handling is complex or not required.
+        - `true`: Applies `distinct` to `xs` and `ys` separately before combining. May not resolve all ties between the combined samples.
+        - `false`: Uses the data as-is, without attempting to handle ties explicitly (may lead to less accurate p-values, especially with the exact method).
+    - `:correct?` (boolean, default `true`): Apply continuity correction when using the `:exact` calculation method for a more accurate p-value especially for smaller sample sizes.
+
+  Returns a map containing:
+  - `:nx`: Number of observations in `xs` (after `:distinct?` processing if applicable).
+  - `:ny`: Number of observations in `ys` (after `:distinct?` processing if applicable).
+  - `:n`: Effective sample size used for asymptotic calculation (`nx*ny / (nx+ny)`).
+  - `:dp`: Maximum positive difference (ECDF(xs) - ECDF(ys)).
+  - `:dn`: Maximum positive difference (ECDF(ys) - ECDF(xs)).
+  - `:d`: The KS test statistic (max absolute difference: `max(dp, dn)`).
+  - `:stat`: The specific statistic used for p-value calculation (`d`, `dp`, or `dn` for exact; scaled version for approximate).
   - `:KS`: Alias for `:stat`.
-  - `:sides`: The alternative hypothesis used.
-  - `:p-value`: The computed p-value indicating the significance of the test.
+  - `:p-value`: The p-value associated with the test statistic and `:sides`.
+  - `:sides`: The alternative hypothesis side used.
+  - `:method`: The calculation method used (`:exact` or `:approximate`).
 
-  Note: given implementation may not solve ties properly, even if `distinct?` is set to true. Try also setting `distinct?` to `:jitter`"
+  Note on Ties: The KS test is strictly defined for continuous distributions where ties have zero probability.
+  The presence of ties in sample data affects the p-value calculation. The `:distinct?` option provides ways to manage this, with `:jitter` being a common pragmatic choice."
   ([xs ys] (ks-test-two-samples xs ys {}))
   ([xs ys {:keys [method sides distinct? correct?]
            :or {sides :two-sided distinct? :ties  correct? true}}]
@@ -3659,7 +4286,4 @@
   ([xs ^double lambda ^double alpha]
    (box-cox-transformation xs lambda {:negative? true :alpha alpha})))
 
-
-
 (m/unuse-primitive-operators)
-

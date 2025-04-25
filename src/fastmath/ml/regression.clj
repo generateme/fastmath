@@ -145,15 +145,14 @@
 
 (def ^{:tag 'double :private true :const true} ME100 (m/- 1.0 (m/* 100.0 m/MACHINE-EPSILON)))
 
+;; new version
 (defn- hat-matrix
   [^RealMatrix xtxinv ^RealMatrix xss weights]
   (let [sqrt-weights (m/seq->double-array (map m/sqrt weights))
         ^RealMatrix whx (mat/mulm (DiagonalMatrix. sqrt-weights) xss)]
-    (->> (mat/mulmt xtxinv whx)
-         (mat/mulm whx)
-         (mat/diag)
-         (v/vec->seq)
-         (map (fn [^double h] (if (m/>= h ME100) 1.0 h))))))
+    (->> (mat/rows whx)
+         (map (fn [row] (let [h (v/dot row (mat/mulv xtxinv row))]
+                         (if (m/>= h ME100) 1.0 h)))))))
 
 (defn- lm-transform-residuals
   [residuals hat sigmas]
@@ -175,8 +174,8 @@
 (defn- dfbetas
   [^RealMatrix laverage-coeffs ^RealMatrix xtx-1 sigmas]
   (let [d (v/vec->array (mat/diag xtx-1))]
-    (mapv (fn [^RealVector v ^double s]
-            (v/ediv (v/vec->seq v) (v/mult sigmas (m/sqrt s)))) (mat/rows laverage-coeffs) d)))
+    (map (fn [^RealVector v ^double s]
+           (v/ediv (v/vec->seq v) (v/mult sigmas (m/sqrt s)))) (mat/rows laverage-coeffs) d)))
 
 (defn- covratio
   [residuals hat sigmas ^long p]
@@ -214,7 +213,7 @@
                  :covratio (influential-rows (:covratio influence) (fn [^double x] (m/> (m/abs (m/- 1.0 x)) covratio-v)))
 
                  :hat (influential-rows hat (fn [^double x] (m/> x hat-v)))
-                 :dfbetas (mapv influential-rows (:dfbetas influence) (repeat (fn [^double x] (m/> (m/abs x) 1.0))))}]
+                 :dfbetas (map influential-rows (:dfbetas influence) (repeat (fn [^double x] (m/> (m/abs x) 1.0))))}]
         (assoc res :combined (frequencies (flatten (vals res))))))))
 
 (defn- correlation
@@ -253,7 +252,7 @@
         {^double df :residual} (:df model)
         p (mat/ncol xss)
         hat (hat-matrix xtxinv xss weights)
-
+        
         df- (m/dec df)
 
         sigmas (sigmas wresiduals hat rss df-)
@@ -268,7 +267,7 @@
                  :studentized (lm-transform-residuals wresiduals hat sigmas)}
      :laverage {:hat hat
                 :sigmas sigmas
-                :coefficients (mapv seq (mat/mat->array2d laverage-coeffs))}
+                :coefficients (map seq (mat/mat->array2d laverage-coeffs))}
      :influence influence
      :influential (measures-influential-rows influence hat observations p)
      :correlation (correlation xtxinv sigma2)}))
@@ -843,7 +842,7 @@
                  :studentized (glm-studentized-residuals dresiduals presiduals sigmas hat family)}
      :laverage {:hat hat
                 :sigmas sigmas
-                :coefficients (mapv seq (mat/mat->array2d laverage-coeffs))}
+                :coefficients (map seq (mat/mat->array2d laverage-coeffs))}
      :influence influence
      :influential (measures-influential-rows influence hat observations p)
      :correlation (correlation xtxinv dispersion)}))

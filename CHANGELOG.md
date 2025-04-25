@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file. This change
 * `demean` for matrices should work on ACM matrices properly (thanks to @daslu)
 * `ks-test-two-samples` - wrong calculation of KS statistic, also fixed :exact method to accept bigger datasets (thanks to `mars0i`)
 * `cohens-u2` - bad optiomization method used
+* OOM when called `hat-matrix` on relatively low number (10k) of entries.
 
 ### Deprecated
 
