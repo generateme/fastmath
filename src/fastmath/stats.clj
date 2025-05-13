@@ -1094,46 +1094,6 @@
                                 0.0 (range order)))
                 (m/* order (m/combinations n (m/+ order s t))))))))))
 
-(class (lazy-seq))
-(class (map inc (range 10)))
-
-(defn my-map
-  [f coll]
-  (if-not (seq coll)
-    nil
-    (lazy-seq (do (println "Hi! I'm about to process" (first coll))
-                  (cons (f (first coll))
-                        (my-map f (rest coll)))))))
-
-
-(def zzz (lazy-seq (println "Hi! I'm here!")
-                 [(+ 100 200)]))
-
-;; what's the object behind?
-(class zzz) ;; => clojure.lang.LazySeq
-
-;; is it a sequence?
-(seq? zzz) ;; => true
-
-;; is it convertible to a sequence?
-(seqable? zzz) ;; => true
-
-;; evaluating will print (only once! since `lazy-seq` caches evaluation)
-zzz ;; => (300)
-(seq zzz) ;; => (300)
-
-(def zzz2 (fn [] (println "Hi! I'm here too!") (seq [(+ 100 200)])))
-
-(zzz2) ;; => (300)
-
-(def my-map-res (my-map inc (range 10)))
-
-(first my-map-res)
-(take 3)
-
-(sequential? (lazy-seq))
-(seq? (lazy-seq))
-
 (defn l-variation
   "Coefficient of L-variation, L-CV"
   ^double [vs]
