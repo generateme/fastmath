@@ -7,7 +7,8 @@
             [fastmath.random :as fr]
             [fastmath.stats :as stats]
             [fastmath.vector :as v]
-            [fastmath.complex :as cplx]))
+            [fastmath.complex :as cplx]
+            [fastmath.kernel :as kernel]))
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
@@ -121,6 +122,8 @@
     :sigmoid (m/sigmoid v)
     (m/frac v)))
 
+(defn ->valid [^double v] (if (m/invalid-double? v) 0.0 v))
+
 (defn complex-function->data
   ([f] (complex-function->data f nil))
   ([f {:keys [x y steps wrap-method]
@@ -129,9 +132,9 @@
          ys (slice y steps)]
      (for [x xs y ys
            :let [v (f (v/vec2 x y))
-                 arg (m/cnorm (cplx/arg v) m/-PI m/PI 0.0 1.0)
-                 wmag (m/pow (wrap wrap-method (cplx/abs v)) 0.2)
-                 sat (m/- 1.0 (m// (m/- 1.0 wmag) 4.0))]]
+                 arg  (->valid (m/cnorm (cplx/arg v) m/-PI m/PI 0.0 1.0))
+                 wmag (->valid (m/pow (wrap wrap-method (cplx/abs v)) 0.2))
+                 sat  (->valid (m/- 1.0 (m// (m/- 1.0 wmag) 4.0)))]]
        {:x x :y y :hue arg :val wmag :sat sat}))))
 
 ;; plots
@@ -151,10 +154,37 @@
   ([f {:keys [color]
        :or {color color-main}
        :as opts}]
-   (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y))
+   (-> (r/r+ (gg/ggplot)
              (gg/theme_light)
-             (gg/geom_line :data (tc/dataset (function->data f opts)) :color color))
+             (gg/geom_line :data (tc/dataset (function->data f opts))
+                           :mapping (gg/aes :x :x :y :y)
+                           :color color))
        (add-common opts))))
+
+(defn- narrow-range
+  [mn mx p]
+  (let [perc (* p (- mx mn))]
+    [(+ mn perc) (- mx perc)]))
+
+(defn density
+  "Density data"
+  ([xs] (density xs nil))
+  ([xs {:keys [kernel bandwidth bins color fill x narrow?]
+        :or {kernel :gaussian color color-main fill color-light bins :freedman-diaconis narrow? 0.05}
+        :as opts}]
+   (let [b (stats/estimate-bins xs bins)
+         {:keys [kde mn mx]} (kernel/kernel-density kernel xs bandwidth true)
+         dx (or x (if narrow? (narrow-range mn mx narrow?) [mn mx]))]
+     (-> (r/r+ (gg/ggplot)
+               (gg/theme_light)
+               (gg/geom_histogram :mapping (gg/aes :x :x :y '(after_stat density))
+                                  :data (tc/dataset {:x xs})
+                                  :fill fill :bins b)
+               (gg/geom_line :data (tc/dataset (function->data kde (assoc opts :x dx)))
+                             :mapping (gg/aes :x :x :y :y)
+                             :color color) 
+               #_(gg/geom_density :color color :kernel kernel :bounds [##-Inf ##Inf]))
+         (add-common opts)))))
 
 (defn line
   ([xs ys] (line xs ys nil))

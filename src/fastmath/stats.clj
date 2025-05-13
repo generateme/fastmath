@@ -70,6 +70,20 @@
 (set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
+(defn minimum
+  "Finds the minimum value in a sequence of numbers."
+  ^double [vs]
+  (if (= (type vs) m/double-array-type)
+    (Array/min ^doubles vs)
+    (reduce m/min vs)))
+
+(defn maximum
+  "Finds the maximum value in a sequence of numbers."
+  ^double [vs]
+  (if (= (type vs) m/double-array-type)
+    (Array/max ^doubles vs)
+    (reduce m/max vs)))
+
 (def ^{:doc "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
   estimation-strategies-list {:legacy Percentile$EstimationType/LEGACY
                               :r1 Percentile$EstimationType/R_1
@@ -122,16 +136,29 @@
      :klein (v/sum (reduce klein-step (Vec3. 0.0 0.0 0.0) vs))
      (sum vs))))
 
+;; https://www.amherst.edu/media/view/129116/original/Sample+Quantiles.pdf
+
 (defn percentile
-  "Calculate percentile of a `vs`.
+  "Calculates the p-th percentile of a sequence `vs`.
 
-  Percentile `p` is from range 0-100.
+  The percentile `p` is a value between 0 and 100, inclusive.
 
-  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
+  An optional `estimation-strategy` keyword can be provided to specify the
+  method used for estimating the percentile, particularly how interpolation is
+  handled when the desired percentile falls between data points in the sorted
+  sequence.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Available `estimation-strategy` values:
 
-  See also [[quantile]]."
+    - `:legacy` (Default): The original method used in Apache Commons Math.
+    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
+      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+
+  For detailed mathematical descriptions of each estimation strategy, refer to
+  the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
+
+  See also [[quantile]] (which uses a 0.0-1.0 range) and [[percentiles]]."
   (^double [vs ^double p]
    (StatUtils/percentile (m/seq->double-array vs) p))
   (^double [vs ^double p estimation-strategy]
@@ -139,15 +166,26 @@
      (.evaluate perc (m/seq->double-array vs) p))))
 
 (defn percentiles
-  "Calculate percentiles of a `vs`.
+  "Calculates the sequence of p-th percentiles of a sequence `vs`.
 
-  Percentiles are sequence of values from range 0-100.
+  Percentiles `ps` is sequence of values between 0 and 100, inclusive.
 
-  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html).
+  An optional `estimation-strategy` keyword can be provided to specify the
+  method used for estimating the percentile, particularly how interpolation is
+  handled when the desired percentile falls between data points in the sorted
+  sequence.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Available `estimation-strategy` values:
 
-  See also [[quantile]]."
+    - `:legacy` (Default): The original method used in Apache Commons Math.
+    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
+      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+
+  For detailed mathematical descriptions of each estimation strategy, refer to
+  the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
+
+  See also [[quantiles]] (which uses a 0.0-1.0 range) and [[percentile]]."
   ([vs] (percentiles vs [25 50 75 100]))
   ([vs ps] (percentiles vs ps nil))
   ([vs ps estimation-strategy]
@@ -156,30 +194,52 @@
      (mapv (fn [^double p] (.evaluate perc p)) ps))))
 
 (defn quantile
-  "Calculate quantile of a `vs`.
+  "Calculates the q-th quantile of a sequence `vs`.
 
-  Quantile `q` is from range 0.0-1.0.
+  The quantile `q` is a value between 0.0 and 1.0, inclusive.
 
-  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
+  An optional `estimation-strategy` keyword can be provided to specify the
+  method used for estimating the quantile, particularly how interpolation is
+  handled when the desired quantile falls between data points in the sorted
+  sequence.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Available `estimation-strategy` values:
 
-  See also [[percentile]]."
+    - `:legacy` (Default): The original method used in Apache Commons Math.
+    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
+      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+
+  For detailed mathematical descriptions of each estimation strategy, refer to
+  the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
+
+  See also [[percentile]] (which uses a 0-100 range) and [[quantiles]]."
   (^double [vs ^double q]
    (percentile vs (m/constrain (* q 100.0) 0.0 100.0)))
   (^double [vs ^double q estimation-strategy]
    (percentile vs (m/constrain (* q 100.0) 0.0 100.0) estimation-strategy)))
 
 (defn quantiles
-  "Calculate quantiles of a `vs`.
+  "Calculates the sequence of q-th quantiles of a sequence `vs`.
 
-  Quantilizes is sequence with values from range 0.0-1.0.
+  Quantiles `q` is a sequence of values between 0.0 and 1.0, inclusive.
 
-  See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.4/org/apache/commons/math3/stat/descriptive/rank/Percentile.html) for interpolation strategy.
+  An optional `estimation-strategy` keyword can be provided to specify the
+  method used for estimating the quantile, particularly how interpolation is
+  handled when the desired quantile falls between data points in the sorted
+  sequence.
 
-  Optionally you can provide `estimation-strategy` to change interpolation methods for selecting values: `:legacy`, `:r1` to `:r9`. Default is `:legacy`. See more [here](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html)
+  Available `estimation-strategy` values:
 
-  See also [[percentiles]]."
+    - `:legacy` (Default): The original method used in Apache Commons Math.
+    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
+      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+
+  For detailed mathematical descriptions of each estimation strategy, refer to
+  the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
+
+  See also [[percentiles]] (which uses a 0-100 range) and [[quantile]]."
   ([vs] (quantiles vs [0.25 0.5 0.75 1.0]))
   ([vs qs]
    (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs)))
@@ -205,28 +265,60 @@
 ;; based on spatstat.geom::weighted.quantile
 
 (defn wquantile
-  "Weighted quantile.
+  "Calculates the q-th weighted quantile of a sequence `vs` with corresponding weights `ws`.
 
-  Calculation is done using interpolation. There are three methods:
-  * `:linear` - linear interpolation, default
-  * `:step` - step interpolation
-  * `:average` - average of ties
+  The quantile `q` is a value between 0.0 and 1.0, inclusive.
 
-  Based on `spatstat.geom::weighted.quantile` from R."
+  The calculation involves constructing a weighted empirical cumulative distribution
+  function (ECDF) and interpolating to find the value at quantile `q`.
+
+  Parameters:
+
+  - `vs`: Sequence of data values.
+  - `ws`: Sequence of corresponding non-negative weights. Must have the same count as `vs`.
+  - `q`: The quantile level (0.0 < q <= 1.0).
+  - `method` (optional keyword): Specifies the interpolation method used when `q` falls
+    between points in the weighted ECDF. Defaults to `:linear`.
+      - `:linear`: Performs linear interpolation between the data values corresponding
+        to the cumulative weights surrounding `q`.
+      - `:step`: Uses a step function (specifically, step-before) based on the
+        weighted ECDF. The result is the data value whose cumulative weight range
+        includes `q`.
+      - `:average`: Computes the average of the step-before and step-after
+        interpolation methods. Useful when `q` corresponds exactly to a cumulative
+        weight boundary.
+
+  See also: [[wmedian]], [[wquantiles]], [[quantile]]."
   (^double [vs ws ^double q] (wquantile vs ws q :linear))
   (^double [vs ws ^double q method]
    (let [interp (wquantile-interpolator vs ws method)]
      (interp q))))
 
 (defn wquantiles
-  "Weighted quantiles.
+  "Calculates the sequence of q-th weighted quantiles of a sequence `vs` with corresponding weights `ws`.
 
-  Calculation is done using interpolation. There are three methods:
-  * `:linear` - linear interpolation, default
-  * `:step` - step interpolation
-  * `:average` - average of ties
+  Quantiles `qs` is a sequence of values between 0.0 and 1.0, inclusive.
 
-  Based on `spatstat.geom::weighted.quantile` from R."
+  The calculation involves constructing a weighted empirical cumulative distribution
+  function (ECDF) and interpolating to find the value at quantiles `qs`.
+
+  Parameters:
+
+  - `vs`: Sequence of data values.
+  - `ws`: Sequence of corresponding non-negative weights. Must have the same count as `vs`.
+  - `qs`: Sequence of quantiles level (0.0 < q <= 1.0).
+  - `method` (optional keyword): Specifies the interpolation method used when `qs` falls
+    between points in the weighted ECDF. Defaults to `:linear`.
+      - `:linear`: Performs linear interpolation between the data values corresponding
+        to the cumulative weights surrounding `q`.
+      - `:step`: Uses a step function (specifically, step-before) based on the
+        weighted ECDF. The result is the data value whose cumulative weight range
+        includes `q`.
+      - `:average`: Computes the average of the step-before and step-after
+        interpolation methods. Useful when `q` corresponds exactly to a cumulative
+        weight boundary.
+
+  See also: [[wquantile]], [[quantiles]]."
   ([vs ws] (wquantiles vs ws [0.25 0.5 0.75 1.0]))
   ([vs ws qs] (wquantiles vs ws qs :linear))
   ([vs ws qs method]
@@ -234,19 +326,45 @@
      (mapv interp qs))))
 
 (defn wmedian
-  "Weighted median.
+  "Calculates median of a sequence `vs` with corresponding weights `ws`.
 
-  Calculation is done using interpolation. There are three methods:
-  * `:linear` - linear interpolation, default
-  * `:step` - step interpolation
-  * `:average` - average of ties
+  Parameters:
 
-  Based on `spatstat.geom::weighted.quantile` from R."
+  - `vs`: Sequence of data values.
+  - `ws`: Sequence of corresponding non-negative weights. Must have the same count as `vs`.
+  - `method` (optional keyword): Specifies the interpolation method used when `qs` falls
+    between points in the weighted ECDF. Defaults to `:linear`.
+      - `:linear`: Performs linear interpolation between the data values corresponding
+        to the cumulative weights surrounding `q=0.5`.
+      - `:step`: Uses a step function (specifically, step-before) based on the
+        weighted ECDF. The result is the data value whose cumulative weight range
+        includes `q=0.5`.
+      - `:average`: Computes the average of the step-before and step-after
+        interpolation methods.
+
+  See also: [[wquantile]], [[quantile]]."
   (^double [vs ws] (wquantile vs ws 0.5))
   (^double [vs ws method] (wquantile vs ws 0.5 method)))
 
 (defn median
-  "Calculate median of `vs`. See [[median-3]]."
+  "Calculates median of a sequence `vs`.
+
+  An optional `estimation-strategy` keyword can be provided to specify the
+  method used for estimating the quantile, particularly how interpolation is
+  handled when the desired quantile falls between data points in the sorted
+  sequence.
+
+  Available `estimation-strategy` values:
+
+    - `:legacy` (Default): The original method used in Apache Commons Math.
+    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
+      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+
+  For detailed mathematical descriptions of each estimation strategy, refer to
+  the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
+
+  See also [[quantile]], [[median-3]]"
   (^double [vs estimation-strategy]
    (percentile vs 50.0 estimation-strategy))
   (^double [vs]
@@ -258,22 +376,89 @@
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
-  "Calculate mean of `vs` with optional `weights`."
+  "Calculate the arithmetic mean (average) of a sequence `vs`.
+
+  If `weights` are provided, calculates the weighted arithmetic mean.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers.
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`.
+
+  Returns the calculated mean as a double.
+
+  See also [[geomean]], [[harmean]], [[powmean]], [[median]]."
   (^double [vs] (StatUtils/mean (m/seq->double-array vs)))
   (^double [vs weights] (/ (sum (map * vs weights)) (sum weights))))
 
 (defn geomean
-  "Geometric mean for positive values only with optional `weights`"
+  "Calculates the geometric mean of a sequence `vs`.
+
+  The geometric mean is suitable for averaging ratios or rates of change and requires
+  all values in the sequence to be positive. It is calculated as the n-th root
+  of the product of n numbers.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers. Non-positive values will result in `NaN` or `0.0` due
+          to the internal use of `log`.
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`.
+
+  Returns the calculated geometric mean as a double.
+
+  See also [[mean]], [[harmean]], [[powmean]]."
   (^double [vs] (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
   (^double [vs weights] (m/exp (mean (map (fn [^double v] (m/log v)) vs) weights))))
 
 (defn harmean
-  "Harmonic mean with optional `weights`"
+  "Calculates the harmonic mean of a sequence `vs`.
+
+  The harmonic mean is the reciprocal of the arithmetic mean of the reciprocals
+  of the observations.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers. Values must be non-zero.
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`.
+
+  Returns the calculated harmonic mean as a double.
+
+  See also [[mean]], [[geomean]], [[powmean]]."
   (^double [vs] (/ (mean (map (fn [^double v] (/ v)) vs))))
   (^double [vs weights] (/ (mean (map (fn [^double v] (/ v)) vs) weights))))
 
 (defn powmean
-  "Generalized power mean"
+  "Calculates the generalized power mean (also known as the Hölder mean) of a sequence `vs`.
+
+  The power mean is a generalization of the Pythagorean means (arithmetic, geometric, harmonic)
+  and other means like the quadratic mean (RMS). It is defined for a non-zero real number `power`.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers. Constraints depend on the `power`:
+    - For `power > 0`, values should be non-negative.
+    - For `power = 0`, values must be positive (reduces to geometric mean).
+    - For `power < 0`, values must be positive and non-zero.
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`.
+  - `power` (double): The exponent defining the mean.
+
+  Special Cases:
+
+  - `power = 0`: Returns the [[geomean]].
+  - `power = 1`: Returns the arithmetic [[mean]].
+  - `power = -1`: Equivalent to the [[harmean]]. (Handled by the general formula)
+  - `power = 2`: Returns the Root Mean Square (RMS) or quadratic mean.
+  - `power = inf`: Returns maximum.
+  - `power = -inf`: Returms minimum.
+  - The implementation includes optimized paths for `power` values 1/3, 0.5, 2, and 3.
+
+  Returns the calculated power mean as a double.
+
+  See also [[mean]], [[geomean]], [[harmean]]."
   (^double [vs ^double power]
    (cond
      (zero? power) (geomean vs)
@@ -281,7 +466,9 @@
      (== power m/THIRD) (m/cb (mean (map #(m/cbrt %) vs)))
      (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
      (== power 2.0) (m/sqrt (mean (map m/sq vs)))
-     (== power 3.0) (m/cbrt (mean (map m/cb vs))) 
+     (== power 3.0) (m/cbrt (mean (map m/cb vs)))
+     (m/pos-inf? power) (maximum vs)
+     (m/neg-inf? power) (minimum vs)
      :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (/ power))))
   (^double [vs weights ^double power]
    (cond
@@ -290,7 +477,9 @@
      (== power m/THIRD) (m/cb (mean (map m/cbrt vs) weights))
      (== power 0.5) (m/sq (mean (map m/sqrt vs) weights))
      (== power 2.0) (m/sqrt (mean (map m/sq vs) weights))
-     (== power 3.0) (m/cbrt (mean (map m/cb vs) weights)) 
+     (== power 3.0) (m/cbrt (mean (map m/cb vs) weights))
+     (m/pos-inf? power) (maximum vs)
+     (m/neg-inf? power) (minimum vs)
      :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs) weights) (/ power)))))
 
 (defn wmean
@@ -365,14 +554,58 @@
   (m/sqrt (wvariance vs freqs)))
 
 (defn variation
-  "Coefficient of variation CV = stddev / mean"
+  "Calculates the coefficient of variation (CV) for a sequence `vs`.
+
+  The CV is a standardized measure of dispersion of a probability distribution or
+  frequency distribution. It is defined as the ratio of the standard deviation
+  to the mean:
+
+  `CV = stddev(vs) / mean(vs)`
+
+  This measure is unitless and allows for comparison of variability between
+  datasets with different means or different units.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers.
+
+  Returns the calculated coefficient of variation as a double.
+
+  Note: The CV is undefined if the mean is zero, and may be misleading if the
+  mean is close to zero or if the data can take both positive and negative values.
+  All values in `vs` should ideally be positive.
+
+  See also [[stddev]], [[mean]]."
   ^double [vs]
   (let [vs (m/seq->double-array vs)]
     (/ (stddev vs)
        (mean vs))))
 
 (defn median-absolute-deviation
-  "Calculate MAD"
+  "Calculates the Median Absolute Deviation (MAD) of a sequence `vs`.
+
+  MAD is a robust measure of the variability of a univariate sample of quantitative
+  data. It is defined as the median of the absolute deviations from the data's median
+  (or a specified center).
+
+  `MAD = median(|X_i - median(X)|)`
+
+  Parameters:
+
+  - `vs`: Sequence of numbers.
+  - `center` (optional, double): The central point from which to calculate deviations.
+    If `nil` or not provided, the [[median]] of `vs` is used as the center.
+  - `estimation-strategy` (optional, keyword): The estimation strategy to use for
+    calculating the median(s). This applies to the calculation of the central
+    value (if `center` is not provided) and to the final median of the absolute
+    deviations. See [[median]] or [[quantile]] for available strategies (e.g.,
+    `:legacy`, `:r1` through `:r9`).
+
+  Returns the calculated MAD as a double.
+
+  MAD is less sensitive to outliers than the standard deviation.
+
+  See also [[mean-absolute-deviation]], [[stddev]], [[median]], [[quantile]]."
   (^double [vs] (median-absolute-deviation vs nil))
   (^double [vs center]
    (let [m (double (or center (median vs)))]
@@ -385,14 +618,55 @@
   mad median-absolute-deviation)
 
 (defn mean-absolute-deviation
-  "Calculate mean absolute deviation"
+  "Calculates the Mean Absolute Deviation of a sequence `vs`.
+
+  MeanAD is a measure of the variability of a univariate sample of quantitative data.
+  It is defined as the mean of the absolute deviations from a central point,
+  typically the data's mean.
+
+  `MeanAD = mean(|X_i - center|)`
+
+  Parameters:
+
+  - `vs`: Sequence of numbers.
+  - `center` (optional, double): The central point from which to calculate deviations.
+    If `nil` or not provided, the arithmetic [[mean]] of `vs` is used as the center.
+
+  Returns the calculated Mean Absolute Deviation as a double.
+
+  Unlike [[median-absolute-deviation]], which uses the median of absolute deviations
+  from the median, the Mean Absolute Deviation uses the mean of absolute deviations
+  from the mean (or specified center). This makes it more sensitive to outliers
+  than [[median-absolute-deviation]] but less sensitive than the standard deviation.
+
+  See also [[median-absolute-deviation]], [[stddev]], [[mean]]."
   (^double [vs] (mean-absolute-deviation vs nil))
   (^double [vs center]
    (let [m (double (or center (mean vs)))]
      (mean (map (fn [^double x] (m/abs (- x m))) vs)))))
 
 (defn sem
-  "Standard error of mean"
+  "Calculates the Standard Error of the Mean (SEM) for a sequence `vs`.
+
+  The SEM estimates the standard deviation of the sample mean, providing an
+  indication of how accurately the sample mean represents the population mean.
+  It is calculated as:
+
+  `SEM = stddev(vs) / sqrt(count(vs))`
+
+  where `stddev(vs)` is the sample standard deviation and `count(vs)` is the
+  sample size.
+
+  Parameters:
+
+  - `vs`: Sequence of numbers.
+
+  Returns the calculated SEM as a double.
+
+  A smaller SEM indicates that the sample mean is likely to be a more precise
+  estimate of the population mean.
+
+  See also [[stddev]], [[mean]]."
   ^double [vs]
   (let [s (stddev vs)]
     (/ s (m/sqrt (count vs)))))
@@ -586,9 +860,25 @@
                    (> v uif-thr))) vs))))
 
 (defn wmodes
-  "Returns weighted modes.
+  "Returns the weighted mode(s) of a sequence `vs`.
 
-  `vs` can contain anything, in case of ties returns all modes."
+  The mode is the value that appears most often in a dataset. This function
+  generalizes the mode concept by considering weights associated with each value.
+  A value's contribution to the mode calculation is proportional to its weight.
+
+  Parameters:
+
+  - `vs`: Sequence of data values. Can contain any data type (numbers, keywords, etc.).
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`. Defaults to a sequence of 1.0s if omitted,
+    effectively calculating the unweighted modes.
+
+  Returns a sequence containing all values that have the highest total weight.
+  If there are ties (multiple values share the same maximum total weight), all
+  tied values are included in the returned sequence. The order of modes in the
+  returned sequence is not guaranteed.
+  
+  See also [[wmode]] (returns only one mode in case of ties) and [[modes]] (for unweighted numeric data)."
   ([vs] (wmodes vs (repeat 1.0)))
   ([vs weights]
    (let [all (->> (map vector vs weights)
@@ -601,9 +891,28 @@
           (map first)))))
 
 (defn wmode
-  "Returns weighted mode.
+  "Returns the primary weighted mode of a sequence `vs`.
 
-  `vs` can contain anything, in case of ties returns only one (possibly random) mode."
+  The mode is the value that appears most often in a dataset. This function
+  generalizes the mode concept by considering weights associated with each value.
+  A value's contribution to the mode calculation is proportional to its weight.
+
+  If multiple values share the same highest total weight (i.e., there are ties
+  for the mode), this function returns only the first one encountered during
+  processing. The specific mode returned in case of a tie is not guaranteed
+  to be stable across different runs or environments. Use [[wmodes]] if you
+  need all tied modes.
+
+  Parameters:
+
+  - `vs`: Sequence of data values. Can contain any data type (numbers, keywords, etc.).
+  - `weights` (optional): Sequence of non-negative weights corresponding to `vs`.
+    Must have the same count as `vs`. Defaults to a sequence of 1.0s if omitted,
+    effectively calculating the unweighted mode.
+
+  Returns a single value representing the mode (or one of the modes if ties exist).
+
+  See also [[wmodes]] (returns all modes) and [[mode]] (for unweighted numeric data)."
   ([vs] (wmode vs (repeat 1.0)))
   ([vs weights]
    (first (wmodes vs weights))))
@@ -611,11 +920,32 @@
 (declare histogram)
 
 (defn modes
-  "Find the values that appears most often in a dataset `vs`.
+  "Find the values that appear most often in a dataset `vs`.
 
-  Returns sequence with all most appearing values in increasing order.
+  Returns sequence with all most appearing values. For the default method
+  (discrete data), modes are sorted in increasing order.
 
-  See also [[mode]]."
+  For samples potentially drawn from a continuous distribution, simply finding the
+  most frequent exact value might not be meaningful. Several estimation methods
+  are provided via the `method` argument:
+
+  * `:histogram`: Calculates the mode(s) based on the peak(s) of a histogram constructed
+    from `vs`. Uses interpolation within the bin(s) with the highest frequency.
+    Accepts options via `opts`, primarily `:bins` to control histogram
+    construction (see [[histogram]]).
+  * `:pearson`: Estimates the mode using Pearson's second skewness coefficient
+    formula: `mode ≈ 3 * median - 2 * mean`. Accepts `:estimation-strategy`
+    in `opts` for median calculation (see [[median]]). Returns a single estimated mode.
+  * `:kde`: Estimates the mode(s) by finding the original data points in `vs`
+    with the highest estimated probability density, based on Kernel Density
+    Estimation (KDE). Accepts KDE options in `opts` like `:kernel`, `:bandwidth`,
+    etc. (passed to `fastmath.kernel.density/kernel-density`).
+  * `:default` (or when `method` is omitted): Finds the exact value(s) that occur
+    most frequently in `vs`. Suitable for discrete data.
+
+  The optional `opts` map provides method-specific configuration.
+
+  See also [[mode]] (returns only the first mode) and [[wmodes]] (for weighted data)."
   ([vs method] (modes vs method {}))
   ([vs method opts]
    (let [avs (m/seq->double-array vs)]
@@ -644,35 +974,37 @@
 (defn mode
   "Find the value that appears most often in a dataset `vs`.
 
-  For sample from continuous distribution, three algorithms are possible:
-  * `:histogram` - calculated from [[histogram]]
-  * `:kde` - calculated from KDE
-  * `:pearson` - mode = mean-3(median-mean)
-  * `:default` - discrete mode
+  If multiple values share the same highest frequency (or estimated density/histogram peak),
+  this function returns only the *first* one encountered during processing. The specific
+  mode returned in case of a tie is not guaranteed to be stable. Use [[modes]] if
+  you need all tied modes.
 
-  Histogram accepts optional `:bins` (see [[histogram]]). KDE method accepts `:kde` for kernel name (default `:gaussian`) and `:bandwidth` (auto). Pearson can accept `:estimation-strategy` for median.
+  For samples potentially drawn from a continuous distribution, several estimation
+  methods are provided via the `method` argument:
 
-  See also [[modes]]."
+  * `:histogram`: Calculates the mode based on the peak of a histogram constructed from `vs`.
+    Uses interpolation within the bin with the highest frequency.
+    Accepts options via `opts`, primarily `:bins` to control histogram
+    construction (see [[histogram]]).
+  * `:pearson`: Estimates the mode using Pearson's second skewness coefficient
+    formula: `mode ≈ 3 * median - 2 * mean`. Accepts `:estimation-strategy`
+    in `opts` for median calculation (see [[median]]).
+  * `:kde`: Estimates the mode by finding the original data point in `vs`
+    with the highest estimated probability density, based on Kernel Density
+    Estimation (KDE). Accepts KDE options in `opts` like `:kernel`, `:bandwidth`,
+    etc. (passed to `fastmath.kernel.density/kernel-density`).
+  * `:default` (or when `method` is omitted): Finds the exact value that occurs
+    most frequently in `vs`. Suitable for discrete data.
+
+  The optional `opts` map provides method-specific configuration.
+
+  See also [[modes]] (returns all modes) and [[wmode]] (for weighted data)."
   (^double [vs method] (mode vs method {}))
   (^double [vs method opts]
    (first (modes vs method opts)))
   (^double [vs]
    (let [m (StatUtils/mode (m/seq->double-array vs))]
      (aget ^doubles m 0))))
-
-(defn minimum
-  "Minimum value from sequence."
-  ^double [vs]
-  (if (= (type vs) m/double-array-type)
-    (Array/min ^doubles vs)
-    (reduce m/min vs)))
-
-(defn maximum
-  "Maximum value from sequence."
-  ^double [vs]
-  (if (= (type vs) m/double-array-type)
-    (Array/max ^doubles vs)
-    (reduce m/max vs)))
 
 (defn span
   "Width of the sample, maximum value minus minimum value"
@@ -728,8 +1060,9 @@
   "Calculates L-moment, TL-moment (trimmed) or (T)L-moment ratios.
 
   Options:
+
   - `:s` (default: 0) - number of left trimmed values
-  - `:r` (default: 0) - number of right tirmmed values
+  - `:t` (default: 0) - number of right tirmmed values
   - `:sorted?` (default: false) - if input is already sorted
   - `:ratio?` (default: false) - normalized l-moment, l-moment ratio"
   (^double [vs ^long order] (l-moment vs order nil))
@@ -761,6 +1094,46 @@
                                 0.0 (range order)))
                 (m/* order (m/combinations n (m/+ order s t))))))))))
 
+(class (lazy-seq))
+(class (map inc (range 10)))
+
+(defn my-map
+  [f coll]
+  (if-not (seq coll)
+    nil
+    (lazy-seq (do (println "Hi! I'm about to process" (first coll))
+                  (cons (f (first coll))
+                        (my-map f (rest coll)))))))
+
+
+(def zzz (lazy-seq (println "Hi! I'm here!")
+                 [(+ 100 200)]))
+
+;; what's the object behind?
+(class zzz) ;; => clojure.lang.LazySeq
+
+;; is it a sequence?
+(seq? zzz) ;; => true
+
+;; is it convertible to a sequence?
+(seqable? zzz) ;; => true
+
+;; evaluating will print (only once! since `lazy-seq` caches evaluation)
+zzz ;; => (300)
+(seq zzz) ;; => (300)
+
+(def zzz2 (fn [] (println "Hi! I'm here too!") (seq [(+ 100 200)])))
+
+(zzz2) ;; => (300)
+
+(def my-map-res (my-map inc (range 10)))
+
+(first my-map-res)
+(take 3)
+
+(sequential? (lazy-seq))
+(seq? (lazy-seq))
+
 (defn l-variation
   "Coefficient of L-variation, L-CV"
   ^double [vs]
@@ -783,9 +1156,28 @@
        (if weights (mean m weights) (mean m)))))  )
 
 (defn expectile
-  "Calculate expectile for given tau.
+  "Calculate the tau-th expectile of a sequence `vs`.
 
-  If tau=0.5, returns mean."
+  Expectiles are related to quantiles but are determined by minimizing an
+  asymmetrically weighted sum of squared differences, rather than absolute
+  differences. The `tau` parameter controls the asymmetry.
+
+  A key property is that the expectile for `tau = 0.5` is equal to the [[mean]].
+
+  The calculation involves finding the value `t` such that the weighted sum
+  of `w_i * (v_i - t)` is zero, where the effective weights depend on `tau` and whether
+  `v_i` is above or below `t`.
+
+  Parameters:
+
+  - `vs`: Sequence of data values.
+  - `weights` (optional): Sequence of corresponding non-negative weights.
+    Must have the same count as `vs`. If omitted, calculates the unweighted expectile.
+  - `tau`: The expectile level, a value between 0.0 and 1.0 (inclusive).
+
+  Returns the calculated expectile as a double.
+
+  See also [[quantile]], [[mean]], [[median]]."
   (^double [vs ^double tau] (expectile vs nil tau))
   (^double [vs weights ^double tau]
    (let [avg (if weights (mean vs weights) (mean vs))]
@@ -855,8 +1247,7 @@
 
 (defn- bowley-skewness
   ^double [vs]
-  (let [[^double q1 ^double q3] (quantiles vs [0.25 0.75])]
-    (/ (+ q3 q1) (- q3 q1))))
+  (yule-skewness vs 0.25))
 
 (defn- hogg-skewness
   ^double [vs]
@@ -870,11 +1261,13 @@
   probability distribution about its mean.
 
   Parameters:
+
   - `vs` (seq of numbers): The input sequence.
   - `typ` (keyword or sequence, optional): Specifies the type of skewness measure to calculate.
     Defaults to `:G1`.
 
   Available `typ` values:
+
   - `:G1` (Default): Sample skewness based on the third standardized moment, as
     implemented by Apache Commons Math `Skewness`. Adjusted for sample size bias.
   - `:g1` or `:pearson`: Pearson's moment coefficient of skewness (g1), a bias-adjusted
@@ -898,6 +1291,7 @@
     Expected value 0 for symmetric distributions.
 
   Interpretation:
+
   - Positive values generally indicate a distribution skewed to the right (tail is longer on the right).
   - Negative values generally indicate a distribution skewed to the left (tail is longer on the left).
   - Values near 0 suggest relative symmetry.
@@ -929,8 +1323,8 @@
            (case typ
              :b1 (* v (/ (* (- n 2.0) (dec n)) (* n n)))
              (:pearson :g1) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
-             :skew (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; artificial, to match BCa skew definition
-             :else v)))))))
+             :skew (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; BCa based, g1/sqrt(n)
+             v)))))))
 
 ;; centered
 (defn- moors-kurtosis
@@ -964,12 +1358,14 @@
   of the distribution compared to a normal distribution.
 
   Parameters:
+
   - `vs` (seq of numbers): The input sequence.
   - `typ` (keyword or sequence, optional): Specifies the type of kurtosis measure to calculate.
     Different types use different algorithms and may have different expected values
     under normality (e.g., 0 or 3). Defaults to `:G2`.
 
   Available `typ` values:
+
   - `:G2` (Default): Sample kurtosis based on the fourth standardized moment, as
     implemented by Apache Commons Math `Kurtosis`. Its value approaches 3 for
     a large normal sample, but the exact expected value depends on sample size.
@@ -994,6 +1390,7 @@
     Expected value for normal distribution is ≈ 0.1226.
 
   Interpretation (for excess kurtosis `:g2`):
+
   - Positive values indicate a leptokurtic distribution (heavier tails, more peaked than normal).
   - Negative values indicate a platykurtic distribution (lighter tails, flatter than normal).
   - Values near 0 suggest kurtosis similar to a normal distribution.
@@ -2749,6 +3146,7 @@
   (where the null hypothesis implies `stat` follows the given `distribution`).
 
   Parameters:
+
   - `distribution` (distribution object, optional): The probability distribution object
     (from `fastmath.random`) that the test statistic follows under the null
     hypothesis. Defaults to the standard normal distribution (`fastmath.random/default-normal`)
@@ -2790,6 +3188,7 @@
   from the zero skewness expected under normality.
 
   The test works by:
+
   1. Calculating the sample skewness (type configurable via `:type`, default `:g1`).
   2. Standardizing the sample skewness relative to its expected value (0) and
      standard error under the null hypothesis.
@@ -2798,6 +3197,7 @@
      follows a standard normal distribution under the null hypothesis.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `skew` (double, optional): A pre-calculated skewness value. If omitted, it's calculated from `xs`.
   - `params` (map, optional): Options map:
@@ -2808,6 +3208,7 @@
     - `:type` (keyword, default `:g1`): The type of skewness to calculate if `skew` is not provided. Note that the internal normalization constants are derived based on `:g1`. See [[skewness]] for options.
 
   Returns a map containing:
+
   - `:Z`: The final test statistic, approximately standard normal under H0.
   - `:stat`: Alias for `:Z`.
   - `:p-value`: The p-value associated with `Z` and the specified `:sides`.
@@ -2841,6 +3242,7 @@
   from the kurtosis expected under normality (approximately 3).
 
   The test works by:
+
   1. Calculating the sample kurtosis (type configurable via `:type`, default `:kurt`).
   2. Standardizing the difference between the sample kurtosis and the expected
      kurtosis under normality using the theoretical standard error.
@@ -2850,6 +3252,7 @@
      smaller sample sizes.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `kurt` (double, optional): A pre-calculated kurtosis value. If omitted, it's calculated from `xs`.
   - `params` (map, optional): Options map:
@@ -2860,6 +3263,7 @@
     - `:type` (keyword, default `:kurt`): The type of kurtosis to calculate if `kurt` is not provided. See [[kurtosis]] for options (e.g., `:kurt`, `:G2`, `:g2`).
 
   Returns a map containing:
+
   - `:Z`: The final test statistic, approximately standard normal under H0.
   - `:stat`: Alias for `:Z`.
   - `:p-value`: The p-value associated with `Z` and the specified `:sides`.
@@ -2907,6 +3311,7 @@
      K² approximately follows a Chi-squared distribution with 2 degrees of freedom.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `skew` (double, optional): A pre-calculated skewness value (type `:g1` used by default in underlying test).
   - `kurt` (double, optional): A pre-calculated kurtosis value (type `:kurt` used by default in underlying test).
@@ -2919,6 +3324,7 @@
       - `:two-sided`: Tests if the K² statistic is extreme in either tail.
 
   Returns a map containing:
+
   - `:Z`: The calculated K² omnibus test statistic (labeled `:Z` for consistency,
            though it follows Chi-squared(2)).
   - `:stat`: Alias for `:Z`.
@@ -2956,6 +3362,7 @@
   distribution with 2 degrees of freedom.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `skew` (double, optional): A pre-calculated sample skewness value (type `:g1`).
     If omitted, it's calculated from `xs`.
@@ -2970,6 +3377,7 @@
       - `:two-sided`: Tests if the statistic is extreme in either tail.
 
   Returns a map containing:
+
   - `:Z`: The calculated Jarque-Bera test statistic (labeled `:Z` for consistency,
            though it follows Chi-squared(2)).
   - `:stat`: Alias for `:Z`.
@@ -3048,6 +3456,7 @@
   in the underlying population is equal to a specified value (default 0.5).
 
   The function can be called in two ways:
+
   1. With counts: `(binomial-test number-of-successes number-of-trials params)`
   2. With data: `(binomial-test xs params)`, where `xs` is a sequence of outcomes.
      In this case, the outcomes in `xs` are converted to true/false based on the
@@ -3055,6 +3464,7 @@
      and the number of successes and total trials are derived from `xs`.
 
   Parameters:
+
   - `number-of-successes` (long): Observed number of successful outcomes.
   - `number-of-trials` (long): Total number of trials.
   - `xs` (sequence): Sample data (used in the alternative call signature).
@@ -3069,6 +3479,7 @@
     - `:true-false-conv` (optional, used only with `xs`): A function, set, or map to convert elements of `xs` into boolean `true` (success) or `false` (failure). See [[binary-measures-all]] documentation for details. If `nil` and `xs` contains numbers, `1.0` is treated as success.
 
   Returns a map containing:
+
   - `:p-value`: The probability of observing a result as extreme as, or more extreme than, the observed number of successes, assuming the null hypothesis is true. Calculated using the binomial distribution.
   - `:p`: The hypothesized probability of success used in the test.
   - `:successes`: The observed number of successes.
@@ -3148,6 +3559,7 @@
   from the sample.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `params` (map, optional): Options map:
     - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
@@ -3158,6 +3570,7 @@
     - `:mu` (double, default `0.0`): The hypothesized population mean under the null hypothesis.
 
   Returns a map containing:
+
   - `:t`: The calculated t-statistic.
   - `:stat`: Alias for `:t`.
   - `:df`: Degrees of freedom (`n-1`).
@@ -3172,6 +3585,7 @@
   - `:test-type`: Alias for `:sides`.
 
   Assumptions:
+
   - The data are independent observations.
   - The data are drawn from a population that is approximately normally distributed.
     (The t-test is relatively robust to moderate violations, especially with larger sample sizes).
@@ -3198,6 +3612,7 @@
   the standard error.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data.
   - `params` (map, optional): Options map:
     - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
@@ -3208,6 +3623,7 @@
     - `:mu` (double, default `0.0`): The hypothesized population mean under the null hypothesis.
 
   Returns a map containing:
+
   - `:z`: The calculated Z-statistic.
   - `:stat`: Alias for `:z`.
   - `:p-value`: The p-value associated with the Z-statistic and the specified `:sides`.
@@ -3279,6 +3695,7 @@
   "Performs a two-sample Student's t-test to compare the means of two samples.
 
   This function can perform:
+
   - An **unpaired t-test** (assuming independent samples) using either:
     - **Welch's t-test** (default: `:equal-variances? false`): Does not assume equal population variances. Uses the Satterthwaite approximation for degrees of freedom. Recommended unless variances are known to be equal.
     - **Student's t-test** (`:equal-variances? true`): Assumes equal population variances and uses a pooled variance estimate.
@@ -3288,6 +3705,7 @@
   means (or the mean of the differences for paired test) is equal to `mu`.
 
   Parameters:
+
   - `xs` (seq of numbers): The first sample.
   - `ys` (seq of numbers): The second sample.
   - `params` (map, optional): Options map:
@@ -3301,6 +3719,7 @@
     - `:equal-variances?` (boolean, default `false`): Used only when `paired?` is `false`. If `true`, assumes equal population variances (Student's). If `false`, does not assume equal variances (Welch's).
 
   Returns a map containing:
+
   - `:t`: The calculated t-statistic.
   - `:stat`: Alias for `:t`.
   - `:df`: Degrees of freedom used for the t-distribution.
@@ -3353,6 +3772,7 @@
   This implementation calculates the standard error using the provided sample variances.
 
   Parameters:
+
   - `xs` (seq of numbers): The first sample.
   - `ys` (seq of numbers): The second sample.
   - `params` (map, optional): Options map:
@@ -3366,6 +3786,7 @@
     - `:equal-variances?` (boolean, default `false`): Used only when `paired?` is `false`. If `true`, assumes population variances are equal and calculates a pooled standard error. If `false`, calculates the standard error without assuming equal variances (Welch's approach adapted for Z-test). This affects the standard error calculation but the standard normal distribution is still used for inference.
 
   Returns a map containing:
+
   - `:z`: The calculated Z-statistic.
   - `:stat`: Alias for `:z`.
   - `:p-value`: The p-value associated with the Z-statistic and the specified `:sides`.
@@ -3415,6 +3836,7 @@
   the assumption that both populations are normally distributed.
 
   Parameters:
+
   - `xs` (seq of numbers): The first sample.
   - `ys` (seq of numbers): The second sample.
   - `params` (map, optional): Options map:
@@ -3426,6 +3848,7 @@
     - `:alpha` (double, default `0.05`): Significance level for the confidence interval.
 
   Returns a map containing:
+
   - `:F`: The calculated F-statistic (ratio of sample variances: Var(xs) / Var(ys)).
   - `:stat`: Alias for `:F`.
   - `:estimate`: Alias for `:F`, representing the estimated ratio of variances.
@@ -3565,6 +3988,7 @@
     Specifies the number of bins, an estimation method (see [[histogram]]), or explicit bin edges for histogram creation.
 
   Returns a map containing:
+
   - `:stat`: The calculated power divergence test statistic.
   - `:chi2`: Alias for `:stat`.
   - `:df`: Degrees of freedom for the test.
@@ -3670,6 +4094,7 @@
   and have equal variances.
 
   Parameters:
+
   - `xss` (sequence of sequences): A collection where each element is a sequence
     representing a group of observations.
   - `params` (map, optional): Options map with the following key:
@@ -3677,6 +4102,7 @@
       Possible values: `:one-sided-greater`, `:one-sided-less`, `:two-sided`.
 
   Returns a map containing:
+
   - `:F`: The F-statistic for the test.
   - `:stat`: Alias for `:F`.
   - `:p-value`: The p-value for the test.
@@ -3702,6 +4128,7 @@
   center (mean by default).
 
   Parameters:
+
   - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations.
   - `params` (map, optional): Options map with the following keys:
     - `:sides` (keyword, default `:one-sided-greater`): Alternative hypothesis side for the F-test.
@@ -3710,6 +4137,7 @@
     - `:scorediff` (fn, default [[abs]]): Function applied to the difference between each data point and its group center (e.g., [[abs]], [[sq]]).
 
   Returns a map containing:
+
   - `:W`: The Levene test statistic (which is an F-statistic).
   - `:stat`: Alias for `:W`.
   - `:p-value`: The p-value for the test.
@@ -3758,12 +4186,14 @@
   The test is based on ranks of the absolute deviations from the group medians.
 
   Parameters:
+  
   - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations.
   - `params` (map, optional): Options map with the following key:
     - `:sides` (keyword, default `:one-sided-greater`): Alternative hypothesis side for the Chi-squared test.
       Possible values: `:one-sided-greater`, `:one-sided-less`, `:two-sided`.
 
   Returns a map containing:
+
   - `:chi2`: The Fligner-Killeen test statistic (Chi-squared value).
   - `:stat`: Alias for `:chi2`.
   - `:p-value`: The p-value for the test.
@@ -3817,6 +4247,7 @@
   sensitive to differences in the tails of the distributions.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data to be tested.
   - `distribution-or-ys` (optional):
     - A `fastmath.random` distribution object to test against. If omitted, defaults
@@ -3838,6 +4269,7 @@
     - `:bandwidth` (double, optional): Bandwidth for KDE (if applicable).
 
   Returns a map containing:
+
   - `:A2`: The Anderson-Darling test statistic (A^2).
   - `:stat`: Alias for `:A2`.
   - `:p-value`: The p-value associated with the test statistic and the specified `:sides`.
@@ -3890,6 +4322,7 @@
   from the reference distribution.
 
   Parameters:
+
   - `xs` (seq of numbers): The sample data to be tested.
   - `distribution-or-ys` (optional):
     - A `fastmath.random` distribution object to test against. If omitted, defaults
@@ -3914,6 +4347,7 @@
       - `:jitter`: Adds a small amount of random noise to each value in `xs` to break ties.
 
   Returns a map containing:
+
   - `:n`: Sample size of `xs` (after applying `:distinct?`).
   - `:dp`: Maximum positive difference (ECDF(xs) - CDF(ref)).
   - `:dn`: Maximum positive difference (CDF(ref) - ECDF(xs)).
@@ -4029,6 +4463,7 @@
   are drawn from the same continuous distribution.
 
   Parameters:
+
   - `xs` (seq of numbers): The first sample.
   - `ys` (seq of numbers): The second sample.
   - `opts` (map, optional): Options map:
@@ -4047,6 +4482,7 @@
     - `:correct?` (boolean, default `true`): Apply continuity correction when using the `:exact` calculation method for a more accurate p-value especially for smaller sample sizes.
 
   Returns a map containing:
+
   - `:nx`: Number of observations in `xs` (after `:distinct?` processing if applicable).
   - `:ny`: Number of observations in `ys` (after `:distinct?` processing if applicable).
   - `:n`: Effective sample size used for asymptotic calculation (`nx*ny / (nx+ny)`).
@@ -4189,6 +4625,7 @@
    The Box-Cox transformation is a family of power transformations used to stabilize variance and make data more normally distributed.
 
   Parameters:
+
   - `xs` (seq of numbers): The input data.
   - `lambda` (default `0.0`): The power parameter. If `nil` or `[lambda-min, lambda-max]`, `lambda` is inferred using maximum log likelihood.
   - Options map:
@@ -4250,12 +4687,14 @@
   This transformation is used to stabilize variance and make data more normally distributed. It extends the Box-Cox transformation to allow for zero and negative values.
 
   Parameters:
+
   - `xs`: The input dataset.
   - `lambda` (default: 0.0): The power parameter controlling the transformation. If `lambda` is `nil` or a range `[lambda-min, lambda-max]` it will be inferred using maximum log-likelihood method.
   - Options map:
     - `alpha` (optional): A shift parameter applied before transformation.
 
   Returns:
+
   - A transformed sequence of numbers.
 
   Related: `box-cox-tranformation`"

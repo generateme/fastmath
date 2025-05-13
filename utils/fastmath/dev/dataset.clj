@@ -20,17 +20,19 @@
   [data]
   (memoize (fn
              ([] data)
-             ([selector] (map selector data))
-             ([selector filter-pred] (map selector (filter filter-pred data))))))
+             ([selector] (map #(get % selector) data))
+             ([selector filter-pred] (map #(get % selector) (filter filter-pred data))))))
 
 (defn by
   ([data f]
-   (mapv second (sort-by first (group-by f (data)))))
+   (group-by f (data)))
   ([data f selector]
-   (vec (for [group (by data f)]
-          (map selector group)))))
+   (update-vals (group-by f (data)) (partial map #(get % selector)))))
 
 (def iris (data->fn (read-csv "iris.csv"
                             [:sepal-length :sepal-width :petal-length :petal-width [:species keyword]])))
 (def mtcars (data->fn (read-csv "mtcars.csv"
                               [[:name identity] :mpg :cyl :disp :hp :drat :wt :qsec :vs :am :gear :carb])))
+
+(def winequality (data->fn (read-csv "winequality-white.csv"
+                                   ["fixed acidity","volatile acidity","citric acid","residual sugar","chlorides","free sulfur dioxide","total sulfur dioxide","density","pH","sulphates","alcohol","quality"])))

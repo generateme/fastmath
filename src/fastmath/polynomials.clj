@@ -334,6 +334,27 @@
 
 ;; Orthogonal polynomials
 
+(defn eval-bernstein
+  ^double [^long degree ^long order ^double x]
+  (case (int degree)
+    0 1.0
+    1 (if (m/zero? order) (m/- 1.0 x) x)
+    (m/* (m/combinations degree order) (m/fpow x order) (m/fpow (m/- 1.0 x) (m/- degree order)))))
+
+
+(defn bernstein
+  [^long degree ^long order]
+  (->> (range (m/inc degree))
+       (map (fn [^long l]
+              (if (m/< l order)
+                0.0
+                (m/* (if (m/even? (m/- l order)) 1.0 -1.0)
+                     (m/combinations degree l)
+                     (m/combinations l order)))))
+       (polynomial)))
+
+;;
+
 (defn eval-laguerre-L
   "Evaluate generalized Laguerre polynomial"
   (^double [^long degree ^double x] (eval-laguerre-L degree 0.0 x))

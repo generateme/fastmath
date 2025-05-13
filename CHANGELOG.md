@@ -22,13 +22,16 @@ All notable changes to this project will be documented in this file. This change
 * `cohens-u1` - based on Cohen's formula and `cohens-u2` value.
 * `cir`, `pava` - isotonic regression + related interpolators.
 * `ks-test-two-samples` - added jittering the data, ties solving and sides calculation for `:exact` method 
+* `bernstein` polynomial
+* `owens-t` special function
 
 ### Fixed
 
 * `demean` for matrices should work on ACM matrices properly (thanks to @daslu)
 * `ks-test-two-samples` - wrong calculation of KS statistic, also fixed :exact method to accept bigger datasets (thanks to `mars0i`)
-* `cohens-u2` - bad optiomization method used
+* `cohens-u2` - bad optimization method used
 * OOM when called `hat-matrix` on relatively low number (10k) of entries.
+* `:bowley` skewness to be equal `:yule` (default, `u=0.25`)
 
 ### Deprecated
 

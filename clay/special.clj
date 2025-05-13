@@ -2,7 +2,8 @@
 (ns special
   (:require [fastmath.core :as m]
             [fastmath.special :as special]
-
+            [fastmath.complex :as complex]
+            
             [scicloj.kindly.v4.kind :as kind]
             [fastmath.dev.ggplot :as gg]
             [fastmath.dev.clay :as utls]
@@ -16,7 +17,8 @@
 ;; Native implementation is based on Julia packages ([SpecialFunctions.jl](https://github.com/JuliaMath/SpecialFunctions), [Bessel](https://github.com/JuliaMath/Bessels.jl), [HypergeometricFunctions](https://github.com/JuliaMath/HypergeometricFunctions.jl)) or scientific papers and books ([NIST](https://dlmf.nist.gov/), Meshfree Approximation Methods with Matlab by G. E. Fasshauer]).
 
 (require '[fastmath.special :as special]
-         '[fastmath.core :as m])
+         '[fastmath.core :as m]
+         '[fastmath.complex :as complex])
 
 ;; ## Gamma
 
@@ -28,6 +30,7 @@
 ;; * `upper-incomplete-gamma`, `lower-incomplete-gamma`
 ;; * `regularized-gamma-p`, `regularized-gamma-q`
 ;; * `digamma`, `trigamma`, `polygamma`
+;; * `gamma-complex`, `log-gamma-complex`
 ;; :::
 
 ;; ### Gamma function
@@ -63,6 +66,18 @@
   (special/inv-gamma-1pm1 -0.5)
   (special/inv-gamma-1pm1 0.5))
 
+;; ---
+
+;; For complex argument call `gamma-complex`.
+
+(gg/->image (gg/complex-function special/gamma-complex {:x [-5.1 5.1] :y [-5.1 5.1]
+                                                        :steps 500 :title "Complex gamma"}))
+
+(utls/examples-note
+  (special/gamma-complex (complex/complex 1.5 0.0))
+  (special/gamma-complex (complex/complex 0.0 1.0))
+  (special/gamma-complex (complex/complex -1.5 -1.0)))
+
 ;; ### Log gamma 
 
 ;; Logartihm of gamma `log-gamma` $\log\Gamma(x)$ with derivatives: `digamma` $\psi$, `trigamma` $\psi_1$  and `polygamma` $\psi^{(m)}$.
@@ -73,6 +88,18 @@
   (special/log-gamma 1.01)
   (special/log-gamma 0.5)
   (m/exp (special/log-gamma 5)))
+
+;; ---
+
+;; For complex argument call `log-gamma-complex`.
+
+(gg/->image (gg/complex-function special/log-gamma-complex {:x [-5.1 5.1] :y [-5.1 5.1]
+                                                            :steps 500 :title "Complex log-gamma"}))
+
+(utls/examples-note
+  (special/log-gamma-complex (complex/complex 1.01 0.0))
+  (special/log-gamma-complex (complex/complex 0.0 1.0))
+  (special/log-gamma-complex (complex/complex -1.5 -1.0)))
 
 ;; ---
 
@@ -964,11 +991,11 @@
 ;; where $(a_p)_k$ and $(b_q)_k$ are k^th^ rising factorials
 
 ;; ::: {.callout-tip title="Defined functions"}
-;; * `hypergeometric-pFq`, `hypergeometric-pFq-ratio`
+;; * `hypergeometric-pFq`, `hypergeometric-pFq-ratio`, `hypergeometric-pFq-complex`
 ;; * `hypergeometric-0F0`, `hypergeometric-0F1`, `hypergeometric-0F2`
 ;; * `hypergeometric-1F0`, `hypergeometric-1F1`
 ;; * `hypergeometric-2F0`, `hypergeometric-2F1`
-;; * `kummers-M`, `tricomis-U`
+;; * `kummers-M`, `tricomis-U`, `tricomis-U-complex`
 ;; * `whittaker-M`, `whittaker-W`
 ;; :::
 
@@ -976,12 +1003,13 @@
 
 ;; ### ~p~F~q~, generalized
 
-;; Two implementations of general ${}_pF_q$ hypergeometric functions using Maclaurin series. One implementation operates on doubles (`hypergeometric-pFq`), second on Clojure `ratio` type which is accurate but slow (`hypergeometric-pFq-ratio`).
+;; Two implementations of general ${}_pF_q$ hypergeometric functions using Maclaurin series. One implementation operates on doubles (`hypergeometric-pFq`), second on Clojure `ratio` type which is accurate but slow (`hypergeometric-pFq-ratio`), third on complex numbers..
 
 (utls/examples-note
   (special/hypergeometric-2F0 0.1 0.1 0.01)
   (special/hypergeometric-pFq [0.1 0.1] [] 0.01)
-  (special/hypergeometric-pFq-ratio [0.1 0.1] [] 0.01))
+  (special/hypergeometric-pFq-ratio [0.1 0.1] [] 0.01)
+  (special/hypergeometric-pFq-complex [(complex/complex 0.2 0.2)] [1 (complex/complex -1 1)] 0.1))
 
 ;; Both functions accept optional `max-iters` parameter to control number of iterations.
 
@@ -1134,6 +1162,17 @@
   (special/tricomis-U 0.5 0.2 0.1)
   (special/tricomis-U -0.5 0.2 0.1))
 
+;; Complex variant accepts both complex numbers and real numbers as arguments.
+
+(gg/->image (gg/complex-function (partial special/tricomis-U-complex (complex/complex -1 1)
+                                          (complex/complex 1 -1))
+                                 {:x [-2.5 3.5] :y [-3 3]
+                                  :steps 500 :title "Complex Tricomis U (i-1, 1-i)"}))
+
+(utls/examples-note
+  (special/tricomis-U-complex 0.5 0.2 0.1)
+  (special/tricomis-U-complex (complex/complex -1 1) (complex/complex 1 -1) 1))
+
 ;; ### ~2~F~1~, Gauss
 
 ;; Gauss' hypergeometric function ${}_2F_1$.
@@ -1191,6 +1230,7 @@
 ;; * `lambert-W` ($W_0$), `lambert-W-1` ($W_{-1}$)
 ;; * `harmonic-number`
 ;; * `minkowski` - $?(x)$
+;; * `owens-t`
 ;; :::
 
 ;; ### Lambert W
@@ -1294,6 +1334,43 @@
 
   [(special/minkowski (/ 0.5 1.5))
    (/ (special/minkowski 0.5) 2)])
+
+;; ### Owen's T
+
+;; Owen's T function
+
+;; $$T(h,a) = \frac{1}{2\pi } \int_{0}^{a} \frac{e^{-\frac{1}{2}h^2(1+x^2)}}{1+x^2}dx\quad(-\infty < h,a < +\infty)$$
+
+(utls/examples-note
+  (special/owens-t 1 0)
+  (special/owens-t 0 1)
+  (special/owens-t 1 1)
+  (special/owens-t -1 1)
+  (special/owens-t 1 -1)
+  (special/owens-t -1 -1))
+
+(gg/->image (gg/function2d special/owens-t {:varg? false :x [-2 2] :y [-2 2]
+                                            :xlab "h" :ylab "a"
+                                            :title "Owen's T"}))
+
+^:kind/table
+[[(gg/->image (gg/functions [["0.0" (partial special/owens-t 0.0)]
+                             ["0.5" (partial special/owens-t 0.5)]
+                             ["1.0" (partial special/owens-t 1.0)]
+                             ["2.0" (partial special/owens-t 2.0)]]
+                            {:x [-6 6]
+                             :legend-name "h"
+                             :xlab "a"
+                             :palette gg/palette-blue-1
+                             :title "Owen's T (x=a)"}))
+  (gg/->image (gg/functions [["1.0" #(special/owens-t % 1.0)]
+                             ["2.0" #(special/owens-t % 2.0)]
+                             ["5.0" #(special/owens-t % 5.0)]]
+                            {:x [-3 3]
+                             :legend-name "a"
+                             :xlab "h"
+                             :palette gg/palette-blue-1
+                             :title "Owen's T (x=h)"}))]]
 
 ;; ## Reference
 

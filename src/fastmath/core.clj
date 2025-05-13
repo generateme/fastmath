@@ -1442,6 +1442,20 @@
    :inline-arities #{2}}
   ^double [^double x ^long exponent] (. FastMath (powFast x exponent)))
 
+(defn mpow
+  "Modular power"
+  ^long [^long x ^long e ^long m]
+  (if (one? m)
+    0
+    (loop [r (long 1)
+           b (mod x m)
+           e e]
+      (if (zero? e)
+        r
+        (recur (if (odd? e) (mod (* r b) m) r)
+               (mod (* b b) m)
+               (>> e 1))))))
+
 (def ^:private factorial20-table [1 1 2 6 24 120 720 5040 40320 362880 3628800 39916800 479001600
                                 6227020800 87178291200 1307674368000 20922789888000
                                 355687428096000 6402373705728000 121645100408832000
