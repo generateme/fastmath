@@ -206,6 +206,15 @@
              (gg/geom_segment :mapping (gg/aes :x :x :xend :x :y 0 :yend :y) :color color))
        (add-common opts))))
 
+(defn errorbars
+  ([eb] (errorbars eb nil))
+  ([eb opts]
+   (let [data (tc/dataset (map #(zipmap [:name :xmin :xmax :x] (flatten %)) (reverse eb)))]
+     (-> (r/r+ (gg/ggplot :data data :mapping (gg/aes :x :x :xmin :xmin :xmax :xmax :y :name))
+               (gg/theme_light)
+               (gg/geom_point :size 2)
+               (gg/geom_errorbarh :color color-main :height 0.1))
+         (add-common opts)))))
 
 (defn functions
   "Functions"

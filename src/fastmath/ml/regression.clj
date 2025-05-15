@@ -1281,13 +1281,14 @@
 
 (defn- coefficients-table
   [nm coefficient]
-  (zipmap [:name :estimate :stderr :t-value :p-value :confidence-interval]
-          [nm
-           (m/approx (:estimate coefficient) 6)
-           (m/approx (:stderr coefficient) 6)
-           (m/approx (:t-value coefficient) 6)
-           (m/approx (:p-value coefficient) 6)
-           (mapv #(m/approx % 6) (:confidence-interval coefficient))]))
+  (let [tz (if (:t-value coefficient) :t-value :z-value)]
+    (zipmap [:name :estimate :stderr tz :p-value :confidence-interval]
+            [nm
+             (m/approx (:estimate coefficient) 6)
+             (m/approx (:stderr coefficient) 6)
+             (m/approx (tz coefficient) 6)
+             (m/approx (:p-value coefficient) 6)
+             (mapv #(m/approx % 6) (:confidence-interval coefficient))])))
 
 ;; Model printing methods
 (defmulti ->string class)
@@ -1413,4 +1414,3 @@
                        true (conj [(Array/aget x b) yd])
                        (and (m/zero? t) (m/> f 1)) (conj [(first xs) yd]))]
            (recur (m/dec b) t nbuff)))))))
-

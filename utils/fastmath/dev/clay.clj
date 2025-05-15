@@ -3,7 +3,8 @@
             [scicloj.clay.v2.api :as clay]
             [scicloj.kindly.v4.kind :as kind]
             [scicloj.kindly.v4.api :as kindly]
-            [fastmath.core :as m]))
+            [fastmath.core :as m]
+            [clojure.walk :as walk]))
 
 (defmacro callout
   [what title & forms]
@@ -24,6 +25,9 @@
   [& forms]
   `(callout "note" "Examples" (examples ~@forms)))
 
+(defn wrap-into-markdown
+  [coll]
+  (walk/postwalk (fn [form] (if (string? form) (kind/md form) form)) coll))
 
 (defmacro dgraph-table
   "Helper macro to render `rows` to a table containing PDF, CDF, iCDF graphs images of distributions.

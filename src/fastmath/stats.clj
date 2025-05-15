@@ -42,9 +42,7 @@
   * `:UIF` - upper inner fence, `(+ q3 (* 1.5 iqr))`
   * `:Outliers` - list of [[outliers]], samples which are outside outer fences
   * `:Kurtosis` - [[kurtosis]]
-  * `:Skewness` - [[skewness]]
-
-  Note: [[percentile]] and [[quartile]] can have 10 different interpolation strategies. See [docs](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.html)"
+  * `:Skewness` - [[skewness]]"
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.distance :as d]
@@ -160,10 +158,14 @@
 
   See also [[quantile]] (which uses a 0.0-1.0 range) and [[percentiles]]."
   (^double [vs ^double p]
-   (StatUtils/percentile (m/seq->double-array vs) p))
+   (if (zero? p)
+     (minimum vs)
+     (StatUtils/percentile (m/seq->double-array vs) p)))
   (^double [vs ^double p estimation-strategy]
-   (let [^Percentile perc (.withEstimationType (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
-     (.evaluate perc (m/seq->double-array vs) p))))
+   (if (zero? p)
+     (minimum vs)
+     (let [^Percentile perc (.withEstimationType (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
+       (.evaluate perc (m/seq->double-array vs) p)))))
 
 (defn percentiles
   "Calculates the sequence of p-th percentiles of a sequence `vs`.
@@ -189,9 +191,10 @@
   ([vs] (percentiles vs [25 50 75 100]))
   ([vs ps] (percentiles vs ps nil))
   ([vs ps estimation-strategy]
-   (let [^Percentile perc (.withEstimationType (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))]
-     (.setData perc (m/seq->double-array vs))
-     (mapv (fn [^double p] (.evaluate perc p)) ps))))
+   (let [^Percentile perc (.withEstimationType (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))
+         d (m/seq->double-array vs)]
+     (.setData perc d)
+     (mapv (fn [^double p] (if (zero? p) (minimum d) (.evaluate perc p))) ps))))
 
 (defn quantile
   "Calculates the q-th quantile of a sequence `vs`.
@@ -807,6 +810,21 @@
          iqr+ (* 3.0 (- q3 q1))]
      [(- q1 iqr+) (+ q3 iqr+) m])))
 
+(defn span
+  "Width of the sample, maximum value minus minimum value"
+  ^double [vs]
+  (let [avs (m/seq->double-array vs)]
+    (- (maximum avs) (minimum avs))))
+
+(defn extent
+  "Return extent (min, max, mean) values from sequence. Mean is optional (default: true)"
+  ([vs] (extent vs true))
+  ([vs mean?]
+   (let [^double fv (first vs)
+         mm (reduce (fn [^Vec2 curr ^double v]
+                      (Vec2. (min (.x curr) v) (max (.y curr) v))) (Vec2. fv fv) (rest vs))]
+     (if mean? (conj mm (mean vs)) mm))))
+
 (defn outliers
   "Find outliers defined as values outside inner fences.
 
@@ -844,13 +862,12 @@
   Returns a sequence without outliers.
 
   Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  ([vs]
-   (outliers vs :legacy))
+  ([vs] (remove-outliers vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
          q1 (percentile avs 25.0 estimation-strategy)
          q3 (percentile avs 75.0 estimation-strategy)]
-     (outliers avs q1 q3)))
+     (remove-outliers avs q1 q3)))
   ([vs ^double q1 ^double q3]
    (let [iqr (* 1.5 (- q3 q1))
          lif-thr (- q1 iqr)
@@ -1005,21 +1022,6 @@
   (^double [vs]
    (let [m (StatUtils/mode (m/seq->double-array vs))]
      (aget ^doubles m 0))))
-
-(defn span
-  "Width of the sample, maximum value minus minimum value"
-  ^double [vs]
-  (let [avs (m/seq->double-array vs)]
-    (- (maximum avs) (minimum avs))))
-
-(defn extent
-  "Return extent (min, max, mean) values from sequence. Mean is optional (default: true)"
-  ([vs] (extent vs true))
-  ([vs mean?]
-   (let [^double fv (first vs)
-         mm (reduce (fn [^Vec2 curr ^double v]
-                      (Vec2. (min (.x curr) v) (max (.y curr) v))) (Vec2. fv fv) (rest vs))]
-     (if mean? (conj mm (mean vs)) mm))))
 
 (defn moment
   "Calculate moment (central or/and absolute) of given order (default: 2).

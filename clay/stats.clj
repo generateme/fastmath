@@ -7,7 +7,8 @@
             [fastmath.dev.dataset :as ds]
             [fastmath.core :as m]
             [scicloj.kindly.v4.kind :as kind]
-            [fastmath.fields.n :as n]))
+            [fastmath.fields.n :as n]
+            [fastmath.stats :as stat]))
 
 ;; # Statistics {.unnumbered}
 
@@ -191,6 +192,8 @@
                           :title "Power mean for residual-sugar"
                           :xlab "power"
                           :ylab "powmean"}))
+
+;; #### Weighted
 
 ;; Every mean function accepts optional weights vector. Formulas for weighted means are as follows.
 
@@ -536,7 +539,7 @@
   (stats/pooled-variance [setosa-sepal-length virginica-sepal-length] :biased)
   (stats/pooled-variance [setosa-sepal-length virginica-sepal-length] :avg))
 
-;; Beyond variance and standard deviation, we have two additional functions:
+;; Beyond variance and standard deviation, we have three additional functions:
 ;;
 ;; **Coefficient of Variation** (`variation`): This is a standardized measure of dispersion, calculated as the ratio of the standard deviation $s$ to the mean $\bar{x}$.
 
@@ -550,7 +553,7 @@
 
 ;; where $s$ is the sample standard deviation and $n$ is the sample size. A smaller SEM suggests a more precise estimate of the population mean.
 
-;; **L-variation**: Calculates the coefficient of L-variation. This is a dimensionless measure of dispersion, analogous to the coefficient of variation.
+;; **L-variation** (`l-variation`): Calculates the coefficient of L-variation. This is a dimensionless measure of dispersion, analogous to the coefficient of variation.
 
 ;; $$\tau_2 = \lambda_2 / \lambda_1$$
 
@@ -808,28 +811,141 @@
 
 ;; ## Intervals and Extents
 
-;; Functions defining ranges or intervals based on the data.
+;; This section provides functions to describe the spread or define specific ranges and intervals within a dataset.
 
 ;; ::: {.callout-tip title="Defined functions"}
-;; * `span`, `extent`
+;; * `span`, `iqr`
+;; * `extent`, 
 ;; * `stddev-extent`, `mad-extent`, `sem-extent`
 ;; * `percentile-extent`, `quantile-extent`
-;; * `pi`, `pi-extent` ;; Percentile Interval
-;; * `hpdi-extent` ;; Highest Posterior Density Interval
+;; * `pi`, `pi-extent`
+;; * `hpdi-extent`
 ;; * `adjacent-values`
 ;; * `inner-fence-extent`, `outer-fence-extent`
-;; * `ci` ;; Confidence Interval (Student's t)
-;; * `iqr` ;; Interquartile Range
+;; * `percentile-bc-extent`, `percentile-bca-extent`
+;; * `ci`
 ;; :::
 
+;; *   **Basic Range:** Functions like `span` ($max - min$) and `extent` (providing $[min, max]$ and optionally the mean) offer simple measures of the total spread of the data.
+;;
+;; *   **Interquartile Range:** `iqr` ($Q_3 - Q_1$) specifically measures the spread of the middle 50% of the data, providing a robust alternative to the total range.
+;;
+;; *   **Symmetric Spread Intervals:** Functions ending in `-extent` such as `stddev-extent`, `mad-extent`, and `sem-extent` define intervals typically centered around the mean or median. They represent a range defined by adding/subtracting a multiple (usually 1) of a measure of dispersion (Standard Deviation, Median Absolute Deviation, or Standard Error of the Mean) from the central point.
+;;
+;; *   **Quantile-Based Intervals:** `percentile-extent`, `quantile-extent`, `pi`, `pi-extent`, and `hpdi-extent` define intervals based on quantiles or percentiles of the data. These functions capture specific ranges containing a certain percentage of the data points (e.g., the middle 95% defined by quantiles 0.025 and 0.975). `hpdi-extent` calculates the shortest interval containing a given proportion of data, based on empirical density.
+;;
+;; *   **Box Plot Boundaries:** `adjacent-values` (LAV, UAV) and fence functions (`inner-fence-extent`, `outer-fence-extent`) calculate specific bounds based on quartiles and multiples of the IQR. These are primarily used in box plot visualization and as a conventional method for identifying potential outliers.
+;;
+;; *   **Confidence and Prediction Intervals:** `ci`, `percentile-bc-extent`, and `percentile-bca-extent` provide inferential intervals. `ci` estimates a confidence interval for the population mean using the t-distribution. `percentile-bc-extent` and `percentile-bca-extent` (Bias-Corrected and Bias-Corrected Accelerated) are advanced bootstrap methods for estimating confidence intervals for statistics, offering robustness against non-normality and bias.
+
+;; Note that:
+
+;; * $IQR = Q_3-Q_1$
+;; * $LIF=Q_1-1.5 \times IQR$
+;; * $UIF=Q_3+1.5 \times IQR$
+;; * $LOF=Q_1-3\times IQR$
+;; * $UOF=Q_3+3\times IQR$
+;; * $CI=\bar{x} \pm t_{\alpha/2, n-1} \frac{s}{\sqrt{n}}$
+
+(kind/table
+ {:column-names ["Function" "Returned value"]
+  :row-vectors (utls/wrap-into-markdown
+                [["`span`" "$max-min$"]
+                 ["`iqr`" "$Q_3-Q_1$"]
+                 ["`extent`" "`[min, max, mean]` or `[min, max]` (when `:mean?` is `false`)"]
+                 ["`stddev-extent`" "`[mean - stddev, mean + stddev, mean]`"]
+                 ["`mad-extent`" "`[median - mad, median + mad, median]`"]
+                 ["`sem-extent`" "`[mean - sem, mean + sem, mean]`"]
+                 ["`percentile-extent`" "`[p1-val, p2-val, median]` with default `p1=25` and `p2=75`"]
+                 ["`quantile-extent`" "`[q1-val, q2-val, median]` with default `q1=0.25` and `q2=0.75`"]
+                 ["`pi`" "`{p1 p1-val p2 p2-val}` defined by `size=p2-p1`"]
+                 ["`pi-extent`" "`[p1-val, p2-val, median]` defined by `size=p2-p1`"]
+                 ["`hdpi-extent`" "`[p1-val, p2-val, median]` defined by `size=p2-p1`"]
+                 ["`adjacent-values`" "`[LAV, UAV, median]`"]
+                 ["`inner-fence-extent`" "`[LIF, UIF, median]`"]
+                 ["`outer-fence-extent`" "`[LOF, UOF, median]`"]
+                 ["`ci`" "`[lower upper mean]`"]
+                 ["`percentile-bc-extent`" "`[lower upper mean]`"]
+                 ["`percentile-bca-extent`" "`[lower upper mean]`"]])})
+
+(utls/examples-note
+  (stats/span mpg)
+  (stats/iqr mpg)
+  (stats/extent mpg)
+  (stats/extent mpg false)
+  (stats/stddev-extent mpg)
+  (stats/mad-extent mpg)
+  (stats/sem-extent mpg)
+  (stats/percentile-extent mpg)
+  (stats/percentile-extent mpg 2.5 97.5)
+  (stats/percentile-extent mpg 2.5 97.5 :r9)
+  (stats/quantile-extent mpg)
+  (stats/quantile-extent mpg 0.025 0.975)
+  (stats/quantile-extent mpg 0.025 0.975 :r9)
+  (stats/pi mpg 0.95)
+  (stats/pi-extent mpg 0.95)
+  (stats/hpdi-extent mpg 0.95)
+  (stats/adjacent-values mpg)
+  (stats/inner-fence-extent mpg)
+  (stats/outer-fence-extent mpg)
+  (stats/ci mpg)
+  (stats/ci mpg 0.1)
+  (stats/percentile-bc-extent mpg)
+  (stats/percentile-bc-extent mpg 10.0)
+  (stats/percentile-bca-extent mpg)
+  (stats/percentile-bca-extent mpg 10.0))
+
+(gg/->image (gg/errorbars [[:extent (stats/extent mpg)]
+                           [:stddev (stats/stddev-extent mpg)]
+                           [:mad (stats/mad-extent mpg)]
+                           [:sem (stats/sem-extent mpg)]
+                           [:quantile (stats/quantile-extent mpg)]
+                           [:pi-0.5 (stats/pi-extent mpg)]
+                           [:pi-0.95 (stats/pi-extent mpg 0.95)]
+                           [:hpdi-0.5 (stats/hpdi-extent mpg 0.5)]
+                           [:hpdi-0.95 (stats/hpdi-extent mpg)]
+                           [:adjacent-vals (stats/adjacent-values mpg)]
+                           [:inner-fence (stats/inner-fence-extent mpg)]
+                           [:outer-fence (stats/outer-fence-extent mpg)]
+                           [:ci-0.05 (stats/ci mpg)]
+                           [:ci-0.1 (stats/ci mpg 0.1)]
+                           [:bc (stats/percentile-bc-extent mpg)]
+                           [:bca (stats/percentile-bca-extent mpg)]]
+                          {:ylab "Extents"
+                           :title "Various extents"}))
+
 ;; ## Outlier Detection
-
-;; Functions to identify or remove potential outliers.
-
+;;
+;; Outlier detection involves identifying data points that are significantly different from other observations. Outliers can distort statistical analyses and require careful handling. `fastmath.stats` provides functions to find and optionally remove such values based on the Interquartile Range (IQR) method.
+;;
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `outliers`
 ;; * `remove-outliers`
 ;; :::
+;;
+;; Both functions use the inner fence rule based on the IQR:
+;;
+;; *   **Lower Inner Fence (LIF):** $Q_1 - 1.5 \times IQR$
+;; *   **Upper Inner Fence (UIF):** $Q_3 + 1.5 \times IQR$
+;;
+;; Where $Q_1$ is the first quartile (25th percentile) and $Q_3$ is the third quartile (75th percentile). Points falling below the LIF or above the UIF are considered outliers.
+;;
+;; *   `outliers`: Returns a sequence containing only the data points identified as outliers.
+;; *   `remove-outliers`: Returns a sequence containing the data points from the original sequence *excluding* those identified as outliers.
+;;
+;; Both functions accept an optional `estimation-strategy` keyword (see [[quantile]]) to control how quartiles are calculated, which affects the fence boundaries.
+;;
+;; Let's find the outliers in the `residual-sugar` data and then see how the data looks after removing them.
+;;
+(utls/examples-note
+  (stats/outliers residual-sugar)
+  (count residual-sugar)
+  (count (stats/remove-outliers residual-sugar)))
+
+;; We can visualize the effect of removing outliers on the distribution shape.
+(kind/table
+ [[(gg/->image (gg/density residual-sugar {:title "Original Residual Sugar Distribution"}))
+   (gg/->image (gg/density (stats/remove-outliers residual-sugar) {:title "Residual Sugar Distribution (Outliers Removed)"}))]])
 
 ;; ## Data Transformation
 
