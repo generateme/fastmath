@@ -876,6 +876,7 @@
            :confidence-interval [(mean-fun (m/- linear scale)) (mean-fun (m/+ linear scale))]})
         (mean-fun (m/+ off intercept (v/dot beta xs)))))))
 
+;; https://bwlewis.github.io/GLM/
 (defn glm
   "Fit a generalized linear model using IRLS method.
 
@@ -984,7 +985,7 @@
          ^RealVector rvoffset (v/vec->RealVector offset)
 
          init-t (double-array (map link-fun (or init-mu start-t)))
-
+         
          ^doubles buff-g (double-array m)
          ^doubles buff-z (double-array m)
          ^doubles buff-W (double-array m)
@@ -1002,7 +1003,8 @@
                    v (double (link-variance g))
                    g' (double (link-derivative eta))]
                (when (or (m/zero? v) (m/nan? v) (m/nan? g))
-                 (throw (ex-info "Invalid variance of mean." {:mean g :variance v :coeff idx})))
+                 (throw (ex-info "Invalid variance of mean."
+                                 {:eta eta :mean g :dmean g' :variance v :coeff idx})))
 
                (let [off (Array/aget offset idx)
                      z (m/+ (m/- eta off) (m// (m/- (Array/aget ys idx) g) g'))

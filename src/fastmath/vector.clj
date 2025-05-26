@@ -1339,16 +1339,24 @@
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
 (defn softmax
-  [v]
-  (let [nv (exp (shift v (mx v)))
-        sm (sum nv)]
-    (div nv sm)))
+  ([v]
+   (let [nv (exp (shift v (- (mx v))))
+         sm (sum nv)]
+     (div nv sm)))
+  ([v ^double t]
+   (let [nv (exp (div (shift v (- (mx v))) t))
+         sm (sum nv)]
+     (div nv sm))))
 
 (defn logsoftmax
-  [v]
-  (let [shifted (shift v (mx v))
-        lsm (- (m/log (sum (exp shifted))))]
-    (shift shifted lsm)))
+  ([v]
+   (let [shifted (shift v (- (mx v)))
+         lsm (- (m/log (sum (exp shifted))))]
+     (shift shifted lsm)))
+  ([v ^double t]
+   (let [shifted (div (shift v (- (mx v))) t)
+         lsm (- (m/log (sum (exp shifted))))]
+     (shift shifted lsm))))
 
 (defn logsumexp
   ^double [v]

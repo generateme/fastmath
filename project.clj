@@ -9,7 +9,9 @@
                  [de.sciss/jwave "1.0.3"]
                  [com.github.wendykierp/JTransforms "3.1"]
                  
-                 [ca.umontreal.iro.simul/ssj "3.3.1"]
+                 [ca.umontreal.iro.simul/ssj "3.3.2"
+                  :exclusions [org.jfree/jfreechart
+                               org.jfree/jcommon]]
 
                  [org.clojure/data.int-map "1.3.0"]
                  [org.clojure/math.combinatorics "0.3.0"]]

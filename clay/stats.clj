@@ -7,12 +7,18 @@
             [fastmath.dev.dataset :as ds]
             [fastmath.core :as m]
             [scicloj.kindly.v4.kind :as kind]
-            [fastmath.fields.n :as n]
-            [fastmath.stats :as stat]))
+            [fastmath.random :as r]))
 
 ;; # Statistics {.unnumbered}
 
 ;; Statistical functions
+
+;; ::: {.callout-note}
+;; This notebook is written with the support of Gemini LLM models:
+;; 
+;; * `gemini-2.5-pro-exp-03-25`
+;; * `gemini-2.5-flash-preview-04-17`
+;; :::
 
 ;; ## Datasets
 
@@ -614,13 +620,17 @@
 
 ;; The `moment` function calculates statistical moments of a dataset. Moments can be central (around the mean), raw (around zero), or around a specified center. They can also be absolute and/or normalized.
 
-;; *   **k-th Central Moment**: $\mu_k = E[(X - \mu)^k] \approx \frac{1}{n} \sum_{i=1}^{n} (x_i - \bar{x})^k$. Calculated when `center` is `nil` (default) and `:mean?` is `true` (default).
-;; *   **k-th Raw Moment** (about origin): $\mu'_k = E[X^k] \approx \frac{1}{n} \sum_{i=1}^{n} x_i^k$. Calculated if `center` is `0.0`.
-;; *   **k-th Absolute Central Moment**: $E[|X - \mu|^k] \approx \frac{1}{n} \sum_{i=1}^{n} |x_i - \bar{x}|^k$. Calculated if `:absolute?` is `true`.
-;; *   **Normalization**: If `:normalize?` is `true`, the moment is divided by $\sigma^k$ (where $\sigma$ is the standard deviation), yielding a scale-invariant measure. For example, the 3rd normalized central moment is related to skewness, and the 4th to kurtosis.
-;; *   If `:mean?` is `false`, the function returns the sum $\sum (x_i - c)^k$ (or sum of absolute values) instead of the mean.
+;; **k-th Central Moment**: $\mu_k = E[(X - \mu)^k] \approx \frac{1}{n} \sum_{i=1}^{n} (x_i - \bar{x})^k$. Calculated when `center` is `nil` (default) and `:mean?` is `true` (default).
 
-;; The `order` parameter specifies $k$. For example, the 2nd central moment is the variance.
+;; **k-th Raw Moment** (about origin): $\mu'_k = E[X^k] \approx \frac{1}{n} \sum_{i=1}^{n} x_i^k$. Calculated if `center` is `0.0`.
+
+;; **k-th Absolute Central Moment**: $E[|X - \mu|^k] \approx \frac{1}{n} \sum_{i=1}^{n} |x_i - \bar{x}|^k$. Calculated if `:absolute?` is `true`.
+
+;; **Normalization**: If `:normalize?` is `true`, the moment is divided by $\sigma^k$ (where $\sigma$ is the standard deviation), yielding a scale-invariant measure. For example, the 3rd normalized central moment is related to skewness, and the 4th to kurtosis.
+
+;; **Power of sum of differences**:  If `:mean?` is `false`, the function returns the sum $\sum (x_i - c)^k$ (or sum of absolute values) instead of the mean.
+
+;; The `order` parameter specifies $k$. For example, the 2nd central moment for $k=2$ is the variance.
 
 (utls/examples-note
   (stats/moment mpg 2) ;; Variance (almost, as it's mean of squared devs, not sample variance)
@@ -731,7 +741,7 @@
 
 ;; $$b_2 = \frac{m_4}{s^4}-3$$
 
-;; *   **Robust (less sensitive to outliers):**
+;; **Robust (less sensitive to outliers):**
 
 ;; * `:geary`: Geary's 'g' measure of kurtosis. Normal $\approx \sqrt{2/\pi} \approx 0.798$.
 
@@ -775,7 +785,7 @@
   (stats/kurtosis (conj residual-sugar -1000 1000))
   (stats/kurtosis (conj residual-sugar -1000 1000) :l-kurtosis))
 
-;; ### L-moments
+;; ### L-moment
 
 ;; L-moments are summary statistics analogous to conventional moments but are computed from linear combinations of order statistics (sorted data). They are more robust to outliers and provide better estimates for small samples compared to conventional moments.
 
@@ -826,17 +836,17 @@
 ;; * `ci`
 ;; :::
 
-;; *   **Basic Range:** Functions like `span` ($max - min$) and `extent` (providing $[min, max]$ and optionally the mean) offer simple measures of the total spread of the data.
+;; **Basic Range:** Functions like `span` ($max - min$) and `extent` (providing $[min, max]$ and optionally the mean) offer simple measures of the total spread of the data.
 ;;
-;; *   **Interquartile Range:** `iqr` ($Q_3 - Q_1$) specifically measures the spread of the middle 50% of the data, providing a robust alternative to the total range.
+;; **Interquartile Range:** `iqr` ($Q_3 - Q_1$) specifically measures the spread of the middle 50% of the data, providing a robust alternative to the total range.
 ;;
-;; *   **Symmetric Spread Intervals:** Functions ending in `-extent` such as `stddev-extent`, `mad-extent`, and `sem-extent` define intervals typically centered around the mean or median. They represent a range defined by adding/subtracting a multiple (usually 1) of a measure of dispersion (Standard Deviation, Median Absolute Deviation, or Standard Error of the Mean) from the central point.
+;; **Symmetric Spread Intervals:** Functions ending in `-extent` such as `stddev-extent`, `mad-extent`, and `sem-extent` define intervals typically centered around the mean or median. They represent a range defined by adding/subtracting a multiple (usually 1) of a measure of dispersion (Standard Deviation, Median Absolute Deviation, or Standard Error of the Mean) from the central point.
 ;;
-;; *   **Quantile-Based Intervals:** `percentile-extent`, `quantile-extent`, `pi`, `pi-extent`, and `hpdi-extent` define intervals based on quantiles or percentiles of the data. These functions capture specific ranges containing a certain percentage of the data points (e.g., the middle 95% defined by quantiles 0.025 and 0.975). `hpdi-extent` calculates the shortest interval containing a given proportion of data, based on empirical density.
+;; **Quantile-Based Intervals:** `percentile-extent`, `quantile-extent`, `pi`, `pi-extent`, and `hpdi-extent` define intervals based on quantiles or percentiles of the data. These functions capture specific ranges containing a certain percentage of the data points (e.g., the middle 95% defined by quantiles 0.025 and 0.975). `hpdi-extent` calculates the shortest interval containing a given proportion of data, based on empirical density.
 ;;
-;; *   **Box Plot Boundaries:** `adjacent-values` (LAV, UAV) and fence functions (`inner-fence-extent`, `outer-fence-extent`) calculate specific bounds based on quartiles and multiples of the IQR. These are primarily used in box plot visualization and as a conventional method for identifying potential outliers.
+;; **Box Plot Boundaries:** `adjacent-values` (LAV, UAV) and fence functions (`inner-fence-extent`, `outer-fence-extent`) calculate specific bounds based on quartiles and multiples of the IQR. These are primarily used in box plot visualization and as a conventional method for identifying potential outliers.
 ;;
-;; *   **Confidence and Prediction Intervals:** `ci`, `percentile-bc-extent`, and `percentile-bca-extent` provide inferential intervals. `ci` estimates a confidence interval for the population mean using the t-distribution. `percentile-bc-extent` and `percentile-bca-extent` (Bias-Corrected and Bias-Corrected Accelerated) are advanced bootstrap methods for estimating confidence intervals for statistics, offering robustness against non-normality and bias.
+;; **Confidence and Prediction Intervals:** `ci`, `percentile-bc-extent`, and `percentile-bca-extent` provide inferential intervals. `ci` estimates a confidence interval for the population mean using the t-distribution. `percentile-bc-extent` and `percentile-bca-extent` (Bias-Corrected and Bias-Corrected Accelerated) are advanced bootstrap methods for estimating confidence intervals for statistics, offering robustness against non-normality and bias.
 
 ;; Note that:
 
@@ -912,40 +922,28 @@
                            [:bc (stats/percentile-bc-extent mpg)]
                            [:bca (stats/percentile-bca-extent mpg)]]
                           {:ylab "Extents"
-                           :title "Various extents"}))
+                           :title "Various extents for MPG"}))
 
 ;; ## Outlier Detection
-;;
+
 ;; Outlier detection involves identifying data points that are significantly different from other observations. Outliers can distort statistical analyses and require careful handling. `fastmath.stats` provides functions to find and optionally remove such values based on the Interquartile Range (IQR) method.
-;;
+
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `outliers`
-;; * `remove-outliers`
 ;; :::
-;;
-;; Both functions use the inner fence rule based on the IQR:
-;;
+
+;; `outliers` function use the inner fence rule based on the IQR and returns a sequence containing only the data points identified as outliers.
+
 ;; *   **Lower Inner Fence (LIF):** $Q_1 - 1.5 \times IQR$
 ;; *   **Upper Inner Fence (UIF):** $Q_3 + 1.5 \times IQR$
-;;
-;; Where $Q_1$ is the first quartile (25th percentile) and $Q_3$ is the third quartile (75th percentile). Points falling below the LIF or above the UIF are considered outliers.
-;;
-;; *   `outliers`: Returns a sequence containing only the data points identified as outliers.
-;; *   `remove-outliers`: Returns a sequence containing the data points from the original sequence *excluding* those identified as outliers.
-;;
-;; Both functions accept an optional `estimation-strategy` keyword (see [[quantile]]) to control how quartiles are calculated, which affects the fence boundaries.
-;;
-;; Let's find the outliers in the `residual-sugar` data and then see how the data looks after removing them.
-;;
-(utls/examples-note
-  (stats/outliers residual-sugar)
-  (count residual-sugar)
-  (count (stats/remove-outliers residual-sugar)))
 
-;; We can visualize the effect of removing outliers on the distribution shape.
-(kind/table
- [[(gg/->image (gg/density residual-sugar {:title "Original Residual Sugar Distribution"}))
-   (gg/->image (gg/density (stats/remove-outliers residual-sugar) {:title "Residual Sugar Distribution (Outliers Removed)"}))]])
+;; Where $Q_1$ is the first quartile (25th percentile) and $Q_3$ is the third quartile (75th percentile). Points falling below the LIF or above the UIF are considered outliers.
+
+;; Function accepts an optional `estimation-strategy` keyword (see [[quantile]]) to control how quartiles are calculated, which affects the fence boundaries.
+
+;; Let's find the outliers in the `residual-sugar` data.
+
+(stats/outliers residual-sugar)
 
 ;; ## Data Transformation
 
@@ -954,10 +952,231 @@
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `standardize`, `robust-standardize`, `demean`
 ;; * `rescale`
+;; * `remove-outliers`
 ;; * `trim`, `trim-lower`, `trim-upper`, `winsor`
 ;; * `box-cox-infer-lambda`, `box-cox-transformation`
 ;; * `yeo-johnson-infer-lambda`, `yeo-johnson-transformation`
 ;; :::
+
+;; Data transformations are often necessary preprocessing steps in statistical analysis and machine learning. They can help meet the assumptions of certain models (e.g., normality, constant variance), improve interpretability, or reduce the influence of outliers. `fastmath.stats` offers several functions for these purposes, broadly categorized into linear scaling/centering, outlier handling, and power transformations for normality.
+
+;; Let's demonstrate some of these transformations using the `residual-sugar` data from the wine quality dataset.
+
+(utls/examples-note
+  (stats/mean residual-sugar)
+  (stats/stddev residual-sugar)
+  (stats/median residual-sugar)
+  (stats/mad residual-sugar)
+  (stats/extent residual-sugar false)
+  (count residual-sugar))
+
+(gg/->image (gg/density residual-sugar
+                        {:title "Residual Sugar dataset"}))
+
+;; **Linear Transformations:** `standardize`, `robust-standardize`, `demean`, and `rescale` linearly transform data, preserving its shape but changing its location and/or scale.
+
+;; *   `demean` centers the data by subtracting the mean, resulting in a dataset with a mean of zero.
+;; *   `standardize` scales the demeaned data by dividing by the standard deviation, resulting in data with mean zero and standard deviation one (z-score normalization). This makes the scale of different features comparable.
+;; *   `robust-standardize` provides a version less sensitive to outliers by centering around the median and scaling by the Median Absolute Deviation (MAD) or a quantile range (like the IQR).
+;; *   `rescale` linearly maps the data to a specific target range (e.g., [0, 1]), useful for algorithms sensitive to input scale.
+
+(def residual-sugar-demeaned (-> residual-sugar stats/demean))
+(def residual-sugar-standardized (-> residual-sugar stats/standardize))
+(def residual-sugar-robust-standardized (-> residual-sugar stats/robust-standardize))
+(def residual-sugar-rescaled (-> residual-sugar stats/rescale))
+
+(utls/examples-note
+  (stats/mean residual-sugar-demeaned)
+  (stats/stddev residual-sugar-demeaned)
+  (stats/median residual-sugar-demeaned)
+  (stats/mad residual-sugar-demeaned)
+  (stats/extent residual-sugar-demeaned false)
+  
+  (stats/mean residual-sugar-standardized)
+  (stats/stddev residual-sugar-standardized)
+  (stats/median residual-sugar-standardized)
+  (stats/mad residual-sugar-standardized)
+  (stats/extent residual-sugar-standardized false)
+  
+  (stats/mean residual-sugar-robust-standardized)
+  (stats/stddev residual-sugar-robust-standardized)
+  (stats/median residual-sugar-robust-standardized)
+  (stats/mad residual-sugar-robust-standardized)
+  (stats/extent residual-sugar-robust-standardized false)
+  
+  (stats/mean residual-sugar-rescaled)
+  (stats/stddev residual-sugar-rescaled)
+  (stats/median residual-sugar-rescaled)
+  (stats/mad residual-sugar-rescaled)
+  (stats/extent residual-sugar-rescaled false))
+
+;; **Outlier Handling:** `remove-outliers`, `trim`, `trim-lower`, `trim-upper`, and `winsor` address outliers based on quantile fences.
+
+;; * `remove-outliers` returns a sequence containing the data points from the original sequence *excluding* those identified as outliers.
+;; * `trim` removes values outside a specified quantile range (defaulting to 0.2 quantile, removing the bottom and top 20%). `trim-lower` and `trim-upper` remove only below or above a single quantile.
+;; * `winsor` caps values outside a quantile range to the boundary values instead of removing them. This retains the sample size but reduces the influence of extreme values.
+
+(def residual-sugar-no-outliers (stats/remove-outliers residual-sugar))
+(def residual-sugar-trimmed (stats/trim residual-sugar))
+(def residual-sugar-winsorized (stats/winsor residual-sugar))
+
+(utls/examples-note
+  (stats/mean residual-sugar-no-outliers)
+  (stats/stddev residual-sugar-no-outliers)
+  (stats/median residual-sugar-no-outliers)
+  (stats/mad residual-sugar-no-outliers)
+  (stats/extent residual-sugar-no-outliers false)
+  (count residual-sugar-no-outliers)
+
+  (stats/mean residual-sugar-trimmed)
+  (stats/stddev residual-sugar-trimmed)
+  (stats/median residual-sugar-trimmed)
+  (stats/mad residual-sugar-trimmed)
+  (stats/extent residual-sugar-trimmed false)
+  (count residual-sugar-trimmed)
+
+  (stats/mean residual-sugar-winsorized)
+  (stats/stddev residual-sugar-winsorized)
+  (stats/median residual-sugar-winsorized)
+  (stats/mad residual-sugar-winsorized)
+  (stats/quantiles residual-sugar [0.2 0.8])
+  (stats/extent residual-sugar-winsorized false)
+  (count residual-sugar-winsorized))
+
+(kind/table
+ [[(gg/->image (gg/density residual-sugar-no-outliers
+                           {:title "Residual Sugar without outliers"}))
+   (gg/->image (gg/density residual-sugar-trimmed
+                           {:title "Residual Sugar trimmed"}))
+   (gg/->image (gg/density residual-sugar-winsorized
+                           {:title "Residual Sugar winsorized"}))]])
+
+;; **Power Transformations:** `box-cox-transformation` and `yeo-johnson-transformation` (and their `infer-lambda` counterparts) are non-linear transformations that can change the shape of the distribution to be more symmetric or normally distributed. They are particularly useful for data that is skewed or violates assumptions of linear models. Both are invertable.
+
+;; *   `box-cox-transformation` works in general for strictly positive data. It includes the log transformation as a special case (when lambda is $0.0$) and generalizes square root, reciprocal, and other power transformations. `box-cox-infer-lambda` helps find the optimal lambda parameter. Optional parameters:
+;;     * `:negative?` (default: `false`), when set to `true` specific transformation is performed to keep information about sign.
+;;     * `:scaled?` (default: `false`), when set to `true`, scale data by geometric mean, when is a number, this number is used as a scale.
+
+;; $$y_{BC}^{(\lambda)}=\begin{cases}
+;; \frac{y^\lambda-1}{\lambda} & \lambda\neq 0 \\
+;; \log(y) & \lambda = 0
+;; \end{cases}$$
+
+;; Scaled version, with default scale set to geometric mean (GM):
+
+;; $$y_{BC}^{(\lambda, s)}=\begin{cases}
+;; \frac{y^\lambda-1}{\lambda s^{\lambda - 1}} & \lambda\neq 0 \\
+;; s\log(y) & \lambda = 0
+;; \end{cases}$$
+
+;; When `:negative?` is set to true, formula takes the following form:
+
+;; $$y_{BCneg}^{(\lambda)}=\begin{cases}
+;; \frac{\operatorname{sgn}(y)|y|^\lambda-1}{\lambda} & \lambda\neq 0 \\
+;; \operatorname{sgn}(y)\log(|y|+1) & \lambda = 0
+;; \end{cases}$$
+
+;; *   `yeo-johnson-transformation` extends Box-Cox to handle zero and negative values. `yeo-johnson-infer-lambda` finds the optimal lambda for this transformation.
+
+;; $$y_{YJ}^{(\lambda)}=\begin{cases}
+;; \frac{(y+1)^\lambda - 1}{\lambda} & \lambda \neq 0, y\geq 0 \\
+;; \log(y+1) & \lambda = 0, y\geq 0 \\
+;; \frac{(1-y)^{2-\lambda} - 1}{\lambda - 2} & \lambda \neq 2, y\geq 0 \\
+;; -\log(1-y) & \lambda = 2, y\geq 0  
+;; \end{cases}$$
+
+;; Both fuctions accept additional parameters:
+
+;; * `:alpha` (dafault: `0.0`): perform dataset shift by value of the `:alpha` before transformation.
+;; * `:inversed?` (default: `false`): perform inverse transformation for given `lambda`. 
+
+;; When `lambda` is set to `nil` optimal lambda will be calculated (only when `:inversed?` is `false`).
+
+(utls/examples-note
+  (stats/box-cox-transformation [0 1 10] 0.0)
+  (stats/box-cox-transformation [0 1 10] 2.0)
+  (stats/box-cox-transformation [0 1 10] -2.0 {:alpha 2})
+  (stats/box-cox-transformation [0.375 0.444 0.497] -2.0 {:alpha 2 :inverse? true})
+  (stats/box-cox-transformation [0 1 10] nil {:alpha 1})
+  (stats/box-cox-transformation [0 1 10] nil {:scaled? true :alpha 1})
+  (stats/box-cox-transformation [0 1 10] nil {:alpha -5 :negative? true})
+  (stats/box-cox-transformation [0 1 10] 2.0 {:alpha -5 :negative? true :scaled? 2})
+  (stats/box-cox-transformation [-6.5 -4.25 6.0] 2.0 {:alpha -5 :negative? true :scaled? 2 :inverse? true})
+  (stats/yeo-johnson-transformation [0 1 10])
+  (stats/yeo-johnson-transformation [0 1 10] 0.0)
+  (stats/yeo-johnson-transformation [0 1 10] 2.0 {:alpha -5})
+  (stats/yeo-johnson-transformation [-1.79 -1.61 17.5] 2.0 {:alpha -5 :inverse? true}))
+
+;; Let's illustrate how real data look after transformation. We'll start with finding an optimal lambda parameter for both transformations.
+
+(stats/box-cox-infer-lambda residual-sugar)
+(stats/yeo-johnson-infer-lambda residual-sugar)
+
+(def residual-sugar-box-cox (stats/box-cox-transformation residual-sugar nil))
+(def residual-sugar-yeo-johnson (stats/yeo-johnson-transformation residual-sugar nil))
+
+(utls/examples-note
+  (stats/mean residual-sugar-box-cox)
+  (stats/stddev residual-sugar-box-cox)
+  (stats/median residual-sugar-box-cox)
+  (stats/mad residual-sugar-box-cox)
+  (stats/extent residual-sugar-box-cox false)
+
+  (stats/mean residual-sugar-yeo-johnson)
+  (stats/stddev residual-sugar-yeo-johnson)
+  (stats/median residual-sugar-yeo-johnson)
+  (stats/mad residual-sugar-yeo-johnson)
+  (stats/extent residual-sugar-yeo-johnson false))
+
+(kind/table
+ [[(gg/->image (gg/density residual-sugar-box-cox
+                           {:title "Residual Sugar Box-Cox, optimal lambda"}))
+   (gg/->image (gg/density residual-sugar-yeo-johnson
+                           {:title "Residual Sugar Yeo-Johnson, optimal lambda"}))]
+  [(gg/->image (gg/density (stats/box-cox-transformation residual-sugar -1.0)
+                           {:title "Residual Sugar Box-Cox, lambda=-1.0"}))
+   (gg/->image (gg/density (stats/yeo-johnson-transformation residual-sugar -1.0)
+                           {:title "Residual Sugar Yeo-Johnson, lambda=-1.0"}))]
+  [(gg/->image (gg/density (stats/box-cox-transformation residual-sugar 0.0)
+                           {:title "Residual Sugar Box-Cox, lambda=0.0"}))
+   (gg/->image (gg/density (stats/yeo-johnson-transformation residual-sugar 0.0)
+                           {:title "Residual Sugar Yeo-Johnson, lambda=0.0"}))]])
+
+;; As you can see, the Yeo-Johnson transformation with the inferred lambda has made the `residual-sugar` distribution appear more symmetric and perhaps closer to a normal distribution shape.
+
+;; Both power transformation can work on negative data as well. When Box-Cox is used, `:negative?` option should be set to `true`.
+
+(stats/box-cox-infer-lambda residual-sugar
+                            nil {:alpha (- (stats/mean residual-sugar)) :negative? true})
+
+(stats/yeo-johnson-infer-lambda residual-sugar nil {:alpha (- (stats/mean residual-sugar))})
+
+(def residual-sugar-box-cox-demeaned
+  (stats/box-cox-transformation
+   residual-sugar nil {:alpha (- (stats/mean residual-sugar)) :negative? true}))
+
+(def residual-sugar-yeo-johnson-demeaned (stats/yeo-johnson-transformation
+                                        residual-sugar nil
+                                        {:alpha (- (stats/mean residual-sugar))}))
+
+(utls/examples-note
+  (stats/mean residual-sugar-box-cox-demeaned)
+  (stats/stddev residual-sugar-box-cox-demeaned)
+  (stats/median residual-sugar-box-cox-demeaned)
+  (stats/mad residual-sugar-box-cox-demeaned)
+  (stats/extent residual-sugar-box-cox-demeaned false)
+
+  (stats/mean residual-sugar-yeo-johnson-demeaned)
+  (stats/stddev residual-sugar-yeo-johnson-demeaned)
+  (stats/median residual-sugar-yeo-johnson-demeaned)
+  (stats/mad residual-sugar-yeo-johnson-demeaned)
+  (stats/extent residual-sugar-yeo-johnson-demeaned false))
+
+(kind/table
+ [[(gg/->image (gg/density residual-sugar-box-cox-demeaned
+                           {:title "Residual Sugar demeaned Box-Cox, optimal lambda"}))
+   (gg/->image (gg/density residual-sugar-yeo-johnson-demeaned
+                           {:title "Residual Sugar demeaned Yeo-Johnson, optimal lambda"}))]])
 
 ;; ## Correlation and Covariance
 
@@ -969,19 +1188,381 @@
 ;; * `coefficient-matrix`, `correlation-matrix`, `covariance-matrix`
 ;; :::
 
+;; **Covariance vs. Correlation:**
+
+;; * `covariance` measures the extent to which two variables change together. A positive covariance means they tend to increase or decrease simultaneously. A negative covariance means one tends to increase when the other decreases. A covariance near zero suggests no linear relationship. The magnitude of covariance depends on the scales of the variables, making it difficult to compare covariances between different pairs of variables.
+;; The sample covariance between two sequences $X = \{x_1, \dots, x_n\}$ and $Y = \{y_1, \dots, y_n\}$ is calculated as:
+
+;; $$ \text{Cov}(X, Y) = \frac{1}{n-1} \sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y}) $$
+
+;; where $\bar{x}$ and $\bar{y}$ are the sample means.
+
+;; * `correlation` standardizes the covariance, resulting in a unitless measure that ranges from -1 to +1. It indicates both the direction and strength of a relationship. A correlation of +1 indicates a perfect positive relationship, -1 a perfect negative relationship, and 0 no linear relationship. The `correlation` function in `fastmath.stats` defaults to computing the Pearson correlation coefficient.
+
+;; **Types of Correlation:**
+
+;; *   `pearson-correlation`: The most common correlation coefficient, also known as the Pearson product-moment correlation coefficient ($r$). It measures the strength and direction of a *linear* relationship between two continuous variables. It assumes the variables are approximately normally distributed and that the relationship is linear. It is sensitive to outliers.
+;;         The formula for the sample Pearson correlation coefficient is:
+
+;; $$r = \frac{\text{Cov}(X, Y)}{s_x s_y} = \frac{\sum_{i=1}^n (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^n (x_i - \bar{x})^2 \sum_{i=1}^n (y_i - \bar{y})^2}}$$
+
+;; where $s_x$ and $s_y$ are the sample standard deviations.
+
+;; *   `spearman-correlation`: Spearman's rank correlation coefficient ($\rho$) is a non-parametric measure of the strength and direction of a *monotonic* relationship between two variables. A monotonic relationship is one that is either consistently increasing or consistently decreasing, but not necessarily linear. Spearman's correlation is calculated by applying the Pearson formula to the *ranks* of the data values rather than the values themselves. This makes it less sensitive to outliers than Pearson correlation and suitable for ordinal data or when the relationship is monotonic but non-linear.
+;; *   `kendall-correlation`: Kendall's Tau rank correlation coefficient ($\tau$) is another non-parametric measure of the strength and direction of a *monotonic* relationship. It is based on the number of concordant and discordant pairs of observations. A pair of data points is concordant if their values move in the same direction (both increase or both decrease) relative to each other, and discordant if they move in opposite directions. Kendall's Tau is generally preferred over Spearman's Rho for smaller sample sizes or when there are many tied ranks.
+;; One common formulation, Kendall's Tau-a, is:
+
+;; $$\tau_A = \frac{N_c - N_d}{n(n-1)/2}$$
+
+;; where $N_c$ is the number of concordant pairs and $N_d$ is the number of discordant pairs.
+
+;; **Comparison of Correlation Methods:**
+
+;; *   Use **Pearson** for measuring *linear* relationships between continuous, normally distributed variables.
+;; *   Use **Spearman** or **Kendall** for measuring *monotonic* relationships (linear or non-linear) between variables, especially when data is not normally distributed, contains outliers, or is ordinal. Kendall is often more robust with ties and smaller samples.
+;; 
+;; **Matrix Functions for Multiple Variables:**
+
+;; *   `coefficient-matrix`: A generic function that computes a specified pairwise measure (defined by a function passed as an argument) between all pairs of sequences in a collection. Useful for generating matrices of custom similarity, distance, or correlation measures.
+;; *   `covariance-matrix`: A specialization that computes the pairwise `covariance` for all sequences in a collection. The output is a symmetric matrix where the element at row `i`, column `j` is the covariance between sequence `i` and sequence `j`. The diagonal elements are the variances of the individual sequences.
+;; *   `correlation-matrix`: A specialization that computes the pairwise `correlation` (Pearson by default, or specified via keyword like `:spearman` or `:kendall`) for all sequences in a collection. The output is a symmetric matrix where the element at row `i`, column `j` is the correlation between sequence `i` and sequence `j`. The diagonal elements are always 1.0 (a variable is perfectly correlated with itself).
+
+;; Let's examine the correlations between the numerical features in the `iris` dataset.
+
+(utls/examples-note
+  (stats/covariance virginica-sepal-length setosa-sepal-length)
+  (stats/correlation virginica-sepal-length setosa-sepal-length)
+  (stats/pearson-correlation virginica-sepal-length setosa-sepal-length)
+  (stats/spearman-correlation virginica-sepal-length setosa-sepal-length)
+  (stats/kendall-correlation virginica-sepal-length setosa-sepal-length))
+
+;; To generate matrices we'll use three sepal lengths samples. The last two examples use custom measure function: Euclidean distance between samples and Glass' delta.
+
+(utls/examples-note
+  (stats/covariance-matrix (vals sepal-lengths))
+  (stats/correlation-matrix (vals sepal-lengths))
+  (stats/correlation-matrix (vals sepal-lengths) :kendall)
+  (stats/correlation-matrix (vals sepal-lengths) :spearman)
+  (stats/coefficient-matrix (vals sepal-lengths) stats/L2 true)
+  (stats/coefficient-matrix (vals sepal-lengths) stats/glass-delta))
+
 ;; ## Distance and Similarity Metrics
 
 ;; Measures of distance, error, or similarity between sequences or distributions.
 
 ;; ::: {.callout-tip title="Defined functions"}
-;; * `dissimilarity` ;; (Covers many specific distances like Euclidean, KL, JSD etc.)
-;; * `similarity` ;; (Covers many specific similarities like Cosine, Jaccard etc.)
-;; * `me`, `mae`, `mape` ;; Error metrics
-;; * `rss`, `mse`, `rmse` ;; Squared error metrics
-;; * `r2` ;; Coefficient of determination
-;; * `count=`, `L0`, `L1`, `L2sq`, `L2`, `LInf` ;; L-norms / distances
-;; * `psnr` ;; Peak signal-to-noise ratio
+;; * `me`, `mae`, `mape` 
+;; * `rss`, `mse`, `rmse`
+;; * `r2`
+;; * `count=`, `L0`, `L1`, `L2sq`, `L2`, `LInf`
+;; * `psnr`
+;; * `dissimilarity`, `similarity`
 ;; :::
+
+;; Distance metrics quantify how *far apart* or *different* two data sequences or probability distributions are. Similarity metrics, conversely, measure how *close* or *alike* they are, often being the inverse or a transformation of a distance. `fastmath.stats` provides a range of these measures suitable for comparing numerical sequences, observed counts (histograms), or theoretical probability distributions.
+
+;; ### Error Metrics
+;;
+;; These functions typically quantify the difference between an observed sequence and a predicted or reference sequence, focusing on the magnitude of errors. All can accept a constant as a second argument.
+;;
+;; *   `me` (Mean Error): The average of the differences between corresponding elements.
+;;     $$ ME = \frac{1}{n} \sum_{i=1}^n (x_i - y_i) $$
+;; *   `mae` (Mean Absolute Error): The average of the absolute differences. More robust to outliers than squared error.
+;;     $$ MAE = \frac{1}{n} \sum_{i=1}^n |x_i - y_i| $$
+;; *   `mape` (Mean Absolute Percentage Error): The average of the absolute percentage errors. Useful for relative error assessment, but undefined if the reference value $x_i$ is zero.
+;;     $$ MAPE = \frac{1}{n} \sum_{i=1}^n \left| \frac{x_i - y_i}{x_i} \right| \times 100\% $$
+;; *   `rss` (Residual Sum of Squares): The sum of the squared differences. Used in least squares regression.
+;;     $$ RSS = \sum_{i=1}^n (x_i - y_i)^2 $$
+;; *   `mse` (Mean Squared Error): The average of the squared differences. Penalizes larger errors more heavily.
+;;     $$ MSE = \frac{1}{n} \sum_{i=1}^n (x_i - y_i)^2 $$
+;; *   `rmse` (Root Mean Squared Error): The square root of the MSE. Has the same units as the original data.
+;;     $$ RMSE = \sqrt{\frac{1}{n} \sum_{i=1}^n (x_i - y_i)^2} $$
+;; *   `r2` (Coefficient of Determination): Measures the proportion of the variance in the dependent variable that is predictable from the independent variable(s). Calculated as $1 - (RSS / TSS)$, where TSS is the Total Sum of Squares. It ranges from 0 to 1 for linear regression.
+;;     $$ R^2 = 1 - \frac{\sum (x_i - y_i)^2}{\sum (x_i - \bar{x})^2} $$
+;; * adjusted `r2`: A modified version of $R^2$ that has been adjusted for the number of predictors in the model. It increases only if the new term improves the model more than would be expected by chance.
+;; $$ R^2_{adj} = 1 - (1 - R^2) \frac{n-1}{n-p-1} $$
+
+;; Let's use `setosa-sepal-length` as observed and `virginica-sepal-length` as predicted (though they are independent samples, not predictions) to illustrate error measures.
+
+(utls/examples-note
+  (stats/me setosa-sepal-length virginica-sepal-length)
+  (stats/mae setosa-sepal-length virginica-sepal-length)
+  (stats/mape setosa-sepal-length virginica-sepal-length)
+  (stats/rss setosa-sepal-length virginica-sepal-length)
+  (stats/mse setosa-sepal-length virginica-sepal-length)
+  (stats/rmse setosa-sepal-length virginica-sepal-length)
+  (stats/r2 setosa-sepal-length virginica-sepal-length)
+  (stats/r2 setosa-sepal-length virginica-sepal-length 2)
+  (stats/r2 setosa-sepal-length virginica-sepal-length 5))
+
+;; Also we can compare an observed sequence to a constant value. For example to a mean of the virginica sepal length.
+
+(def vsl-mean (stats/mean virginica-sepal-length))
+
+(utls/examples-note
+  (stats/me setosa-sepal-length vsl-mean)
+  (stats/mae setosa-sepal-length vsl-mean)
+  (stats/mape setosa-sepal-length vsl-mean)
+  (stats/rss setosa-sepal-length vsl-mean)
+  (stats/mse setosa-sepal-length vsl-mean)
+  (stats/rmse setosa-sepal-length vsl-mean)
+  (stats/r2 setosa-sepal-length vsl-mean)
+  (stats/r2 setosa-sepal-length vsl-mean 2)
+  (stats/r2 setosa-sepal-length vsl-mean 5))
+
+;; ### Distance Metrics (L-p Norms and others)
+;;
+;; These functions represent common distance measures, often related to L-p norms between vectors (sequences).
+;;
+;; *   `count=`, `L0`: Counts the number of elements that are *equal* in both sequences. While related to the L0 "norm" (which counts non-zero elements), this implementation counts *equal* elements after subtraction.
+;;     $$ Count= = \sum_{i=1}^n \mathbb{I}(x_i = y_i) $$
+;; *   `L1` (Manhattan/City Block Distance): The sum of the absolute differences.
+;;     $$ L_1 = \sum_{i=1}^n |x_i - y_i| $$
+;; *   `L2sq` (Squared Euclidean Distance): The sum of the squared differences. Equivalent to `rss`.
+;;     $$ L_2^2 = \sum_{i=1}^n (x_i - y_i)^2 $$
+;; *   `L2` (Euclidean Distance): The square root of the sum of the squared differences. The most common distance metric.
+;;     $$ L_2 = \sqrt{\sum_{i=1}^n (x_i - y_i)^2} $$
+;; *   `LInf` (Chebyshev Distance): The maximum absolute difference between corresponding elements.
+;;     $$ L_\infty = \max_{i} |x_i - y_i| $$
+;; *   `psnr` (Peak Signal-to-Noise Ratio): A measure of signal quality often used in image processing, derived from the MSE. Higher PSNR indicates better quality (less distortion). Calculated based on the maximum possible value of the data and the MSE.
+;;     $$ PSNR = 10 \cdot \log_{10} \left( \frac{MAX^2}{MSE} \right) $$
+;;
+;; Using the sepal length samples again:
+;;
+(utls/examples-note
+  (stats/count= setosa-sepal-length virginica-sepal-length)
+  (stats/L0 setosa-sepal-length virginica-sepal-length)
+  (stats/L1 setosa-sepal-length virginica-sepal-length)
+  (stats/L2sq setosa-sepal-length virginica-sepal-length)
+  (stats/L2 setosa-sepal-length virginica-sepal-length)
+  (stats/LInf setosa-sepal-length virginica-sepal-length)
+  (stats/psnr setosa-sepal-length virginica-sepal-length))
+;;
+;; ### Dissimilarity and Similarity
+
+;; `dissimilarity` and `similarity` functions provide measures for comparing probability distributions or frequency counts (like histograms). They quantify how 'far apart' or 'alike' two data sequences, interpreted as distributions, are. They take a method keyword specifying the desired measure. Many methods exist, each with different properties and interpretations. They can accept raw data sequences, automatically creating histograms for comparison (controlled by `:bins`), or they can take pre-calculated frequency sequences or a data sequence and a `fastmath.random` distribution object.
+
+;; Parameters:
+
+;; *   `method` - The specific distance or similarity method to use.
+;; *   `P-observed` - Frequencies, probabilities, or raw data (when `Q-expected` is a distribution or `:bins` is set).
+;; *   `Q-expected` - Frequencies, probabilities, or a distribution object (when `P-observed` is raw data or `:bins` is set).
+;; *   `opts` (map, optional) - Configuration options, including:
+;;     *   `:probabilities?` (boolean, default: `true`): If `true`, input sequences are normalized to sum to 1.0 before calculating the measure, treating them as probability distributions.
+;;     *   `:epsilon` (double, default: `1.0e-6`): A small number used to replace zero values in denominators or logarithms to avoid division-by-zero or log-of-zero errors.
+;;     *   `:log-base` (double, default: `m/E`): The base for logarithms in information-theoretic measures.
+;;     *   `:power` (double, default: `2.0`): The exponent for the `:minkowski` distance.
+;;     *   `:remove-zeros?` (boolean, default: `false`): Removes pairs where both `P` and `Q` are zero before calculation.
+;;     *   `:bins` (number, keyword, or seq): Used for comparisons involving raw data or distributions. Specifies the number of histogram bins, an estimation method (see [[histogram]]), or explicit bin edges for histogram creation.
+
+;; #### Dissimilarity Methods
+
+;; Higher values generally indicate greater difference.
+
+;; *   **L-p Norms and Related:**
+;;     *   `:euclidean`: Euclidean distance ($L_2$ norm) between the frequency/probability vectors.
+;;         $$ D(P, Q) = \sqrt{\sum_i (P_i - Q_i)^2} $$
+;;     *   `:city-block` / `:manhattan`: Manhattan distance ($L_1$ norm).
+;;         $$ D(P, Q) = \sum_i |P_i - Q_i| $$
+;;     *   `:chebyshev`: Chebyshev distance ($L_\infty$ norm), the maximum absolute difference.
+;;         $$ D(P, Q) = \max_i |P_i - Q_i| $$
+;;     *   `:minkowski`: Minkowski distance (generalized $L_p$ norm, controlled by `:power`).
+;;         $$ D(P, Q) = \left(\sum_i |P_i - Q_i|^p\right)^{1/p} $$
+;;     *   `:euclidean-sq` / `:squared-euclidean`: Squared Euclidean distance.
+;;         $$ D(P, Q) = \sum_i (P_i - Q_i)^2 $$
+;;     *   `:squared-chord`: Squared chord distance, related to Hellinger distance.
+;;         $$ D(P, Q) = \sum_i (\sqrt{P_i} - \sqrt{Q_i})^2 $$
+
+;; *   **Set-based/Overlap:** Measures derived from the concept of set overlap applied to frequencies/probabilities.
+;;     *   `:sorensen`: Sorensen-Dice dissimilarity (1 - Dice similarity).
+;;         $$ D(P, Q) = \frac{\sum_i |P_i - Q_i|}{\sum_i (P_i + Q_i)} $$
+;;     *   `:gower`: Gower distance (average Manhattan distance).
+;;         $$ D(P, Q) = \frac{1}{N} \sum_i |P_i - Q_i| $$
+;;     *   `:soergel`: Soergel distance (1 - Jaccard similarity).
+;;         $$ D(P, Q) = \frac{\sum_i |P_i - Q_i|}{\sum_i \max(P_i, Q_i)} $$
+;;     *   `:kulczynski`: Kulczynski dissimilarity (1 - Kulczynski similarity, can be > 1).
+;;         $$ D(P, Q) = \frac{\sum_i |P_i - Q_i|}{\sum_i \min(P_i, Q_i)} $$
+;;     *   `:canberra`: Canberra distance, sensitive to small values.
+;;         $$ D(P, Q) = \sum_i \frac{|P_i - Q_i|}{P_i + Q_i} $$
+;;     *   `:lorentzian`: Lorentzian distance.
+;;         $$ D(P, Q) = \sum_i \ln(1 + |P_i - Q_i|) $$
+;;     *   `:non-intersection`: Non-intersection measure.
+;;         $$ D(P, Q) = \frac{1}{2} \sum_i |P_i - Q_i| $$
+;;     *   `:wave-hedges`: Wave Hedges distance.
+;;         $$ D(P, Q) = \sum_i \frac{|P_i - Q_i|}{\max(P_i, Q_i)} $$
+;;     *   `:czekanowski`: Czekanowski dissimilarity (same as Sorensen).
+;;     *   `:motyka`: Motyka dissimilarity.
+;;         $$ D(P, Q) = 1 - \frac{\sum_i \min(P_i, Q_i)}{\sum_i (P_i + Q_i)} $$
+;;     *   `:tanimoto`: Tanimoto dissimilarity (extended Jaccard or Dice).
+;;         $$ D(P, Q) = \frac{\sum_i (\max(P_i, Q_i) - \min(P_i, Q_i))}{\sum_i \max(P_i, Q_i)} $$
+;;     *   `:jaccard`: Jaccard dissimilarity (1 - Jaccard similarity).
+;;         $$ D(P, Q) = \frac{\sum_i (P_i - Q_i)^2}{\sum_i P_i^2 + \sum_i Q_i^2 - \sum_i P_i Q_i} $$
+;;     *   `:dice`: Dice dissimilarity (1 - Dice similarity).
+;;         $$ D(P, Q) = \frac{\sum_i (P_i - Q_i)^2}{\sum_i P_i^2 + \sum_i Q_i^2} $$
+;;     *   `:bhattacharyya`: Bhattacharyya distance.
+;;         $$ D(P, Q) = -\ln \left( \sum_i \sqrt{P_i Q_i} \right) $$
+;;     *   `:hellinger`: Hellinger distance, derived from Bhattacharyya coefficient.
+;;         $$ D(P, Q) = \sqrt{2 \sum_i (\sqrt{P_i} - \sqrt{Q_i})^2} $$
+;;     *   `:matusita`: Matusita distance.
+;;         $$ D(P, Q) = \sqrt{\sum_i (\sqrt{P_i} - \sqrt{Q_i})^2} $$
+
+;; *   **Chi-squared based:**
+;;     *   `:pearson-chisq` / `:chisq`: Pearson's Chi-squared statistic.
+;;         $$ D(P, Q) = \sum_i \frac{(P_i - Q_i)^2}{Q_i} $$
+;;     *   `:neyman-chisq`: Neyman's Chi-squared statistic.
+;;         $$ D(P, Q) = \sum_i \frac{(P_i - Q_i)^2}{P_i} $$
+;;     *   `:squared-chisq`: Squared Chi-squared distance.
+;;         $$ D(P, Q) = \sum_i \frac{(P_i - Q_i)^2}{P_i + Q_i} $$
+;;     *   `:symmetric-chisq`: Symmetric Chi-squared distance.
+;;         $$ D(P, Q) = 2 \sum_i \frac{(P_i - Q_i)^2}{P_i + Q_i} $$
+;;     *   `:divergence`: Divergence statistic.
+;;         $$ D(P, Q) = 2 \sum_i \frac{(P_i - Q_i)^2}{(P_i + Q_i)^2} $$
+;;     *   `:clark`: Clark distance.
+;;         $$ D(P, Q) = \sqrt{\sum_i \left(\frac{P_i - Q_i}{P_i + Q_i}\right)^2} $$
+;;     *   `:additive-symmetric-chisq`: Additive Symmetric Chi-squared distance.
+;;         $$ D(P, Q) = \sum_i \frac{(P_i - Q_i)^2 (P_i + Q_i)}{P_i Q_i} $$
+
+;; *   **Information Theory based (Divergences):** Measure the difference in information content.
+;;     *   `:kullback-leibler`: Kullback-Leibler divergence (not symmetric, $KL(P||Q)$).
+;;         $$ D(P, Q) = \sum_i P_i \ln\left(\frac{P_i}{Q_i}\right) $$
+;;     *   `:jeffreys`: Jeffreys divergence (symmetric KL).
+;;         $$ D(P, Q) = \sum_i (P_i - Q_i) \ln\left(\frac{P_i}{Q_i}\right) $$
+;;     *   `:k-divergence`: K divergence (related to KL).
+;;         $$ D(P, Q) = \sum_i P_i \ln\left(\frac{2 P_i}{P_i + Q_i}\right) $$
+;;     *   `:topsoe`: Topsoe divergence.
+;;         $$ D(P, Q) = \sum_i \left( P_i \ln\left(\frac{2 P_i}{P_i + Q_i}\right) + Q_i \ln\left(\frac{2 Q_i}{P_i + Q_i}\right) \right) $$
+;;     *   `:jensen-shannon`: Jensen-Shannon divergence (symmetric, finite, based on KL).
+;;         $$ D(P, Q) = \frac{1}{2} \left( KL(P || M) + KL(Q || M) \right), \text{ where } M = \frac{P+Q}{2} $$
+;;     *   `:jensen-difference`: Jensen difference divergence.
+;;         $$ D(P, Q) = \sum_i \left( \frac{P_i \ln P_i + Q_i \ln Q_i}{2} - \frac{(P_i+Q_i)}{2} \ln\left(\frac{P_i+Q_i}{2}\right) \right) $$
+;;     *   `:taneja`: Taneja divergence.
+;;         $$ D(P, Q) = \sum_i \frac{P_i + Q_i}{2} \ln\left(\frac{(P_i+Q_i)/2}{\sqrt{P_i Q_i}}\right) $$
+;;     *   `:kumar-johnson`: Kumar-Johnson divergence.
+;;         $$ D(P, Q) = \sum_i \frac{(P_i^2 - Q_i^2)^2}{2 (P_i Q_i)^{3/2}} $$
+
+;; *   **Other:**
+;;     *   `:avg`: Average of Manhattan and Chebyshev distances.
+;;         $$ D(P, Q) = \frac{1}{2} \left( \sum_i |P_i - Q_i| + \max_i |P_i - Q_i| \right) $$
+
+;; Let's use the sepal length samples from the iris dataset.
+
+(utls/examples-note
+  (stats/dissimilarity :euclidean setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :manhattan setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :chebyshev setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :minkowski setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :minkowski setosa-sepal-length virginica-sepal-length {:power 0.5})
+  (stats/dissimilarity :euclidean-sq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :squared-chord setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :sorensen setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :gower setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :kulczynski setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :canberra setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :lorentzian setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :non-intersection setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :wave-hedges setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :czekanowski setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :motyka setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :tanimoto setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :jaccard setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :dice setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :bhattacharyya setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :hellinger setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :matusita setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :pearson-chisq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :neyman-chisq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :squared-chisq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :symmetric-chisq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :divergence setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :clark setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :additive-symmetric-chisq setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :kullback-leibler setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :jeffreys setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :k-divergence setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :topsoe setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :jensen-shannon setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :jensen-difference setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :taneja setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :kumar-johnson setosa-sepal-length virginica-sepal-length)
+  (stats/dissimilarity :avg setosa-sepal-length virginica-sepal-length))
+
+;; We can compare our data to a distribution. The method used here is based on building histogram for P and quantize distribution for Q.
+
+(utls/examples-note
+  (stats/dissimilarity :chisq (stats/standardize setosa-sepal-length) r/default-normal)
+  (stats/dissimilarity :chisq setosa-sepal-length (r/distribution :normal {:mu (stats/mean setosa-sepal-length) :sd (stats/stddev setosa-sepal-length)}))
+  (stats/dissimilarity :chisq (repeatedly 1000 r/grand) r/default-normal))
+
+;; In case when counts of samples are not equal we can use histograms. Also we can bin our data before comparison.
+
+(utls/examples-note
+  (stats/dissimilarity :gower (repeatedly 1000 r/grand) (repeatedly 800 r/grand) {:bins :auto})
+  (stats/dissimilarity :gower setosa-sepal-length virginica-sepal-length {:bins :auto})
+  (stats/dissimilarity :gower setosa-sepal-length virginica-sepal-length {:bins 10}))
+
+;; #### Similarity Methods
+
+;; Higher values generally indicate greater similarity.
+
+;; *   **Overlap/Set-based:**
+;;     *   `:intersection`: Intersection measure (sum of element-wise minimums).
+;;         $$ S(P, Q) = \sum_i \min(P_i, Q_i) $$
+;;     *   `:czekanowski`: Czekanowski similarity (same as Sorensen-Dice).
+;;         $$ S(P, Q) = \frac{2 \sum_i \min(P_i, Q_i)}{\sum_i (P_i + Q_i)} $$
+;;     *   `:motyka`: Motyka similarity.
+;;         $$ S(P, Q) = \frac{\sum_i \min(P_i, Q_i)}{\sum_i (P_i + Q_i)} $$
+;;     *   `:kulczynski`: Kulczynski similarity (can be > 1).
+;;         $$ S(P, Q) = \frac{\sum_i \min(P_i, Q_i)}{\sum_i |P_i - Q_i|} $$
+;;     *   `:ruzicka`: Ruzicka similarity.
+;;         $$ S(P, Q) = \frac{\sum_i \min(P_i, Q_i)}{\sum_i \max(P_i, Q_i)} $$
+;;     *   `:fidelity`: Probability fidelity (Bhattacharyya coefficient).
+;;         $$ S(P, Q) = \sum_i \sqrt{P_i Q_i} $$
+;;     *   `:squared-chord`: Squared chord similarity (1 - Squared Chord dissimilarity).
+;;         $$ S(P, Q) = 2 \sum_i \sqrt{P_i Q_i} - 1 $$
+
+;; *   **Inner Product / Angle:**
+;;     *   `:inner-product`: Inner product of the vectors.
+;;         $$ S(P, Q) = \sum_i P_i Q_i $$
+;;     *   `:cosine`: Cosine similarity.
+;;         $$ S(P, Q) = \frac{\sum_i P_i Q_i}{\sqrt{\sum_i P_i^2} \sqrt{\sum_i Q_i^2}} $$
+
+;; *   **Set-based (adapted):**
+;;     *   `:jaccard`: Jaccard similarity (generalized to distributions).
+;;         $$ S(P, Q) = \frac{\sum_i P_i Q_i}{\sum_i P_i^2 + \sum_i Q_i^2 - \sum_i P_i Q_i} $$
+;;     *   `:dice`: Dice similarity (generalized to distributions).
+;;         $$ S(P, Q) = \frac{2 \sum_i P_i Q_i}{\sum_i P_i^2 + \sum_i Q_i^2} $$
+
+;; *   **Harmonic Mean:**
+;;     *   `:harmonic-mean`: Harmonic mean similarity.
+;;         $$ S(P, Q) = 2 \sum_i \frac{P_i Q_i}{P_i + Q_i} $$
+
+(utls/examples-note
+  (stats/similarity :intersection setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :czekanowski setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :motyka setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :kulczynski setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :ruzicka setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :fidelity setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :squared-chord setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :inner-product setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :cosine setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :jaccard setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :dice setosa-sepal-length virginica-sepal-length)
+  (stats/similarity :harmonic-mean setosa-sepal-length virginica-sepal-length))
+
+;; As for `dissimilarity`, we can compare our data to a distribution. The method used here is based on building histogram for P and quantize distribution for Q.
+
+(utls/examples-note
+  (stats/similarity :dice (stats/standardize setosa-sepal-length) r/default-normal)
+  (stats/similarity :dice setosa-sepal-length (r/distribution :normal {:mu (stats/mean setosa-sepal-length) :sd (stats/stddev setosa-sepal-length)}))
+  (stats/similarity :dice (repeatedly 10000 r/grand) r/default-normal))
+
+;; In case when counts of samples are not equal we can use histograms. Also we can bin our data before comparison.
+
+(utls/examples-note
+  (stats/similarity :ruzicka (repeatedly 1000 r/grand) (repeatedly 800 r/grand) {:bins :auto})
+  (stats/similarity :ruzicka setosa-sepal-length virginica-sepal-length {:bins :auto})
+  (stats/similarity :ruzicka setosa-sepal-length virginica-sepal-length {:bins 10}))
 
 ;; ## Contingency Tables
 

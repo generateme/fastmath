@@ -148,8 +148,8 @@
 
   Available `estimation-strategy` values:
 
-    - `:legacy` (Default): The original method used in Apache Commons Math.
-    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+  - `:legacy` (Default): The original method used in Apache Commons Math.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
       recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
       (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
@@ -179,10 +179,9 @@
 
   Available `estimation-strategy` values:
 
-    - `:legacy` (Default): The original method used in Apache Commons Math.
-    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
-      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:legacy` (Default): The original method used in Apache Commons Math.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
@@ -208,10 +207,9 @@
 
   Available `estimation-strategy` values:
 
-    - `:legacy` (Default): The original method used in Apache Commons Math.
-    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
-      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:legacy` (Default): The original method used in Apache Commons Math.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
@@ -234,8 +232,8 @@
 
   Available `estimation-strategy` values:
 
-    - `:legacy` (Default): The original method used in Apache Commons Math.
-    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+  - `:legacy` (Default): The original method used in Apache Commons Math.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
       recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
       (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
@@ -359,10 +357,9 @@
 
   Available `estimation-strategy` values:
 
-    - `:legacy` (Default): The original method used in Apache Commons Math.
-    - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
-      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:legacy` (Default): The original method used in Apache Commons Math.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
+      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
@@ -379,7 +376,7 @@
   (m/max (m/min a b) (m/min (m/max a b) c)))
 
 (defn mean
-  "Calculate the arithmetic mean (average) of a sequence `vs`.
+  "Calculates the arithmetic mean (average) of a sequence `vs`.
 
   If `weights` are provided, calculates the weighted arithmetic mean.
 
@@ -596,8 +593,8 @@
   Parameters:
 
   - `vs`: Sequence of numbers.
-  - `center` (optional, double): The central point from which to calculate deviations.
-    If `nil` or not provided, the [[median]] of `vs` is used as the center.
+  - `center-or-estimation-strategy` (optional): The central point from which to calculate deviations or estimation strategy.
+    If `nil` or not provided, the [[median]] of `vs` is used as the center. If keyword, it's treated as estimation strategy for median.
   - `estimation-strategy` (optional, keyword): The estimation strategy to use for
     calculating the median(s). This applies to the calculation of the central
     value (if `center` is not provided) and to the final median of the absolute
@@ -610,9 +607,12 @@
 
   See also [[mean-absolute-deviation]], [[stddev]], [[median]], [[quantile]]."
   (^double [vs] (median-absolute-deviation vs nil))
-  (^double [vs center]
-   (let [m (double (or center (median vs)))]
-     (median (map (fn [^double x] (m/abs (- x m))) vs))))
+  (^double [vs center-or-estimation-strategy]
+   (let [[es center] (if (keyword? center-or-estimation-strategy)
+                       [center-or-estimation-strategy nil]
+                       [nil center-or-estimation-strategy])
+         m (double (or center (median vs es)))]
+     (median (map (fn [^double x] (m/abs (- x m))) vs) es)))
   (^double [vs center estimation-strategy]
    (let [m (double (or center (median vs estimation-strategy)))]
      (median (map (fn [^double x] (m/abs (- x m))) vs) estimation-strategy))))
@@ -1519,7 +1519,20 @@
      (map n vs))))
 
 (defn covariance
-  "Covariance of two sequences."
+  "Covariance of two sequences.
+
+  This function calculates the *sample* covariance.
+
+  Parameters:
+
+  - `[vs1 vs2]` (sequence of two sequences): A sequence containing the two sequences of numbers.
+  - `vs1`, `vs2` (sequences): The two sequences of numbers directly as arguments.
+
+  Both sequences must have the same length.
+
+  Returns the calculated sample covariance as a double.
+
+  See also [[correlation]], [[covariance-matrix]]."
   (^double [[vs1 vs2]] (covariance vs1 vs2))
   (^double [vs1 vs2]
    (let [avs1 (m/seq->double-array vs1)
@@ -1529,7 +1542,26 @@
         (dec (alength avs1))))))
 
 (defn correlation
-  "Correlation of two sequences."
+  "Calculates the correlation coefficient between two sequences.
+
+  By default, this function calculates the Pearson product-moment correlation
+  coefficient, which measures the linear relationship between two datasets.
+
+  This function handles the standard deviation normalization based on whether
+  the inputs `vs1` and `vs2` are treated as samples or populations (it uses
+  sample standard deviation derived from [[variance]]).
+
+  Parameters:
+
+  - `[vs1 vs2]` (sequence of two sequences): A sequence containing the two sequences of numbers.
+  - `vs1`, `vs2` (sequences): The two sequences of numbers directly as arguments.
+
+  Both sequences must have the same length.
+
+  Returns the calculated correlation coefficient (a value between -1.0 and 1.0) as a double.
+  Returns `NaN` if one or both sequences have zero variance (are constant).
+
+  See also [[covariance]], [[pearson-correlation]], [[spearman-correlation]], [[kendall-correlation]], [[correlation-matrix]]."
   (^double [[vs1 vs2]] (correlation vs1 vs2))
   (^double [vs1 vs2]
    (let [avs1 (m/seq->double-array vs1)
@@ -1542,19 +1574,74 @@
        (/ cov (m/sqrt (* v1 v2)))))))
 
 (defn spearman-correlation
-  "Spearman's correlation of two sequences."
+  "Calculates Spearman's rank correlation coefficient between two sequences.
+
+  Spearman's rank correlation is a non-parametric measure of the monotonic
+  relationship between two datasets. It assesses how well the relationship between
+  two variables can be described using a monotonic function. It does not require
+  the data to be linearly related or follow a specific distribution. The
+  coefficient is calculated on the ranks of the data rather than the raw values.
+
+  Parameters:
+
+  - `[vs1 vs2]` (sequence of two sequences): A sequence containing the two sequences of numbers.
+  - `vs1`, `vs2` (sequences): The two sequences of numbers directly as arguments.
+
+  Both sequences must have the same length.
+
+  Returns the calculated Spearman rank correlation coefficient (a value between -1.0 and 1.0) as a double.
+  A value of 1 indicates a perfect monotonic increasing relationship, -1 a perfect
+  monotonic decreasing relationship, and 0 no monotonic relationship.
+
+  See also [[pearson-correlation]], [[kendall-correlation]], [[correlation]]."
   (^double [[vs1 vs2]] (spearman-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation (SpearmansCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn pearson-correlation
-  "Pearson's correlation of two sequences."
+  "Calculates the Pearson product-moment correlation coefficient between two sequences.
+
+  This function measures the linear relationship between two datasets. The coefficient
+  value ranges from -1.0 (perfect negative linear correlation) to 1.0 (perfect
+  positive linear correlation), with 0.0 indicating no linear correlation.
+
+  Parameters:
+
+  - `[vs1 vs2]` (sequence of two sequences): A sequence containing the two sequences of numbers.
+  - `vs1`, `vs2` (sequences): The two sequences of numbers directly as arguments.
+
+  Both input sequences must contain only numbers and must have the same length.
+
+  Returns the calculated Pearson correlation coefficient as a double. Returns `NaN` if
+  either sequence has zero variance (i.e., all elements are the same).
+
+  See also [[correlation]] (general correlation, defaults to Pearson), [[spearman-correlation]],
+  [[kendall-correlation]], [[correlation-matrix]]."
   (^double [[vs1 vs2]] (pearson-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
 
 (defn kendall-correlation
-  "Kendall's correlation of two sequences."
+  "Calculates Kendall's rank correlation coefficient (Kendall's Tau) between two sequences.
+
+  Kendall's Tau is a non-parametric statistic used to measure the ordinal association
+  between two measured quantities. It assesses the degree of similarity between the
+  orderings of data when ranked by each of the quantities.
+
+  The coefficient value ranges from -1.0 (perfect disagreement in ranking) to 1.0
+  (perfect agreement in ranking), with 0.0 indicating no monotonic relationship.
+  Unlike Pearson correlation, it does not require the relationship to be linear.
+
+  Parameters:
+
+  - `[vs1 vs2]` (sequence of two sequences): A sequence containing the two sequences of numbers.
+  - `vs1`, `vs2` (sequences): The two sequences of numbers directly as arguments.
+
+  Both input sequences must contain only numbers and must have the same length.
+
+  Returns the calculated Kendall's Tau coefficient as a double.
+
+  See also [[pearson-correlation]], [[spearman-correlation]], [[correlation]]."
   (^double [[vs1 vs2]] (kendall-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation (KendallsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
@@ -1577,9 +1664,34 @@
                (kullback-leibler-divergence vs2 m))))))
 
 (defn coefficient-matrix
-  "Generate coefficient (correlation, covariance, any two arg function) matrix from seq of seqs. Row order.
+  "Generates a matrix of pairwise coefficients from a sequence of sequences.
 
-  Default method: pearson-correlation"
+  This function calculates a matrix where the element at row `i` and column `j`
+  is the result of applying the provided `measure-fn` to the `i`-th sequence
+  and the `j`-th sequence from the input `vss`.
+
+  Parameters:
+
+  - `vss` (sequence of sequences of numbers): The collection of data sequences. Each
+    inner sequence is treated as a variable or set of observations. All inner
+    sequences should ideally have the same length if the `measure-fn` expects it.
+  - `measure-fn` (function, optional): A function of two arguments (sequences)
+    that returns a double representing the coefficient or measure between them.
+    Defaults to [[pearson-correlation]].
+  - `symmetric?` (boolean, optional): If `true`, the function assumes that
+    `measure-fn(a, b)` is equal to `measure-fn(b, a)`. It calculates the upper
+    (or lower) triangle of the matrix and mirrors the values to the other side.
+    This is an optimization for symmetric measures like correlation and covariance.
+    If `false` (default), all pairwise combinations `(i, j)` are calculated independently.
+
+  Returns a sequence of sequences (a matrix) of doubles.
+
+  Note: While this function's `symmetric?` parameter defaults to `false`,
+  convenience functions like [[correlation-matrix]] and [[covariance-matrix]]
+  wrap this function and explicitly set `symmetric?` to `true` as their
+  respective measures are symmetric.
+
+  See also [[correlation-matrix]], [[covariance-matrix]]."
   ([vss] (coefficient-matrix vss pearson-correlation))
   ([vss measure-fn] (coefficient-matrix vss measure-fn false))
   ([vss measure-fn symmetric?]
@@ -1599,9 +1711,28 @@
          (mapv #(measure-fn a ^doubles %) avss))))))
 
 (defn correlation-matrix
-  "Generate correlation matrix from seq of seqs. Row order.
+  "Generates a matrix of pairwise correlation coefficients from a sequence of sequences.
 
-  Possible measures: `:pearson` (default), `:kendall`, `:spearman`."
+  Given a collection of data sequences `vss`, where each inner sequence represents
+  a variable, this function calculates a square matrix where the element at row `i`
+  and column `j` is the correlation coefficient between the `i`-th and `j`-th
+  sequences in `vss`.
+
+  Parameters:
+
+  - `vss` (sequence of sequences of numbers): The collection of data sequences.
+    Each inner sequence is treated as a variable. All inner sequences must have the same length.
+  - `measure` (keyword, optional): Specifies the type of correlation coefficient to calculate.
+    Defaults to `:pearson`.
+    - `:pearson` (default): Calculates the Pearson product-moment correlation coefficient.
+    - `:kendall`: Calculates Kendall's Tau rank correlation coefficient.
+    - `:spearman`: Calculates Spearman's rank correlation coefficient.
+
+  Returns a sequence of sequences (a matrix) of doubles representing the correlation matrix.
+  The matrix is symmetric, as correlation is a symmetric measure.
+
+  See also [[pearson-correlation]], [[spearman-correlation]], [[kendall-correlation]],
+  [[covariance-matrix]], [[coefficient-matrix]]."
   ([vss] (correlation-matrix vss :pearson))
   ([vss measure]
    (let [measure (get {:pearson pearson-correlation
@@ -1610,27 +1741,108 @@
      (coefficient-matrix vss measure true))))
 
 (defn covariance-matrix
-  "Generate covariance matrix from seq of seqs. Row order."
+  "Generates a matrix of pairwise covariance coefficients from a sequence of sequences.
+
+  Given a collection of data sequences `vss`, where each inner sequence represents
+  a variable, this function calculates a square matrix where the element at row `i`
+  and column `j` is the sample covariance between the `i`-th and `j`-th sequences
+  in `vss`.
+
+  Parameters:
+
+  - `vss` (sequence of sequences of numbers): The collection of data sequences.
+    Each inner sequence is treated as a variable. All inner sequences must have the same length.
+
+  Returns a sequence of sequences (a matrix) of doubles representing the covariance matrix.
+  The matrix is symmetric, as covariance is a symmetric measure ($Cov(X,Y) = Cov(Y,X)$).
+
+  Internally uses [[coefficient-matrix]] with the [[covariance]] function and `symmetric?` set to `true`.
+
+  See also [[covariance]], [[correlation-matrix]], [[coefficient-matrix]]."
   [vss] (coefficient-matrix vss covariance true))
 
 (defn- maybe-number->seq [vs1 vs2] (if (number? vs2) [(seq vs1) (repeat (count vs1) vs2)] [vs1 vs2]))
 
 (defn me
-  "Mean error"
+  "Calculates the Mean Error (ME) between two sequences or a sequence and constant value.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of
+    numbers, or a single number to compare against each element of `vs1`.
+
+  Both sequences (`vs1` and `vs2`) must have the same length if both are sequences.
+  If `vs2-or-val` is a single number, it is compared element-wise to `vs1`.
+
+  Returns the calculated Mean Error as a double.
+
+  Note: Positive ME indicates that `vs1` values tend to be greater than `vs2` values
+  on average, while negative ME indicates `vs1` values tend to be smaller. ME can be
+  influenced by the magnitude of errors and their signs. It does not directly measure
+  the magnitude of the typical error due to potential cancellation of positive and
+  negative differences.
+
+  See also [[mae]] (Mean Absolute Error), [[mse]] (Mean Squared Error), [[rmse]] (Root Mean Squared Error)."
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (mean (map - v1 v2)))))
 
 (defn mae
-  "Mean absolute error"
+  "Calculates the Mean Absolute Error (MAE) between two sequences or a sequence and constant value.
+
+  MAE is a measure of the difference between two sequences of values. It quantifies
+  the average magnitude of the errors, without considering their direction.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (often the observed or true values).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (often the predicted or reference values), or a single number to compare
+    against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated Mean Absolute Error as a double.
+
+  Note: MAE is less sensitive to large outliers than metrics like Mean Squared Error (MSE)
+  because it uses the absolute value of differences rather than the squared difference.
+
+  See also [[me]] (Mean Error), [[mse]] (Mean Squared Error), [[rmse]] (Root Mean Squared Error)."
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (mean (map (comp m/abs -) v1 v2)))))
 
 (defn mape
-  "Mean absolute percentage error"
+  "Calculates the Mean Absolute Percentage Error (MAPE) between two sequences
+  or a sequence and a constant value.
+
+  MAPE is a measure of prediction accuracy of a forecasting method, for example
+  in time series analysis. It is calculated as the average of the absolute
+  percentage errors.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (conventionally, the actual or true values).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (conventionally, the predicted or reference values), or a single number to
+    compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated Mean Absolute Percentage Error as a double.
+
+  Note: MAPE is scale-independent and useful for comparing performance across
+  different datasets. However, it is undefined if any of the actual values (`x_i`)
+  are zero, and can be skewed by small actual values.
+
+  See also [[me]] (Mean Error), [[mae]] (Mean Absolute Error), [[mse]] (Mean Squared Error), [[rmse]] (Root Mean Squared Error)."
   (^double [[vs1 vs2-or-val]] (mape vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
@@ -1638,14 +1850,80 @@
                   (m/abs (/ (- a b) a))) v1 v2)))))
 
 (defn rss
-  "Residual sum of squares"
+  "Calculates the Residual Sum of Squares (RSS) between two sequences or a sequence and a constant value.
+
+  RSS is a measure of the discrepancy between data and a model, often used in
+  regression analysis to quantify the total squared difference between observed
+  values and predicted (or reference) values.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (often observed values).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (often predicted or reference values), or a single number to compare
+    against each element of `vs1`.
+
+  If both sequences (`vs1` and `vs2`) are provided, they must have the same length.
+  If `vs2-or-val` is a single number, it is effectively treated as a sequence
+  of that number repeated `count(vs1)` times.
+
+  Returns the calculated Residual Sum of Squares as a double.
+
+  See also [[mse]] (Mean Squared Error), [[rmse]] (Root Mean Squared Error), [[r2]] (Coefficient of Determination)."
   (^double [[vs1 vs2-or-val]] (rss vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (sum (map (comp m/sq -) v1 v2)))))
 
 (defn r2
-  "R2"
+  "Calculates the Coefficient of Determination ($R^2$) or adjusted version between two sequences or a sequence and a constant value.
+
+  $R^2$ is a statistical measure that represents the proportion of the variance in the
+  dependent variable that is predictable from the independent variable(s) in a
+  statistical model. It indicates how well the model fits the observed data.
+
+  The standard $R^2$ is calculated as $1 - (RSS / TSS)$, where:
+  - $RSS$ (Residual Sum of Squares) is the sum of the squared differences
+    between the observed values (`vs1`) and the predicted/reference values (`vs2` or `vs2-or-val`).
+    See [[rss]].
+  - $TSS$ (Total Sum of Squares) is the sum of the squared differences
+    between the observed values (`vs1`) and their mean. This is calculated
+    using [[moment]] of order 2 with `:mean?` set to `false`.
+
+  This function has two arities:
+
+  1.  `(r2 vs1 vs2-or-val)`: Calculates the standard $R^2$.
+
+      - `vs1` (seq of numbers): The sequence of observed or actual values.
+      - `vs2-or-val` (seq of numbers or single number): The sequence of predicted or
+        reference values, or a single constant value to compare against.
+
+      Returns the calculated standard $R^2$ as a double. For simple linear regression,
+      this is equal to the square of the Pearson correlation coefficient ([[r2-determination]]).
+      $R^2$ typically ranges from 0 to 1 in this context, but can be negative
+      if the chosen model fits the data worse than a horizontal line through the mean
+      of the observed data.
+
+  2.  `(r2 vs1 vs2-or-val no-of-variables)`: Calculates the **Adjusted $R^2$**.
+      The adjusted $R^2$ is a modified version of $R^2$ that has been adjusted
+      for the number of predictors in the model. It increases only if the new term
+      improves the model more than would be expected by chance.
+      The formula for adjusted $R^2$ is:
+      $$ R^2_{adj} = 1 - (1 - R^2) \\frac{n-1}{n-p-1} $$
+      where $n$ is the number of observations (length of `vs1`) and $p$ is the
+      number of independent variables (`no-of-variables`).
+
+      - `vs1` (seq of numbers): The sequence of observed or actual values.
+      - `vs2-or-val` (seq of numbers or single number): The sequence of predicted or
+        reference values, or a single constant value to compare against.
+      - `no-of-variables` (double): The number of independent variables ($p$) used in the model
+        that produced the `vs2-or-val` predictions.
+
+      Returns the calculated adjusted $R^2$ as a double.
+
+  Both `vs1` and `vs2` (if `vs2-or-val` is a sequence) must have the same length.
+
+  See also [[rss]], [[mse]], [[rmse]], [[pearson-correlation]], [[r2-determination]]."
   (^double [[vs1 vs2-or-val]] (r2 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (- 1.0 (/ (rss vs1 vs2-or-val)
@@ -1658,57 +1936,205 @@
                   (- n no-of-variables 1.0)))))))
 
 (defn mse
-  "Mean squared error"
+  "Calculates the Mean Squared Error (MSE) between two sequences or a sequence and a constant value.
+
+  MSE is a measure of the quality of an estimator or predictor. It quantifies
+  the average of the squared differences between corresponding elements of the
+  input sequences.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (often the observed or true values).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (often the predicted or reference values), or a single number to compare
+    against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated Mean Squared Error as a double.
+
+  Note: MSE penalizes larger errors more heavily than smaller errors because the
+  errors are squared. This makes it sensitive to outliers. It is the average
+  of the [[rss]] (Residual Sum of Squares). Its square root is the [[rmse]].
+
+  See also [[rss]] (Residual Sum of Squares), [[rmse]] (Root Mean Squared Error),
+  [[me]] (Mean Error), [[mae]] (Mean Absolute Error), [[r2]] (Coefficient of Determination)."
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (mean (map (comp m/sq -) v1 v2)))))
 
 (defn rmse
-  "Root mean squared error"
+  "Calculates the Root Mean Squared Error (RMSE) between two sequences or a sequence and a constant value.
+
+  RMSE is the square root of the [[mse]] (Mean Squared Error). It represents the
+  standard deviation of the residuals (prediction errors) and has the same units
+  as the original data, making it more interpretable than MSE. It measures the
+  average magnitude of the errors, penalizing larger errors more than smaller ones
+  due to the squaring involved.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (often the observed or true values).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (often the predicted or reference values), or a single number to compare
+    against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated Root Mean Squared Error as a double.
+
+  See also [[mse]] (Mean Squared Error), [[rss]] (Residual Sum of Squares),
+  [[me]] (Mean Error), [[mae]] (Mean Absolute Error), [[r2]] (Coefficient of Determination)."
   (^double [[vs1 vs2-or-val]] (rmse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (m/sqrt (mse vs1 vs2-or-val))))
 
 (defn count=
-  "Count equal values in both seqs. Same as [[L0]]"
+  "Count equal values in both seqs. Same as [[L0]]
+
+  Calculates the number of pairs of corresponding elements that are equal between
+  two sequences, or between a sequence and a single scalar value.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of
+    numbers, or a single number to compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the count of equal elements as a long integer."
   (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
   (^long [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (count (filter (fn [^double v] (zero? v)) (map - v1 v2))))))
 
-(def ^{:doc "Count equal values in both seqs. Same as [[count==]]"} L0 count=)
+(def ^{:doc "Count equal values in both seqs. Alias for [[count==]]"} L0 count=)
 
 (defn L1
-  "Manhattan distance"
+  "Calculates the L1 distance (Manhattan or City Block distance) between two sequences or a sequence and a constant value.
+
+  The L1 distance is the sum of the absolute differences between corresponding elements.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of numbers, or a single number to compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated L1 distance as a double.
+
+  See also [[L2]], [[L2sq]], [[LInf]], [[mae]] (Mean Absolute Error)."
   (^double [[vs1 vs2-or-val]] (L1 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (d/manhattan v1 v2))))
 
 (defn L2sq
-  "Squared euclidean distance"
+  "Calculates the Squared Euclidean distance between two sequences or a sequence and a constant value.
+
+  This is the sum of the squared differences between corresponding elements.
+  It is equivalent to the [[rss]] (Residual Sum of Squares).
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of numbers, or a single number to compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated Squared Euclidean distance as a double.
+
+  See also [[L1]], [[L2]], [[LInf]], [[rss]] (Residual Sum of Squares), [[mse]] (Mean Squared Error)."
   (^double [[vs1 vs2-or-val]] (L2sq vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (d/euclidean-sq v1 v2))))
 
 (defn L2
-  "Euclidean distance"
+  "Calculates the L2 distance (Euclidean distance) between two sequences or a sequence and a constant value.
+
+  This is the standard straight-line distance between two points (vectors) in Euclidean space.
+  It is the square root of the [[L2sq]] distance.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of numbers, or a single number to compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated L2 distance as a double.
+
+  See also [[L1]], [[L2sq]], [[LInf]], [[rmse]] (Root Mean Squared Error)."
   (^double [[vs1 vs2-or-val]] (L2 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (d/euclidean v1 v2))))
 
 (defn LInf
-  "Chebyshev distance"
+  "Calculates the L-infinity distance (Chebyshev distance) between two sequences or a sequence and a constant value.
+
+  The Chebyshev distance is the maximum absolute difference between corresponding elements.
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence.
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence of numbers, or a single number to compare against each element of `vs1`.
+
+  If both inputs are sequences, they must have the same length. If `vs2-or-val`
+  is a single number, it is effectively treated as a sequence of that number
+  repeated `count(vs1)` times.
+
+  Returns the calculated L-infinity distance as a double.
+
+  See also [[L1]], [[L2]], [[L2sq]]."
   (^double [[vs1 vs2-or-val]] (LInf vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (d/chebyshev v1 v2))))
 
 (defn psnr
-  "Peak signal to noise, `max-value` is maximum possible value (default: max from `vs1` and `vs2`)"
+  "Peak Signal-to-Noise Ratio (PSNR).
+
+  PSNR is a measure used to quantify the quality of reconstruction of lossy
+  compression codecs (e.g., for images or video). It is calculated using the
+  Mean Squared Error (MSE) between the original and compressed images/signals.
+  A higher PSNR generally indicates a higher quality signal reconstruction
+  (i.e., less distortion).
+
+  Parameters:
+
+  - `vs1` (sequence of numbers): The first sequence (conventionally, the original or reference signal/data).
+  - `vs2-or-val` (sequence of numbers or single number): The second sequence
+    (conventionally, the reconstructed or noisy signal/data), or a single number
+    to compare against each element of `vs1`.
+  - `max-value` (optional, double): The maximum possible value of a sample in the data.
+    If not provided, the function automatically determines the maximum value present
+    across both input sequences (`vs1` and `vs2` if a sequence, or `vs1` and the scalar value
+    if `vs2-or-val` is a number). Providing an explicit `max-value` is often more
+    appropriate based on the data type's theoretical maximum range (e.g., 255 for 8-bit).
+
+  If `vs2-or-val` is a sequence, both `vs1` and `vs2` must have the same length.
+
+  Returns the calculated Peak Signal-to-Noise Ratio as a double. Returns `-Double/Infinity`
+  if the MSE is zero (perfect match). Returns `NaN` if MSE is non-positive.
+
+  See also [[mse]], [[rmse]]."
   (^double [[vs1 vs2-or-val]] (psnr vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [mx1 (maximum vs1)
@@ -1865,7 +2291,6 @@
                              0 (r/cdf distr (+ s step))
                              last-idx (- 1.0 (r/cdf distr s))
                              (r/cdf distr s (+ s step)))) bins)]))
-
 (defn- pq-from-histograms
   [P Q bins]
   (let [[Ph Qh] (histogram [P Q] bins)]
@@ -1874,9 +2299,10 @@
 
 (defn- normalize-PQ
   [P-observed Q-expected bins probabilities?]
-  (let [[P Q] (cond (r/distribution? Q-expected) (quantize-distribution P-observed Q-expected bins)
-                    bins (pq-from-histograms P-observed Q-expected bins) 
-                    :else [P-observed Q-expected])]
+  (let [[P Q] (cond
+                (r/distribution? Q-expected) (quantize-distribution P-observed Q-expected bins)
+                bins (pq-from-histograms P-observed Q-expected bins) 
+                :else [P-observed Q-expected])]
     (cond
       (r/distribution? Q-expected) [(v/div P (v/sum P)) Q]
       probabilities? [(v/div P (v/sum P)) (v/div Q (v/sum Q))]
@@ -2038,11 +2464,6 @@
        :harmonic-mean (* 2.0 (v/sum (map (fn [^double p ^double q]
                                            (safe-div (* p q) (+ p q) epsilon)) P Q)))
        :cosine (safe-div (v/sum (v/emult P Q)) (* (v/mag P) (v/mag Q)) epsilon)
-       ;; as in Kumar/Hassebrook paper
-       #_#_:kumar-hassebrook (/ (safe-div (v/sq (v/sum (v/emult P Q)))
-                                          (v/sum (v/emult (v/sq P) (v/sq Q)))
-                                          epsilon)
-                                (count P))
        :jaccard (let [pq (v/sum (v/emult P Q))]
                   (safe-div pq (- (+ (v/magsq P) (v/magsq Q)) pq) epsilon))
        :dice (let [pq (v/sum (v/emult P Q))]
@@ -4538,26 +4959,67 @@
 ;; transformations
 
 (defn- box-cox-scaled
-  ([nxs sgn ^double lambda] (box-cox-scaled nxs sgn lambda (geomean nxs)))
-  ([nxs sgn ^double lambda ^double gm]
-   (if (m/zero? lambda)
-     (map (fn [^double s ^double x] (m/* gm s (m/log x))) sgn nxs)
-     (let [fact (m/* lambda (m/pow gm (m/dec lambda)))]
-       (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) fact)) sgn nxs)))))
+  [nxs sgn ^double lambda gm]
+  (let [gm (if (number? gm) (double gm) (geomean nxs))]
+    (if (seq sgn)
+      (if (m/zero? lambda)
+        (map (fn [^double s ^double x] (m/* gm s (m/log (m/inc x)))) sgn nxs)
+        (let [fact (m/* lambda (m/pow gm (m/dec lambda)))]
+          (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) fact)) sgn nxs)))
+      (if (m/zero? lambda)
+        (map (fn [^double x] (m/* gm (m/log x))) nxs)
+        (let [fact (m/* lambda (m/pow gm (m/dec lambda)))]
+          (map (fn [^double x] (m// (m/dec (m/pow x lambda)) fact)) nxs))))))
+
+(defn- box-cox-scaled-inv
+  [xs ^double lambda {:keys [^double alpha negative? scaled?] :or {alpha 0.0}}]
+  (-> (let [gm (double scaled?)]
+        (if negative?
+          (if (m/zero? lambda)
+            (map (fn [^double x] (m/* (m/sgn x) (m/dec (m/exp (m// (m/abs x) gm))))) xs)
+            (let [rl (m// lambda)
+                  fact (m/* lambda (m/pow gm (m/dec lambda)))]
+              (map (fn [^double x]
+                     (let [y (m/inc (m/* fact x))]
+                       (m/* (m/sgn y) (m/pow (m/abs y) rl)))) xs))            )
+          (if (m/zero? lambda)
+            (map (fn [^double x] (m/exp (m// x gm))) xs)
+            (let [fact (m/* lambda (m/pow gm (m/dec lambda)))
+                  rl (m// lambda)]
+              (map (fn [^double x] (m/pow (m/inc (m/* fact x)) rl)) xs)))))
+      (v/shift (m/- alpha))))
 
 (defn- box-cox-not-scaled
   [nxs sgn ^double lambda]
-  (if (m/zero? lambda)
-    (map (fn [^double s ^double x] (if (m/zero? x) 0.0 (m/* s (m/log x)))) sgn nxs)
-    (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) lambda)) sgn nxs)))
+  (if (seq sgn)
+    (if (m/zero? lambda)
+      (map (fn [^double s ^double x] (m/* s (m/log (m/inc x)))) sgn nxs)
+      (map (fn [^double s ^double x] (m// (m/dec (m/* s (m/pow x lambda))) lambda)) sgn nxs))
+    (if (m/zero? lambda)
+      (map m/log nxs)
+      (map (fn [^double x] (m// (m/dec (m/pow x lambda)) lambda)) nxs))))
+
+(defn- box-cox-not-scaled-inv
+  [xs ^double lambda {:keys [^double alpha negative?] :or {alpha 0.0}}]
+  (-> (if negative?
+        (if (m/zero? lambda)
+          (map (fn [^double x] (m/* (m/sgn x) (m/dec (m/exp (m/abs x))))) xs)
+          (let [rl (m// lambda)]
+            (map (fn [^double x]
+                   (let [y (m/inc (m/* lambda x))]
+                     (m/* (m/sgn y) (m/pow (m/abs y) rl)))) xs)))
+        (if (m/zero? lambda)
+          (map m/exp xs)
+          (let [rl (m// lambda)]
+            (map (fn [^double x] (m/pow (m/inc (m/* lambda x)) rl)) xs))))
+      (v/shift (m/- alpha))))
 
 (defn- box-cox-prepare-data
   [xs {:keys [^double alpha negative?]
        :or {alpha 0.0}}]
-  [(cond-> xs
-     (not (m/zero? alpha)) (v/shift alpha)
-     negative? (v/abs))
-   (if negative? (map m/signum xs) (repeat 1.0))])
+  (let [d (if (m/zero? alpha) xs (v/shift xs alpha))]
+    [(v/abs d)
+     (when negative? (map m/sgn d))]))
 
 (defn- box-cox-maximize-ll
   ^double [nxs sgn lambda-range]
@@ -4592,22 +5054,25 @@
   - `lambda` (default `0.0`): The power parameter. If `nil` or `[lambda-min, lambda-max]`, `lambda` is inferred using maximum log likelihood.
   - Options map:
     - `alpha` (optional): A shift parameter applied before transformation.
-    - `scaled?` (default `false`): scale by geometric mean
-    - `negative?` (default `false`): allow negative values
+    - `scaled?` (default `false`): Scale by geometric mean or any other number
+    - `negative?` (default `false`): Allow negative values
+    - `inverse?` (default: `false`): Perform inverse operation, `lambda` can't be inferred.
 
   Returns transformed data.
 
   Related: `yeo-johnson-transformation`"
   ([xs] (box-cox-transformation xs nil))
   ([xs lambda] (box-cox-transformation xs lambda nil))
-  ([xs lambda {:keys [scaled?] :as opts}]
-   (let [[nxs sgn] (box-cox-prepare-data xs opts)
-         lambda (if (number? lambda) lambda (box-cox-maximize-ll nxs sgn lambda))]
+  ([xs lambda {:keys [scaled? inverse?] :as opts}]
+   (if inverse?
      (if scaled?
-       (if (number? scaled?)
+       (box-cox-scaled-inv xs lambda opts)
+       (box-cox-not-scaled-inv xs lambda opts))
+     (let [[nxs sgn] (box-cox-prepare-data xs opts)
+           lambda (if (number? lambda) lambda (box-cox-maximize-ll nxs sgn lambda))]
+       (if scaled?
          (box-cox-scaled nxs sgn lambda scaled?)
-         (box-cox-scaled nxs sgn lambda))
-       (box-cox-not-scaled nxs sgn lambda)))))
+         (box-cox-not-scaled nxs sgn lambda))))))
 
 (defn- yeo-johnson
   [nxs ^double lambda]
@@ -4620,6 +5085,18 @@
              (if (m/zero? lambda)
                (m/log (inc x))
                (/ (dec (m/pow (inc x) lambda)) lambda)))) nxs)))
+
+(defn- yeo-johnson-inv
+  [nxs ^double lambda]
+  (let [l2 (m/- 2.0 lambda)]
+    (map (fn [^double x]
+           (if (m/neg? x)
+             (if (m/== lambda 2.0)
+               (m/- 1.0 (m/exp (m/- x)))
+               (m/- 1.0 (m/pow (m/inc (m/* l2 (m/- x))) (m// l2))))
+             (if (m/zero? lambda)
+               (m/dec (m/exp x))
+               (m/dec (m/pow (m/inc (m/* lambda x)) (m// lambda)))))) nxs)))
 
 (defn- yeo-johnson-maximize-ll
   ^double [nxs lambda-range]
@@ -4653,7 +5130,8 @@
   - `xs`: The input dataset.
   - `lambda` (default: 0.0): The power parameter controlling the transformation. If `lambda` is `nil` or a range `[lambda-min, lambda-max]` it will be inferred using maximum log-likelihood method.
   - Options map:
-    - `alpha` (optional): A shift parameter applied before transformation.
+    - `:alpha` (optional): A shift parameter applied before transformation.
+    - `:inverse?` (optional): Perform inverse operation, `lambda` should be provided (can't be inferred). 
 
   Returns:
 
@@ -4662,10 +5140,13 @@
   Related: `box-cox-tranformation`"
   ([xs] (yeo-johnson-transformation xs nil))
   ([xs lambda] (yeo-johnson-transformation xs lambda nil))
-  ([xs lambda {:keys [^double alpha] :or {alpha 0.0}}]
-   (let [nxs (if (m/zero? alpha) xs (v/shift xs alpha))
-         lambda (if (number? lambda) lambda (yeo-johnson-maximize-ll nxs lambda))]
-     (yeo-johnson nxs lambda))))
+  ([xs lambda {:keys [^double alpha inverse?] :or {alpha 0.0}}]
+   (if inverse?
+     (let [nxs (yeo-johnson-inv xs lambda)]
+       (if (m/zero? alpha) nxs (v/shift nxs (m/- alpha))))
+     (let [nxs (if (m/zero? alpha) xs (v/shift xs alpha))
+           lambda (if (number? lambda) lambda (yeo-johnson-maximize-ll nxs lambda))]
+       (yeo-johnson nxs lambda)))))
 
 ;;
 

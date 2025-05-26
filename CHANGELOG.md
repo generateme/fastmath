@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file. This change
 * `ks-test-two-samples` - added jittering the data, ties solving and sides calculation for `:exact` method 
 * `bernstein` polynomial
 * `owens-t` special function
+* `softmax` and `logsoftmax` accept `t` (temperature) parameter.
 
 ### Fixed
 
@@ -32,6 +33,7 @@ All notable changes to this project will be documented in this file. This change
 * `cohens-u2` - bad optimization method used
 * OOM when called `hat-matrix` on relatively low number (10k) of entries.
 * `:bowley` skewness to be equal `:yule` (default, `u=0.25`)
+* `softmax` and `logsoftmax` fixed shift for numerical stability
 
 ### Deprecated
 
