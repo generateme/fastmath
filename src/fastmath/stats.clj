@@ -1,48 +1,50 @@
 (ns fastmath.stats
-  "#### Statistics functions.
+  "Namespace provides a comprehensive collection of functions for
+  performing statistical analysis in Clojure. It focuses on providing efficient
+  implementations for common statistical tasks, leveraging fastmath's underlying
+  numerical capabilities.
 
-  * Descriptive statistics.
-  * Correlation / covariance
-  * Outliers
-  * Confidence intervals
-  * Extents
-  * Effect size
-  * Tests
-  * Histogram
-  * ACF/PACF
-  * Bootstrap (see `fastmath.stats.bootstrap`)
-  * Binary measures
+  This namespace covers a wide range of statistical methods, including:
 
-  Functions are backed by Apache Commons Math or SMILE libraries. All work with Clojure sequences.
+  *   **Descriptive Statistics**: Measures of central tendency (mean, median, mode, expectile),
+      dispersion (variance, standard deviation, MAD, SEM), and shape (skewness, kurtosis, L-moments).
+  *   **Quantiles and Percentiles**: Functions for calculating percentiles, quantiles, and the median,
+      including weighted versions and various estimation strategies.
+  *   **Intervals and Extents**: Methods for defining ranges within data, such as span, IQR,
+      standard deviation/MAD/SEM extents, percentile/quantile intervals, prediction intervals (PI, HPDI),
+      and fence boundaries for outlier detection.
+  *   **Outlier Detection**: Functions for identifying data points outside conventional fence boundaries.
+  *   **Data Transformation**: Utilities for scaling, centering, trimming, winsorizing,
+      and applying power transformations (Box-Cox, Yeo-Johnson) to data.
+  *   **Correlation and Covariance**: Measures of the linear and monotonic relationship
+      between two or more variables (Pearson, Spearman, Kendall), and functions for
+      generating covariance and correlation matrices.
+  *   **Distance and Similarity Metrics**: Functions for quantifying differences or
+      likeness between data sequences or distributions, including error metrics (MAE, MSE, RMSE),
+      L-p norms, and various distribution dissimilarity/similarity measures.
+  *   **Contingency Tables**: Functions for creating, analyzing, and deriving measures
+      of association and agreement (Cramer's V, Cohen's Kappa) from contingency tables,
+      including specialized functions for 2x2 tables.
+  *   **Binary Classification Metrics**: Functions for generating confusion matrices
+      and calculating a wide array of performance metrics (Accuracy, Precision, Recall, F1, MCC, etc.).
+  *   **Effect Size**: Measures quantifying the magnitude of statistical effects,
+      including difference-based (Cohen's d, Hedges' g, Glass's delta), ratio-based,
+      ordinal/non-parametric (Cliff's Delta, Vargha-Delaney A), and overlap-based (Cohen's U, p-overlap),
+      as well as measures related to explained variance (Eta-squared, Omega-squared, Cohen's f²).
+  *   **Statistical Tests**: Functions for performing hypothesis tests, including:
+      -   Normality and Shape tests (Skewness, Kurtosis, D'Agostino-Pearson K², Jarque-Bera, Bonett-Seier).
+      -   Binomial tests and confidence intervals.
+      -   Location tests (one-sample and two-sample T/Z tests, paired/unpaired).
+      -   Variance tests (F-test, Levene's, Brown-Forsythe, Fligner-Killeen).
+      -   Goodness-of-Fit and Independence tests (Power Divergence family including Chi-squared, G-test; AD/KS tests).
+      -   ANOVA and Rank Sum tests (One-way ANOVA, Kruskal-Wallis).
+      -   Autocorrelation tests (Durbin-Watson).
+  *   **Time Series Analysis**: Functions for analyzing the dependence structure of
+      time series data, such as Autocorrelation (ACF) and Partial Autocorrelation (PACF).
+  *   **Histograms**: Functions for computing histograms and estimating optimal binning strategies.
 
-  ##### Descriptive statistics
-
-  All in one function [[stats-map]] contains:
-
-  * `:Size` - size of the samples, `(count ...)`
-  * `:Min` - [[minimum]] value
-  * `:Max` - [[maximum]] value
-  * `:Range` - range of values
-  * `:Mean` - [[mean]]/average
-  * `:Median` - [[median]], see also: [[median-3]]
-  * `:Mode` - [[mode]], see also: [[modes]]
-  * `:Q1` - first quartile, use: [[percentile]], [[quartile]]
-  * `:Q3` - third quartile, use: [[percentile]], [[quartile]]
-  * `:Total` - [[sum]] of all samples
-  * `:SD` - sample standard deviation
-  * `:Variance` - variance
-  * `:MAD` - [[median-absolute-deviation]]
-  * `:SEM` - standard error of mean
-  * `:LAV` - lower adjacent value, use: [[adjacent-values]]
-  * `:UAV` - upper adjacent value, use: [[adjacent-values]]
-  * `:IQR` - interquartile range, `(- q3 q1)`
-  * `:LOF` - lower outer fence, `(- q1 (* 3.0 iqr))`
-  * `:UOF` - upper outer fence, `(+ q3 (* 3.0 iqr))`
-  * `:LIF` - lower inner fence, `(- q1 (* 1.5 iqr))`
-  * `:UIF` - upper inner fence, `(+ q3 (* 1.5 iqr))`
-  * `:Outliers` - list of [[outliers]], samples which are outside outer fences
-  * `:Kurtosis` - [[kurtosis]]
-  * `:Skewness` - [[skewness]]"
+  This namespace aims to provide a robust set of statistical tools for data analysis
+  and modeling within the Clojure ecosystem."
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.distance :as d]
@@ -1301,8 +1303,10 @@
   (^double [vs] (crow-kurtosis vs 0.025 0.25))
   (^double [vs ^double alpha ^double beta]
    (let [[^double a1 ^double a2 ^double b1 ^double b2] (quantiles vs [alpha (- 1.0 alpha)
-                                                                      beta (- 1.0 beta)])]
-     (- (/ (- a2 a1) (- b2 b1)) 2.906))))
+                                                                      beta (- 1.0 beta)])
+         c (/ (double (r/icdf r/default-normal alpha))
+              (double (r/icdf r/default-normal beta)))]
+     (- (/ (- a2 a1) (- b2 b1)) c))))
 
 ;; centered
 (defn- hogg-kurtosis
@@ -1313,6 +1317,7 @@
          la (mean (trim-upper vs alpha))
          lb (mean (trim-upper vs beta))]
      (- (/ (- ua la) (- ub lb)) 2.585))))
+
 
 ;; https://aakinshin.net/posts/misleading-kurtosis/
 (defn kurtosis
@@ -1388,7 +1393,7 @@
              :b2 (- (* (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) ; g2 + 3
                                  (inc n)))
                        (m/sq (- 1.0 (/ 1.0 n)))) 3.0)
-             v ; Default is :G2 (sample kurtosis from Commons Math)
+             v    ; Default is :G2 (sample kurtosis from Commons Math)
              )))))))
 
 (defn ci
@@ -1439,9 +1444,50 @@
      (repeatedly samples #(r/->seq dist size)))))
 
 (defn stats-map
-  "Calculate several statistics of `vs` and return as map.
+  "Calculates a comprehensive set of descriptive statistics for a numerical dataset.
 
-  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
+  This function computes various summary measures and returns them as a map,
+  providing a quick overview of the data's central tendency, dispersion, shape,
+  and potential outliers.
+
+  Parameters:
+
+  - `vs` (seq of numbers): The input sequence of numerical data.
+  - `estimation-strategy` (keyword, optional): Specifies the method for calculating
+    quantiles (including median, quartiles, and values used for fences).
+    Defaults to `:legacy`. See [[percentile]] or [[quantile]] for available
+    strategies (e.g., `:r1` through `:r9`).
+
+  Returns a map where keys are statistic names (as keywords) and values are
+  their calculated measures:
+
+  - `:Size`: The number of data points in the sequence (count).
+  - `:Min`: The minimum value (see [[minimum]]).
+  - `:Max`: The maximum value (see [[maximum]]).
+  - `:Range`: The difference between the maximum and minimum values (Max - Min).
+  - `:Mean`: The arithmetic average (see [[mean]]).
+  - `:Median`: The middle value (see [[median]] with `estimation-strategy`).
+  - `:Mode`: The most frequent value (see [[mode]] with default method).
+  - `:Q1`: The first quartile (25th percentile) (see [[percentile]] with `estimation-strategy`).
+  - `:Q3`: The third quartile (75th percentile) (see [[percentile]] with `estimation-strategy`).
+  - `:Total`: The sum of all values (see [[sum]]).
+  - `:SD`: The sample standard deviation (see [[stddev]]).
+  - `:Variance`: The sample variance (SD^2, see [[variance]]).
+  - `:MAD`: The Median Absolute Deviation (see [[median-absolute-deviation]]).
+  - `:SEM`: The Standard Error of the Mean (see [[sem]]).
+  - `:LAV`: The Lower Adjacent Value (smallest value within the inner fence, see [[adjacent-values]]).
+  - `:UAV`: The Upper Adjacent Value (largest value within the inner fence, see [[adjacent-values]]).
+  - `:IQR`: The Interquartile Range (Q3 - Q1).
+  - `:LOF`: The Lower Outer Fence (Q1 - 3*IQR, see [[outer-fence-extent]]).
+  - `:UOF`: The Upper Outer Fence (Q3 + 3*IQR, see [[outer-fence-extent]]).
+  - `:LIF`: The Lower Inner Fence (Q1 - 1.5*IQR, see [[inner-fence-extent]]).
+  - `:UIF`: The Upper Inner Fence (Q3 + 1.5*IQR, see [[inner-fence-extent]]).
+  - `:Outliers`: A sequence of data points falling outside the inner fences (see [[outliers]]).
+  - `:Kurtosis`: A measure of tailedness/peakedness (see [[kurtosis]] with default `:G2` type).
+  - `:Skewness`: A measure of asymmetry (see [[skewness]] with default `:G1` type).
+
+  This function is a convenient way to get a standard set of summary statistics
+  for a dataset in a single call."
   ([vs] (stats-map vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
@@ -1502,7 +1548,7 @@
      (map (fn [^double x] (/ (- x md) diff)) vs))))
 
 (defn demean
-  "Subtract mean from sequence"
+  "Subtract mean from a sequence"
   [vs]
   (let [m (mean vs)]
     (map (fn [^double v]
@@ -2501,6 +2547,7 @@
   "Calculate pooled standard deviation for samples and method
 
   Methods:
+ 
   * `:unbiased` - sqrt of weighted average of variances (default)
   * `:biased` - biased version of `:unbiased`, no count correction.
   * `:avg` - sqrt of average of variances"
@@ -2522,14 +2569,40 @@
 (defn cohens-d
   "Calculate Cohen's d effect size between two groups.
 
-  Cohen's d is a statistical measure used to quantify the magnitude of difference between two groups.
+  Cohen's d is a standardized measure used to quantify the magnitude of the
+  difference between the means of two independent groups. It expresses the mean
+  difference in terms of standard deviation units.
 
-  Params:
-  - group1: first sample
-  - group2: second sample
-  - method (optional): method for pooled stddev calculation (`:unbiased`, `:biased`, or `:avg`), defaults to `:unbiased`, see [[pooled-stddev]] for more info about methods.
+  The most common formula for Cohen's d is:
 
-  Returns effect size as double."
+      d = (mean(group1) - mean(group2)) / pooled_stddev
+
+  where `pooled_stddev` is the pooled standard deviation of the two groups,
+  calculated under the assumption of equal variances.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample.
+  - `group2` (seq of numbers): The second independent sample.
+  - `method` (optional keyword): Specifies the method for calculating the pooled standard deviation,
+    affecting the denominator of the formula. Possible values are `:unbiased` (default),
+    `:biased`, or `:avg`. See [[pooled-stddev]] for details on these methods.
+
+  Returns the calculated Cohen's d effect size as a double.
+
+  Interpretation guidelines (approximate for normal distributions):
+  - |d| = 0.2: small effect
+  - |d| = 0.5: medium effect
+  - |d| = 0.8: large effect
+
+  Assumptions:
+  - The two samples are independent.
+  - Data within each group are approximately normally distributed.
+  - The choice of `:method` implies assumptions about equal variances (default `:unbiased` and `:biased` assume equal variances, while `:avg` does not but might be less standard).
+
+  See also [[hedges-g]] (a version bias-corrected for small sample sizes),
+  [[glass-delta]] (an alternative effect size measure using the control group standard deviation),
+  [[pooled-stddev]]."
   (^double [[group1 group2]] (cohens-d group1 group2))
   (^double [group1 group2] (cohens-d group1 group2 :unbiased))
   (^double [group1 group2 method]
@@ -2543,7 +2616,36 @@
   (- 1.0 (/ 3.0 (dec (* 4.0 df)))))
 
 (defn cohens-d-corrected
-  "Cohen's d corrected for small group size"
+  "Calculates Cohen's d effect size corrected for bias in small sample sizes.
+
+  This function applies a correction factor (derived from the gamma function) to
+  Cohen's d ([[cohens-d]]) to provide a less biased estimate of the population
+  effect size when sample sizes are small. This corrected measure is sometimes
+  referred to as Hedges' g, though this function specifically implements the
+  correction applied to Cohen's d.
+
+  The correction factor is `(1 - 3 / (4 * df - 1))` where `df` is the degrees of
+  freedom used in the standard Cohen's d calculation.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample.
+  - `group2` (seq of numbers): The second independent sample.
+  - `method` (optional keyword): Specifies the method for calculating the pooled
+    standard deviation, affecting the denominator of the formula (passed to
+    [[cohens-d]]). Possible values are `:unbiased` (default), `:biased`, or `:avg`.
+    See [[pooled-stddev]] for details on these methods.
+
+  Returns the calculated bias-corrected Cohen's d effect size as a double.
+
+  Note: While this function is named `cohens-d-corrected`, Hedges' g (calculated
+  by [[hedges-g-corrected]]) also applies a similar small-sample bias correction.
+  Differences might exist based on the specific correction formula or degree of
+  freedom definition used. This function uses `(count group1) + (count group2) - 2`
+  as the degrees of freedom for the correction by default (when `:unbiased` method
+  is used for `cohens-d`).
+
+  See also [[cohens-d]], [[hedges-g]], [[hedges-g-corrected]]."
   (^double [[group1 group2]] (cohens-d-corrected group1 group2))
   (^double [group1 group2] (cohens-d-corrected group1 group2 :unbiased))
   (^double [group1 group2 method]
@@ -2555,19 +2657,88 @@
       (cohens-d group1 group2 method))))
 
 (defn hedges-g
-  "Hedges's g effect size for two groups"
+  "Calculates Hedges's g effect size for comparing the means of two independent groups.
+
+  Hedges's g is a standardized measure quantifying the magnitude of the difference
+  between the means of two independent groups. It is similar to Cohen's d but
+  uses the *unbiased* pooled standard deviation in the denominator.
+
+  This implementation calculates g using the unbiased pooled standard deviation as the denominator.
+
+  Parameters:
+
+  - `group1`, `group2` (sequences): The two independent samples directly as arguments.
+
+  Returns the calculated Hedges's g effect size as a double.
+
+  Note: This specific function uses the unbiased pooled standard deviation but does
+  *not* apply the small-sample bias correction factor (often denoted as J)
+  sometimes associated with Hedges's g. For a bias-corrected version, see [[hedges-g-corrected]].
+  This function is equivalent to calling `(cohens-d group1 group2 :unbiased)`.
+
+  See also [[cohens-d]], [[hedges-g-corrected]], [[glass-delta]], [[pooled-stddev]]."
   (^double [[group1 group2]] (hedges-g group1 group2))
   (^double [group1 group2]
    (cohens-d group1 group2 :unbiased)))
 
 (defn hedges-g-corrected
-  "Cohen's d corrected for small group size"
+  "Calculates a small-sample bias-corrected effect size for comparing the means
+  of two independent groups, often referred to as a form of Hedges's g.
+
+  This function calculates Cohen's d ([[cohens-d]]) using the *unbiased*
+  pooled standard deviation (equivalent to [[hedges-g]]), and then applies
+  a specific correction factor designed to reduce the bias in the effect size
+  estimate for small sample sizes.
+
+  The correction factor applied is `(1 - 3 / (4 * df - 1))`, where `df` is the
+  degrees of freedom for the unbiased pooled variance calculation (`n1 + n2 - 2`).
+  This corresponds to calling [[cohens-d-corrected]] with the `:unbiased` method
+  for pooled standard deviation.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample.
+  - `group2` (seq of numbers): The second independent sample.
+
+  Returns the calculated bias-corrected effect size as a double.
+
+  Note: This function applies *a* correction factor. For the more
+  standard Hedges's g bias correction using the exact gamma function
+  based correction factor, see [[hedges-g*]].
+
+  See also [[cohens-d]], [[cohens-d-corrected]], [[hedges-g]], [[hedges-g*]],
+  [[pooled-stddev]]."
   (^double [[group1 group2]] (hedges-g-corrected group1 group2))
   (^double [group1 group2]
    (cohens-d-corrected group1 group2 :unbiased)))
 
 (defn hedges-g*
-  "Less biased Hedges's g effect size for two groups, J term correction."
+  "Calculates a less biased estimate of Hedges's g effect size for comparing the means of two independent groups, using the exact J bias correction.
+
+  Hedges's g is a standardized measure of the difference between two means. For small sample sizes, the standard Hedges's g (and Cohen's d) can overestimate the true population effect size. This function applies a specific correction factor, often denoted as J, to mitigate this bias.
+
+  The calculation involves:
+  1. Calculating the standard Hedges's g (equivalent to [[hedges-g]], which uses the unbiased pooled standard deviation).
+  2. Calculating the J correction factor based on the degrees of freedom (`n1 + n2 - 2`) using the gamma function.
+  3. Multiplying the standard Hedges's g by the J factor.
+
+  The J factor is calculated as `(Gamma(df/2) / (sqrt(df/2) * Gamma((df-1)/2)))`.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample.
+  - `group2` (seq of numbers): The second independent sample.
+
+  Returns the calculated bias-corrected Hedges's g effect size as a double.
+
+  This version of Hedges's g is generally preferred over the standard version or Cohen's d when working with small sample sizes, as it provides a more accurate estimate of the population effect size.
+
+  Assumptions:
+  - The two samples are independent.
+  - Data within each group are approximately normally distributed.
+  - Equal variances are assumed for calculating the pooled standard deviation.
+
+  See also [[cohens-d]], [[hedges-g]] (uncorrected), [[hedges-g-corrected]] (another correction method)."
   (^double [[group1 group2]] (hedges-g* group1 group2))
   (^double [group1 group2]
    (let [df (+ (count group1) (count group2) -2)
@@ -2578,14 +2749,55 @@
      (* j (hedges-g group1 group2)))))
 
 (defn glass-delta
-  "Glass's delta effect size for two groups"
+  "Calculates Glass's delta (Δ), an effect size measure for the difference
+  between two group means, using the standard deviation of the control group.
+
+  Glass's delta is used to quantify the magnitude of the difference between an
+  experimental group and a control group, specifically when the control group's
+  standard deviation is considered a better estimate of the population
+  standard deviation than a pooled variance.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The experimental group.
+  - `group2` (seq of numbers): The control group.
+
+  Returns the calculated Glass's delta as a double.
+
+  This measure is less common than [[cohens-d]] or [[hedges-g]] but is preferred
+  when the intervention is expected to affect the variance or when group2 (the control)
+  is clearly the baseline against which variability should be assessed.
+
+  See also [[cohens-d]], [[hedges-g]]."
   (^double [[group1 group2]] (glass-delta group1 group2))
   (^double [group1 group2]
    (let [group2 (m/seq->double-array group2)]
      (/ (- (mean group1) (mean group2)) (stddev group2)))))
 
 (defn means-ratio
-  "Means ratio"
+  "Calculates the ratio of the mean of `group1` to the mean of `group2`.
+
+  This is a measure of effect size in the 'Ratio Family', comparing the central tendency
+  of two groups multiplicatively.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample. The mean of this group is the numerator.
+  - `group2` (seq of numbers): The second independent sample. The mean of this group is the denominator.
+  - `adjusted?` (boolean, optional): If `true`, applies a small-sample bias correction to the ratio.
+    Defaults to `false`.
+
+  Returns the calculated ratio of means as a double.
+
+  A value greater than 1 indicates that `group1` has a larger mean than `group2`.
+  A value less than 1 indicates `group1` has a smaller mean.
+  A value close to 1 indicates similar means.
+
+  The `adjusted?` version attempts to provide a less biased estimate of the population
+  mean ratio, particularly for small sample sizes, by incorporating variances into the calculation
+  (based on Bickel and Doksum, see also [[means-ratio-corrected]]).
+
+  See also [[means-ratio-corrected]] (which is equivalent to calling this with `adjusted?` set to `true`)."
   (^double [[group1 group2]] (means-ratio group1 group2))
   (^double [group1 group2] (means-ratio group1 group2 false))
   (^double [group1 group2 adjusted?]
@@ -2604,13 +2816,50 @@
          (m/exp (+ (- (m/log m1) (m/log m2)) J)))))))
 
 (defn means-ratio-corrected
-  "Bias correced means ratio"
+  "Calculates a bias-corrected ratio of the mean of `group1` to the mean of `group2`.
+
+  This function applies a correction (based on Bickel and Doksum) to the simple
+  ratio `mean(group1) / mean(group2)` to reduce bias, particularly for small
+  sample sizes.
+
+  It is equivalent to calling `(means-ratio group1 group2 true)`.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample. The mean of this group
+    is the numerator.
+  - `group2` (seq of numbers): The second independent sample. The mean of this group
+    is the denominator.
+
+  Returns the calculated bias-corrected ratio of means as a double.
+
+  See also [[means-ratio]] (for the simple, uncorrected ratio)."
   (^double [[group1 group2]] (means-ratio-corrected group1 group2))
   (^double [group1 group2]
    (means-ratio group1 group2 true)))
 
 (defn cliffs-delta
-  "Cliff's delta effect size for ordinal data."
+  "Calculates Cliff's Delta (δ), a non-parametric effect size measure for assessing the difference between two groups of ordinal or continuous data.
+
+  Cliff's Delta quantifies the degree of overlap between two distributions. It represents the probability that a randomly chosen value from the first group is greater than a randomly chosen value from the second group, minus the reverse probability.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+
+  Returns the calculated Cliff's Delta value as a double.
+
+  Interpretation:
+
+  - A value of +1 indicates complete separation where every value in `group1` is greater than every value in `group2`.
+  - A value of -1 indicates complete separation where every value in `group2` is greater than every value in `group1`.
+  - A value of 0 indicates complete overlap between the distributions.
+  - Values between -1 and 1 indicate varying degrees of overlap. Cohen (1988) suggested guidelines for effect size: |δ| < 0.147 (negligible), 0.147 ≤ |δ| < 0.33 (small), 0.33 ≤ |δ| < 0.474 (medium), |δ| ≥ 0.474 (large).
+
+  Cliff's Delta is a robust measure, suitable for ordinal data or when assumptions of parametric tests (like normality or equal variances) are violated. It is closely related to the [[wmw-odds]] (Wilcoxon-Mann-Whitney odds) and the [[ameasure]] (Vargha-Delaney A).
+
+  See also [[wmw-odds]], [[ameasure]], [[cohens-d]], [[glass-delta]]."
   (^double [[group1 group2]] (cliffs-delta group1 group2))
   (^double [group1 group2]
    (/ (sum (for [a group1
@@ -2621,7 +2870,21 @@
 ;;
 
 (defn ameasure
-  "Vargha-Delaney A measure for two populations a and b"
+  "Calculates the Vargha-Delaney A measure for two independent samples.
+
+  A non-parametric effect size measure quantifying the probability that a randomly chosen value from the first sample (`group1`) is greater than a randomly chosen value from the second sample (`group2`).
+
+  Parameters:
+
+  - `group1`: The first independent sample.
+  - `group2`: The second independent sample.
+
+  Returns the calculated A measure (a double) in the range [0, 1].
+  A value of 0.5 indicates stochastic equality (distributions are overlapping). Values > 0.5 mean `group1` tends to be larger; values < 0.5 mean `group2` tends to be larger.
+
+  Related to [[cliffs-delta]] and the Wilcoxon-Mann-Whitney U test statistic.
+
+  See also [[cliffs-delta]], [[wmw-odds]]."
   (^double [[group1 group2]] (ameasure group1 group2))
   (^double [group1 group2]
    (let [m (count group1)
@@ -2631,7 +2894,31 @@
         (* 2.0 m n)))))
 
 (defn wmw-odds
-  "Wilcoxon-Mann-Whitney odds"
+  "Calculates the Wilcoxon-Mann-Whitney odds (often denoted as ψ) for two independent samples.
+
+  This non-parametric effect size measure quantifies the odds that a randomly chosen
+  observation from the first group (`group1`) is greater than a randomly chosen
+  observation from the second group (`group2`).
+
+  The statistic is directly related to [[cliffs-delta]] (δ): ψ = (1 + δ) / (1 - δ).
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first independent sample.
+  - `group2` (seq of numbers): The second independent sample.
+
+  Returns the calculated WMW odds as a double.
+
+  Interpretation:
+
+  - A value greater than 1 indicates that values from `group1` tend to be larger than values from `group2`.
+  - A value less than 1 indicates that values from `group1` tend to be smaller than values from `group2`.
+  - A value of 1 indicates stochastic equality between the distributions (50/50 odds).
+
+  This measure is robust to violations of normality and is suitable for ordinal data.
+  It is closely related to Cliff's Delta (δ) and the Mann-Whitney U test statistic.
+
+  See also [[cliffs-delta]], [[ameasure]]."
   (^double [[group1 group2]] (wmw-odds group1 group2))
   (^double [group1 group2]
    (m/exp (m/logit (* 0.5 (inc (cliffs-delta group1 group2)))))))
@@ -2646,7 +2933,23 @@
            (.integrate integrator Integer/MAX_VALUE f mn mx)) ranges)))
 
 (defn p-overlap
-  "Overlapping index, kernel density approximation"
+  "Calculates the overlapping index between the estimated distributions of two samples using Kernel Density Estimation (KDE).
+
+  This function estimates the probability density function (PDF) for `group1` and `group2` using KDE and then calculates the area of overlap between the two estimated PDFs. The area of overlap is the integral of the minimum of the two density functions.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+  - `opts` (map, optional): Options map for KDE and integration:
+    - `:kde` (keyword, default `:gaussian`): The kernel function to use for KDE. See `fastmath.kernel.density/kernel-density+` for options.
+    - `:bandwidth` (double, optional): The bandwidth for KDE. If omitted, it is automatically estimated.
+    - `:min-iterations` (long, default 3): Minimum number of iterations for Romberg integration.
+    - `:steps` (long, default 500): Number of steps (subintervals) for numerical integration over the relevant range.
+
+  Returns the calculated overlapping index as a double, representing the area of overlap between the two estimated distributions. A value closer to 1 indicates greater overlap, while a value closer to 0 indicates less overlap.
+
+  This measure quantifies the degree to which two distributions share common values and can be seen as a measure of similarity."
   (^double [[group1 group2]] (p-overlap group1 group2))
   (^double [group1 group2] (p-overlap group1 group2 {}))
   (^double [group1 group2 {:keys [kde bandwidth ^long min-iterations ^long steps]
@@ -2664,14 +2967,34 @@
          i2 (integrate-kde iters kde2 ranges)]
      (sum (map min i1 i2)))))
 
+;; https://www.psy.gla.ac.uk/~steve/best/effectsize.ppt.pdf
+
 (defn cohens-u1-normal
-  "Returns Cohen's U1 for normal samples with equal variability.
+  "Calculates Cohen's U1, a measure of non-overlap between two distributions assumed to be normal with equal variances.
 
-  Proportion of nonoverlap between two distributions. Symmetric.
+  Cohen's U1 quantifies the proportion of scores in the lower-scoring group that overlap
+  with the scores in the higher-scoring group. A U1 of 0 means no overlap, while
+  a U1 of 1 means complete overlap (distributions are identical).
 
-  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+  This measure is calculated directly from Cohen's d statistic ([[cohens-d]]) assuming
+  normal distributions and equal variances.
 
-  Based on orignal definition by Cohen."
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+  - `method` (optional keyword): Specifies the method for calculating the pooled standard deviation
+    used in the underlying [[cohens-d]] calculation. Possible values are `:unbiased` (default),
+    `:biased`, or `:avg`. See [[pooled-stddev]] for details.
+  - `d` (double): A pre-calculated Cohen's d value. If provided, `group1`, `group2`, and `method` are ignored.
+
+  Returns the calculated Cohen's U1 as a double [0, 1].
+
+  Assumptions:
+  - Both samples are drawn from normally distributed populations.
+  - The populations have equal variances (homoscedasticity).
+
+  See also [[cohens-d]], [[cohens-u2-normal]], [[cohens-u3-normal]], [[p-overlap]] (a non-parametric overlap measure)."
   (^double [group1 group2] (cohens-u1-normal group1 group2 :unbiased))
   (^double [group1 group2 method] (cohens-u1-normal (cohens-d group1 group2 method)))
   (^double [^double d]
@@ -2679,33 +3002,79 @@
      (m// (m/dec (m/* 2.0 p)) p))))
 
 (defn cohens-u2-normal
-  "Returns Cohen's U2 for normal samples with equal variability.
+  "Calculates Cohen's U2, a measure of overlap between two distributions assumed to be normal with equal variances.
 
-  The percentage of one group that exceeds the same percentage in the second group. Symmetric.
-  
-  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+  Cohen's U2 quantifies the proportion of scores in the lower-scoring group that are below the point located halfway between the means of the two groups (or equivalently, the proportion of scores in the higher-scoring group that are above this halfway point). This measure is calculated from Cohen's d statistic ([[cohens-d]]) using the standard normal cumulative distribution function ($\\Phi$): $\\Phi(0.5 |d|)$.
 
-  Based on orignal definition by Cohen."
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+  - `method` (optional keyword): Specifies the method for calculating the pooled standard deviation used in the underlying [[cohens-d]] calculation. Possible values are `:unbiased` (default), `:biased`, or `:avg`. See [[pooled-stddev]] for details.
+  - `d` (double): A pre-calculated Cohen's d value. If provided, `group1`, `group2`, and `method` are ignored.
+
+  Returns the calculated Cohen's U2 as a double [0.0, 1.0]. A value closer to 0.5 indicates greater overlap between the distributions; values closer to 0 or 1 indicate less overlap.
+
+  Assumptions:
+  - Both samples are drawn from normally distributed populations.
+  - The populations have equal variances (homoscedasticity).
+
+  See also [[cohens-d]], [[cohens-u1-normal]], [[cohens-u3-normal]], [[p-overlap]] (a non-parametric overlap measure)."
   (^double [group1 group2] (cohens-u2-normal group1 group2 :unbiased))
   (^double [group1 group2 method] (cohens-u2-normal (cohens-d group1 group2 method)))
   (^double [^double d] (r/cdf r/default-normal (m/* 0.5 (m/abs d)))))
 
 (defn cohens-u3-normal
-  "Returns Cohen's U3 for normal samples with equal variability.
+  "Calculates Cohen's U3, a measure of overlap between two distributions assumed to be normal with equal variances.
 
-  Percentage of one group that is lower than median of the other group. Not symmetric.
+  Cohen's U3 quantifies the proportion of scores in the lower-scoring group that fall
+  below the mean of the higher-scoring group. It is calculated from Cohen's d statistic
+  ([[cohens-d]]) using the standard normal cumulative distribution function ($\\Phi$):
+  `U3 = Φ(d)`.
 
-  `method` - pooled standard deviation method: `:unbiased` (default), `:biased`, `:avg`
+  The measure is asymmetric: `U3(group1, group2)` is not necessarily equal to
+  `U3(group2, group1)`. The interpretation depends on which group is considered
+  the 'higher-scoring' one based on the sign of d. By convention, the result
+  often represents the proportion of the *first* group (`group1`) that is below the
+  mean of the *second* group (`group2`) if d is negative, or the proportion of the
+  *second* group (`group2`) that is below the mean of the *first* group (`group1`) if d is positive.
 
-  Based on orignal definition by Cohen."
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+  - `method` (optional keyword): Specifies the method for calculating the pooled standard deviation
+    used in the underlying [[cohens-d]] calculation. Possible values are `:unbiased` (default),
+    `:biased`, or `:avg`. See [[pooled-stddev]] for details.
+  - `d` (double): A pre-calculated Cohen's d value. If provided, `group1`, `group2`, and `method` are ignored.
+
+  Returns the calculated Cohen's U3 as a double [0.0, 1.0].
+  A value close to 0.5 suggests significant overlap. Values closer to 0 or 1 suggest
+  less overlap (greater separation between the means).
+
+  Assumptions:
+  - Both samples are drawn from normally distributed populations.
+  - The populations have equal variances (homoscedasticity).
+
+  See also [[cohens-d]], [[cohens-u1-normal]], [[cohens-u2-normal]], [[p-overlap]] (a non-parametric overlap measure)."
   (^double [group1 group2] (cohens-u3-normal group1 group2 :unbiased))
   (^double [group1 group2 method] (cohens-u3-normal (cohens-d group1 group2 method)))
   (^double [^double d] (r/cdf r/default-normal d)))
 
 (defn cohens-u2
-  "Returns Cohen's U2 for any samples.
+  "Calculates a measure of overlap between two samples, referred to as Cohen's U2.
 
-  The percentage of one group that exceeds the same percentage in the second group. Symmetric."
+  This function quantifies the degree to which the distributions of `group1` and `group2` overlap. It is related to comparing values at corresponding percentile levels across the two groups or the proportion of values in one group that are below the median of the other. A value of 0 indicates no overlap, while a value of 1 indicates complete overlap (distributions are identical).
+
+  The measure is symmetric, meaning `(cohens-u2 group1 group2)` is equal to `(cohens-u2 group2 group1)`.
+
+  This is a non-parametric measure, suitable for any data samples, and does not assume normality, unlike [[cohens-u2-normal]].
+
+  Parameters:
+
+  - `group1`, `group2` (sequences): The two samples directly as arguments.
+
+  Returns the calculated Cohen's U2 value as a double. The value typically ranges from 0 to 1. A value closer to 0.5 indicates substantial overlap between the distributions (e.g., the median of one group is near the median of the other); values closer to 0 or 1 indicate less overlap (greater separation between the distributions)."
   (^double [[group1 group2]] (cohens-u2 group1 group2))
   (^double [group1 group2]
    (let [g1 (r/distribution :real-discrete-distribution {:data group1})
@@ -2719,18 +3088,68 @@
      (-> (opt/minimize :brent target-fn {:bounds [[0.5 1.0]]}) ffirst double))))
 
 (defn cohens-u1
-  "Returns Cohen's U1 for any samples.
+  "Calculates a non-parametric measure of difference or separation between two samples.
 
-  Proportion of nonoverlap between two distributions. Symmetric."
+  This function computes a value derived from [[cohens-u2]], which internally
+  quantifies a minimal difference between corresponding quantiles of the two
+  empirical distributions.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample.
+  - `group2` (seq of numbers): The second sample.
+
+  Returns the calculated measure as a double.
+
+  Interpretation:
+
+  - Values close to -1 indicate high similarity or maximum overlap between the
+    distributions (as the minimal difference between quantiles approaches zero).
+  - Increasing values indicate greater difference or separation between the
+    distributions (as the minimal difference between quantiles is larger).
+
+  This measure is symmetric, meaning the order of `group1` and `group2` does not
+  affect the result. It is a non-parametric measure applicable to any data samples.
+
+  See also [[cohens-u2]] (the measure this calculation is based on),
+  [[cohens-u3]] (related non-parametric measure), [[cohens-u1-normal]]
+  (the version applicable to normal data)."
   (^double [[group1 group2]] (cohens-u1 group1 group2))
   (^double [group1 group2]
    (let [u2 (cohens-u2 group1 group2)]
      (m// (m/dec (m/* 2.0 u2)) u2))))
 
 (defn cohens-u3
-  "Returns Cohen's U3 for any samples.
+  "Calculates Cohen's U3 for two samples.
 
-  Percentage of one group that is lower than median of the other group. Not symmetric."
+  In this implementation, Cohen's U3 is defined as the proportion of values
+  in the second sample (`group2`) that are less than the median of the first
+  sample (`group1`).
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sample. The median of this sample is used as the threshold.
+  - `group2` (seq of numbers): The second sample. Values from this sample are counted if they fall below the median of `group1`.
+  - `estimation-strategy` (optional keyword): The strategy used to estimate the median of `group1`.
+    Defaults to `:legacy`. See [[median]] or [[quantile]] for available strategies
+    (e.g., `:r1` through `:r9`).
+
+  Returns the calculated proportion as a double between 0.0 and 1.0.
+
+  Interpretation:
+
+  - A value close to 0 means most values in `group2` are greater than or equal to the median of `group1`.
+  - A value close to 0.5 means approximately half the values in `group2` are below the median of `group1`.
+  - A value close to 1 means most values in `group2` are less than the median of `group1`.
+
+  Note: This measure is **not symmetric**. `(cohens-u3 group1 group2)` is generally
+  not equal to `(cohens-u3 group2 group1)`.
+
+  This is a non-parametric measure, suitable for any data samples, and does not
+  assume normality, unlike [[cohens-u3-normal]].
+
+  See also [[cohens-u3-normal]] (the version applicable to normal data), [[cohens-u2]]
+  (a related symmetric non-parametric measure), [[median]], [[quantile]]."
   (^double [[group1 group2]] (cohens-u3 group1 group2))
   (^double [group1 group2] (cohens-u3 group1 group2 :legacy))
   (^double [group1 group2 estimation-strategy]
@@ -2740,13 +3159,37 @@
 ;;
 
 (defn pearson-r
-  "Pearson `r` correlation coefficient"
+  "Calculates the Pearson `r` correlation coefficient between two sequences.
+
+  This function is an alias for [[pearson-correlation]].
+
+  See [[pearson-correlation]] for detailed documentation, parameters, and usage examples."
   (^double [[group1 group2]] (pearson-r group1 group2))
   (^double [group1 group2]
    (pearson-correlation group1 group2)))
 
 (defn r2-determination
-  "Coefficient of determination"
+  "Calculates the Coefficient of Determination ($R^2$) between two sequences.
+
+  This function computes the square of the Pearson product-moment correlation
+  coefficient ([[pearson-correlation]]) between `group1` and `group2`.
+
+  $R^2$ measures the proportion of the variance in one variable that is predictable
+  from the other variable in a linear relationship. For a simple linear regression
+  with one independent variable, this value is equivalent to the $R^2$ calculated
+  from the Residual Sum of Squares (RSS) and Total Sum of Squares (TSS).
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sequence.
+  - `group2` (seq of numbers): The second sequence.
+
+  Both sequences must have the same length.
+
+  Returns the calculated $R^2$ value (a double between 0.0 and 1.0) as a double.
+  Returns `NaN` if the Pearson correlation cannot be calculated (e.g., one sequence is constant).
+
+  See also [[r2]] (for general $R^2$ and adjusted $R^2$), [[pearson-correlation]]."
   (^double [[group1 group2]] (r2-determination group1 group2))
   (^double [group1 group2]
    (m/sq (pearson-correlation group1 group2))))
@@ -2759,13 +3202,50 @@
     lm))
 
 (defn eta-sq
-  "R2, coefficient of determination"
+  "Calculates a measure of association between two sequences, named `eta-sq` (Eta-squared).
+
+  *Note*: The current implementation calculates the R-squared coefficient of determination from a simple linear regression where the first input sequence (`group1`) is treated as the dependent variable and the second (`group2`) as the independent variable. In this context, it quantifies the proportion of the variance in `group1` that is linearly predictable from `group2`.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The first sequence (treated as dependent variable).
+  - `group2` (seq of numbers): The second sequence (treated as independent variable).
+
+  Returns the calculated R-squared value as a double [0.0, 1.0].
+
+  Interpretation:
+
+  - 0.0 indicates that `group2` explains none of the variance in `group1` linearly.
+  - 1.0 indicates that `group2` linearly explains all the variance in `group1`.
+
+  While Eta-squared ($\\eta^2$) is commonly used in ANOVA to quantify the proportion of variance in a dependent variable explained by group membership, this function's calculation method differs from the standard ANOVA $\\eta^2$ unless `group2` explicitly represents numeric codes for two groups.
+
+  See also [[r2-determination]] (which is equivalent to this function), [[pearson-correlation]], [[omega-sq]], [[epsilon-sq]], [[one-way-anova-test]]."
   (^double [[group1 group2]] (eta-sq group1 group2))
   (^double [group1 group2]
    (.getRSquare (local-linear-regression group1 group2))))
 
 (defn omega-sq
-  "Adjusted R2"
+  "Calculates Omega squared (ω²), an effect size measure for the simple linear regression of `group1` on `group2`.
+
+  Omega squared estimates the proportion of variance in the dependent variable (`group1`) that is accounted for by the independent variable (`group2`) in the population. It is considered a less biased alternative to [[r2-determination]].
+
+  Parameters:
+
+  - `group1` (seq of numbers): The dependent variable.
+  - `group2` (seq of numbers): The independent variable. Must have the same length as `group1`.
+  - `degrees-of-freedom` (double, optional): The degrees of freedom for the regression model. Defaults to 1.0, which is standard for simple linear regression and used in the 2-arity version. Providing a different value allows calculating ω² for cases with multiple predictors if the sums of squares are computed for the overall model.
+
+  Returns the calculated Omega squared value as a double. The value typically ranges from 0.0 to 1.0.
+
+  Interpretation:
+
+  - 0.0 indicates that `group2` explains none of the variance in `group1` in the population.
+  - 1.0 indicates that `group2` perfectly explains the variance in `group1` in the population.
+
+  Note: While often presented in the context of ANOVA, this implementation applies the formula to the sums of squares obtained from a simple linear regression between the two sequences. The 3-arity version allows specifying a custom degrees of freedom for regression, which might be relevant for calculating overall $\\omega^2$ in multiple regression contexts (where `degrees-of-freedom` would be the number of predictors).
+
+  See also [[eta-sq]] (Eta-squared, often based on $R^2$), [[epsilon-sq]] (another adjusted R²-like measure), [[r2-determination]] (R-squared)."
   (^double [[group1 group2]] (omega-sq group1 group2))
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)
@@ -2779,7 +3259,34 @@
         (+ (.getTotalSumSquares lm) mse)))))
 
 (defn epsilon-sq
-  "Less biased R2"
+  "Calculates Epsilon squared (ε²), an effect size measure for the simple linear regression of `group1` on `group2`.
+
+  Epsilon squared estimates the proportion of variance in the dependent variable (`group1`)
+  that is accounted for by the independent variable (`group2`) in the population. It is
+  considered a less biased alternative to the sample R-squared ([[r2-determination]]).
+
+  The calculation is based on the sums of squares from the simple linear regression of
+  `group1` on `group2`.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The dependent variable.
+  - `group2` (seq of numbers): The independent variable. Must have the same length as `group1`.
+
+  Returns the calculated Epsilon squared value as a double. The value typically ranges
+  from 0.0 to 1.0.
+
+  Interpretation:
+
+  - 0.0 indicates that `group2` explains none of the variance in `group1` in the population.
+  - 1.0 indicates that `group2` perfectly explains the variance in `group1` in the population.
+
+  Note: While often presented in the context of ANOVA, this implementation applies the
+  formula to the sums of squares obtained from a simple linear regression between the
+  two sequences.
+
+  See also [[eta-sq]] (Eta-squared, often based on $R^2$), [[omega-sq]] (another adjusted
+  R²-like measure), [[r2-determination]] (R-squared)."
   (^double [[group1 group2]] (epsilon-sq group1 group2))
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)]
@@ -2787,35 +3294,102 @@
         (.getTotalSumSquares lm)))))
 
 (defn cohens-f2
-  "Cohens f2, by default based on `eta-sq`.
+  "Calculates Cohen's f², a measure of effect size often used in ANOVA or regression.
 
-  Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
+  Cohen's f² quantifies the magnitude of the effect of an independent variable or set
+  of predictors on a dependent variable, expressed as the ratio of the variance
+  explained by the effect to the unexplained variance.
+
+  This function allows calculating f² using different measures for the 'Proportion of Variance Explained',
+  specified by the `type` parameter:
+
+  - `:eta` (default): Uses [[eta-sq]] (Eta-squared), which in this implementation is
+    equivalent to the sample $R^2$ from a linear regression of `group1` on `group2`.
+    This is a measure of the proportion of variance explained in the sample.
+  - `:omega`: Uses [[omega-sq]] (Omega-squared), a less biased estimate of the
+    proportion of variance explained in the population.
+  - `:epsilon`: Uses [[epsilon-sq]] (Epsilon-squared), another less biased estimate
+    of the proportion of variance explained in the population, similar to adjusted $R^2$.
+  - Any function: A function accepting `group1` and `group2` and returning a double representing the proportion of variance explained.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The dependent variable.
+  - `group2` (seq of numbers): The independent variable (or predictor). Must have the same length as `group1`.
+  - `type` (keyword, optional): Specifies the measure of 'Proportion of Variance Explained' to use (`:eta`, `:omega`, `:epsilon` or any function). Defaults to `:eta`.
+
+  Returns the calculated Cohen's f² effect size as a double. Values range from 0 upwards.
+
+  Interpretation Guidelines (approximate, often used for F-tests in ANOVA/regression):
+  - $f^2 = 0.02$: small effect
+  - $f^2 = 0.15$: medium effect
+  - $f^2 = 0.35$: large effect
+
+  See also [[cohens-f]], [[eta-sq]], [[omega-sq]], [[epsilon-sq]]."
   (^double [[group1 group2]] (cohens-f2 group1 group2))
   (^double [group1 group2] (cohens-f2 group1 group2 :eta))
   (^double [group1 group2 type]
-   (let [f (case type
-             :omega omega-sq
-             :epsilon epsilon-sq
-             eta-sq)
+   (let [f (if (keyword? type) (case type
+                                 :omega omega-sq
+                                 :epsilon epsilon-sq
+                                 eta-sq)
+               type)
          ^double v (f group1 group2)]
      (/ v (- 1.0 v)))))
 
 (defn cohens-f
-  "Cohens f, sqrt of Cohens f2.
+  "Calculates Cohen's f, a measure of effect size derived as the square root of Cohen's f² ([[cohens-f2]]).
 
-  Possible `type` values are: `:eta` (default), `:omega` and `:epsilon`."
+  Cohen's f is a standardized measure quantifying the magnitude of an effect,
+  often used in the context of ANOVA or regression. It is the square root of
+  the ratio of the variance explained by the effect to the unexplained variance.
+
+  Parameters:
+
+  - `group1` (seq of numbers): The dependent variable.
+  - `group2` (seq of numbers): The independent variable (or predictor). Must have the same length as `group1`.
+  - `type` (keyword, optional): Specifies the measure of 'Proportion of Variance Explained'
+    used in the underlying [[cohens-f2]] calculation. Defaults to `:eta`.
+    - `:eta` (default): Uses Eta-squared (sample R²), a measure of variance explained in the sample.
+    - `:omega`: Uses Omega-squared, a less biased estimate of variance explained in the population.
+    - `:epsilon`: Uses Epsilon-squared, another less biased estimate of variance explained in the population.
+    - Any function: A function accepting `group1` and `group2` and returning a double representing the proportion of variance explained.
+
+  Returns the calculated Cohen's f effect size as a double. Values range from 0 upwards.
+
+  Interpretation:
+
+  - Values are positive. Larger values indicate a stronger effect (more variance in `group1` explained by `group2`).
+  - Cohen's guidelines for interpreting the magnitude of f² (and by extension, f) are:
+    - $f = 0.10$ (approx. $f^2 = 0.01$): small effect
+    - $f = 0.25$ (approx. $f^2 = 0.0625$): medium effect
+    - $f = 0.40$ (approx. $f^2 = 0.16$): large effect
+    (Note: Guidelines are often quoted for f², interpret f as $\\sqrt{f^2}$)
+
+  See also [[cohens-f2]], [[eta-sq]], [[omega-sq]], [[epsilon-sq]]."
   (^double [[group1 group2]] (cohens-f group1 group2))
   (^double [group1 group2] (cohens-f group1 group2 :eta))
   (^double [group1 group2 type] (m/sqrt (cohens-f2 group1 group2 type))))
 
 (defn cohens-q
-  "Comparison of two correlations.
+  "Compares two correlation coefficients by calculating the difference between their Fisher z-transformations.
 
-  Arity:
+  The Fisher z-transformation (`atanh`) of a correlation coefficient `r` helps normalize the sampling distribution of correlation coefficients. The difference between two z'-transformed correlations is often used as a test statistic.
 
-  * 2 - compare two correlation values
-  * 3 - compare correlation of `group1` and `group2a` with correlation of `group1` and `group2b`
-  * 4 - compare correlation of first two arguments with correlation of last two arguments"
+  The function supports comparing correlations in different scenarios via its arities:
+
+  - `(cohens-q r1 r2)`: Calculates the difference between the Fisher z-transformations of two correlation values `r1` and `r2` provided directly. This is typically used when comparing two *independent* correlation coefficients (e.g., correlations from two separate studies). Returns `atanh(r1) - atanh(r2)`.
+    - `r1`, `r2` (double): Correlation coefficient values (-1.0 to 1.0).
+
+  - `(cohens-q group1 group2a group2b)`: Calculates the difference between the correlation of `group1` with `group2a` and the correlation of `group1` with `group2b`. This is commonly used for comparing *dependent* correlations (where `group1` is a common variable). Calculates `atanh(pearson-correlation(group1, group2a)) - atanh(pearson-correlation(group1, group2b))`.
+    - `group1`, `group2a`, `group2b` (sequences): Data sequences from which Pearson correlations are computed.
+
+  - `(cohens-q group1a group2a group1b group2b)`: Calculates the difference between the correlation of `group1a` with `group2a` and the correlation of `group1b` with `group2b`. This is typically used for comparing two *independent* correlations obtained from two distinct pairs of variables (all four sequences are independent). Calculates `atanh(pearson-correlation(group1a, group2a)) - atanh(pearson-correlation(group1b, group2b))`.
+    - `group1a`, `group2a`, `group1b`, `group2b` (sequences): Data sequences from which Pearson correlations are computed.
+
+  Returns the difference between the Fisher z-transformed correlation values as a double.
+
+  Note: For comparing dependent correlations (3-arity case), standard statistical tests (e.g., Steiger's test) are more complex than a simple difference of z-transforms and involve the correlation between `group2a` and `group2b`. This function provides the basic difference value."
   (^double [^double r1 ^double r2]
    (- (m/atanh r1) (m/atanh r2)))
   (^double [group1 group2a group2b]
@@ -2828,28 +3402,124 @@
 (declare kruskal-test)
 
 (defn rank-eta-sq
-  "Effect size for Kruskal-Wallis test"
-  ^double [xs]
-  (let [{:keys [^double stat ^long k ^long n]} (kruskal-test xs)]
+  "Calculates the Rank Eta-squared (η²), an effect size measure for the Kruskal-Wallis H-test.
+
+  Rank Eta-squared is a non-parametric measure quantifying the proportion of the
+  total variability (based on ranks) in the dependent variable that is associated
+  with group membership (the independent variable). It is analogous to Eta-squared
+  in one-way ANOVA but used for the rank-based Kruskal-Wallis test.
+
+  The statistic is calculated based on the Kruskal-Wallis H statistic, the number
+  of groups (`k`), and the total number of observations (`n`).
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence
+    representing a group of observations, as used in [[kruskal-test]].
+
+  Returns the calculated Rank Eta-squared value as a double, ranging from 0 to 1.
+
+  Interpretation:
+  - A value of 0 indicates no difference in the distributions across groups (all variability is within groups).
+  - A value closer to 1 indicates that a large proportion of the variability is
+    due to differences between group ranks.
+
+  Rank Eta-squared is a useful supplement to the Kruskal-Wallis test, providing a
+  measure of the magnitude of the group effect that is not sensitive to assumptions
+  about the data distribution shape (beyond having similar shapes for valid
+  interpretation of the Kruskal-Wallis test itself).
+
+  See also [[kruskal-test]], [[rank-epsilon-sq]] (another rank-based effect size)."
+  ^double [xss]
+  (let [{:keys [^double stat ^long k ^long n]} (kruskal-test xss)]
     (m/max 0.0 (/ (inc (- stat k))
                   (- n k)))))
 
 (defn rank-epsilon-sq
-  "Effect size for Kruskal-Wallis test"
-  ^double [xs]
-  (let [{:keys [^double stat ^long n]} (kruskal-test xs)]
+  "Calculates Rank Epsilon-squared (ε²), a measure of effect size for the Kruskal-Wallis H-test.
+
+  Rank Epsilon-squared is a non-parametric measure quantifying the proportion of the
+  total variability (based on ranks) in the dependent variable that is associated
+  with group membership (the independent variable). It is analogous to Eta-squared
+  or Epsilon-squared in one-way ANOVA but used for the rank-based Kruskal-Wallis test.
+
+  This function calculates Epsilon-squared based on the Kruskal-Wallis H statistic (`H`)
+  and the total number of observations (`n`) across all groups.
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence
+    representing a group of observations, as used in [[kruskal-test]].
+
+  Returns the calculated Rank Epsilon-squared value as a double, ranging from 0 to 1.
+
+  Interpretation:
+
+  - A value of 0 indicates no difference in the distributions across groups.
+  - A value closer to 1 indicates that a large proportion of the variability is
+    due to differences between group ranks.
+
+  Rank Epsilon-squared is a useful supplement to the Kruskal-Wallis test, providing a
+  measure of the magnitude of the group effect that is not sensitive to assumptions
+  about the data distribution shape (beyond having similar shapes for valid
+  interpretation of the Kruskal-Wallis test itself).
+
+  See also [[kruskal-test]], [[rank-eta-sq]] (another rank-based effect size)."
+  ^double [xss]
+  (let [{:keys [^double stat ^long n]} (kruskal-test xss)]
     (/ stat (/ (dec (* n n)) (inc n)))))
 
 ;;
 
 (defn contingency-table
-  "Returns frequencies map of tuples built from seqs."
+  "Creates a frequency map (contingency table) from one or more sequences.
+
+  If one sequence `xs` is provided, it returns a simple frequency map of the values
+  in `xs`.
+
+  If multiple sequences `s1, s2, ..., sn` are provided, it creates a contingency table
+  of the tuples formed by the corresponding elements `[s1_i, s2_i, ..., sn_i]` at
+  each index `i`. The returned map keys are these tuples, and values are their
+  frequencies.
+
+  Parameters:
+
+  - `seqs` (one or more sequences): The input sequences. All sequences should ideally
+    have the same length, as elements are paired by index.
+
+  Returns a map where keys represent unique combinations of values (or single values
+  if only one sequence is input) and values are the counts of these combinations.
+
+  See also [[rows->contingency-table]], [[contingency-table->marginals]]."
   [& seqs]
   (if (= 1 (count seqs))
     (frequencies (first seqs))
     (frequencies (apply map vector seqs))))
 
 (defn rows->contingency-table
+  "Converts a sequence of sequences (representing rows of counts) into a map-based contingency table.
+
+  This function takes a collection where each inner sequence is treated as a row
+  of counts in a grid or matrix. It transforms this matrix representation into a
+  map where keys are `[row-index, column-index]` tuples and values are the
+  non-zero counts at that intersection.
+
+  This is particularly useful for converting structured count data, like the
+  output of some grouping or tabulation processes, into a format suitable for
+  functions expecting a contingency table map (like `contingency-table->marginals`
+  or chi-squared tests).
+
+  Parameters:
+
+  - `xss` (sequence of sequences of numbers): A collection where each inner
+    sequence `xs_i` contains counts for row `i`. Values within `xs_i` are
+    interpreted as counts for columns `0, 1, ...`.
+
+  Returns a map where keys are `[row-index, column-index]` vectors and values
+  are the corresponding non-zero counts from the input matrix. Zero counts are
+  omitted from the output map.
+
+  See also [[contingency-table]] (for building tables from raw data), [[contingency-table->marginals]]."
   [xss]
   (->> (for [[row-id row] (map-indexed vector xss)
              [col-id ^long val] (map-indexed vector row)
@@ -2863,20 +3533,87 @@
               [k (sum (map second v))]) m)
        (sort-by first)))
 
-(defn contingency-table->marginals
+(defn- infer-ct
   [ct]
-  (let [rows (ct-marginals-sum (group-by ffirst ct))
+  (if (map? ct) ct (rows->contingency-table ct)))
+
+(defn contingency-table->marginals
+  "Calculates marginal sums (row and column totals) and the grand total from a contingency table.
+
+  A contingency table represents the frequency distribution of observations for two or
+  more categorical variables. This function summarizes these frequencies along the
+  rows and columns.
+
+  The function accepts two main input formats for the contingency table:
+
+  1.  A map where keys are `[row-index, column-index]` tuples and values are counts (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This format is produced by [[contingency-table]] when given multiple sequences or by [[rows->contingency-table]].
+  2.  A sequence of sequences representing the rows of the table, where each inner sequence contains counts for the columns in that row (e.g., `[[10 5] [3 12]]`). The function internally converts this format to the map format.
+
+  Parameters:
+
+  - `ct` (map or sequence of sequences): The contingency table input.
+
+  Returns a map containing:
+
+  - `:rows`: A sequence of `[row-index, row-total]` pairs.
+  - `:cols`: A sequence of `[column-index, column-total]` pairs.
+  - `:n`: The grand total of all counts in the table.
+  - `:diag`: A sequence of `[[index, index], count]` pairs for cells on the diagonal
+    (where row index equals column index). This is useful for square tables like
+    confusion matrices.
+
+  See also [[contingency-table]], [[rows->contingency-table]]."
+  [ct]
+  (let [ct (infer-ct ct)
+        rows (ct-marginals-sum (group-by ffirst ct))
         cols (ct-marginals-sum (group-by (comp second first) ct))
         n (sum (vals ct))
         diag (filter (fn [[[a b]]] (= a b)) ct)]
     {:rows rows :cols cols :n n :diag diag}))
 
-(defn- infer-ct
-  [ct]
-  (if (map? ct) ct (rows->contingency-table ct)))
-
 (defn mcc
-  "Matthews correlation coefficient also known as phi coefficient."
+  "Calculates the Matthews Correlation Coefficient (MCC), also known as the Phi coefficient,
+  for a 2x2 contingency table or binary classification outcomes.
+
+  MCC is a measure of the quality of binary classifications. It is a balanced
+  measure which can be used even if the classes are of very different sizes.
+  Its value ranges from -1 to +1.
+
+  - A coefficient of +1 represents a perfect prediction.
+  - 0 represents a prediction no better than random.
+  - -1 represents a perfect inverse prediction.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a 2x2 contingency table from
+      the unique values in the sequences (assuming they represent two binary
+      variables). The mapping of values to table cells (e.g., what corresponds
+      to TP, TN, FP, FN) depends on how `contingency-table` orders the unique values.
+      For direct control over which cell is which, use the contingency table input.
+
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] TP, [0 1] FP, [1 0] FN, [1 1] TN}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[TP FP] [FN TN]]`). This is equivalent to `rows->contingency-table`.
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of binary outcomes/categories.
+  - `group2` (sequence): The second sequence of binary outcomes/categories.
+    Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed 2x2 contingency table.
+
+  Returns the calculated Matthews Correlation Coefficient as a double.
+
+  Note: The implementation uses marginal sums from the contingency table, which
+  is mathematically equivalent to the standard formula but avoids potential
+  division by zero in the denominator product if any marginal sum is zero.
+
+  See also [[contingency-table]], [[contingency-2x2-measures]], [[binary-measures-all]]."
   ([group1 group2] (mcc (contingency-table group1 group2)))
   ([ct]
    (let [{:keys [diag rows cols ^long n]} (contingency-table->marginals (infer-ct ct))
@@ -2891,14 +3628,69 @@
 (declare chisq-test)
 
 (defn cramers-c
-  "Cramer's C effect size for discrete data."
+  "Calculates Cramer's C, a measure of association (effect size) between two
+  nominal variables represented in a contingency table.
+
+  Its value ranges from 0 to 1, where 0 indicates no association and 1 indicates
+  a perfect association. It is particularly useful for tables larger than 2x2.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences.
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to `rows->contingency-table`.
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of categorical data.
+  - `group2` (sequence): The second sequence of categorical data. Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table.
+
+  Returns the calculated Cramer's C coefficient as a double.
+
+  See also [[chisq-test]], [[cramers-v]], [[cohens-w]], [[tschuprows-t]], [[contingency-table]]."
   (^double [group1 group2] (cramers-c (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
      (m/sqrt (/ chi2 (+ n chi2))))))
 
 (defn cramers-v
-  "Cramer's V effect size for discrete data."
+  "Calculates Cramer's V, a measure of association (effect size) between two
+  nominal variables represented in a contingency table.
+
+  Its value ranges from 0 to 1, where 0 indicates no association and 1 indicates
+  a perfect association. It is related to the Pearson's Chi-squared statistic
+  and is useful for tables of any size.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences.
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to `rows->contingency-table`.
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of categorical data.
+  - `group2` (sequence): The second sequence of categorical data. Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table.
+
+  Returns the calculated Cramer's V coefficient as a double.
+
+  See also [[chisq-test]], [[cramers-c]], [[cohens-w]], [[tschuprows-t]], [[contingency-table]]."
   (^double [group1 group2] (cramers-v (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -2906,7 +3698,39 @@
                 (min (dec k) (dec r)))))))
 
 (defn cramers-v-corrected
-  "Corrected Cramer's V"
+  "Calculates the **corrected Cramer's V**, a measure of association (effect size)
+  between two nominal variables represented in a contingency table, with a correction
+  to reduce bias, particularly for small sample sizes or tables with many cells
+  having small expected counts.
+
+  Like the uncorrected Cramer's V ([[cramers-v]]), its value ranges from 0 to 1,
+  where 0 indicates no association and 1 indicates a perfect association. The
+  correction tends to yield a value closer to the true population value in
+  biased situations.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences.
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to [[rows->contingency-table]].
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of categorical data.
+  - `group2` (sequence): The second sequence of categorical data. Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table.
+
+  Returns the calculated corrected Cramer's V coefficient as a double.
+
+  See also [[chisq-test]], [[cramers-v]] (uncorrected), [[cramers-c]], [[cohens-w]],
+  [[tschuprows-t]], [[contingency-table]]."
   (^double [group1 group2] (cramers-v-corrected (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))
@@ -2920,14 +3744,80 @@
                 (min (dec k_) (dec r_)))))))
 
 (defn cohens-w
-  "Cohen's W effect size for discrete data."
+  "Calculates Cohen's W effect size for the association between two nominal
+  variables represented in a contingency table.
+
+  Cohen's W is a measure of association derived from the Pearson's Chi-squared
+  statistic. It quantifies the magnitude of the difference between the observed
+  frequencies and the frequencies expected under the assumption of independence
+  between the variables.
+
+  Its value ranges from 0 upwards:
+  - A value of 0 indicates no association between the variables.
+  - Larger values indicate a stronger association.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences.
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to [[rows->contingency-table]].
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of categorical data.
+  - `group2` (sequence): The second sequence of categorical data. Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table.
+
+  Returns the calculated Cohen's W coefficient as a double.
+
+  See also [[chisq-test]], [[cramers-v]], [[cramers-c]], [[tschuprows-t]], [[contingency-table]]."
   (^double [group1 group2] (cohens-w (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
      (m/sqrt (/ chi2 n)))))
 
 (defn tschuprows-t
-  "Tschuprows T effect size for discrete data"
+  "Calculates Tschuprow's T, a measure of association between two nominal variables
+  represented in a contingency table.
+
+  Tschuprow's T is derived from the Pearson's Chi-squared statistic and measures
+  the strength of the association. Its value ranges from 0 to 1.
+
+  - A value of 0 indicates no association between the variables.
+  - A value of 1 indicates perfect association, but only when the number of rows
+    (`r`) equals the number of columns (`k`) in the contingency table. If `r != k`,
+    Tschuprow's T cannot reach 1, making Cramer's V ([[cramers-v]]) often preferred
+    as it can reach 1 for any table size.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences.
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to [[rows->contingency-table]].
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of categorical data.
+  - `group2` (sequence): The second sequence of categorical data. Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table.
+
+  Returns the calculated Tschuprow's T coefficient as a double.
+
+  See also [[chisq-test]], [[cramers-c]], [[cramers-v]], [[cohens-w]], [[contingency-table]]."
   (^double [group1 group2] (tschuprows-t (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
@@ -2935,7 +3825,48 @@
                 (m/sqrt (* (dec k) (dec r))))))))
 
 (defn cohens-kappa
-  "Cohens kappa"
+  "Calculates Cohen's Kappa coefficient (κ), a statistic that measures inter-rater
+  agreement for categorical items, while correcting for chance agreement.
+
+  It is often used to assess the consistency of agreement between two raters or
+  methods. Its value typically ranges from -1 to +1:
+
+  - `κ = 1`: Perfect agreement.
+  - `κ = 0`: Agreement is no better than chance.
+  - `κ < 0`: Agreement is worse than chance.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a 2x2 contingency table from
+      the unique values in the sequences (assuming they represent two binary
+      variables). The mapping of values to table cells (e.g., what corresponds
+      to TP, TN, FP, FN) depends on how `contingency-table` orders the unique values.
+      For direct control over which cell is which, use the contingency table input.
+
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] TP, [0 1] FP, [1 0] FN, [1 1] TN}`). This is the output format
+        of [[contingency-table]] with two inputs. The mapping of indices to TP/TN/FP/FN
+        depends on the order of unique values in the original data if generated by
+        [[contingency-table]], or the explicit structure if created manually or via
+        [[rows->contingency-table]]. Standard convention maps `[0 0]` to TP, `[0 1]` to FP,
+        `[1 0]` to FN, and `[1 1]` to TN for binary outcomes.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[TP FP] [FN TN]]`). This is equivalent to [[rows->contingency-table]].
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of binary outcomes/categories.
+  - `group2` (sequence): The second sequence of binary outcomes/categories.
+    Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed 2x2 contingency table.
+    The cell values should represent counts (e.g., TP, FN, FP, TN).
+
+  Returns the calculated Cohen's Kappa coefficient as a double.
+
+  See also [[weighted-kappa]] (for ordinal data with partial agreement), [[contingency-table]], [[contingency-2x2-measures]], [[binary-measures-all]]."
   (^double [group1 group2] (cohens-kappa (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^long n rows cols diag]} (contingency-table->marginals (infer-ct contingency-table))
@@ -2954,12 +3885,66 @@
   (- 1.0 (/ (m/sq (- id1 id2)) (m/sq R))))
 
 (defn weighted-kappa
-  "Cohen's weighted kappa for indexed contingency table"
+  "Calculates Cohen's weighted Kappa coefficient (κ) for a contingency table,
+  allowing for partial agreement between categories, typically used for ordinal data.
+
+  Weighted Kappa measures inter-rater agreement, similar to [[cohens-kappa]],
+  but assigns different penalties to disagreements based on their magnitude.
+  Disagreements between closely related categories are penalized less than
+  disagreements between distantly related categories.
+
+  The function can be called in two ways:
+
+  1.  With two sequences `group1` and `group2`:
+      The function will automatically construct a contingency table from
+      the unique values in the sequences. These values are assumed to be ordinal
+      and their position in the sorted unique value list determines their index.
+      The mapping of values to table indices might need verification.
+
+  2.  With a contingency table:
+      The contingency table can be provided as:
+      - A map where keys are `[row-index, column-index]` tuples and values are counts
+        (e.g., `{[0 0] 10, [0 1] 5, [1 0] 3, [1 1] 12}`). This is the output format
+        of [[contingency-table]] with two inputs. Indices are assumed to represent
+        the ordered categories.
+      - A sequence of sequences representing the rows of the table
+        (e.g., `[[10 5] [3 12]]`). This is equivalent to [[rows->contingency-table]].
+      The row and column indices are assumed to correspond to the ordered categories.
+
+  Parameters:
+
+  - `group1` (sequence): The first sequence of ordinal outcomes/categories.
+  - `group2` (sequence): The second sequence of ordinal outcomes/categories.
+    Must have the same length as `group1`.
+  - `contingency-table` (map or sequence of sequences): A pre-computed contingency table
+    where row and column indices correspond to ordered categories.
+  - `weights` (keyword, function, or map, optional): Specifies the weighting scheme
+    to quantify the difference between categories. Defaults to `:equal-spacing`.
+    - `:equal-spacing` (default, linear weights): Penalizes disagreements linearly
+      with the distance between categories. Weight is `1 - |i-j|/R`, where `i` is
+      row index, `j` is column index, and `R` is the maximum dimension of the table (max(max_row_index, max_col_index)).
+    - `:fleiss-cohen` (quadratic weights): Penalizes disagreements quadratically
+      with the distance. Weight is `1 - (|i-j|/R)^2`.
+    - (function `(fn [R id1 id2])`): A custom function that takes the maximum
+      dimension `R`, row index `id1`, and column index `id2` and returns the weight
+      (typically between 0 and 1, where 1 is perfect agreement).
+    - (map `{[id1 id2] weight}`): A custom map providing weights for specific
+      `[row-index, column-index]` pairs. Missing pairs default to a weight of 0.0.
+
+  Returns the calculated weighted Cohen's Kappa coefficient as a double.
+
+  Interpretation:
+
+  - `κ_w = 1`: Perfect agreement.
+  - `κ_w = 0`: Agreement is no better than chance.
+  - `κ_w < 0`: Agreement is worse than chance.
+
+  See also [[cohens-kappa]] (unweighted Kappa)."
   (^double [contingency-table] (weighted-kappa contingency-table :equal-spacing))
   (^double [contingency-table weights]
    (let [ct (infer-ct contingency-table)
-         R (int (reduce (fn [^long c [^long a ^long b]]
-                          (max c a b)) 0 (keys ct)))
+         R (long (reduce (fn [^long c [^long a ^long b]]
+                           (max c a b)) 0 (keys ct)))
          {:keys [^long n rows cols]} (contingency-table->marginals ct)
          wfn (cond
                (= weights :equal-spacing) weighted-kappa-equal-spacing
@@ -2975,7 +3960,24 @@
      (/ (- p0 pe) (- 1.0 pe)))))
 
 (defn durbin-watson
-  "Lag-1 Autocorrelation test for residuals"
+  "Calculates the Durbin-Watson statistic (d) for a sequence of residuals.
+
+  This statistic is used to test for the presence of serial correlation,
+  especially first-order (lag-1) autocorrelation, in the residuals from a
+  regression analysis. Autocorrelation violates the assumption of independent errors.
+
+  Parameters:
+
+  - `rs` (sequence of numbers): The sequence of residuals from a regression model.
+    The sequence should represent observations ordered by time or sequence index.
+
+  Returns the calculated Durbin-Watson statistic as a double. The value ranges from 0 to 4.
+
+  Interpretation:
+
+  - Values near 2 suggest no first-order autocorrelation.
+  - Values less than 2 suggest positive autocorrelation (residuals tend to be followed by residuals of the same sign).
+  - Values greater than 2 suggest negative autocorrelation (residuals tend to be followed by residuals of the opposite sign)."
   [rs]
   (let [es (map (fn [[^double x1 ^double x2]] (- x1 x2)) (partition 2 1 rs))]
     (/ (v/dot es es) (v/dot rs rs))))
@@ -3067,7 +4069,7 @@
 (defn- binary-process-list
   [xs true-value]
   (if-not true-value
-    (if (every? number? xs) (map m/one? xs) xs)
+    (if (every? number? xs) (map m/not-zero? xs) xs)
     (let [f (if (sequential? true-value) (set true-value) true-value)]
       (map f xs))))
 
@@ -3090,36 +4092,142 @@
     
     :else confusion-matrix))
 
-(defn ->confusion-matrix
-  "Convert input to confusion matrix"
+(defn confusion-matrix
+  "Creates a 2x2 confusion matrix for binary classification.
+
+  A confusion matrix summarizes the results of a binary classification problem, showing
+  the counts of True Positives (TP), False Positives (FP), False Negatives (FN),
+  and True Negatives (TN).
+
+  TP: Actual is True, Predicted is True
+  FP: Actual is False, Predicted is True (Type I error)
+  FN: Actual is True, Predicted is False (Type II error)
+  TN: Actual is False, Predicted is False
+
+  The function supports several input formats:
+
+  1.  `(confusion-matrix tp fn fp tn)`: Direct input of the four counts.
+      - `tp` (long): True Positive count.
+      - `fn` (long): False Negative count.
+      - `fp` (long): False Positive count.
+      - `tn` (long): True Negative count.
+
+  2.  `(confusion-matrix confusion-matrix-representation)`: Input as a structured representation.
+      - `confusion-matrix-representation`: Can be:
+        - A map with keys like `:tp`, `:fn`, `:fp`, `:tn` (e.g., `{:tp 10 :fn 2 :fp 5 :tn 80}`).
+        - A sequence of sequences representing rows `[[TP FP] [FN TN]]` (e.g., `[[10 5] [2 80]]`).
+        - A flat sequence `[TP FN FP TN]` (e.g., `[10 2 5 80]`).
+
+  3.  `(confusion-matrix actual prediction)`: Input as two sequences of outcomes.
+      - `actual` (sequence): Sequence of true outcomes.
+      - `prediction` (sequence): Sequence of predicted outcomes. Must have the same length as `actual`.
+      Values in `actual` and `prediction` are compared element-wise. By default,
+      any non-`nil` or non-zero value is treated as `true`, and `nil` or `0.0` is
+      treated as `false`.
+
+  4.  `(confusion-matrix actual prediction encode-true)`: Input as two sequences with a specified encoding for `true`.
+      - `actual`, `prediction`: Sequences as in the previous arity.
+      - `encode-true`: Specifies how values in `actual` and `prediction` are converted to boolean `true` or `false`.
+        - `nil` (default): Non-`nil`/non-zero is true.
+        - Any sequence/set: Values found in this collection are true.
+        - A map: Values are mapped according to the map; if a key is not found or maps to `false`, the value is false.
+        - A predicate function: Returns `true` if the value satisfies the predicate.
+
+  Returns a map with keys `:tp`, `:fn`, `:fp`, and `:tn` representing the counts.
+
+  This function is commonly used to prepare input for binary classification
+  metrics like those provided by [[binary-measures-all]] and [[binary-measures]]."
   ([tp fn fp tn] {:tp tp :fn fn :fp fp :tn tn})
-  ([confusion-matrix] (infer-confusion-matrix confusion-matrix))
-  ([actual prediction] (->confusion-matrix actual prediction nil))
+  ([confusion-mat] (infer-confusion-matrix confusion-mat))
+  ([actual prediction] (confusion-matrix actual prediction nil))
   ([actual prediction encode-true]
    (let [truth (binary-process-list actual encode-true)
          prediction (binary-process-list prediction encode-true)]
      (frequencies (map binary-confusion truth prediction)))))
 
+(def ^{:deprecated "Use `confusion-matrix`"} ->confusion-matrix confusion-matrix)
+
 (defn binary-measures-all
-  "Collection of binary measures.
+  "Calculates a comprehensive set of evaluation metrics for binary classification results.
 
-  Arguments:
-  * `confusion-matrix` - either map or sequence with `[:tp :fn :fp :tn]` values
-  
-  or
+  This function computes various statistics derived from a 2x2 confusion matrix,
+  summarizing the performance of a binary classifier.
 
-  * `actual` - list of ground truth values
-  * `prediction` - list of predicted values
-  * `true-value` - optional, true/false encoding, what is true in `truth` and `prediction`
+  The 2x2 confusion matrix is based on True Positives (TP), False Positives (FP),
+  False Negatives (FN), and True Negatives (TN):
 
-  `true-value` can be one of:
+  |                | Predicted True | Predicted False |
+  |:---------------|:---------------|:----------------|
+  | **Actual True**  | TP             | FN              |
+  | **Actual False** | FP             | TN              |
 
-  * `nil` - values are treating as booleans
-  * any sequence - values from sequence will be treated as `true`
-  * map - conversion will be done according to provided map (if there is no correspondin key, value is treated as `false`)
-  * any predicate
+  The function supports several input formats:
 
-  https://en.wikipedia.org/wiki/Precision_and_recall"
+  1.  `(binary-measures-all tp fn fp tn)`: Direct input of the four counts as arguments.
+      - `tp` (long): True Positive count.
+      - `fn` (long): False Negative count.
+      - `fp` (long): False Positive count.
+      - `tn` (long): True Negative count.
+
+  2.  `(binary-measures-all confusion-matrix)`: Input as a structured representation of the confusion matrix.
+      - `confusion-matrix`: Can be:
+        - A map with keys like `:tp`, `:fn`, `:fp`, `:tn` (e.g., `{:tp 10 :fn 2 :fp 5 :tn 80}`).
+        - A sequence of sequences representing rows `[[TP FP] [FN TN]]` (e.g., `[[10 5] [2 80]]`).
+        - A flat sequence `[TP FN FP TN]` (e.g., `[10 2 5 80]`).
+
+  3.  `(binary-measures-all actual prediction)`: Input as two sequences of outcomes.
+      - `actual` (sequence): Sequence of true outcomes.
+      - `prediction` (sequence): Sequence of predicted outcomes. Must have the same length as `actual`.
+      Values in `actual` and `prediction` are converted to boolean `true`/`false`. By default,
+      any non-`nil` or non-zero numeric value is treated as `true`, and `nil` or `0.0` is
+      treated as `false`.
+
+  4.  `(binary-measures-all actual prediction true-value)`: Input as two sequences with a specified encoding for `true`.
+      - `actual`, `prediction`: Sequences as in the previous arity.
+      - `true-value` (optional): Specifies how values in `actual` and `prediction` are converted to boolean `true` (success) or `false` (failure).
+        - `nil` (default): Non-`nil`/non-zero (for numbers) is true.
+        - Any sequence/set: Values found in this collection are true.
+        - A map: Values are mapped according to the map; if a key is not found or maps to `false`, the value is false.
+        - A predicate function: Returns `true` if the value satisfies the predicate.
+
+  Returns a map containing a wide array of calculated metrics. This includes, but is not limited to:
+
+  - Basic Counts: `:tp`, `:fn`, `:fp`, `:tn`
+  - Totals: `:cp` (Actual Positives), `:cn` (Actual Negatives), `:pcp` (Predicted Positives), `:pcn` (Predicted Negatives), `:total` (Grand Total)
+  - Rates (often ratios of counts):
+    - `:tpr` (True Positive Rate, Recall, Sensitivity, Hit Rate)
+    - `:fnr` (False Negative Rate, Miss Rate)
+    - `:fpr` (False Positive Rate, Fall-out)
+    - `:tnr` (True Negative Rate, Specificity, Selectivity)
+    - `:ppv` (Positive Predictive Value, Precision)
+    - `:fdr` (False Discovery Rate, `1 - ppv`)
+    - `:npv` (Negative Predictive Value)
+    - `:for` (False Omission Rate, `1 - npv`)
+  - Ratios/Odds:
+    - `:lr+` (Positive Likelihood Ratio)
+    - `:lr-` (Negative Likelihood Ratio)
+    - `:dor` (Diagnostic Odds Ratio)
+  - Combined Scores:
+    - `:accuracy`
+    - `:ba` (Balanced Accuracy)
+    - `:fm` (Fowlkes–Mallows index)
+    - `:pt` (Prevalence Threshold)
+    - `:ts` (Threat Score, Jaccard index)
+    - `:f-measure` / `:f1-score` (F1 Score, special case of F-beta score)
+    - `:f-beta` (Function to calculate F-beta for any beta)
+    - `:mcc` / `:phi` (Matthews Correlation Coefficient, Phi coefficient)
+    - `:bm` (Bookmaker Informedness)
+    - `:kappa` (Cohen's Kappa, for 2x2 table)
+    - `:mk` (Markedness)
+
+  Metrics are generally calculated using standard formulas based on the TP, FN, FP, TN counts.
+  For more details on specific metrics, refer to standard classification literature or
+  the Wikipedia page on [Precision and recall](https://en.wikipedia.org/wiki/Precision_and_recall),
+  which covers many of these concepts.
+
+  See also [[confusion-matrix]], [[binary-measures]] (for a selected subset of metrics),
+  [[mcc]], [[contingency-2x2-measures-all]] (for a broader set of 2x2 table measures).
+  "
   ([tp fn fp tn] (binary-measures-all-calc (binary-measures-all {:tp tp :fn fn :fp fp :tn tn})))
   ([confusion-matrix] (binary-measures-all-calc (infer-confusion-matrix confusion-matrix)))
   ([actual prediction] (binary-measures-all actual prediction nil))
@@ -3133,9 +4241,53 @@
   (select-keys cm [:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalence]))
 
 (defn binary-measures
-  "Subset of binary measures. See [[binary-measures-all]].
+  "Calculates a selected subset of common evaluation metrics for binary classification results.
 
-  Following keys are returned: `[:tp :tn :fp :fn :accuracy :fdr :f-measure :fall-out :precision :recall :sensitivity :specificity :prevalence]`"
+  This function is a convenience wrapper around [[binary-measures-all]], providing
+  a map containing the most frequently used metrics derived from a 2x2 confusion matrix.
+
+  The 2x2 confusion matrix is based on True Positives (TP), False Positives (FP),
+  False Negatives (FN), and True Negatives (TN):
+
+  |                | Predicted True | Predicted False |
+  |:---------------|:---------------|:----------------|
+  | **Actual True**  | TP             | FN              |
+  | **Actual False** | FP             | TN              |
+
+  The function accepts the same input formats as [[binary-measures-all]]:
+
+  1.  `(binary-measures tp fn fp tn)`: Direct input of the four counts.
+  2.  `(binary-measures confusion-matrix)`: Input as a structured representation
+      (map with keys like `:tp`, `:fn`, `:fp`, `:tn`; sequence of sequences
+      `[ [TP FP] [FN TN] ]`; or flat sequence `[TP FN FP TN]`).
+  3.  `(binary-measures actual prediction)`: Input as two sequences of outcomes.
+  4.  `(binary-measures actual prediction true-value)`: Input as two sequences with
+      a specified encoding for `true` (success).
+
+  Parameters:
+
+  - `tp, fn, fp, tn` (long): Counts from the confusion matrix.
+  - `confusion-matrix` (map or sequence): Representation of the confusion matrix.
+  - `actual`, `prediction` (sequences): Sequences of true and predicted outcomes.
+  - `true-value` (optional): Specifies how outcomes are converted to boolean `true`/`false`.
+
+  Returns a map containing the following selected metrics:
+
+  - `:tp` (True Positives)
+  - `:tn` (True Negatives)
+  - `:fp` (False Positives)
+  - `:fn` (False Negatives)
+  - `:accuracy`
+  - `:fdr` (False Discovery Rate, 1 - Precision)
+  - `:f-measure` (F1 Score, harmonic mean of Precision and Recall)
+  - `:fall-out` (False Positive Rate)
+  - `:precision` (Positive Predictive Value)
+  - `:recall` (True Positive Rate / Sensitivity)
+  - `:sensitivity` (Alias for Recall/TPR)
+  - `:specificity` (True Negative Rate)
+  - `:prevalence` (Proportion of positive cases)
+
+  See also [[confusion-matrix]], [[binary-measures-all]], [[mcc]], [[contingency-2x2-measures-all]]."
   ([tp fn fp tn] (cm-select-keys (binary-measures-all tp fn fp tn)))
   ([confusion-matrix] (cm-select-keys (binary-measures-all confusion-matrix)))
   ([actual prediction] (binary-measures actual prediction nil))
@@ -3215,7 +4367,7 @@
                 :scotts-pi (/ (- (* a d) (* hbc hbc))
                               (* (+ a hbc) (+ d hbc)))
                 :cohens-h (* 2.0 (- (m/asin (m/sqrt (/ a dr1)))
-                                    (m/asin (m/sqrt (/ c dr2))))) ;; effectsize R
+                                    (m/asin (m/sqrt (/ c dr2)))))
                 :PCC pcc
                 :PCC-adjusted (* m/SQRT2 pcc)
                 :TCC (m/cos (/ m/PI (inc (m/sqrt OR))))                
@@ -3229,6 +4381,49 @@
                                 (+ ad2 hbc2 (* (+ a d) (+ b c)))))}}))
 
 (defn contingency-2x2-measures-all
+  "Calculates a comprehensive set of statistics and measures for a 2x2 contingency table.
+
+  A 2x2 contingency table cross-tabulates two categorical variables, each with two levels.
+  The table counts are typically represented as:
+
+  +---+---+
+  | a | b |
+  +---+---+
+  | c | d |
+  +---+---+
+
+  Where `a, b, c, d` are the counts in the respective cells. 
+
+  This function calculates numerous measures, including:
+
+  *   Chi-squared statistics (Pearson, Yates' corrected, CMH) and their p-values.
+  *   Measures of association (Phi, Yule's Q, Holley-Guilford's G, Hubert's Gamma, Yule's Y, Cramer's V, Scott's Pi, Cohen's H, Pearson/Tschuprow's CC).
+  *   Measures of agreement (Cohen's Kappa).
+  *   Risk and effect size measures (Odds Ratio (OR), Relative Risk (RR), Risk Difference (RD), NNT, etc.).
+  *   Table marginals and proportions.
+
+  The function can be called with the four counts directly or with a representation
+  of the contingency table:
+
+  1.  `(contingency-2x2-measures-all a b c d)`: Takes the four counts as arguments.
+  2.  `(contingency-2x2-measures-all [a b c d])`: Takes a sequence of the four counts.
+  3.  `(contingency-2x2-measures-all [[a b] [c d]])`: Takes a sequence of sequences representing the rows.
+  4.  `(contingency-2x2-measures-all {:a a :b b :c c :d d})`: Takes a map of counts (accepts `:a/:b/:c/:d` keys).
+
+  Parameters:
+
+  - `a` (long): Count in the top-left cell.
+  - `b` (long): Count in the top-right cell.
+  - `c` (long): Count in the bottom-left cell.
+  - `d` (long): Count in the bottom-right cell.
+  - `map-or-seq` (map or sequence): A representation of the 2x2 table as described above.
+
+  Returns a map containing a wide range of calculated statistics. Keys include:
+  `:n`, `:table`, `:expected`, `:marginals`, `:proportions`, `:p-values` (map), `:OR`, `:lOR`, `:RR`, `:risk` (map), `:SE`, `:measures` (map).
+
+  See also [[contingency-2x2-measures]] for a selected subset of these measures,
+  [[mcc]] for the Matthews Correlation Coefficient (Phi), and [[binary-measures-all]]
+  for metrics derived from a confusion matrix (often a 2x2 table in binary classification)."
   ([^long a ^long b ^long c ^long d] (contingency-2x2-measures-calc a b c d))
   ([map-or-seq]
    (if (map? map-or-seq)
@@ -3238,6 +4433,47 @@
   ([[^long a ^long b] [^long c ^long d]] (contingency-2x2-measures-all a b c d)))
 
 (defn contingency-2x2-measures
+  "Calculates a subset of common statistics and measures for a 2x2 contingency table.
+
+  This function provides a selection of the most frequently used measures from the
+  more comprehensive [[contingency-2x2-measures-all]].
+
+  The function accepts the same input formats as [[contingency-2x2-measures-all]]:
+
+  1.  `(contingency-2x2-measures a b c d)`: Takes the four counts as arguments.
+  2.  `(contingency-2x2-measures [a b c d])`: Takes a sequence of the four counts.
+  3.  `(contingency-2x2-measures [[a b] [c d]])`: Takes a sequence of sequences representing the rows.
+  4.  `(contingency-2x2-measures {:a a :b b :c c :d d})`: Takes a map of counts (accepts `:a/:b/:c/:d` keys).
+
+  Parameters:
+
+  - `a, b, c, d` (long): Counts in the 2x2 table cells.
+  - `map-or-seq` (map or sequence): A representation of the 2x2 table.
+
+  Returns a map containing a selection of measures:
+
+  - `:OR`: Odds Ratio (Odds Ratio)
+  - `:chi2`: Pearson's Chi-squared statistic
+  - `:yates`: Yates' continuity corrected Chi-squared statistic
+  - `:cochran-mantel-haenszel`: Cochran-Mantel-Haenszel statistic
+  - `:cohens-kappa`: Cohen's Kappa coefficient
+  - `:yules-q`: Yule's Q measure of association
+  - `:holley-guilfords-g`: Holley-Guilford's G measure
+  - `:huberts-gamma`: Hubert's Gamma measure
+  - `:yules-y`: Yule's Y measure of association
+  - `:cramers-v`: Cramer's V measure of association
+  - `:phi`: Phi coefficient (Matthews Correlation Coefficient)
+  - `:scotts-pi`: Scott's Pi measure of agreement
+  - `:cohens-h`: Cohen's H measure
+  - `:PCC`: Pearson's Contingency Coefficient
+  - `:PCC-adjusted`: Adjusted Pearson's Contingency Coefficient
+  - `:TCC`: Tschuprow's Contingency Coefficient
+  - `:F1`: F1 Score
+  - `:bangdiwalas-b`: Bangdiwala's B statistic
+  - `:mcnemars-chi2`: McNemar's Chi-squared test statistic
+  - `:gwets-ac1`: Gwet's AC1 measure
+
+  For a more comprehensive set of 2x2 measures and their detailed descriptions, see [[contingency-2x2-measures-all]]."
   [& args]
   (let [m (apply contingency-2x2-measures-all args)]
     (-> (:measures m)
@@ -3251,11 +4487,24 @@
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l12
 (defn acf
-  "Calculate acf (autocorrelation function) for given number of lags or a list of lags.
+  "Calculates the Autocorrelation Function (ACF) for a given time series `data`.
 
-  If lags is omitted function returns maximum possible number of lags.
+  The ACF measures the linear dependence between a time series and its lagged values.
+  It helps identify patterns (like seasonality or trend) and inform the selection of
+  models for time series analysis (e.g., in ARIMA modeling).
 
-  See also [[acf-ci]], [[pacf]], [[pacf-ci]]"
+  Parameters:
+
+  * `data` (seq of numbers): The time series data.
+  * `lags` (long or seq of longs, optional):
+    * If a number, calculates ACF for lags from 0 up to this maximum lag.
+    * If a sequence of numbers, calculates ACF for each lag specified in the sequence.
+    * If omitted (1-arity call), calculates ACF for lags from 0 up to `(dec (count data))`.
+
+  Returns a sequence of doubles: the autocorrelation coefficients for the specified lags.
+  The value at lag 0 is always 1.0.
+
+  See also [[acf-ci]] (Calculates ACF with confidence intervals), [[pacf]], [[pacf-ci]]."
   ([data] (acf data (dec (count data))))
   ([data lags]
    (let [vdata (vec (demean data))
@@ -3271,13 +4520,18 @@
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l13
 (defn pacf
-  "Caluclate pacf (partial autocorrelation function) for given number of lags.
+  "Calculates the Partial Autocorrelation Function (PACF) for a given time series `data`.
 
-  If lags is omitted function returns maximum possible number of lags.
+  The PACF measures the linear dependence between a time series and its lagged values *after removing* the effects of the intermediate lags. It helps identify the direct relationship at each lag and is used to determine the order of autoregressive (AR) components in time series models (e.g., ARIMA).
 
-  `pacf` returns also lag `0` (which is `0.0`).
+  Parameters:
 
-  See also [[acf]], [[acf-ci]], [[pacf-ci]]"
+  * `data` (seq of numbers): The time series data.
+  * `lags` (long, optional): The maximum lag for which to calculate the PACF. If omitted, calculates PACF for lags from 0 up to `(dec (count data))`.
+
+  Returns a sequence of doubles representing the partial autocorrelation coefficients for the specified lags. The value at lag 0 is always 0.0.
+
+  See also [[acf]], [[acf-ci]], [[pacf-ci]]."
   ([data] (pacf data (dec (count data))))
   ([data ^long lags]
    (let [acfs (vec (acf data lags))
@@ -3300,7 +4554,30 @@
      ^double (r/icdf r/default-normal (* 0.5 (inc (- 1.0 alpha))))))
 
 (defn pacf-ci
-  "[[pacf]] with added confidence interval data."
+  "Calculates the Partial Autocorrelation Function (PACF) for a time series and provides approximate confidence intervals.
+
+  This function computes the PACF of the input time series `data` for specified lags
+  (see [[pacf]]) and includes approximate confidence intervals around the PACF
+  estimates. These intervals help determine whether the partial autocorrelation at
+  a specific lag is statistically significant (i.e., likely non-zero in the population).
+
+  Parameters:
+
+  * `data` (seq of numbers): The time series data.
+  * `lags` (long, optional): The maximum lag for which to calculate the PACF and CI.
+    If omitted, calculates for lags up to `(dec (count data))`.
+  * `alpha` (double, optional): The significance level for the confidence intervals.
+    Defaults to `0.05` (for a 95% CI).
+
+  Returns a map containing:
+
+  * `:ci` (double): The value of the approximate standard confidence interval bound
+    for lags > 0. If the absolute value of a PACF
+    coefficient at lag `k > 0` exceeds this value, it is considered statistically significant.
+  * `:pacf` (seq of doubles): The sequence of partial autocorrelation coefficients
+    at lags from 0 up to `lags` (calculated using [[pacf]]).
+
+  See also [[pacf]], [[acf]], [[acf-ci]]."
   ([data] (pacf-ci data (dec (count data))))
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
@@ -3310,9 +4587,35 @@
       :pacf pacf-data})))
 
 (defn acf-ci
-  "[[acf]] with added confidence interval data.
+  "Calculates the Autocorrelation Function (ACF) for a time series and provides approximate confidence intervals.
 
-  `:cis` contains list of calculated ci for every lag."
+  This function computes the ACF of the input time series `data` for specified lags
+  (see [[acf]]) and includes approximate confidence intervals around the ACF
+  estimates. These intervals help determine whether the autocorrelation at a
+  specific lag is statistically significant (i.e., likely non-zero in the population).
+
+  Parameters:
+
+  * `data` (seq of numbers): The time series data.
+  * `lags` (long or seq of longs, optional):
+    * If a number, calculates ACF for lags from 0 up to this maximum lag.
+    * If a sequence of numbers, calculates ACF for each lag specified in the sequence.
+    * If omitted (1-arity call), calculates ACF for lags from 0 up to `(dec (count data))`.
+  * `alpha` (double, optional): The significance level for the confidence intervals.
+    Defaults to `0.05` (for a 95% CI).
+
+  Returns a map containing:
+
+  * `:ci` (double): The value of the approximate standard confidence interval bound
+    for lags > 0. If the absolute value of an ACF
+    coefficient at lag `k > 0` exceeds this value, it is considered statistically significant.
+  * `:acf` (seq of doubles): The sequence of autocorrelation coefficients
+    at lags from 0 up to `lags` (or specified lags if `lags` is a sequence), calculated
+    using [[acf]].
+  * `:cis` (seq of doubles): Cumulative confidence intervals for ACF. These are based on the
+    variance of the sum of squared sample autocorrelations up to each lag.
+
+  See also [[acf]], [[pacf]], [[pacf-ci]]."
   ([data] (acf-ci data (dec (count data))))
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
@@ -3391,23 +4694,47 @@
                               :cloglog :logit :probit :arcsine]))
 
 (defn binomial-ci
-  "Return confidence interval for a binomial distribution.
+  "Calculates a confidence interval for a binomial proportion.
 
-  Possible methods are:
-  * `:asymptotic` (normal aproximation, based on central limit theorem), default
-  * `:agresti-coull`
-  * `:clopper-pearson`
-  * `:wilson`
-  * `:prop.test` - one sample proportion test
-  * `:cloglog`
-  * `:logit`
-  * `:probit`
-  * `:arcsine`
-  * `:all` - apply all methods and return a map of triplets
+  Given the number of observed `successes` in a fixed number of `trials`, this function
+  estimates a confidence interval for the true underlying probability of success (`p`).
 
-  Default alpha is 0.05
-  
-  Returns a triple [lower ci, upper ci, p=successes/trials]"
+  Different statistical methods are available for calculating the interval, as the
+  accuracy and behavior of the interval can vary, especially for small sample sizes
+  or probabilities close to 0 or 1.
+
+  Parameters:
+
+  - `number-of-successes` (long): The count of successful outcomes.
+  - `number-of-trials` (long): The total number of independent trials.
+  - `method` (keyword, optional): The method used to calculate the confidence interval.
+    Defaults to `:asymptotic`.
+  - `alpha` (double, optional): The significance level (alpha) for the interval.
+    The confidence level is `1 - alpha`. Defaults to `0.05` (yielding a 95% CI).
+
+  Available `method` values:
+
+  - `:asymptotic`: Normal approximation interval (Wald interval), based on the Central Limit Theorem. Simple but can be inaccurate for small samples or probabilities near 0 or 1.
+  - `:agresti-coull`: An adjustment to the asymptotic interval, adding 'pseudo-counts' to improve performance for small samples.
+  - `:clopper-pearson`: An exact method based on inverting binomial tests. Provides guaranteed coverage but can be overly conservative (wider than necessary).
+  - `:wilson`: Score interval, derived from the score test. Generally recommended as a good balance of accuracy and coverage for various sample sizes.
+  - `:prop.test`: Interval typically used with `prop.test` in R, applies a continuity correction.
+  - `:cloglog`: Confidence interval based on the complementary log-log transformation.
+  - `:logit`: Confidence interval based on the logit transformation.
+  - `:probit`: Confidence interval based on the probit transformation (inverse of standard normal CDF).
+  - `:arcsine`: Confidence interval based on the arcsine transformation.
+  - `:all`: Applies all available methods and returns a map where keys are method keywords and values are their respective confidence intervals (as triplets).
+
+  Returns:
+
+  - A vector `[lower-bound, upper-bound, estimated-p]`.
+    - `lower-bound` (double): The lower limit of the confidence interval.
+    - `upper-bound` (double): The upper limit of the confidence interval.
+    - `estimated-p` (double): The observed proportion of successes (`number-of-successes / number-of-trials`).
+
+  If `method` is `:all`, returns a map of results from each method.
+
+  See also [[binomial-test]] for performing a hypothesis test on a binomial proportion."
   ([^long number-of-successes ^long number-of-trials]
    (binomial-ci number-of-successes number-of-trials :asymptotic))
   ([^long number-of-successes ^long number-of-trials method]
@@ -3781,7 +5108,7 @@
      {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
       :Z Z
       :skewness skew
-      :kurtosis (+ kurt 3.0)})))
+      :kurtosis kurt})))
 
 (defn bonett-seier-test
   "Performs the Bonett-Seier test for normality based on Geary's 'g' kurtosis measure.
@@ -3872,6 +5199,7 @@
   - `:sides` / `:test-type`: Alternative hypothesis side used.
   - `:stat`: The test statistic (the observed number of successes).
   - `:estimate`: The observed proportion of successes (`successes / trials`).
+  - `:ci-method`: Confidence interval method used.
   - `:confidence-interval`: A confidence interval for the true probability of success, calculated using the specified `:ci-method` and adjusted for the `:sides` parameter."
   ([xs] (binomial-test xs {}))
   ([xs maybe-params]
@@ -3895,6 +5223,7 @@
       :test-type sides
       :stat number-of-successes
       :estimate (/ (double number-of-successes) number-of-trials)
+      :ci-method ci-method
       :confidence-interval (let [bci (partial binomial-ci number-of-successes number-of-trials ci-method)]
                              (sides-case sides
                                          (vec (butlast (bci (- 1.0 alpha))))
@@ -5036,7 +6365,23 @@
         (ffirst))))
 
 (defn box-cox-infer-lambda
-  "Find optimal `lambda` parameter for Box-Cox tranformation using maximum log likelihood method."
+  "Finds the optimal lambda (λ) parameter for the Box-Cox transformation of a dataset using the Maximum Likelihood Estimation (MLE) method.
+
+  The Box-Cox transformation is a family of power transformations often applied to positive data to make it more closely resemble a normal distribution and stabilize variance. This function estimates the lambda value that maximizes the log-likelihood function of the transformed data, assuming the transformed data is normally distributed.
+
+  Parameters:
+
+  - `xs` (sequence of numbers): The input numerical data sequence.
+  - `lambda-range` (vector of two numbers, optional): A sequence `[min-lambda, max-lambda]` defining the closed interval within which the optimal lambda is searched. Defaults to `[-3.0, 3.0]`.
+  - `opts` (map, optional): Additional options affecting the data used for the likelihood calculation. These options are passed to the internal data preparation step. Key options include:
+    - `:alpha` (double, default 0.0): A constant value added to `xs` before estimating lambda. This is often used when `xs` contains zero or negative values and the standard Box-Cox (which requires positive input) is desired, or to explore transformations around a shifted location.
+    - `:negative?` (boolean, default `false`): If `true`, indicates that the likelihood is estimated based on the modified Box-Cox transformation (Bickel and Doksum approach) suitable for negative values. The estimation process will work with the absolute values of the data shifted by `:alpha`.
+
+  Returns the estimated optimal lambda value as a double.
+
+  The inferred lambda value can then be used as the `lambda` parameter for the [[box-cox-transformation]] function to apply the actual transformation to the dataset.
+
+  See also [[box-cox-transformation]], [[yeo-johnson-infer-lambda]], [[yeo-johnson-transformation]]."
   (^double [xs] (box-cox-infer-lambda xs nil))
   (^double [xs lambda-range] (box-cox-infer-lambda xs lambda-range nil))
   (^double [xs lambda-range opts]

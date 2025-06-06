@@ -3,7 +3,7 @@
             [scicloj.clay.v2.api :as clay]
             [scicloj.kindly.v4.kind :as kind]
             [scicloj.kindly.v4.api :as kindly]
-            [fastmath.core :as m]
+            [zprint.core :as zp]
             [clojure.walk :as walk]))
 
 (defmacro callout
@@ -24,6 +24,12 @@
 (defmacro examples-note
   [& forms]
   `(callout "note" "Examples" (examples ~@forms)))
+
+(defmacro zp
+  [c]
+  `(kind/fragment
+    [(kind/code ~(str c))
+     (kind/code (zp/zprint-str ~c))]))
 
 (defn wrap-into-markdown
   [coll]
@@ -66,21 +72,20 @@
 (comment
   (clay/make! {:source-path ["index.clj"
                              "core.clj"
-                             ;; "vector_matrix.clj"
-                             ;; "random.clj"
-                             ;; "stats.clj"
-                             ;; "polynomials.clj"
-                             ;; "special.clj"
-                             ;; "calculus.clj"
-                             ;; "interpolation.clj"
-                             ;; "optimization.clj"
-                             ;; "transform.clj"
-                             ;; "ml.clj"
-                             ;; "complex_quaternions.clj"
-                             ;; "easings.clj"
-                             ;; "fields.clj"
-                             ;; "efloat.clj"
-                             ]
+                             "vector_matrix.clj"
+                             "random.clj"
+                             "stats.clj"
+                             "polynomials.clj"
+                             "special.clj"
+                             "calculus.clj"
+                             "interpolation.clj"
+                             "optimization.clj"
+                             "transform.clj"
+                             "ml.clj"
+                             "complex_quaternions.clj"
+                             "easings.clj"
+                             "fields.clj"
+                             "efloat.clj"]
                :format [:quarto :html]
                :book {:favicon "clay/resources/favicon.png"
                       :title "Fastmath documentation"}})

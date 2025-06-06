@@ -139,14 +139,18 @@
 
 ;; plots
 
+(def line-common {:linetype "dashed" :color color-light})
+
 (defn add-common
-  [object {:keys [title xlab ylab xlim ylim]}]
+  [object {:keys [title xlab ylab xlim ylim hline vline]}]
   (r/r+ object
         (when title (gg/labs :title title))
         (when xlab (gg/xlab xlab))
         (when ylab (gg/ylab ylab))
         (when xlim (gg/xlim xlim))
-        (when ylim (gg/ylim ylim))))
+        (when ylim (gg/ylim ylim))
+        (when hline (apply gg/geom_hline (flatten (seq (merge line-common hline)))))
+        (when vline (apply gg/geom_vline (flatten (seq (merge line-common vline)))))))
 
 (defn function
   "Single function"
@@ -184,6 +188,21 @@
                              :mapping (gg/aes :x :x :y :y)
                              :color color) 
                #_(gg/geom_density :color color :kernel kernel :bounds [##-Inf ##Inf]))
+         (add-common opts)))))
+
+(defn from-histogram
+  "Take histogram data and convert to bars"
+  ([xs] (from-histogram xs nil))
+  ([xs {:keys [bins span]
+        :as opts}]
+   (let [h (apply stats/histogram xs bins span)]
+     (-> (r/r+ (gg/ggplot)
+               (gg/theme_light)
+               (gg/geom_rect :mapping (gg/aes :xmin :min :xmax :max :ymin 0 :ymax :count)
+                             :data (tc/dataset (:bins-maps h))
+                             :fill color-light)
+               (gg/xlab "x")
+               (gg/ylab "counts"))
          (add-common opts)))))
 
 (defn line
@@ -400,3 +419,28 @@
    (dgraph distr {}))
   ([distr opts]
    (dgraph-cont bgraph-int distr opts)))
+
+;;
+
+(defn- acf-
+  ([prefix series cnt nm]
+   (let [acf? (= prefix "ACF")
+         r (range cnt)
+         a ((if acf? stats/acf-ci stats/pacf-ci) series)]
+     (-> (lollipop r (if acf? (:acf a) (:pacf a)) 
+                   {:title (str prefix " for " nm)
+                    :xlab "lag"
+                    :ylab (if acf?
+                            "autocorrelation"
+                            "partial autocorrelation")
+                    :ylim [nil 1]
+                    :hline {:yintercept (:ci a)}})
+         (add-common {:hline {:yintercept (- (:ci a))}})))))
+
+(defn acf
+  ([series nm] (acf- "ACF" series 100 nm))
+  ([series cnt nm] (acf- "ACF" series cnt nm)))
+
+(defn pacf
+  ([series nm] (acf- "PACF" series 100 nm))
+  ([series cnt nm] (acf- "PACF" series cnt nm)))

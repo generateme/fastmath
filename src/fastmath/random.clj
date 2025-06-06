@@ -2383,8 +2383,122 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   ([rng n sampling-method]
    (if-not sampling-method
      (->seq rng n)
-     (if (distribution? rng)
-       (map (partial icdf rng) ((spacings sampling-method uniform-spacings) n))
-       ((spacings sampling-method uniform-spacings) rng n)))))
+     (if (spacings sampling-method)
+       (if (distribution? rng)
+         (map (partial icdf rng) ((spacings sampling-method) n))
+         ((spacings sampling-method) rng n))
+       (throw (ex-info "Wrong sampling method" {:sampling-method sampling-method}))))))
+
+(defn white-noise
+  "Generates Gaussian white noise.
+
+  The generated sequence consists of independent random numbers drawn from a normal
+  distribution with mean 0.0 and a specified standard deviation.
+
+  Parameters:
+
+  - `sigma` (double, optional): The standard deviation of the generated noise.
+  Defaults to 1.0 (standard normal distribution).
+  - `rng` (fastmath.random.IRandomGenerator, optional): The random number generator to use.
+  Defaults to a new JDK generator (`fastmath.random/rng :jdk`).
+
+  Returns a lazy sequence of random numbers."
+  ([] (white-noise 1.0))
+  ([^double sigma] (white-noise (rng :jdk) sigma))
+  ([rng ^double sigma] (repeatedly #(grandom rng sigma))))
+
+;; arfima
+
+(defn- ma-or-ar
+  [ma? coeffs signal]
+  (let [coeffs (if (number? coeffs) [coeffs] (vec (reverse coeffs)))]
+    (if (every? m/zero? coeffs)
+      signal
+      (let [cnt (count coeffs)
+            [es rsignal] (split-at cnt signal)]
+        (letfn [(step [sig history]
+                  (when (seq sig)
+                    (let [e (double (first sig))
+                          a (m/+ (v/dot history coeffs) e)]
+                      (cons a (lazy-seq (step (rest sig) (subvec (conj history (if ma? e a)) 1)))))))]
+          (drop cnt (lazy-seq (step rsignal (vec es)))))))))
+
+(defn ma
+  "Generates a Moving Average (MA) stochastic process.
+
+  An MA(q) process is a time series where the current value is a linear combination
+  of past white noise error terms. This function generates a first-order MA(1)
+  process by default, or an MA(q) process if a collection of `theta` coefficients
+  is provided.
+
+  This function generates the process based on a provided sequence of white noise.
+
+  Parameters:
+
+  - `theta` (optional, number or sequence of numbers): The MA coefficient(s) (θ).
+    If a single number, generates an MA(1) process `Yt = εt + θ₁εt-₁`.
+    If a sequence of numbers `[θ₁, θ₂, ..., θq]`, generates an MA(q) process.
+    The sequence is interpreted such that `theta[i]` is the coefficient for `εt-(i+1)`.
+    Defaults to `0.0` (pure white noise).
+  - `signal` (optional, sequence of numbers): The underlying white noise series (εt).
+    Defaults to a sequence of standard normal random numbers (`white-noise`).
+
+  Returns a lazy sequence representing the generated MA process.
+
+  See also [[ar]] (Autoregressive process), [[arma]] (ARMA process), [[arfima]] (ARFIMA process),
+  [[white-noise]]."
+  ([] (ma 0.0))
+  ([theta] (ma theta (white-noise)))
+  ([theta signal] (ma-or-ar true theta signal)))
+
+(defn ar
+  ([] (ar 0.0))
+  ([phi] (ar phi (white-noise)))
+  ([phi signal] (ma-or-ar false phi signal)))
+
+(defn arma
+  ([] (arma 0.0 0.0))
+  ([phi theta] (arma phi theta (white-noise)))
+  ([phi theta signal] (->> signal (ma theta) (ar phi))))
+
+(defn- i-diffs
+  [^long d]
+  (->> (range d)
+       (map (fn [^long k]
+              (m/* (if (m/even? k) 1.0 -1.0)
+                   (m/combinations d (m/inc k)))))))
+
+(defn- fi-diffs
+  [^double d ^long limit]
+  (-> (reduce (fn [buff ^long k]
+                (conj buff (m/* (m/- (double (if (m/zero? k) -1.0 (buff (m/dec k)))))
+                                (m// (m/- d k) (m/inc k))))) [] (range limit))
+      (vec)))
+
+(defn fi
+  ([] (fi 0.0))
+  ([^double d] (fi d (white-noise)))
+  ([^double d signal] (fi d 0 signal))
+  ([^double d ^long dlimit signal]
+   (cond
+     (m/zero? d) signal
+     (m/integer? d) (ar (i-diffs d) signal)
+     (m/pos? dlimit) (ar (fi-diffs d dlimit) signal)
+     :else (letfn [(step [sig history coeffs ^long k]
+                     (when (seq sig)
+                       (let [phi1 (double (if (m/zero? k) -1.0 (coeffs (m/dec k))))
+                             phi2 (m/* (m/- phi1)
+                                       (m// (m/- d k) (m/inc k)))
+                             ncoeffs (conj coeffs phi2)
+                             a (m/+ (v/dot history ncoeffs) (double (first sig)))
+                             nhistory (conj history a)]
+                         (cons a (lazy-seq (step (rest sig) nhistory ncoeffs (m/inc k)))))))]
+             (lazy-seq (step (rest signal) (list (first signal)) [] 0))))))
+
+(defn arfima
+  ([] (arfima 0 0 0))
+  ([phi d theta] (arfima phi d theta (white-noise)))
+  ([phi d theta signal] (arfima phi d 0 theta signal))
+  ([phi d dlimit theta signal] (->> signal (ma theta) (fi d dlimit) (ar phi))))
 
 (m/unuse-primitive-operators)

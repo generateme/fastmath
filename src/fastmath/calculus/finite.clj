@@ -100,11 +100,11 @@
         hn2 (with-meta (symbol "hn2") {:tag 'double})
         fname (gensym (str "local-" n "-" acc "-" (name kind)))]
     `(fn ~fname
-       ([~x] (~fname ~x ~'h ~'hn)) ;; external vars
-       ([~x ~h2] (~fname ~x ~h2 (m/fpow ~h2 ~n)))
+       ([~x] (~fname ~'x ~'h ~'hn)) ;; external vars
+       ([~x ~h2] (~fname ~'x ~'h2 (m/fpow ~'h2 ~n)))
        ([~x ~h2 ~hn2]        
         (m// (m/+ ~@(map (fn [id coeff]
-                           `(m/* ~coeff (double (~'f (m/+ ~x (m/* ~id ~h2)))))) offsets coeffs)) ~hn2)))))
+                           `(m/* ~coeff (double (~'f (m/+ ~'x (m/* ~id ~'h2)))))) offsets coeffs)) ~'hn2)))))
 
 (defmacro produce-case-for-methods
   [n acc]
@@ -130,15 +130,15 @@
        6 (produce-case-for-methods ~n 6)
        (let [[offsets# coeffs#] (fd-coeffs-for-accuracy ~n ~'acc ~'method)]
          (fn ~fname
-           ([~xx] (~fname ~xx ~'h ~'hn))
-           ([~xx ~h2] (~fname ~xx ~h2 (m/fpow ~h2 ~n)))
+           ([~xx] (~fname ~'xx ~'h ~'hn))
+           ([~xx ~h2] (~fname ~'xx ~'h2 (m/fpow ~'h2 ~n)))
            ([~xx ~h2 ~hn2] (m// (v/sum (map (fn [~id  ~coeff]
-                                              (m/* ~coeff (double (~'f (m/+ ~xx (m/* ~id ~h2)))))) offsets# coeffs#)) ~hn2)))))))
+                                              (m/* ~'coeff (double (~'f (m/+ ~'xx (m/* ~'id ~'h2)))))) offsets# coeffs#)) ~'hn2)))))))
 
 (defn derivative
   ([f] (derivative f 1))
   ([f ^long n] (derivative f n nil))
-  ([f ^long n {:keys [^int acc ^double h method extrapolate?]
+  ([f ^long n {:keys [^long acc ^double h method extrapolate?]
                :or {acc 2 h 0.0 method :central}}]
    (if (m/zero? n)
      f

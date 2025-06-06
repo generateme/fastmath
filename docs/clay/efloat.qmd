@@ -1,0 +1,659 @@
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: efloat.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="efloat_files/md-default0.js" type="text/javascript"></script><script src="efloat_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns efloat
+  (:require [fastmath.efloat :as efloat]
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# EFloat {.unnumbered}
+
+
+## Reference
+
+### fastmath.efloat
+
+(re)Implementation of EFloat/Interval from pbrt-v3/pbrt-v4.
+
+  A floating point number structure which keeps a track of error caused by operations.
+
+
+```{=html}
+<span id="#LOS--&gt;EFloat"></span>
+```
+
+
+#### ->EFloat
+
++ `(->EFloat v low high)`
+
+Positional factory function for class fastmath.efloat.EFloat.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L11">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS--&gt;Pair"></span>
+```
+
+
+#### ->Pair
+
++ `(->Pair a b)`
+
+Positional factory function for class fastmath.efloat.Pair.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L203">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS--&gt;double"></span>
+```
+
+
+#### ->double
+
++ `(->double ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L41">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-abs"></span>
+```
+
+
+#### abs
+
++ `(abs ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L137">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-absolute-error"></span>
+```
+
+
+#### absolute-error
+
++ `(absolute-error ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L42">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-acos"></span>
+```
+
+
+#### acos
+
++ `(acos ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L143">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-add"></span>
+```
+
+
+#### add
+
++ `(add ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L60">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-addf"></span>
+```
+
+
+#### addf
+
++ `(addf ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L176">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ceil"></span>
+```
+
+
+#### ceil
+
++ `(ceil ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L190">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-cos"></span>
+```
+
+
+#### cos
+
++ `(cos ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L163">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-difference-of-products"></span>
+```
+
+
+#### difference-of-products
+
++ `(difference-of-products a b c d)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L107">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-div"></span>
+```
+
+
+#### div
+
++ `(div ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L75">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-divf"></span>
+```
+
+
+#### divf
+
++ `(divf ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L182">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-efloat"></span>
+```
+
+
+#### efloat
+
++ `(efloat v)`
++ `(efloat v err)`
++ `(efloat v low high)`
+
+Create EFloat object from a single value or low and high values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L28">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-equals?"></span>
+```
+
+
+#### equals?
+
++ `(equals? ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L48">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-floor"></span>
+```
+
+
+#### floor
+
++ `(floor ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L189">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-fma"></span>
+```
+
+
+#### fma
+
++ `(fma ev1 ev2 ev3)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L96">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-in-range?"></span>
+```
+
+
+#### in-range?
+
++ `(in-range? ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L53">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-lower-bound"></span>
+```
+
+
+#### lower-bound
+
++ `(lower-bound ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L38">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-map-&gt;EFloat"></span>
+```
+
+
+#### map->EFloat
+
++ `(map->EFloat m__7585__auto__)`
+
+Factory function for class fastmath.efloat.EFloat, taking a map of keywords to field values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L11">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-map-&gt;Pair"></span>
+```
+
+
+#### map->Pair
+
++ `(map->Pair m__7585__auto__)`
+
+Factory function for class fastmath.efloat.Pair, taking a map of keywords to field values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L203">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-max"></span>
+```
+
+
+#### max
+
++ `(max ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L193">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mid-point"></span>
+```
+
+
+#### mid-point
+
++ `(mid-point ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L39">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-min"></span>
+```
+
+
+#### min
+
++ `(min ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L192">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mul"></span>
+```
+
+
+#### mul
+
++ `(mul ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L66">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mulf"></span>
+```
+
+
+#### mulf
+
++ `(mulf ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L178">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-neg"></span>
+```
+
+
+#### neg
+
++ `(neg ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L58">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-quadratic"></span>
+```
+
+
+#### quadratic
+
++ `(quadratic a b c)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L205">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-relative-error"></span>
+```
+
+
+#### relative-error
+
++ `(relative-error ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L44">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sin"></span>
+```
+
+
+#### sin
+
++ `(sin ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L150">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sq"></span>
+```
+
+
+#### sq
+
++ `(sq ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L86">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sqrt"></span>
+```
+
+
+#### sqrt
+
++ `(sqrt ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L94">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sub"></span>
+```
+
+
+#### sub
+
++ `(sub ev1 ev2)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L63">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-subf"></span>
+```
+
+
+#### subf
+
++ `(subf ev v)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L177">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-sum-of-products"></span>
+```
+
+
+#### sum-of-products
+
++ `(sum-of-products a b c d)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L172">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-upper-bound"></span>
+```
+
+
+#### upper-bound
+
++ `(upper-bound ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L37">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-width"></span>
+```
+
+
+#### width
+
++ `(width ev)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/efloat.clj#L40">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/efloat.clj">clay/efloat.clj</a></small></small></pre></div>
+```

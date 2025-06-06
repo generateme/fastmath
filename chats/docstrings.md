@@ -1,6 +1,6 @@
 ### You'll be writing a documentation (book chapters and function docstrings) for `fastmath.stats` namespace.
 
-### Write a docstring for a `psnr` function.
+### Rewrite a docstring for a `fastmath.stats` namespace. Focus on purpose of the namespace and outline general content in points.
 
 
 <!-- Local Variables: -->
