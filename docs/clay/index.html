@@ -32,15 +32,16 @@ ul.task-list li input[type="checkbox"] {
 <meta name="quarto:offset" content="./">
 <link href="./core.html" rel="next">
 <link href="./clay/resources/favicon.png" rel="icon" type="image/png">
-<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -78,13 +79,13 @@ ul.task-list li input[type="checkbox"] {
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
         <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Preface</a></li></ol></nav>
-        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
-      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
     </div>
@@ -252,6 +253,204 @@ ul.task-list li input[type="checkbox"] {
 <script src="index_files/md-default1.js" type="text/javascript"></script>
 <section id="preface" class="level1 unnumbered">
 <h1 class="unnumbered">Preface</h1>
+<p>Documentation work in progress</p>
+<p>Statuses:</p>
+<p>✓ - done</p>
+<p>+ - partially done</p>
+<p>⇾ - wip</p>
+<p>. - awaiting</p>
+<div class="clay-table">
+<div class="table-responsive">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">namespace</th>
+<th data-quarto-table-cell-role="th">clay docs</th>
+<th data-quarto-table-cell-role="th">docstrings</th>
+<th data-quarto-table-cell-role="th">included in book</th>
+<th data-quarto-table-cell-role="th">notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>fastmath.core</td>
+<td>⇾</td>
+<td>⇾</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.vector</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.matrix</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.random</td>
+<td>+</td>
+<td>.</td>
+<td>✓</td>
+<td>new functions added</td>
+</tr>
+<tr class="odd">
+<td>fastmath.stats</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>experimental, LLM based</td>
+</tr>
+<tr class="even">
+<td>fastmath.stats.bootstrap</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>experimental, LLM based</td>
+</tr>
+<tr class="odd">
+<td>fastmath.polynomials</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.special</td>
+<td>✓</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.calculus</td>
+<td>+</td>
+<td>.</td>
+<td>✓</td>
+<td>Clerk version exists</td>
+</tr>
+<tr class="even">
+<td>fastmath.solver</td>
+<td>.</td>
+<td>.</td>
+<td>+</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.interpolation</td>
+<td>⇾</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.kernel</td>
+<td>.</td>
+<td>.</td>
+<td>+</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.optimization</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.transform</td>
+<td>⇾</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.signal</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>refactor required</td>
+</tr>
+<tr class="even">
+<td>fastmath.ml.regression</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.ml.clustering</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.complex</td>
+<td>+</td>
+<td>.</td>
+<td>✓</td>
+<td>Clerk version exists</td>
+</tr>
+<tr class="odd">
+<td>fastmath.quaternions</td>
+<td>+</td>
+<td>.</td>
+<td>✓</td>
+<td>Clerk version exists</td>
+</tr>
+<tr class="even">
+<td>fastmath.distance</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.easings</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.grid</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.fields</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>fastmath.curves</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>fastmath.efloat</td>
+<td>.</td>
+<td>.</td>
+<td>✓</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/index.clj">clay/index.clj</a></small></small></pre></div>
 
@@ -294,18 +493,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -337,7 +525,45 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -372,7 +598,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
@@ -420,7 +650,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

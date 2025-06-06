@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Fastmath documentation – Polynomials</title>
+<title>Polynomials – Fastmath documentation</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -67,15 +67,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="./special.html" rel="next">
 <link href="./stats.html" rel="prev">
 <link href="./clay/resources/favicon.png" rel="icon" type="image/png">
-<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -113,13 +114,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
         <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./polynomials.html">Polynomials</a></li></ol></nav>
-        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
-      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
     </div>
@@ -254,6 +255,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#polynomial" id="toc-polynomial" class="nav-link" data-scroll-target="#polynomial">-&gt;Polynomial</a></li>
   <li><a href="#polynomialr" id="toc-polynomialr" class="nav-link" data-scroll-target="#polynomialr">-&gt;PolynomialR</a></li>
   <li><a href="#add" id="toc-add" class="nav-link" data-scroll-target="#add">add</a></li>
+  <li><a href="#bernstein" id="toc-bernstein" class="nav-link" data-scroll-target="#bernstein">bernstein</a></li>
   <li><a href="#bessel-t" id="toc-bessel-t" class="nav-link" data-scroll-target="#bessel-t">bessel-t</a></li>
   <li><a href="#bessel-y" id="toc-bessel-y" class="nav-link" data-scroll-target="#bessel-y">bessel-y</a></li>
   <li><a href="#chebyshev-t" id="toc-chebyshev-t" class="nav-link" data-scroll-target="#chebyshev-t">chebyshev-T</a></li>
@@ -263,12 +265,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#coeffs" id="toc-coeffs" class="nav-link" data-scroll-target="#coeffs">coeffs</a></li>
   <li><a href="#coeffs-polynomial" id="toc-coeffs-polynomial" class="nav-link" data-scroll-target="#coeffs-polynomial">coeffs-&gt;polynomial</a></li>
   <li><a href="#coeffs-ratio-polynomial" id="toc-coeffs-ratio-polynomial" class="nav-link" data-scroll-target="#coeffs-ratio-polynomial">coeffs-&gt;ratio-polynomial</a></li>
-  <li><a href="#complex-evalpoly" id="toc-complex-evalpoly" class="nav-link" data-scroll-target="#complex-evalpoly">complex-evalpoly</a></li>
-  <li><a href="#complex-makepoly" id="toc-complex-makepoly" class="nav-link" data-scroll-target="#complex-makepoly">complex-makepoly</a></li>
-  <li><a href="#complex-mevalpoly-macro" id="toc-complex-mevalpoly-macro" class="nav-link" data-scroll-target="#complex-mevalpoly-macro">complex-mevalpoly <sup><sub>MACRO</sub></sup></a></li>
-  <li><a href="#complex-muladd" id="toc-complex-muladd" class="nav-link" data-scroll-target="#complex-muladd">complex-muladd</a></li>
   <li><a href="#degree" id="toc-degree" class="nav-link" data-scroll-target="#degree">degree</a></li>
   <li><a href="#derivative" id="toc-derivative" class="nav-link" data-scroll-target="#derivative">derivative</a></li>
+  <li><a href="#eval-bernstein" id="toc-eval-bernstein" class="nav-link" data-scroll-target="#eval-bernstein">eval-bernstein</a></li>
   <li><a href="#eval-bessel-t" id="toc-eval-bessel-t" class="nav-link" data-scroll-target="#eval-bessel-t">eval-bessel-t</a></li>
   <li><a href="#eval-bessel-y" id="toc-eval-bessel-y" class="nav-link" data-scroll-target="#eval-bessel-y">eval-bessel-y</a></li>
   <li><a href="#eval-chebyshev-t" id="toc-eval-chebyshev-t" class="nav-link" data-scroll-target="#eval-chebyshev-t">eval-chebyshev-T</a></li>
@@ -283,6 +282,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#eval-legendre-p" id="toc-eval-legendre-p" class="nav-link" data-scroll-target="#eval-legendre-p">eval-legendre-P</a></li>
   <li><a href="#eval-meixner-pollaczek-p" id="toc-eval-meixner-pollaczek-p" class="nav-link" data-scroll-target="#eval-meixner-pollaczek-p">eval-meixner-pollaczek-P</a></li>
   <li><a href="#evalpoly" id="toc-evalpoly" class="nav-link" data-scroll-target="#evalpoly">evalpoly</a></li>
+  <li><a href="#evalpoly-complex" id="toc-evalpoly-complex" class="nav-link" data-scroll-target="#evalpoly-complex">evalpoly-complex</a></li>
   <li><a href="#evaluate" id="toc-evaluate" class="nav-link" data-scroll-target="#evaluate">evaluate</a></li>
   <li><a href="#gegenbauer-c" id="toc-gegenbauer-c" class="nav-link" data-scroll-target="#gegenbauer-c">gegenbauer-C</a></li>
   <li><a href="#hermite-h" id="toc-hermite-h" class="nav-link" data-scroll-target="#hermite-h">hermite-H</a></li>
@@ -297,8 +297,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#laguerre-l" id="toc-laguerre-l" class="nav-link" data-scroll-target="#laguerre-l">laguerre-L</a></li>
   <li><a href="#legendre-p" id="toc-legendre-p" class="nav-link" data-scroll-target="#legendre-p">legendre-P</a></li>
   <li><a href="#makepoly" id="toc-makepoly" class="nav-link" data-scroll-target="#makepoly">makepoly</a></li>
+  <li><a href="#makepoly-complex" id="toc-makepoly-complex" class="nav-link" data-scroll-target="#makepoly-complex">makepoly-complex</a></li>
   <li><a href="#meixner-pollaczek-p" id="toc-meixner-pollaczek-p" class="nav-link" data-scroll-target="#meixner-pollaczek-p">meixner-pollaczek-P</a></li>
   <li><a href="#mevalpoly-macro" id="toc-mevalpoly-macro" class="nav-link" data-scroll-target="#mevalpoly-macro">mevalpoly <sup><sub>MACRO</sub></sup></a></li>
+  <li><a href="#mevalpoly-complex-macro" id="toc-mevalpoly-complex-macro" class="nav-link" data-scroll-target="#mevalpoly-complex-macro">mevalpoly-complex <sup><sub>MACRO</sub></sup></a></li>
+  <li><a href="#mevalpoly-scalar-complex-macro" id="toc-mevalpoly-scalar-complex-macro" class="nav-link" data-scroll-target="#mevalpoly-scalar-complex-macro">mevalpoly-scalar-complex <sup><sub>MACRO</sub></sup></a></li>
   <li><a href="#mult" id="toc-mult" class="nav-link" data-scroll-target="#mult">mult</a></li>
   <li><a href="#polynomial-1" id="toc-polynomial-1" class="nav-link" data-scroll-target="#polynomial-1">polynomial</a></li>
   <li><a href="#ratio-polynomial" id="toc-ratio-polynomial" class="nav-link" data-scroll-target="#ratio-polynomial">ratio-polynomial</a></li>
@@ -360,7 +363,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Polynomial cfs d)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.polynomials.Polynomial.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L133">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L143">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->PolynomialR"></span>
 </section>
 <section id="polynomialr" class="level4">
@@ -369,7 +372,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;PolynomialR cfs d)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.polynomials.PolynomialR.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L193">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L203">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add" class="level4">
@@ -379,7 +382,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(add poly1 poly2)</code></li>
 </ul>
 <p>Add two polynomials.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L283">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L297">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-bernstein"></span>
+</section>
+<section id="bernstein" class="level4">
+<h4 class="anchored" data-anchor-id="bernstein">bernstein</h4>
+<ul>
+<li><code>(bernstein degree order)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L345">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-bessel-t"></span>
 </section>
 <section id="bessel-t" class="level4">
@@ -387,7 +398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(bessel-t degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L735">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L770">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-bessel-y"></span>
 </section>
 <section id="bessel-y" class="level4">
@@ -395,7 +406,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(bessel-y degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L737">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-chebyshev-T"></span>
 </section>
 <section id="chebyshev-t" class="level4">
@@ -403,7 +414,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(chebyshev-T degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L385">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L420">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-chebyshev-U"></span>
 </section>
 <section id="chebyshev-u" class="level4">
@@ -411,7 +422,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(chebyshev-U degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L420">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L455">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-chebyshev-V"></span>
 </section>
 <section id="chebyshev-v" class="level4">
@@ -419,7 +430,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(chebyshev-V degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L443">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L478">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-chebyshev-W"></span>
 </section>
 <section id="chebyshev-w" class="level4">
@@ -427,7 +438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(chebyshev-W degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L465">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L500">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coeffs"></span>
 </section>
 <section id="coeffs" class="level4">
@@ -436,7 +447,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(coeffs poly)</code></li>
 </ul>
 <p>Coefficients of polynomial</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L304">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L318">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coeffs->polynomial"></span>
 </section>
 <section id="coeffs-polynomial" class="level4">
@@ -445,7 +456,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(coeffs-&gt;polynomial &amp; coeffs)</code></li>
 </ul>
 <p>Create polynomial object for unrolled coefficients.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L275">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L289">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coeffs->ratio-polynomial"></span>
 </section>
 <section id="coeffs-ratio-polynomial" class="level4">
@@ -454,43 +465,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(coeffs-&gt;ratio-polynomial &amp; coeffs)</code></li>
 </ul>
 <p>Create ratio based polynomial object for unrolled coefficients.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L279">source</a></small><hr style="margin: 0"></div>
-<span id="#LOS-complex-evalpoly"></span>
-</section>
-<section id="complex-evalpoly" class="level4">
-<h4 class="anchored" data-anchor-id="complex-evalpoly">complex-evalpoly</h4>
-<ul>
-<li><code>(complex-evalpoly x &amp; coeffs)</code></li>
-</ul>
-<p>Evaluate complex polynomial</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L79">source</a></small><hr style="margin: 0"></div>
-<span id="#LOS-complex-makepoly"></span>
-</section>
-<section id="complex-makepoly" class="level4">
-<h4 class="anchored" data-anchor-id="complex-makepoly">complex-makepoly</h4>
-<ul>
-<li><code>(complex-makepoly coeffs)</code></li>
-</ul>
-<p>Create complex polynomial function for given coefficients</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L92">source</a></small><hr style="margin: 0"></div>
-<span id="#LOS-complex-mevalpoly"></span>
-</section>
-<section id="complex-mevalpoly-macro" class="level4">
-<h4 class="anchored" data-anchor-id="complex-mevalpoly-macro">complex-mevalpoly <sup><sub>MACRO</sub></sup></h4>
-<ul>
-<li><code>(complex-mevalpoly x &amp; coeffs)</code></li>
-</ul>
-<p>Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]<em>x+coeffs[2]</em>x^2+….</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L68">source</a></small><hr style="margin: 0"></div>
-<span id="#LOS-complex-muladd"></span>
-</section>
-<section id="complex-muladd" class="level4">
-<h4 class="anchored" data-anchor-id="complex-muladd">complex-muladd</h4>
-<ul>
-<li><code>(complex-muladd x y z)</code></li>
-</ul>
-<p><code>(x y z)</code> -&gt; <code>(+ z (* x y))</code></p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L63">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L293">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-degree"></span>
 </section>
 <section id="degree" class="level4">
@@ -498,7 +473,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(degree poly)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L308">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L322">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-derivative"></span>
 </section>
 <section id="derivative" class="level4">
@@ -508,7 +483,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(derivative poly order)</code></li>
 </ul>
 <p>Derivative of the polynomial.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L311">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L325">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-eval-bernstein"></span>
+</section>
+<section id="eval-bernstein" class="level4">
+<h4 class="anchored" data-anchor-id="eval-bernstein">eval-bernstein</h4>
+<ul>
+<li><code>(eval-bernstein degree order x)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L337">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-bessel-t"></span>
 </section>
 <section id="eval-bessel-t" class="level4">
@@ -516,7 +499,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(eval-bessel-t degree x)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L706">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L741">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-bessel-y"></span>
 </section>
 <section id="eval-bessel-y" class="level4">
@@ -524,7 +507,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(eval-bessel-y degree x)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L674">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L709">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-chebyshev-T"></span>
 </section>
 <section id="eval-chebyshev-t" class="level4">
@@ -533,7 +516,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-chebyshev-T degree x)</code></li>
 </ul>
 <p>Chebyshev polynomial of the first kind</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L361">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L396">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-chebyshev-U"></span>
 </section>
 <section id="eval-chebyshev-u" class="level4">
@@ -542,7 +525,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-chebyshev-U degree x)</code></li>
 </ul>
 <p>Chebyshev polynomials of the second kind</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L389">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L424">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-chebyshev-V"></span>
 </section>
 <section id="eval-chebyshev-v" class="level4">
@@ -551,7 +534,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-chebyshev-V degree x)</code></li>
 </ul>
 <p>Chebyshev polynomials of the third kind</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L424">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L459">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-chebyshev-W"></span>
 </section>
 <section id="eval-chebyshev-w" class="level4">
@@ -560,7 +543,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-chebyshev-W degree x)</code></li>
 </ul>
 <p>Chebyshev polynomials of the fourth kind</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L447">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L482">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-gegenbauer-C"></span>
 </section>
 <section id="eval-gegenbauer-c" class="level4">
@@ -570,7 +553,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-gegenbauer-C degree order x)</code></li>
 </ul>
 <p>Gegenbauer (ultraspherical) polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L505">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L540">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-hermite-H"></span>
 </section>
 <section id="eval-hermite-h" class="level4">
@@ -579,7 +562,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-hermite-H degree x)</code></li>
 </ul>
 <p>Hermite polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L550">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L585">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-hermite-He"></span>
 </section>
 <section id="eval-hermite-he" class="level4">
@@ -588,7 +571,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-hermite-He degree x)</code></li>
 </ul>
 <p>Hermite polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L584">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L619">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-jacobi-P"></span>
 </section>
 <section id="eval-jacobi-p" class="level4">
@@ -597,7 +580,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-jacobi-P degree alpha beta x)</code></li>
 </ul>
 <p>Jacobi polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L621">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L656">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-laguerre-L"></span>
 </section>
 <section id="eval-laguerre-l" class="level4">
@@ -607,7 +590,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eval-laguerre-L degree order x)</code></li>
 </ul>
 <p>Evaluate generalized Laguerre polynomial</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L323">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L358">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-legendre-P"></span>
 </section>
 <section id="eval-legendre-p" class="level4">
@@ -615,7 +598,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(eval-legendre-P degree x)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L471">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L506">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eval-meixner-pollaczek-P"></span>
 </section>
 <section id="eval-meixner-pollaczek-p" class="level4">
@@ -623,7 +606,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(eval-meixner-pollaczek-P degree lambda phi x)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L741">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L776">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-evalpoly"></span>
 </section>
 <section id="evalpoly" class="level4">
@@ -632,7 +615,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(evalpoly x &amp; coeffs)</code></li>
 </ul>
 <p>Evaluate polynomial for given coefficients</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L28">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L29">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-evalpoly-complex"></span>
+</section>
+<section id="evalpoly-complex" class="level4">
+<h4 class="anchored" data-anchor-id="evalpoly-complex">evalpoly-complex</h4>
+<ul>
+<li><code>(evalpoly-complex x &amp; coeffs)</code></li>
+</ul>
+<p>Evaluate complex polynomial</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L86">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-evaluate"></span>
 </section>
 <section id="evaluate" class="level4">
@@ -641,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(evaluate poly x)</code></li>
 </ul>
 <p>Evaluate polynomial</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L316">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L330">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-gegenbauer-C"></span>
 </section>
 <section id="gegenbauer-c" class="level4">
@@ -650,7 +642,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(gegenbauer-C degree)</code></li>
 <li><code>(gegenbauer-C degree order)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L544">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L579">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hermite-H"></span>
 </section>
 <section id="hermite-h" class="level4">
@@ -658,7 +650,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(hermite-H degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L580">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L615">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-hermite-He"></span>
 </section>
 <section id="hermite-he" class="level4">
@@ -666,7 +658,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(hermite-He degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L614">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L649">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-C"></span>
 </section>
 <section id="ince-c" class="level4">
@@ -677,7 +669,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Ince C polynomial of order p and degree m.</p>
 <p><code>normalization</code> parameter can be <code>:none</code> (default), <code>:trigonometric</code> or <code>millers</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L922">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-C-coeffs"></span>
 </section>
 <section id="ince-c-coeffs" class="level4">
@@ -685,7 +677,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(ince-C-coeffs p m e normalization)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L899">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L933">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-C-radial"></span>
 </section>
 <section id="ince-c-radial" class="level4">
@@ -696,7 +688,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Ince C polynomial of order p and degree m.</p>
 <p><code>normalization</code> parameter can be <code>:none</code> (default), <code>:trigonometric</code> or <code>millers</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L988">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-S"></span>
 </section>
 <section id="ince-s" class="level4">
@@ -707,7 +699,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Ince S polynomial of order p and degree m.</p>
 <p><code>normalization</code> parameter can be <code>:none</code> (default), <code>:trigonometric</code> or <code>millers</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L940">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-S-coeffs"></span>
 </section>
 <section id="ince-s-coeffs" class="level4">
@@ -715,7 +707,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(ince-S-coeffs p m e normalization)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L905">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L939">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ince-S-radial"></span>
 </section>
 <section id="ince-s-radial" class="level4">
@@ -726,7 +718,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Ince S polynomial of order p and degree m.</p>
 <p><code>normalization</code> parameter can be <code>:none</code> (default), <code>:trigonometric</code> or <code>millers</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L1004">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-jacobi-P"></span>
 </section>
 <section id="jacobi-p" class="level4">
@@ -734,7 +726,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(jacobi-P degree alpha beta)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L668">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L703">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-laguerre-L"></span>
 </section>
 <section id="laguerre-l" class="level4">
@@ -744,7 +736,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(laguerre-L degree order)</code></li>
 </ul>
 <p>Generalized Laguerre polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L353">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L388">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-legendre-P"></span>
 </section>
 <section id="legendre-p" class="level4">
@@ -752,7 +744,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(legendre-P degree)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L499">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L534">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-makepoly"></span>
 </section>
 <section id="makepoly" class="level4">
@@ -761,7 +753,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(makepoly coeffs)</code></li>
 </ul>
 <p>Create polynomial function for given coefficients</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L44">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L45">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-makepoly-complex"></span>
+</section>
+<section id="makepoly-complex" class="level4">
+<h4 class="anchored" data-anchor-id="makepoly-complex">makepoly-complex</h4>
+<ul>
+<li><code>(makepoly-complex coeffs)</code></li>
+</ul>
+<p>Create complex polynomial function for given coefficients</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L100">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-meixner-pollaczek-P"></span>
 </section>
 <section id="meixner-pollaczek-p" class="level4">
@@ -769,7 +770,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(meixner-pollaczek-P degree lambda phi)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L781">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L816">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mevalpoly"></span>
 </section>
 <section id="mevalpoly-macro" class="level4">
@@ -778,7 +779,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mevalpoly x &amp; coeffs)</code></li>
 </ul>
 <p>Evaluate polynomial macro version in the form coeffs[0]+coeffs[1]<em>x+coeffs[2]</em>x^2+….</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L17">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L18">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mevalpoly-complex"></span>
+</section>
+<section id="mevalpoly-complex-macro" class="level4">
+<h4 class="anchored" data-anchor-id="mevalpoly-complex-macro">mevalpoly-complex <sup><sub>MACRO</sub></sup></h4>
+<ul>
+<li><code>(mevalpoly-complex x &amp; coeffs)</code></li>
+</ul>
+<p>Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]<em>x+coeffs[2]</em>x^2+….</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L64">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mevalpoly-scalar-complex"></span>
+</section>
+<section id="mevalpoly-scalar-complex-macro" class="level4">
+<h4 class="anchored" data-anchor-id="mevalpoly-scalar-complex-macro">mevalpoly-scalar-complex <sup><sub>MACRO</sub></sup></h4>
+<ul>
+<li><code>(mevalpoly-scalar-complex x &amp; coeffs)</code></li>
+</ul>
+<p>Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]<em>x+coeffs[2]</em>x^2+….</p>
+<p>Coefficients are scalars</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L75">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult"></span>
 </section>
 <section id="mult" class="level4">
@@ -788,25 +808,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mult poly1 poly2)</code></li>
 </ul>
 <p>Multiply two polynomials.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L298">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L312">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-polynomial"></span>
 </section>
 <section id="polynomial-1" class="level4">
 <h4 class="anchored" data-anchor-id="polynomial-1">polynomial</h4>
 <ul>
+<li><code>(polynomial xs ys)</code></li>
 <li><code>(polynomial coeffs)</code></li>
 </ul>
-<p>Create polynomial object.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L265">source</a></small><hr style="margin: 0"></div>
+<p>Create polynomial object from coeffs or fitted points.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L275">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ratio-polynomial"></span>
 </section>
 <section id="ratio-polynomial" class="level4">
 <h4 class="anchored" data-anchor-id="ratio-polynomial">ratio-polynomial</h4>
 <ul>
+<li><code>(ratio-polynomial xs ys)</code></li>
 <li><code>(ratio-polynomial coeffs)</code></li>
 </ul>
-<p>Create polynomial operating on ratios.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L270">source</a></small><hr style="margin: 0"></div>
+<p>Create polynomial operating on ratios from coeffs or fitted points.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L282">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale"></span>
 </section>
 <section id="scale" class="level4">
@@ -815,7 +837,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(scale poly v)</code></li>
 </ul>
 <p>Multiply polynomial by scalar</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L294">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L308">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub" class="level4">
@@ -825,7 +847,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sub poly1 poly2)</code></li>
 </ul>
 <p>Subtract two polynomials</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L288">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L302">source</a></small><hr style="margin: 0"></div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/polynomials.clj">clay/polynomials.clj</a></small></small></pre></div>
 
@@ -870,18 +892,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -913,7 +924,45 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -948,7 +997,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
@@ -996,7 +1049,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

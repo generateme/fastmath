@@ -1,4 +1,3 @@
-
 ---
 format:
   html:
@@ -110,6 +109,20 @@ Complex numbers functions.
 
 
 ```{=html}
+<span id="#LOS-PI"></span>
+```
+
+
+##### PI
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L28">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-TWO"></span>
 ```
 
@@ -150,7 +163,7 @@ Absolute value, magnitude
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L65">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L72">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -168,7 +181,7 @@ acos
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L527">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -186,7 +199,7 @@ acosh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L675">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L692">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -204,7 +217,7 @@ acot
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L627">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L644">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -220,7 +233,7 @@ acot
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L794">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L811">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -238,7 +251,7 @@ acsc
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L600">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L617">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -254,7 +267,7 @@ acsc
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L761">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L778">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -272,7 +285,25 @@ Sum of two complex numbers
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L84">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L91">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-adds"></span>
+```
+
+
+##### adds
+
++ `(adds z v)`
+
+Add scalar to complex number.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L97">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -290,7 +321,7 @@ Argument (angle) of the complex number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L79">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L86">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -308,7 +339,7 @@ asec
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L574">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L591">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -324,7 +355,7 @@ asec
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L727">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L744">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -342,7 +373,7 @@ asin
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L506">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L523">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -360,7 +391,7 @@ asinh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L652">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L669">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -378,7 +409,7 @@ atan
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L547">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L564">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -396,7 +427,7 @@ atanh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L701">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L718">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -416,7 +447,7 @@ Create complex number. Represented as `Vec2`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L29">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L30">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -434,7 +465,7 @@ Complex conjugate. $\bar{z}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L123">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -452,7 +483,7 @@ cos
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L356">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L373">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -470,7 +501,7 @@ cosh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L437">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L454">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -488,7 +519,7 @@ csc
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L410">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L427">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -506,7 +537,7 @@ coth
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L490">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L507">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -524,7 +555,7 @@ csc
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L396">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L413">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -542,7 +573,7 @@ csch
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L476">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L493">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -563,7 +594,7 @@ Complex sgn.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L60">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -582,7 +613,7 @@ Compare complex numbers with given accuracy (10e-6 by default)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -600,7 +631,25 @@ Divide two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L128">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L145">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-ensure-complex"></span>
+```
+
+
+##### ensure-complex
+
++ `(ensure-complex v)`
+
+Convert possible number to complex or return input.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L36">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -618,7 +667,7 @@ exp
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L180">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L197">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -636,7 +685,7 @@ Exchange imaginary and real parts
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L70">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -654,7 +703,7 @@ Imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L36">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L41">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -672,7 +721,7 @@ Is z is a pure imaginary number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L39">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L44">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -690,7 +739,25 @@ Is infinite?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L41">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-invalid?"></span>
+```
+
+
+##### invalid?
+
++ `(invalid? z)`
+
+Is NaN or Inf?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L50">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -708,7 +775,7 @@ log, principal value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L194">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L211">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -726,7 +793,25 @@ log with base b
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L210">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L227">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-muladd"></span>
+```
+
+
+##### muladd
+
++ `(muladd x y z)`
+
+`(x y z)` -> `(+ z (* x y))`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L127">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -744,7 +829,7 @@ Multiply two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L114">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -760,7 +845,7 @@ Multiply two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L112">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -776,7 +861,7 @@ Multiply two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L125">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -794,7 +879,7 @@ Is NaN?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L43">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L48">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -812,7 +897,7 @@ Negate complex number. $-z$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L170">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -830,7 +915,7 @@ Norm (Guass) of the complex number, absolute value squared
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L72">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L79">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -848,7 +933,7 @@ Power. $z_1^{z_2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L315">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L332">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -866,7 +951,7 @@ Real part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L35">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L40">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -884,7 +969,7 @@ Is z is a real number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L38">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L43">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -902,7 +987,7 @@ $\frac{1}{z}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L139">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L156">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -920,7 +1005,7 @@ Multiply by real number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L96">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L108">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -938,7 +1023,7 @@ sec
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L382">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L399">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -956,7 +1041,7 @@ sech
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L462">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L479">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -974,7 +1059,7 @@ sin
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L345">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L362">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -992,7 +1077,7 @@ sinh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L426">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L443">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1010,7 +1095,7 @@ Square complex number. $z^2$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L115">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L132">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1028,7 +1113,7 @@ Sqrt of complex number. $\sqrt{z}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L158">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L175">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1046,7 +1131,7 @@ $\sqrt{1-z^2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L170">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L187">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1064,7 +1149,7 @@ Difference of two complex numbers
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L90">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1082,7 +1167,7 @@ tan
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L368">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L385">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1100,7 +1185,25 @@ tanh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L465">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-valid?"></span>
+```
+
+
+##### valid?
+
++ `(valid? z)`
+
+Is valid complex (not NaN or Inf)?
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L51">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1118,7 +1221,7 @@ Is zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L40">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L45">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

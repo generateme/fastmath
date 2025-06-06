@@ -1,4 +1,3 @@
-
 ---
 format:
   html:
@@ -21,13 +20,176 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="transform_files/md-default0.js" type="text/javascript"></script><script src="transform_files/md-default1.js" type="text/javascript"></script>
+<script src="transform_files/md-default2.js" type="text/javascript"></script><script src="transform_files/md-default3.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
-(ns transform
-  (:require [fastmath.transform :as t]
-            [fastmath.dev.codox :as codox]))
+(gg/->file (gg/functions [["basic" m/sin]
+                          ["noisy" (fn [x] (+ (m/sin x) (* 0.2 (- (rand) 0.5))))]]
+                         {:x [m/-TWO_PI m/TWO_PI]
+                          :ylim [-2 2]
+                          :steps 500
+                          :palette gg/palette-blue-0}))
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(gg/->file (gg/function2d (fn [[x y]] (m/sin (m/* x (m/cos y)))) {:x [m/-TWO_PI m/TWO_PI]
+                                                                 :y [m/-TWO_PI m/TWO_PI]
+                                                                 :title "sin(x*cos(y))"
+                                                                 :legend-name "value"}))
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(gg/function2d (fn [[x y]] (m/sin (m/* x (m/cos y)))) {:x [m/-TWO_PI m/TWO_PI]
+                                                      :y [m/-TWO_PI m/TWO_PI]
+                                                      :title "sin(x*cos(y))"
+                                                      :legend-name "value"})
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(gg/function m/tan {:x [m/-TWO_PI m/TWO_PI]
+                    :title "tan(x)"
+                    :ylab "y=tan(x)"
+                    :ylim [-2 2] ;; we need to limit y axis
+                    :steps 500})
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(let [xs (repeatedly 2000 r/grand)
+      ys (map (fn [x] (+ (r/grand (+ 0.1 (* x 0.5))) (m/sin (* 2 x)))) xs)]
+  (gg/scatter xs ys {:title "Scatter"}))
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(let [xy (take 1000 (r/sequence-generator :r2 2))]
+  (gg/scatter xy nil {:title "R2 low-discrepancy sequence generator"}))
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(gg/functions [["tan" m/tan]
+               ["cot" m/cot]
+               ["sin" m/sin]
+               ["cos" m/cos]]
+              {:x [m/-TWO_PI m/TWO_PI]
+               :title "Basic trigonometric functions"
+               :ylim [-2 2]
+               :steps 500
+               :palette gg/palette-blue-1})
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(gg/->file (gg/function m/sec
+                        {:x [m/-TWO_PI m/TWO_PI]
+                         :ylim [-2 2]
+                         :steps 500}))
+```
+:::
+
+
+
+::: {.printedClojure}
+```clojure
+
+
+
 ```
 :::
 
@@ -35,11 +197,84 @@ code-block-background: true
 
 # Transforms {.unnumbered}
 
+General description of the topic
+
+::: {.callout-tip title="Defined functions"}
+* `transformer`
+* `forward-1d`, `forward-2d`
+* `reverse-1d`, `reverse-2d`
+:::
+
 
 ## FFT
 
+Details about FFT and use-cases
+
+Some examples:
+
+
+::: {.sourceClojure}
+```clojure
+(def fft-real (t/transformer :real :fft ))
+```
+:::
+
+
+::: {.callout-note title="Examples"}
+
+
+::: {.sourceClojure}
+```clojure
+(seq (t/forward-1d fft-real [1 2 -10 1])) ;; => (-6.0 -12.0 11.0 -1.0)
+(seq (t/reverse-1d fft-real [-6 -12 11 -1])) ;; => (1.0 2.0 -10.0 1.0)
+```
+:::
+
+
+:::
+
 
 ## Wavelets
+
+
+## Compression and denoising
+
+An use case with charts
+
+
+::: {.sourceClojure}
+```clojure
+(def domain (m/slice-range 0 10 512))
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(def signal (map (fn [x] (+ (Math/sin x)
+                         (* 0.1 (- (rand) 0.5)))) ;; add some noise
+               domain))
+```
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(def denoised-signal (t/denoise fft-real signal {:method :hard}))
+```
+:::
+
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="transform_files/0.png" /></td><td><img class="clay-image" src="transform_files/1.png" /></td></tr></tbody></table>
+```
+
+:::
+
 
 
 ## Reference

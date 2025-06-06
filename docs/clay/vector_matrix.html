@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Fastmath documentation – Vectors and matrices</title>
+<title>Vectors and matrices – Fastmath documentation</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -67,15 +67,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="./random.html" rel="next">
 <link href="./core.html" rel="prev">
 <link href="./clay/resources/favicon.png" rel="icon" type="image/png">
-<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -113,13 +114,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <header id="quarto-header" class="headroom fixed-top">
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
         <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./vector_matrix.html">Vectors and matrices</a></li></ol></nav>
-        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
-      <button type="button" class="btn quarto-search-button" aria-label="" onclick="window.quartoOpenSearch();">
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
         <i class="bi bi-search"></i>
       </button>
     </div>
@@ -454,6 +455,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#csc-1" id="toc-csc-1" class="nav-link" data-scroll-target="#csc-1">csc</a></li>
   <li><a href="#csch-1" id="toc-csch-1" class="nav-link" data-scroll-target="#csch-1">csch</a></li>
   <li><a href="#degrees-1" id="toc-degrees-1" class="nav-link" data-scroll-target="#degrees-1">degrees</a></li>
+  <li><a href="#demean" id="toc-demean" class="nav-link" data-scroll-target="#demean">demean</a></li>
   <li><a href="#det" id="toc-det" class="nav-link" data-scroll-target="#det">det</a></li>
   <li><a href="#diag" id="toc-diag" class="nav-link" data-scroll-target="#diag">diag</a></li>
   <li><a href="#diagonal" id="toc-diagonal" class="nav-link" data-scroll-target="#diagonal">diagonal</a></li>
@@ -524,6 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#sech-1" id="toc-sech-1" class="nav-link" data-scroll-target="#sech-1">sech</a></li>
   <li><a href="#sfrac-1" id="toc-sfrac-1" class="nav-link" data-scroll-target="#sfrac-1">sfrac</a></li>
   <li><a href="#sgn-1" id="toc-sgn-1" class="nav-link" data-scroll-target="#sgn-1">sgn</a></li>
+  <li><a href="#shape" id="toc-shape" class="nav-link" data-scroll-target="#shape">shape</a></li>
   <li><a href="#shift-cols" id="toc-shift-cols" class="nav-link" data-scroll-target="#shift-cols">shift-cols</a></li>
   <li><a href="#shift-rows" id="toc-shift-rows" class="nav-link" data-scroll-target="#shift-rows">shift-rows</a></li>
   <li><a href="#sigmoid-1" id="toc-sigmoid-1" class="nav-link" data-scroll-target="#sigmoid-1">sigmoid</a></li>
@@ -535,6 +538,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#solve" id="toc-solve" class="nav-link" data-scroll-target="#solve">solve</a></li>
   <li><a href="#sq-1" id="toc-sq-1" class="nav-link" data-scroll-target="#sq-1">sq</a></li>
   <li><a href="#sqrt-1" id="toc-sqrt-1" class="nav-link" data-scroll-target="#sqrt-1">sqrt</a></li>
+  <li><a href="#standardize" id="toc-standardize" class="nav-link" data-scroll-target="#standardize">standardize</a></li>
   <li><a href="#sub-1" id="toc-sub-1" class="nav-link" data-scroll-target="#sub-1">sub</a></li>
   <li><a href="#symmetric" id="toc-symmetric" class="nav-link" data-scroll-target="#symmetric">symmetric?</a></li>
   <li><a href="#tan-1" id="toc-tan-1" class="nav-link" data-scroll-target="#tan-1">tan</a></li>
@@ -653,7 +657,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Vec2 x y)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.vector.Vec2.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L390">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L718">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->Vec3"></span>
 </section>
 <section id="vec3" class="level5">
@@ -662,7 +666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Vec3 x y z)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.vector.Vec3.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L513">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L514">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->Vec4"></span>
 </section>
 <section id="vec4" class="level5">
@@ -671,7 +675,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Vec4 x y z w)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.vector.Vec4.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L712">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L392">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-abs"></span>
 </section>
 <section id="abs" class="level5">
@@ -680,7 +684,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(abs v)</code></li>
 </ul>
 <p>Absolute value of vector elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L924">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L943">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acos"></span>
 </section>
 <section id="acos" class="level5">
@@ -689,7 +693,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acos vector)</code></li>
 </ul>
 <p>Apply acos to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh" class="level5">
@@ -698,7 +702,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acosh vector)</code></li>
 </ul>
 <p>Apply acosh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot" class="level5">
@@ -707,7 +711,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acot vector)</code></li>
 </ul>
 <p>Apply acot to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth" class="level5">
@@ -716,7 +720,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acoth vector)</code></li>
 </ul>
 <p>Apply acoth to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc" class="level5">
@@ -725,7 +729,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acsc vector)</code></li>
 </ul>
 <p>Apply acsc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch" class="level5">
@@ -734,7 +738,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acsch vector)</code></li>
 </ul>
 <p>Apply acsch to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add" class="level5">
@@ -744,7 +748,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(add v1 v2)</code></li>
 </ul>
 <p>Sum of two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L901">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L920">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-aligned?"></span>
 </section>
 <section id="aligned" class="level5">
@@ -754,7 +758,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(aligned? v1 v2)</code></li>
 </ul>
 <p>Are vectors aligned (have the same direction)?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1229">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1251">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-angle-between"></span>
 </section>
 <section id="angle-between" class="level5">
@@ -764,14 +768,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Angle between two vectors</p>
 <p>See also <a href="#LOS-relative-angle-between">relative-angle-between</a>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1208">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1230">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-applyf"></span>
 </section>
 <section id="applyf-deprecated" class="level5">
 <h5 class="anchored" data-anchor-id="applyf-deprecated">applyf <sup><sub>DEPRECATED</sub></sup></h5>
 <p><em>Deprecated: v1.3.0</em></p>
 <p>Same as <a href="#LOS-fmap">fmap</a>. Deprecated.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L828">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L847">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-approx"></span>
 </section>
 <section id="approx" class="level5">
@@ -781,7 +785,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(approx v d)</code></li>
 </ul>
 <p>Round to 2 (or <code>d</code>) decimal places</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L877">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L896">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array->vec2"></span>
 </section>
 <section id="array-vec2" class="level5">
@@ -790,7 +794,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(array-&gt;vec2 arr)</code></li>
 </ul>
 <p>Doubles array to Vec2</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1269">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1291">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array->vec3"></span>
 </section>
 <section id="array-vec3" class="level5">
@@ -799,7 +803,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(array-&gt;vec3 arr)</code></li>
 </ul>
 <p>Doubles array to Vec3</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1274">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1296">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array->vec4"></span>
 </section>
 <section id="array-vec4" class="level5">
@@ -808,7 +812,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(array-&gt;vec4 arr)</code></li>
 </ul>
 <p>Doubles array to Vec4</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1279">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1301">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array-vec"></span>
 </section>
 <section id="array-vec" class="level5">
@@ -817,7 +821,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(array-vec xs)</code></li>
 </ul>
 <p>Make ArrayVec type based on provided sequence <code>xs</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1071">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1093">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-as-vec"></span>
 </section>
 <section id="as-vec" class="level5">
@@ -827,7 +831,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(as-vec v xs)</code></li>
 </ul>
 <p>Create vector from sequence as given type. If there is no sequence fill with <code>0.0</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L855">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L874">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asec"></span>
 </section>
 <section id="asec" class="level5">
@@ -836,7 +840,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asec vector)</code></li>
 </ul>
 <p>Apply asec to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech" class="level5">
@@ -845,7 +849,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asech vector)</code></li>
 </ul>
 <p>Apply asech to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin" class="level5">
@@ -854,7 +858,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asin vector)</code></li>
 </ul>
 <p>Apply asin to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh" class="level5">
@@ -863,7 +867,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asinh vector)</code></li>
 </ul>
 <p>Apply asinh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan" class="level5">
@@ -872,7 +876,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(atan vector)</code></li>
 </ul>
 <p>Apply atan to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh" class="level5">
@@ -881,7 +885,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(atanh vector)</code></li>
 </ul>
 <p>Apply atanh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-average"></span>
 </section>
 <section id="average" class="level5">
@@ -891,7 +895,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(average v weights)</code></li>
 </ul>
 <p>Mean or weighted average of the vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1122">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1144">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-average-vectors"></span>
 </section>
 <section id="average-vectors" class="level5">
@@ -901,7 +905,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(average-vectors vs)</code></li>
 </ul>
 <p>Average / centroid of vectors. Input: initial vector (optional), list of vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1116">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1138">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-axis-rotate"></span>
 </section>
 <section id="axis-rotate" class="level5">
@@ -911,7 +915,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(axis-rotate v angle axis pivot)</code></li>
 </ul>
 <p>Rotate vector. Only for <code>Vec3</code> types</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1023">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1042">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-base-from"></span>
 </section>
 <section id="base-from" class="level5">
@@ -920,7 +924,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(base-from v)</code></li>
 </ul>
 <p>List of perpendicular vectors (basis). Works only for <code>Vec2</code> and <code>Vec3</code> types.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L952">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L971">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cb"></span>
 </section>
 <section id="cb" class="level5">
@@ -929,7 +933,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cb vector)</code></li>
 </ul>
 <p>Apply cb to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cbrt"></span>
 </section>
 <section id="cbrt" class="level5">
@@ -938,7 +942,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cbrt vector)</code></li>
 </ul>
 <p>Apply cbrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ceil"></span>
 </section>
 <section id="ceil" class="level5">
@@ -947,7 +951,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ceil vector)</code></li>
 </ul>
 <p>Apply ceil to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-clamp"></span>
 </section>
 <section id="clamp" class="level5">
@@ -957,7 +961,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(clamp v)</code></li>
 </ul>
 <p>Clamp elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1106">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1128">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cos"></span>
 </section>
 <section id="cos" class="level5">
@@ -966,7 +970,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cos vector)</code></li>
 </ul>
 <p>Apply cos to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh" class="level5">
@@ -975,7 +979,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cosh vector)</code></li>
 </ul>
 <p>Apply cosh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot" class="level5">
@@ -984,7 +988,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cot vector)</code></li>
 </ul>
 <p>Apply cot to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth" class="level5">
@@ -993,7 +997,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(coth vector)</code></li>
 </ul>
 <p>Apply coth to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cross"></span>
 </section>
 <section id="cross" class="level5">
@@ -1002,7 +1006,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cross v1 v2)</code></li>
 </ul>
 <p>Cross product</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1014">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1033">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc" class="level5">
@@ -1011,7 +1015,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(csc vector)</code></li>
 </ul>
 <p>Apply csc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch" class="level5">
@@ -1020,7 +1024,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(csch vector)</code></li>
 </ul>
 <p>Apply csch to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-degrees"></span>
 </section>
 <section id="degrees" class="level5">
@@ -1029,7 +1033,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(degrees vector)</code></li>
 </ul>
 <p>Apply degrees to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-delta-eq"></span>
 </section>
 <section id="delta-eq" class="level5">
@@ -1040,7 +1044,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(delta-eq v1 v2 abs-tol rel-tol)</code></li>
 </ul>
 <p>Equality with given absolute (and/or relative) toleance.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L882">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L901">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dhash-code"></span>
 </section>
 <section id="dhash-code" class="level5">
@@ -1059,7 +1063,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist v1 v2)</code></li>
 </ul>
 <p>Euclidean distance between vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1127">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1149">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-abs"></span>
 </section>
 <section id="dist-abs" class="level5">
@@ -1068,7 +1072,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-abs v1 v2)</code></li>
 </ul>
 <p>Manhattan distance between vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1137">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1159">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-ang"></span>
 </section>
 <section id="dist-ang" class="level5">
@@ -1077,7 +1081,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-ang v1 v2)</code></li>
 </ul>
 <p>Angular distance</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1167">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1189">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-canberra"></span>
 </section>
 <section id="dist-canberra" class="level5">
@@ -1086,7 +1090,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-canberra v1 v2)</code></li>
 </ul>
 <p>Canberra distance</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1152">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1174">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-cheb"></span>
 </section>
 <section id="dist-cheb" class="level5">
@@ -1095,7 +1099,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-cheb v1 v2)</code></li>
 </ul>
 <p>Chebyshev distance between 2d vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1142">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1164">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-discrete"></span>
 </section>
 <section id="dist-discrete" class="level5">
@@ -1104,7 +1108,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-discrete v1 v2)</code></li>
 </ul>
 <p>Discrete distance between 2d vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1147">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1169">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-emd"></span>
 </section>
 <section id="dist-emd" class="level5">
@@ -1113,7 +1117,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-emd v1 v2)</code></li>
 </ul>
 <p>Earth Mover’s Distance</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1159">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1181">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist-sq"></span>
 </section>
 <section id="dist-sq" class="level5">
@@ -1122,12 +1126,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dist-sq v1 v2)</code></li>
 </ul>
 <p>Squared Euclidean distance between vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1132">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1154">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-distances"></span>
 </section>
 <section id="distances" class="level5">
 <h5 class="anchored" data-anchor-id="distances">distances</h5>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1179">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1201">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-div"></span>
 </section>
 <section id="div" class="level5">
@@ -1137,7 +1141,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(div v1)</code></li>
 </ul>
 <p>Vector division or reciprocal.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1091">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1113">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dot"></span>
 </section>
 <section id="dot" class="level5">
@@ -1146,7 +1150,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(dot v1 v2)</code></li>
 </ul>
 <p>Dot product of two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L897">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L916">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-econstrain"></span>
 </section>
 <section id="econstrain" class="level5">
@@ -1155,7 +1159,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(econstrain v mn mx)</code></li>
 </ul>
 <p>Element-wise constrain</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L986">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1005">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-edelta-eq"></span>
 </section>
 <section id="edelta-eq" class="level5">
@@ -1166,7 +1170,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(edelta-eq v1 v2 abs-tol rel-tol)</code></li>
 </ul>
 <p>Element-wise equality with given absolute (and/or relative) toleance.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L888">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L907">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ediv"></span>
 </section>
 <section id="ediv" class="level5">
@@ -1175,7 +1179,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ediv v1 v2)</code></li>
 </ul>
 <p>Element-wise division of two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1096">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1118">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-einterpolate"></span>
 </section>
 <section id="einterpolate" class="level5">
@@ -1185,7 +1189,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(einterpolate v1 v2 v f)</code></li>
 </ul>
 <p>Interpolate vector selement-wise, optionally set interpolation fn (default: lerp)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L981">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1000">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-emn"></span>
 </section>
 <section id="emn" class="level5">
@@ -1194,7 +1198,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(emn v1 v2)</code></li>
 </ul>
 <p>Element-wise min from two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L940">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L959">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-emult"></span>
 </section>
 <section id="emult" class="level5">
@@ -1203,7 +1207,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(emult v1 v2)</code></li>
 </ul>
 <p>Element-wise vector multiplication (Hadamard product).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L920">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L939">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-emx"></span>
 </section>
 <section id="emx" class="level5">
@@ -1212,7 +1216,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(emx v1 v2)</code></li>
 </ul>
 <p>Element-wise max from two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L936">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L955">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-exp"></span>
 </section>
 <section id="exp" class="level5">
@@ -1221,7 +1225,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(exp vector)</code></li>
 </ul>
 <p>Apply exp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-expm1"></span>
 </section>
 <section id="expm1" class="level5">
@@ -1230,7 +1234,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(expm1 vector)</code></li>
 </ul>
 <p>Apply expm1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-faceforward"></span>
 </section>
 <section id="faceforward" class="level5">
@@ -1239,7 +1243,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(faceforward n v)</code></li>
 </ul>
 <p>Flip normal <code>n</code> to match the same direction as <code>v</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1236">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1258">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-floor"></span>
 </section>
 <section id="floor" class="level5">
@@ -1248,7 +1252,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(floor vector)</code></li>
 </ul>
 <p>Apply floor to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-fmap"></span>
 </section>
 <section id="fmap" class="level5">
@@ -1257,7 +1261,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(fmap v f)</code></li>
 </ul>
 <p>Apply function to all vector values (like map but returns the same type).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L864">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L883">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-frac"></span>
 </section>
 <section id="frac" class="level5">
@@ -1266,7 +1270,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(frac vector)</code></li>
 </ul>
 <p>Apply frac to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-from-polar"></span>
 </section>
 <section id="from-polar" class="level5">
@@ -1275,7 +1279,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(from-polar v)</code></li>
 </ul>
 <p>From polar coordinates (2d, 3d only)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1042">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1061">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-generate-vec2"></span>
 </section>
 <section id="generate-vec2" class="level5">
@@ -1285,7 +1289,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(generate-vec2 f)</code></li>
 </ul>
 <p>Generate Vec2 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1248">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1270">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-generate-vec3"></span>
 </section>
 <section id="generate-vec3" class="level5">
@@ -1295,7 +1299,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(generate-vec3 f)</code></li>
 </ul>
 <p>Generate Vec3 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1255">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1277">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-generate-vec4"></span>
 </section>
 <section id="generate-vec4" class="level5">
@@ -1305,7 +1309,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(generate-vec4 f)</code></li>
 </ul>
 <p>Generate Vec4 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1262">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1284">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-heading"></span>
 </section>
 <section id="heading" class="level5">
@@ -1314,7 +1318,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(heading v)</code></li>
 </ul>
 <p>Angle between vector and unit vector <code>[1,0,...]</code></p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1010">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1029">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-interpolate"></span>
 </section>
 <section id="interpolate" class="level5">
@@ -1324,7 +1328,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(interpolate v1 v2 t f)</code></li>
 </ul>
 <p>Interpolate vectors, optionally set interpolation fn (default: lerp)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L972">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L991">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-is-near-zero?"></span>
 </section>
 <section id="is-near-zero" class="level5">
@@ -1335,7 +1339,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(is-near-zero? v abs-tol rel-tol)</code></li>
 </ul>
 <p>Equality to zero <code>0</code> with given absolute (and/or relative) toleance.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L998">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1017">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-is-zero?"></span>
 </section>
 <section id="is-zero" class="level5">
@@ -1344,7 +1348,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(is-zero? v)</code></li>
 </ul>
 <p>Is vector zero?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L990">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1009">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-lerp"></span>
 </section>
 <section id="lerp" class="level5">
@@ -1353,7 +1357,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(lerp v1 v2 t)</code></li>
 </ul>
 <p>Linear interpolation of vectors</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L977">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L996">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-limit"></span>
 </section>
 <section id="limit" class="level5">
@@ -1362,7 +1366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(limit v len)</code></li>
 </ul>
 <p>Limit length of the vector by given value</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1201">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1223">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ln"></span>
 </section>
 <section id="ln" class="level5">
@@ -1371,7 +1375,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ln vector)</code></li>
 </ul>
 <p>Apply ln to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log" class="level5">
@@ -1380,7 +1384,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log vector)</code></li>
 </ul>
 <p>Apply log to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log10"></span>
 </section>
 <section id="log10" class="level5">
@@ -1389,7 +1393,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log10 vector)</code></li>
 </ul>
 <p>Apply log10 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1mexp"></span>
 </section>
 <section id="log1mexp" class="level5">
@@ -1398,7 +1402,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1mexp vector)</code></li>
 </ul>
 <p>Apply log1mexp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1p"></span>
 </section>
 <section id="log1p" class="level5">
@@ -1407,7 +1411,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1p vector)</code></li>
 </ul>
 <p>Apply log1p to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pexp"></span>
 </section>
 <section id="log1pexp" class="level5">
@@ -1416,7 +1420,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1pexp vector)</code></li>
 </ul>
 <p>Apply log1pexp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pmx"></span>
 </section>
 <section id="log1pmx" class="level5">
@@ -1425,7 +1429,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1pmx vector)</code></li>
 </ul>
 <p>Apply log1pmx to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1psq"></span>
 </section>
 <section id="log1psq" class="level5">
@@ -1434,7 +1438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1psq vector)</code></li>
 </ul>
 <p>Apply log1psq to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log2"></span>
 </section>
 <section id="log2" class="level5">
@@ -1443,7 +1447,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log2 vector)</code></li>
 </ul>
 <p>Apply log2 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logexpm1"></span>
 </section>
 <section id="logexpm1" class="level5">
@@ -1452,7 +1456,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logexpm1 vector)</code></li>
 </ul>
 <p>Apply logexpm1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logit"></span>
 </section>
 <section id="logit" class="level5">
@@ -1461,7 +1465,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logit vector)</code></li>
 </ul>
 <p>Apply logit to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmeanexp"></span>
 </section>
 <section id="logmeanexp" class="level5">
@@ -1469,7 +1473,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(logmeanexp v)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1336">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1366">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmxp1"></span>
 </section>
 <section id="logmxp1" class="level5">
@@ -1478,15 +1482,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logmxp1 vector)</code></li>
 </ul>
 <p>Apply logmxp1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logsoftmax"></span>
 </section>
 <section id="logsoftmax" class="level5">
 <h5 class="anchored" data-anchor-id="logsoftmax">logsoftmax</h5>
 <ul>
 <li><code>(logsoftmax v)</code></li>
+<li><code>(logsoftmax v t)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1325">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1351">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logsumexp"></span>
 </section>
 <section id="logsumexp" class="level5">
@@ -1494,7 +1499,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(logsumexp v)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1331">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1361">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mag"></span>
 </section>
 <section id="mag" class="level5">
@@ -1503,7 +1508,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mag v)</code></li>
 </ul>
 <p>Length of the vector.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L873">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L892">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-magsq"></span>
 </section>
 <section id="magsq" class="level5">
@@ -1512,7 +1517,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(magsq v)</code></li>
 </ul>
 <p>Length of the vector squared.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L869">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L888">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-make-vector"></span>
 </section>
 <section id="make-vector" class="level5">
@@ -1523,7 +1528,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Returns fixed size vector for given number of dimensions.</p>
 <p>Proper type is used.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1076">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1098">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-maxdim"></span>
 </section>
 <section id="maxdim" class="level5">
@@ -1532,7 +1537,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(maxdim v)</code></li>
 </ul>
 <p>Index of maximum value.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L944">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L963">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mindim"></span>
 </section>
 <section id="mindim" class="level5">
@@ -1541,7 +1546,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mindim v)</code></li>
 </ul>
 <p>Index of minimum value.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L948">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L967">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mn"></span>
 </section>
 <section id="mn" class="level5">
@@ -1550,7 +1555,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mn v)</code></li>
 </ul>
 <p>Minimum value of vector elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L932">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L951">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult"></span>
 </section>
 <section id="mult" class="level5">
@@ -1559,7 +1564,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mult v x)</code></li>
 </ul>
 <p>Multiply vector by number <code>x</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L916">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L935">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mx"></span>
 </section>
 <section id="mx" class="level5">
@@ -1568,7 +1573,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mx v)</code></li>
 </ul>
 <p>Maximum value of vector elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L928">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L947">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-near-zero?"></span>
 </section>
 <section id="near-zero" class="level5">
@@ -1579,7 +1584,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(near-zero? v abs-tol rel-tol)</code></li>
 </ul>
 <p>Equality to zero <code>0</code> with given absolute (and/or relative) toleance.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1004">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1023">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-nonzero-count"></span>
 </section>
 <section id="nonzero-count" class="level5">
@@ -1588,7 +1593,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(nonzero-count v)</code></li>
 </ul>
 <p>Count non zero velues in vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1111">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1133">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-normalize"></span>
 </section>
 <section id="normalize" class="level5">
@@ -1597,7 +1602,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(normalize v)</code></li>
 </ul>
 <p>Normalize vector (set length = 1.0)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1188">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1210">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-orthogonal-polynomials"></span>
 </section>
 <section id="orthogonal-polynomials" class="level5">
@@ -1606,7 +1611,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(orthogonal-polynomials xs)</code></li>
 </ul>
 <p>Creates orthogonal list of vectors based on <code>xs</code>, starting from degree 1</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1345">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1375">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-orthonormal-polynomials"></span>
 </section>
 <section id="orthonormal-polynomials" class="level5">
@@ -1615,7 +1620,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(orthonormal-polynomials xs)</code></li>
 </ul>
 <p>Creates orthonormal list of vector based on <code>xs</code>, starting from degree 1</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1363">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1393">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-permute"></span>
 </section>
 <section id="permute" class="level5">
@@ -1624,7 +1629,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(permute v idxs)</code></li>
 </ul>
 <p>Permute vector elements with given indices.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L964">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L983">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-perpendicular"></span>
 </section>
 <section id="perpendicular" class="level5">
@@ -1634,7 +1639,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(perpendicular v1 v2)</code></li>
 </ul>
 <p>Perpendicular vector. Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1028">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1047">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-prod"></span>
 </section>
 <section id="prod" class="level5">
@@ -1643,7 +1648,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(prod v)</code></li>
 </ul>
 <p>Product of elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L960">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L979">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-project"></span>
 </section>
 <section id="project" class="level5">
@@ -1652,7 +1657,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(project v1 v2)</code></li>
 </ul>
 <p>Project <code>v1</code> onto <code>v2</code></p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1243">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1265">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-radians"></span>
 </section>
 <section id="radians" class="level5">
@@ -1661,7 +1666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(radians vector)</code></li>
 </ul>
 <p>Apply radians to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-reciprocal"></span>
 </section>
 <section id="reciprocal" class="level5">
@@ -1670,7 +1675,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(reciprocal v)</code></li>
 </ul>
 <p>Reciprocal of elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L968">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L987">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-relative-angle-between"></span>
 </section>
 <section id="relative-angle-between" class="level5">
@@ -1680,7 +1685,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Angle between two vectors relative to each other.</p>
 <p>See also <a href="#LOS-angle-between">angle-between</a>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1222">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1244">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rint"></span>
 </section>
 <section id="rint" class="level5">
@@ -1689,7 +1694,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rint vector)</code></li>
 </ul>
 <p>Apply rint to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotate"></span>
 </section>
 <section id="rotate" class="level5">
@@ -1699,7 +1704,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotate v angle-x angle-y angle-z)</code></li>
 </ul>
 <p>Rotate vector. Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1018">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1037">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-round"></span>
 </section>
 <section id="round" class="level5">
@@ -1708,7 +1713,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(round vector)</code></li>
 </ul>
 <p>Apply round to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-safe-sqrt"></span>
 </section>
 <section id="safe-sqrt" class="level5">
@@ -1717,7 +1722,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(safe-sqrt vector)</code></li>
 </ul>
 <p>Apply safe-sqrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec" class="level5">
@@ -1726,7 +1731,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sec vector)</code></li>
 </ul>
 <p>Apply sec to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech" class="level5">
@@ -1735,7 +1740,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sech vector)</code></li>
 </ul>
 <p>Apply sech to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec2"></span>
 </section>
 <section id="seq-vec2" class="level5">
@@ -1744,7 +1749,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(seq-&gt;vec2 xs)</code></li>
 </ul>
 <p>Any seq to Vec2</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1284">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1306">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec3"></span>
 </section>
 <section id="seq-vec3" class="level5">
@@ -1753,7 +1758,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(seq-&gt;vec3 xs)</code></li>
 </ul>
 <p>Any seq to Vec3</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1289">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1311">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec4"></span>
 </section>
 <section id="seq-vec4" class="level5">
@@ -1762,7 +1767,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(seq-&gt;vec4 xs)</code></li>
 </ul>
 <p>Any seq to Vec4</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1316">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-set-mag"></span>
 </section>
 <section id="set-mag" class="level5">
@@ -1771,7 +1776,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(set-mag v len)</code></li>
 </ul>
 <p>Set length of the vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1196">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1218">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sfrac"></span>
 </section>
 <section id="sfrac" class="level5">
@@ -1780,7 +1785,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sfrac vector)</code></li>
 </ul>
 <p>Apply sfrac to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sgn"></span>
 </section>
 <section id="sgn" class="level5">
@@ -1789,7 +1794,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sgn vector)</code></li>
 </ul>
 <p>Apply sgn to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-shift"></span>
 </section>
 <section id="shift" class="level5">
@@ -1799,7 +1804,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(shift v x)</code></li>
 </ul>
 <p>Add value to every vector element.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L911">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L930">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sigmoid"></span>
 </section>
 <section id="sigmoid" class="level5">
@@ -1808,7 +1813,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sigmoid vector)</code></li>
 </ul>
 <p>Apply sigmoid to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-signum"></span>
 </section>
 <section id="signum" class="level5">
@@ -1817,7 +1822,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(signum vector)</code></li>
 </ul>
 <p>Apply signum to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sim-cos"></span>
 </section>
 <section id="sim-cos" class="level5">
@@ -1826,7 +1831,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sim-cos v1 v2)</code></li>
 </ul>
 <p>Cosine similarity</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1172">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1194">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin" class="level5">
@@ -1835,7 +1840,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sin vector)</code></li>
 </ul>
 <p>Apply sin to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinc"></span>
 </section>
 <section id="sinc" class="level5">
@@ -1844,7 +1849,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sinc vector)</code></li>
 </ul>
 <p>Apply sinc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh" class="level5">
@@ -1853,7 +1858,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sinh vector)</code></li>
 </ul>
 <p>Apply sinh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-size"></span>
 </section>
 <section id="size" class="level5">
@@ -1862,15 +1867,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(size v)</code></li>
 </ul>
 <p>Length of the vector.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L860">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L879">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-softmax"></span>
 </section>
 <section id="softmax" class="level5">
 <h5 class="anchored" data-anchor-id="softmax">softmax</h5>
 <ul>
 <li><code>(softmax v)</code></li>
+<li><code>(softmax v t)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1319">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1341">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq" class="level5">
@@ -1879,7 +1885,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sq vector)</code></li>
 </ul>
 <p>Apply sq to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt" class="level5">
@@ -1888,7 +1894,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sqrt vector)</code></li>
 </ul>
 <p>Apply sqrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub" class="level5">
@@ -1898,7 +1904,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sub v1 v2)</code></li>
 </ul>
 <p>Subtraction of two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L906">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L925">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sum"></span>
 </section>
 <section id="sum" class="level5">
@@ -1907,7 +1913,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sum v)</code></li>
 </ul>
 <p>Sum of elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L956">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L975">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tan"></span>
 </section>
 <section id="tan" class="level5">
@@ -1916,7 +1922,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tan vector)</code></li>
 </ul>
 <p>Apply tan to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh" class="level5">
@@ -1925,7 +1931,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tanh vector)</code></li>
 </ul>
 <p>Apply tanh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-polar"></span>
 </section>
 <section id="to-polar" class="level5">
@@ -1934,14 +1940,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(to-polar v)</code></li>
 </ul>
 <p>To polar coordinates (2d, 3d only), first element is length, the rest angle.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1038">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1057">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-vec"></span>
 </section>
 <section id="to-vec-deprecated" class="level5">
 <h5 class="anchored" data-anchor-id="to-vec-deprecated">to-vec <sup><sub>DEPRECATED</sub></sup></h5>
 <p><em>Deprecated: v1.5.0</em></p>
 <p>Same as <a href="#LOS-vec-%3EVec">vec-&gt;Vec</a>. Deprecated.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L829">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L848">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-transform"></span>
 </section>
 <section id="transform" class="level5">
@@ -1951,7 +1957,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(transform v o vx vy vz)</code></li>
 </ul>
 <p>Transform vector; map point to coordinate system defined by origin, vx and vy (as bases), Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1033">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1052">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-triple-product"></span>
 </section>
 <section id="triple-product" class="level5">
@@ -1960,7 +1966,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(triple-product a b c)</code></li>
 </ul>
 <p>a o (b x c)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1046">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1065">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-trunc"></span>
 </section>
 <section id="trunc" class="level5">
@@ -1969,7 +1975,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(trunc vector)</code></li>
 </ul>
 <p>Apply trunc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec->RealVector"></span>
 </section>
 <section id="vec-realvector" class="level5">
@@ -1978,7 +1984,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vec-&gt;RealVector v)</code></li>
 </ul>
 <p>Convert to Apache Commons Math RealVector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L845">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L864">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec->Vec"></span>
 </section>
 <section id="vec-vec" class="level5">
@@ -1987,7 +1993,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vec-&gt;Vec v)</code></li>
 </ul>
 <p>Convert to Clojure primitive vector <code>Vec</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L850">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L869">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec->array"></span>
 </section>
 <section id="vec-array" class="level5">
@@ -1996,7 +2002,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vec-&gt;array v)</code></li>
 </ul>
 <p>Convert to double array</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L833">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L852">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec->seq"></span>
 </section>
 <section id="vec-seq" class="level5">
@@ -2005,17 +2011,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vec-&gt;seq v)</code></li>
 </ul>
 <p>Convert to sequence (same as seq)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L837">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L856">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec2"></span>
 </section>
 <section id="vec2-1" class="level5">
 <h5 class="anchored" data-anchor-id="vec2-1">vec2</h5>
 <ul>
 <li><code>(vec2 x y)</code></li>
+<li><code>(vec2 [x y])</code></li>
 <li><code>(vec2)</code></li>
 </ul>
 <p>Make 2d vector.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1053">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1072">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec3"></span>
 </section>
 <section id="vec3-1" class="level5">
@@ -2023,10 +2030,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>(vec3 x y z)</code></li>
 <li><code>(vec3 v z)</code></li>
+<li><code>(vec3 [x y z])</code></li>
 <li><code>(vec3)</code></li>
 </ul>
 <p>Make Vec2 vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1058">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1078">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec4"></span>
 </section>
 <section id="vec4-1" class="level5">
@@ -2035,10 +2043,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vec4 x y z w)</code></li>
 <li><code>(vec4 v w)</code></li>
 <li><code>(vec4 v z w)</code></li>
+<li><code>(vec4 [x y z w])</code></li>
 <li><code>(vec4)</code></li>
 </ul>
 <p>Make Vec4 vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1064">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1085">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-xlogx"></span>
 </section>
 <section id="xlogx" class="level5">
@@ -2047,7 +2056,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(xlogx vector)</code></li>
 </ul>
 <p>Apply xlogx to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero-count"></span>
 </section>
 <section id="zero-count" class="level5">
@@ -2056,7 +2065,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(zero-count v)</code></li>
 </ul>
 <p>Count zeros in vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1101">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1123">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero?"></span>
 </section>
 <section id="zero" class="level5">
@@ -2065,7 +2074,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(zero? v)</code></li>
 </ul>
 <p>Is vector zero?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L994">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1013">source</a></small><hr style="margin: 0"></div>
 </section>
 </section>
 </section>
@@ -2084,7 +2093,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Mat2x2 a00 a01 a10 a11)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.matrix.Mat2x2.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L72">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L73">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->Mat3x3"></span>
 </section>
 <section id="mat3x3" class="level5">
@@ -2093,7 +2102,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Mat3x3 a00 a01 a02 a10 a11 a12 a20 a21 a22)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.matrix.Mat3x3.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L195">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L196">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->Mat4x4"></span>
 </section>
 <section id="mat4x4" class="level5">
@@ -2102,7 +2111,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Mat4x4 a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.matrix.Mat4x4.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L349">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L350">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acos"></span>
 </section>
 <section id="acos-1" class="level5">
@@ -2111,7 +2120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acos vector)</code></li>
 </ul>
 <p>Apply acos to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh-1" class="level5">
@@ -2120,7 +2129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acosh vector)</code></li>
 </ul>
 <p>Apply acosh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot-1" class="level5">
@@ -2129,7 +2138,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acot vector)</code></li>
 </ul>
 <p>Apply acot to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth-1" class="level5">
@@ -2138,7 +2147,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acoth vector)</code></li>
 </ul>
 <p>Apply acoth to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc-1" class="level5">
@@ -2147,7 +2156,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acsc vector)</code></li>
 </ul>
 <p>Apply acsc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch-1" class="level5">
@@ -2156,7 +2165,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(acsch vector)</code></li>
 </ul>
 <p>Apply acsch to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add-1" class="level5">
@@ -2166,7 +2175,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(add A B)</code></li>
 </ul>
 <p>Add matrices, C=A+B.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L985">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L994">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-adds"></span>
 </section>
 <section id="adds" class="level5">
@@ -2175,7 +2184,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(adds A s)</code></li>
 </ul>
 <p>Add scalar to all matrix elements</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L990">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L999">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asec"></span>
 </section>
 <section id="asec-1" class="level5">
@@ -2184,7 +2193,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asec vector)</code></li>
 </ul>
 <p>Apply asec to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech-1" class="level5">
@@ -2193,7 +2202,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asech vector)</code></li>
 </ul>
 <p>Apply asech to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin-1" class="level5">
@@ -2202,7 +2211,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asin vector)</code></li>
 </ul>
 <p>Apply asin to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh-1" class="level5">
@@ -2211,7 +2220,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(asinh vector)</code></li>
 </ul>
 <p>Apply asinh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan-1" class="level5">
@@ -2220,7 +2229,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(atan vector)</code></li>
 </ul>
 <p>Apply atan to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh-1" class="level5">
@@ -2229,7 +2238,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(atanh vector)</code></li>
 </ul>
 <p>Apply atanh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cb"></span>
 </section>
 <section id="cb-1" class="level5">
@@ -2238,7 +2247,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cb vector)</code></li>
 </ul>
 <p>Apply cb to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cbrt"></span>
 </section>
 <section id="cbrt-1" class="level5">
@@ -2247,7 +2256,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cbrt vector)</code></li>
 </ul>
 <p>Apply cbrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ceil"></span>
 </section>
 <section id="ceil-1" class="level5">
@@ -2256,7 +2265,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ceil vector)</code></li>
 </ul>
 <p>Apply ceil to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cholesky"></span>
 </section>
 <section id="cholesky" class="level5">
@@ -2267,7 +2276,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Calculate L (lower by default) triangular for where L * L^T = A.</p>
 <p>Checks only for symmetry, can return NaNs when A is not positive-definite.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1039">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1048">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-col"></span>
 </section>
 <section id="col" class="level5">
@@ -2276,7 +2285,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(col A c)</code></li>
 </ul>
 <p>Return column as a vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L959">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L968">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols"></span>
 </section>
 <section id="cols" class="level5">
@@ -2285,7 +2294,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols A)</code></li>
 </ul>
 <p>Return matrix columns</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L912">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L917">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols->RealMatrix"></span>
 </section>
 <section id="cols-realmatrix" class="level5">
@@ -2294,7 +2303,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols-&gt;RealMatrix cols)</code></li>
 </ul>
 <p>Return Apache Commons Math Array2DRowMatrix from sequence of columns</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L785">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L786">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols->mat"></span>
 </section>
 <section id="cols-mat" class="level5">
@@ -2306,7 +2315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols-&gt;mat [a00 a10 a20 a30] [a01 a11 a21 a31] [a02 a12 a22 a32] [a03 a13 a23 a33])</code></li>
 </ul>
 <p>Create nxn matrix from nd vectors (columns).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L814">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L815">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols->mat2x2"></span>
 </section>
 <section id="cols-mat2x2" class="level5">
@@ -2315,7 +2324,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols-&gt;mat2x2 [a00 a10] [a01 a11])</code></li>
 </ul>
 <p>Create 2x2 matrix from 2d vectors (columns).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L712">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L713">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols->mat3x3"></span>
 </section>
 <section id="cols-mat3x3" class="level5">
@@ -2324,7 +2333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols-&gt;mat3x3 [a00 a10 a20] [a01 a11 a21] [a02 a12 a22])</code></li>
 </ul>
 <p>Create 3x3 matrix from 3d vectors (columns).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L739">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L740">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cols->mat4x4"></span>
 </section>
 <section id="cols-mat4x4" class="level5">
@@ -2333,7 +2342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cols-&gt;mat4x4 [a00 a10 a20 a30] [a01 a11 a21 a31] [a02 a12 a22 a32] [a03 a13 a23 a33])</code></li>
 </ul>
 <p>Create 4x4 matrix from 4d vectors (columns).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L770">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L771">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-condition"></span>
 </section>
 <section id="condition" class="level5">
@@ -2344,7 +2353,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Condition number calculated for L2 norm by default (see <a href="#LOS-norm">norm</a> for other norm types).</p>
 <p>Cond(A) = norm(A) * norm(inv(A))</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1172">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1210">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cos"></span>
 </section>
 <section id="cos-1" class="level5">
@@ -2353,7 +2362,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cos vector)</code></li>
 </ul>
 <p>Apply cos to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh-1" class="level5">
@@ -2362,7 +2371,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cosh vector)</code></li>
 </ul>
 <p>Apply cosh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot-1" class="level5">
@@ -2371,7 +2380,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(cot vector)</code></li>
 </ul>
 <p>Apply cot to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth-1" class="level5">
@@ -2380,7 +2389,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(coth vector)</code></li>
 </ul>
 <p>Apply coth to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc-1" class="level5">
@@ -2389,7 +2398,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(csc vector)</code></li>
 </ul>
 <p>Apply csc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch-1" class="level5">
@@ -2398,7 +2407,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(csch vector)</code></li>
 </ul>
 <p>Apply csch to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-degrees"></span>
 </section>
 <section id="degrees-1" class="level5">
@@ -2407,7 +2416,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(degrees vector)</code></li>
 </ul>
 <p>Apply degrees to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-demean"></span>
+</section>
+<section id="demean" class="level5">
+<h5 class="anchored" data-anchor-id="demean">demean</h5>
+<ul>
+<li><code>(demean A)</code></li>
+<li><code>(demean A rows?)</code></li>
+</ul>
+<p>Subract mean from columns (or rows)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1103">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-det"></span>
 </section>
 <section id="det" class="level5">
@@ -2416,7 +2435,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(det A)</code></li>
 </ul>
 <p>Return determinant of the matrix.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L981">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L990">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-diag"></span>
 </section>
 <section id="diag" class="level5">
@@ -2425,7 +2444,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(diag A)</code></li>
 </ul>
 <p>Return diagonal of the matrix as a vector.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L977">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L986">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-diagonal"></span>
 </section>
 <section id="diagonal" class="level5">
@@ -2437,7 +2456,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(diagonal a11 a22 a33 a44)</code></li>
 </ul>
 <p>Create diagonal matrix</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L857">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L862">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eigenvalues"></span>
 </section>
 <section id="eigenvalues" class="level5">
@@ -2446,7 +2465,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eigenvalues A)</code></li>
 </ul>
 <p>Return complex eigenvalues for given matrix as a sequence</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1053">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1062">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eigenvalues-matrix"></span>
 </section>
 <section id="eigenvalues-matrix" class="level5">
@@ -2455,7 +2474,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eigenvalues-matrix A)</code></li>
 </ul>
 <p>Return eigenvalues for given matrix as a diagonal or block diagonal matrix</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1069">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1078">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eigenvectors"></span>
 </section>
 <section id="eigenvectors" class="level5">
@@ -2465,7 +2484,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(eigenvectors A normalize?)</code></li>
 </ul>
 <p>Return eigenvectors as a matrix (columns). Vectors can be normalized.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1135">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1173">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-emulm"></span>
 </section>
 <section id="emulm" class="level5">
@@ -2474,7 +2493,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(emulm A B)</code></li>
 </ul>
 <p>Multiply two matrices element-wise, Hadamard product, C=AoB</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1023">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1032">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-entry"></span>
 </section>
 <section id="entry" class="level5">
@@ -2483,7 +2502,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(entry A row col)</code></li>
 </ul>
 <p>Get entry at given row and column</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L903">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L908">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-exp"></span>
 </section>
 <section id="exp-1" class="level5">
@@ -2492,7 +2511,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(exp vector)</code></li>
 </ul>
 <p>Apply exp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-expm1"></span>
 </section>
 <section id="expm1-1" class="level5">
@@ -2501,16 +2520,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(expm1 vector)</code></li>
 </ul>
 <p>Apply expm1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eye"></span>
 </section>
 <section id="eye" class="level5">
 <h5 class="anchored" data-anchor-id="eye">eye</h5>
 <ul>
+<li><code>(eye size real-matrix?)</code></li>
 <li><code>(eye size)</code></li>
 </ul>
 <p>Identity matrix for given size</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L830">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L831">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-floor"></span>
 </section>
 <section id="floor-1" class="level5">
@@ -2519,7 +2539,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(floor vector)</code></li>
 </ul>
 <p>Apply floor to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-fmap"></span>
 </section>
 <section id="fmap-1" class="level5">
@@ -2528,7 +2548,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(fmap A f)</code></li>
 </ul>
 <p>Apply a function <code>f</code> to each matrix element.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L908">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L913">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-frac"></span>
 </section>
 <section id="frac-1" class="level5">
@@ -2537,7 +2557,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(frac vector)</code></li>
 </ul>
 <p>Apply frac to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-inverse"></span>
 </section>
 <section id="inverse" class="level5">
@@ -2547,7 +2567,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Matrix inversion.</p>
 <p>Returns <code>nil</code> if inversion doesn’t exist.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L971">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L980">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ln"></span>
 </section>
 <section id="ln-1" class="level5">
@@ -2556,7 +2576,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ln vector)</code></li>
 </ul>
 <p>Apply ln to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log-1" class="level5">
@@ -2565,7 +2585,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log vector)</code></li>
 </ul>
 <p>Apply log to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log10"></span>
 </section>
 <section id="log10-1" class="level5">
@@ -2574,7 +2594,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log10 vector)</code></li>
 </ul>
 <p>Apply log10 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1mexp"></span>
 </section>
 <section id="log1mexp-1" class="level5">
@@ -2583,7 +2603,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1mexp vector)</code></li>
 </ul>
 <p>Apply log1mexp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1p"></span>
 </section>
 <section id="log1p-1" class="level5">
@@ -2592,7 +2612,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1p vector)</code></li>
 </ul>
 <p>Apply log1p to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pexp"></span>
 </section>
 <section id="log1pexp-1" class="level5">
@@ -2601,7 +2621,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1pexp vector)</code></li>
 </ul>
 <p>Apply log1pexp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pmx"></span>
 </section>
 <section id="log1pmx-1" class="level5">
@@ -2610,7 +2630,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1pmx vector)</code></li>
 </ul>
 <p>Apply log1pmx to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1psq"></span>
 </section>
 <section id="log1psq-1" class="level5">
@@ -2619,7 +2639,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log1psq vector)</code></li>
 </ul>
 <p>Apply log1psq to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log2"></span>
 </section>
 <section id="log2-1" class="level5">
@@ -2628,7 +2648,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(log2 vector)</code></li>
 </ul>
 <p>Apply log2 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logexpm1"></span>
 </section>
 <section id="logexpm1-1" class="level5">
@@ -2637,7 +2657,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logexpm1 vector)</code></li>
 </ul>
 <p>Apply logexpm1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logit"></span>
 </section>
 <section id="logit-1" class="level5">
@@ -2646,7 +2666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logit vector)</code></li>
 </ul>
 <p>Apply logit to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmxp1"></span>
 </section>
 <section id="logmxp1-1" class="level5">
@@ -2655,7 +2675,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(logmxp1 vector)</code></li>
 </ul>
 <p>Apply logmxp1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat"></span>
 </section>
 <section id="mat" class="level5">
@@ -2667,7 +2687,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)</code></li>
 </ul>
 <p>Create mat2x2, mat3x3 or mat4x4 or RealMatrix from rows</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L790">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L791">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->RealMatrix"></span>
 </section>
 <section id="mat-realmatrix" class="level5">
@@ -2676,7 +2696,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;RealMatrix A)</code></li>
 </ul>
 <p>Return Apache Commons Math Array2DRowMatrix from a 2x2, 3x3 or 4x4 matrix</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L940">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L945">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->array"></span>
 </section>
 <section id="mat-array" class="level5">
@@ -2685,7 +2705,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;array A)</code></li>
 </ul>
 <p>Return flat double array of entries (row order)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L932">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L937">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->array2d"></span>
 </section>
 <section id="mat-array2d" class="level5">
@@ -2694,7 +2714,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;array2d A)</code></li>
 </ul>
 <p>Return doubles of doubles</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L924">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L929">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->float-array"></span>
 </section>
 <section id="mat-float-array" class="level5">
@@ -2703,7 +2723,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;float-array A)</code></li>
 </ul>
 <p>Return flat float array of entries (row order)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L936">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L941">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->float-array2d"></span>
 </section>
 <section id="mat-float-array2d" class="level5">
@@ -2712,7 +2732,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;float-array2d A)</code></li>
 </ul>
 <p>Return doubles of doubles</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L928">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L933">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat->seq"></span>
 </section>
 <section id="mat-seq" class="level5">
@@ -2721,7 +2741,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mat-&gt;seq A)</code></li>
 </ul>
 <p>Return flat sequence of entries (row order)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L920">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L925">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat2x2"></span>
 </section>
 <section id="mat2x2-1" class="level5">
@@ -2738,7 +2758,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>2 - creates diagonal matrix</li>
 <li>4 - creates row ordered matrix</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L694">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L695">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat3x3"></span>
 </section>
 <section id="mat3x3-1" class="level5">
@@ -2755,7 +2775,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>3 - creates diagonal matrix</li>
 <li>9 - creates row ordered matrix</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L718">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L719">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mat4x4"></span>
 </section>
 <section id="mat4x4-1" class="level5">
@@ -2772,7 +2792,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>4 - creates diagonal matrix</li>
 <li>16 - creates row ordered matrix</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L746">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L747">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mulm"></span>
 </section>
 <section id="mulm" class="level5">
@@ -2783,7 +2803,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Multiply two matrices, C=AxB.</p>
 <p>Optionally you can request transposition of matrices.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1003">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1012">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mulmt"></span>
 </section>
 <section id="mulmt" class="level5">
@@ -2792,7 +2812,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mulmt A B)</code></li>
 </ul>
 <p>Multiply with transposed matrix, C=AxB^T</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1011">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1020">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-muls"></span>
 </section>
 <section id="muls" class="level5">
@@ -2801,7 +2821,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(muls A s)</code></li>
 </ul>
 <p>Multply matrix by a scalar, C=sA</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1031">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1040">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mulv"></span>
 </section>
 <section id="mulv" class="level5">
@@ -2810,7 +2830,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(mulv A v)</code></li>
 </ul>
 <p>Multply matrix by vector, x=Av</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1027">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1036">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ncol"></span>
 </section>
 <section id="ncol" class="level5">
@@ -2819,7 +2839,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(ncol A)</code></li>
 </ul>
 <p>Return number of rows</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L951">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L956">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-negate"></span>
 </section>
 <section id="negate" class="level5">
@@ -2828,7 +2848,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(negate A)</code></li>
 </ul>
 <p>Negate all matrix elements, C=-A</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L999">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1008">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-norm"></span>
 </section>
 <section id="norm" class="level5">
@@ -2839,7 +2859,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Calculate norm of the matrix for given type, default: 1 (maximum absolute column sum).</p>
 <p>All norm types are: * 1 - maximum absolute column sum * :inf - maximum absolute row sum * 2 - spectral norm, maximum singular value * :max - maximum absolute value * :frobenius - Frobenius norm * [p,q] - generalized L_pq norm, [2,2] - Frobenius norm, [p,p] - entrywise p-norm * [p] - Shatten p-norm, [1] - nuclear/trace norm</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1149">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1187">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-normalize"></span>
 </section>
 <section id="normalize-1" class="level5">
@@ -2849,7 +2869,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(normalize A rows?)</code></li>
 </ul>
 <p>Normalize columns (or rows)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1079">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1089">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-nrow"></span>
 </section>
 <section id="nrow" class="level5">
@@ -2858,7 +2878,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(nrow A)</code></li>
 </ul>
 <p>Return number of rows</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L947">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L952">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-outer"></span>
 </section>
 <section id="outer" class="level5">
@@ -2867,7 +2887,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(outer v1 v2)</code></li>
 </ul>
 <p>Outer project for two vectors.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L875">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L880">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-radians"></span>
 </section>
 <section id="radians-1" class="level5">
@@ -2876,7 +2896,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(radians vector)</code></li>
 </ul>
 <p>Apply radians to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rint"></span>
 </section>
 <section id="rint-1" class="level5">
@@ -2885,7 +2905,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rint vector)</code></li>
 </ul>
 <p>Apply rint to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-2d"></span>
 </section>
 <section id="rotation-matrix-2d" class="level5">
@@ -2894,7 +2914,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-2d theta)</code></li>
 </ul>
 <p>Create rotation matrix for a plane</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1181">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1219">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-3d"></span>
 </section>
 <section id="rotation-matrix-3d" class="level5">
@@ -2904,7 +2924,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-3d x y z)</code></li>
 </ul>
 <p>Create rotation matrix for a 3d space. Tait–Bryan angles z-y′-x″</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1188">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1226">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-3d-x"></span>
 </section>
 <section id="rotation-matrix-3d-x" class="level5">
@@ -2913,7 +2933,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-3d-x a)</code></li>
 </ul>
 <p>Create rotation matrix for a 3d space, x-axis, right hand rule.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1204">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1242">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-3d-y"></span>
 </section>
 <section id="rotation-matrix-3d-y" class="level5">
@@ -2922,7 +2942,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-3d-y a)</code></li>
 </ul>
 <p>Create rotation matrix for a 3d space, y-axis, right hand rule.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1213">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1251">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-3d-z"></span>
 </section>
 <section id="rotation-matrix-3d-z" class="level5">
@@ -2931,7 +2951,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-3d-z a)</code></li>
 </ul>
 <p>Create rotation matrix for a 3d space, z-axis, right hand rule.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1222">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1260">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-axis-3d"></span>
 </section>
 <section id="rotation-matrix-axis-3d" class="level5">
@@ -2940,7 +2960,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rotation-matrix-axis-3d angle axis)</code></li>
 </ul>
 <p>Create 3d rotation matrix for axis ratation.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1231">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1269">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-round"></span>
 </section>
 <section id="round-1" class="level5">
@@ -2949,7 +2969,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(round vector)</code></li>
 </ul>
 <p>Apply round to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-row"></span>
 </section>
 <section id="row" class="level5">
@@ -2958,7 +2978,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(row A r)</code></li>
 </ul>
 <p>Return row as a vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L955">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L964">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows"></span>
 </section>
 <section id="rows" class="level5">
@@ -2967,7 +2987,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows A)</code></li>
 </ul>
 <p>Return matrix rows</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L916">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L921">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows->RealMatrix"></span>
 </section>
 <section id="rows-realmatrix" class="level5">
@@ -2976,7 +2996,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows-&gt;RealMatrix rows)</code></li>
 </ul>
 <p>Return Apache Commons Math Array2DRowMatrix from sequence of rows</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L778">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L779">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows->mat"></span>
 </section>
 <section id="rows-mat" class="level5">
@@ -2988,7 +3008,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows-&gt;mat [a00 a01 a02 a03] [a10 a11 a12 a13] [a20 a21 a22 a23] [a30 a31 a32 a33])</code></li>
 </ul>
 <p>Create nxn matrix from nd vectors (rows).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L798">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L799">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows->mat2x2"></span>
 </section>
 <section id="rows-mat2x2" class="level5">
@@ -2997,7 +3017,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows-&gt;mat2x2 [a00 a01] [a10 a11])</code></li>
 </ul>
 <p>Create 2x2 matrix from 2d vectors (rows).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L706">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows->mat3x3"></span>
 </section>
 <section id="rows-mat3x3" class="level5">
@@ -3006,7 +3026,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows-&gt;mat3x3 [a00 a01 a02] [a10 a11 a12] [a20 a21 a22])</code></li>
 </ul>
 <p>Create 3x3 matrix from 3d vectors (rows).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L732">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L733">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rows->mat4x4"></span>
 </section>
 <section id="rows-mat4x4" class="level5">
@@ -3015,7 +3035,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(rows-&gt;mat4x4 [a00 a01 a02 a03] [a10 a11 a12 a13] [a20 a21 a22 a23] [a30 a31 a32 a33])</code></li>
 </ul>
 <p>Create 4x4 matrix from 4d vectors (rows).</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L762">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L763">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-safe-sqrt"></span>
 </section>
 <section id="safe-sqrt-1" class="level5">
@@ -3024,7 +3044,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(safe-sqrt vector)</code></li>
 </ul>
 <p>Apply safe-sqrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale-cols"></span>
 </section>
 <section id="scale-cols" class="level5">
@@ -3034,7 +3054,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(scale-cols A scale)</code></li>
 </ul>
 <p>Shift columns by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1125">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1163">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale-rows"></span>
 </section>
 <section id="scale-rows" class="level5">
@@ -3044,7 +3064,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(scale-rows A scale)</code></li>
 </ul>
 <p>Shift rows by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1115">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1153">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec-1" class="level5">
@@ -3053,7 +3073,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sec vector)</code></li>
 </ul>
 <p>Apply sec to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech-1" class="level5">
@@ -3062,7 +3082,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sech vector)</code></li>
 </ul>
 <p>Apply sech to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sfrac"></span>
 </section>
 <section id="sfrac-1" class="level5">
@@ -3071,7 +3091,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sfrac vector)</code></li>
 </ul>
 <p>Apply sfrac to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sgn"></span>
 </section>
 <section id="sgn-1" class="level5">
@@ -3080,7 +3100,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sgn vector)</code></li>
 </ul>
 <p>Apply sgn to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-shape"></span>
+</section>
+<section id="shape" class="level5">
+<h5 class="anchored" data-anchor-id="shape">shape</h5>
+<ul>
+<li><code>(shape A)</code></li>
+</ul>
+<p>Return [nrows, ncols] pair.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L960">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-shift-cols"></span>
 </section>
 <section id="shift-cols" class="level5">
@@ -3090,7 +3119,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(shift-cols A shift)</code></li>
 </ul>
 <p>Shift columns by a value or a result of the function (mean by default)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1103">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1141">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-shift-rows"></span>
 </section>
 <section id="shift-rows" class="level5">
@@ -3100,7 +3129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(shift-rows A shift)</code></li>
 </ul>
 <p>Shift rows by a value or a result of the function (mean by default)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1093">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1131">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sigmoid"></span>
 </section>
 <section id="sigmoid-1" class="level5">
@@ -3109,7 +3138,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sigmoid vector)</code></li>
 </ul>
 <p>Apply sigmoid to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-signum"></span>
 </section>
 <section id="signum-1" class="level5">
@@ -3118,7 +3147,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(signum vector)</code></li>
 </ul>
 <p>Apply signum to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin-1" class="level5">
@@ -3127,7 +3156,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sin vector)</code></li>
 </ul>
 <p>Apply sin to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinc"></span>
 </section>
 <section id="sinc-1" class="level5">
@@ -3136,7 +3165,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sinc vector)</code></li>
 </ul>
 <p>Apply sinc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-singular-values"></span>
 </section>
 <section id="singular-values" class="level5">
@@ -3145,7 +3174,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(singular-values A)</code></li>
 </ul>
 <p>Returun singular values of the matrix as sqrt of eigenvalues of A^T * A matrix.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1061">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1070">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh-1" class="level5">
@@ -3154,7 +3183,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sinh vector)</code></li>
 </ul>
 <p>Apply sinh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-solve"></span>
 </section>
 <section id="solve" class="level5">
@@ -3163,7 +3192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(solve A b)</code></li>
 </ul>
 <p>Solve linear equation Ax=b</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L869">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L874">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq-1" class="level5">
@@ -3172,7 +3201,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sq vector)</code></li>
 </ul>
 <p>Apply sq to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt-1" class="level5">
@@ -3181,7 +3210,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sqrt vector)</code></li>
 </ul>
 <p>Apply sqrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-standardize"></span>
+</section>
+<section id="standardize" class="level5">
+<h5 class="anchored" data-anchor-id="standardize">standardize</h5>
+<ul>
+<li><code>(standardize A)</code></li>
+<li><code>(standardize A rows?)</code></li>
+</ul>
+<p>Normalize columns (or rows) to have mean = 0 and stddev = 1</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1117">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub-1" class="level5">
@@ -3191,7 +3230,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(sub A B)</code></li>
 </ul>
 <p>Subract matrices, C=A-B.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L994">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1003">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-symmetric?"></span>
 </section>
 <section id="symmetric" class="level5">
@@ -3200,7 +3239,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(symmetric? A)</code></li>
 </ul>
 <p>Check if matrix is symmetric</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L963">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L972">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tan"></span>
 </section>
 <section id="tan-1" class="level5">
@@ -3209,7 +3248,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tan vector)</code></li>
 </ul>
 <p>Apply tan to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh-1" class="level5">
@@ -3218,7 +3257,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tanh vector)</code></li>
 </ul>
 <p>Apply tanh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tmulm"></span>
 </section>
 <section id="tmulm" class="level5">
@@ -3227,7 +3266,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tmulm A B)</code></li>
 </ul>
 <p>Transpose and multiply, C=A^TxB</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1015">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1024">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tmulmt"></span>
 </section>
 <section id="tmulmt" class="level5">
@@ -3236,7 +3275,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(tmulmt A B)</code></li>
 </ul>
 <p>Transpose both and multiply, C=A<sup>TxB</sup>T</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1019">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1028">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-trace"></span>
 </section>
 <section id="trace" class="level5">
@@ -3245,7 +3284,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(trace A)</code></li>
 </ul>
 <p>Return trace of the matrix (sum of diagonal elements)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1049">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1058">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-transpose"></span>
 </section>
 <section id="transpose" class="level5">
@@ -3254,7 +3293,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(transpose A)</code></li>
 </ul>
 <p>Transpose matrix, C=A^T</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L967">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L976">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-trunc"></span>
 </section>
 <section id="trunc-1" class="level5">
@@ -3263,7 +3302,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(trunc vector)</code></li>
 </ul>
 <p>Apply trunc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vtmul"></span>
 </section>
 <section id="vtmul" class="level5">
@@ -3272,7 +3311,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(vtmul A v)</code></li>
 </ul>
 <p>Multiply transposed vector by matrix, C=v^T A</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1035">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1044">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-xlogx"></span>
 </section>
 <section id="xlogx-1" class="level5">
@@ -3281,16 +3320,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(xlogx vector)</code></li>
 </ul>
 <p>Apply xlogx to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero"></span>
 </section>
 <section id="zero-1" class="level5">
 <h5 class="anchored" data-anchor-id="zero-1">zero</h5>
 <ul>
+<li><code>(zero size real-matrix?)</code></li>
 <li><code>(zero size)</code></li>
 </ul>
 <p>Zero matrix for given size</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L846">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L849">source</a></small><hr style="margin: 0"></div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/vector_matrix.clj">clay/vector_matrix.clj</a></small></small></pre></div>
 
@@ -3336,18 +3376,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -3379,7 +3408,45 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
@@ -3414,7 +3481,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
     });
   }
   const xrefs = window.document.querySelectorAll('a.quarto-xref');
@@ -3462,7 +3533,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

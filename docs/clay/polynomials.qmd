@@ -1,4 +1,3 @@
-
 ---
 format:
   html:
@@ -58,7 +57,7 @@ Positional factory function for class fastmath.polynomials.Polynomial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L133">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L143">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -76,7 +75,7 @@ Positional factory function for class fastmath.polynomials.PolynomialR.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L193">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L203">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -95,7 +94,23 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L283">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L297">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bernstein"></span>
+```
+
+
+#### bernstein
+
++ `(bernstein degree order)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L345">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -111,7 +126,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L735">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L770">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -127,7 +142,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L737">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -143,7 +158,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L385">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L420">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -159,7 +174,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L420">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L455">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -175,7 +190,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L443">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L478">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -191,7 +206,7 @@ Add two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L465">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L500">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -209,7 +224,7 @@ Coefficients of polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L304">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L318">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -227,7 +242,7 @@ Create polynomial object for unrolled coefficients.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L275">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L289">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -245,79 +260,7 @@ Create ratio based polynomial object for unrolled coefficients.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L279">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-complex-evalpoly"></span>
-```
-
-
-#### complex-evalpoly
-
-+ `(complex-evalpoly x & coeffs)`
-
-Evaluate complex polynomial
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L79">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-complex-makepoly"></span>
-```
-
-
-#### complex-makepoly
-
-+ `(complex-makepoly coeffs)`
-
-Create complex polynomial function for given coefficients
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L92">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-complex-mevalpoly"></span>
-```
-
-
-#### complex-mevalpoly ^~MACRO~^
-
-+ `(complex-mevalpoly x & coeffs)`
-
-Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L68">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-complex-muladd"></span>
-```
-
-
-#### complex-muladd
-
-+ `(complex-muladd x y z)`
-
-`(x y z)` -> `(+ z (* x y))`
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L63">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L293">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -333,7 +276,7 @@ Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coef
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L308">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L322">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -352,7 +295,23 @@ Derivative of the polynomial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L311">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L325">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-eval-bernstein"></span>
+```
+
+
+#### eval-bernstein
+
++ `(eval-bernstein degree order x)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L337">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -368,7 +327,7 @@ Derivative of the polynomial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L706">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L741">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -384,7 +343,7 @@ Derivative of the polynomial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L674">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L709">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -402,7 +361,7 @@ Chebyshev polynomial of the first kind
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L361">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L396">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -420,7 +379,7 @@ Chebyshev polynomials of the second kind
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L389">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L424">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -438,7 +397,7 @@ Chebyshev polynomials of the third kind
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L424">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L459">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -456,7 +415,7 @@ Chebyshev polynomials of the fourth kind
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L447">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L482">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -475,7 +434,7 @@ Gegenbauer (ultraspherical) polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L505">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L540">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -493,7 +452,7 @@ Hermite polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L550">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L585">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -511,7 +470,7 @@ Hermite polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L584">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L619">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -529,7 +488,7 @@ Jacobi polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L621">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L656">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -548,7 +507,7 @@ Evaluate generalized Laguerre polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L323">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L358">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -564,7 +523,7 @@ Evaluate generalized Laguerre polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L471">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L506">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -580,7 +539,7 @@ Evaluate generalized Laguerre polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L741">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L776">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -598,7 +557,25 @@ Evaluate polynomial for given coefficients
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L28">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L29">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-evalpoly-complex"></span>
+```
+
+
+#### evalpoly-complex
+
++ `(evalpoly-complex x & coeffs)`
+
+Evaluate complex polynomial
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L86">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -616,7 +593,7 @@ Evaluate polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L316">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L330">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -633,7 +610,7 @@ Evaluate polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L544">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L579">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -649,7 +626,7 @@ Evaluate polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L580">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L615">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -665,7 +642,7 @@ Evaluate polynomial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L614">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L649">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -686,7 +663,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L922">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -702,7 +679,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L899">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L933">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -723,7 +700,7 @@ Ince C polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L956">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L988">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -744,7 +721,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L940">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -760,7 +737,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L905">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L939">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -781,7 +758,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L972">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L1004">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -797,7 +774,7 @@ Ince S polynomial of order p and degree m.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L668">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L703">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -816,7 +793,7 @@ Generalized Laguerre polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L353">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L388">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -832,7 +809,7 @@ Generalized Laguerre polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L499">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L534">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -850,7 +827,25 @@ Create polynomial function for given coefficients
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L44">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L45">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-makepoly-complex"></span>
+```
+
+
+#### makepoly-complex
+
++ `(makepoly-complex coeffs)`
+
+Create complex polynomial function for given coefficients
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L100">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -866,7 +861,7 @@ Create polynomial function for given coefficients
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L781">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L816">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -884,7 +879,45 @@ Evaluate polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L17">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L18">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mevalpoly-complex"></span>
+```
+
+
+#### mevalpoly-complex ^~MACRO~^
+
++ `(mevalpoly-complex x & coeffs)`
+
+Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L64">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-mevalpoly-scalar-complex"></span>
+```
+
+
+#### mevalpoly-scalar-complex ^~MACRO~^
+
++ `(mevalpoly-scalar-complex x & coeffs)`
+
+Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
+
+  Coefficients are scalars
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L75">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -903,7 +936,7 @@ Multiply two polynomials.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L298">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L312">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -915,13 +948,14 @@ Multiply two polynomials.
 
 #### polynomial
 
++ `(polynomial xs ys)`
 + `(polynomial coeffs)`
 
-Create polynomial object.
+Create polynomial object from coeffs or fitted points.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L265">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L275">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -933,13 +967,14 @@ Create polynomial object.
 
 #### ratio-polynomial
 
++ `(ratio-polynomial xs ys)`
 + `(ratio-polynomial coeffs)`
 
-Create polynomial operating on ratios.
+Create polynomial operating on ratios from coeffs or fitted points.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L270">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L282">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -957,7 +992,7 @@ Multiply polynomial by scalar
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L294">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L308">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -976,7 +1011,7 @@ Subtract two polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L288">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/polynomials.clj#L302">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
