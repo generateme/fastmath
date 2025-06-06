@@ -770,9 +770,9 @@
 
 ;; $$M_0 = \frac{(E_7-E_5) + (E_3-E_1)}{E_6-E_2}-1.233$$
 
-;; * `:crow` (Crow-Siddiqui): Based on quantiles $Q_\alpha, Q_{1-\alpha}, Q_\beta, Q_{1-\beta}$ and centered for normality. By default $\alpha=0.025$ and $\beta=0.25$.
+;; * `:crow` (Crow-Siddiqui): Based on quantiles $Q_\alpha, Q_{1-\alpha}, Q_\beta, Q_{1-\beta}$ and centered for normality ($c$ is based on $\alpha$ and $\beta$). By default $\alpha=0.025$ and $\beta=0.25$.
 
-;; $$CS(\alpha, \beta) = \frac{Q_{1-\alpha} - Q_{\alpha}}{Q_{1-\beta} - Q_{\beta}}-2.906$$
+;; $$CS(\alpha, \beta) = \frac{Q_{1-\alpha} - Q_{\alpha}}{Q_{1-\beta} - Q_{\beta}}-c$$
 
 ;; * `:hogg`: Based on trimmed means $U_p$ (mean of top $p\%$) and $L_p$ (mean of bottom $p\%$) and centered by subtracting $2.585$. By default $\alpha=0.005$ and $\beta=0.5$.
 

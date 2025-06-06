@@ -4,13 +4,16 @@
 ;; Implementation based on Apache Commons Math and https://ece.uwaterloo.ca/~dwharder/C++/CQOST/src/Complex.cpp
 
 (ns fastmath.complex
-  "Complex numbers functions.
+  "Complex numbers operations.
 
-  Complex number is represented as `Vec2` type (from [[clojure2d.math.vector]] namespace).
+  Complex numbers are represented using the [[Vec2]] type defined in the `fastmath.vector` namespace.
+  A complex number $z = a + bi$ corresponds to the vector `(Vec2. a b)`.
 
-  To create complex number use [[complex]], [[vec2]] or [[->Vec2]].
+  To create a complex number, use [[complex]], [[vec2]], or convert from sequences/arrays using functions like [[fastmath.vector/seq->vec2]].
+  
+  The implementation correctly handles floating-point special values such as `##Inf`, `##NaN`, and distinguishes between `+0.0` and `-0.0` where necessary.
 
-  Implementation checks for ##Inf, ##NaN and some of the function distinguish +0.0 and -0.0" 
+  This namespace provides standard complex number operations like arithmetic (+, -, *, /), exponentiation (pow, exp, log), trigonometric functions (sin, cos, tan, etc.), and their inverses, as well as utility functions like `abs`, `arg`, `conjugate`, etc."
   (:refer-clojure :exclude [abs zero?])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v])
@@ -19,16 +22,23 @@
 (set! *unchecked-math* :warn-on-boxed)
 (m/use-primitive-operators #{'abs 'zero?})
 
-(def I (Vec2. 0.0 1.0))
-(def I- (Vec2. 0.0 -1.0))
-(def -I (Vec2. 0.0 -1.0))
-(def ONE (Vec2. 1.0 0.0))
-(def TWO (Vec2. 2.0 0.0))
-(def ZERO (Vec2. 0.0 0.0))
-(def PI (Vec2. m/PI 0.0))
+(def ^{:doc "z=0+i"} I (Vec2. 0.0 1.0))
+(def ^{:doc "z=0-i"} I- (Vec2. 0.0 -1.0))
+(def ^{:doc "z=0-i"} -I (Vec2. 0.0 -1.0))
+(def ^{:doc "z=1+0i"} ONE (Vec2. 1.0 0.0))
+(def ^{:doc "z=2+0i"} TWO (Vec2. 2.0 0.0))
+(def ^{:doc "z=0+0i"} ZERO (Vec2. 0.0 0.0))
+(def ^{:doc "z=pi+0i"} PI (Vec2. m/PI 0.0))
 
 (defn complex
-  "Create complex number. Represented as `Vec2`."
+  "Creates a complex number represented as a [[Vec2]].
+  Takes optional real and imaginary parts.
+
+  Examples:
+
+  (complex 1 2) ;; => #vec2 [1.0, 2.0]
+  (complex 3)   ;; => #vec2 [3.0, 0.0]
+  (complex)     ;; => #vec2 [0.0, 0.0]"
   ([^double a ^double b] (Vec2. a b))
   ([^double a] (Vec2. a 0.0))
   ([] ZERO))
@@ -58,9 +68,9 @@
    (v/delta-eq q1 q2 accuracy)))
 
 (defn csgn
-  "Complex sgn.
+  "Complex signum function.
 
-  Returns `0` for `0+0i` or calls `m/sgn` on real part otherwise."
+  Returns `0.0` for the zero. For any other vector, returns the sign of the real part."
   (^double [^double re ^double im]
    (if (and (m/zero? re)
             (m/zero? im)) 0.0 (m/sgn re)))
@@ -70,26 +80,28 @@
 (defn flip "Exchange imaginary and real parts" ^Vec2 [^Vec2 z] (Vec2. (.y z) (.x z)))
 
 (defn abs
-  "Absolute value, magnitude"
+  "Calculates the magnitude (absolute value) of the complex number `z`."
   ^double [^Vec2 z]
   (if (inf? z)
     ##Inf
     (m/sqrt (+ (m/sq (.x z)) (m/sq (.y z))))))
 
 (defn norm
-  "Norm (Guass) of the complex number, absolute value squared"
+  "Calculates the squared magnitude (norm) of the complex number `z`.
+
+  Also known as the squared modulus or squared Euclidean norm."
   ^double [^Vec2 z]
   (if (inf? z)
     ##Inf
     (+ (m/sq (.x z)) (m/sq (.y z)))))
 
 (defn arg
-  "Argument (angle) of the complex number"
+  "Argument (angle) of the complex number."
   ^double [z]
   (v/heading z))
 
 (defn add
-  "Sum of two complex numbers"
+  "Sum of two complex numbers."
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (Vec2. (+ (.x z1) (.x z2))
          (+ (.y z1) (.y z2))))
@@ -100,19 +112,19 @@
   (Vec2. (+ (.x z) v) (.y z)))
 
 (defn sub
-  "Difference of two complex numbers"
+  "Difference of two complex numbers."
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (Vec2. (- (.x z1) (.x z2))
          (- (.y z1) (.y z2))))
 
 (defn scale
-  "Multiply by real number"
+  "Multiplication by real number"
   ^Vec2 [^Vec2 z ^double v]
   (Vec2. (* (.x z) v)
          (* (.y z) v)))
 
 (defn mult
-  "Multiply two complex numbers."
+  "Multiplication of two complex numbers."
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (let [a (.x z1)
         b (.y z1)
@@ -121,16 +133,21 @@
     (Vec2. (- (* a c) (* b d))
            (+ (* a d) (* b c)))))
 
-(defn mult-I ^Vec2 [^Vec2 z] (Vec2. (- (.y z)) (.x z)))
-(defn mult-I- ^Vec2 [^Vec2 z] (Vec2. (.y z) (- (.x z))))
+(defn mult-I
+  "Multiplication by 0+i."
+  ^Vec2 [^Vec2 z] (Vec2. (- (.y z)) (.x z)))
+
+(defn mult-I-
+  "Multiplication by 0-i."
+  ^Vec2 [^Vec2 z] (Vec2. (.y z) (- (.x z))))
 
 (defn muladd
-  "`(x y z)` -> `(+ z (* x y))`"
+  "(+ z (* x y))"
   ^Vec2 [x y z]
   (add z (mult x y)))
 
 (defn sq
-  "Square complex number. \\\\(z^2\\\\)"
+  "Square of the complex number."
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -138,12 +155,12 @@
            (* 2.0 a b))))
 
 (defn conjugate
-  "Complex conjugate. \\\\(\\bar{z}\\\\)"
+  "Complex conjugate."
   ^Vec2 [^Vec2 z] 
   (Vec2. (.x z) (- (.y z))))
 
 (defn div
-  "Divide two complex numbers."
+  "Division of two complex numbers."
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (let [a (.x z1)
         b (.y z1)
@@ -154,7 +171,7 @@
            (/ (- (* b c) (* a d)) den))))
 
 (defn reciprocal
-  "\\\\(\\frac{1}{z}\\\\)"
+  "Reciprocal, 1/z."
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -168,12 +185,12 @@
               (Vec2. (/ a den)
                      (/ (- b) den))))))
 (defn neg
-  "Negate complex number. \\\\(-z\\\\)"
+  "Negation of the complex number, -z."
   ^Vec2 [^Vec2 z]
   (Vec2. (- (.x z)) (- (.y z))))
 
 (defn sqrt
-  "Sqrt of complex number. \\\\(\\sqrt{z}\\\\)"
+  "Sqrt of the complex number, sqrt(z)"
   ^Vec2 [^Vec2 z]
   (if (zero? z)
     z
@@ -185,7 +202,7 @@
       (Vec2. (* m/SQRT2_2 aa) (* m/SQRT2_2 bb)))))
 
 (defn sqrt1z
-  "\\\\(\\sqrt{1-z^2}\\\\)"
+  "sqrt(1-z^2)"
   ^Vec2 [z]
   (->> z
        (mult z)
@@ -195,7 +212,7 @@
 ;; exp
 
 (defn exp
-  "exp"
+  "exp(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -209,7 +226,7 @@
 ;; log
 
 (defn log
-  "log, principal value"
+  "log(z), principal value"
   ^Vec2 [^Vec2 z]
   (let [a (.x z)
         b (.y z)]
@@ -330,7 +347,7 @@
     (Vec2. (* e (m/cos p)) (* e (m/sin p)))))
 
 (defn pow
-  "Power. \\\\(z_1^{z_2}\\\\)"
+  "Complex power, z^z"
   ^Vec2 [^Vec2 z1 ^Vec2 z2]
   (if (zero? z1)
     (if (zero? z2) ;; both zero
@@ -360,7 +377,7 @@
 ;;;;;; trig
 
 (defn sin
-  "sin"
+  "sin(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -371,7 +388,7 @@
                    (* (m/cos x) (m/sinh y))))))
 
 (defn cos
-  "cos"
+  "cos(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -383,7 +400,7 @@
 
 
 (defn tan
-  "tan"
+  "tan(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -397,7 +414,7 @@
                      (/ (* sinhy (m/cosh y)) denom))))))
 
 (defn sec
-  "sec"
+  "sec(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -411,7 +428,7 @@
                      (/ (* (m/sin x) sinhy) denom))))))
 
 (defn csc
-  "csc"
+  "csc(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -425,7 +442,7 @@
                      (/ (* (- (m/cos x)) sinhy) denom))))))
 
 (defn cot
-  "csc"
+  "csc(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -441,7 +458,7 @@
 ;;
 
 (defn sinh
-  "sinh"
+  "sinh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -452,7 +469,7 @@
                    (* (m/cosh x) (m/sin y))))))
 
 (defn cosh
-  "cosh"
+  "cosh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -463,7 +480,7 @@
                    (* (m/sinh x) (m/sin y))))))
 
 (defn tanh
-  "tanh"
+  "tanh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -477,7 +494,7 @@
                      (/ (* (m/sin y) cosy) denom))))))
 
 (defn sech
-  "sech"
+  "sech(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -491,7 +508,7 @@
                      (/ (* -1.0 sinhx (m/sin y)) denom))))))
 
 (defn csch
-  "csch"
+  "csch(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -505,7 +522,7 @@
                      (/ (* -1.0 (m/cosh x) siny) denom))))))
 
 (defn coth
-  "coth"
+  "coth(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -521,7 +538,7 @@
 ;;
 
 (defn asin
-  "asin"
+  "asin(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -542,7 +559,7 @@
                      (* (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
 
 (defn acos
-  "acos"
+  "acos(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -562,7 +579,7 @@
                (* -1.0 (m/sgn y) (m/log (+ sum (m/sqrt (dec (* sum sum)))))))))))
 
 (defn atan
-  "atan"
+  "atan(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -589,7 +606,7 @@
                                        (+ rr (* omi omi))))))))))
 
 (defn asec
-  "asec"
+  "asec(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -615,7 +632,7 @@
 
 
 (defn acsc
-  "acsc"
+  "acsc(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -642,7 +659,7 @@
 
 
 (defn acot
-  "acot"
+  "acot(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -667,7 +684,7 @@
 ;;
 
 (defn asinh
-  "asinh"
+  "asinh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -690,7 +707,7 @@
                      (m/asin (* 0.5 (- ssp2i ssm2i))))))))
 
 (defn acosh
-  "acosh"
+  "acosh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -716,7 +733,7 @@
                      (m/acos (* 0.5 (- ssp2r ssm2r))))))))
 
 (defn atanh
-  "atanh"
+  "atanh(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -742,6 +759,7 @@
 
 
 (defn asech
+  "asech(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -776,6 +794,7 @@
                      (m/acos (* 0.5 (- Rrp1pRi Rrm1pRi))))))))
 
 (defn acsch
+  "acsch(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]
@@ -809,6 +828,7 @@
 
 
 (defn acoth
+  "acoth(z)"
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)]

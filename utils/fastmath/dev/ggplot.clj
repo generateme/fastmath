@@ -115,8 +115,8 @@
 (defn wrap
   ^double [method ^double v]
   (case method
-    :log2 (m/frac (m/log2 (inc v)))
-    :log10 (m/frac (m/log10 (inc v)))
+    :log2 (m/frac (m/log2 v))
+    :log10 (m/frac (m/log10 v))
     :sin (m/norm (m/sin v) -1.0 1.0 0.0 1.0)
     :exp (- 1.0 (m/exp (- v)))
     :sigmoid (m/sigmoid v)
@@ -127,7 +127,7 @@
 (defn complex-function->data
   ([f] (complex-function->data f nil))
   ([f {:keys [x y steps wrap-method]
-       :or {steps 200 wrap-method :log2}}]
+       :or {x [-4 4] y [-4 4] steps 400 wrap-method :log2}}]
    (let [xs (slice x steps)
          ys (slice y steps)]
      (for [x xs y ys

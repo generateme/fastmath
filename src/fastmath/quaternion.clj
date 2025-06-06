@@ -86,6 +86,10 @@
   "Sum of two quaternions"
   ^Vec4 [q1 q2] (v/add q1 q2))
 
+(defn adds
+  "Adds scalar to a quaternion"
+  ^Vec4 [q1 ^double s] (v/add q1 (Vec4. s 0.0 0.0 0.0)))
+
 (defn sub
   "Difference of two quaternions"
   ^Vec4 [q1 q2] (v/sub q1 q2))
@@ -361,142 +365,4 @@
 (gen-from-complex acoth)
 
 ;; https://math.stackexchange.com/questions/1499095/how-to-calculate-sin-cos-tan-of-a-quaternion
-
-#_(defn sqrt
-    "Square root of quaternion, only one value is returned"
-    ^Vec4 [^Vec4 q]
-    (let [r (.x q)
-          nv (v/normalize (vector q))
-          nq (v/mag q)]
-      (quaternion (m/sqrt (* 0.5 (m/+ nq r)))
-                  (v/mult nv (m/sqrt (* 0.5 (m/- nq r)))))))
-
-#_(defn expo
-    "Exp of quaternion"
-    ^Vec4 [^Vec4 q]
-    (let [a (.x q)
-          v (vector q)
-          nv (v/mag v)]
-      (v/mult (quaternion (m/cos nv)
-                          (v/mult (v/div v nv) (m/sin nv))) (m/exp a))))
-
-
-
-#_(defn log
-    "Logarithm of quaternion"
-    ^Vec4 [^Vec4 q]
-    (let [a (.x q)
-          nv (v/normalize (vector q))
-          nq (v/mag q)]
-      (quaternion (m/log nq)
-                  (v/mult nv (m/acos (/ a nq))))))
-
-
-#_(defn sino
-    ^Vec4 [^Vec4 q]
-    (let [s (.x q)
-          v (vector q)
-          vmag (v/mag v)
-          nv (v/div v vmag)
-          sins (m/sin s)
-          coss (m/cos s)
-          sinhvmag (m/sinh vmag)
-          coshvmag (m/cosh vmag)]
-      (quaternion (* sins coshvmag) (v/mult nv (* coss sinhvmag)))))
-
-#_(defn cos
-    ^Vec4 [^Vec4 q]
-    (let [s (.x q)
-          v (vector q)
-          vmag (v/mag v)
-          nv (v/div v vmag)
-          sins (m/sin s)
-          coss (m/cos s)
-          sinhvmag (m/sinh vmag)
-          coshvmag (m/cosh vmag)]
-      (quaternion (* coss coshvmag) (v/mult nv (* -1.0 sins sinhvmag)))))
-
-#_(defn tan
-    ^Vec4 [^Vec4 q]
-    (let [s (.x q)
-          v (vector q)
-          vmag (v/mag v)
-          nv (v/div v vmag)
-          sins (m/sin s)
-          coss (m/cos s)
-          sinhvmag (m/sinh vmag)
-          coshvmag (m/cosh vmag)]
-      (div (quaternion (* sins coshvmag) (v/mult nv (* coss sinhvmag)))
-           (quaternion (* coss coshvmag) (v/mult nv (* -1.0 sins sinhvmag))))))
-
-#_(defn cot
-    ^Vec4 [^Vec4 q]
-    (let [s (.x q)
-          v (vector q)
-          vmag (v/mag v)
-          nv (v/div v vmag)
-          sins (m/sin s)
-          coss (m/cos s)
-          sinhvmag (m/sinh vmag)
-          coshvmag (m/cosh vmag)]
-      (div (quaternion (* coss coshvmag) (v/mult nv (* -1.0 sins sinhvmag)))
-           (quaternion (* sins coshvmag) (v/mult nv (* coss sinhvmag))))))
-
-#_(defn sec
-    ^Vec4 [q]
-    (reciprocal (cos q)))
-
-#_(defn csc
-    ^Vec4 [q]
-    (reciprocal (sin q)))
-
-;;
-
-#_(defn sinho
-    ^Vec4 [^Vec4 q]
-    (let [ex (exp q)
-          e-x (exp (neg q))]
-      (v/mult (sub ex e-x) 0.5)))
-
-#_(defn cosh
-    ^Vec4 [^Vec4 q]
-    (let [ex (exp q)
-          e-x (exp (neg q))]
-      (v/mult (add ex e-x) 0.5)))
-
-#_(defn tanh
-    ^Vec4 [^Vec4 q]
-    (let [ex (exp q)
-          e-x (exp (neg q))]
-      (div (sub ex e-x)
-           (add ex e-x))))
-
-#_(defn coth
-    ^Vec4 [^Vec4 q]
-    (let [ex (exp q)
-          e-x (exp (neg q))]
-      (div (add ex e-x)
-           (sub ex e-x))))
-
-#_(defn sech
-    ^Vec4 [q]
-    (reciprocal (cosh q)))
-
-#_(defn cscho
-    ^Vec4 [q]
-    (reciprocal (sinho q)))
-
-;;
-
-#_(first (remove first (repeatedly 100000
-                                  #(let [^Vec4 q (v/mult (v/generate-vec4 r/grand) 2.0)
-                                         vq (vector q)
-                                         absim (v/mag vq)
-                                         z (c/csch (c/complex (.x q) absim))
-                                         multpl (if (zero? absim)
-                                                  (c/im z)
-                                                  (/ (c/im z) absim))
-                                         res1 (quaternion (c/re z) (v/mult vq multpl))
-                                         res2 (cscho q)]
-                                     [(v/is-near-zero? (v/sub res1 res2)) q res1 res2]))))
 

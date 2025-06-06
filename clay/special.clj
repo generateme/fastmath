@@ -684,11 +684,11 @@
                              :palette gg/palette-blue-1}))]]
 
 (utls/examples-note
- (special/spherical-bessel-k0 2.3)
- (special/spherical-bessel-k1 2.3)
- (special/spherical-bessel-k2 2.3)
- (special/spherical-bessel-k 3.1 3.2)
- (special/spherical-bessel-k -3.1 3.2))
+  (special/spherical-bessel-k0 2.3)
+  (special/spherical-bessel-k1 2.3)
+  (special/spherical-bessel-k2 2.3)
+  (special/spherical-bessel-k 3.1 3.2)
+  (special/spherical-bessel-k -3.1 3.2))
 
 ;; ## Hankel
 
@@ -703,8 +703,8 @@
 ;; $$H^{(2)}_\alpha(x)=J_\alpha(x)- i Y_\alpha(x)$$
 
 (utls/examples-note
- (special/hankel-1 1 2.3)
- (special/hankel-2 1 2.3))
+  (special/hankel-1 1 2.3)
+  (special/hankel-2 1 2.3))
 
 ;; Spherical functions of the first and second kind.
 
