@@ -6,7 +6,7 @@ A Clojure math library.
 
 ## Documentation
 
-### 3.0.0-alpha1 (WIP)
+### 3.0.0-alpha (WIP)
 
 [Fastmath book](https://generateme.github.io/fastmath/clay/)
 
