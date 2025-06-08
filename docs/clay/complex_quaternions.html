@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Fastmath documentation</title>
+<title>Complex numbers and quaternions – Fastmath documentation</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -57,17 +57,53 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="complex_quaternions_files/libs/clipboard/clipboard.min.js"></script>
-<script src="complex_quaternions_files/libs/quarto-html/quarto.js" type="module"></script>
-<script src="complex_quaternions_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="complex_quaternions_files/libs/quarto-html/popper.min.js"></script>
-<script src="complex_quaternions_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="complex_quaternions_files/libs/quarto-html/anchor.min.js"></script>
-<link href="complex_quaternions_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="complex_quaternions_files/libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="complex_quaternions_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="complex_quaternions_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="complex_quaternions_files/libs/bootstrap/bootstrap-e29579579aa10290cf4ace218e61efbe.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./easings.html" rel="next">
+<link href="./ml.html" rel="prev">
+<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -101,29 +137,170 @@ window.Quarto = {
 
 </head>
 
-<body>
+<body class="nav-sidebar floating">
 
-<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-  <nav id="TOC" role="doc-toc" class="toc-active">
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./complex_quaternions.html">Complex numbers and quaternions</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Fastmath documentation</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vectors and matrices</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./random.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistics</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./polynomials.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Polynomials</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./special.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Special functions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./calculus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calculus</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./interpolation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpolation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Optimization</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Machine Learning</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Complex numbers and quaternions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./easings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Easings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vector fields</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./efloat.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFloat</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#complex-numbers-and-quaternions" id="toc-complex-numbers-and-quaternions" class="nav-link active" data-scroll-target="#complex-numbers-and-quaternions">Complex numbers and quaternions</a>
-  <ul>
-  <li><a href="#complex-numbers" id="toc-complex-numbers" class="nav-link" data-scroll-target="#complex-numbers">Complex numbers</a>
+  <li><a href="#complex-numbers" id="toc-complex-numbers" class="nav-link active" data-scroll-target="#complex-numbers">Complex numbers</a>
   <ul>
   <li><a href="#constants" id="toc-constants" class="nav-link" data-scroll-target="#constants">Constants</a></li>
   <li><a href="#basic-operations" id="toc-basic-operations" class="nav-link" data-scroll-target="#basic-operations">Basic operations</a></li>
   <li><a href="#predicates" id="toc-predicates" class="nav-link" data-scroll-target="#predicates">Predicates</a></li>
   <li><a href="#power-and-logarithms" id="toc-power-and-logarithms" class="nav-link" data-scroll-target="#power-and-logarithms">Power and logarithms</a></li>
-  <li><a href="#trigonometric" id="toc-trigonometric" class="nav-link" data-scroll-target="#trigonometric">Trigonometric</a></li>
+  <li><a href="#trigonometric-and-hyperbolic" id="toc-trigonometric-and-hyperbolic" class="nav-link" data-scroll-target="#trigonometric-and-hyperbolic">Trigonometric and Hyperbolic</a></li>
   </ul></li>
-  <li><a href="#quaternions" id="toc-quaternions" class="nav-link" data-scroll-target="#quaternions">Quaternions</a></li>
+  <li><a href="#quaternions" id="toc-quaternions" class="nav-link" data-scroll-target="#quaternions">Quaternions</a>
+  <ul>
+  <li><a href="#constants-1" id="toc-constants-1" class="nav-link" data-scroll-target="#constants-1">Constants</a></li>
+  <li><a href="#basic-operations-1" id="toc-basic-operations-1" class="nav-link" data-scroll-target="#basic-operations-1">Basic operations</a></li>
+  <li><a href="#predicates-1" id="toc-predicates-1" class="nav-link" data-scroll-target="#predicates-1">Predicates</a></li>
+  <li><a href="#power-and-logarithms-1" id="toc-power-and-logarithms-1" class="nav-link" data-scroll-target="#power-and-logarithms-1">Power and Logarithms</a></li>
+  <li><a href="#trigonometric-and-hyperbolic-1" id="toc-trigonometric-and-hyperbolic-1" class="nav-link" data-scroll-target="#trigonometric-and-hyperbolic-1">Trigonometric and Hyperbolic</a></li>
+  <li><a href="#rotation-functions" id="toc-rotation-functions" class="nav-link" data-scroll-target="#rotation-functions">Rotation Functions</a>
+  <ul>
+  <li><a href="#slerp" id="toc-slerp" class="nav-link" data-scroll-target="#slerp">Slerp</a></li>
+  </ul></li>
+  </ul></li>
   <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a>
   <ul>
   <li><a href="#fastmath.complex" id="toc-fastmath.complex" class="nav-link" data-scroll-target="#fastmath.complex">fastmath.complex</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#i" id="toc-i" class="nav-link" data-scroll-target="#i">-I</a></li>
   <li><a href="#i-1" id="toc-i-1" class="nav-link" data-scroll-target="#i-1">I</a></li>
   <li><a href="#i-" id="toc-i-" class="nav-link" data-scroll-target="#i-">I-</a></li>
@@ -174,6 +351,7 @@ window.Quarto = {
   <li><a href="#nan" id="toc-nan" class="nav-link" data-scroll-target="#nan">nan?</a></li>
   <li><a href="#neg" id="toc-neg" class="nav-link" data-scroll-target="#neg">neg</a></li>
   <li><a href="#norm" id="toc-norm" class="nav-link" data-scroll-target="#norm">norm</a></li>
+  <li><a href="#normalize" id="toc-normalize" class="nav-link" data-scroll-target="#normalize">normalize</a></li>
   <li><a href="#pow" id="toc-pow" class="nav-link" data-scroll-target="#pow">pow</a></li>
   <li><a href="#re" id="toc-re" class="nav-link" data-scroll-target="#re">re</a></li>
   <li><a href="#real" id="toc-real" class="nav-link" data-scroll-target="#real">real?</a></li>
@@ -193,7 +371,7 @@ window.Quarto = {
   <li><a href="#zero-1" id="toc-zero-1" class="nav-link" data-scroll-target="#zero-1">zero?</a></li>
   </ul></li>
   <li><a href="#fastmath.quaternion" id="toc-fastmath.quaternion" class="nav-link" data-scroll-target="#fastmath.quaternion">fastmath.quaternion</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#i-2" id="toc-i-2" class="nav-link" data-scroll-target="#i-2">-I</a></li>
   <li><a href="#j" id="toc-j" class="nav-link" data-scroll-target="#j">-J</a></li>
   <li><a href="#k" id="toc-k" class="nav-link" data-scroll-target="#k">-K</a></li>
@@ -209,6 +387,7 @@ window.Quarto = {
   <li><a href="#acsc-1" id="toc-acsc-1" class="nav-link" data-scroll-target="#acsc-1">acsc</a></li>
   <li><a href="#acsch-1" id="toc-acsch-1" class="nav-link" data-scroll-target="#acsch-1">acsch</a></li>
   <li><a href="#add-1" id="toc-add-1" class="nav-link" data-scroll-target="#add-1">add</a></li>
+  <li><a href="#adds-1" id="toc-adds-1" class="nav-link" data-scroll-target="#adds-1">adds</a></li>
   <li><a href="#arg-1" id="toc-arg-1" class="nav-link" data-scroll-target="#arg-1">arg</a></li>
   <li><a href="#asec-1" id="toc-asec-1" class="nav-link" data-scroll-target="#asec-1">asec</a></li>
   <li><a href="#asech-1" id="toc-asech-1" class="nav-link" data-scroll-target="#asech-1">asech</a></li>
@@ -226,6 +405,7 @@ window.Quarto = {
   <li><a href="#csch-1" id="toc-csch-1" class="nav-link" data-scroll-target="#csch-1">csch</a></li>
   <li><a href="#delta-eq-1" id="toc-delta-eq-1" class="nav-link" data-scroll-target="#delta-eq-1">delta-eq</a></li>
   <li><a href="#div-1" id="toc-div-1" class="nav-link" data-scroll-target="#div-1">div</a></li>
+  <li><a href="#ensure-quaternion" id="toc-ensure-quaternion" class="nav-link" data-scroll-target="#ensure-quaternion">ensure-quaternion</a></li>
   <li><a href="#exp-1" id="toc-exp-1" class="nav-link" data-scroll-target="#exp-1">exp</a></li>
   <li><a href="#from-angles" id="toc-from-angles" class="nav-link" data-scroll-target="#from-angles">from-angles</a></li>
   <li><a href="#from-euler" id="toc-from-euler" class="nav-link" data-scroll-target="#from-euler">from-euler</a></li>
@@ -235,13 +415,14 @@ window.Quarto = {
   <li><a href="#im-k" id="toc-im-k" class="nav-link" data-scroll-target="#im-k">im-k</a></li>
   <li><a href="#imaginary-1" id="toc-imaginary-1" class="nav-link" data-scroll-target="#imaginary-1">imaginary?</a></li>
   <li><a href="#inf-1" id="toc-inf-1" class="nav-link" data-scroll-target="#inf-1">inf?</a></li>
+  <li><a href="#invalid-1" id="toc-invalid-1" class="nav-link" data-scroll-target="#invalid-1">invalid?</a></li>
   <li><a href="#log-1" id="toc-log-1" class="nav-link" data-scroll-target="#log-1">log</a></li>
   <li><a href="#logb-1" id="toc-logb-1" class="nav-link" data-scroll-target="#logb-1">logb</a></li>
   <li><a href="#mult-1" id="toc-mult-1" class="nav-link" data-scroll-target="#mult-1">mult</a></li>
   <li><a href="#nan-1" id="toc-nan-1" class="nav-link" data-scroll-target="#nan-1">nan?</a></li>
   <li><a href="#neg-1" id="toc-neg-1" class="nav-link" data-scroll-target="#neg-1">neg</a></li>
   <li><a href="#norm-1" id="toc-norm-1" class="nav-link" data-scroll-target="#norm-1">norm</a></li>
-  <li><a href="#normalize" id="toc-normalize" class="nav-link" data-scroll-target="#normalize">normalize</a></li>
+  <li><a href="#normalize-1" id="toc-normalize-1" class="nav-link" data-scroll-target="#normalize-1">normalize</a></li>
   <li><a href="#pow-1" id="toc-pow-1" class="nav-link" data-scroll-target="#pow-1">pow</a></li>
   <li><a href="#qsgn" id="toc-qsgn" class="nav-link" data-scroll-target="#qsgn">qsgn</a></li>
   <li><a href="#quaternion" id="toc-quaternion" class="nav-link" data-scroll-target="#quaternion">quaternion</a></li>
@@ -256,7 +437,7 @@ window.Quarto = {
   <li><a href="#sech-1" id="toc-sech-1" class="nav-link" data-scroll-target="#sech-1">sech</a></li>
   <li><a href="#sin-1" id="toc-sin-1" class="nav-link" data-scroll-target="#sin-1">sin</a></li>
   <li><a href="#sinh-1" id="toc-sinh-1" class="nav-link" data-scroll-target="#sinh-1">sinh</a></li>
-  <li><a href="#slerp" id="toc-slerp" class="nav-link" data-scroll-target="#slerp">slerp</a></li>
+  <li><a href="#slerp-1" id="toc-slerp-1" class="nav-link" data-scroll-target="#slerp-1">slerp</a></li>
   <li><a href="#sq-1" id="toc-sq-1" class="nav-link" data-scroll-target="#sq-1">sq</a></li>
   <li><a href="#sqrt-1" id="toc-sqrt-1" class="nav-link" data-scroll-target="#sqrt-1">sqrt</a></li>
   <li><a href="#sub-1" id="toc-sub-1" class="nav-link" data-scroll-target="#sub-1">sub</a></li>
@@ -265,19 +446,20 @@ window.Quarto = {
   <li><a href="#to-angles" id="toc-to-angles" class="nav-link" data-scroll-target="#to-angles">to-angles</a></li>
   <li><a href="#to-euler" id="toc-to-euler" class="nav-link" data-scroll-target="#to-euler">to-euler</a></li>
   <li><a href="#to-rotation-matrix" id="toc-to-rotation-matrix" class="nav-link" data-scroll-target="#to-rotation-matrix">to-rotation-matrix</a></li>
+  <li><a href="#valid-1" id="toc-valid-1" class="nav-link" data-scroll-target="#valid-1">valid?</a></li>
   <li><a href="#vector" id="toc-vector" class="nav-link" data-scroll-target="#vector">vector</a></li>
   <li><a href="#zero-3" id="toc-zero-3" class="nav-link" data-scroll-target="#zero-3">zero?</a></li>
   </ul></li>
   </ul></li>
-  </ul></li>
   </ul>
 </nav>
-</div>
+    </div>
+<!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Fastmath documentation</h1>
+<h1 class="title">Complex numbers and quaternions</h1>
 </div>
 
 
@@ -304,8 +486,8 @@ window.Quarto = {
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="complex_quaternions_files/md-default35.js" type="text/javascript"></script>
 <script src="complex_quaternions_files/md-default36.js" type="text/javascript"></script>
+<script src="complex_quaternions_files/md-default37.js" type="text/javascript"></script>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> complex-quaternions</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.complex <span class="at">:as</span> cplx]</span>
@@ -314,10 +496,10 @@ window.Quarto = {
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.codox <span class="at">:as</span> codox]</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.ggplot <span class="at">:as</span> gg]</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.clay <span class="at">:as</span> utls]</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            [scicloj.kindly.v4.kind <span class="at">:as</span> kind]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            [scicloj.kindly.v4.kind <span class="at">:as</span> kind]</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            [fastmath.core <span class="at">:as</span> m]</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            [fastmath.matrix <span class="at">:as</span> mat]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="complex-numbers-and-quaternions" class="level1 unnumbered">
-<h1 class="unnumbered">Complex numbers and quaternions</h1>
 <section id="complex-numbers" class="level2">
 <h2 class="anchored" data-anchor-id="complex-numbers">Complex numbers</h2>
 <div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
@@ -466,7 +648,7 @@ Defined functions
 <ul>
 <li><code>re</code>, <code>im</code></li>
 <li><code>delta-eq</code>, <code>csgn</code>, <code>flip</code></li>
-<li><code>abs</code>, <code>norm</code>, <code>conjugate</code></li>
+<li><code>abs</code>, <code>norm</code>, <code>normalize</code>, <code>conjugate</code></li>
 <li><code>arg</code></li>
 <li><code>add</code>, <code>adds</code>, <code>sub</code>, <code>neg</code></li>
 <li><code>scale</code>, <code>mult</code>, <code>mult-I</code>, <code>mult-I-</code>, <code>muladd</code>, <code>sq</code></li>
@@ -504,6 +686,7 @@ Examples
 <li><code>abs</code>: Calculates the magnitude or modulus of a complex number <span class="math inline">\(|z|\)</span>. For <span class="math inline">\(z = a + bi\)</span>: <span class="math display">\[|z| = \sqrt{a^2 + b^2}\]</span> This corresponds to the length of the vector <code>(Vec2. a b)</code>.</li>
 <li><code>norm</code>: Calculates the squared magnitude <span class="math inline">\(|z|^2\)</span>. For <span class="math inline">\(z = a + bi\)</span>: <span class="math display">\[|z|^2 = a^2 + b^2\]</span> This avoids the square root calculation and is often used when comparing magnitudes.</li>
 <li><code>arg</code>: Computes the argument (phase angle) of a complex number <span class="math inline">\(z\)</span>. This is the angle <span class="math inline">\(\phi\)</span> such that <span class="math inline">\(z = |z| (\cos \phi + i \sin \phi)\)</span>, and is typically in the range <span class="math inline">\((-\pi, \pi]\)</span>. Calculated as: <span class="math display">\[\operatorname{arg}(z)=\operatorname{atan2}(\operatorname{im}(z), \operatorname{re}(z))\]</span></li>
+<li><code>normalize</code>: Sets magnitude of a complex number <span class="math inline">\(z\)</span> to 1.0: <span class="math display">\[\frac{z}{|z|}\]</span></li>
 <li><code>conjugate</code>: Returns the complex conjugate of <span class="math inline">\(z\)</span>, denoted <span class="math inline">\(\bar{z}\)</span>. For <span class="math inline">\(z = a + bi\)</span>: <span class="math display">\[\bar{z} = a - bi\]</span> Geometrically, this is a reflection across the real axis.</li>
 <li><code>flip</code>: Swaps the real and imaginary parts of a complex number. For <span class="math inline">\(z = a + bi\)</span>, returns <span class="math inline">\(b + ai\)</span>.</li>
 <li><code>delta-eq</code>: Checks if two complex numbers are approximately equal within a given tolerance. This is essential for floating-point comparisons and equivalent to checking if <span class="math inline">\(|z_1 - z_2| &lt; \text{tolerance}\)</span>.</li>
@@ -525,19 +708,23 @@ Examples
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(cplx/abs z1) <span class="co">;; =&gt; 1.5811388300841898</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>(cplx/norm z1) <span class="co">;; =&gt; 2.5</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>(cplx/arg z1) <span class="co">;; =&gt; -1.2490457723982544</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>(cplx/conjugate z1) <span class="co">;; =&gt; #vec2 [0.5, 1.5]</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>(cplx/flip z1) <span class="co">;; =&gt; #vec2 [-1.5, 0.5]</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>z2 <span class="co">;; =&gt; #vec2 [-0.5, 2.5]</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>(cplx/abs z2) <span class="co">;; =&gt; 2.5495097567963922</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>(cplx/norm z2) <span class="co">;; =&gt; 6.5</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>(cplx/arg z2) <span class="co">;; =&gt; 1.7681918866447774</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>(cplx/conjugate z2) <span class="co">;; =&gt; #vec2 [-0.5, -2.5]</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>(cplx/flip z2) <span class="co">;; =&gt; #vec2 [2.5, -0.5]</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>(cplx/csgn z1) <span class="co">;; =&gt; 1.0</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>(cplx/csgn z2) <span class="co">;; =&gt; -1.0</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>(cplx/csgn cplx/ZERO) <span class="co">;; =&gt; 0.0</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO) <span class="co">;; =&gt; false</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO <span class="fl">0.01</span>) <span class="co">;; =&gt; true</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>(cplx/normalize z1) <span class="co">;; =&gt; #vec2 [0.31622776601683794, -0.9486832980505138]</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>(cplx/abs (cplx/normalize z1)) <span class="co">;; =&gt; 0.9999999999999999</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>(cplx/conjugate z1) <span class="co">;; =&gt; #vec2 [0.5, 1.5]</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>(cplx/flip z1) <span class="co">;; =&gt; #vec2 [-1.5, 0.5]</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>z2 <span class="co">;; =&gt; #vec2 [-0.5, 2.5]</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>(cplx/abs z2) <span class="co">;; =&gt; 2.5495097567963922</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>(cplx/norm z2) <span class="co">;; =&gt; 6.5</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>(cplx/arg z2) <span class="co">;; =&gt; 1.7681918866447774</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>(cplx/normalize z2) <span class="co">;; =&gt; #vec2 [-0.19611613513818404, 0.9805806756909202]</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>(cplx/abs (cplx/normalize z2)) <span class="co">;; =&gt; 1.0</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>(cplx/conjugate z2) <span class="co">;; =&gt; #vec2 [-0.5, -2.5]</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>(cplx/flip z2) <span class="co">;; =&gt; #vec2 [2.5, -0.5]</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>(cplx/csgn z1) <span class="co">;; =&gt; 1.0</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>(cplx/csgn z2) <span class="co">;; =&gt; -1.0</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>(cplx/csgn cplx/ZERO) <span class="co">;; =&gt; 0.0</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO) <span class="co">;; =&gt; false</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO <span class="fl">0.01</span>) <span class="co">;; =&gt; true</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -599,7 +786,7 @@ Examples
 <ul>
 <li><p><strong>Roots</strong></p>
 <ul>
-<li><code>sqrt</code>: Computes the principal square root of a complex number: <span class="math display">\[\sqrt{z} = \sqrt{\frac{|z| + x}{2}} + i \cdot \operatorname{sgn}(y) \cdot \sqrt{\frac{|z| - x}{2}}\]</span></li>
+<li><code>sqrt</code>: Computes the principal square root of a complex number: <span class="math display">\[\sqrt{z} = \sqrt{\frac{|a| + x}{2}} + i \cdot \operatorname{sgn}(b) \cdot \sqrt{\frac{|z| - a}{2}}\]</span></li>
 <li><code>sqrt1z</code>: Computes <span class="math inline">\(\sqrt{1 - z^2}\)</span> for a complex number <span class="math inline">\(z\)</span>.</li>
 </ul></li>
 </ul>
@@ -761,8 +948,8 @@ Examples
 </div>
 </div>
 </section>
-<section id="trigonometric" class="level3">
-<h3 class="anchored" data-anchor-id="trigonometric">Trigonometric</h3>
+<section id="trigonometric-and-hyperbolic" class="level3">
+<h3 class="anchored" data-anchor-id="trigonometric-and-hyperbolic">Trigonometric and Hyperbolic</h3>
 <p>Complex trigonometric and hyperbolic functions extend their real-valued counterparts to the complex plane. They are defined in terms of the complex exponential function:</p>
 <p><span class="math display">\[ \sin z = \frac{e^{iz} - e^{-iz}}{2i} \quad \cos z = \frac{e^{iz} + e^{-iz}}{2} \]</span> <span class="math display">\[ \sinh z = \frac{e^{z} - e^{-z}}{2} \quad \cosh z = \frac{e^{z} + e^{-z}}{2} \]</span></p>
 <p>This leads to relationships between complex trigonometric and hyperbolic functions, such as <span class="math inline">\(\sin(z) = -i \sinh(iz)\)</span> and <span class="math inline">\(\cos(z) = \cosh(iz)\)</span>. These functions are implemented using formulas that provide numerical stability, especially for large arguments.</p>
@@ -939,6 +1126,510 @@ Examples
 </section>
 <section id="quaternions" class="level2">
 <h2 class="anchored" data-anchor-id="quaternions">Quaternions</h2>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>quaternion</code>, <code>complex-&gt;quaternion</code>, <code>ensure-quaternion</code></li>
+</ul>
+</div>
+</div>
+<p>Quaternions extend complex numbers with three imaginary units: <span class="math inline">\(i\)</span>, <span class="math inline">\(j\)</span>, and <span class="math inline">\(k\)</span>, satisfying the relations <span class="math inline">\(i^2 = j^2 = k^2 = ijk = -1\)</span>. They are particularly useful for representing 3D rotations concisely and avoiding gimbal lock.</p>
+<p>In <code>fastmath</code>, quaternions are represented as 4-dimensional vectors using the <code>fastmath.vector/Vec4</code> type. A quaternion <span class="math inline">\(q = a + bi + cj + dk\)</span> corresponds to the vector <code>(Vec4. a b c d)</code>, where <span class="math inline">\(a\)</span> is the scalar (real) part, and <span class="math inline">\((b, c, d)\)</span> is the vector (imaginary) part.</p>
+<p>You can create quaternions using the dedicated <code>quaternion</code> function, or by converting numbers or complex numbers using <code>ensure-quaternion</code>.</p>
+<p>The implementation handles floating-point subtleties, including special values (<code>##Inf</code>, <code>##NaN</code>), for robust calculations across a wide range of inputs.</p>
+<p>This section covers constants, creation, accessors, predicates, basic operations, and advanced functions including power, logarithms, trigonometric functions, and functions specific to 3D rotations.</p>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb14"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span> -<span class="fl">4.0</span>) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 3.0, -4.0]</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">5.0</span> [<span class="fl">1.0</span> <span class="fl">2.0</span> <span class="fl">3.0</span>]) <span class="co">;; =&gt; #vec4 [5.0, 1.0, 2.0, 3.0]</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">7.0</span>) <span class="co">;; =&gt; #vec4 [7.0, 0.0, 0.0, 0.0]</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>(quat/complex-&gt;quaternion (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 0.0, 0.0]</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>(quat/ensure-quaternion <span class="fl">5.0</span>) <span class="co">;; =&gt; #vec4 [5.0, 0.0, 0.0, 0.0]</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>(quat/ensure-quaternion (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 0.0, 0.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<p>We will use these quaternions to illustrate operations:</p>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb15"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q1 </span>(quat/quaternion <span class="fl">0.5</span> -<span class="fl">1.5</span> <span class="fl">2.0</span> -<span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb16"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q2 </span>(quat/quaternion -<span class="fl">0.5</span> <span class="fl">2.5</span> -<span class="fl">1.0</span> <span class="fl">1.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb17"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q3 </span>(quat/quaternion <span class="fl">1.5</span> <span class="fl">0.0</span> <span class="fl">0.0</span> <span class="fl">0.0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb18"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q4 </span>(quat/quaternion <span class="fl">0.0</span> <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb19"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>q2 <span class="co">;; =&gt; #vec4 [-0.5, 2.5, -1.0, 1.5]</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>q3 <span class="co">;; =&gt; #vec4 [1.5, 0.0, 0.0, 0.0]</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>q4 <span class="co">;; =&gt; #vec4 [0.0, 1.0, -2.0, 3.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<p>All of the trigonometric, hyperbolic, <code>exp</code>, <code>log</code> and <code>sqrt</code> functions are based on the following general formula. Let <span class="math inline">\(r_q\)</span> is the real part and <span class="math inline">\(v_q\)</span> is the vector (imaginary) part of quaternion <span class="math inline">\(q\)</span>. Let <span class="math inline">\(z_{in}\)</span> is defined as follows:</p>
+<p><span class="math display">\[z_{in} = r_q + |v_q|i\]</span></p>
+<p>Then, if <span class="math inline">\(f_z\)</span> is given operation on complex number, corresponding quaternion version <span class="math inline">\(f_q\)</span> is:</p>
+<p><span class="math display">\[f_q(q) = \Re(f_z(z_{in})) + \frac{\Im(f_z(z_{in}))}{|v_q|}v_q\]</span></p>
+<section id="constants-1" class="level3">
+<h3 class="anchored" data-anchor-id="constants-1">Constants</h3>
+<p>Predefined quaternion constants for common values.</p>
+<div class="clay-table">
+<div class="table-responsive">
+<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">constant</th>
+<th data-quarto-table-cell-role="th">q</th>
+<th data-quarto-table-cell-role="th">value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ZERO</td>
+<td><span class="math inline">\(0+0i+0j+0k\)</span></td>
+<td>#vec4 [0.0, 0.0, 0.0, 0.0]</td>
+</tr>
+<tr class="even">
+<td>ONE</td>
+<td><span class="math inline">\(1+0i+0j+0k\)</span></td>
+<td>#vec4 [1.0, 0.0, 0.0, 0.0]</td>
+</tr>
+<tr class="odd">
+<td>I</td>
+<td><span class="math inline">\(0+i+0j+0k\)</span></td>
+<td>#vec4 [0.0, 1.0, 0.0, 0.0]</td>
+</tr>
+<tr class="even">
+<td>J</td>
+<td><span class="math inline">\(0+0i+j+0k\)</span></td>
+<td>#vec4 [0.0, 0.0, 1.0, 0.0]</td>
+</tr>
+<tr class="odd">
+<td>K</td>
+<td><span class="math inline">\(0+0i+0j+k\)</span></td>
+<td>#vec4 [0.0, 0.0, 0.0, 1.0]</td>
+</tr>
+<tr class="even">
+<td>-I</td>
+<td><span class="math inline">\(0-i+0j+0k\)</span></td>
+<td>#vec4 [0.0, -1.0, 0.0, 0.0]</td>
+</tr>
+<tr class="odd">
+<td>-J</td>
+<td><span class="math inline">\(0+0i-j+0k\)</span></td>
+<td>#vec4 [0.0, 0.0, -1.0, 0.0]</td>
+</tr>
+<tr class="even">
+<td>-K</td>
+<td><span class="math inline">\(0+0i+0j-k\)</span></td>
+<td>#vec4 [0.0, 0.0, 0.0, -1.0]</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section id="basic-operations-1" class="level3">
+<h3 class="anchored" data-anchor-id="basic-operations-1">Basic operations</h3>
+<p>Functions to create quaternions and access their scalar and vector components.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>scalar</code>, <code>re</code>, <code>vector</code>, <code>im-i</code>, <code>im-j</code>, <code>im-k</code></li>
+<li><code>delta-eq</code>, <code>qsgn</code>, <code>arg</code>, <code>norm</code>, <code>normalize</code>, <code>conjugate</code>, <code>reciprocal</code></li>
+<li><code>add</code>, <code>adds</code>, <code>sub</code>, <code>scale</code>, <code>mult</code>, <code>div</code>, <code>neg</code>, <code>sq</code>, <code>sqrt</code></li>
+</ul>
+</div>
+</div>
+<ul>
+<li><p><strong>Components</strong></p></li>
+<li><p><code>scalar</code>, <code>re</code>: Returns the scalar (real) part <span class="math inline">\(a\)</span> of a quaternion <span class="math inline">\(a+bi+cj+dk\)</span>.</p></li>
+<li><p><code>im-i</code>, <code>im-j</code>, <code>im-k</code>: Return the coefficients of the <span class="math inline">\(i\)</span>, <span class="math inline">\(j\)</span>, and <span class="math inline">\(k\)</span> components, respectively.</p></li>
+<li><p><code>vector</code>: Returns the vector (imaginary) part <span class="math inline">\((b, c, d)\)</span> as a <code>Vec3</code>.</p></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb20"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>(quat/scalar q1) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>(quat/re q1) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>(quat/vector q1) <span class="co">;; =&gt; #vec3 [-1.5, 2.0, -0.5]</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>(quat/im-i q1) <span class="co">;; =&gt; -1.5</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>(quat/im-j q1) <span class="co">;; =&gt; 2.0</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>(quat/im-k q1) <span class="co">;; =&gt; -0.5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<ul>
+<li><p><strong>Properties and Comparisons</strong></p></li>
+<li><p><code>arg</code>: Computes the argument <span class="math inline">\(\theta\)</span> such that <span class="math inline">\(q = |q| (\cos \theta + \mathbf{v} \sin \theta)\)</span>, where <span class="math inline">\(\mathbf{v}\)</span> is a unit 3D vector. Calculated as: <span class="math display">\[\operatorname{arg}(z)=\operatorname{atan2}(|v|, \operatorname{re}(q))\]</span></p></li>
+<li><p><code>norm</code>: Calculates the magnitude (Euclidean norm) of the quaternion: <span class="math display">\[|q| = \sqrt{a^2+b^2+c^2+d^2}\]</span></p></li>
+<li><p><code>normalize</code>: Returns the unit quaternion: <span class="math display">\[\hat{q} = q / |q|\]</span></p></li>
+<li><p><code>conjugate</code>: Returns the conjugate: <span class="math display">\[\bar{q} = a - bi - cj - dk\]</span></p></li>
+<li><p><code>delta-eq</code>: Checks if two quaternions are approximately equal within a tolerance.</p></li>
+<li><p><code>qsgn</code>: Computes the complex signum, returning the sign of the scalar part or 0 for zero.</p></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb21"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>(quat/arg q1) <span class="co">;; =&gt; 1.37713802635057</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>(quat/norm q1) <span class="co">;; =&gt; 2.598076211353316</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>(quat/normalize q1) <span class="co">;; =&gt; #vec4 [0.19245008972987526, -0.5773502691896257, 0.769800358919501, -0.19245008972987526]</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>(quat/norm (quat/normalize q1)) <span class="co">;; =&gt; 1.0</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>(quat/conjugate q1) <span class="co">;; =&gt; #vec4 [0.5, 1.5, -2.0, 0.5]</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>(quat/qsgn q1) <span class="co">;; =&gt; 1.0</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>q2 <span class="co">;; =&gt; #vec4 [-0.5, 2.5, -1.0, 1.5]</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>(quat/arg q2) <span class="co">;; =&gt; 1.7316168074693612</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>(quat/norm q2) <span class="co">;; =&gt; 3.122498999199199</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>(quat/normalize q2) <span class="co">;; =&gt; #vec4 [-0.16012815380508713, 0.8006407690254357, -0.32025630761017426, 0.48038446141526137]</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>(quat/conjugate q2) <span class="co">;; =&gt; #vec4 [-0.5, -2.5, 1.0, -1.5]</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>(quat/qsgn q2) <span class="co">;; =&gt; -1.0</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>(quat/qsgn quat/ZERO) <span class="co">;; =&gt; 0.0</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>(quat/delta-eq (quat/quaternion <span class="fl">1.0000001</span>) quat/ONE) <span class="co">;; =&gt; true</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>(quat/delta-eq (quat/quaternion <span class="fl">1.0001</span>) quat/ONE) <span class="co">;; =&gt; false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<ul>
+<li><strong>Arithemtic Operations</strong></li>
+</ul>
+<p>Basic arithmetic extended to quaternions.</p>
+<ul>
+<li><code>add</code>: Sum of two quaternions: <span class="math display">\[q_1 + q_2 = (a_1+a_2) + (b_1+b_2)i + (c_1+c_2)j + (d_1+d_2)k\]</span></li>
+<li><code>adds</code>: Adds a real scalar <span class="math inline">\(s\)</span> to a quaternion: <span class="math inline">\(q = a+bi+cj+dk\)</span>: <span class="math display">\[q+s = (a+s)+bi+cj+dk\]</span></li>
+<li><code>sub</code>: Difference of two quaternions: <span class="math inline">\(q_1 - q_2 = (a_1-a_2) + (b_1-b_2)i + (c_1-c_2)j + (d_1-d_2)k\)</span>$</li>
+<li><code>scale</code>: Multiplies a quaternion <span class="math inline">\(q\)</span> by a real scalar <span class="math inline">\(s\)</span>: <span class="math display">\[q \cdot s = (as) + (bs)i + (cs)j + (ds)k\]</span></li>
+<li><code>mult</code>: Quaternion multiplication. Note that quaternion multiplication is non-commutative (<span class="math inline">\(q_1 q_2 \neq q_2 q_1\)</span> in general). If <span class="math inline">\(q_1 = a_1 + \mathbf{v}_1\)</span> and <span class="math inline">\(q_2 = a_2 + \mathbf{v}_2\)</span>, where <span class="math inline">\(\mathbf{v}_1, \mathbf{v}_2\)</span> are vector parts: <span class="math display">\[ q_1 q_2 = (a_1 a_2 - \mathbf{v}_1 \cdot \mathbf{v}_2) + (a_1 \mathbf{v}_2 + a_2 \mathbf{v}_1 + \mathbf{v}_1 \times \mathbf{v}_2) \]</span></li>
+<li><code>div</code>: Quaternion division <span class="math display">\[q_1 / q_2 = q_1 \cdot q_2^{-1}\]</span></li>
+<li><code>reciprocal</code>: Returns the reciprocal: <span class="math display">\[q^{-1} = \bar{q} / |q|^2\]</span></li>
+<li><code>neg</code>: Negation: <span class="math display">\[-q = -a - bi - cj - dk\]</span></li>
+<li><code>sq</code>: Square of a quaternion: <span class="math display">\[q^2 = q \cdot q\]</span></li>
+<li><code>sqrt</code>: Computes the principal square root of a quaternion.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb22"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>(quat/add q1 q2) <span class="co">;; =&gt; #vec4 [0.0, 1.0, 1.0, 1.0]</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>(quat/adds q1 <span class="fl">5.0</span>) <span class="co">;; =&gt; #vec4 [5.5, -1.5, 2.0, -0.5]</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>(quat/sub q1 q2) <span class="co">;; =&gt; #vec4 [1.0, -4.0, 3.0, -2.0]</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>(quat/scale q1 <span class="fl">3.0</span>) <span class="co">;; =&gt; #vec4 [1.5, -4.5, 6.0, -1.5]</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>(quat/mult q1 q2) <span class="co">;; =&gt; #vec4 [6.25, 4.5, -0.5, -2.5]</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>(quat/mult q2 q1) <span class="co">;; =&gt; #vec4 [6.25, -0.5, -2.5, 4.5]</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>(quat/div q1 q2) <span class="co">;; =&gt; #vec4 [-0.6923076923076922, -0.3076923076923077, -0.15384615384615385, 0.30769230769230765]</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>(quat/reciprocal q1) <span class="co">;; =&gt; #vec4 [0.07407407407407407, 0.2222222222222222, -0.2962962962962963, 0.07407407407407407]</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>(quat/mult q1 (quat/reciprocal q1)) <span class="co">;; =&gt; #vec4 [0.9999999999999998, 0.0, 0.0, 0.0]</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>(quat/neg q1) <span class="co">;; =&gt; #vec4 [-0.5, 1.5, -2.0, 0.5]</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>(quat/sq q1) <span class="co">;; =&gt; #vec4 [-6.25, -1.5, 2.0, -0.5]</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>(quat/sqrt q1) <span class="co">;; =&gt; #vec4 [1.2446035937906728, -0.6026015060070129, 0.8034686746760172, -0.2008671686690043]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="predicates-1" class="level3">
+<h3 class="anchored" data-anchor-id="predicates-1">Predicates</h3>
+<p>Functions to check the type or state of a quaternion and compute fundamental properties.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>real?</code>, <code>imaginary?</code></li>
+<li><code>zero?</code></li>
+<li><code>inf?</code>, <code>nan?</code></li>
+<li><code>invalid?</code>, <code>valid?</code></li>
+</ul>
+</div>
+</div>
+<ul>
+<li><code>real?</code>: Checks if the quaternion has a zero vector part (<span class="math inline">\(b=c=d=0\)</span>).</li>
+<li><code>imaginary?</code>: Checks if the quaternion has a zero scalar part (<span class="math inline">\(a=0\)</span>).</li>
+<li><code>zero?</code>: Checks if all components are zero (<span class="math inline">\(a=b=c=d=0\)</span>).</li>
+<li><code>inf?</code>, <code>nan?</code>: Checks if any component is infinite or NaN, respectively.</li>
+<li><code>invalid?</code>, <code>valid?</code>: Checks if the quaternion is not a finite, non-NaN value.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb23"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>(quat/real? q3) <span class="co">;; =&gt; true</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>(quat/real? q1) <span class="co">;; =&gt; false</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>(quat/imaginary? q4) <span class="co">;; =&gt; true</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>(quat/imaginary? q1) <span class="co">;; =&gt; false</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>(quat/zero? quat/ZERO) <span class="co">;; =&gt; true</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>(quat/zero? q1) <span class="co">;; =&gt; false</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>(quat/inf? (quat/quaternion <span class="at">##</span>Inf <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>)) <span class="co">;; =&gt; true</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>(quat/nan? (quat/quaternion <span class="dv">1</span> <span class="at">##</span>NaN <span class="dv">2</span> <span class="dv">3</span>)) <span class="co">;; =&gt; true</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>(quat/invalid? (quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>)) <span class="co">;; =&gt; false</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>(quat/valid? (quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>)) <span class="co">;; =&gt; true</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="power-and-logarithms-1" class="level3">
+<h3 class="anchored" data-anchor-id="power-and-logarithms-1">Power and Logarithms</h3>
+<p>Extensions of exponential, logarithm, and power functions to quaternions.</p>
+<ul>
+<li><code>exp</code>: Computes the quaternion exponential <span class="math inline">\(e^q\)</span>.</li>
+<li><code>log</code>: Computes the principal value of the quaternion natural logarithm <span class="math inline">\(\log q\)</span>.</li>
+<li><code>logb</code>: Computes the logarithm of <span class="math inline">\(q\)</span> with a quaternion base <span class="math inline">\(b\)</span>: <span class="math inline">\(\log_b q = (\log q) (\log b)^{-1}\)</span>.</li>
+<li><code>pow</code>: Computes the quaternion power <span class="math inline">\(q_1^{q_2}\)</span> defined as <span class="math inline">\(e^{(\log q_1) q_2}\)</span>.</li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb24"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>(quat/exp q1) <span class="co">;; =&gt; #vec4 [-1.3680759934546958, -0.5413604352188154, 0.7218139136250872, -0.1804534784062718]</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>(quat/log q1) <span class="co">;; =&gt; #vec4 [0.9547712524422192, -0.8102369618391012, 1.0803159491188017, -0.2700789872797004]</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>(quat/logb q1 q2) <span class="co">;; =&gt; #vec4 [-0.20614694633615405, -0.7036653773111262, 0.3406342086858799, -0.011638982288984245]</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>(quat/pow q1 q2) <span class="co">;; =&gt; #vec4 [-9.0178461035907, -18.182612909089467, 4.1908222233068875, 1.419324015861925]</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>(quat/pow q3 q1) <span class="co">;; =&gt; #vec4 [0.6265933369573483, -0.6191317465962343, 0.8255089954616457, -0.20637724886541142]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="trigonometric-and-hyperbolic-1" class="level3">
+<h3 class="anchored" data-anchor-id="trigonometric-and-hyperbolic-1">Trigonometric and Hyperbolic</h3>
+<p>Extensions of standard and hyperbolic trigonometric functions to quaternions.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>sin</code>, <code>cos</code>, <code>tan</code></li>
+<li><code>sec</code>, <code>csc</code>, <code>cot</code></li>
+<li><code>sinh</code>, <code>cosh</code>, <code>tanh</code></li>
+<li><code>sech</code>, <code>csch</code>, <code>coth</code></li>
+<li><code>asin</code>, <code>acos</code>, <code>atan</code></li>
+<li><code>asec</code>, <code>acsc</code>, <code>acot</code></li>
+<li><code>asinh</code>, <code>acosh</code>, <code>atanh</code></li>
+<li><code>asech</code>, <code>acsch</code>, <code>acoth</code></li>
+</ul>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb25"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>(quat/sin q1) <span class="co">;; =&gt; #vec4 [3.087247974413335, -3.2845213397125193, 4.379361786283359, -1.0948404465708397]</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>(quat/cos q1) <span class="co">;; =&gt; #vec4 [5.651169511045248, 1.7943421858300115, -2.3924562477733486, 0.5981140619433372]</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>(quat/tan q1) <span class="co">;; =&gt; #vec4 [0.010202871653497671, -0.5844504887495585, 0.7792673183327447, -0.19481682958318616]</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>(quat/sec q1) <span class="co">;; =&gt; #vec4 [0.1370413436810704, -0.043512951379207854, 0.05801726850561047, -0.014504317126402617]</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>(quat/csc q1) <span class="co">;; =&gt; #vec4 [0.07585997324070858, 0.08070738178603104, -0.10760984238137472, 0.02690246059534368]</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>(quat/cot q1) <span class="co">;; =&gt; #vec4 [0.010338328329859864, 0.5922098454672464, -0.7896131272896618, 0.19740328182241546]</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>(quat/asin q1) <span class="co">;; =&gt; #vec4 [0.18096798983808618, -0.9889006571112673, 1.3185342094816896, -0.3296335523704224]</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>(quat/acos q1) <span class="co">;; =&gt; #vec4 [1.3898283369568103, 0.9889006571112673, -1.3185342094816896, 0.3296335523704224]</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>(quat/atan q1) <span class="co">;; =&gt; #vec4 [1.484700919533427, -0.23215315248464086, 0.3095375366461878, -0.07738438416154696]</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>(quat/asec q1) <span class="co">;; =&gt; #vec4 [1.5014657553875428, -0.2177519631502909, 0.29033595086705455, -0.07258398771676364]</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>(quat/acsc q1) <span class="co">;; =&gt; #vec4 [0.0693305714073537, 0.2177519631502909, -0.29033595086705455, 0.07258398771676364]</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>(quat/acot q1) <span class="co">;; =&gt; #vec4 [0.08609540726146947, 0.23215315248464086, -0.3095375366461878, 0.07738438416154696]</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>(quat/sinh q1) <span class="co">;; =&gt; #vec4 [-0.43239448075125825, -0.3702579047997209, 0.4936772063996279, -0.12341930159990698]</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>(quat/cosh q1) <span class="co">;; =&gt; #vec4 [-0.9356815127034374, -0.17110253041909437, 0.22813670722545917, -0.05703417680636479]</span></span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>(quat/tanh q1) <span class="co">;; =&gt; #vec4 [0.6120359971326302, 0.28378993640212685, -0.37838658186950247, 0.09459664546737562]</span></span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>(quat/sech q1) <span class="co">;; =&gt; #vec4 [-0.9745918753714102, 0.17821783773427158, -0.23762378364569542, 0.059405945911423855]</span></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>(quat/csch q1) <span class="co">;; =&gt; #vec4 [-0.7416646097306075, 0.6350848511892305, -0.8467798015856407, 0.21169495039641018]</span></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>(quat/coth q1) <span class="co">;; =&gt; #vec4 [1.00788189192935, -0.46733646280857977, 0.623115283744773, -0.15577882093619325]</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>(quat/asinh q1) <span class="co">;; =&gt; #vec4 [1.6120874585828928, -0.8010575888838687, 1.0680767851784916, -0.2670191962946229]</span></span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>(quat/acosh q1) <span class="co">;; =&gt; #vec4 [1.6808079158716929, -0.8177032858484982, 1.0902710477979976, -0.2725677619494994]</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>(quat/atanh q1) <span class="co">;; =&gt; #vec4 [0.0648777988712712, -0.7107620150571328, 0.9476826867428436, -0.2369206716857109]</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>(quat/asech q1) <span class="co">;; =&gt; #vec4 [-0.3701071697421568, -0.8833849829668168, 1.1778466439557558, -0.29446166098893894]</span></span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>(quat/acsch q1) <span class="co">;; =&gt; #vec4 [0.07987279637814454, 0.22711377640869046, -0.3028183685449206, 0.07570459213623015]</span></span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>(quat/acoth q1) <span class="co">;; =&gt; #vec4 [0.0648777988712712, 0.2134134990436804, -0.2845513320582405, 0.07113783301456013]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="rotation-functions" class="level3">
+<h3 class="anchored" data-anchor-id="rotation-functions">Rotation Functions</h3>
+<p>Functions specifically for using quaternions to represent and manipulate 3D rotations.</p>
+<div class="callout callout-style-default callout-tip callout-titled" title="Defined functions">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defined functions
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><code>rotation-quaternion</code>, <code>rotate</code></li>
+<li><code>slerp</code></li>
+<li><code>to-euler</code>, <code>from-euler</code></li>
+<li><code>to-angles</code>, <code>from-angles</code></li>
+<li><code>to-rotation-matrix</code>, <code>from-rotation-matrix</code></li>
+</ul>
+</div>
+</div>
+<ul>
+<li><code>rotation-quaternion</code>: Creates a unit quaternion representing a rotation by a given <code>angle</code> around a <code>u</code> (Vec3) axis.</li>
+<li><code>rotate</code>: Rotates a 3D vector <code>in</code> (Vec3) using a quaternion <code>rotq</code>. Can also create the rotation quaternion directly from angle and axis.</li>
+<li><code>to-euler</code>, <code>from-euler</code>: Converts between a quaternion and ZYX (body 3-2-1) Euler angles [roll pitch yaw].</li>
+<li><code>to-angles</code>, <code>from-angles</code>: Converts between a quaternion and Tait-Bryan angles (z-y’-x’’ intrinsic) [x y z].</li>
+<li><code>to-rotation-matrix</code>, <code>from-rotation-matrix</code>: Converts between a quaternion and a 3x3 rotation matrix.</li>
+</ul>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb26"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> rot-q </span>(quat/rotation-quaternion m/HALF_PI (v/vec3 <span class="dv">1</span> <span class="dv">1</span> <span class="dv">0</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb27"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rot-q</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="printedClojure">
+<div class="sourceCode" id="cb28"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865476</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.0</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled" title="Examples">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Examples
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="sourceClojure">
+<div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(quat/rotate (v/vec3 <span class="dv">1</span> <span class="dv">0</span> <span class="dv">0</span>) rot-q) <span class="co">;; =&gt; #vec3 [0.5000000000000002, 0.4999999999999998, -0.7071067811865475]</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>(quat/rotate (v/vec3 <span class="dv">1</span> <span class="dv">0</span> <span class="dv">0</span>) m/HALF_PI (v/vec3 <span class="dv">1</span> <span class="dv">1</span> <span class="dv">0</span>)) <span class="co">;; =&gt; #vec3 [0.5000000000000002, 0.4999999999999998, -0.7071067811865475]</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>(quat/from-euler m/HALF_PI <span class="dv">1</span> m/HALF_PI) <span class="co">;; =&gt; #vec4 [0.6785040502472879, 0.19907851164308485, 0.6785040502472878, 0.19907851164308485]</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>(quat/to-euler (quat/from-euler m/HALF_PI <span class="dv">1</span> m/HALF_PI)) <span class="co">;; =&gt; #vec3 [1.570796326794897, 1.0000000000000004, 1.570796326794897]</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>(quat/from-angles m/HALF_PI <span class="dv">1</span> m/HALF_PI) <span class="co">;; =&gt; #vec4 [0.199078511643085, 0.6785040502472878, -0.19907851164308474, 0.6785040502472878]</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>(quat/to-angles (quat/from-angles m/HALF_PI <span class="dv">1</span> m/HALF_PI)) <span class="co">;; =&gt; #vec3 [1.5707963267948963, 1.0000000000000002, 1.5707963267948963]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<p>For a rotation quaternion <code>rot-q</code> conversion between rotation matrix and back looks as follows</p>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(quat/to-rotation-matrix rot-q)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="printedClojure">
+<div class="sourceCode" id="cb31"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>#mat3x3 [[<span class="fl">0.5000000000000002</span>, <span class="fl">0.5</span>, <span class="fl">0.7071067811865477</span>]</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>         [<span class="fl">0.5</span>, <span class="fl">0.5000000000000002</span>, -<span class="fl">0.7071067811865477</span>]</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>         [-<span class="fl">0.7071067811865477</span>, <span class="fl">0.7071067811865477</span>, <span class="fl">2.220446049250313E-16</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb32"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>(quat/from-rotation-matrix (mat/rows-&gt;mat3x3</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>                            [<span class="fl">0.5</span> <span class="fl">0.5</span> m/SQRT2_2]</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                            [<span class="fl">0.5</span> <span class="fl">0.5</span> (<span class="kw">-</span> m/SQRT2_2)]</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>                            [(<span class="kw">-</span> m/SQRT2_2) m/SQRT2_2 <span class="fl">0.0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="printedClojure">
+<div class="sourceCode" id="cb33"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865475</span> <span class="fl">0.5</span> <span class="fl">0.5</span> <span class="fl">0.0</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="slerp" class="level4">
+<h4 class="anchored" data-anchor-id="slerp">Slerp</h4>
+<p><code>slerp</code> function performs Spherical Linear Interpolation between two unit quaternions <code>q1</code> and <code>q2</code> based on a parameter <code>t</code> in [0, 1]. Useful for animating rotations.</p>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb34"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">0.0</span>) <span class="co">;; =&gt; #vec4 [1.0, 0.0, 0.0, 0.0]</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">0.5</span>) <span class="co">;; =&gt; #vec4 [0.7071067811865476, 0.0, 0.0, 0.7071067811865475]</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">1.0</span>) <span class="co">;; =&gt; #vec4 [0.0, 0.0, 0.0, 1.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s see how quaternion components changes for different <code>t</code>.</p>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb35"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-start </span>(quat/quaternion -<span class="dv">1</span> -<span class="dv">2</span> -<span class="dv">3</span> -<span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb36"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-end </span>(quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="clay-image">
+<img class="clay-image" src="complex_quaternions_files/35.png">
+</div>
+</section>
+</section>
 </section>
 <section id="reference" class="level2">
 <h2 class="anchored" data-anchor-id="reference">Reference</h2>
@@ -1007,7 +1698,7 @@ Examples
 <li><code>(acos z)</code></li>
 </ul>
 <p>acos(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L561">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L565">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh" class="level4">
@@ -1016,7 +1707,7 @@ Examples
 <li><code>(acosh z)</code></li>
 </ul>
 <p>acosh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L709">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L713">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot" class="level4">
@@ -1025,7 +1716,7 @@ Examples
 <li><code>(acot z)</code></li>
 </ul>
 <p>acot(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L661">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L665">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth" class="level4">
@@ -1034,7 +1725,7 @@ Examples
 <li><code>(acoth z)</code></li>
 </ul>
 <p>acoth(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L830">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L834">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc" class="level4">
@@ -1043,7 +1734,7 @@ Examples
 <li><code>(acsc z)</code></li>
 </ul>
 <p>acsc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L634">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L638">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch" class="level4">
@@ -1052,7 +1743,7 @@ Examples
 <li><code>(acsch z)</code></li>
 </ul>
 <p>acsch(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L796">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L800">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add" class="level4">
@@ -1061,7 +1752,7 @@ Examples
 <li><code>(add z1 z2)</code></li>
 </ul>
 <p>Sum of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L103">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L107">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-adds"></span>
 </section>
 <section id="adds" class="level4">
@@ -1070,7 +1761,7 @@ Examples
 <li><code>(adds z v)</code></li>
 </ul>
 <p>Add scalar to complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L109">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-arg"></span>
 </section>
 <section id="arg" class="level4">
@@ -1079,7 +1770,7 @@ Examples
 <li><code>(arg z)</code></li>
 </ul>
 <p>Argument (angle) of the complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asec"></span>
 </section>
 <section id="asec" class="level4">
@@ -1088,7 +1779,7 @@ Examples
 <li><code>(asec z)</code></li>
 </ul>
 <p>asec(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L608">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L612">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech" class="level4">
@@ -1097,7 +1788,7 @@ Examples
 <li><code>(asech z)</code></li>
 </ul>
 <p>asech(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L761">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L765">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin" class="level4">
@@ -1106,7 +1797,7 @@ Examples
 <li><code>(asin z)</code></li>
 </ul>
 <p>asin(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L540">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh" class="level4">
@@ -1115,7 +1806,7 @@ Examples
 <li><code>(asinh z)</code></li>
 </ul>
 <p>asinh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L686">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L690">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan" class="level4">
@@ -1124,7 +1815,7 @@ Examples
 <li><code>(atan z)</code></li>
 </ul>
 <p>atan(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L581">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L585">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh" class="level4">
@@ -1133,7 +1824,7 @@ Examples
 <li><code>(atanh z)</code></li>
 </ul>
 <p>atanh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L735">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L739">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-complex"></span>
 </section>
 <section id="complex" class="level4">
@@ -1155,7 +1846,7 @@ Examples
 <li><code>(conjugate z)</code></li>
 </ul>
 <p>Complex conjugate.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L157">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cos"></span>
 </section>
 <section id="cos" class="level4">
@@ -1164,7 +1855,7 @@ Examples
 <li><code>(cos z)</code></li>
 </ul>
 <p>cos(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L390">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L394">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh" class="level4">
@@ -1173,7 +1864,7 @@ Examples
 <li><code>(cosh z)</code></li>
 </ul>
 <p>cosh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L471">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L475">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot" class="level4">
@@ -1182,7 +1873,7 @@ Examples
 <li><code>(cot z)</code></li>
 </ul>
 <p>csc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L444">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth" class="level4">
@@ -1191,7 +1882,7 @@ Examples
 <li><code>(coth z)</code></li>
 </ul>
 <p>coth(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L524">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L528">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc" class="level4">
@@ -1200,7 +1891,7 @@ Examples
 <li><code>(csc z)</code></li>
 </ul>
 <p>csc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L430">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L434">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch" class="level4">
@@ -1209,7 +1900,7 @@ Examples
 <li><code>(csch z)</code></li>
 </ul>
 <p>csch(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L510">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L514">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csgn"></span>
 </section>
 <section id="csgn" class="level4">
@@ -1239,7 +1930,7 @@ Examples
 <li><code>(div z1 z2)</code></li>
 </ul>
 <p>Division of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L162">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L166">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ensure-complex"></span>
 </section>
 <section id="ensure-complex" class="level4">
@@ -1257,7 +1948,7 @@ Examples
 <li><code>(exp z)</code></li>
 </ul>
 <p>exp(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L214">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L218">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-flip"></span>
 </section>
 <section id="flip" class="level4">
@@ -1311,7 +2002,7 @@ Examples
 <li><code>(log z)</code></li>
 </ul>
 <p>log(z), principal value</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L228">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L232">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logb"></span>
 </section>
 <section id="logb" class="level4">
@@ -1320,7 +2011,7 @@ Examples
 <li><code>(logb z b)</code></li>
 </ul>
 <p>log with base b</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L244">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L248">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-muladd"></span>
 </section>
 <section id="muladd" class="level4">
@@ -1329,7 +2020,7 @@ Examples
 <li><code>(muladd x y z)</code></li>
 </ul>
 <p>(+ z (* x y))</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult"></span>
 </section>
 <section id="mult" class="level4">
@@ -1338,7 +2029,7 @@ Examples
 <li><code>(mult z1 z2)</code></li>
 </ul>
 <p>Multiplication of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L126">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L130">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult-I"></span>
 </section>
 <section id="mult-i" class="level4">
@@ -1347,7 +2038,7 @@ Examples
 <li><code>(mult-I z)</code></li>
 </ul>
 <p>Multiplication by 0+i.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L136">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult-I-"></span>
 </section>
 <section id="mult-i-" class="level4">
@@ -1356,7 +2047,7 @@ Examples
 <li><code>(mult-I- z)</code></li>
 </ul>
 <p>Multiplication by 0-i.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-nan?"></span>
 </section>
 <section id="nan" class="level4">
@@ -1374,7 +2065,7 @@ Examples
 <li><code>(neg z)</code></li>
 </ul>
 <p>Negation of the complex number, -z.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L187">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L191">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-norm"></span>
 </section>
 <section id="norm" class="level4">
@@ -1385,6 +2076,15 @@ Examples
 <p>Calculates the squared magnitude (norm) of the complex number <code>z</code>.</p>
 <p>Also known as the squared modulus or squared Euclidean norm.</p>
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L89">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize"></span>
+</section>
+<section id="normalize" class="level4">
+<h4 class="anchored" data-anchor-id="normalize">normalize</h4>
+<ul>
+<li><code>(normalize z)</code></li>
+</ul>
+<p>Normalize complex number to make abs(z) = 1</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pow"></span>
 </section>
 <section id="pow" class="level4">
@@ -1393,7 +2093,7 @@ Examples
 <li><code>(pow z1 z2)</code></li>
 </ul>
 <p>Complex power, z^z</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L349">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L353">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-re"></span>
 </section>
 <section id="re" class="level4">
@@ -1420,7 +2120,7 @@ Examples
 <li><code>(reciprocal z)</code></li>
 </ul>
 <p>Reciprocal, 1/z.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L173">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L177">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale"></span>
 </section>
 <section id="scale" class="level4">
@@ -1429,7 +2129,7 @@ Examples
 <li><code>(scale z v)</code></li>
 </ul>
 <p>Multiplication by real number</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L120">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec" class="level4">
@@ -1438,7 +2138,7 @@ Examples
 <li><code>(sec z)</code></li>
 </ul>
 <p>sec(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L416">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L420">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech" class="level4">
@@ -1447,7 +2147,7 @@ Examples
 <li><code>(sech z)</code></li>
 </ul>
 <p>sech(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L496">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L500">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin" class="level4">
@@ -1456,7 +2156,7 @@ Examples
 <li><code>(sin z)</code></li>
 </ul>
 <p>sin(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L379">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L383">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh" class="level4">
@@ -1465,7 +2165,7 @@ Examples
 <li><code>(sinh z)</code></li>
 </ul>
 <p>sinh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L460">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L464">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq" class="level4">
@@ -1474,7 +2174,7 @@ Examples
 <li><code>(sq z)</code></li>
 </ul>
 <p>Square of the complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L149">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt" class="level4">
@@ -1483,7 +2183,7 @@ Examples
 <li><code>(sqrt z)</code></li>
 </ul>
 <p>Sqrt of the complex number, sqrt(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L192">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L196">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt1z"></span>
 </section>
 <section id="sqrt1z" class="level4">
@@ -1492,7 +2192,7 @@ Examples
 <li><code>(sqrt1z z)</code></li>
 </ul>
 <p>sqrt(1-z^2)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L204">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L208">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub" class="level4">
@@ -1501,7 +2201,7 @@ Examples
 <li><code>(sub z1 z2)</code></li>
 </ul>
 <p>Difference of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L114">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L118">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tan"></span>
 </section>
 <section id="tan" class="level4">
@@ -1510,7 +2210,7 @@ Examples
 <li><code>(tan z)</code></li>
 </ul>
 <p>tan(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L402">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L406">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh" class="level4">
@@ -1519,7 +2219,7 @@ Examples
 <li><code>(tanh z)</code></li>
 </ul>
 <p>tanh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L482">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L486">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-valid?"></span>
 </section>
 <section id="valid" class="level4">
@@ -1542,45 +2242,59 @@ Examples
 </section>
 <section id="fastmath.quaternion" class="level3">
 <h3 class="anchored" data-anchor-id="fastmath.quaternion">fastmath.quaternion</h3>
+<p>Operations for quaternions.</p>
+<p>Quaternions extend complex numbers and are widely used in fields like 3D graphics and physics for representing rotations.</p>
+<p>In <code>fastmath</code>, quaternions are represented as 4-dimensional vectors (<a href="#LOS-Vec4">Vec4</a>) where the components correspond to the scalar part and the three imaginary parts (<span class="math inline">\(i\)</span>, <span class="math inline">\(j\)</span>, <span class="math inline">\(k\)</span>): <span class="math inline">\(q = a + bi + cj + dk\)</span> is <code>(Vec4. a b c d)</code>.</p>
+<p>The namespace provides functions for creating quaternions, accessing scalar and vector parts, predicates (e.g., <a href="#LOS-real?">real?</a>, <a href="#LOS-zero?">zero?</a>, <a href="#LOS-inf?">inf?</a>, <a href="#LOS-nan?">nan?</a>), and fundamental properties (magnitude, argument, normalization).</p>
+<p>A comprehensive set of operations is included: - <strong>Arithmetic:</strong> Addition, subtraction, multiplication, division, negation, square, reciprocal, scaling, conjugation. - <strong>Transcendental Functions:</strong> Extensions of standard complex functions like exponential, logarithm, power, trigonometric, hyperbolic functions, and their inverses. - <strong>Rotations:</strong> Functions for creating rotation quaternions, rotating 3D vectors (<a href="#LOS-rotate">rotate</a>), spherical linear interpolation (SLERP), and conversions between quaternions, Euler angles (ZYX body 3-2-1 and z-y’-x’’), and rotation matrices.</p>
+<p>The implementation correctly handles floating-point special values, including <code>##Inf</code> and <code>##NaN</code>.</p>
 <span id="#LOS--I"></span>
 <section id="i-2" class="level4">
 <h4 class="anchored" data-anchor-id="i-2">-I</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L20">source</a></small><hr style="margin: 0"></div>
+<p>0-1i+0j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L34">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS--J"></span>
 </section>
 <section id="j" class="level4">
 <h4 class="anchored" data-anchor-id="j">-J</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L21">source</a></small><hr style="margin: 0"></div>
+<p>0+0i-1j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS--K"></span>
 </section>
 <section id="k" class="level4">
 <h4 class="anchored" data-anchor-id="k">-K</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L22">source</a></small><hr style="margin: 0"></div>
+<p>0+0i+0j-1k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L36">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-I"></span>
 </section>
 <section id="i-3" class="level4">
 <h4 class="anchored" data-anchor-id="i-3">I</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L17">source</a></small><hr style="margin: 0"></div>
+<p>0+1i+0j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L31">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-J"></span>
 </section>
 <section id="j-1" class="level4">
 <h4 class="anchored" data-anchor-id="j-1">J</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L18">source</a></small><hr style="margin: 0"></div>
+<p>0+0i+1j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L32">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-K"></span>
 </section>
 <section id="k-1" class="level4">
 <h4 class="anchored" data-anchor-id="k-1">K</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L19">source</a></small><hr style="margin: 0"></div>
+<p>0+0i+0j+1k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L33">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ONE"></span>
 </section>
 <section id="one-1" class="level4">
 <h4 class="anchored" data-anchor-id="one-1">ONE</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L16">source</a></small><hr style="margin: 0"></div>
+<p>1+0i+0j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ZERO"></span>
 </section>
 <section id="zero-2" class="level4">
 <h4 class="anchored" data-anchor-id="zero-2">ZERO</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L15">source</a></small><hr style="margin: 0"></div>
+<p>0+0i+0j+0k</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L29">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acos"></span>
 </section>
 <section id="acos-1" class="level4">
@@ -1588,7 +2302,8 @@ Examples
 <ul>
 <li><code>(acos q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L351">source</a></small><hr style="margin: 0"></div>
+<p>acos(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L440">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh-1" class="level4">
@@ -1596,7 +2311,8 @@ Examples
 <ul>
 <li><code>(acosh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L357">source</a></small><hr style="margin: 0"></div>
+<p>acosh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L446">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot-1" class="level4">
@@ -1604,7 +2320,8 @@ Examples
 <ul>
 <li><code>(acot q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L355">source</a></small><hr style="margin: 0"></div>
+<p>acot(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L444">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth-1" class="level4">
@@ -1612,7 +2329,8 @@ Examples
 <ul>
 <li><code>(acoth q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L361">source</a></small><hr style="margin: 0"></div>
+<p>acoth(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L450">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc-1" class="level4">
@@ -1620,7 +2338,8 @@ Examples
 <ul>
 <li><code>(acsc q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L354">source</a></small><hr style="margin: 0"></div>
+<p>acsc(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L443">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch-1" class="level4">
@@ -1628,7 +2347,8 @@ Examples
 <ul>
 <li><code>(acsch q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L360">source</a></small><hr style="margin: 0"></div>
+<p>acsch(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L449">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add-1" class="level4">
@@ -1637,7 +2357,16 @@ Examples
 <li><code>(add q1 q2)</code></li>
 </ul>
 <p>Sum of two quaternions</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L85">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L110">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-adds"></span>
+</section>
+<section id="adds-1" class="level4">
+<h4 class="anchored" data-anchor-id="adds-1">adds</h4>
+<ul>
+<li><code>(adds q1 s)</code></li>
+</ul>
+<p>Adds scalar to a quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L114">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-arg"></span>
 </section>
 <section id="arg-1" class="level4">
@@ -1646,7 +2375,7 @@ Examples
 <li><code>(arg quaternion)</code></li>
 </ul>
 <p>Argument of quaternion, atan2(|vector(q)|, re(q))</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asec"></span>
 </section>
 <section id="asec-1" class="level4">
@@ -1654,7 +2383,8 @@ Examples
 <ul>
 <li><code>(asec q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L353">source</a></small><hr style="margin: 0"></div>
+<p>asec(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L442">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech-1" class="level4">
@@ -1662,7 +2392,8 @@ Examples
 <ul>
 <li><code>(asech q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L359">source</a></small><hr style="margin: 0"></div>
+<p>asech(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L448">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin-1" class="level4">
@@ -1670,7 +2401,8 @@ Examples
 <ul>
 <li><code>(asin q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L350">source</a></small><hr style="margin: 0"></div>
+<p>asin(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L439">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh-1" class="level4">
@@ -1678,7 +2410,8 @@ Examples
 <ul>
 <li><code>(asinh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L356">source</a></small><hr style="margin: 0"></div>
+<p>asinh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L445">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan-1" class="level4">
@@ -1686,7 +2419,8 @@ Examples
 <ul>
 <li><code>(atan q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L352">source</a></small><hr style="margin: 0"></div>
+<p>atan(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L441">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh-1" class="level4">
@@ -1694,7 +2428,8 @@ Examples
 <ul>
 <li><code>(atanh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L358">source</a></small><hr style="margin: 0"></div>
+<p>atanh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L447">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-complex->quaternion"></span>
 </section>
 <section id="complex-quaternion" class="level4">
@@ -1703,7 +2438,7 @@ Examples
 <li><code>(complex-&gt;quaternion z)</code></li>
 </ul>
 <p>Create quaternion from complex number</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L44">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-conjugate"></span>
 </section>
 <section id="conjugate-1" class="level4">
@@ -1711,8 +2446,8 @@ Examples
 <ul>
 <li><code>(conjugate quaternion)</code></li>
 </ul>
-<p>Returns conjugate of quaternion</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0"></div>
+<p>Conjugate of the quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L126">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cos"></span>
 </section>
 <section id="cos-1" class="level4">
@@ -1720,7 +2455,8 @@ Examples
 <ul>
 <li><code>(cos q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L339">source</a></small><hr style="margin: 0"></div>
+<p>cos(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L428">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh-1" class="level4">
@@ -1728,7 +2464,8 @@ Examples
 <ul>
 <li><code>(cosh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L345">source</a></small><hr style="margin: 0"></div>
+<p>cosh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L434">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot-1" class="level4">
@@ -1736,7 +2473,8 @@ Examples
 <ul>
 <li><code>(cot q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L343">source</a></small><hr style="margin: 0"></div>
+<p>cot(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L432">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth-1" class="level4">
@@ -1744,7 +2482,8 @@ Examples
 <ul>
 <li><code>(coth q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0"></div>
+<p>coth(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L438">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc-1" class="level4">
@@ -1752,7 +2491,8 @@ Examples
 <ul>
 <li><code>(csc q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L342">source</a></small><hr style="margin: 0"></div>
+<p>csc(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L431">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch-1" class="level4">
@@ -1760,7 +2500,8 @@ Examples
 <ul>
 <li><code>(csch q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L348">source</a></small><hr style="margin: 0"></div>
+<p>csch(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L437">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-delta-eq"></span>
 </section>
 <section id="delta-eq-1" class="level4">
@@ -1770,7 +2511,7 @@ Examples
 <li><code>(delta-eq q1 q2 accuracy)</code></li>
 </ul>
 <p>Compare quaternions with given accuracy (10e-6 by default)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L90">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-div"></span>
 </section>
 <section id="div-1" class="level4">
@@ -1778,8 +2519,17 @@ Examples
 <ul>
 <li><code>(div q1 q2)</code></li>
 </ul>
-<p>Divide two quaternions</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L130">source</a></small><hr style="margin: 0"></div>
+<p>Division two quaternions</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L151">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ensure-quaternion"></span>
+</section>
+<section id="ensure-quaternion" class="level4">
+<h4 class="anchored" data-anchor-id="ensure-quaternion">ensure-quaternion</h4>
+<ul>
+<li><code>(ensure-quaternion q)</code></li>
+</ul>
+<p>Convert possible number, complex number to a quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-exp"></span>
 </section>
 <section id="exp-1" class="level4">
@@ -1787,7 +2537,8 @@ Examples
 <ul>
 <li><code>(exp q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L185">source</a></small><hr style="margin: 0"></div>
+<p>exp(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L208">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-from-angles"></span>
 </section>
 <section id="from-angles" class="level4">
@@ -1796,8 +2547,17 @@ Examples
 <li><code>(from-angles [x y z])</code></li>
 <li><code>(from-angles x y z)</code></li>
 </ul>
-<p>Convert Tait–Bryan angles z-y′-x” to quaternion.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L286">source</a></small><hr style="margin: 0"></div>
+<p>Converts Tait–Bryan angles (z-y′-x’’ intrinsic rotation sequence) to a quaternion.</p>
+<p>The angles <code>[x y z]</code> correspond to rotations around the local (body) x-axis, followed by the intermediate local y’-axis, and finally the local z’’-axis.</p>
+<p>Parameters:</p>
+<ul>
+<li><code>x</code>: Rotation around the x-axis (radians).</li>
+<li><code>y</code>: Rotation around the y’-axis (radians).</li>
+<li><code>z</code>: Rotation around the z’’-axis (radians).</li>
+</ul>
+<p>Can accept individual double values or a <code>Vec3</code> containing <code>[x y z]</code>.</p>
+<p>Returns A quaternion <code>Vec4</code> representing the rotation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-from-euler"></span>
 </section>
 <section id="from-euler" class="level4">
@@ -1806,13 +2566,17 @@ Examples
 <li><code>(from-euler [roll pitch yaw])</code></li>
 <li><code>(from-euler roll pitch yaw)</code></li>
 </ul>
-<p>Convert Euler ZYX (body 3-2-1) representation to quaternion</p>
-<p>Input should be 3d vector contating roll (x), pitch (y) and yaw (z) angles, or individual values.</p>
+<p>Converts Euler angles (ZYX body 3-2-1 convention) to a quaternion.</p>
+<p>The rotation sequence is intrinsic Z-Y’-X’’ (yaw, pitch, roll), applied to the body frame. The order of input parameters or vector components is [roll pitch yaw].</p>
+<p>Parameters:</p>
 <ul>
-<li>roll and yaw should be from <code>[-pi, pi]</code> range</li>
-<li>pitch should be from <code>[-pi/2, pi/2]</code> range</li>
+<li><code>roll</code>: Rotation around the x-axis (radians), expected range <code>[-pi, pi]</code>.</li>
+<li><code>pitch</code>: Rotation around the y’-axis (radians), expected range <code>[-pi/2, pi/2]</code>.</li>
+<li><code>yaw</code>: Rotation around the z’’-axis (radians), expected range <code>[-pi, pi]</code>.</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L244">source</a></small><hr style="margin: 0"></div>
+<p>Can accept individual double values or a <code>Vec3</code> containing [roll pitch yaw].</p>
+<p>Returns A quaternion <code>Vec4</code> representing the rotation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L296">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-from-rotation-matrix"></span>
 </section>
 <section id="from-rotation-matrix" class="level4">
@@ -1820,8 +2584,10 @@ Examples
 <ul>
 <li><code>(from-rotation-matrix m)</code></li>
 </ul>
-<p>Convert rotation 3x3 matrix to a quaternion</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L317">source</a></small><hr style="margin: 0"></div>
+<p>Converts a 3x3 rotation matrix to a quaternion.</p>
+<p>Takes a <a href="#LOS-Mat3x3">Mat3x3</a> rotation matrix as input. Returns a <a href="#LOS-Vec4">Vec4</a> representing the quaternion that represents the same rotation.</p>
+<p>The resulting quaternion is a unit quaternion if the input matrix is a valid rotation matrix. The method handles numerical stability and normalization.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L401">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-im-i"></span>
 </section>
 <section id="im-i" class="level4">
@@ -1830,7 +2596,7 @@ Examples
 <li><code>(im-i quaternion)</code></li>
 </ul>
 <p>Return i imaginary part</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L71">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-im-j"></span>
 </section>
 <section id="im-j" class="level4">
@@ -1839,7 +2605,7 @@ Examples
 <li><code>(im-j quaternion)</code></li>
 </ul>
 <p>Return j imaginary part</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L50">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-im-k"></span>
 </section>
 <section id="im-k" class="level4">
@@ -1848,7 +2614,7 @@ Examples
 <li><code>(im-k quaternion)</code></li>
 </ul>
 <p>Return k imaginary part</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L51">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L73">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-imaginary?"></span>
 </section>
 <section id="imaginary-1" class="level4">
@@ -1857,7 +2623,7 @@ Examples
 <li><code>(imaginary? quaternion)</code></li>
 </ul>
 <p>Is q is a pure imaginary number?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L54">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L76">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-inf?"></span>
 </section>
 <section id="inf-1" class="level4">
@@ -1866,7 +2632,16 @@ Examples
 <li><code>(inf? quaternion)</code></li>
 </ul>
 <p>Is infinitive?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L56">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L78">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-invalid?"></span>
+</section>
+<section id="invalid-1" class="level4">
+<h4 class="anchored" data-anchor-id="invalid-1">invalid?</h4>
+<ul>
+<li><code>(invalid? z)</code></li>
+</ul>
+<p>Is NaN or Inf?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L86">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log-1" class="level4">
@@ -1874,7 +2649,8 @@ Examples
 <ul>
 <li><code>(log q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L186">source</a></small><hr style="margin: 0"></div>
+<p>log(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L209">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logb"></span>
 </section>
 <section id="logb-1" class="level4">
@@ -1883,7 +2659,7 @@ Examples
 <li><code>(logb quaternion b)</code></li>
 </ul>
 <p>log with base b</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L188">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L211">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult"></span>
 </section>
 <section id="mult-1" class="level4">
@@ -1891,8 +2667,8 @@ Examples
 <ul>
 <li><code>(mult q1 q2)</code></li>
 </ul>
-<p>Multiply two quaternions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0"></div>
+<p>Multiplication of two quaternions.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-nan?"></span>
 </section>
 <section id="nan-1" class="level4">
@@ -1901,7 +2677,7 @@ Examples
 <li><code>(nan? quaternion)</code></li>
 </ul>
 <p>Is NaN?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L60">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L82">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-neg"></span>
 </section>
 <section id="neg-1" class="level4">
@@ -1909,8 +2685,8 @@ Examples
 <ul>
 <li><code>(neg quaternion)</code></li>
 </ul>
-<p>Negation of quaternion.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L135">source</a></small><hr style="margin: 0"></div>
+<p>Negation of the quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L156">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-norm"></span>
 </section>
 <section id="norm-1" class="level4">
@@ -1919,16 +2695,16 @@ Examples
 <li><code>(norm quaternion)</code></li>
 </ul>
 <p>Norm of the quaternion, length of the vector</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L102">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-normalize"></span>
 </section>
-<section id="normalize" class="level4">
-<h4 class="anchored" data-anchor-id="normalize">normalize</h4>
+<section id="normalize-1" class="level4">
+<h4 class="anchored" data-anchor-id="normalize-1">normalize</h4>
 <ul>
 <li><code>(normalize quaternion)</code></li>
 </ul>
-<p>Normalize quaternion</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L81">source</a></small><hr style="margin: 0"></div>
+<p>Normalize quaternion, unit of quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L106">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pow"></span>
 </section>
 <section id="pow-1" class="level4">
@@ -1937,7 +2713,7 @@ Examples
 <li><code>(pow q p)</code></li>
 </ul>
 <p>Quaternion power</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L193">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-qsgn"></span>
 </section>
 <section id="qsgn" class="level4">
@@ -1946,9 +2722,9 @@ Examples
 <li><code>(qsgn re im-i im-j im-k)</code></li>
 <li><code>(qsgn q)</code></li>
 </ul>
-<p>sgn of the quaternion.</p>
-<p>Returns <code>0</code> for <code>0+0i+0j+0k</code> or calls <code>m/sgn</code> on real part otherwise.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L152">source</a></small><hr style="margin: 0"></div>
+<p>Computes the signum of a quaternion.</p>
+<p>Returns <code>0.0</code> for the zero quaternion (<span class="math inline">\(0+0i+0j+0k\)</span>). For any other quaternion, returns the sign of its scalar part.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L173">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-quaternion"></span>
 </section>
 <section id="quaternion" class="level4">
@@ -1959,7 +2735,7 @@ Examples
 <li><code>(quaternion a)</code></li>
 </ul>
 <p>Create quaternion from individual values or scalar and vector parts, reprezented as <code>Vec4</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L24">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L38">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-re"></span>
 </section>
 <section id="re-1" class="level4">
@@ -1968,7 +2744,7 @@ Examples
 <li><code>(re quaternion)</code></li>
 </ul>
 <p>Returns scalar part of quaternion</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L39">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L61">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-real?"></span>
 </section>
 <section id="real-1" class="level4">
@@ -1977,7 +2753,7 @@ Examples
 <li><code>(real? quaternion)</code></li>
 </ul>
 <p>Is q is a real number?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L53">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L75">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-reciprocal"></span>
 </section>
 <section id="reciprocal-1" class="level4">
@@ -1985,7 +2761,8 @@ Examples
 <ul>
 <li><code>(reciprocal quaternion)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L105">source</a></small><hr style="margin: 0"></div>
+<p>Reciprocal of the quaternion</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L134">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotate"></span>
 </section>
 <section id="rotate" class="level4">
@@ -1995,7 +2772,7 @@ Examples
 <li><code>(rotate in angle u)</code></li>
 </ul>
 <p>Rotate 3d <code>in</code> vector around axis <code>u</code>, the same as <code>fastmath.vector/axis-rotate</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L205">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L239">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-quaternion"></span>
 </section>
 <section id="rotation-quaternion" class="level4">
@@ -2003,8 +2780,15 @@ Examples
 <ul>
 <li><code>(rotation-quaternion angle u)</code></li>
 </ul>
-<p>Create rotation quaternion around vector u and angle alpha</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L198">source</a></small><hr style="margin: 0"></div>
+<p>Creates a unit quaternion representing a rotation.</p>
+<p>The rotation is defined by an <code>angle</code> (in radians) and a 3D vector <code>u</code> specifying the axis of rotation. The axis vector <code>u</code> is normalized internally to ensure a unit quaternion result.</p>
+<p>Parameters:</p>
+<ul>
+<li><code>angle</code>: The rotation angle in radians (double).</li>
+<li><code>u</code>: The axis of rotation (Vec3). It will be normalized before use.</li>
+</ul>
+<p>Returns A unit quaternion (Vec4) representing the rotation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L221">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scalar"></span>
 </section>
 <section id="scalar" class="level4">
@@ -2013,7 +2797,7 @@ Examples
 <li><code>(scalar quaternion)</code></li>
 </ul>
 <p>Returns scalar part of quaternion, double</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L57">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale"></span>
 </section>
 <section id="scale-1" class="level4">
@@ -2022,7 +2806,7 @@ Examples
 <li><code>(scale quaternion scale)</code></li>
 </ul>
 <p>Scale the quaternion</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L93">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L122">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec-1" class="level4">
@@ -2030,7 +2814,8 @@ Examples
 <ul>
 <li><code>(sec q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L341">source</a></small><hr style="margin: 0"></div>
+<p>sec(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L430">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech-1" class="level4">
@@ -2038,7 +2823,8 @@ Examples
 <ul>
 <li><code>(sech q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L347">source</a></small><hr style="margin: 0"></div>
+<p>sech(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L436">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin-1" class="level4">
@@ -2046,7 +2832,8 @@ Examples
 <ul>
 <li><code>(sin q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L338">source</a></small><hr style="margin: 0"></div>
+<p>sin(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L427">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh-1" class="level4">
@@ -2054,16 +2841,30 @@ Examples
 <ul>
 <li><code>(sinh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L344">source</a></small><hr style="margin: 0"></div>
+<p>sinh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L433">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-slerp"></span>
 </section>
-<section id="slerp" class="level4">
-<h4 class="anchored" data-anchor-id="slerp">slerp</h4>
+<section id="slerp-1" class="level4">
+<h4 class="anchored" data-anchor-id="slerp-1">slerp</h4>
 <ul>
 <li><code>(slerp q1 q2 t)</code></li>
 </ul>
-<p>Interpolate quaternions</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0"></div>
+<p>Performs Spherical Linear Interpolation (SLERP) between two quaternions.</p>
+<p>SLERP interpolates along the shortest arc on the unit sphere, providing smooth interpolation between rotations represented by unit quaternions.</p>
+<p>Parameters:</p>
+<ul>
+<li><code>q1</code>: The starting quaternion (Vec4).</li>
+<li><code>q2</code>: The ending quaternion (Vec4).</li>
+<li><code>t</code>: The interpolation parameter (double). Should be in the range [0.0, 1.0].
+<ul>
+<li>If <code>t=0.0</code>, returns <code>q1</code>.</li>
+<li>If <code>t=1.0</code>, returns <code>q2</code>.</li>
+<li>For <code>0.0 &lt; t &lt; 1.0</code>, returns an interpolated quaternion. The parameter <code>t</code> is internally constrained to [0.0, 1.0].</li>
+</ul></li>
+</ul>
+<p>Note: This function is typically used with unit quaternions for rotation interpolation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L250">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq-1" class="level4">
@@ -2071,8 +2872,8 @@ Examples
 <ul>
 <li><code>(sq quaternion)</code></li>
 </ul>
-<p>Square of quaternion.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0"></div>
+<p>Square of the quaternion.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L160">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt-1" class="level4">
@@ -2080,7 +2881,8 @@ Examples
 <ul>
 <li><code>(sqrt q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L184">source</a></small><hr style="margin: 0"></div>
+<p>sqrt(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L207">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub-1" class="level4">
@@ -2089,7 +2891,7 @@ Examples
 <li><code>(sub q1 q2)</code></li>
 </ul>
 <p>Difference of two quaternions</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L89">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tan"></span>
 </section>
 <section id="tan-1" class="level4">
@@ -2097,7 +2899,8 @@ Examples
 <ul>
 <li><code>(tan q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L340">source</a></small><hr style="margin: 0"></div>
+<p>tan(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L429">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh-1" class="level4">
@@ -2105,7 +2908,8 @@ Examples
 <ul>
 <li><code>(tanh q)</code></li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L346">source</a></small><hr style="margin: 0"></div>
+<p>tanh(q)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L435">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-angles"></span>
 </section>
 <section id="to-angles" class="level4">
@@ -2113,8 +2917,8 @@ Examples
 <ul>
 <li><code>(to-angles q)</code></li>
 </ul>
-<p>Convert quaternion to Tait–Bryan angles, z-y′-x”.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L269">source</a></small><hr style="margin: 0"></div>
+<p>Converts a quaternion <code>q</code> to Tait–Bryan angles using the z-y′-x’’ intrinsic rotation sequence. The input quaternion is normalized before calculation. Returns a <code>Vec3</code> representing the angles <code>[x y z]</code>. These angles correspond to rotations around the local (body) x-axis, followed by the intermediate local y’-axis, and finally the local z’’-axis. Output angles are typically in the range <code>[-pi, pi]</code> for x and z, and <code>[-pi/2, pi/2]</code> for y.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L329">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-euler"></span>
 </section>
 <section id="to-euler" class="level4">
@@ -2122,9 +2926,8 @@ Examples
 <ul>
 <li><code>(to-euler q)</code></li>
 </ul>
-<p>Convert quaternion to Euler ZYX (body 3-2-1). Quaternion will be normalized before calculations.</p>
-<p>Output will contain roll (x), pitch (y) and yaw (z) angles.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L226">source</a></small><hr style="margin: 0"></div>
+<p>Converts a quaternion <code>q</code> to ZYX (body 3-2-1) Euler angles. The input quaternion is normalized before calculation. Returns a <code>Vec3</code> representing the angles <code>[roll pitch yaw]</code>. Roll is the angle around the x-axis, pitch around the y’-axis, and yaw around the z’’-axis. Output angles are typically in [-pi, pi] for roll/yaw and [-pi/2, pi/2] for pitch.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L276">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-rotation-matrix"></span>
 </section>
 <section id="to-rotation-matrix" class="level4">
@@ -2132,8 +2935,23 @@ Examples
 <ul>
 <li><code>(to-rotation-matrix q)</code></li>
 </ul>
-<p>Convert quaternion to rotation 3x3 matrix</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L304">source</a></small><hr style="margin: 0"></div>
+<p>Converts a quaternion to a 3x3 rotation matrix.</p>
+<p>The input quaternion is normalized internally to ensure a valid rotation matrix. Unit quaternions are used to represent rotations.</p>
+<p>Parameters:</p>
+<ul>
+<li><code>q</code>: The quaternion (Vec4) to convert.</li>
+</ul>
+<p>Returns A 3x3 rotation matrix (Mat3x3).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L379">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-valid?"></span>
+</section>
+<section id="valid-1" class="level4">
+<h4 class="anchored" data-anchor-id="valid-1">valid?</h4>
+<ul>
+<li><code>(valid? z)</code></li>
+</ul>
+<p>Is valid complex (not NaN or Inf)?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L87">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vector"></span>
 </section>
 <section id="vector" class="level4">
@@ -2142,7 +2960,7 @@ Examples
 <li><code>(vector quaternion)</code></li>
 </ul>
 <p>Returns vector part of quaternion, <code>Vec3</code> type</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L43">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero?"></span>
 </section>
 <section id="zero-3" class="level4">
@@ -2151,16 +2969,16 @@ Examples
 <li><code>(zero? quaternion)</code></li>
 </ul>
 <p>Is zero?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L55">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0"></div>
 <div style="background-color:grey;height:2px;width:100%;"></div>
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/complex_quaternions.clj">clay/complex_quaternions.clj</a></small></small></pre></div>
-</section>
+
+
 </section>
 </section>
 </section>
 
-</main>
-<!-- /main column -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -2578,6 +3396,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./ml.html" class="pagination-link" aria-label="Machine Learning">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Machine Learning</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./easings.html" class="pagination-link" aria-label="Easings">
+        <span class="nav-page-text">Easings</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 

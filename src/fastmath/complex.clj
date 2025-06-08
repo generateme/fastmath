@@ -95,6 +95,10 @@
     ##Inf
     (+ (m/sq (.x z)) (m/sq (.y z)))))
 
+(defn normalize
+  "Normalize complex number to make abs(z) = 1"
+  ^Vec2 [^Vec2 z] (v/normalize z))
+
 (defn arg
   "Argument (angle) of the complex number."
   ^double [z]

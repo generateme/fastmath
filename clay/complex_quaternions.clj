@@ -5,7 +5,9 @@
             [fastmath.dev.codox :as codox]
             [fastmath.dev.ggplot :as gg]
             [fastmath.dev.clay :as utls]
-            [scicloj.kindly.v4.kind :as kind]))
+            [scicloj.kindly.v4.kind :as kind]
+            [fastmath.core :as m]
+            [fastmath.matrix :as mat]))
 
 ;; # Complex numbers and quaternions {.unnumbered}
 
@@ -73,7 +75,7 @@
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `re`, `im`
 ;; * `delta-eq`, `csgn`, `flip`
-;; * `abs`, `norm`, `conjugate`
+;; * `abs`, `norm`, `normalize`, `conjugate`
 ;; * `arg`
 ;; * `add`, `adds`, `sub`, `neg`
 ;; * `scale`, `mult`, `mult-I`, `mult-I-`, `muladd`, `sq`
@@ -95,6 +97,7 @@
 ;;     *   `abs`: Calculates the magnitude or modulus of a complex number $|z|$. For $z = a + bi$: $$|z| = \sqrt{a^2 + b^2}$$ This corresponds to the length of the vector `(Vec2. a b)`.
 ;;     *   `norm`: Calculates the squared magnitude $|z|^2$. For $z = a + bi$: $$|z|^2 = a^2 + b^2$$ This avoids the square root calculation and is often used when comparing magnitudes.
 ;;     *   `arg`: Computes the argument (phase angle) of a complex number $z$. This is the angle $\phi$ such that $z = |z| (\cos \phi + i \sin \phi)$, and is typically in the range $(-\pi, \pi]$. Calculated as: $$\operatorname{arg}(z)=\operatorname{atan2}(\operatorname{im}(z), \operatorname{re}(z))$$
+;;     *   `normalize`: Sets magnitude of a complex number $z$ to 1.0: $$\frac{z}{|z|}$$
 ;;     *   `conjugate`: Returns the complex conjugate of $z$, denoted $\bar{z}$. For $z = a + bi$: $$\bar{z} = a - bi$$ Geometrically, this is a reflection across the real axis.
 ;;     *   `flip`: Swaps the real and imaginary parts of a complex number. For $z = a + bi$, returns $b + ai$.
 ;;     *   `delta-eq`: Checks if two complex numbers are approximately equal within a given tolerance. This is essential for floating-point comparisons and equivalent to checking if $|z_1 - z_2| < \text{tolerance}$.
@@ -105,12 +108,16 @@
   (cplx/abs z1)
   (cplx/norm z1)
   (cplx/arg z1)
+  (cplx/normalize z1)
+  (cplx/abs (cplx/normalize z1))
   (cplx/conjugate z1)
   (cplx/flip z1)
   z2
   (cplx/abs z2)
   (cplx/norm z2)
   (cplx/arg z2)
+  (cplx/normalize z2)
+  (cplx/abs (cplx/normalize z2))
   (cplx/conjugate z2)
   (cplx/flip z2)
   (cplx/csgn z1)
@@ -238,7 +245,7 @@
   [(gg/->image (gg/complex-function #(cplx/logb z1 %) {:title "f(z)=log_z(z1)"}))
    (gg/->image (gg/complex-function #(cplx/logb % z2) {:title "f(z)=log_z2(z)"}))]])
 
-;; ### Trigonometric
+;; ### Trigonometric and Hyperbolic
 
 ;; Complex trigonometric and hyperbolic functions extend their real-valued counterparts to the complex plane. They are defined in terms of the complex exponential function:
 ;;
@@ -356,6 +363,294 @@
    (gg/->image (gg/complex-function cplx/acoth {:title "f(z)=acoth(z)"}))]])
 
 ;; ## Quaternions
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `quaternion`, `complex->quaternion`, `ensure-quaternion`
+;; :::
+
+;; Quaternions extend complex numbers with three imaginary units: $i$, $j$, and $k$, satisfying the relations $i^2 = j^2 = k^2 = ijk = -1$. They are particularly useful for representing 3D rotations concisely and avoiding gimbal lock.
+;;
+;; In `fastmath`, quaternions are represented as 4-dimensional vectors using the `fastmath.vector/Vec4` type. A quaternion $q = a + bi + cj + dk$ corresponds to the vector `(Vec4. a b c d)`, where $a$ is the scalar (real) part, and $(b, c, d)$ is the vector (imaginary) part.
+;;
+;; You can create quaternions using the dedicated `quaternion` function, or by converting numbers or complex numbers using `ensure-quaternion`.
+;;
+;; The implementation handles floating-point subtleties, including special values (`##Inf`, `##NaN`), for robust calculations across a wide range of inputs.
+;;
+;; This section covers constants, creation, accessors, predicates, basic operations, and advanced functions including power, logarithms, trigonometric functions, and functions specific to 3D rotations.
+;;
+
+(utls/examples-note
+  (quat/quaternion 1.0 -2.0 3.0 -4.0)
+  (quat/quaternion 5.0 [1.0 2.0 3.0])
+  (quat/quaternion 7.0)
+  (quat/complex->quaternion (cplx/complex 1.0 -2.0))
+  (quat/ensure-quaternion 5.0)
+  (quat/ensure-quaternion (cplx/complex 1.0 -2.0)))
+
+;;
+;; We will use these quaternions to illustrate operations:
+
+(def q1 (quat/quaternion 0.5 -1.5 2.0 -0.5))
+(def q2 (quat/quaternion -0.5 2.5 -1.0 1.5))
+(def q3 (quat/quaternion 1.5 0.0 0.0 0.0)) 
+(def q4 (quat/quaternion 0.0 1.0 -2.0 3.0))
+
+(utls/examples-note q1 q2 q3 q4)
+
+;; All of the trigonometric, hyperbolic, `exp`, `log` and `sqrt` functions are based on the following general formula. Let $r_q$ is the real part and $v_q$ is the vector (imaginary) part of quaternion $q$. Let $z_{in}$ is defined as follows:
+
+;; $$z_{in} = r_q + |v_q|i$$
+
+;; Then, if $f_z$ is given operation on complex number, corresponding quaternion version $f_q$ is:
+
+;; $$f_q(q) = \Re(f_z(z_{in})) + \frac{\Im(f_z(z_{in}))}{|v_q|}v_q$$
+
+;; ### Constants
+;;
+;; Predefined quaternion constants for common values.
+
+(kind/table
+ {:column-names ["constant" "q" "value"]
+  :row-vectors [['ZERO (kind/md "$0+0i+0j+0k$") (str quat/ZERO)]
+                ['ONE (kind/md "$1+0i+0j+0k$") (str quat/ONE)]
+                ['I (kind/md "$0+i+0j+0k$") (str quat/I)]
+                ['J (kind/md "$0+0i+j+0k$") (str quat/J)]
+                ['K (kind/md "$0+0i+0j+k$") (str quat/K)]
+                ['-I (kind/md "$0-i+0j+0k$") (str quat/-I)]
+                ['-J (kind/md "$0+0i-j+0k$") (str quat/-J)]
+                ['-K (kind/md "$0+0i+0j-k$") (str quat/-K)]]})
+
+;; ### Basic operations
+;;
+;; Functions to create quaternions and access their scalar and vector components.
+;;
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `scalar`, `re`, `vector`, `im-i`, `im-j`, `im-k`
+;; * `delta-eq`, `qsgn`, `arg`, `norm`, `normalize`, `conjugate`, `reciprocal`
+;; * `add`, `adds`, `sub`, `scale`, `mult`, `div`, `neg`, `sq`, `sqrt`
+;; :::
+
+;; * **Components**
+
+;; *   `scalar`, `re`: Returns the scalar (real) part $a$ of a quaternion $a+bi+cj+dk$.
+;; *   `im-i`, `im-j`, `im-k`: Return the coefficients of the $i$, $j$, and $k$ components, respectively.
+;; *   `vector`: Returns the vector (imaginary) part $(b, c, d)$ as a `Vec3`.
+
+(utls/examples-note
+  (quat/scalar q1)
+  (quat/re q1)
+  (quat/vector q1)
+  (quat/im-i q1)
+  (quat/im-j q1)
+  (quat/im-k q1))
+
+;; * **Properties and Comparisons**
+
+;; *   `arg`: Computes the argument $\theta$ such that $q = |q| (\cos \theta + \mathbf{v} \sin \theta)$, where $\mathbf{v}$ is a unit 3D vector. Calculated as: $$\operatorname{arg}(z)=\operatorname{atan2}(|v|, \operatorname{re}(q))$$
+;; *   `norm`: Calculates the magnitude (Euclidean norm) of the quaternion: $$|q| = \sqrt{a^2+b^2+c^2+d^2}$$
+;; *   `normalize`: Returns the unit quaternion: $$\hat{q} = q / |q|$$
+;; *   `conjugate`: Returns the conjugate: $$\bar{q} = a - bi - cj - dk$$
+;; *   `delta-eq`: Checks if two quaternions are approximately equal within a tolerance.
+;; *   `qsgn`: Computes the complex signum, returning the sign of the scalar part or 0 for zero.
+
+(utls/examples-note
+  q1
+  (quat/arg q1)
+  (quat/norm q1)
+  (quat/normalize q1)
+  (quat/norm (quat/normalize q1))
+  (quat/conjugate q1)
+  (quat/qsgn q1)
+  q2
+  (quat/arg q2)
+  (quat/norm q2)
+  (quat/normalize q2)
+  (quat/conjugate q2)
+  (quat/qsgn q2)
+  (quat/qsgn quat/ZERO)
+  (quat/delta-eq (quat/quaternion 1.0000001) quat/ONE)
+  (quat/delta-eq (quat/quaternion 1.0001) quat/ONE))
+
+;; * **Arithemtic Operations**
+
+;; Basic arithmetic extended to quaternions.
+;;
+;; *   `add`: Sum of two quaternions: $$q_1 + q_2 = (a_1+a_2) + (b_1+b_2)i + (c_1+c_2)j + (d_1+d_2)k$$
+;; *   `adds`: Adds a real scalar $s$ to a quaternion: $q = a+bi+cj+dk$: $$q+s = (a+s)+bi+cj+dk$$
+;; *   `sub`: Difference of two quaternions: $q_1 - q_2 = (a_1-a_2) + (b_1-b_2)i + (c_1-c_2)j + (d_1-d_2)k$$
+;; *   `scale`: Multiplies a quaternion $q$ by a real scalar $s$: $$q \cdot s = (as) + (bs)i + (cs)j + (ds)k$$
+;; *   `mult`: Quaternion multiplication. Note that quaternion multiplication is non-commutative ($q_1 q_2 \neq q_2 q_1$ in general).
+;;     If $q_1 = a_1 + \mathbf{v}_1$ and $q_2 = a_2 + \mathbf{v}_2$, where $\mathbf{v}_1, \mathbf{v}_2$ are vector parts:
+;;     $$ q_1 q_2 = (a_1 a_2 - \mathbf{v}_1 \cdot \mathbf{v}_2) + (a_1 \mathbf{v}_2 + a_2 \mathbf{v}_1 + \mathbf{v}_1 \times \mathbf{v}_2) $$
+;; *   `div`: Quaternion division $$q_1 / q_2 = q_1 \cdot q_2^{-1}$$
+;; *   `reciprocal`: Returns the reciprocal: $$q^{-1} = \bar{q} / |q|^2$$
+;; *   `neg`: Negation: $$-q = -a - bi - cj - dk$$
+;; *   `sq`: Square of a quaternion: $$q^2 = q \cdot q$$
+;; *   `sqrt`: Computes the principal square root of a quaternion.
+
+(utls/examples-note
+  (quat/add q1 q2)
+  (quat/adds q1 5.0)
+  (quat/sub q1 q2)
+  (quat/scale q1 3.0)
+  (quat/mult q1 q2)
+  (quat/mult q2 q1)
+  (quat/div q1 q2)
+  (quat/reciprocal q1)
+  (quat/mult q1 (quat/reciprocal q1)) 
+  (quat/neg q1)
+  (quat/sq q1)
+  (quat/sqrt q1))
+
+;; ### Predicates
+
+;; Functions to check the type or state of a quaternion and compute fundamental properties.
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `real?`, `imaginary?`
+;; * `zero?`
+;; * `inf?`, `nan?`
+;; * `invalid?`, `valid?`
+;; :::
+;;
+;; *   `real?`: Checks if the quaternion has a zero vector part ($b=c=d=0$).
+;; *   `imaginary?`: Checks if the quaternion has a zero scalar part ($a=0$).
+;; *   `zero?`: Checks if all components are zero ($a=b=c=d=0$).
+;; *   `inf?`, `nan?`: Checks if any component is infinite or NaN, respectively.
+;; *   `invalid?`, `valid?`: Checks if the quaternion is not a finite, non-NaN value.
+
+(utls/examples-note
+  (quat/real? q3)
+  (quat/real? q1)
+  (quat/imaginary? q4)
+  (quat/imaginary? q1)
+  (quat/zero? quat/ZERO)
+  (quat/zero? q1)
+  (quat/inf? (quat/quaternion ##Inf 1 2 3))
+  (quat/nan? (quat/quaternion 1 ##NaN 2 3))
+  (quat/invalid? (quat/quaternion 1 2 3 4))
+  (quat/valid? (quat/quaternion 1 2 3 4)))
+
+;; ### Power and Logarithms
+;;
+;; Extensions of exponential, logarithm, and power functions to quaternions.
+;;
+;; *   `exp`: Computes the quaternion exponential $e^q$.
+;; *   `log`: Computes the principal value of the quaternion natural logarithm $\log q$.
+;; *   `logb`: Computes the logarithm of $q$ with a quaternion base $b$: $\log_b q = (\log q) (\log b)^{-1}$.
+;; *   `pow`: Computes the quaternion power $q_1^{q_2}$ defined as $e^{(\log q_1) q_2}$.
+
+(utls/examples-note
+  (quat/exp q1)
+  (quat/log q1)
+  (quat/logb q1 q2)
+  (quat/pow q1 q2)
+  (quat/pow q3 q1))
+
+;; ### Trigonometric and Hyperbolic
+;;
+;; Extensions of standard and hyperbolic trigonometric functions to quaternions.
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `sin`, `cos`, `tan`
+;; * `sec`, `csc`, `cot`
+;; * `sinh`, `cosh`, `tanh`
+;; * `sech`, `csch`, `coth`
+;; * `asin`, `acos`, `atan`
+;; * `asec`, `acsc`, `acot`
+;; * `asinh`, `acosh`, `atanh`
+;; * `asech`, `acsch`, `acoth`
+;; :::
+
+(utls/examples-note
+  (quat/sin q1)
+  (quat/cos q1)
+  (quat/tan q1)
+  (quat/sec q1)
+  (quat/csc q1)
+  (quat/cot q1)
+  (quat/asin q1)
+  (quat/acos q1)
+  (quat/atan q1)
+  (quat/asec q1)
+  (quat/acsc q1)
+  (quat/acot q1)
+  (quat/sinh q1)
+  (quat/cosh q1)
+  (quat/tanh q1)
+  (quat/sech q1)
+  (quat/csch q1)
+  (quat/coth q1)
+  (quat/asinh q1)
+  (quat/acosh q1)
+  (quat/atanh q1)
+  (quat/asech q1)
+  (quat/acsch q1)
+  (quat/acoth q1))
+
+;; ### Rotation Functions
+;;
+;; Functions specifically for using quaternions to represent and manipulate 3D rotations.
+;;
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `rotation-quaternion`, `rotate`
+;; * `slerp`
+;; * `to-euler`, `from-euler`
+;; * `to-angles`, `from-angles`
+;; * `to-rotation-matrix`, `from-rotation-matrix`
+;; :::
+
+;; *   `rotation-quaternion`: Creates a unit quaternion representing a rotation by a given `angle` around a `u` (Vec3) axis.
+;; *   `rotate`: Rotates a 3D vector `in` (Vec3) using a quaternion `rotq`. Can also create the rotation quaternion directly from angle and axis.
+;; *   `to-euler`, `from-euler`: Converts between a quaternion and ZYX (body 3-2-1) Euler angles [roll pitch yaw].
+;; *   `to-angles`, `from-angles`: Converts between a quaternion and Tait-Bryan angles (z-y'-x'' intrinsic) [x y z].
+;; *   `to-rotation-matrix`, `from-rotation-matrix`: Converts between a quaternion and a 3x3 rotation matrix.
+
+(def rot-q (quat/rotation-quaternion m/HALF_PI (v/vec3 1 1 0)))
+
+rot-q
+
+(utls/examples-note
+  (quat/rotate (v/vec3 1 0 0) rot-q)
+  (quat/rotate (v/vec3 1 0 0) m/HALF_PI (v/vec3 1 1 0))
+  (quat/from-euler m/HALF_PI 1 m/HALF_PI)
+  (quat/to-euler (quat/from-euler m/HALF_PI 1 m/HALF_PI))
+  (quat/from-angles m/HALF_PI 1 m/HALF_PI)
+  (quat/to-angles (quat/from-angles m/HALF_PI 1 m/HALF_PI)))
+
+;; For a rotation quaternion `rot-q` conversion between rotation matrix and back looks as follows
+
+(quat/to-rotation-matrix rot-q)
+
+(quat/from-rotation-matrix (mat/rows->mat3x3
+                            [0.5 0.5 m/SQRT2_2]
+                            [0.5 0.5 (- m/SQRT2_2)]
+                            [(- m/SQRT2_2) m/SQRT2_2 0.0]))
+
+;; #### Slerp
+
+;; `slerp` function performs Spherical Linear Interpolation between two unit quaternions `q1` and `q2` based on a parameter `t` in [0, 1]. Useful for animating rotations.
+
+(utls/examples
+  (quat/slerp quat/ONE (quat/quaternion 0 0 0 1) 0.0)
+  (quat/slerp quat/ONE (quat/quaternion 0 0 0 1) 0.5)
+  (quat/slerp quat/ONE (quat/quaternion 0 0 0 1) 1.0))
+
+;; Let's see how quaternion components changes for different `t`.
+
+(def q-start (quat/quaternion -1 -2 -3 -4))
+(def q-end (quat/quaternion 1 2 3 4))
+
+(gg/->image (gg/functions [["re" (comp quat/re (partial quat/slerp q-start q-end))]
+                           ["im i" (comp quat/im-i (partial quat/slerp q-start q-end))]
+                           ["im j" (comp quat/im-j (partial quat/slerp q-start q-end))]
+                           ["im k" (comp quat/im-k (partial quat/slerp q-start q-end))]]
+                          {:title "SLERP between q-start and q-end"
+                           :xlab "t"
+                           :ylab "component value"
+                           :legend-name "component"}))
 
 ;; ## Reference
 

@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-99.9.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Vector fields – Fastmath documentation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./efloat.html" rel="next">
+<link href="./easings.html" rel="prev">
+<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./fields.html">Vector fields</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Fastmath documentation</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vectors and matrices</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./random.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistics</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./polynomials.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Polynomials</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./special.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Special functions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./calculus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calculus</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./interpolation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpolation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Optimization</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Machine Learning</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Complex numbers and quaternions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./easings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Easings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./fields.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Vector fields</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./efloat.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFloat</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#reference" id="toc-reference" class="nav-link active" data-scroll-target="#reference">Reference</a>
+  <ul>
+  <li><a href="#fastmath.fields" id="toc-fastmath.fields" class="nav-link" data-scroll-target="#fastmath.fields">fastmath.fields</a>
+  <ul>
+  <li><a href="#skip-random-fields" id="toc-skip-random-fields" class="nav-link" data-scroll-target="#skip-random-fields"><em>skip-random-fields</em></a></li>
+  <li><a href="#angle-between" id="toc-angle-between" class="nav-link" data-scroll-target="#angle-between">angle-between</a></li>
+  <li><a href="#combine" id="toc-combine" class="nav-link" data-scroll-target="#combine">combine</a></li>
+  <li><a href="#composition" id="toc-composition" class="nav-link" data-scroll-target="#composition">composition</a></li>
+  <li><a href="#cross" id="toc-cross" class="nav-link" data-scroll-target="#cross">cross</a></li>
+  <li><a href="#curl" id="toc-curl" class="nav-link" data-scroll-target="#curl">curl</a></li>
+  <li><a href="#derivative" id="toc-derivative" class="nav-link" data-scroll-target="#derivative">derivative</a></li>
+  <li><a href="#divergence" id="toc-divergence" class="nav-link" data-scroll-target="#divergence">divergence</a></li>
+  <li><a href="#dot" id="toc-dot" class="nav-link" data-scroll-target="#dot">dot</a></li>
+  <li><a href="#field" id="toc-field" class="nav-link" data-scroll-target="#field">field</a></li>
+  <li><a href="#fields-list" id="toc-fields-list" class="nav-link" data-scroll-target="#fields-list">fields-list</a></li>
+  <li><a href="#fields-list-not-random" id="toc-fields-list-not-random" class="nav-link" data-scroll-target="#fields-list-not-random">fields-list-not-random</a></li>
+  <li><a href="#fields-list-random" id="toc-fields-list-random" class="nav-link" data-scroll-target="#fields-list-random">fields-list-random</a></li>
+  <li><a href="#fields-map" id="toc-fields-map" class="nav-link" data-scroll-target="#fields-map">fields-map</a></li>
+  <li><a href="#grad-x" id="toc-grad-x" class="nav-link" data-scroll-target="#grad-x">grad-x</a></li>
+  <li><a href="#grad-y" id="toc-grad-y" class="nav-link" data-scroll-target="#grad-y">grad-y</a></li>
+  <li><a href="#heading" id="toc-heading" class="nav-link" data-scroll-target="#heading">heading</a></li>
+  <li><a href="#jacobian" id="toc-jacobian" class="nav-link" data-scroll-target="#jacobian">jacobian</a></li>
+  <li><a href="#magnitude" id="toc-magnitude" class="nav-link" data-scroll-target="#magnitude">magnitude</a></li>
+  <li><a href="#multiplication" id="toc-multiplication" class="nav-link" data-scroll-target="#multiplication">multiplication</a></li>
+  <li><a href="#parametrization" id="toc-parametrization" class="nav-link" data-scroll-target="#parametrization">parametrization</a></li>
+  <li><a href="#random-configuration" id="toc-random-configuration" class="nav-link" data-scroll-target="#random-configuration">random-configuration</a></li>
+  <li><a href="#random-field" id="toc-random-field" class="nav-link" data-scroll-target="#random-field">random-field</a></li>
+  <li><a href="#randomize-configuration" id="toc-randomize-configuration" class="nav-link" data-scroll-target="#randomize-configuration">randomize-configuration</a></li>
+  <li><a href="#scalar-vector-field" id="toc-scalar-vector-field" class="nav-link" data-scroll-target="#scalar-vector-field">scalar-&gt;vector-field</a></li>
+  <li><a href="#sum" id="toc-sum" class="nav-link" data-scroll-target="#sum">sum</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Vector fields</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style></style>
+<style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style>
+<style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="fields_files/md-default0.js" type="text/javascript"></script>
+<script src="fields_files/md-default1.js" type="text/javascript"></script>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> fields</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.fields <span class="at">:as</span> fields]</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.codox <span class="at">:as</span> codox]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="reference" class="level2">
+<h2 class="anchored" data-anchor-id="reference">Reference</h2>
+<section id="fastmath.fields" class="level3">
+<h3 class="anchored" data-anchor-id="fastmath.fields">fastmath.fields</h3>
+<p>Vector field functions.</p>
+<p>Vector fields are functions R<sup>2-&gt;R</sup>2.</p>
+<p>Names are taken from fractal flames world where such fields are call <code>variations</code>. Most implementations are taken from <a href="http://jwildfire.org/">JWildfire</a> software.</p>
+<p>### Creation</p>
+<p>To create vector field call <a href="#LOS-field">field</a> multimethod with name of the field as keyword.</p>
+<p>Some of the vector fields require additional configuration as a map of parameters as keywords and values. Call <a href="#LOS-parametrization">parametrization</a> to create random one or to merge with provided.</p>
+<p>Additionally you can provide <code>amount</code> parameter which is scaling factor for vector field (default: <code>1.0</code>).</p>
+<p>### Derived fields</p>
+<p>You can use several method to derive new vector field from the other one(s). Possible options are:</p>
+<ul>
+<li><a href="#LOS-derivative">derivative</a>, <a href="#LOS-grad-x">grad-x</a>, <a href="#LOS-grad-y">grad-y</a> - directional derivative of the field</li>
+<li><a href="#LOS-sum">sum</a> - sum of two fields</li>
+<li><a href="#LOS-multiply">multiply</a> - multiplication of the fields</li>
+<li><a href="#LOS-composition">composition</a> - composition of the fields</li>
+<li><a href="#LOS-angles">angles</a> - angles of the field vectors</li>
+</ul>
+<p>### Scalar fields</p>
+<p>You can derive scalar fields from given vector field(s):</p>
+<ul>
+<li><a href="#LOS-jacobian">jacobian</a> - determinant of jacobian matrix</li>
+<li><a href="#LOS-divergence">divergence</a> - divergence of the field</li>
+<li><a href="#LOS-cross">cross</a> - cross product of the fields (as a determinant of the 2x2 matrix of vectors)</li>
+<li><a href="#LOS-dot">dot</a> - dot product</li>
+<li><a href="#LOS-angle-between">angle-between</a> - angle between vectors from fields.</li>
+</ul>
+<p>### Combinations</p>
+<p>The other option is to create vector field using some of the above possibilities. Combination is a tree of field operations with parametrizations. Functions:</p>
+<ul>
+<li><a href="#LOS-combine">combine</a> - create vector field randomly of from given parametrization.</li>
+<li><a href="#LOS-random-configuration">random-configuration</a> - returns random configuration as a map</li>
+<li><a href="#LOS-randomize-configuration">randomize-configuration</a> - change parametrization for given configuration.</li>
+</ul>
+<span id="#LOS-*skip-random-fields*"></span>
+<section id="skip-random-fields" class="level4">
+<h4 class="anchored" data-anchor-id="skip-random-fields"><em>skip-random-fields</em></h4>
+<p>When random configuration for <a href="#LOS-combine">combine</a> is used. Skip vector fields which are random.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L162">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-angle-between"></span>
+</section>
+<section id="angle-between" class="level4">
+<h4 class="anchored" data-anchor-id="angle-between">angle-between</h4>
+<p>Angle between input vector and result of the vector field.</p>
+<p>In case when two vector fields are given, cross product is taken from result of vector fields.</p>
+<p>Resulting value is from range <code>[-PI,PI]</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L270">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-combine"></span>
+</section>
+<section id="combine" class="level4">
+<h4 class="anchored" data-anchor-id="combine">combine</h4>
+<ul>
+<li><code>(combine {:keys [type name amount config var step var1 var2]})</code></li>
+<li><code>(combine)</code></li>
+</ul>
+<p>Create composite vector field function based on configuration</p>
+<p>Call without argument to get random vector field.</p>
+<p>Configuration is a tree structure where nodes are one of the following</p>
+<ul>
+<li><code>{:type :variation :name NAME :amount AMOUNT :config CONFIG}</code> where
+<ul>
+<li>NAME is variation name (keyword)</li>
+<li>AMOUNT is scaling factor</li>
+<li>CONFIG is variation parametrization</li>
+</ul></li>
+<li><code>{:type :operation :name OPERATION :amount AMOUNT :var1 VAR1 :var2 VAR2}</code> where
+<ul>
+<li>OPERATION is one of the operations (see below)</li>
+<li>AMOUNT is scaling factor</li>
+<li>VAR1 and VAR2 two variations to combine</li>
+</ul></li>
+<li><code>{:type :operation :name :derivative :amount AMOUNT :var VAR :step STEP}</code> where
+<ul>
+<li>AMOUNT is scaling factor</li>
+<li>VAR variation, subject to calculate derivative</li>
+<li>STEP dx and dy value</li>
+</ul></li>
+</ul>
+<p>Possible OPERATIONs are:</p>
+<ul>
+<li><code>:add</code> - sum of two variations</li>
+<li><code>:mult</code> - multiplication</li>
+<li><code>:comp</code> - composition</li>
+<li><code>:angles</code> - vector field from angles</li>
+</ul>
+<p>See <a href="#LOS-random-configuration">random-configuration</a> for example.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L354">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-composition"></span>
+</section>
+<section id="composition" class="level4">
+<h4 class="anchored" data-anchor-id="composition">composition</h4>
+<ul>
+<li><code>(composition f1 f2 amount)</code></li>
+<li><code>(composition f1 f2)</code></li>
+</ul>
+<p>Compose two vector fields.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L286">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cross"></span>
+</section>
+<section id="cross" class="level4">
+<h4 class="anchored" data-anchor-id="cross">cross</h4>
+<p>2d cross product (det of the 2x2 matrix) of the input vector and result of the vector field.</p>
+<p>In case when two vector fields are given, cross product is taken from results of vector fields.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L262">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-curl"></span>
+</section>
+<section id="curl" class="level4">
+<h4 class="anchored" data-anchor-id="curl">curl</h4>
+<ul>
+<li><code>(curl f)</code></li>
+<li><code>(curl f h)</code></li>
+</ul>
+<p>Curl (2d version) of the field.</p>
+<p>See: https://youtu.be/rB83DpBJQsE?t=855</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L226">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-derivative"></span>
+</section>
+<section id="derivative" class="level4">
+<h4 class="anchored" data-anchor-id="derivative">derivative</h4>
+<ul>
+<li><code>(derivative f amount h)</code></li>
+<li><code>(derivative f h)</code></li>
+<li><code>(derivative f)</code></li>
+</ul>
+<p>Calculate directional derivative of fn. Derivative is calculated along [1,1] vector with <code>h</code> as a step (default <code>1.0e-6</code>).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L174">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-divergence"></span>
+</section>
+<section id="divergence" class="level4">
+<h4 class="anchored" data-anchor-id="divergence">divergence</h4>
+<ul>
+<li><code>(divergence f)</code></li>
+<li><code>(divergence f h)</code></li>
+</ul>
+<p>Divergence of the field.</p>
+<p>See: https://youtu.be/rB83DpBJQsE?t=855</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L213">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dot"></span>
+</section>
+<section id="dot" class="level4">
+<h4 class="anchored" data-anchor-id="dot">dot</h4>
+<p>Dot product of the input vector and result of the vector field.</p>
+<p>In case when two vector fields are given, cross product is taken from result of vector fields.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L266">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-field"></span>
+</section>
+<section id="field" class="level4">
+<h4 class="anchored" data-anchor-id="field">field</h4>
+<p>Return vector field for given name and options: amount (scaling factor) and parametrization.</p>
+<p>Default scaling factor is 1.0, default parametrization is random.</p>
+<p>Resulting function operates on <a href="#LOS-Vec2">Vec2</a> type.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L101">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fields-list"></span>
+</section>
+<section id="fields-list" class="level4">
+<h4 class="anchored" data-anchor-id="fields-list">fields-list</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L155">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fields-list-not-random"></span>
+</section>
+<section id="fields-list-not-random" class="level4">
+<h4 class="anchored" data-anchor-id="fields-list-not-random">fields-list-not-random</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L152">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fields-list-random"></span>
+</section>
+<section id="fields-list-random" class="level4">
+<h4 class="anchored" data-anchor-id="fields-list-random">fields-list-random</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L148">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fields-map"></span>
+</section>
+<section id="fields-map" class="level4">
+<h4 class="anchored" data-anchor-id="fields-map">fields-map</h4>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L156">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-grad-x"></span>
+</section>
+<section id="grad-x" class="level4">
+<h4 class="anchored" data-anchor-id="grad-x">grad-x</h4>
+<ul>
+<li><code>(grad-x f amount h)</code></li>
+<li><code>(grad-x f h)</code></li>
+<li><code>(grad-x f)</code></li>
+</ul>
+<p>Calculate gradient along x axis.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L183">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-grad-y"></span>
+</section>
+<section id="grad-y" class="level4">
+<h4 class="anchored" data-anchor-id="grad-y">grad-y</h4>
+<ul>
+<li><code>(grad-y f amount h)</code></li>
+<li><code>(grad-y f h)</code></li>
+<li><code>(grad-y f)</code></li>
+</ul>
+<p>Calculate gradient along y axis.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L192">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-heading"></span>
+</section>
+<section id="heading" class="level4">
+<h4 class="anchored" data-anchor-id="heading">heading</h4>
+<ul>
+<li><code>(heading f)</code></li>
+</ul>
+<p>Angle of the vectors from field.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L245">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-jacobian"></span>
+</section>
+<section id="jacobian" class="level4">
+<h4 class="anchored" data-anchor-id="jacobian">jacobian</h4>
+<ul>
+<li><code>(jacobian f)</code></li>
+<li><code>(jacobian f h)</code></li>
+</ul>
+<p>Det of Jacobian of the field</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L201">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-magnitude"></span>
+</section>
+<section id="magnitude" class="level4">
+<h4 class="anchored" data-anchor-id="magnitude">magnitude</h4>
+<ul>
+<li><code>(magnitude f)</code></li>
+</ul>
+<p>Magnitude of the vectors from field.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L239">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-multiplication"></span>
+</section>
+<section id="multiplication" class="level4">
+<h4 class="anchored" data-anchor-id="multiplication">multiplication</h4>
+<ul>
+<li><code>(multiplication f1 f2 amount)</code></li>
+<li><code>(multiplication f1 f2)</code></li>
+</ul>
+<p>Multiply two vector fields (as a element-wise multiplication of results).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L298">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-parametrization"></span>
+</section>
+<section id="parametrization" class="level4">
+<h4 class="anchored" data-anchor-id="parametrization">parametrization</h4>
+<p>Return random parametrization map for given field.</p>
+<p>Optinally you can pass part of the parametrization. In this case function will add remaining keys with randomly generated values.</p>
+<p>If field doesn’t have parametrization, empty map will be returned.</p>
+<p>See <a href="#LOS-field">field</a>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L87">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-random-configuration"></span>
+</section>
+<section id="random-configuration" class="level4">
+<h4 class="anchored" data-anchor-id="random-configuration">random-configuration</h4>
+<ul>
+<li><code>(random-configuration)</code></li>
+<li><code>(random-configuration depth)</code></li>
+<li><code>(random-configuration depth f)</code></li>
+</ul>
+<p>Create random configuration for <a href="#LOS-combine">combine</a> function. Optionally with depth (0 = only root is created).</p>
+<p>See <a href="#LOS-combine">combine</a> for structure.</p>
+<p>Bind <code>*skip-random-fields*</code> to true to exclude fields which are random.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L341">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-random-field"></span>
+</section>
+<section id="random-field" class="level4">
+<h4 class="anchored" data-anchor-id="random-field">random-field</h4>
+<ul>
+<li><code>(random-field)</code></li>
+<li><code>(random-field depth)</code></li>
+</ul>
+<p>Create randomized field (optional depth can be provided).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L396">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-randomize-configuration"></span>
+</section>
+<section id="randomize-configuration" class="level4">
+<h4 class="anchored" data-anchor-id="randomize-configuration">randomize-configuration</h4>
+<ul>
+<li><code>(randomize-configuration f)</code></li>
+</ul>
+<p>Randomize values for given configuration. Keeps structure untouched.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L323">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scalar->vector-field"></span>
+</section>
+<section id="scalar-vector-field" class="level4">
+<h4 class="anchored" data-anchor-id="scalar-vector-field">scalar-&gt;vector-field</h4>
+<ul>
+<li><code>(scalar-&gt;vector-field scalar f)</code></li>
+<li><code>(scalar-&gt;vector-field scalar f1 f2)</code></li>
+</ul>
+<p>Returns vector field build from scalar fields of the input vector and result of the vector field.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L277">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sum"></span>
+</section>
+<section id="sum" class="level4">
+<h4 class="anchored" data-anchor-id="sum">sum</h4>
+<ul>
+<li><code>(sum f1 f2 amount)</code></li>
+<li><code>(sum f1 f2)</code></li>
+</ul>
+<p>Add two vector fields.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/fields.clj#L292">source</a></small><hr style="margin: 0"></div>
+<div style="background-color:grey;height:2px;width:100%;"></div>
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/fields.clj">clay/fields.clj</a></small></small></pre></div>
+
+
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./easings.html" class="pagination-link" aria-label="Easings">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Easings</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./efloat.html" class="pagination-link" aria-label="EFloat">
+        <span class="nav-page-text">EFloat</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

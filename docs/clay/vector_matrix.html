@@ -1,0 +1,3778 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-99.9.9">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Vectors and matrices – Fastmath documentation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./random.html" rel="next">
+<link href="./core.html" rel="prev">
+<link href="./clay/resources/favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./vector_matrix.html">Vectors and matrices</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Fastmath documentation</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vector_matrix.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Vectors and matrices</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./random.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Random</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stats.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Statistics</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./polynomials.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Polynomials</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./special.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Special functions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./calculus.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Calculus</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./interpolation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interpolation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Optimization</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ml.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Machine Learning</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./complex_quaternions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Complex numbers and quaternions</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./easings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Easings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vector fields</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./efloat.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFloat</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#vectors" id="toc-vectors" class="nav-link active" data-scroll-target="#vectors">Vectors</a>
+  <ul>
+  <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">Reference</a>
+  <ul>
+  <li><a href="#fastmath.vector" id="toc-fastmath.vector" class="nav-link" data-scroll-target="#fastmath.vector">fastmath.vector</a>
+  <ul class="collapse">
+  <li><a href="#arrayvec" id="toc-arrayvec" class="nav-link" data-scroll-target="#arrayvec">-&gt;ArrayVec</a></li>
+  <li><a href="#vec2" id="toc-vec2" class="nav-link" data-scroll-target="#vec2">-&gt;Vec2</a></li>
+  <li><a href="#vec3" id="toc-vec3" class="nav-link" data-scroll-target="#vec3">-&gt;Vec3</a></li>
+  <li><a href="#vec4" id="toc-vec4" class="nav-link" data-scroll-target="#vec4">-&gt;Vec4</a></li>
+  <li><a href="#abs" id="toc-abs" class="nav-link" data-scroll-target="#abs">abs</a></li>
+  <li><a href="#acos" id="toc-acos" class="nav-link" data-scroll-target="#acos">acos</a></li>
+  <li><a href="#acosh" id="toc-acosh" class="nav-link" data-scroll-target="#acosh">acosh</a></li>
+  <li><a href="#acot" id="toc-acot" class="nav-link" data-scroll-target="#acot">acot</a></li>
+  <li><a href="#acoth" id="toc-acoth" class="nav-link" data-scroll-target="#acoth">acoth</a></li>
+  <li><a href="#acsc" id="toc-acsc" class="nav-link" data-scroll-target="#acsc">acsc</a></li>
+  <li><a href="#acsch" id="toc-acsch" class="nav-link" data-scroll-target="#acsch">acsch</a></li>
+  <li><a href="#add" id="toc-add" class="nav-link" data-scroll-target="#add">add</a></li>
+  <li><a href="#aligned" id="toc-aligned" class="nav-link" data-scroll-target="#aligned">aligned?</a></li>
+  <li><a href="#angle-between" id="toc-angle-between" class="nav-link" data-scroll-target="#angle-between">angle-between</a></li>
+  <li><a href="#applyf-deprecated" id="toc-applyf-deprecated" class="nav-link" data-scroll-target="#applyf-deprecated">applyf <sup><sub>DEPRECATED</sub></sup></a></li>
+  <li><a href="#approx" id="toc-approx" class="nav-link" data-scroll-target="#approx">approx</a></li>
+  <li><a href="#array-vec2" id="toc-array-vec2" class="nav-link" data-scroll-target="#array-vec2">array-&gt;vec2</a></li>
+  <li><a href="#array-vec3" id="toc-array-vec3" class="nav-link" data-scroll-target="#array-vec3">array-&gt;vec3</a></li>
+  <li><a href="#array-vec4" id="toc-array-vec4" class="nav-link" data-scroll-target="#array-vec4">array-&gt;vec4</a></li>
+  <li><a href="#array-vec" id="toc-array-vec" class="nav-link" data-scroll-target="#array-vec">array-vec</a></li>
+  <li><a href="#as-vec" id="toc-as-vec" class="nav-link" data-scroll-target="#as-vec">as-vec</a></li>
+  <li><a href="#asec" id="toc-asec" class="nav-link" data-scroll-target="#asec">asec</a></li>
+  <li><a href="#asech" id="toc-asech" class="nav-link" data-scroll-target="#asech">asech</a></li>
+  <li><a href="#asin" id="toc-asin" class="nav-link" data-scroll-target="#asin">asin</a></li>
+  <li><a href="#asinh" id="toc-asinh" class="nav-link" data-scroll-target="#asinh">asinh</a></li>
+  <li><a href="#atan" id="toc-atan" class="nav-link" data-scroll-target="#atan">atan</a></li>
+  <li><a href="#atanh" id="toc-atanh" class="nav-link" data-scroll-target="#atanh">atanh</a></li>
+  <li><a href="#average" id="toc-average" class="nav-link" data-scroll-target="#average">average</a></li>
+  <li><a href="#average-vectors" id="toc-average-vectors" class="nav-link" data-scroll-target="#average-vectors">average-vectors</a></li>
+  <li><a href="#axis-rotate" id="toc-axis-rotate" class="nav-link" data-scroll-target="#axis-rotate">axis-rotate</a></li>
+  <li><a href="#base-from" id="toc-base-from" class="nav-link" data-scroll-target="#base-from">base-from</a></li>
+  <li><a href="#cb" id="toc-cb" class="nav-link" data-scroll-target="#cb">cb</a></li>
+  <li><a href="#cbrt" id="toc-cbrt" class="nav-link" data-scroll-target="#cbrt">cbrt</a></li>
+  <li><a href="#ceil" id="toc-ceil" class="nav-link" data-scroll-target="#ceil">ceil</a></li>
+  <li><a href="#clamp" id="toc-clamp" class="nav-link" data-scroll-target="#clamp">clamp</a></li>
+  <li><a href="#cos" id="toc-cos" class="nav-link" data-scroll-target="#cos">cos</a></li>
+  <li><a href="#cosh" id="toc-cosh" class="nav-link" data-scroll-target="#cosh">cosh</a></li>
+  <li><a href="#cot" id="toc-cot" class="nav-link" data-scroll-target="#cot">cot</a></li>
+  <li><a href="#coth" id="toc-coth" class="nav-link" data-scroll-target="#coth">coth</a></li>
+  <li><a href="#cross" id="toc-cross" class="nav-link" data-scroll-target="#cross">cross</a></li>
+  <li><a href="#csc" id="toc-csc" class="nav-link" data-scroll-target="#csc">csc</a></li>
+  <li><a href="#csch" id="toc-csch" class="nav-link" data-scroll-target="#csch">csch</a></li>
+  <li><a href="#degrees" id="toc-degrees" class="nav-link" data-scroll-target="#degrees">degrees</a></li>
+  <li><a href="#delta-eq" id="toc-delta-eq" class="nav-link" data-scroll-target="#delta-eq">delta-eq</a></li>
+  <li><a href="#dhash-code" id="toc-dhash-code" class="nav-link" data-scroll-target="#dhash-code">dhash-code</a></li>
+  <li><a href="#dist" id="toc-dist" class="nav-link" data-scroll-target="#dist">dist</a></li>
+  <li><a href="#dist-abs" id="toc-dist-abs" class="nav-link" data-scroll-target="#dist-abs">dist-abs</a></li>
+  <li><a href="#dist-ang" id="toc-dist-ang" class="nav-link" data-scroll-target="#dist-ang">dist-ang</a></li>
+  <li><a href="#dist-canberra" id="toc-dist-canberra" class="nav-link" data-scroll-target="#dist-canberra">dist-canberra</a></li>
+  <li><a href="#dist-cheb" id="toc-dist-cheb" class="nav-link" data-scroll-target="#dist-cheb">dist-cheb</a></li>
+  <li><a href="#dist-discrete" id="toc-dist-discrete" class="nav-link" data-scroll-target="#dist-discrete">dist-discrete</a></li>
+  <li><a href="#dist-emd" id="toc-dist-emd" class="nav-link" data-scroll-target="#dist-emd">dist-emd</a></li>
+  <li><a href="#dist-sq" id="toc-dist-sq" class="nav-link" data-scroll-target="#dist-sq">dist-sq</a></li>
+  <li><a href="#distances" id="toc-distances" class="nav-link" data-scroll-target="#distances">distances</a></li>
+  <li><a href="#div" id="toc-div" class="nav-link" data-scroll-target="#div">div</a></li>
+  <li><a href="#dot" id="toc-dot" class="nav-link" data-scroll-target="#dot">dot</a></li>
+  <li><a href="#econstrain" id="toc-econstrain" class="nav-link" data-scroll-target="#econstrain">econstrain</a></li>
+  <li><a href="#edelta-eq" id="toc-edelta-eq" class="nav-link" data-scroll-target="#edelta-eq">edelta-eq</a></li>
+  <li><a href="#ediv" id="toc-ediv" class="nav-link" data-scroll-target="#ediv">ediv</a></li>
+  <li><a href="#einterpolate" id="toc-einterpolate" class="nav-link" data-scroll-target="#einterpolate">einterpolate</a></li>
+  <li><a href="#emn" id="toc-emn" class="nav-link" data-scroll-target="#emn">emn</a></li>
+  <li><a href="#emult" id="toc-emult" class="nav-link" data-scroll-target="#emult">emult</a></li>
+  <li><a href="#emx" id="toc-emx" class="nav-link" data-scroll-target="#emx">emx</a></li>
+  <li><a href="#exp" id="toc-exp" class="nav-link" data-scroll-target="#exp">exp</a></li>
+  <li><a href="#expm1" id="toc-expm1" class="nav-link" data-scroll-target="#expm1">expm1</a></li>
+  <li><a href="#faceforward" id="toc-faceforward" class="nav-link" data-scroll-target="#faceforward">faceforward</a></li>
+  <li><a href="#floor" id="toc-floor" class="nav-link" data-scroll-target="#floor">floor</a></li>
+  <li><a href="#fmap" id="toc-fmap" class="nav-link" data-scroll-target="#fmap">fmap</a></li>
+  <li><a href="#frac" id="toc-frac" class="nav-link" data-scroll-target="#frac">frac</a></li>
+  <li><a href="#from-polar" id="toc-from-polar" class="nav-link" data-scroll-target="#from-polar">from-polar</a></li>
+  <li><a href="#generate-vec2" id="toc-generate-vec2" class="nav-link" data-scroll-target="#generate-vec2">generate-vec2</a></li>
+  <li><a href="#generate-vec3" id="toc-generate-vec3" class="nav-link" data-scroll-target="#generate-vec3">generate-vec3</a></li>
+  <li><a href="#generate-vec4" id="toc-generate-vec4" class="nav-link" data-scroll-target="#generate-vec4">generate-vec4</a></li>
+  <li><a href="#heading" id="toc-heading" class="nav-link" data-scroll-target="#heading">heading</a></li>
+  <li><a href="#interpolate" id="toc-interpolate" class="nav-link" data-scroll-target="#interpolate">interpolate</a></li>
+  <li><a href="#is-near-zero" id="toc-is-near-zero" class="nav-link" data-scroll-target="#is-near-zero">is-near-zero?</a></li>
+  <li><a href="#is-zero" id="toc-is-zero" class="nav-link" data-scroll-target="#is-zero">is-zero?</a></li>
+  <li><a href="#lerp" id="toc-lerp" class="nav-link" data-scroll-target="#lerp">lerp</a></li>
+  <li><a href="#limit" id="toc-limit" class="nav-link" data-scroll-target="#limit">limit</a></li>
+  <li><a href="#ln" id="toc-ln" class="nav-link" data-scroll-target="#ln">ln</a></li>
+  <li><a href="#log" id="toc-log" class="nav-link" data-scroll-target="#log">log</a></li>
+  <li><a href="#log10" id="toc-log10" class="nav-link" data-scroll-target="#log10">log10</a></li>
+  <li><a href="#log1mexp" id="toc-log1mexp" class="nav-link" data-scroll-target="#log1mexp">log1mexp</a></li>
+  <li><a href="#log1p" id="toc-log1p" class="nav-link" data-scroll-target="#log1p">log1p</a></li>
+  <li><a href="#log1pexp" id="toc-log1pexp" class="nav-link" data-scroll-target="#log1pexp">log1pexp</a></li>
+  <li><a href="#log1pmx" id="toc-log1pmx" class="nav-link" data-scroll-target="#log1pmx">log1pmx</a></li>
+  <li><a href="#log1psq" id="toc-log1psq" class="nav-link" data-scroll-target="#log1psq">log1psq</a></li>
+  <li><a href="#log2" id="toc-log2" class="nav-link" data-scroll-target="#log2">log2</a></li>
+  <li><a href="#logexpm1" id="toc-logexpm1" class="nav-link" data-scroll-target="#logexpm1">logexpm1</a></li>
+  <li><a href="#logit" id="toc-logit" class="nav-link" data-scroll-target="#logit">logit</a></li>
+  <li><a href="#logmeanexp" id="toc-logmeanexp" class="nav-link" data-scroll-target="#logmeanexp">logmeanexp</a></li>
+  <li><a href="#logmxp1" id="toc-logmxp1" class="nav-link" data-scroll-target="#logmxp1">logmxp1</a></li>
+  <li><a href="#logsoftmax" id="toc-logsoftmax" class="nav-link" data-scroll-target="#logsoftmax">logsoftmax</a></li>
+  <li><a href="#logsumexp" id="toc-logsumexp" class="nav-link" data-scroll-target="#logsumexp">logsumexp</a></li>
+  <li><a href="#mag" id="toc-mag" class="nav-link" data-scroll-target="#mag">mag</a></li>
+  <li><a href="#magsq" id="toc-magsq" class="nav-link" data-scroll-target="#magsq">magsq</a></li>
+  <li><a href="#make-vector" id="toc-make-vector" class="nav-link" data-scroll-target="#make-vector">make-vector</a></li>
+  <li><a href="#maxdim" id="toc-maxdim" class="nav-link" data-scroll-target="#maxdim">maxdim</a></li>
+  <li><a href="#mindim" id="toc-mindim" class="nav-link" data-scroll-target="#mindim">mindim</a></li>
+  <li><a href="#mn" id="toc-mn" class="nav-link" data-scroll-target="#mn">mn</a></li>
+  <li><a href="#mult" id="toc-mult" class="nav-link" data-scroll-target="#mult">mult</a></li>
+  <li><a href="#mx" id="toc-mx" class="nav-link" data-scroll-target="#mx">mx</a></li>
+  <li><a href="#near-zero" id="toc-near-zero" class="nav-link" data-scroll-target="#near-zero">near-zero?</a></li>
+  <li><a href="#nonzero-count" id="toc-nonzero-count" class="nav-link" data-scroll-target="#nonzero-count">nonzero-count</a></li>
+  <li><a href="#normalize" id="toc-normalize" class="nav-link" data-scroll-target="#normalize">normalize</a></li>
+  <li><a href="#orthogonal-polynomials" id="toc-orthogonal-polynomials" class="nav-link" data-scroll-target="#orthogonal-polynomials">orthogonal-polynomials</a></li>
+  <li><a href="#orthonormal-polynomials" id="toc-orthonormal-polynomials" class="nav-link" data-scroll-target="#orthonormal-polynomials">orthonormal-polynomials</a></li>
+  <li><a href="#permute" id="toc-permute" class="nav-link" data-scroll-target="#permute">permute</a></li>
+  <li><a href="#perpendicular" id="toc-perpendicular" class="nav-link" data-scroll-target="#perpendicular">perpendicular</a></li>
+  <li><a href="#prod" id="toc-prod" class="nav-link" data-scroll-target="#prod">prod</a></li>
+  <li><a href="#project" id="toc-project" class="nav-link" data-scroll-target="#project">project</a></li>
+  <li><a href="#radians" id="toc-radians" class="nav-link" data-scroll-target="#radians">radians</a></li>
+  <li><a href="#reciprocal" id="toc-reciprocal" class="nav-link" data-scroll-target="#reciprocal">reciprocal</a></li>
+  <li><a href="#relative-angle-between" id="toc-relative-angle-between" class="nav-link" data-scroll-target="#relative-angle-between">relative-angle-between</a></li>
+  <li><a href="#rint" id="toc-rint" class="nav-link" data-scroll-target="#rint">rint</a></li>
+  <li><a href="#rotate" id="toc-rotate" class="nav-link" data-scroll-target="#rotate">rotate</a></li>
+  <li><a href="#round" id="toc-round" class="nav-link" data-scroll-target="#round">round</a></li>
+  <li><a href="#safe-sqrt" id="toc-safe-sqrt" class="nav-link" data-scroll-target="#safe-sqrt">safe-sqrt</a></li>
+  <li><a href="#sec" id="toc-sec" class="nav-link" data-scroll-target="#sec">sec</a></li>
+  <li><a href="#sech" id="toc-sech" class="nav-link" data-scroll-target="#sech">sech</a></li>
+  <li><a href="#seq-vec2" id="toc-seq-vec2" class="nav-link" data-scroll-target="#seq-vec2">seq-&gt;vec2</a></li>
+  <li><a href="#seq-vec3" id="toc-seq-vec3" class="nav-link" data-scroll-target="#seq-vec3">seq-&gt;vec3</a></li>
+  <li><a href="#seq-vec4" id="toc-seq-vec4" class="nav-link" data-scroll-target="#seq-vec4">seq-&gt;vec4</a></li>
+  <li><a href="#set-mag" id="toc-set-mag" class="nav-link" data-scroll-target="#set-mag">set-mag</a></li>
+  <li><a href="#sfrac" id="toc-sfrac" class="nav-link" data-scroll-target="#sfrac">sfrac</a></li>
+  <li><a href="#sgn" id="toc-sgn" class="nav-link" data-scroll-target="#sgn">sgn</a></li>
+  <li><a href="#shift" id="toc-shift" class="nav-link" data-scroll-target="#shift">shift</a></li>
+  <li><a href="#sigmoid" id="toc-sigmoid" class="nav-link" data-scroll-target="#sigmoid">sigmoid</a></li>
+  <li><a href="#signum" id="toc-signum" class="nav-link" data-scroll-target="#signum">signum</a></li>
+  <li><a href="#sim-cos" id="toc-sim-cos" class="nav-link" data-scroll-target="#sim-cos">sim-cos</a></li>
+  <li><a href="#sin" id="toc-sin" class="nav-link" data-scroll-target="#sin">sin</a></li>
+  <li><a href="#sinc" id="toc-sinc" class="nav-link" data-scroll-target="#sinc">sinc</a></li>
+  <li><a href="#sinh" id="toc-sinh" class="nav-link" data-scroll-target="#sinh">sinh</a></li>
+  <li><a href="#size" id="toc-size" class="nav-link" data-scroll-target="#size">size</a></li>
+  <li><a href="#softmax" id="toc-softmax" class="nav-link" data-scroll-target="#softmax">softmax</a></li>
+  <li><a href="#sq" id="toc-sq" class="nav-link" data-scroll-target="#sq">sq</a></li>
+  <li><a href="#sqrt" id="toc-sqrt" class="nav-link" data-scroll-target="#sqrt">sqrt</a></li>
+  <li><a href="#sub" id="toc-sub" class="nav-link" data-scroll-target="#sub">sub</a></li>
+  <li><a href="#sum" id="toc-sum" class="nav-link" data-scroll-target="#sum">sum</a></li>
+  <li><a href="#tan" id="toc-tan" class="nav-link" data-scroll-target="#tan">tan</a></li>
+  <li><a href="#tanh" id="toc-tanh" class="nav-link" data-scroll-target="#tanh">tanh</a></li>
+  <li><a href="#to-polar" id="toc-to-polar" class="nav-link" data-scroll-target="#to-polar">to-polar</a></li>
+  <li><a href="#to-vec-deprecated" id="toc-to-vec-deprecated" class="nav-link" data-scroll-target="#to-vec-deprecated">to-vec <sup><sub>DEPRECATED</sub></sup></a></li>
+  <li><a href="#transform" id="toc-transform" class="nav-link" data-scroll-target="#transform">transform</a></li>
+  <li><a href="#triple-product" id="toc-triple-product" class="nav-link" data-scroll-target="#triple-product">triple-product</a></li>
+  <li><a href="#trunc" id="toc-trunc" class="nav-link" data-scroll-target="#trunc">trunc</a></li>
+  <li><a href="#vec-realvector" id="toc-vec-realvector" class="nav-link" data-scroll-target="#vec-realvector">vec-&gt;RealVector</a></li>
+  <li><a href="#vec-vec" id="toc-vec-vec" class="nav-link" data-scroll-target="#vec-vec">vec-&gt;Vec</a></li>
+  <li><a href="#vec-array" id="toc-vec-array" class="nav-link" data-scroll-target="#vec-array">vec-&gt;array</a></li>
+  <li><a href="#vec-seq" id="toc-vec-seq" class="nav-link" data-scroll-target="#vec-seq">vec-&gt;seq</a></li>
+  <li><a href="#vec2-1" id="toc-vec2-1" class="nav-link" data-scroll-target="#vec2-1">vec2</a></li>
+  <li><a href="#vec3-1" id="toc-vec3-1" class="nav-link" data-scroll-target="#vec3-1">vec3</a></li>
+  <li><a href="#vec4-1" id="toc-vec4-1" class="nav-link" data-scroll-target="#vec4-1">vec4</a></li>
+  <li><a href="#xlogx" id="toc-xlogx" class="nav-link" data-scroll-target="#xlogx">xlogx</a></li>
+  <li><a href="#zero-count" id="toc-zero-count" class="nav-link" data-scroll-target="#zero-count">zero-count</a></li>
+  <li><a href="#zero" id="toc-zero" class="nav-link" data-scroll-target="#zero">zero?</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#matrices" id="toc-matrices" class="nav-link" data-scroll-target="#matrices">Matrices</a>
+  <ul>
+  <li><a href="#reference-1" id="toc-reference-1" class="nav-link" data-scroll-target="#reference-1">Reference</a>
+  <ul>
+  <li><a href="#fastmath.matrix" id="toc-fastmath.matrix" class="nav-link" data-scroll-target="#fastmath.matrix">fastmath.matrix</a>
+  <ul class="collapse">
+  <li><a href="#mat2x2" id="toc-mat2x2" class="nav-link" data-scroll-target="#mat2x2">-&gt;Mat2x2</a></li>
+  <li><a href="#mat3x3" id="toc-mat3x3" class="nav-link" data-scroll-target="#mat3x3">-&gt;Mat3x3</a></li>
+  <li><a href="#mat4x4" id="toc-mat4x4" class="nav-link" data-scroll-target="#mat4x4">-&gt;Mat4x4</a></li>
+  <li><a href="#acos-1" id="toc-acos-1" class="nav-link" data-scroll-target="#acos-1">acos</a></li>
+  <li><a href="#acosh-1" id="toc-acosh-1" class="nav-link" data-scroll-target="#acosh-1">acosh</a></li>
+  <li><a href="#acot-1" id="toc-acot-1" class="nav-link" data-scroll-target="#acot-1">acot</a></li>
+  <li><a href="#acoth-1" id="toc-acoth-1" class="nav-link" data-scroll-target="#acoth-1">acoth</a></li>
+  <li><a href="#acsc-1" id="toc-acsc-1" class="nav-link" data-scroll-target="#acsc-1">acsc</a></li>
+  <li><a href="#acsch-1" id="toc-acsch-1" class="nav-link" data-scroll-target="#acsch-1">acsch</a></li>
+  <li><a href="#add-1" id="toc-add-1" class="nav-link" data-scroll-target="#add-1">add</a></li>
+  <li><a href="#adds" id="toc-adds" class="nav-link" data-scroll-target="#adds">adds</a></li>
+  <li><a href="#asec-1" id="toc-asec-1" class="nav-link" data-scroll-target="#asec-1">asec</a></li>
+  <li><a href="#asech-1" id="toc-asech-1" class="nav-link" data-scroll-target="#asech-1">asech</a></li>
+  <li><a href="#asin-1" id="toc-asin-1" class="nav-link" data-scroll-target="#asin-1">asin</a></li>
+  <li><a href="#asinh-1" id="toc-asinh-1" class="nav-link" data-scroll-target="#asinh-1">asinh</a></li>
+  <li><a href="#atan-1" id="toc-atan-1" class="nav-link" data-scroll-target="#atan-1">atan</a></li>
+  <li><a href="#atanh-1" id="toc-atanh-1" class="nav-link" data-scroll-target="#atanh-1">atanh</a></li>
+  <li><a href="#cb-1" id="toc-cb-1" class="nav-link" data-scroll-target="#cb-1">cb</a></li>
+  <li><a href="#cbrt-1" id="toc-cbrt-1" class="nav-link" data-scroll-target="#cbrt-1">cbrt</a></li>
+  <li><a href="#ceil-1" id="toc-ceil-1" class="nav-link" data-scroll-target="#ceil-1">ceil</a></li>
+  <li><a href="#cholesky" id="toc-cholesky" class="nav-link" data-scroll-target="#cholesky">cholesky</a></li>
+  <li><a href="#col" id="toc-col" class="nav-link" data-scroll-target="#col">col</a></li>
+  <li><a href="#cols" id="toc-cols" class="nav-link" data-scroll-target="#cols">cols</a></li>
+  <li><a href="#cols-realmatrix" id="toc-cols-realmatrix" class="nav-link" data-scroll-target="#cols-realmatrix">cols-&gt;RealMatrix</a></li>
+  <li><a href="#cols-mat" id="toc-cols-mat" class="nav-link" data-scroll-target="#cols-mat">cols-&gt;mat</a></li>
+  <li><a href="#cols-mat2x2" id="toc-cols-mat2x2" class="nav-link" data-scroll-target="#cols-mat2x2">cols-&gt;mat2x2</a></li>
+  <li><a href="#cols-mat3x3" id="toc-cols-mat3x3" class="nav-link" data-scroll-target="#cols-mat3x3">cols-&gt;mat3x3</a></li>
+  <li><a href="#cols-mat4x4" id="toc-cols-mat4x4" class="nav-link" data-scroll-target="#cols-mat4x4">cols-&gt;mat4x4</a></li>
+  <li><a href="#condition" id="toc-condition" class="nav-link" data-scroll-target="#condition">condition</a></li>
+  <li><a href="#cos-1" id="toc-cos-1" class="nav-link" data-scroll-target="#cos-1">cos</a></li>
+  <li><a href="#cosh-1" id="toc-cosh-1" class="nav-link" data-scroll-target="#cosh-1">cosh</a></li>
+  <li><a href="#cot-1" id="toc-cot-1" class="nav-link" data-scroll-target="#cot-1">cot</a></li>
+  <li><a href="#coth-1" id="toc-coth-1" class="nav-link" data-scroll-target="#coth-1">coth</a></li>
+  <li><a href="#csc-1" id="toc-csc-1" class="nav-link" data-scroll-target="#csc-1">csc</a></li>
+  <li><a href="#csch-1" id="toc-csch-1" class="nav-link" data-scroll-target="#csch-1">csch</a></li>
+  <li><a href="#degrees-1" id="toc-degrees-1" class="nav-link" data-scroll-target="#degrees-1">degrees</a></li>
+  <li><a href="#demean" id="toc-demean" class="nav-link" data-scroll-target="#demean">demean</a></li>
+  <li><a href="#det" id="toc-det" class="nav-link" data-scroll-target="#det">det</a></li>
+  <li><a href="#diag" id="toc-diag" class="nav-link" data-scroll-target="#diag">diag</a></li>
+  <li><a href="#diagonal" id="toc-diagonal" class="nav-link" data-scroll-target="#diagonal">diagonal</a></li>
+  <li><a href="#eigenvalues" id="toc-eigenvalues" class="nav-link" data-scroll-target="#eigenvalues">eigenvalues</a></li>
+  <li><a href="#eigenvalues-matrix" id="toc-eigenvalues-matrix" class="nav-link" data-scroll-target="#eigenvalues-matrix">eigenvalues-matrix</a></li>
+  <li><a href="#eigenvectors" id="toc-eigenvectors" class="nav-link" data-scroll-target="#eigenvectors">eigenvectors</a></li>
+  <li><a href="#emulm" id="toc-emulm" class="nav-link" data-scroll-target="#emulm">emulm</a></li>
+  <li><a href="#entry" id="toc-entry" class="nav-link" data-scroll-target="#entry">entry</a></li>
+  <li><a href="#exp-1" id="toc-exp-1" class="nav-link" data-scroll-target="#exp-1">exp</a></li>
+  <li><a href="#expm1-1" id="toc-expm1-1" class="nav-link" data-scroll-target="#expm1-1">expm1</a></li>
+  <li><a href="#eye" id="toc-eye" class="nav-link" data-scroll-target="#eye">eye</a></li>
+  <li><a href="#floor-1" id="toc-floor-1" class="nav-link" data-scroll-target="#floor-1">floor</a></li>
+  <li><a href="#fmap-1" id="toc-fmap-1" class="nav-link" data-scroll-target="#fmap-1">fmap</a></li>
+  <li><a href="#frac-1" id="toc-frac-1" class="nav-link" data-scroll-target="#frac-1">frac</a></li>
+  <li><a href="#inverse" id="toc-inverse" class="nav-link" data-scroll-target="#inverse">inverse</a></li>
+  <li><a href="#ln-1" id="toc-ln-1" class="nav-link" data-scroll-target="#ln-1">ln</a></li>
+  <li><a href="#log-1" id="toc-log-1" class="nav-link" data-scroll-target="#log-1">log</a></li>
+  <li><a href="#log10-1" id="toc-log10-1" class="nav-link" data-scroll-target="#log10-1">log10</a></li>
+  <li><a href="#log1mexp-1" id="toc-log1mexp-1" class="nav-link" data-scroll-target="#log1mexp-1">log1mexp</a></li>
+  <li><a href="#log1p-1" id="toc-log1p-1" class="nav-link" data-scroll-target="#log1p-1">log1p</a></li>
+  <li><a href="#log1pexp-1" id="toc-log1pexp-1" class="nav-link" data-scroll-target="#log1pexp-1">log1pexp</a></li>
+  <li><a href="#log1pmx-1" id="toc-log1pmx-1" class="nav-link" data-scroll-target="#log1pmx-1">log1pmx</a></li>
+  <li><a href="#log1psq-1" id="toc-log1psq-1" class="nav-link" data-scroll-target="#log1psq-1">log1psq</a></li>
+  <li><a href="#log2-1" id="toc-log2-1" class="nav-link" data-scroll-target="#log2-1">log2</a></li>
+  <li><a href="#logexpm1-1" id="toc-logexpm1-1" class="nav-link" data-scroll-target="#logexpm1-1">logexpm1</a></li>
+  <li><a href="#logit-1" id="toc-logit-1" class="nav-link" data-scroll-target="#logit-1">logit</a></li>
+  <li><a href="#logmxp1-1" id="toc-logmxp1-1" class="nav-link" data-scroll-target="#logmxp1-1">logmxp1</a></li>
+  <li><a href="#mat" id="toc-mat" class="nav-link" data-scroll-target="#mat">mat</a></li>
+  <li><a href="#mat-realmatrix" id="toc-mat-realmatrix" class="nav-link" data-scroll-target="#mat-realmatrix">mat-&gt;RealMatrix</a></li>
+  <li><a href="#mat-array" id="toc-mat-array" class="nav-link" data-scroll-target="#mat-array">mat-&gt;array</a></li>
+  <li><a href="#mat-array2d" id="toc-mat-array2d" class="nav-link" data-scroll-target="#mat-array2d">mat-&gt;array2d</a></li>
+  <li><a href="#mat-float-array" id="toc-mat-float-array" class="nav-link" data-scroll-target="#mat-float-array">mat-&gt;float-array</a></li>
+  <li><a href="#mat-float-array2d" id="toc-mat-float-array2d" class="nav-link" data-scroll-target="#mat-float-array2d">mat-&gt;float-array2d</a></li>
+  <li><a href="#mat-seq" id="toc-mat-seq" class="nav-link" data-scroll-target="#mat-seq">mat-&gt;seq</a></li>
+  <li><a href="#mat2x2-1" id="toc-mat2x2-1" class="nav-link" data-scroll-target="#mat2x2-1">mat2x2</a></li>
+  <li><a href="#mat3x3-1" id="toc-mat3x3-1" class="nav-link" data-scroll-target="#mat3x3-1">mat3x3</a></li>
+  <li><a href="#mat4x4-1" id="toc-mat4x4-1" class="nav-link" data-scroll-target="#mat4x4-1">mat4x4</a></li>
+  <li><a href="#mulm" id="toc-mulm" class="nav-link" data-scroll-target="#mulm">mulm</a></li>
+  <li><a href="#mulmt" id="toc-mulmt" class="nav-link" data-scroll-target="#mulmt">mulmt</a></li>
+  <li><a href="#muls" id="toc-muls" class="nav-link" data-scroll-target="#muls">muls</a></li>
+  <li><a href="#mulv" id="toc-mulv" class="nav-link" data-scroll-target="#mulv">mulv</a></li>
+  <li><a href="#ncol" id="toc-ncol" class="nav-link" data-scroll-target="#ncol">ncol</a></li>
+  <li><a href="#negate" id="toc-negate" class="nav-link" data-scroll-target="#negate">negate</a></li>
+  <li><a href="#norm" id="toc-norm" class="nav-link" data-scroll-target="#norm">norm</a></li>
+  <li><a href="#normalize-1" id="toc-normalize-1" class="nav-link" data-scroll-target="#normalize-1">normalize</a></li>
+  <li><a href="#nrow" id="toc-nrow" class="nav-link" data-scroll-target="#nrow">nrow</a></li>
+  <li><a href="#outer" id="toc-outer" class="nav-link" data-scroll-target="#outer">outer</a></li>
+  <li><a href="#radians-1" id="toc-radians-1" class="nav-link" data-scroll-target="#radians-1">radians</a></li>
+  <li><a href="#rint-1" id="toc-rint-1" class="nav-link" data-scroll-target="#rint-1">rint</a></li>
+  <li><a href="#rotation-matrix-2d" id="toc-rotation-matrix-2d" class="nav-link" data-scroll-target="#rotation-matrix-2d">rotation-matrix-2d</a></li>
+  <li><a href="#rotation-matrix-3d" id="toc-rotation-matrix-3d" class="nav-link" data-scroll-target="#rotation-matrix-3d">rotation-matrix-3d</a></li>
+  <li><a href="#rotation-matrix-3d-x" id="toc-rotation-matrix-3d-x" class="nav-link" data-scroll-target="#rotation-matrix-3d-x">rotation-matrix-3d-x</a></li>
+  <li><a href="#rotation-matrix-3d-y" id="toc-rotation-matrix-3d-y" class="nav-link" data-scroll-target="#rotation-matrix-3d-y">rotation-matrix-3d-y</a></li>
+  <li><a href="#rotation-matrix-3d-z" id="toc-rotation-matrix-3d-z" class="nav-link" data-scroll-target="#rotation-matrix-3d-z">rotation-matrix-3d-z</a></li>
+  <li><a href="#rotation-matrix-axis-3d" id="toc-rotation-matrix-axis-3d" class="nav-link" data-scroll-target="#rotation-matrix-axis-3d">rotation-matrix-axis-3d</a></li>
+  <li><a href="#round-1" id="toc-round-1" class="nav-link" data-scroll-target="#round-1">round</a></li>
+  <li><a href="#row" id="toc-row" class="nav-link" data-scroll-target="#row">row</a></li>
+  <li><a href="#rows" id="toc-rows" class="nav-link" data-scroll-target="#rows">rows</a></li>
+  <li><a href="#rows-realmatrix" id="toc-rows-realmatrix" class="nav-link" data-scroll-target="#rows-realmatrix">rows-&gt;RealMatrix</a></li>
+  <li><a href="#rows-mat" id="toc-rows-mat" class="nav-link" data-scroll-target="#rows-mat">rows-&gt;mat</a></li>
+  <li><a href="#rows-mat2x2" id="toc-rows-mat2x2" class="nav-link" data-scroll-target="#rows-mat2x2">rows-&gt;mat2x2</a></li>
+  <li><a href="#rows-mat3x3" id="toc-rows-mat3x3" class="nav-link" data-scroll-target="#rows-mat3x3">rows-&gt;mat3x3</a></li>
+  <li><a href="#rows-mat4x4" id="toc-rows-mat4x4" class="nav-link" data-scroll-target="#rows-mat4x4">rows-&gt;mat4x4</a></li>
+  <li><a href="#safe-sqrt-1" id="toc-safe-sqrt-1" class="nav-link" data-scroll-target="#safe-sqrt-1">safe-sqrt</a></li>
+  <li><a href="#scale-cols" id="toc-scale-cols" class="nav-link" data-scroll-target="#scale-cols">scale-cols</a></li>
+  <li><a href="#scale-rows" id="toc-scale-rows" class="nav-link" data-scroll-target="#scale-rows">scale-rows</a></li>
+  <li><a href="#sec-1" id="toc-sec-1" class="nav-link" data-scroll-target="#sec-1">sec</a></li>
+  <li><a href="#sech-1" id="toc-sech-1" class="nav-link" data-scroll-target="#sech-1">sech</a></li>
+  <li><a href="#sfrac-1" id="toc-sfrac-1" class="nav-link" data-scroll-target="#sfrac-1">sfrac</a></li>
+  <li><a href="#sgn-1" id="toc-sgn-1" class="nav-link" data-scroll-target="#sgn-1">sgn</a></li>
+  <li><a href="#shape" id="toc-shape" class="nav-link" data-scroll-target="#shape">shape</a></li>
+  <li><a href="#shift-cols" id="toc-shift-cols" class="nav-link" data-scroll-target="#shift-cols">shift-cols</a></li>
+  <li><a href="#shift-rows" id="toc-shift-rows" class="nav-link" data-scroll-target="#shift-rows">shift-rows</a></li>
+  <li><a href="#sigmoid-1" id="toc-sigmoid-1" class="nav-link" data-scroll-target="#sigmoid-1">sigmoid</a></li>
+  <li><a href="#signum-1" id="toc-signum-1" class="nav-link" data-scroll-target="#signum-1">signum</a></li>
+  <li><a href="#sin-1" id="toc-sin-1" class="nav-link" data-scroll-target="#sin-1">sin</a></li>
+  <li><a href="#sinc-1" id="toc-sinc-1" class="nav-link" data-scroll-target="#sinc-1">sinc</a></li>
+  <li><a href="#singular-values" id="toc-singular-values" class="nav-link" data-scroll-target="#singular-values">singular-values</a></li>
+  <li><a href="#sinh-1" id="toc-sinh-1" class="nav-link" data-scroll-target="#sinh-1">sinh</a></li>
+  <li><a href="#solve" id="toc-solve" class="nav-link" data-scroll-target="#solve">solve</a></li>
+  <li><a href="#sq-1" id="toc-sq-1" class="nav-link" data-scroll-target="#sq-1">sq</a></li>
+  <li><a href="#sqrt-1" id="toc-sqrt-1" class="nav-link" data-scroll-target="#sqrt-1">sqrt</a></li>
+  <li><a href="#standardize" id="toc-standardize" class="nav-link" data-scroll-target="#standardize">standardize</a></li>
+  <li><a href="#sub-1" id="toc-sub-1" class="nav-link" data-scroll-target="#sub-1">sub</a></li>
+  <li><a href="#symmetric" id="toc-symmetric" class="nav-link" data-scroll-target="#symmetric">symmetric?</a></li>
+  <li><a href="#tan-1" id="toc-tan-1" class="nav-link" data-scroll-target="#tan-1">tan</a></li>
+  <li><a href="#tanh-1" id="toc-tanh-1" class="nav-link" data-scroll-target="#tanh-1">tanh</a></li>
+  <li><a href="#tmulm" id="toc-tmulm" class="nav-link" data-scroll-target="#tmulm">tmulm</a></li>
+  <li><a href="#tmulmt" id="toc-tmulmt" class="nav-link" data-scroll-target="#tmulmt">tmulmt</a></li>
+  <li><a href="#trace" id="toc-trace" class="nav-link" data-scroll-target="#trace">trace</a></li>
+  <li><a href="#transpose" id="toc-transpose" class="nav-link" data-scroll-target="#transpose">transpose</a></li>
+  <li><a href="#trunc-1" id="toc-trunc-1" class="nav-link" data-scroll-target="#trunc-1">trunc</a></li>
+  <li><a href="#vtmul" id="toc-vtmul" class="nav-link" data-scroll-target="#vtmul">vtmul</a></li>
+  <li><a href="#xlogx-1" id="toc-xlogx-1" class="nav-link" data-scroll-target="#xlogx-1">xlogx</a></li>
+  <li><a href="#zero-1" id="toc-zero-1" class="nav-link" data-scroll-target="#zero-1">zero</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Vectors and matrices</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<style></style>
+<style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style>
+<style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="vector_matrix_files/md-default0.js" type="text/javascript"></script>
+<script src="vector_matrix_files/md-default1.js" type="text/javascript"></script>
+<div class="sourceClojure">
+<div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> vector-matrix</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.<span class="kw">vector</span> <span class="at">:as</span> v]</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [fastmath.matrix <span class="at">:as</span> mat]</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.codox <span class="at">:as</span> codox]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="vectors" class="level2">
+<h2 class="anchored" data-anchor-id="vectors">Vectors</h2>
+<section id="reference" class="level3">
+<h3 class="anchored" data-anchor-id="reference">Reference</h3>
+<section id="fastmath.vector" class="level4">
+<h4 class="anchored" data-anchor-id="fastmath.vector">fastmath.vector</h4>
+<p>Mathematical vector operations.</p>
+<p>### Types</p>
+<ul>
+<li>Fixed size (custom types):
+<ul>
+<li>Number - 1d vector</li>
+<li>Vec2 - 2d vector, creator <a href="#LOS-vec2">vec2</a></li>
+<li>Vec3 - 3d vector, creator <a href="#LOS-vec3">vec3</a></li>
+<li>Vec4 - 4d vector, creator <a href="#LOS-vec4">vec4</a></li>
+<li>ArrayVec - fixed size double array wrapper, n-dimensional, creator <a href="#LOS-array-vec">array-vec</a></li>
+</ul></li>
+<li>Fixed size
+<ul>
+<li>doubles - double array itself</li>
+</ul></li>
+<li>Variable size:
+<ul>
+<li>Clojure’s IPersistentVector, creator <code>[]</code></li>
+<li>Clojure’s ISeq</li>
+</ul></li>
+</ul>
+<p><a href="#LOS-VectorProto">VectorProto</a> defines most of the functions.</p>
+<p>Vectors implements also:</p>
+<ul>
+<li><code>Sequable</code></li>
+<li><code>Sequencial</code></li>
+<li><code>IFn</code></li>
+<li><code>Counted</code></li>
+<li><code>Reversible</code></li>
+<li><code>Indexed</code></li>
+<li><code>ILookup</code></li>
+<li><code>equals</code> and <code>toString</code> from <code>Object</code></li>
+<li><code>IPersistentVector</code></li>
+<li><code>Associative</code></li>
+<li><code>clojure.core.matrix.protocols</code></li>
+<li><code>IReduce</code> and <code>IReduceInit</code></li>
+</ul>
+<p>That means that vectors can be destructured, treated as sequence or called as a function. See <a href="#LOS-vec2">vec2</a> for examples.</p>
+<span id="#LOS-->ArrayVec"></span>
+<section id="arrayvec" class="level5">
+<h5 class="anchored" data-anchor-id="arrayvec">-&gt;ArrayVec</h5>
+<ul>
+<li><code>(-&gt;ArrayVec array)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.vector.ArrayVec.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L254">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Vec2"></span>
+</section>
+<section id="vec2" class="level5">
+<h5 class="anchored" data-anchor-id="vec2">-&gt;Vec2</h5>
+<ul>
+<li><code>(-&gt;Vec2 x y)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.vector.Vec2.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L718">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Vec3"></span>
+</section>
+<section id="vec3" class="level5">
+<h5 class="anchored" data-anchor-id="vec3">-&gt;Vec3</h5>
+<ul>
+<li><code>(-&gt;Vec3 x y z)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.vector.Vec3.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L514">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Vec4"></span>
+</section>
+<section id="vec4" class="level5">
+<h5 class="anchored" data-anchor-id="vec4">-&gt;Vec4</h5>
+<ul>
+<li><code>(-&gt;Vec4 x y z w)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.vector.Vec4.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L392">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-abs"></span>
+</section>
+<section id="abs" class="level5">
+<h5 class="anchored" data-anchor-id="abs">abs</h5>
+<ul>
+<li><code>(abs v)</code></li>
+</ul>
+<p>Absolute value of vector elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L943">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acos"></span>
+</section>
+<section id="acos" class="level5">
+<h5 class="anchored" data-anchor-id="acos">acos</h5>
+<ul>
+<li><code>(acos vector)</code></li>
+</ul>
+<p>Apply acos to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acosh"></span>
+</section>
+<section id="acosh" class="level5">
+<h5 class="anchored" data-anchor-id="acosh">acosh</h5>
+<ul>
+<li><code>(acosh vector)</code></li>
+</ul>
+<p>Apply acosh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acot"></span>
+</section>
+<section id="acot" class="level5">
+<h5 class="anchored" data-anchor-id="acot">acot</h5>
+<ul>
+<li><code>(acot vector)</code></li>
+</ul>
+<p>Apply acot to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acoth"></span>
+</section>
+<section id="acoth" class="level5">
+<h5 class="anchored" data-anchor-id="acoth">acoth</h5>
+<ul>
+<li><code>(acoth vector)</code></li>
+</ul>
+<p>Apply acoth to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsc"></span>
+</section>
+<section id="acsc" class="level5">
+<h5 class="anchored" data-anchor-id="acsc">acsc</h5>
+<ul>
+<li><code>(acsc vector)</code></li>
+</ul>
+<p>Apply acsc to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsch"></span>
+</section>
+<section id="acsch" class="level5">
+<h5 class="anchored" data-anchor-id="acsch">acsch</h5>
+<ul>
+<li><code>(acsch vector)</code></li>
+</ul>
+<p>Apply acsch to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-add"></span>
+</section>
+<section id="add" class="level5">
+<h5 class="anchored" data-anchor-id="add">add</h5>
+<ul>
+<li><code>(add v)</code></li>
+<li><code>(add v1 v2)</code></li>
+</ul>
+<p>Sum of two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L920">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-aligned?"></span>
+</section>
+<section id="aligned" class="level5">
+<h5 class="anchored" data-anchor-id="aligned">aligned?</h5>
+<ul>
+<li><code>(aligned? v1 v2 tol)</code></li>
+<li><code>(aligned? v1 v2)</code></li>
+</ul>
+<p>Are vectors aligned (have the same direction)?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1251">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-angle-between"></span>
+</section>
+<section id="angle-between" class="level5">
+<h5 class="anchored" data-anchor-id="angle-between">angle-between</h5>
+<ul>
+<li><code>(angle-between v1 v2)</code></li>
+</ul>
+<p>Angle between two vectors</p>
+<p>See also <a href="#LOS-relative-angle-between">relative-angle-between</a>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1230">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-applyf"></span>
+</section>
+<section id="applyf-deprecated" class="level5">
+<h5 class="anchored" data-anchor-id="applyf-deprecated">applyf <sup><sub>DEPRECATED</sub></sup></h5>
+<p><em>Deprecated: v1.3.0</em></p>
+<p>Same as <a href="#LOS-fmap">fmap</a>. Deprecated.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L847">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-approx"></span>
+</section>
+<section id="approx" class="level5">
+<h5 class="anchored" data-anchor-id="approx">approx</h5>
+<ul>
+<li><code>(approx v)</code></li>
+<li><code>(approx v d)</code></li>
+</ul>
+<p>Round to 2 (or <code>d</code>) decimal places</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L896">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-array->vec2"></span>
+</section>
+<section id="array-vec2" class="level5">
+<h5 class="anchored" data-anchor-id="array-vec2">array-&gt;vec2</h5>
+<ul>
+<li><code>(array-&gt;vec2 arr)</code></li>
+</ul>
+<p>Doubles array to Vec2</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1291">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-array->vec3"></span>
+</section>
+<section id="array-vec3" class="level5">
+<h5 class="anchored" data-anchor-id="array-vec3">array-&gt;vec3</h5>
+<ul>
+<li><code>(array-&gt;vec3 arr)</code></li>
+</ul>
+<p>Doubles array to Vec3</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1296">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-array->vec4"></span>
+</section>
+<section id="array-vec4" class="level5">
+<h5 class="anchored" data-anchor-id="array-vec4">array-&gt;vec4</h5>
+<ul>
+<li><code>(array-&gt;vec4 arr)</code></li>
+</ul>
+<p>Doubles array to Vec4</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1301">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-array-vec"></span>
+</section>
+<section id="array-vec" class="level5">
+<h5 class="anchored" data-anchor-id="array-vec">array-vec</h5>
+<ul>
+<li><code>(array-vec xs)</code></li>
+</ul>
+<p>Make ArrayVec type based on provided sequence <code>xs</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1093">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-as-vec"></span>
+</section>
+<section id="as-vec" class="level5">
+<h5 class="anchored" data-anchor-id="as-vec">as-vec</h5>
+<ul>
+<li><code>(as-vec v)</code></li>
+<li><code>(as-vec v xs)</code></li>
+</ul>
+<p>Create vector from sequence as given type. If there is no sequence fill with <code>0.0</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L874">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asec"></span>
+</section>
+<section id="asec" class="level5">
+<h5 class="anchored" data-anchor-id="asec">asec</h5>
+<ul>
+<li><code>(asec vector)</code></li>
+</ul>
+<p>Apply asec to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asech"></span>
+</section>
+<section id="asech" class="level5">
+<h5 class="anchored" data-anchor-id="asech">asech</h5>
+<ul>
+<li><code>(asech vector)</code></li>
+</ul>
+<p>Apply asech to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asin"></span>
+</section>
+<section id="asin" class="level5">
+<h5 class="anchored" data-anchor-id="asin">asin</h5>
+<ul>
+<li><code>(asin vector)</code></li>
+</ul>
+<p>Apply asin to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asinh"></span>
+</section>
+<section id="asinh" class="level5">
+<h5 class="anchored" data-anchor-id="asinh">asinh</h5>
+<ul>
+<li><code>(asinh vector)</code></li>
+</ul>
+<p>Apply asinh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atan"></span>
+</section>
+<section id="atan" class="level5">
+<h5 class="anchored" data-anchor-id="atan">atan</h5>
+<ul>
+<li><code>(atan vector)</code></li>
+</ul>
+<p>Apply atan to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atanh"></span>
+</section>
+<section id="atanh" class="level5">
+<h5 class="anchored" data-anchor-id="atanh">atanh</h5>
+<ul>
+<li><code>(atanh vector)</code></li>
+</ul>
+<p>Apply atanh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-average"></span>
+</section>
+<section id="average" class="level5">
+<h5 class="anchored" data-anchor-id="average">average</h5>
+<ul>
+<li><code>(average v)</code></li>
+<li><code>(average v weights)</code></li>
+</ul>
+<p>Mean or weighted average of the vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1144">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-average-vectors"></span>
+</section>
+<section id="average-vectors" class="level5">
+<h5 class="anchored" data-anchor-id="average-vectors">average-vectors</h5>
+<ul>
+<li><code>(average-vectors init vs)</code></li>
+<li><code>(average-vectors vs)</code></li>
+</ul>
+<p>Average / centroid of vectors. Input: initial vector (optional), list of vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1138">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-axis-rotate"></span>
+</section>
+<section id="axis-rotate" class="level5">
+<h5 class="anchored" data-anchor-id="axis-rotate">axis-rotate</h5>
+<ul>
+<li><code>(axis-rotate v angle axis)</code></li>
+<li><code>(axis-rotate v angle axis pivot)</code></li>
+</ul>
+<p>Rotate vector. Only for <code>Vec3</code> types</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1042">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-base-from"></span>
+</section>
+<section id="base-from" class="level5">
+<h5 class="anchored" data-anchor-id="base-from">base-from</h5>
+<ul>
+<li><code>(base-from v)</code></li>
+</ul>
+<p>List of perpendicular vectors (basis). Works only for <code>Vec2</code> and <code>Vec3</code> types.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L971">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cb"></span>
+</section>
+<section id="cb" class="level5">
+<h5 class="anchored" data-anchor-id="cb">cb</h5>
+<ul>
+<li><code>(cb vector)</code></li>
+</ul>
+<p>Apply cb to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cbrt"></span>
+</section>
+<section id="cbrt" class="level5">
+<h5 class="anchored" data-anchor-id="cbrt">cbrt</h5>
+<ul>
+<li><code>(cbrt vector)</code></li>
+</ul>
+<p>Apply cbrt to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ceil"></span>
+</section>
+<section id="ceil" class="level5">
+<h5 class="anchored" data-anchor-id="ceil">ceil</h5>
+<ul>
+<li><code>(ceil vector)</code></li>
+</ul>
+<p>Apply ceil to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-clamp"></span>
+</section>
+<section id="clamp" class="level5">
+<h5 class="anchored" data-anchor-id="clamp">clamp</h5>
+<ul>
+<li><code>(clamp v mn mx)</code></li>
+<li><code>(clamp v)</code></li>
+</ul>
+<p>Clamp elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1128">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cos"></span>
+</section>
+<section id="cos" class="level5">
+<h5 class="anchored" data-anchor-id="cos">cos</h5>
+<ul>
+<li><code>(cos vector)</code></li>
+</ul>
+<p>Apply cos to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cosh"></span>
+</section>
+<section id="cosh" class="level5">
+<h5 class="anchored" data-anchor-id="cosh">cosh</h5>
+<ul>
+<li><code>(cosh vector)</code></li>
+</ul>
+<p>Apply cosh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cot"></span>
+</section>
+<section id="cot" class="level5">
+<h5 class="anchored" data-anchor-id="cot">cot</h5>
+<ul>
+<li><code>(cot vector)</code></li>
+</ul>
+<p>Apply cot to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-coth"></span>
+</section>
+<section id="coth" class="level5">
+<h5 class="anchored" data-anchor-id="coth">coth</h5>
+<ul>
+<li><code>(coth vector)</code></li>
+</ul>
+<p>Apply coth to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cross"></span>
+</section>
+<section id="cross" class="level5">
+<h5 class="anchored" data-anchor-id="cross">cross</h5>
+<ul>
+<li><code>(cross v1 v2)</code></li>
+</ul>
+<p>Cross product</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1033">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csc"></span>
+</section>
+<section id="csc" class="level5">
+<h5 class="anchored" data-anchor-id="csc">csc</h5>
+<ul>
+<li><code>(csc vector)</code></li>
+</ul>
+<p>Apply csc to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csch"></span>
+</section>
+<section id="csch" class="level5">
+<h5 class="anchored" data-anchor-id="csch">csch</h5>
+<ul>
+<li><code>(csch vector)</code></li>
+</ul>
+<p>Apply csch to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-degrees"></span>
+</section>
+<section id="degrees" class="level5">
+<h5 class="anchored" data-anchor-id="degrees">degrees</h5>
+<ul>
+<li><code>(degrees vector)</code></li>
+</ul>
+<p>Apply degrees to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-delta-eq"></span>
+</section>
+<section id="delta-eq" class="level5">
+<h5 class="anchored" data-anchor-id="delta-eq">delta-eq</h5>
+<ul>
+<li><code>(delta-eq v1 v2)</code></li>
+<li><code>(delta-eq v1 v2 abs-tol)</code></li>
+<li><code>(delta-eq v1 v2 abs-tol rel-tol)</code></li>
+</ul>
+<p>Equality with given absolute (and/or relative) toleance.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L901">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dhash-code"></span>
+</section>
+<section id="dhash-code" class="level5">
+<h5 class="anchored" data-anchor-id="dhash-code">dhash-code</h5>
+<ul>
+<li><code>(dhash-code state a)</code></li>
+<li><code>(dhash-code a)</code></li>
+</ul>
+<p>double hashcode</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L374">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist"></span>
+</section>
+<section id="dist" class="level5">
+<h5 class="anchored" data-anchor-id="dist">dist</h5>
+<ul>
+<li><code>(dist v1 v2)</code></li>
+</ul>
+<p>Euclidean distance between vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1149">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-abs"></span>
+</section>
+<section id="dist-abs" class="level5">
+<h5 class="anchored" data-anchor-id="dist-abs">dist-abs</h5>
+<ul>
+<li><code>(dist-abs v1 v2)</code></li>
+</ul>
+<p>Manhattan distance between vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1159">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-ang"></span>
+</section>
+<section id="dist-ang" class="level5">
+<h5 class="anchored" data-anchor-id="dist-ang">dist-ang</h5>
+<ul>
+<li><code>(dist-ang v1 v2)</code></li>
+</ul>
+<p>Angular distance</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1189">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-canberra"></span>
+</section>
+<section id="dist-canberra" class="level5">
+<h5 class="anchored" data-anchor-id="dist-canberra">dist-canberra</h5>
+<ul>
+<li><code>(dist-canberra v1 v2)</code></li>
+</ul>
+<p>Canberra distance</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1174">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-cheb"></span>
+</section>
+<section id="dist-cheb" class="level5">
+<h5 class="anchored" data-anchor-id="dist-cheb">dist-cheb</h5>
+<ul>
+<li><code>(dist-cheb v1 v2)</code></li>
+</ul>
+<p>Chebyshev distance between 2d vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1164">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-discrete"></span>
+</section>
+<section id="dist-discrete" class="level5">
+<h5 class="anchored" data-anchor-id="dist-discrete">dist-discrete</h5>
+<ul>
+<li><code>(dist-discrete v1 v2)</code></li>
+</ul>
+<p>Discrete distance between 2d vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1169">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-emd"></span>
+</section>
+<section id="dist-emd" class="level5">
+<h5 class="anchored" data-anchor-id="dist-emd">dist-emd</h5>
+<ul>
+<li><code>(dist-emd v1 v2)</code></li>
+</ul>
+<p>Earth Mover’s Distance</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1181">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dist-sq"></span>
+</section>
+<section id="dist-sq" class="level5">
+<h5 class="anchored" data-anchor-id="dist-sq">dist-sq</h5>
+<ul>
+<li><code>(dist-sq v1 v2)</code></li>
+</ul>
+<p>Squared Euclidean distance between vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1154">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-distances"></span>
+</section>
+<section id="distances" class="level5">
+<h5 class="anchored" data-anchor-id="distances">distances</h5>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1201">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-div"></span>
+</section>
+<section id="div" class="level5">
+<h5 class="anchored" data-anchor-id="div">div</h5>
+<ul>
+<li><code>(div v1 v)</code></li>
+<li><code>(div v1)</code></li>
+</ul>
+<p>Vector division or reciprocal.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1113">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-dot"></span>
+</section>
+<section id="dot" class="level5">
+<h5 class="anchored" data-anchor-id="dot">dot</h5>
+<ul>
+<li><code>(dot v1 v2)</code></li>
+</ul>
+<p>Dot product of two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L916">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-econstrain"></span>
+</section>
+<section id="econstrain" class="level5">
+<h5 class="anchored" data-anchor-id="econstrain">econstrain</h5>
+<ul>
+<li><code>(econstrain v mn mx)</code></li>
+</ul>
+<p>Element-wise constrain</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1005">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-edelta-eq"></span>
+</section>
+<section id="edelta-eq" class="level5">
+<h5 class="anchored" data-anchor-id="edelta-eq">edelta-eq</h5>
+<ul>
+<li><code>(edelta-eq v1 v2)</code></li>
+<li><code>(edelta-eq v1 v2 abs-tol)</code></li>
+<li><code>(edelta-eq v1 v2 abs-tol rel-tol)</code></li>
+</ul>
+<p>Element-wise equality with given absolute (and/or relative) toleance.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L907">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ediv"></span>
+</section>
+<section id="ediv" class="level5">
+<h5 class="anchored" data-anchor-id="ediv">ediv</h5>
+<ul>
+<li><code>(ediv v1 v2)</code></li>
+</ul>
+<p>Element-wise division of two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1118">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-einterpolate"></span>
+</section>
+<section id="einterpolate" class="level5">
+<h5 class="anchored" data-anchor-id="einterpolate">einterpolate</h5>
+<ul>
+<li><code>(einterpolate v1 v2 v)</code></li>
+<li><code>(einterpolate v1 v2 v f)</code></li>
+</ul>
+<p>Interpolate vector selement-wise, optionally set interpolation fn (default: lerp)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1000">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-emn"></span>
+</section>
+<section id="emn" class="level5">
+<h5 class="anchored" data-anchor-id="emn">emn</h5>
+<ul>
+<li><code>(emn v1 v2)</code></li>
+</ul>
+<p>Element-wise min from two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L959">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-emult"></span>
+</section>
+<section id="emult" class="level5">
+<h5 class="anchored" data-anchor-id="emult">emult</h5>
+<ul>
+<li><code>(emult v1 v2)</code></li>
+</ul>
+<p>Element-wise vector multiplication (Hadamard product).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L939">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-emx"></span>
+</section>
+<section id="emx" class="level5">
+<h5 class="anchored" data-anchor-id="emx">emx</h5>
+<ul>
+<li><code>(emx v1 v2)</code></li>
+</ul>
+<p>Element-wise max from two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L955">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-exp"></span>
+</section>
+<section id="exp" class="level5">
+<h5 class="anchored" data-anchor-id="exp">exp</h5>
+<ul>
+<li><code>(exp vector)</code></li>
+</ul>
+<p>Apply exp to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-expm1"></span>
+</section>
+<section id="expm1" class="level5">
+<h5 class="anchored" data-anchor-id="expm1">expm1</h5>
+<ul>
+<li><code>(expm1 vector)</code></li>
+</ul>
+<p>Apply expm1 to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-faceforward"></span>
+</section>
+<section id="faceforward" class="level5">
+<h5 class="anchored" data-anchor-id="faceforward">faceforward</h5>
+<ul>
+<li><code>(faceforward n v)</code></li>
+</ul>
+<p>Flip normal <code>n</code> to match the same direction as <code>v</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1258">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-floor"></span>
+</section>
+<section id="floor" class="level5">
+<h5 class="anchored" data-anchor-id="floor">floor</h5>
+<ul>
+<li><code>(floor vector)</code></li>
+</ul>
+<p>Apply floor to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fmap"></span>
+</section>
+<section id="fmap" class="level5">
+<h5 class="anchored" data-anchor-id="fmap">fmap</h5>
+<ul>
+<li><code>(fmap v f)</code></li>
+</ul>
+<p>Apply function to all vector values (like map but returns the same type).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L883">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-frac"></span>
+</section>
+<section id="frac" class="level5">
+<h5 class="anchored" data-anchor-id="frac">frac</h5>
+<ul>
+<li><code>(frac vector)</code></li>
+</ul>
+<p>Apply frac to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-from-polar"></span>
+</section>
+<section id="from-polar" class="level5">
+<h5 class="anchored" data-anchor-id="from-polar">from-polar</h5>
+<ul>
+<li><code>(from-polar v)</code></li>
+</ul>
+<p>From polar coordinates (2d, 3d only)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1061">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-generate-vec2"></span>
+</section>
+<section id="generate-vec2" class="level5">
+<h5 class="anchored" data-anchor-id="generate-vec2">generate-vec2</h5>
+<ul>
+<li><code>(generate-vec2 f1 f2)</code></li>
+<li><code>(generate-vec2 f)</code></li>
+</ul>
+<p>Generate Vec2 with fn(s)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1270">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-generate-vec3"></span>
+</section>
+<section id="generate-vec3" class="level5">
+<h5 class="anchored" data-anchor-id="generate-vec3">generate-vec3</h5>
+<ul>
+<li><code>(generate-vec3 f1 f2 f3)</code></li>
+<li><code>(generate-vec3 f)</code></li>
+</ul>
+<p>Generate Vec3 with fn(s)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1277">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-generate-vec4"></span>
+</section>
+<section id="generate-vec4" class="level5">
+<h5 class="anchored" data-anchor-id="generate-vec4">generate-vec4</h5>
+<ul>
+<li><code>(generate-vec4 f1 f2 f3 f4)</code></li>
+<li><code>(generate-vec4 f)</code></li>
+</ul>
+<p>Generate Vec4 with fn(s)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1284">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-heading"></span>
+</section>
+<section id="heading" class="level5">
+<h5 class="anchored" data-anchor-id="heading">heading</h5>
+<ul>
+<li><code>(heading v)</code></li>
+</ul>
+<p>Angle between vector and unit vector <code>[1,0,...]</code></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1029">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-interpolate"></span>
+</section>
+<section id="interpolate" class="level5">
+<h5 class="anchored" data-anchor-id="interpolate">interpolate</h5>
+<ul>
+<li><code>(interpolate v1 v2 t)</code></li>
+<li><code>(interpolate v1 v2 t f)</code></li>
+</ul>
+<p>Interpolate vectors, optionally set interpolation fn (default: lerp)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L991">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-is-near-zero?"></span>
+</section>
+<section id="is-near-zero" class="level5">
+<h5 class="anchored" data-anchor-id="is-near-zero">is-near-zero?</h5>
+<ul>
+<li><code>(is-near-zero? v)</code></li>
+<li><code>(is-near-zero? v abs-tol)</code></li>
+<li><code>(is-near-zero? v abs-tol rel-tol)</code></li>
+</ul>
+<p>Equality to zero <code>0</code> with given absolute (and/or relative) toleance.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1017">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-is-zero?"></span>
+</section>
+<section id="is-zero" class="level5">
+<h5 class="anchored" data-anchor-id="is-zero">is-zero?</h5>
+<ul>
+<li><code>(is-zero? v)</code></li>
+</ul>
+<p>Is vector zero?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1009">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-lerp"></span>
+</section>
+<section id="lerp" class="level5">
+<h5 class="anchored" data-anchor-id="lerp">lerp</h5>
+<ul>
+<li><code>(lerp v1 v2 t)</code></li>
+</ul>
+<p>Linear interpolation of vectors</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L996">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-limit"></span>
+</section>
+<section id="limit" class="level5">
+<h5 class="anchored" data-anchor-id="limit">limit</h5>
+<ul>
+<li><code>(limit v len)</code></li>
+</ul>
+<p>Limit length of the vector by given value</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1223">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ln"></span>
+</section>
+<section id="ln" class="level5">
+<h5 class="anchored" data-anchor-id="ln">ln</h5>
+<ul>
+<li><code>(ln vector)</code></li>
+</ul>
+<p>Apply ln to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log"></span>
+</section>
+<section id="log" class="level5">
+<h5 class="anchored" data-anchor-id="log">log</h5>
+<ul>
+<li><code>(log vector)</code></li>
+</ul>
+<p>Apply log to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log10"></span>
+</section>
+<section id="log10" class="level5">
+<h5 class="anchored" data-anchor-id="log10">log10</h5>
+<ul>
+<li><code>(log10 vector)</code></li>
+</ul>
+<p>Apply log10 to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1mexp"></span>
+</section>
+<section id="log1mexp" class="level5">
+<h5 class="anchored" data-anchor-id="log1mexp">log1mexp</h5>
+<ul>
+<li><code>(log1mexp vector)</code></li>
+</ul>
+<p>Apply log1mexp to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1p"></span>
+</section>
+<section id="log1p" class="level5">
+<h5 class="anchored" data-anchor-id="log1p">log1p</h5>
+<ul>
+<li><code>(log1p vector)</code></li>
+</ul>
+<p>Apply log1p to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1pexp"></span>
+</section>
+<section id="log1pexp" class="level5">
+<h5 class="anchored" data-anchor-id="log1pexp">log1pexp</h5>
+<ul>
+<li><code>(log1pexp vector)</code></li>
+</ul>
+<p>Apply log1pexp to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1pmx"></span>
+</section>
+<section id="log1pmx" class="level5">
+<h5 class="anchored" data-anchor-id="log1pmx">log1pmx</h5>
+<ul>
+<li><code>(log1pmx vector)</code></li>
+</ul>
+<p>Apply log1pmx to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1psq"></span>
+</section>
+<section id="log1psq" class="level5">
+<h5 class="anchored" data-anchor-id="log1psq">log1psq</h5>
+<ul>
+<li><code>(log1psq vector)</code></li>
+</ul>
+<p>Apply log1psq to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log2"></span>
+</section>
+<section id="log2" class="level5">
+<h5 class="anchored" data-anchor-id="log2">log2</h5>
+<ul>
+<li><code>(log2 vector)</code></li>
+</ul>
+<p>Apply log2 to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logexpm1"></span>
+</section>
+<section id="logexpm1" class="level5">
+<h5 class="anchored" data-anchor-id="logexpm1">logexpm1</h5>
+<ul>
+<li><code>(logexpm1 vector)</code></li>
+</ul>
+<p>Apply logexpm1 to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logit"></span>
+</section>
+<section id="logit" class="level5">
+<h5 class="anchored" data-anchor-id="logit">logit</h5>
+<ul>
+<li><code>(logit vector)</code></li>
+</ul>
+<p>Apply logit to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logmeanexp"></span>
+</section>
+<section id="logmeanexp" class="level5">
+<h5 class="anchored" data-anchor-id="logmeanexp">logmeanexp</h5>
+<ul>
+<li><code>(logmeanexp v)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1366">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logmxp1"></span>
+</section>
+<section id="logmxp1" class="level5">
+<h5 class="anchored" data-anchor-id="logmxp1">logmxp1</h5>
+<ul>
+<li><code>(logmxp1 vector)</code></li>
+</ul>
+<p>Apply logmxp1 to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logsoftmax"></span>
+</section>
+<section id="logsoftmax" class="level5">
+<h5 class="anchored" data-anchor-id="logsoftmax">logsoftmax</h5>
+<ul>
+<li><code>(logsoftmax v)</code></li>
+<li><code>(logsoftmax v t)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1351">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logsumexp"></span>
+</section>
+<section id="logsumexp" class="level5">
+<h5 class="anchored" data-anchor-id="logsumexp">logsumexp</h5>
+<ul>
+<li><code>(logsumexp v)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1361">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mag"></span>
+</section>
+<section id="mag" class="level5">
+<h5 class="anchored" data-anchor-id="mag">mag</h5>
+<ul>
+<li><code>(mag v)</code></li>
+</ul>
+<p>Length of the vector.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L892">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-magsq"></span>
+</section>
+<section id="magsq" class="level5">
+<h5 class="anchored" data-anchor-id="magsq">magsq</h5>
+<ul>
+<li><code>(magsq v)</code></li>
+</ul>
+<p>Length of the vector squared.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L888">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-make-vector"></span>
+</section>
+<section id="make-vector" class="level5">
+<h5 class="anchored" data-anchor-id="make-vector">make-vector</h5>
+<ul>
+<li><code>(make-vector dims xs)</code></li>
+<li><code>(make-vector dims)</code></li>
+</ul>
+<p>Returns fixed size vector for given number of dimensions.</p>
+<p>Proper type is used.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1098">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-maxdim"></span>
+</section>
+<section id="maxdim" class="level5">
+<h5 class="anchored" data-anchor-id="maxdim">maxdim</h5>
+<ul>
+<li><code>(maxdim v)</code></li>
+</ul>
+<p>Index of maximum value.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L963">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mindim"></span>
+</section>
+<section id="mindim" class="level5">
+<h5 class="anchored" data-anchor-id="mindim">mindim</h5>
+<ul>
+<li><code>(mindim v)</code></li>
+</ul>
+<p>Index of minimum value.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L967">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mn"></span>
+</section>
+<section id="mn" class="level5">
+<h5 class="anchored" data-anchor-id="mn">mn</h5>
+<ul>
+<li><code>(mn v)</code></li>
+</ul>
+<p>Minimum value of vector elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L951">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mult"></span>
+</section>
+<section id="mult" class="level5">
+<h5 class="anchored" data-anchor-id="mult">mult</h5>
+<ul>
+<li><code>(mult v x)</code></li>
+</ul>
+<p>Multiply vector by number <code>x</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L935">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mx"></span>
+</section>
+<section id="mx" class="level5">
+<h5 class="anchored" data-anchor-id="mx">mx</h5>
+<ul>
+<li><code>(mx v)</code></li>
+</ul>
+<p>Maximum value of vector elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L947">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-near-zero?"></span>
+</section>
+<section id="near-zero" class="level5">
+<h5 class="anchored" data-anchor-id="near-zero">near-zero?</h5>
+<ul>
+<li><code>(near-zero? v)</code></li>
+<li><code>(near-zero? v abs-tol)</code></li>
+<li><code>(near-zero? v abs-tol rel-tol)</code></li>
+</ul>
+<p>Equality to zero <code>0</code> with given absolute (and/or relative) toleance.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1023">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-nonzero-count"></span>
+</section>
+<section id="nonzero-count" class="level5">
+<h5 class="anchored" data-anchor-id="nonzero-count">nonzero-count</h5>
+<ul>
+<li><code>(nonzero-count v)</code></li>
+</ul>
+<p>Count non zero velues in vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1133">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize"></span>
+</section>
+<section id="normalize" class="level5">
+<h5 class="anchored" data-anchor-id="normalize">normalize</h5>
+<ul>
+<li><code>(normalize v)</code></li>
+</ul>
+<p>Normalize vector (set length = 1.0)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1210">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-orthogonal-polynomials"></span>
+</section>
+<section id="orthogonal-polynomials" class="level5">
+<h5 class="anchored" data-anchor-id="orthogonal-polynomials">orthogonal-polynomials</h5>
+<ul>
+<li><code>(orthogonal-polynomials xs)</code></li>
+</ul>
+<p>Creates orthogonal list of vectors based on <code>xs</code>, starting from degree 1</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1375">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-orthonormal-polynomials"></span>
+</section>
+<section id="orthonormal-polynomials" class="level5">
+<h5 class="anchored" data-anchor-id="orthonormal-polynomials">orthonormal-polynomials</h5>
+<ul>
+<li><code>(orthonormal-polynomials xs)</code></li>
+</ul>
+<p>Creates orthonormal list of vector based on <code>xs</code>, starting from degree 1</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1393">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-permute"></span>
+</section>
+<section id="permute" class="level5">
+<h5 class="anchored" data-anchor-id="permute">permute</h5>
+<ul>
+<li><code>(permute v idxs)</code></li>
+</ul>
+<p>Permute vector elements with given indices.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L983">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-perpendicular"></span>
+</section>
+<section id="perpendicular" class="level5">
+<h5 class="anchored" data-anchor-id="perpendicular">perpendicular</h5>
+<ul>
+<li><code>(perpendicular v)</code></li>
+<li><code>(perpendicular v1 v2)</code></li>
+</ul>
+<p>Perpendicular vector. Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1047">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-prod"></span>
+</section>
+<section id="prod" class="level5">
+<h5 class="anchored" data-anchor-id="prod">prod</h5>
+<ul>
+<li><code>(prod v)</code></li>
+</ul>
+<p>Product of elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L979">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-project"></span>
+</section>
+<section id="project" class="level5">
+<h5 class="anchored" data-anchor-id="project">project</h5>
+<ul>
+<li><code>(project v1 v2)</code></li>
+</ul>
+<p>Project <code>v1</code> onto <code>v2</code></p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1265">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-radians"></span>
+</section>
+<section id="radians" class="level5">
+<h5 class="anchored" data-anchor-id="radians">radians</h5>
+<ul>
+<li><code>(radians vector)</code></li>
+</ul>
+<p>Apply radians to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-reciprocal"></span>
+</section>
+<section id="reciprocal" class="level5">
+<h5 class="anchored" data-anchor-id="reciprocal">reciprocal</h5>
+<ul>
+<li><code>(reciprocal v)</code></li>
+</ul>
+<p>Reciprocal of elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L987">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-relative-angle-between"></span>
+</section>
+<section id="relative-angle-between" class="level5">
+<h5 class="anchored" data-anchor-id="relative-angle-between">relative-angle-between</h5>
+<ul>
+<li><code>(relative-angle-between v1 v2)</code></li>
+</ul>
+<p>Angle between two vectors relative to each other.</p>
+<p>See also <a href="#LOS-angle-between">angle-between</a>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1244">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rint"></span>
+</section>
+<section id="rint" class="level5">
+<h5 class="anchored" data-anchor-id="rint">rint</h5>
+<ul>
+<li><code>(rint vector)</code></li>
+</ul>
+<p>Apply rint to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotate"></span>
+</section>
+<section id="rotate" class="level5">
+<h5 class="anchored" data-anchor-id="rotate">rotate</h5>
+<ul>
+<li><code>(rotate v angle)</code></li>
+<li><code>(rotate v angle-x angle-y angle-z)</code></li>
+</ul>
+<p>Rotate vector. Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1037">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-round"></span>
+</section>
+<section id="round" class="level5">
+<h5 class="anchored" data-anchor-id="round">round</h5>
+<ul>
+<li><code>(round vector)</code></li>
+</ul>
+<p>Apply round to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-safe-sqrt"></span>
+</section>
+<section id="safe-sqrt" class="level5">
+<h5 class="anchored" data-anchor-id="safe-sqrt">safe-sqrt</h5>
+<ul>
+<li><code>(safe-sqrt vector)</code></li>
+</ul>
+<p>Apply safe-sqrt to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sec"></span>
+</section>
+<section id="sec" class="level5">
+<h5 class="anchored" data-anchor-id="sec">sec</h5>
+<ul>
+<li><code>(sec vector)</code></li>
+</ul>
+<p>Apply sec to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sech"></span>
+</section>
+<section id="sech" class="level5">
+<h5 class="anchored" data-anchor-id="sech">sech</h5>
+<ul>
+<li><code>(sech vector)</code></li>
+</ul>
+<p>Apply sech to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-seq->vec2"></span>
+</section>
+<section id="seq-vec2" class="level5">
+<h5 class="anchored" data-anchor-id="seq-vec2">seq-&gt;vec2</h5>
+<ul>
+<li><code>(seq-&gt;vec2 xs)</code></li>
+</ul>
+<p>Any seq to Vec2</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1306">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-seq->vec3"></span>
+</section>
+<section id="seq-vec3" class="level5">
+<h5 class="anchored" data-anchor-id="seq-vec3">seq-&gt;vec3</h5>
+<ul>
+<li><code>(seq-&gt;vec3 xs)</code></li>
+</ul>
+<p>Any seq to Vec3</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1311">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-seq->vec4"></span>
+</section>
+<section id="seq-vec4" class="level5">
+<h5 class="anchored" data-anchor-id="seq-vec4">seq-&gt;vec4</h5>
+<ul>
+<li><code>(seq-&gt;vec4 xs)</code></li>
+</ul>
+<p>Any seq to Vec4</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1316">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-set-mag"></span>
+</section>
+<section id="set-mag" class="level5">
+<h5 class="anchored" data-anchor-id="set-mag">set-mag</h5>
+<ul>
+<li><code>(set-mag v len)</code></li>
+</ul>
+<p>Set length of the vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1218">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sfrac"></span>
+</section>
+<section id="sfrac" class="level5">
+<h5 class="anchored" data-anchor-id="sfrac">sfrac</h5>
+<ul>
+<li><code>(sfrac vector)</code></li>
+</ul>
+<p>Apply sfrac to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sgn"></span>
+</section>
+<section id="sgn" class="level5">
+<h5 class="anchored" data-anchor-id="sgn">sgn</h5>
+<ul>
+<li><code>(sgn vector)</code></li>
+</ul>
+<p>Apply sgn to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-shift"></span>
+</section>
+<section id="shift" class="level5">
+<h5 class="anchored" data-anchor-id="shift">shift</h5>
+<ul>
+<li><code>(shift v)</code></li>
+<li><code>(shift v x)</code></li>
+</ul>
+<p>Add value to every vector element.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L930">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sigmoid"></span>
+</section>
+<section id="sigmoid" class="level5">
+<h5 class="anchored" data-anchor-id="sigmoid">sigmoid</h5>
+<ul>
+<li><code>(sigmoid vector)</code></li>
+</ul>
+<p>Apply sigmoid to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-signum"></span>
+</section>
+<section id="signum" class="level5">
+<h5 class="anchored" data-anchor-id="signum">signum</h5>
+<ul>
+<li><code>(signum vector)</code></li>
+</ul>
+<p>Apply signum to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sim-cos"></span>
+</section>
+<section id="sim-cos" class="level5">
+<h5 class="anchored" data-anchor-id="sim-cos">sim-cos</h5>
+<ul>
+<li><code>(sim-cos v1 v2)</code></li>
+</ul>
+<p>Cosine similarity</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1194">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sin"></span>
+</section>
+<section id="sin" class="level5">
+<h5 class="anchored" data-anchor-id="sin">sin</h5>
+<ul>
+<li><code>(sin vector)</code></li>
+</ul>
+<p>Apply sin to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinc"></span>
+</section>
+<section id="sinc" class="level5">
+<h5 class="anchored" data-anchor-id="sinc">sinc</h5>
+<ul>
+<li><code>(sinc vector)</code></li>
+</ul>
+<p>Apply sinc to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinh"></span>
+</section>
+<section id="sinh" class="level5">
+<h5 class="anchored" data-anchor-id="sinh">sinh</h5>
+<ul>
+<li><code>(sinh vector)</code></li>
+</ul>
+<p>Apply sinh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-size"></span>
+</section>
+<section id="size" class="level5">
+<h5 class="anchored" data-anchor-id="size">size</h5>
+<ul>
+<li><code>(size v)</code></li>
+</ul>
+<p>Length of the vector.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L879">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-softmax"></span>
+</section>
+<section id="softmax" class="level5">
+<h5 class="anchored" data-anchor-id="softmax">softmax</h5>
+<ul>
+<li><code>(softmax v)</code></li>
+<li><code>(softmax v t)</code></li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1341">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sq"></span>
+</section>
+<section id="sq" class="level5">
+<h5 class="anchored" data-anchor-id="sq">sq</h5>
+<ul>
+<li><code>(sq vector)</code></li>
+</ul>
+<p>Apply sq to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sqrt"></span>
+</section>
+<section id="sqrt" class="level5">
+<h5 class="anchored" data-anchor-id="sqrt">sqrt</h5>
+<ul>
+<li><code>(sqrt vector)</code></li>
+</ul>
+<p>Apply sqrt to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sub"></span>
+</section>
+<section id="sub" class="level5">
+<h5 class="anchored" data-anchor-id="sub">sub</h5>
+<ul>
+<li><code>(sub v)</code></li>
+<li><code>(sub v1 v2)</code></li>
+</ul>
+<p>Subtraction of two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L925">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sum"></span>
+</section>
+<section id="sum" class="level5">
+<h5 class="anchored" data-anchor-id="sum">sum</h5>
+<ul>
+<li><code>(sum v)</code></li>
+</ul>
+<p>Sum of elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L975">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tan"></span>
+</section>
+<section id="tan" class="level5">
+<h5 class="anchored" data-anchor-id="tan">tan</h5>
+<ul>
+<li><code>(tan vector)</code></li>
+</ul>
+<p>Apply tan to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tanh"></span>
+</section>
+<section id="tanh" class="level5">
+<h5 class="anchored" data-anchor-id="tanh">tanh</h5>
+<ul>
+<li><code>(tanh vector)</code></li>
+</ul>
+<p>Apply tanh to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-to-polar"></span>
+</section>
+<section id="to-polar" class="level5">
+<h5 class="anchored" data-anchor-id="to-polar">to-polar</h5>
+<ul>
+<li><code>(to-polar v)</code></li>
+</ul>
+<p>To polar coordinates (2d, 3d only), first element is length, the rest angle.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1057">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-to-vec"></span>
+</section>
+<section id="to-vec-deprecated" class="level5">
+<h5 class="anchored" data-anchor-id="to-vec-deprecated">to-vec <sup><sub>DEPRECATED</sub></sup></h5>
+<p><em>Deprecated: v1.5.0</em></p>
+<p>Same as <a href="#LOS-vec-%3EVec">vec-&gt;Vec</a>. Deprecated.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L848">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-transform"></span>
+</section>
+<section id="transform" class="level5">
+<h5 class="anchored" data-anchor-id="transform">transform</h5>
+<ul>
+<li><code>(transform v o vx vy)</code></li>
+<li><code>(transform v o vx vy vz)</code></li>
+</ul>
+<p>Transform vector; map point to coordinate system defined by origin, vx and vy (as bases), Only for <code>Vec2</code> and <code>Vec3</code> types.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1052">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-triple-product"></span>
+</section>
+<section id="triple-product" class="level5">
+<h5 class="anchored" data-anchor-id="triple-product">triple-product</h5>
+<ul>
+<li><code>(triple-product a b c)</code></li>
+</ul>
+<p>a o (b x c)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1065">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-trunc"></span>
+</section>
+<section id="trunc" class="level5">
+<h5 class="anchored" data-anchor-id="trunc">trunc</h5>
+<ul>
+<li><code>(trunc vector)</code></li>
+</ul>
+<p>Apply trunc to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec->RealVector"></span>
+</section>
+<section id="vec-realvector" class="level5">
+<h5 class="anchored" data-anchor-id="vec-realvector">vec-&gt;RealVector</h5>
+<ul>
+<li><code>(vec-&gt;RealVector v)</code></li>
+</ul>
+<p>Convert to Apache Commons Math RealVector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L864">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec->Vec"></span>
+</section>
+<section id="vec-vec" class="level5">
+<h5 class="anchored" data-anchor-id="vec-vec">vec-&gt;Vec</h5>
+<ul>
+<li><code>(vec-&gt;Vec v)</code></li>
+</ul>
+<p>Convert to Clojure primitive vector <code>Vec</code>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L869">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec->array"></span>
+</section>
+<section id="vec-array" class="level5">
+<h5 class="anchored" data-anchor-id="vec-array">vec-&gt;array</h5>
+<ul>
+<li><code>(vec-&gt;array v)</code></li>
+</ul>
+<p>Convert to double array</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L852">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec->seq"></span>
+</section>
+<section id="vec-seq" class="level5">
+<h5 class="anchored" data-anchor-id="vec-seq">vec-&gt;seq</h5>
+<ul>
+<li><code>(vec-&gt;seq v)</code></li>
+</ul>
+<p>Convert to sequence (same as seq)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L856">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec2"></span>
+</section>
+<section id="vec2-1" class="level5">
+<h5 class="anchored" data-anchor-id="vec2-1">vec2</h5>
+<ul>
+<li><code>(vec2 x y)</code></li>
+<li><code>(vec2 [x y])</code></li>
+<li><code>(vec2)</code></li>
+</ul>
+<p>Make 2d vector.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1072">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec3"></span>
+</section>
+<section id="vec3-1" class="level5">
+<h5 class="anchored" data-anchor-id="vec3-1">vec3</h5>
+<ul>
+<li><code>(vec3 x y z)</code></li>
+<li><code>(vec3 v z)</code></li>
+<li><code>(vec3 [x y z])</code></li>
+<li><code>(vec3)</code></li>
+</ul>
+<p>Make Vec2 vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1078">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vec4"></span>
+</section>
+<section id="vec4-1" class="level5">
+<h5 class="anchored" data-anchor-id="vec4-1">vec4</h5>
+<ul>
+<li><code>(vec4 x y z w)</code></li>
+<li><code>(vec4 v w)</code></li>
+<li><code>(vec4 v z w)</code></li>
+<li><code>(vec4 [x y z w])</code></li>
+<li><code>(vec4)</code></li>
+</ul>
+<p>Make Vec4 vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1085">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-xlogx"></span>
+</section>
+<section id="xlogx" class="level5">
+<h5 class="anchored" data-anchor-id="xlogx">xlogx</h5>
+<ul>
+<li><code>(xlogx vector)</code></li>
+</ul>
+<p>Apply xlogx to vector elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1334">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-zero-count"></span>
+</section>
+<section id="zero-count" class="level5">
+<h5 class="anchored" data-anchor-id="zero-count">zero-count</h5>
+<ul>
+<li><code>(zero-count v)</code></li>
+</ul>
+<p>Count zeros in vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1123">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-zero?"></span>
+</section>
+<section id="zero" class="level5">
+<h5 class="anchored" data-anchor-id="zero">zero?</h5>
+<ul>
+<li><code>(zero? v)</code></li>
+</ul>
+<p>Is vector zero?</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1013">source</a></small><hr style="margin: 0"></div>
+</section>
+</section>
+</section>
+</section>
+<section id="matrices" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="matrices">Matrices</h2>
+<section id="reference-1" class="level3">
+<h3 class="anchored" data-anchor-id="reference-1">Reference</h3>
+<section id="fastmath.matrix" class="level4">
+<h4 class="anchored" data-anchor-id="fastmath.matrix">fastmath.matrix</h4>
+<p>Fixed size (2x2, 3x3, 4x4) matrix types.</p>
+<span id="#LOS-->Mat2x2"></span>
+<section id="mat2x2" class="level5">
+<h5 class="anchored" data-anchor-id="mat2x2">-&gt;Mat2x2</h5>
+<ul>
+<li><code>(-&gt;Mat2x2 a00 a01 a10 a11)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.matrix.Mat2x2.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L73">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Mat3x3"></span>
+</section>
+<section id="mat3x3" class="level5">
+<h5 class="anchored" data-anchor-id="mat3x3">-&gt;Mat3x3</h5>
+<ul>
+<li><code>(-&gt;Mat3x3 a00 a01 a02 a10 a11 a12 a20 a21 a22)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.matrix.Mat3x3.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L196">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-->Mat4x4"></span>
+</section>
+<section id="mat4x4" class="level5">
+<h5 class="anchored" data-anchor-id="mat4x4">-&gt;Mat4x4</h5>
+<ul>
+<li><code>(-&gt;Mat4x4 a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)</code></li>
+</ul>
+<p>Positional factory function for class fastmath.matrix.Mat4x4.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L350">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acos"></span>
+</section>
+<section id="acos-1" class="level5">
+<h5 class="anchored" data-anchor-id="acos-1">acos</h5>
+<ul>
+<li><code>(acos vector)</code></li>
+</ul>
+<p>Apply acos to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acosh"></span>
+</section>
+<section id="acosh-1" class="level5">
+<h5 class="anchored" data-anchor-id="acosh-1">acosh</h5>
+<ul>
+<li><code>(acosh vector)</code></li>
+</ul>
+<p>Apply acosh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acot"></span>
+</section>
+<section id="acot-1" class="level5">
+<h5 class="anchored" data-anchor-id="acot-1">acot</h5>
+<ul>
+<li><code>(acot vector)</code></li>
+</ul>
+<p>Apply acot to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acoth"></span>
+</section>
+<section id="acoth-1" class="level5">
+<h5 class="anchored" data-anchor-id="acoth-1">acoth</h5>
+<ul>
+<li><code>(acoth vector)</code></li>
+</ul>
+<p>Apply acoth to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsc"></span>
+</section>
+<section id="acsc-1" class="level5">
+<h5 class="anchored" data-anchor-id="acsc-1">acsc</h5>
+<ul>
+<li><code>(acsc vector)</code></li>
+</ul>
+<p>Apply acsc to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-acsch"></span>
+</section>
+<section id="acsch-1" class="level5">
+<h5 class="anchored" data-anchor-id="acsch-1">acsch</h5>
+<ul>
+<li><code>(acsch vector)</code></li>
+</ul>
+<p>Apply acsch to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-add"></span>
+</section>
+<section id="add-1" class="level5">
+<h5 class="anchored" data-anchor-id="add-1">add</h5>
+<ul>
+<li><code>(add A)</code></li>
+<li><code>(add A B)</code></li>
+</ul>
+<p>Add matrices, C=A+B.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L994">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-adds"></span>
+</section>
+<section id="adds" class="level5">
+<h5 class="anchored" data-anchor-id="adds">adds</h5>
+<ul>
+<li><code>(adds A s)</code></li>
+</ul>
+<p>Add scalar to all matrix elements</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L999">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asec"></span>
+</section>
+<section id="asec-1" class="level5">
+<h5 class="anchored" data-anchor-id="asec-1">asec</h5>
+<ul>
+<li><code>(asec vector)</code></li>
+</ul>
+<p>Apply asec to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asech"></span>
+</section>
+<section id="asech-1" class="level5">
+<h5 class="anchored" data-anchor-id="asech-1">asech</h5>
+<ul>
+<li><code>(asech vector)</code></li>
+</ul>
+<p>Apply asech to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asin"></span>
+</section>
+<section id="asin-1" class="level5">
+<h5 class="anchored" data-anchor-id="asin-1">asin</h5>
+<ul>
+<li><code>(asin vector)</code></li>
+</ul>
+<p>Apply asin to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-asinh"></span>
+</section>
+<section id="asinh-1" class="level5">
+<h5 class="anchored" data-anchor-id="asinh-1">asinh</h5>
+<ul>
+<li><code>(asinh vector)</code></li>
+</ul>
+<p>Apply asinh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atan"></span>
+</section>
+<section id="atan-1" class="level5">
+<h5 class="anchored" data-anchor-id="atan-1">atan</h5>
+<ul>
+<li><code>(atan vector)</code></li>
+</ul>
+<p>Apply atan to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-atanh"></span>
+</section>
+<section id="atanh-1" class="level5">
+<h5 class="anchored" data-anchor-id="atanh-1">atanh</h5>
+<ul>
+<li><code>(atanh vector)</code></li>
+</ul>
+<p>Apply atanh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cb"></span>
+</section>
+<section id="cb-1" class="level5">
+<h5 class="anchored" data-anchor-id="cb-1">cb</h5>
+<ul>
+<li><code>(cb vector)</code></li>
+</ul>
+<p>Apply cb to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cbrt"></span>
+</section>
+<section id="cbrt-1" class="level5">
+<h5 class="anchored" data-anchor-id="cbrt-1">cbrt</h5>
+<ul>
+<li><code>(cbrt vector)</code></li>
+</ul>
+<p>Apply cbrt to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ceil"></span>
+</section>
+<section id="ceil-1" class="level5">
+<h5 class="anchored" data-anchor-id="ceil-1">ceil</h5>
+<ul>
+<li><code>(ceil vector)</code></li>
+</ul>
+<p>Apply ceil to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cholesky"></span>
+</section>
+<section id="cholesky" class="level5">
+<h5 class="anchored" data-anchor-id="cholesky">cholesky</h5>
+<ul>
+<li><code>(cholesky A)</code></li>
+<li><code>(cholesky A upper?)</code></li>
+</ul>
+<p>Calculate L (lower by default) triangular for where L * L^T = A.</p>
+<p>Checks only for symmetry, can return NaNs when A is not positive-definite.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1048">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-col"></span>
+</section>
+<section id="col" class="level5">
+<h5 class="anchored" data-anchor-id="col">col</h5>
+<ul>
+<li><code>(col A c)</code></li>
+</ul>
+<p>Return column as a vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L968">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols"></span>
+</section>
+<section id="cols" class="level5">
+<h5 class="anchored" data-anchor-id="cols">cols</h5>
+<ul>
+<li><code>(cols A)</code></li>
+</ul>
+<p>Return matrix columns</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L917">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols->RealMatrix"></span>
+</section>
+<section id="cols-realmatrix" class="level5">
+<h5 class="anchored" data-anchor-id="cols-realmatrix">cols-&gt;RealMatrix</h5>
+<ul>
+<li><code>(cols-&gt;RealMatrix cols)</code></li>
+</ul>
+<p>Return Apache Commons Math Array2DRowMatrix from sequence of columns</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L786">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols->mat"></span>
+</section>
+<section id="cols-mat" class="level5">
+<h5 class="anchored" data-anchor-id="cols-mat">cols-&gt;mat</h5>
+<ul>
+<li><code>(cols-&gt;mat real-matrix-cols)</code></li>
+<li><code>(cols-&gt;mat [a00 a10] [a01 a11])</code></li>
+<li><code>(cols-&gt;mat [a00 a10 a20] [a01 a11 a21] [a02 a12 a22])</code></li>
+<li><code>(cols-&gt;mat [a00 a10 a20 a30] [a01 a11 a21 a31] [a02 a12 a22 a32] [a03 a13 a23 a33])</code></li>
+</ul>
+<p>Create nxn matrix from nd vectors (columns).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L815">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols->mat2x2"></span>
+</section>
+<section id="cols-mat2x2" class="level5">
+<h5 class="anchored" data-anchor-id="cols-mat2x2">cols-&gt;mat2x2</h5>
+<ul>
+<li><code>(cols-&gt;mat2x2 [a00 a10] [a01 a11])</code></li>
+</ul>
+<p>Create 2x2 matrix from 2d vectors (columns).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L713">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols->mat3x3"></span>
+</section>
+<section id="cols-mat3x3" class="level5">
+<h5 class="anchored" data-anchor-id="cols-mat3x3">cols-&gt;mat3x3</h5>
+<ul>
+<li><code>(cols-&gt;mat3x3 [a00 a10 a20] [a01 a11 a21] [a02 a12 a22])</code></li>
+</ul>
+<p>Create 3x3 matrix from 3d vectors (columns).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L740">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cols->mat4x4"></span>
+</section>
+<section id="cols-mat4x4" class="level5">
+<h5 class="anchored" data-anchor-id="cols-mat4x4">cols-&gt;mat4x4</h5>
+<ul>
+<li><code>(cols-&gt;mat4x4 [a00 a10 a20 a30] [a01 a11 a21 a31] [a02 a12 a22 a32] [a03 a13 a23 a33])</code></li>
+</ul>
+<p>Create 4x4 matrix from 4d vectors (columns).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L771">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-condition"></span>
+</section>
+<section id="condition" class="level5">
+<h5 class="anchored" data-anchor-id="condition">condition</h5>
+<ul>
+<li><code>(condition A)</code></li>
+<li><code>(condition A norm-type)</code></li>
+</ul>
+<p>Condition number calculated for L2 norm by default (see <a href="#LOS-norm">norm</a> for other norm types).</p>
+<p>Cond(A) = norm(A) * norm(inv(A))</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1210">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cos"></span>
+</section>
+<section id="cos-1" class="level5">
+<h5 class="anchored" data-anchor-id="cos-1">cos</h5>
+<ul>
+<li><code>(cos vector)</code></li>
+</ul>
+<p>Apply cos to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cosh"></span>
+</section>
+<section id="cosh-1" class="level5">
+<h5 class="anchored" data-anchor-id="cosh-1">cosh</h5>
+<ul>
+<li><code>(cosh vector)</code></li>
+</ul>
+<p>Apply cosh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-cot"></span>
+</section>
+<section id="cot-1" class="level5">
+<h5 class="anchored" data-anchor-id="cot-1">cot</h5>
+<ul>
+<li><code>(cot vector)</code></li>
+</ul>
+<p>Apply cot to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-coth"></span>
+</section>
+<section id="coth-1" class="level5">
+<h5 class="anchored" data-anchor-id="coth-1">coth</h5>
+<ul>
+<li><code>(coth vector)</code></li>
+</ul>
+<p>Apply coth to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csc"></span>
+</section>
+<section id="csc-1" class="level5">
+<h5 class="anchored" data-anchor-id="csc-1">csc</h5>
+<ul>
+<li><code>(csc vector)</code></li>
+</ul>
+<p>Apply csc to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-csch"></span>
+</section>
+<section id="csch-1" class="level5">
+<h5 class="anchored" data-anchor-id="csch-1">csch</h5>
+<ul>
+<li><code>(csch vector)</code></li>
+</ul>
+<p>Apply csch to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-degrees"></span>
+</section>
+<section id="degrees-1" class="level5">
+<h5 class="anchored" data-anchor-id="degrees-1">degrees</h5>
+<ul>
+<li><code>(degrees vector)</code></li>
+</ul>
+<p>Apply degrees to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-demean"></span>
+</section>
+<section id="demean" class="level5">
+<h5 class="anchored" data-anchor-id="demean">demean</h5>
+<ul>
+<li><code>(demean A)</code></li>
+<li><code>(demean A rows?)</code></li>
+</ul>
+<p>Subract mean from columns (or rows)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1103">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-det"></span>
+</section>
+<section id="det" class="level5">
+<h5 class="anchored" data-anchor-id="det">det</h5>
+<ul>
+<li><code>(det A)</code></li>
+</ul>
+<p>Return determinant of the matrix.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L990">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-diag"></span>
+</section>
+<section id="diag" class="level5">
+<h5 class="anchored" data-anchor-id="diag">diag</h5>
+<ul>
+<li><code>(diag A)</code></li>
+</ul>
+<p>Return diagonal of the matrix as a vector.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L986">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-diagonal"></span>
+</section>
+<section id="diagonal" class="level5">
+<h5 class="anchored" data-anchor-id="diagonal">diagonal</h5>
+<ul>
+<li><code>(diagonal v)</code></li>
+<li><code>(diagonal a11 a22)</code></li>
+<li><code>(diagonal a11 a22 a33)</code></li>
+<li><code>(diagonal a11 a22 a33 a44)</code></li>
+</ul>
+<p>Create diagonal matrix</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L862">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-eigenvalues"></span>
+</section>
+<section id="eigenvalues" class="level5">
+<h5 class="anchored" data-anchor-id="eigenvalues">eigenvalues</h5>
+<ul>
+<li><code>(eigenvalues A)</code></li>
+</ul>
+<p>Return complex eigenvalues for given matrix as a sequence</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1062">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-eigenvalues-matrix"></span>
+</section>
+<section id="eigenvalues-matrix" class="level5">
+<h5 class="anchored" data-anchor-id="eigenvalues-matrix">eigenvalues-matrix</h5>
+<ul>
+<li><code>(eigenvalues-matrix A)</code></li>
+</ul>
+<p>Return eigenvalues for given matrix as a diagonal or block diagonal matrix</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1078">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-eigenvectors"></span>
+</section>
+<section id="eigenvectors" class="level5">
+<h5 class="anchored" data-anchor-id="eigenvectors">eigenvectors</h5>
+<ul>
+<li><code>(eigenvectors A)</code></li>
+<li><code>(eigenvectors A normalize?)</code></li>
+</ul>
+<p>Return eigenvectors as a matrix (columns). Vectors can be normalized.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1173">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-emulm"></span>
+</section>
+<section id="emulm" class="level5">
+<h5 class="anchored" data-anchor-id="emulm">emulm</h5>
+<ul>
+<li><code>(emulm A B)</code></li>
+</ul>
+<p>Multiply two matrices element-wise, Hadamard product, C=AoB</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1032">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-entry"></span>
+</section>
+<section id="entry" class="level5">
+<h5 class="anchored" data-anchor-id="entry">entry</h5>
+<ul>
+<li><code>(entry A row col)</code></li>
+</ul>
+<p>Get entry at given row and column</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L908">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-exp"></span>
+</section>
+<section id="exp-1" class="level5">
+<h5 class="anchored" data-anchor-id="exp-1">exp</h5>
+<ul>
+<li><code>(exp vector)</code></li>
+</ul>
+<p>Apply exp to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-expm1"></span>
+</section>
+<section id="expm1-1" class="level5">
+<h5 class="anchored" data-anchor-id="expm1-1">expm1</h5>
+<ul>
+<li><code>(expm1 vector)</code></li>
+</ul>
+<p>Apply expm1 to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-eye"></span>
+</section>
+<section id="eye" class="level5">
+<h5 class="anchored" data-anchor-id="eye">eye</h5>
+<ul>
+<li><code>(eye size real-matrix?)</code></li>
+<li><code>(eye size)</code></li>
+</ul>
+<p>Identity matrix for given size</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L831">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-floor"></span>
+</section>
+<section id="floor-1" class="level5">
+<h5 class="anchored" data-anchor-id="floor-1">floor</h5>
+<ul>
+<li><code>(floor vector)</code></li>
+</ul>
+<p>Apply floor to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-fmap"></span>
+</section>
+<section id="fmap-1" class="level5">
+<h5 class="anchored" data-anchor-id="fmap-1">fmap</h5>
+<ul>
+<li><code>(fmap A f)</code></li>
+</ul>
+<p>Apply a function <code>f</code> to each matrix element.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L913">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-frac"></span>
+</section>
+<section id="frac-1" class="level5">
+<h5 class="anchored" data-anchor-id="frac-1">frac</h5>
+<ul>
+<li><code>(frac vector)</code></li>
+</ul>
+<p>Apply frac to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-inverse"></span>
+</section>
+<section id="inverse" class="level5">
+<h5 class="anchored" data-anchor-id="inverse">inverse</h5>
+<ul>
+<li><code>(inverse m)</code></li>
+</ul>
+<p>Matrix inversion.</p>
+<p>Returns <code>nil</code> if inversion doesn’t exist.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L980">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ln"></span>
+</section>
+<section id="ln-1" class="level5">
+<h5 class="anchored" data-anchor-id="ln-1">ln</h5>
+<ul>
+<li><code>(ln vector)</code></li>
+</ul>
+<p>Apply ln to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log"></span>
+</section>
+<section id="log-1" class="level5">
+<h5 class="anchored" data-anchor-id="log-1">log</h5>
+<ul>
+<li><code>(log vector)</code></li>
+</ul>
+<p>Apply log to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log10"></span>
+</section>
+<section id="log10-1" class="level5">
+<h5 class="anchored" data-anchor-id="log10-1">log10</h5>
+<ul>
+<li><code>(log10 vector)</code></li>
+</ul>
+<p>Apply log10 to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1mexp"></span>
+</section>
+<section id="log1mexp-1" class="level5">
+<h5 class="anchored" data-anchor-id="log1mexp-1">log1mexp</h5>
+<ul>
+<li><code>(log1mexp vector)</code></li>
+</ul>
+<p>Apply log1mexp to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1p"></span>
+</section>
+<section id="log1p-1" class="level5">
+<h5 class="anchored" data-anchor-id="log1p-1">log1p</h5>
+<ul>
+<li><code>(log1p vector)</code></li>
+</ul>
+<p>Apply log1p to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1pexp"></span>
+</section>
+<section id="log1pexp-1" class="level5">
+<h5 class="anchored" data-anchor-id="log1pexp-1">log1pexp</h5>
+<ul>
+<li><code>(log1pexp vector)</code></li>
+</ul>
+<p>Apply log1pexp to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1pmx"></span>
+</section>
+<section id="log1pmx-1" class="level5">
+<h5 class="anchored" data-anchor-id="log1pmx-1">log1pmx</h5>
+<ul>
+<li><code>(log1pmx vector)</code></li>
+</ul>
+<p>Apply log1pmx to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log1psq"></span>
+</section>
+<section id="log1psq-1" class="level5">
+<h5 class="anchored" data-anchor-id="log1psq-1">log1psq</h5>
+<ul>
+<li><code>(log1psq vector)</code></li>
+</ul>
+<p>Apply log1psq to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-log2"></span>
+</section>
+<section id="log2-1" class="level5">
+<h5 class="anchored" data-anchor-id="log2-1">log2</h5>
+<ul>
+<li><code>(log2 vector)</code></li>
+</ul>
+<p>Apply log2 to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logexpm1"></span>
+</section>
+<section id="logexpm1-1" class="level5">
+<h5 class="anchored" data-anchor-id="logexpm1-1">logexpm1</h5>
+<ul>
+<li><code>(logexpm1 vector)</code></li>
+</ul>
+<p>Apply logexpm1 to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logit"></span>
+</section>
+<section id="logit-1" class="level5">
+<h5 class="anchored" data-anchor-id="logit-1">logit</h5>
+<ul>
+<li><code>(logit vector)</code></li>
+</ul>
+<p>Apply logit to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-logmxp1"></span>
+</section>
+<section id="logmxp1-1" class="level5">
+<h5 class="anchored" data-anchor-id="logmxp1-1">logmxp1</h5>
+<ul>
+<li><code>(logmxp1 vector)</code></li>
+</ul>
+<p>Apply logmxp1 to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat"></span>
+</section>
+<section id="mat" class="level5">
+<h5 class="anchored" data-anchor-id="mat">mat</h5>
+<ul>
+<li><code>(mat real-matrix-rows)</code></li>
+<li><code>(mat a00 a01 a10 a11)</code></li>
+<li><code>(mat a00 a01 a02 a10 a11 a12 a20 a21 a22)</code></li>
+<li><code>(mat a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)</code></li>
+</ul>
+<p>Create mat2x2, mat3x3 or mat4x4 or RealMatrix from rows</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L791">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->RealMatrix"></span>
+</section>
+<section id="mat-realmatrix" class="level5">
+<h5 class="anchored" data-anchor-id="mat-realmatrix">mat-&gt;RealMatrix</h5>
+<ul>
+<li><code>(mat-&gt;RealMatrix A)</code></li>
+</ul>
+<p>Return Apache Commons Math Array2DRowMatrix from a 2x2, 3x3 or 4x4 matrix</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L945">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->array"></span>
+</section>
+<section id="mat-array" class="level5">
+<h5 class="anchored" data-anchor-id="mat-array">mat-&gt;array</h5>
+<ul>
+<li><code>(mat-&gt;array A)</code></li>
+</ul>
+<p>Return flat double array of entries (row order)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L937">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->array2d"></span>
+</section>
+<section id="mat-array2d" class="level5">
+<h5 class="anchored" data-anchor-id="mat-array2d">mat-&gt;array2d</h5>
+<ul>
+<li><code>(mat-&gt;array2d A)</code></li>
+</ul>
+<p>Return doubles of doubles</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L929">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->float-array"></span>
+</section>
+<section id="mat-float-array" class="level5">
+<h5 class="anchored" data-anchor-id="mat-float-array">mat-&gt;float-array</h5>
+<ul>
+<li><code>(mat-&gt;float-array A)</code></li>
+</ul>
+<p>Return flat float array of entries (row order)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L941">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->float-array2d"></span>
+</section>
+<section id="mat-float-array2d" class="level5">
+<h5 class="anchored" data-anchor-id="mat-float-array2d">mat-&gt;float-array2d</h5>
+<ul>
+<li><code>(mat-&gt;float-array2d A)</code></li>
+</ul>
+<p>Return doubles of doubles</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L933">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat->seq"></span>
+</section>
+<section id="mat-seq" class="level5">
+<h5 class="anchored" data-anchor-id="mat-seq">mat-&gt;seq</h5>
+<ul>
+<li><code>(mat-&gt;seq A)</code></li>
+</ul>
+<p>Return flat sequence of entries (row order)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L925">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat2x2"></span>
+</section>
+<section id="mat2x2-1" class="level5">
+<h5 class="anchored" data-anchor-id="mat2x2-1">mat2x2</h5>
+<ul>
+<li><code>(mat2x2 v)</code></li>
+<li><code>(mat2x2 d1 d2)</code></li>
+<li><code>(mat2x2 a00 a01 a10 a11)</code></li>
+</ul>
+<p>Create 2x2 matrix.</p>
+<p>Arity:</p>
+<ul>
+<li>1 - fills matrix with given value</li>
+<li>2 - creates diagonal matrix</li>
+<li>4 - creates row ordered matrix</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L695">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat3x3"></span>
+</section>
+<section id="mat3x3-1" class="level5">
+<h5 class="anchored" data-anchor-id="mat3x3-1">mat3x3</h5>
+<ul>
+<li><code>(mat3x3 v)</code></li>
+<li><code>(mat3x3 d1 d2 d3)</code></li>
+<li><code>(mat3x3 a00 a01 a02 a10 a11 a12 a20 a21 a22)</code></li>
+</ul>
+<p>Create 3x3 matrix.</p>
+<p>Arity:</p>
+<ul>
+<li>1 - fills matrix with given value</li>
+<li>3 - creates diagonal matrix</li>
+<li>9 - creates row ordered matrix</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L719">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mat4x4"></span>
+</section>
+<section id="mat4x4-1" class="level5">
+<h5 class="anchored" data-anchor-id="mat4x4-1">mat4x4</h5>
+<ul>
+<li><code>(mat4x4 v)</code></li>
+<li><code>(mat4x4 d1 d2 d3 d4)</code></li>
+<li><code>(mat4x4 a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)</code></li>
+</ul>
+<p>Create 4x4 matrix.</p>
+<p>Arity:</p>
+<ul>
+<li>1 - fills matrix with given value</li>
+<li>4 - creates diagonal matrix</li>
+<li>16 - creates row ordered matrix</li>
+</ul>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L747">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mulm"></span>
+</section>
+<section id="mulm" class="level5">
+<h5 class="anchored" data-anchor-id="mulm">mulm</h5>
+<ul>
+<li><code>(mulm A B)</code></li>
+<li><code>(mulm A transposeA? B transposeB?)</code></li>
+</ul>
+<p>Multiply two matrices, C=AxB.</p>
+<p>Optionally you can request transposition of matrices.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1012">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mulmt"></span>
+</section>
+<section id="mulmt" class="level5">
+<h5 class="anchored" data-anchor-id="mulmt">mulmt</h5>
+<ul>
+<li><code>(mulmt A B)</code></li>
+</ul>
+<p>Multiply with transposed matrix, C=AxB^T</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1020">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-muls"></span>
+</section>
+<section id="muls" class="level5">
+<h5 class="anchored" data-anchor-id="muls">muls</h5>
+<ul>
+<li><code>(muls A s)</code></li>
+</ul>
+<p>Multply matrix by a scalar, C=sA</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1040">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-mulv"></span>
+</section>
+<section id="mulv" class="level5">
+<h5 class="anchored" data-anchor-id="mulv">mulv</h5>
+<ul>
+<li><code>(mulv A v)</code></li>
+</ul>
+<p>Multply matrix by vector, x=Av</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1036">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-ncol"></span>
+</section>
+<section id="ncol" class="level5">
+<h5 class="anchored" data-anchor-id="ncol">ncol</h5>
+<ul>
+<li><code>(ncol A)</code></li>
+</ul>
+<p>Return number of rows</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L956">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-negate"></span>
+</section>
+<section id="negate" class="level5">
+<h5 class="anchored" data-anchor-id="negate">negate</h5>
+<ul>
+<li><code>(negate A)</code></li>
+</ul>
+<p>Negate all matrix elements, C=-A</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1008">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-norm"></span>
+</section>
+<section id="norm" class="level5">
+<h5 class="anchored" data-anchor-id="norm">norm</h5>
+<ul>
+<li><code>(norm A)</code></li>
+<li><code>(norm A norm-type)</code></li>
+</ul>
+<p>Calculate norm of the matrix for given type, default: 1 (maximum absolute column sum).</p>
+<p>All norm types are: * 1 - maximum absolute column sum * :inf - maximum absolute row sum * 2 - spectral norm, maximum singular value * :max - maximum absolute value * :frobenius - Frobenius norm * [p,q] - generalized L_pq norm, [2,2] - Frobenius norm, [p,p] - entrywise p-norm * [p] - Shatten p-norm, [1] - nuclear/trace norm</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1187">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize"></span>
+</section>
+<section id="normalize-1" class="level5">
+<h5 class="anchored" data-anchor-id="normalize-1">normalize</h5>
+<ul>
+<li><code>(normalize A)</code></li>
+<li><code>(normalize A rows?)</code></li>
+</ul>
+<p>Normalize columns (or rows)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1089">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-nrow"></span>
+</section>
+<section id="nrow" class="level5">
+<h5 class="anchored" data-anchor-id="nrow">nrow</h5>
+<ul>
+<li><code>(nrow A)</code></li>
+</ul>
+<p>Return number of rows</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L952">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-outer"></span>
+</section>
+<section id="outer" class="level5">
+<h5 class="anchored" data-anchor-id="outer">outer</h5>
+<ul>
+<li><code>(outer v1 v2)</code></li>
+</ul>
+<p>Outer project for two vectors.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L880">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-radians"></span>
+</section>
+<section id="radians-1" class="level5">
+<h5 class="anchored" data-anchor-id="radians-1">radians</h5>
+<ul>
+<li><code>(radians vector)</code></li>
+</ul>
+<p>Apply radians to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rint"></span>
+</section>
+<section id="rint-1" class="level5">
+<h5 class="anchored" data-anchor-id="rint-1">rint</h5>
+<ul>
+<li><code>(rint vector)</code></li>
+</ul>
+<p>Apply rint to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-2d"></span>
+</section>
+<section id="rotation-matrix-2d" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-2d">rotation-matrix-2d</h5>
+<ul>
+<li><code>(rotation-matrix-2d theta)</code></li>
+</ul>
+<p>Create rotation matrix for a plane</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1219">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-3d"></span>
+</section>
+<section id="rotation-matrix-3d" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-3d">rotation-matrix-3d</h5>
+<ul>
+<li><code>(rotation-matrix-3d [x y z])</code></li>
+<li><code>(rotation-matrix-3d x y z)</code></li>
+</ul>
+<p>Create rotation matrix for a 3d space. Tait–Bryan angles z-y′-x″</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1226">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-3d-x"></span>
+</section>
+<section id="rotation-matrix-3d-x" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-3d-x">rotation-matrix-3d-x</h5>
+<ul>
+<li><code>(rotation-matrix-3d-x a)</code></li>
+</ul>
+<p>Create rotation matrix for a 3d space, x-axis, right hand rule.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1242">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-3d-y"></span>
+</section>
+<section id="rotation-matrix-3d-y" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-3d-y">rotation-matrix-3d-y</h5>
+<ul>
+<li><code>(rotation-matrix-3d-y a)</code></li>
+</ul>
+<p>Create rotation matrix for a 3d space, y-axis, right hand rule.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1251">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-3d-z"></span>
+</section>
+<section id="rotation-matrix-3d-z" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-3d-z">rotation-matrix-3d-z</h5>
+<ul>
+<li><code>(rotation-matrix-3d-z a)</code></li>
+</ul>
+<p>Create rotation matrix for a 3d space, z-axis, right hand rule.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1260">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rotation-matrix-axis-3d"></span>
+</section>
+<section id="rotation-matrix-axis-3d" class="level5">
+<h5 class="anchored" data-anchor-id="rotation-matrix-axis-3d">rotation-matrix-axis-3d</h5>
+<ul>
+<li><code>(rotation-matrix-axis-3d angle axis)</code></li>
+</ul>
+<p>Create 3d rotation matrix for axis ratation.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1269">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-round"></span>
+</section>
+<section id="round-1" class="level5">
+<h5 class="anchored" data-anchor-id="round-1">round</h5>
+<ul>
+<li><code>(round vector)</code></li>
+</ul>
+<p>Apply round to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-row"></span>
+</section>
+<section id="row" class="level5">
+<h5 class="anchored" data-anchor-id="row">row</h5>
+<ul>
+<li><code>(row A r)</code></li>
+</ul>
+<p>Return row as a vector</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L964">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows"></span>
+</section>
+<section id="rows" class="level5">
+<h5 class="anchored" data-anchor-id="rows">rows</h5>
+<ul>
+<li><code>(rows A)</code></li>
+</ul>
+<p>Return matrix rows</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L921">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows->RealMatrix"></span>
+</section>
+<section id="rows-realmatrix" class="level5">
+<h5 class="anchored" data-anchor-id="rows-realmatrix">rows-&gt;RealMatrix</h5>
+<ul>
+<li><code>(rows-&gt;RealMatrix rows)</code></li>
+</ul>
+<p>Return Apache Commons Math Array2DRowMatrix from sequence of rows</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L779">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows->mat"></span>
+</section>
+<section id="rows-mat" class="level5">
+<h5 class="anchored" data-anchor-id="rows-mat">rows-&gt;mat</h5>
+<ul>
+<li><code>(rows-&gt;mat real-matrix-rows)</code></li>
+<li><code>(rows-&gt;mat [a00 a01] [a10 a11])</code></li>
+<li><code>(rows-&gt;mat [a00 a01 a02] [a10 a11 a12] [a20 a21 a22])</code></li>
+<li><code>(rows-&gt;mat [a00 a01 a02 a03] [a10 a11 a12 a13] [a20 a21 a22 a23] [a30 a31 a32 a33])</code></li>
+</ul>
+<p>Create nxn matrix from nd vectors (rows).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L799">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows->mat2x2"></span>
+</section>
+<section id="rows-mat2x2" class="level5">
+<h5 class="anchored" data-anchor-id="rows-mat2x2">rows-&gt;mat2x2</h5>
+<ul>
+<li><code>(rows-&gt;mat2x2 [a00 a01] [a10 a11])</code></li>
+</ul>
+<p>Create 2x2 matrix from 2d vectors (rows).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L707">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows->mat3x3"></span>
+</section>
+<section id="rows-mat3x3" class="level5">
+<h5 class="anchored" data-anchor-id="rows-mat3x3">rows-&gt;mat3x3</h5>
+<ul>
+<li><code>(rows-&gt;mat3x3 [a00 a01 a02] [a10 a11 a12] [a20 a21 a22])</code></li>
+</ul>
+<p>Create 3x3 matrix from 3d vectors (rows).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L733">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-rows->mat4x4"></span>
+</section>
+<section id="rows-mat4x4" class="level5">
+<h5 class="anchored" data-anchor-id="rows-mat4x4">rows-&gt;mat4x4</h5>
+<ul>
+<li><code>(rows-&gt;mat4x4 [a00 a01 a02 a03] [a10 a11 a12 a13] [a20 a21 a22 a23] [a30 a31 a32 a33])</code></li>
+</ul>
+<p>Create 4x4 matrix from 4d vectors (rows).</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L763">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-safe-sqrt"></span>
+</section>
+<section id="safe-sqrt-1" class="level5">
+<h5 class="anchored" data-anchor-id="safe-sqrt-1">safe-sqrt</h5>
+<ul>
+<li><code>(safe-sqrt vector)</code></li>
+</ul>
+<p>Apply safe-sqrt to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scale-cols"></span>
+</section>
+<section id="scale-cols" class="level5">
+<h5 class="anchored" data-anchor-id="scale-cols">scale-cols</h5>
+<ul>
+<li><code>(scale-cols A)</code></li>
+<li><code>(scale-cols A scale)</code></li>
+</ul>
+<p>Shift columns by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1163">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-scale-rows"></span>
+</section>
+<section id="scale-rows" class="level5">
+<h5 class="anchored" data-anchor-id="scale-rows">scale-rows</h5>
+<ul>
+<li><code>(scale-rows A)</code></li>
+<li><code>(scale-rows A scale)</code></li>
+</ul>
+<p>Shift rows by a value (default: sqrt(sum(x^2)/(n-1))) or a result of the function</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1153">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sec"></span>
+</section>
+<section id="sec-1" class="level5">
+<h5 class="anchored" data-anchor-id="sec-1">sec</h5>
+<ul>
+<li><code>(sec vector)</code></li>
+</ul>
+<p>Apply sec to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sech"></span>
+</section>
+<section id="sech-1" class="level5">
+<h5 class="anchored" data-anchor-id="sech-1">sech</h5>
+<ul>
+<li><code>(sech vector)</code></li>
+</ul>
+<p>Apply sech to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sfrac"></span>
+</section>
+<section id="sfrac-1" class="level5">
+<h5 class="anchored" data-anchor-id="sfrac-1">sfrac</h5>
+<ul>
+<li><code>(sfrac vector)</code></li>
+</ul>
+<p>Apply sfrac to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sgn"></span>
+</section>
+<section id="sgn-1" class="level5">
+<h5 class="anchored" data-anchor-id="sgn-1">sgn</h5>
+<ul>
+<li><code>(sgn vector)</code></li>
+</ul>
+<p>Apply sgn to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-shape"></span>
+</section>
+<section id="shape" class="level5">
+<h5 class="anchored" data-anchor-id="shape">shape</h5>
+<ul>
+<li><code>(shape A)</code></li>
+</ul>
+<p>Return [nrows, ncols] pair.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L960">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-shift-cols"></span>
+</section>
+<section id="shift-cols" class="level5">
+<h5 class="anchored" data-anchor-id="shift-cols">shift-cols</h5>
+<ul>
+<li><code>(shift-cols A)</code></li>
+<li><code>(shift-cols A shift)</code></li>
+</ul>
+<p>Shift columns by a value or a result of the function (mean by default)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1141">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-shift-rows"></span>
+</section>
+<section id="shift-rows" class="level5">
+<h5 class="anchored" data-anchor-id="shift-rows">shift-rows</h5>
+<ul>
+<li><code>(shift-rows A)</code></li>
+<li><code>(shift-rows A shift)</code></li>
+</ul>
+<p>Shift rows by a value or a result of the function (mean by default)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1131">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sigmoid"></span>
+</section>
+<section id="sigmoid-1" class="level5">
+<h5 class="anchored" data-anchor-id="sigmoid-1">sigmoid</h5>
+<ul>
+<li><code>(sigmoid vector)</code></li>
+</ul>
+<p>Apply sigmoid to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-signum"></span>
+</section>
+<section id="signum-1" class="level5">
+<h5 class="anchored" data-anchor-id="signum-1">signum</h5>
+<ul>
+<li><code>(signum vector)</code></li>
+</ul>
+<p>Apply signum to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sin"></span>
+</section>
+<section id="sin-1" class="level5">
+<h5 class="anchored" data-anchor-id="sin-1">sin</h5>
+<ul>
+<li><code>(sin vector)</code></li>
+</ul>
+<p>Apply sin to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinc"></span>
+</section>
+<section id="sinc-1" class="level5">
+<h5 class="anchored" data-anchor-id="sinc-1">sinc</h5>
+<ul>
+<li><code>(sinc vector)</code></li>
+</ul>
+<p>Apply sinc to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-singular-values"></span>
+</section>
+<section id="singular-values" class="level5">
+<h5 class="anchored" data-anchor-id="singular-values">singular-values</h5>
+<ul>
+<li><code>(singular-values A)</code></li>
+</ul>
+<p>Returun singular values of the matrix as sqrt of eigenvalues of A^T * A matrix.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1070">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sinh"></span>
+</section>
+<section id="sinh-1" class="level5">
+<h5 class="anchored" data-anchor-id="sinh-1">sinh</h5>
+<ul>
+<li><code>(sinh vector)</code></li>
+</ul>
+<p>Apply sinh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-solve"></span>
+</section>
+<section id="solve" class="level5">
+<h5 class="anchored" data-anchor-id="solve">solve</h5>
+<ul>
+<li><code>(solve A b)</code></li>
+</ul>
+<p>Solve linear equation Ax=b</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L874">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sq"></span>
+</section>
+<section id="sq-1" class="level5">
+<h5 class="anchored" data-anchor-id="sq-1">sq</h5>
+<ul>
+<li><code>(sq vector)</code></li>
+</ul>
+<p>Apply sq to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sqrt"></span>
+</section>
+<section id="sqrt-1" class="level5">
+<h5 class="anchored" data-anchor-id="sqrt-1">sqrt</h5>
+<ul>
+<li><code>(sqrt vector)</code></li>
+</ul>
+<p>Apply sqrt to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-standardize"></span>
+</section>
+<section id="standardize" class="level5">
+<h5 class="anchored" data-anchor-id="standardize">standardize</h5>
+<ul>
+<li><code>(standardize A)</code></li>
+<li><code>(standardize A rows?)</code></li>
+</ul>
+<p>Normalize columns (or rows) to have mean = 0 and stddev = 1</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1117">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-sub"></span>
+</section>
+<section id="sub-1" class="level5">
+<h5 class="anchored" data-anchor-id="sub-1">sub</h5>
+<ul>
+<li><code>(sub A)</code></li>
+<li><code>(sub A B)</code></li>
+</ul>
+<p>Subract matrices, C=A-B.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1003">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-symmetric?"></span>
+</section>
+<section id="symmetric" class="level5">
+<h5 class="anchored" data-anchor-id="symmetric">symmetric?</h5>
+<ul>
+<li><code>(symmetric? A)</code></li>
+</ul>
+<p>Check if matrix is symmetric</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L972">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tan"></span>
+</section>
+<section id="tan-1" class="level5">
+<h5 class="anchored" data-anchor-id="tan-1">tan</h5>
+<ul>
+<li><code>(tan vector)</code></li>
+</ul>
+<p>Apply tan to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tanh"></span>
+</section>
+<section id="tanh-1" class="level5">
+<h5 class="anchored" data-anchor-id="tanh-1">tanh</h5>
+<ul>
+<li><code>(tanh vector)</code></li>
+</ul>
+<p>Apply tanh to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tmulm"></span>
+</section>
+<section id="tmulm" class="level5">
+<h5 class="anchored" data-anchor-id="tmulm">tmulm</h5>
+<ul>
+<li><code>(tmulm A B)</code></li>
+</ul>
+<p>Transpose and multiply, C=A^TxB</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1024">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-tmulmt"></span>
+</section>
+<section id="tmulmt" class="level5">
+<h5 class="anchored" data-anchor-id="tmulmt">tmulmt</h5>
+<ul>
+<li><code>(tmulmt A B)</code></li>
+</ul>
+<p>Transpose both and multiply, C=A<sup>TxB</sup>T</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1028">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-trace"></span>
+</section>
+<section id="trace" class="level5">
+<h5 class="anchored" data-anchor-id="trace">trace</h5>
+<ul>
+<li><code>(trace A)</code></li>
+</ul>
+<p>Return trace of the matrix (sum of diagonal elements)</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1058">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-transpose"></span>
+</section>
+<section id="transpose" class="level5">
+<h5 class="anchored" data-anchor-id="transpose">transpose</h5>
+<ul>
+<li><code>(transpose A)</code></li>
+</ul>
+<p>Transpose matrix, C=A^T</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L976">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-trunc"></span>
+</section>
+<section id="trunc-1" class="level5">
+<h5 class="anchored" data-anchor-id="trunc-1">trunc</h5>
+<ul>
+<li><code>(trunc vector)</code></li>
+</ul>
+<p>Apply trunc to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-vtmul"></span>
+</section>
+<section id="vtmul" class="level5">
+<h5 class="anchored" data-anchor-id="vtmul">vtmul</h5>
+<ul>
+<li><code>(vtmul A v)</code></li>
+</ul>
+<p>Multiply transposed vector by matrix, C=v^T A</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1044">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-xlogx"></span>
+</section>
+<section id="xlogx-1" class="level5">
+<h5 class="anchored" data-anchor-id="xlogx-1">xlogx</h5>
+<ul>
+<li><code>(xlogx vector)</code></li>
+</ul>
+<p>Apply xlogx to matrix elements.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1294">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-zero"></span>
+</section>
+<section id="zero-1" class="level5">
+<h5 class="anchored" data-anchor-id="zero-1">zero</h5>
+<ul>
+<li><code>(zero size real-matrix?)</code></li>
+<li><code>(zero size)</code></li>
+</ul>
+<p>Zero matrix for given size</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L849">source</a></small><hr style="margin: 0"></div>
+<div style="background-color:grey;height:2px;width:100%;"></div>
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/vector_matrix.clj">clay/vector_matrix.clj</a></small></small></pre></div>
+
+
+</section>
+</section>
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./core.html" class="pagination-link" aria-label="Core">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Core</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./random.html" class="pagination-link" aria-label="Random">
+        <span class="nav-page-text">Random</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

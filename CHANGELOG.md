@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file. This change
 * `:bowley` skewness to be equal `:yule` (default, `u=0.25`)
 * `softmax` and `logsoftmax` fixed shift for numerical stability
 * bootstrap `:gaussian` smoothing builds a distribution-like model
+* quaternion operations bug for 0 imaginary part (should promote complex imaginary part)
 
 ### Deprecated
 

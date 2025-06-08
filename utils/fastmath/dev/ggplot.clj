@@ -127,7 +127,7 @@
 (defn complex-function->data
   ([f] (complex-function->data f nil))
   ([f {:keys [x y steps wrap-method]
-       :or {x [-4 4] y [-4 4] steps 400 wrap-method :log2}}]
+       :or {x [-4.05 4.05] y [-4.05 4.05] steps 400 wrap-method :log2}}]
    (let [xs (slice x steps)
          ys (slice y steps)]
      (for [x xs y ys

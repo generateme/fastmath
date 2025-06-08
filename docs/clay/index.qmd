@@ -1,0 +1,57 @@
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: index.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="index_files/md-default0.js" type="text/javascript"></script><script src="index_files/md-default1.js" type="text/javascript"></script>
+
+# Preface {.unnumbered}
+
+Documentation work in progress
+
+Statuses:
+
+✓ - done
+
+\+ -  partially done
+
+⇾ -  wip
+
+. - awaiting
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><thead><tr><th>namespace</th><th>clay docs</th><th>docstrings</th><th>included in book</th><th>notes</th></tr></thead><tbody><tr><td>fastmath.core</td><td>⇾</td><td>⇾</td><td>✓</td><td></td></tr><tr><td>fastmath.vector</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.matrix</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.random</td><td>+</td><td>.</td><td>✓</td><td>new functions added</td></tr><tr><td>fastmath.stats</td><td>✓</td><td>✓</td><td>✓</td><td>experimental, LLM based</td></tr><tr><td>fastmath.stats.bootstrap</td><td>✓</td><td>✓</td><td>✓</td><td>experimental, LLM based</td></tr><tr><td>fastmath.polynomials</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.special</td><td>✓</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.calculus</td><td>+</td><td>.</td><td>✓</td><td>Clerk version exists</td></tr><tr><td>fastmath.solver</td><td>.</td><td>.</td><td>+</td><td></td></tr><tr><td>fastmath.interpolation</td><td>⇾</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.kernel</td><td>.</td><td>.</td><td>+</td><td></td></tr><tr><td>fastmath.optimization</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.transform</td><td>⇾</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.signal</td><td>.</td><td>.</td><td>.</td><td>refactor required</td></tr><tr><td>fastmath.ml.regression</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.ml.clustering</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.complex</td><td>✓</td><td>✓</td><td>✓</td><td></td></tr><tr><td>fastmath.quaternions</td><td>✓</td><td>✓</td><td>✓</td><td></td></tr><tr><td>fastmath.distance</td><td>.</td><td>.</td><td>.</td><td></td></tr><tr><td>fastmath.easings</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.grid</td><td>.</td><td>.</td><td>.</td><td></td></tr><tr><td>fastmath.fields</td><td>.</td><td>.</td><td>✓</td><td></td></tr><tr><td>fastmath.curves</td><td>.</td><td>.</td><td>.</td><td></td></tr><tr><td>fastmath.efloat</td><td>.</td><td>.</td><td>✓</td><td></td></tr></tbody></table>
+```
+
+:::
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/index.clj">clay/index.clj</a></small></small></pre></div>
+```

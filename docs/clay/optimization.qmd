@@ -1,0 +1,317 @@
+---
+format:
+  html:
+    toc: true
+    toc-depth: 5
+    theme: [cosmo, ../../clay/custom.scss]
+    toc-location: right
+    anchor-sections: true
+    reference-location: margin
+    fontsize: 0.9em
+    output-file: optimization.html
+code-block-background: true
+
+---
+<style></style><style>.printedClojure .sourceCode {
+  background-color: transparent;
+  border-style: none;
+}
+</style><style>.clay-limit-image-width .clay-image {max-width: 100%}
+.clay-side-by-side .sourceCode {margin: 0}
+.clay-side-by-side {margin: 1em 0}
+</style>
+<script src="optimization_files/md-default0.js" type="text/javascript"></script><script src="optimization_files/md-default1.js" type="text/javascript"></script>
+
+::: {.sourceClojure}
+```clojure
+(ns optimization
+  (:require [fastmath.optimization :as opt]
+            [fastmath.dev.codox :as codox]))
+```
+:::
+
+
+
+# Optimization {.unnumbered}
+
+
+## Bayesian optimization
+
+
+## Reference
+
+### fastmath.optimization
+
+Optimization.
+
+  Namespace provides various optimization methods.
+
+  * Brent (1d functions)
+  * Bobyqa (2d+ functions)
+  * Powell
+  * Nelder-Mead
+  * Multidirectional simplex
+  * CMAES
+  * Gradient
+  * L-BFGS-B
+  * Bayesian Optimization (see below)
+  * Linear optimization
+
+  All optimizers require bounds.
+
+  ## Optimizers
+
+  To optimize functions call one of the following functions:
+
+  * [minimize](#LOS-minimize) or [maximize](#LOS-maximize) - to perform actual optimization
+  * [scan-and-minimize](#LOS-scan-and-minimize) or [scan-and-maximize](#LOS-scan-and-maximize) - functions find initial point using brute force and then perform optimization paralelly for best initialization points. Brute force scan is done using jitter low discrepancy sequence generator.
+
+  You can also create optimizer (function which performs optimization) by calling [minimizer](#LOS-minimizer) or [maximizer](#LOS-maximizer). Optimizer accepts initial point.
+
+  All above accept:
+
+  * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`, `:bfgs` and `:lbfgsb`
+  * function to optimize
+  * parameters as a map
+
+  For parameters meaning refer [Optim package](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html?org/apache/commons/math3/optim/package-summary.html)
+  
+  ### Common parameters
+
+  * `:bounds` (obligatory) - search ranges for each dimensions as a seqence of [low high] pairs
+  * `:initial` - initial point other then mid of the bounds as vector
+  * `:max-evals` - maximum number of function evaluations
+  * `:max-iters` - maximum number of algorithm interations
+  * `:bounded?` - should optimizer force to keep search within bounds (some algorithms go outside desired ranges)
+  * `:stats?` - return number of iterations and evaluations along with result
+  * `:rel` and `:abs` - relative and absolute accepted errors
+
+  For `scan-and-...` functions additionally you can provide:
+
+  * `:N` - number of brute force iterations
+  * `:n` - fraction of N which are used as initial points to parallel optimization
+  * `:jitter` - jitter factor for sequence generator (for scanning domain)
+  
+  ### Specific parameters
+
+  * BOBYQA - `:number-of-points`, `:initial-radius`, `:stopping-radius`
+  * Nelder-Mead - `:rho`, `:khi`, `:gamma`, `:sigma`, `:side-length`
+  * Multidirectional simples - `:khi`, `:gamma`, `:side-length`
+  * CMAES - `:check-feasable-count`, `:diagonal-only`, `:stop-fitness`, `:active-cma?`, `:population-size`
+  * Gradient - `:bracketing-range`, `:formula` (`:polak-ribiere` or `:fletcher-reeves`), `:gradient-h` (finite differentiation step, default: `0.01`) 
+
+  ## Bayesian Optimization
+
+  Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
+
+  ## Linear optimization 
+
+
+```{=html}
+<span id="#LOS-bayesian-optimization"></span>
+```
+
+
+#### bayesian-optimization
+
++ `(bayesian-optimization f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?], :or {utility-function-type :ucb, init-points 3, jitter 0.25, noise 1.0E-8, utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576), warm-up (* (count bounds) 1000), normalize? true, kernel :matern-52, kscale 1.0}})`
+
+Bayesian optimizer
+
+  Parameters are:
+
+  * `:warm-up` - number of brute force iterations to find maximum of utility function
+  * `:init-points` - number of initial evaluation before bayesian optimization starts. Points are selected using jittered low discrepancy sequence generator (see: [jittered-sequence-generator](#LOS-jittered-sequence-generator)
+  * `:bounds` - bounds for each dimension
+  * `:utility-function-type` - one of `:ei`, `:poi` or `:ucb`
+  * `:utility-param` - parameter for utility function (kappa for `ucb` and xi for `ei` and `poi`)
+  * `:kernel` - kernel, default `:matern-52`, see [fastmath.kernel](#LOS-fastmath.kernel)
+  * `:kscale` - scaling factor for kernel
+  * `:jitter` - jitter factor for sequence generator (used to find initial points)
+  * `:noise` - noise (lambda) factor for gaussian process
+  * `:optimizer` - name of optimizer (used to optimized utility function)
+  * `:optimizer-params` - optional parameters for optimizer
+  * `:normalize?` - normalize data in gaussian process?
+
+  Returns lazy sequence with consecutive executions. Each step consist:
+
+  * `:x` - maximum `x`
+  * `:y` - value
+  * `:xs` - list of all visited x's
+  * `:ys` - list of values for every visited x
+  * `:gp` - current gaussian process regression instance
+  * `:util-fn` - current utility function
+  * `:util-best` - best x in utility function
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L459">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-linear-optimization"></span>
+```
+
+
+#### linear-optimization
+
++ `(linear-optimization target constraints)`
++ `(linear-optimization target constraints {:keys [goal epsilon max-ulps cut-off rule non-negative? max-iter stats?], :or {goal :minimize, epsilon 1.0E-6, max-ulps 10, cut-off 1.0E-10, rule :dantzig, non-negative? false, max-iter Integer/MAX_VALUE}})`
+
+Solves a linear problem.
+
+   Target is defined as a vector of coefficients and constant as the last value:
+   `[a1 a2 a3 ... c]` means `f(x1,x2,x3) = a1*x1 + a2*x2 + a3*x3 + ... +  c`
+
+   Constraints are defined as a sequence of one of the following triplets:
+
+   * `[a1 a2 a3 ...] R n` - which means `a1*x1+a2*x2+a3*x3+... R n` 
+   * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
+
+   `R` is a relationship and can be one of `<=`, `>=` or `=` as symbol or keyword. Also `:leq`, `:geq` and `:eq` are valid.
+
+  Function returns pair of optimal point and function value. If `stat?` option is set to true, returns also information about number of iterations.  
+
+  Possible options:
+  
+  * `:goal` - `:minimize` (default) or `:maximize`
+  * `:rule` - pivot selection rule, `:dantzig` (default) or `:bland`
+  * `:max-iter` - maximum number of iterations, maximum integer by default
+  * `:non-negative?` - allow non-negative variables only, default: `false` 
+  * `:epsilon` - convergence value, default: `1.0e-6`:
+  * `:max-ulps` - floating point comparisons, default: `10` ulp
+  * `:cut-off` - pivot elements smaller than cut-off are treated as zero, default: `1.0e-10`
+
+  ```clojure
+  (linear-optimization [-1 4 0] [[-3 1] :<= 6
+                                 [-1 -2] :>= -4
+                                 [0 1] :>= -3])
+  ;; => [(9.999999999999995 -3.0) -21.999999999999993]
+  ```
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L529">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-maximize"></span>
+```
+
+
+#### maximize
+
++ `(maximize method f config)`
+
+Maximize given function.
+
+  Parameters: optimization method, function and configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L338">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-maximizer"></span>
+```
+
+
+#### maximizer
+
++ `(maximizer method f config)`
+
+Create optimizer which maximizes function.
+
+  Returns function which performs optimization for optionally given initial point.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L323">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-minimize"></span>
+```
+
+
+#### minimize
+
++ `(minimize method f config)`
+
+Minimize given function.
+
+  Parameters: optimization method, function and configuration.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L332">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-minimizer"></span>
+```
+
+
+#### minimizer
+
++ `(minimizer method f config)`
+
+Create optimizer which minimizes function.
+
+  Returns function which performs optimization for optionally given initial point.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L317">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scan-and-maximize"></span>
+```
+
+
+#### scan-and-maximize
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L393">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-scan-and-minimize"></span>
+```
+
+
+#### scan-and-minimize
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/optimization.clj#L392">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<div style="background-color:grey;height:2px;width:100%;"></div>
+```
+
+
+
+```{=html}
+<div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/optimization.clj">clay/optimization.clj</a></small></small></pre></div>
+```
