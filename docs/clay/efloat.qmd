@@ -363,7 +363,7 @@ Create EFloat object from a single value or low and high values.
 
 #### map->EFloat
 
-+ `(map->EFloat m__7585__auto__)`
++ `(map->EFloat m__7997__auto__)`
 
 Factory function for class fastmath.efloat.EFloat, taking a map of keywords to field values.
 
@@ -381,7 +381,7 @@ Factory function for class fastmath.efloat.EFloat, taking a map of keywords to f
 
 #### map->Pair
 
-+ `(map->Pair m__7585__auto__)`
++ `(map->Pair m__7997__auto__)`
 
 Factory function for class fastmath.efloat.Pair, taking a map of keywords to field values.
 
