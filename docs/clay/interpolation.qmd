@@ -1184,7 +1184,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-0.43508879266120354
+0.20201293127226447
 
 ```
 :::
@@ -1201,7 +1201,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-52.25938798416303
+54.40226214886831
 
 ```
 :::
