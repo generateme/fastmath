@@ -73,6 +73,7 @@
   (clay/make! {:source-path ["index.clj"
                              "core.clj"
                              "vector_matrix.clj"
+                             "complex_quaternions.clj"
                              "random.clj"
                              "stats.clj"
                              "polynomials.clj"
@@ -82,7 +83,6 @@
                              "optimization.clj"
                              "transform.clj"
                              "ml.clj"
-                             "complex_quaternions.clj"
                              "easings.clj"
                              "fields.clj"
                              "efloat.clj"]

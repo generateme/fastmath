@@ -18,7 +18,7 @@
 
 (kind/table
  {:column-names ["namespace" "clay docs" "docstrings" "included in book" "notes"]
-  :row-vectors [['fastmath.core "⇾" "⇾" "✓" ""]
+  :row-vectors [['fastmath.core "✓" "✓" "✓" ""]
                 ['fastmath.vector "." "." "✓" ""]
                 ['fastmath.matrix "." "." "✓" ""]
                 ['fastmath.random "+" "." "✓" "new functions added"]

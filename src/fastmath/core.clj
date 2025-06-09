@@ -1,32 +1,45 @@
 (ns fastmath.core
-  "Collection of basic math functions and constants.
+  "High-performance mathematical functions and constants for Clojure,
+  optimized for primitive `double` and `long` types.
 
-  Contains:
-  
-  * Basic math functions
-  * Predicates
-  * Bitwise operations
-  * Trigonometry
-  * Log/power
-  * Floating point format operations
-  * Factorial, combinations, gcd/lcd
-  * Additional functions: sampling, rank, lerp
+  Key features:
 
-  Almost all math functions are backed by [FastMath](https://github.com/jeffhain/jafama) library. Almost all operates on primitive `double` and returns `double` or `long` and are inlined.
+  - Most functions are specialized for primitive types (`double` and `long`) and are inlined for performance.
+  - Primarily backed by the [FastMath](https://github.com/jeffhain/jafama) library and custom primitive implementations.
+  - Provides an option to replace `clojure.core`'s standard numerical operators with primitive-specialized macros.
 
-  #### Primitive math operators
+  This namespace contains functions for:
 
-  Inlined function operating on double/longs as a replacement of Clojure numerical tower: `*` `+` `-` `/` `>` `<` `>=` `<=` `==` `rem` `quot` `mod` `bit-or` `bit-and` `bit-xor` `bit-and-not` `bit-set` `bit-clear` `bit-test` `bit-flip` `bit-not` `bit-shift-left` `bit-shift-right` `unsigned-bit-shift-right` `inc` `dec` `zero?` `neg?` `pos?` `min` `max` `even?` `odd?` `abs`
+  - Basic arithmetic (`+`, `-`, `*`, `/`, etc.)
+  - Comparisons and predicates (`==`, `<`, `zero?`, `pos?`, etc.)
+  - Bitwise operations
+  - Trigonometric and hyperbolic functions
+  - Exponents, logarithms, and powers
+  - Floating-point specific operations (ulp, bits manipulation)
+  - Combinatorics (factorial, combinations)
+  - Distance calculations
+  - Interpolation and mapping
+  - Utility functions (gcd, lcm, error calculation, etc.)
 
-  And additionally:
+  Primitive Math Operators:
 
-  * `<<` - bit shift left
-  * `>>` - signed bit shift right
-  * `>>>` - unsigned bit shift right
-  * `not==` - not equal
+  A set of inlined macros designed to replace selected `clojure.core` arithmetic, comparison, and bitwise operators for potential performance gains with primitive arguments. These macros operate on `double` and `long` primitives and generally return primitive values.
 
-  To turn on primitive math on your namespace call [[use-primitive-operators]].
-  To turn off and revert original versions call [[unuse-primitive-operators]] which is recomended when Clojure 1.12+ is used."
+  Replaced operators:
+
+  - `* + - / > < >= <= == rem quot mod`
+  - `bit-or bit-and bit-xor bit-not bit-and-not`
+  - `bit-shift-left bit-shift-right unsigned-bit-shift-right`
+  - `bit-set bit-clear bit-flip bit-test`
+  - `inc dec`
+  - `zero? neg? pos? even? odd?`
+  - `min max`
+  - `abs`
+  - Additionally: `<< >> >>> not==`
+
+  To enable these primitive operators in your namespace, call [[use-primitive-operators]].
+  To revert to the original `clojure.core` functions, call [[unuse-primitive-operators]].
+  Note that the `fastmath.core` versions are not a complete drop-in replacement due to their primitive-specific behavior (e.g., return types), and calling `unuse-primitive-operators` at the end of the namespace is recommended, especially in Clojure 1.12+."
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
   (:import [net.jafama FastMath]
@@ -405,21 +418,19 @@
                            (if-not (. PrimitiveMath (gte x y)) (reduced false) y)) r)))))
 
 (defn not==
-  "Not equality. For more than two arguments, pairwise not equality is checked.
+  "Not equality. For more than two arguments, returns `true` when all values are unique.
 
-  `(not== 1 2 1)` === `(and (not= 1 2) (not= 2 1))`"
+  `(not== 1 2 1)` === `(and (not= 1 1) (not= 1 2))`"
   {:inline (fn ([_] false)
              ([a b] `(. PrimitiveMath (neq ~a ~b)))
-             ([a b & r] `(and (. PrimitiveMath (neq ~a ~b))
-                              ~@(map (fn [[x y]] `(. PrimitiveMath (neq ~x ~y)))
-                                     (partition 2 1 r)))))
+             ([a b & r] `(and ~@(map (fn [[x y]] `(. PrimitiveMath (neq ~x ~y)))
+                                     (partition 2 1 (sort (conj r a b)))))))
    :inline-arities >=1?}
   ([_] false)
   ([^double a ^double b] (. PrimitiveMath (neq a b)))
   ([a b & r]
-   (boolean (and (not== (double a) (double b))
-                 (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (neq x y)) (reduced false) y)) r)))))
+   (boolean (reduce (fn [^double x ^double y]
+                      (if-not (. PrimitiveMath (neq x y)) (reduced false) y)) (sort (conj r a b))))))
 
 ;;;;;;;;;;;;;;
 
@@ -582,12 +593,12 @@
 
 (defn identity-long
   {:inline (fn [x] `(long ~x)) :inline-arities #{1}
-   :doc "Identity on double."}
+   :doc "Identity on long."}
   ^long [^long a] a)
 
 (defn integer?
   "Check if given real number is an integer."
-  {:inline (fn [v] `(== ~v (FastMath/rint ~v))) :inline-arities #{1}}
+  {:inline (fn [v] `(== ~v (FastMath/rint (double ~v)))) :inline-arities #{1}}
   [^double v]
   (== v (FastMath/rint v)))
 
@@ -669,13 +680,10 @@
 (def ^{:const true :tag 'double :doc "Lanchos approximation of `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
 (def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.91596559417721901505)
 
-(defonce ^{:const true :tag 'double :doc "$\\frac{\\operatorname{ulp}(1)}{2}$"}
-  MACHINE-EPSILON (* 0.5 (double (loop [d (double 1.0)]
-                                   (if (not== 1.0 (+ 1.0 (* d 0.5)))
-                                     (recur (* d 0.5))
-                                     d)))))
+(defonce ^{:const true :tag 'double :doc "ulp(1)/2"}
+  MACHINE-EPSILON (* 0.5 (FastMath/ulp 1.0)))
 
-(def ^{:const true :tag 'double :doc "$5\\operatorname{ulp}(1)$"}
+(def ^{:const true :tag 'double :doc "5ulp(1)"}
   MACHINE-EPSILON10 (* 10.0 MACHINE-EPSILON))
 
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{3}$"} THIRD      0.333333333333333333333333)
@@ -686,7 +694,7 @@
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{6}$"} ONE_SIXTH  0.166666666666666666666666)
 
 (defn signum
-  "Return 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
+  "Returns 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [[sgn]]."
   {:inline (fn [v] `(if (pos? (double ~v)) 1.0 (if (neg? (double ~v)) -1.0 0.0)))
    :inline-arities #{1}}
   ^double [^double value]
@@ -695,7 +703,7 @@
         :else 0.0))
 
 (defn sgn
-  "Return -1 when `value` is negative, 1 otherwise. See also [[signum]]."
+  "Returns -1 when `value` is negative, 1 otherwise. See also [[signum]]."
   {:inline (fn [v] `(if (neg? (double ~v)) -1.0 1.0))
    :inline-arities #{1}}
   ^double [^double value]
@@ -1312,13 +1320,13 @@
 
 ;; Roots (square and cubic)
 (defn sqrt
-  "\\\\(\\sqrt{x}\\\\)"
+  "square root, sqrt(x)"
   {:inline (fn [x] `(. FastMath (sqrt (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (sqrt x)))
 
 (defn cbrt
-  "\\\\(\\sqrt[3]{x}\\\\)"
+  "cubic root, cbrt(x)"
   {:inline (fn [x] `(. FastMath (cbrt (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (cbrt x)))
@@ -1443,7 +1451,14 @@
   ^double [^double x ^long exponent] (. FastMath (powFast x exponent)))
 
 (defn mpow
-  "Modular power"
+  "Calculates the modular exponentiation $(x^e \\pmod m)$.
+
+  Computes the remainder of `x` raised to the power of `e`, when divided by `m`.
+  Uses binary exponentiation.
+
+  `x`: Base (long).
+  `e`: Exponent (long, non-negative).
+  `m`: Modulus (long, positive)."
   ^long [^long x ^long e ^long m]
   (if (one? m)
     0
@@ -1466,13 +1481,15 @@
   ^long [^long n]
   (factorial20-table n))
 
-(defn factorial "Factorial"
+(defn factorial
+  "Factorial"
   ^double [^long n]
   (if (< n 21)
     (factorial20-table n)
     (exp (Gamma/logGamma (double (inc n))))))
 
-(defn inv-factorial "Inverse of factorial, 1/n!"
+(defn inv-factorial
+  "Inverse of factorial, 1/n!"
   ^double [^long n]
   (if (< n 21)
     (/ 1.0 (long (factorial20-table n)))
@@ -1550,27 +1567,32 @@
                (Beta/logBeta (inc (- n k)) (inc k))))))
 
 ;; Square and cubic
-(defn sq "Same as [[pow2]]. \\\\(x^2\\\\)"
+(defn sq
+  "x^2, x*x"
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x))
 
-(defn pow2 "Same as [[sq]]. \\\\(x^2\\\\)"
+(defn pow2
+  "x^2, x*x"
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x))
 
-(defn cb "\\\\(x^3\\\\)"
+(defn cb
+  "x^3"
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x x))
 
-(defn pow3 "\\\\(x^3\\\\)"
+(defn pow3
+  "x^3"
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x x))
 
-(defn pow10 "\\\\(x^10\\\\)"
+(defn pow10
+  "x^10"
   {:inline (fn [x] `(let [x# (double ~x)
                          v# (* x# x# x#)]
                      (* v# v# v# x#)))
@@ -1578,16 +1600,7 @@
   ^double [^double x] (let [v (* x x x)] (* v v v x)))
 
 (defn safe-sqrt
-  "Safe sqrt, for value <= 0 result is 0.
-
-  \\\\(
-  \\left\\\\{
-  \\begin{array}{lr}
-  0 & : x \\leq 0\\\\\\\\
-  \\sqrt{x} & : x > 0
-  \\end{array}
-  \\\\right.
-  \\\\)"
+  "Safe sqrt, for value <= 0 result is 0."
   ^double [^double value]
   (if (neg? value) 0.0 (FastMath/sqrt value)))
 
@@ -1604,8 +1617,11 @@
   ^double [^double x] (. FastMath (invSqrtQuick x)))
 
 (defn hypot
-  "Hypot.
-  See also [[hypot-sqrt]]."
+  "Calculates the Euclidean norm (distance from the origin) for 2 or 3 arguments.
+
+  It uses a numerically stable algorithm to avoid intermediate overflow or underflow.
+
+  See also [[hypot-sqrt]] for the direct calculation."
   {:inline (fn ([x y] `(. FastMath (hypot (double ~x) (double ~y))))
              ([x y z] `(. FastMath (hypot (double ~x) (double ~y) (double ~z)))))
    :inline-arities #{2 3}}
@@ -1615,7 +1631,9 @@
    (FastMath/hypot x y z)))
 
 (defn hypot-sqrt
-  "Hypot, sqrt version: \\\\(\\sqrt{x^2+y^2}\\\\) or \\\\(\\sqrt{x^2+y^2+z^2}\\\\)."
+  "Calculates the Euclidean norm (distance from the origin) using a direct sqrt of sum of squares.
+
+  Note: This method can be less numerically stable than [[hypot]] for inputs with vastly different magnitudes."
   {:inline (fn ([x y] `(. FastMath (sqrt (+ (sq ~x) (sq ~y)))))
              ([x y z] `(. FastMath (sqrt (+ (sq ~x) (sq ~y) (sq ~z))))))
    :inline-arities #{2 3}}
@@ -1626,7 +1644,7 @@
 
 ;; distance
 (defn dist
-  "Euclidean distance between points `(x1,y1)` and `(x2,y2)`. See [[fastmath.vector]] namespace to see other metrics which work on vectors."
+  "Euclidean distance between points `(x1,y1)` and `(x2,y2)`."
   {:inline (fn [x1 y1 x2 y2] `(hypot-sqrt (- ~x2 ~x1) (- ~y2 ~y1)))
    :inline-arities #{4}}
   (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (dist x1 y1 x2 y2))
@@ -1643,9 +1661,11 @@
 
 ;; Rounding functions
 (defn floor
-  "\\\\(\\lfloor x \\rfloor\\\\). See: [[qfloor]].
+  "Calculates the floor of a number.
 
-  Rounding is done to a multiply of scale value (when provided)."
+  With a `scale` argument, rounds to the nearest multiple of `scale` towards negative infinity.
+
+  See also: [[qfloor]]."
   {:inline (fn ([x] `(. FastMath (floor (double ~x))))
              ([x scale] `(* (. FastMath (floor (double (/ ~x ~scale)))) ~scale)))
    :inline-arities #{1 2}}
@@ -1653,22 +1673,25 @@
   (^double [^double x ^double scale] (* (FastMath/floor (/ x scale)) scale)))
 
 (defn ceil
-  "\\\\(\\lceil x \\rceil\\\\). See: [[qceil]].
+  "Calculates the ceiling of a number.
 
-  Rounding is done to a multiply of scale value (when provided)."
+  With a `scale` argument, rounds to the nearest multiple of `scale` towards positive infinity.
+
+  See also: [[qceil]]."
   {:inline (fn ([x] `(. FastMath (ceil (double ~x))))
              ([x scale] `(* (. FastMath (ceil (double (/ ~x ~scale)))) ~scale)))
    :inline-arities #{1 2}}
   (^double [^double x] (FastMath/ceil x))
   (^double [^double x ^double scale] (* (FastMath/ceil (/ x scale)) scale)))
 
-(defn round "Round to `long`. See: [[rint]], [[qround]]."
+(defn round
+  "Round to a `long` value. See: [[rint]], [[qround]]."
   {:inline (fn [x] `(. FastMath (round (double ~x))))
    :inline-arities #{1}} 
   ^long [^double x] (FastMath/round x))
 
 (defn rint
-  "Round to `double`. See [[round]], [[qround]].
+  "Round to a `double` value. See [[round]], [[qround]].
 
   Rounding is done to a multiply of scale value (when provided)."
   {:inline (fn ([x] `(. FastMath (rint (double ~x))))
@@ -1678,7 +1701,7 @@
   (^double [^double x ^double scale] (* (FastMath/rint (/ x scale)) scale)))
 
 (defn round-even
-  "Round evenly (like in round in R), IEEE / IEC rounding"
+  "Round evenly, IEEE / IEC rounding"
   {:inline (fn [x] `(. FastMath (roundEven (double ~x))))
    :inline-arities #{1}} 
   ^long [^double x] (FastMath/roundEven x))
@@ -1710,20 +1733,20 @@
   (. FastMath (remainder dividend divisor)))
 
 (defn abs
-  "Primitive and inlined version of abs."
+  "Absolute value."
   {:inline (fn [x] `(. Math (abs ~x)))
    :inline-arities #{1}}
   ^double [^double x] (Math/abs x))
 
 (defn iabs
-  "\\\\(|x|\\\\) - `long` version. See [[abs]]."
+  "Absolute value, `long` version. See [[abs]]."
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}
    :deprecated "Use long-abs."}
   ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
 
 (defn long-abs
-  "\\\\(|x|\\\\) - `long` version. See [[abs]]."
+  "Absolut value, `long` version. See [[abs]]."
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}}
   ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
@@ -1743,16 +1766,26 @@
   (^double [^double v ^long digits] (Precision/round v (int digits))))
 
 (defn approx-eq
-  "Checks equality approximately. See [[approx]]."
+  "Checks equality approximately up to selected number of digits (2 by default).
+
+  It can be innacurate due to the algorithm used. Use [[delta-eq]] instead.  
+
+  See [[approx]]."
   ([^double a ^double b] (or (== (approx a) (approx b)) (== a b)))
   ([^double a ^double b ^long digits] (or (== (approx a digits)
                                               (approx b digits))
                                           (== a b))))
 
 (defn delta-eq
-  "Checks equality for given absolute accuracy (default `1.0e-6`).
+  "Checks if two floating-point numbers `a` and `b` are approximately equal within given tolerances.
 
-  Version with 4-arity accepts absolute and relative accuracy."
+  The check returns true if `abs(a - b)` is less than a combined tolerance, or if `(== a b)`.
+
+  - 2-arity `(delta-eq a b)`: Uses a default absolute tolerance of `1.0e-6`.
+  - 3-arity `(delta-eq a b abs-tol)`: Uses the provided absolute tolerance `abs-tol`.
+  - 4-arity `(delta-eq a b abs-tol rel-tol)`: Uses both absolute and relative tolerances. The combined tolerance is `max(abs-tol, rel-tol * max(abs(a), abs(b)))`.
+
+  This function is useful for comparing floating-point numbers where exact equality checks (`==`) may fail due to precision issues."
   ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
    (or (< (Math/abs (- a b)) accuracy) (== a b)))
@@ -1783,23 +1816,23 @@
 ;; `(low-2-exp TWO_PI) => 2` \\(2^2\eq 4\leq 6.28\\)  
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
-  "Find greatest exponent (power of 2) which is lower or equal `x`. See [[high-2-exp]]."
+  "Finds the greatest integer `n` such that `2^n <= |x|`. See [[high-2-exp]]."
   ^long [^double x] (-> x Math/abs log2 floor unchecked-long))
 
 (defn high-2-exp
-  "Find lowest exponent (power of 2) which is greater or equal `x`. See [[low-2-exp]]."
+  "Finds the smallest integer `n` such that `2^n >= |x|`. See [[low-2-exp]]."
   ^long [^double x] (-> x Math/abs log2 ceil unchecked-long))
 
 (defn low-exp
-  "Find greatest exponent for base `b` which is lower or equal `x`. See also [[high-exp]]."
+  "Finds the greatest integer `n` such that `b^n <= |x|`. See also [[high-exp]]."
   ^long [^double b ^double x] (->> x Math/abs (logb b) floor unchecked-long))
 
 (defn high-exp
-  "Find lowest exponent for base `b` which is higher or equal`x`. See also [[low-exp]]."
+  "Finds the smallest integer `n` such that `b^n >= |x|`. See also [[low-exp]]."
   ^long [^double b ^double x] (->> x Math/abs (logb b) ceil unchecked-long))
 
 (defn round-up-pow2
-  "Round long to the next power of 2"
+  "Rounds a positive `long` integer up to the smallest power of 2 greater than or equal to the input value."
   ^long [^long v]
   (as-> (dec v) v
     (bit-or v (>> v 1))
@@ -2158,14 +2191,37 @@
 ;; intervals
 
 (defn slice-range 
-  "Slice range to get `cnt` number of points evenly distanced."
+  "Generates `cnt` evenly spaced points within a numerical range.
+
+  - `(slice-range cnt)`: Generates `cnt` points in the range `[0.0, 1.0]`.
+  - `(slice-range start end cnt)`: Generates `cnt` points in the range `[start, end]`.
+
+  The range is inclusive, meaning the first point is `start` and the last is `end` (unless `cnt` is 1).
+  If `cnt` is 1, it returns a single value which is the midpoint `(start + end) / 2` of the range.
+  Returns a sequence of `cnt` double values."
   ([^double start ^double end ^long cnt] (if (= cnt 1)
                                            (list (+ start (* 0.5 (- end start))))
                                            (map (make-norm 0.0 (dec cnt) start end) (range cnt))))
   ([^long cnt] (slice-range 0.0 1.0 cnt)))
 
 (defn cut
-  "Cut range or sequence into intervals"
+  "Divides a numerical range or a sequence of numbers into a specified number of equally spaced intervals.
+
+  Given `data` and `breaks`, the range is determined by the minimum and maximum finite values in `data`. Invalid doubles (NaN, infinite) are ignored.
+  Given `x1`, `x2`, and `breaks`, the range is explicitly `[x1, x2]`.
+
+  The function generates `breaks + 1` equally spaced points within the range using [[slice-range]], and then forms `breaks` intervals from these points.
+
+  The intervals are returned as a sequence of 2-element vectors `[lower-bound upper-bound]`.
+  Specifically, if the generated points are `p0, p1, ..., p_breaks`, the intervals are formed as:
+  `[[(prev-double p0), p1], [p1, p2], ..., [p_breaks-1, p_breaks]]`.
+
+  This means intervals are generally closed on the right, `[a, b]`, with the first interval's lower bound slightly adjusted downwards to ensure inclusion of the exact minimum value if necessary due to floating point precision.
+
+  Arguments:
+  - `data`: A collection of numbers (used to determine range).
+  - `x1`, `x2`: The start and end points of the range.
+  - `breaks`: The desired number of intervals (a positive long)."
   ([data ^long breaks]
    (let [d (sort (remove invalid-double? data))]
      (cut (first d) (last d) breaks)))
@@ -2175,7 +2231,16 @@
      (conj r (list (prev-double start) end)))))
 
 (defn co-intervals
-  "Divide sequence to overlaping intervals containing similar number of values. Same as R's `co.intervals()`"
+  "Divides a sequence of numerical `data` into `number` (default 6) overlapping intervals.
+
+  The intervals are constructed such that each contains a similar number of values from the sorted data, aiming to replicate the behavior of R's `co.intervals()` function. Invalid doubles (NaN, infinite) are removed from the input data before processing.
+
+  Arguments:
+  - `data`: A collection of numbers.
+  - `number`: The desired number of intervals (default 6, long).
+  - `overlap`: The desired overlap proportion between consecutive intervals (default 0.5, double).
+
+  Returns a sequence of intervals, where each interval is represented as a 2-element vector `[lower-bound upper-bound]`."
   ([data] (co-intervals data 6))
   ([data ^long number] (co-intervals data number 0.5))
   ([data ^long number ^double overlap]
@@ -2197,9 +2262,18 @@
        [(- cx eps) (+ cy eps)]))))
 
 (defn group-by-intervals
-  "Group sequence of values into given intervals.
+  "Groups values from a sequence `coll` into specified intervals.
 
-  If `intervals` are missing, use [[co-intervals]] to find some."
+  The function partitions the values in `coll` based on which interval they fall into.
+  Each interval is a 2-element vector `[lower upper]`. Values are included in an interval if they are strictly greater than the `lower` bound and less than or equal to the `upper` bound, using [[between-?]].
+
+  Arguments:
+  - `intervals`: A sequence of 2-element vectors representing the intervals `[lower upper]`.
+  - `coll`: A collection of numerical values to be grouped.
+
+  If `intervals` are not provided, the function first calculates overlapping intervals using [[co-intervals]] from the values in `coll`, and then groups the values into these generated intervals.
+
+  Returns a map where keys are the interval vectors and values are sequences of the numbers from `coll` that fall within that interval."
   ([coll] (group-by-intervals (co-intervals coll) coll))
   ([intervals coll]
    (into {} (map (fn [[^double x1 ^double x2 :as i]]
@@ -2236,13 +2310,28 @@
 ;;
 
 (defn sample
-  "Sample function `f` and return sequence of values.
+  "Samples a function `f` by evaluating it at evenly spaced points within a numerical range.
 
-  `range-min` defaults to 0.0, `range-max` to 1.0.
+  Generates `number-of-values` points in the specified range `[domain-min, domain-max]` (inclusive) and applies `f` to each point.
 
-  Range is inclusive.
+  Arguments:
 
-  When optional `domain?` is set to true (default: false) function returns pairs `[x,(f x)]`."
+  - `f`: The function to sample. Should accept a single `double` argument.
+  - `number-of-values`: The total number of points to generate (a positive `long`).
+  - `domain-min`: The lower bound of the sampling range (a `double`). Defaults to `0.0`.
+  - `domain-max`: The upper bound of the sampling range (a `double`). Defaults to `1.0`.
+  - `domain?`: A boolean flag. If `true`, returns pairs `[x, (f x)]`. If `false` (default), returns just `(f x)`.
+
+  Arities:
+
+  - `[f number-of-values]`: Samples `f` in `[0.0, 1.0]`. Returns `(f x)` values.
+  - `[f number-of-values domain?]`: Samples `f` in `[0.0, 1.0]`. Returns `[x, (f x)]` pairs if `domain?` is true, otherwise `(f x)` values.
+  - `[f domain-min domain-max number-of-values]`: Samples `f` in `[domain-min, domain-max]`. Returns `(f x)` values.
+  - `[f domain-min domain-max number-of-values domain?]`: Samples `f` in `[domain-min, domain-max]`. Returns `[x, (f x)]` pairs if `domain?` is true, otherwise `(f x)` values.
+
+  The points are generated linearly from `domain-min` to `domain-max`. If `number-of-values` is 1, it samples only the midpoint of the range.
+
+  Returns a sequence of `double` values or vectors `[double, double]` depending on `domain?`."
   ([f number-of-values]
    (sample f 0.0 1.0 number-of-values false))
   ([f ^long number-of-values domain?]
@@ -2259,13 +2348,24 @@
 ;; rank/order
 
 (defn rank
-  "Sample ranks. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/rank).
+  "Assigns ranks to values in a collection, handling ties according to a specified strategy.
+  Ranks are 0-based indices indicating the position of each element in the sorted collection.
 
-  Rank uses 0 based indexing.
+  Arguments:
   
-  Possible tie strategies: `:average`, `:first`, `:last`, `:random`, `:min`, `:max`, `:dense`.
+  - `vs`: A collection of comparable values.
+  - `ties`: The tie-breaking strategy (keyword, optional, default `:average`).
+    Supported strategies:
+    - `:average`: Assign the average rank to all tied values.
+    - `:first`: Assign ranks based on their appearance order in the input.
+    - `:last`: Assign ranks based on their appearance order in the input (reverse of `:first`).
+    - `:random`: Assign random ranks to tied values.
+    - `:min`: Assign the minimum rank to all tied values.
+    - `:max`: Assign the maximum rank to all tied values.
+    - `:dense`: Assign consecutive ranks without gaps (like `data.table::frank` in R).
+  - `desc?`: If true, rank in descending order (boolean, optional, default `false`).
 
-  `:dense` is the same as in `data.table::frank` from R"
+  Returns a sequence of rank values corresponding to the input elements."
   ([vs] (rank vs :average))
   ([vs ties] (rank vs ties false))
   ([vs ties desc?]
@@ -2297,9 +2397,17 @@
   (comp (partial map clojure.core/inc) rank))
 
 (defn order
-  "Ordering permutation. See [R docs](https://www.rdocumentation.org/packages/base/versions/3.6.1/topics/order)
+  "Computes the permutation of indices that would sort the input collection `vs`.
 
-  Order uses 0 based indexing."
+  The result is a sequence of 0-based indices such that applying them to the original collection
+  using `(map #(nth vs %) result)` yields a sorted sequence.
+
+  Arguments:
+
+  - `vs`: A collection of comparable values.
+  - `decreasing?`: Optional boolean (default false). If true, the indices permute for a descending sort.
+
+  Returns: A sequence of 0-based indices."
   ([vs] (order vs false))
   ([vs decreasing?]
    (->> (map-indexed vector vs)
