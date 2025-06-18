@@ -1471,6 +1471,16 @@
                (mod (* b b) m)
                (>> e 1))))))
 
+(defn tpow
+  "Calculates truncated power.
+
+  For x >= shift returns (x-shift)^exponent, 0.0 otherwise."
+  (^double [^double x ^double exponent] (tpow x exponent 0.0))
+  (^double [^double x ^double exponent ^double shift]
+   (if (< x shift)
+     0.0
+     (Math/pow (- x shift) exponent))))
+
 (def ^:private factorial20-table [1 1 2 6 24 120 720 5040 40320 362880 3628800 39916800 479001600
                                 6227020800 87178291200 1307674368000 20922789888000
                                 355687428096000 6402373705728000 121645100408832000

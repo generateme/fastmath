@@ -10,6 +10,7 @@
   (to-double-array2d [m])
   (to-float-array [m])
   (to-double-array [m])
+  (to-real-matrix [m])
   (nrow [m])
   (ncol [m])
   (column [m id])
@@ -29,4 +30,9 @@
   (muls [m v])
   (trace [m])
   (cholesky [m])
-  (norm [m t]))
+  (norm [m t])
+  (singular? [m])
+  (solve [m v]))
+
+(defprotocol MatrixDecompositionProto
+  (component [m c]))

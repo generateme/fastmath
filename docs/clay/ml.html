@@ -343,7 +343,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.ml.regression.Family.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L710">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->GLMData"></span>
 </section>
 <section id="glmdata" class="level4">
@@ -352,7 +352,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;GLMData model transformer xtxinv ys intercept? offset? intercept beta coefficients observations residuals fitted weights offset names deviance df dispersion dispersions estimated-dispersion? &amp; overage)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.ml.regression.GLMData.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L850">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->LMData"></span>
 </section>
 <section id="lmdata" class="level4">
@@ -370,7 +370,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(-&gt;Link g mean derivative)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.ml.regression.Link.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L456">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->family"></span>
 </section>
 <section id="family-1" class="level4">
@@ -400,7 +400,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>AIC function should accept: <code>ys</code>, <code>fitted</code>, <code>weights</code>, <code>deviance</code>, <code>observation</code>, <code>rank</code> (fitted parameters) and additional data created by initialization</p>
 <p>Minimum version should define <code>variance</code> and <code>residual-deviance</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L712">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L753">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->link"></span>
 </section>
 <section id="link-1" class="level4">
@@ -416,12 +416,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>mean</code> - mean, inverse link function</li>
 <li><code>mean-derivative</code> - derivative of mean</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L458">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L499">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-->string"></span>
 </section>
 <section id="string" class="level4">
 <h4 class="anchored" data-anchor-id="string">-&gt;string</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1296">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1338">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-analysis"></span>
 </section>
 <section id="analysis" class="level4">
@@ -430,7 +430,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(analysis model)</code></li>
 </ul>
 <p>Influence analysis, laverage, standardized and studentized residuals, correlation.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1242">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1284">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cir"></span>
 </section>
 <section id="cir" class="level4">
@@ -444,7 +444,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Centered Isotonic Regression.</p>
 <p>Returns shrinked [<code>xs</code>,<code>ys</code>] pair.</p>
 <p>Arguments: - <code>xs</code> - regressor variable - <code>ys</code> - response variable - <code>ws</code> - weights (optional) - <code>order</code> - <code>:asc</code> or <code>:increasing</code> (default), <code>:desc</code> or <code>:decreasing</code>, <code>:non-decreasing</code> and <code>:non-increasing</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1386">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1428">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dose"></span>
 </section>
 <section id="dose" class="level4">
@@ -460,12 +460,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>intercept-id - id of intercept, default: 0</li>
 <li>coeff-id is the coefficient used for calculating dose, default: 1</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1247">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1289">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-families"></span>
 </section>
 <section id="families" class="level4">
 <h4 class="anchored" data-anchor-id="families">families</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L741">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L782">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-family-with-link"></span>
 </section>
 <section id="family-with-link" class="level4">
@@ -476,14 +476,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(family-with-link family link params)</code></li>
 </ul>
 <p>Returns family with a link as single map.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L771">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L812">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-glm"></span>
 </section>
 <section id="glm" class="level4">
 <h4 class="anchored" data-anchor-id="glm">glm</h4>
 <ul>
 <li><code>(glm ys xss)</code></li>
-<li><code>(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false}, :as params})</code></li>
+<li><code>(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names decomposition augmentation augmentation-param], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false, decomposition :cholesky}, :as params})</code></li>
 </ul>
 <p>Fit a generalized linear model using IRLS method.</p>
 <p>Arguments:</p>
@@ -509,6 +509,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>:nbinomial-theta</code> - theta for <code>:nbinomial</code> family, default: <code>1.0</code>.</li>
 <li><code>:transformer</code> - an optional function which will be used to transform systematic component <code>xs</code> before fitting and prediction</li>
 <li><code>:names</code> - an optional vector of names to use when printing the model</li>
+<li><code>:decomposition</code> - which matrix decomposition use to find solution, <code>:cholesky</code> (default), <code>:rrqr</code> (rank revealing) or <code>:qr</code></li>
 </ul>
 <p>Family is one of the: <code>:gaussian</code> (default), <code>:binomial</code>, <code>:quasi-binomial</code>, <code>:poisson</code>, <code>:quasi-poisson</code>, <code>:gamma</code>, <code>:inverse-gaussian</code>, <code>:nbinomial</code>, custom <code>Family</code> record (see <a href="#LOS--%3Efamily">-&gt;family</a>) or a function returning Family (accepting a map as an argument)</p>
 <p>Link is one of the: <code>:probit</code>, <code>:identity</code>, <code>:loglog</code>, <code>:sqrt</code>, <code>:inverse</code>, <code>:logit</code>, <code>:power</code>, <code>:nbinomial</code>, <code>:cauchit</code>, <code>:distribution</code>, <code>:cloglog</code>, <code>:inversesq</code>, <code>:log</code>, <code>:clog</code>, custom <code>Link</code> record (see <a href="#LOS--%3Elink">-&gt;link</a>) or a function returning Link (accepting a map as an argument)</p>
@@ -544,6 +545,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>:ll</code> - a map containing log-likelihood and AIC/BIC</li>
 <li><code>:analysis</code> - laverage, residual and influence analysis - a delay</li>
 <li><code>:iters</code> and <code>:converged?</code> - number of iterations and convergence indicator</li>
+<li><code>:decomposition</code> - decomposition used</li>
+<li><code>:augumentation</code> and <code>augumentation-param</code> - regularization by data augumentation, currently only <code>:ridge</code> is supported</li>
 </ul>
 <p>Analysis, delay containing a map:</p>
 <ul>
@@ -553,7 +556,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>:influential</code> - list of influential observations (ids) for influence measures</li>
 <li><code>:correlation</code> - correlation matrix of estimated parameters</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L880">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L921">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-glm-nbinomial"></span>
 </section>
 <section id="glm-nbinomial" class="level4">
@@ -569,19 +572,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>:nbinomial-theta</code> - initial theta used as a starting point for optimization.</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1199">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1241">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-links"></span>
 </section>
 <section id="links" class="level4">
 <h4 class="anchored" data-anchor-id="links">links</h4>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L470">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L511">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-lm"></span>
 </section>
 <section id="lm" class="level4">
 <h4 class="anchored" data-anchor-id="lm">lm</h4>
 <ul>
 <li><code>(lm ys xss)</code></li>
-<li><code>(lm ys xss {:keys [tol weights alpha intercept? offset transformer names], :or {tol 1.0E-8, alpha 0.05, intercept? true}})</code></li>
+<li><code>(lm ys xss {:keys [tol weights alpha intercept? offset transformer names decomposition augmentation augmentation-param], :or {tol 1.0E-8, alpha 0.05, intercept? true, decomposition :cholesky}})</code></li>
 </ul>
 <p>Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.</p>
 <p>Arguments:</p>
@@ -592,13 +595,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Parameters:</p>
 <ul>
-<li><code>:tol</code> - tolerance for matrix decomposition (SVD and Cholesky), default: <code>1.0e-8</code></li>
+<li><code>:tol</code> - tolerance for matrix decomposition (SVD and Cholesky/QR decomposition), default: <code>1.0e-8</code></li>
 <li><code>:weights</code> - optional weights for WLS</li>
 <li><code>:offset</code> - optional offset</li>
 <li><code>:alpha</code> - significance level, default: <code>0.05</code></li>
 <li><code>:intercept?</code> - should intercept term be included, default: <code>true</code></li>
 <li><code>:transformer</code> - an optional function which will be used to transform systematic component <code>xs</code> before fitting and prediction</li>
 <li><code>:names</code> - sequence or string, used as name for coefficient when pretty-printing model, default <code>'X'</code></li>
+<li><code>:decomposition</code> - which matrix decomposition use to find solution, <code>:cholesky</code> (default), <code>:rrqr</code> (rank revealing) or <code>:qr</code></li>
 </ul>
 <p>Notes:</p>
 <ul>
@@ -627,6 +631,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>:f-statistic</code> and <code>:p-value</code> - F statistic and respective p-value</li>
 <li><code>:ll</code> - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS</li>
 <li><code>:analysis</code> - laverage, residual and influence analysis - a delay</li>
+<li><code>:decomposition</code> - decomposition used</li>
+<li><code>:augumentation</code> and <code>augumentation-param</code> - regularization by data augumentation, currently only <code>:ridge</code> is supported</li>
 </ul>
 <p>Analysis, delay containing a map:</p>
 <ul>
@@ -637,7 +643,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>:correlation</code> - correlation matrix of estimated parameters</li>
 <li><code>:normality</code> - residuals normality tests: <code>:skewness</code>, <code>:kurtosis</code>, <code>:durbin-watson</code> (for raw and weighted), <code>:jarque-berra</code> and <code>:omnibus</code> (normality)</li>
 </ul>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L275">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L313">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-map->Family"></span>
 </section>
 <section id="map-family" class="level4">
@@ -646,7 +652,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(map-&gt;Family m__7997__auto__)</code></li>
 </ul>
 <p>Factory function for class fastmath.ml.regression.Family, taking a map of keywords to field values.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L710">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-map->GLMData"></span>
 </section>
 <section id="map-glmdata" class="level4">
@@ -655,7 +661,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(map-&gt;GLMData m__7997__auto__)</code></li>
 </ul>
 <p>Factory function for class fastmath.ml.regression.GLMData, taking a map of keywords to field values.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L850">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-map->LMData"></span>
 </section>
 <section id="map-lmdata" class="level4">
@@ -673,7 +679,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(map-&gt;Link m__7997__auto__)</code></li>
 </ul>
 <p>Factory function for class fastmath.ml.regression.Link, taking a map of keywords to field values.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L456">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pava"></span>
 </section>
 <section id="pava" class="level4">
@@ -692,7 +698,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>order</code> - <code>:asc</code> or <code>:increasing</code> (default), <code>:desc</code> or <code>:decreasing</code>, <code>:non-decreasing</code> and <code>:non-increasing</code></li>
 </ul>
 <p>Returns monotonic predicted values.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1361">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1403">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-predict"></span>
 </section>
 <section id="predict" class="level4">
@@ -719,7 +725,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>(quantile-residuals {:keys [quantile-residuals-fun residuals dispersion], :as model})</code></li>
 </ul>
 <p>Quantile residuals for a model, possibly randomized.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1235">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1277">source</a></small><hr style="margin: 0"></div>
 </section>
 </section>
 <section id="fastmath.ml.clustering" class="level3">

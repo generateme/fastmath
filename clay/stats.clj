@@ -24,15 +24,6 @@
 ;; relevant concepts and demonstrates the use of `fastmath.stats` functions
 ;; with illustrative datasets (`mtcars`, `iris`, `winequality`).
 
-;; ::: {.callout-warning}
-;; This notebook is written with the support of Gemini LLM models:
-;; 
-;; * `gemini-2.5-pro-exp-03-25`
-;; * `gemini-2.5-flash-preview-04-17`
-;;
-;; I did my best to verify the output of LLMs however I don't guarantee absence of the model hallucinations or incorrectnesses.
-;; :::
-
 ;; ## Datasets
 
 ;; To illustrate statistical functions three dataset will be used:

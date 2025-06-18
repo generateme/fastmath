@@ -848,7 +848,7 @@
 ;; * `sigmoid`, `logit`
 ;; * `sqrt`, `cbrt`, `sq`, `cb`
 ;; * `safe-sqrt`, `qsqrt`, `rqsqrt`
-;; * `pow`, `spow`, `fpow`, `qpow`, `mpow`, `pow2`, `pow3`, `pow10`
+;; * `pow`, `spow`, `fpow`, `qpow`, `mpow`, `tpow`, `pow2`, `pow3`, `pow10`
 ;; * `low-2-exp`, `high-2-exp`, `low-exp`, `high-exp`
 ;; :::
 
@@ -1021,7 +1021,8 @@
 ;; * `pow(x, exponent)`: $x^{\text{exponent}}$.
 ;; * `spow(x, exponent)`: Symmetric power of $x$, keeping the sign: $\operatorname{sgn}(x) |x|^{\text{exponent}}$.
 ;; * `fpow(x, exponent)`: Fast integer power $x^n$, where $n$ is an integer.
-;; * `mpow(x, exponent, modulus)`: Modular exponentiation $(x^e \\pmod m)$.
+;; * `mpow(x, exponent, modulus)`: Modular exponentiation $x^\text{exponent} \pmod{\text{modulus}}$.
+;; * `tpow(x, exponent, shift)`: Truncated power $(x-\text{shift})^\text{exponent}$ for $x\ge \text{shift}$, $0.0$ otherwise.
 ;; * `qsqrt(x)`: Fast, less accurate square root.
 ;; * `rqsqrt(x)`: Fast, less accurate reciprocal square root $1/\sqrt{x}$.
 ;; * `safe-sqrt(x)`: Square root, returning 0 for $x \le 0$.
@@ -1040,6 +1041,10 @@
   (m/spow -8 1/3)
   (m/fpow 2 10)
   (m/mpow 30 112 74)
+  (m/tpow 3 3)
+  (m/tpow -3 3)
+  (m/tpow 6 3 2)
+  (m/tpow 0 3 2)
   (m/safe-sqrt -4))
 
 (kind/table
@@ -1051,7 +1056,9 @@
    (gg/->image (gg/function (hp/relative-error (comp m// m/sqrt) m/rqsqrt) {:x [0.1 2] :title "Relative error between 1/sqrt(x) and rqsqrt(x)"}))]
   [(gg/->image (gg/functions [["x^(0.3)" #(m/pow % 0.3)]
                               ["cb" m/cb]] {:x [0.1 2] :title "pow"}))
-   (gg/->image (gg/function (hp/relative-error #(m/pow % 0.3) #(m/qpow % 0.3)) {:x [0 2] :title "Relative error between pow and qpow for exponent=0.3" :steps 800}))]])
+   (gg/->image (gg/function (hp/relative-error #(m/pow % 0.3) #(m/qpow % 0.3)) {:x [0 2] :title "Relative error between pow and qpow for exponent=0.3" :steps 800}))]
+  [(gg/->image (gg/function #(m/tpow % 3) {:x [-2 2] :title "Truncated power, tpow(x,3)"}))
+   (gg/->image (gg/function #(m/tpow % 3 -1) {:x [-2 2] :title "Truncated power, tpow(x,3,-1)"}))]])
 
 ;; ### Exponent/Log Utilities
 

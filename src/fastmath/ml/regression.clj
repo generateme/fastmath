@@ -9,7 +9,7 @@
             [fastmath.special :as special]
             [clojure.pprint :as pprint])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
-            CholeskyDecomposition RealMatrix RealVector]
+            CholeskyDecomposition RealMatrix RealVector DecompositionSolver]
            [fastmath.java Array Monotone]           
            [clojure.lang IFn]))
 
@@ -68,6 +68,43 @@
 
 ;;
 
+(defn- add-ridge
+  [xss lambda intercept?]
+  (let [s (count (first xss))
+        zeros (repeat s 0.0)
+        diag (vec (concat zeros (conj zeros (m/sqrt (or lambda 1.0)))))
+        icval (if intercept? -1 0)
+        aug (map (fn [^long i]
+                   (let [id (m/+ icval (m/- s i))]
+                     (subvec diag id (m/+ s id)))) (range (m/+ icval s)))]
+    (concat xss (if intercept? [zeros] '()) aug)))
+
+(defn- add-penalty
+  [xss penalty penalty-param intercept?]
+  (cond
+    (= penalty :ridge) (add-ridge xss penalty-param intercept?)
+    :else xss))
+
+(defn- enhance-or-fill-seq
+  [s ^long size ^double v]
+  (take size (concat s (repeat v))))
+
+(defn- augument-data
+  "Add intercept and possible penalty"
+  [ys xss weights offset intercept? augmentation augmentation-param]
+  (let [xss (if (= xss :intercept) (repeat (count ys) '()) xss)
+        xss (-> (if intercept?
+                  (map (fn [xs] (conj (v/vec->seq xs) 1.0)) xss)
+                  (map v/vec->seq xss))
+                (add-penalty augmentation augmentation-param intercept?))
+        size (count xss)]
+    [(enhance-or-fill-seq ys size 0.0)
+     (mat/mat xss)
+     (enhance-or-fill-seq weights size 1.0)
+     (enhance-or-fill-seq offset size 0.0)]))
+
+;;
+
 (defn- small-singular-values-count
   ^long [^doubles sv ^double epsilon]
   (let [f (Array/aget sv 0)]
@@ -75,20 +112,21 @@
      (filter (fn [^double v] (m/< (m// v f) epsilon)) sv))))
 
 (defn- svd
-  [ys xss tol intercept?]
-  (let [xss (if (= xss :intercept) (repeat (count ys) '()) xss)
-        xss (if intercept?
-              (map (fn [xs] (conj (v/vec->seq xs) 1.0)) xss)
-              (map v/vec->seq xss))
-
-        ^RealMatrix xss (mat/mat xss)
-        ^SingularValueDecomposition S (SingularValueDecomposition. xss)
+  [^RealMatrix xss tol]
+  (let [^SingularValueDecomposition S (SingularValueDecomposition. xss)
         singular-values (.getSingularValues S)
         k (small-singular-values-count singular-values tol)]
 
     (if (m/pos? k)
       (throw (ex-info "Near rank-deficient model matrix" {:data singular-values}))
-      [xss S (-> singular-values v/reciprocal v/vec->RealVector)])))
+      [S (-> singular-values v/reciprocal v/vec->RealVector)])))
+
+(defn- solver
+  ^DecompositionSolver [^RealMatrix mat decomposition ^double tol]
+  (:solver (case decomposition
+             :qr (mat/qr-decomposition mat tol)
+             :rrqr (mat/rrqr-decomposition mat tol)
+             (mat/cholesky-decomposition mat tol 1.0e-16))))
 
 (defn- xtxinv
   ^RealMatrix [^RealMatrix xss ^DiagonalMatrix dweights ^double tol]
@@ -283,13 +321,14 @@
 
   Parameters:
 
-  * `:tol` - tolerance for matrix decomposition (SVD and Cholesky), default: `1.0e-8`
+  * `:tol` - tolerance for matrix decomposition (SVD and Cholesky/QR decomposition), default: `1.0e-8`
   * `:weights` - optional weights for WLS
   * `:offset` - optional offset
   * `:alpha` - significance level, default: `0.05`
   * `:intercept?` - should intercept term be included, default: `true`
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
+  * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
 
   Notes:
 
@@ -318,6 +357,8 @@
   * `:f-statistic` and `:p-value` - F statistic and respective p-value
   * `:ll` - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS
   * `:analysis` - laverage, residual and influence analysis - a delay
+  * `:decomposition` - decomposition used
+  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -328,33 +369,32 @@
   * `:correlation` - correlation matrix of estimated parameters
   * `:normality` - residuals normality tests: `:skewness`, `:kurtosis`, `:durbin-watson` (for raw and weighted), `:jarque-berra` and `:omnibus` (normality)"
   ([ys xss] (lm ys xss nil))
-  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer names]
-            :or {tol 1.0e-8 alpha 0.05 intercept? true}}]
+  ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer names decomposition
+                   augmentation augmentation-param]
+            :or {tol 1.0e-8 alpha 0.05 intercept? true decomposition :cholesky}}]
 
-   (let [xss (if transformer (map transformer xss) xss)
-         [^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss tol intercept?)
+   (let [offset? (boolean offset)
+         weights? (sequential? weights)
+         xss (if transformer (map transformer xss) xss)
+         [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
+                                                            augmentation augmentation-param)
+         [^SingularValueDecomposition S singular-values] (svd xss tol)
          uts (.getUT S)
          ut (.getU S)
 
          m (mat/nrow xss)
          n (mat/ncol xss)
 
-         offset? (boolean offset)
-         ^doubles offset (m/seq->double-array (or offset (repeat m 0.0)))
-
+         ^doubles offset (m/seq->double-array offset)
          ^doubles ys-orig (m/seq->double-array ys)
          ^doubles ys (v/sub ys-orig offset)
 
-         ;; maybe separate wls and ols...
-         weights? (sequential? weights)
-         weights (vec (or weights (repeat m 1.0)))
          ^doubles daweights (m/seq->double-array weights)
          ^DiagonalMatrix dweights (DiagonalMatrix. daweights)
          ^RealVector rvwys (v/vec->RealVector (v/emult daweights ys))
 
          ^RealVector result (let [new-t (->> (-> (mat/mulm uts (mat/mulm dweights ut))
-                                                 (CholeskyDecomposition. tol 1.0e-16)
-                                                 (.getSolver)
+                                                 ^DecompositionSolver (solver decomposition tol)
                                                  (.solve ^RealVector (mat/mulv uts rvwys)))
                                              (mat/mulv ut))]
 
@@ -439,7 +479,8 @@
                 :tss tss :rss rss :regss regss :msreg (m// regss model-df)
                 :qt qt
                 :f-statistic f-statistic :p-value p-value
-                :ll ll}
+                :ll ll
+                :decomposition decomposition}
 
          analysis (delay (lm-extra-analysis model xss))]
 
@@ -468,64 +509,64 @@
    (->Link g mean mean-derivative)))
 
 (def links {:logit (->Link m/logit
-                           m/sigmoid
-                           (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
-            :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (special/inv-erf (m/dec (m/* 2.0 x)))))
-                            (fn ^double [^double x] (-> (m// x m/SQRT2)
-                                                        (m/-)
-                                                        (special/erfc)
-                                                        (m/* 0.5)))
-                            (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
-                                                                                  (m/exp (m/* -0.5 x x))))))
-            :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
-                             (fn ^double [^double x] (-> x
-                                                         (m/atan)
-                                                         (m// m/PI)
-                                                         (m/+ 0.5)))
-                             (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
-            :cloglog (->Link m/cloglog
-                             (fn ^double [^double x] (m/constrain (m/cexpexp x)
-                                                                  m/MACHINE-EPSILON
-                                                                  0.9999999999999999))
-                             (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
-            :loglog (->Link m/loglog
-                            m/expexp
-                            (fn ^double [^double x] (m/max m/MACHINE-EPSILON
-                                                           (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
-            :identity (->Link m/identity-double
-                              m/identity-double
-                              constantly-1)
-            :log (->Link m/log
-                         (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
-                         (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
-            :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
-                          (fn ^double [^double x] (m/- 1.0 (m/exp x)))
-                          (fn ^double [^double x] (m/- (m/exp x))))
-            :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
-            :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
-                               (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
-                               (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
-            :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
-            :nbinomial (fn [{:keys [^double nbinomial-theta]
-                             :or {nbinomial-theta 1.0}}]
-                         (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
-                                 (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
-                                                                        nbinomial-theta)))
-                                 (fn ^double [^double x] (let [e (m/exp x)]
-                                                           (m// e (m// (m/sq (m/- 1.0 e))
-                                                                       nbinomial-theta))))))
-            :power (fn [{:keys [^double power-exponent]
-                         :or {power-exponent 1.0}}]
-                     (let [rexponent (m// power-exponent)]
-                       (->Link (fn ^double [^double x] (m/pow x power-exponent))
-                               (fn ^double [^double x] (m/pow x rexponent))
-                               (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
-                                                                                    (m/- 1.0 power-exponent))))))))
-            :distribution (fn [{:keys [distribution]
-                                :or {distribution (r/distribution :normal)}}]
-                            (->Link (partial r/icdf distribution)
-                                    (partial r/cdf distribution)
-                                    (partial r/pdf distribution)))})
+                         m/sigmoid
+                         (fn ^double [^double x] (let [e (m/exp x)] (m// e (m/sq (m/inc e))))))
+          :probit (->Link (fn ^double [^double x] (m/* m/SQRT2 (special/inv-erf (m/dec (m/* 2.0 x)))))
+                          (fn ^double [^double x] (-> (m// x m/SQRT2)
+                                                     (m/-)
+                                                     (special/erfc)
+                                                     (m/* 0.5)))
+                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/* m/INV_SQRT2PI
+                                                                               (m/exp (m/* -0.5 x x))))))
+          :cauchit (->Link (fn ^double [^double x] (m/tan (m/* m/PI (m/- x 0.5))))
+                           (fn ^double [^double x] (-> x
+                                                      (m/atan)
+                                                      (m// m/PI)
+                                                      (m/+ 0.5)))
+                           (fn ^double [^double x] (m/* m/INV_PI (m// 1.0 (m/inc (m/* x x))))))
+          :cloglog (->Link m/cloglog
+                           (fn ^double [^double x] (m/constrain (m/cexpexp x)
+                                                               m/MACHINE-EPSILON
+                                                               0.9999999999999999))
+                           (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp (m/- x (m/exp x))))))
+          :loglog (->Link m/loglog
+                          m/expexp
+                          (fn ^double [^double x] (m/max m/MACHINE-EPSILON
+                                                        (m/exp (m/- (m/- (m/exp (m/- x))) x)))))
+          :identity (->Link m/identity-double
+                            m/identity-double
+                            constantly-1)
+          :log (->Link m/log
+                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x)))
+                       (fn ^double [^double x] (m/max m/MACHINE-EPSILON (m/exp x))))
+          :clog (->Link (fn ^double [^double x] (m/log (m/- 1.0 x)))
+                        (fn ^double [^double x] (m/- 1.0 (m/exp x)))
+                        (fn ^double [^double x] (m/- (m/exp x))))
+          :sqrt (->Link m/sqrt m/sq (fn ^double [^double x] (m/* 2.0 x)))
+          :inversesq (->Link (fn ^double [^double x] (m// 1.0 (m/* x x)))
+                             (fn ^double [^double x] (m// 1.0 (m/sqrt x)))
+                             (fn ^double [^double x] (m// -1.0 (m/* 2.0 (m/pow x 1.5)))))
+          :inverse (->Link m// m// (fn ^double [^double x] (m// -1.0 (m/sq x))))
+          :nbinomial (fn [{:keys [^double nbinomial-theta]
+                          :or {nbinomial-theta 1.0}}]
+                       (->Link (fn ^double [^double x] (m/log (m// x (m/+ x nbinomial-theta))))
+                               (fn ^double [^double x] (m// -1.0 (m// (m/- 1.0 (m/exp (m/- x)))
+                                                                     nbinomial-theta)))
+                               (fn ^double [^double x] (let [e (m/exp x)]
+                                                        (m// e (m// (m/sq (m/- 1.0 e))
+                                                                    nbinomial-theta))))))
+          :power (fn [{:keys [^double power-exponent]
+                      :or {power-exponent 1.0}}]
+                   (let [rexponent (m// power-exponent)]
+                     (->Link (fn ^double [^double x] (m/pow x power-exponent))
+                             (fn ^double [^double x] (m/pow x rexponent))
+                             (fn ^double [^double x] (m/* rexponent (m/pow x (m/* rexponent
+                                                                                 (m/- 1.0 power-exponent))))))))
+          :distribution (fn [{:keys [distribution]
+                             :or {distribution (r/distribution :normal)}}]
+                          (->Link (partial r/icdf distribution)
+                                  (partial r/cdf distribution)
+                                  (partial r/pdf distribution)))})
 
 ;; family
 
@@ -903,7 +944,7 @@
   * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - an optional vector of names to use when printing the model
-
+  * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [[->family]]) or a function returning Family (accepting a map as an argument)
 
@@ -941,6 +982,8 @@
   * `:ll` - a map containing log-likelihood and AIC/BIC
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:iters` and `:converged?` - number of iterations and convergence indicator
+  * `:decomposition` - decomposition used
+  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -951,13 +994,17 @@
   * `:correlation` - correlation matrix of estimated parameters"
   ([ys xss] (glm ys xss nil))
   ([ys xss {:keys [^long max-iters ^double tol ^double epsilon family link weights ^double alpha offset
-                   dispersion-estimator intercept? init-mu simple? transformer names]
+                   dispersion-estimator intercept? init-mu simple? transformer names decomposition
+                   augmentation augmentation-param]
             :or {max-iters 25 tol 1.0e-8 epsilon 1.0e-8 family :gaussian alpha 0.05 intercept? true
-                 simple? false}
+                 simple? false decomposition :cholesky}
             :as params}]
 
-   (let [xss (if transformer (map transformer xss) xss)
-         [^RealMatrix xss ^SingularValueDecomposition S singular-values] (svd ys xss epsilon intercept?)
+   (let [offset? (boolean offset)
+         xss (if transformer (map transformer xss) xss)
+         [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
+                                                            augmentation augmentation-param)
+         [^SingularValueDecomposition S singular-values] (svd xss epsilon)
          uts (.getUT S)
          ut (.getU S)
 
@@ -973,15 +1020,11 @@
          m (mat/nrow xss)
          n (mat/ncol xss)
 
-         weights (or weights (repeat m 1.0))
-
          [ys start-t weights optional-data] (initialize (seq ys) (seq weights))
 
          ^doubles ys (m/seq->double-array ys)
          ^doubles weights (m/seq->double-array weights)
-
-         offset? (boolean offset)
-         ^doubles offset (m/seq->double-array (or offset (repeat m 0.0)))
+         ^doubles offset (m/seq->double-array offset)
          ^RealVector rvoffset (v/vec->RealVector offset)
 
          init-t (double-array (map link-fun (or init-mu start-t)))
@@ -1015,9 +1058,7 @@
                  (Array/aset buff-Wz idx (m/* w z)))))
 
            (let [^RealVector new-t (->> (-> (mat/mulm uts (mat/mulm (DiagonalMatrix. buff-W) ut))
-                                            #_(QRDecomposition. tol)
-                                            (CholeskyDecomposition. tol 1.0e-18)
-                                            (.getSolver)
+                                            ^DecompositionSolver (solver decomposition tol)
                                             (.solve (.operate uts (v/vec->RealVector buff-Wz))))
                                         (mat/mulv ut))
                  new-dev (v/sum (residual-deviance ys buff-g weights))]
@@ -1091,7 +1132,8 @@
                 :iters iters
                 :converged? (m/< iters max-iters)
                 :q q :chi2 ##NaN
-                :p-value ##NaN}]
+                :p-value ##NaN
+                :decomposition decomposition}]
 
      (if simple?
        (map->GLMData model)
@@ -1416,3 +1458,4 @@
                        true (conj [(Array/aget x b) yd])
                        (and (m/zero? t) (m/> f 1)) (conj [(first xs) yd]))]
            (recur (m/dec b) t nbuff)))))))
+

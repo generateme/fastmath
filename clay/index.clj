@@ -6,7 +6,16 @@
 
 ;; Documentation work in progress
 
-;; Statuses:
+;; ::: {.callout-warning}
+;; This notebook is written with the support of Gemini LLM models:
+;; 
+;; * `gemini-2.5-pro-exp-03-25`
+;; * `gemini-2.5-flash-preview-04-17`
+;;
+;; I did my best to verify the output of LLMs however I don't guarantee absence of the model hallucinations or incorrectnesses.
+;; :::
+
+;; ## Status
 
 ;; ✓ - done
 
@@ -19,8 +28,8 @@
 (kind/table
  {:column-names ["namespace" "clay docs" "docstrings" "included in book" "notes"]
   :row-vectors [['fastmath.core "✓" "✓" "✓" ""]
-                ['fastmath.vector "." "." "✓" ""]
-                ['fastmath.matrix "." "." "✓" ""]
+                ['fastmath.vector "✓" "✓" "✓" ""]
+                ['fastmath.matrix "✓" "✓" "✓" ""]
                 ['fastmath.random "+" "." "✓" "new functions added"]
                 ['fastmath.stats "✓" "✓" "✓" "experimental, LLM based"]
                 ['fastmath.stats.bootstrap "✓" "✓" "✓" "experimental, LLM based"]

@@ -26,6 +26,9 @@ All notable changes to this project will be documented in this file. This change
 * `owens-t` special function
 * `softmax` and `logsoftmax` accept `t` (temperature) parameter.
 * ARFIMA time series generator
+* `pow` for vectors
+* `tpow` - truncated power
+* ridge regression is possible via data augmentation (`augmentation` and `augmentation-param` parameters for `lm`/`glm`)
 
 ### Fixed
 
@@ -37,6 +40,7 @@ All notable changes to this project will be documented in this file. This change
 * `softmax` and `logsoftmax` fixed shift for numerical stability
 * bootstrap `:gaussian` smoothing builds a distribution-like model
 * quaternion operations bug for 0 imaginary part (should promote complex imaginary part)
+* shift and scale matrices use opposite ops
 
 ### Deprecated
 
@@ -46,6 +50,8 @@ All notable changes to this project will be documented in this file. This change
 
 * [breaking] `yeo-johnson-transformation` accepts a map as last argument (was `alpha`)
 * `ks-test-two-samples` - `:distinct?` now is set to `:ties`
+* [breaking] `diagonal` for matrix changed behaviour (vector argument always creates RealMatrix)
+* [breaking] `outer` returns either fixed size matrices or RealMatrix (double[][] path removed)
 
 ## [3.0.0 alpha3]
 

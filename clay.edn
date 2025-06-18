@@ -15,4 +15,4 @@
  :base-source-path "clay/"
  :base-target-path "docs/clay"
  :pprint-margin nil
- :kindly/options {:kinds-that-hide-code #{:kind/hiccup :kind/fragment :kind/image :kind/table}}}
+ :kindly/options {:kinds-that-hide-code #{:kind/hiccup :kind/fragment :kind/image :kind/table :kind/plotly}}}
