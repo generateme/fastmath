@@ -213,7 +213,10 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#preface" id="toc-preface" class="nav-link active" data-scroll-target="#preface">Preface</a></li>
+  <li><a href="#preface" id="toc-preface" class="nav-link active" data-scroll-target="#preface">Preface</a>
+  <ul>
+  <li><a href="#status" id="toc-status" class="nav-link" data-scroll-target="#status">Status</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -254,7 +257,26 @@ ul.task-list li input[type="checkbox"] {
 <section id="preface" class="level1 unnumbered">
 <h1 class="unnumbered">Preface</h1>
 <p>Documentation work in progress</p>
-<p>Statuses:</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This notebook is written with the support of Gemini LLM models:</p>
+<ul>
+<li><code>gemini-2.5-pro-exp-03-25</code></li>
+<li><code>gemini-2.5-flash-preview-04-17</code></li>
+</ul>
+<p>I did my best to verify the output of LLMs however I don’t guarantee absence of the model hallucinations or incorrectnesses.</p>
+</div>
+</div>
+<section id="status" class="level2">
+<h2 class="anchored" data-anchor-id="status">Status</h2>
 <p>✓ - done</p>
 <p>+ - partially done</p>
 <p>⇾ - wip</p>
@@ -281,15 +303,15 @@ ul.task-list li input[type="checkbox"] {
 </tr>
 <tr class="even">
 <td>fastmath.vector</td>
-<td>.</td>
-<td>.</td>
+<td>✓</td>
+<td>✓</td>
 <td>✓</td>
 <td></td>
 </tr>
 <tr class="odd">
 <td>fastmath.matrix</td>
-<td>.</td>
-<td>.</td>
+<td>✓</td>
+<td>✓</td>
 <td>✓</td>
 <td></td>
 </tr>
@@ -455,6 +477,7 @@ ul.task-list li input[type="checkbox"] {
 <div><pre><small><small>source: <a href="https://github.com/generateme/fastmath//blob/master/clay/index.clj">clay/index.clj</a></small></small></pre></div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

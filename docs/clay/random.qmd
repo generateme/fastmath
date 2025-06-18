@@ -52,7 +52,7 @@ Set initial seed
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.JDKRandomGenerator 0x42829589 "org.apache.commons.math3.random.JDKRandomGenerator@42829589"]
+#object[org.apache.commons.math3.random.JDKRandomGenerator 0x4c4b08ed "org.apache.commons.math3.random.JDKRandomGenerator@4c4b08ed"]
 
 ```
 :::
@@ -87,8 +87,8 @@ List of the functions which work with PRNG and distribution objects:
 
 ::: {.sourceClojure}
 ```clojure
-(r/irandom (r/rng :mersenne)) ;; => 831504811
-(r/drandom (r/rng :mersenne) 0 10) ;; => 2.549327739423648
+(r/irandom (r/rng :mersenne)) ;; => 1793874574
+(r/drandom (r/rng :mersenne) 0 10) ;; => 6.115755627988473
 ```
 :::
 
@@ -120,8 +120,8 @@ Third (optional) argument controls sampling method (for given `n` number of samp
 
 ::: {.sourceClojure}
 ```clojure
-(take 3 (r/->seq (r/rng :mersenne))) ;; => (0.9214876931544849 0.8571843374173553 0.9969970144220404)
-(r/->seq (r/rng :mersenne) 3) ;; => (0.27221362546663275 0.03800939496126432 0.24552514870076503)
+(take 3 (r/->seq (r/rng :mersenne))) ;; => (0.021773268886278174 0.949164712937401 0.17787137851431623)
+(r/->seq (r/rng :mersenne) 3) ;; => (0.6775705303634361 0.38441074666143704 0.650938759523312)
 ```
 :::
 
@@ -179,9 +179,9 @@ To create PRNG, call `rng` with algorithm name (as a keyword) and optional seed 
 
 ::: {.sourceClojure}
 ```clojure
-(r/rng :isaac) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x555a81ec "org.apache.commons.math3.random.ISAACRandom@555a81ec"]
-(r/rng :isaac 5336) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x60f3d10f "org.apache.commons.math3.random.ISAACRandom@60f3d10f"]
-(r/synced-rng (r/rng :isaac)) ;; => #object[org.apache.commons.math3.random.SynchronizedRandomGenerator 0x68a3855f "org.apache.commons.math3.random.SynchronizedRandomGenerator@68a3855f"]
+(r/rng :isaac) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x1397e4c "org.apache.commons.math3.random.ISAACRandom@1397e4c"]
+(r/rng :isaac 5336) ;; => #object[org.apache.commons.math3.random.ISAACRandom 0x328e0d1a "org.apache.commons.math3.random.ISAACRandom@328e0d1a"]
+(r/synced-rng (r/rng :isaac)) ;; => #object[org.apache.commons.math3.random.SynchronizedRandomGenerator 0x4e78fc90 "org.apache.commons.math3.random.SynchronizedRandomGenerator@4e78fc90"]
 ```
 :::
 
@@ -216,21 +216,21 @@ All examples will use Mersenne Twister PRNG with random seed
 
 ::: {.sourceClojure}
 ```clojure
-(r/irandom my-prng) ;; => 1583725514
-(r/irandom my-prng 5) ;; => 0
-(r/irandom my-prng 10 20) ;; => 16
-(r/lrandom my-prng) ;; => -1206173237915992054
-(r/lrandom my-prng 5) ;; => 0
-(r/lrandom my-prng 10 20) ;; => 14
-(r/frandom my-prng) ;; => 0.205284
-(r/frandom my-prng 2.5) ;; => 1.835058
-(r/frandom my-prng 10.1 10.11) ;; => 10.107537
-(r/drandom my-prng) ;; => 0.19604607646722827
-(r/drandom my-prng 2.5) ;; => 2.424977886502112
-(r/drandom my-prng 10.1 10.11) ;; => 10.102066365074132
-(r/grandom my-prng) ;; => 1.2037627372997057
-(r/grandom my-prng 20.0) ;; => 8.96187050896474
-(r/grandom my-prng 10.0 20.0) ;; => -6.228950866884318
+(r/irandom my-prng) ;; => 1781486767
+(r/irandom my-prng 5) ;; => 4
+(r/irandom my-prng 10 20) ;; => 12
+(r/lrandom my-prng) ;; => 3188190251830872680
+(r/lrandom my-prng 5) ;; => 1
+(r/lrandom my-prng 10 20) ;; => 16
+(r/frandom my-prng) ;; => 0.9662312
+(r/frandom my-prng 2.5) ;; => 1.9802922
+(r/frandom my-prng 10.1 10.11) ;; => 10.102447
+(r/drandom my-prng) ;; => 0.4648672564669125
+(r/drandom my-prng 2.5) ;; => 2.4391674724067363
+(r/drandom my-prng 10.1 10.11) ;; => 10.109255885124801
+(r/grandom my-prng) ;; => -1.1376167481939505
+(r/grandom my-prng 20.0) ;; => 12.953974636711065
+(r/grandom my-prng 10.0 20.0) ;; => -16.376654909225724
 (r/brandom my-prng) ;; => false
 (r/brandom my-prng 0.01) ;; => false
 (r/brandom my-prng 0.99) ;; => true
@@ -248,12 +248,12 @@ All examples will use Mersenne Twister PRNG with random seed
 
 ::: {.sourceClojure}
 ```clojure
-(take 2 (r/->seq my-prng)) ;; => (0.8414876485282521 0.8301999829385021)
-(r/->seq my-prng 2) ;; => (0.016607633344843498 0.7229342635196061)
-(r/->seq my-prng 5 :antithetic) ;; => (0.6186588441384513 0.3813411558615487 0.24598443873001008 0.7540155612699899 0.33122169929893186)
-(r/->seq my-prng 5 :uniform) ;; => (0.06266416426852474 0.19433617679731968 0.4320069326370171 0.6574570501997111 0.8836891348926493)
-(r/->seq my-prng 5 :systematic) ;; => (0.0022903724833732045 0.20229037248337323 0.40229037248337324 0.6022903724833732 0.8022903724833732)
-(r/->seq my-prng 5 :stratified) ;; => (0.1249556145225578 0.2878976517026268 0.4326546831305351 0.6612531658276928 0.9401056648492514)
+(take 2 (r/->seq my-prng)) ;; => (0.9229791407310042 0.12649340257360553)
+(r/->seq my-prng 2) ;; => (0.9182950794449085 0.615551669690412)
+(r/->seq my-prng 5 :antithetic) ;; => (0.7792954319987684 0.22070456800123162 0.9686170126695577 0.031382987330442313 0.9398688724065751)
+(r/->seq my-prng 5 :uniform) ;; => (0.20031684692473212 0.22073947599109622 0.25240969854099043 0.3984723239814754 0.6745926640550163)
+(r/->seq my-prng 5 :systematic) ;; => (0.16025911207927798 0.36025911207927797 0.560259112079278 0.760259112079278 0.960259112079278)
+(r/->seq my-prng 5 :stratified) ;; => (0.04393480609500449 0.21869514456582795 0.4678343618529689 0.7132619682804715 0.8933740930358791)
 ```
 :::
 
@@ -310,7 +310,7 @@ Let's now reseed both PRNGs
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.ISAACRandom 0x55ac9f2f "org.apache.commons.math3.random.ISAACRandom@55ac9f2f"]
+#object[org.apache.commons.math3.random.ISAACRandom 0x5f7c5545 "org.apache.commons.math3.random.ISAACRandom@5f7c5545"]
 
 ```
 :::
@@ -327,7 +327,7 @@ Let's now reseed both PRNGs
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.random.ISAACRandom 0x69dcdc0e "org.apache.commons.math3.random.ISAACRandom@69dcdc0e"]
+#object[org.apache.commons.math3.random.ISAACRandom 0x74495b0c "org.apache.commons.math3.random.ISAACRandom@74495b0c"]
 
 ```
 :::
@@ -385,11 +385,11 @@ There is defined one global variable `default-rng` which is synchonized `:jvm` P
 (r/brand 0.01) ;; => false
 (r/brand 0.99) ;; => true
 (take 3 (r/->seq)) ;; => (0.8820950564851541 0.8432355490117891 0.7757833765798361)
-r/default-rng ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x42829589 "org.apache.commons.math3.random.JDKRandomGenerator@42829589"]
-(r/set-seed) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x7493cf64 "org.apache.commons.math3.random.JDKRandomGenerator@7493cf64"]
-(r/set-seed 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x5d8b4f71 "org.apache.commons.math3.random.JDKRandomGenerator@5d8b4f71"]
-(r/set-seed!) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x42829589 "org.apache.commons.math3.random.JDKRandomGenerator@42829589"]
-(r/set-seed! 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x42829589 "org.apache.commons.math3.random.JDKRandomGenerator@42829589"]
+r/default-rng ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x4c4b08ed "org.apache.commons.math3.random.JDKRandomGenerator@4c4b08ed"]
+(r/set-seed) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x1e196806 "org.apache.commons.math3.random.JDKRandomGenerator@1e196806"]
+(r/set-seed 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x2693e0f2 "org.apache.commons.math3.random.JDKRandomGenerator@2693e0f2"]
+(r/set-seed!) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x4c4b08ed "org.apache.commons.math3.random.JDKRandomGenerator@4c4b08ed"]
+(r/set-seed! 9988) ;; => #object[org.apache.commons.math3.random.JDKRandomGenerator 0x4c4b08ed "org.apache.commons.math3.random.JDKRandomGenerator@4c4b08ed"]
 ```
 :::
 
@@ -499,8 +499,8 @@ Related functions:
 
 ::: {.sourceClojure}
 ```clojure
-(r/distribution :cauchy) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x7369dd91 "org.apache.commons.math3.distribution.CauchyDistribution@7369dd91"]
-(r/distribution :cauchy {:median 2.0, :scale 2.0}) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x7f19509 "org.apache.commons.math3.distribution.CauchyDistribution@7f19509"]
+(r/distribution :cauchy) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x6806ee4a "org.apache.commons.math3.distribution.CauchyDistribution@6806ee4a"]
+(r/distribution :cauchy {:median 2.0, :scale 2.0}) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x620df615 "org.apache.commons.math3.distribution.CauchyDistribution@620df615"]
 ```
 :::
 
@@ -563,11 +563,11 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/drandom log-logistic) ;; => 6.830798083482128
-(r/frandom log-logistic) ;; => 12.077189
-(r/lrandom log-logistic) ;; => 19
-(r/irandom log-logistic) ;; => 7
-(r/sample log-logistic) ;; => 14.419422937703711
+(r/drandom log-logistic) ;; => 4.733063966876887
+(r/frandom log-logistic) ;; => 15.502979
+(r/lrandom log-logistic) ;; => 7
+(r/irandom log-logistic) ;; => 9
+(r/sample log-logistic) ;; => 10.70580466579478
 (r/distribution? log-logistic) ;; => true
 (r/distribution? 2.3) ;; => false
 (r/pdf log-logistic 1) ;; => 0.008695578691184421
@@ -610,7 +610,7 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample dirichlet) ;; => [0.19361278167995002 0.13229367709440795 0.674093541225642]
+(r/sample dirichlet) ;; => [0.004408432995938472 0.12470132963124723 0.8708902373728143]
 (reduce + (r/sample dirichlet)) ;; => 1.0
 (r/distribution? dirichlet) ;; => true
 (r/pdf dirichlet [0.5 0.1 0.4]) ;; => 0.9600000000000001
@@ -618,9 +618,9 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 (r/observe1 dirichlet [0.5 0.1 0.4]) ;; => -0.040821994520255034
 (r/dimensions dirichlet) ;; => 3
 (r/continuous? dirichlet) ;; => true
-(r/log-likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 11.727981883790177
-(r/observe dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 8.759078092782449
-(r/likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 1091013.3705988028
+(r/log-likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 15.116722867677202
+(r/observe dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 12.110450624265958
+(r/likelihood dirichlet (repeatedly 10 (fn* [] (r/sample dirichlet)))) ;; => 18221.35973808569
 (r/means dirichlet) ;; => (0.16666666666666666 0.3333333333333333 0.5)
 (r/covariance dirichlet) ;; => [[0.019841269841269844 -0.007936507936507936 -0.011904761904761904] [-0.007936507936507936 0.03174603174603175 -0.023809523809523808] [-0.011904761904761904 -0.023809523809523808 0.03571428571428571]]
 (r/distribution-id dirichlet) ;; => :dirichlet
@@ -650,11 +650,11 @@ Let's define Beta, Dirichlet and Bernoulli distributions as examples of univaria
 
 ::: {.sourceClojure}
 ```clojure
-(r/drandom poisson) ;; => 11.0
-(r/frandom poisson) ;; => 15.0
-(r/lrandom poisson) ;; => 10
-(r/irandom poisson) ;; => 6
-(r/sample poisson) ;; => 9
+(r/drandom poisson) ;; => 12.0
+(r/frandom poisson) ;; => 10.0
+(r/lrandom poisson) ;; => 17
+(r/irandom poisson) ;; => 18
+(r/sample poisson) ;; => 13
 (r/distribution? poisson) ;; => true
 (r/pdf poisson 5) ;; => 0.03783327480207072
 (r/lpdf poisson 5) ;; => -3.274566277811817
@@ -760,8 +760,8 @@ Let's compare cdf and icdf to integrated pdf of beta distribution
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample weibull) ;; => 0.5388035684998905
-(r/->seq weibull 3) ;; => (1.208624065765813 0.5853224136589527 1.7680254729688276)
+(r/sample weibull) ;; => 1.3126424122813627
+(r/->seq weibull 3) ;; => (0.8455575544096939 0.6095761065885736 0.9250103187766903)
 (r/->seq weibull 5 :antithetic) ;; => (0.8789298248121516 0.7871567720020644 0.3359031152662685 1.4959111180822753 0.5761405777290171)
 (r/->seq weibull 5 :uniform) ;; => (0.27819628819981307 0.5105865483391676 0.6372189139644687 1.1425580683435526 1.7502730290537003)
 (r/->seq weibull 5 :systematic) ;; => (0.42415794076771685 0.6734882729621214 0.911929539913042 1.2027888245275842 1.8282741464907257)
@@ -792,7 +792,7 @@ All distributions accept `:rng` optional parameter which is used internally for 
 ```clojure
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [-0.1079136480774541 -5.558982159984645 -3.127061922456471]
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [8.13804818209913 1.6141542337020716 -0.6694661861436221]
-(r/set-seed! cauchy-mersenne-2288 2288) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x745a7bee "org.apache.commons.math3.distribution.CauchyDistribution@745a7bee"]
+(r/set-seed! cauchy-mersenne-2288 2288) ;; => #object[org.apache.commons.math3.distribution.CauchyDistribution 0x2ed45a5e "org.apache.commons.math3.distribution.CauchyDistribution@2ed45a5e"]
 (vec (r/->seq cauchy-mersenne-2288 3)) ;; => [-0.1079136480774541 -5.558982159984645 -3.127061922456471]
 ```
 :::
@@ -810,7 +810,7 @@ All distributions accept `:rng` optional parameter which is used internally for 
 
 ::: {.sourceClojure}
 ```clojure
-(r/->seq r/default-normal 3) ;; => (-0.8916664792841649 -0.03329017964260368 0.21945999852141862)
+(r/->seq r/default-normal 3) ;; => (0.1396107023277902 -1.949194640705265 -1.7454642816885013)
 (r/pdf r/default-normal 0.0) ;; => 0.3989422804014327
 (r/cdf r/default-normal 0.0) ;; => 0.5
 (r/icdf r/default-normal 0.5) ;; => 0.0
@@ -2276,8 +2276,8 @@ Projections of the 2d and 3d Dirichlet distributions.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample dirichlet3) ;; => [0.554796832426502 0.09449962972281489 0.3507035378506831]
-(r/sample dirichlet3) ;; => [0.42998860588323373 0.191581286996475 0.37843010712029135]
+(r/sample dirichlet3) ;; => [0.3206561516981015 0.24420259178406106 0.43514125651783747]
+(r/sample dirichlet3) ;; => [0.5094651859390034 0.12484763652595317 0.3656871775350434]
 (r/pdf dirichlet3 [0.2 0.3 0.5]) ;; => 1.8000000000000003
 (r/pdf dirichlet3 [0.3 0.5 0.2]) ;; => 0.648
 (r/pdf dirichlet3 [0.5 0.2 0.3]) ;; => 4.05
@@ -2332,8 +2332,8 @@ Projections of the 2d and 3d Dirichlet distributions.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample multinomial) ;; => [8 18 17 38 69]
-(r/sample multinomial) ;; => [9 28 27 39 47]
+(r/sample multinomial) ;; => [8 20 36 44 42]
+(r/sample multinomial) ;; => [6 18 30 43 53]
 (r/pdf multinomial [10 10 10 10 110]) ;; => 3.9088379874482466E-28
 (r/pdf multinomial [10 20 30 40 50]) ;; => 8.791729390927823E-5
 (r/pdf multinomial [110 10 10 10 10]) ;; => 4.955040820983416E-98
@@ -2408,8 +2408,8 @@ Please note: `set-seed!` doesn't affect distributions which are part of the mixt
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample mixture-of-three) ;; => 3.874021138411308
-(r/sample mixture-of-three) ;; => 2.4730276664059767
+(r/sample mixture-of-three) ;; => 2.001779680720405
+(r/sample mixture-of-three) ;; => 4.738320477941038
 (r/pdf mixture-of-three 0) ;; => 0.08333333333333333
 (r/pdf mixture-of-three 1) ;; => 0.45620084174033965
 (r/pdf mixture-of-three 2) ;; => 0.14666525453903217
@@ -2485,8 +2485,8 @@ Please note: derived `mean` or `variance` is not calculated. Also, `set-seed!` d
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample truncated-normal) ;; => -0.6158738977263767
-(r/sample truncated-normal) ;; => 1.8994625350224648
+(r/sample truncated-normal) ;; => 0.6662673895393558
+(r/sample truncated-normal) ;; => 1.3327809433947166
 (r/pdf truncated-normal 2.0000001) ;; => 0.0
 (r/pdf truncated-normal 2.0) ;; => 0.0565646741125192
 (r/cdf truncated-normal 2.0) ;; => 1.0
@@ -2570,8 +2570,8 @@ Continous distribution build from data is based on KDE (Kernel Density Estimatio
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample kde-distr) ;; => 1.4165101892026575
-(r/sample kde-distr) ;; => 1.88554358059656
+(r/sample kde-distr) ;; => 0.7150007183952258
+(r/sample kde-distr) ;; => 0.413359471485534
 (r/pdf kde-distr 0.0) ;; => 0.2895732291670891
 (r/cdf kde-distr 0.0) ;; => 0.31552593767229803
 (map (partial r/icdf kde-distr) [1.0E-4 0.5 0.9999]) ;; => (-4.036565369328684 0.49883262884502827 5.012273231015241)
@@ -2673,8 +2673,8 @@ Empirical distribution calculates PDF, CDF and iCDF from a histogram.
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample empirical-distr) ;; => -1.3490922120615432
-(r/sample empirical-distr) ;; => -0.5974950785774867
+(r/sample empirical-distr) ;; => 1.2820541708686466
+(r/sample empirical-distr) ;; => 0.2049837232352125
 (r/pdf empirical-distr 0.0) ;; => 0.3367652060230363
 (r/cdf empirical-distr 0.0) ;; => 0.3060844150814384
 (map (partial r/icdf empirical-distr) [1.0E-4 0.5 0.9999]) ;; => (-3.8445695885397138 0.49402601627672765 4.820277450226245)
@@ -2744,8 +2744,8 @@ Please note:
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample real-distr) ;; => 0.2
-(r/sample real-distr) ;; => 0.2
+(r/sample real-distr) ;; => 0.4
+(r/sample real-distr) ;; => 0.1
 (r/pdf real-distr 0.1) ;; => 0.375
 (r/pdf real-distr 0.15) ;; => 0.0
 (r/cdf real-distr 0.2) ;; => 0.75
@@ -2794,7 +2794,7 @@ Please note:
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample int-distr) ;; => 30
+(r/sample int-distr) ;; => 10
 (r/sample int-distr) ;; => 20
 (r/pdf int-distr 10) ;; => 0.375
 (r/pdf int-distr 15) ;; => 0.0
@@ -2835,12 +2835,12 @@ Order for CDF/iCDF is created by calling `(distinct data)`. If sorted data is ne
 
 ::: {.sourceClojure}
 ```clojure
-(r/sample cat-distr) ;; => nil
-(r/sample cat-distr) ;; => "s"
-(r/pdf cat-distr nil) ;; => 0.2800000000000001
+(r/sample cat-distr) ;; => :b
+(r/sample cat-distr) ;; => :b
+(r/pdf cat-distr nil) ;; => 0.25000000000000006
 (r/pdf cat-distr "ss") ;; => 0.0
-(r/cdf cat-distr :b) ;; => 0.21000000000000005
-(map (partial r/icdf cat-distr) [1.0E-4 0.5 0.9999]) ;; => (:b "s" :a)
+(r/cdf cat-distr :b) ;; => 0.5600000000000002
+(map (partial r/icdf cat-distr) [1.0E-4 0.5 0.9999]) ;; => ("s" :b :a)
 ```
 :::
 
@@ -2980,7 +2980,7 @@ Unit sphere or unit ball sequences can generate any dimension.
 
 ::: {.sourceClojure}
 ```clojure
-(first (r/sequence-generator :sphere 4)) ;; => #vec4 [0.6660104296529389, 0.5123194276384198, -0.5184346693290323, 0.15869595235999656]
+(first (r/sequence-generator :sphere 4)) ;; => #vec4 [-0.5972070959221314, -0.009358428510614357, 0.37360945831423287, 0.7096985818319009]
 (first (r/sequence-generator :ball 3)) ;; => #vec3 [0.6106439662537149, -0.19719273807051046, -0.5338472481721354]
 ```
 :::
@@ -3001,7 +3001,7 @@ Unit sphere or unit ball sequences can generate any dimension.
 
 ::: {.printedClojure}
 ```clojure
-([0.06989556686898989 0.21329492562603777 0.09274137389610065 -0.040826737583005576 -0.11896236825433075 -0.28625964372254425 -0.2585089948452389 0.09263835856674177 -0.05108856652618556 -0.6646688468242976 -0.2300692204910127 -0.02106725747930995 -0.09358613515838518 -0.33646631194670895 -0.08906714735178296 -0.2854443588682922 -0.1017929066749205 -0.1652692224156813 0.003749209320535714 -0.1449384730998652] [0.07159271383242655 0.1040972645156023 0.3778901359225604 0.03751398139301165 0.2565355439941502 0.37013318008863444 -0.0390823853499183 -0.10700268174954537 -0.23153317912295723 -0.07048455811369976 0.5861893500027203 0.02488939121579818 -0.0015452921922422746 0.07850646314601553 -0.17832871105060458 0.24821438014604072 -0.09235751822307534 0.1321940792208099 -0.05418979951286866 -0.3044863277953992])
+([0.3192535020555981 -0.22207911126993335 0.38882553966778033 0.14259341975397052 -0.25391948731633307 -0.33152946338299444 0.1400161366041712 -0.4512356334699222 0.10288389760925695 0.07818660581659385 -0.045272502721025745 -0.19909908130531714 -0.012260487735133456 -0.23395945062609574 -0.13955147398806977 0.31236060048707903 -0.036991049517361985 -0.0626472173036673 0.037345428510883884 0.20646500629139783] [0.08277578127393422 -0.1054154733375577 -0.5032554973487723 0.32063182365357196 0.2592542968468938 0.06676311609060971 0.24744444528474685 -0.023046527483933755 -0.31154935073955936 -0.15226809549382866 -0.17611403325185554 -0.14724515258214133 0.07212715269881738 0.15324137822121914 -0.18499178456363172 -0.2339787729946856 -0.15633431904833456 -0.03145279205685739 0.4190698898587969 0.029773893935727623])
 
 ```
 :::
@@ -3307,15 +3307,15 @@ There are three ready to use preconfigured noises:
 
 ::: {.sourceClojure}
 ```clojure
-(r/vnoise 0.2) ;; => 0.4840309105744845
-(r/vnoise 0.2 0.3) ;; => 0.2780623431461534
-(r/vnoise 0.2 0.3 0.4) ;; => 0.25221316247851827
-(r/noise 0.2) ;; => 0.7482407619047619
-(r/noise 0.2 0.3) ;; => 0.5435882829206349
-(r/noise 0.2 0.3 0.4) ;; => 0.41990295926725485
-(r/simplex 0.2) ;; => 0.30590875038476195
-(r/simplex 0.2 0.3) ;; => 0.3195303464509513
-(r/simplex 0.2 0.3 0.4) ;; => 0.27202692960846564
+(r/vnoise 0.2) ;; => 0.38406887978263393
+(r/vnoise 0.2 0.3) ;; => 0.4509442200507838
+(r/vnoise 0.2 0.3 0.4) ;; => 0.5330686161269872
+(r/noise 0.2) ;; => 0.5897970793650793
+(r/noise 0.2 0.3) ;; => 0.46109110385777774
+(r/noise 0.2 0.3 0.4) ;; => 0.5680868574215412
+(r/simplex 0.2) ;; => 0.6538476661028572
+(r/simplex 0.2 0.3) ;; => 0.6757377487257248
+(r/simplex 0.2 0.3 0.4) ;; => 0.8202216401269842
 ```
 :::
 
@@ -3367,7 +3367,7 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.printedClojure}
 ```clojure
-{:interpolation :hermite, :warp-scale 0.0, :seed 665844940, :normalize? true, :noise-type :simplex, :lacunarity 1.90872786462909, :gain 0.24908653479282347, :generator :billow, :warp-depth 1, :octaves 6}
+{:interpolation :quintic, :warp-scale 0.0, :seed 665844940, :normalize? true, :noise-type :simplex, :lacunarity 1.90872786462909, :gain 0.24908653479282347, :generator :ridgemulti, :warp-depth 1, :octaves 6}
 
 ```
 :::
@@ -3384,7 +3384,7 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.printedClojure}
 ```clojure
-{:interpolation :hermite, :warp-scale 4.0, :seed 1, :normalize? true, :noise-type :value, :lacunarity 1.8874943472437105, :gain 0.508204375355278, :generator :billow, :warp-depth 1, :octaves 3}
+{:interpolation :linear, :warp-scale 4.0, :seed 1, :normalize? true, :noise-type :gradient, :lacunarity 1.8874943472437105, :gain 0.508204375355278, :generator :ridgemulti, :warp-depth 1, :octaves 3}
 
 ```
 :::
@@ -3412,9 +3412,9 @@ Optional parameter is a map with values user wants to fix.
 
 ::: {.sourceClojure}
 ```clojure
-(some-random-noise 0.2) ;; => 0.22782144922035752
-(some-random-noise 0.2 0.3) ;; => 0.12119809880961607
-(some-random-noise 0.2 0.3 0.4) ;; => 0.5632473316430661
+(some-random-noise 0.2) ;; => 0.6132986748816055
+(some-random-noise 0.2 0.3) ;; => 0.4610298555750632
+(some-random-noise 0.2 0.3 0.4) ;; => 0.3832626675062615
 ```
 :::
 
@@ -3664,7 +3664,7 @@ Return random vector from a ball
 #### billow-noise
 
 + `(billow-noise)`
-+ `(billow-noise cfg__75429__auto__)`
++ `(billow-noise cfg__75683__auto__)`
 
 Create billow-noise function with optional configuration.
 
@@ -4004,7 +4004,7 @@ Random double number with provided RNG
 #### fbm-noise
 
 + `(fbm-noise)`
-+ `(fbm-noise cfg__75429__auto__)`
++ `(fbm-noise cfg__75683__auto__)`
 
 Create fbm-noise function with optional configuration.
 
@@ -4739,7 +4739,7 @@ Return value with given probability (default 0.5), for given rng
 #### ridgedmulti-noise
 
 + `(ridgedmulti-noise)`
-+ `(ridgedmulti-noise cfg__75429__auto__)`
++ `(ridgedmulti-noise cfg__75683__auto__)`
 
 Create ridgedmulti-noise function with optional configuration.
 
@@ -4954,7 +4954,7 @@ Simplex noise. 6 octaves.
 #### single-noise
 
 + `(single-noise)`
-+ `(single-noise cfg__75429__auto__)`
++ `(single-noise cfg__75683__auto__)`
 
 Create single-noise function with optional configuration.
 

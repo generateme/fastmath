@@ -998,7 +998,7 @@ z=0-i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L27">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L27">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1014,7 +1014,7 @@ z=0+i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L25">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L25">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1030,7 +1030,7 @@ z=0-i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L26">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L26">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1046,7 +1046,7 @@ z=1+0i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L28">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L28">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1062,7 +1062,7 @@ z=pi+0i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L31">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L31">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1078,7 +1078,7 @@ z=2+0i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L29">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L29">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1094,7 +1094,7 @@ z=0+0i
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L30">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L30">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1112,7 +1112,7 @@ Calculates the magnitude (absolute value) of the complex number `z`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L82">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L82">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1130,7 +1130,7 @@ acos(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L565">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L565">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1148,7 +1148,7 @@ acosh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L713">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L713">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1166,7 +1166,7 @@ acot(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L665">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L665">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1184,7 +1184,7 @@ acoth(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L834">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L834">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1202,7 +1202,7 @@ acsc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L638">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L638">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1220,7 +1220,7 @@ acsch(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L800">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L800">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1238,7 +1238,7 @@ Sum of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L107">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L107">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1256,7 +1256,7 @@ Add scalar to complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1274,7 +1274,7 @@ Argument (angle) of the complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1292,7 +1292,7 @@ asec(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L612">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L612">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1310,7 +1310,7 @@ asech(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L765">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L765">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1328,7 +1328,7 @@ asin(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1346,7 +1346,7 @@ asinh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L690">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L690">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1364,7 +1364,7 @@ atan(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L585">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L585">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1382,7 +1382,7 @@ atanh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L739">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L739">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1409,7 +1409,7 @@ Creates a complex number represented as a [Vec2](#LOS-Vec2).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L33">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L33">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1427,7 +1427,7 @@ Complex conjugate.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1445,7 +1445,7 @@ cos(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L394">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L394">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1463,7 +1463,7 @@ cosh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L475">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L475">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1481,7 +1481,7 @@ csc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1499,7 +1499,7 @@ coth(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L528">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L528">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1517,7 +1517,7 @@ csc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L434">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L434">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1535,7 +1535,7 @@ csch(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L514">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L514">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1556,7 +1556,7 @@ Complex signum function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L70">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L70">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1575,7 +1575,7 @@ Compare complex numbers with given accuracy (10e-6 by default)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1593,7 +1593,7 @@ Division of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L166">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L166">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1611,7 +1611,7 @@ Convert possible number to complex or return input.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1629,7 +1629,7 @@ exp(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L218">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L218">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1647,7 +1647,7 @@ Exchange imaginary and real parts
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L80">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L80">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1665,7 +1665,7 @@ Imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L51">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L51">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1683,7 +1683,7 @@ Is z is a pure imaginary number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L54">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L54">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1701,7 +1701,7 @@ Is infinite?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L56">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L56">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1719,7 +1719,7 @@ Is NaN or Inf?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L60">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L60">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1737,7 +1737,7 @@ log(z), principal value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L232">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L232">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1755,7 +1755,7 @@ log with base b
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L248">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L248">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1773,7 +1773,7 @@ log with base b
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1791,7 +1791,7 @@ Multiplication of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L130">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1809,7 +1809,7 @@ Multiplication by 0+i.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1827,7 +1827,7 @@ Multiplication by 0-i.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1845,7 +1845,7 @@ Is NaN?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1863,7 +1863,7 @@ Negation of the complex number, -z.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L191">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L191">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1883,7 +1883,7 @@ Calculates the squared magnitude (norm) of the complex number `z`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L89">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L89">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1901,7 +1901,7 @@ Normalize complex number to make abs(z) = 1
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1919,7 +1919,7 @@ Complex power, z^z
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L353">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L353">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1937,7 +1937,7 @@ Real part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L50">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L50">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1955,7 +1955,7 @@ Is z is a real number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1973,7 +1973,7 @@ Reciprocal, 1/z.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L177">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L177">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1991,7 +1991,7 @@ Multiplication by real number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2009,7 +2009,7 @@ sec(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L420">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L420">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2027,7 +2027,7 @@ sech(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L500">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L500">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2045,7 +2045,7 @@ sin(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L383">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L383">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2063,7 +2063,7 @@ sinh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L464">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L464">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2081,7 +2081,7 @@ Square of the complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2099,7 +2099,7 @@ Sqrt of the complex number, sqrt(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L196">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L196">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2117,7 +2117,7 @@ sqrt(1-z^2)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L208">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L208">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2135,7 +2135,7 @@ Difference of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L118">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L118">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2153,7 +2153,7 @@ tan(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L406">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L406">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2171,7 +2171,7 @@ tanh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L486">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L486">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2189,7 +2189,7 @@ Is valid complex (not NaN or Inf)?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2207,7 +2207,7 @@ Is zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/complex.clj#L55">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L55">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2240,7 +2240,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L34">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L34">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2256,7 +2256,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L35">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2272,7 +2272,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L36">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L36">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2288,7 +2288,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L31">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L31">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2304,7 +2304,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L32">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L32">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2320,7 +2320,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L33">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L33">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2336,7 +2336,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L30">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2352,7 +2352,7 @@ Operations for quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L29">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L29">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2370,7 +2370,7 @@ acos(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L440">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L440">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2388,7 +2388,7 @@ acosh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L446">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L446">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2406,7 +2406,7 @@ acot(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L444">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L444">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2424,7 +2424,7 @@ acoth(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L450">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L450">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2442,7 +2442,7 @@ acsc(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L443">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L443">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2460,7 +2460,7 @@ acsch(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L449">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L449">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2478,7 +2478,7 @@ Sum of two quaternions
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L110">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L110">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2496,7 +2496,7 @@ Adds scalar to a quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L114">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L114">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2514,7 +2514,7 @@ Argument of quaternion, atan2(|vector(q)|, re(q))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L97">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2532,7 +2532,7 @@ asec(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L442">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L442">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2550,7 +2550,7 @@ asech(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L448">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2568,7 +2568,7 @@ asin(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L439">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L439">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2586,7 +2586,7 @@ asinh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L445">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L445">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2604,7 +2604,7 @@ atan(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L441">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L441">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2622,7 +2622,7 @@ atanh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L447">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L447">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2640,7 +2640,7 @@ Create quaternion from complex number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L44">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L44">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2658,7 +2658,7 @@ Conjugate of the quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L126">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L126">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2676,7 +2676,7 @@ cos(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L428">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L428">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2694,7 +2694,7 @@ cosh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L434">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L434">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2712,7 +2712,7 @@ cot(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L432">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L432">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2730,7 +2730,7 @@ coth(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L438">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L438">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2748,7 +2748,7 @@ csc(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L431">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L431">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2766,7 +2766,7 @@ csch(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L437">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L437">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2785,7 +2785,7 @@ Compare quaternions with given accuracy (10e-6 by default)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L90">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L90">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2803,7 +2803,7 @@ Division two quaternions
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L151">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L151">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2821,7 +2821,7 @@ Convert possible number, complex number to a quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L49">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2839,7 +2839,7 @@ exp(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L208">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L208">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2870,7 +2870,7 @@ Converts Tait–Bryan angles (z-y′-x'' intrinsic rotation sequence) to a quate
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L349">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2902,7 +2902,7 @@ Converts Euler angles (ZYX body 3-2-1 convention) to a quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L296">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L296">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2925,7 +2925,7 @@ Converts a 3x3 rotation matrix to a quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L401">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L401">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2943,7 +2943,7 @@ Return i imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L71">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L71">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2961,7 +2961,7 @@ Return j imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L72">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2979,7 +2979,7 @@ Return k imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L73">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L73">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2997,7 +2997,7 @@ Is q is a pure imaginary number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L76">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L76">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3015,7 +3015,7 @@ Is infinitive?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L78">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L78">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3033,7 +3033,7 @@ Is NaN or Inf?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L86">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L86">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3051,7 +3051,7 @@ log(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L209">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L209">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3069,7 +3069,7 @@ log with base b
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L211">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L211">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3087,7 +3087,7 @@ Multiplication of two quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L139">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3105,7 +3105,7 @@ Is NaN?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L82">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L82">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3123,7 +3123,7 @@ Negation of the quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L156">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L156">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3141,7 +3141,7 @@ Norm of the quaternion, length of the vector
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L102">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L102">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3159,7 +3159,7 @@ Normalize quaternion, unit of quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L106">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L106">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3177,7 +3177,7 @@ Quaternion power
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L216">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3198,7 +3198,7 @@ Computes the signum of a quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L173">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L173">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3218,7 +3218,7 @@ Create quaternion from individual values or scalar and vector parts, reprezented
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L38">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L38">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3236,7 +3236,7 @@ Returns scalar part of quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L61">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L61">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3254,7 +3254,7 @@ Is q is a real number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L75">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L75">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3272,7 +3272,7 @@ Reciprocal of the quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L134">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L134">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3291,7 +3291,7 @@ Rotate 3d `in` vector around axis `u`, the same as `fastmath.vector/axis-rotate`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L239">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L239">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3320,7 +3320,7 @@ Creates a unit quaternion representing a rotation.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L221">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L221">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3338,7 +3338,7 @@ Returns scalar part of quaternion, double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L57">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L57">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3356,7 +3356,7 @@ Scale the quaternion
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L122">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L122">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3374,7 +3374,7 @@ sec(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L430">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L430">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3392,7 +3392,7 @@ sech(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L436">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L436">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3410,7 +3410,7 @@ sin(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L427">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L427">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3428,7 +3428,7 @@ sinh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L433">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L433">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3461,7 +3461,7 @@ Performs Spherical Linear Interpolation (SLERP) between two quaternions.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L250">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L250">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3479,7 +3479,7 @@ Square of the quaternion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L160">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L160">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3497,7 +3497,7 @@ sqrt(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L207">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L207">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3515,7 +3515,7 @@ Difference of two quaternions
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L118">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3533,7 +3533,7 @@ tan(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L429">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L429">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3551,7 +3551,7 @@ tanh(q)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L435">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L435">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3572,7 +3572,7 @@ Converts a quaternion `q` to Tait–Bryan angles using the z-y′-x'' intrinsic 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L329">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L329">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3594,7 +3594,7 @@ Converts a quaternion `q` to ZYX (body 3-2-1) Euler angles.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L276">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L276">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3621,7 +3621,7 @@ Converts a quaternion to a 3x3 rotation matrix.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L379">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L379">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3639,7 +3639,7 @@ Is valid complex (not NaN or Inf)?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L87">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L87">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3657,7 +3657,7 @@ Returns vector part of quaternion, `Vec3` type
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L65">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3675,7 +3675,7 @@ Is zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/quaternion.clj#L77">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

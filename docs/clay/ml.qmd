@@ -59,7 +59,7 @@ Positional factory function for class fastmath.ml.regression.Family.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L710">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -77,7 +77,7 @@ Positional factory function for class fastmath.ml.regression.GLMData.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L850">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -113,7 +113,7 @@ Positional factory function for class fastmath.ml.regression.Link.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L456">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -154,7 +154,7 @@ Create `Family` record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L712">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L753">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -179,7 +179,7 @@ Creates link record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L458">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L499">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -193,7 +193,7 @@ Creates link record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1296">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1338">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -211,7 +211,7 @@ Influence analysis, laverage, standardized and studentized residuals, correlatio
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1242">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1284">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -240,7 +240,7 @@ Centered Isotonic Regression.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1386">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1428">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -264,7 +264,7 @@ Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1247">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1289">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -278,7 +278,7 @@ Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L741">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L782">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -298,7 +298,7 @@ Returns family with a link as single map.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L771">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L812">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -311,7 +311,7 @@ Returns family with a link as single map.
 #### glm
 
 + `(glm ys xss)`
-+ `(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false}, :as params})`
++ `(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names decomposition augmentation augmentation-param], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false, decomposition :cholesky}, :as params})`
 
 Fit a generalized linear model using IRLS method.
 
@@ -338,7 +338,7 @@ Fit a generalized linear model using IRLS method.
   * `:nbinomial-theta` - theta for `:nbinomial` family, default: `1.0`.
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - an optional vector of names to use when printing the model
-
+  * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [->family](#LOS-->family)) or a function returning Family (accepting a map as an argument)
 
@@ -376,6 +376,8 @@ Fit a generalized linear model using IRLS method.
   * `:ll` - a map containing log-likelihood and AIC/BIC
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:iters` and `:converged?` - number of iterations and convergence indicator
+  * `:decomposition` - decomposition used
+  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -387,7 +389,7 @@ Fit a generalized linear model using IRLS method.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L880">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L921">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -414,7 +416,7 @@ Fits theta for negative binomial glm in iterative process.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1199">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1241">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -428,7 +430,7 @@ Fits theta for negative binomial glm in iterative process.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L470">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L511">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -441,7 +443,7 @@ Fits theta for negative binomial glm in iterative process.
 #### lm
 
 + `(lm ys xss)`
-+ `(lm ys xss {:keys [tol weights alpha intercept? offset transformer names], :or {tol 1.0E-8, alpha 0.05, intercept? true}})`
++ `(lm ys xss {:keys [tol weights alpha intercept? offset transformer names decomposition augmentation augmentation-param], :or {tol 1.0E-8, alpha 0.05, intercept? true, decomposition :cholesky}})`
 
 Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
@@ -453,13 +455,14 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
   Parameters:
 
-  * `:tol` - tolerance for matrix decomposition (SVD and Cholesky), default: `1.0e-8`
+  * `:tol` - tolerance for matrix decomposition (SVD and Cholesky/QR decomposition), default: `1.0e-8`
   * `:weights` - optional weights for WLS
   * `:offset` - optional offset
   * `:alpha` - significance level, default: `0.05`
   * `:intercept?` - should intercept term be included, default: `true`
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
+  * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
 
   Notes:
 
@@ -488,6 +491,8 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
   * `:f-statistic` and `:p-value` - F statistic and respective p-value
   * `:ll` - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS
   * `:analysis` - laverage, residual and influence analysis - a delay
+  * `:decomposition` - decomposition used
+  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -500,7 +505,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L275">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L313">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -518,7 +523,7 @@ Factory function for class fastmath.ml.regression.Family, taking a map of keywor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L710">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -536,7 +541,7 @@ Factory function for class fastmath.ml.regression.GLMData, taking a map of keywo
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L850">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -572,7 +577,7 @@ Factory function for class fastmath.ml.regression.Link, taking a map of keywords
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L456">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -602,7 +607,7 @@ Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks v
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1361">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1403">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -649,7 +654,7 @@ Quantile residuals for a model, possibly randomized.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1235">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1277">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
