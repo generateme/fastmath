@@ -15,7 +15,7 @@
   (:require [fastmath.core :as m]
             [clojure.string :as s]
             [fastmath.protocols :as prot])
-  (:import [clojure.lang Counted IFn ISeq IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry IReduce IReduceInit IPersistentStack]
+  (:import [clojure.lang Counted IFn IPersistentVector IPersistentCollection Seqable Sequential Reversible Indexed ILookup Associative MapEntry IReduce IReduceInit IPersistentStack]
            [clojure.core Vec]
            [org.apache.commons.math3.linear ArrayRealVector RealVector]
            [org.apache.commons.math3.analysis UnivariateFunction]
@@ -40,7 +40,7 @@
       [midx (inc curr) v])))
 
 ;; Add `VectorProto` to Clojure vector using map/reduce terms.
-(extend ISeq
+(extend Seqable
   prot/VectorProto
   {:to-double-array m/seq->double-array 
    :to-acm-vec (fn [v] (ArrayRealVector. (m/seq->double-array v)))
@@ -1339,6 +1339,32 @@
   [xs]
   (Vec4. (nth xs 0 0.0) (nth xs 1 0.0) (nth xs 2 0.0) (nth xs 3 0.0)))
 
+;;
+
+(defn differences
+  "Computes the lagged differences of a vector or sequence.
+
+  This function calculates the difference between elements separated by a fixed distance (`lag`)
+  and can apply this operation `diffs` times.
+
+  It supports multiple arities:
+  - `[v]`: Computes the 1st difference with lag 1 (default: `diffs=1`, `lag=1`).
+  - `[v diffs]`: Computes the `diffs`-th difference with lag 1 (default: `lag=1`).
+  - `[v diffs lag]`: Computes the `diffs`-th difference with the specified `lag`.
+
+  Returns a sequence of the computed differences."
+  ([v] (differences v 1))
+  ([v ^long diffs] (differences v diffs 1))
+  ([v ^long diffs ^long lag]
+   (loop [v (vec->Vec v)
+          d diffs]
+     (if (m/zero? d)
+       v
+       (let [l (count v)]
+         (recur (sub (subvec v lag)
+                     (subvec v 0 (- l lag)))
+                (m/dec d)))))))
+
 ;; primitive functions
 
 (defmacro ^:private primitive-ops
@@ -1356,6 +1382,7 @@
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch
                 m/sq m/cb m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
+                m/pow10
                 m/radians m/degrees m/sinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
@@ -1457,7 +1484,7 @@
                   [p0 p1 cnt (sum (sq p1))])
          (rest) ;; drop zero degree
          (map first)
-         (take (count xs)))))
+         (take (m/dec (count xs))))))
 
 (defn orthonormal-polynomials
   "Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials at the points specified in the input sequence `xs` and normalizing the resulting vectors.

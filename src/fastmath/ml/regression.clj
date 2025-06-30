@@ -9,8 +9,9 @@
             [fastmath.special :as special]
             [clojure.pprint :as pprint])
   (:import [org.apache.commons.math3.linear SingularValueDecomposition DiagonalMatrix
-            CholeskyDecomposition RealMatrix RealVector DecompositionSolver]
-           [fastmath.java Array Monotone]           
+            QRDecomposition RealMatrix RealVector DecompositionSolver]
+           [fastmath.java Array Monotone]
+           [fastmath.vector Vec2]
            [clojure.lang IFn]))
 
 (set! *unchecked-math* :warn-on-boxed)
@@ -68,22 +69,51 @@
 
 ;;
 
+(defn- add-diffs
+  [xss {:keys [^double lambda ^long order]
+        :or {lambda 1.0 order 2}}]
+  (let [s (count (first xss))
+        augm (-> (mat/eye s true)
+                 (mat/differences order)
+                 (mat/muls (m/sqrt lambda))
+                 (mat/rows))]
+    (concat xss (map v/vec->seq augm))))
+
 (defn- add-ridge
-  [xss lambda intercept?]
+  [xss {:keys [^double lambda]
+        :or {lambda 0.1}} intercept?]
   (let [s (count (first xss))
         zeros (repeat s 0.0)
-        diag (vec (concat zeros (conj zeros (m/sqrt (or lambda 1.0)))))
+        diag (vec (concat zeros (conj zeros (m/sqrt lambda))))
         icval (if intercept? -1 0)
         aug (map (fn [^long i]
                    (let [id (m/+ icval (m/- s i))]
                      (subvec diag id (m/+ s id)))) (range (m/+ icval s)))]
     (concat xss (if intercept? [zeros] '()) aug)))
 
-(defn- add-penalty
+(defn- add-one-penalty
   [xss penalty penalty-param intercept?]
-  (cond
-    (= penalty :ridge) (add-ridge xss penalty-param intercept?)
-    :else xss))
+  (case penalty
+    :ridge (add-ridge xss penalty-param intercept?)
+    :diffs (add-diffs xss penalty-param)
+    xss))
+
+(defn add-penalty
+  "Adds rows with penalty data to a given seq of seqs (a row matrix).
+
+  Penalties and parameters map:
+
+  * `:ridge` - diagonal matrix with sqrt(`:lambda`) parameter, used in regularized regression.
+  * `:diffs` - differences of given `:order` multiplied by sqrt(`:lambda`), used in penalized b-splines.
+
+  Two add more than one penalty, create seq of penalty types and parameters, eg: `[:diffs :ridge]`"
+  ([xss penalty penalty-param] (add-penalty xss penalty penalty-param false))
+  ([xss penalty penalty-param intercept?]
+   (if (and (sequential? penalty)
+            (sequential? penalty-param))
+     (reduce (fn [buff [p pp]]
+               (add-one-penalty buff p pp intercept?)) xss (map vector penalty penalty-param))
+     (add-one-penalty xss penalty penalty-param intercept?))))
 
 (defn- enhance-or-fill-seq
   [s ^long size ^double v]
@@ -131,7 +161,7 @@
 (defn- xtxinv
   ^RealMatrix [^RealMatrix xss ^DiagonalMatrix dweights ^double tol]
   (-> (mat/tmulm xss (mat/mulm dweights xss))
-      (CholeskyDecomposition. tol 1.0e-16)
+      (QRDecomposition. tol)
       (.getSolver)
       (.getInverse)))
 
@@ -181,16 +211,15 @@
       (into
        (take (m/- term-count (count namesv)) (map #(str "X_" %) (range)))))))
 
-(def ^{:tag 'double :private true :const true} ME100 (m/- 1.0 (m/* 100.0 m/MACHINE-EPSILON)))
-
 ;; new version
 (defn- hat-matrix
-  [^RealMatrix xtxinv ^RealMatrix xss weights]
+  [^RealMatrix xtxinv ^RealMatrix xss weights ^long m]
   (let [sqrt-weights (m/seq->double-array (map m/sqrt weights))
         ^RealMatrix whx (mat/mulm (DiagonalMatrix. sqrt-weights) xss)]
     (->> (mat/rows whx)
          (map (fn [row] (let [h (v/dot row (mat/mulv xtxinv row))]
-                         (if (m/>= h ME100) 1.0 h)))))))
+                         (m/min 1.0 h))))
+         (take m))))
 
 (defn- lm-transform-residuals
   [residuals hat sigmas]
@@ -283,17 +312,17 @@
     bb))
 
 (defn- lm-extra-analysis
-  [{:keys [weights residuals ^double rss ^long observations
+  [{:keys [weights hat residuals ^double rss ^long observations
            ^double sigma ^double sigma2 ^RealMatrix xtxinv] :as model} ^RealMatrix xss]
   (let [rresiduals (:raw residuals)
         wresiduals (:weighted residuals)
         {^double df :residual} (:df model)
         p (mat/ncol xss)
-        hat (hat-matrix xtxinv xss weights)
         
         df- (m/dec df)
 
-        sigmas (sigmas wresiduals hat rss df-)
+        sigmas (sigmas wresiduals hat rss df-)        
+        
         ^RealMatrix laverage-coeffs (laverage-coeffs xtxinv xss rresiduals weights hat p observations)
 
         influence {:cooks-distance (lm-cooks-distance wresiduals hat sigma p)
@@ -329,6 +358,9 @@
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
+  * `:augmentation` and `augmentation-param` - regularization by data augumentation
+      - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
+      - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
 
   Notes:
 
@@ -345,7 +377,7 @@
   * `:beta` - vector of model coefficients (without intercept)
   * `:coefficients` - coefficient analysis, a list of maps containing `:estimate`, `:stderr`, `:t-value`, `:p-value` and `:confidence-interval`
   * `:weights` - initial weights
-  * `:residuals` - a map containing `:raw` and `:weighted` residuals
+  * `:residuals` - a map containing `:raw` and `:weighted` residuals, also `:loocv`
   * `:fitted` - fitted values for xss
   * `:df` - degrees of freedom: `:residual`, `:model` and `:intercept`
   * `:observations` - number of observations
@@ -358,8 +390,10 @@
   * `:ll` - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:decomposition` - decomposition used
-  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
-
+  * `:augmentation` - augmentation used
+  * `:cv` - cross validation statistic
+  * `:effective-dimension` - effective dimension of the model (sum of hat matrix diagonal)
+  
   Analysis, delay containing a map:
 
   * `:residuals` - `:standardized` and `:studentized` weighted residuals
@@ -376,13 +410,16 @@
    (let [offset? (boolean offset)
          weights? (sequential? weights)
          xss (if transformer (map transformer xss) xss)
+
+         m (long (count ys))
+         
          [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
                                                             augmentation augmentation-param)
+         
          [^SingularValueDecomposition S singular-values] (svd xss tol)
          uts (.getUT S)
          ut (.getU S)
 
-         m (mat/nrow xss)
          n (mat/ncol xss)
 
          ^doubles offset (m/seq->double-array offset)
@@ -393,6 +430,7 @@
          ^DiagonalMatrix dweights (DiagonalMatrix. daweights)
          ^RealVector rvwys (v/vec->RealVector (v/emult daweights ys))
 
+
          ^RealVector result (let [new-t (->> (-> (mat/mulm uts (mat/mulm dweights ut))
                                                  ^DecompositionSolver (solver decomposition tol)
                                                  (.solve ^RealVector (mat/mulv uts rvwys)))
@@ -402,23 +440,38 @@
                                    (v/emult (mat/mulv uts new-t))
                                    (mat/mulv (.getV S))))
 
-         fitted (v/vec->seq (mat/mulv xss result))
+         ;; remove augmentation
+         fitted (take m (v/vec->seq (mat/mulv xss result)))
          result-array (v/vec->array result)
 
          intercept (if intercept? (Array/aget result-array 0) 0.0)
          beta (vec (if intercept? (rest result-array) result-array))
 
-         df (m/- m n)
+         xtx-1 (xtxinv xss dweights tol)
+         hat (hat-matrix xtx-1 xss weights m)
+
+         ed (v/sum hat)
+         df (if augmentation (m/- m ed) (m/- m n))
          model-df (count beta)
          intercept-df (long (if intercept? 1 0))
+
+         ;; remove augmentation
+         ys (take m ys)
+         weights (take m weights)
+         offset (take m offset)
 
          raw-residuals (mapv m/- ys fitted)
          wresiduals (if weights?
                       (mapv (fn [^double r ^double w] (m/* r (m/sqrt w))) raw-residuals weights)
                       raw-residuals)
+         
+         loocv (mapv (fn [^double r ^double h] (m// r (m/- 1.0 h))) wresiduals hat)
+
+         ;; loocv, cross validation 
+         cv (-> loocv v/sq stats/mean m/sqrt)
 
          rss (v/dot wresiduals wresiduals)
-         sigma2 (m// rss df)
+         sigma2 (m// rss (double df))
          sigma (m/sqrt sigma2)
 
          tss (if intercept?
@@ -442,20 +495,20 @@
          qt (double (r/icdf tdistr (m/- 1.0 (m/* alpha 0.5))))
 
          ;; log-likelihood based measures
-         ll (let [nobs2 (m// m 2.0)
+         ll (let [logm (m/log m)
+                  nobs2 (m// m 2.0)
                   log-likelihood (m/+ (m/- (m/- (m/* nobs2 (m/log rss)))
                                            (m/* nobs2 (m/inc (m/log (m// m/PI nobs2)))))
                                       (m/* 0.5 (v/sum (v/log weights))))
                   mlogsigma (m/* m (m/log (m// rss m)))]
               {:log-likelihood log-likelihood
-               :aic (m/+ (m/* -2.0 log-likelihood) (* 2.0 (m/inc n)))
-               :bic (m/+ (m/* -2.0 log-likelihood) (* (m/log m) (inc n)))
-               :aic-rss (m/+ mlogsigma (m/* 2.0 n))
-               :bic-rss (m/+ mlogsigma (m/* (m/log m) n))})
+               :aic (m/+ (m/* -2.0 log-likelihood) (* 2.0 (m/inc ed)))
+               :bic (m/+ (m/* -2.0 log-likelihood) (* logm (inc ed)))
+               :aic-rss (m/+ mlogsigma (m/* 2.0 ed))
+               :bic-rss (m/+ mlogsigma (m/* logm ed))})
 
-         xtx-1 (xtxinv xss dweights tol)
          stderrs (standard-errors xtx-1 sigma2)
-         namev (coefficients-names names intercept? model-df)
+         namev (coefficients-names names intercept? (count beta))
 
          model {:model (if weights? :wls :ols)
                 :transformer transformer
@@ -464,14 +517,18 @@
                 :xtxinv xtx-1
                 :intercept intercept
                 :beta beta
+                :hat hat
                 :offset offset
                 :coefficients (coefficients-analysis result-array stderrs tdistr qt)
                 :names namev
                 :weights weights
-                :residuals {:weighted wresiduals :raw raw-residuals}
+                :residuals {:weighted wresiduals :raw raw-residuals :loocv loocv}
                 :fitted (v/add fitted (seq offset))
                 :df {:residual df :model model-df :intercept intercept-df}
                 :observations m
+                :effective-dimension ed
+                :cv cv
+                :augmentation augmentation
                 :r-squared rsquared
                 :adjusted-r-squared adjusted-rsquared
                 :sigma2 sigma2
@@ -482,7 +539,9 @@
                 :ll ll
                 :decomposition decomposition}
 
-         analysis (delay (lm-extra-analysis model xss))]
+         analysis (delay (lm-extra-analysis model (if augmentation
+                                                    (.getSubMatrix xss 0 (m/dec m) 0 (m/dec n))
+                                                    xss)))]
 
      (map->LMData (assoc model :analysis analysis)))))
 
@@ -598,7 +657,7 @@
                                      (m/* (m// wt m)
                                           (r/lpdf distr (m/round (m/* m y)))))))
                                ys ms fitted weights)))
-         (m/* 2.0 (int rank)))))
+         (m/* 2.0 (double rank)))))
 
 (defn- binomial-quantile-residuals
   [{:keys [ys weights fitted]}]
@@ -628,7 +687,7 @@
   (let [nobs (long observations)]
     (m/+ (m/* nobs (m/inc (m/log (m/* m/TWO_PI (m// (double deviance) nobs)))))
          2.0 (m/- (v/sum (v/log weights)))
-         (m/* 2.0 (int rank)))))
+         (m/* 2.0 (double rank)))))
 
 (defn- gamma-residual-deviance
   [ys mus weights]
@@ -646,7 +705,7 @@
                                          (r/distribution :gamma {:shape rdisp :scale (m/* mu disp)})
                                          y)))
                                ys fitted weights)))
-         2.0 (m/* 2.0 (int rank)))))
+         2.0 (m/* 2.0 (double rank)))))
 
 (defn- gamma-quantile-residuals
   [{:keys [ys fitted ^double dispersion weights]}]
@@ -673,7 +732,7 @@
   [ys fitted weights _deviance _observations rank _ns]
   (m/+ (m/* -2.0 (v/sum (map (fn [^double y ^double mu ^double w]
                                (m/* w (r/lpdf (r/distribution :poisson {:p mu}) y))) ys fitted weights)))
-       (m/* 2.0 (int rank))))
+       (m/* 2.0 (double rank))))
 
 (defn- poisson-quantile-residuals
   [{:keys [ys fitted]}]
@@ -696,7 +755,7 @@
         d (double deviance)]
     (m/+ (m/* sumw (m/inc (m/log (m/* m/TWO_PI (m// d sumw)))))
          (m/* 3.0 (v/sum (map (fn [^double y ^double w] (m/* (m/log y) w)) ys weights)))
-         2.0 (m/* 2.0 (int rank)))))
+         2.0 (m/* 2.0 (double rank)))))
 
 (defn- inverse-gaussian-quantile-residuals
   [{:keys [ys fitted dispersions]}]
@@ -746,7 +805,7 @@
                                                      lgt-tlt)
                                                 (m/* y (m/log mu))
                                                 (special/log-gamma y+t))))) ys fitted weights)))
-           (m/* 2.0 (m/inc (int rank)))))))
+           (m/* 2.0 (m/inc (double rank)))))))
 
 (defrecord Family [default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion])
 
@@ -822,7 +881,7 @@
      (assoc (merge fm-data lk-data) :family family :link link))))
 
 (defn- estimate-dispersion
-  ^double [residuals weights ^long df]
+  ^double [residuals weights ^double df]
   (m// (v/sum (map (fn [^double r ^double w]
                      (m/* w r r))
                    residuals weights))
@@ -856,7 +915,7 @@
                                            sigmas) hat))
 
 (defn- glm-extra-analysis
-  [{:keys [weights residuals ^double dispersion
+  [{:keys [weights hat residuals ^double dispersion
            ^long observations ^RealMatrix xtxinv family] :as model} ^RealMatrix xss]
   (let [weights (:weights weights)
         presiduals (:pearson residuals)
@@ -866,7 +925,6 @@
 
         {^double df :residual} (:df model)
         p (mat/ncol xss)
-        hat (hat-matrix xtxinv xss weights)
 
         df- (m/dec df)
         sigmas (sigmas dresiduals hat rss df-)
@@ -906,7 +964,7 @@
     (let [xs (if transformer (transformer xs) xs)
           [^double off xs] (with-offset xs offset?)]
       (if stderr?
-        (let [arr (double-array (conj xs 1.0))
+        (let [arr (double-array (if intercept? (conj xs 1.0) xs))
               linear (m/+ off intercept (v/dot beta xs))
               fit (double (mean-fun linear))
               stderr (m/sqrt (m/* dispersion (v/dot arr (mat/mulv xtxinv arr))))
@@ -945,6 +1003,10 @@
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - an optional vector of names to use when printing the model
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
+  * `:augumentation` and `augumentation-param` - regularization by data augumentation
+      - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
+      - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
+
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [[->family]]) or a function returning Family (accepting a map as an argument)
 
@@ -979,11 +1041,10 @@
   * `:mean-fun` - mean function, `g^-1`
   * `:q` - (1-alpha/2) quantile of T or Normal distribution for residual degrees of freedom
   * `:chi2` and `:p-value` - Chi-squared statistic and respective p-value
-  * `:ll` - a map containing log-likelihood and AIC/BIC
+  * `:ll` - a map containing log-likelihood and AIC/BIC (GLM and based on deviance, dev+2ED)
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:iters` and `:converged?` - number of iterations and convergence indicator
   * `:decomposition` - decomposition used
-  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -1002,12 +1063,15 @@
 
    (let [offset? (boolean offset)
          xss (if transformer (map transformer xss) xss)
+         m (long (count ys))
+         
          [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
                                                             augmentation augmentation-param)
+
          [^SingularValueDecomposition S singular-values] (svd xss epsilon)
          uts (.getUT S)
          ut (.getU S)
-
+         
          {link-fun :g link-mean :mean
           link-derivative :derivative link-variance :variance
           initialize :initialize
@@ -1017,24 +1081,24 @@
           aic-fun :aic
           :as family+link} (family-with-link family link params)
 
-         m (mat/nrow xss)
+         new-m (mat/nrow xss)
          n (mat/ncol xss)
 
          [ys start-t weights optional-data] (initialize (seq ys) (seq weights))
-
+         
          ^doubles ys (m/seq->double-array ys)
          ^doubles weights (m/seq->double-array weights)
          ^doubles offset (m/seq->double-array offset)
          ^RealVector rvoffset (v/vec->RealVector offset)
 
          init-t (double-array (map link-fun (or init-mu start-t)))
-         
-         ^doubles buff-g (double-array m)
-         ^doubles buff-z (double-array m)
-         ^doubles buff-W (double-array m)
-         ^doubles buff-Wz (double-array m)
 
-         [^RealVector result t ^double dev ^long iters]
+         ^doubles buff-g (double-array new-m)
+         ^doubles buff-z (double-array new-m)
+         ^doubles buff-W (double-array (repeat new-m 1.0))
+         ^doubles buff-Wz (double-array new-m)
+
+         [^RealVector result t ^long iters]
          (loop [iter (long 1)
                 ^doubles t init-t
                 dev ##Inf]
@@ -1070,7 +1134,6 @@
                      (v/emult (mat/mulv uts new-t))
                      (mat/mulv (.getV S)))
                 (v/add (v/vec->array new-t) offset)
-                new-dev
                 iter]
 
                (recur (m/inc iter)
@@ -1082,18 +1145,34 @@
          intercept (if intercept? (Array/aget result-array 0) 0.0)
          beta (vec (if intercept? (rest result-array) result-array))
 
-         df (m/- m n)
+         xtx-1 (xtxinv xss (DiagonalMatrix. buff-W) tol)
+         hat (hat-matrix xtx-1 xss buff-W m)
+
+         ed (v/sum hat)
+         df (if augmentation (m/- m ed) (m/- m n))
+         
          intercept-df (long (if intercept? 1 0))
          null-df (m/- m intercept-df)
 
-         fitted (map link-mean (v/vec->seq (v/add rvoffset (mat/mulv xss result))))
+         ;; remove augmentation
+         fitted (map link-mean (take m (v/vec->seq (v/add rvoffset (mat/mulv xss result)))))
 
+         ;; remove augmentation
+         ys (take m ys)
+         weights (take m weights)
+         offset (take m offset)
+         t (take m t)
+         buff-W (take m buff-W)
+
+         ;; fix deviance after removing augmentation
+         dev (v/sum (residual-deviance ys fitted weights))
+         
          raw-residuals (map m/- ys fitted)
          residuals (v/ediv raw-residuals (map link-derivative t))
-
+         
          estimated-dispersion? (or (= :estimate dispersion) dispersion-estimator)
          pearson-dispersion (estimate-dispersion residuals buff-W df)
-         mean-deviance (m// dev df)
+         mean-deviance (m// dev (double df))
 
          dispersion-value (cond
                             (not estimated-dispersion?) dispersion
@@ -1106,10 +1185,9 @@
                  (r/distribution :normal))
          q (double (r/icdf distr (m/- 1.0 (m/* (double alpha) 0.5))))
 
-         xtx-1 (xtxinv xss (DiagonalMatrix. buff-W) tol)
          stderrs (standard-errors xtx-1 dispersion-value)
-         namev (coefficients-names names intercept? null-df)
-
+         namev (coefficients-names names intercept? (count beta))
+         
          model {:model :glm
                 :transformer transformer
                 :xtxinv xtx-1
@@ -1118,11 +1196,13 @@
                 :estimated-dispersion? estimated-dispersion?
                 :intercept intercept
                 :beta beta
+                :hat hat
                 :observations m
                 :residuals {:working residuals
                             :raw raw-residuals}
                 :deviance {:residual dev}
                 :df {:residual df :null null-df :intercept intercept-df}
+                :effective-dimension ed
                 :dispersion dispersion-value
                 :family family
                 :link link
@@ -1162,9 +1242,10 @@
                                                             (repeat m (stats/mean ys weights))
                                                             (map link-mean offset)) weights)))
 
-             aic (if aic-fun (double (aic-fun ys fitted weights dev m n optional-data)) ##Inf)
+             nn (double (if augmentation ed n))
+             aic (if aic-fun (double (aic-fun ys fitted weights dev m nn optional-data)) ##Inf)
              [log-likelihood bic] (let [p (if (#{:gaussian :inverse-gaussian
-                                                 :gamma :nbinomial} family) (m/inc n) n)
+                                                 :gamma :nbinomial} family) (m/inc nn) nn)
                                         ll (m/- p (m// aic 2.0))]
                                     [ll (m/- (m/* p (m/log m)) (m/* 2.0 ll))])
 
@@ -1179,18 +1260,24 @@
                                             :mean-deviance mean-deviance}
                               :quantile-residuals-fun (:quantile-residuals-fun family+link)
                               :chi2 chi2
-                              :p-value (if (m/zero? df)
+                              :p-value (if (m/zero? (double df))
                                          ##Inf
                                          (stats/p-value (r/distribution :chi-squared {:degrees-of-freedom df})
                                                         chi2 :right))
+                              :effective-dimenstion ed
                               :ll {:log-likelihood log-likelihood
                                    :aic aic
-                                   :bic bic})
+                                   :bic bic
+                                   ;; p-spline AIC, dev+2*ED
+                                   :aic-dev (m/+ dev (m/* 2.0 ed))
+                                   :bic-dev (m/+ dev (m/* (m/log m) ed))})
                        (assoc-in [:residuals :pearson] pearson-residuals)
                        (assoc-in [:residuals :deviance] deviance-residuals)
                        (assoc-in [:deviance :null] null-deviance))
 
-             analysis (delay (glm-extra-analysis model xss))]
+             analysis (delay (glm-extra-analysis model (if augmentation
+                                                         (.getSubMatrix xss 0 (m/dec m) 0 (m/dec n))
+                                                         xss)))]
 
          (map->GLMData (assoc model :analysis analysis)))))))
 
@@ -1380,10 +1467,73 @@
     (println (str "Fisher Scoring Iterations (converged? " (if converged? "yes" "no") "): " iters))))
 
 (defmethod print-method LMData [data ^java.io.Writer w]
-  (.write w (str (->string data))))
+(.write w (str (->string data))))
 (defmethod print-method GLMData [data  ^java.io.Writer w]
-  (.write w (str (->string data))))
+(.write w (str (->string data))))
 
+
+;; common transformers
+
+(defn polynomial-transformer
+"Creates polynomial transformer for xs"
+[xs ^long degree]
+(let [degree+ (m/inc degree)
+      r (range degree+)
+      m (stats/mean xs)
+      xs (v/shift xs (m/- m))
+      qrX (-> (mat/cols->RealMatrix (map (partial v/pow xs) r))
+              (mat/qr-decomposition))
+      R (mat/decomposition-component qrX :R)
+      Q (mat/decomposition-component qrX :Q)
+      Z (mat/cols->RealMatrix (map (fn [^long i] (v/mult (mat/col Q i) (mat/entry R i i))) r))
+      Z2 (mat/sq Z)
+      norm2 (map v/sum (mat/cols Z2))
+      alpha (butlast (map (fn [col ^double n2]
+                            (m/+ m (m// (v/sum (v/emult (v/vec->seq col) xs)) n2))) (mat/cols Z2) norm2))
+      alpha1 (double (first alpha))
+      anormf (map (fn [^double a ^double n] (Vec2. a n))
+                  (rest alpha)
+                  (map (fn [[^double n1 ^double n2]] (m// n2 n1)) (partition 2 1 (butlast norm2))))
+      normsqrt (mapv m/sqrt (rest norm2))]
+  (fn [^double x]
+    (let [f (m/- x alpha1)]
+      (-> ((reduce (fn [[buff ^double zi- ^double zi] ^Vec2 an]
+                     (let [zi+ (m/- (m/* (m/- x (.x an)) zi)
+                                    (m/* (.y an) zi-))]
+                       [(conj buff zi+) zi zi+])) [[f] 1.0 f] anormf) 0)
+          (v/ediv normsqrt))))))
+
+(defn trigonometric-transformer
+  "Creates trigonometric transformer for xs"
+  [^double period ^double degree]
+  (let [r (range 1 (m/inc degree))]
+    (fn [^double x]
+      (let [xx (m/* m/TWO_PI (m// x period))]
+        (mapcat (fn [^long k]
+                  (let [kxx (m/* k xx)]
+                    [(m/sin kxx) (m/cos kxx)])) r)))))
+
+(defn b-spline-transformer
+  ([xs ^long nseg ^long degree]
+   (let [[xl xr] (stats/extent xs)]
+     (b-spline-transformer xl xr nseg degree)))
+  ([^double xl ^double xr ^long nseg ^long degree]
+   (let [degree+ (m/inc degree)
+         dx (m// (m/- xr xl) nseg)
+         degdx (m/* dx degree)
+         knots (range (m/- xl degdx) (m/+ xr degdx (m/* 0.1 dx)) dx)
+         n (count knots)
+         denom (m// (m/* (special/gamma degree+) (m/pow dx degree)))
+         D (mapv v/vec->Vec (mat/rows (mat/muls (mat/differences (mat/eye n true) degree+) denom)))
+         b1 (if (m/even? degree+) 1 -1)
+         nb (m/- n degree)
+         sk (take nb (drop degree+ knots))]
+     (fn [^double x]
+       (let [p (mapv (fn [^double k] (m/tpow x degree k)) knots)]
+         (map (fn [d ^double k]
+                (if (m/< x k)
+                  (m/* b1 (v/dot p d))
+                  0.0)) D sk))))))
 
 ;; isotonic
 
@@ -1400,7 +1550,7 @@
       :non-increasing 3)
     0))
 
-(defn pava
+  (defn pava
   "Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks variant.
 
   Isotonic regression minimizes the (weighted) L2 loss function with a constraint that result should be monotonic (ascending or descending).
@@ -1423,9 +1573,9 @@
           (Monotone/pava_step2 y r))
      (seq y))))
 
-;; https://arxiv.org/abs/1701.05964
+  ;; https://arxiv.org/abs/1701.05964
 
-(defn cir
+  (defn cir
   "Centered Isotonic Regression.
 
   Returns shrinked [`xs`,`ys`] pair.

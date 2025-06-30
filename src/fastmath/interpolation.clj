@@ -44,6 +44,8 @@
   ([_ xs ys] (bc/barycentric xs ys))
   ([_ xs ys params] (bc/barycentric xs ys params)))
 
+;; smoothing
+
 (defmethod interpolation :loess
   ([_ xs ys] (acm/loess xs ys))
   ([_ xs ys params] (acm/loess xs ys params)))

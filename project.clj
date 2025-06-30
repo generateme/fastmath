@@ -34,6 +34,7 @@
                                   [org.scicloj/clay "2-beta41"]
                                   [zprint "1.3.0"]
                                   [scicloj/clojisr "1.0.0"]
+                                  [scicloj/tablecloth "7.059"]
                                   [virgil "0.3.2"]
                                   [org.ow2.asm/asm "9.7.1"]]
                    :source-paths ["notebooks" "utils"]}

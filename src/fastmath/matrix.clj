@@ -1,7 +1,7 @@
 (ns fastmath.matrix
   "Provides tools for working with various matrix types, including fixed-size (2x2, 3x3, 4x4), Java `double[][]` arrays, and Apache Commons Math `RealMatrix`.
 
-It offers efficient mathematical operations for linear algebra, geometric transformations, and data manipulation, unifying different representations under a common protocol approach where appropriate."
+  It offers efficient mathematical operations for linear algebra, geometric transformations, and data manipulation, unifying different representations under a common protocol approach where appropriate."
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.protocols.matrix :as prot])
@@ -1194,7 +1194,7 @@ It offers efficient mathematical operations for linear algebra, geometric transf
   [f A]
   (let [nA (map f (cols A))]
     (if (instance? RealMatrix A)
-      (rows->RealMatrix nA)
+      (cols->RealMatrix nA)
       (apply cols->mat nA))))
 
 (defn map-rows
@@ -1204,6 +1204,13 @@ It offers efficient mathematical operations for linear algebra, geometric transf
     (if (instance? RealMatrix A)
       (rows->RealMatrix nA)
       (apply rows->mat nA))))
+
+(defn differences
+  "Apply lagged differences on matrix columns, always returns RealMatrix."
+  ([m] (differences m 1))
+  ([m ^long diffs] (differences m diffs 1))
+  ([m ^long diffs ^long lag]
+   (map-cols (fn [col] (v/differences col diffs lag)) (mat->RealMatrix m))))
 
 (defn normalize
   "Normalizes columns (or rows)"
@@ -1619,6 +1626,7 @@ It offers efficient mathematical operations for linear algebra, geometric transf
                 m/cot m/sec m/csc m/acot m/asec m/acsc m/coth m/sech m/csch m/acoth m/asech m/acsch
                 m/sq m/cb m/safe-sqrt m/sqrt m/cbrt m/exp m/log m/log10 m/log2 m/ln m/log1p m/expm1
                 m/log1pexp m/log1mexp m/log1psq m/log1pmx m/logmxp1 m/logexpm1
+                m/pow10
                 m/radians m/degrees m/sinc m/sigmoid m/logit m/xlogx
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 

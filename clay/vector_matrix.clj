@@ -30,7 +30,7 @@
 ;; * `ArrayVec` (N-dimensional, wrapper around double array, deprecated)
 ;; * `double[]` (Java double array, N-dimensional)
 ;; * Clojure `IPersistentVector` (`[]`, N-dimensional)
-;; * Clojure `ISeq` (any sequence, N-dimensional)
+;; * Clojure `Seqable` (any sequence, N-dimensional)
 ;; * Apache Commons Math `ArrayRealVector` (N-dimensional)
 ;; :::
 
@@ -381,7 +381,7 @@
 ;; * `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`
 ;; * `cot`, `sec`, `csc`, `acot`, `asec`, `acsc`
 ;; * `coth`, `sech`, `csch`, `acoth`, `asech`, `acsch`
-;; * `sq`, `cb`, `safe-sqrt`, `sqrt`, `cbrt`, `pow`
+;; * `sq`, `cb`, `safe-sqrt`, `sqrt`, `cbrt`, `pow`, `pow10`
 ;; * `exp`, `log`, `log10`, `log2`, `ln`, `log1p`, `expm1`
 ;; * `log1pexp`, `log1mexp`, `log1psq`, `log1pmx`, `logmxp1`, `logexpm1`
 ;; * `radians`, `degrees`, `sinc`, `sigmoid`, `logit`, `xlogx`
@@ -421,6 +421,7 @@
   (utls/examples
     (v/sq V3)
     (v/cb V3)
+    (v/pow10 V3)
     (v/safe-sqrt V3)
     (v/sqrt V3)
     (v/cbrt V3)
@@ -607,6 +608,7 @@
 ;; ::: {.callout-tip title="Defined Functions"}
 ;; * `orthogonal-polynomials`, `orthonormal-polynomials`
 ;; * `softmax`, `logsoftmax`
+;; * `differences`
 ;; :::
 
 ;; This section covers advanced operations that are useful in specific mathematical or statistical contexts, such as generating orthogonal bases for polynomial fitting or numerical stability functions common in machine learning.
@@ -624,10 +626,23 @@
 ;;     *   `logsoftmax`: Computes the element-wise natural logarithm of the softmax function in a numerically stable way. $\operatorname{logsoftmax}(\mathbf{v})_i = \log(\operatorname{softmax}(\mathbf{v})_i) = v_i - \log(\sum_j \exp(v_j))$. Also supports a temperature parameter `t`.
 
 (utls/examples-note
-  (v/softmax [1 2 3])
-  (v/softmax [1 2 3] 0.5)
-  (v/logsoftmax [1 2 3])
-  (v/logsoftmax [1 2 3] 2.0))
+ (v/softmax [1 2 3])
+ (v/softmax [1 2 3] 0.5)
+ (v/logsoftmax [1 2 3])
+ (v/logsoftmax [1 2 3] 2.0))
+
+;; * **Differences**
+;;    * `differences`: Conputes lagged differences for given sequence.
+
+(utls/examples-note
+  (v/differences [0 0 0 0 1 0 0 0 0])
+  (v/differences [0 0 0 0 1 0 0 0 0] 2)
+  (v/differences [0 0 0 0 1 0 0 0 0] 3)
+  (v/differences [0 0 0 0 1 0 0 0 0] 4)
+  (v/differences [0 0 0 0 1 0 0 0 0] 1 2)
+  (v/differences [0 0 0 0 1 0 0 0 0] 2 2)
+  (v/differences [0 0 0 0 1 0 0 0 0] 3 2)
+  (v/differences [0 0 0 0 1 0 0 0 0] 4 2))
 
 ;; ## Matrices
 
@@ -1196,7 +1211,7 @@ dda
 ;; * `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`
 ;; * `cot`, `sec`, `csc`, `acot`, `asec`, `acsc`
 ;; * `coth`, `sech`, `csch`, `acoth`, `asech`, `acsch`
-;; * `sq`, `cb`, `safe-sqrt`, `sqrt`, `cbrt`, `pow`
+;; * `sq`, `cb`, `safe-sqrt`, `sqrt`, `cbrt`, `pow`, `pow10`
 ;; * `exp`, `log`, `log10`, `log2`, `ln`, `log1p`, `expm1`
 ;; * `log1pexp`, `log1mexp`, `log1psq`, `log1pmx`, `logmxp1`, `logexpm1`
 ;; * `radians`, `degrees`, `sinc`, `sigmoid`, `logit`, `xlogx`
@@ -1218,6 +1233,7 @@ dda
 ;; * `shift-rows`, `shift-cols`
 ;; * `scale-rows`, `scale-cols`
 ;; * `normalize`, `demean`, `standardize`
+;; * `differences`
 ;; :::
 
 ;; These functions provide tools to apply transformations to the rows or columns of a matrix. This is particularly useful for data preprocessing steps such as scaling features, centering data, or applying custom functions to individual dimensions (columns) or samples (rows) of a dataset represented as a matrix. The transformations can be applied element-wise, or based on properties of the rows/columns themselves (like mean or standard deviation).
@@ -1267,6 +1283,13 @@ dda
 (mat/standardize M3x3 true)
 ;; :::
 ;; ::::
+
+;; * **Differences**
+;;     * `differences`: Computes column-wise lagged differences 
+
+(mat/differences (mat/eye 4))
+(mat/differences (mat/eye 4) 2)
+(mat/differences (mat/eye 4) 1 2)
 
 ;; ### Geometric Transformations
 

@@ -2204,11 +2204,15 @@
   "Generates `cnt` evenly spaced points within a numerical range.
 
   - `(slice-range cnt)`: Generates `cnt` points in the range `[0.0, 1.0]`.
+  - `(slice-range data cnt)`: Generates `cnt` points in the range `[(min data), (max data)]`.
   - `(slice-range start end cnt)`: Generates `cnt` points in the range `[start, end]`.
 
   The range is inclusive, meaning the first point is `start` and the last is `end` (unless `cnt` is 1).
   If `cnt` is 1, it returns a single value which is the midpoint `(start + end) / 2` of the range.
   Returns a sequence of `cnt` double values."
+  ([data ^long cnt]
+   (let [d (sort (remove invalid-double? data))]
+     (slice-range (first d) (last d) cnt)))
   ([^double start ^double end ^long cnt] (if (= cnt 1)
                                            (list (+ start (* 0.5 (- end start))))
                                            (map (make-norm 0.0 (dec cnt) start end) (range cnt))))

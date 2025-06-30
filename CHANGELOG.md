@@ -52,6 +52,7 @@ All notable changes to this project will be documented in this file. This change
 * `ks-test-two-samples` - `:distinct?` now is set to `:ties`
 * [breaking] `diagonal` for matrix changed behaviour (vector argument always creates RealMatrix)
 * [breaking] `outer` returns either fixed size matrices or RealMatrix (double[][] path removed)
+* VectorProto is applied on all `Seqable` (not breaking)
 
 ## [3.0.0 alpha3]
 
