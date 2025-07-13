@@ -3054,7 +3054,7 @@ $\mathbf{C} = \mathbf{A}^T \mathbf{B}^T$
 
 A wide range of element-wise mathematical functions (e.g., `sin`, `cos`, `pow`) are provided, mirroring those in `fastmath.vector`.
 
-`fmap` applies a function to each element of the vector, returning a new vector of the same type.
+`fmap` applies a function to each element of the matrix, returning a new matrix of the same type.
 
 ::: {.callout-tip title="Defined functions"}
 * `sin`, `cos`, `tan`, `asin`, `acos`, `atan`
