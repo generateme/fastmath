@@ -2998,7 +2998,7 @@
 ;; *   `:intervals`: The sequence of numbers defining the bin edges.
 ;; *   `:bins`: A sequence of `[lower-edge, count]` pairs for each bin.
 ;; *   `:frequencies`: A map where keys are the average value of each bin and values are the counts.
-;; *   `:bins-maps`: A sequence of detailed maps for each bin, including `:min`, `:max`, `:step` (bin width), `:count`, `:avg` (mean value within the bin), and `:probability` (count / total samples).
+;; *   `:bins-maps`: A sequence of detailed maps for each bin, including `:min`, `:mid` (middle value), `:max`, `:step` (bin width), `:count`, `:avg` (mean value within the bin), and `:probability` (count / total samples).
 ;; 
 ;; If the input `vs` is a sequence of sequences, the function returns a sequence of such maps, one for each inner sequence.
 

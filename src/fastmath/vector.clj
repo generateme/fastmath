@@ -1502,4 +1502,3 @@
 (defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
 
 (m/unuse-primitive-operators #{'abs 'zero?})
-

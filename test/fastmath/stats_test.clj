@@ -230,24 +230,24 @@
 ;; histogram
 
 (def one {:size 1, :step 0.0, :samples 1, :min 1.0, :max 1.0, :bins '([1.0 1])
-        :bins-maps '({:min 1.0, :max 1.0, :count 1, :step 0.0, :avg 1.0 :probability 1.0})
+        :bins-maps '({:min 1.0, :max 1.0, :mid 1.0, :count 1, :step 0.0, :avg 1.0 :probability 1.0})
         :frequencies {1.0 1} :intervals '(1.0 1.0)})
 (def one2 {:size 1, :step 1.0, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 2])
-         :bins-maps '({:min 1.0, :max 2.0, :count 2, :step 1.0, :avg 1.5 :probability 1.0})
+         :bins-maps '({:min 1.0, :mid 1.5, :max 2.0, :count 2, :step 1.0, :avg 1.5 :probability 1.0})
          :frequencies {1.5 2} :intervals '(1.0 2.0)})
 (def two {:size 2, :step 0.5, :samples 2, :min 1.0, :max 2.0, :bins '([1.0 1] [1.5 1])
-        :bins-maps '({:min 1.0, :max 1.5, :count 1, :step 0.5, :avg 1.0 :probability 0.5}
-                     {:min 1.5, :max 2.0, :count 1, :step 0.5, :avg 2.0 :probability 0.5})
+        :bins-maps '({:min 1.0, :mid 1.25, :max 1.5, :count 1, :step 0.5, :avg 1.0 :probability 0.5}
+                     {:min 1.5, :mid 1.75, :max 2.0, :count 1, :step 0.5, :avg 2.0 :probability 0.5})
         :frequencies {1.0 1, 2.0 1} :intervals '(1.0 1.5 2.0)})
 
 (t/deftest histogram-tests
   (t/are [in method res] (= res (sut/histogram in method))
     [1 1 1 1] :sqrt  {:size 1, :step 0.0, :samples 4, :min 1.0, :max 1.0, :bins '([1.0 4])
-                      :bins-maps '({:min 1.0, :max 1.0, :count 4, :step 0.0, :avg 1.0
+                      :bins-maps '({:min 1.0, :max 1.0, :mid 1.0, :count 4, :step 0.0, :avg 1.0
                                     :probability 1.0}),
                       :frequencies {1.0 4} :intervals '(1.0 1.0)}
     [1 1] :sturges {:size 1, :step 0.0, :samples 2, :min 1.0, :max 1.0, :bins '([1.0 2])
-                    :bins-maps '({:min 1.0, :max 1.0, :count 2, :step 0.0, :avg 1.0 :probability 1.0}),
+                    :bins-maps '({:min 1.0, :max 1.0, :mid 1.0, :count 2, :step 0.0, :avg 1.0 :probability 1.0}),
                     :frequencies {1.0 2} :intervals '(1.0 1.0)}
     [1] :rice one
     [1] :doane one

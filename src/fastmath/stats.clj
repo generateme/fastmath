@@ -2262,10 +2262,12 @@
         (fastmath.java.Array/add ^doubles sum pos v)))
 
     (let [bins-map (map (fn [[^double mn ^double mx] ^long cnt ^double s]
-                          {:min mn :max mx :count cnt
-                           :step (- mx mn)
-                           :avg (/ s cnt)
-                           :probability (/ cnt dsize)}) (partition 2 1 search-array) buff sum)]
+                          (let [step (- mx mn)]
+                            {:min mn :max mx :count cnt
+                             :step step
+                             :mid (m/+ mn (m/* 0.5 step))
+                             :avg (/ s cnt)
+                             :probability (/ cnt dsize)})) (partition 2 1 search-array) buff sum)]
       {:size bins
        :step step
        :samples size
@@ -2294,6 +2296,7 @@
   * `:intervals` - intervals used to create bins
   * `:bins-maps` - seq of maps containing:
     * `:min` - lower bound
+    * `:mid` - middle value
     * `:max` - upper bound
     * `:step` - actual distance between bins 
     * `:count` - number of elements

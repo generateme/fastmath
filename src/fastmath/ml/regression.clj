@@ -20,9 +20,9 @@
 (defn- with-offset
   [xs offset?]
   (if offset?
-    (let [xs (v/vec->seq xs)]
-      [(first xs) (rest xs)])
-    [0.0 (v/vec->seq xs)]))
+    (let [xs (v/vec->Vec xs)]
+      [(first xs) (subvec xs 1)])
+    [0.0 (v/vec->Vec xs)]))
 
 (defn predict
   "Predict from the given model and data point.
@@ -43,20 +43,20 @@
                    ^RealMatrix xtxinv
                    ^double intercept beta coefficients
                    offset weights residuals fitted df ^long observations
-                   names
+                   names ^double cv
                    ^double r-squared ^double adjusted-r-squared ^double sigma2 ^double sigma
                    ^double tss ^double rss ^double regss ^double msreg
                    ^double qt
                    ^double f-statistic ^double p-value
-                   ll analysis]
+                   ll analysis decomposition augmentation]
   IFn
   (invoke [m xs] (prot/predict m xs false))
   (invoke [m xs stderr?] (prot/predict m xs stderr?))
   prot/PredictProto
   (predict [m xs] (prot/predict m xs false))
   (predict [_ xs stderr?]
-    (let [xs (if transformer (transformer xs) xs)
-          [^double off xs] (with-offset xs offset?)]
+    (let [[^double off xs] (with-offset xs offset?)
+          xs (if transformer (transformer xs) xs)]
       (if stderr?
         (let [arr (double-array (if intercept? (conj xs 1.0) xs))
               fit (double (m/+ off intercept (v/dot beta xs)))
@@ -77,7 +77,7 @@
                  (mat/differences order)
                  (mat/muls (m/sqrt lambda))
                  (mat/rows))]
-    (concat xss (map v/vec->seq augm))))
+    (concat xss (mapv v/vec->array augm))))
 
 (defn- add-ridge
   [xss {:keys [^double lambda]
@@ -89,7 +89,7 @@
         aug (map (fn [^long i]
                    (let [id (m/+ icval (m/- s i))]
                      (subvec diag id (m/+ s id)))) (range (m/+ icval s)))]
-    (concat xss (if intercept? [zeros] '()) aug)))
+    (vec (concat xss (if intercept? [zeros] '()) aug))))
 
 (defn- add-one-penalty
   [xss penalty penalty-param intercept?]
@@ -119,14 +119,12 @@
   [s ^long size ^double v]
   (take size (concat s (repeat v))))
 
-(defn- augument-data
+(defn- augment-data
   "Add intercept and possible penalty"
-  [ys xss weights offset intercept? augmentation augmentation-param]
+  [ys xss weights offset intercept? augmentation augmentation-params]
   (let [xss (if (= xss :intercept) (repeat (count ys) '()) xss)
-        xss (-> (if intercept?
-                  (map (fn [xs] (conj (v/vec->seq xs) 1.0)) xss)
-                  (map v/vec->seq xss))
-                (add-penalty augmentation augmentation-param intercept?))
+        xss (->  (if intercept? (map (fn [xs] (conj (seq xs) 1.0)) xss) xss)
+                 (add-penalty augmentation augmentation-params intercept?))
         size (count xss)]
     [(enhance-or-fill-seq ys size 0.0)
      (mat/mat xss)
@@ -159,11 +157,17 @@
              (mat/cholesky-decomposition mat tol 1.0e-16))))
 
 (defn- xtxinv
-  ^RealMatrix [^RealMatrix xss ^DiagonalMatrix dweights ^double tol]
-  (-> (mat/tmulm xss (mat/mulm dweights xss))
-      (QRDecomposition. tol)
-      (.getSolver)
-      (.getInverse)))
+  (^RealMatrix [^RealMatrix xss ^DiagonalMatrix dweights ^RealMatrix penalty ^double tol]
+   (-> (mat/tmulm xss (mat/mulm dweights xss))
+       (mat/add penalty)
+       (QRDecomposition. tol)
+       (.getSolver)
+       (.getInverse)))
+  (^RealMatrix [^RealMatrix xss ^DiagonalMatrix dweights ^double tol]
+   (-> (mat/tmulm xss (mat/mulm dweights xss))
+       (QRDecomposition. tol)
+       (.getSolver)
+       (.getInverse))))
 
 (defn- standard-errors
   [^RealMatrix xtxinv ^double dispersion]
@@ -212,6 +216,7 @@
        (take (m/- term-count (count namesv)) (map #(str "X_" %) (range)))))))
 
 ;; new version
+
 (defn- hat-matrix
   [^RealMatrix xtxinv ^RealMatrix xss weights ^long m]
   (let [sqrt-weights (m/seq->double-array (map m/sqrt weights))
@@ -358,7 +363,7 @@
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
-  * `:augmentation` and `augmentation-param` - regularization by data augumentation
+  * `:augmentation` and `augmentation-params` - regularization by data augmentation
       - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
       - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
 
@@ -404,18 +409,21 @@
   * `:normality` - residuals normality tests: `:skewness`, `:kurtosis`, `:durbin-watson` (for raw and weighted), `:jarque-berra` and `:omnibus` (normality)"
   ([ys xss] (lm ys xss nil))
   ([ys xss {:keys [^double tol weights ^double alpha intercept? offset transformer names decomposition
-                   augmentation augmentation-param]
+                   augmentation augmentation-params]
             :or {tol 1.0e-8 alpha 0.05 intercept? true decomposition :cholesky}}]
 
    (let [offset? (boolean offset)
          weights? (sequential? weights)
-         xss (if transformer (map transformer xss) xss)
+         xss (if (= :intercept xss)
+               xss
+               (map (if transformer (comp transformer v/vec->seq) v/vec->seq) xss))
 
+         
          m (long (count ys))
-         
-         [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
-                                                            augmentation augmentation-param)
-         
+
+         [ys ^RealMatrix xss weights offset] (augment-data ys xss weights offset intercept?
+                                                           augmentation augmentation-params)
+
          [^SingularValueDecomposition S singular-values] (svd xss tol)
          uts (.getUT S)
          ut (.getU S)
@@ -460,12 +468,12 @@
          weights (take m weights)
          offset (take m offset)
 
-         raw-residuals (mapv m/- ys fitted)
+         raw-residuals (map m/- ys fitted)
          wresiduals (if weights?
-                      (mapv (fn [^double r ^double w] (m/* r (m/sqrt w))) raw-residuals weights)
+                      (map (fn [^double r ^double w] (m/* r (m/sqrt w))) raw-residuals weights)
                       raw-residuals)
          
-         loocv (mapv (fn [^double r ^double h] (m// r (m/- 1.0 h))) wresiduals hat)
+         loocv (map (fn [^double r ^double h] (m// r (m/- 1.0 h))) wresiduals hat)
 
          ;; loocv, cross validation 
          cv (-> loocv v/sq stats/mean m/sqrt)
@@ -949,20 +957,20 @@
 (defrecord GLMData [model transformer
                     ^RealMatrix xtxinv ys intercept? offset?
                     ^double intercept  beta coefficients ^long observations
-                    residuals fitted weights offset
+                    residuals fitted weights offset ^double cv
                     names
                     deviance df ^double dispersion dispersions estimated-dispersion?
                     family link mean-fun link-fun iters quantile-residuals-fun
                     ^double q ^double chi2 ^double p-value
-                    ll analysis]
+                    ll analysis decomposition]
   IFn
   (invoke [m xs] (prot/predict m xs false))
   (invoke [m xs stderr?] (prot/predict m xs stderr?))
   prot/PredictProto
   (predict [m xs] (prot/predict m xs false))
   (predict [_ xs stderr?]
-    (let [xs (if transformer (transformer xs) xs)
-          [^double off xs] (with-offset xs offset?)]
+    (let [[^double off xs] (with-offset xs offset?)
+          xs (if transformer (transformer xs) xs)]
       (if stderr?
         (let [arr (double-array (if intercept? (conj xs 1.0) xs))
               linear (m/+ off intercept (v/dot beta xs))
@@ -1003,7 +1011,7 @@
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - an optional vector of names to use when printing the model
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
-  * `:augumentation` and `augumentation-param` - regularization by data augumentation
+  * `:augmentation` and `augmentation-params` - regularization by data augmentation
       - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
       - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
 
@@ -1056,22 +1064,25 @@
   ([ys xss] (glm ys xss nil))
   ([ys xss {:keys [^long max-iters ^double tol ^double epsilon family link weights ^double alpha offset
                    dispersion-estimator intercept? init-mu simple? transformer names decomposition
-                   augmentation augmentation-param]
+                   augmentation augmentation-params]
             :or {max-iters 25 tol 1.0e-8 epsilon 1.0e-8 family :gaussian alpha 0.05 intercept? true
                  simple? false decomposition :cholesky}
             :as params}]
 
    (let [offset? (boolean offset)
-         xss (if transformer (map transformer xss) xss)
+         xss (if (= :intercept xss)
+               xss
+               (map (if transformer (comp transformer v/vec->seq) v/vec->seq) xss))
+
          m (long (count ys))
          
-         [ys ^RealMatrix xss weights offset] (augument-data ys xss weights offset intercept?
-                                                            augmentation augmentation-param)
-
+         [ys ^RealMatrix xss weights offset] (augment-data ys xss weights offset intercept?
+                                                           augmentation augmentation-params)
+         
          [^SingularValueDecomposition S singular-values] (svd xss epsilon)
          uts (.getUT S)
          ut (.getU S)
-         
+
          {link-fun :g link-mean :mean
           link-derivative :derivative link-variance :variance
           initialize :initialize
@@ -1080,7 +1091,7 @@
           link :link family :family
           aic-fun :aic
           :as family+link} (family-with-link family link params)
-
+         
          new-m (mat/nrow xss)
          n (mat/ncol xss)
 
@@ -1096,8 +1107,8 @@
          ^doubles buff-g (double-array new-m)
          ^doubles buff-z (double-array new-m)
          ^doubles buff-W (double-array (repeat new-m 1.0))
-         ^doubles buff-Wz (double-array new-m)
-
+         ^doubles buff-Wz (double-array new-m)         
+         
          [^RealVector result t ^long iters]
          (loop [iter (long 1)
                 ^doubles t init-t
@@ -1126,7 +1137,7 @@
                                             (.solve (.operate uts (v/vec->RealVector buff-Wz))))
                                         (mat/mulv ut))
                  new-dev (v/sum (residual-deviance ys buff-g weights))]
-
+             
              (if (or (m/< (m// (m/abs (m/- new-dev dev))
                                (m/+ 0.1 (m/abs new-dev))) epsilon)
                      (m/== iter max-iters))
@@ -1140,8 +1151,8 @@
                       (v/add (v/vec->array new-t) offset)
                       new-dev))))
 
-         result-array (v/vec->array result)
-
+         result-array (v/vec->array result)         
+         
          intercept (if intercept? (Array/aget result-array 0) 0.0)
          beta (vec (if intercept? (rest result-array) result-array))
 
@@ -1156,7 +1167,7 @@
 
          ;; remove augmentation
          fitted (map link-mean (take m (v/vec->seq (v/add rvoffset (mat/mulv xss result)))))
-
+         
          ;; remove augmentation
          ys (take m ys)
          weights (take m weights)
@@ -1169,7 +1180,12 @@
          
          raw-residuals (map m/- ys fitted)
          residuals (v/ediv raw-residuals (map link-derivative t))
-         
+
+         loocv (map (fn [^double r ^double h] (m// r (m/- 1.0 h))) residuals hat)
+
+         ;; loocv, cross validation 
+         cv (-> loocv v/sq stats/mean m/sqrt)
+
          estimated-dispersion? (or (= :estimate dispersion) dispersion-estimator)
          pearson-dispersion (estimate-dispersion residuals buff-W df)
          mean-deviance (m// dev (double df))
@@ -1199,8 +1215,10 @@
                 :hat hat
                 :observations m
                 :residuals {:working residuals
-                            :raw raw-residuals}
+                            :raw raw-residuals
+                            :loocv loocv}
                 :deviance {:residual dev}
+                :cv cv
                 :df {:residual df :null null-df :intercept intercept-df}
                 :effective-dimension ed
                 :dispersion dispersion-value
@@ -1278,7 +1296,7 @@
              analysis (delay (glm-extra-analysis model (if augmentation
                                                          (.getSubMatrix xss 0 (m/dec m) 0 (m/dec n))
                                                          xss)))]
-
+         
          (map->GLMData (assoc model :analysis analysis)))))))
 
 ;; fit nbinomial theta
@@ -1475,39 +1493,39 @@
 ;; common transformers
 
 (defn polynomial-transformer
-"Creates polynomial transformer for xs"
-[xs ^long degree]
-(let [degree+ (m/inc degree)
-      r (range degree+)
-      m (stats/mean xs)
-      xs (v/shift xs (m/- m))
-      qrX (-> (mat/cols->RealMatrix (map (partial v/pow xs) r))
-              (mat/qr-decomposition))
-      R (mat/decomposition-component qrX :R)
-      Q (mat/decomposition-component qrX :Q)
-      Z (mat/cols->RealMatrix (map (fn [^long i] (v/mult (mat/col Q i) (mat/entry R i i))) r))
-      Z2 (mat/sq Z)
-      norm2 (map v/sum (mat/cols Z2))
-      alpha (butlast (map (fn [col ^double n2]
-                            (m/+ m (m// (v/sum (v/emult (v/vec->seq col) xs)) n2))) (mat/cols Z2) norm2))
-      alpha1 (double (first alpha))
-      anormf (map (fn [^double a ^double n] (Vec2. a n))
-                  (rest alpha)
-                  (map (fn [[^double n1 ^double n2]] (m// n2 n1)) (partition 2 1 (butlast norm2))))
-      normsqrt (mapv m/sqrt (rest norm2))]
-  (fn [^double x]
-    (let [f (m/- x alpha1)]
-      (-> ((reduce (fn [[buff ^double zi- ^double zi] ^Vec2 an]
-                     (let [zi+ (m/- (m/* (m/- x (.x an)) zi)
-                                    (m/* (.y an) zi-))]
-                       [(conj buff zi+) zi zi+])) [[f] 1.0 f] anormf) 0)
-          (v/ediv normsqrt))))))
+  "Creates polynomial transformer for xs"
+  [xs ^long degree]
+  (let [degree+ (m/inc degree)
+        r (range degree+)
+        m (stats/mean xs)
+        xs (v/shift xs (m/- m))
+        qrX (-> (mat/cols->RealMatrix (map (partial v/pow xs) r))
+                (mat/qr-decomposition))
+        R (mat/decomposition-component qrX :R)
+        Q (mat/decomposition-component qrX :Q)
+        Z (mat/cols->RealMatrix (map (fn [^long i] (v/mult (mat/col Q i) (mat/entry R i i))) r))
+        Z2 (mat/sq Z)
+        norm2 (map v/sum (mat/cols Z2))
+        alpha (butlast (map (fn [col ^double n2]
+                              (m/+ m (m// (v/sum (v/emult (v/vec->seq col) xs)) n2))) (mat/cols Z2) norm2))
+        alpha1 (double (first alpha))
+        anormf (map (fn [^double a ^double n] (Vec2. a n))
+                    (rest alpha)
+                    (map (fn [[^double n1 ^double n2]] (m// n2 n1)) (partition 2 1 (butlast norm2))))
+        normsqrt (mapv m/sqrt (rest norm2))]
+    (fn [[^double x]]
+      (let [f (m/- x alpha1)]
+        (-> ((reduce (fn [[buff ^double zi- ^double zi] ^Vec2 an]
+                       (let [zi+ (m/- (m/* (m/- x (.x an)) zi)
+                                      (m/* (.y an) zi-))]
+                         [(conj buff zi+) zi zi+])) [[f] 1.0 f] anormf) 0)
+            (v/ediv normsqrt))))))
 
 (defn trigonometric-transformer
   "Creates trigonometric transformer for xs"
   [^double period ^double degree]
   (let [r (range 1 (m/inc degree))]
-    (fn [^double x]
+    (fn [[^double x]]
       (let [xx (m/* m/TWO_PI (m// x period))]
         (mapcat (fn [^long k]
                   (let [kxx (m/* k xx)]
@@ -1521,19 +1539,274 @@
    (let [degree+ (m/inc degree)
          dx (m// (m/- xr xl) nseg)
          degdx (m/* dx degree)
-         knots (range (m/- xl degdx) (m/+ xr degdx (m/* 0.1 dx)) dx)
-         n (count knots)
-         denom (m// (m/* (special/gamma degree+) (m/pow dx degree)))
-         D (mapv v/vec->Vec (mat/rows (mat/muls (mat/differences (mat/eye n true) degree+) denom)))
+         knots (double-array (range (m/- xl degdx) (m/+ xr degdx (m/* 0.1 dx)) dx))
+         n (alength knots)
          b1 (if (m/even? degree+) 1 -1)
-         nb (m/- n degree)
-         sk (take nb (drop degree+ knots))]
-     (fn [^double x]
-       (let [p (mapv (fn [^double k] (m/tpow x degree k)) knots)]
+         denom (m// (m/* b1 (special/gamma degree+) (m/pow dx degree)))
+         D (mapv v/vec->array (mat/rows (mat/muls (mat/differences (mat/eye n true) degree+) denom)))
+         nb (m/- n degree+)
+         sk (double-array (take nb (drop degree+ knots)))]
+     (fn [[^double x]]
+       ;; unrolled tpow, 25% speedup when compared with simple `map`
+       (let [p (double-array n)]
+         (loop [i (long 0)]
+           (when (m/< i n)
+             (let [k (Array/aget knots i)
+                   diff (m/- x k)]
+               (when (m/pos? diff)
+                 (Array/aset p i (m/fpow diff degree))
+                 (recur (m/inc i))))))         
          (map (fn [d ^double k]
                 (if (m/< x k)
-                  (m/* b1 (v/dot p d))
+                  (v/dot p d)
                   0.0)) D sk))))))
+
+;;;;;;;
+
+
+#_(defrecord PGLMData [model transformer
+                       ^RealMatrix xtxinv ys offset?
+                       beta coefficients ^long observations
+                       residuals fitted weights offset ^double cv
+                       deviance df ^double dispersion dispersions estimated-dispersion?
+                       family link mean-fun link-fun iters quantile-residuals-fun
+                       ^double q ^double chi2
+                       ll decomposition]
+    IFn
+    (invoke [m xs] (prot/predict m xs false))
+    (invoke [m xs stderr?] (prot/predict m xs stderr?))
+    prot/PredictProto
+    (predict [m xs] (prot/predict m xs false))
+    (predict [_ xs stderr?]
+      (let [[^double off xs] (with-offset xs offset?)
+            xs (if transformer (transformer xs) xs)]
+        (if stderr?
+          (let [arr (double-array xs)
+                linear (m/+ off(v/dot beta xs))
+                fit (double (mean-fun linear))
+                stderr (m/sqrt (m/* dispersion (v/dot arr (mat/mulv xtxinv arr))))
+                scale (m/* stderr q)]
+            {:fit fit
+             :link linear
+             :stderr stderr
+             :confidence-interval [(mean-fun (m/- linear scale)) (mean-fun (m/+ linear scale))]})
+          (mean-fun (m/+ off (v/dot beta xs)))))))
+
+
+#_(defn- pglm-mode
+    [mode ys]
+    (if mode
+      (let [{:keys [method ^double tau beta]
+             :or {method :quantile tau 0.5}} mode]
+        (case method
+          :quantile {:mode 0 :tau tau :ptau (m/- 1.0 tau)
+                     :qbeta (or beta (m/constrain (m/sq (m/* 1.0e-5 (stats/span ys))) 1.0e-12 1.0))}
+          :expectile {:mode 1 :tau tau :ptau (m/- 1.0 tau) :qbeta ##NaN}
+          {:mode -1 :tau ##NaN :ptau ##NaN :qbeta ##NaN}))
+      {:mode -1 :tau ##NaN :ptau ##NaN :qbeta ##NaN}))
+
+#_(defn pglm
+    ([ys xss D] (pglm ys xss D nil))
+    ([ys xss ^RealMatrix D {:keys [^long max-iters ^double tol ^double epsilon family link weights
+                                   ^double alpha offset transformer
+                                   dispersion-estimator init-mu decomposition
+                                   mode]
+                            :or {max-iters 25 tol 1.0e-8 epsilon 1.0e-8 family :gaussian alpha 0.05
+                                 decomposition :qr}
+                            :as params}]
+
+     (let [offset? (boolean offset)
+           xss (map (if transformer (comp transformer v/vec->seq) v/vec->seq) xss)
+
+           B (mat/rows->RealMatrix xss)
+           Bt (mat/transpose B)
+           
+           {link-fun :g link-mean :mean
+            link-derivative :derivative link-variance :variance
+            initialize :initialize
+            residual-deviance :residual-deviance
+            dispersion :dispersion
+            link :link family :family
+            aic-fun :aic
+            :as family+link} (family-with-link family link params)
+
+           m (long (count ys))         
+
+           offset (or offset (repeat m 0.0))
+           weights (or weights (repeat m 1.0))
+           
+           [ys start-t weights optional-data] (initialize (seq ys) (seq weights))
+
+           {:keys [mode ^double tau ^double ptau ^double qbeta]} (pglm-mode mode ys)
+           mode (unchecked-int mode)
+           
+           ^doubles ys (m/seq->double-array ys)
+           ^doubles weights (m/seq->double-array weights)
+           ^doubles offset (m/seq->double-array offset)
+           ^RealVector rvoffset (v/vec->RealVector offset)
+
+           init-t (double-array (map link-fun (or init-mu start-t)))
+
+           ^doubles buff-g (double-array m)
+           ^doubles buff-z (double-array m)
+           ^doubles buff-W (double-array m)
+           ^doubles buff-Wz (double-array m)         
+           
+           [^RealVector result t ^double dev ^long iters]
+           (loop [iter (long 1)
+                  ^doubles t init-t
+                  dev ##Inf]
+
+             ;; iterate over t
+             (dotimes [idx m]
+               (let [eta (Array/aget t idx)
+                     g (double (link-mean eta))
+                     v (double (link-variance g))
+                     g' (double (link-derivative eta))]
+                 (when (or (m/zero? v) (m/nan? v) (m/nan? g))
+                   (throw (ex-info "Invalid variance of mean."
+                                   {:eta eta :mean g :dmean g' :variance v :coeff idx})))
+
+                 (let [off (Array/aget offset idx)
+                       diff (m/- (Array/aget ys idx) g)
+                       z (m/+ (m/- eta off) (m// diff g'))
+                       w (m/* (Array/aget weights idx)
+                              (case mode
+                                ;; quantiles
+                                0 (if (m/pos? diff)
+                                    (m// tau (m/sqrt (m/+ (m/sq diff) qbeta)))
+                                    (m// ptau (m/sqrt (m/+ (m/sq diff) qbeta))))
+                                ;; expectiles
+                                1 (double (if (m/pos? diff) tau ptau))
+                                1.0)
+                              (m// (m/* g' g') v))]
+                   (Array/aset buff-g idx g)
+                   (Array/aset buff-z idx z)
+                   (Array/aset buff-W idx w)
+                   (Array/aset buff-Wz idx (m/* w z)))))
+             
+             (let [^RealVector result (-> (mat/mulm Bt (mat/mulm (DiagonalMatrix. buff-W) B))
+                                          (mat/add D)
+                                          ^DecompositionSolver (solver decomposition tol)
+                                          (.solve ^RealVector (mat/mulv Bt (v/vec->RealVector buff-Wz))))
+                   ^RealVector new-t (mat/mulv B result)
+                   new-dev (v/sum (residual-deviance ys buff-g weights))]
+               
+               (if (or (m/< (m// (m/abs (m/- new-dev dev))
+                                 (m/+ 0.1 (m/abs new-dev))) epsilon)
+                       (m/== iter max-iters))
+                 [result
+                  (v/add (v/vec->array new-t) offset)
+                  dev
+                  iter]
+
+                 (recur (m/inc iter)
+                        (v/add (v/vec->array new-t) offset)
+                        new-dev))))
+
+           result-array (v/vec->array result)
+
+           beta (vec result-array)
+
+           xtx-1 (xtxinv B (DiagonalMatrix. buff-W) D tol)
+           hat (hat-matrix xtx-1 B buff-W m)
+
+           ed (v/sum hat)
+           df (m/- m ed)
+
+           ;; remove augmentation
+           fitted (map link-mean (take m (v/vec->seq (v/add rvoffset (mat/mulv B result)))))
+           
+           raw-residuals (map m/- ys fitted)
+           residuals (v/ediv raw-residuals (map link-derivative t))
+
+           loocv (map (fn [^double r ^double h] (m// r (m/- 1.0 h))) residuals hat)
+
+           ;; loocv, cross validation 
+           cv (-> loocv v/sq stats/mean m/sqrt)
+
+           estimated-dispersion? (or (= :estimate dispersion) dispersion-estimator)
+           pearson-dispersion (estimate-dispersion residuals buff-W df)
+           mean-deviance (m// dev (double df))
+
+           dispersion-value (cond
+                              (not estimated-dispersion?) dispersion
+                              (number? dispersion-estimator) (double dispersion-estimator)
+                              (= dispersion-estimator :mean-deviance) mean-deviance
+                              :else pearson-dispersion)
+
+           distr (if estimated-dispersion?
+                   (r/distribution :t {:degrees-of-freedom df})
+                   (r/distribution :normal))
+           q (double (r/icdf distr (m/- 1.0 (m/* (double alpha) 0.5))))
+
+           stderrs (standard-errors xtx-1 dispersion-value)
+           
+           model {:model :glm
+                  :transformer transformer
+                  :xtxinv xtx-1
+                  :offset? offset?
+                  :estimated-dispersion? estimated-dispersion?
+                  :beta beta
+                  :hat hat
+                  :observations m
+                  :residuals {:working residuals
+                              :raw raw-residuals
+                              :loocv loocv}
+                  :deviance {:residual dev}
+                  :cv cv
+                  :df df
+                  :effective-dimension ed
+                  :dispersion dispersion-value
+                  :family family
+                  :link link
+                  :mean-fun link-mean
+                  :link-fun link-fun
+                  :iters iters
+                  :converged? (m/< iters max-iters)
+                  :q q
+                  :decomposition decomposition}
+
+           pearson-residuals (map (fn [^double y ^double mu ^double w]
+                                    (m/* (m/- y mu)
+                                         (m/sqrt (m// w (double (link-variance mu))))))
+                                  ys fitted weights)
+           deviance-residuals (->> (residual-deviance ys fitted weights)
+                                   (map m/safe-sqrt)
+                                   (map (fn [^double y ^double mu ^double r]
+                                          (if (m/<= y mu) (m/- r) r)) ys fitted))
+
+           chi2 (v/sum (map m/sq pearson-residuals))
+           
+           aic (if aic-fun (double (aic-fun ys fitted weights dev m ed optional-data)) ##Inf)
+           [log-likelihood bic] (let [p (if (#{:gaussian :inverse-gaussian
+                                               :gamma :nbinomial} family) (m/inc ed) ed)
+                                      ll (m/- p (m// aic 2.0))]
+                                  [ll (m/- (m/* p (m/log m)) (m/* 2.0 ll))])]
+
+       (-> model
+           (assoc :ys (v/vec->seq ys)
+                  :coefficients (coefficients-analysis result-array stderrs distr q)
+                  :offset (v/vec->seq offset)
+                  :weights {:weights (v/vec->seq buff-W)
+                            :initial (v/vec->seq weights)}
+                  :fitted fitted
+                  :dispersions {:pearson pearson-dispersion
+                                :mean-deviance mean-deviance}
+                  :quantile-residuals-fun (:quantile-residuals-fun family+link)
+                  :chi2 chi2
+                  :ll {:log-likelihood log-likelihood
+                       :aic aic
+                       :bic bic
+                       ;; p-spline AIC, dev+2*ED
+                       :aic-dev (m/+ dev (m/* 2.0 ed))
+                       :bic-dev (m/+ dev (m/* (m/log m) ed))})
+           (assoc-in [:residuals :pearson] pearson-residuals)
+           (assoc-in [:residuals :deviance] deviance-residuals)
+           (map->PGLMData)))))
+
+;;;;;;
+
 
 ;; isotonic
 

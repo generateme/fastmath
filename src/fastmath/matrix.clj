@@ -21,6 +21,7 @@
   [dim id]
   (throw (IndexOutOfBoundsException. (str "Index " id " out of bounds for mat" dim))))
 
+(def ^:private mat1x1-throw-ioobe (partial mat-throw-ioobe "1x1"))
 (def ^:private mat2x2-throw-ioobe (partial mat-throw-ioobe "2x2"))
 (def ^:private mat3x3-throw-ioobe (partial mat-throw-ioobe "3x3"))
 (def ^:private mat4x4-throw-ioobe (partial mat-throw-ioobe "4x4"))
@@ -564,7 +565,7 @@
 
 (extend (Class/forName "[[D")
   prot/MatrixProto
-  {:->seq (fn [arrs] (m/double-double-array->seq arrs))
+  {:->seq (fn [arrs] (mapcat identity arrs))
    :entry (fn [^"[[D" arrs ^long x ^long y] (Array/aget2d arrs x y))
    :fmap (fn [arrs f] (into-array (map #(v/fmap % f) arrs)))
    :rows seq
@@ -643,13 +644,13 @@
 
 (extend RealMatrix
   prot/MatrixProto
-  {:->seq (fn [^RealMatrix m] (m/double-double-array->seq (.getData m)))
+  {:->seq (fn [^RealMatrix m] (mapcat identity (.getData m)))
    :entry (fn ^double [^RealMatrix m ^long x ^long y] (.getEntry m x y))
    :fmap (fn [^RealMatrix m f] (Array2DRowRealMatrix. ^"[[D" (prot/fmap (.getData m) f)))
-   :rows (fn [^RealMatrix m] (map (fn [idx] (.getRowVector m (unchecked-int idx)))
-                                 (range (.getRowDimension m))))
-   :cols (fn [^RealMatrix m] (map (fn [idx] (.getColumnVector m (unchecked-int idx)))
-                                 (range (.getColumnDimension m))))
+   :rows (fn [^RealMatrix m] (mapv (fn [idx] (.getRowVector m (unchecked-int idx)))
+                                  (range (.getRowDimension m))))
+   :cols (fn [^RealMatrix m] (mapv (fn [idx] (.getColumnVector m (unchecked-int idx)))
+                                  (range (.getColumnDimension m))))
    :to-double-array2d (fn [^RealMatrix m] (.getData m))
    :to-float-array2d (fn [^RealMatrix m] (prot/to-float-array2d (.getData m)))
    :to-double-array (fn [^RealMatrix m] (prot/to-double-array (.getData m)))
@@ -715,6 +716,40 @@
                                                        (m/abs (.getEntry m r c))))
                                   (.getNorm m))))})
 
+(extend Number
+  prot/MatrixProto
+  {:->seq list
+   :entry (fn ^double [^double n ^long x ^long y] (if (and (m/zero? x) (m/zero? y)) n (mat1x1-throw-ioobe [x y])))
+   :fmap (fn ^double [^double n f] (f n))
+   :rows (fn [n] [[n]])
+   :cols (fn [n] [[n]])
+   :to-double-array2d (fn [n] (m/seq->double-double-array [[n]]))
+   :to-float-array2d (fn [n] (into-array [(float-array [n])]))
+   :to-double-array (fn [n] (double-array [n]))
+   :to-float-array (fn [n] (float-array [n]))
+   :to-real-matrix (fn [n] (Array2DRowRealMatrix. (m/seq->double-double-array [[n]])))
+   :nrow (constantly 1)
+   :ncol (constantly 1)
+   :row (fn [n ^long id] (if (m/zero? id) [n] (mat1x1-throw-ioobe id)))
+   :column (fn [n ^long id] (if (m/zero? id) [n] (mat1x1-throw-ioobe id)))
+   :symmetric? (constantly true)
+   :transpose identity
+   :inverse m//
+   :diag vector
+   :det identity
+   :singular? m/zero?
+   :solve (fn [^double m ^double v] (m// v m))
+   :add m/+
+   :adds m/+
+   :sub m/-
+   :emulm m/*
+   :mulm m/*
+   :mulv m/*
+   :vtmul m/*
+   :muls m/*
+   :trace identity
+   :cholesky m/sqrt
+   :norm (fn [n _] n)})
 
 (defn mat2x2
   "Creates 2x2 matrix.
@@ -1188,6 +1223,48 @@
        (.getData)
        (m/double-double-array->seq)
        (apply rows->mat)))
+
+(defn square?
+  "Is matrix square?"
+  [m]
+  (m/== (nrow m) (ncol m)))
+
+(defn block-diagonal
+  "Creates block diagonal matrix (RealMatrix) from a sequence of square matrices."
+  ([m & r] (block-diagonal (conj r m)))
+  ([mats]
+   (if (every? square? mats)
+     (let [trs (reductions m/+ 0 (map prot/nrow mats))
+           tr (int (last trs))
+           target (Array2DRowRealMatrix. tr tr)]
+       (doseq [[^long pos m] (map vector trs mats)]
+         (.setSubMatrix target (prot/to-double-array2d m) pos pos))
+       target)
+     (throw (ex-info "Only squared matrices can be used" {:shapes (map shape mats)})))))
+
+(defn bind-cols
+  "Creates matrix from columns of given matrices."
+  ([m & r] (bind-cols (conj r m)))
+  ([mats]
+   (let [max-rows (int (reduce m/max (map prot/nrow mats)))
+         tcs (reductions m/+ 0 (map prot/ncol mats))
+         tc (int (last tcs))
+         target (Array2DRowRealMatrix. max-rows tc)]
+     (doseq [[^long pos m] (map vector tcs mats)]
+       (.setSubMatrix target (prot/to-double-array2d m) 0 pos))
+     target)))
+
+(defn bind-rows
+  "Creates matrix from rows of given matrices."
+  ([m & r] (bind-rows (conj r m)))
+  ([mats]
+   (let [max-cols (int (reduce m/max (map prot/ncol mats)))
+         trs (reductions m/+ 0 (map prot/nrow mats))
+         tr (int (last trs))
+         target (Array2DRowRealMatrix. tr max-cols)]
+     (doseq [[^long pos m] (map vector trs mats)]
+       (.setSubMatrix target (prot/to-double-array2d m) pos 0))
+     target)))
 
 (defn map-cols
   "Operate on columns, f should return a column"

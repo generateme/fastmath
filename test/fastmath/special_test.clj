@@ -464,4 +464,3 @@
 (t/deftest owens_t
   (doseq [[h a res] (map vector hvec avec cvec)]
     (t/is (m/delta-eq res (sut/owens-t h a)))))
-

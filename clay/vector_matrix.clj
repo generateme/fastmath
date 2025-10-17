@@ -646,13 +646,14 @@
 
 ;; ## Matrices
 
-;; The `fastmath.matrix` namespace provides tools for working with 2x2, 3x3, 4x4 fixed-size matrices and arbitrary-sized matrices represented as Java `double[][]` arrays or Apache Commons Math `RealMatrix`. It is designed to provide efficient mathematical operations for linear algebra, geometric transformations, and data preprocessing.
+;; The `fastmath.matrix` namespace provides tools for working with 1x1 (numbers), 2x2, 3x3, 4x4 fixed-size matrices and arbitrary-sized matrices represented as Java `double[][]` arrays or Apache Commons Math `RealMatrix`. It is designed to provide efficient mathematical operations for linear algebra, geometric transformations, and data preprocessing.
 
 ;; ### Supported Matrix Types
 
 ;; `fastmath.matrix` works with several matrix representations, balancing convenience, performance, and compatibility.
 
 ;; ::: {.callout-tip title="Supported Types"}
+;; * Any number is a 1x1 matrix
 ;; * `Mat2x2` (2x2 matrix, custom type)
 ;; * `Mat3x3` (3x3 matrix, custom type)
 ;; * `Mat4x4` (4x4 matrix, custom type)
@@ -678,9 +679,10 @@ M2x2 M3x3 M4x4 RealMat
 ;; * `diag->mat2x2`, `diag->mat3x3`, `diag->mat4x4`
 ;; * `real-matrix`, `rows->RealMatrix`, `cols->RealMatrix`
 ;; * `mat`, `rows->mat`, `cols->mat`
+;; * `bind-rows`, `bind-cols`
 ;; * `array2d->mat2x2`, `array2d->mat3x3`, `array2d->mat4x4`, `array2d->RealMatrix`
 ;; * `mat->seq`, `mat->array2d`, `mat->float-array2d`, `mat->array`, `mat->float-array`, `mat->RealMatrix`
-;; * `eye`, `zero`, `diagonal`
+;; * `eye`, `zero`, `diagonal`, `block-diagonal`
 ;; :::
 
 ;; #### Creating Fixed-Size Matrices
@@ -850,6 +852,18 @@ M2x2 M3x3 M4x4 RealMat
 
 ;; ::::
 
+;; #### Bind
+
+;; Bind a sequence of matrices row-wise (`bind-rows`) or column-wise (`bind-cols`). Matrices can have different shape.
+
+(mat/bind-rows [M2x2 M2x2])
+
+(mat/bind-cols [M2x2 M2x2])
+
+(mat/bind-rows [M2x2 -100])
+
+(mat/bind-cols [M2x2 -100])
+
 ;; #### Conversion to/from Arrays and Sequences
 
 ;; Functions like `array2d->mat2x2`, `mat->seq`, `mat->array2d`, etc., facilitate conversions between `fastmath.matrix` types and primitive arrays or Clojure sequences.
@@ -879,11 +893,17 @@ dda
 ;; ::::
 
 (utls/examples-note
+  (mat/mat->seq 1)
   (mat/mat->seq M3x3)
+  (mat/mat->array 1)
   (mat/mat->array M2x2)
+  (mat/mat->array2d 1)
   (mat/mat->array2d M2x2)
+  (mat/mat->RealMatrix 1)
   (mat/mat->RealMatrix M2x2)
+  (mat/mat->float-array 1.0)
   (mat/mat->float-array M2x2)
+  (mat/mat->float-array2d 1.0)
   (mat/mat->float-array2d M2x2)
   (seq (mat/mat->array M2x2))
   (m/double-double-array->seq (mat/mat->array2d M2x2)))
@@ -895,6 +915,7 @@ dda
 ;; * `eye` creates an identity matrix. When argument is between 2 and 4, creates fixed size types unless `real-matrix` is set to `true`.
 ;; * `zero` creates a zero matrix. When argument is between 2 and 4, creates fixed size types unless `real-matrix` is set to `true`.
 ;; * `diagonal` creates a diagonal matrix from a vector or sequence of values.
+;; * `block-diagoanal` creates a block diagonal matrix from a sequence of square matrices
 
 ;; :::: {.grid}
 
@@ -925,6 +946,8 @@ dda
 ;; :::
 
 ;; ::::
+
+(mat/block-diagonal [M2x2 M3x3 M4x4 -1000])
 
 ;; ### Interoperability
 
@@ -995,10 +1018,15 @@ dda
 ;; *   **`cols`**: Returns sequence of columns
 
 (utls/examples-note
+  (mat/entry 1.5 0 0)
   (mat/entry M3x3 0 2)
+  (mat/row 1.5 0)
   (mat/row M4x4 2)
+  (mat/col 1.5 0)
   (mat/col RealMat 1)
+  (mat/rows 1.5)
   (mat/rows M2x2)
+  (mat/cols 1.5)
   (mat/cols RealMat))
 
 ;; #### Size and Shape
@@ -1014,8 +1042,11 @@ dda
 ;; *   **`shape`**: Returns a vector or list containing the number of rows and columns, respectively, as a `[rows, cols]` pair.
 
 (utls/examples-note
+  (mat/nrow 1.5)
   (mat/nrow M2x2)
+  (mat/ncol 1.5)
   (mat/ncol M3x3)
+  (mat/shape 1.5)
   (mat/shape M2x2)
   (mat/shape M3x3)
   (mat/shape M4x4)
@@ -1029,6 +1060,7 @@ dda
 ;; * `det`
 ;; * `singular?`
 ;; * `trace`
+;; * `square?`
 ;; :::
 
 ;; *   **Symmetry**:
@@ -1041,24 +1073,35 @@ dda
 ;;     *   `singular?`: Checks if a square matrix $A$ is singular (non-invertible). A matrix is singular if and only if its determinant is zero, i.e., $\det(A) = 0$.
 ;; *   **Trace**:
 ;;     *   `trace`: Computes the trace of a square matrix $A$, which is the sum of the elements on the main diagonal: $\operatorname{tr}(A) = \sum_{i=1}^n a_{ii}$. The trace is invariant under cyclic permutations and similarity transformations.
+;; *   **Square**:
+;;     *    `square`: Checks if a matrix is square.
 
 (utls/examples-note
+  (mat/symmetric? 1.5)
   (mat/symmetric? M2x2)
   (mat/symmetric? (mat/eye 2))
   (mat/symmetric? (mat/mat2x2 1 0.1 0.001 1))
   (mat/symmetric? (mat/mat2x2 1 0.1 0.001 1) 0.1)
+  (mat/diag 1.5)
   (mat/diag M2x2)
   (mat/diag M3x3)
   (mat/diag M4x4)
+  (mat/trace 1.5)
   (mat/trace M2x2)
   (mat/trace M3x3)
   (mat/trace M4x4)
+  (mat/det 1.5)
   (mat/det M2x2)
   (mat/det M3x3)
   (mat/det M4x4)
+  (mat/singular? 1.5)
+  (mat/singular? 0.0)
   (mat/singular? M2x2)
   (mat/singular? M3x3)
-  (mat/singular? M4x4))
+  (mat/singular? M4x4)
+  (mat/square? 1.5)
+  (mat/square? M3x3)
+  (mat/square? RealMat))
 
 ;; ### Matrix Arithmetic and Operations
 
@@ -1187,7 +1230,6 @@ dda
 (mat/outer (v/vec4 -1 1 2 3) (v/vec4 3 4 -2 -2))
 ;; :::
 
-
 ;; ::::
 
 (utls/examples-note
@@ -1195,8 +1237,10 @@ dda
   (mat/mulv RealMat (v/vec->RealVector (v/vec3 1 2 3)))
   (mat/vtmul M2x2 (v/vec2 10 20))
   (mat/vtmul RealMat (v/vec->RealVector [1 2]))
+  (mat/outer 1.5 2)
   (mat/outer (v/vec2 1 2) [1 2 3 9])
   (mat/outer [2 3] [9 1 2])
+  (mat/kronecker 1.5 2)
   (mat/kronecker M2x2 M3x3)
   (mat/kronecker RealMat M2x2))
 
@@ -1204,7 +1248,7 @@ dda
 
 ;; A wide range of element-wise mathematical functions (e.g., `sin`, `cos`, `pow`) are provided, mirroring those in `fastmath.vector`.
 
-;; `fmap` applies a function to each element of the vector, returning a new vector of the same type.
+;; `fmap` applies a function to each element of the matrix, returning a new matrix of the same type.
 
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `sin`, `cos`, `tan`, `asin`, `acos`, `atan`
