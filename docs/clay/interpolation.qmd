@@ -1000,6 +1000,17 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 :::
 
 
+
+::: {.callout-note}
+## ERR
+```
+Oct 17, 2025 2:18:19 PM clojure.tools.logging$eval39757$fn__39760 invoke
+INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 20590, :objects-after 7028}]
+
+```
+:::
+
+
 ::: {.clay-table}
 
 ```{=html}
@@ -1184,7 +1195,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-0.260088885771001
+0.2600888857710009
 
 ```
 :::
@@ -1201,7 +1212,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-53.64187821783251
+52.72571398573958
 
 ```
 :::

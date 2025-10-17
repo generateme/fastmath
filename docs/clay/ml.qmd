@@ -59,7 +59,7 @@ Positional factory function for class fastmath.ml.regression.Family.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L818">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -71,13 +71,13 @@ Positional factory function for class fastmath.ml.regression.Family.
 
 #### ->GLMData
 
-+ `(->GLMData model transformer xtxinv ys intercept? offset? intercept beta coefficients observations residuals fitted weights offset names deviance df dispersion dispersions estimated-dispersion? & overage)`
++ `(->GLMData model transformer xtxinv ys intercept? offset? intercept beta coefficients observations residuals fitted weights offset cv names deviance df dispersion dispersions & overage)`
 
 Positional factory function for class fastmath.ml.regression.GLMData.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L957">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -89,13 +89,13 @@ Positional factory function for class fastmath.ml.regression.GLMData.
 
 #### ->LMData
 
-+ `(->LMData model intercept? offset? transformer xtxinv intercept beta coefficients offset weights residuals fitted df observations names r-squared adjusted-r-squared sigma2 sigma tss & overage)`
++ `(->LMData model intercept? offset? transformer xtxinv intercept beta coefficients offset weights residuals fitted df observations names cv r-squared adjusted-r-squared sigma2 sigma & overage)`
 
 Positional factory function for class fastmath.ml.regression.LMData.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L41">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L42">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -113,7 +113,7 @@ Positional factory function for class fastmath.ml.regression.Link.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L564">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -154,7 +154,7 @@ Create `Family` record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L753">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L820">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -179,7 +179,7 @@ Creates link record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L499">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L566">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -193,7 +193,33 @@ Creates link record.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1338">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1443">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-add-penalty"></span>
+```
+
+
+#### add-penalty
+
++ `(add-penalty xss penalty penalty-param)`
++ `(add-penalty xss penalty penalty-param intercept?)`
+
+Adds rows with penalty data to a given seq of seqs (a row matrix).
+
+  Penalties and parameters map:
+
+  * `:ridge` - diagonal matrix with sqrt(`:lambda`) parameter, used in regularized regression.
+  * `:diffs` - differences of given `:order` multiplied by sqrt(`:lambda`), used in penalized b-splines.
+
+  Two add more than one penalty, create seq of penalty types and parameters, eg: `[:diffs :ridge]`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L101">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -211,7 +237,24 @@ Influence analysis, laverage, standardized and studentized residuals, correlatio
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1284">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1389">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-b-spline-transformer"></span>
+```
+
+
+#### b-spline-transformer
+
++ `(b-spline-transformer xs nseg degree)`
++ `(b-spline-transformer xl xr nseg degree)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1534">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -240,7 +283,7 @@ Centered Isotonic Regression.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1428">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1851">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -264,7 +307,7 @@ Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1289">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1394">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -278,7 +321,7 @@ Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L782">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L849">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -298,7 +341,7 @@ Returns family with a link as single map.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L812">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L879">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -311,7 +354,7 @@ Returns family with a link as single map.
 #### glm
 
 + `(glm ys xss)`
-+ `(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names decomposition augmentation augmentation-param], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false, decomposition :cholesky}, :as params})`
++ `(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names decomposition augmentation augmentation-params], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false, decomposition :cholesky}, :as params})`
 
 Fit a generalized linear model using IRLS method.
 
@@ -339,6 +382,10 @@ Fit a generalized linear model using IRLS method.
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - an optional vector of names to use when printing the model
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
+  * `:augmentation` and `augmentation-params` - regularization by data augmentation
+      - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
+      - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
+
 
   Family is one of the: `:gaussian` (default), `:binomial`, `:quasi-binomial`, `:poisson`, `:quasi-poisson`, `:gamma`, `:inverse-gaussian`, `:nbinomial`, custom `Family` record (see [->family](#LOS-->family)) or a function returning Family (accepting a map as an argument)
 
@@ -373,11 +420,10 @@ Fit a generalized linear model using IRLS method.
   * `:mean-fun` - mean function, `g^-1`
   * `:q` - (1-alpha/2) quantile of T or Normal distribution for residual degrees of freedom
   * `:chi2` and `:p-value` - Chi-squared statistic and respective p-value
-  * `:ll` - a map containing log-likelihood and AIC/BIC
+  * `:ll` - a map containing log-likelihood and AIC/BIC (GLM and based on deviance, dev+2ED)
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:iters` and `:converged?` - number of iterations and convergence indicator
   * `:decomposition` - decomposition used
-  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
 
   Analysis, delay containing a map:
 
@@ -389,7 +435,7 @@ Fit a generalized linear model using IRLS method.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L921">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L987">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -416,7 +462,7 @@ Fits theta for negative binomial glm in iterative process.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1241">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1346">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -430,7 +476,7 @@ Fits theta for negative binomial glm in iterative process.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L511">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L578">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -443,7 +489,7 @@ Fits theta for negative binomial glm in iterative process.
 #### lm
 
 + `(lm ys xss)`
-+ `(lm ys xss {:keys [tol weights alpha intercept? offset transformer names decomposition augmentation augmentation-param], :or {tol 1.0E-8, alpha 0.05, intercept? true, decomposition :cholesky}})`
++ `(lm ys xss {:keys [tol weights alpha intercept? offset transformer names decomposition augmentation augmentation-params], :or {tol 1.0E-8, alpha 0.05, intercept? true, decomposition :cholesky}})`
 
 Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
@@ -463,6 +509,9 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
   * `:transformer` - an optional function which will be used to transform systematic component `xs` before fitting and prediction
   * `:names` - sequence or string, used as name for coefficient when pretty-printing model, default `'X'`
   * `:decomposition` - which matrix decomposition use to find solution, `:cholesky` (default), `:rrqr` (rank revealing) or `:qr`
+  * `:augmentation` and `augmentation-params` - regularization by data augmentation
+      - `:ridge` - adds ridge regresion penalty (intercept is not penalized), default parameters `{:lambda 0.1}` 
+      - `:diffs` - adds differences penalty, use with `b-spline-transformation` for smoothing, default parameters `{:lambda 1.0 :order 2}` 
 
   Notes:
 
@@ -479,7 +528,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
   * `:beta` - vector of model coefficients (without intercept)
   * `:coefficients` - coefficient analysis, a list of maps containing `:estimate`, `:stderr`, `:t-value`, `:p-value` and `:confidence-interval`
   * `:weights` - initial weights
-  * `:residuals` - a map containing `:raw` and `:weighted` residuals
+  * `:residuals` - a map containing `:raw` and `:weighted` residuals, also `:loocv`
   * `:fitted` - fitted values for xss
   * `:df` - degrees of freedom: `:residual`, `:model` and `:intercept`
   * `:observations` - number of observations
@@ -492,8 +541,10 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
   * `:ll` - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS
   * `:analysis` - laverage, residual and influence analysis - a delay
   * `:decomposition` - decomposition used
-  * `:augumentation` and `augumentation-param` - regularization by data augumentation, currently only `:ridge` is supported
-
+  * `:augmentation` - augmentation used
+  * `:cv` - cross validation statistic
+  * `:effective-dimension` - effective dimension of the model (sum of hat matrix diagonal)
+  
   Analysis, delay containing a map:
 
   * `:residuals` - `:standardized` and `:studentized` weighted residuals
@@ -505,7 +556,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L313">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L347">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -523,7 +574,7 @@ Factory function for class fastmath.ml.regression.Family, taking a map of keywor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L751">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L818">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -541,7 +592,7 @@ Factory function for class fastmath.ml.regression.GLMData, taking a map of keywo
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L891">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L957">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -559,7 +610,7 @@ Factory function for class fastmath.ml.regression.LMData, taking a map of keywor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L41">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L42">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -577,7 +628,7 @@ Factory function for class fastmath.ml.regression.Link, taking a map of keywords
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L497">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L564">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -607,7 +658,25 @@ Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks v
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1403">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1826">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-polynomial-transformer"></span>
+```
+
+
+#### polynomial-transformer
+
++ `(polynomial-transformer xs degree)`
+
+Creates polynomial transformer for xs
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1495">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -636,7 +705,7 @@ Predict from the given model and data point.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L26">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L27">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -654,7 +723,25 @@ Quantile residuals for a model, possibly randomized.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/ml/regression.clj#L1277">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1382">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-trigonometric-transformer"></span>
+```
+
+
+#### trigonometric-transformer
+
++ `(trigonometric-transformer period degree)`
+
+Creates trigonometric transformer for xs
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/ml/regression.clj#L1524">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
