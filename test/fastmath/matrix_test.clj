@@ -360,3 +360,33 @@
     :frobenius m44ra 12.12436
     :max m44ra 5
     [1] m44ra 20.32997715038671))
+
+;;
+
+(t/deftest eigenvalues-and-eigenvectors
+  ;; Test small matrices (2x2, 3x3, 4x4) - existing behavior
+  (t/are [m] (let [evecs (sut/eigenvectors m)
+                   evals (sut/eigenvalues m)
+                   D (sut/eigenvalues-matrix m)]
+               (and (= (sut/nrow m) (sut/nrow evecs) (sut/ncol evecs))
+                    (= (sut/nrow m) (sut/nrow D) (sut/ncol D))
+                    (= (count evals) (sut/nrow m))))
+    m22 m33 m44 m44a m44ra)
+
+  ;; Test matrices larger than 4x4 (issue #42)
+  (let [make-diagonal (fn [n]
+                        (let [arr (make-array Double/TYPE n n)]
+                          (doseq [i (range n)]
+                            (aset arr i i (double (inc i))))
+                          arr))]
+    (doseq [n [5 6 10]]
+      (let [diag-mat (make-diagonal n)
+            evecs (sut/eigenvectors diag-mat)
+            evals (sut/eigenvalues diag-mat)
+            D (sut/eigenvalues-matrix diag-mat)]
+        ;; Should not throw, dimensions should be correct
+        (t/is (= n (sut/nrow evecs)) (str "eigenvectors nrow for " n "x" n))
+        (t/is (= n (sut/ncol evecs)) (str "eigenvectors ncol for " n "x" n))
+        (t/is (= n (sut/nrow D)) (str "eigenvalues-matrix nrow for " n "x" n))
+        (t/is (= n (sut/ncol D)) (str "eigenvalues-matrix ncol for " n "x" n))
+        (t/is (= n (count evals)) (str "eigenvalues count for " n "x" n))))))
