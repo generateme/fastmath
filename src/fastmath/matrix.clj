@@ -1217,12 +1217,14 @@
 (defn eigenvalues-matrix
   "Returns eigenvalues for given matrix as a diagonal or block diagonal matrix"
   [A]
-  (->> (mat->RealMatrix A)
-       (EigenDecomposition.)
-       ^RealMatrix (.getD)
-       (.getData)
-       (m/double-double-array->seq)
-       (apply rows->mat)))
+  (let [data (->> (mat->RealMatrix A)
+                  (EigenDecomposition.)
+                  ^RealMatrix (.getD)
+                  (.getData))
+        n (alength ^"[[D" data)]
+    (if (<= n 4)
+      (apply rows->mat (m/double-double-array->seq data))
+       data)))
 
 (defn square?
   "Is matrix square?"
@@ -1345,12 +1347,14 @@
   "Returns eigenvectors as a matrix (columns). Vectors can be normalized."
   ([A] (eigenvectors A false))
   ([A normalize?]
-   (let [evs (->> (mat->RealMatrix A)
+   (let [data (->> (mat->RealMatrix A)
                   (EigenDecomposition.)
                   ^RealMatrix (.getV)
-                  (.getData)
-                  (m/double-double-array->seq)
-                  (apply rows->mat))]
+                  (.getData))
+          n (alength ^"[[D" data)
+          evs (if (<= n 4)
+                  (apply rows->mat (m/double-double-array->seq data))
+                  data)]
      (if normalize? (normalize evs) evs))))
 
 ;;
