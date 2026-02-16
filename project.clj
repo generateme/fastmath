@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "3.0.0-alpha4"
+(defproject generateme/fastmath "3.0.0-alpha5-SNAPSHOT"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
@@ -7,7 +7,7 @@
                  [org.apache.commons/commons-math3 "3.6.1"]
 
                  [de.sciss/jwave "1.0.3"]
-                 [com.github.wendykierp/JTransforms "3.1"]
+                 [com.github.wendykierp/JTransforms "3.2"]
                  
                  [ca.umontreal.iro.simul/ssj "3.3.2"
                   :exclusions [org.jfree/jfreechart
@@ -23,14 +23,15 @@
         :url "https://github.com/generateme/fastmath/"}  
   :profiles {:1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :1.11 {:dependencies [[org.clojure/clojure "1.11.3"]]}
-             :1.12 {:dependencies [[org.clojure/clojure "1.12.3"]]}
+             :1.12 {:dependencies [[org.clojure/clojure "1.12.4"]]}
              :eastwood {:plugins [[jonase/eastwood "1.4.3"]]
                         :dependencies [[org.clojure/data.csv "1.1.0"]]
                         :eastwood {:add-linters [:performance :boxed-math :wrong-tag]
                                    :source-paths ["src"]
                                    :exclude-namespaces [:test-paths]}}
-             :dev {:dependencies [[org.clojure/clojure "1.12.3"]
+             :dev {:dependencies [[org.clojure/clojure "1.12.4"]
                                   [org.clojure/data.csv "1.1.0"]
+                                  [org.clojure/data.json "2.5.2"]
                                   [org.scicloj/clay "2-beta47"]
                                   [zprint "1.3.0"]
                                   [scicloj/clojisr "1.0.0"]

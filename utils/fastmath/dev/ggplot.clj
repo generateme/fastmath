@@ -8,7 +8,10 @@
             [fastmath.stats :as stats]
             [fastmath.vector :as v]
             [fastmath.complex :as cplx]
-            [fastmath.kernel :as kernel]))
+            [fastmath.kernel :as kernel]
+            [fastmath.transform :as t]
+            [fastmath.signal :as signal]
+            [fastmath.transform.wavelets :as wv]))
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
@@ -36,6 +39,10 @@
 (def palette-blue-0 [color-main "#3c5fff", "#526dff", "#637bff", "#7189ff", "#7d97ff",
                    "#87a5ff", "#91b3ff", "#9ac2ff", "#a2d0ff", "#aadfff", "#b1eeff"])
 (def palette-blue-1 (repeat 12 color-main))
+(def palette-blue-2 (conj (reverse '("#3c5fff", "#526dff", "#637bff", "#7189ff", "#7d97ff",
+                                   "#87a5ff", "#91b3ff", "#9ac2ff", "#a2d0ff", "#aadfff", "#b1eeff"))
+                        "#000e60"))
+
 
 (defn ->file
   ([obj] (->file obj nil))
@@ -74,6 +81,21 @@
 
 ;; data processing
 
+(defn line->data
+  ([xs ys] (line->data xs ys nil))
+  ([xs ys {:keys [fname]
+           :or {fname "line"}}]
+   (map (fn [x y] {:x x :y y :fname fname}) xs ys)))
+
+(defn lines->data
+  ([ls] (lines->data ls nil))
+  ([ls opts]
+   (if (map? ls)
+     (lines->data (seq ls) opts)
+     (mapcat (fn [[n xs ys]]
+               (line->data xs ys (assoc opts :fname n))) ls))))
+
+
 (defn slice
   [x steps]
   (let [[min-x max-x] (or x [0.0 1.0])]
@@ -95,6 +117,7 @@
                                                       [(str "function " id) f]) fs) opts)
      :else (mapcat (fn [[n f]]
                      (function->data f (assoc opts :fname n))) fs))))
+
 
 (defn function-ci->data
   ([f] (function-ci->data f nil))
@@ -206,6 +229,7 @@
          (add-common opts)))))
 
 (defn line
+  ([ys] (line (range) ys))
   ([xs ys] (line xs ys nil))
   ([xs ys {:keys [color]
            :or {color color-main}
@@ -214,6 +238,23 @@
              (gg/theme_light)
              (gg/geom_line :data (tc/dataset {:x xs :y ys}) :color color))
        (add-common opts))))
+
+(defn lines
+  "Lines"
+  ([ls] (lines ls nil))
+  ([ls {:keys [palette legend-name linetype?]
+        :or {palette palette-blue-0 legend-name "Functions" linetype? true}
+        :as opts}]
+   (let [data (lines->data ls opts)
+         breaks (distinct (map :fname data))]
+     (-> (r/r+ (gg/ggplot)
+               (gg/theme_light)
+               (gg/geom_line :data (tc/dataset data) :mapping (if linetype?
+                                                                (gg/aes :linetype :fname :color :fname :x :x :y :y)
+                                                                (gg/aes :color :fname :x :x :y :y)))
+               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
+               (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
+         (add-common opts)))))
 
 (defn lollipop
   ([xs ys] (lollipop xs ys nil))
@@ -338,6 +379,35 @@
          (cond-> aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio)))
          (add-common opts)))))
 
+(defn scatters
+  "plot scatter graph.
+  `xs` and `ys` are the data points.
+  
+  options `opts`:
+  `aspect-ratio`: default `nil`.
+                  `nil` means letting the scale of the coordinate-system follows
+                  drawing-window's aspect ratio.
+                  set to any positive whole number to set fixed ratio y/x
+                  for the coordinate-system.
+                  setting aspect-ratio to true or 1 is useful if we want
+                  to draw plots depicting any perfect circle.
+  `color`: default `color-main`.
+  `fill-color`: default `color-light`. "
+  ([xsysgroups])
+  ([xsysgroups {:keys [aspect-ratio color size legend-name palette]
+                :or {color color-main size 1 legend-name "Groups" palette palette-blue-2}
+                :as opts}]
+   (let [ds (mapcat (fn [[group xs ys]]
+                      (map (fn [x y] {:x x :y y :group group}) xs ys)) xsysgroups)
+         breaks (distinct (map first xsysgroups))]
+     (-> (tc/dataset ds)
+         (gg/ggplot (gg/aes :x :x :y :y :fill :group))
+         (r/r+ (gg/theme_light)
+               (gg/geom_point :shape "circle filled" :color color :size size :alpha 0.8)
+               (gg/scale_fill_manual :name legend-name :breaks breaks :values palette))
+         (cond-> aspect-ratio (r/r+ (gg/coord_fixed :ratio aspect-ratio)))
+         (add-common opts)))))
+
 (defn function2d+scatter
   ([f xs ys] (function2d+scatter f xs ys nil))
   ([f xs ys {:keys [x y] :as opts}]
@@ -444,3 +514,107 @@
 (defn pacf
   ([series nm] (acf- "PACF" series 100 nm))
   ([series cnt nm] (acf- "PACF" series cnt nm)))
+
+;;
+
+(defn half-split
+  ([coeffs] (half-split coeffs []))
+  ([coeffs buff]
+   (if (m/< (count coeffs) 2)
+     buff
+     (let [[a b] (split-at (/ (count coeffs) 2) coeffs)]
+       (recur a (conj buff b))))))
+
+(defn ->level-data
+  [max-size log-coeffs? normalize? id level]
+  (let [y (inc id)
+        dups (* 2 (/ max-size (count level)))
+        sdups (m/sqrt dups)
+        tr (if normalize? (comp (fn [^double z] (m// z sdups)) m/abs) m/abs)
+        tr (if log-coeffs? (comp m/log1p tr) tr)]
+    (->> (mapcat (partial repeat dups) level)
+         (map-indexed (fn [x ^double z] {:x x :y y :z (tr z)})))))
+
+(defn dwt-scaleogram
+  ([coeffs] (dwt-scaleogram coeffs nil))
+  ([coeffs {:keys [palette log-coeffs? normalize? wavelet]
+            :or {palette :pals/parula log-coeffs? false normalize? false}}]
+   (let [levels (half-split coeffs)
+         max-size (count (first levels))
+         ds (tc/dataset (mapcat (partial ->level-data max-size log-coeffs? normalize?) (range) levels))]
+     (r/r+ (gg/ggplot ds (gg/aes :x :x :y :y :fill :z))
+           (gg/theme_light)
+           (gg/geom_raster)
+           (gg/scale_y_reverse :breaks (range 1 (m/inc (m/log2 (count coeffs)))))
+           (gg/ylab "Levels")
+           (gg/xlab "Time")
+           (pal/scale_fill_paletteer_c (->palette palette))
+           (gg/labs :title (if wavelet
+                             (str "DWT Scaleogram (" wavelet ")")
+                             (str "DWT Scaleogram"))
+                    :fill (if-not log-coeffs? "|coeffs|" "log(1+|coeffs|)"))))))
+
+;;
+
+(defn wavelet-pair
+  ([wv] (wavelet-pair wv nil))
+  ([wv {:keys [level reconstruction?]
+        :or {level 7 reconstruction? false}
+        :as options}]
+   (let [w (if (or (string? wv) (keyword? wv)) (wv/wavelet wv) wv)
+         nm (if (or (string? wv) (keyword? wv)) wv (wv/wavelet-name w))
+         max-x (dec (wv/coeffs-size w))
+         x [0 max-x]
+         dr (if reconstruction? "(reconstruction)." "(deconstruction).")]
+     [(function (wv/scaling-function w level reconstruction?) (assoc options :x x :title (str "Scaling function of " nm " wavelet " dr)))
+      (function (wv/wavelet-function w level reconstruction?) (assoc options :x x :title (str "Wavelet function of " nm " wavelet " dr)))])))
+
+;;
+
+(defn magnitudes
+  [xs]
+  (-> (->> (t/forward-1d (t/transformer :real :fft) xs)
+           (partition 2)
+           (map v/mag))
+      (v/div (count xs))
+      (v/mult 2)))
+
+(defn calc-dB
+  [window {:keys [size pad cut]
+           :or {size 256 pad 4096 cut 200}
+           :as opts}]
+  (let [w (kernel/window window size opts)
+        coeffs (if (m/pos? pad) (t/pad w pad :zero) w)
+        s (map signal/linear->db (magnitudes coeffs))
+        db (if (m/pos? cut) (take cut s) s)]
+    (map #(m/constrain % -150.0 ##Inf) (v/shift db (m/- (double (first db)))))))
+
+(defn fft-window-plot
+  ([window] (fft-window-plot window {}))
+  ([window opts]
+   (let [db (calc-dB window opts)]
+     (if (:symmetry? opts)
+       (let [dbs (concat (reverse (rest db)) db)
+             c (count db)]
+         (line (range (- c) c) dbs opts))
+       (line (range) db opts)))))
+
+(defn fft-window-plots
+  ([window sig] (fft-window-plots window sig nil))
+  ([window sig opts]
+   (let [t (str (name window) " window")
+         title (if opts (str t " " opts) t)]
+     [(line (range) (kernel/window window 256 opts) {:ylim [-0.1 nil]
+                                                     :xlab "samples"
+                                                     :title title})
+      (line (range) (magnitudes (v/emult sig (kernel/window window 256 opts)))
+            {:title "FFT of a tapered signal"
+             :ylab "magnitude" :xlab "bins"})
+      (fft-window-plot window (assoc opts :pad 400 :cut 0 :size 128
+                                     :symmetry? true
+                                     :ylab "dBc" :xlab "bins"
+                                     :ylim [-150 nil]
+                                     :title "FFT of a padded window"))
+      (fft-window-plot window (assoc opts :title "FFT of padded window (main- and side-lobes)"
+                                     :ylab "dBc" :xlab "bins"
+                                     :ylim [-150 nil]))])))

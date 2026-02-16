@@ -9,7 +9,6 @@
             [fastmath.dev.clay :as utls]
             [fastmath.dev.codox :as codox]))
 
-
 ;; # Special functions {.unnumbered}
 
 ;; Collection of special functions for real arguments and real returned value. Most of the functions are implemented natively in Clojure, some are based on Apache Commons Math.
@@ -896,7 +895,9 @@
 
 ;; ### Riemann zeta
 
-;; $$\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}$$
+;; $$\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}\text{ for } s>1$$
+
+;; $$\zeta(s) = 2^s \pi^{s-1} \sin\left(\frac{\pi s}{2}\right) \Gamma(1-s) \zeta(1-s)$$
 
 (gg/->image (gg/function special/zeta
                          {:x [-5 7]
@@ -904,9 +905,9 @@
                           :title "Riemann zeta"}))
 
 (utls/examples-note
-  (special/zeta 0.0)
-  (special/zeta 2.2)
-  (special/zeta -2.2))
+ (special/zeta 0.0)
+ (special/zeta 2.2)
+ (special/zeta -2.2))
 
 ;; ### Hurwitz zeta
 

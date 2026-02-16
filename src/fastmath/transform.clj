@@ -18,116 +18,34 @@
   DFT, FFT, DHT."
   (:require [fastmath.core :as m]
             [fastmath.stats :as stat]
-            [fastmath.protocols :as prot]
+            [fastmath.protocols.wavelets :as prot]
             [fastmath.optimization :as optim]
-            [fastmath.vector :as v])
+            [fastmath.vector :as v]
+
+            [fastmath.transform.pad :as pad]
+            [fastmath.transform.wavelets :as wv])
   (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
             BasicTransform DiscreteFourierTransform]
-           [jwave.exceptions JWaveFailure]
            [jwave.compressions CompressorPeaksAverage CompressorMagnitude]
            [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer DstNormalization DctNormalization TransformType]
            [org.jtransforms.fft DoubleFFT_1D DoubleFFT_2D]
            [org.jtransforms.dht DoubleDHT_1D DoubleDHT_2D]
            [org.jtransforms.dct DoubleDCT_1D DoubleDCT_2D]
            [org.jtransforms.dst DoubleDST_1D DoubleDST_2D]
-           [fastmath.java Array]))
+           [fastmath.java Array]
+           [fastmath.vector Vec2]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 (m/use-primitive-operators)
-
-;;
-
-(defmulti
-  ^{:doc "Create wavelet object."
-    :private true} wavelet identity)
-
-(defmethod wavelet :default [n] (throw (JWaveFailure. (str "Unknown wavelet: " n))))
-
-(defmethod wavelet :haar [_] (jwave.transforms.wavelets.haar.Haar1.))
-(defmethod wavelet :haar-orthogonal [_] (jwave.transforms.wavelets.haar.Haar1Orthogonal.))
-
-(defmethod wavelet :biorthogonal-11 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal11.))
-(defmethod wavelet :biorthogonal-13 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal13.))
-(defmethod wavelet :biorthogonal-15 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal15.))
-(defmethod wavelet :biorthogonal-22 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal22.))
-(defmethod wavelet :biorthogonal-24 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal24.))
-(defmethod wavelet :biorthogonal-26 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal26.))
-(defmethod wavelet :biorthogonal-28 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal28.))
-(defmethod wavelet :biorthogonal-31 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal31.))
-(defmethod wavelet :biorthogonal-33 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal33.))
-(defmethod wavelet :biorthogonal-35 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal35.))
-(defmethod wavelet :biorthogonal-37 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal37.))
-(defmethod wavelet :biorthogonal-39 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal39.))
-(defmethod wavelet :biorthogonal-44 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal44.))
-(defmethod wavelet :biorthogonal-55 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal55.))
-(defmethod wavelet :biorthogonal-68 [_] (jwave.transforms.wavelets.biorthogonal.BiOrthogonal68.))
-
-(defmethod wavelet :coiflet-1 [_] (jwave.transforms.wavelets.coiflet.Coiflet1.))
-(defmethod wavelet :coiflet-2 [_] (jwave.transforms.wavelets.coiflet.Coiflet2.))
-(defmethod wavelet :coiflet-3 [_] (jwave.transforms.wavelets.coiflet.Coiflet3.))
-(defmethod wavelet :coiflet-4 [_] (jwave.transforms.wavelets.coiflet.Coiflet4.))
-(defmethod wavelet :coiflet-5 [_] (jwave.transforms.wavelets.coiflet.Coiflet5.))
-
-(defmethod wavelet :daubechies-2 [_] (jwave.transforms.wavelets.daubechies.Daubechies2.))
-(defmethod wavelet :daubechies-3 [_] (jwave.transforms.wavelets.daubechies.Daubechies3.))
-(defmethod wavelet :daubechies-4 [_] (jwave.transforms.wavelets.daubechies.Daubechies4.))
-(defmethod wavelet :daubechies-5 [_] (jwave.transforms.wavelets.daubechies.Daubechies5.))
-(defmethod wavelet :daubechies-6 [_] (jwave.transforms.wavelets.daubechies.Daubechies6.))
-(defmethod wavelet :daubechies-7 [_] (jwave.transforms.wavelets.daubechies.Daubechies7.))
-(defmethod wavelet :daubechies-8 [_] (jwave.transforms.wavelets.daubechies.Daubechies8.))
-(defmethod wavelet :daubechies-9 [_] (jwave.transforms.wavelets.daubechies.Daubechies9.))
-(defmethod wavelet :daubechies-10 [_] (jwave.transforms.wavelets.daubechies.Daubechies10.))
-(defmethod wavelet :daubechies-11 [_] (jwave.transforms.wavelets.daubechies.Daubechies11.))
-(defmethod wavelet :daubechies-12 [_] (jwave.transforms.wavelets.daubechies.Daubechies12.))
-(defmethod wavelet :daubechies-13 [_] (jwave.transforms.wavelets.daubechies.Daubechies13.))
-(defmethod wavelet :daubechies-14 [_] (jwave.transforms.wavelets.daubechies.Daubechies14.))
-(defmethod wavelet :daubechies-15 [_] (jwave.transforms.wavelets.daubechies.Daubechies15.))
-(defmethod wavelet :daubechies-16 [_] (jwave.transforms.wavelets.daubechies.Daubechies16.))
-(defmethod wavelet :daubechies-17 [_] (jwave.transforms.wavelets.daubechies.Daubechies17.))
-(defmethod wavelet :daubechies-18 [_] (jwave.transforms.wavelets.daubechies.Daubechies18.))
-(defmethod wavelet :daubechies-19 [_] (jwave.transforms.wavelets.daubechies.Daubechies19.))
-(defmethod wavelet :daubechies-20 [_] (jwave.transforms.wavelets.daubechies.Daubechies20.))
-
-(defmethod wavelet :legendre-1 [_] (jwave.transforms.wavelets.legendre.Legendre1.))
-(defmethod wavelet :legendre-2 [_] (jwave.transforms.wavelets.legendre.Legendre2.))
-(defmethod wavelet :legendre-3 [_] (jwave.transforms.wavelets.legendre.Legendre3.))
-
-(defmethod wavelet :symlet-2 [_] (jwave.transforms.wavelets.symlets.Symlet2.))
-(defmethod wavelet :symlet-3 [_] (jwave.transforms.wavelets.symlets.Symlet3.))
-(defmethod wavelet :symlet-4 [_] (jwave.transforms.wavelets.symlets.Symlet4.))
-(defmethod wavelet :symlet-5 [_] (jwave.transforms.wavelets.symlets.Symlet5.))
-(defmethod wavelet :symlet-6 [_] (jwave.transforms.wavelets.symlets.Symlet6.))
-(defmethod wavelet :symlet-7 [_] (jwave.transforms.wavelets.symlets.Symlet7.))
-(defmethod wavelet :symlet-8 [_] (jwave.transforms.wavelets.symlets.Symlet8.))
-(defmethod wavelet :symlet-9 [_] (jwave.transforms.wavelets.symlets.Symlet9.))
-(defmethod wavelet :symlet-10 [_] (jwave.transforms.wavelets.symlets.Symlet10.))
-(defmethod wavelet :symlet-11 [_] (jwave.transforms.wavelets.symlets.Symlet11.))
-(defmethod wavelet :symlet-12 [_] (jwave.transforms.wavelets.symlets.Symlet12.))
-(defmethod wavelet :symlet-13 [_] (jwave.transforms.wavelets.symlets.Symlet13.))
-(defmethod wavelet :symlet-14 [_] (jwave.transforms.wavelets.symlets.Symlet14.))
-(defmethod wavelet :symlet-15 [_] (jwave.transforms.wavelets.symlets.Symlet15.))
-(defmethod wavelet :symlet-16 [_] (jwave.transforms.wavelets.symlets.Symlet16.))
-(defmethod wavelet :symlet-17 [_] (jwave.transforms.wavelets.symlets.Symlet17.))
-(defmethod wavelet :symlet-18 [_] (jwave.transforms.wavelets.symlets.Symlet18.))
-(defmethod wavelet :symlet-19 [_] (jwave.transforms.wavelets.symlets.Symlet19.))
-(defmethod wavelet :symlet-20 [_] (jwave.transforms.wavelets.symlets.Symlet20.))
-
-(defmethod wavelet :battle-23 [_] (jwave.transforms.wavelets.other.Battle23.))
-(defmethod wavelet :cdf-53 [_] (jwave.transforms.wavelets.other.CDF53.))
-(defmethod wavelet :cdf-97 [_] (jwave.transforms.wavelets.other.CDF97.))
-(defmethod wavelet :discrete-mayer [_] (jwave.transforms.wavelets.other.DiscreteMayer.))
-
-(def ^{:doc "List of all possible wavelets."}
-  wavelets-list (remove #{:default} (keys (methods wavelet))))
 
 (defmulti
   ^{:doc "Create transform object for given wavelet.
 
   #### Wavelets
 
-  * `:fast` for 1d or 2d Fast Wavelet Transform. Size of data should be power of `2`.
-  * `:packet` for 1d or 2d Wavelet Packet Transform. Size of data should be power of `2`.
+  * `:dwt` or `:fast` for 1d or 2d Fast Wavelet Transform. Size of data should be power of `2`.
+  * `:wpt` or `:packet` for 1d or 2d Wavelet Packet Transform. Size of data should be power of `2`.
   * `:decomposed-fast` for 1d Fast Wavelet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
   * `:decomposed-packet` for 1d Wavelet Packet Transform. Data can have any size (Ancient Egyptian Decomposition is used).
 
@@ -145,8 +63,16 @@
   * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."}
   transformer (fn [t _] t))
 
-(defmethod transformer :fast [_ w] (FastWaveletTransform. (wavelet w)))
-(defmethod transformer :packet [_ w] (WaveletPacketTransform. (wavelet w)))
+(defmethod transformer :fast [_ w] (transformer :dwt w))
+(defmethod transformer :dwt [_ w] (if (keyword? w)
+                                    (FastWaveletTransform. (wv/wavelet w))
+                                    (wv/wavelet-reify w :dwt)))
+(defmethod transformer :packet [_ w] (transformer :wpt w))
+(defmethod transformer :wpd [_ w] (transformer :wpt w))
+(defmethod transformer :wpt [_ w] (if (keyword? w)
+                                    (WaveletPacketTransform. (wv/wavelet w))
+                                    (wv/wavelet-reify w :wpt)))
+
 (defmethod transformer :decomposed-fast [_ w] (AncientEgyptianDecomposition. (transformer :fast w)))
 (defmethod transformer :decomposed-packet [_ w] (AncientEgyptianDecomposition. (transformer :packet w)))
 
@@ -163,8 +89,10 @@
 
 (extend BasicTransform
   prot/TransformProto
-  {:forward-1d (fn [^BasicTransform t xs] (.forward t (m/seq->double-array xs)))
-   :reverse-1d (fn [^BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
+  {:forward-1d (fn ([^BasicTransform t xs] (.forward t (m/seq->double-array xs)))
+                 ([^BasicTransform t xs {:keys [^long level]}] (.forward t (m/seq->double-array xs) level)))
+   :reverse-1d (fn ([^BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
+                 ([^BasicTransform t xs {:keys [^long level]}] (.reverse t (m/seq->double-array xs) level)))
    :forward-2d (fn [^BasicTransform t xss] (.forward t (m/seq->double-double-array xss)))
    :reverse-2d (fn [^BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))})
 
@@ -172,7 +100,6 @@
   prot/TransformProto
   {:forward-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/FORWARD))
    :reverse-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/INVERSE))})
-
 
 ;; jtransform
 
@@ -343,17 +270,36 @@
 (defmethod transformer :complex [_ t]
   (case t
     :fft (jt-reify jt-forward-cfft jt-reverse-cfft jt-forward2-cfft jt-reverse2-cfft)
-    :fftr (jt-reify jt-forward-cfftr jt-reverse-cfft jt-forward2-cfftr jt-reverse2-cfft)))
+    :fftr (jt-reify jt-forward-cfftr jt-reverse-cfft jt-forward2-cfftr jt-reverse2-cfft)
+    :rfft (transformer :complex :fftr)))
+
+(defn ->complex
+  "Convert transformed signal to complex numbers."
+  [complex-signal]
+  (let [fd (m/seq->double-array complex-signal)]
+    (map (fn [^long id]
+           (v/vec2 (Array/aget fd id)
+                   (Array/aget fd (m/inc id)))) (range 0 (m// (alength fd) 2) 2))))
+
+(defn fft-magnitudes
+  [freq-domain]
+  (map v/mag (->complex freq-domain)))
+
+(defn fft-phases
+  [freq-domain]
+  (map v/heading (->complex freq-domain)))
 
 ;;
 
 (defn forward-1d
   "Forward transform of sequence or array."
-  [t xs] (prot/forward-1d t xs))
+  ([t xs] (prot/forward-1d t xs))
+  ([t xs options] (prot/forward-1d t xs options)))
 
 (defn reverse-1d
   "Forward transform of sequence or array."
-  [t xs] (prot/reverse-1d t xs))
+  ([t xs] (prot/reverse-1d t xs))
+  ([t xs options] (prot/reverse-1d t xs options)))
 
 (defn forward-2d
   "Forward transform of sequence or array."
@@ -362,6 +308,29 @@
 (defn reverse-2d
   "Forward transform of sequence or array."
   [t xss] (prot/reverse-2d t xss))
+
+;; padding
+
+(defn pad
+  "Pad signal."
+  ([signal] (pad (m/<< 1 (m/high-2-exp (count signal)))))
+  ([signal ^long N] (pad signal N :periodic))
+  ([signal ^long N pad-method] (pad signal N pad-method :both))
+  ([signal ^long N pad-method side]
+   (if (m/> (count signal) N)
+     (throw (ex-info "New length of the signal is lower than signal size."
+                     {:N N :signal-length (count signal)}))
+     (let [asignal (m/seq->double-array signal)]
+       (case pad-method
+         :zero (pad/zero asignal N side)
+         :edge (pad/edge asignal N side)
+         :linear (pad/linear asignal N side)
+         :periodic (pad/periodic asignal N side)
+         :symmetric (pad/symmetric asignal N side)
+         :antisymmetric (pad/antisymmetric asignal N side)
+         :reflect (pad/reflect asignal N side)
+         :antireflect (pad/antireflect asignal N side)
+         (throw (ex-info "Unknown padding method" {:pad-method pad-method})))))))
 
 (set! *warn-on-reflection* false)
 ;; 1d or 2d unknown in the compilation time
@@ -488,13 +457,128 @@
 
 (m/unuse-primitive-operators)
 
+(defn- rfft
+  [xs]
+  (let [t (transformer :real :fft)
+        ^doubles txs (forward-1d t xs)
+        len (alength txs)
+        e? (m/even? len)
+        len- (m/dec len)
+        res (reduce (fn [buff ^long id]
+                      (conj buff (Vec2. (Array/aget txs id)
+                                        (Array/aget txs (m/inc id))))) [(Vec2. (Array/aget txs 0) 0.0)] (range 2 (if e? len len-) 2))]
+    (with-meta (conj res (if e?
+                           (Vec2. (Array/aget txs 1) 0.0)
+                           (Vec2. (Array/aget txs len-) (Array/aget txs 1))))
+      {::fft {:kind :real :even? e?}})))
+
+(defn- crfft
+  ([xs] (crfft xs false))
+  ([xs real?]
+   (let [t (transformer :complex (if real? :rfft :fft))
+         ^doubles txs (forward-1d t (if real? xs (mapcat identity xs)))
+         len (alength txs)]
+     (with-meta (reduce (fn [buff ^long id]
+                          (conj buff (Vec2. (Array/aget txs id)
+                                            (Array/aget txs (m/inc id))))) [] (range 0 len 2))
+       {::fft {:kind :complex :real? real?}}))))
+
+(defn fft
+  "Compute the Fast Fourier Transform of a 1D signal.
+
+  This function converts a time-domain signal into its frequency-domain representation. It automatically detects the input type: real-valued signals (sequence of numbers) are processed using an efficient Real FFT, while complex-valued signals (sequence of Complex numbers, see `fastmath.complex`) use a Complex FFT.
+
+  For real signals, it defaults to a single-sided spectrum, exploiting Hermitian symmetry to save memory and computation.
+
+  Input parameters:
+  * `xs` - Input signal as a sequence of doubles (real) or a sequence of complex objects (`Vec2` type).
+  * `options` - A map of configuration options:
+      * `:spectrum` - Determines the output format for real-valued inputs. Options are `:single-sided` (default), which returns `(N/2)+1` coefficients, or `:double-sided`, which returns the full `N` length complex spectrum.
+
+  Returns a sequence of `fastmath.vector.Vec2` representing complex coefficients in the frequency domain. The result includes metadata (e.g., `:kind`, `:even?`) required by [[ifft]] to correctly perform the inverse transform.
+
+  These are:
+
+  * `:kind` - can be `:real` or `:complex`
+  * `:even?` - `true`, when signal length was even
+  * `:real?` - `true` when complex fft was performed
+
+  Returned sequence contains Nyquist frequency coefficient for real and even signals."
+  ([xs] (fft xs nil))
+  ([xs {:keys [spectrum]
+        :or {spectrum :single-sided}}]
+   (if (number? (first xs))
+     (if (= :double-sided spectrum)
+       (crfft xs true)
+       (rfft xs))
+     (crfft xs))))
+
+(defn ifft
+  "Compute the Inverse Fast Fourier Transform (IFFT).
+
+  Converts a frequency-domain signal (spectrum) back into its original time-domain representation. This function is the inverse operation of [[fft]] and automatically handles the reconstruction logic based on the type of the input spectrum. It utilizes metadata (such as signal symmetry and original length parity) attached to the input sequence by [[fft]] to ensure the resulting signal is restored with the correct dimensions and data type.
+
+  Input parameters:
+  * `xs` - A sequence of complex coefficients, typically as `fastmath.vector.Vec2` objects.
+  * `options` - An optional map of configuration keys (usually inferred from `xs` metadata):
+    * `:kind` - The type of transform to perform: `:real` (default) or `:complex`.
+    * `:even?` - For `:real` transforms, indicates if the original time-domain signal had an even length (crucial for correctly placing the Nyquist frequency).
+    * `:real?` - For `:complex` transforms, indicates if the output should be narrowed to real numbers (doubles).
+
+  Output:
+  Returns a sequence representing the time-domain signal. For `:real` kind, it returns a sequence of doubles. For `:complex` kind, it returns a sequence of `Vec2` (complex numbers) unless `:real?` is set to true."
+  ([xs] (ifft xs (::fft (meta xs))))
+  ([xs {:keys [kind real? even?]
+        :or {kind :real real? true even? true}}]
+   (if (= :real kind)
+     (let [t (transformer :real :fft)
+           xs (if even?
+                (let [[^double nyquist] (last xs)
+                      ^doubles xs (double-array (mapcat identity (butlast xs)))]
+                  (Array/aset xs 1 nyquist)
+                  xs)
+                (let [xs (mapcat identity xs)
+                      im (double (last xs))
+                      ^doubles xs (double-array (butlast xs))]
+                  (Array/aset xs 1 im)
+                  xs))]
+       (reverse-1d t xs))
+     (let [t (transformer :complex (if real? :rfft :fft))
+           ^doubles res (reverse-1d t (mapcat identity xs))]
+       (if real?
+         (take-nth 2 res)
+         (reduce (fn [buff ^long id]
+                   (conj buff (Vec2. (Array/aget res id)
+                                     (Array/aget res (m/inc id))))) [] (range 0 (alength res) 2)))))))
+
+;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (comment
   (require '[ggplot])
 
   
   (defn- error [x1 x2]
-    (reduce m/fast+ (map #(m/sq (- %1 %2)) x1 x2)))
+    (reduce m/+ (map #(m/sq (- %1 %2)) x1 x2)))
 
   (def xx (m/slice-range 0 10 512))
   (def s (map #(m/sin %) xx))
@@ -571,6 +655,75 @@
   ;;     [8.999999999995888, 7.9999999999951115, -1.999999999996907,
   ;;      -2.9999999999958775]]
 
+  (def haar (transformer :fast :haar))
+  (seq (forward-1d haar [1 2 -1 -3 0 -3 -1 2] {:level 1}))
 
+
+  ;; => (2.1213203435596424
+  ;;     -2.82842712474619
+  ;;     -2.1213203435596424
+  ;;     0.7071067811865475
+  ;;     -0.7071067811865475
+  ;;     1.414213562373095
+  ;;     2.1213203435596424
+  ;;    -2.1213203435596424)
+  ;; => (2.1213203435596424
+  ;;     -2.82842712474619
+  ;;     0.7071067811865475
+  ;;     0.7071067811865475
+  ;;     -0.7071067811865475
+  ;;     1.414213562373095
+  ;;     -0.7071067811865475
+  ;;    2.1213203435596424)
+  ;; => (2.1213203435596424
+  ;;     -2.82842712474619
+  ;;     1.414213562373095
+  ;;     1.414213562373095
+  ;;     -0.7071067811865475
+  ;;     1.414213562373095
+  ;;     -1.414213562373095
+  ;;    1.414213562373095)
+
+  (seq (forward-1d haar [1 2 -1 -3 0 2 2 1] {:level 3}))
+  ;; => (1.0606601717798212
+  ;;     -1.7677669529663682
+  ;;     3.499999999999999
+  ;;     0.0
+  ;;     -0.7071067811865475
+  ;;     1.414213562373095
+  ;;     -1.414213562373095
+  ;;    1.414213562373095)
+  ;; => Execution error (JWaveFailure) at jwave.transforms.FastWaveletTransform/forward (FastWaveletTransform.java:82).
+  ;;    JWave: Failure: FastWaveletTransform#forward - given level is out of range for given array
+
+  (seq (forward-1d (transformer :dwt "db2") (double-array [1,2,3,10,-3,-2,3,0])))
+  ;; => (7.071067811865473
+  ;;     3.708909791235272
+  ;;     0.006569860407205863
+  ;;     -2.274519052838328
+  ;;     -4.440892098500626E-16
+  ;;     7.563321910700776
+  ;;     -4.191872704379808
+  ;;    -0.5430220815747799)
+  ;; => (7.071067811865473
+  ;;     3.708909791235272
+  ;;     0.006569860407205863
+  ;;     -2.274519052838328
+  ;;     -4.440892098500626E-16
+  ;;     7.563321910700776
+  ;;     -4.191872704379808
+  ;;    -0.5430220815747799)
+  ;; => (1.5343318992335864
+  ;;     12.020815280171306
+  ;;     7.14041816598649
+  ;;     4.760278777324325
+  ;;     -2.8977774788672046
+  ;;     5.606086266752902
+  ;;     -1.294095225512604
+  ;;    -1.414213562373095)
+
+
+  
   )
-
+;; => nil
+;; => nil

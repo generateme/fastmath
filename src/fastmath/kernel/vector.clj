@@ -267,7 +267,6 @@
                               (if (number? x) [x] x)
                               (if (number? y) [y] y))))))
 
-
 ;; https://www.researchgate.net/publication/2538959_Inverse_B-spline_interpolation
 
 (defn- b-spline-beta

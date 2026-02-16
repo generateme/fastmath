@@ -568,7 +568,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
 #### map->Family
 
-+ `(map->Family m__7997__auto__)`
++ `(map->Family m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.Family, taking a map of keywords to field values.
 
@@ -586,7 +586,7 @@ Factory function for class fastmath.ml.regression.Family, taking a map of keywor
 
 #### map->GLMData
 
-+ `(map->GLMData m__7997__auto__)`
++ `(map->GLMData m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.GLMData, taking a map of keywords to field values.
 
@@ -604,7 +604,7 @@ Factory function for class fastmath.ml.regression.GLMData, taking a map of keywo
 
 #### map->LMData
 
-+ `(map->LMData m__7997__auto__)`
++ `(map->LMData m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.LMData, taking a map of keywords to field values.
 
@@ -622,7 +622,7 @@ Factory function for class fastmath.ml.regression.LMData, taking a map of keywor
 
 #### map->Link
 
-+ `(map->Link m__7997__auto__)`
++ `(map->Link m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.Link, taking a map of keywords to field values.
 

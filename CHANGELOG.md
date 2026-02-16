@@ -1,7 +1,23 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 alpha4 SNAPSHOT]
+## [3.0.0 alpha5 SNAPSHOT]
+
+### Added
+
+;; * Chebyshev T and U polynomials are defined outside [-1,1] range
+;; * Clojure native wavelet transformation implementation (due to some issues with JWave)
+;; * FFT window (tapering) kernels
+;; * various signal paddings
+;; * `bit-count`
+;; * `fft`/`ifft` functions
+;; * `periodogram`, `spectrum`, `stft`
+
+### Fixed
+
+;; * decomposition of matrix was empty for matrices with rows/cols > 5
+
+## [3.0.0 alpha4]
 
 ### Added
 

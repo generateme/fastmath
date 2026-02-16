@@ -1477,7 +1477,9 @@
     Mat2x2 2
     Mat3x3 3
     Mat4x4 4
-    0))
+    (let [r (nrow m)
+          c (ncol m)]
+      (if (== r c) r (throw (ex-info "Matrix should be square." {:nrow r :ncol c}))))))
 
 (defrecord MatrixDecomposition [source components ^DecompositionSolver solver singular? ^int s]
   prot/MatrixDecompositionProto
@@ -1658,7 +1660,8 @@
   (let [s (->mat-size mat)
         ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
         complex? (.hasComplexEigenvalues eigen)
-        ^DecompositionSolver solver (when-not complex? (.getSolver eigen))]
+        ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
+        det (delay (.getDeterminant eigen))]
     (->MatrixDecomposition eigen
                            {:D (delay (->mat s (.getD eigen)))
                             :V (delay (->mat s (.getV eigen)))
@@ -1666,11 +1669,13 @@
                             :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
                             :imag-eigenvalues (delay (->vec s (.getImagEigenvalues eigen)))
                             :sqrt (delay (->mat s (.getSquareRoot eigen)))
-                            :det (delay (.getDeterminant eigen))
+                            :det det
                             :complex? complex?
                             :eigenvectors (delay (mapv #(->vec s (.getEigenvector eigen %)) (range s)))}
                            solver
-                           (when-not complex? (not (.isNonSingular solver))) s)))
+                           (if solver
+                             (not (.isNonSingular solver))
+                             (m/near-zero? @det)) s)))
 
 (defn singular?
   "Returns singularity of the matrix"

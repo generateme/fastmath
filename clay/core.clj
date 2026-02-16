@@ -5,8 +5,7 @@
             [fastmath.dev.clay :as utls]
             [fastmath.dev.helpers :as hp]
             [fastmath.core :as m]
-            [scicloj.kindly.v4.kind :as kind]
-            [fastmath.fields.n :as n]))
+            [scicloj.kindly.v4.kind :as kind]))
 
 ;; # Core {.unnumbered}
 
@@ -1084,6 +1083,7 @@
 ;; * `bit-not`, `bit-nand`, `bit-nor`, `bit-xnor`, `bit-and-not`
 ;; * `bit-set`, `bit-clear`, `bit-flip`, `bit-test`
 ;; * `<<`, `bit-shift-left`, `>>`, `bit-shift-right`, `>>>`, `unsigned-bit-shift-right`
+;; * `bit-count`
 ;; :::
 
 ;; ### Logical Bitwise Operations
@@ -1143,11 +1143,20 @@
 ;; *   `bit-test`: Tests the state of a specific bit at the given index. Returns `true` if the bit is `1`, `false` if it is `0`.
 
 (utls/examples-note
-  (m/bit-set 2r1010 1) 
-  (m/bit-clear 2r1010 3)
-  (m/bit-flip 2r1010 2) 
-  (m/bit-test 2r1010 1) 
-  (m/bit-test 2r1010 0))
+ (m/bit-set 2r1010 1) 
+ (m/bit-clear 2r1010 3)
+ (m/bit-flip 2r1010 2) 
+ (m/bit-test 2r1010 1) 
+ (m/bit-test 2r1010 0))
+
+;; ### Bit count
+
+;; Count set bits in a `long` value.
+
+(utls/examples-note
+  (m/bit-count 0xff)
+  (m/bit-count 1)
+  (m/bit-count -1))
 
 ;; ## Floating point
 
@@ -1172,22 +1181,22 @@
 
 
 (utls/examples-note
-  (m/next-double 0.0)
-  (m/next-double -0.0)
-  (m/next-double 1.0)
-  (m/next-double 1.0 10)
-  (m/next-double 1.0e20)
-  (m/prev-double 0.0)
-  (m/prev-double 1.0)
-  (m/prev-double 1.0 10)
-  (m/prev-double 1.0e20)
-  (m/ulp 1.0)
-  (m/ulp 2.0)
-  (m/ulp 1.0e20)
-  (m/log2int 8.0)
-  (m/double-exponent 8.0)
-  (m/log2int 7.1)
-  (m/double-exponent 7.1))
+ (m/next-double 0.0)
+ (m/next-double -0.0)
+ (m/next-double 1.0)
+ (m/next-double 1.0 10)
+ (m/next-double 1.0e20)
+ (m/prev-double 0.0)
+ (m/prev-double 1.0)
+ (m/prev-double 1.0 10)
+ (m/prev-double 1.0e20)
+ (m/ulp 1.0)
+ (m/ulp 2.0)
+ (m/ulp 1.0e20)
+ (m/log2int 8.0)
+ (m/double-exponent 8.0)
+ (m/log2int 7.1)
+ (m/double-exponent 7.1))
 
 ;; Now let's convert `123.456` to internal representation.
 

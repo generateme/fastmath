@@ -520,6 +520,12 @@
    :inline-arities #{2}}
   [^long x ^long bit] (. PrimitiveMath (bitTest x bit)))
 
+(defn bit-count
+  "Count bits"
+  {:inline (fn [x] `(Long/bitCount (long ~x)))
+   :inline-arities #{1}}
+  ^long [^long x] (Long/bitCount x))
+
 (defn bit-shift-left
   "Shift bits left"
   {:inline (fn [x shift] `(. PrimitiveMath (shiftLeft (long ~x) (long ~shift))))
@@ -679,6 +685,7 @@
 (def ^{:const true :tag 'double :doc "$\\gamma$, Euler-Mascheroni constant"} GAMMA Gamma/GAMMA)
 (def ^{:const true :tag 'double :doc "Lanchos approximation of `g` constant"} LANCZOS_G Gamma/LANCZOS_G)
 (def ^{:const true :tag 'double :doc "Catalan G"} CATALAN_G 0.91596559417721901505)
+(def ^{:const true :tag 'double :doc "Value of $\\pi^2$"} PI2 (* Math/PI Math/PI))
 
 (defonce ^{:const true :tag 'double :doc "ulp(1)/2"}
   MACHINE-EPSILON (* 0.5 (FastMath/ulp 1.0)))

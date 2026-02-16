@@ -119,13 +119,6 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (to-polar [v1] "To polar coordinates (2d, 3d only), first element is length, the rest angle.")
   (from-polar [v1] "From polar coordinates (2d, 3d only)"))
 
-(defprotocol TransformProto
-  "Transformer functions."
-  (forward-1d [t xs] "Forward transform of sequence or array.")
-  (reverse-1d [t xs] "Reverse transform of sequence or array.")
-  (forward-2d [t xss] "Forward transform of sequence of sequences.")
-  (reverse-2d [t xss] "Reverse transform of sequence of sequences."))
-
 (defprotocol GridProto
   "Common grid conversion functions."
   (coords->cell [g coords] [g x y] "Converts 2d space coordinates to cell coordinates.")

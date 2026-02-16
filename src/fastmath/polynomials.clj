@@ -402,7 +402,10 @@
     2 (dec (* 2.0 x x))
     3 (* x (- (* 4.0 x x) 3.0))
     4 (let [x2 (* x x)] (inc (* 8.0 x2 (dec x2))))
-    (m/cos (* degree (m/acos x)))))
+    (cond
+      (m/> x 1.0) (m/cosh (m/* degree (m/acosh x)))
+      (m/< x -1.0) (m/* (m/fpow -1.0 degree) (m/cosh (m/* degree (m/acosh (m/- x)))))
+      :else (m/cos (* degree (m/acos x))))))
 
 (defn- chebyshev-T-ratio
   [^long degree]
@@ -430,14 +433,22 @@
     2 (m/dec (m/* 4.0 x x))
     3 (m/* 4.0 x (m/dec (m/* 2.0 x x)))
     4 (let [x2 (m/* x x)] (m/inc (m/- (m/* 16.0 x2 x2) (m/* 12.0 x2))))
-    (let [near-one (m/- 1.0 (m/* x x))
-          degree+ (inc degree)]
-      (if (m/< near-one (m// (m/sqrt 1.2E-8) (m/* degree+ degree+)))
-        (let [v (m/* degree+ (m/- 1.0 (m/* m/SIXTH degree (m/+ degree 2) near-one)))]
-          (if (and (m/odd? degree) (m/neg? x)) (m/- v) v))
-        (let [t (m/acos x)]
-          (m// (m/sin (m/* t degree+))
-               (m/sin t)))))))
+    (let [degree+ (inc degree)]
+      (cond
+        (m/> x 1.0) (let [t (m/acosh x)]
+                      (m// (m/sinh (m/* t degree+))
+                           (m/sinh t)))
+        (m/< x -1.0) (m/* (m/fpow -1.0 degree)
+                          (let [t (m/acosh (m/- x))]
+                            (m// (m/sinh (m/* t degree+))
+                                 (m/sinh t))))
+        :else (let [near-one (m/- 1.0 (m/* x x))]
+                (if (m/< near-one (m// (m/sqrt 1.2E-8) (m/* degree+ degree+)))
+                  (let [v (m/* degree+ (m/- 1.0 (m/* m/SIXTH degree (m/+ degree 2) near-one)))]
+                    (if (and (m/odd? degree) (m/neg? x)) (m/- v) v))
+                  (let [t (m/acos x)]
+                    (m// (m/sin (m/* t degree+))
+                         (m/sin t)))))))))
 
 (defn- chebyshev-U-ratio
   [^long degree]

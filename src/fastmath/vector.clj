@@ -1217,11 +1217,32 @@
               :discrete dist-discrete})
 
 (defn normalize
-  "Returns a new vector with the same direction as `v` but with a magnitude of 1.
+  "Returns a new vector of the same direction as `v` and magnitude of 1.
 
   If `v` is a zero vector (magnitude is zero), returns a zero vector of the same type."
   [v]
   (let [m (mag v)]
+    (if (m/zero? m)
+      (as-vec v)
+      (div v m))))
+
+(defn normalize-L2
+  "Alias for [[normalize]]."
+  [v]
+  (normalize v))
+
+(defn normalize-L1
+  "Returns a new vector normalized by L1/abs norm."
+  [v]
+  (let [s (sum (abs v))]
+    (if (m/zero? s)
+      (as-vec v)
+      (div v s))))
+
+(defn normalize-LInf
+  "Returns a new vector normalized by Linf/max norm."
+  [v]
+  (let [m (mx (abs v))]
     (if (m/zero? m)
       (as-vec v)
       (div v m))))

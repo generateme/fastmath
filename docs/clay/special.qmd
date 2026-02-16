@@ -1135,7 +1135,9 @@ Zeta function and related
 
 ### Riemann zeta
 
-$$\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}$$
+$$\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}\text{ for } s>1$$
+
+$$\zeta(s) = 2^s \pi^{s-1} \sin\left(\frac{\pi s}{2}\right) \Gamma(1-s) \zeta(1-s)$$
 
 ::: {.clay-image}
 
@@ -1547,6 +1549,17 @@ $$U(a,b,x) \sim x^{-a}{}_2F_0(a,b;;-\frac{1}{x})$$
 :::
 
 Complex variant accepts both complex numbers and real numbers as arguments.
+
+
+::: {.callout-note}
+## ERR
+```
+Feb 16, 2026 10:13:11 PM clojure.tools.logging$eval56375$fn__56378 invoke
+INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 17073, :objects-after 5450}]
+
+```
+:::
+
 
 ::: {.clay-image}
 

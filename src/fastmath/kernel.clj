@@ -8,7 +8,8 @@
   (:require [fastmath.core :as m]
             [fastmath.kernel.rbf :as rbf]
             [fastmath.kernel.vector :as vk]
-            [fastmath.kernel.density :as dens]))
+            [fastmath.kernel.density :as dens]
+            [fastmath.kernel.window :as win]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -238,11 +239,95 @@
    (let [p (if (number? bandwidth-or-params) {:bandwidth bandwidth-or-params} bandwidth-or-params)]
      (dens/kernel-density-ci kernel data p))))
 
+;; window
+
+(def ^:private windows
+  {:rectangular05 win/rectangular05
+   :rectangular win/rectangular
+   :triangular win/triangular
+   :parzen win/parzen
+   :b-spline win/b-spline
+   :welch win/welch
+   :connes win/connes
+   :parzen-algebraic win/parzen-algebraic
+   :singla-singh win/singla-singh
+   :sinc win/sinc
+   :fejer win/fejer
+   :de-la-vallee-poussin win/de-la-vallee-poussin
+   :lanczos win/lanczos
+   :hamming win/hamming
+   :hamming-exact win/hamming-exact
+   :hann win/hann
+   :raised-cosine win/raised-cosine
+   :webster-hamming win/webster-hamming
+   :power-of-cosine win/power-of-cosine
+   :raised-power-of-cosine win/raised-power-of-cosine
+   :parzen-cosine win/parzen-cosine
+   :bohman win/bohman
+   :trapezoid win/trapezoid
+   :tukey win/tukey
+   :bartlett-hann win/bartlett-hann
+   :blackman-harris-family win/blackman-harris-family
+   :blackman win/blackman
+   :blackman-exact win/blackman-exact
+   :blackman-harris win/blackman-harris
+   :blackman-harris-61db win/blackman-harris-61db
+   :blackman-harris-67db win/blackman-harris-67db
+   :blackman-harris-74db win/blackman-harris-74db
+   :blackman-harris-92db win/blackman-harris-92db
+   :nutall-3-1st win/nutall-3-1st
+   :nutall-3-3rd win/nutall-3-3rd
+   :blackman-nutall win/blackman-nutall
+   :nutall-1st win/nutall-1st
+   :nutall-3rd win/nutall-3rd
+   :nutall-5th win/nutall-5th
+   :mottaghi-kashtiban-shayesteh win/mottaghi-kashtiban-shayesteh
+   :low-sidelobe win/low-sidelobe
+   :exponential win/exponential
+   :hanning-poisson win/hanning-poisson
+   :gaussian win/gaussian
+   :parzen-exponential win/parzen-exponential
+   :dolph-chebyshev win/dolph-chebyshev
+   :taylor win/taylor
+   :cauchy win/cauchy
+   :parzen-geometric win/parzen-geometric
+   :kaiser-bessel win/kaiser-bessel
+   :cosh win/cosh
+   :avci-nacaroglu win/avci-nacaroglu
+   :knab win/knab
+   :ultraspherical win/ultraspherical
+   :saramaki win/saramaki
+   :legendre win/legendre
+   :bessel-I1 win/bessel-I1
+   :shayesteh-kashtiban win/shayesteh-kashtiban
+   :kaiser-bessel-derived win/kaiser-bessel-derived
+   :vorbis win/vorbis
+   :flat-top win/flat-top
+   :flat-top-3 win/flat-top-3})
+
+(defn window
+  "Returns tapering window coefficients.
+
+  Common parameters:
+
+  * `:symmetric?` - symmetric (default, `true`) or periodic window (`false`).
+  * `:normalize?` - for continuous window, if `true` (default) normalized to have maximum value `1.0`. When `false`, integral of the function is `1.0`."
+  ([window-name] (window window-name 256))
+  ([window-name ^long N] (window window-name N nil))
+  ([window-name ^long N {:keys [symmetric?]
+                         :or {symmetric? true}
+                         :as options}]
+   (if-let [wind (or (windows window-name)
+                     (when (fn? window-name) window-name))]
+     (if symmetric? (wind N options) (butlast (wind (m/inc N) options)))
+     (throw (ex-info "Unknown window." {:window-name window-name})))))
+
 ;;
 
-(def kernel-list ^{:doc "List of available kernels: vector, rbf and kde"}
+(def kernel-list ^{:doc "List of available kernels: vector, rbf, kde, windows (tapering)"}
   {:vector (sort (keys (methods kernel)))
    :rbf (sort (keys (methods rbf)))
-   :kde (sort (keys dens/kde-data))})
+   :kde (sort (keys dens/kde-data))
+   :window (sort (keys windows))})
 
 (m/unuse-primitive-operators)

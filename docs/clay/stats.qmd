@@ -2801,7 +2801,7 @@ Let's calculate the metrics for a sample confusion matrix `{:tp 10 :fn 2 :fp 5 :
  :cn 85.0,
  :cp 12.0,
  :dor 80.00000000000003,
- :f-beta #<Fn@4e3997ec fastmath.stats/binary_measures_all_calc[fn]>,
+ :f-beta #<Fn@6fce5e6d fastmath.stats/binary_measures_all_calc[fn]>,
  :f-measure 0.7407407407407408,
  :f1-score 0.7407407407407408,
  :fall-out 0.058823529411764705,
@@ -4344,12 +4344,12 @@ Using weights proportional to expected, they will be normalized
 {:alpha 0.05,
  :chi2 1.0000000000000009,
  :ci-sides :two-sided,
- :confidence-interval ([0.06708333333333337 0.2833333333333333]
-                       [0.1 0.31666666666666665]
-                       [0.05 0.23333333333333334]
-                       [0.1 0.3]
+ :confidence-interval ([0.08333333333333333 0.26666666666666666]
+                       [0.1 0.31625000000000036]
+                       [0.05 0.21666666666666667]
+                       [0.1 0.2833333333333333]
                        [0.06666666666666667 0.23333333333333334]
-                       [0.08333333333333333 0.26666666666666666]),
+                       [0.06666666666666667 0.26666666666666666]),
  :df 5,
  :estimate (0.16666666666666666
             0.2
@@ -4394,8 +4394,8 @@ This implicitly creates a histogram from `mpg` and compares its counts to the co
  :chi2 5.1376170090363775,
  :ci-sides :two-sided,
  :confidence-interval ([0.0625 0.34375]
-                       [0.21875 0.53125]
-                       [0.125 0.40625]
+                       [0.18828125000000007 0.5625]
+                       [0.09453125000000007 0.40625]
                        [0.0 0.15625]
                        [0.03125 0.25]),
  :df 4,
@@ -4438,10 +4438,8 @@ Independence test using a contingency table (from the previous section).
 {:alpha 0.05,
  :chi2 1.7774150400145103,
  :ci-sides :two-sided,
- :confidence-interval {[0 0] [0.34 0.52],
-                       [0 1] [0.04 0.15],
-                       [1 0] [0.35000000000000003 0.54],
-                       [1 1] [0.01 0.08975000000000023]},
+ :confidence-interval
+   {[0 0] [0.34 0.53], [0 1] [0.04 0.15], [1 0] [0.34 0.53], [1 1] [0.01 0.08]},
  :df 1,
  :estimate {[0 0] 0.43, [0 1] 0.09, [1 0] 0.44, [1 1] 0.04},
  :expected {[0 0] 45.24, [0 1] 6.76, [1 0] 41.76, [1 1] 6.24},
@@ -4472,12 +4470,12 @@ Independence test using a contingency table (from the previous section).
 {:alpha 0.05,
  :chi2 11.250923175273865,
  :ci-sides :two-sided,
- :confidence-interval {[0 0] [0.17 0.28500000000000003],
-                       [0 1] [0.135 0.24],
+ :confidence-interval {[0 0] [0.165 0.28500000000000003],
+                       [0 1] [0.14 0.24487500000000012],
                        [0 2] [0.09 0.185],
                        [1 0] [0.085 0.18],
-                       [1 1] [0.2 0.32],
-                       [1 2] [0.03 0.095]},
+                       [1 1] [0.2 0.31987500000000013],
+                       [1 2] [0.03 0.09]},
  :df 2,
  :estimate
    {[0 0] 0.225, [0 1] 0.19, [0 2] 0.135, [1 0] 0.13, [1 1] 0.26, [1 2] 0.06},
@@ -4585,13 +4583,13 @@ KS test comparing `setosa-sepal-length` data to an estimated empirical distribut
 
 ::: {.sourceClojure}
 ```clojure
-{:d 0.13185192366684859,
- :dn 0.1245340670177616,
- :dp 0.13185192366684859,
+{:d 0.17274913917014112,
+ :dn 0.12446527420527209,
+ :dp 0.17274913917014112,
  :n 15,
- :p-value 0.9262716269776513,
+ :p-value 0.6998612730252983,
  :sides :two-sided,
- :stat 0.13185192366684859}
+ :stat 0.17274913917014112}
 ```
 :::
 
@@ -4981,10 +4979,10 @@ MA(10) time series.
 
 ::: {.sourceClojure}
 ```clojure
-(stats/acf ma10 10) ;; => (1.0 0.3638011083720164 0.04902717131677417 0.055114112216811 0.13496648898680116 -0.2804048446670003 -0.3436391358475907 0.009430807138531493 -0.04270674498391679 -0.11850568409393161 -0.2069559730661006)
-(stats/pacf ma10 10) ;; => (0.0 0.3638011083720164 -0.09603433969710852 0.08201332439704515 0.1042686582206934 -0.4353043454219517 -0.08869766211576235 0.24497046188772478 -0.2444833069225488 0.12388597998111013 -0.2789755392372614)
-(stats/acf-ci ma10 10) ;; => {:ci 0.06197950323045615, :acf (1.0 0.3638011083720164 0.04902717131677417 0.055114112216811 0.13496648898680116 -0.2804048446670003 -0.3436391358475907 0.009430807138531493 -0.04270674498391679 -0.11850568409393161 -0.2069559730661006), :cis (0.06197950323045615 0.06970152471019092 0.06983387212408745 0.0700007647127977 0.07099337101577075 0.07512750859640503 0.08094073027584565 0.08094495127695986 0.0810314614826366 0.08169451358812832 0.08368428087527496)}
-(stats/pacf-ci ma10 10) ;; => {:ci 0.06197950323045615, :pacf (0.0 0.3638011083720164 -0.09603433969710852 0.08201332439704515 0.1042686582206934 -0.4353043454219517 -0.08869766211576235 0.24497046188772478 -0.2444833069225488 0.12388597998111013 -0.2789755392372614)}
+(stats/acf ma10 10) ;; => (1.0 0.33619656294056877 0.0029372501081578965 0.058126739465475516 0.15653403514310865 -0.21865793220603005 -0.32707910695022235 0.04920761088377064 0.00889584612302014 -0.08416168832487136 -0.172401846812242)
+(stats/pacf ma10 10) ;; => (0.0 0.33619656294056877 -0.12411992129182675 0.11307057448515621 0.11161366553158707 -0.36075688143806267 -0.13017457264636328 0.24664687345719782 -0.18447369888931514 0.09590806058947692 -0.17933052258442506)
+(stats/acf-ci ma10 10) ;; => {:ci 0.06197950323045615, :acf (1.0 0.33619656294056877 0.0029372501081578965 0.058126739465475516 0.15653403514310865 -0.21865793220603005 -0.32707910695022235 0.04920761088377064 0.00889584612302014 -0.08416168832487136 -0.172401846812242), :cis (0.06197950323045615 0.06862830776324719 0.06862879068105532 0.0688176526862776 0.07017209641924123 0.07274237643482152 0.07818809091510191 0.07830696580109575 0.07831084783697334 0.0786575390708142 0.08009596231568034)}
+(stats/pacf-ci ma10 10) ;; => {:ci 0.06197950323045615, :pacf (0.0 0.33619656294056877 -0.12411992129182675 0.11307057448515621 0.11161366553158707 -0.36075688143806267 -0.13017457264636328 0.24664687345719782 -0.18447369888931514 0.09590806058947692 -0.17933052258442506)}
 ```
 :::
 
@@ -5024,10 +5022,10 @@ ARFIMA(3,0.1,3)
 
 ::: {.sourceClojure}
 ```clojure
-(stats/acf arfima 10) ;; => (1.0 0.6851477029722385 0.2470413208825882 0.045366321309413926 0.011541977404928511 0.06473353922003451 0.12012241014450051 0.11967695391332152 0.07049246816567444 0.01614074377694586 -0.028840641458567785)
-(stats/pacf arfima 10) ;; => (0.0 0.6851477029722385 -0.41914347533225815 0.21112441923579608 -0.06455655031291316 0.13852872664365082 -0.00231896838728049 0.01781349334233096 -0.02446109065411 -0.0023084253980853384 -0.0484441073012181)
-(stats/acf-ci arfima 10) ;; => {:ci 0.06197950323045615, :acf (1.0 0.6851477029722385 0.2470413208825882 0.045366321309413926 0.011541977404928511 0.06473353922003451 0.12012241014450051 0.11967695391332152 0.07049246816567444 0.01614074377694586 -0.028840641458567785), :cis (0.06197950323045615 0.08630197379302951 0.08897704560027496 0.08906585698480919 0.08907160253156098 0.08925214347321424 0.08987104625971593 0.09048118095425733 0.09069190685804744 0.09070294124770988 0.09073816213807102)}
-(stats/pacf-ci arfima 10) ;; => {:ci 0.06197950323045615, :pacf (0.0 0.6851477029722385 -0.41914347533225815 0.21112441923579608 -0.06455655031291316 0.13852872664365082 -0.00231896838728049 0.01781349334233096 -0.02446109065411 -0.0023084253980853384 -0.0484441073012181)}
+(stats/acf arfima 10) ;; => (1.0 0.6861176217366238 0.22870237567499632 -0.022238751111833932 -0.08294099099427288 -0.031047478424538928 -0.010794197190779023 -0.021639118334529566 -0.025734108991208815 -0.012773481855862337 0.01547332479168554)
+(stats/pacf arfima 10) ;; => (0.0 0.6861176217366238 -0.45736116291679774 0.15023904068048416 -0.05695739823638948 0.08537673605837208 -0.12491268683136568 0.06026325962931099 -0.03090049884659861 0.03373381435278835 0.002492049950195255)
+(stats/acf-ci arfima 10) ;; => {:ci 0.06197950323045615, :acf (1.0 0.6861176217366238 0.22870237567499632 -0.022238751111833932 -0.08294099099427288 -0.031047478424538928 -0.010794197190779023 -0.021639118334529566 -0.025734108991208815 -0.012773481855862337 0.01547332479168554), :cis (0.06197950323045615 0.08636115494669623 0.08865721840267093 0.08867864486112421 0.0889761453582271 0.08901775306025056 0.08902278097591665 0.08904298439491258 0.08907155010929027 0.08907858664034204 0.08908891104410746)}
+(stats/pacf-ci arfima 10) ;; => {:ci 0.06197950323045615, :pacf (0.0 0.6861176217366238 -0.45736116291679774 0.15023904068048416 -0.05695739823638948 0.08537673605837208 -0.12491268683136568 0.06026325962931099 -0.03090049884659861 0.03373381435278835 0.002492049950195255)}
 ```
 :::
 
@@ -5423,7 +5421,7 @@ boot-mpg
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23438$fn$reify__23452 0x521b331f "fastmath.random$eval23438$fn$reify__23452@521b331f"], :samples ((30.4 21.4 18.1 21.4 26.0 19.2 22.8 33.9 30.4 15.0 22.8 33.9 16.4 30.4 21.4 21.0 21.5 21.4 14.7 19.2 21.0 18.1 15.2 18.1 16.4 26.0 14.7 18.1 21.4 26.0 21.4 19.7) (17.3 10.4 10.4 15.8 15.2 32.4 21.0 18.7 21.0 22.8 10.4 22.8 22.8 15.8 13.3 18.1 22.8 21.4 26.0 24.4 15.2 22.8 16.4 17.8 22.8 33.9 14.7 21.5 27.3 15.8 27.3 15.5))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23673$fn$reify__23687 0x5a88e1aa "fastmath.random$eval23673$fn$reify__23687@5a88e1aa"], :samples ((30.4 21.4 18.1 21.4 26.0 19.2 22.8 33.9 30.4 15.0 22.8 33.9 16.4 30.4 21.4 21.0 21.5 21.4 14.7 19.2 21.0 18.1 15.2 18.1 16.4 26.0 14.7 18.1 21.4 26.0 21.4 19.7) (17.3 10.4 10.4 15.8 15.2 32.4 21.0 18.7 21.0 22.8 10.4 22.8 22.8 15.8 13.3 18.1 22.8 21.4 26.0 24.4 15.2 22.8 16.4 17.8 22.8 33.9 14.7 21.5 27.3 15.8 27.3 15.5))}
 
 ```
 :::
@@ -5539,7 +5537,7 @@ boot-mpg-gaussian
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.stats.bootstrap$build_model$reify__97035 0x23b7594c "fastmath.stats.bootstrap$build_model$reify__97035@23b7594c"], :samples ((17.67627223078807 14.421273983904124 19.78342723622221 16.07408954450633 14.316546938062789 27.798521999070797 30.77113828285854 18.302867531466383 15.960192150840488 15.864337425252026 14.941708701743925 26.804072729895143 16.574983247993774 29.666351699518902 17.339228247855342 31.40604151247253 22.395701311599353 32.930311855428364 33.78970082261317 30.756294112465746 21.585229731828957 26.74839610035781 23.885829284382098 30.639999179485162 21.687174326300102 27.024298138739095 20.996894755344975 15.037358451484616 27.75666678457644 21.681540315448597 18.258506429956125 21.224613290413426) (15.557680619017212 21.857534902478296 17.173787452087744 21.772458916268835 30.79048018443092 14.401834047062994 29.91805443291403 23.84835433680409 14.97275468619625 15.831977361111361 12.75807146600363 29.478799801629 13.031673716237787 19.899937617191505 10.412081378944666 15.807822683372736 20.77838101998807 34.10293524709373 23.32318729591913 15.691254243065426 15.523902532414375 22.156319169598923 13.174824168708717 21.945995006952142 16.102210424539535 12.657658291816556 22.057155613451208 13.808960669738454 27.20472770459077 15.71216788846756 15.340973186948972 21.86783436275048))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.stats.bootstrap$build_model$reify__85570 0x28a1f14b "fastmath.stats.bootstrap$build_model$reify__85570@28a1f14b"], :samples ((17.67627223078807 14.421273983904124 19.78342723622221 16.07408954450633 14.316546938062789 27.798521999070797 30.77113828285854 18.302867531466383 15.960192150840488 15.864337425252026 14.941708701743925 26.804072729895143 16.574983247993774 29.666351699518902 17.339228247855342 31.40604151247253 22.395701311599353 32.930311855428364 33.78970082261317 30.756294112465746 21.585229731828957 26.74839610035781 23.885829284382098 30.639999179485162 21.687174326300102 27.024298138739095 20.996894755344975 15.037358451484616 27.75666678457644 21.681540315448597 18.258506429956125 21.224613290413426) (15.557680619017212 21.857534902478296 17.173787452087744 21.772458916268835 30.79048018443092 14.401834047062994 29.91805443291403 23.84835433680409 14.97275468619625 15.831977361111361 12.75807146600363 29.478799801629 13.031673716237787 19.899937617191505 10.412081378944666 15.807822683372736 20.77838101998807 34.10293524709373 23.32318729591913 15.691254243065426 15.523902532414375 22.156319169598923 13.174824168708717 21.945995006952142 16.102210424539535 12.657658291816556 22.057155613451208 13.808960669738454 27.20472770459077 15.71216788846756 15.340973186948972 21.86783436275048))}
 
 ```
 :::
@@ -5578,7 +5576,7 @@ boot-mpg-kde
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23330$fn$reify__23345 0x1acd63f2 "fastmath.random$eval23330$fn$reify__23345@1acd63f2"], :samples ((22.71166231862099 21.5726212037736 21.491485668355004 26.80401596363164 11.036961153662787 19.671900487652536 19.19056125766834 14.688160551611023 16.200514869948623 24.206628273571038 17.059352260277656 12.680303574909846 22.250524161111514 17.436331799861314 25.681192054352337 22.158874322682465 15.681506740965093 31.02194432899891 19.462270416888536 33.728606429171 20.47057953199578 18.524421058031663 14.958105453393623 14.69506556273741 17.17075042372946 28.295932367320248 13.829212961072399 24.535423656489346 27.104003147221192 18.25942212803992 27.780775341929104 17.920535668692203) (17.28666485268042 12.638080093377924 14.96857016839802 15.521948357649412 8.753906073248814 29.75592094916252 16.347734250920293 34.81462170357484 32.232667295931996 23.212608320127185 10.744533703230774 20.269444624032467 17.09041749905982 17.345419179032728 19.814015784485466 12.438328238728095 15.908886080593 16.16469970328886 20.98631911829065 13.02615677642237 26.615189109218168 12.421811034398033 14.480450305155927 17.91739680794446 16.56234614189687 20.673676874252102 22.65887627864257 28.21681519740815 11.93320510417053 20.01124443774085 18.687367694505223 14.7899861991578))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23565$fn$reify__23580 0x5494cbec "fastmath.random$eval23565$fn$reify__23580@5494cbec"], :samples ((22.71166231862099 21.5726212037736 21.491485668355004 26.80401596363164 11.036961153662787 19.671900487652536 19.19056125766834 14.688160551611023 16.200514869948623 24.206628273571038 17.059352260277656 12.680303574909846 22.250524161111514 17.436331799861314 25.681192054352337 22.158874322682465 15.681506740965093 31.02194432899891 19.462270416888536 33.728606429171 20.47057953199578 18.524421058031663 14.958105453393623 14.69506556273741 17.17075042372946 28.295932367320248 13.829212961072399 24.535423656489346 27.104003147221192 18.25942212803992 27.780775341929104 17.920535668692203) (17.28666485268042 12.638080093377924 14.96857016839802 15.521948357649412 8.753906073248814 29.75592094916252 16.347734250920293 34.81462170357484 32.232667295931996 23.212608320127185 10.744533703230774 20.269444624032467 17.09041749905982 17.345419179032728 19.814015784485466 12.438328238728095 15.908886080593 16.16469970328886 20.98631911829065 13.02615677642237 26.615189109218168 12.421811034398033 14.480450305155927 17.91739680794446 16.56234614189687 20.673676874252102 22.65887627864257 28.21681519740815 11.93320510417053 20.01124443774085 18.687367694505223 14.7899861991578))}
 
 ```
 :::
@@ -5616,7 +5614,7 @@ boot-mpg-antithetic
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23438$fn$reify__23452 0x6e4a5ac5 "fastmath.random$eval23438$fn$reify__23452@6e4a5ac5"], :samples ((32.4 30.4 21.0 21.5 30.4 21.5 18.7 21.0 21.5 30.4 17.8 14.7 14.3 30.4 15.8 27.3 30.4 15.0 18.7 24.4 15.2 19.2 19.2 14.7 21.4 22.8 21.0 21.0 17.8 24.4 21.5 15.8) (10.4 13.3 18.1 15.8 14.3 15.8 19.7 17.8 15.8 13.3 21.0 27.3 30.4 13.3 21.5 14.7 13.3 26.0 19.7 15.2 24.4 19.2 19.2 27.3 16.4 15.5 18.1 17.8 21.0 15.2 15.8 21.5))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23673$fn$reify__23687 0x1bb7cabe "fastmath.random$eval23673$fn$reify__23687@1bb7cabe"], :samples ((32.4 30.4 21.0 21.5 30.4 21.5 18.7 21.0 21.5 30.4 17.8 14.7 14.3 30.4 15.8 27.3 30.4 15.0 18.7 24.4 15.2 19.2 19.2 14.7 21.4 22.8 21.0 21.0 17.8 24.4 21.5 15.8) (10.4 13.3 18.1 15.8 14.3 15.8 19.7 17.8 15.8 13.3 21.0 27.3 30.4 13.3 21.5 14.7 13.3 26.0 19.7 15.2 24.4 19.2 19.2 27.3 16.4 15.5 18.1 17.8 21.0 15.2 15.8 21.5))}
 
 ```
 :::
@@ -5655,7 +5653,7 @@ boot-mpg-systematic
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23330$fn$reify__23345 0x5c7d4b44 "fastmath.random$eval23330$fn$reify__23345@5c7d4b44"], :samples ((7.606150009949184 10.075237326852191 11.413673809250726 12.393660938519448 13.192701804947857 13.883853741720861 14.504864771667009 15.077964794554122 15.617447530191576 16.133133483769825 16.632135165532496 17.11985976024962 17.600623861695897 18.078056714893737 18.555409167666742 19.035805185460838 19.52248025896614 20.019034758408264 20.529731011895603 21.059877586339276 21.61637474894962 22.208511540390997 22.849235227484154 23.55710632341578 24.359299899230063 25.29497771190241 26.413769034642186 27.750946296365644 29.27566787162567 30.9234351368731 32.76189217919069 35.34339715127126) (8.676493856283274 10.569043222796827 11.758115889203658 12.66764775786899 13.42609913122416 14.091376822965778 14.694919542040203 15.255831778482156 15.78668865312256 16.29628956322358 16.79110934287723 17.27614772688062 17.755459243241486 18.232521242300177 18.710516956755633 19.19258011239735 19.68203595423166 20.182661491418965 20.69901308885707 21.23684228788875 21.803719707918162 22.409951783548575 23.07004582120764 23.804977419951637 24.645471268906874 25.634844499022098 26.822677828928917 28.227959649536935 29.79700481962044 31.487573747147117 33.45546155582857 36.89510371835037))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23565$fn$reify__23580 0xa29fde5 "fastmath.random$eval23565$fn$reify__23580@a29fde5"], :samples ((7.606150009949184 10.075237326852191 11.413673809250726 12.393660938519448 13.192701804947857 13.883853741720861 14.504864771667009 15.077964794554122 15.617447530191576 16.133133483769825 16.632135165532496 17.11985976024962 17.600623861695897 18.078056714893737 18.555409167666742 19.035805185460838 19.52248025896614 20.019034758408264 20.529731011895603 21.059877586339276 21.61637474894962 22.208511540390997 22.849235227484154 23.55710632341578 24.359299899230063 25.29497771190241 26.413769034642186 27.750946296365644 29.27566787162567 30.9234351368731 32.76189217919069 35.34339715127126) (8.676493856283274 10.569043222796827 11.758115889203658 12.66764775786899 13.42609913122416 14.091376822965778 14.694919542040203 15.255831778482156 15.78668865312256 16.29628956322358 16.79110934287723 17.27614772688062 17.755459243241486 18.232521242300177 18.710516956755633 19.19258011239735 19.68203595423166 20.182661491418965 20.69901308885707 21.23684228788875 21.803719707918162 22.409951783548575 23.07004582120764 23.804977419951637 24.645471268906874 25.634844499022098 26.822677828928917 28.227959649536935 29.79700481962044 31.487573747147117 33.45546155582857 36.89510371835037))}
 
 ```
 :::
@@ -5694,7 +5692,7 @@ boot-mpg-stratified
 
 ::: {.printedClojure}
 ```clojure
-{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23330$fn$reify__23345 0x4c277d8 "fastmath.random$eval23330$fn$reify__23345@4c277d8"], :samples ((7.246091436112749 9.941275520026366 11.32406615601483 12.32370249682059 13.133759200629084 13.831823291372558 14.45745740742365 15.03376742295543 15.575522401157436 16.092810948228664 16.59292399884376 17.081376183935813 17.56255414339351 18.04012960877534 18.51737397306466 18.99741250071758 19.483462705173242 19.97908634934658 20.48847962773443 21.016853572877427 21.570950008680434 22.159839800707662 22.796108151907163 23.497783186703003 24.291216370254393 25.21453611919852 26.316973452729822 27.636791537277393 29.149395484719662 30.78779806206383 32.6021090153638 35.06525265475502) (7.015778582858773 9.864058413269005 11.273191811589978 12.284239339511783 13.100626827648787 13.802643523386974 14.43091808088285 15.00905552836559 15.552100855151096 16.070304383761837 16.57105020709445 17.059919878505468 17.541338233013303 18.01900226855315 18.49619503554834 18.97604305379609 19.461755664336977 19.956872139879 20.465554298720164 20.992957541911824 21.54574327611805 22.13285599843595 22.766691619155246 23.4649857783239 24.253644833601463 25.170221950551866 26.263670285499295 27.573746699267982 29.079371999052828 30.712664195652117 32.51454108242075 34.92000288227524))}
+{:data (21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26 30.4 15.8 19.7 15 21.4), :model #object[fastmath.random$eval23565$fn$reify__23580 0x29951c53 "fastmath.random$eval23565$fn$reify__23580@29951c53"], :samples ((7.246091436112749 9.941275520026366 11.32406615601483 12.32370249682059 13.133759200629084 13.831823291372558 14.45745740742365 15.03376742295543 15.575522401157436 16.092810948228664 16.59292399884376 17.081376183935813 17.56255414339351 18.04012960877534 18.51737397306466 18.99741250071758 19.483462705173242 19.97908634934658 20.48847962773443 21.016853572877427 21.570950008680434 22.159839800707662 22.796108151907163 23.497783186703003 24.291216370254393 25.21453611919852 26.316973452729822 27.636791537277393 29.149395484719662 30.78779806206383 32.6021090153638 35.06525265475502) (7.015778582858773 9.864058413269005 11.273191811589978 12.284239339511783 13.100626827648787 13.802643523386974 14.43091808088285 15.00905552836559 15.552100855151096 16.070304383761837 16.57105020709445 17.059919878505468 17.541338233013303 18.01900226855315 18.49619503554834 18.97604305379609 19.461755664336977 19.956872139879 20.465554298720164 20.992957541911824 21.54574327611805 22.13285599843595 22.766691619155246 23.4649857783239 24.253644833601463 25.170221950551866 26.263670285499295 27.573746699267982 29.079371999052828 30.712664195652117 32.51454108242075 34.92000288227524))}
 
 ```
 :::
@@ -5808,27 +5806,27 @@ Bootstrap can be also called on categorical data.
 ```clojure
 {:data [:cat :dog :cat :dog :dog],
  :model
-   #object[fastmath.random$eval23463$fn$reify__23467 0x3f0ba778 "fastmath.random$eval23463$fn$reify__23467@3f0ba778"],
+   #object[fastmath.random$eval23698$fn$reify__23702 0x7e613e53 "fastmath.random$eval23698$fn$reify__23702@7e613e53"],
  :samples ((:cat :dog
                  :cat :dog
                  :cat :cat
                  :dog :dog
+                 :dog :cat
+                 :dog :cat
+                 :dog :cat
                  :cat :dog
-                 :cat :dog
-                 :cat :cat
                  :dog :dog
-                 :dog :dog
-                 :cat :cat)
-            (:cat :dog
-                  :dog :cat
+                 :dog :cat)
+            (:dog :dog
                   :dog :dog
-                  :dog :dog
-                  :dog :dog
-                  :cat :dog
+                  :cat :cat
                   :dog :cat
                   :cat :dog
-                  :cat :dog
-                  :cat :cat))}
+                  :dog :dog
+                  :dog :cat
+                  :cat :cat
+                  :cat :cat
+                  :cat :dog))}
 ```
 :::
 
@@ -5887,7 +5885,7 @@ Example (usually called internally by `bootstrap`):
 
 ::: {.sourceClojure}
 ```clojure
-{:bias -0.021881249999999852,
+{:bias 0.005259375000001398,
  :data (21
         21
         22.8
@@ -5920,15 +5918,15 @@ Example (usually called internally by `bootstrap`):
         19.7
         15
         21.4),
- :mean 20.06874375,
- :median 20.0625,
+ :mean 20.095884375,
+ :median 20.0984375,
  :model
-   #object[fastmath.random$eval23438$fn$reify__23452 0x1d043565 "fastmath.random$eval23438$fn$reify__23452@1d043565"],
- :sem 0.1899595246275616,
- :statistic #<Fn@4fad5ddf fastmath.stats/mean>,
- :stddev 1.0745733441209744,
+   #object[fastmath.random$eval23673$fn$reify__23687 0x740130be "fastmath.random$eval23673$fn$reify__23687@740130be"],
+ :sem 0.18725980835556755,
+ :statistic #<Fn@52e620e8 fastmath.stats/mean>,
+ :stddev 1.0593014426553211,
  :t0 20.090625,
- :variance 1.1547078718953339}
+ :variance 1.1221195464116447}
 ```
 :::
 
@@ -6088,7 +6086,7 @@ Namespace provides a comprehensive collection of functions for
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4151">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4151">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6104,7 +6102,7 @@ Count equal values in both seqs. Alias for [count==](#LOS-count==)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2065">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2065">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6138,7 +6136,7 @@ Calculates the L1 distance (Manhattan or City Block distance) between two sequen
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2067">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2067">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6173,7 +6171,7 @@ Calculates the L2 distance (Euclidean distance) between two sequences or a seque
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2112">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2112">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6208,7 +6206,7 @@ Calculates the Squared Euclidean distance between two sequences or a sequence an
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2089">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2089">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6242,7 +6240,7 @@ Calculates the L-infinity distance (Chebyshev distance) between two sequences or
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2135">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2135">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6278,7 +6276,7 @@ Calculates the Autocorrelation Function (ACF) for a given time series `data`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4492">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4492">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6326,7 +6324,7 @@ Calculates the Autocorrelation Function (ACF) for a time series and provides app
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4592">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4592">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6382,7 +6380,7 @@ Performs the Anderson-Darling (AD) test for goodness-of-fit.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5957">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5957">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6411,7 +6409,7 @@ Lower and upper adjacent values (LAV and UAV).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L772">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L772">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6444,7 +6442,7 @@ Calculates the Vargha-Delaney A measure for two independent samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2875">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2875">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6511,7 +6509,7 @@ Calculates a selected subset of common evaluation metrics for binary classificat
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4246">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4246">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6611,7 +6609,7 @@ Calculates a comprehensive set of evaluation metrics for binary classification r
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4153">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6671,7 +6669,7 @@ Calculates a confidence interval for a binomial proportion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4699">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4699">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6685,7 +6683,7 @@ Calculates a confidence interval for a binomial proportion.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4696">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4696">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6746,7 +6744,7 @@ Performs an exact test of a simple null hypothesis about the probability of succ
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5164">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5164">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6797,7 +6795,7 @@ Performs the Bonett-Seier test for normality based on Geary's 'g' kurtosis measu
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5116">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5116">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6821,7 +6819,7 @@ Generate set of samples of given size from provided data.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1435">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1435">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6849,7 +6847,7 @@ Bootstrap method to calculate confidence interval.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1414">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1414">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6885,7 +6883,7 @@ Finds the optimal lambda (λ) parameter for the Box-Cox transformation of a data
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6370">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6370">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6921,7 +6919,7 @@ Applies Box-Cox transformation to a data.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6394">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6394">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6951,7 +6949,7 @@ Brown-Forsythe test for homogeneity of variances.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5880">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5880">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7019,7 +7017,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5736">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5736">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7040,7 +7038,7 @@ T-student based confidence interval for given data. Alpha value defaults to 0.05
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1399">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1399">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7079,7 +7077,7 @@ Calculates Cliff's Delta (δ), a non-parametric effect size measure for assessin
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2844">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2844">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7126,7 +7124,7 @@ Generates a matrix of pairwise coefficients from a sequence of sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1712">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1712">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7181,7 +7179,7 @@ Calculate Cohen's d effect size between two groups.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2572">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2572">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7230,7 +7228,7 @@ Calculates Cohen's d effect size corrected for bias in small sample sizes.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2621">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2621">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7278,7 +7276,7 @@ Calculates Cohen's f, a measure of effect size derived as the square root of Coh
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3343">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3343">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7329,7 +7327,7 @@ Calculates Cohen's f², a measure of effect size often used in ANOVA or regressi
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3299">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3299">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7389,7 +7387,7 @@ Calculates Cohen's Kappa coefficient (κ), a statistic that measures inter-rater
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3830">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3830">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7426,7 +7424,7 @@ Compares two correlation coefficients by calculating the difference between thei
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3377">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3377">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7470,7 +7468,7 @@ Calculates a non-parametric measure of difference or separation between two samp
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3093">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3093">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7514,7 +7512,7 @@ Calculates Cohen's U1, a measure of non-overlap between two distributions assume
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2975">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2975">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7545,7 +7543,7 @@ Calculates a measure of overlap between two samples, referred to as Cohen's U2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3067">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3067">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7582,7 +7580,7 @@ Calculates Cohen's U2, a measure of overlap between two distributions assumed to
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3007">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3007">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7631,7 +7629,7 @@ Calculates Cohen's U3 for two samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3125">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3125">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7682,7 +7680,7 @@ Calculates Cohen's U3, a measure of overlap between two distributions assumed to
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3030">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3030">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7734,7 +7732,7 @@ Calculates Cohen's W effect size for the association between two nominal
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3749">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3749">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7798,7 +7796,7 @@ Creates a 2x2 confusion matrix for binary classification.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4098">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4098">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7856,7 +7854,7 @@ Calculates a subset of common statistics and measures for a 2x2 contingency tabl
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4438">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4438">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7918,7 +7916,7 @@ Calculates a comprehensive set of statistics and measures for a 2x2 contingency 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4386">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4386">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7954,7 +7952,7 @@ Creates a frequency map (contingency table) from one or more sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3477">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3477">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7996,7 +7994,7 @@ Calculates marginal sums (row and column totals) and the grand total from a cont
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3543">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3543">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8034,7 +8032,7 @@ Calculates the correlation coefficient between two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1590">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1590">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8074,7 +8072,7 @@ Generates a matrix of pairwise correlation coefficients from a sequence of seque
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1759">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1759">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8108,7 +8106,7 @@ Count equal values in both seqs. Same as [L0](#LOS-L0)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2043">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2043">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8140,7 +8138,7 @@ Covariance of two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1567">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1567">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8175,7 +8173,7 @@ Generates a matrix of pairwise covariance coefficients from a sequence of sequen
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1789">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1789">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8221,7 +8219,7 @@ Calculates Cramer's C, a measure of association (effect size) between two
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3633">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3633">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8268,7 +8266,7 @@ Calculates Cramer's V, a measure of association (effect size) between two
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3667">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3667">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8319,7 +8317,7 @@ Calculates the **corrected Cramer's V**, a measure of association (effect size)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3703">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3703">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8387,7 +8385,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5766">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5766">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8405,7 +8403,7 @@ Subtract mean from a sequence
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1550">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1550">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8444,7 +8442,7 @@ Various PDF distance between two histograms (frequencies) or probabilities.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2379">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2379">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8479,7 +8477,7 @@ Calculates the Durbin-Watson statistic (d) for a sequence of residuals.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3965">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3965">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8525,7 +8523,7 @@ Calculates Epsilon squared (ε²), an effect size measure for the simple linear 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3264">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3264">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8548,7 +8546,7 @@ Estimate number of bins for histogram.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2204">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2204">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8564,7 +8562,7 @@ List of estimation strategies for [percentile](#LOS-percentile)/[quantile](#LOS-
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L87">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L87">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8601,7 +8599,7 @@ Calculates a measure of association between two sequences, named `eta-sq` (Eta-s
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3207">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3207">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8641,7 +8639,7 @@ Calculate the tau-th expectile of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1122">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1122">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8660,7 +8658,7 @@ Return extent (min, max, mean) values from sequence. Mean is optional (default: 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L821">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L821">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8711,7 +8709,7 @@ Performs an F-test to compare the variances of two independent samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5544">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5544">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8756,7 +8754,7 @@ Performs the Fligner-Killeen test for homogeneity of variances across two or mor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5896">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5896">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8824,7 +8822,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5760">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5760">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8858,7 +8856,7 @@ Calculates the geometric mean of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L397">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L397">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8896,7 +8894,7 @@ Calculates Glass's delta (Δ), an effect size measure for the difference
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2754">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2754">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8928,7 +8926,7 @@ Calculates the harmonic mean of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L417">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L417">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8966,7 +8964,7 @@ Calculates Hedges's g effect size for comparing the means of two independent gro
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2662">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2662">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9010,7 +9008,7 @@ Calculates a less biased estimate of Hedges's g effect size for comparing the me
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2718">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2718">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9054,7 +9052,7 @@ Calculates a small-sample bias-corrected effect size for comparing the means
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2687">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2687">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9099,7 +9097,7 @@ Calculate histogram.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2281">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2281">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9120,7 +9118,7 @@ Higher Posterior Density interval + median.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L743">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L743">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9139,7 +9137,7 @@ Returns LIF, UIF and median
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L799">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L799">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9158,7 +9156,7 @@ Interquartile range.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L765">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L765">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9217,7 +9215,7 @@ Performs the Jarque-Bera goodness-of-fit test to determine if sample data
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5062">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5062">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9238,7 +9236,7 @@ Jensen-Shannon divergence of two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1704">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1704">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9276,7 +9274,7 @@ Calculates Kendall's rank correlation coefficient (Kendall's Tau) between two se
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1670">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1670">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9313,7 +9311,7 @@ Performs the Kruskal-Wallis H-test (rank sum test) for independent samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6248">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6248">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9373,7 +9371,7 @@ Performs the one-sample Kolmogorov-Smirnov (KS) test.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6031">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6031">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9432,7 +9430,7 @@ Performs the two-sample Kolmogorov-Smirnov (KS) test.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6173">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6173">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9453,7 +9451,7 @@ Kullback-Leibler divergence of two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1695">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1695">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9515,7 +9513,7 @@ Calculates the kurtosis of a sequence, a measure of the 'tailedness' or 'peakedn
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1323">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1323">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9569,7 +9567,7 @@ Performs a test for normality based on sample kurtosis.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4950">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4950">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9595,7 +9593,7 @@ Calculates L-moment, TL-moment (trimmed) or (T)L-moment ratios.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1063">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1063">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9613,7 +9611,7 @@ Coefficient of L-variation, L-CV
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1101">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1101">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9662,7 +9660,7 @@ Performs Levene's test for homogeneity of variances across two or more groups.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5838">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5838">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9678,7 +9676,7 @@ Alias for [median-absolute-deviation](#LOS-median-absolute-deviation)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L622">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L622">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9696,7 +9694,7 @@ Alias for [median-absolute-deviation](#LOS-median-absolute-deviation)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L690">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L690">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9736,7 +9734,7 @@ Calculates the Mean Absolute Error (MAE) between two sequences or a sequence and
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1838">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1838">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9779,7 +9777,7 @@ Calculates the Mean Absolute Percentage Error (MAPE) between two sequences
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1866">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1866">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9797,7 +9795,7 @@ Finds the maximum value in a sequence of numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L80">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L80">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9857,7 +9855,7 @@ Calculates the Matthews Correlation Coefficient (MCC), also known as the Phi coe
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3577">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3577">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9895,7 +9893,7 @@ Calculates the Mean Error (ME) between two sequences or a sequence and constant 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1812">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1812">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9926,7 +9924,7 @@ Calculates the arithmetic mean (average) of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L380">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L380">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9966,7 +9964,7 @@ Calculates the Mean Absolute Deviation of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L625">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L625">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10008,7 +10006,7 @@ Calculates the ratio of the mean of `group1` to the mean of `group2`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2780">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2780">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10044,7 +10042,7 @@ Calculates a bias-corrected ratio of the mean of `group1` to the mean of `group2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2821">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2821">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10079,7 +10077,7 @@ Calculates median of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L352">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L352">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10097,7 +10095,7 @@ Median of three values. See [median](#LOS-median).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L375">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L375">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10140,7 +10138,7 @@ Calculates the Median Absolute Deviation (MAD) of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L586">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L586">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10158,7 +10156,7 @@ Finds the minimum value in a sequence of numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L73">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L73">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10226,7 +10224,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5748">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5748">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10272,7 +10270,7 @@ Find the value that appears most often in a dataset `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L993">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L993">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10317,7 +10315,7 @@ Find the values that appear most often in a dataset `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L941">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L941">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10339,7 +10337,7 @@ Applies a modified power transformation (Bickel and Doksum) to a data.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6510">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6510">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10366,7 +10364,7 @@ Calculate moment (central or/and absolute) of given order (default: 2).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1028">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1028">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10409,7 +10407,7 @@ Calculates the Mean Squared Error (MSE) between two sequences or a sequence and 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1984">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1984">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10477,7 +10475,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5742">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5742">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10545,7 +10543,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5754">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5754">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10600,7 +10598,7 @@ Performs the D'Agostino-Pearson K² omnibus test for normality.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5012">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5012">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10639,7 +10637,7 @@ Calculates Omega squared (ω²), an effect size measure for the simple linear re
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3231">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3231">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10685,7 +10683,7 @@ Performs a one-way analysis of variance (ANOVA) test.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5804">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5804">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10704,7 +10702,7 @@ Returns LOF, UOF and median
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L807">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L807">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10733,7 +10731,7 @@ Find outliers defined as values outside inner fences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L830">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L830">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10769,7 +10767,7 @@ Calculates the overlapping index between the estimated distributions of two samp
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2938">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2938">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10819,7 +10817,7 @@ Calculates the p-value for a given test statistic based on a reference probabili
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4854">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4854">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10849,7 +10847,7 @@ Calculates the Partial Autocorrelation Function (PACF) for a given time series `
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4525">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4525">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10892,7 +10890,7 @@ Calculates the Partial Autocorrelation Function (PACF) for a time series and pro
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4559">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4559">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10928,7 +10926,7 @@ Calculates the Pearson product-moment correlation coefficient between two sequen
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1647">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1647">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10951,7 +10949,7 @@ Calculates the Pearson `r` correlation coefficient between two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3164">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3164">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10989,7 +10987,7 @@ Calculates the p-th percentile of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L141">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L141">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11015,7 +11013,7 @@ Return bias corrected percentile range and mean for bootstrap samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4681">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4681">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11043,7 +11041,7 @@ Return bias corrected percentile range and mean for bootstrap samples. Also acco
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4662">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4662">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11066,7 +11064,7 @@ Return percentile range and median.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L693">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L693">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11104,7 +11102,7 @@ Calculates the sequence of p-th percentiles of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L172">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L172">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11126,7 +11124,7 @@ Returns PI as a map, quantile intervals based on interval size.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L719">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L719">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11148,7 +11146,7 @@ Returns PI extent, quantile intervals based on interval size + median.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L733">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L733">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11169,7 +11167,7 @@ Calculate pooled median absolute deviation for samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2560">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2560">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11194,7 +11192,7 @@ Calculate pooled standard deviation for samples and method
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2549">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2549">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11218,7 +11216,7 @@ Calculate pooled variance for samples and method.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2531">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2531">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11239,7 +11237,7 @@ Calculate population standard deviation of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L530">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L530">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11260,7 +11258,7 @@ Calculate population variance of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L494">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L494">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11278,7 +11276,7 @@ Calculate population weighted standard deviation of `vs`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L539">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L539">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11296,7 +11294,7 @@ Calculate weighted population variance of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L503">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L503">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11362,7 +11360,7 @@ Performs a power divergence test, which encompasses several common statistical t
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5667">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5667">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11384,7 +11382,7 @@ Applies a power transformation to a data.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6501">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6501">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11430,7 +11428,7 @@ Calculates the generalized power mean (also known as the Hölder mean) of a sequ
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L435">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L435">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11475,7 +11473,7 @@ Peak Signal-to-Noise Ratio (PSNR).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2157">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2157">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11512,7 +11510,7 @@ Calculates the q-th quantile of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L200">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L200">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11535,7 +11533,7 @@ Return quantile range and median.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L706">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L706">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11574,7 +11572,7 @@ Calculates the sequence of q-th quantiles of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L225">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L225">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11641,7 +11639,7 @@ Calculates the Coefficient of Determination ($R^2$) or adjusted version between 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1924">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1924">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11680,7 +11678,7 @@ Calculates the Coefficient of Determination ($R^2$) between two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3174">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3174">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11726,7 +11724,7 @@ Calculates Rank Epsilon-squared (ε²), a measure of effect size for the Kruskal
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3441">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3441">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11771,7 +11769,7 @@ Calculates the Rank Eta-squared (η²), an effect size measure for the Kruskal-W
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3407">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3407">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11800,7 +11798,7 @@ Remove outliers defined as values outside inner fences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L856">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L856">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11819,7 +11817,7 @@ Lineary rascale data to desired range, [0,1] by default
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1557">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1557">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11860,7 +11858,7 @@ Calculates the Root Mean Squared Error (RMSE) between two sequences or a sequenc
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2015">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2015">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11881,7 +11879,7 @@ Normalize samples to have median = 0 and MAD = 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1536">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1536">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11921,7 +11919,7 @@ Converts a sequence of sequences (representing rows of counts) into a map-based 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3502">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3502">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11959,7 +11957,7 @@ Calculates the Residual Sum of Squares (RSS) between two sequences or a sequence
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1898">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1898">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11975,7 +11973,7 @@ Calculates the Residual Sum of Squares (RSS) between two sequences or a sequence
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1059">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1059">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12013,7 +12011,7 @@ Calculates the Standard Error of the Mean (SEM) for a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L653">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L653">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12031,7 +12029,7 @@ Calculates the Standard Error of the Mean (SEM) for a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L691">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L691">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12068,7 +12066,7 @@ Various PDF similarities between two histograms (frequencies) or probabilities.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2482">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2482">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12128,7 +12126,7 @@ Calculate skewness from sequence, a measure of the asymmetry of the
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1223">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1223">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12181,7 +12179,7 @@ Performs the D'Agostino test for normality based on sample skewness.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L4896">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L4896">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12199,7 +12197,7 @@ Width of the sample, maximum value minus minimum value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L815">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L815">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12237,7 +12235,7 @@ Calculates Spearman's rank correlation coefficient between two sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1622">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1622">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12255,7 +12253,7 @@ Normalize samples to have mean = 0 and stddev = 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1531">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1531">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12317,7 +12315,7 @@ Calculates a comprehensive set of descriptive statistics for a numerical dataset
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1446">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1446">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12338,7 +12336,7 @@ Calculate standard deviation of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L544">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L544">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12356,7 +12354,7 @@ Calculate standard deviation of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L689">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L689">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12377,7 +12375,7 @@ Sum of all `vs` values.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L124">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L124">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12434,7 +12432,7 @@ Performs a one-sample Student's t-test to compare the sample mean against a hypo
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5269">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5269">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12502,7 +12500,7 @@ Performs a two-sample Student's t-test to compare the means of two samples.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5409">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5409">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12523,7 +12521,7 @@ Return trimmed data. Trim is done by using quantiles, by default is set to 0.2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1172">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1172">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12543,7 +12541,7 @@ Trim data below given quanitle, default: 0.2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1188">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1188">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12563,7 +12561,7 @@ Trim data above given quanitle, default: 0.2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1196">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1196">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12615,7 +12613,7 @@ Calculates Tschuprow's T, a measure of association between two nominal variables
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3789">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3789">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12631,7 +12629,7 @@ Calculates Tschuprow's T, a measure of association between two nominal variables
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5318">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5318">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12647,7 +12645,7 @@ Calculates Tschuprow's T, a measure of association between two nominal variables
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5479">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5479">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12668,7 +12666,7 @@ Calculate variance of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L512">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L512">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12707,7 +12705,7 @@ Calculates the coefficient of variation (CV) for a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L558">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L558">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12780,7 +12778,7 @@ Calculates Cohen's weighted Kappa coefficient (κ) for a contingency table,
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L3890">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L3890">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12801,7 +12799,7 @@ Return winsorized data. Trim is done by using quantiles, by default is set to 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L1157">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L1157">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12822,7 +12820,7 @@ Weighted mean
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L487">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L487">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12857,7 +12855,7 @@ Calculates median of a sequence `vs` with corresponding weights `ws`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L331">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L331">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12897,7 +12895,7 @@ Returns the primary weighted mode of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L912">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L912">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12934,7 +12932,7 @@ Returns the weighted mode(s) of a sequence `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L881">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L881">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -12977,7 +12975,7 @@ Calculates the Wilcoxon-Mann-Whitney odds (often denoted as ψ) for two independ
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L2899">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L2899">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13019,7 +13017,7 @@ Calculates the q-th weighted quantile of a sequence `vs` with corresponding weig
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L270">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L270">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13062,7 +13060,7 @@ Calculates the sequence of q-th weighted quantiles of a sequence `vs` with corre
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L300">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L300">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13080,7 +13078,7 @@ Calculate weighted (unbiased) standard deviation of `vs`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L553">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L553">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13098,7 +13096,7 @@ Calculate weighted (unbiased) variance of `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L521">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L521">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13118,7 +13116,7 @@ Find optimal `lambda` parameter for Yeo-Johnson tranformation using maximum log 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6463">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6463">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13154,7 +13152,7 @@ Applies the Yeo-Johnson transformation to a dataset.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L6471">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L6471">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13206,7 +13204,7 @@ Performs a one-sample Z-test to compare the sample mean against a hypothesized p
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5320">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5320">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -13265,7 +13263,7 @@ Performs a two-sample Z-test to compare the means of two independent or paired s
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/tsl/clojure/fastmath/src/fastmath/stats.clj#L5481">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/stats.clj#L5481">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

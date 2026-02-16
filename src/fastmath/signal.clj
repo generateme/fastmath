@@ -168,7 +168,10 @@
             [clojure.java.io :refer [file make-parents output-stream input-stream]]
             [fastmath.vector :as v]
             [fastmath.random :as r]
-            [fastmath.interpolation.linear :as linear-interp])
+            [fastmath.interpolation.linear :as linear-interp]
+            [fastmath.transform :as trans]
+            [fastmath.kernel :as ker]
+            [fastmath.stats :as stats])
   (:import [fastmath.vector Vec3]
            [clojure.lang IFn]
            [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
@@ -268,7 +271,7 @@
 (defn db->linear
   "DB to Linear"
   ^double [^double x]
-  (m/pow 10.0 (/ x 20.0)))
+  (m/exp10 (/ x 20.0)))
 
 (defn linear->db
   "Linear to DB"
@@ -1049,3 +1052,230 @@
      (partial perform-convolution coeffs fc))))
 
 (m/unuse-primitive-operators)
+
+;; https://appliedacousticschalmers.github.io/scaling-of-the-dft/AES2020_eBrief/
+
+(defn fft-energy
+  "Returns the energy spectrum (magnitude squared) of a transformed signal.
+
+  Computes the energy for each frequency bin in a signal's Fourier representation. For real-valued signals, this function automatically accounts for energy conservation in single-sided spectra by doubling the energy of all bins except the DC component and the Nyquist frequency.
+
+  Input parameters:
+
+  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
+  * `options` - A map of configuration keys to override or provide metadata:
+    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
+    * `:even?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly identify the Nyquist bin).
+
+  Output:
+  Returns a sequence of doubles representing the energy (squared magnitude) for each frequency bin."
+  [txs options]
+  (let [{:keys [kind even?] :or {kind :real even? true}} (merge (::fft (meta txs)) options)]
+    (if (= :complex kind)
+      (map v/magsq txs)
+      (let [len- (m/dec (count txs))]
+        (map-indexed (fn [^long id v]
+                       (if (or (m/zero? id) (and even? (m/== len- id)))
+                         (v/magsq v)
+                         (m/* 2.0 (v/magsq v)))) txs)))))
+
+(defn fft-magnitude
+  "Returns the magnitude spectrum of a transformed signal.
+
+  Computes the absolute value (magnitude) for each frequency bin in a signal's Fourier representation. For real-valued signals, this function accounts for the single-sided spectrum representation by scaling coefficients (except DC and Nyquist) to ensure the magnitude correctly reflects the amplitude of the signal components.
+
+  Input parameters:
+
+  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
+  * `options` - A map of configuration keys to override or provide metadata:
+    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
+    * `:even?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly identify the Nyquist bin).
+
+  Output:
+  Returns a sequence of doubles representing the magnitude (absolute value) for each frequency bin."
+  [txs options]
+  (-> txs (fft-energy options) (v/mult 2.0) v/sqrt))
+
+(defn- fft-infer-N
+  ^long [txs options]
+  (let [options (merge (::fft (meta txs)) options)
+        {:keys [kind even?] :or {kind :real even? true}} options
+        N (count txs)]
+    (if (= :real kind)
+      (if even? (m/* 2.0 (m/dec N)) (m/+ N (m/dec N)))
+      N)))
+
+(defn fft-amplitude
+  "Returns the amplitude spectrum of a transformed signal.
+
+  Computes the peak amplitude for each frequency bin by normalizing the magnitude spectrum. In Fourier analysis, raw FFT coefficients are proportional to the signal length $N$; this function divides the magnitudes by $N$ (and accounts for single-sided scaling in real signals) so that the resulting values correspond to the actual amplitudes of the sinusoidal components in the original time-domain signal.
+
+  Input parameters:
+
+  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
+  * `options` - A map of configuration keys to override or provide metadata:
+    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
+    * `:even?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly calculate the normalization factor $N$).
+
+  Output:
+  Returns a sequence of doubles representing the normalized peak amplitude for each frequency bin."
+  [txs options]
+  (v/div (fft-magnitude txs options) (fft-infer-N txs options)))
+
+(defn fft-power
+  "Returns the power spectrum of a transformed signal.
+
+  Computes the power distribution for each frequency bin by normalizing the energy spectrum by the square of the signal length $N$. This representation describes how much power (mean square amplitude) is contained in each frequency component. For real-valued signals, it automatically accounts for the single-sided spectrum scaling before normalization.
+
+  Input parameters:
+
+  * `txs` - A sequence of complex coefficients (frequency domain), typically `Vec2` objects produced by `fastmath.transform/fft`.
+  * `options` - A map of configuration keys to override or provide metadata:
+    * `:kind` - The type of the input spectrum: `:real` (default) or `:complex`.
+    * `:even?` - For real signals, a boolean indicating if the original time-domain signal length was even (required to correctly calculate the normalization factor $N$).
+
+  Output:
+  Returns a sequence of doubles representing the power (mean square) for each frequency bin."
+  [txs options]
+  (v/div (fft-energy txs options) (m/sq (fft-infer-N txs options))))
+
+(defn fft-frequencies
+  "Returns a sequence of frequency values corresponding to FFT bins.
+
+  Generates the frequency axis for a signal's Fourier representation. It maps discrete bin indices to their physical frequency values based on the sampling rate and the signal length, facilitating the interpretation of the spectrum in Hertz (or the reciprocal units of the sampling interval).
+
+  Input parameters:
+
+  * `fs` - Sampling frequency (samples per second) of the original time-domain signal.
+  * `N` - Total number of points in the FFT (typically the signal or window length).
+
+  Output:
+  Returns a sequence of `N` doubles representing the center frequency of each bin, starting from 0 (DC) up to the sampling frequency."
+  [^double fs ^long N]
+  (let [z (m// fs N)] (v/mult (range N) z)))
+
+(defn- fft-times
+  ([^double fs ^long shift] (fft-times fs shift 0))
+  ([^double fs ^long shift ^long wlen]
+   (let [step (m// shift fs)
+         mid (m// wlen 2 fs)]
+     (map (fn [^long n]
+            (m/+ mid (m/* n step))) (range)))))
+
+(defn stft
+  "Computes the Short-Time Fourier Transform (STFT) of a 1D signal.
+
+  The STFT provides a time-frequency representation of a signal by performing Fourier transforms over short, overlapping windowed segments of the data. This process captures how the frequency content of a non-stationary signal evolves over time, providing the underlying data structure for spectrograms.
+
+  Input parameters:
+
+  * `xs` - Input time-domain signal (sequence of doubles).
+  * `options` - A map of configuration keys:
+    * `:window` - A sequence of coefficients representing the window function (e.g., from `fastmath.kernel/window`). If not provided, a Gaussian window is automatically generated.
+    * `:overlap` - The fraction of overlap between adjacent segments, typically between 0.0 and 1.0. Default is `0.5`.
+    * `:fs` - The sampling frequency of the original signal. Default is `1.0`.
+    * `:method` - The type of spectral values to return for each segment: `:magnitude`, `:amplitude`, `:energy`, `:power`, `:psd` (Power Spectral Density), `:phase`, or `nil` (returns raw `Vec2` complex coefficients). Default is `:power`.
+
+  Returns a map containing:
+
+  * `:N` - The total number of samples in the input signal.
+  * `:spectrum` - A sequence of sequences, where each inner sequence represents the frequency spectrum of a time-localized window.
+  * `:freqs` - A sequence of frequency values corresponding to the bins in the spectrum.
+  * `:times` - A sequence of time values corresponding to the center of each windowed segment."
+  ([xs {:keys [window ^double overlap ^double fs method]
+        :or {overlap 0.5 fs 1.0 method :power}
+        :as options}]
+   (let [N (count xs)
+         window (or window (ker/window :gaussian (m/max 5 (m/round (m/* 0.05 N)))))
+         wlen (count window)
+         shift (m/max 1 (m/round (m/* overlap wlen)))
+         scale (v/sum window)
+         scale-sq (m/sq scale)
+         scale2 (m/* fs (v/sum (v/sq window)))
+         xxs (->> (partition wlen shift xs)
+                  (map (fn [xs]
+                         (let [txs (-> (v/emult window xs)
+                                       (trans/fft options))]                                      
+                           (case method
+                             :magnitude (fft-magnitude txs options)
+                             :amplitude (v/div (fft-magnitude txs options) scale)
+                             :energy (fft-energy txs options)
+                             :power (v/div (fft-power txs options) scale-sq)
+                             :psd (v/div (fft-energy txs options) scale2)
+                             :phase (map v/heading txs)
+                             txs)))))]
+     {:N N
+      :spectrum xxs
+      :freqs (take (count (first xxs)) (fft-frequencies fs wlen))
+      :times (take (count xxs) (fft-times fs shift wlen))})))
+
+(defn spectrum
+  "Returns the frequency spectrum of a signal using FFT.
+
+  Analyzes the frequency content of a time-domain signal or processes existing Fourier coefficients to produce various spectral representations. The function handles the necessary normalization and scaling to ensure the output reflects physical quantities such as peak amplitude, power, or spectral density.
+
+  Input parameters:
+
+  * `xs` - Input signal. Can be a sequence of doubles (time-domain) or a sequence of `fastmath.vector.Vec2` complex coefficients (frequency-domain).
+  * `options` - A map of configuration keys:
+    * `:method` - The type of spectral values to return. Options: `:magnitude`, `:amplitude` (default), `:energy`, `:power`, `:psd` (Power Spectral Density), `:asd` (Amplitude Spectral Density), or `:phase` (angle in radians).
+    * `:db?` - Boolean flag; if true, converts the resulting spectrum values to decibels using $10\\log_{10}(x)$. Default is `false`.
+    * `:fs` - The sampling frequency of the signal. Default is `1.0`.
+    * `:domain` - Specifies if the input `xs` is in the `:time` domain (requires performing an FFT) or already in the `:frequency` domain. Default is `:time`.
+
+  Returns a map containing:
+
+  * `:N` - The number of samples in the original signal.
+  * `:spectrum` - A sequence of doubles representing the calculated spectral values.
+  * `:freqs` - A sequence of frequency values (in the same units as `:fs`) corresponding to each bin in the spectrum."
+  ([xs] (spectrum xs nil))
+  ([xs {:keys [method db? ^double fs domain]
+        :or {method :amplitude db? false fs 1.0 domain :time}
+        :as options}]
+   (let [N (count xs)
+         step (m// fs N)
+         sp (let [txs (if (= :time domain)
+                        (trans/fft xs options)
+                        xs)]
+              (case method
+                :magnitude (fft-magnitude txs options)
+                :amplitude (fft-amplitude txs options)
+                :energy (fft-energy txs options)
+                :power (fft-power txs options)
+                :psd (v/div (fft-power txs options) step)
+                :asd (v/div (fft-amplitude txs options) step)
+                :phase (map v/heading txs)))
+         sp (if db? (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) sp) sp)]
+     {:N N
+      :spectrum sp
+      :freqs (take (count sp) (fft-frequencies fs N))})))
+
+;; https://arxiv.org/pdf/gr-qc/0509116
+(defn- median-bias
+  [^long N]
+  (v/sum (map (fn [^long n] (if (m/even? n) (m// -1.0 n) (m// 1.0 n))) (range 1 (m/inc N)))))
+
+(defn periodogram
+  "Estimate the spectral density of a signal using windowed averaging.
+
+  Calculates the periodogram (an estimate of the spectral density) of a 1D signal by dividing the data into overlapping segments, computing the spectrum for each segment, and aggregating the results. This technique, based on Welch's method, reduces the noise and variance of the spectral estimate compared to a single FFT of the entire signal.
+
+  Input parameters:
+  * `xs` - Input time-domain signal (sequence of doubles).
+  * `options` - A map of configuration keys:
+    * `:method` - The type of spectral values to calculate for segments: `:psd` (Power Spectral Density, default), `:power`, `:magnitude`, `:amplitude`, `:energy`, or `:phase`.
+    * `:average` - Aggregation method for segments: `:mean` (default) or `:median` (more robust to outliers).
+    * `:window` - A sequence of coefficients for the window function.
+    * `:overlap` - Fraction of overlap between segments.
+    * `:fs` - Sampling frequency of the signal.
+
+  Returns a map containing:
+  * `:freqs` - A sequence of frequency values (bins).
+  * `:spectrum` - A sequence of aggregated spectral values corresponding to the frequencies."
+  ([xs {:keys [method average] :or {method :psd average :mean} :as options}]
+   (let [{:keys [freqs spectrum ^long N]} (stft xs (assoc options :method method))]
+     {:freqs freqs
+      :spectrum (case average
+                  :mean (v/average-vectors spectrum)
+                  :median (v/div (map stats/median (apply map vector spectrum)) (median-bias N)))})))
+

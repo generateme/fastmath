@@ -451,6 +451,9 @@ window.Quarto = {
   <li><a href="#near-zero" id="toc-near-zero" class="nav-link" data-scroll-target="#near-zero">near-zero?</a></li>
   <li><a href="#nonzero-count" id="toc-nonzero-count" class="nav-link" data-scroll-target="#nonzero-count">nonzero-count</a></li>
   <li><a href="#normalize" id="toc-normalize" class="nav-link" data-scroll-target="#normalize">normalize</a></li>
+  <li><a href="#normalize-l1" id="toc-normalize-l1" class="nav-link" data-scroll-target="#normalize-l1">normalize-L1</a></li>
+  <li><a href="#normalize-l2" id="toc-normalize-l2" class="nav-link" data-scroll-target="#normalize-l2">normalize-L2</a></li>
+  <li><a href="#normalize-linf" id="toc-normalize-linf" class="nav-link" data-scroll-target="#normalize-linf">normalize-LInf</a></li>
   <li><a href="#orthogonal-polynomials" id="toc-orthogonal-polynomials" class="nav-link" data-scroll-target="#orthogonal-polynomials">orthogonal-polynomials</a></li>
   <li><a href="#orthonormal-polynomials" id="toc-orthonormal-polynomials" class="nav-link" data-scroll-target="#orthonormal-polynomials">orthonormal-polynomials</a></li>
   <li><a href="#permute" id="toc-permute" class="nav-link" data-scroll-target="#permute">permute</a></li>
@@ -855,9 +858,9 @@ Examples
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>(v/make-vector <span class="dv">4</span>) <span class="co">;; =&gt; #vec4 [0.0, 0.0, 0.0, 0.0]</span></span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>(v/make-vector <span class="dv">5</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">8</span>]) <span class="co">;; =&gt; [1.0 2.0 3.0 4.0 5.0]</span></span>
 <span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>(<span class="kw">class</span> (v/make-vector <span class="dv">5</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span> <span class="dv">8</span>])) <span class="co">;; =&gt; fastmath.vector.ArrayVec</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>(v/generate-vec2 <span class="kw">rand</span>) <span class="co">;; =&gt; #vec2 [0.9173224179830113, 0.27732129045071385]</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>(v/generate-vec2 <span class="kw">rand</span>) <span class="co">;; =&gt; #vec2 [0.11638951065382475, 0.4676285761034106]</span></span>
 <span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>(v/generate-vec3 (<span class="kw">constantly</span> <span class="dv">4</span>)) <span class="co">;; =&gt; #vec3 [4.0, 4.0, 4.0]</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>(v/generate-vec4 (<span class="kw">comp</span> m/sin <span class="kw">rand</span>)) <span class="co">;; =&gt; #vec4 [0.748074858944362, 0.4959515456855323, 0.7702247258740768, 0.2097896676617318]</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>(v/generate-vec4 (<span class="kw">comp</span> m/sin <span class="kw">rand</span>)) <span class="co">;; =&gt; #vec4 [0.45742805971023326, 0.015729286851894203, 0.23312959958207047, 0.6385053478965556]</span></span>
 <span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>(v/array-&gt;vec2 (<span class="kw">double-array</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])) <span class="co">;; =&gt; #vec2 [1.0, 2.0]</span></span>
 <span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>(v/array-&gt;vec3 (<span class="kw">double-array</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])) <span class="co">;; =&gt; #vec3 [1.0, 2.0, 3.0]</span></span>
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>(v/array-&gt;vec4 (<span class="kw">double-array</span> [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>])) <span class="co">;; =&gt; #vec4 [1.0, 2.0, 3.0, 4.0]</span></span>
@@ -888,17 +891,17 @@ Examples
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb7"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;array V2) <span class="co">;; =&gt; #object["[D" 0x32352769 "[D@32352769"]</span></span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;array V2) <span class="co">;; =&gt; #object["[D" 0x3d5143ca "[D@3d5143ca"]</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;seq V2) <span class="co">;; =&gt; (-1.0 2.5)</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;RealVector V2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x50272908 "{-1; 2.5}"]</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;RealVector V2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x54bd2718 "{-1; 2.5}"]</span></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;Vec V2) <span class="co">;; =&gt; [-1.0 2.5]</span></span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>(<span class="kw">class</span> (v/vec-&gt;Vec V2)) <span class="co">;; =&gt; clojure.core.Vec</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;array [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object["[D" 0x5b601003 "[D@5b601003"]</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;array [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object["[D" 0x482e58d4 "[D@482e58d4"]</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;seq [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; (1 2 3)</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;RealVector [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x3efce3ba "{1; 2; 3}"]</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>(v/real-vector [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x25e99563 "{1; 2; 3}"]</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>(v/real-vector (<span class="kw">double-array</span> <span class="dv">4</span>)) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x4c6f87bf "{0; 0; 0; 0}"]</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>(v/real-vector (<span class="kw">seq</span> (v/vec2 <span class="dv">9</span> <span class="dv">8</span>))) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x17546639 "{9; 8}"]</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;RealVector [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x7fd60d08 "{1; 2; 3}"]</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>(v/real-vector [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x50fc4f0c "{1; 2; 3}"]</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>(v/real-vector (<span class="kw">double-array</span> <span class="dv">4</span>)) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x6dc437ec "{0; 0; 0; 0}"]</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>(v/real-vector (<span class="kw">seq</span> (v/vec2 <span class="dv">9</span> <span class="dv">8</span>))) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x57162a78 "{9; 8}"]</span></span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>(v/vec-&gt;Vec [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>]) <span class="co">;; =&gt; [1.0 2.0 3.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
@@ -1785,7 +1788,7 @@ Supported Types
 <div class="sourceCode" id="cb52"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>RealMat</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb53"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x21b936d8</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0},{4.0,5.0,6.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb53"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x292bdca</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0},{4.0,5.0,6.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="creation-and-conversion-1" class="level3">
@@ -2048,19 +2051,19 @@ Defined functions
 <div class="sourceCode" id="cb96"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>(mat/real-matrix [[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>] [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb97"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x574930c3</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb97"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x6a3fddc5</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb98"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a>(mat/rows-&gt;RealMatrix [[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>] [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb99"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x42a2f2a9</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb99"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x59f4056a</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb100"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>(mat/cols-&gt;RealMatrix [[<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>] [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb101"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x6680177d</span> <span class="st">"Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb101"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x76f737a5</span> <span class="st">"Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="generic-creation" class="level4">
@@ -2107,7 +2110,7 @@ Defined functions
 <span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>          [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb109"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x28773b9d</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb109"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x2fa07c58</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 <div class="g-col-4">
@@ -2150,7 +2153,7 @@ Defined functions
 <span id="cb116-2"><a href="#cb116-2" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb117"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x4f0c885b</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb117"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x46c4dd9d</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 <div class="g-col-4">
@@ -2193,7 +2196,7 @@ Defined functions
 <span id="cb124-2"><a href="#cb124-2" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">5</span> <span class="dv">6</span> <span class="dv">7</span> <span class="dv">8</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb125"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb125-1"><a href="#cb125-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x398369cc</span> <span class="st">"Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb125"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb125-1"><a href="#cb125-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x5fcbf6b4</span> <span class="st">"Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2205,25 +2208,25 @@ Defined functions
 <div class="sourceCode" id="cb126"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>(mat/bind-rows [M2x2 M2x2])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb127"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x617ffb09</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{1.0,2.0},{3.0,4.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb127"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x5a921930</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{1.0,2.0},{3.0,4.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb128"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a>(mat/bind-cols [M2x2 M2x2])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb129"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x1c81204f</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,1.0,2.0},{3.0,4.0,3.0,4.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb129"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x728cf385</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,1.0,2.0},{3.0,4.0,3.0,4.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb130"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a>(mat/bind-rows [M2x2 -<span class="dv">100</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb131"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x2aefb694</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{-100.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb131"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x7a81fa73</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{-100.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb132"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a>(mat/bind-cols [M2x2 -<span class="dv">100</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb133"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x7615b0c5</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,-100.0},{3.0,4.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb133"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x380b4eb7</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,-100.0},{3.0,4.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="conversion-tofrom-arrays-and-sequences" class="level4">
@@ -2274,7 +2277,7 @@ Defined functions
 <div class="sourceCode" id="cb143"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb143-1"><a href="#cb143-1" aria-hidden="true" tabindex="-1"></a>(mat/array2d-&gt;RealMatrix dda)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb144"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x2f684d13</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0},{9.0,0.0,1.0,2.0},{3.0,4.0,5.0,6.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb144"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x26da331e</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0},{9.0,0.0,1.0,2.0},{3.0,4.0,5.0,6.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2291,16 +2294,16 @@ Examples
 <div class="sourceClojure">
 <div class="sourceCode" id="cb145"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;seq <span class="dv">1</span>) <span class="co">;; =&gt; (1)</span></span>
 <span id="cb145-2"><a href="#cb145-2" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;seq M3x3) <span class="co">;; =&gt; (1.0 2.0 3.0 -4.0 5.0 6.0 9.0 -8.0 7.0)</span></span>
-<span id="cb145-3"><a href="#cb145-3" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array <span class="dv">1</span>) <span class="co">;; =&gt; #object["[D" 0x7c956b6f "[D@7c956b6f"]</span></span>
-<span id="cb145-4"><a href="#cb145-4" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array M2x2) <span class="co">;; =&gt; #object["[D" 0x71bdc308 "[D@71bdc308"]</span></span>
-<span id="cb145-5"><a href="#cb145-5" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array2d <span class="dv">1</span>) <span class="co">;; =&gt; #object["[[D" 0x5ec61d39 "[[D@5ec61d39"]</span></span>
-<span id="cb145-6"><a href="#cb145-6" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array2d M2x2) <span class="co">;; =&gt; #object["[[D" 0x1eaa61c9 "[[D@1eaa61c9"]</span></span>
-<span id="cb145-7"><a href="#cb145-7" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;RealMatrix <span class="dv">1</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x4933af60 "Array2DRowRealMatrix{{1.0}}"]</span></span>
-<span id="cb145-8"><a href="#cb145-8" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;RealMatrix M2x2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x560990cd "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0}}"]</span></span>
-<span id="cb145-9"><a href="#cb145-9" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array <span class="fl">1.0</span>) <span class="co">;; =&gt; #object["[F" 0x384860e0 "[F@384860e0"]</span></span>
-<span id="cb145-10"><a href="#cb145-10" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array M2x2) <span class="co">;; =&gt; #object["[F" 0x7521ea09 "[F@7521ea09"]</span></span>
-<span id="cb145-11"><a href="#cb145-11" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array2d <span class="fl">1.0</span>) <span class="co">;; =&gt; #object["[[F" 0x3ba87070 "[[F@3ba87070"]</span></span>
-<span id="cb145-12"><a href="#cb145-12" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array2d M2x2) <span class="co">;; =&gt; #object["[[F" 0x409c4885 "[[F@409c4885"]</span></span>
+<span id="cb145-3"><a href="#cb145-3" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array <span class="dv">1</span>) <span class="co">;; =&gt; #object["[D" 0x1cda230e "[D@1cda230e"]</span></span>
+<span id="cb145-4"><a href="#cb145-4" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array M2x2) <span class="co">;; =&gt; #object["[D" 0x66e2423f "[D@66e2423f"]</span></span>
+<span id="cb145-5"><a href="#cb145-5" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array2d <span class="dv">1</span>) <span class="co">;; =&gt; #object["[[D" 0x506b31fe "[[D@506b31fe"]</span></span>
+<span id="cb145-6"><a href="#cb145-6" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;array2d M2x2) <span class="co">;; =&gt; #object["[[D" 0x70584a96 "[[D@70584a96"]</span></span>
+<span id="cb145-7"><a href="#cb145-7" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;RealMatrix <span class="dv">1</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x3dd7c5c0 "Array2DRowRealMatrix{{1.0}}"]</span></span>
+<span id="cb145-8"><a href="#cb145-8" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;RealMatrix M2x2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x49d09bff "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0}}"]</span></span>
+<span id="cb145-9"><a href="#cb145-9" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array <span class="fl">1.0</span>) <span class="co">;; =&gt; #object["[F" 0x403db7fa "[F@403db7fa"]</span></span>
+<span id="cb145-10"><a href="#cb145-10" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array M2x2) <span class="co">;; =&gt; #object["[F" 0x72034991 "[F@72034991"]</span></span>
+<span id="cb145-11"><a href="#cb145-11" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array2d <span class="fl">1.0</span>) <span class="co">;; =&gt; #object["[[F" 0x3c3b1977 "[[F@3c3b1977"]</span></span>
+<span id="cb145-12"><a href="#cb145-12" aria-hidden="true" tabindex="-1"></a>(mat/mat-&gt;float-array2d M2x2) <span class="co">;; =&gt; #object["[[F" 0x1114eb6d "[[F@1114eb6d"]</span></span>
 <span id="cb145-13"><a href="#cb145-13" aria-hidden="true" tabindex="-1"></a>(<span class="kw">seq</span> (mat/mat-&gt;array M2x2)) <span class="co">;; =&gt; (1.0 2.0 3.0 4.0)</span></span>
 <span id="cb145-14"><a href="#cb145-14" aria-hidden="true" tabindex="-1"></a>(m/double-double-array-&gt;seq (mat/mat-&gt;array2d M2x2)) <span class="co">;; =&gt; ((1.0 2.0) (3.0 4.0))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -2346,7 +2349,7 @@ Examples
 <div class="sourceCode" id="cb152"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a>(mat/eye <span class="dv">2</span> <span class="va">true</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb153"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb153-1"><a href="#cb153-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x6dd2f6b8</span> <span class="st">"Array2DRowRealMatrix{{1.0,0.0},{0.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb153"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb153-1"><a href="#cb153-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x7fe24389</span> <span class="st">"Array2DRowRealMatrix{{1.0,0.0},{0.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 <div class="g-col-4">
@@ -2379,7 +2382,7 @@ Examples
 <div class="sourceCode" id="cb160"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>(mat/zero <span class="dv">2</span> <span class="va">true</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb161"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb161-1"><a href="#cb161-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x454950</span> <span class="st">"Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb161"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb161-1"><a href="#cb161-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x508c0541</span> <span class="st">"Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb162"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a>(mat/zero <span class="dv">2</span> <span class="dv">2</span> <span class="va">false</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -2392,7 +2395,7 @@ Examples
 <div class="sourceCode" id="cb164"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a>(mat/zero <span class="dv">2</span> <span class="dv">2</span> <span class="va">true</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb165"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x1ca1e9a9</span> <span class="st">"Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb165"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x33db8e63</span> <span class="st">"Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 <div class="g-col-4">
@@ -2425,7 +2428,7 @@ Examples
 <div class="sourceCode" id="cb172"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb172-1"><a href="#cb172-1" aria-hidden="true" tabindex="-1"></a>(mat/diagonal [<span class="dv">1</span> <span class="dv">2</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb173"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x6f76b261</span> <span class="st">"Array2DRowRealMatrix{{1.0,0.0},{0.0,2.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb173"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb173-1"><a href="#cb173-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x5bfb4fd9</span> <span class="st">"Array2DRowRealMatrix{{1.0,0.0},{0.0,2.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2433,7 +2436,7 @@ Examples
 <div class="sourceCode" id="cb174"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb174-1"><a href="#cb174-1" aria-hidden="true" tabindex="-1"></a>(mat/block-diagonal [M2x2 M3x3 M4x4 -<span class="dv">1000</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb175"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x354fa2ac</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{3.0,4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,1.0,2.0,3.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,-4.0,5.0,6.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,9.0,-8.0,7.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0,0.0,1.0,2.0,3.0,4.0,0.0},{0.0,0.0,0.0,0.0,0.0,5.0,6.0,7.0,8.0,0.0},{0.0,0.0,0.0,0.0,0.0,9.0,10.0,11.0,12.0,0.0},{0.0,0.0,0.0,0.0,0.0,13.0,14.0,15.0,16.0,0.0},{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1000.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb175"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb175-1"><a href="#cb175-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x7922be65</span> <span class="st">"Array2DRowRealMatrix{{1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{3.0,4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,1.0,2.0,3.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,-4.0,5.0,6.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,9.0,-8.0,7.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0,0.0,1.0,2.0,3.0,4.0,0.0},{0.0,0.0,0.0,0.0,0.0,5.0,6.0,7.0,8.0,0.0},{0.0,0.0,0.0,0.0,0.0,9.0,10.0,11.0,12.0,0.0},{0.0,0.0,0.0,0.0,0.0,13.0,14.0,15.0,16.0,0.0},{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1000.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -2549,11 +2552,11 @@ Examples
 <span id="cb183-3"><a href="#cb183-3" aria-hidden="true" tabindex="-1"></a>(mat/row <span class="fl">1.5</span> <span class="dv">0</span>) <span class="co">;; =&gt; [1.5]</span></span>
 <span id="cb183-4"><a href="#cb183-4" aria-hidden="true" tabindex="-1"></a>(mat/row M4x4 <span class="dv">2</span>) <span class="co">;; =&gt; #vec4 [9.0, 10.0, 11.0, 12.0]</span></span>
 <span id="cb183-5"><a href="#cb183-5" aria-hidden="true" tabindex="-1"></a>(mat/col <span class="fl">1.5</span> <span class="dv">0</span>) <span class="co">;; =&gt; [1.5]</span></span>
-<span id="cb183-6"><a href="#cb183-6" aria-hidden="true" tabindex="-1"></a>(mat/col RealMat <span class="dv">1</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x2f68e098 "{2; 5}"]</span></span>
+<span id="cb183-6"><a href="#cb183-6" aria-hidden="true" tabindex="-1"></a>(mat/col RealMat <span class="dv">1</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x5cdb1d68 "{2; 5}"]</span></span>
 <span id="cb183-7"><a href="#cb183-7" aria-hidden="true" tabindex="-1"></a>(mat/rows <span class="fl">1.5</span>) <span class="co">;; =&gt; [[1.5]]</span></span>
 <span id="cb183-8"><a href="#cb183-8" aria-hidden="true" tabindex="-1"></a>(mat/rows M2x2) <span class="co">;; =&gt; [#vec2 [1.0, 2.0] #vec2 [3.0, 4.0]]</span></span>
 <span id="cb183-9"><a href="#cb183-9" aria-hidden="true" tabindex="-1"></a>(mat/cols <span class="fl">1.5</span>) <span class="co">;; =&gt; [[1.5]]</span></span>
-<span id="cb183-10"><a href="#cb183-10" aria-hidden="true" tabindex="-1"></a>(mat/cols RealMat) <span class="co">;; =&gt; [#object[org.apache.commons.math3.linear.ArrayRealVector 0x546881de "{1; 4}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x2c7f035a "{2; 5}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x6368b5b9 "{3; 6}"]]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb183-10"><a href="#cb183-10" aria-hidden="true" tabindex="-1"></a>(mat/cols RealMat) <span class="co">;; =&gt; [#object[org.apache.commons.math3.linear.ArrayRealVector 0x1d8ad90b "{1; 4}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x40f218f5 "{2; 5}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x7eb85c0f "{3; 6}"]]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -2953,15 +2956,15 @@ Examples
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
 <div class="sourceCode" id="cb218"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb218-1"><a href="#cb218-1" aria-hidden="true" tabindex="-1"></a>(mat/mulv M2x2 (v/vec2 <span class="dv">10</span> <span class="dv">20</span>)) <span class="co">;; =&gt; #vec2 [50.0, 110.0]</span></span>
-<span id="cb218-2"><a href="#cb218-2" aria-hidden="true" tabindex="-1"></a>(mat/mulv RealMat (v/vec-&gt;RealVector (v/vec3 <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>))) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x62714b9a "{14; 32}"]</span></span>
+<span id="cb218-2"><a href="#cb218-2" aria-hidden="true" tabindex="-1"></a>(mat/mulv RealMat (v/vec-&gt;RealVector (v/vec3 <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>))) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x1b191a95 "{14; 32}"]</span></span>
 <span id="cb218-3"><a href="#cb218-3" aria-hidden="true" tabindex="-1"></a>(mat/vtmul M2x2 (v/vec2 <span class="dv">10</span> <span class="dv">20</span>)) <span class="co">;; =&gt; #vec2 [70.0, 100.0]</span></span>
-<span id="cb218-4"><a href="#cb218-4" aria-hidden="true" tabindex="-1"></a>(mat/vtmul RealMat (v/vec-&gt;RealVector [<span class="dv">1</span> <span class="dv">2</span>])) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x39def4ad "{9; 12; 15}"]</span></span>
-<span id="cb218-5"><a href="#cb218-5" aria-hidden="true" tabindex="-1"></a>(mat/outer <span class="fl">1.5</span> <span class="dv">2</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x26ae509d "Array2DRowRealMatrix{{3.0}}"]</span></span>
-<span id="cb218-6"><a href="#cb218-6" aria-hidden="true" tabindex="-1"></a>(mat/outer (v/vec2 <span class="dv">1</span> <span class="dv">2</span>) [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">9</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x62d6171e "Array2DRowRealMatrix{{1.0,2.0,3.0,9.0},{2.0,4.0,6.0,18.0}}"]</span></span>
-<span id="cb218-7"><a href="#cb218-7" aria-hidden="true" tabindex="-1"></a>(mat/outer [<span class="dv">2</span> <span class="dv">3</span>] [<span class="dv">9</span> <span class="dv">1</span> <span class="dv">2</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0xa93bd45 "Array2DRowRealMatrix{{18.0,2.0,4.0},{27.0,3.0,6.0}}"]</span></span>
-<span id="cb218-8"><a href="#cb218-8" aria-hidden="true" tabindex="-1"></a>(mat/kronecker <span class="fl">1.5</span> <span class="dv">2</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x44a64b26 "Array2DRowRealMatrix{{3.0}}"]</span></span>
-<span id="cb218-9"><a href="#cb218-9" aria-hidden="true" tabindex="-1"></a>(mat/kronecker M2x2 M3x3) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x10d8c197 "Array2DRowRealMatrix{{1.0,2.0,3.0,2.0,4.0,6.0},{-4.0,5.0,6.0,-8.0,10.0,12.0},{9.0,-8.0,7.0,18.0,-16.0,14.0},{3.0,6.0,9.0,4.0,8.0,12.0},{-12.0,15.0,18.0,-16.0,20.0,24.0},{27.0,-24.0,21.0,36.0,-32.0,28.0}}"]</span></span>
-<span id="cb218-10"><a href="#cb218-10" aria-hidden="true" tabindex="-1"></a>(mat/kronecker RealMat M2x2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x42e45a75 "Array2DRowRealMatrix{{1.0,2.0,2.0,4.0,3.0,6.0},{3.0,4.0,6.0,8.0,9.0,12.0},{4.0,8.0,5.0,10.0,6.0,12.0},{12.0,16.0,15.0,20.0,18.0,24.0}}"]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb218-4"><a href="#cb218-4" aria-hidden="true" tabindex="-1"></a>(mat/vtmul RealMat (v/vec-&gt;RealVector [<span class="dv">1</span> <span class="dv">2</span>])) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.ArrayRealVector 0x33ada2f6 "{9; 12; 15}"]</span></span>
+<span id="cb218-5"><a href="#cb218-5" aria-hidden="true" tabindex="-1"></a>(mat/outer <span class="fl">1.5</span> <span class="dv">2</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5a55ceff "Array2DRowRealMatrix{{3.0}}"]</span></span>
+<span id="cb218-6"><a href="#cb218-6" aria-hidden="true" tabindex="-1"></a>(mat/outer (v/vec2 <span class="dv">1</span> <span class="dv">2</span>) [<span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">9</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x66af8606 "Array2DRowRealMatrix{{1.0,2.0,3.0,9.0},{2.0,4.0,6.0,18.0}}"]</span></span>
+<span id="cb218-7"><a href="#cb218-7" aria-hidden="true" tabindex="-1"></a>(mat/outer [<span class="dv">2</span> <span class="dv">3</span>] [<span class="dv">9</span> <span class="dv">1</span> <span class="dv">2</span>]) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x3531e5f4 "Array2DRowRealMatrix{{18.0,2.0,4.0},{27.0,3.0,6.0}}"]</span></span>
+<span id="cb218-8"><a href="#cb218-8" aria-hidden="true" tabindex="-1"></a>(mat/kronecker <span class="fl">1.5</span> <span class="dv">2</span>) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6b555bb6 "Array2DRowRealMatrix{{3.0}}"]</span></span>
+<span id="cb218-9"><a href="#cb218-9" aria-hidden="true" tabindex="-1"></a>(mat/kronecker M2x2 M3x3) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x1f834215 "Array2DRowRealMatrix{{1.0,2.0,3.0,2.0,4.0,6.0},{-4.0,5.0,6.0,-8.0,10.0,12.0},{9.0,-8.0,7.0,18.0,-16.0,14.0},{3.0,6.0,9.0,4.0,8.0,12.0},{-12.0,15.0,18.0,-16.0,20.0,24.0},{27.0,-24.0,21.0,36.0,-32.0,28.0}}"]</span></span>
+<span id="cb218-10"><a href="#cb218-10" aria-hidden="true" tabindex="-1"></a>(mat/kronecker RealMat M2x2) <span class="co">;; =&gt; #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5867855 "Array2DRowRealMatrix{{1.0,2.0,2.0,4.0,3.0,6.0},{3.0,4.0,6.0,8.0,9.0,12.0},{4.0,8.0,5.0,10.0,6.0,12.0},{12.0,16.0,15.0,20.0,18.0,24.0}}"]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
@@ -3091,7 +3094,7 @@ Defined functions
 <div class="sourceCode" id="cb233"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb233-1"><a href="#cb233-1" aria-hidden="true" tabindex="-1"></a>(mat/shift-cols RealMat (<span class="kw">comp</span> m/- v/sum))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb234"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb234-1"><a href="#cb234-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x403d0952</span> <span class="st">"Array2DRowRealMatrix{{6.0,9.0,12.0},{9.0,12.0,15.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb234"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb234-1"><a href="#cb234-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x3adb1d30</span> <span class="st">"Array2DRowRealMatrix{{6.0,9.0,12.0},{9.0,12.0,15.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
 <li><strong>Scaling</strong>:
@@ -3118,7 +3121,7 @@ Defined functions
 <div class="sourceCode" id="cb239"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb239-1"><a href="#cb239-1" aria-hidden="true" tabindex="-1"></a>(mat/scale-cols RealMat (<span class="kw">comp</span> m/sqrt v/sum))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb240"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb240-1"><a href="#cb240-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x7e32de8a</span> <span class="st">"Array2DRowRealMatrix{{2.2360679775,5.2915026221,9.0},{8.94427191,13.2287565553,18.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb240"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb240-1"><a href="#cb240-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x1cad6556</span> <span class="st">"Array2DRowRealMatrix{{2.2360679775,5.2915026221,9.0},{8.94427191,13.2287565553,18.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <ul>
 <li><strong>Statistical Transformations</strong>: These functions apply common statistical preprocessing steps to rows or columns. By default, they operate on columns, which is a common convention in data science where columns represent features. An optional <code>rows?</code> argument (default <code>false</code>) allows applying the transformation to rows instead.
@@ -3194,19 +3197,19 @@ Defined functions
 <div class="sourceCode" id="cb253"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb253-1"><a href="#cb253-1" aria-hidden="true" tabindex="-1"></a>(mat/differences (mat/eye <span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb254"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb254-1"><a href="#cb254-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0xb764c97</span> <span class="st">"Array2DRowRealMatrix{{-1.0,1.0,0.0,0.0},{0.0,-1.0,1.0,0.0},{0.0,0.0,-1.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb254"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb254-1"><a href="#cb254-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x2159afab</span> <span class="st">"Array2DRowRealMatrix{{-1.0,1.0,0.0,0.0},{0.0,-1.0,1.0,0.0},{0.0,0.0,-1.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb255"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb255-1"><a href="#cb255-1" aria-hidden="true" tabindex="-1"></a>(mat/differences (mat/eye <span class="dv">4</span>) <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb256"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb256-1"><a href="#cb256-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x34bf8196</span> <span class="st">"Array2DRowRealMatrix{{1.0,-2.0,1.0,0.0},{0.0,1.0,-2.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb256"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb256-1"><a href="#cb256-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x19eae9ca</span> <span class="st">"Array2DRowRealMatrix{{1.0,-2.0,1.0,0.0},{0.0,1.0,-2.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="sourceClojure">
 <div class="sourceCode" id="cb257"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb257-1"><a href="#cb257-1" aria-hidden="true" tabindex="-1"></a>(mat/differences (mat/eye <span class="dv">4</span>) <span class="dv">1</span> <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb258"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb258-1"><a href="#cb258-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x608c4a2b</span> <span class="st">"Array2DRowRealMatrix{{-1.0,0.0,1.0,0.0},{0.0,-1.0,0.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb258"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb258-1"><a href="#cb258-1" aria-hidden="true" tabindex="-1"></a>#object[org.apache.commons.math3.linear.Array2DRowRealMatrix <span class="bn">0x2f73266e</span> <span class="st">"Array2DRowRealMatrix{{-1.0,0.0,1.0,0.0},{0.0,-1.0,0.0,1.0}}"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -4173,7 +4176,7 @@ Examples
 <li><code>(acos vector)</code></li>
 </ul>
 <p>Applies acos to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh" class="level4">
@@ -4182,7 +4185,7 @@ Examples
 <li><code>(acosh vector)</code></li>
 </ul>
 <p>Applies acosh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot" class="level4">
@@ -4191,7 +4194,7 @@ Examples
 <li><code>(acot vector)</code></li>
 </ul>
 <p>Applies acot to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth" class="level4">
@@ -4200,7 +4203,7 @@ Examples
 <li><code>(acoth vector)</code></li>
 </ul>
 <p>Applies acoth to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc" class="level4">
@@ -4209,7 +4212,7 @@ Examples
 <li><code>(acsc vector)</code></li>
 </ul>
 <p>Applies acsc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch" class="level4">
@@ -4218,7 +4221,7 @@ Examples
 <li><code>(acsch vector)</code></li>
 </ul>
 <p>Applies acsch to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add" class="level4">
@@ -4239,7 +4242,7 @@ Examples
 </ul>
 <p>Checks if two vectors are aligned, meaning they point in approximately the same direction. This is determined by checking if the angle between them (calculated using <a href="#LOS-angle-between">angle-between</a>) is less than the specified <code>tolerance</code>.</p>
 <p>Defaults to an absolute tolerance of <code>1.0e-6</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1267">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1288">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-angle-between"></span>
 </section>
 <section id="angle-between" class="level4">
@@ -4249,7 +4252,7 @@ Examples
 </ul>
 <p>Returns the angle between two vectors in radians.</p>
 <p>The angle is always positive and lies between 0 and π. Returns 0 if either vector is zero.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1241">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1262">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-applyf"></span>
 </section>
 <section id="applyf-deprecated" class="level4">
@@ -4275,7 +4278,7 @@ Examples
 <li><code>(array-&gt;vec2 arr)</code></li>
 </ul>
 <p>Converts doubles array to Vec2</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1333">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array->vec3"></span>
 </section>
 <section id="array-vec3" class="level4">
@@ -4284,7 +4287,7 @@ Examples
 <li><code>(array-&gt;vec3 arr)</code></li>
 </ul>
 <p>Converts doubles array to Vec3</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1317">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1338">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array->vec4"></span>
 </section>
 <section id="array-vec4" class="level4">
@@ -4293,7 +4296,7 @@ Examples
 <li><code>(array-&gt;vec4 arr)</code></li>
 </ul>
 <p>Converts doubles array to Vec4</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1322">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1343">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-array-vec"></span>
 </section>
 <section id="array-vec" class="level4">
@@ -4321,7 +4324,7 @@ Examples
 <li><code>(asec vector)</code></li>
 </ul>
 <p>Applies asec to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech" class="level4">
@@ -4330,7 +4333,7 @@ Examples
 <li><code>(asech vector)</code></li>
 </ul>
 <p>Applies asech to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin" class="level4">
@@ -4339,7 +4342,7 @@ Examples
 <li><code>(asin vector)</code></li>
 </ul>
 <p>Applies asin to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh" class="level4">
@@ -4348,7 +4351,7 @@ Examples
 <li><code>(asinh vector)</code></li>
 </ul>
 <p>Applies asinh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan" class="level4">
@@ -4357,7 +4360,7 @@ Examples
 <li><code>(atan vector)</code></li>
 </ul>
 <p>Applies atan to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh" class="level4">
@@ -4366,7 +4369,7 @@ Examples
 <li><code>(atanh vector)</code></li>
 </ul>
 <p>Applies atanh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-average"></span>
 </section>
 <section id="average" class="level4">
@@ -4414,7 +4417,7 @@ Examples
 <li><code>(cb vector)</code></li>
 </ul>
 <p>Applies cb to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cbrt"></span>
 </section>
 <section id="cbrt" class="level4">
@@ -4423,7 +4426,7 @@ Examples
 <li><code>(cbrt vector)</code></li>
 </ul>
 <p>Applies cbrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ceil"></span>
 </section>
 <section id="ceil" class="level4">
@@ -4432,7 +4435,7 @@ Examples
 <li><code>(ceil vector)</code></li>
 </ul>
 <p>Applies ceil to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-clamp"></span>
 </section>
 <section id="clamp" class="level4">
@@ -4452,7 +4455,7 @@ Examples
 <li><code>(cos vector)</code></li>
 </ul>
 <p>Applies cos to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh" class="level4">
@@ -4461,7 +4464,7 @@ Examples
 <li><code>(cosh vector)</code></li>
 </ul>
 <p>Applies cosh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot" class="level4">
@@ -4470,7 +4473,7 @@ Examples
 <li><code>(cot vector)</code></li>
 </ul>
 <p>Applies cot to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth" class="level4">
@@ -4479,7 +4482,7 @@ Examples
 <li><code>(coth vector)</code></li>
 </ul>
 <p>Applies coth to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cross"></span>
 </section>
 <section id="cross" class="level4">
@@ -4497,7 +4500,7 @@ Examples
 <li><code>(csc vector)</code></li>
 </ul>
 <p>Applies csc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch" class="level4">
@@ -4506,7 +4509,7 @@ Examples
 <li><code>(csch vector)</code></li>
 </ul>
 <p>Applies csch to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-degrees"></span>
 </section>
 <section id="degrees" class="level4">
@@ -4515,7 +4518,7 @@ Examples
 <li><code>(degrees vector)</code></li>
 </ul>
 <p>Applies degrees to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-delta-eq"></span>
 </section>
 <section id="delta-eq" class="level4">
@@ -4550,7 +4553,7 @@ Examples
 <p>This function calculates the difference between elements separated by a fixed distance (<code>lag</code>) and can apply this operation <code>diffs</code> times.</p>
 <p>It supports multiple arities: - <code>[v]</code>: Computes the 1st difference with lag 1 (default: <code>diffs=1</code>, <code>lag=1</code>). - <code>[v diffs]</code>: Computes the <code>diffs</code>-th difference with lag 1 (default: <code>lag=1</code>). - <code>[v diffs lag]</code>: Computes the <code>diffs</code>-th difference with the specified <code>lag</code>.</p>
 <p>Returns a sequence of the computed differences.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1344">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1365">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-dist"></span>
 </section>
 <section id="dist" class="level4">
@@ -4725,7 +4728,7 @@ Examples
 <li><code>(exp vector)</code></li>
 </ul>
 <p>Applies exp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-expm1"></span>
 </section>
 <section id="expm1" class="level4">
@@ -4734,7 +4737,7 @@ Examples
 <li><code>(expm1 vector)</code></li>
 </ul>
 <p>Applies expm1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-faceforward"></span>
 </section>
 <section id="faceforward" class="level4">
@@ -4743,7 +4746,7 @@ Examples
 <li><code>(faceforward n v)</code></li>
 </ul>
 <p>Flips vector <code>n</code> if <code>dot(n, v)</code> is negative. Returns <code>n</code> if <code>dot(n, v)</code> is non-negative. Useful for ensuring consistent vector orientation, such as making a normal vector face towards a reference vector <code>v</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1278">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1299">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-floor"></span>
 </section>
 <section id="floor" class="level4">
@@ -4752,7 +4755,7 @@ Examples
 <li><code>(floor vector)</code></li>
 </ul>
 <p>Applies floor to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-fmap"></span>
 </section>
 <section id="fmap" class="level4">
@@ -4770,7 +4773,7 @@ Examples
 <li><code>(frac vector)</code></li>
 </ul>
 <p>Applies frac to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-from-polar"></span>
 </section>
 <section id="from-polar" class="level4">
@@ -4789,7 +4792,7 @@ Examples
 <li><code>(generate-vec2 f)</code></li>
 </ul>
 <p>Generates Vec2 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1291">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-generate-vec3"></span>
 </section>
 <section id="generate-vec3" class="level4">
@@ -4799,7 +4802,7 @@ Examples
 <li><code>(generate-vec3 f)</code></li>
 </ul>
 <p>Generates Vec3 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1298">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1319">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-generate-vec4"></span>
 </section>
 <section id="generate-vec4" class="level4">
@@ -4809,7 +4812,7 @@ Examples
 <li><code>(generate-vec4 f)</code></li>
 </ul>
 <p>Generates Vec4 with fn(s)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1305">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1326">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-heading"></span>
 </section>
 <section id="heading" class="level4">
@@ -4866,7 +4869,7 @@ Examples
 <li><code>(limit v len)</code></li>
 </ul>
 <p>Limits length of the vector by given value</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1234">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1255">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ln"></span>
 </section>
 <section id="ln" class="level4">
@@ -4875,7 +4878,7 @@ Examples
 <li><code>(ln vector)</code></li>
 </ul>
 <p>Applies ln to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log" class="level4">
@@ -4884,7 +4887,7 @@ Examples
 <li><code>(log vector)</code></li>
 </ul>
 <p>Applies log to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log10"></span>
 </section>
 <section id="log10" class="level4">
@@ -4893,7 +4896,7 @@ Examples
 <li><code>(log10 vector)</code></li>
 </ul>
 <p>Applies log10 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1mexp"></span>
 </section>
 <section id="log1mexp" class="level4">
@@ -4902,7 +4905,7 @@ Examples
 <li><code>(log1mexp vector)</code></li>
 </ul>
 <p>Applies log1mexp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1p"></span>
 </section>
 <section id="log1p" class="level4">
@@ -4911,7 +4914,7 @@ Examples
 <li><code>(log1p vector)</code></li>
 </ul>
 <p>Applies log1p to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pexp"></span>
 </section>
 <section id="log1pexp" class="level4">
@@ -4920,7 +4923,7 @@ Examples
 <li><code>(log1pexp vector)</code></li>
 </ul>
 <p>Applies log1pexp to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pmx"></span>
 </section>
 <section id="log1pmx" class="level4">
@@ -4929,7 +4932,7 @@ Examples
 <li><code>(log1pmx vector)</code></li>
 </ul>
 <p>Applies log1pmx to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1psq"></span>
 </section>
 <section id="log1psq" class="level4">
@@ -4938,7 +4941,7 @@ Examples
 <li><code>(log1psq vector)</code></li>
 </ul>
 <p>Applies log1psq to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log2"></span>
 </section>
 <section id="log2" class="level4">
@@ -4947,7 +4950,7 @@ Examples
 <li><code>(log2 vector)</code></li>
 </ul>
 <p>Applies log2 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logexpm1"></span>
 </section>
 <section id="logexpm1" class="level4">
@@ -4956,7 +4959,7 @@ Examples
 <li><code>(logexpm1 vector)</code></li>
 </ul>
 <p>Applies logexpm1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logit"></span>
 </section>
 <section id="logit" class="level4">
@@ -4965,7 +4968,7 @@ Examples
 <li><code>(logit vector)</code></li>
 </ul>
 <p>Applies logit to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmeanexp"></span>
 </section>
 <section id="logmeanexp" class="level4">
@@ -4977,7 +4980,7 @@ Examples
 <p>This is equivalent to <code>log(mean(exp(v_i)))</code> for all elements <code>v_i</code> in <code>v</code>. It provides a numerically stable way to compute <code>log(sum(exp(v_i))) - log(count(v))</code> by shifting values to prevent overflow during exponentiation.</p>
 <p>Often used in machine learning and statistical contexts where dealing with large values inside exponentials is common.</p>
 <p>Returns a double value.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1448">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1469">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmxp1"></span>
 </section>
 <section id="logmxp1" class="level4">
@@ -4986,7 +4989,7 @@ Examples
 <li><code>(logmxp1 vector)</code></li>
 </ul>
 <p>Applies logmxp1 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logsoftmax"></span>
 </section>
 <section id="logsoftmax" class="level4">
@@ -5000,7 +5003,7 @@ Examples
 <p>It supports two arities: - <code>[v]</code>: Computes the standard log-softmax using the numerically stable form. - <code>[v t]</code>: Computes the temperature-scaled log-softmax. Elements are divided by the temperature <code>t</code> <em>before</em> applying the log-softmax formula, i.e., <span class="math inline">\(\frac{v_i}{t} - \log(\sum_j \wxp(\fac{v_j}{t}))\)</span>. The temperature influences the shape of the corresponding softmax output distribution: <span class="math inline">\(t &gt; 1\)</span> softens it, <span class="math inline">\(t &lt; 1\)</span> sharpens it.</p>
 <p>Log-softmax is frequently used in numerical computations, especially in machine learning (e.g., as part of the cross-entropy loss function) for its superior numerical properties.</p>
 <p>Returns a new vector of the same type and dimension as the input.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1415">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1436">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logsumexp"></span>
 </section>
 <section id="logsumexp" class="level4">
@@ -5011,7 +5014,7 @@ Examples
 <p>Calculates the LogSumExp of the vector <code>v</code>.</p>
 <p>This is the numerically stable computation of <code>log(sum(exp(x_i)))</code> for all elements <code>x_i</code> in <code>v</code>. It is often used to prevent overflow when exponentiating large numbers, especially in machine learning and statistics.</p>
 <p>Returns a double value.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1437">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1458">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mag"></span>
 </section>
 <section id="mag" class="level4">
@@ -5114,9 +5117,36 @@ Examples
 <ul>
 <li><code>(normalize v)</code></li>
 </ul>
-<p>Returns a new vector with the same direction as <code>v</code> but with a magnitude of 1.</p>
+<p>Returns a new vector of the same direction as <code>v</code> and magnitude of 1.</p>
 <p>If <code>v</code> is a zero vector (magnitude is zero), returns a zero vector of the same type.</p>
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1219">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize-L1"></span>
+</section>
+<section id="normalize-l1" class="level4">
+<h4 class="anchored" data-anchor-id="normalize-l1">normalize-L1</h4>
+<ul>
+<li><code>(normalize-L1 v)</code></li>
+</ul>
+<p>Returns a new vector normalized by L1/abs norm.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1234">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize-L2"></span>
+</section>
+<section id="normalize-l2" class="level4">
+<h4 class="anchored" data-anchor-id="normalize-l2">normalize-L2</h4>
+<ul>
+<li><code>(normalize-L2 v)</code></li>
+</ul>
+<p>Alias for <a href="#LOS-normalize">normalize</a>.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1229">source</a></small><hr style="margin: 0"></div>
+<span id="#LOS-normalize-LInf"></span>
+</section>
+<section id="normalize-linf" class="level4">
+<h4 class="anchored" data-anchor-id="normalize-linf">normalize-LInf</h4>
+<ul>
+<li><code>(normalize-LInf v)</code></li>
+</ul>
+<p>Returns a new vector normalized by Linf/max norm.</p>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1242">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-orthogonal-polynomials"></span>
 </section>
 <section id="orthogonal-polynomials" class="level4">
@@ -5128,7 +5158,7 @@ Examples
 <p>The output vectors represent the values of orthogonal polynomials evaluated at the elements of <code>xs</code>. Orthogonality is defined with respect to the discrete inner product based on summation over the points in <code>xs</code>.</p>
 <p>The sequence starts with the vector for the polynomial of degree 1 and includes vectors up to degree <code>(count xs) - 1</code>.</p>
 <p>This function is useful for constructing orthogonal bases for polynomial approximation or regression on discrete data.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1465">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1486">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-orthonormal-polynomials"></span>
 </section>
 <section id="orthonormal-polynomials" class="level4">
@@ -5139,7 +5169,7 @@ Examples
 <p>Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials at the points specified in the input sequence <code>xs</code> and normalizing the resulting vectors.</p>
 <p>The sequence starts with the vector for the polynomial of degree 1 and includes vectors up to degree <code>(count xs) - 1</code>. Orthogonality (and thus orthonormality after normalization) is with respect to the discrete inner product based on summation over the points in <code>xs</code>.</p>
 <p>This function produces an orthonormal basis suitable for polynomial approximation or regression on discrete data points defined by <code>xs</code>, derived from the orthogonal basis computed by <a href="#LOS-orthogonal-polynomials">orthogonal-polynomials</a>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1489">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1510">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-permute"></span>
 </section>
 <section id="permute" class="level4">
@@ -5167,7 +5197,7 @@ Examples
 <li><code>(pow v exponent)</code></li>
 </ul>
 <p>Applies power to a vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1389">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1410">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pow10"></span>
 </section>
 <section id="pow10" class="level4">
@@ -5176,7 +5206,7 @@ Examples
 <li><code>(pow10 vector)</code></li>
 </ul>
 <p>Applies pow10 to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-prod"></span>
 </section>
 <section id="prod" class="level4">
@@ -5195,7 +5225,7 @@ Examples
 <li><code>(project v1 v2)</code></li>
 </ul>
 <p>Calculates the vector projection of <code>v1</code> onto <code>v2</code>. The projection is a vector along the direction of <code>v2</code> that represents the component of <code>v1</code> in that direction.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1285">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1306">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-radians"></span>
 </section>
 <section id="radians" class="level4">
@@ -5204,7 +5234,7 @@ Examples
 <li><code>(radians vector)</code></li>
 </ul>
 <p>Applies radians to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-real-vector"></span>
 </section>
 <section id="real-vector" class="level4">
@@ -5233,7 +5263,7 @@ Examples
 <p>Returns the difference between the heading of <code>v2</code> and the heading of <code>v1</code>. The heading is the angle relative to the positive primary axis ([1,0,…]). For 2D vectors, this is the difference between their polar angles.</p>
 <p>Returns value from <span class="math inline">\(-2\pi\)</span> to <span class="math inline">\(2\pi\)</span>.</p>
 <p>See also <a href="#LOS-angle-between">angle-between</a> (absolute angle between vectors) and <a href="#LOS-heading">heading</a>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1256">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1277">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rint"></span>
 </section>
 <section id="rint" class="level4">
@@ -5242,7 +5272,7 @@ Examples
 <li><code>(rint vector)</code></li>
 </ul>
 <p>Applies rint to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotate"></span>
 </section>
 <section id="rotate" class="level4">
@@ -5261,7 +5291,7 @@ Examples
 <li><code>(round vector)</code></li>
 </ul>
 <p>Applies round to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-safe-sqrt"></span>
 </section>
 <section id="safe-sqrt" class="level4">
@@ -5270,7 +5300,7 @@ Examples
 <li><code>(safe-sqrt vector)</code></li>
 </ul>
 <p>Applies safe-sqrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec" class="level4">
@@ -5279,7 +5309,7 @@ Examples
 <li><code>(sec vector)</code></li>
 </ul>
 <p>Applies sec to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech" class="level4">
@@ -5288,7 +5318,7 @@ Examples
 <li><code>(sech vector)</code></li>
 </ul>
 <p>Applies sech to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec2"></span>
 </section>
 <section id="seq-vec2" class="level4">
@@ -5297,7 +5327,7 @@ Examples
 <li><code>(seq-&gt;vec2 xs)</code></li>
 </ul>
 <p>Converts any seq to Vec2</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1327">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1348">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec3"></span>
 </section>
 <section id="seq-vec3" class="level4">
@@ -5306,7 +5336,7 @@ Examples
 <li><code>(seq-&gt;vec3 xs)</code></li>
 </ul>
 <p>Converts any seq to Vec3</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1332">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1353">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-seq->vec4"></span>
 </section>
 <section id="seq-vec4" class="level4">
@@ -5315,7 +5345,7 @@ Examples
 <li><code>(seq-&gt;vec4 xs)</code></li>
 </ul>
 <p>Converts any seq to Vec4</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1337">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1358">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-set-mag"></span>
 </section>
 <section id="set-mag" class="level4">
@@ -5324,7 +5354,7 @@ Examples
 <li><code>(set-mag v len)</code></li>
 </ul>
 <p>Sets length of the vector.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1229">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1250">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sfrac"></span>
 </section>
 <section id="sfrac" class="level4">
@@ -5333,7 +5363,7 @@ Examples
 <li><code>(sfrac vector)</code></li>
 </ul>
 <p>Applies sfrac to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sgn"></span>
 </section>
 <section id="sgn" class="level4">
@@ -5342,7 +5372,7 @@ Examples
 <li><code>(sgn vector)</code></li>
 </ul>
 <p>Applies sgn to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-shift"></span>
 </section>
 <section id="shift" class="level4">
@@ -5361,7 +5391,7 @@ Examples
 <li><code>(sigmoid vector)</code></li>
 </ul>
 <p>Applies sigmoid to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-signum"></span>
 </section>
 <section id="signum" class="level4">
@@ -5370,7 +5400,7 @@ Examples
 <li><code>(signum vector)</code></li>
 </ul>
 <p>Applies signum to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sim-cos"></span>
 </section>
 <section id="sim-cos" class="level4">
@@ -5388,7 +5418,7 @@ Examples
 <li><code>(sin vector)</code></li>
 </ul>
 <p>Applies sin to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinc"></span>
 </section>
 <section id="sinc" class="level4">
@@ -5397,7 +5427,7 @@ Examples
 <li><code>(sinc vector)</code></li>
 </ul>
 <p>Applies sinc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh" class="level4">
@@ -5406,7 +5436,7 @@ Examples
 <li><code>(sinh vector)</code></li>
 </ul>
 <p>Applies sinh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-size"></span>
 </section>
 <section id="size" class="level4">
@@ -5429,7 +5459,7 @@ Examples
 <p>It has two arities: - <code>[v]</code>: Computes the standard softmax: <code>softmax(v)_i = exp(v_i) / sum_j(exp(v_j))</code>. - <code>[v t]</code>: Computes the temperature-scaled softmax: <code>softmax(v)_i = exp(v_i / t) / sum_j(exp(v_j / t))</code>. The <code>t</code> parameter (temperature, defaults to 1) controls the shape of the output distribution; higher temperatures produce softer, more uniform distributions, while lower temperatures produce sharper distributions closer to a one-hot encoding.</p>
 <p>The implementation uses a numerically stable approach (by shifting values based on the vector’s maximum) to prevent overflow when exponentiating large numbers.</p>
 <p>Returns a new vector of the same type and dimension as the input.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1394">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1415">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq" class="level4">
@@ -5438,7 +5468,7 @@ Examples
 <li><code>(sq vector)</code></li>
 </ul>
 <p>Applies sq to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt" class="level4">
@@ -5447,7 +5477,7 @@ Examples
 <li><code>(sqrt vector)</code></li>
 </ul>
 <p>Applies sqrt to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub" class="level4">
@@ -5476,7 +5506,7 @@ Examples
 <li><code>(tan vector)</code></li>
 </ul>
 <p>Applies tan to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh" class="level4">
@@ -5485,7 +5515,7 @@ Examples
 <li><code>(tanh vector)</code></li>
 </ul>
 <p>Applies tanh to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-to-polar"></span>
 </section>
 <section id="to-polar" class="level4">
@@ -5531,7 +5561,7 @@ Examples
 <li><code>(trunc vector)</code></li>
 </ul>
 <p>Applies trunc to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vec->RealVector"></span>
 </section>
 <section id="vec-realvector" class="level4">
@@ -5612,7 +5642,7 @@ Examples
 <li><code>(xlogx vector)</code></li>
 </ul>
 <p>Applies xlogx to vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero-count"></span>
 </section>
 <section id="zero-count" class="level4">
@@ -5671,7 +5701,7 @@ Examples
 <li><code>(-&gt;MatrixDecomposition source components solver singular? s)</code></li>
 </ul>
 <p>Positional factory function for class fastmath.matrix.MatrixDecomposition.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1482">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1484">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acos"></span>
 </section>
 <section id="acos-1" class="level4">
@@ -5680,7 +5710,7 @@ Examples
 <li><code>(acos vector)</code></li>
 </ul>
 <p>Applies acos to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh-1" class="level4">
@@ -5689,7 +5719,7 @@ Examples
 <li><code>(acosh vector)</code></li>
 </ul>
 <p>Applies acosh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot-1" class="level4">
@@ -5698,7 +5728,7 @@ Examples
 <li><code>(acot vector)</code></li>
 </ul>
 <p>Applies acot to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth-1" class="level4">
@@ -5707,7 +5737,7 @@ Examples
 <li><code>(acoth vector)</code></li>
 </ul>
 <p>Applies acoth to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc-1" class="level4">
@@ -5716,7 +5746,7 @@ Examples
 <li><code>(acsc vector)</code></li>
 </ul>
 <p>Applies acsc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch-1" class="level4">
@@ -5725,7 +5755,7 @@ Examples
 <li><code>(acsch vector)</code></li>
 </ul>
 <p>Applies acsch to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add-1" class="level4">
@@ -5789,7 +5819,7 @@ Examples
 <li><code>(asec vector)</code></li>
 </ul>
 <p>Applies asec to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech-1" class="level4">
@@ -5798,7 +5828,7 @@ Examples
 <li><code>(asech vector)</code></li>
 </ul>
 <p>Applies asech to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin-1" class="level4">
@@ -5807,7 +5837,7 @@ Examples
 <li><code>(asin vector)</code></li>
 </ul>
 <p>Applies asin to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh-1" class="level4">
@@ -5816,7 +5846,7 @@ Examples
 <li><code>(asinh vector)</code></li>
 </ul>
 <p>Applies asinh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan-1" class="level4">
@@ -5825,7 +5855,7 @@ Examples
 <li><code>(atan vector)</code></li>
 </ul>
 <p>Applies atan to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh-1" class="level4">
@@ -5834,7 +5864,7 @@ Examples
 <li><code>(atanh vector)</code></li>
 </ul>
 <p>Applies atanh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-bind-cols"></span>
 </section>
 <section id="bind-cols" class="level4">
@@ -5873,7 +5903,7 @@ Examples
 <li><code>(cb vector)</code></li>
 </ul>
 <p>Applies cb to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cbrt"></span>
 </section>
 <section id="cbrt-1" class="level4">
@@ -5882,7 +5912,7 @@ Examples
 <li><code>(cbrt vector)</code></li>
 </ul>
 <p>Applies cbrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ceil"></span>
 </section>
 <section id="ceil-1" class="level4">
@@ -5891,7 +5921,7 @@ Examples
 <li><code>(ceil vector)</code></li>
 </ul>
 <p>Applies ceil to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cholesky"></span>
 </section>
 <section id="cholesky-deprecated" class="level4">
@@ -5921,7 +5951,7 @@ Examples
 <li><code>:det</code> - determinant.</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1549">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1551">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-col"></span>
 </section>
 <section id="col" class="level4">
@@ -6007,7 +6037,7 @@ Examples
 <li><code>(cos vector)</code></li>
 </ul>
 <p>Applies cos to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh-1" class="level4">
@@ -6016,7 +6046,7 @@ Examples
 <li><code>(cosh vector)</code></li>
 </ul>
 <p>Applies cosh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot-1" class="level4">
@@ -6025,7 +6055,7 @@ Examples
 <li><code>(cot vector)</code></li>
 </ul>
 <p>Applies cot to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth-1" class="level4">
@@ -6034,7 +6064,7 @@ Examples
 <li><code>(coth vector)</code></li>
 </ul>
 <p>Applies coth to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc-1" class="level4">
@@ -6043,7 +6073,7 @@ Examples
 <li><code>(csc vector)</code></li>
 </ul>
 <p>Applies csc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch-1" class="level4">
@@ -6052,7 +6082,7 @@ Examples
 <li><code>(csch vector)</code></li>
 </ul>
 <p>Applies csch to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-decomposition-component"></span>
 </section>
 <section id="decomposition-component" class="level4">
@@ -6061,7 +6091,7 @@ Examples
 <li><code>(decomposition-component decomposition-matrix component-name)</code></li>
 </ul>
 <p>Returns value of the component of matrix decomposition</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1680">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1685">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-degrees"></span>
 </section>
 <section id="degrees-1" class="level4">
@@ -6070,7 +6100,7 @@ Examples
 <li><code>(degrees vector)</code></li>
 </ul>
 <p>Applies degrees to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-demean"></span>
 </section>
 <section id="demean" class="level4">
@@ -6171,7 +6201,7 @@ Examples
 <li><code>:complex?</code> - are eigenvalues complex?</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1641">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1643">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eigenvalues"></span>
 </section>
 <section id="eigenvalues" class="level4">
@@ -6226,7 +6256,7 @@ Examples
 <li><code>(exp vector)</code></li>
 </ul>
 <p>Applies exp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-expm1"></span>
 </section>
 <section id="expm1-1" class="level4">
@@ -6235,7 +6265,7 @@ Examples
 <li><code>(expm1 vector)</code></li>
 </ul>
 <p>Applies expm1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-eye"></span>
 </section>
 <section id="eye" class="level4">
@@ -6254,7 +6284,7 @@ Examples
 <li><code>(floor vector)</code></li>
 </ul>
 <p>Applies floor to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-fmap"></span>
 </section>
 <section id="fmap-1" class="level4">
@@ -6272,7 +6302,7 @@ Examples
 <li><code>(frac vector)</code></li>
 </ul>
 <p>Applies frac to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-inverse"></span>
 </section>
 <section id="inverse" class="level4">
@@ -6300,7 +6330,7 @@ Examples
 <li><code>(ln vector)</code></li>
 </ul>
 <p>Applies ln to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log-1" class="level4">
@@ -6309,7 +6339,7 @@ Examples
 <li><code>(log vector)</code></li>
 </ul>
 <p>Applies log to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log10"></span>
 </section>
 <section id="log10-1" class="level4">
@@ -6318,7 +6348,7 @@ Examples
 <li><code>(log10 vector)</code></li>
 </ul>
 <p>Applies log10 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1mexp"></span>
 </section>
 <section id="log1mexp-1" class="level4">
@@ -6327,7 +6357,7 @@ Examples
 <li><code>(log1mexp vector)</code></li>
 </ul>
 <p>Applies log1mexp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1p"></span>
 </section>
 <section id="log1p-1" class="level4">
@@ -6336,7 +6366,7 @@ Examples
 <li><code>(log1p vector)</code></li>
 </ul>
 <p>Applies log1p to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pexp"></span>
 </section>
 <section id="log1pexp-1" class="level4">
@@ -6345,7 +6375,7 @@ Examples
 <li><code>(log1pexp vector)</code></li>
 </ul>
 <p>Applies log1pexp to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1pmx"></span>
 </section>
 <section id="log1pmx-1" class="level4">
@@ -6354,7 +6384,7 @@ Examples
 <li><code>(log1pmx vector)</code></li>
 </ul>
 <p>Applies log1pmx to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log1psq"></span>
 </section>
 <section id="log1psq-1" class="level4">
@@ -6363,7 +6393,7 @@ Examples
 <li><code>(log1psq vector)</code></li>
 </ul>
 <p>Applies log1psq to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log2"></span>
 </section>
 <section id="log2-1" class="level4">
@@ -6372,7 +6402,7 @@ Examples
 <li><code>(log2 vector)</code></li>
 </ul>
 <p>Applies log2 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logexpm1"></span>
 </section>
 <section id="logexpm1-1" class="level4">
@@ -6381,7 +6411,7 @@ Examples
 <li><code>(logexpm1 vector)</code></li>
 </ul>
 <p>Applies logexpm1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logit"></span>
 </section>
 <section id="logit-1" class="level4">
@@ -6390,7 +6420,7 @@ Examples
 <li><code>(logit vector)</code></li>
 </ul>
 <p>Applies logit to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logmxp1"></span>
 </section>
 <section id="logmxp1-1" class="level4">
@@ -6399,7 +6429,7 @@ Examples
 <li><code>(logmxp1 vector)</code></li>
 </ul>
 <p>Applies logmxp1 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-lu-decomposition"></span>
 </section>
 <section id="lu-decomposition" class="level4">
@@ -6418,16 +6448,16 @@ Examples
 <li><code>:pivot</code> - pivot permutation vector</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1613">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1615">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-map->MatrixDecomposition"></span>
 </section>
 <section id="map-matrixdecomposition" class="level4">
 <h4 class="anchored" data-anchor-id="map-matrixdecomposition">map-&gt;MatrixDecomposition</h4>
 <ul>
-<li><code>(map-&gt;MatrixDecomposition m__7997__auto__)</code></li>
+<li><code>(map-&gt;MatrixDecomposition m__8001__auto__)</code></li>
 </ul>
 <p>Factory function for class fastmath.matrix.MatrixDecomposition, taking a map of keywords to field values.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1482">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1484">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-map-cols"></span>
 </section>
 <section id="map-cols" class="level4">
@@ -6675,7 +6705,7 @@ Examples
 <li><code>(pow m exponent)</code></li>
 </ul>
 <p>Applies power to a vector elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1710">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1715">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pow10"></span>
 </section>
 <section id="pow10-1" class="level4">
@@ -6684,7 +6714,7 @@ Examples
 <li><code>(pow10 vector)</code></li>
 </ul>
 <p>Applies pow10 to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-qr-decomposition"></span>
 </section>
 <section id="qr-decomposition" class="level4">
@@ -6701,7 +6731,7 @@ Examples
 <li><code>:H</code> (Hauseholder reflecors), <code>:Q</code>, <code>:QT</code>, <code>:R</code> - matrices.</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1495">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1497">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-radians"></span>
 </section>
 <section id="radians-1" class="level4">
@@ -6710,7 +6740,7 @@ Examples
 <li><code>(radians vector)</code></li>
 </ul>
 <p>Applies radians to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-real-matrix"></span>
 </section>
 <section id="real-matrix" class="level4">
@@ -6728,7 +6758,7 @@ Examples
 <li><code>(rint vector)</code></li>
 </ul>
 <p>Applies rint to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-rotation-matrix-2d"></span>
 </section>
 <section id="rotation-matrix-2d" class="level4">
@@ -6792,7 +6822,7 @@ Examples
 <li><code>(round vector)</code></li>
 </ul>
 <p>Applies round to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-row"></span>
 </section>
 <section id="row" class="level4">
@@ -6876,7 +6906,7 @@ Examples
 <li><code>:rank-fn</code> - calculates numerical matrix rank, accepts threshold for rank computation (default: 0.0).</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1520">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1522">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-safe-sqrt"></span>
 </section>
 <section id="safe-sqrt-1" class="level4">
@@ -6885,7 +6915,7 @@ Examples
 <li><code>(safe-sqrt vector)</code></li>
 </ul>
 <p>Applies safe-sqrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale-cols"></span>
 </section>
 <section id="scale-cols" class="level4">
@@ -6914,7 +6944,7 @@ Examples
 <li><code>(sec vector)</code></li>
 </ul>
 <p>Applies sec to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech-1" class="level4">
@@ -6923,7 +6953,7 @@ Examples
 <li><code>(sech vector)</code></li>
 </ul>
 <p>Applies sech to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sfrac"></span>
 </section>
 <section id="sfrac-1" class="level4">
@@ -6932,7 +6962,7 @@ Examples
 <li><code>(sfrac vector)</code></li>
 </ul>
 <p>Applies sfrac to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sgn"></span>
 </section>
 <section id="sgn-1" class="level4">
@@ -6941,7 +6971,7 @@ Examples
 <li><code>(sgn vector)</code></li>
 </ul>
 <p>Applies sgn to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-shape"></span>
 </section>
 <section id="shape" class="level4">
@@ -6979,7 +7009,7 @@ Examples
 <li><code>(sigmoid vector)</code></li>
 </ul>
 <p>Applies sigmoid to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-signum"></span>
 </section>
 <section id="signum-1" class="level4">
@@ -6988,7 +7018,7 @@ Examples
 <li><code>(signum vector)</code></li>
 </ul>
 <p>Applies signum to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin-1" class="level4">
@@ -6997,7 +7027,7 @@ Examples
 <li><code>(sin vector)</code></li>
 </ul>
 <p>Applies sin to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinc"></span>
 </section>
 <section id="sinc-1" class="level4">
@@ -7006,7 +7036,7 @@ Examples
 <li><code>(sinc vector)</code></li>
 </ul>
 <p>Applies sinc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-singular-values"></span>
 </section>
 <section id="singular-values" class="level4">
@@ -7024,7 +7054,7 @@ Examples
 <li><code>(singular? mat)</code></li>
 </ul>
 <p>Returns singularity of the matrix</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1675">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1680">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh-1" class="level4">
@@ -7033,7 +7063,7 @@ Examples
 <li><code>(sinh vector)</code></li>
 </ul>
 <p>Applies sinh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-solve"></span>
 </section>
 <section id="solve" class="level4">
@@ -7043,7 +7073,7 @@ Examples
 </ul>
 <p>Solve linear equation Ax=b, if decomposition is provided, decomposition is used.</p>
 <p>Some decompositions solve using least squares method.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1685">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1690">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq-1" class="level4">
@@ -7052,7 +7082,7 @@ Examples
 <li><code>(sq vector)</code></li>
 </ul>
 <p>Applies sq to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt-1" class="level4">
@@ -7061,7 +7091,7 @@ Examples
 <li><code>(sqrt vector)</code></li>
 </ul>
 <p>Applies sqrt to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-square?"></span>
 </section>
 <section id="square" class="level4">
@@ -7115,7 +7145,7 @@ Examples
 <li><code>coviariance-fn</code> - convariance function, returns covariance V x J x VT, where J is inverse of squares of singular values. When <code>min-sv</code> argument is provided, ignores singular values lower than its value.</li>
 </ul>
 <p>Can be used as input for <code>solve</code>, <code>inverse</code> and <code>singular?</code> functions.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1574">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1576">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-symmetric?"></span>
 </section>
 <section id="symmetric" class="level4">
@@ -7134,7 +7164,7 @@ Examples
 <li><code>(tan vector)</code></li>
 </ul>
 <p>Applies tan to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh-1" class="level4">
@@ -7143,7 +7173,7 @@ Examples
 <li><code>(tanh vector)</code></li>
 </ul>
 <p>Applies tanh to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tmulm"></span>
 </section>
 <section id="tmulm" class="level4">
@@ -7188,7 +7218,7 @@ Examples
 <li><code>(trunc vector)</code></li>
 </ul>
 <p>Applies trunc to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-vtmul"></span>
 </section>
 <section id="vtmul" class="level4">
@@ -7206,7 +7236,7 @@ Examples
 <li><code>(xlogx vector)</code></li>
 </ul>
 <p>Applies xlogx to matrix elements.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero"></span>
 </section>
 <section id="zero-1" class="level4">

@@ -157,9 +157,9 @@ V4 ;; => #vec4 [-1.0, 0.0, -3.25, 4.0]
 (v/make-vector 4) ;; => #vec4 [0.0, 0.0, 0.0, 0.0]
 (v/make-vector 5 [1 2 3 4 5 8]) ;; => [1.0 2.0 3.0 4.0 5.0]
 (class (v/make-vector 5 [1 2 3 4 5 8])) ;; => fastmath.vector.ArrayVec
-(v/generate-vec2 rand) ;; => #vec2 [0.9173224179830113, 0.27732129045071385]
+(v/generate-vec2 rand) ;; => #vec2 [0.11638951065382475, 0.4676285761034106]
 (v/generate-vec3 (constantly 4)) ;; => #vec3 [4.0, 4.0, 4.0]
-(v/generate-vec4 (comp m/sin rand)) ;; => #vec4 [0.748074858944362, 0.4959515456855323, 0.7702247258740768, 0.2097896676617318]
+(v/generate-vec4 (comp m/sin rand)) ;; => #vec4 [0.45742805971023326, 0.015729286851894203, 0.23312959958207047, 0.6385053478965556]
 (v/array->vec2 (double-array [1 2 3 4 5])) ;; => #vec2 [1.0, 2.0]
 (v/array->vec3 (double-array [1 2 3 4 5])) ;; => #vec3 [1.0, 2.0, 3.0]
 (v/array->vec4 (double-array [1 2 3 4 5])) ;; => #vec4 [1.0, 2.0, 3.0, 4.0]
@@ -187,17 +187,17 @@ V4 ;; => #vec4 [-1.0, 0.0, -3.25, 4.0]
 
 ::: {.sourceClojure}
 ```clojure
-(v/vec->array V2) ;; => #object["[D" 0x32352769 "[D@32352769"]
+(v/vec->array V2) ;; => #object["[D" 0x3d5143ca "[D@3d5143ca"]
 (v/vec->seq V2) ;; => (-1.0 2.5)
-(v/vec->RealVector V2) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x50272908 "{-1; 2.5}"]
+(v/vec->RealVector V2) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x54bd2718 "{-1; 2.5}"]
 (v/vec->Vec V2) ;; => [-1.0 2.5]
 (class (v/vec->Vec V2)) ;; => clojure.core.Vec
-(v/vec->array [1 2 3]) ;; => #object["[D" 0x5b601003 "[D@5b601003"]
+(v/vec->array [1 2 3]) ;; => #object["[D" 0x482e58d4 "[D@482e58d4"]
 (v/vec->seq [1 2 3]) ;; => (1 2 3)
-(v/vec->RealVector [1 2 3]) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x3efce3ba "{1; 2; 3}"]
-(v/real-vector [1 2 3]) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x25e99563 "{1; 2; 3}"]
-(v/real-vector (double-array 4)) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x4c6f87bf "{0; 0; 0; 0}"]
-(v/real-vector (seq (v/vec2 9 8))) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x17546639 "{9; 8}"]
+(v/vec->RealVector [1 2 3]) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x7fd60d08 "{1; 2; 3}"]
+(v/real-vector [1 2 3]) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x50fc4f0c "{1; 2; 3}"]
+(v/real-vector (double-array 4)) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x6dc437ec "{0; 0; 0; 0}"]
+(v/real-vector (seq (v/vec2 9 8))) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x57162a78 "{9; 8}"]
 (v/vec->Vec [1 2 3]) ;; => [1.0 2.0 3.0]
 ```
 :::
@@ -1127,7 +1127,7 @@ RealMat
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x21b936d8 "Array2DRowRealMatrix{{1.0,2.0,3.0},{4.0,5.0,6.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x292bdca "Array2DRowRealMatrix{{1.0,2.0,3.0},{4.0,5.0,6.0}}"]
 
 ```
 :::
@@ -1661,7 +1661,7 @@ Use `real-matrix`, `rows->RealMatrix`, `cols->RealMatrix` for N x M matrices bac
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x574930c3 "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6a3fddc5 "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
 
 ```
 :::
@@ -1678,7 +1678,7 @@ Use `real-matrix`, `rows->RealMatrix`, `cols->RealMatrix` for N x M matrices bac
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x42a2f2a9 "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x59f4056a "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
 
 ```
 :::
@@ -1695,7 +1695,7 @@ Use `real-matrix`, `rows->RealMatrix`, `cols->RealMatrix` for N x M matrices bac
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6680177d "Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x76f737a5 "Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"]
 
 ```
 :::
@@ -1792,7 +1792,7 @@ The `mat`, `rows->mat`, and `cols->mat` functions provide convenient constructor
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x28773b9d "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x2fa07c58 "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
 
 ```
 :::
@@ -1884,7 +1884,7 @@ The `mat`, `rows->mat`, and `cols->mat` functions provide convenient constructor
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x4f0c885b "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x46c4dd9d "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0}}"]
 
 ```
 :::
@@ -1976,7 +1976,7 @@ The `mat`, `rows->mat`, and `cols->mat` functions provide convenient constructor
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x398369cc "Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5fcbf6b4 "Array2DRowRealMatrix{{1.0,5.0},{2.0,6.0},{3.0,7.0},{4.0,8.0}}"]
 
 ```
 :::
@@ -2002,7 +2002,7 @@ Bind a sequence of matrices row-wise (`bind-rows`) or column-wise (`bind-cols`).
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x617ffb09 "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{1.0,2.0},{3.0,4.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5a921930 "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{1.0,2.0},{3.0,4.0}}"]
 
 ```
 :::
@@ -2019,7 +2019,7 @@ Bind a sequence of matrices row-wise (`bind-rows`) or column-wise (`bind-cols`).
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x1c81204f "Array2DRowRealMatrix{{1.0,2.0,1.0,2.0},{3.0,4.0,3.0,4.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x728cf385 "Array2DRowRealMatrix{{1.0,2.0,1.0,2.0},{3.0,4.0,3.0,4.0}}"]
 
 ```
 :::
@@ -2036,7 +2036,7 @@ Bind a sequence of matrices row-wise (`bind-rows`) or column-wise (`bind-cols`).
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x2aefb694 "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{-100.0,0.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x7a81fa73 "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0},{-100.0,0.0}}"]
 
 ```
 :::
@@ -2053,7 +2053,7 @@ Bind a sequence of matrices row-wise (`bind-rows`) or column-wise (`bind-cols`).
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x7615b0c5 "Array2DRowRealMatrix{{1.0,2.0,-100.0},{3.0,4.0,0.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x380b4eb7 "Array2DRowRealMatrix{{1.0,2.0,-100.0},{3.0,4.0,0.0}}"]
 
 ```
 :::
@@ -2173,7 +2173,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x2f684d13 "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0},{9.0,0.0,1.0,2.0},{3.0,4.0,5.0,6.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x26da331e "Array2DRowRealMatrix{{1.0,2.0,3.0,4.0},{5.0,6.0,7.0,8.0},{9.0,0.0,1.0,2.0},{3.0,4.0,5.0,6.0}}"]
 
 ```
 :::
@@ -2190,16 +2190,16 @@ dda
 ```clojure
 (mat/mat->seq 1) ;; => (1)
 (mat/mat->seq M3x3) ;; => (1.0 2.0 3.0 -4.0 5.0 6.0 9.0 -8.0 7.0)
-(mat/mat->array 1) ;; => #object["[D" 0x7c956b6f "[D@7c956b6f"]
-(mat/mat->array M2x2) ;; => #object["[D" 0x71bdc308 "[D@71bdc308"]
-(mat/mat->array2d 1) ;; => #object["[[D" 0x5ec61d39 "[[D@5ec61d39"]
-(mat/mat->array2d M2x2) ;; => #object["[[D" 0x1eaa61c9 "[[D@1eaa61c9"]
-(mat/mat->RealMatrix 1) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x4933af60 "Array2DRowRealMatrix{{1.0}}"]
-(mat/mat->RealMatrix M2x2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x560990cd "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0}}"]
-(mat/mat->float-array 1.0) ;; => #object["[F" 0x384860e0 "[F@384860e0"]
-(mat/mat->float-array M2x2) ;; => #object["[F" 0x7521ea09 "[F@7521ea09"]
-(mat/mat->float-array2d 1.0) ;; => #object["[[F" 0x3ba87070 "[[F@3ba87070"]
-(mat/mat->float-array2d M2x2) ;; => #object["[[F" 0x409c4885 "[[F@409c4885"]
+(mat/mat->array 1) ;; => #object["[D" 0x1cda230e "[D@1cda230e"]
+(mat/mat->array M2x2) ;; => #object["[D" 0x66e2423f "[D@66e2423f"]
+(mat/mat->array2d 1) ;; => #object["[[D" 0x506b31fe "[[D@506b31fe"]
+(mat/mat->array2d M2x2) ;; => #object["[[D" 0x70584a96 "[[D@70584a96"]
+(mat/mat->RealMatrix 1) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x3dd7c5c0 "Array2DRowRealMatrix{{1.0}}"]
+(mat/mat->RealMatrix M2x2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x49d09bff "Array2DRowRealMatrix{{1.0,2.0},{3.0,4.0}}"]
+(mat/mat->float-array 1.0) ;; => #object["[F" 0x403db7fa "[F@403db7fa"]
+(mat/mat->float-array M2x2) ;; => #object["[F" 0x72034991 "[F@72034991"]
+(mat/mat->float-array2d 1.0) ;; => #object["[[F" 0x3c3b1977 "[[F@3c3b1977"]
+(mat/mat->float-array2d M2x2) ;; => #object["[[F" 0x1114eb6d "[[F@1114eb6d"]
 (seq (mat/mat->array M2x2)) ;; => (1.0 2.0 3.0 4.0)
 (m/double-double-array->seq (mat/mat->array2d M2x2)) ;; => ((1.0 2.0) (3.0 4.0))
 ```
@@ -2291,7 +2291,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6dd2f6b8 "Array2DRowRealMatrix{{1.0,0.0},{0.0,1.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x7fe24389 "Array2DRowRealMatrix{{1.0,0.0},{0.0,1.0}}"]
 
 ```
 :::
@@ -2370,7 +2370,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x454950 "Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x508c0541 "Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"]
 
 ```
 :::
@@ -2405,7 +2405,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x1ca1e9a9 "Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x33db8e63 "Array2DRowRealMatrix{{0.0,0.0},{0.0,0.0}}"]
 
 ```
 :::
@@ -2484,7 +2484,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6f76b261 "Array2DRowRealMatrix{{1.0,0.0},{0.0,2.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5bfb4fd9 "Array2DRowRealMatrix{{1.0,0.0},{0.0,2.0}}"]
 
 ```
 :::
@@ -2505,7 +2505,7 @@ dda
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x354fa2ac "Array2DRowRealMatrix{{1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{3.0,4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,1.0,2.0,3.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,-4.0,5.0,6.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,9.0,-8.0,7.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0,0.0,1.0,2.0,3.0,4.0,0.0},{0.0,0.0,0.0,0.0,0.0,5.0,6.0,7.0,8.0,0.0},{0.0,0.0,0.0,0.0,0.0,9.0,10.0,11.0,12.0,0.0},{0.0,0.0,0.0,0.0,0.0,13.0,14.0,15.0,16.0,0.0},{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1000.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x7922be65 "Array2DRowRealMatrix{{1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{3.0,4.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,1.0,2.0,3.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,-4.0,5.0,6.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,9.0,-8.0,7.0,0.0,0.0,0.0,0.0,0.0},{0.0,0.0,0.0,0.0,0.0,1.0,2.0,3.0,4.0,0.0},{0.0,0.0,0.0,0.0,0.0,5.0,6.0,7.0,8.0,0.0},{0.0,0.0,0.0,0.0,0.0,9.0,10.0,11.0,12.0,0.0},{0.0,0.0,0.0,0.0,0.0,13.0,14.0,15.0,16.0,0.0},{0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1000.0}}"]
 
 ```
 :::
@@ -2643,11 +2643,11 @@ Functions to retrieve individual matrix elements or extract entire rows or colum
 (mat/row 1.5 0) ;; => [1.5]
 (mat/row M4x4 2) ;; => #vec4 [9.0, 10.0, 11.0, 12.0]
 (mat/col 1.5 0) ;; => [1.5]
-(mat/col RealMat 1) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x2f68e098 "{2; 5}"]
+(mat/col RealMat 1) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x5cdb1d68 "{2; 5}"]
 (mat/rows 1.5) ;; => [[1.5]]
 (mat/rows M2x2) ;; => [#vec2 [1.0, 2.0] #vec2 [3.0, 4.0]]
 (mat/cols 1.5) ;; => [[1.5]]
-(mat/cols RealMat) ;; => [#object[org.apache.commons.math3.linear.ArrayRealVector 0x546881de "{1; 4}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x2c7f035a "{2; 5}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x6368b5b9 "{3; 6}"]]
+(mat/cols RealMat) ;; => [#object[org.apache.commons.math3.linear.ArrayRealVector 0x1d8ad90b "{1; 4}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x40f218f5 "{2; 5}"] #object[org.apache.commons.math3.linear.ArrayRealVector 0x7eb85c0f "{3; 6}"]]
 ```
 :::
 
@@ -3174,15 +3174,15 @@ $\mathbf{C} = \mathbf{A}^T \mathbf{B}^T$
 ::: {.sourceClojure}
 ```clojure
 (mat/mulv M2x2 (v/vec2 10 20)) ;; => #vec2 [50.0, 110.0]
-(mat/mulv RealMat (v/vec->RealVector (v/vec3 1 2 3))) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x62714b9a "{14; 32}"]
+(mat/mulv RealMat (v/vec->RealVector (v/vec3 1 2 3))) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x1b191a95 "{14; 32}"]
 (mat/vtmul M2x2 (v/vec2 10 20)) ;; => #vec2 [70.0, 100.0]
-(mat/vtmul RealMat (v/vec->RealVector [1 2])) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x39def4ad "{9; 12; 15}"]
-(mat/outer 1.5 2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x26ae509d "Array2DRowRealMatrix{{3.0}}"]
-(mat/outer (v/vec2 1 2) [1 2 3 9]) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x62d6171e "Array2DRowRealMatrix{{1.0,2.0,3.0,9.0},{2.0,4.0,6.0,18.0}}"]
-(mat/outer [2 3] [9 1 2]) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0xa93bd45 "Array2DRowRealMatrix{{18.0,2.0,4.0},{27.0,3.0,6.0}}"]
-(mat/kronecker 1.5 2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x44a64b26 "Array2DRowRealMatrix{{3.0}}"]
-(mat/kronecker M2x2 M3x3) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x10d8c197 "Array2DRowRealMatrix{{1.0,2.0,3.0,2.0,4.0,6.0},{-4.0,5.0,6.0,-8.0,10.0,12.0},{9.0,-8.0,7.0,18.0,-16.0,14.0},{3.0,6.0,9.0,4.0,8.0,12.0},{-12.0,15.0,18.0,-16.0,20.0,24.0},{27.0,-24.0,21.0,36.0,-32.0,28.0}}"]
-(mat/kronecker RealMat M2x2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x42e45a75 "Array2DRowRealMatrix{{1.0,2.0,2.0,4.0,3.0,6.0},{3.0,4.0,6.0,8.0,9.0,12.0},{4.0,8.0,5.0,10.0,6.0,12.0},{12.0,16.0,15.0,20.0,18.0,24.0}}"]
+(mat/vtmul RealMat (v/vec->RealVector [1 2])) ;; => #object[org.apache.commons.math3.linear.ArrayRealVector 0x33ada2f6 "{9; 12; 15}"]
+(mat/outer 1.5 2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5a55ceff "Array2DRowRealMatrix{{3.0}}"]
+(mat/outer (v/vec2 1 2) [1 2 3 9]) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x66af8606 "Array2DRowRealMatrix{{1.0,2.0,3.0,9.0},{2.0,4.0,6.0,18.0}}"]
+(mat/outer [2 3] [9 1 2]) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x3531e5f4 "Array2DRowRealMatrix{{18.0,2.0,4.0},{27.0,3.0,6.0}}"]
+(mat/kronecker 1.5 2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x6b555bb6 "Array2DRowRealMatrix{{3.0}}"]
+(mat/kronecker M2x2 M3x3) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x1f834215 "Array2DRowRealMatrix{{1.0,2.0,3.0,2.0,4.0,6.0},{-4.0,5.0,6.0,-8.0,10.0,12.0},{9.0,-8.0,7.0,18.0,-16.0,14.0},{3.0,6.0,9.0,4.0,8.0,12.0},{-12.0,15.0,18.0,-16.0,20.0,24.0},{27.0,-24.0,21.0,36.0,-32.0,28.0}}"]
+(mat/kronecker RealMat M2x2) ;; => #object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x5867855 "Array2DRowRealMatrix{{1.0,2.0,2.0,4.0,3.0,6.0},{3.0,4.0,6.0,8.0,9.0,12.0},{4.0,8.0,5.0,10.0,6.0,12.0},{12.0,16.0,15.0,20.0,18.0,24.0}}"]
 ```
 :::
 
@@ -3375,7 +3375,7 @@ These functions provide tools to apply transformations to the rows or columns of
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x403d0952 "Array2DRowRealMatrix{{6.0,9.0,12.0},{9.0,12.0,15.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x3adb1d30 "Array2DRowRealMatrix{{6.0,9.0,12.0},{9.0,12.0,15.0}}"]
 
 ```
 :::
@@ -3433,7 +3433,7 @@ Default function is the root mean square function $\frac{(n-1)}{\sqrt{(\mathbf{v
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x7e32de8a "Array2DRowRealMatrix{{2.2360679775,5.2915026221,9.0},{8.94427191,13.2287565553,18.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x1cad6556 "Array2DRowRealMatrix{{2.2360679775,5.2915026221,9.0},{8.94427191,13.2287565553,18.0}}"]
 
 ```
 :::
@@ -3585,7 +3585,7 @@ Default function is the root mean square function $\frac{(n-1)}{\sqrt{(\mathbf{v
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0xb764c97 "Array2DRowRealMatrix{{-1.0,1.0,0.0,0.0},{0.0,-1.0,1.0,0.0},{0.0,0.0,-1.0,1.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x2159afab "Array2DRowRealMatrix{{-1.0,1.0,0.0,0.0},{0.0,-1.0,1.0,0.0},{0.0,0.0,-1.0,1.0}}"]
 
 ```
 :::
@@ -3602,7 +3602,7 @@ Default function is the root mean square function $\frac{(n-1)}{\sqrt{(\mathbf{v
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x34bf8196 "Array2DRowRealMatrix{{1.0,-2.0,1.0,0.0},{0.0,1.0,-2.0,1.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x19eae9ca "Array2DRowRealMatrix{{1.0,-2.0,1.0,0.0},{0.0,1.0,-2.0,1.0}}"]
 
 ```
 :::
@@ -3619,7 +3619,7 @@ Default function is the root mean square function $\frac{(n-1)}{\sqrt{(\mathbf{v
 
 ::: {.printedClojure}
 ```clojure
-#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x608c4a2b "Array2DRowRealMatrix{{-1.0,0.0,1.0,0.0},{0.0,-1.0,0.0,1.0}}"]
+#object[org.apache.commons.math3.linear.Array2DRowRealMatrix 0x2f73266e "Array2DRowRealMatrix{{-1.0,0.0,1.0,0.0},{0.0,-1.0,0.0,1.0}}"]
 
 ```
 :::
@@ -5411,7 +5411,7 @@ Applies acos to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5429,7 +5429,7 @@ Applies acosh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5447,7 +5447,7 @@ Applies acot to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5465,7 +5465,7 @@ Applies acoth to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5483,7 +5483,7 @@ Applies acsc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5501,7 +5501,7 @@ Applies acsch to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5543,7 +5543,7 @@ Checks if two vectors are aligned, meaning they point in approximately the same 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1267">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1288">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5564,7 +5564,7 @@ Returns the angle between two vectors in radians.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1241">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1262">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5619,7 +5619,7 @@ Converts doubles array to Vec2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1333">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5637,7 +5637,7 @@ Converts doubles array to Vec3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1317">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1338">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5655,7 +5655,7 @@ Converts doubles array to Vec4
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1322">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1343">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5710,7 +5710,7 @@ Applies asec to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5728,7 +5728,7 @@ Applies asech to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5746,7 +5746,7 @@ Applies asin to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5764,7 +5764,7 @@ Applies asinh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5782,7 +5782,7 @@ Applies atan to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5800,7 +5800,7 @@ Applies atanh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5893,7 +5893,7 @@ Applies cb to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5911,7 +5911,7 @@ Applies cbrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5929,7 +5929,7 @@ Applies ceil to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5968,7 +5968,7 @@ Applies cos to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5986,7 +5986,7 @@ Applies cosh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6004,7 +6004,7 @@ Applies cot to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6022,7 +6022,7 @@ Applies coth to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6058,7 +6058,7 @@ Applies csc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6076,7 +6076,7 @@ Applies csch to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6094,7 +6094,7 @@ Applies degrees to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6163,7 +6163,7 @@ Computes the lagged differences of a vector or sequence.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1344">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1365">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6512,7 +6512,7 @@ Applies exp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6530,7 +6530,7 @@ Applies expm1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6548,7 +6548,7 @@ Flips vector `n` if `dot(n, v)` is negative. Returns `n` if `dot(n, v)` is non-n
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1278">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1299">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6566,7 +6566,7 @@ Applies floor to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6602,7 +6602,7 @@ Applies frac to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6639,7 +6639,7 @@ Generates Vec2 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1291">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1312">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6658,7 +6658,7 @@ Generates Vec3 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1298">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1319">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6677,7 +6677,7 @@ Generates Vec4 with fn(s)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1305">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1326">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6788,7 +6788,7 @@ Limits length of the vector by given value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1234">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1255">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6806,7 +6806,7 @@ Applies ln to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6824,7 +6824,7 @@ Applies log to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6842,7 +6842,7 @@ Applies log10 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6860,7 +6860,7 @@ Applies log1mexp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6878,7 +6878,7 @@ Applies log1p to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6896,7 +6896,7 @@ Applies log1pexp to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6914,7 +6914,7 @@ Applies log1pmx to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6932,7 +6932,7 @@ Applies log1psq to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6950,7 +6950,7 @@ Applies log2 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6968,7 +6968,7 @@ Applies logexpm1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6986,7 +6986,7 @@ Applies logit to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7011,7 +7011,7 @@ Calculates the numerically stable log of the mean of the exponential of each ele
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1469">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7029,7 +7029,7 @@ Applies logmxp1 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7059,7 +7059,7 @@ Calculates the element-wise natural logarithm of the softmax function for the gi
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1415">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1436">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7082,7 +7082,7 @@ Calculates the LogSumExp of the vector `v`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1437">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1458">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7282,13 +7282,67 @@ Counts non zero velues in vector
 
 + `(normalize v)`
 
-Returns a new vector with the same direction as `v` but with a magnitude of 1.
+Returns a new vector of the same direction as `v` and magnitude of 1.
 
   If `v` is a zero vector (magnitude is zero), returns a zero vector of the same type.
 
 
 ```{=html}
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1219">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-normalize-L1"></span>
+```
+
+
+#### normalize-L1
+
++ `(normalize-L1 v)`
+
+Returns a new vector normalized by L1/abs norm.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1234">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-normalize-L2"></span>
+```
+
+
+#### normalize-L2
+
++ `(normalize-L2 v)`
+
+Alias for [normalize](#LOS-normalize).
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1229">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-normalize-LInf"></span>
+```
+
+
+#### normalize-LInf
+
++ `(normalize-LInf v)`
+
+Returns a new vector normalized by Linf/max norm.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1242">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7312,7 +7366,7 @@ Generates a sequence of orthogonal vectors by evaluating orthogonal polynomials 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1465">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1486">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7334,7 +7388,7 @@ Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1489">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1510">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7389,7 +7443,7 @@ Applies power to a vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1389">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1410">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7407,7 +7461,7 @@ Applies pow10 to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7445,7 +7499,7 @@ Calculates the vector projection of `v1` onto `v2`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1285">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1306">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7463,7 +7517,7 @@ Applies radians to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7523,7 +7577,7 @@ Returns the difference between the heading of `v2` and the heading of `v1`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1256">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1277">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7541,7 +7595,7 @@ Applies rint to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7578,7 +7632,7 @@ Applies round to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7596,7 +7650,7 @@ Applies safe-sqrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7614,7 +7668,7 @@ Applies sec to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7632,7 +7686,7 @@ Applies sech to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7650,7 +7704,7 @@ Converts any seq to Vec2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1327">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1348">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7668,7 +7722,7 @@ Converts any seq to Vec3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1332">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1353">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7686,7 +7740,7 @@ Converts any seq to Vec4
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1337">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1358">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7704,7 +7758,7 @@ Sets length of the vector.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1229">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1250">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7722,7 +7776,7 @@ Applies sfrac to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7740,7 +7794,7 @@ Applies sgn to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7777,7 +7831,7 @@ Applies sigmoid to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7795,7 +7849,7 @@ Applies signum to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7831,7 +7885,7 @@ Applies sin to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7849,7 +7903,7 @@ Applies sinc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7867,7 +7921,7 @@ Applies sinh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7914,7 +7968,7 @@ Calculates the softmax function for the given vector `v`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1394">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1415">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7932,7 +7986,7 @@ Applies sq to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7950,7 +8004,7 @@ Applies sqrt to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8006,7 +8060,7 @@ Applies tan to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8024,7 +8078,7 @@ Applies tanh to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8119,7 +8173,7 @@ Applies trunc to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8272,7 +8326,7 @@ Applies xlogx to vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1381">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/vector.clj#L1402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8386,7 +8440,7 @@ Positional factory function for class fastmath.matrix.MatrixDecomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1482">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1484">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8404,7 +8458,7 @@ Applies acos to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8422,7 +8476,7 @@ Applies acosh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8440,7 +8494,7 @@ Applies acot to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8458,7 +8512,7 @@ Applies acoth to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8476,7 +8530,7 @@ Applies acsc to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8494,7 +8548,7 @@ Applies acsch to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8621,7 +8675,7 @@ Applies asec to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8639,7 +8693,7 @@ Applies asech to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8657,7 +8711,7 @@ Applies asin to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8675,7 +8729,7 @@ Applies asinh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8693,7 +8747,7 @@ Applies atan to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8711,7 +8765,7 @@ Applies atanh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8786,7 +8840,7 @@ Applies cb to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8804,7 +8858,7 @@ Applies cbrt to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8822,7 +8876,7 @@ Applies ceil to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8875,7 +8929,7 @@ Performs Cholesky decomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1549">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1551">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9043,7 +9097,7 @@ Applies cos to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9061,7 +9115,7 @@ Applies cosh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9079,7 +9133,7 @@ Applies cot to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9097,7 +9151,7 @@ Applies coth to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9115,7 +9169,7 @@ Applies csc to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9133,7 +9187,7 @@ Applies csch to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9151,7 +9205,7 @@ Returns value of the component of matrix decomposition
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1680">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1685">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9169,7 +9223,7 @@ Applies degrees to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9354,7 +9408,7 @@ Performs Eigen decomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1641">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1643">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9463,7 +9517,7 @@ Applies exp to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9481,7 +9535,7 @@ Applies expm1 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9518,7 +9572,7 @@ Applies floor to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9554,7 +9608,7 @@ Applies frac to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9610,7 +9664,7 @@ Applies ln to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9628,7 +9682,7 @@ Applies log to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9646,7 +9700,7 @@ Applies log10 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9664,7 +9718,7 @@ Applies log1mexp to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9682,7 +9736,7 @@ Applies log1p to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9700,7 +9754,7 @@ Applies log1pexp to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9718,7 +9772,7 @@ Applies log1pmx to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9736,7 +9790,7 @@ Applies log1psq to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9754,7 +9808,7 @@ Applies log2 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9772,7 +9826,7 @@ Applies logexpm1 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9790,7 +9844,7 @@ Applies logit to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9808,7 +9862,7 @@ Applies logmxp1 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9839,7 +9893,7 @@ Performs QR decomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1613">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1615">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9851,13 +9905,13 @@ Performs QR decomposition.
 
 #### map->MatrixDecomposition
 
-+ `(map->MatrixDecomposition m__7997__auto__)`
++ `(map->MatrixDecomposition m__8001__auto__)`
 
 Factory function for class fastmath.matrix.MatrixDecomposition, taking a map of keywords to field values.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1482">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1484">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10313,7 +10367,7 @@ Applies power to a vector elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1710">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1715">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10331,7 +10385,7 @@ Applies pow10 to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10360,7 +10414,7 @@ Performs QR decomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1495">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1497">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10378,7 +10432,7 @@ Applies radians to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10414,7 +10468,7 @@ Applies rint to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10541,7 +10595,7 @@ Applies round to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10700,7 +10754,7 @@ Performs Rank-Revealing QR decomposition.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1520">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1522">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10718,7 +10772,7 @@ Applies safe-sqrt to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10774,7 +10828,7 @@ Applies sec to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10792,7 +10846,7 @@ Applies sech to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10810,7 +10864,7 @@ Applies sfrac to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10828,7 +10882,7 @@ Applies sgn to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10902,7 +10956,7 @@ Applies sigmoid to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10920,7 +10974,7 @@ Applies signum to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10938,7 +10992,7 @@ Applies sin to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10956,7 +11010,7 @@ Applies sinc to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -10992,7 +11046,7 @@ Returns singularity of the matrix
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1675">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1680">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11010,7 +11064,7 @@ Applies sinh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11030,7 +11084,7 @@ Solve linear equation Ax=b, if decomposition is provided, decomposition is used.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1685">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1690">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11048,7 +11102,7 @@ Applies sq to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11066,7 +11120,7 @@ Applies sqrt to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11157,7 +11211,7 @@ Performs Singular Value Decomposition (SVD).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1574">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1576">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11194,7 +11248,7 @@ Applies tan to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11212,7 +11266,7 @@ Applies tanh to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11302,7 +11356,7 @@ Applies trunc to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -11338,7 +11392,7 @@ Applies xlogx to matrix elements.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1702">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/matrix.clj#L1707">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
