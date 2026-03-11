@@ -1,4 +1,4 @@
-(ns fastmath.transform.pad
+(ns fastmath.signal.pad
   (:require [fastmath.core :as m])
   (:import [java.util Arrays]
            [fastmath.java Array]))

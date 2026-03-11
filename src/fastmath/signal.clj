@@ -171,7 +171,11 @@
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.transform :as trans]
             [fastmath.kernel :as ker]
-            [fastmath.stats :as stats])
+            [fastmath.stats :as stats]
+
+            [fastmath.signal.waveform :as wv]
+            [fastmath.signal.chirp :as chirp]
+            [fastmath.signal.pad :as pad])
   (:import [fastmath.vector Vec3]
            [clojure.lang IFn]
            [org.apache.commons.math3.linear Array2DRowRealMatrix SingularValueDecomposition]
@@ -997,6 +1001,8 @@
   * order - polynomial order (default: 2)
   * derivative - signal derivative (default: 0)
 
+  Boundary rule is to pad with zeros.  
+
   Returns filtering function which accepts collection of numbers and returns filtered signal."
   ([] (savgol-filter 5))
   ([^long length] (savgol-filter length 2))
@@ -1182,28 +1188,31 @@
   * `:spectrum` - A sequence of sequences, where each inner sequence represents the frequency spectrum of a time-localized window.
   * `:freqs` - A sequence of frequency values corresponding to the bins in the spectrum.
   * `:times` - A sequence of time values corresponding to the center of each windowed segment."
-  ([xs {:keys [window ^double overlap ^double fs method]
+  ([xs {:keys [window ^double overlap ^double fs method db?]
         :or {overlap 0.5 fs 1.0 method :power}
         :as options}]
    (let [N (count xs)
          window (or window (ker/window :gaussian (m/max 5 (m/round (m/* 0.05 N)))))
          wlen (count window)
-         shift (m/max 1 (m/round (m/* overlap wlen)))
+         shift (m/max 1 (m/round (m/* (m/- 1.0 overlap) wlen)))
          scale (v/sum window)
          scale-sq (m/sq scale)
          scale2 (m/* fs (v/sum (v/sq window)))
          xxs (->> (partition wlen shift xs)
                   (map (fn [xs]
                          (let [txs (-> (v/emult window xs)
-                                       (trans/fft options))]                                      
-                           (case method
-                             :magnitude (fft-magnitude txs options)
-                             :amplitude (v/div (fft-magnitude txs options) scale)
-                             :energy (fft-energy txs options)
-                             :power (v/div (fft-power txs options) scale-sq)
-                             :psd (v/div (fft-energy txs options) scale2)
-                             :phase (map v/heading txs)
-                             txs)))))]
+                                       (trans/fft options))
+                               s (case method
+                                   :magnitude (fft-magnitude txs options)
+                                   :amplitude (v/div (fft-magnitude txs options) scale)
+                                   :energy (fft-energy txs options)
+                                   :power (v/div (fft-energy txs options) scale-sq)
+                                   :psd (v/div (fft-energy txs options) scale2)
+                                   :phase (map v/heading txs)
+                                   txs)]
+                           (if (and db? (not (#{:phase} method)))
+                             (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) s)
+                             s)))))]
      {:N N
       :spectrum xxs
       :freqs (take (count (first xxs)) (fft-frequencies fs wlen))
@@ -1218,7 +1227,7 @@
 
   * `xs` - Input signal. Can be a sequence of doubles (time-domain) or a sequence of `fastmath.vector.Vec2` complex coefficients (frequency-domain).
   * `options` - A map of configuration keys:
-    * `:method` - The type of spectral values to return. Options: `:magnitude`, `:amplitude` (default), `:energy`, `:power`, `:psd` (Power Spectral Density), `:asd` (Amplitude Spectral Density), or `:phase` (angle in radians).
+    * `:method` - The type of spectral values to return. Options: `:magnitude`, `:amplitude` (default), `:energy`, `:power`, `:psd` (Power Spectral Density), `:asd` (Amplitude Spectral Density), `:phase` (angle in radians), `:real` (real part only), `:imag` (imaginary part only) or `:complex` (transformed data).
     * `:db?` - Boolean flag; if true, converts the resulting spectrum values to decibels using $10\\log_{10}(x)$. Default is `false`.
     * `:fs` - The sampling frequency of the signal. Default is `1.0`.
     * `:domain` - Specifies if the input `xs` is in the `:time` domain (requires performing an FFT) or already in the `:frequency` domain. Default is `:time`.
@@ -1244,8 +1253,13 @@
                 :power (fft-power txs options)
                 :psd (v/div (fft-power txs options) step)
                 :asd (v/div (fft-amplitude txs options) step)
-                :phase (map v/heading txs)))
-         sp (if db? (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) sp) sp)]
+                :phase (map v/heading txs)
+                :real (map first txs)
+                :imag (map second txs)
+                :complex txs))
+         sp (if (and db? (not (#{:phase :real :imag :complex} method)))
+              (map (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) sp)
+              sp)]
      {:N N
       :spectrum sp
       :freqs (take (count sp) (fft-frequencies fs N))})))
@@ -1278,4 +1292,134 @@
       :spectrum (case average
                   :mean (v/average-vectors spectrum)
                   :median (v/div (map stats/median (apply map vector spectrum)) (median-bias N)))})))
+
+
+;; Waveforms
+
+(defn waveform
+  "Create a waveform function (oscillator) for signal generation.
+
+  This function returns a stateless oscillator that maps time (as a double) to a signal value. It supports a variety of wave shapes, including standard geometric oscillators, 'analog-style' approximations, and additive band-limited synthesis to reduce aliasing. Parameters such as frequency, amplitude, and phase can be provided as constant numbers or as functions of time, enabling complex modulations (FM/AM).
+
+  Input parameters:
+  * `wave-type` - A keyword selecting the waveform shape:
+      * Basic: `:sine`, `:square`, `:saw`, `:triangle`.
+      * Analog-style: `:analog-sine`, `:analog-saw`, `:analog-triangle`.
+      * Band-limited: `:band-limited-square`, `:band-limited-saw`, `:band-limited-triangle`.
+  * `options` - A map of configuration keys:
+      * `:f` - Frequency in Hz. Can be a number or a function `(fn [t])` for frequency modulation. Default: `1.0`.
+      * `:phase` - Phase offset in cycles [0.0 to 1.0]. Can be a number or a function `(fn [t])`. Default: `0.0`.
+      * `:amplitude` - Peak amplitude. Can be a number or a function `(fn [t])` for amplitude modulation. Default: `1.0`.
+      * `:duty` - Duty cycle for `:square` waves, ranging from 0.0 to 1.0 or `(fn [t])` for modulation. Default: `0.5`.
+      * `:up?` - Boolean for `:saw` and `:analog-saw` waves. Set to `true` (default) for a rising ramp, `false` for a falling ramp.
+      * `:bands` - Number of harmonics for `:band-limited-*` types. Increasing this value improves shape accuracy but increases computation. Default: `5`.
+
+  Returns a function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double."
+  ([wave-type] (waveform wave-type nil))
+  ([wave-type options]
+   (case wave-type
+     :sine (wv/->sine options)
+     :analog-sine (wv/->analog-sine options)
+     :square (wv/->square options)
+     :band-limited-square (wv/->band-limited-square options)
+     :saw (wv/->saw options)
+     :analog-saw (wv/->analog-saw options)
+     :band-limited-saw (wv/->band-limited-saw options)
+     :triangle (wv/->triangle options)
+     :analog-triangle (wv/->analog-triangle options)
+     :band-limited-triangle (wv/->band-limited-triangle options))))
+
+(defn chirp
+  "Create a frequency-swept sine wave (chirp) oscillator.
+
+  Generates a signal where the instantaneous frequency changes over a specified time interval according to a defined modulation profile. Chirps are essential in radar, sonar, and system identification to analyze frequency-dependent responses and impulse behavior.
+
+  Input parameters:
+  * `chirp-type` - A keyword specifying the sweep profile:
+      * `:linear` - Frequency changes linearly with time.
+      * `:quadratic-up` - Frequency increases quadratically.
+      * `:quadratic-down` - Frequency decreases quadratically.
+      * `:logarithmic` - Frequency changes exponentially (geometric sweep).
+      * `:hyperbolic` - Frequency follows a hyperbolic curve.
+  * `options` - A map of configuration keys:
+      * `:f0` - Starting frequency in Hz at $t=0$.
+      * `:f1` - Ending frequency in Hz at $t=time$.
+      * `:time` - The time duration (in seconds) over which the sweep from `:f0` to `:f1` occurs.
+      * `:amplitude` - Peak amplitude. Can be a number or a modulation function `(fn [t])`.
+      * `:phase` - Initial phase offset in cycles [0.0 to 1.0].
+
+  Returns a stateless function `(fn [t])` that accepts time `t` as a double and returns the signal value as a double."
+  ([chirp-type] (chirp chirp-type nil))
+  ([chirp-type options]
+   (let [modulation (case chirp-type
+                      :linear (chirp/->linear options)
+                      :quadratic-up (chirp/->quadratic-up options)
+                      :quadratic-down (chirp/->quadratic-down options)
+                      :logarithmic (chirp/->logarithmic options)
+                      :hyperbolic (chirp/->hyperbolic options))]
+     (waveform :sine (merge options {:f modulation})))))
+
+(defn add-waveforms
+  "Adds two or more waveforms."
+  ([w] w)
+  ([w1 w2] (fn [^double t] (m/+ (double (w1 t)) (double (w2 t)))))
+  ([w1 w2 & r]
+   (reduce add-waveforms (add-waveforms w1 w2) r)))
+
+(defn sample-waveform
+  "Discretize a continuous waveform function into a sequence of samples.
+
+  Evaluates a time-dependent function at regular intervals to produce a discrete-time signal.
+
+  Input parameters:
+  * `waveform-fn` - A function `(fn [t])` that accepts time as a double and returns the signal amplitude. Usually created via [[waveform]] or [[chirp]].
+  * `fs` - Sampling frequency in Hz (samples per second).
+  * `time` - The total duration of the signal to generate in seconds. Defaults to `1.0`.
+
+  Returns a sequence of doubles representing the sampled signal in the time domain."
+  ([waveform-fn ^double fs] (sample-waveform waveform-fn fs 1.0))
+  ([waveform-fn ^double fs ^double time]
+   (m/sample waveform-fn 0.0 time (m/* fs time))))
+
+;; padding
+
+(defn pad
+  "Pad a 1D signal to a specified length using various boundary conditions.
+
+  Extends a signal to a target length `N`, which is a common preprocessing step for transforms that require power-of-two input sizes (like FFT or DWT) or to mitigate edge artifacts during filtering and convolution. The function supports multiple padding strategies to maintain signal continuity or satisfy specific boundary assumptions.
+
+  Parameters:
+
+  * `signal` - A sequence or array of real numbers representing the input signal.
+  * `N` - The desired target length (must be greater than or equal to the current signal length). If not provided, defaults to the smallest power of two greater than or equal to the signal length.
+  * `pad-method` - A keyword specifying the padding strategy (default is `:periodic`):
+      * `:zero` - Appends zeros.
+      * `:edge` - Repeats the last/first value.
+      * `:linear` - Linear ramp between the edge and zero.
+      * `:periodic` - Circular padding (repeats the signal).
+      * `:symmetric` - Mirroring at the edge (repeats edge values).
+      * `:antisymmetric` - Mirroring with sign inversion.
+      * `:reflect` - Mirroring at the edge (does not repeat edge values).
+      * `:antireflect` - Anti-mirroring at the edge.
+  * `side` - A keyword specifying where to apply the padding: `:left`, `:right`, or `:both` (default).
+
+  Returns a double array of length `N` containing the padded signal."
+  ([signal] (pad (m/<< 1 (m/high-2-exp (count signal)))))
+  ([signal ^long N] (pad signal N :periodic))
+  ([signal ^long N pad-method] (pad signal N pad-method :both))
+  ([signal ^long N pad-method side]
+   (if (m/> (count signal) N)
+     (throw (ex-info "New length of the signal is lower than signal size."
+                     {:N N :signal-length (count signal)}))
+     (let [asignal (m/seq->double-array signal)]
+       (case pad-method
+         :zero (pad/zero asignal N side)
+         :edge (pad/edge asignal N side)
+         :linear (pad/linear asignal N side)
+         :periodic (pad/periodic asignal N side)
+         :symmetric (pad/symmetric asignal N side)
+         :antisymmetric (pad/antisymmetric asignal N side)
+         :reflect (pad/reflect asignal N side)
+         :antireflect (pad/antireflect asignal N side)
+         (throw (ex-info "Unknown padding method" {:pad-method pad-method})))))))
 

@@ -29,28 +29,30 @@
                                         target (double-array len)
                                         h (m/>> len 1)]
                                     (dotimes [i h]
-                                      (loop [j (long 0)
-                                             ai (double 0.0)
-                                             aih (double 0.0)]
-                                        (if (m/== j length)
-                                          (do
-                                            (Array/aset target i ai)
-                                            (Array/aset target (+ i h) aih))
-                                          (let [k (m/mod (m/+ (m/<< i 1) j) len)
-                                                v (Array/aget ^doubles signal k)]
-                                            (recur (m/inc j)
-                                                   (m/+ ai (m/* v (Array/aget de-low j)))
-                                                   (m/+ aih (m/* v (Array/aget de-high j))))))))
+                                      (let [i2 (m/<< i 1)]
+                                        (loop [j (long 0)
+                                               ai (double 0.0)
+                                               aih (double 0.0)]
+                                          (if (m/== j length)
+                                            (do
+                                              (Array/aset target i ai)
+                                              (Array/aset target (+ i h) aih))
+                                            (let [k (m/mod (m/+ i2 j) len)
+                                                  v (Array/aget ^doubles signal k)]
+                                              (recur (m/inc j)
+                                                     (m/+ ai (m/* v (Array/aget de-low j)))
+                                                     (m/+ aih (m/* v (Array/aget de-high j)))))))))
                                     target))
   
   (wavelet-reverse [_ coeffs len] (let [len (long len)
                                         target (double-array len)
                                         h (m/>> len 1)]                                    
                                     (dotimes [i h]
-                                      (let [ai (Array/aget ^doubles coeffs i)
+                                      (let [i2 (m/<< i 1)
+                                            ai (Array/aget ^doubles coeffs i)
                                             aih (Array/aget ^doubles coeffs (m/+ i h))]
                                         (dotimes [j length]
-                                          (let [k (m/mod (m/+ (m/<< i 1) j) len)]
+                                          (let [k (m/mod (m/+ i2 j) len)]
                                             (Array/aset target k (m/+ (Array/aget target k)
                                                                       (m/* ai (Array/aget re-low j))
                                                                       (m/* aih (Array/aget re-high j))))))))
@@ -78,24 +80,44 @@
               (m/seq->double-array re-low)
               (m/seq->double-array re-high))))
 
-(extend-type jwave.transforms.wavelets.Wavelet
+(extend jwave.transforms.wavelets.Wavelet
   prot/WaveletProto
-  (coeffs-size [w] (.getMotherWavelength ^jwave.transforms.wavelets.Wavelet w))
-  (wavelet-name [w] (.getName ^jwave.transforms.wavelets.Wavelet w))
-  (phi
-    ([w] (.getScalingDeComposition ^jwave.transforms.wavelets.Wavelet w))
-    ([w kind] (case kind
-                (:deconstruction :de :dec :d) (.getScalingDeComposition ^jwave.transforms.wavelets.Wavelet w)
-                (:reconstruction :re :rec :r) (.getScalingReConstruction ^jwave.transforms.wavelets.Wavelet w)
-                (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
-  (psi
-    ([w] (.getWaveletDeComposition ^jwave.transforms.wavelets.Wavelet w))
-    ([w kind] (case kind
-                (:deconstruction :de :dec :d) (.getWaveletDeComposition ^jwave.transforms.wavelets.Wavelet w)
-                (:reconstruction :re :rec :r) (.getWaveletReConstruction ^jwave.transforms.wavelets.Wavelet w)
-                (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
-  (wavelet-forward [w signal len] (.forward ^jwave.transforms.wavelets.Wavelet w signal (int len)))
-  (wavelet-reverse [w coeffs len] (.reverse ^jwave.transforms.wavelets.Wavelet w coeffs (int len))))
+  {:coeffs-size (fn [^jwave.transforms.wavelets.Wavelet w] (.getMotherWavelength w))
+   :wavelet-name (fn [^jwave.transforms.wavelets.Wavelet w] (.getName w))
+   :phi (fn ([^jwave.transforms.wavelets.Wavelet w]
+            (.getScalingDeComposition w))
+          ([^jwave.transforms.wavelets.Wavelet w kind]
+           (case kind
+             (:deconstruction :de :dec :d) (.getScalingDeComposition w)
+             (:reconstruction :re :rec :r) (.getScalingReConstruction w)
+             (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
+   :psi (fn ([^jwave.transforms.wavelets.Wavelet w]
+            (.getWaveletDeComposition w))
+          ([^jwave.transforms.wavelets.Wavelet w kind]
+           (case kind
+             (:deconstruction :de :dec :d) (.getWaveletDeComposition w)
+             (:reconstruction :re :rec :r) (.getWaveletReConstruction w)
+             (throw (ex-info "Unknown phi kind. Can be :rec or :dec." {:kind kind})))))
+   :wavelet-forward (fn [^jwave.transforms.wavelets.Wavelet w signal len]
+                      (.forward w signal (int len)))
+   :wavelet-reverse (fn [^jwave.transforms.wavelets.Wavelet w coeffs len]
+                      (.reverse w coeffs (int len)))})
+
+(extend jwave.transforms.BasicTransform
+  prot/TransformProto
+  {:forward-1d (fn ([^jwave.transforms.BasicTransform t xs] (.forward t (m/seq->double-array xs)))
+                 ([^jwave.transforms.BasicTransform t xs {:keys [^long level]}]
+                  (.forward t (m/seq->double-array xs) level)))
+   :reverse-1d (fn ([^jwave.transforms.BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
+                 ([^jwave.transforms.BasicTransform t xs {:keys [^long level]}]
+                  (.reverse t (m/seq->double-array xs) level)))
+   :forward-2d (fn ([^jwave.transforms.BasicTransform t xss]
+                   (.forward t (m/seq->double-double-array xss)))
+                 ([^jwave.transforms.BasicTransform t xss {[^long l1 ^long l2] :levels}]
+                  (.forward t (m/seq->double-double-array xss) l1 l2)))
+   :reverse-2d (fn ([^jwave.transforms.BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))
+                 ([^jwave.transforms.BasicTransform t xss {[^long l1 ^long l2] :levels}]
+                  (.reverse t (m/seq->double-double-array xss) l1 l2)))})
 
 (defn coeffs-size
   "Returns number of wavelet coefficients."
@@ -138,96 +160,108 @@
 
 ;; jwave
 
+(def ^:private jwave-wavelets
+  '{:haar jwave.transforms.wavelets.haar.Haar1
+    :haar-orthogonal jwave.transforms.wavelets.haar.Haar1Orthogonal
+    :biorthogonal-11 jwave.transforms.wavelets.biorthogonal.BiOrthogonal11
+    :biorthogonal-13 jwave.transforms.wavelets.biorthogonal.BiOrthogonal13
+    :biorthogonal-15 jwave.transforms.wavelets.biorthogonal.BiOrthogonal15
+    :biorthogonal-22 jwave.transforms.wavelets.biorthogonal.BiOrthogonal22
+    :biorthogonal-24 jwave.transforms.wavelets.biorthogonal.BiOrthogonal24
+    :biorthogonal-26 jwave.transforms.wavelets.biorthogonal.BiOrthogonal26
+    :biorthogonal-28 jwave.transforms.wavelets.biorthogonal.BiOrthogonal28
+    :biorthogonal-31 jwave.transforms.wavelets.biorthogonal.BiOrthogonal31
+    :biorthogonal-33 jwave.transforms.wavelets.biorthogonal.BiOrthogonal33
+    :biorthogonal-35 jwave.transforms.wavelets.biorthogonal.BiOrthogonal35
+    :biorthogonal-37 jwave.transforms.wavelets.biorthogonal.BiOrthogonal37
+    :biorthogonal-39 jwave.transforms.wavelets.biorthogonal.BiOrthogonal39
+    :biorthogonal-44 jwave.transforms.wavelets.biorthogonal.BiOrthogonal44
+    :biorthogonal-55 jwave.transforms.wavelets.biorthogonal.BiOrthogonal55
+    :biorthogonal-68 jwave.transforms.wavelets.biorthogonal.BiOrthogonal68
+    :coiflet-1 jwave.transforms.wavelets.coiflet.Coiflet1
+    :coiflet-2 jwave.transforms.wavelets.coiflet.Coiflet2
+    :coiflet-3 jwave.transforms.wavelets.coiflet.Coiflet3
+    :coiflet-4 jwave.transforms.wavelets.coiflet.Coiflet4
+    :coiflet-5 jwave.transforms.wavelets.coiflet.Coiflet5
+    :daubechies-2 jwave.transforms.wavelets.daubechies.Daubechies2
+    :daubechies-3 jwave.transforms.wavelets.daubechies.Daubechies3
+    :daubechies-4 jwave.transforms.wavelets.daubechies.Daubechies4
+    :daubechies-5 jwave.transforms.wavelets.daubechies.Daubechies5
+    :daubechies-6 jwave.transforms.wavelets.daubechies.Daubechies6
+    :daubechies-7 jwave.transforms.wavelets.daubechies.Daubechies7
+    :daubechies-8 jwave.transforms.wavelets.daubechies.Daubechies8
+    :daubechies-9 jwave.transforms.wavelets.daubechies.Daubechies9
+    :daubechies-10 jwave.transforms.wavelets.daubechies.Daubechies10
+    :daubechies-11 jwave.transforms.wavelets.daubechies.Daubechies11
+    :daubechies-12 jwave.transforms.wavelets.daubechies.Daubechies12
+    :daubechies-13 jwave.transforms.wavelets.daubechies.Daubechies13
+    :daubechies-14 jwave.transforms.wavelets.daubechies.Daubechies14
+    :daubechies-15 jwave.transforms.wavelets.daubechies.Daubechies15
+    :daubechies-16 jwave.transforms.wavelets.daubechies.Daubechies16
+    :daubechies-17 jwave.transforms.wavelets.daubechies.Daubechies17
+    :daubechies-18 jwave.transforms.wavelets.daubechies.Daubechies18
+    :daubechies-19 jwave.transforms.wavelets.daubechies.Daubechies19
+    :daubechies-20 jwave.transforms.wavelets.daubechies.Daubechies20
+    :legendre-1 jwave.transforms.wavelets.legendre.Legendre1
+    :legendre-2 jwave.transforms.wavelets.legendre.Legendre2
+    :legendre-3 jwave.transforms.wavelets.legendre.Legendre3
+    :symlet-2 jwave.transforms.wavelets.symlets.Symlet2
+    :symlet-3 jwave.transforms.wavelets.symlets.Symlet3
+    :symlet-4 jwave.transforms.wavelets.symlets.Symlet4
+    :symlet-5 jwave.transforms.wavelets.symlets.Symlet5
+    :symlet-6 jwave.transforms.wavelets.symlets.Symlet6
+    :symlet-7 jwave.transforms.wavelets.symlets.Symlet7
+    :symlet-8 jwave.transforms.wavelets.symlets.Symlet8
+    :symlet-9 jwave.transforms.wavelets.symlets.Symlet9
+    :symlet-10 jwave.transforms.wavelets.symlets.Symlet10
+    :symlet-11 jwave.transforms.wavelets.symlets.Symlet11
+    :symlet-12 jwave.transforms.wavelets.symlets.Symlet12
+    :symlet-13 jwave.transforms.wavelets.symlets.Symlet13
+    :symlet-14 jwave.transforms.wavelets.symlets.Symlet14
+    :symlet-15 jwave.transforms.wavelets.symlets.Symlet15
+    :symlet-16 jwave.transforms.wavelets.symlets.Symlet16
+    :symlet-17 jwave.transforms.wavelets.symlets.Symlet17
+    :symlet-18 jwave.transforms.wavelets.symlets.Symlet18
+    :symlet-19 jwave.transforms.wavelets.symlets.Symlet19
+    :symlet-20 jwave.transforms.wavelets.symlets.Symlet20
+    :battle-23 jwave.transforms.wavelets.other.Battle23
+    :cdf-53 jwave.transforms.wavelets.other.CDF53
+    :cdf-97 jwave.transforms.wavelets.other.CDF97
+    :discrete-mayer jwave.transforms.wavelets.other.DiscreteMayer})
+
+(defmacro ^:private build-case
+  [wavelet]
+  `(case ~wavelet
+     ~@(mapcat (fn [[k c]]
+                 [k `(new ~c)]) jwave-wavelets)))
+
 (defn- jwave-wavelet
   [wavelet]
-  (case wavelet
-    :haar (jwave.transforms.wavelets.haar.Haar1.)
-    :haar-orthogonal (jwave.transforms.wavelets.haar.Haar1Orthogonal.)
-    :biorthogonal-11 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal11.)
-    :biorthogonal-13 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal13.)
-    :biorthogonal-15 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal15.)
-    :biorthogonal-22 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal22.)
-    :biorthogonal-24 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal24.)
-    :biorthogonal-26 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal26.)
-    :biorthogonal-28 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal28.)
-    :biorthogonal-31 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal31.)
-    :biorthogonal-33 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal33.)
-    :biorthogonal-35 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal35.)
-    :biorthogonal-37 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal37.)
-    :biorthogonal-39 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal39.)
-    :biorthogonal-44 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal44.)
-    :biorthogonal-55 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal55.)
-    :biorthogonal-68 (jwave.transforms.wavelets.biorthogonal.BiOrthogonal68.)
-    :coiflet-1 (jwave.transforms.wavelets.coiflet.Coiflet1.)
-    :coiflet-2 (jwave.transforms.wavelets.coiflet.Coiflet2.)
-    :coiflet-3 (jwave.transforms.wavelets.coiflet.Coiflet3.)
-    :coiflet-4 (jwave.transforms.wavelets.coiflet.Coiflet4.)
-    :coiflet-5 (jwave.transforms.wavelets.coiflet.Coiflet5.)
-    :daubechies-2 (jwave.transforms.wavelets.daubechies.Daubechies2.)
-    :daubechies-3 (jwave.transforms.wavelets.daubechies.Daubechies3.)
-    :daubechies-4 (jwave.transforms.wavelets.daubechies.Daubechies4.)
-    :daubechies-5 (jwave.transforms.wavelets.daubechies.Daubechies5.)
-    :daubechies-6 (jwave.transforms.wavelets.daubechies.Daubechies6.)
-    :daubechies-7 (jwave.transforms.wavelets.daubechies.Daubechies7.)
-    :daubechies-8 (jwave.transforms.wavelets.daubechies.Daubechies8.)
-    :daubechies-9 (jwave.transforms.wavelets.daubechies.Daubechies9.)
-    :daubechies-10 (jwave.transforms.wavelets.daubechies.Daubechies10.)
-    :daubechies-11 (jwave.transforms.wavelets.daubechies.Daubechies11.)
-    :daubechies-12 (jwave.transforms.wavelets.daubechies.Daubechies12.)
-    :daubechies-13 (jwave.transforms.wavelets.daubechies.Daubechies13.)
-    :daubechies-14 (jwave.transforms.wavelets.daubechies.Daubechies14.)
-    :daubechies-15 (jwave.transforms.wavelets.daubechies.Daubechies15.)
-    :daubechies-16 (jwave.transforms.wavelets.daubechies.Daubechies16.)
-    :daubechies-17 (jwave.transforms.wavelets.daubechies.Daubechies17.)
-    :daubechies-18 (jwave.transforms.wavelets.daubechies.Daubechies18.)
-    :daubechies-19 (jwave.transforms.wavelets.daubechies.Daubechies19.)
-    :daubechies-20 (jwave.transforms.wavelets.daubechies.Daubechies20.)
-    :legendre-1 (jwave.transforms.wavelets.legendre.Legendre1.)
-    :legendre-2 (jwave.transforms.wavelets.legendre.Legendre2.)
-    :legendre-3 (jwave.transforms.wavelets.legendre.Legendre3.)
-    :symlet-2 (jwave.transforms.wavelets.symlets.Symlet2.)
-    :symlet-3 (jwave.transforms.wavelets.symlets.Symlet3.)
-    :symlet-4 (jwave.transforms.wavelets.symlets.Symlet4.)
-    :symlet-5 (jwave.transforms.wavelets.symlets.Symlet5.)
-    :symlet-6 (jwave.transforms.wavelets.symlets.Symlet6.)
-    :symlet-7 (jwave.transforms.wavelets.symlets.Symlet7.)
-    :symlet-8 (jwave.transforms.wavelets.symlets.Symlet8.)
-    :symlet-9 (jwave.transforms.wavelets.symlets.Symlet9.)
-    :symlet-10 (jwave.transforms.wavelets.symlets.Symlet10.)
-    :symlet-11 (jwave.transforms.wavelets.symlets.Symlet11.)
-    :symlet-12 (jwave.transforms.wavelets.symlets.Symlet12.)
-    :symlet-13 (jwave.transforms.wavelets.symlets.Symlet13.)
-    :symlet-14 (jwave.transforms.wavelets.symlets.Symlet14.)
-    :symlet-15 (jwave.transforms.wavelets.symlets.Symlet15.)
-    :symlet-16 (jwave.transforms.wavelets.symlets.Symlet16.)
-    :symlet-17 (jwave.transforms.wavelets.symlets.Symlet17.)
-    :symlet-18 (jwave.transforms.wavelets.symlets.Symlet18.)
-    :symlet-19 (jwave.transforms.wavelets.symlets.Symlet19.)
-    :symlet-20 (jwave.transforms.wavelets.symlets.Symlet20.)
-    :battle-23 (jwave.transforms.wavelets.other.Battle23.)
-    :cdf-53 (jwave.transforms.wavelets.other.CDF53.)
-    :cdf-97 (jwave.transforms.wavelets.other.CDF97.)
-    :discrete-mayer (jwave.transforms.wavelets.other.DiscreteMayer.)
-    nil))
+  (build-case wavelet))
 
 (def ^:private matlab-wavelets
   (let [wv (read-wavelets)]
     (-> (assoc wv "haar" (wv "db1")))))
 
+(defonce wavelet-names (sort-by name (concat (keys jwave-wavelets)
+                                             (keys matlab-wavelets))))
+
 (defn wavelet
   "Returns wavelet object containing coefficients"
   [wavelet-name]
-  (or (matlab-wavelets wavelet-name) (jwave-wavelet wavelet-name)
-      (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name}))))
+  (try
+    (or (matlab-wavelets wavelet-name) (jwave-wavelet wavelet-name)
+        (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name})))
+    (catch Exception _ (throw (ex-info "Unknown wavelet." {:wavelet wavelet-name})))))
 
 (defn dwt-forward-1d
-  ([wv ^doubles signal]
-   (dwt-forward-1d wv signal (m/round (m/log2 (alength signal)))))
-  ([wv ^doubles signal ^long level]
+  ([wv ^doubles signal] (dwt-forward-1d wv signal (m/log2int (alength signal))))
+  ([wv ^doubles signal ^long level] (dwt-forward-1d wv signal 0 level))
+  ([wv ^doubles signal ^long starting-level ^long level]
    (let [len (alength signal)
          target (Arrays/copyOf signal len)]
-     (loop [h len
-            l (long 0)]
+     (loop [h (m/>> len starting-level)
+            l (long starting-level)]
        (if (or (m/one? h) (m/== l level))
          target
          (let [^doubles step (prot/wavelet-forward wv target h)]
@@ -236,7 +270,7 @@
 
 (defn dwt-reverse-1d
   ([wv ^doubles signal]
-   (dwt-reverse-1d wv signal (m/round (m/log2 (alength signal)))))
+   (dwt-reverse-1d wv signal (m/log2int (alength signal))))
   ([wv ^doubles signal ^long level]
    (let [len (alength signal)
          max-level (m/round (m/log2 (alength signal)))
@@ -249,14 +283,14 @@
            (recur (m/<< h 1))))))))
 
 (defn wpt-forward-1d
-  ([wv ^doubles signal]
-   (wpt-forward-1d wv signal (m/round (m/log2 (alength signal)))))
-  ([wv ^doubles signal ^long level]
+  ([wv ^doubles signal] (wpt-forward-1d wv signal (m/log2int (alength signal))))
+  ([wv ^doubles signal ^long level] (wpt-forward-1d wv signal 0 level))
+  ([wv ^doubles signal ^long starting-level ^long level]
    (let [len (alength signal)
          target (Arrays/copyOf signal len)
          tmp (double-array len)]
-     (loop [h len
-            l (long 0)]
+     (loop [h (m/>> len starting-level)
+            l (long starting-level)]
        (if (or (m/one? h) (m/== l level))
          target
          (do (dotimes [p (m// len h)]
@@ -268,7 +302,7 @@
 
 (defn wpt-reverse-1d
   ([wv ^doubles signal]
-   (wpt-reverse-1d wv signal (m/round (m/log2 (alength signal)))))
+   (wpt-reverse-1d wv signal (m/log2int (alength signal))))
   ([wv ^doubles signal ^long level]
    (let [len (alength signal)
          max-level (m/round (m/log2 (alength signal)))
@@ -284,15 +318,14 @@
                    (System/arraycopy step 0 target pos h))))
              (recur (m/<< h 1))))))))
 
-(defn- pow2? [^long v] (and (m/pos? v) (m/zero? (m/bit-and v (m/dec v)))))
-
 (defn- call-transform
-  [f wv signal level]
-  (let [len (count signal)]
-    (if-not (pow2? len)
-      (throw (ex-info "Length of the signal should be power of 2." {:length len}))
-      (let [s (double-array signal)]
-        (if level (f wv s level) (f wv s))))))
+  ([f wv signal level] (call-transform f wv signal nil level))
+  ([f wv signal starting-level level]
+   (let [len (count signal)]
+     (if-not (m/power-of-two? len)
+       (throw (ex-info "Length of the signal should be power of 2." {:length len}))
+       (let [s (double-array signal)]
+         (if level (if starting-level (f wv s starting-level level) (f wv s level)) (f wv s)))))))
 
 (defn wavelet-reify
   [wavelet-name type]
@@ -300,12 +333,16 @@
     (case type
       :dwt (reify prot/TransformProto
              (forward-1d [o xs] (prot/forward-1d o xs nil))
-             (forward-1d [_ xs {:keys [level]}] (call-transform dwt-forward-1d wv xs level))
+             (forward-1d [_ xs {:keys [level starting-level]
+                                :or {starting-level 0}}]
+               (call-transform dwt-forward-1d wv xs starting-level level))
              (reverse-1d [o xs] (prot/reverse-1d o xs nil))
              (reverse-1d [_ xs {:keys [level]}] (call-transform dwt-reverse-1d wv xs level)))
       :wpt (reify prot/TransformProto
              (forward-1d [o xs] (prot/forward-1d o xs nil))
-             (forward-1d [_ xs {:keys [level]}] (call-transform wpt-forward-1d wv xs level))
+             (forward-1d [_ xs {:keys [level starting-level]
+                                :or {starting-level 0}}]
+               (call-transform wpt-forward-1d wv xs starting-level level))
              (reverse-1d [o xs] (prot/reverse-1d o xs nil))
              (reverse-1d [_ xs {:keys [level]}] (call-transform wpt-reverse-1d wv xs level))))))
 
@@ -375,3 +412,29 @@
          ;; negate?
          high (function-coeffs w psi reconstruction?)]
      (function-interpolator w (upscale-final high step-1 (m/dec level))))))
+
+;;;;
+
+(defn- dwt-cut-and-iterate
+  [coeffs-seq ^long level]
+  (if (or (m/zero? level) (m/one? (count (first coeffs-seq))))
+    (vec coeffs-seq)
+    (let [[f & rst] coeffs-seq
+          [l r] (split-at (m// (count f) 2) f)]
+      (recur (conj rst r l) (m/dec level)))))
+
+(defn decompose-dwt
+  "Returns decomposed coefficients"
+  ([coeffs] (decompose-dwt coeffs (m/log2int (count coeffs))))
+  ([coeffs level]
+   (if-not level
+     (dwt-cut-and-iterate [coeffs] (m/log2int (count coeffs)))
+     (dwt-cut-and-iterate [coeffs] level))))
+
+(defn decompose-wpt
+  "Returns decomposed coefficients for WPT"
+  ([coeffs] (decompose-wpt coeffs (m/log2int (count coeffs))))
+  ([coeffs level]
+   (let [mlevel (m/log2int (count coeffs))
+         level (long (or level mlevel))]
+     (vec (partition (long (m/exp2 (m/- mlevel level))) coeffs)))))

@@ -17,15 +17,13 @@
 
   DFT, FFT, DHT."
   (:require [fastmath.core :as m]
-            [fastmath.stats :as stat]
             [fastmath.protocols.wavelets :as prot]
-            [fastmath.optimization :as optim]
             [fastmath.vector :as v]
+            [fastmath.signal.pad :as pad]
+            [fastmath.transform.wavelets :as wv]
 
-            [fastmath.transform.pad :as pad]
-            [fastmath.transform.wavelets :as wv])
-  (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition
-            BasicTransform DiscreteFourierTransform]
+            [fastmath.signal.denoise :as denoise])
+  (:import [jwave.transforms FastWaveletTransform WaveletPacketTransform AncientEgyptianDecomposition DiscreteFourierTransform]
            [jwave.compressions CompressorPeaksAverage CompressorMagnitude]
            [org.apache.commons.math3.transform FastSineTransformer FastCosineTransformer FastHadamardTransformer RealTransformer DstNormalization DctNormalization TransformType]
            [org.jtransforms.fft DoubleFFT_1D DoubleFFT_2D]
@@ -63,83 +61,117 @@
   * `:standard` `:dft` - 1d Discrete Fourier Transform - returns double-array where even elements are real part, odd elements are imaginary part."}
   transformer (fn [t _] t))
 
+;; deprecated, use :dwt
 (defmethod transformer :fast [_ w] (transformer :dwt w))
+
 (defmethod transformer :dwt [_ w] (if (keyword? w)
                                     (FastWaveletTransform. (wv/wavelet w))
                                     (wv/wavelet-reify w :dwt)))
-(defmethod transformer :packet [_ w] (transformer :wpt w))
-(defmethod transformer :wpd [_ w] (transformer :wpt w))
+
 (defmethod transformer :wpt [_ w] (if (keyword? w)
                                     (WaveletPacketTransform. (wv/wavelet w))
                                     (wv/wavelet-reify w :wpt)))
 
+;; deprecaed use :wpt
+(defmethod transformer :packet [_ w] (transformer :wpt w))
+
+
+;;deprecated -> decomposed-dwt
 (defmethod transformer :decomposed-fast [_ w] (AncientEgyptianDecomposition. (transformer :fast w)))
+;;deprecated -> decomposed-wpt
 (defmethod transformer :decomposed-packet [_ w] (AncientEgyptianDecomposition. (transformer :packet w)))
 
+(defmethod transformer :decomposed-dwt [_ w] (AncientEgyptianDecomposition. (transformer :fast w)))
+(defmethod transformer :decomposed-wpt [_ w] (AncientEgyptianDecomposition. (transformer :packet w)))
+
+;; depracated -> :real
 (defmethod transformer :standard [_ t] (case t
                                          :sine (FastSineTransformer. DstNormalization/STANDARD_DST_I)
                                          :cosine (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
                                          :hadamard (FastHadamardTransformer.)
                                          :dft (DiscreteFourierTransform.)))
 
-
+;; deprecated -> :real
 (defmethod transformer :orthogonal [_ t] (case t
                                            :sine (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
                                            :cosine (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)))
+(defmethod transformer :sine [_ t] (case t
+                                     :orthogonal (FastSineTransformer. DstNormalization/ORTHOGONAL_DST_I)
+                                     :standard (FastSineTransformer. DstNormalization/STANDARD_DST_I)))
+(defmethod transformer :cosine [_ t] (case t
+                                       :orthogonal (FastCosineTransformer. DctNormalization/ORTHOGONAL_DCT_I)
+                                       :standard (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)))
 
-(extend BasicTransform
-  prot/TransformProto
-  {:forward-1d (fn ([^BasicTransform t xs] (.forward t (m/seq->double-array xs)))
-                 ([^BasicTransform t xs {:keys [^long level]}] (.forward t (m/seq->double-array xs) level)))
-   :reverse-1d (fn ([^BasicTransform t xs] (.reverse t (m/seq->double-array xs)))
-                 ([^BasicTransform t xs {:keys [^long level]}] (.reverse t (m/seq->double-array xs) level)))
-   :forward-2d (fn [^BasicTransform t xss] (.forward t (m/seq->double-double-array xss)))
-   :reverse-2d (fn [^BasicTransform t xss] (.reverse t (m/seq->double-double-array xss)))})
+;; ACM
 
+(defn- perform-sc-acm
+  [kind xs normalization forward?]
+  (let [^RealTransformer t (case kind
+                             :sine (FastSineTransformer. (case normalization
+                                                           :standard DstNormalization/STANDARD_DST_I
+                                                           :orthogonal DstNormalization/ORTHOGONAL_DST_I))
+                             :cosine (FastCosineTransformer. (case normalization
+                                                               :standard DctNormalization/STANDARD_DCT_I
+                                                               :orthogonal DctNormalization/ORTHOGONAL_DCT_I)))]
+    (.transform t (m/seq->double-array xs)
+                (if forward? TransformType/FORWARD TransformType/INVERSE))))
+
+;; sine and cosine ACM
+(defn sc-acm-reify
+  [kind]
+  (reify prot/TransformProto
+    (forward-1d [t xs] (prot/forward-1d t xs nil))
+    (forward-1d [_ xs {:keys [normalization] :or {normalization :orthogonal}}]
+      (perform-sc-acm kind xs normalization true))
+    (reverse-1d [t xs] (prot/reverse-1d t xs nil))
+    (reverse-1d [_ xs {:keys [normalization] :or {normalization :orthogonal}}]
+      (perform-sc-acm kind xs normalization false))))
+
+;; for Hadamard
 (extend RealTransformer
   prot/TransformProto
   {:forward-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/FORWARD))
    :reverse-1d (fn [^RealTransformer t xs] (.transform t (m/seq->double-array xs) TransformType/INVERSE))})
 
-;; jtransform
+;; JTransform
 
-(defn- jt-forward-fft [xs]
+(defn- jt-forward-fft [xs _]
   (let [^DoubleFFT_1D t (DoubleFFT_1D. (count xs))
         out (double-array xs)]
     (.realForward t out)
     out))
 
-(defn- jt-reverse-fft [xs]
+(defn- jt-reverse-fft [xs scale?]
   (let [^DoubleFFT_1D t (DoubleFFT_1D. (count xs))
         out (double-array xs)]
-    (.realInverse t out true)
+    (.realInverse t out (boolean scale?))
     out))
 
-(defn- jt-forward2-fft [xss]
+(defn- jt-forward2-fft [xss _]
   (let [^DoubleFFT_2D t (DoubleFFT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
     (.realForward t ^"[[D" out)
     out))
 
-(defn- jt-reverse2-fft [xss]
+(defn- jt-reverse2-fft [xss scale?]
   (let [^DoubleFFT_2D t (DoubleFFT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.realInverse t ^"[[D" out true)
+    (.realInverse t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-forward-cfft [xs]
+(defn- jt-forward-cfft [xs _]
   (let [^DoubleFFT_1D t (DoubleFFT_1D. (m// (count xs) 2))
         out (double-array xs)]
     (.complexForward t out)
     out))
 
-(defn- jt-reverse-cfft [xs]
+(defn- jt-reverse-cfft [xs scale?]
   (let [^DoubleFFT_1D t (DoubleFFT_1D. (m// (count xs) 2))
         out (double-array xs)]
-    (.complexInverse t out true)
+    (.complexInverse t out (boolean scale?))
     out))
 
-(defn- jt-forward2-cfft [xss]
+(defn- jt-forward2-cfft [xss _]
   (let [s (m// (count (first xss)) 2)
         s2 (m/* s 2)
         ^DoubleFFT_2D t (DoubleFFT_2D. (count xss) s)
@@ -147,15 +179,15 @@
     (.complexForward t ^"[[D" out)
     out))
 
-(defn- jt-reverse2-cfft [xss]
+(defn- jt-reverse2-cfft [xss scale?]
   (let [s (m// (count (first xss)) 2)
         s2 (m/* s 2)
         ^DoubleFFT_2D t (DoubleFFT_2D. (count xss) s)
         out (into-array (map (fn [xs] (double-array (take s2 xs))) xss))]
-    (.complexInverse t ^"[[D" out true)
+    (.complexInverse t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-forward-cfftr [xs]
+(defn- jt-forward-cfftr [xs _]
   (let [s (count xs)
         ^DoubleFFT_1D t (DoubleFFT_1D. s)
         in (double-array xs)
@@ -164,7 +196,7 @@
     (.realForwardFull t out)
     out))
 
-(defn- jt-forward2-cfftr [xss]
+(defn- jt-forward2-cfftr [xss _]
   (let [r (count xss)
         s (count (first xss))
         s2 (m/* s 2)
@@ -176,85 +208,95 @@
     (.realForwardFull t ^"[[D" (into-array out))
     out))
 
-(defn- jt-forward-dht [xs]
+;; Hartley
+
+(defn- jt-forward-dht [xs _]
   (let [^DoubleDHT_1D t (DoubleDHT_1D. (count xs))
         out (double-array xs)]
     (.forward t out)
     out))
 
-(defn- jt-reverse-dht [xs]
+(defn- jt-reverse-dht [xs scale?]
   (let [^DoubleDHT_1D t (DoubleDHT_1D. (count xs))
         out (double-array xs)]
-    (.inverse t out true)
+    (.inverse t out (boolean scale?))
     out))
 
-(defn- jt-forward2-dht [xss]
+(defn- jt-forward2-dht [xss _]
   (let [^DoubleDHT_2D t (DoubleDHT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
     (.forward t ^"[[D" out)
     out))
 
-(defn- jt-reverse2-dht [xss]
+(defn- jt-reverse2-dht [xss scale?]
   (let [^DoubleDHT_2D t (DoubleDHT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.inverse t ^"[[D" out true)
+    (.inverse t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-forward-dct [xs]
+;; cosine II/III
+
+(defn- jt-forward-dct [xs scale?]
   (let [^DoubleDCT_1D t (DoubleDCT_1D. (count xs))
         out (double-array xs)]
-    (.forward t out true)
+    (.forward t out (boolean scale?))
     out))
 
-(defn- jt-reverse-dct [xs]
+(defn- jt-reverse-dct [xs scale?]
   (let [^DoubleDCT_1D t (DoubleDCT_1D. (count xs))
         out (double-array xs)]
-    (.inverse t out true)
+    (.inverse t out (boolean scale?))
     out))
 
-(defn- jt-forward2-dct [xss]
+(defn- jt-forward2-dct [xss scale?]
   (let [^DoubleDCT_2D t (DoubleDCT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.forward t ^"[[D" out true)
+    (.forward t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-reverse2-dct [xss]
+(defn- jt-reverse2-dct [xss scale?]
   (let [^DoubleDCT_2D t (DoubleDCT_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.inverse t ^"[[D" out true)
+    (.inverse t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-forward-dst [xs]
+;; sine
+
+(defn- jt-forward-dst [xs scale?]
   (let [^DoubleDST_1D t (DoubleDST_1D. (count xs))
         out (double-array xs)]
-    (.forward t out true)
+    (.forward t out (boolean scale?))
     out))
 
-(defn- jt-reverse-dst [xs]
+(defn- jt-reverse-dst [xs scale?]
   (let [^DoubleDST_1D t (DoubleDST_1D. (count xs))
         out (double-array xs)]
-    (.inverse t out true)
+    (.inverse t out (boolean scale?))
     out))
 
-(defn- jt-forward2-dst [xss]
+(defn- jt-forward2-dst [xss scale?]
   (let [^DoubleDST_2D t (DoubleDST_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.forward t ^"[[D" out true)
+    (.forward t ^"[[D" out (boolean scale?))
     out))
 
-(defn- jt-reverse2-dst [xss]
+(defn- jt-reverse2-dst [xss scale?]
   (let [^DoubleDST_2D t (DoubleDST_2D. (count xss) (count (first xss)))
         out (into-array (map double-array xss))]
-    (.inverse t ^"[[D" out true)
+    (.inverse t ^"[[D" out (boolean scale?))
     out))
 
 (defn- jt-reify
   [f r f2 r2]
   (reify prot/TransformProto
-    (forward-1d [_ xs] (f xs))
-    (reverse-1d [_ xs] (r xs))
-    (forward-2d [_ xss] (f2 xss))
-    (reverse-2d [_ xss] (r2 xss))))
+    (forward-1d [_ xs] (f xs true))
+    (forward-1d [_ xs {:keys [scale?] :or {scale? true}}] (f xs scale?))
+    (reverse-1d [_ xs] (r xs true))
+    (reverse-1d [_ xs {:keys [scale?] :or {scale? true}}] (r xs scale?))
+    (forward-2d [_ xss] (f2 xss true))
+    (forward-2d [_ xss {:keys [scale?] :or {scale? true}}] (f2 xss scale?))
+    (reverse-2d [_ xss] (r2 xss true))
+    (reverse-2d [_ xss {:keys [scale?] :or {scale? true}}] (r2 xss scale?))))
 
 (defmethod transformer :real [_ t]
   (case t
@@ -262,8 +304,8 @@
     :dht (jt-reify jt-forward-dht jt-reverse-dht jt-forward2-dht jt-reverse2-dht)
     :dct (jt-reify jt-forward-dct jt-reverse-dct jt-forward2-dct jt-reverse2-dct)
     :dst (jt-reify jt-forward-dst jt-reverse-dst jt-forward2-dst jt-reverse2-dst)
-    :sine (FastSineTransformer. DstNormalization/STANDARD_DST_I)
-    :cosine (FastCosineTransformer. DctNormalization/STANDARD_DCT_I)
+    :sine (sc-acm-reify :sine)
+    :cosine (sc-acm-reify :cosine)
     :hadamard (FastHadamardTransformer.)
     :dft (DiscreteFourierTransform.)))
 
@@ -272,22 +314,6 @@
     :fft (jt-reify jt-forward-cfft jt-reverse-cfft jt-forward2-cfft jt-reverse2-cfft)
     :fftr (jt-reify jt-forward-cfftr jt-reverse-cfft jt-forward2-cfftr jt-reverse2-cfft)
     :rfft (transformer :complex :fftr)))
-
-(defn ->complex
-  "Convert transformed signal to complex numbers."
-  [complex-signal]
-  (let [fd (m/seq->double-array complex-signal)]
-    (map (fn [^long id]
-           (v/vec2 (Array/aget fd id)
-                   (Array/aget fd (m/inc id)))) (range 0 (m// (alength fd) 2) 2))))
-
-(defn fft-magnitudes
-  [freq-domain]
-  (map v/mag (->complex freq-domain)))
-
-(defn fft-phases
-  [freq-domain]
-  (map v/heading (->complex freq-domain)))
 
 ;;
 
@@ -309,34 +335,13 @@
   "Forward transform of sequence or array."
   [t xss] (prot/reverse-2d t xss))
 
-;; padding
-
-(defn pad
-  "Pad signal."
-  ([signal] (pad (m/<< 1 (m/high-2-exp (count signal)))))
-  ([signal ^long N] (pad signal N :periodic))
-  ([signal ^long N pad-method] (pad signal N pad-method :both))
-  ([signal ^long N pad-method side]
-   (if (m/> (count signal) N)
-     (throw (ex-info "New length of the signal is lower than signal size."
-                     {:N N :signal-length (count signal)}))
-     (let [asignal (m/seq->double-array signal)]
-       (case pad-method
-         :zero (pad/zero asignal N side)
-         :edge (pad/edge asignal N side)
-         :linear (pad/linear asignal N side)
-         :periodic (pad/periodic asignal N side)
-         :symmetric (pad/symmetric asignal N side)
-         :antisymmetric (pad/antisymmetric asignal N side)
-         :reflect (pad/reflect asignal N side)
-         :antireflect (pad/antireflect asignal N side)
-         (throw (ex-info "Unknown padding method" {:pad-method pad-method})))))))
 
 (set! *warn-on-reflection* false)
 ;; 1d or 2d unknown in the compilation time
 
 (defn compress
   "Compress transformed signal `xs` with given magnitude `mag`."
+  {:deprecated "Use `fastmath.signal.denoise/denoise` with `:avg` threshold."}
   ([trans xs ^double mag]
    (let [[fwd rev] (if (seqable? (first xs))
                      [prot/forward-2d prot/reverse-2d]
@@ -350,6 +355,7 @@
 
 (defn compress-peaks-average
   "Compress transformed signal `xs` with peaks average as a magnitude"
+  {:deprecated "Use `fastmath.signal.denoise/denoise` with `:peakavg` threshold."}
   ([trans xs]
    (let [[fwd rev] (if (seqable? (first xs))
                      [prot/forward-2d prot/reverse-2d]
@@ -363,97 +369,8 @@
 
 (set! *warn-on-reflection* true)
 
-
-;; https://www.diva-portal.org/smash/get/diva2:1003644/FULLTEXT01.pdf
-
-(defn- sure
-  ^double [xs ^long n]
-  (let [sxs (double-array (sort (map m/abs xs)))]
-    (loop [k (long 1)
-           curr (Array/get sxs 0)
-           s (* curr curr)
-           minrisk ##Inf]
-      (if (> k n)
-        curr
-        (let [v (Array/get sxs (dec k))
-              v2 (* v v)
-              risk (+ (- n (* 2 k)) s (* (- n k) v2))]
-          (if (< risk minrisk)
-            (recur (inc k) v (+ s v2) risk)
-            (recur (inc k) curr (+ s v2) minrisk)))))))
-
-(defn denoise-threshold
-  "Calculate optimal denoise threshold.
-
-  `threshold` is one of the following
-  
-  * `:visu` - based on median absolute deviation estimate (default)
-  * `:universal` - based on standard deviation estimate
-  * `:sure` or `:rigrsure` - based on SURE estimator
-  * `:hybrid` or `:heursure` - hybrid SURE estimator"
-  ^double [xs threshold]
-  (let [n (count xs)]
-    (if (number? threshold)
-      threshold
-      (case threshold
-        :visu (-> (drop (/ n 2) xs)
-                  (stat/median-absolute-deviation)
-                  (/ 0.6745)
-                  (* (m/sqrt (* 2.0 (m/log n)))))
-        :universal (-> (drop (/ n 2) xs)
-                       (stat/stddev)
-                       (* (m/sqrt (* 2.0 (m/log n)))))
-        (:sure :rigrsure) (sure xs n)
-        (:hybrid :heursure) (let [eta (/ (- (v/dot xs xs) n) n)
-                                  crit (/ (m/pow (m/log2 n) 1.5) (m/sqrt n))]
-                              (if (< eta crit)
-                                (m/sqrt (* 2.0 (m/log n)))
-                                (min (sure xs n) (m/sqrt (* 2.0 (m/log n))))))))))
-
-(defn denoise
-  "Wavelet shrinkage with some threshold.
-
-  Methods can be:
-  * `:hard` (default)  
-  * `:soft`
-  * `:garrote`
-  * `:hyperbole`
-
-  `:threshold` can be a number of one of the [[denoise-threshold]] methods (default: `:visu`)
-
-  `:skip` can be used to leave `:skip` number of coefficients unaffected (default: 0)
-
-  Use on transformed sequences or call with transformer object."
-  ([xs {:keys [method threshold ^long skip]
-        :or {method :hard threshold :universal skip 0}}]
-   (let [t (double-array xs)
-         n (alength t)
-         lambda (denoise-threshold xs threshold )
-         ids (range skip n)]
-     (case method
-       :soft (doseq [^long i ids]
-               (let [v (Array/aget t i)]
-                 (Array/aset t i (* (m/signum v) (max (- (m/abs v) lambda) 0.0)))))
-       :hard (doseq [^long i ids]
-               (let [v (Array/aget t i)]
-                 (when (< (m/abs v) lambda) (Array/aset t i 0.0))))
-       :garrote (let [l2 (m/sq lambda)]
-                  (doseq [^long i ids]
-                    (let [v (Array/aget t i)]
-                      (Array/aset t i (if (> (m/abs v) lambda)
-                                        (- v (/ l2 v))
-                                        0.0)))))
-       :hyperbole (let [l2 (m/sq lambda)]
-                    (doseq [^long i ids]
-                      (let [v (Array/aget t i)]
-                        (Array/aset t i (if (> (m/abs v) lambda)
-                                          (* (m/signum v) (m/sqrt (- (* v v) l2)))
-                                          0.0))))))
-     t))
-  ([trans xs method]
-   (let [v (prot/forward-1d trans xs)]
-     (prot/reverse-1d trans (denoise v method))))
-  ([xs] (denoise xs nil)))
+(def ^{:deprecated "Use `fastmath.signal.denoise/threshold`"} denoise-threshold denoise/threshold)
+(def ^{:deprecated "Use `fastmath.signal.denoise/denoise`"} denoise denoise/denoise)
 
 (m/unuse-primitive-operators)
 
@@ -524,206 +441,332 @@
     * `:kind` - The type of transform to perform: `:real` (default) or `:complex`.
     * `:even?` - For `:real` transforms, indicates if the original time-domain signal had an even length (crucial for correctly placing the Nyquist frequency).
     * `:real?` - For `:complex` transforms, indicates if the output should be narrowed to real numbers (doubles).
+    * `:scale?` - For scaling the output, default: `true`.
 
   Output:
   Returns a sequence representing the time-domain signal. For `:real` kind, it returns a sequence of doubles. For `:complex` kind, it returns a sequence of `Vec2` (complex numbers) unless `:real?` is set to true."
-  ([xs] (ifft xs (::fft (meta xs))))
-  ([xs {:keys [kind real? even?]
-        :or {kind :real real? true even? true}}]
-   (if (= :real kind)
-     (let [t (transformer :real :fft)
-           xs (if even?
-                (let [[^double nyquist] (last xs)
-                      ^doubles xs (double-array (mapcat identity (butlast xs)))]
-                  (Array/aset xs 1 nyquist)
-                  xs)
-                (let [xs (mapcat identity xs)
-                      im (double (last xs))
-                      ^doubles xs (double-array (butlast xs))]
-                  (Array/aset xs 1 im)
-                  xs))]
-       (reverse-1d t xs))
-     (let [t (transformer :complex (if real? :rfft :fft))
-           ^doubles res (reverse-1d t (mapcat identity xs))]
-       (if real?
-         (take-nth 2 res)
-         (reduce (fn [buff ^long id]
-                   (conj buff (Vec2. (Array/aget res id)
-                                     (Array/aget res (m/inc id))))) [] (range 0 (alength res) 2)))))))
+  ([xs] (ifft xs nil))
+  ([xs opts]
+   (let [{:keys [kind real? even?]
+          :or {kind :real real? true even? true}} (merge (::fft (meta xs)) opts)]
+     (if (= :real kind)
+       (let [t (transformer :real :fft)
+             xs (if even?
+                  (let [[^double nyquist] (last xs)
+                        ^doubles xs (double-array (mapcat identity (butlast xs)))]
+                    (Array/aset xs 1 nyquist)
+                    xs)
+                  (let [xs (mapcat identity xs)
+                        im (double (last xs))
+                        ^doubles xs (double-array (butlast xs))]
+                    (Array/aset xs 1 im)
+                    xs))]
+         (seq (reverse-1d t xs opts)))
+       (let [t (transformer :complex (if real? :rfft :fft))
+             ^doubles res (reverse-1d t (mapcat identity xs) opts)]
+         (if real?
+           (take-nth 2 res)
+           (for [^long id (range 0 (alength res) 2)]
+             (Vec2. (Array/aget res id)
+                    (Array/aget res (m/inc id))))))))))
+
+;; DCT/DST
+
+(defn- maybe-pad-dct-i
+  [xs]
+  (let [cnt (count xs)]
+    (if (m/power-of-two? (m/dec cnt))
+      [xs 0]
+      (let [nct (m/inc (m/round-up-pow2 cnt))]
+        [(pad/zero (m/seq->double-array xs) nct :left) (m/- nct cnt)]))))
+
+(defn dct
+  "Compute the Discrete Cosine Transform (DCT) of a 1D signal.
+
+  The DCT transforms a time-domain signal into the frequency domain using a sum of cosine functions. 
+
+  Input parameters:
+  * `xs` - Sequence of real numbers (doubles) representing the input signal.
+  * `options` - A map of configuration keys:
+      * `:method` - Specifies the DCT variant: `:DCT-I`, `:DCT-II` (standard forward DCT, default), or `:DCT-III` (often used as the inverse for DCT-II).
+      * `:pad?` - Boolean (default `true`). When using `:DCT-I`, it automatically pads the signal with zeros to the nearest $2^k+1$ size if necessary.
+      * `:scale?` - Boolean (default `true`). Indicates whether the transform should be normalized (for `:DCT-I` sets `:orthogonal` normalization when `true`)
+
+  Returns a vector of doubles representing the frequency coefficients. The result includes metadata (under the `::dct` key) storing the `:method` and the number of `:padded` elements required to correctly reverse the transform using [[idct]]."
+  ([xs] (dct xs nil))
+  ([xs {:keys [method pad? scale?] :or {method :DCT-II pad? true scale? true} :as options}]
+   (let [[xs padded] (if (and pad? (= :DCT-I method)) (maybe-pad-dct-i xs) [xs 0])
+         t (case method
+             :DCT-I #(forward-1d (transformer :real :cosine) % (assoc options :normalization
+                                                                      (if scale? :orthogonal :standard)))
+             :DCT-II #(forward-1d (transformer :real :dct) % options)
+             :DCT-III #(reverse-1d (transformer :real :dct) % options))]
+     (with-meta (vec (t xs)) {::dct {:method method
+                                     :padded padded}}))))
+
+(defn idct
+  "Compute the Inverse Discrete Cosine Transform (IDCT) of a 1D signal.
+
+  Converts frequency-domain coefficients back into the original time domain. This function is the inverse operation of [[dct]] and utilizes metadata (such as the specific transform method and any padding applied) attached to the input sequence to ensure the signal is restored with its original dimensions and scaling.
+
+  Input parameters:
+  * `xs` - Sequence of real numbers (frequency coefficients), typically the result of the [[dct]] function.
+  * `options` - An optional map of configuration keys (usually inferred from `xs` metadata):
+    * `:method` - The DCT variant was used for a transform: `:DCT-I`, `:DCT-II`, or `:DCT-III`.
+    * `:padded` - The number of elements to drop from the beginning of the result to reverse padding added during the forward transform.
+    * `:scale?` - Boolean (default `true`). Indicates whether the transform should be normalized. For `:DCT-I` sets `:orthogonal` normalization when `true`.
+
+  Returns a sequence of doubles representing the reconstructed signal in the time/spatial domain."
+  ([xs] (idct xs nil))
+  ([xs options]
+   (let [{:keys [method padded scale?] :or {method :DCT-II padded 0 scale? true} :as options} (merge (::dct (meta xs)) options)
+         t (case method
+             :DCT-I #(reverse-1d (transformer :real :cosine) % (assoc options :normalization
+                                                                      (if scale? :orthogonal :standard)))
+             :DCT-II #(reverse-1d (transformer :real :dct) % options)
+             :DCT-III #(forward-1d (transformer :real :dct) % options))]
+     (drop padded (t xs)))))
 
 ;;
 
+(defn- maybe-pad-dst-i
+  ([xs]
+   (if-not (m/zero? (double (first xs)))
+     (maybe-pad-dst-i (cons 0.0 xs) 1)
+     (maybe-pad-dst-i xs 0)))
+  ([xs ^long padded]
+   (let [cnt (count xs)]
+     (if (m/power-of-two? cnt)
+       [xs padded]
+       (let [nct (m/round-up-pow2 cnt)]
+         [(pad/zero (m/seq->double-array xs) nct :left) (m/+ padded (m/- nct cnt))])))))
+
+(defn dst
+  "Compute the Discrete Sine Transform (DST) of a 1D signal.
+
+  The DST transforms a time-domain signal into the frequency domain using a sum of sine functions. 
+
+  Input parameters:
+  * `xs` - Sequence of real numbers (doubles) representing the input signal.
+  * `options` - A map of configuration keys:
+      * `:method` - Specifies the DST variant: `:DST-I`, `:DST-II` (standard forward DST, default), or `:DST-III` (often used as the inverse for DST-II).
+      * `:pad?` - Boolean (default `true`). When using `:DST-I`, it automatically pads the signal with zeros to the nearest $2^k$ size if necessary, also prepends with 0.0 if necessary.
+      * `:scale?` - Boolean (default `true`). Indicates whether the transform should be normalized (for `:DST-I` sets `:orthogonal` normalization when `true`)
+
+  Returns a vector of doubles representing the frequency coefficients. The result includes metadata (under the `::dst` key) storing the `:method` and the number of `:padded` elements required to correctly reverse the transform using [[idst]]."
+  ([xs] (dst xs nil))
+  ([xs {:keys [method pad? scale?] :or {method :DST-II pad? true scale? true} :as options}]
+   (let [[xs padded] (if (and pad? (= :DST-I method)) (maybe-pad-dst-i xs) [xs 0])
+         t (case method
+             :DST-I #(forward-1d (transformer :real :sine) % (assoc options :normalization
+                                                                    (if scale? :orthogonal :standard)))
+             :DST-II #(forward-1d (transformer :real :dst) % options)
+             :DST-III #(reverse-1d (transformer :real :dst) % options))]
+     (with-meta (vec (t xs)) {::dst {:method method
+                                     :padded padded}}))))
+
+(defn idst
+  "Compute the Inverse Discrete Sine Transform (IDST) of a 1D signal.
+
+  Converts frequency-domain coefficients back into the original time domain. This function is the inverse operation of [[dst]] and utilizes metadata (such as the specific transform method and any padding applied) attached to the input sequence to ensure the signal is restored with its original dimensions and scaling.
+
+  Input parameters:
+  * `xs` - Sequence of real numbers (frequency coefficients), typically the result of the [[dst]] function.
+  * `options` - An optional map of configuration keys (usually inferred from `xs` metadata):
+    * `:method` - The DST variant was used for a transform: `:DST-I`, `:DST-II`, or `:DST-III`.
+    * `:padded` - The number of elements to drop from the beginning of the result to reverse padding added during the forward transform.
+    * `:scale?` - Boolean (default `true`). Indicates whether the transform should be normalized. For `:DST-I` sets `:orthogonal` normalization when `true`.
+
+  Returns a sequence of doubles representing the reconstructed signal in the time/spatial domain."
+  ([xs] (idst xs nil))
+  ([xs options]
+   (let [{:keys [method padded scale?] :or {method :DST-II padded 0 scale? true} :as options} (merge (::dst (meta xs)) options)
+         t (case method
+             :DST-I #(reverse-1d (transformer :real :sine) % (assoc options :normalization
+                                                                    (if scale? :orthogonal :standard)))
+             :DST-II #(reverse-1d (transformer :real :dst) % options)
+             :DST-III #(forward-1d (transformer :real :dst) % options))]
+     (drop padded (t xs)))))
+
+;; Hartley
+
+(defn dht
+  "Compute the Discrete Hartley Transform (DHT) of a 1D signal.
+
+  Input parameters:
+  * `xs` - Input signal as a sequence or array of real numbers (doubles).
+
+  Returns a sequence of doubles representing the Hartley coefficients in the frequency domain."
+  [xs]
+  (seq (forward-1d (transformer :real :dht) xs)))
+
+(defn idht
+  "Compute the Inverse Discrete Hartley Transform (IDHT) of a 1D signal.
+
+  Input parameters:
+  * `xs` - Sequence or array of real numbers representing the Hartley coefficients.
+  * `options` - An optional map of configuration keys:
+      * `:scale?` - Boolean (default `true`). When true, the resulting signal is divided by the signal length $N$ to ensure the inverse mapping returns the data to its original scale.
+
+  Returns a sequence of doubles representing the reconstructed signal in the time/spatial domain."
+  ([xs] (idht xs nil))
+  ([xs options]
+   (seq (reverse-1d (transformer :real :dht) xs options))))
+
+;; Hadamard
+
+(defn hadamard
+  "Compute the Fast Hadamard Transform (FHT) of a 1D signal.
+
+  Input parameters:
+  * `xs` - Input signal as a sequence or array of real numbers (doubles). The length of the input must be a power of 2.
+
+  Returns a double array of Hadamard coefficients."
+  [xs]
+  (forward-1d (transformer :real :hadamard) xs))
+
+(defn ihadamard
+  "Compute the Inverse Fast Hadamard Transform (IFHT) of a 1D signal.
+
+  Input parameters:
+  * `xs` - Sequence or array of real numbers (doubles) representing the Hadamard coefficients. The length of the input must be a power of 2.
+
+  Returns a sequence of doubles representing the reconstructed signal."
+  [xs]
+  (seq (reverse-1d (transformer :real :hadamard) xs)))
 
 
+;; Wavelets
 
+(defn- maybe-wavelet-pad
+  [xs pad?]
+  (let [len (count xs)
+        po2? (m/power-of-two? len)]
+    (if-not (or pad? po2?)
+      (throw (ex-info "Length of the signal should be power of 2." {:length len}))
+      (if po2?
+        [xs 0]
+        (let [nlen (m/round-up-pow2 len)]
+          [(pad/zero (m/seq->double-array xs) nlen :left) (m/- nlen len)])))))
 
+(defn dwt
+  "Compute the Discrete Wavelet Transform (DWT) of a 1D signal.
 
+  Performs a multi-resolution analysis by decomposing the input signal into approximation and detail coefficients. This allows for the analysis of signal features at different scales and positions, providing a time-frequency representation where the frequency resolution is high for low-frequency components and time resolution is high for high-frequency components.
 
+  Input parameters:
+  * `xs` - Input signal as a sequence. The length must typically be a power of 2.
+  * `wavelet` - The wavelet to use for decomposition. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\", \"sym5\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for all supported names.
+  * `options` - A map of configuration keys:
+      * `:level` - The number of decomposition levels to perform.
+      * `:decompose?` - Boolean (default `false`). If `true`, the resulting flat coefficient array is restructured into a sequence of bands (approximation followed by details from coarsest to finest) using [[fastmath.transform.wavelets/decompose-dwt]]
+      * `:pad?` - Boolean (default `true`). When true, automatically pads the signal with zeros to the nearest power of 2 size..
 
+  Returns a double array of wavelet coefficients. If `:decompose?` is set to `true`, returns a sequence of sequences representing the structured decomposition levels. The result includes metadata (under the `::dwt` key) storing the number of `:padded` elements required to correctly reverse the transform using [[idwt]]."
+  ([xs wavelet] (dwt xs wavelet nil))
+  ([xs wavelet {:keys [level decompose? pad?]
+                :or {pad? true}
+                :as opts}]
+   (let [[xs padded] (maybe-wavelet-pad xs pad?)
+         t (transformer :dwt wavelet)
+         coeffs (forward-1d t xs opts)]
+     (with-meta (if-not decompose?
+                  (vec coeffs)
+                  (wv/decompose-dwt coeffs level))
+       {::dwt {:padded padded}}))))
 
+(defn idwt
+  "Compute the Inverse Discrete Wavelet Transform (IDWT) to reconstruct a signal from its wavelet coefficients.
 
+  Reverses the multi-resolution decomposition performed by [[dwt]].
 
+  Input parameters:
+  * `coeffs` - A sequence or array of wavelet coefficients. It supports both flat representations (concatenated coefficients) and structured sequences of bands (nested sequences as returned by [[dwt]] with the `:decompose?` option).
+  * `wavelet` - The wavelet used for reconstruction. This must match the wavelet used in the forward transform. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4).
+  * `options` - An optional map of configuration keys:
+      * `:level` - The number of reconstruction levels to perform.
+      * `:padded` - The number of leading elements to drop from the result (usually inferred from `::dwt` metadata attached to `coeffs` by the [[dwt]] function).
 
+  Returns a sequence of doubles representing the reconstructed signal in the time domain."
+  ([coeffs wavelet] (idwt coeffs wavelet nil))
+  ([coeffs wavelet options]
+   (let [{:keys [^long padded] :or {padded 0} :as options} (merge (::dwt (meta coeffs)) options)
+         t (transformer :dwt wavelet)
+         coeffs (if (sequential? (first coeffs)) (flatten coeffs) coeffs)]
+     (drop padded (reverse-1d t coeffs options)))))
 
+(defn wpt
+  "Compute the Wavelet Packet Transform (WPT) of a 1D signal.
 
+  Performs a full decomposition of the signal by recursively applying low-pass and high-pass filters to both approximation and detail coefficients at each level.
 
+  Input parameters:
+  * `xs` - Input signal as a sequence or array. The length must be a power of 2.
+  * `wavelet` - The wavelet to use for decomposition. Can be a string for built-in wavelets (e.g., \"haar\", \"db4\") or a keyword for JWave-based wavelets (e.g., :haar, :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for all supported names.
+  * `options` - A map of configuration keys:
+      * `:level` - The number of decomposition levels to perform.
+      * `:decompose?` - Boolean (default `false`). If `true`, the resulting flat coefficient array is restructured into a sequence of $2^{level}$ equal-width frequency bands using [[fastmath.transform.wavelets/decompose-wpt]].
+      * `:pad?` - Boolean (default `true`). When `true`, automatically pads the signal with zeros to the nearest power of 2.
 
+  Returns a double array of wavelet packet coefficients. If `:decompose?` is `true`, it returns a sequence of sequences representing the structured frequency sub-bands. The result includes metadata (under the `::wpt` key) containing the number of `:padded` elements to facilitate correct reconstruction via [[iwpt]]."
+  ([xs wavelet] (wpt xs wavelet nil))
+  ([xs wavelet {:keys [level decompose? pad?]
+                :or {pad? true}
+                :as options}]
+   (let [[xs padded] (maybe-wavelet-pad xs pad?)
+         t (transformer :wpt wavelet)
+         coeffs (forward-1d t xs options)]
+     (with-meta (if-not decompose?
+                  (vec coeffs)
+                  (wv/decompose-wpt coeffs level))
+       {::wpt {:padded padded}}))))
 
+(defn iwpt
+  "Compute the Inverse Wavelet Packet Transform (IWPT) to reconstruct a signal.
 
+  Reverses the full decomposition tree performed by [[wpt]], transforming wavelet packet coefficients back into the time domain.
 
+  Input parameters:
+  * `coeffs` - A sequence or array of wavelet packet coefficients. It supports both flat representations and structured sequences of frequency bands (as returned by [[wpt]] with the `:decompose?` option).
+  * `wavelet` - The wavelet used for reconstruction. This must match the wavelet used in the forward transform. Can be a string (e.g., \"db4\") or a keyword (e.g., :daubechies-4). See [[fastmath.transform.wavelets/wavelet-names]] for supported names.
+  * `options` - An optional map of configuration keys:
+    * `:level` - The number of decomposition levels to perform during reconstruction.
+    * `:padded` - The number of leading elements to drop from the result to reverse padding added during the forward transform (usually inferred from metadata attached to `coeffs`).
 
+  Returns a sequence of doubles representing the reconstructed signal in the time domain."
+  ([coeffs wavelet] (iwpt coeffs wavelet nil))
+  ([coeffs wavelet options]
+   (let [{:keys [^long padded] :or {padded 0} :as options} (merge (::dwt (meta coeffs)) options)
+         t (transformer :wpt wavelet)
+         coeffs (if (sequential? (first coeffs)) (flatten coeffs) coeffs)]
+     (drop padded (reverse-1d t coeffs options)))))
 
-(comment
-  (require '[ggplot])
+(defn wpd
+  "Compute the full Wavelet Packet Decomposition (WPD) for all levels of a 1D signal.
 
-  
-  (defn- error [x1 x2]
-    (reduce m/+ (map #(m/sq (- %1 %2)) x1 x2)))
+  This function performs a comprehensive decomposition by recursively applying high-pass and low-pass filters to both approximation and detail coefficients at every possible scale. While [[wpt]] typically targets a specific level, `wpd` returns the coefficients for every level from 0 (the original or padded signal) to the maximum depth, providing a complete hierarchical view of the signal's frequency structure across all resolutions.
 
-  (def xx (m/slice-range 0 10 512))
-  (def s (map #(m/sin %) xx))
-  (def d (map #(+ % (* 0.2 (- (rand) 0.5))) s))
-  (def t (transformer :fast :daubechies-10))
+  Input parameters:
+  * `xs` - Input signal as a sequence or array of real numbers.
+  * `wavelet` - The wavelet used for decomposition. Can be a string for built-in wavelets (e.g., \"db4\") or a keyword for JWave-based wavelets (e.g., :daubechies-4).
+  * `options` - A map of configuration keys:
+      * `:decompose?` - Boolean (default `true`). If `true`, restructures the flat coefficient array of each level into a sequence of equal-width frequency bands using [[fastmath.transform.wavelets/decompose-wpt]].
+      * `:pad?` - Boolean (default `true`). When `true`, automatically pads the signal with zeros to the nearest power of 2.
 
-
-  (optim/minimize :lbfgsb (fn [x]
-                            (error s (denoise t d {:method :garrote :threshold x :skip 0})))
-                  {:bounds [[0 (m/sqrt (* 2 (m/log 512)))]]
-                   :initial [0.1]})
-
-  (ggplot/->file (ggplot/function
-                  (fn [x]
-                    (error s (denoise t d {:method :hyperbole :threshold x :skip 0})))
-                  {:x [0 (m/sqrt (* 2 (m/log 512)))]}))
-
-  (let [res (denoise t d {:method :hyperbole :threshold :heursure :skip 0})
-        data (map (fn [x y] {:x x :y y}) xx res)
-        data2 (map (fn [x s y] {:x x :y (- s y)}) xx s res)]
-    (ggplot/->file (ggplot/ggaes+ (ggplot/aes :x :x :y :y) (ggplot/line data) (ggplot/line data2 :color "red")))
-    (error s res))
-  ;; => [0.0054888943941000514 0.0022685134312533306 0.0034123146526252967 0.0027147518947475057]
-  ;; => [0.005699029380586008 0.002268315211977693 0.0034120129587574197 0.002714501585972715]
-
-
-  (seq (denoise (transformer :packet :daubechies-4) [2 3 1 2 3 1 -1 3] :hyperbole))
-
-  (def cfft (transformer :complex :fftr))
-  (def res-1 (forward-1d cfft [1 2 3]))
-  res-1
-  ;; => [6.0, 0.0, -1.5, 0.8660254037844387, -1.5, -0.8660254037844387]
-  (seq (reverse-1d cfft res-1))
-  ;; => (1.0 0.0 2.0 0.0 3.0 0.0)
-
-  (def rfft (transformer :real :fft))
-  (def rres-1 (forward-1d rfft [1 2 3]))
-  rres-1
-  ;; => [6.0, 0.8660254037844387, -1.5]
-  (seq (reverse-1d rfft rres-1))
-  ;; => (1.0 2.0 3.0)
-
-  (def packet-symlet-5 (transformer :packet :symlet-5))
-
-  (def res-symlet (forward-1d packet-symlet-5 [1 2 -1 -2]))
-
-  res-symlet
-  ;; => [-6.9087374710008476E-12, 2.9275731889992005, 2.82142711971467E-12,
-  ;;     -1.1955397203974003]
-
-  (reverse-1d packet-symlet-5 res-symlet)
-  ;; => [0.9999999999994849, 1.9999999999989695, -0.9999999999994843,
-  ;;     -1.9999999999989686]
-
-  (def res-symlet-2d (forward-2d packet-symlet-5 [[1 2 3 1] [4 0 -1 2] [5 5 9 1] [9 8 -2 -3]]))
-
-  res-symlet-2d
-  ;; => [[10.999999999985063, 5.921050975270259, 3.0000000000306537,
-  ;;      -1.3932535120463374],
-  ;;     [-5.087986539484961, -4.487244758825454, -2.0945087533205813,
-  ;;      3.2633503021589165],
-  ;;     [2.5000000000411826, -6.782439224284976, 1.500000000025788,
-  ;;      -4.061836797399661],
-  ;;     [-1.1672159070148709, 4.7633503021476145, -1.3649296986674757,
-  ;;      -1.0127552411825524]]
-
-  (reverse-2d packet-symlet-5 res-symlet-2d)
-  ;; => [[1.0000000000015503, 2.000000000000519, 3.0000000000010374,
-  ;;      1.0000000000002596],
-  ;;     [4.000000000000007, 2.5801027980776325E-12, -0.9999999999989707,
-  ;;      1.9999999999981963],
-  ;;     [5.000000000000007, 4.9999999999982006, 8.999999999997437,
-  ;;      1.0000000000010316],
-  ;;     [8.999999999995888, 7.9999999999951115, -1.999999999996907,
-  ;;      -2.9999999999958775]]
-
-  (def haar (transformer :fast :haar))
-  (seq (forward-1d haar [1 2 -1 -3 0 -3 -1 2] {:level 1}))
-
-
-  ;; => (2.1213203435596424
-  ;;     -2.82842712474619
-  ;;     -2.1213203435596424
-  ;;     0.7071067811865475
-  ;;     -0.7071067811865475
-  ;;     1.414213562373095
-  ;;     2.1213203435596424
-  ;;    -2.1213203435596424)
-  ;; => (2.1213203435596424
-  ;;     -2.82842712474619
-  ;;     0.7071067811865475
-  ;;     0.7071067811865475
-  ;;     -0.7071067811865475
-  ;;     1.414213562373095
-  ;;     -0.7071067811865475
-  ;;    2.1213203435596424)
-  ;; => (2.1213203435596424
-  ;;     -2.82842712474619
-  ;;     1.414213562373095
-  ;;     1.414213562373095
-  ;;     -0.7071067811865475
-  ;;     1.414213562373095
-  ;;     -1.414213562373095
-  ;;    1.414213562373095)
-
-  (seq (forward-1d haar [1 2 -1 -3 0 2 2 1] {:level 3}))
-  ;; => (1.0606601717798212
-  ;;     -1.7677669529663682
-  ;;     3.499999999999999
-  ;;     0.0
-  ;;     -0.7071067811865475
-  ;;     1.414213562373095
-  ;;     -1.414213562373095
-  ;;    1.414213562373095)
-  ;; => Execution error (JWaveFailure) at jwave.transforms.FastWaveletTransform/forward (FastWaveletTransform.java:82).
-  ;;    JWave: Failure: FastWaveletTransform#forward - given level is out of range for given array
-
-  (seq (forward-1d (transformer :dwt "db2") (double-array [1,2,3,10,-3,-2,3,0])))
-  ;; => (7.071067811865473
-  ;;     3.708909791235272
-  ;;     0.006569860407205863
-  ;;     -2.274519052838328
-  ;;     -4.440892098500626E-16
-  ;;     7.563321910700776
-  ;;     -4.191872704379808
-  ;;    -0.5430220815747799)
-  ;; => (7.071067811865473
-  ;;     3.708909791235272
-  ;;     0.006569860407205863
-  ;;     -2.274519052838328
-  ;;     -4.440892098500626E-16
-  ;;     7.563321910700776
-  ;;     -4.191872704379808
-  ;;    -0.5430220815747799)
-  ;; => (1.5343318992335864
-  ;;     12.020815280171306
-  ;;     7.14041816598649
-  ;;     4.760278777324325
-  ;;     -2.8977774788672046
-  ;;     5.606086266752902
-  ;;     -1.294095225512604
-  ;;    -1.414213562373095)
-
-
-  
-  )
-;; => nil
-;; => nil
+  Returns a sequence of levels, where each level contains the corresponding wavelet packet coefficients. If `:decompose?` is `true`, each level is returned as a sequence of sequences representing frequency sub-bands. The result includes metadata (under the `::wpd` key) storing the number of `:padded` elements used during the transform."
+  ([xs wavelet] (wpd xs wavelet nil))
+  ([xs wavelet {:keys [decompose? pad?]
+                :or {decompose? true pad? true}}]
+   (let [[xs padded] (maybe-wavelet-pad xs pad?)
+         arr (m/seq->double-array xs)
+         levels (range 1 (m/inc (m/log2int (alength arr))))
+         wv (wv/wavelet wavelet)
+         res (->> levels
+                  (reduce (fn [[^long prev-level buff] ^long level]
+                            [level (conj buff (wv/wpt-forward-1d wv (last buff) prev-level level))]) [0 [arr]])
+                  (second))]
+     (with-meta (if-not decompose?
+                  res
+                  (mapv (fn [coeffs ^long level]
+                          (wv/decompose-wpt coeffs level)) res (conj levels 0)))
+       {::wpd {:padded padded}}))))

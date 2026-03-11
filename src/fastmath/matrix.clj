@@ -1640,6 +1640,56 @@
                             solver
                             (not (.isNonSingular solver)) s))))
 
+(defn- complex-ev [real imag]  (mapv v/vec2 real imag))
+
+(defn- eigen-decomposition-acm
+  [mat]
+  (let [s (->mat-size mat)
+        ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
+        complex? (.hasComplexEigenvalues eigen)
+        ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
+        det (delay (.getDeterminant eigen))]
+    (->MatrixDecomposition eigen
+                           {:D (delay (->mat s (.getD eigen)))
+                            :V (delay (->mat s (.getV eigen)))
+                            :VT (delay (->mat s (.getVT eigen)))
+                            :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
+                            :imag-eigenvalues (delay (->vec s (.getImagEigenvalues eigen)))
+                            :eigenvalues (delay (complex-ev (->vec s (.getRealEigenvalues eigen))
+                                                            (->vec s (.getImagEigenvalues eigen))))
+                            :sqrt (delay (->mat s (.getSquareRoot eigen)))
+                            :det det
+                            :complex? complex?
+                            :eigenvectors (delay (mapv #(->vec s (.getEigenvector eigen %)) (range s)))}
+                           solver
+                           (if solver
+                             (not (.isNonSingular solver))
+                             (m/zero? (double @det)))
+                           s)))
+
+(defn- eigen-decomposition-colt
+  [mat]
+  (let [s (->mat-size mat)
+        mat-array (mat->array2d mat)
+        ^cern.colt.matrix.DoubleMatrix2D cmat (.make cern.colt.matrix.DoubleFactory2D/dense mat-array)
+        ^cern.colt.matrix.linalg.EigenvalueDecomposition eigen (cern.colt.matrix.linalg.EigenvalueDecomposition. cmat)
+        preV (delay (.getV eigen))
+        re (delay (.toArray (.getRealEigenvalues eigen)))
+        ie (delay (.toArray (.getImagEigenvalues eigen)))
+        det (delay (det mat))]
+    (->MatrixDecomposition eigen
+                           {:D (delay (.toArray (.getD eigen)))
+                            :V (delay (.toArray ^cern.colt.matrix.DoubleMatrix2D @preV))
+                            :VT (delay (.toArray (.viewDice (.getV eigen))))
+                            :real-eigenvalues re
+                            :imag-eigenvalues ie
+                            :eigenvalues (delay (complex-ev @re @ie))
+                            :complex? (some m/not-zero? @ie)
+                            :eigenvectors (delay (mapv #(.toArray (.viewColumn ^cern.colt.matrix.DoubleMatrix2D @preV %)) (range s)))}
+                           nil
+                           (m/zero? (double @det))
+                           s)))
+
 (defn eigen-decomposition
   "Performs Eigen decomposition.
 
@@ -1656,26 +1706,11 @@
   * `:complex?` - are eigenvalues complex?
 
   Can be used as input for `solve`, `inverse` and `singular?` functions."
-  [mat]
-  (let [s (->mat-size mat)
-        ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
-        complex? (.hasComplexEigenvalues eigen)
-        ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
-        det (delay (.getDeterminant eigen))]
-    (->MatrixDecomposition eigen
-                           {:D (delay (->mat s (.getD eigen)))
-                            :V (delay (->mat s (.getV eigen)))
-                            :VT (delay (->mat s (.getVT eigen)))
-                            :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
-                            :imag-eigenvalues (delay (->vec s (.getImagEigenvalues eigen)))
-                            :sqrt (delay (->mat s (.getSquareRoot eigen)))
-                            :det det
-                            :complex? complex?
-                            :eigenvectors (delay (mapv #(->vec s (.getEigenvector eigen %)) (range s)))}
-                           solver
-                           (if solver
-                             (not (.isNonSingular solver))
-                             (m/near-zero? @det)) s)))
+  ([mat] (eigen-decomposition mat nil))
+  ([mat {:keys [backend] :or {backend :acm}}]
+   (case backend
+     :acm (eigen-decomposition-acm mat)
+     :colt (eigen-decomposition-colt mat))))
 
 (defn singular?
   "Returns singularity of the matrix"

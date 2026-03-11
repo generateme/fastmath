@@ -1847,6 +1847,11 @@
   "Finds the smallest integer `n` such that `b^n >= |x|`. See also [[low-exp]]."
   ^long [^double b ^double x] (->> x Math/abs (logb b) ceil unchecked-long))
 
+(defn power-of-two?
+  "Checks if `v` is a power of two, v=2^p for some p. Only for positive values."
+  [^long v]
+  (and (pos? v) (zero? (bit-and v (dec v)))))
+
 (defn round-up-pow2
   "Rounds a positive `long` integer up to the smallest power of 2 greater than or equal to the input value."
   ^long [^long v]
@@ -1928,6 +1933,38 @@
       (+ (FastMath/getExponent v)
          (if (or (> s 1865452045155277) ;; (double-significand (pow 2 1.5))
                  (neg? s)) 1 0)))))
+
+(defn leading-zero-bits
+  "Leading zero bits"
+  {:inline (fn [x] `(. Long (numberOfLeadingZeros (long ~x))))
+   :inline-arities #{1}}
+  ^long [^long v]
+  (Long/numberOfLeadingZeros v))
+
+(defn trailing-zero-bits
+  "Trailing zero bits"
+  {:inline (fn [x] `(. Long (numberOfTrailingZeros (long ~x))))
+   :inline-arities #{1}}
+  ^long [^long v]
+  (Long/numberOfTrailingZeros v))
+
+(defn most-significant-bit
+  "Returns the most significant bit position. Can be treated as floor(log2(v)) for positive, integer `v`.
+
+  Returns `-1` for `0` and `63` for negative numbers."
+  {:inline (fn [x] `(PrimitiveMath/subtract 63 (. Long (numberOfLeadingZeros (long ~x)))))
+   :inline-arities #{1}}
+  ^long [^long v]
+  (- 63 (Long/numberOfLeadingZeros v)))
+
+(defn least-significant-bit
+  "Returns the least significant bit position.
+
+  Returns `-1` for `0`"
+  ^long [^long v]
+  (if (zero? v)
+    -1
+    (Long/numberOfTrailingZeros v)))
 
 (defn ulp
   "Unit in the Last Place, distance between next value larger than `x` and `x`"

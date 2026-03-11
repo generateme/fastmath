@@ -160,14 +160,21 @@
                  sat  (->valid (m/- 1.0 (m// (m/- 1.0 wmag) 4.0)))]]
        {:x x :y y :hue arg :val wmag :sat sat}))))
 
+(defn spectrogram->data
+  ([{:keys [times freqs spectrum]}]
+   (mapcat (fn [t xs]
+             (map (fn [f x]
+                    {:x t :y f :a x}) freqs xs)) times spectrum)))
+
 ;; plots
 
 (def line-common {:linetype "dashed" :color color-light})
 
 (defn add-common
-  [object {:keys [title xlab ylab xlim ylim hline vline]}]
+  [object {:keys [title xlab ylab xlim ylim hline vline filllab]}]
   (r/r+ object
         (when title (gg/labs :title title))
+        (when filllab (gg/labs :fill filllab))
         (when xlab (gg/xlab xlab))
         (when ylab (gg/ylab ylab))
         (when xlim (gg/xlim xlim))
@@ -319,6 +326,21 @@
                (gg/xlab "Re")
                (gg/ylab "Im"))
          (add-common opts)))))
+
+(defn spectrogram
+  ([stft] (spectrogram stft nil))
+  ([stft {:keys [palette legend-name]
+          :or {palette :grDevices/Plasma legend-name "Power (dB)"}
+          :as opts}]
+   (let [data (spectrogram->data stft)]
+     (-> (r/r+ (gg/ggplot :mapping (gg/aes :x :x :y :y :fill :a))
+               (gg/theme_light)
+               (gg/geom_raster :data (tc/dataset data) :interpolate true)
+               (gg/xlab "Time")
+               (gg/ylab "Frequency")
+               (pal/scale_fill_paletteer_c :name legend-name (->palette palette)))
+         (add-common opts)))))
+
 
 (defn function-ci
   ([f] (function-ci f nil))

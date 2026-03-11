@@ -32,7 +32,7 @@
              :dev {:dependencies [[org.clojure/clojure "1.12.4"]
                                   [org.clojure/data.csv "1.1.0"]
                                   [org.clojure/data.json "2.5.2"]
-                                  [org.scicloj/clay "2-beta47"]
+                                  [org.scicloj/clay "2.0.13"]
                                   [zprint "1.3.0"]
                                   [scicloj/clojisr "1.0.0"]
                                   [scicloj/tablecloth "7.059"]
