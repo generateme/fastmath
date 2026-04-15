@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file. This change
 ;; * `periodogram`, `spectrum`, `stft`
 ;; * Elliptic K, E, Pi, Rf, Rd, Rj, Rg, Rc
 ;; * Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
-;; * AOC,ROC/PRECREC/DET curves, thresholded binary measures, multilabel measures
+;; * AUC,ROC/PRECREC/DET curves, thresholded binary measures, multilabel measures
 
 ### Fixed
 
