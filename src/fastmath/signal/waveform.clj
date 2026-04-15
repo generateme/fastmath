@@ -1,5 +1,7 @@
 (ns fastmath.signal.waveform
-  (:require [fastmath.core :as m]))
+  (:require [fastmath.core :as m]
+            [fastmath.vector :as v])
+  (:import [fastmath.vector Vec3]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -189,3 +191,86 @@
             (double (afn t))
             (triangle-bl bands (m/+ (double (pfn t)) (double (ffn t)))))))))
 
+;; poly_blep.jsfx-inc, licence: http://www.wtfpl.net/
+;; blep/blamp/bluh
+
+(defn blep
+  "Band-limited step"
+  ^double [^double t ^double dt]
+  (cond
+    (m/< t dt) (m/- (m/sq (m/dec (m// t dt))))
+    (m/> t (m/- 1.0 dt)) (m/sq (m/inc (m// (m/dec t) dt)))
+    :else 0.0))
+
+(defn blamp
+  "Band-limited ramp"
+  ^double [^double t ^double dt]
+  (cond
+    (m/< t dt) (m/* -0.3333333333333333 (m/cb (m/dec (m// t dt))))
+    (m/> t (m/- 1.0 dt)) (m/* 0.3333333333333333 (m/cb (m/inc (m// (m/dec t) dt))))
+    :else 0.0))
+
+(defn bluh
+  "Band-limited curve"
+  ^double [^double t ^double dt]
+  (cond
+    (m/< t dt) (let [t (m/sq (m/dec (m// t dt)))]
+                 (m/* -4.0 (m/- (m/sq t) t)))
+    (m/> t (m/- 1.0 dt)) (let [t (m/sq (m/inc (m// (m/dec t) dt)))]
+                           (m/* 4.0 (m/- (m/sq t) t)))
+    :else 0.0))
+
+;;
+
+(defmacro polyblep
+  "Creates polyblep signal creator based on generating function f(phase, phase-step) -> amplitude."
+  [n fun]
+  `(defn ~(symbol (str "polyblep-" n))
+     [opts#]
+     (let [f# (->const-fn (or (:f opts#) 1.0))
+           phase# (->const-fn (or (:phase opts#) 0.0))
+           amplitude# (->const-fn (or (:amplitude opts#) 1.0))
+           fs# (double (or (:fs opts#) 44100.0))]
+       (->> (iterate (fn [^Vec3 stp#]
+                       (let [time-in-sec# (m// (.y stp#) fs#)
+                             current-phase# (double (phase# time-in-sec#))
+                             phase# (m/mod (m/+ (.z stp#) current-phase#) 1.0)
+                             current-frequency# (double (f# time-in-sec#))
+                             phase-step# (m// current-frequency# fs#)
+                             current-amplitude# (double (amplitude# time-in-sec#))]
+                         (Vec3. (m/* current-amplitude# (~fun phase# phase-step#))
+                                (m/inc (.y stp#))
+                                (m/+ (.z stp#) phase-step#)))) (Vec3. 0.0 0.0 0.0))
+            (rest)
+            (map first)))))
+;;
+
+(defn- pb-hyptri
+  ^double [^double phase ^double phase-step]
+  (m/+ -1.3130352854993313
+       (m/* phase-step (m/- (m// (blamp phase phase-step) m/QUARTER_PI)
+                            (m/* (blamp (m/frac (m/+ phase 0.5)) phase-step) 9.273)))
+       (m/* (m/exp (m/* 4.0 (if (m/< phase 0.5) phase (m/- 1.0 phase))))
+            0.3130352854993313)))
+
+(polyblep hyptri2 pb-hyptri)
+
+
+(defn polyblep-hyptri
+  [{:keys [^double fs f phase amplitude]
+    :or {fs 44100.0 f 1.0 phase 0.0 amplitude 1.0}}]
+  (let [f (->const-fn f)
+        phase (->const-fn phase)
+        amplitude (->const-fn amplitude)]
+    (->> (iterate (fn [^Vec3 stp]
+                    (let [time-in-sec (m// (.y stp) fs)
+                          current-phase (double (phase time-in-sec))
+                          phase (m/mod (m/+ (.z stp) current-phase) 1.0)
+                          current-frequency(double (f time-in-sec))
+                          phase-step (m// current-frequency fs)
+                          current-amplitude (double (amplitude time-in-sec))]
+                      (Vec3. (m/* current-amplitude (pb-hyptri phase phase-step))
+                             (m/inc (.y stp))
+                             (m/+ (.z stp) phase-step)))) (Vec3. 0.0 0.0 0.0))
+         (rest)
+         (map first))))

@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: fields.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="fields_files/md-default0.js" type="text/javascript"></script><script src="fields_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -57,6 +56,7 @@ Vector field functions.
 
   You can use several method to derive new vector field from the other one(s). Possible options are:
 
+
   * [derivative](#LOS-derivative), [grad-x](#LOS-grad-x), [grad-y](#LOS-grad-y) - directional derivative of the field
   * [sum](#LOS-sum) - sum of two fields
   * [multiply](#LOS-multiply) - multiplication of the fields
@@ -67,6 +67,7 @@ Vector field functions.
 
   You can derive scalar fields from given vector field(s):
 
+
   * [jacobian](#LOS-jacobian) - determinant of jacobian matrix
   * [divergence](#LOS-divergence) - divergence of the field
   * [cross](#LOS-cross) - cross product of the fields (as a determinant of the 2x2 matrix of vectors)
@@ -76,6 +77,7 @@ Vector field functions.
   ### Combinations
 
   The other option is to create vector field using some of the above possibilities. Combination is a tree of field operations with parametrizations. Functions:
+
 
   * [combine](#LOS-combine) - create vector field randomly of from given parametrization.
   * [random-configuration](#LOS-random-configuration) - returns random configuration as a map
@@ -125,6 +127,7 @@ Resulting value is from range `[-PI,PI]`.
 
 #### combine
 
+
 + `(combine {:keys [type name amount config var step var1 var2]})`
 + `(combine)`
 
@@ -133,6 +136,7 @@ Create composite vector field function based on configuration
   Call without argument to get random vector field.
 
   Configuration is a tree structure where nodes are one of the following
+
 
   * `{:type :variation :name NAME :amount AMOUNT :config CONFIG}` where
       * NAME is variation name (keyword)
@@ -148,6 +152,7 @@ Create composite vector field function based on configuration
       * STEP dx and dy value
 
   Possible OPERATIONs are:
+
 
   * `:add` - sum of two variations
   * `:mult` - multiplication
@@ -169,6 +174,7 @@ Create composite vector field function based on configuration
 
 
 #### composition
+
 
 + `(composition f1 f2 amount)`
 + `(composition f1 f2)`
@@ -207,6 +213,7 @@ In case when two vector fields are given, cross product is taken from results of
 
 #### curl
 
+
 + `(curl f)`
 + `(curl f h)`
 
@@ -228,6 +235,7 @@ Curl (2d version) of the field.
 
 #### derivative
 
+
 + `(derivative f amount h)`
 + `(derivative f h)`
 + `(derivative f)`
@@ -247,6 +255,7 @@ Calculate directional derivative of fn. Derivative is calculated along [1,1] vec
 
 
 #### divergence
+
 
 + `(divergence f)`
 + `(divergence f h)`
@@ -363,6 +372,7 @@ Return vector field for given name and options: amount (scaling factor) and para
 
 #### grad-x
 
+
 + `(grad-x f amount h)`
 + `(grad-x f h)`
 + `(grad-x f)`
@@ -382,6 +392,7 @@ Calculate gradient along x axis.
 
 
 #### grad-y
+
 
 + `(grad-y f amount h)`
 + `(grad-y f h)`
@@ -403,6 +414,7 @@ Calculate gradient along y axis.
 
 #### heading
 
+
 + `(heading f)`
 
 Angle of the vectors from field.
@@ -420,6 +432,7 @@ Angle of the vectors from field.
 
 
 #### jacobian
+
 
 + `(jacobian f)`
 + `(jacobian f h)`
@@ -440,6 +453,7 @@ Det of Jacobian of the field
 
 #### magnitude
 
+
 + `(magnitude f)`
 
 Magnitude of the vectors from field.
@@ -457,6 +471,7 @@ Magnitude of the vectors from field.
 
 
 #### multiplication
+
 
 + `(multiplication f1 f2 amount)`
 + `(multiplication f1 f2)`
@@ -499,6 +514,7 @@ Return random parametrization map for given field.
 
 #### random-configuration
 
+
 + `(random-configuration)`
 + `(random-configuration depth)`
 + `(random-configuration depth f)`
@@ -523,6 +539,7 @@ Create random configuration for [combine](#LOS-combine) function. Optionally wit
 
 #### random-field
 
+
 + `(random-field)`
 + `(random-field depth)`
 
@@ -542,6 +559,7 @@ Create randomized field (optional depth can be provided).
 
 #### randomize-configuration
 
+
 + `(randomize-configuration f)`
 
 Randomize values for given configuration. Keeps structure untouched.
@@ -559,6 +577,7 @@ Randomize values for given configuration. Keeps structure untouched.
 
 
 #### scalar->vector-field
+
 
 + `(scalar->vector-field scalar f)`
 + `(scalar->vector-field scalar f1 f2)`
@@ -578,6 +597,7 @@ Returns vector field build from scalar fields of the input vector and result of 
 
 
 #### sum
+
 
 + `(sum f1 f2 amount)`
 + `(sum f1 f2)`

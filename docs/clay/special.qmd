@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: special.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="special_files/md-default77.js" type="text/javascript"></script><script src="special_files/md-default78.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 # Special functions {.unnumbered}
 
@@ -44,6 +43,7 @@ Native implementation is based on Julia packages ([SpecialFunctions.jl](https://
 Gamma and related functions
 
 ::: {.callout-tip title="Defined functions"}
+
 * `gamma`, `log-gamma`
 * `inv-gamma-1pm1`, `log-gamma-1p`
 * `upper-incomplete-gamma`, `lower-incomplete-gamma`
@@ -66,11 +66,7 @@ $$\Gamma(n) = (n-1)!$$
 Gamma for negative integers is not defined.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/0.png" />
-```
-
+![](special_files/image0.png)
 :::
 
 
@@ -97,11 +93,7 @@ Additionally reciprocal gamma function `inv-gamma-1pm1` is defined as:
 $$\frac{1}{\Gamma(x+1)}-1\text{ for } -0.5\leq x\leq 1.5$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/1.png" />
-```
-
+![](special_files/image1.png)
 :::
 
 
@@ -123,11 +115,7 @@ $$\frac{1}{\Gamma(x+1)}-1\text{ for } -0.5\leq x\leq 1.5$$
 For complex argument call `gamma-complex`.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/2.png" />
-```
-
+![](special_files/image2.png)
 :::
 
 
@@ -146,16 +134,12 @@ For complex argument call `gamma-complex`.
 :::
 
 
-### Log gamma 
+### Log gamma
 
 Logartihm of gamma `log-gamma` $\log\Gamma(x)$ with derivatives: `digamma` $\psi$, `trigamma` $\psi_1$  and `polygamma` $\psi^{(m)}$.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/3.png" />
-```
-
+![](special_files/image3.png)
 :::
 
 
@@ -178,11 +162,7 @@ Logartihm of gamma `log-gamma` $\log\Gamma(x)$ with derivatives: `digamma` $\psi
 For complex argument call `log-gamma-complex`.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/4.png" />
-```
-
+![](special_files/image4.png)
 :::
 
 
@@ -205,11 +185,7 @@ For complex argument call `log-gamma-complex`.
 `log-gamma-1p` is more accurate function defined as $\log\Gamma(x+1)$ for $-0.5\leq x 1.5$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/5.png" />
-```
-
+![](special_files/image5.png)
 :::
 
 
@@ -234,11 +210,7 @@ Derivatives of `log-gamma` function. First derivative `digamma`.
 $$\operatorname{digamma}(x)=\psi(x)=\psi^{(0)}(x)=\frac{d}{dx}\log\Gamma(x)=\frac{\Gamma'(x)}{\Gamma(x)}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/6.png" />
-```
-
+![](special_files/image6.png)
 :::
 
 
@@ -249,11 +221,7 @@ Second derivative `trigamma`
 $$\operatorname{trigamma}(x)=\psi_1(x)=\psi^{(1)}(x)=\frac{d}{dx}\psi(x)=\frac{d^2}{dx^2}\log\Gamma(x)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/7.png" />
-```
-
+![](special_files/image7.png)
 :::
 
 
@@ -264,11 +232,7 @@ $$\operatorname{trigamma}(x)=\psi_1(x)=\psi^{(1)}(x)=\frac{d}{dx}\psi(x)=\frac{d
 $$\operatorname{polygamma}(m,x)=\psi^{(m)}=\frac{d^m}{dx^m}\psi(x)=\frac{d^{m+1}}{dx^{m+1}}\log\Gamma(x)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/8.png" />
-```
-
+![](special_files/image8.png)
 :::
 
 
@@ -301,7 +265,7 @@ $$\Gamma(s,x) = \int_x^\infty t^{s-1}e^{-t}\,dt$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/9.png" /></td><td><img class="clay-image" src="special_files/10.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image9.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image10.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -329,7 +293,7 @@ $$\gamma(s,x) = \int_0^x t^{s-1}e^{-t}\,dt$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/11.png" /></td><td><img class="clay-image" src="special_files/12.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image11.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image12.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -355,11 +319,7 @@ $$\gamma(s,x) = \int_0^x t^{s-1}e^{-t}\,dt$$
 $$P(s,x)=\frac{\gamma(s,x)}{\Gamma(x)}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/13.png" />
-```
-
+![](special_files/image13.png)
 :::
 
 
@@ -381,11 +341,7 @@ $$P(s,x)=\frac{\gamma(s,x)}{\Gamma(x)}$$
 $$Q(s,x)=\frac{\Gamma(s,x)}{\Gamma(x)}=1-P(s,x)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/14.png" />
-```
-
+![](special_files/image14.png)
 :::
 
 
@@ -408,6 +364,7 @@ $$Q(s,x)=\frac{\Gamma(s,x)}{\Gamma(x)}=1-P(s,x)$$
 Beta and related functions
 
 ::: {.callout-tip title="Defined functions"}
+
 * `beta`, `log-beta`
 * `incomplete-beta`, `regularized-beta`
 :::
@@ -420,11 +377,7 @@ Beta and related functions
 $$B(p,q) = \int_0^1 t^{p-1}(1-t)^{q-1}\,dt = \frac{\Gamma(p)\Gamma(q)}{\Gamma(p+q)}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/15.png" />
-```
-
+![](special_files/image15.png)
 :::
 
 
@@ -447,11 +400,7 @@ $$B(p,q) = \int_0^1 t^{p-1}(1-t)^{q-1}\,dt = \frac{\Gamma(p)\Gamma(q)}{\Gamma(p+
 `log-beta` is log of $B(p,q)$ for positive `p` and `q`
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/16.png" />
-```
-
+![](special_files/image16.png)
 :::
 
 
@@ -477,11 +426,7 @@ $$B(p,q) = \int_0^1 t^{p-1}(1-t)^{q-1}\,dt = \frac{\Gamma(p)\Gamma(q)}{\Gamma(p+
 $$B(x,a,b)=\int_0^x t^{a-1}(1-t)^{b-1}\,dt$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/17.png" />
-```
-
+![](special_files/image17.png)
 :::
 
 
@@ -501,11 +446,7 @@ $$B(x,a,b)=\int_0^x t^{a-1}(1-t)^{b-1}\,dt$$
 $$I_x(a,b)=\frac{B(x,a,b)}{B(a,b)}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/18.png" />
-```
-
+![](special_files/image18.png)
 :::
 
 
@@ -525,6 +466,7 @@ $$I_x(a,b)=\frac{B(x,a,b)}{B(a,b)}$$
 
 ## Bessel
 
+
 * Bessel functions of the first ($J_\alpha$) and the second ($Y_\alpha$) kind
 * Modified Bessel functions of the first ($I_\alpha$) and the second ($K_\alpha$) kind
 * Spherical Bessel functions of the first ($j_\alpha$) and the second ($y_\alpha$) kind
@@ -532,10 +474,13 @@ $$I_x(a,b)=\frac{B(x,a,b)}{B(a,b)}$$
 * Sombrero function `jinc`
 
 ::: {.callout-tip title="Defined functions"}
+
 * `bessel-J0`, `bessel-J1`, `bessel-J`, `jinc`
 * `bessel-Y0`, `bessel-Y1`, `bessel-Y`
 * `bessel-I0`, `bessel-I1`, `bessel-I`
-* `bessel-K0`, `bessel-K1`, `bessel-K`, `bessel-K-half-odd`
+* `bessel-K0`, `bessel-K1`, `bessel-K`
+* `bessel-K-half-odd`, `bessel-K-half-odd-scaled`
+* `bessel-K-half-odd-complex`, `bessel-K-half-odd-scaled-complex`
 * `spherical-bessel-j0`, `spherical-bessel-j1`, `spherical-bessel-j2`,`spherical-bessel-j`
 * `spherical-bessel-y0`, `spherical-bessel-y1`, `spherical-bessel-y2`,`spherical-bessel-y`
 * `spherical-bessel-1-i0`, `spherical-bessel-1-i1`, `spherical-bessel-1-i2`,`spherical-bessel-1-i`
@@ -551,7 +496,7 @@ Bessel functions of the first kind, `bessel-J` $J_\alpha(x)$. `bessel-J0` and `b
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/19.png" /></td><td><img class="clay-image" src="special_files/20.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image19.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image20.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -584,7 +529,7 @@ $$j_\alpha(x)=\sqrt{\frac{\pi}{2x}}J_{\alpha+\frac{1}{2}}(x)$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/21.png" /></td><td><img class="clay-image" src="special_files/22.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image21.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image22.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -613,11 +558,7 @@ additional `jinc` (sombrero) function is defined as:
 $$\operatorname{jinc}(x)=\frac{2J_1(\pi x)}{\pi x}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/23.png" />
-```
-
+![](special_files/image23.png)
 :::
 
 
@@ -643,7 +584,7 @@ Bessel functions of the second kind, `bessel-Y`, $Y_\alpha(x)$. `bessel-Y0` and 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/24.png" /></td><td><img class="clay-image" src="special_files/25.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image24.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image25.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -674,7 +615,7 @@ $$y_\alpha(x)=\sqrt{\frac{\pi}{2x}}Y_{\alpha+\frac{1}{2}}(x)$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/26.png" /></td><td><img class="clay-image" src="special_files/27.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image26.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image27.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -704,7 +645,7 @@ Modified Bessel functions of the first kind, `bessel-I`, $I_\alpha(x)$, `bessel-
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/28.png" /></td><td><img class="clay-image" src="special_files/29.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image28.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image29.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -727,8 +668,6 @@ Modified Bessel functions of the first kind, `bessel-I`, $I_\alpha(x)$, `bessel-
 
 :::
 
----
-
 Two modfified spherical Bessel functions of the first kind `spherical-bessel-1-i` $i_\alpha^{(1)}(x)$ and `spherical-bessel-2-i` $i_\alpha^{(2)}(x)$. `spherical-bessel-1-i0`, `spherical-bessel-1-i1`, `spherical-bessel-1-i2`, `spherical-bessel-2-i0`, `spherical-bessel-2-i1` and `spherical-bessel-2-i2` are functions of orders `0`,`1` and `2`. Functions are defined for positive argument.
 
 $$i_\alpha^{(1)}(x)=\sqrt{\frac{\pi}{2x}}I_{\alpha+\frac{1}{2}}(x)$$
@@ -737,7 +676,7 @@ $$i_\alpha^{(2)}(x)=\sqrt{\frac{\pi}{2x}}I_{-\alpha-\frac{1}{2}}(x)$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/30.png" /></td><td><img class="clay-image" src="special_files/31.png" /></td></tr><tr><td><img class="clay-image" src="special_files/32.png" /></td><td><img class="clay-image" src="special_files/33.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image30.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image31.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image32.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image33.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -783,7 +722,7 @@ Modified Bessel functions of the second kind, `bessel-K`, $K_\alpha(x)$, `bessel
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/34.png" /></td><td><img class="clay-image" src="special_files/35.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image34.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image35.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -807,14 +746,10 @@ Modified Bessel functions of the second kind, `bessel-K`, $K_\alpha(x)$, `bessel
 
 ---
 
-Additionally `bessel-K-half-odd` function is optimized version for order of the half of odd integer, ie `1/2`, `3/2`, `5/2` and so on. First argument is an odd numerator. 
+Additionally `bessel-K-half-odd` function is optimized version for order of the half of odd integer, ie `1/2`, `3/2`, `5/2` and so on. First argument is an odd numerator.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/36.png" />
-```
-
+![](special_files/image36.png)
 :::
 
 
@@ -832,6 +767,40 @@ Additionally `bessel-K-half-odd` function is optimized version for order of the 
 
 :::
 
+The other variant is `bessel-K-half-odd-scaled` which is $K$ multiplied by $e^x$ ($e^{x}K_\frac{a}{2}(x)$).
+
+::: {.clay-image}
+![](special_files/image37.png)
+:::
+
+
+::: {.callout-note title="Examples"}
+
+
+::: {.sourceClojure}
+```clojure
+(special/bessel-K-half-odd-scaled 1 2.3) ;; => 0.826410869176727
+(special/bessel-K-half-odd-scaled 3 2.3) ;; => 1.185719942731826
+(special/bessel-K-half-odd-scaled 5 2.3) ;; => 2.3730020988269347
+```
+:::
+
+
+:::
+
+Both functions have their complex versions.
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image38.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image39.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image40.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image41.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+
 ---
 
 Modified spherical Bessel functions of the second kind `spherical-bessel-k` $k_\alpha(x)$, `spherical-bessel-k0`, `spherical-bessel-k1` and `spherical-bessel-k2` are functions of orders `0`,`1` and `2`. Functions are defined for positive argument.
@@ -841,7 +810,7 @@ $$k_\alpha(x)=\sqrt{\frac{\pi}{2x}}K_{\alpha+\frac{1}{2}}(x)$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/37.png" /></td><td><img class="clay-image" src="special_files/38.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image42.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image43.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -867,6 +836,7 @@ $$k_\alpha(x)=\sqrt{\frac{\pi}{2x}}K_{\alpha+\frac{1}{2}}(x)$$
 ## Hankel
 
 ::: {.callout-tip title="Defined functions"}
+
 * `hankel-1`, `hankel-2`
 * `spherical-hankel-1`, `spherical-hankel-2`
 :::
@@ -908,9 +878,286 @@ $$h^{(2)}_\alpha(x)=j_\alpha(x)- i j_\alpha(x)$$
 :::
 
 
+## Elliptic
+
+Elliptic intergrals.
+
+::: {.callout-tip title="Defined functions"}
+
+* `elliptic-K`, `elliptic-F`, `elliptic-E`, `elliptic-PI`, `elliptic-D`
+* `elliptic-Rf`, `elliptic-Rd`, `elliptic-Rg`, `elliptic-Rj`, `elliptic-Rc`
+:::
+
+
+### Elliptic F and K 
+
+Incomplete `F` and complete `K` elliptic integrals of the first kind. `K` with 2-arity is equal to `F`.
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image44.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image45.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/elliptic-K 0.4) ;; => 1.7775193714912532
+(special/elliptic-K -0.4) ;; => 1.4415183761084807
+(special/elliptic-K 1 -0.4) ;; => 0.9518131108316235
+(special/elliptic-F 1 -0.4) ;; => 0.9518131108316235
+```
+:::
+
+
+
+### Elliptic E
+
+Incomplete and complete `E` elliptic integrals of the second kind.
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image46.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image47.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/elliptic-E 0.4) ;; => 1.3993921388974322
+(special/elliptic-E -0.4) ;; => 1.7177141106621594
+(special/elliptic-E 1 -0.4) ;; => 1.0522842450281298
+(special/elliptic-E -1 -0.4) ;; => -1.0522842450281298
+```
+:::
+
+
+
+### Elliptic PI
+
+Incomplete and complete $\Pi$ elliptic integrals of the third kind.
+
+
+::: {.sourceClojure}
+```clojure
+(special/elliptic-PI 0.2 0.4) ;; => 2.001498086208185
+(special/elliptic-PI -0.2 -0.4) ;; => 1.3209692114940224
+(special/elliptic-PI 0.2 1 -0.4) ;; => 1.0070940496918326
+(special/elliptic-PI 0.2 -1 -0.4) ;; => -1.0070940496918326
+```
+:::
+
+
+
+### Elliptic D
+
+Incomplete and complete `D` elliptic integrals of Legendre's type.
+
+$$D(\phi,m)=\frac{K(\phi,m)-E(\phi,m)}{m^2}$$
+$$D(m)=\frac{K(m)-E(m)}{m^2}$$
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image48.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image49.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/elliptic-D 0.5) ;; => 2.013723185014787
+(special/elliptic-D -0.5) ;; => -1.3441362690754461
+(special/elliptic-D -0.2 -0.4) ;; => 0.006582403114287378
+(special/elliptic-D 0.2 -0.4) ;; => -0.006582403114287378
+```
+:::
+
+
+
+### Symmetric
+
+Collection of Carlson, symmetric versions of elliptic intervals
+
+
+* $R_f$ - symmetric elliptic intergral of the first kind.
+* $R_d$ - symmetric elliptic intergral, symmetry first on two variables.
+* $R_g$ - symmetric elliptic intergral of the second kind.
+* $R_j$ - symmetric elliptic intergral of the third kind.
+* $R_c$ - degenerate symmetric elliptic integral
+
+
+::: {.sourceClojure}
+```clojure
+(special/elliptic-Rf 1 2 3) ;; => 0.7269459354689083
+(special/elliptic-Rd 1 2 3) ;; => 0.29046028102899063
+(special/elliptic-Rg 1 2 3) ;; => 1.4018470999908952
+(special/elliptic-Rj 1 2 3 4) ;; => 0.23984809974956775
+(special/elliptic-Rj 1 2 3 -4) ;; => -0.23786769472998162
+(special/elliptic-Rc 1 2) ;; => 0.7853981633974482
+(special/elliptic-Rc 1 -2) ;; => 0.3801729981504732
+```
+:::
+
+
+
+## Jacobi
+
+Collection of Jacobi functions and their inverses.
+
+::: {.callout-tip title="Defined functions"}
+
+* `jacobi-am`
+* `jacobi-sn`, `jacobi-cn`, `jacobi-dn`
+* `jacobi-ns`, `jacobi-cs`, `jacobi-ds`
+* `jacobi-nc`, `jacobi-sc`, `jacobi-dc`
+* `jacobi-nd`, `jacobi-sd`, `jacobi-cd`
+* `jacobi-asn`, `jacobi-acn`, `jacobi-adn`
+* `jacobi-ans`, `jacobi-acs`, `jacobi-ads`
+* `jacobi-anc`, `jacobi-asc`, `jacobi-adc`
+* `jacobi-and`, `jacobi-asd`, `jacobi-acd`
+
+:::
+
+`jacobi-am` is an inverse (in regards of the first argument) of incomplete elliptic integral of the first kind.
+
+$$\phi=\operatorname{am}(u,m)\text{ such that }u=F(\phi,m)$$
+
+::: {.clay-image}
+![](special_files/image50.png)
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/jacobi-am 1 0.5) ;; => 0.9323150798838539
+(special/jacobi-am -1 0.5) ;; => -0.9323150798838539
+(special/jacobi-am 1 0.99) ;; => 0.8670876269614121
+(special/jacobi-am -1 0.99) ;; => -0.8670876269614121
+(special/jacobi-am 10 0.5) ;; => 8.39183082303414
+(special/jacobi-am -10 0.5) ;; => -8.39183082303414
+(special/jacobi-am 10 0.99) ;; => 4.58130465216949
+(special/jacobi-am -10 0.99) ;; => -4.58130465216949
+```
+:::
+
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image51.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image52.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image53.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.callout-note}
+## ERR
+```
+Apr 15, 2026 4:10:58 PM clojure.tools.logging$eval21120$fn__21123 invoke
+INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 19543, :objects-after 7546}]
+
+```
+:::
+
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image54.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image55.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image56.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image57.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image58.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image59.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image60.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image61.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image62.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image63.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image64.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image65.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/jacobi-sn 1.5 2) ;; => 0.6943698520913071
+(special/jacobi-sn 1.5 0.5) ;; => 0.9681760156756912
+(special/jacobi-sn 1.5 -2) ;; => 0.852485104635653
+(special/jacobi-cn 1.5 2) ;; => 0.7196183075121813
+(special/jacobi-cn 1.5 0.5) ;; => 0.2502702592605514
+(special/jacobi-cn 1.5 -2) ;; => -0.5227515149421756
+(special/jacobi-dn 1.5 2) ;; => -0.18894712756057636
+(special/jacobi-dn 1.5 0.5) ;; => 0.7289153595138271
+(special/jacobi-dn 1.5 -2) ;; => 1.5663529957360571
+(special/jacobi-sc 1.5 2) ;; => 0.9649141007707801
+(special/jacobi-sc 1.5 0.5) ;; => 3.8685220470712918
+(special/jacobi-sc 1.5 -2) ;; => -1.6307654406892556
+(special/jacobi-sd 1.5 2) ;; => -3.6749426204888587
+(special/jacobi-sd 1.5 0.5) ;; => 1.3282420284317324
+(special/jacobi-sd 1.5 -2) ;; => 0.5442483954487252
+(special/jacobi-cs 1.5 2) ;; => 1.0363616815229386
+(special/jacobi-cs 1.5 0.5) ;; => 0.25849665268343536
+(special/jacobi-cs 1.5 -2) ;; => -0.6132089723322456
+(special/jacobi-cd 1.5 2) ;; => -3.808569713670148
+(special/jacobi-cd 1.5 0.5) ;; => 0.34334611830305917
+(special/jacobi-cd 1.5 -2) ;; => -0.33373799926658637
+(special/jacobi-ds 1.5 2) ;; => -0.2721130921676745
+(special/jacobi-ds 1.5 0.5) ;; => 0.752874836509058
+(special/jacobi-ds 1.5 -2) ;; => 1.837396321904659
+(special/jacobi-dc 1.5 2) ;; => -0.262565759636928
+(special/jacobi-dc 1.5 0.5) ;; => 2.9125129037204847
+(special/jacobi-dc 1.5 -2) ;; => -2.9963624226116683
+(special/jacobi-ns 1.5 2) ;; => 1.4401546913193226
+(special/jacobi-ns 1.5 0.5) ;; => 1.0328700399607593
+(special/jacobi-ns 1.5 -2) ;; => 1.1730410238984692
+(special/jacobi-nc 1.5 2) ;; => 1.3896255689452044
+(special/jacobi-nc 1.5 0.5) ;; => 3.995680521347604
+(special/jacobi-nc 1.5 -2) ;; => -1.9129547622843626
+(special/jacobi-nd 1.5 2) ;; => -5.292485855226354
+(special/jacobi-nd 1.5 0.5) ;; => 1.3719013969838436
+(special/jacobi-nd 1.5 -2) ;; => 0.6384256950522715
+```
+:::
+
+
+Inverses of Jacobi functions
+
+::: {.clay-table}
+
+```{=html}
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image66.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image67.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image68.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image69.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image70.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image71.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image72.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image73.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image74.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image75.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image76.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image77.png" /></p></div></td></tr></tbody></table>
+```
+
+:::
+
+
+
+::: {.sourceClojure}
+```clojure
+(special/jacobi-asn (special/jacobi-sn 0.15 0.5) 0.5) ;; => 0.14999999999999997
+(special/jacobi-acn (special/jacobi-cn 0.15 0.5) 0.5) ;; => 0.14999999999999963
+(special/jacobi-adn (special/jacobi-dn 0.15 0.5) 0.5) ;; => 0.1500000000000004
+(special/jacobi-asc (special/jacobi-sc 0.15 0.5) 0.5) ;; => 0.14999999999999994
+(special/jacobi-asd (special/jacobi-sd 0.15 0.5) 0.5) ;; => 0.14999999999999997
+(special/jacobi-acs (special/jacobi-cs 0.15 0.5) 0.5) ;; => 0.14999999999999994
+(special/jacobi-acd (special/jacobi-cd 0.15 0.5) 0.5) ;; => 0.15000000000000024
+(special/jacobi-ads (special/jacobi-ds 0.15 0.5) 0.5) ;; => 0.14999999999999997
+(special/jacobi-adc (special/jacobi-dc 0.15 0.5) 0.5) ;; => 0.14999999999999855
+(special/jacobi-ans (special/jacobi-ns 0.15 0.5) 0.5) ;; => 0.14999999999999994
+(special/jacobi-anc (special/jacobi-nc 0.15 0.5) 0.5) ;; => 0.15000000000000002
+(special/jacobi-and (special/jacobi-nd 0.15 0.5) 0.5) ;; => 0.15000000000000027
+```
+:::
+
+
+
 ## Erf
 
 ::: {.callout-tip title="Defined functions"}
+
 * `erf`, `erfc`
 * `inv-erf`, `inv-erfc`
 :::
@@ -923,7 +1170,7 @@ $$\operatorname{erfc}(x)=1-\operatorname{erf}(x)$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/39.png" /></td><td><img class="clay-image" src="special_files/40.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image78.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image79.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -949,13 +1196,14 @@ When two arguments are passed, difference between erf of two values is calculate
 
 Inverse of error functions.
 
+
 * `inv-erf` - inverse of `erf` defined on $(-1,1)$
 * `inv-erfc`- inverse of `erfc` defined on $(0,2)$
 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/41.png" /></td><td><img class="clay-image" src="special_files/42.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image80.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image81.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -980,6 +1228,7 @@ Inverse of error functions.
 Airy functions and derivatives
 
 ::: {.callout-tip title="Defined functions"}
+
 * `airy-Ai`, `airy-Bi`
 * `airy-Ai'` `airy-Bi'`
 :::
@@ -987,7 +1236,7 @@ Airy functions and derivatives
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/43.png" /></td><td><img class="clay-image" src="special_files/44.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image82.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image83.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1014,6 +1263,7 @@ Airy functions and derivatives
 Trigonometric, exponential and logarithmic integrals
 
 ::: {.callout-tip title="Defined functions"}
+
 * `Si`, `si`, `Ci`, `Cin`
 * `E0`, `E1`, `Ei`, `Ein`, `En`
 * `li`, `Li` (offset)
@@ -1032,7 +1282,7 @@ $$\operatorname{Cin}(x)=\int_0^x\frac{1-\cos t}{t}\, dt = \gamma + \ln x- \opera
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/45.png" /></td><td><img class="clay-image" src="special_files/46.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image84.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image85.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1067,7 +1317,7 @@ $$E_n(x)=\int_1^\infty\frac{e^{-xt}}{t^n}\,dt$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/47.png" /></td><td><img class="clay-image" src="special_files/48.png" /></td></tr><tr><td><img class="clay-image" src="special_files/49.png" /></td><td><img class="clay-image" src="special_files/50.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image86.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image87.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="special_files/image88.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image89.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1099,11 +1349,7 @@ $$\operatorname{li}(x)=\int_0^x\frac{dt}{\ln t}$$
 $$\operatorname{Li}(x)=\int_2^x\frac{dt}{\ln t}=\operatorname{li}(x)-\operatorname{li}(2)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/51.png" />
-```
-
+![](special_files/image90.png)
 :::
 
 
@@ -1126,6 +1372,7 @@ $$\operatorname{Li}(x)=\int_2^x\frac{dt}{\ln t}=\operatorname{li}(x)-\operatorna
 Zeta function and related
 
 ::: {.callout-tip title="Defined functions"}
+
 * `zeta` - Riemann and Hurwitz zeta
 * `xi` - Riemann (Landau) xi
 * `eta` - Dirichlet eta
@@ -1140,11 +1387,7 @@ $$\zeta(s)=\sum_{n=1}^\infty\frac{1}{n^s}\text{ for } s>1$$
 $$\zeta(s) = 2^s \pi^{s-1} \sin\left(\frac{\pi s}{2}\right) \Gamma(1-s) \zeta(1-s)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/52.png" />
-```
-
+![](special_files/image91.png)
 :::
 
 
@@ -1170,7 +1413,7 @@ $$\zeta(s,z)=\sum_{n=1}^\infty\frac{1}{(n+z)^s}$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/53.png" /></td><td><img class="clay-image" src="special_files/54.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image92.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image93.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1202,11 +1445,7 @@ $$\xi(s)=\frac{1}{2}s(s-1)\pi^{-\frac{s}{2}}\Gamma\left(\frac{s}{2}\right)\zeta(
 $$\xi(s)=\xi(1-s)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/55.png" />
-```
-
+![](special_files/image94.png)
 :::
 
 
@@ -1232,11 +1471,7 @@ Dirichlet eta function
 $$\eta(s)=\sum_{n=1}^\infty\frac{(-1)^{n-1}}{n^s}=(1-2^{1-s})\zeta(s)$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/56.png" />
-```
-
+![](special_files/image95.png)
 :::
 
 
@@ -1262,11 +1497,7 @@ Dirichlet (Catalan) beta function
 $$\beta(s)=\sum_{n=0}^\infty\frac{(-1)^n}{(2n+1)^s}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/57.png" />
-```
-
+![](special_files/image96.png)
 :::
 
 
@@ -1294,6 +1525,7 @@ $${{}_{p}F_{q}}\left({a_{1},\dots,a_{p}\atop b_{1},\dots,b_{q}};x\right)=\sum_{k
 where $(a_p)_k$ and $(b_q)_k$ are k^th^ rising factorials
 
 ::: {.callout-tip title="Defined functions"}
+
 * `hypergeometric-pFq`, `hypergeometric-pFq-ratio`, `hypergeometric-pFq-complex`
 * `hypergeometric-0F0`, `hypergeometric-0F1`, `hypergeometric-0F2`
 * `hypergeometric-1F0`, `hypergeometric-1F1`
@@ -1345,11 +1577,7 @@ Every implementation but ratio is unstable. Take a look at the example of ${}_1F
 Following plot shows stable (but slow) implementation `hypergeometric-pFq-ratio` vs unstable (but fast) `hypergeometric-1F1` and Maclaurin seriers `hypergeometric-pFq`.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/58.png" />
-```
-
+![](special_files/image97.png)
 :::
 
 
@@ -1387,11 +1615,7 @@ $${}_0F_1(;a;x)=\sum_{k=0}^\infty\frac{x^k}{(a)_k k!}=
 $$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/59.png" />
-```
-
+![](special_files/image98.png)
 :::
 
 
@@ -1414,11 +1638,7 @@ $$
 $${}_0F_2(;a,b;x)=\sum_{k=0}^\infty\frac{x^k}{(a)_k(b)_k k!}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/60.png" />
-```
-
+![](special_files/image99.png)
 :::
 
 
@@ -1441,11 +1661,7 @@ $${}_0F_2(;a,b;x)=\sum_{k=0}^\infty\frac{x^k}{(a)_k(b)_k k!}$$
 $${}_1F_0(a;;x)=\sum_{k=0}^\infty\frac{(a)_k x^k}{k!}=(1-x)^{-a}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/61.png" />
-```
-
+![](special_files/image100.png)
 :::
 
 
@@ -1470,11 +1686,7 @@ Confluent hypergeometric function of the first kind, Kummer's M.
 $${}_1F_1(a;b;x)=M(a,b,x)=\sum_{k=0}^\infty\frac{(a)_k x^k}{(b)_k k!}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/62.png" />
-```
-
+![](special_files/image101.png)
 :::
 
 
@@ -1500,11 +1712,7 @@ ${}_2F_0$ is related to the confluent hypergeometric function of the second kind
 $${}_2F_0(a,b;;x)=\sum_{k=0}^\infty\frac{(a)_k (b)_k x^k}{k!}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/63.png" />
-```
-
+![](special_files/image102.png)
 :::
 
 
@@ -1527,11 +1735,7 @@ $${}_2F_0(a,b;;x)=\sum_{k=0}^\infty\frac{(a)_k (b)_k x^k}{k!}$$
 $$U(a,b,x) \sim x^{-a}{}_2F_0(a,b;;-\frac{1}{x})$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/64.png" />
-```
-
+![](special_files/image103.png)
 :::
 
 
@@ -1550,23 +1754,8 @@ $$U(a,b,x) \sim x^{-a}{}_2F_0(a,b;;-\frac{1}{x})$$
 
 Complex variant accepts both complex numbers and real numbers as arguments.
 
-
-::: {.callout-note}
-## ERR
-```
-Feb 16, 2026 10:13:11 PM clojure.tools.logging$eval56375$fn__56378 invoke
-INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 17073, :objects-after 5450}]
-
-```
-:::
-
-
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/65.png" />
-```
-
+![](special_files/image104.png)
 :::
 
 
@@ -1591,11 +1780,7 @@ Gauss' hypergeometric function ${}_2F_1$.
 $${}_2F_1(a,b;c;x)=\sum_{k=0}^\infty\frac{(a)_k (b)_k x^k}{(c)_k k!}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/66.png" />
-```
-
+![](special_files/image105.png)
 :::
 
 
@@ -1623,7 +1808,7 @@ $$W_{\kappa,\mu}\left(x\right)=e^{-\frac{1}{2}x}x^{\frac{1}{2}+\mu}U\left(\tfrac
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/67.png" /></td><td><img class="clay-image" src="special_files/68.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image106.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image107.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1646,6 +1831,7 @@ $$W_{\kappa,\mu}\left(x\right)=e^{-\frac{1}{2}x}x^{\frac{1}{2}+\mu}U\left(\tfrac
 ## Other
 
 ::: {.callout-tip title="Defined functions"}
+
 * `lambert-W` ($W_0$), `lambert-W-1` ($W_{-1}$)
 * `harmonic-number`
 * `minkowski` - $?(x)$
@@ -1674,11 +1860,7 @@ W_{-1}(t) & \text{ for } t\in(-1/e,0)
 $$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/69.png" />
-```
-
+![](special_files/image108.png)
 :::
 
 
@@ -1708,11 +1890,7 @@ For non-negative integers
 $$H_n=\sum_{k=1}^n\frac{1}{k}$$
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/70.png" />
-```
-
+![](special_files/image109.png)
 :::
 
 
@@ -1745,7 +1923,7 @@ $$H_{n,m}=\sum_{k=1}^n\frac{1}{k^m}$$
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/71.png" /></td><td><img class="clay-image" src="special_files/72.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image110.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image111.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1770,11 +1948,7 @@ $$H_{n,m}=\sum_{k=1}^n\frac{1}{k^m}$$
 Minkowski's question mark $?(x)$ function.
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/73.png" />
-```
-
+![](special_files/image112.png)
 :::
 
 
@@ -1817,18 +1991,14 @@ $$T(h,a) = \frac{1}{2\pi } \int_{0}^{a} \frac{e^{-\frac{1}{2}h^2(1+x^2)}}{1+x^2}
 :::
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="special_files/74.png" />
-```
-
+![](special_files/image113.png)
 :::
 
 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="special_files/75.png" /></td><td><img class="clay-image" src="special_files/76.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="special_files/image114.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="special_files/image115.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1841,10 +2011,13 @@ $$T(h,a) = \frac{1}{2\pi } \int_{0}^{a} \frac{e^{-\frac{1}{2}h^2(1+x^2)}}{1+x^2}
 
 Special functions for real arguments and value.
 
+
   * Bessel J, Y, jinc
   * Modified Bessel I, K 
   * Spherical Bessel j, y
   * Modified spherical Bessel i1, i2, k
+  * Elliptic K, E, Pi, Rf, Rd, Rj, Rg, Rc
+  * Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
   * Gamma, log, digamma, trigamma, polygamma, regularized, lower/upper incomplete
   * Beta, log, regularized, incomplete
   * Erf, inverse
@@ -1856,7 +2029,7 @@ Special functions for real arguments and value.
   * Minkowski
   * Harmonic H
   * Owen's T
-  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U 
+  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U, (scaled) Bessel K of half-odd order.
 
 
 ```{=html}
@@ -1866,13 +2039,14 @@ Special functions for real arguments and value.
 
 #### Ci
 
+
 + `(Ci x)`
 
 Cosine integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1458">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1478">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1884,13 +2058,14 @@ Cosine integral
 
 #### Cin
 
+
 + `(Cin x)`
 
 Cosine integral, alternative definition
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1532">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1552">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1902,13 +2077,14 @@ Cosine integral, alternative definition
 
 #### E0
 
+
 + `(E0 x)`
 
 Exponential integral E0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1575">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1595">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1920,13 +2096,14 @@ Exponential integral E0
 
 #### E1
 
+
 + `(E1 x)`
 
 Exponential integral E1 for positive real numbers
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1580">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1600">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1938,13 +2115,14 @@ Exponential integral E1 for positive real numbers
 
 #### Ei
 
+
 + `(Ei x)`
 
 Exponential integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1826">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1846">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1956,13 +2134,14 @@ Exponential integral
 
 #### Ein
 
+
 + `(Ein x)`
 
 Exponential integral, alternative definition
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1607">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1627">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1974,13 +2153,14 @@ Exponential integral, alternative definition
 
 #### En
 
+
 + `(En n x)`
 
 Generalized exponential integral En
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1792">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1812">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1992,13 +2172,14 @@ Generalized exponential integral En
 
 #### Li
 
+
 + `(Li x)`
 
 Offset logarythmic integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1864">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1884">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2010,13 +2191,14 @@ Offset logarythmic integral
 
 #### Si
 
+
 + `(Si x)`
 
 Sine integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1384">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1404">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2028,13 +2210,14 @@ Sine integral
 
 #### airy-Ai
 
+
 + `(airy-Ai x)`
 
 Airy Ai function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1898">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1918">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2046,13 +2229,14 @@ Airy Ai function
 
 #### airy-Ai'
 
+
 + `(airy-Ai' x)`
 
 First derivative of the Airy Ai function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1907">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1927">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2064,13 +2248,14 @@ First derivative of the Airy Ai function
 
 #### airy-Bi
 
+
 + `(airy-Bi x)`
 
 Airy Bi function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1916">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1936">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2082,13 +2267,14 @@ Airy Bi function
 
 #### airy-Bi'
 
+
 + `(airy-Bi' x)`
 
 First derivative of the Airy Bi function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1925">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1945">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2100,13 +2286,14 @@ First derivative of the Airy Bi function
 
 #### bessel-I
 
+
 + `(bessel-I order x)`
 
 Modified Bessel function of the first kind of order v, I_v(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1193">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1213">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2118,13 +2305,14 @@ Modified Bessel function of the first kind of order v, I_v(x)
 
 #### bessel-I0
 
+
 + `(bessel-I0 x)`
 
 Modified Bessel function of the first kind of order 0, I_0(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1072">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1092">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2136,13 +2324,14 @@ Modified Bessel function of the first kind of order 0, I_0(x)
 
 #### bessel-I1
 
+
 + `(bessel-I1 x)`
 
 Modified Bessel function of the first kind of order 1, I_0(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1098">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1118">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2154,13 +2343,14 @@ Modified Bessel function of the first kind of order 1, I_0(x)
 
 #### bessel-J
 
+
 + `(bessel-J order x)`
 
 Bessel function of the first kind of order v, J_v(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L576">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L579">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2172,13 +2362,14 @@ Bessel function of the first kind of order v, J_v(x)
 
 #### bessel-J0
 
+
 + `(bessel-J0 x)`
 
 Bessel function of the first kind of order 0, J_0(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L366">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L369">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2190,13 +2381,14 @@ Bessel function of the first kind of order 0, J_0(x)
 
 #### bessel-J1
 
+
 + `(bessel-J1 x)`
 
 Bessel function of the first kind of order 1, J_1(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L396">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L399">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2208,13 +2400,14 @@ Bessel function of the first kind of order 1, J_1(x)
 
 #### bessel-K
 
+
 + `(bessel-K order x)`
 
 Modified Bessel function of the second kind and real order v, K_v(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1041">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1061">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2226,6 +2419,7 @@ Modified Bessel function of the second kind and real order v, K_v(x)
 
 #### bessel-K-half-odd
 
+
 + `(bessel-K-half-odd odd-numerator x)`
 
 Bessel K_a function for a = order/2
@@ -2234,7 +2428,70 @@ Bessel K_a function for a = order/2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L793">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L796">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bessel-K-half-odd-complex"></span>
+```
+
+
+#### bessel-K-half-odd-complex
+
+
++ `(bessel-K-half-odd-complex odd-numerator x)`
+
+Bessel K_a function for a = order/2 for complex numbers
+
+  Function accepts only odd integers for order
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2333">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bessel-K-half-odd-scaled"></span>
+```
+
+
+#### bessel-K-half-odd-scaled
+
+
++ `(bessel-K-half-odd-scaled odd-numerator x)`
+
+Bessel K_a function scaled by e^x for a = order/2
+
+  Function accepts only odd integers for order
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L813">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-bessel-K-half-odd-scaled-complex"></span>
+```
+
+
+#### bessel-K-half-odd-scaled-complex
+
+
++ `(bessel-K-half-odd-scaled-complex odd-numerator x)`
+
+Bessel K_a function scaled by e^x for a = order/2 for complex numbers
+
+  Function accepts only odd integers for order
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2350">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2246,13 +2503,14 @@ Bessel K_a function for a = order/2
 
 #### bessel-K0
 
+
 + `(bessel-K0 x)`
 
 Modified Bessel function of the second kind of order 0, K_0(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L811">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L831">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2264,13 +2522,14 @@ Modified Bessel function of the second kind of order 0, K_0(x)
 
 #### bessel-K1
 
+
 + `(bessel-K1 x)`
 
 Modified Bessel function of the second kind of order 1, K_1(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L849">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L869">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2282,13 +2541,14 @@ Modified Bessel function of the second kind of order 1, K_1(x)
 
 #### bessel-Y
 
+
 + `(bessel-Y order x)`
 
 Bessel function of the second kind of order v, Y_v(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L771">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L774">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2300,13 +2560,14 @@ Bessel function of the second kind of order v, Y_v(x)
 
 #### bessel-Y0
 
+
 + `(bessel-Y0 x)`
 
 Bessel function of the second kind of order 0, Y_0(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L597">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L600">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2318,13 +2579,14 @@ Bessel function of the second kind of order 0, Y_0(x)
 
 #### bessel-Y1
 
+
 + `(bessel-Y1 x)`
 
 Bessel function of the second kind of order 1, Y_1(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L649">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L652">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2336,13 +2598,14 @@ Bessel function of the second kind of order 1, Y_1(x)
 
 #### beta
 
+
 + `(beta p q)`
 
 Beta function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L136">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L139">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2354,13 +2617,14 @@ Beta function
 
 #### digamma
 
+
 + `(digamma x)`
 
 First derivative of log of Gamma function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L90">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L93">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2372,13 +2636,208 @@ First derivative of log of Gamma function.
 
 #### dirichlet-beta
 
+
 + `(dirichlet-beta x)`
 
 Dirichlet Beta function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L273">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L276">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-D"></span>
+```
+
+
+#### elliptic-D
+
+
++ `(elliptic-D x)`
++ `(elliptic-D phi x)`
+
+Elliptic D - complete and incomplete elliptic integral of Legendre’s type
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2388">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-E"></span>
+```
+
+
+#### elliptic-E
+
+
++ `(elliptic-E m)`
++ `(elliptic-E phi m)`
+
+Elliptic E - complete and incomplete elliptic integral of the second kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2378">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-F"></span>
+```
+
+
+#### elliptic-F
+
+
++ `(elliptic-F phi m)`
+
+Elliptic F - incomplete elliptic integral of the first kind.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2374">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-K"></span>
+```
+
+
+#### elliptic-K
+
+
++ `(elliptic-K m)`
++ `(elliptic-K phi m)`
+
+Elliptic K - complete (K) and incomplete (F) elliptic integral of the first kind.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2369">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-PI"></span>
+```
+
+
+#### elliptic-PI
+
+
++ `(elliptic-PI n m)`
++ `(elliptic-PI n phi m)`
+
+Elliptic PI - complete and incomplete elliptic integral of the third kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2383">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-Rc"></span>
+```
+
+
+#### elliptic-Rc
+
+
++ `(elliptic-Rc x y)`
+
+Rc elliptic intergral
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2417">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-Rd"></span>
+```
+
+
+#### elliptic-Rd
+
+
++ `(elliptic-Rd x y z)`
+
+Symmetric Rd elliptic intergral, symmetry on two variables.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2402">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-Rf"></span>
+```
+
+
+#### elliptic-Rf
+
+
++ `(elliptic-Rf x y z)`
+
+Symmetric Rf elliptic intergral of the first kind.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2397">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-Rg"></span>
+```
+
+
+#### elliptic-Rg
+
+
++ `(elliptic-Rg x y z)`
+
+Symmetric Rg elliptic intergral of the second kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2407">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-elliptic-Rj"></span>
+```
+
+
+#### elliptic-Rj
+
+
++ `(elliptic-Rj x y z p)`
+
+Symmetric Rj elliptic intergral of the third kind
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2412">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2390,6 +2849,7 @@ Dirichlet Beta function
 
 #### erf
 
+
 + `(erf x)`
 + `(erf x1 x2)`
 
@@ -2399,7 +2859,7 @@ Error function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L36">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L39">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2411,13 +2871,14 @@ Error function.
 
 #### erfc
 
+
 + `(erfc x)`
 
 Complementary error function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L46">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L49">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2429,13 +2890,14 @@ Complementary error function.
 
 #### eta
 
+
 + `(eta x)`
 
 Dirichlet Eta function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L258">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L261">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2447,13 +2909,14 @@ Dirichlet Eta function
 
 #### gamma
 
+
 + `(gamma x)`
 
 Gamma function $\Gamma(x)$. Extension of the factorial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L66">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L69">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2465,13 +2928,14 @@ Gamma function $\Gamma(x)$. Extension of the factorial.
 
 #### gamma-complex
 
+
 + `(gamma-complex z)`
 
 Complex version of gamma function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2282">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2302">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2483,13 +2947,14 @@ Complex version of gamma function.
 
 #### hankel-1
 
+
 + `(hankel-1 order x)`
 
 Hankel function of the first kind, returns complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1346">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1366">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2501,13 +2966,14 @@ Hankel function of the first kind, returns complex number.
 
 #### hankel-2
 
+
 + `(hankel-2 order x)`
 
 Hankel function of the second kind, returns complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1351">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1371">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2519,6 +2985,7 @@ Hankel function of the second kind, returns complex number.
 
 #### harmonic-number
 
+
 + `(harmonic-number n)`
 + `(harmonic-number n m)`
 
@@ -2526,7 +2993,7 @@ Harmonic number H_n or generalized harmonic number H_n,m
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1936">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1956">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2538,13 +3005,14 @@ Harmonic number H_n or generalized harmonic number H_n,m
 
 #### hypergeometric-0F0
 
+
 + `(hypergeometric-0F0 x)`
 
 Hypergeometric ₀F₀ function, exp(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2030">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2050">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2556,13 +3024,14 @@ Hypergeometric ₀F₀ function, exp(x)
 
 #### hypergeometric-0F1
 
+
 + `(hypergeometric-0F1 a x)`
 
 Confluent hypergeometric ₀F₁ limit function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2039">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2059">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2574,13 +3043,14 @@ Confluent hypergeometric ₀F₁ limit function.
 
 #### hypergeometric-0F2
 
+
 + `(hypergeometric-0F2 a b x)`
 
 Generalized hypergeometric ₀F₂ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2058">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2078">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2592,13 +3062,14 @@ Generalized hypergeometric ₀F₂ function.
 
 #### hypergeometric-1F0
 
+
 + `(hypergeometric-1F0 a x)`
 
 Hypergeometric ₁F₀ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2034">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2054">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2610,13 +3081,14 @@ Hypergeometric ₁F₀ function.
 
 #### hypergeometric-1F1
 
+
 + `(hypergeometric-1F1 a b x)`
 
 Confluent hypergeometric ₁F₁ function of the first kind, Kummer's M.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2053">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2073">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2628,13 +3100,14 @@ Confluent hypergeometric ₁F₁ function of the first kind, Kummer's M.
 
 #### hypergeometric-2F0
 
+
 + `(hypergeometric-2F0 a b x)`
 
 Generalized hypergeometric ₂F₀ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2065">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2085">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2646,13 +3119,14 @@ Generalized hypergeometric ₂F₀ function.
 
 #### hypergeometric-2F1
 
+
 + `(hypergeometric-2F1 a b c x)`
 
 Gauss's hypergeometric ₂F₁ function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2089">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2109">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2664,52 +3138,11 @@ Gauss's hypergeometric ₂F₁ function.
 
 #### hypergeometric-pFq
 
+
 + `(hypergeometric-pFq ps qs x)`
 + `(hypergeometric-pFq ps qs x max-iters)`
 
 Hypergeometric-pFq using MacLaurin series or Weniger acceleration.
-
-  `max-iters` is set to 10000 by default.
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2096">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-hypergeometric-pFq-complex"></span>
-```
-
-
-#### hypergeometric-pFq-complex
-
-+ `(hypergeometric-pFq-complex ps qs z)`
-+ `(hypergeometric-pFq-complex ps qs z max-iters)`
-
-Hypergeometric-pFq using MacLaurin series or Weniger acceleration on complex numbers.
-
-  `max-iters` is set to 10000 by default.
-
-
-```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2192">source</a></small><hr style="margin: 0" /></div>
-```
-
-
-
-```{=html}
-<span id="#LOS-hypergeometric-pFq-ratio"></span>
-```
-
-
-#### hypergeometric-pFq-ratio
-
-+ `(hypergeometric-pFq-ratio ps qs z)`
-+ `(hypergeometric-pFq-ratio ps qs z max-iters)`
-
-Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
 
   `max-iters` is set to 10000 by default.
 
@@ -2721,11 +3154,56 @@ Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
 
 
 ```{=html}
+<span id="#LOS-hypergeometric-pFq-complex"></span>
+```
+
+
+#### hypergeometric-pFq-complex
+
+
++ `(hypergeometric-pFq-complex ps qs z)`
++ `(hypergeometric-pFq-complex ps qs z max-iters)`
+
+Hypergeometric-pFq using MacLaurin series or Weniger acceleration on complex numbers.
+
+  `max-iters` is set to 10000 by default.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2212">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-hypergeometric-pFq-ratio"></span>
+```
+
+
+#### hypergeometric-pFq-ratio
+
+
++ `(hypergeometric-pFq-ratio ps qs z)`
++ `(hypergeometric-pFq-ratio ps qs z max-iters)`
+
+Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
+
+  `max-iters` is set to 10000 by default.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2136">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-incomplete-beta"></span>
 ```
 
 
 #### incomplete-beta
+
 
 + `(incomplete-beta x a b)`
 
@@ -2733,7 +3211,7 @@ Incomplete Beta B(x,a,b)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L152">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L155">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2745,13 +3223,14 @@ Incomplete Beta B(x,a,b)
 
 #### inv-erf
 
+
 + `(inv-erf x)`
 
 Inverse of [erf](#LOS-erf) function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L52">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L55">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2763,13 +3242,14 @@ Inverse of [erf](#LOS-erf) function.
 
 #### inv-erfc
 
+
 + `(inv-erfc x)`
 
 Inverse of [erfc](#LOS-erfc) function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L58">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L61">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2781,13 +3261,491 @@ Inverse of [erfc](#LOS-erfc) function.
 
 #### inv-gamma-1pm1
 
+
 + `(inv-gamma-1pm1 x)`
 
 $\frac{1}{\Gamma(1+x)}-1$ for $-0.5≤x≤1.5$.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L84">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L87">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-acd"></span>
+```
+
+
+#### jacobi-acd
+
+
++ `(jacobi-acd x k)`
+
+Jacobi arccd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2454">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-acn"></span>
+```
+
+
+#### jacobi-acn
+
+
++ `(jacobi-acn x k)`
+
+Jacobi arccn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2449">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-acs"></span>
+```
+
+
+#### jacobi-acs
+
+
++ `(jacobi-acs x k)`
+
+Jacobi arccs(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2453">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-adc"></span>
+```
+
+
+#### jacobi-adc
+
+
++ `(jacobi-adc x k)`
+
+Jacobi arcdc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2456">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-adn"></span>
+```
+
+
+#### jacobi-adn
+
+
++ `(jacobi-adn x k)`
+
+Jacobi arcdn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2450">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-ads"></span>
+```
+
+
+#### jacobi-ads
+
+
++ `(jacobi-ads x k)`
+
+Jacobi arcds(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2455">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-am"></span>
+```
+
+
+#### jacobi-am
+
+
++ `(jacobi-am u m)`
+
+Amplitude phi=am(u,m) such that u=F(phi,m)
+
+  Inverse of the elliptic incomplete intergral of the first kind.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2424">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-anc"></span>
+```
+
+
+#### jacobi-anc
+
+
++ `(jacobi-anc x k)`
+
+Jacobi arcnc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2458">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-and"></span>
+```
+
+
+#### jacobi-and
+
+
++ `(jacobi-and x k)`
+
+Jacobi arcnd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2459">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-ans"></span>
+```
+
+
+#### jacobi-ans
+
+
++ `(jacobi-ans x k)`
+
+Jacobi arcns(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2457">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-asc"></span>
+```
+
+
+#### jacobi-asc
+
+
++ `(jacobi-asc x k)`
+
+Jacobi arcsc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2451">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-asd"></span>
+```
+
+
+#### jacobi-asd
+
+
++ `(jacobi-asd x k)`
+
+Jacobi arcsd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2452">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-asn"></span>
+```
+
+
+#### jacobi-asn
+
+
++ `(jacobi-asn x k)`
+
+Jacobi arcsn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2448">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-cd"></span>
+```
+
+
+#### jacobi-cd
+
+
++ `(jacobi-cd u k)`
+
+Jacobi cd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2439">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-cn"></span>
+```
+
+
+#### jacobi-cn
+
+
++ `(jacobi-cn u k)`
+
+Jacobi cn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2434">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-cs"></span>
+```
+
+
+#### jacobi-cs
+
+
++ `(jacobi-cs u k)`
+
+Jacobi cs(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2438">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-dc"></span>
+```
+
+
+#### jacobi-dc
+
+
++ `(jacobi-dc u k)`
+
+Jacobi dc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2441">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-dn"></span>
+```
+
+
+#### jacobi-dn
+
+
++ `(jacobi-dn u k)`
+
+Jacobi dn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2435">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-ds"></span>
+```
+
+
+#### jacobi-ds
+
+
++ `(jacobi-ds u k)`
+
+Jacobi ds(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2440">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-nc"></span>
+```
+
+
+#### jacobi-nc
+
+
++ `(jacobi-nc u k)`
+
+Jacobi nc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2443">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-nd"></span>
+```
+
+
+#### jacobi-nd
+
+
++ `(jacobi-nd u k)`
+
+Jacobi nd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2444">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-ns"></span>
+```
+
+
+#### jacobi-ns
+
+
++ `(jacobi-ns u k)`
+
+Jacobi ns(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2442">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-sc"></span>
+```
+
+
+#### jacobi-sc
+
+
++ `(jacobi-sc u k)`
+
+Jacobi sc(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2436">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-sd"></span>
+```
+
+
+#### jacobi-sd
+
+
++ `(jacobi-sd u k)`
+
+Jacobi sd(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2437">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-jacobi-sn"></span>
+```
+
+
+#### jacobi-sn
+
+
++ `(jacobi-sn u k)`
+
+Jacobi sn(u,m)
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2433">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2799,13 +3757,14 @@ $\frac{1}{\Gamma(1+x)}-1$ for $-0.5≤x≤1.5$.
 
 #### jinc
 
+
 + `(jinc x)`
 
 Besselj1 devided by `x`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L430">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L433">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2817,13 +3776,14 @@ Besselj1 devided by `x`
 
 #### kummers-M
 
+
 + `(kummers-M a b x)`
 
 Kummer's (confluent hypergeometric, 1F1) function for real arguments.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1995">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2015">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2835,13 +3795,14 @@ Kummer's (confluent hypergeometric, 1F1) function for real arguments.
 
 #### lambert-W
 
+
 + `(lambert-W x)`
 
 Lambert W_0 function. W(xe^x)=x for x>=-1.0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1965">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1985">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2853,13 +3814,14 @@ Lambert W_0 function. W(xe^x)=x for x>=-1.0.
 
 #### lambert-W-1
 
+
 + `(lambert-W-1 x)`
 
 Lambert W_1 function. W_1(xe^x)=x for x<=-1.0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1981">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2001">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2871,13 +3833,14 @@ Lambert W_1 function. W_1(xe^x)=x for x<=-1.0.
 
 #### li
 
+
 + `(li x)`
 
 Logarythmic integral
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1859">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1879">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2889,13 +3852,14 @@ Logarythmic integral
 
 #### log-beta
 
+
 + `(log-beta p q)`
 
 Logarithm of Beta function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L133">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2907,13 +3871,14 @@ Logarithm of Beta function.
 
 #### log-gamma
 
+
 + `(log-gamma x)`
 
 Log of Gamma function $\log\Gamma(x)$.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L72">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L75">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2925,13 +3890,14 @@ Log of Gamma function $\log\Gamma(x)$.
 
 #### log-gamma-1p
 
+
 + `(log-gamma-1p x)`
 
 $\ln\Gamma(1+x)$ for $-0.5≤x≤1.5$.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L78">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L81">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2943,13 +3909,14 @@ $\ln\Gamma(1+x)$ for $-0.5≤x≤1.5$.
 
 #### log-gamma-complex
 
+
 + `(log-gamma-complex z)`
 
 Logarithm of complex gamma function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2223">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2243">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2961,13 +3928,14 @@ Logarithm of complex gamma function.
 
 #### lower-incomplete-gamma
 
+
 + `(lower-incomplete-gamma s x)`
 
 Lower incomplete gamma function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1878">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1898">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2979,13 +3947,14 @@ Lower incomplete gamma function
 
 #### minkowski
 
+
 + `(minkowski x)`
 
 Minkowski's question mark function ?(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1369">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1389">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2997,13 +3966,14 @@ Minkowski's question mark function ?(x)
 
 #### owens-t
 
+
 + `(owens-t h a)`
 
 Owens' T function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2142">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2162">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3015,13 +3985,14 @@ Owens' T function
 
 #### polygamma
 
+
 + `(polygamma m x)`
 
 Polygamma function of order `m` and real argument.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L346">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L349">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3033,13 +4004,14 @@ Polygamma function of order `m` and real argument.
 
 #### regularized-beta
 
+
 + `(regularized-beta x a b)`
 
 Regularized Beta I_x(a,b)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L143">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L146">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3051,13 +4023,14 @@ Regularized Beta I_x(a,b)
 
 #### regularized-gamma-p
 
+
 + `(regularized-gamma-p a x)`
 
 Regularized gamma P(a,x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1882">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1902">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3069,13 +4042,14 @@ Regularized gamma P(a,x)
 
 #### regularized-gamma-q
 
+
 + `(regularized-gamma-q a x)`
 
 Regularized gamma Q(a,x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1889">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1909">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3087,13 +4061,14 @@ Regularized gamma Q(a,x)
 
 #### si
 
+
 + `(si x)`
 
 Sine integral, Si shifted by -pi/2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1447">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1467">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3105,13 +4080,14 @@ Sine integral, Si shifted by -pi/2
 
 #### spherical-bessel-1-i
 
+
 + `(spherical-bessel-1-i order x)`
 
 First modified spherical Bessel function of the first kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1290">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1310">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3123,13 +4099,14 @@ First modified spherical Bessel function of the first kind.
 
 #### spherical-bessel-1-i0
 
+
 + `(spherical-bessel-1-i0 x)`
 
 First modified spherical Bessel function of the first kind and order 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1270">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1290">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3141,13 +4118,14 @@ First modified spherical Bessel function of the first kind and order 0.
 
 #### spherical-bessel-1-i1
 
+
 + `(spherical-bessel-1-i1 x)`
 
 First modified spherical Bessel function of the first kind and order 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1276">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1296">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3159,13 +4137,14 @@ First modified spherical Bessel function of the first kind and order 1.
 
 #### spherical-bessel-1-i2
 
+
 + `(spherical-bessel-1-i2 x)`
 
 First modified spherical Bessel function of the first kind and order 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1282">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1302">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3177,13 +4156,14 @@ First modified spherical Bessel function of the first kind and order 2.
 
 #### spherical-bessel-2-i
 
+
 + `(spherical-bessel-2-i order x)`
 
 Second modified spherical Bessel function of the first kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1313">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1333">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3195,13 +4175,14 @@ Second modified spherical Bessel function of the first kind.
 
 #### spherical-bessel-2-i0
 
+
 + `(spherical-bessel-2-i0 x)`
 
 Second modified spherical Bessel function of the first kind and order 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1299">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1319">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3213,13 +4194,14 @@ Second modified spherical Bessel function of the first kind and order 0.
 
 #### spherical-bessel-2-i1
 
+
 + `(spherical-bessel-2-i1 x)`
 
 Second modified spherical Bessel function of the first kind and order 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1303">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1323">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3231,13 +4213,14 @@ Second modified spherical Bessel function of the first kind and order 1.
 
 #### spherical-bessel-2-i2
 
+
 + `(spherical-bessel-2-i2 x)`
 
 Second modified spherical Bessel function of the first kind and order 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1307">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1327">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3249,13 +4232,14 @@ Second modified spherical Bessel function of the first kind and order 2.
 
 #### spherical-bessel-j
 
+
 + `(spherical-bessel-j order x)`
 
 Spherical Bessel function of the first kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1231">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1251">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3267,13 +4251,14 @@ Spherical Bessel function of the first kind.
 
 #### spherical-bessel-j0
 
+
 + `(spherical-bessel-j0 x)`
 
 Spherical Bessel function of the first kind and order 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1210">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1230">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3285,13 +4270,14 @@ Spherical Bessel function of the first kind and order 0.
 
 #### spherical-bessel-j1
 
+
 + `(spherical-bessel-j1 x)`
 
 Spherical Bessel function of the first kind and order 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1216">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1236">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3303,13 +4289,14 @@ Spherical Bessel function of the first kind and order 1.
 
 #### spherical-bessel-j2
 
+
 + `(spherical-bessel-j2 x)`
 
 Spherical Bessel function of the first kind and order 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1223">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1243">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3321,13 +4308,14 @@ Spherical Bessel function of the first kind and order 2.
 
 #### spherical-bessel-k
 
+
 + `(spherical-bessel-k order x)`
 
 Modified spherical Bessel function of the second kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1335">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1355">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3339,13 +4327,14 @@ Modified spherical Bessel function of the second kind.
 
 #### spherical-bessel-k0
 
+
 + `(spherical-bessel-k0 x)`
 
 Modified spherical Bessel function of the second kind and order 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1322">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1342">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3357,13 +4346,14 @@ Modified spherical Bessel function of the second kind and order 0.
 
 #### spherical-bessel-k1
 
+
 + `(spherical-bessel-k1 x)`
 
 Modified spherical Bessel function of the second kind and order 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1326">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1346">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3375,13 +4365,14 @@ Modified spherical Bessel function of the second kind and order 1.
 
 #### spherical-bessel-k2
 
+
 + `(spherical-bessel-k2 x)`
 
 Modified spherical Bessel function of the second kind and order 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1330">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1350">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3393,13 +4384,14 @@ Modified spherical Bessel function of the second kind and order 2.
 
 #### spherical-bessel-y
 
+
 + `(spherical-bessel-y order x)`
 
 Spherical Bessel function of the second kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1261">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1281">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3411,13 +4403,14 @@ Spherical Bessel function of the second kind.
 
 #### spherical-bessel-y0
 
+
 + `(spherical-bessel-y0 x)`
 
 Spherical Bessel function of the second kind and order 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1240">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1260">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3429,13 +4422,14 @@ Spherical Bessel function of the second kind and order 0.
 
 #### spherical-bessel-y1
 
+
 + `(spherical-bessel-y1 x)`
 
 Spherical Bessel function of the second kind and order 1.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1246">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1266">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3447,13 +4441,14 @@ Spherical Bessel function of the second kind and order 1.
 
 #### spherical-bessel-y2
 
+
 + `(spherical-bessel-y2 x)`
 
 Spherical Bessel function of the second kind and order 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1253">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1273">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3465,13 +4460,14 @@ Spherical Bessel function of the second kind and order 2.
 
 #### spherical-hankel-1
 
+
 + `(spherical-hankel-1 order x)`
 
 Spherical Hankel function of the first kind, returns complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1356">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1376">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3483,13 +4479,14 @@ Spherical Hankel function of the first kind, returns complex number.
 
 #### spherical-hankel-2
 
+
 + `(spherical-hankel-2 order x)`
 
 Spherical Hankel function of the second kind, returns complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1361">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1381">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3501,13 +4498,14 @@ Spherical Hankel function of the second kind, returns complex number.
 
 #### tricomis-U
 
+
 + `(tricomis-U a b x)`
 
 Confluent hypergeometric function U of the second kind.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2070">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2090">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3519,11 +4517,23 @@ Confluent hypergeometric function U of the second kind.
 
 #### tricomis-U-complex
 
+
 + `(tricomis-U-complex a b z)`
+
+Complex version of Tricomi's confluent hypergeometric function U(a,b,z) of the second kind.
+
+  Arguments `a`, `b` and `z` can be real or complex numbers; plain numbers are promoted to
+  complex automatically via `ensure-complex`.
+
+
+  - Input: `a`, `b`, `z` — real or complex numbers (scalars or [Vec2](#LOS-Vec2) complex pairs)
+  - Returns: [Vec2](#LOS-Vec2) complex number
+
+  See also the real-valued [tricomis-U](#LOS-tricomis-U).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2286">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2306">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3535,13 +4545,14 @@ Confluent hypergeometric function U of the second kind.
 
 #### trigamma
 
+
 + `(trigamma x)`
 
 Second derivative of log of Gamma function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L110">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L113">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3553,13 +4564,14 @@ Second derivative of log of Gamma function.
 
 #### upper-incomplete-gamma
 
+
 + `(upper-incomplete-gamma s x)`
 
 Upper incomplete gamma function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1871">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L1891">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3571,13 +4583,14 @@ Upper incomplete gamma function
 
 #### whittaker-M
 
+
 + `(whittaker-M kappa mu x)`
 
 Whittaker's M
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2023">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2043">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3589,13 +4602,14 @@ Whittaker's M
 
 #### whittaker-W
 
+
 + `(whittaker-W kappa mu x)`
 
 Whittaker's W
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2082">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L2102">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3607,13 +4621,14 @@ Whittaker's W
 
 #### xi
 
+
 + `(xi s)`
 
 Riemann (Landau's) Xi function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L279">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L282">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3625,6 +4640,7 @@ Riemann (Landau's) Xi function
 
 #### zeta
 
+
 + `(zeta s)`
 + `(zeta s z)`
 
@@ -3632,7 +4648,7 @@ Riemann and Hurwitz zeta functions for real arguments
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L217">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/special.clj#L220">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

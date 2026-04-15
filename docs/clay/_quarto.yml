@@ -6,7 +6,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
+    fontsize: 1.0em
   revealjs: {theme: solarized, navigation-mode: vertical, transition: slide, background-transition: fade, incremental: true}
 project: {type: book}
 book:

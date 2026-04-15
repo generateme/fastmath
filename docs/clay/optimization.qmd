@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: optimization.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="optimization_files/md-default0.js" type="text/javascript"></script><script src="optimization_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -46,6 +45,7 @@ Optimization.
 
   Namespace provides various optimization methods.
 
+
   * Brent (1d functions)
   * Bobyqa (2d+ functions)
   * Powell
@@ -63,12 +63,14 @@ Optimization.
 
   To optimize functions call one of the following functions:
 
+
   * [minimize](#LOS-minimize) or [maximize](#LOS-maximize) - to perform actual optimization
   * [scan-and-minimize](#LOS-scan-and-minimize) or [scan-and-maximize](#LOS-scan-and-maximize) - functions find initial point using brute force and then perform optimization paralelly for best initialization points. Brute force scan is done using jitter low discrepancy sequence generator.
 
   You can also create optimizer (function which performs optimization) by calling [minimizer](#LOS-minimizer) or [maximizer](#LOS-maximizer). Optimizer accepts initial point.
 
   All above accept:
+
 
   * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`, `:bfgs` and `:lbfgsb`
   * function to optimize
@@ -77,6 +79,7 @@ Optimization.
   For parameters meaning refer [Optim package](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html?org/apache/commons/math3/optim/package-summary.html)
   
   ### Common parameters
+
 
   * `:bounds` (obligatory) - search ranges for each dimensions as a seqence of [low high] pairs
   * `:initial` - initial point other then mid of the bounds as vector
@@ -88,11 +91,13 @@ Optimization.
 
   For `scan-and-...` functions additionally you can provide:
 
+
   * `:N` - number of brute force iterations
   * `:n` - fraction of N which are used as initial points to parallel optimization
   * `:jitter` - jitter factor for sequence generator (for scanning domain)
   
   ### Specific parameters
+
 
   * BOBYQA - `:number-of-points`, `:initial-radius`, `:stopping-radius`
   * Nelder-Mead - `:rho`, `:khi`, `:gamma`, `:sigma`, `:side-length`
@@ -114,11 +119,13 @@ Optimization.
 
 #### bayesian-optimization
 
+
 + `(bayesian-optimization f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?], :or {utility-function-type :ucb, init-points 3, jitter 0.25, noise 1.0E-8, utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576), warm-up (* (count bounds) 1000), normalize? true, kernel :matern-52, kscale 1.0}})`
 
 Bayesian optimizer
 
   Parameters are:
+
 
   * `:warm-up` - number of brute force iterations to find maximum of utility function
   * `:init-points` - number of initial evaluation before bayesian optimization starts. Points are selected using jittered low discrepancy sequence generator (see: [jittered-sequence-generator](#LOS-jittered-sequence-generator)
@@ -134,6 +141,7 @@ Bayesian optimizer
   * `:normalize?` - normalize data in gaussian process?
 
   Returns lazy sequence with consecutive executions. Each step consist:
+
 
   * `:x` - maximum `x`
   * `:y` - value
@@ -157,6 +165,7 @@ Bayesian optimizer
 
 #### linear-optimization
 
+
 + `(linear-optimization target constraints)`
 + `(linear-optimization target constraints {:keys [goal epsilon max-ulps cut-off rule non-negative? max-iter stats?], :or {goal :minimize, epsilon 1.0E-6, max-ulps 10, cut-off 1.0E-10, rule :dantzig, non-negative? false, max-iter Integer/MAX_VALUE}})`
 
@@ -167,6 +176,7 @@ Solves a linear problem.
 
    Constraints are defined as a sequence of one of the following triplets:
 
+
    * `[a1 a2 a3 ...] R n` - which means `a1*x1+a2*x2+a3*x3+... R n` 
    * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
 
@@ -176,6 +186,7 @@ Solves a linear problem.
 
   Possible options:
   
+
   * `:goal` - `:minimize` (default) or `:maximize`
   * `:rule` - pivot selection rule, `:dantzig` (default) or `:bland`
   * `:max-iter` - maximum number of iterations, maximum integer by default
@@ -205,6 +216,7 @@ Solves a linear problem.
 
 #### maximize
 
+
 + `(maximize method f config)`
 
 Maximize given function.
@@ -224,6 +236,7 @@ Maximize given function.
 
 
 #### maximizer
+
 
 + `(maximizer method f config)`
 
@@ -245,6 +258,7 @@ Create optimizer which maximizes function.
 
 #### minimize
 
+
 + `(minimize method f config)`
 
 Minimize given function.
@@ -264,6 +278,7 @@ Minimize given function.
 
 
 #### minimizer
+
 
 + `(minimizer method f config)`
 

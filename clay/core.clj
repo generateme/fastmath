@@ -397,6 +397,7 @@
 ;; * `integer?`
 ;; * `nan?`, `inf?`, `pos-inf?`, `neg-inf?`, `invalid-double?`, `valid-double?`
 ;; * `between?`, `between-?`
+;; * `power-of-two?``
 ;; :::
 
 ;; ### Comparison
@@ -481,6 +482,7 @@
 ;; * `even?`: Checks if a long is even.
 ;; * `odd?`: Checks if a long is odd.
 ;; * `integer?`: Checks if a number (long or double) has a zero fractional part.
+;; * `power-of-two?`: Checks if a positive number is a power of two, $v=2^p$ for some $p$.
 
 (utls/examples-note
   (m/zero? 0)
@@ -511,7 +513,9 @@
   (m/odd? 2)
   (m/integer? 1)
   (m/integer? 1.0)
-  (m/integer? 1.1))
+  (m/integer? 1.1)
+  (m/power-of-two? 128)
+  (m/power-of-two? 129))
 
 ;; Predicates for floating point special values:
 
@@ -1084,6 +1088,7 @@
 ;; * `bit-set`, `bit-clear`, `bit-flip`, `bit-test`
 ;; * `<<`, `bit-shift-left`, `>>`, `bit-shift-right`, `>>>`, `unsigned-bit-shift-right`
 ;; * `bit-count`
+;; * `most-significant-bit`, `leading-zero-bits``
 ;; :::
 
 ;; ### Logical Bitwise Operations
@@ -1143,20 +1148,42 @@
 ;; *   `bit-test`: Tests the state of a specific bit at the given index. Returns `true` if the bit is `1`, `false` if it is `0`.
 
 (utls/examples-note
- (m/bit-set 2r1010 1) 
- (m/bit-clear 2r1010 3)
- (m/bit-flip 2r1010 2) 
- (m/bit-test 2r1010 1) 
- (m/bit-test 2r1010 0))
+  (m/bit-set 2r1010 1) 
+  (m/bit-clear 2r1010 3)
+  (m/bit-flip 2r1010 2) 
+  (m/bit-test 2r1010 1) 
+  (m/bit-test 2r1010 0))
 
-;; ### Bit count
+;; ### Counts and bit positions
 
-;; Count set bits in a `long` value.
+;; Functions that count or find bit specific set bit position:
+
+;; * `bit-count` - number of set bits
+;; * `leading-zero-bits` - number of leading zero bits, returns `0` for negative numbers
+;; * `trailing-zero-bits` - number of trailing zero bits, returns `64` for `0` 
+;; * `most-significant-bit` - position of the most significant set bit, returns `-1` for `0` and `63` for negative numbers
+;; * `least-significant-bit` - position of the least significant set bit, returns `-1` for `0`
 
 (utls/examples-note
   (m/bit-count 0xff)
   (m/bit-count 1)
-  (m/bit-count -1))
+  (m/bit-count -1)
+  (m/leading-zero-bits 123)
+  (m/leading-zero-bits Long/MAX_VALUE)
+  (m/leading-zero-bits -1)
+  (m/leading-zero-bits Long/MIN_VALUE)
+  (m/trailing-zero-bits 32)
+  (m/trailing-zero-bits 1)
+  (m/trailing-zero-bits 0)
+  (m/most-significant-bit 0)
+  (m/most-significant-bit 1)
+  (m/most-significant-bit 2)
+  (m/most-significant-bit 3)
+  (m/most-significant-bit -1)
+  (m/most-significant-bit Long/MIN_VALUE)
+  (m/least-significant-bit 0)
+  (m/least-significant-bit 1)
+  (m/least-significant-bit 32))
 
 ;; ## Floating point
 
@@ -1181,22 +1208,22 @@
 
 
 (utls/examples-note
- (m/next-double 0.0)
- (m/next-double -0.0)
- (m/next-double 1.0)
- (m/next-double 1.0 10)
- (m/next-double 1.0e20)
- (m/prev-double 0.0)
- (m/prev-double 1.0)
- (m/prev-double 1.0 10)
- (m/prev-double 1.0e20)
- (m/ulp 1.0)
- (m/ulp 2.0)
- (m/ulp 1.0e20)
- (m/log2int 8.0)
- (m/double-exponent 8.0)
- (m/log2int 7.1)
- (m/double-exponent 7.1))
+  (m/next-double 0.0)
+  (m/next-double -0.0)
+  (m/next-double 1.0)
+  (m/next-double 1.0 10)
+  (m/next-double 1.0e20)
+  (m/prev-double 0.0)
+  (m/prev-double 1.0)
+  (m/prev-double 1.0 10)
+  (m/prev-double 1.0e20)
+  (m/ulp 1.0)
+  (m/ulp 2.0)
+  (m/ulp 1.0e20)
+  (m/log2int 8.0)
+  (m/double-exponent 8.0)
+  (m/log2int 7.1)
+  (m/double-exponent 7.1))
 
 ;; Now let's convert `123.456` to internal representation.
 
@@ -1472,6 +1499,7 @@
 
 ;; ::: {.callout-tip title="Defined functions"}
 ;; * `gcd`, `lcm`
+;; * `agm`
 ;; * `bool-not`, `bool-xor`, `xor`
 ;; * `identity-long`, `identity-double`
 ;; * `relative-error`, `absolute-error`
@@ -1489,12 +1517,25 @@
 ;; $$ \operatorname{lcm}(a, b) = \frac{|a \cdot b|}{\operatorname{gcd}(a, b)} $$
 
 (utls/examples-note
-  (m/gcd 12 18)
-  (m/gcd 35 49)
-  (m/gcd 17 23)
-  (m/lcm 12 18)
-  (m/lcm 35 49)
-  (m/lcm 17 23))
+ (m/gcd 12 18)
+ (m/gcd 35 49)
+ (m/gcd 17 23)
+ (m/lcm 12 18)
+ (m/lcm 35 49)
+ (m/lcm 17 23))
+
+;; ### Arithmetic-geometric mean
+
+;; Function which calcuates arithmetic-geometric mean (agM). Default number of iteration is set to 100 and absolute accuracy is 1.0e-12. The result has the following property:
+
+;; $$\operatorname{abM}(x,y)=\sqrt(xy)=\frac{1}{2}(x+y)$$
+
+(utls/examples-note
+  (m/agm 24 6)
+  (m/agm 0.001 1111)
+  (m/agm 1.0e111 2.12345e15)
+  (m/agm 1.0e-111 2.12345e-15)
+  (m/agm 1.0e-111 2.12345e15))
 
 ;; ### Boolean and Identity Utilities
 

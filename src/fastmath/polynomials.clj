@@ -22,9 +22,11 @@
     (condp m/== cnt
       0 0.0
       1 `~(first coeffs)
-      2 (let [[z y] coeffs]
-          `(m/muladd ~x ~y ~z))
-      `(m/muladd ~x (mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))
+      2 (let [[z y] coeffs] `(m/muladd ~x ~y ~z))
+      (let [fst (first coeffs)]
+        (if (and (number? fst) (m/zero? (double fst)))
+          `(m/* ~x (mevalpoly ~x ~@(rest coeffs)))
+          `(m/muladd ~x (mevalpoly ~x ~@(rest coeffs)) ~(first coeffs)))))))
 
 (defn evalpoly
   "Evaluate polynomial for given coefficients"
@@ -75,7 +77,7 @@
 (defmacro mevalpoly-scalar-complex
   "Evaluate complex polynomial macro version in the form coeffs[0]+coeffs[1]*x+coeffs[2]*x^2+....
 
-  Coefficients are scalars"
+  Coefficients are real numbers."
   [x & coeffs]
   (let [cnt (count coeffs)]
     (condp clojure.core/= cnt
@@ -97,13 +99,35 @@
           (recur (rest rcoeffs)
                  (cplx/muladd x ex (first rcoeffs))))))))
 
+(defn evalpoly-scalar-complex
+  "Evaluate complex polynomial with real coefficients."
+  [z & coeffs]
+  (if-not (seq coeffs)
+    cplx/ZERO
+    (let [rc (vec (reverse coeffs))
+          cnt (dec (count rc))
+          ^Vec2 z (cplx/ensure-complex z)
+          p (m/* -2.0 (.x z))
+          q (cplx/norm z)]
+      (loop [i (long 1)
+             r (double (rc 0))
+             s (double 0.0)]
+        (if (m/== i cnt)
+          (Vec2. (m/- (m/+ (double (rc i))
+                           (m/* (.x z) r))
+                      (m/* q s))
+                 (m/* (.y z) r))
+          (recur (m/inc i)
+                 (m/- (double (rc i)) (m/* p r) (m/* q s))
+                 r))))))
+
 (defn makepoly-complex
   "Create complex polynomial function for given coefficients"
   [coeffs]
   (let [coeffs (map cplx/ensure-complex coeffs)]
     (cond
       (not (seq coeffs)) (constantly cplx/ZERO)
-      (= 1 (count coeffs)) (constantly (first coeffs))
+      (= 1 (count coeffs)) (constantly (cplx/complex (first coeffs)))
       :else (let [rc (reverse coeffs)]
               (fn [x]
                 (let [x (cplx/ensure-complex x)]
@@ -114,6 +138,29 @@
                       (recur (rest rcoeffs)
                              (cplx/muladd x ex (first rcoeffs)))))))))))
 
+(defn makepoly-scalar-complex
+  "Create complex polynomial function for given real coefficients"
+  [coeffs]
+  (cond
+    (not (seq coeffs)) (constantly cplx/ZERO)
+    (= 1 (count coeffs)) (constantly (cplx/complex (first coeffs)))
+    :else (let [rc (vec (reverse coeffs))
+                cnt (dec (count rc))]
+            (fn [z]
+              (let [^Vec2 z (cplx/ensure-complex z)
+                    p (m/* -2.0 (.x z))
+                    q (cplx/norm z)]
+                (loop [i (long 1)
+                       r (double (rc 0))
+                       s (double 0.0)]
+                  (if (m/== i cnt)
+                    (Vec2. (m/- (m/+ (double (rc i))
+                                     (m/* (.x z) r))
+                                (m/* q s))
+                           (m/* (.y z) r))
+                    (recur (m/inc i)
+                           (m/- (double (rc i)) (m/* p r) (m/* q s))
+                           r))))))))
 
 ;;
 
@@ -371,7 +418,7 @@
                 (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
                           (m/* (m/+ order (m/dec i)) pprev)) i)))))))
 
-(defn- laguerre-L-ratio
+(defn laguerre-L-ratio
   [^long degree ^double order]
   (case (int degree)
     0 RONE
@@ -407,7 +454,7 @@
       (m/< x -1.0) (m/* (m/fpow -1.0 degree) (m/cosh (m/* degree (m/acosh (m/- x)))))
       :else (m/cos (* degree (m/acos x))))))
 
-(defn- chebyshev-T-ratio
+(defn chebyshev-T-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -450,7 +497,7 @@
                     (m// (m/sin (m/* t degree+))
                          (m/sin t)))))))))
 
-(defn- chebyshev-U-ratio
+(defn chebyshev-U-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -473,7 +520,7 @@
   (m/* (m/sqrt (m// 2.0 (m/inc x)))
        (eval-chebyshev-T (m/inc (m/* 2 degree)) (m/sqrt (m/* 0.5 (m/inc x))))))
 
-(defn- chebyshev-V-ratio
+(defn chebyshev-V-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -495,7 +542,7 @@
   ^double [^long degree ^double x]
   (m/* (eval-chebyshev-U (m/* 2 degree) (m/sqrt (m/* 0.5 (m/inc x))))))
 
-(defn- chebyshev-W-ratio
+(defn chebyshev-W-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -528,7 +575,7 @@
                (m// (m/- (m/* (m/dec (m/* 2.0 i)) x prev)
                          (m/* (m/dec i) pprev)) i))))))
 
-(defn- legendre-P-ratio
+(defn legendre-P-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -568,7 +615,7 @@
                     (m// (m/- (m/* 2.0 (m/dec (m/+ order i)) x prev)
                               (m/* (m/+ i o2 -2.0) pprev)) i)))))))))
 
-(defn- gegenbauer-C-ratio
+(defn gegenbauer-C-ratio
   [^long degree ^double order]
   (condp == order
     1.0 (chebyshev-U-ratio degree)
@@ -608,7 +655,7 @@
                (m/* 2.0 (m/- (m/* x prev)
                              (m/* (m/dec i) pprev))))))))
 
-(defn- hermite-H-ratio
+(defn hermite-H-ratio
   "Hermite polynomials"
   [^long degree]
   (case (int degree)
@@ -642,7 +689,7 @@
                (m/- (m/* x prev)
                     (m/* (m/dec i) pprev)))))))
 
-(defn- hermite-He-ratio
+(defn hermite-He-ratio
   "Hermite polynomials"
   [^long degree]
   (case (int degree)
@@ -686,7 +733,7 @@
 
 (set! *unchecked-math* true)
 
-(defn- jacobi-P-ratio
+(defn jacobi-P-ratio
   "Jacobi polynomials"
   [^long degree ^double alpha ^double beta]
   (case (int degree)
@@ -732,7 +779,7 @@
                     pprev))))))
 
 
-(defn- bessel-y-ratio
+(defn bessel-y-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -763,7 +810,7 @@
                (m/+ (m/* (m/dec (m/* 2 i)) prev)
                     (m/* x x pprev)))))))
 
-(defn- bessel-t-ratio
+(defn bessel-t-ratio
   [^long degree]
   (case (int degree)
     0 RONE
@@ -804,7 +851,7 @@
                                          (m/* (m/dec (m/+ i lambda)) cp)) prev)
                            (m/* (m/+ i l2 -2) pprev)) i)))))))
 
-(defn- meixner-pollaczek-P-ratio
+(defn meixner-pollaczek-P-ratio
   [^long degree ^double lambda ^double phi]
   (case (int degree)
     0 RONE

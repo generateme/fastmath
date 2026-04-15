@@ -608,7 +608,7 @@
 ;; ::: {.callout-tip title="Defined Functions"}
 ;; * `orthogonal-polynomials`, `orthonormal-polynomials`
 ;; * `softmax`, `logsoftmax`
-;; * `differences`
+;; * `differences`, `unwrap`
 ;; :::
 
 ;; This section covers advanced operations that are useful in specific mathematical or statistical contexts, such as generating orthogonal bases for polynomial fitting or numerical stability functions common in machine learning.
@@ -632,7 +632,13 @@
  (v/logsoftmax [1 2 3] 2.0))
 
 ;; * **Differences**
-;;    * `differences`: Conputes lagged differences for given sequence.
+;;    * `differences`: Computes lagged differences for given sequence.
+
+;; Arguments:
+
+;; * `xs` - input vector
+;; * `diffs` - number of diffs to perform (default: `1.0`)
+;; * `lag` - distance between values (default: `1.0`)
 
 (utls/examples-note
   (v/differences [0 0 0 0 1 0 0 0 0])
@@ -643,6 +649,26 @@
   (v/differences [0 0 0 0 1 0 0 0 0] 2 2)
   (v/differences [0 0 0 0 1 0 0 0 0] 3 2)
   (v/differences [0 0 0 0 1 0 0 0 0] 4 2))
+
+;; * **Unwrapping**
+;;    * `unwrap`: Unwrap by replacing large jumps (discontinuity) with their complements relative to the period.
+
+;; Default period is set to `1.0`, discontinuity gap is set to half of the period.
+
+;; Let's create a function which is wrapped between $-1.0$ and $1.0$.
+
+(defn wrapped-fn
+  [x]
+  (m/dec (m/mod (m/* 1.5 (m/sin (m/+ 0.26 (m/* 1.1 x)))
+                     (m/+ 1.0 (m// x -6.0) (m/cb (m// x 23.0)))) 2.0)))
+
+(gg/->image (gg/function wrapped-fn {:x [0 25]}))
+
+;; Now we will sample function and unwrap it.
+
+(def unwrapped-fn (v/unwrap (m/sample wrapped-fn 0 25 801) 2.0))
+
+(gg/->image (gg/line (m/slice-range 0 25 801) unwrapped-fn))
 
 ;; ## Matrices
 

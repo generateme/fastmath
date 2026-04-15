@@ -20,9 +20,9 @@
 (defn- with-offset
   [xs offset?]
   (if offset?
-    (let [xs (v/vec->Vec xs)]
-      [(first xs) (subvec xs 1)])
-    [0.0 (v/vec->Vec xs)]))
+    (let [xs (vec xs)]
+      [(xs 0) (subvec xs 1)])
+    [0.0 (vec xs)]))
 
 (defn predict
   "Predict from the given model and data point.
@@ -202,18 +202,16 @@
 
 (defn- coefficients-names
   [names intercept? ^long term-count]
-  (let [namesv (if (nil? names)
-                 "X"
-                 names)]
-    (cond-> []
-      intercept? (conj "Intercept")
-      (string? namesv) (into
-                        (take term-count (map #(str namesv "_" %) (range))))
-      (vector? namesv) (into namesv)
-      ;; If we have less names than term-count
-      (and (vector? namesv) (m/< (count namesv) term-count))
-      (into
-       (take (m/- term-count (count namesv)) (map #(str "X_" %) (range)))))))
+  (let [namesv (if-not names "X" names)
+        term-count (if intercept? (m/inc term-count) term-count)
+        step1 (cond-> []
+                intercept? (conj "Intercept")
+                (string? namesv) (into (take term-count (map #(str namesv "_" %) (range))))
+                (sequential? namesv) (into namesv))
+        curr-count (count step1)]
+    (if (m/< curr-count term-count)
+      (into step1 (take (m/- term-count curr-count) (map #(str "X_" %) (range))))
+      (subvec step1 0 term-count))))
 
 ;; new version
 

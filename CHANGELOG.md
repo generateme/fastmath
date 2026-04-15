@@ -6,16 +6,25 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 ;; * Chebyshev T and U polynomials are defined outside [-1,1] range
+;; * Ratio based polynomials made public
 ;; * Clojure native wavelet transformation implementation (due to some issues with JWave)
 ;; * FFT window (tapering) kernels
+;; * FIR and IIR filters
 ;; * various signal paddings
 ;; * `bit-count`
 ;; * `fft`/`ifft` functions
 ;; * `periodogram`, `spectrum`, `stft`
+;; * Elliptic K, E, Pi, Rf, Rd, Rj, Rg, Rc
+;; * Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
+;; * AOC,ROC/PRECREC/DET curves, thresholded binary measures, multilabel measures
 
 ### Fixed
 
 ;; * decomposition of matrix was empty for matrices with rows/cols > 5
+;; * `fastmath.vector/edelta-eq` didn't check if input had the same size
+;; * regression:
+;;    * transformer function didn't accept non-numerical input (in offset extraction in prediction)
+;;    * names didn't accept any sequence of names.
 
 ## [3.0.0 alpha4]
 

@@ -230,7 +230,7 @@
     (t/is (v/edelta-eq (map #(sut/bessel-Y % 2.1) vs) (rr/r->clj (base/besselY 2.1 vs)) 1.0e-13 1.0e-13))
     (t/is (v/edelta-eq (map #(sut/bessel-Y % 42.1) vs) (rr/r->clj (base/besselY 42.1 vs)) 1.0e-13 1.0e-13))
     (t/is (v/edelta-eq (map #(sut/bessel-Y % 142.1) vs) (rr/r->clj (base/besselY 142.1 vs)) 1.0e-14 1.0e-14)))
-  (doseq [v (range -100.0 0.0 0.25)]
+  (doseq [v (range -100.01 0.0 0.25)]
     (t/is (m/delta-eq (sut/bessel-Y v 0.15) (first (rr/r->clj (Bessel/BesselY 0.15 v))) 1.0e-6 1.0e-6))
     (t/is (m/delta-eq (sut/bessel-Y v 2.1) (first (rr/r->clj (Bessel/BesselY 2.1 v))) 1.0e-8 1.0e-8))
     (t/is (m/delta-eq (sut/bessel-Y v 42.1) (first (rr/r->clj (Bessel/BesselY 42.1 v))) 1.0e-9 1.0e-9))

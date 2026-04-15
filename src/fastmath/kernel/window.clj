@@ -36,27 +36,36 @@
   * `:LInf` or `true` (default) - sets maximum value to a `1.0`
   * `:L1` - sum of the coefficients is set to a `1.0`
   * `:L2` - length of the coefficients vector is set to a `1.0`
-  * `:N` - sum of the coefficients is set to a `N`"
+  * `:N` - sum of the coefficients is set to a `N`
+  * any number - divide all coefficients by this number"
   [coeffs normalize?]
   (condp = normalize?
     :LInf (v/normalize-LInf coeffs)
     :L1 (v/normalize-L1 coeffs)
     :L2 (v/normalize coeffs)
     :N (v/mult (v/normalize-L1 coeffs) (count coeffs))
-    (if normalize? (v/normalize-LInf coeffs) coeffs)))
+    (cond
+      (number? normalize?) (v/div coeffs normalize?)
+      normalize? (v/normalize-LInf coeffs)
+      :else coeffs)))
 
 (defn sample-window
   "Sample continuous window function, returns N values from -0.5 to 0.5.
 
   `normalize?` can be:
 
-  * `:Linf` or `true` (default) - sets maximum value to a `1.0`
+  * `true` - sets mid value to a `1.0`
+  * `:Linf` - sets maximum value of coefficients to a `1.0`
   * `:L1` - sum of the coefficients is set to a `1.0`
   * `:L2` - length of the coefficients vector is set to a `1.0`
-  * `:N` - sum of the coefficients is set to a `N`"
+  * `:N` - sum of the coefficients is set to a `N`
+  * any number - divide all coefficients by this number"
   ([f ^long N] (sample-window f N true))
   ([f ^long N normalize?]
-   (-> (m/sample f -0.5 0.5 N) (normalize-coefficients normalize?))))
+   (let [coeffs (m/sample f -0.5 0.5 N)]
+     (if (true? normalize?)
+       (normalize-coefficients coeffs (f 0.0))
+       (normalize-coefficients coeffs normalize?)))))
 
 ;;
 
@@ -73,7 +82,7 @@
   "Rectangular window, both ends are set to 0.5."
   ([] (rectangular05 256))
   ([^long N] (rectangular05 N nil))
-  ([^long N {:keys [normalize?] :or {normalize? true}}]
+  ([^long N {:keys [normalize?] :or {normalize? false}}]
    (sample-window rectangular05-continuous N normalize?)))
 
 ;;

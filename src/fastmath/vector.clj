@@ -891,19 +891,22 @@
   ([v d] (prot/approx v d)))
 
 (defn delta-eq
-  "Equality with given absolute (and/or relative) toleance."
+  "Equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance."
   ([v1 v2] (delta-eq v1 v2 1.0e-6))
   ([v1 v2 ^double abs-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol))
   ([v1 v2 ^double abs-tol ^double rel-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol)))
 
 (defn edelta-eq
-  "Element-wise equality with given absolute (and/or relative) toleance."
+  "Element-wise equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance."
   ([v1 v2] (edelta-eq v1 v2 1.0e-6))
-  ([v1 v2 ^double abs-tol] (every? identity (map (fn [^double a ^double b]
-                                                   (m/delta-eq a b abs-tol)) v1 v2)))
+  ([v1 v2 ^double abs-tol]
+   (and (m/== (count v1) (count v2))
+        (every? identity (map (fn [^double a ^double b]
+                                (m/delta-eq a b abs-tol)) v1 v2))))
   ([v1 v2 ^double abs-tol ^double rel-tol]
-   (every? identity (map (fn [^double a ^double b]
-                           (m/delta-eq a b abs-tol rel-tol)) v1 v2))))
+   (and (m/== (count v1) (count v2))
+        (every? identity (map (fn [^double a ^double b]
+                                (m/delta-eq a b abs-tol rel-tol)) v1 v2)))))
 
 (defn dot
   "Dot product of two vectors."
@@ -1231,6 +1234,14 @@
   [v]
   (normalize v))
 
+(defn normalize-L2sq
+  "Returns a new vector normalized by squared L2 norm"
+  [v]
+  (let [m (magsq v)]
+    (if (m/zero? m)
+      (as-vec v)
+      (div v m))))
+
 (defn normalize-L1
   "Returns a new vector normalized by L1/abs norm."
   [v]
@@ -1385,6 +1396,31 @@
          (recur (sub (subvec v lag)
                      (subvec v 0 (- l lag)))
                 (m/dec d)))))))
+
+(defn unwrap
+  "Unwrap by replacing large jumps (discontinuity) with their complements relative to the period.
+
+  * `xs` - an input vector
+  * `period` - size of wrap in the input (input span), defalut: `1.0`
+  * `discontinuity` - maximum difference between values treated as discontinuity in wrapped input, default: `period/2`
+
+  Returns unrwapped vector"
+  ([xs] (unwrap xs 1.0))
+  ([xs ^double period] (unwrap xs period (m/* 0.5 period)))
+  ([xs ^double period ^double discontinuity]
+   (let [interval-high discontinuity
+         interval-low (m/- discontinuity)
+         dd (differences xs)
+         ddmod (-> (prot/fmap (shift dd interval-high) (fn [^double x] (m/mod x period)))
+                   (shift interval-low)
+                   (->> (map (fn [^double d ^double dm]
+                               (if (and (m/pos? d) (m/== dm interval-low)) interval-high dm)) dd))
+                   (sub dd)
+                   (->> (map (fn [^double d ^double dm]
+                               (if (m/< (m/abs d) discontinuity) 0.0 dm)) dd)
+                        (reductions m/+))
+                   (conj 0.0))]
+     (add ddmod xs))))
 
 ;; primitive functions
 

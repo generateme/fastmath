@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: easings.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="easings_files/md-default0.js" type="text/javascript"></script><script src="easings_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -51,6 +50,7 @@ Easing functions.
 
 #### back-in
 
+
 + `(back-in t)`
 + `(back-in s t)`
 
@@ -71,6 +71,7 @@ BackIn easing.
 
 
 #### back-in-out
+
 
 + `(back-in-out t)`
 + `(back-in-out s t)`
@@ -93,6 +94,7 @@ BackInOut easing.
 
 #### back-out
 
+
 + `(back-out t)`
 + `(back-out s t)`
 
@@ -114,6 +116,7 @@ BackOut easing.
 
 #### bounce-in
 
+
 + `(bounce-in t)`
 
 BounceIn easing
@@ -131,6 +134,7 @@ BounceIn easing
 
 
 #### bounce-in-out
+
 
 + `(bounce-in-out t)`
 
@@ -150,6 +154,7 @@ BounceInOut easing
 
 #### bounce-out
 
+
 + `(bounce-out t)`
 
 BounceOut easing
@@ -167,6 +172,7 @@ BounceOut easing
 
 
 #### circle-in
+
 
 + `(circle-in t)`
 
@@ -186,6 +192,7 @@ CircleIn easing
 
 #### circle-in-out
 
+
 + `(circle-in-out t)`
 
 CircleInOut easing
@@ -203,6 +210,7 @@ CircleInOut easing
 
 
 #### circle-out
+
 
 + `(circle-out t)`
 
@@ -222,6 +230,7 @@ CircleIn easing
 
 #### cubic-in
 
+
 + `(cubic-in t)`
 
 CubicIn easing
@@ -240,6 +249,7 @@ CubicIn easing
 
 #### cubic-in-out
 
+
 + `(cubic-in-out t)`
 
 CubicInOut easing
@@ -257,6 +267,7 @@ CubicInOut easing
 
 
 #### cubic-out
+
 
 + `(cubic-out t)`
 
@@ -292,6 +303,7 @@ Map of easing names (as keywords) and functions.
 
 #### elastic-in
 
+
 + `(elastic-in t)`
 + `(elastic-in amplitude period)`
 
@@ -313,6 +325,7 @@ ElasticIn.
 
 
 #### elastic-in-out
+
 
 + `(elastic-in-out t)`
 + `(elastic-in-out amplitude period)`
@@ -336,6 +349,7 @@ ElasticInOut.
 
 #### elastic-out
 
+
 + `(elastic-out t)`
 + `(elastic-out amplitude period)`
 
@@ -358,6 +372,7 @@ ElasticOut.
 
 #### exp-in
 
+
 + `(exp-in t)`
 
 ExpIn easing
@@ -375,6 +390,7 @@ ExpIn easing
 
 
 #### exp-in-out
+
 
 + `(exp-in-out t)`
 
@@ -394,6 +410,7 @@ ExpInOut easing
 
 #### exp-out
 
+
 + `(exp-out t)`
 
 ExpOut easing
@@ -411,6 +428,7 @@ ExpOut easing
 
 
 #### in-out
+
 
 + `(in-out easeing)`
 
@@ -430,6 +448,7 @@ Create in-out easing for given `easing` function.
 
 #### linear
 
+
 + `(linear t)`
 
 Linear easing (identity)
@@ -448,6 +467,7 @@ Linear easing (identity)
 
 #### out
 
+
 + `(out easeing)`
 
 Create out easing for given `easing` function.
@@ -465,6 +485,7 @@ Create out easing for given `easing` function.
 
 
 #### poly-in
+
 
 + `(poly-in t)`
 + `(poly-in e t)`
@@ -487,6 +508,7 @@ PolyIn easing.
 
 #### poly-in-out
 
+
 + `(poly-in-out t)`
 + `(poly-in-out e t)`
 
@@ -507,6 +529,7 @@ PolyInOut easing.
 
 
 #### poly-out
+
 
 + `(poly-out t)`
 + `(poly-out e t)`
@@ -529,6 +552,7 @@ PolyOut easing.
 
 #### quad-in
 
+
 + `(quad-in t)`
 
 QuadIn easing
@@ -546,6 +570,7 @@ QuadIn easing
 
 
 #### quad-in-out
+
 
 + `(quad-in-out t)`
 
@@ -565,6 +590,7 @@ QuadInOut easing
 
 #### quad-out
 
+
 + `(quad-out t)`
 
 QuadOut easing
@@ -582,6 +608,7 @@ QuadOut easing
 
 
 #### reflect
+
 
 + `(reflect easing center)`
 
@@ -601,6 +628,7 @@ Create in-out easing for given `easing` function and `center`.
 
 #### sin-in
 
+
 + `(sin-in t)`
 
 SinIn easing
@@ -619,6 +647,7 @@ SinIn easing
 
 #### sin-in-out
 
+
 + `(sin-in-out t)`
 
 SinInOut easing
@@ -636,6 +665,7 @@ SinInOut easing
 
 
 #### sin-out
+
 
 + `(sin-out t)`
 

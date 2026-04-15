@@ -75,11 +75,6 @@
 
 ;; vec2
 
-(defn approximately-vec
-  "Approximately compare vectors"
-  [v in]
-  (is-near-zero? (sub v in)))
-
 (def v2-in1 (vec2 -1.0 4.0))
 (def v2-in2 (vec2 3.0 2.0))
 
@@ -120,11 +115,11 @@
   (is (is-near-zero? (vec2 -0.0000001 0.0)))
   (is (m/approx-eq 1.815775 (heading v2-in1)))
   (is (m/approx-eq -14.0 (cross v2-in1 v2-in2)))
-  (is (approximately-vec (vec2 1.0 -4.0) (rotate v2-in1 m/PI)))
-  (is (approximately-vec (normalize (vec2 -4.0 -1.0)) (perpendicular v2-in1)))
-  (is (approximately-vec (vec2 2.0 -3.0) (transform v2-in1 (vec2 1 1) (vec2 -1 0) (vec2 0 -1))))
+  (is (delta-eq (vec2 1.0 -4.0) (rotate v2-in1 m/PI)))
+  (is (delta-eq (normalize (vec2 -4.0 -1.0)) (perpendicular v2-in1)))
+  (is (delta-eq (vec2 2.0 -3.0) (transform v2-in1 (vec2 1 1) (vec2 -1 0) (vec2 0 -1))))
   (is (= (vec2 1.0 0.0) (to-polar (vec2 1.0 0.0))))
-  (is (approximately-vec (vec2 1.0 0.0) (from-polar (vec2 1.0 0.0)))))
+  (is (delta-eq (vec2 1.0 0.0) (from-polar (vec2 1.0 0.0)))))
 
 ;; vec3
 
@@ -167,16 +162,16 @@
   (is (not (is-near-zero? v3-in1)))
   (is (is-near-zero? (vec3 -0.0000001 0.0 0.0)))
   (is (m/approx-eq 1.815775 (heading v3-in1)))
-  (is (approximately-vec (vec3 0.0 0.0 -14.0) (cross v3-in1 v3-in2)))
-  (is (approximately-vec (vec3 0.0 0.0 -1.0) (perpendicular v3-in1 v3-in2)))
-  (is (approximately-vec (vec3 2.0 -3.0 0.0) (transform v3-in1 (vec3 1 1 0) (vec3 -1 0 0) (vec3 0 -1 0) (vec3 0 0 -1.0)))))
+  (is (delta-eq (vec3 0.0 0.0 -14.0) (cross v3-in1 v3-in2)))
+  (is (delta-eq (vec3 0.0 0.0 -1.0) (perpendicular v3-in1 v3-in2)))
+  (is (delta-eq (vec3 2.0 -3.0 0.0) (transform v3-in1 (vec3 1 1 0) (vec3 -1 0 0) (vec3 0 -1 0) (vec3 0 0 -1.0)))))
 
 ;; rotations
 ;; from/to-polar
 
 
 (deftest global-fns-test
-  (is (approximately-vec (vec2 -0.3333333333 2.0) (ediv v2-in1 v2-in2)))
+  (is (delta-eq (vec2 -0.3333333333 2.0) (ediv v2-in1 v2-in2)))
   (is (= (vec2 1.0 3.0) (average-vectors [v2-in1 v2-in2])))
 
   (is (m/approx-eq (m/sqrt 20.0) (dist v2-in1 v2-in2)))
@@ -188,7 +183,8 @@
   (is (m/approx-eq 1.3333333 (dist-canberra v2-in1 v2-in2)))
   (is (m/approx-eq 0.390812 (dist-ang v2-in1 v2-in2)))
 
-  (is (approximately-vec (vec2 -0.242535 0.9701425) (normalize v2-in1)))
+  (is (delta-eq (vec2 -0.242535 0.9701425) (normalize v2-in1)))
+  (is (edelta-eq (vec2 -0.242535 0.9701425) (normalize v2-in1)))
   (is (m/approx-eq 0.70710678 (first (set-mag (vec2 1 1) 1))))
   (is (== 1.0 (mag (limit v2-in1 1.0))))
   (is (m/approx-eq (angle-between v2-in1 v2-in2) (- (relative-angle-between v2-in1 v2-in2))))
@@ -240,3 +236,29 @@
   (clojure-contract-vec-tests (partial apply vec2) [1.0 2.0])
   (clojure-contract-vec-tests (partial apply vec3) [1.0 2.0 3.0])
   (clojure-contract-vec-tests (partial apply vec4) [1.0 2.0 3.0 4.0]))
+
+;;
+
+(deftest similarity
+  (is (delta-eq [1 2 3 4 5] [1 2 3 4 5]))
+  (is (not (delta-eq [1 2 3 4 5] [1 2 3 4 5.01])))
+  (is (delta-eq [1 2 3 4 5] [1 2 3 4 5.01] 1.0e-2))
+  (is (edelta-eq [1 2 3 4 5] [1 2 3 4 5]))
+  (is (not (edelta-eq [1 2 3 4 5] [1 2 3 4 5.01])))
+  (is (edelta-eq [1 2 3 4 5] [1 2 3 4 5.01] 1.0e-2)))
+
+;;
+
+(deftest unwrapping
+  (testing "Python numpy examples"
+    (is (edelta-eq [0.0 0.78539816 1.57079633 -0.78539816 0.0]
+                   (unwrap [0.0 0.78539816 1.57079633 5.49778714 6.28318531] m/TWO_PI)))
+    (is (edelta-eq [0, 1, 2, 3, 4] (unwrap [0, 1, 2, -1, 0] 4)))
+    (is (edelta-eq [1, 2, 3, 4, 5, 6, 7, 8, 9] (unwrap [1, 2, 3, 4, 5, 6, 1, 2, 3] 6)))
+    (is (edelta-eq [2, 3, 4, 5, 6, 7, 8, 9] (unwrap [2, 3, 4, 5, 2, 3, 4, 5] 4)))
+    (is (edelta-eq [-180., -140., -100.,  -60.,  -20.,   20.,   60.,  100.,  140.,
+                    180.,  220.,  260.,  300.,  340.,  380.,  420.,  460.,  500.,
+                    540.]
+                   (unwrap [-180., -140., -100.,  -60.,  -20.,   20.,   60.,  100.,  140.,
+                            -180., -140., -100.,  -60.,  -20.,   20.,   60.,  100.,  140.,
+                            -180.] 360)))))

@@ -1366,7 +1366,7 @@
   "Sinc function."
   ^double [^double v]
   (let [x (* PI (Math/abs v))]
-    (if (< x 1.0e-5) 1.0
+    (if (< x 1.0e-8) 1.0
         (/ (FastMath/sin x) x))))
 
 ;;
@@ -2363,6 +2363,27 @@
   (if (> a b)
     (* b (/ a (gcd- (long-abs a) (long-abs b))))
     (* a (/ b (gcd- (long-abs a) (long-abs b))))))
+
+;; arithmetic-geometric-mean
+
+(defn agm
+  "Arithmetic-geometric mean.
+
+  Defaults:
+
+  * absolute tolerance: 1.0e-12
+  * max-iters: 100"
+  (^double [^double x ^double y] (agm x y 1.0e-12))
+  (^double [^double x ^double y ^double abs-tol] (agm x y abs-tol 100))
+  (^double [^double x ^double y ^double abs-tol ^long max-iters ]
+   (if (zero? max-iters)
+     (throw (ex-info "agM Convergence failed." {:x x :y y :diff (abs (- x y))}))
+     (if (delta-eq x y abs-tol)
+       (* 0.5 (+ x y))
+       (recur (* 0.5 (+ x y))
+              (sqrt (* x y))
+              abs-tol
+              (dec max-iters))))))
 
 ;;
 

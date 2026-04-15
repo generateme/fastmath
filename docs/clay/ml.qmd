@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: ml.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="ml_files/md-default0.js" type="text/javascript"></script><script src="ml_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -53,6 +52,7 @@ OLS, WLS and GLM regression models with analysis.
 
 #### ->Family
 
+
 + `(->Family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion)`
 
 Positional factory function for class fastmath.ml.regression.Family.
@@ -70,6 +70,7 @@ Positional factory function for class fastmath.ml.regression.Family.
 
 
 #### ->GLMData
+
 
 + `(->GLMData model transformer xtxinv ys intercept? offset? intercept beta coefficients observations residuals fitted weights offset cv names deviance df dispersion dispersions & overage)`
 
@@ -89,6 +90,7 @@ Positional factory function for class fastmath.ml.regression.GLMData.
 
 #### ->LMData
 
+
 + `(->LMData model intercept? offset? transformer xtxinv intercept beta coefficients offset weights residuals fitted df observations names cv r-squared adjusted-r-squared sigma2 sigma & overage)`
 
 Positional factory function for class fastmath.ml.regression.LMData.
@@ -106,6 +108,7 @@ Positional factory function for class fastmath.ml.regression.LMData.
 
 
 #### ->Link
+
 
 + `(->Link g mean derivative)`
 
@@ -125,6 +128,7 @@ Positional factory function for class fastmath.ml.regression.Link.
 
 #### ->family
 
+
 + `(->family family-map)`
 + `(->family default-link variance initialize residual-deviance aic quantile-residuals-fun dispersion)`
 + `(->family variance residual-deviance)`
@@ -132,6 +136,7 @@ Positional factory function for class fastmath.ml.regression.Link.
 Create `Family` record.
 
   Arguments:
+
 
   * `default-link` - canonical link function, default: `:identity`
   * `variance` - variance function in terms of mean
@@ -142,6 +147,7 @@ Create `Family` record.
   * `disperation` - value or `:estimate` (default), `:pearson` or `:mean-deviance`
 
   Initialization will be called with `ys` and `weights` and should return:
+
 
   * ys, possibly changed if any adjustment is necessary
   * init-mu, starting point
@@ -166,12 +172,14 @@ Create `Family` record.
 
 #### ->link
 
+
 + `(->link link-map)`
 + `(->link g mean mean-derivative)`
 
 Creates link record.
 
   Args:
+
 
   * `g` - link function
   * `mean` - mean, inverse link function
@@ -205,12 +213,14 @@ Creates link record.
 
 #### add-penalty
 
+
 + `(add-penalty xss penalty penalty-param)`
 + `(add-penalty xss penalty penalty-param intercept?)`
 
 Adds rows with penalty data to a given seq of seqs (a row matrix).
 
   Penalties and parameters map:
+
 
   * `:ridge` - diagonal matrix with sqrt(`:lambda`) parameter, used in regularized regression.
   * `:diffs` - differences of given `:order` multiplied by sqrt(`:lambda`), used in penalized b-splines.
@@ -231,6 +241,7 @@ Adds rows with penalty data to a given seq of seqs (a row matrix).
 
 #### analysis
 
+
 + `(analysis model)`
 
 Influence analysis, laverage, standardized and studentized residuals, correlation.
@@ -249,6 +260,7 @@ Influence analysis, laverage, standardized and studentized residuals, correlatio
 
 #### b-spline-transformer
 
+
 + `(b-spline-transformer xs nseg degree)`
 + `(b-spline-transformer xl xr nseg degree)`
 
@@ -266,6 +278,7 @@ Influence analysis, laverage, standardized and studentized residuals, correlatio
 
 #### cir
 
+
 + `(cir ys)`
 + `(cir xs ys)`
 + `(cir xs ys order)`
@@ -276,6 +289,7 @@ Centered Isotonic Regression.
   Returns shrinked [`xs`,`ys`] pair.
 
   Arguments:
+
   - `xs` - regressor variable
   - `ys` - response variable
   - `ws` - weights (optional)
@@ -295,12 +309,14 @@ Centered Isotonic Regression.
 
 #### dose
 
+
 + `(dose glm-model)`
 + `(dose glm-model p)`
 + `(dose glm-model p coeff-id)`
 + `(dose {:keys [link-fun xtxinv coefficients]} p intercept-id coeff-id)`
 
 Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
+
 
   * intercept-id - id of intercept, default: 0
   * coeff-id is the coefficient used for calculating dose, default: 1
@@ -333,6 +349,7 @@ Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
 #### family-with-link
 
+
 + `(family-with-link family)`
 + `(family-with-link family params)`
 + `(family-with-link family link params)`
@@ -353,6 +370,7 @@ Returns family with a link as single map.
 
 #### glm
 
+
 + `(glm ys xss)`
 + `(glm ys xss {:keys [max-iters tol epsilon family link weights alpha offset dispersion-estimator intercept? init-mu simple? transformer names decomposition augmentation augmentation-params], :or {max-iters 25, tol 1.0E-8, epsilon 1.0E-8, family :gaussian, alpha 0.05, intercept? true, simple? false, decomposition :cholesky}, :as params})`
 
@@ -360,11 +378,13 @@ Fit a generalized linear model using IRLS method.
 
   Arguments:
 
+
   * `ys` - response vector
   * `xss` - terms of systematic component
   * optional parameters
 
   Parameters:
+
 
   * `:tol` - tolerance for matrix decomposition (SVD and Cholesky), default: `1.0e-8`
   * `:epsilon` - tolerance for IRLS (stopping condition), default: `1.0e-8`
@@ -393,12 +413,14 @@ Fit a generalized linear model using IRLS method.
 
   Notes:
 
+
   * SVD decomposition is used instead of more common QR
   * intercept term is added implicitely if `intercept?` is set to `true` (by default)
   * `:nbinomial` family requires `:nbinomial-theta` parameter
   * Each family has its own default (canonical) link.
 
   Returned record implementes `IFn` protocol and contains:
+
 
   * `:model` - set to `:glm`
   * `:intercept?` - whether intercept term is included or not
@@ -427,6 +449,7 @@ Fit a generalized linear model using IRLS method.
 
   Analysis, delay containing a map:
 
+
   * `:residuals` - `:standardized` and `:studentized` residuals (pearsons and deviance)
   * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
@@ -447,6 +470,7 @@ Fit a generalized linear model using IRLS method.
 
 #### glm-nbinomial
 
+
 + `(glm-nbinomial ys xss)`
 + `(glm-nbinomial ys xss {:keys [nbinomial-theta max-iters epsilon], :or {max-iters 25, epsilon 1.0E-8}, :as params})`
 
@@ -457,6 +481,7 @@ Fits theta for negative binomial glm in iterative process.
   Arguments and parameters are the same as for `glm`.
 
   Additional parameters:
+
 
   * `:nbinomial-theta` - initial theta used as a starting point for optimization.
 
@@ -488,6 +513,7 @@ Fits theta for negative binomial glm in iterative process.
 
 #### lm
 
+
 + `(lm ys xss)`
 + `(lm ys xss {:keys [tol weights alpha intercept? offset transformer names decomposition augmentation augmentation-params], :or {tol 1.0E-8, alpha 0.05, intercept? true, decomposition :cholesky}})`
 
@@ -495,11 +521,13 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
   Arguments:
 
+
   * `ys` - response vector
   * `xss` - terms of systematic component
   * optional parameters
 
   Parameters:
+
 
   * `:tol` - tolerance for matrix decomposition (SVD and Cholesky/QR decomposition), default: `1.0e-8`
   * `:weights` - optional weights for WLS
@@ -515,11 +543,13 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
   Notes:
 
+
   * SVD decomposition is used instead of more common QR
   * intercept term is added implicitely if `intercept?` is set to `true` (by default)
   * Two variants of AIC/BIC are calculated, one based on log-likelihood, second on RSS/n
 
   Returned record implementes `IFn` protocol and contains:
+
 
   * `:model` - `:ols` or `:wls`
   * `:intercept?` - whether intercept term is included or not
@@ -547,6 +577,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
   
   Analysis, delay containing a map:
 
+
   * `:residuals` - `:standardized` and `:studentized` weighted residuals
   * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
@@ -568,6 +599,7 @@ Fit a linear model using ordinary (OLS) or weighted (WLS) least squares.
 
 #### map->Family
 
+
 + `(map->Family m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.Family, taking a map of keywords to field values.
@@ -585,6 +617,7 @@ Factory function for class fastmath.ml.regression.Family, taking a map of keywor
 
 
 #### map->GLMData
+
 
 + `(map->GLMData m__8001__auto__)`
 
@@ -604,6 +637,7 @@ Factory function for class fastmath.ml.regression.GLMData, taking a map of keywo
 
 #### map->LMData
 
+
 + `(map->LMData m__8001__auto__)`
 
 Factory function for class fastmath.ml.regression.LMData, taking a map of keywords to field values.
@@ -621,6 +655,7 @@ Factory function for class fastmath.ml.regression.LMData, taking a map of keywor
 
 
 #### map->Link
+
 
 + `(map->Link m__8001__auto__)`
 
@@ -640,6 +675,7 @@ Factory function for class fastmath.ml.regression.Link, taking a map of keywords
 
 #### pava
 
+
 + `(pava ys)`
 + `(pava ys order)`
 + `(pava ys ws order)`
@@ -650,6 +686,7 @@ Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks v
 
   Arguments:
   
+
   - `ys` - response variable data
   - `ws` - weights (optional)
   - `order` - `:asc` or `:increasing` (default), `:desc` or `:decreasing`, `:non-decreasing` and `:non-increasing`
@@ -670,6 +707,7 @@ Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks v
 
 #### polynomial-transformer
 
+
 + `(polynomial-transformer xs degree)`
 
 Creates polynomial transformer for xs
@@ -688,6 +726,7 @@ Creates polynomial transformer for xs
 
 #### predict
 
+
 + `(predict model xs)`
 + `(predict model xs stderr?)`
 
@@ -697,6 +736,7 @@ Predict from the given model and data point.
   If model is fitted with offset, first element of data point should contain provided offset.
 
   Expected data point:
+
 
   * `[x1,x2,...,xn]` - when model was trained without offset
   * `[offset,x1,x2,...,xn]` - when offset was used for training
@@ -717,6 +757,7 @@ Predict from the given model and data point.
 
 #### quantile-residuals
 
+
 + `(quantile-residuals {:keys [quantile-residuals-fun residuals dispersion], :as model})`
 
 Quantile residuals for a model, possibly randomized.
@@ -734,6 +775,7 @@ Quantile residuals for a model, possibly randomized.
 
 
 #### trigonometric-transformer
+
 
 + `(trigonometric-transformer period degree)`
 
@@ -758,6 +800,7 @@ Creates trigonometric transformer for xs
 
 #### dbscan
 
+
 + `(dbscan xss)`
 + `(dbscan xss {:keys [eps points distance add-data?], :or {distance :euclidean, add-data? true}})`
 
@@ -774,6 +817,7 @@ Creates trigonometric transformer for xs
 
 
 #### fuzzy-kmeans
+
 
 + `(fuzzy-kmeans xss)`
 + `(fuzzy-kmeans xss {:keys [clusters fuzziness max-iters distance epsilon rng add-data?], :or {clusters 1, fuzziness 2, max-iters -1, distance :euclidean, epsilon 0.001, rng (r/rng :default), add-data? true}})`
@@ -792,6 +836,7 @@ Creates trigonometric transformer for xs
 
 #### infer-dbscan-radius
 
+
 + `(infer-dbscan-radius xss dist)`
 
 
@@ -807,6 +852,7 @@ Creates trigonometric transformer for xs
 
 
 #### kmeans++
+
 
 + `(kmeans++ xss)`
 + `(kmeans++ xss {:keys [clusters max-iters distance rng empty-cluster-strategy trials add-data?], :or {clusters 1, max-iters -1, distance :euclidean, empty-cluster-strategy :largest-variance, trials 1, rng (r/rng :default), add-data? true}})`

@@ -384,10 +384,12 @@
         res (reduce (fn [buff ^long id]
                       (conj buff (Vec2. (Array/aget txs id)
                                         (Array/aget txs (m/inc id))))) [(Vec2. (Array/aget txs 0) 0.0)] (range 2 (if e? len len-) 2))]
-    (with-meta (conj res (if e?
-                           (Vec2. (Array/aget txs 1) 0.0)
-                           (Vec2. (Array/aget txs len-) (Array/aget txs 1))))
-      {::fft {:kind :real :even? e?}})))
+    (with-meta (if (m/one? len) ;; single value
+                 res
+                 (conj res (if e?
+                             (Vec2. (Array/aget txs 1) 0.0)
+                             (Vec2. (Array/aget txs len-) (Array/aget txs 1)))))
+      {::fft {:kind :real :nyquist? e?}})))
 
 (defn- crfft
   ([xs] (crfft xs false))
@@ -412,12 +414,12 @@
   * `options` - A map of configuration options:
       * `:spectrum` - Determines the output format for real-valued inputs. Options are `:single-sided` (default), which returns `(N/2)+1` coefficients, or `:double-sided`, which returns the full `N` length complex spectrum.
 
-  Returns a sequence of `fastmath.vector.Vec2` representing complex coefficients in the frequency domain. The result includes metadata (e.g., `:kind`, `:even?`) required by [[ifft]] to correctly perform the inverse transform.
+  Returns a sequence of `fastmath.vector.Vec2` representing complex coefficients in the frequency domain. The result includes metadata (e.g., `:kind`, `:nyquist?`) required by [[ifft]] to correctly perform the inverse transform.
 
   These are:
 
   * `:kind` - can be `:real` or `:complex`
-  * `:even?` - `true`, when signal length was even
+  * `:nyquist?` - `true`, when real signal length was even and contained nyquist frequency
   * `:real?` - `true` when complex fft was performed
 
   Returned sequence contains Nyquist frequency coefficient for real and even signals."
@@ -439,7 +441,7 @@
   * `xs` - A sequence of complex coefficients, typically as `fastmath.vector.Vec2` objects.
   * `options` - An optional map of configuration keys (usually inferred from `xs` metadata):
     * `:kind` - The type of transform to perform: `:real` (default) or `:complex`.
-    * `:even?` - For `:real` transforms, indicates if the original time-domain signal had an even length (crucial for correctly placing the Nyquist frequency).
+    * `:nyquist?` - For `:real` transforms, indicates if the original time-domain signal had an even length (crucial for correctly placing the Nyquist frequency).
     * `:real?` - For `:complex` transforms, indicates if the output should be narrowed to real numbers (doubles).
     * `:scale?` - For scaling the output, default: `true`.
 
@@ -447,19 +449,19 @@
   Returns a sequence representing the time-domain signal. For `:real` kind, it returns a sequence of doubles. For `:complex` kind, it returns a sequence of `Vec2` (complex numbers) unless `:real?` is set to true."
   ([xs] (ifft xs nil))
   ([xs opts]
-   (let [{:keys [kind real? even?]
-          :or {kind :real real? true even? true}} (merge (::fft (meta xs)) opts)]
+   (let [{:keys [kind real? nyquist?]
+          :or {kind :real real? true nyquist? true}} (merge (::fft (meta xs)) opts)]
      (if (= :real kind)
        (let [t (transformer :real :fft)
-             xs (if even?
+             xs (if nyquist?
                   (let [[^double nyquist] (last xs)
                         ^doubles xs (double-array (mapcat identity (butlast xs)))]
                     (Array/aset xs 1 nyquist)
                     xs)
                   (let [xs (mapcat identity xs)
                         im (double (last xs))
-                        ^doubles xs (double-array (butlast xs))]
-                    (Array/aset xs 1 im)
+                        ^doubles xs (double-array (butlast xs))]                    
+                    (when-not (m/one? (alength xs)) (Array/aset xs 1 im)) ;; single value
                     xs))]
          (seq (reverse-1d t xs opts)))
        (let [t (transformer :complex (if real? :rfft :fft))

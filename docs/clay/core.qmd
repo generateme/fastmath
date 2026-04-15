@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: core.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="core_files/md-default79.js" type="text/javascript"></script><script src="core_files/md-default80.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 # Core {.unnumbered}
 
@@ -28,12 +27,14 @@ Collection of type hinted math macros and functions. Partially backed by Java st
 
 There is a possibility to replace `clojure.core` functions with a selection of `fastmath.core` macros. Call:
 
+
 * `(m/use-primitive-operators)` to replace functions with macros
 * `(m/unuse-primitive-operators)` to revert replacement.
 
 Be aware that there are some differences and `fastmath.core` versions shoudn't be treated as a drop-in replacement for `clojure.core` versions. Also, since Clojure 1.12, always call `unuse-primitive-operators` at the end of the namespace.
 
 Here is the complete list of replaced functions:
+
 
 * `* + - /`
 * `> < >= <= ==`
@@ -64,6 +65,7 @@ When used in an expression oprations are inlined and can accept mixture of `long
 When used in higher order function, `double` is returned always. To operate on `long` primitive type, reach for `long-` versions.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `+`, `-`, `*`, `/`, `quot`
 * `inc`, `dec`
 * `min`, `max`, `smooth-max`, `constrain`
@@ -71,6 +73,7 @@ When used in higher order function, `double` is returned always. To operate on `
 * `abs`
 
 `long` versions
+
 
 * `long-add`, `long-sub`, `long-mult`, `long-div`, `long-quot`
 * `long-inc`, `long-dec`
@@ -82,6 +85,7 @@ When used in higher order function, `double` is returned always. To operate on `
 
 ### Arithmetics
 
+
 * addition, incrementation
 * subtraction, decrementation
 * multiplication
@@ -90,6 +94,7 @@ When used in higher order function, `double` is returned always. To operate on `
 
 ::: {.callout-warning title="Division differences"}
 Please note that there some differences between division in `fastmath` and `clojure.core`
+
 
 * when called with one argument (`double` or `long`) `m//` always returns reciprocal (`clojure.core//` returns a ratio)
 * when called on `long` arguments, `m//` is a long division (`clojure.core//` returns a ratio)
@@ -240,14 +245,26 @@ Absolute value
 
 ### Remainders
 
+
 * `rem` and `mod` are the same as in `clojure.core`,
 * `remainder` returns $dividend - divisor * n$, where $n$ is the mathematical integer closest to $\frac{dividend}{divisor}$. Returned value is inside the $[\frac{-|divisor|}{2},\frac{|divisor|}{2}]$ range.
 * `wrap` wraps the value to be within given interval (right open) $[a,b)$ `
 
+
+::: {.callout-note}
+## ERR
+```
+Apr 15, 2026 4:06:58 PM clojure.tools.logging$eval21120$fn__21123 invoke
+INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 7494, :objects-after 5890}]
+
+```
+:::
+
+
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/0.png" /></td><td><img class="clay-image" src="core_files/1.png" /></td></tr><tr><td><img class="clay-image" src="core_files/2.png" /></td><td><img class="clay-image" src="core_files/3.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image0.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image1.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image2.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image3.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -311,6 +328,7 @@ Smooth maximum is a family of functions $\max_\alpha(xs)$ for which $\lim_{\alph
 
 Five types of smooth maximum are defined (see [wikipedia](https://en.wikipedia.org/wiki/Smooth_maximum) for formulas):
 
+
 * `:lse` - LogSumExp (default)
 * `:boltzmann` - Boltzmann operator, works for small alpha values
 * `:mellowmax`
@@ -324,7 +342,7 @@ The following plots show value of the smooth max for different $\alpha$ and set 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/4.png" /></td><td><img class="clay-image" src="core_files/5.png" /></td></tr><tr><td><img class="clay-image" src="core_files/6.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image4.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image5.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image6.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -335,7 +353,7 @@ The following plots are defined only for positive $\alpha$.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/7.png" /></td><td><img class="clay-image" src="core_files/8.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image7.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image8.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -366,6 +384,7 @@ The following plots are defined only for positive $\alpha$.
 Fused multiply-add $fma(a,b,c)=a+bc$ is the operation implemented with better accuracy in Java 9+ and as one instruction (see more [here](https://en.wikipedia.org/wiki/Multiply%E2%80%93accumulate_operation#Fused_multiply%E2%80%93add) and [here](https://docs.oracle.com/javase/9/docs/api/java/lang/Math.html#fma-double-double-double-)). When Java 8 is used `fma` is replaced with direct `a+bc` formula.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `fma`, `muladd`, `negmuladd`
 * `difference-of-products`, `sum-of-products`
 :::
@@ -422,12 +441,14 @@ The following example shows that $x^2-y^2$ differs from the best floating point 
 Various rounding functions.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `floor`, `ceil`
 * `round`, `round-even`, `rint`, `approx`, `trunc`, `itrunc`
 * `qfloor`, `qceil`, `qround`
 * `frac`, `sfrac`
 * `round-up-pow2`
 :::
+
 
 * `floor`, `ceil` and `rint` accept additional argument, `scale`, which allows to round to the nearest multiple of scale.
 * `round` returns `long` while `rint` returns `double`
@@ -442,7 +463,7 @@ Various rounding functions.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/9.png" /></td><td><img class="clay-image" src="core_files/10.png" /></td></tr><tr><td><img class="clay-image" src="core_files/11.png" /></td><td><img class="clay-image" src="core_files/12.png" /></td></tr><tr><td><img class="clay-image" src="core_files/13.png" /></td><td><img class="clay-image" src="core_files/14.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image9.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image10.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image11.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image12.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image13.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image14.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -499,6 +520,7 @@ The difference between `rint` and `round`. `round` is bounded by minimum and max
 Sign of the number.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `signum` and `sgn`
 * `copy-sign`
 :::
@@ -524,7 +546,7 @@ $$\operatorname{copy-sign}(x,y)=\begin{cases}
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/15.png" /></td><td><img class="clay-image" src="core_files/16.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image15.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image16.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -557,6 +579,7 @@ $$\operatorname{copy-sign}(x,y)=\begin{cases}
 Various predicates and comparison functions
 
 ::: {.callout-tip title="Defined functions"}
+
 * `==`, `eq`, `not==`, `<`, `>`, `<=`, `>=`
 * `approx-eq`, `approx=`, `delta-eq`, `delta=`
 * `zero?`, `negative-zero?`, `near-zero?`, `one?`
@@ -565,6 +588,7 @@ Various predicates and comparison functions
 * `integer?`
 * `nan?`, `inf?`, `pos-inf?`, `neg-inf?`, `invalid-double?`, `valid-double?`
 * `between?`, `between-?`
+* `power-of-two?``
 :::
 
 
@@ -574,11 +598,13 @@ Comparison functions operate on primitive values and can handle multiple argumen
 
 Standard comparisons:
 
+
 * `==`, `eq`: Primitive equality. Note that `(m/== 1.0 1)` is true. Multi-arity checks if the first argument is equal to all subsequent arguments.
 * `not==`: Primitive inequality. Multi-arity checks if all arguments are pairwise unique.
 * `<`, `>`, `<=`, `>=`: Standard primitive inequalities. Multi-arity checks if the values are monotonically increasing/decreasing.
 
 Approximate equality:
+
 
 * `approx-eq`, `approx=`: Checks for equality after rounding to a specified number of decimal digits. Can be inaccurate.
 * `delta-eq`, `delta=`: Checks if the absolute difference between two numbers is within a given tolerance (absolute and/or relative). This is the recommended way to compare floating-point numbers for near equality
@@ -587,6 +613,7 @@ Approximate equality:
 
 
 Range checks:
+
 
 * `between?`: Checks if a value is within a closed interval $[a, b]$, i.e., $a \le \text{value} \le b$.
 * `between-?`: Checks if a value is within a half-open interval $(a, b]$, i.e., $a < \text{value} \le b$.
@@ -657,6 +684,7 @@ Range checks:
 
 Basic predicates for common number properties:
 
+
 * `zero?`: Checks if value is 0 or 0.0.
 * `negative-zero?`: Checks specifically for the floating point `-0.0`.
 * `near-zero?`: Checks if absolute value is within absolute and/or relative tolerance of zero: $|x| < \text{abs-tol}$ or $|x| < \max(\text{abs-tol}, \text{rel-tol} \cdot |x|)$.
@@ -668,6 +696,7 @@ Basic predicates for common number properties:
 * `even?`: Checks if a long is even.
 * `odd?`: Checks if a long is odd.
 * `integer?`: Checks if a number (long or double) has a zero fractional part.
+* `power-of-two?`: Checks if a positive number is a power of two, $v=2^p$ for some $p$.
 
 ::: {.callout-note title="Examples"}
 
@@ -703,6 +732,8 @@ Basic predicates for common number properties:
 (m/integer? 1) ;; => true
 (m/integer? 1.0) ;; => true
 (m/integer? 1.1) ;; => false
+(m/power-of-two? 128) ;; => true
+(m/power-of-two? 129) ;; => false
 ```
 :::
 
@@ -710,6 +741,7 @@ Basic predicates for common number properties:
 :::
 
 Predicates for floating point special values:
+
 
 * `nan?`: Checks if value is Not-a-Number (NaN).
 * `inf?`: Checks if value is positive or negative infinity (Inf or -Inf).
@@ -759,6 +791,7 @@ Predicates for floating point special values:
 Trigonometric (with historical variants) and hyperbolic functions.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `radians`, `degrees`
 * `sin`, `cos`, `tan`, `cot`, `sec`, `csc`
 * `qsin`, `qcos`
@@ -781,8 +814,10 @@ Trigonometric (with historical variants) and hyperbolic functions.
 
 Convert between radians and degrees
 
+
 * `radians(deg)`: Converts an angle from degrees to radians.
 $$\text{radians} = \text{degrees} \cdot \frac{\pi}{180^\circ}$$
+
 * `degrees(rad)`: Converts an angle from radians to degrees.
 $$\text{degrees} = \text{radians} \cdot \frac{180^\circ}{\pi}$$
 
@@ -806,6 +841,7 @@ $$\text{degrees} = \text{radians} \cdot \frac{180^\circ}{\pi}$$
 
 Standard trigonometric functions:
 
+
 * `sin(x)`: Sine of `x`.
 * `cos(x)`: Cosine of `x`.
 * `tan(x)`: Tangent of `x`, $\tan(x) = \frac{\sin(x)}{\cos(x)}$.
@@ -816,7 +852,7 @@ Standard trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/17.png" /></td><td><img class="clay-image" src="core_files/18.png" /></td></tr><tr><td><img class="clay-image" src="core_files/19.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image17.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image18.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image19.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -841,13 +877,14 @@ Standard trigonometric functions:
 
 Quick trigonometric functions:
 
+
 * `qsin(x)`: Fast, less accurate sine.
 * `qcos(x)`: Fast, less accurate cosine.
 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/20.png" /></td><td><img class="clay-image" src="core_files/21.png" /></td></tr><tr><td><img class="clay-image" src="core_files/22.png" /></td><td><img class="clay-image" src="core_files/23.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image20.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image21.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image22.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image23.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -869,6 +906,7 @@ Quick trigonometric functions:
 :::
 
 Pi-scaled trigonometric functions:
+
 
 * `sinpi(x)`: Sine of $\pi x$, $\sin(\pi x)$.
 * `cospi(x)`: Cosine of $\pi x$, $\cos(\pi x)$.
@@ -899,6 +937,7 @@ Pi-scaled trigonometric functions:
 
 Inverse trigonometric functions:
 
+
 * `asin(x)`: Arcsine of `x`, $\arcsin(x)$.
 * `acos(x)`: Arccosine of `x`, $\arccos(x)$.
 * `atan(x)`: Arctangent of `x`, $\arctan(x)$.
@@ -910,7 +949,7 @@ Inverse trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/24.png" /></td><td><img class="clay-image" src="core_files/25.png" /></td></tr><tr><td><img class="clay-image" src="core_files/26.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image24.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image25.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image26.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -953,11 +992,7 @@ Inverse trigonometric functions:
 :::
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="core_files/27.png" />
-```
-
+![](core_files/image27.png)
 :::
 
 
@@ -965,6 +1000,7 @@ Inverse trigonometric functions:
 ### Hyperbolic
 
 Hyperbolic functions
+
 
 * `sinh(x)`: Hyperbolic sine, $\sinh(x) = \frac{e^x - e^{-x}}{2}$.
 * `cosh(x)`: Hyperbolic cosine, $\cosh(x) = \frac{e^x + e^{-x}}{2}$.
@@ -976,7 +1012,7 @@ Hyperbolic functions
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/28.png" /></td><td><img class="clay-image" src="core_files/29.png" /></td></tr><tr><td><img class="clay-image" src="core_files/30.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image28.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image29.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image30.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -999,6 +1035,7 @@ Hyperbolic functions
 ### Inverse hyperbolic
 
 Inverse hyperbolic functions:
+
 
 * `asinh(x)`: Area hyperbolic sine, $\operatorname{arsinh}(x) = \ln(x + \sqrt{x^2 + 1})$.
 * `acosh(x)`: Area hyperbolic cosine, $\operatorname{arcosh}(x) = \ln(x + \sqrt{x^2 - 1})$ for $x \ge 1$.
@@ -1027,7 +1064,7 @@ Inverse hyperbolic functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/31.png" /></td><td><img class="clay-image" src="core_files/32.png" /></td></tr><tr><td><img class="clay-image" src="core_files/33.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image31.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image32.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image33.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1037,6 +1074,7 @@ Inverse hyperbolic functions:
 ### Historical
 
 Historical/Specific trigonometric functions:
+
 
 * `crd(x)`: Chord, $\operatorname{crd}(x) = 2 \sin(\frac{x}{2})$.
 * `acrd(x)`: Inverse chord, $\operatorname{acrd}(x) = 2 \arcsin(\frac{x}{2})$.
@@ -1097,7 +1135,7 @@ Historical/Specific trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/34.png" /></td><td><img class="clay-image" src="core_files/35.png" /></td></tr><tr><td><img class="clay-image" src="core_files/36.png" /></td><td><img class="clay-image" src="core_files/37.png" /></td></tr><tr><td><img class="clay-image" src="core_files/38.png" /></td><td><img class="clay-image" src="core_files/39.png" /></td></tr><tr><td><img class="clay-image" src="core_files/40.png" /></td><td><img class="clay-image" src="core_files/41.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image34.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image35.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image36.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image37.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image38.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image39.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image40.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image41.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1108,6 +1146,7 @@ The haversine formula for calculating the square of half the chord length betwee
 $$ a = \sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos(\phi_1) \cos(\phi_2) \sin^2\left(\frac{\lambda_2 - \lambda_1}{2}\right) $$
 
 In this formula:
+
 * $a$ is the square of half the chord length of the great-circle arc.
 * $\phi_1, \phi_2$ are the latitudes of the two points.
 * $\lambda_1, \lambda_2$ are the longitudes of the two points.
@@ -1162,6 +1201,7 @@ Which is equivalent to a distance in km on Earth:
 This section covers exponential, logarithmic, and power functions, including various specialized and numerically stable variants.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `exp`, `exp2`, `exp10`, `qexp`
 * `ln`, `log`, `logb`, `log2`, `log10`, `qlog`
 * `expm1`, `exprel`, `xexpx`, `xexpy`, `cexpexp`, `expexp` 
@@ -1178,6 +1218,7 @@ This section covers exponential, logarithmic, and power functions, including var
 
 ### Exponents
 
+
 * `exp(x)`: Natural exponential function $e^x$.
 * `exp2(x)`: Base-2 exponential function $2^x$.
 * `exp10(x)`: Base-10 exponential function $10^x$.
@@ -1186,7 +1227,7 @@ This section covers exponential, logarithmic, and power functions, including var
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/42.png" /></td><td><img class="clay-image" src="core_files/43.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image42.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image43.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1210,6 +1251,7 @@ This section covers exponential, logarithmic, and power functions, including var
 
 ### Logarithms
 
+
 * `ln(x)`: Natural logarithm $\ln(x)$. Alias for `log(x)` with one argument.
 * `log(x)`: Natural logarithm $\ln(x)$. With two arguments, computes $\log_b(x)$.
 * `logb(b, x)`: Logarithm of $x$ with base $b$, $\log_b(x)$.
@@ -1221,7 +1263,7 @@ This section covers exponential, logarithmic, and power functions, including var
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/44.png" /></td><td><img class="clay-image" src="core_files/45.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image44.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image45.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1252,6 +1294,7 @@ This section covers exponential, logarithmic, and power functions, including var
 
 These functions provide numerically stable computations for expressions involving `exp` and `log` especially for small or large arguments.
 
+
 * `expm1(x)`: $e^x - 1$, computed accurately for small $x$.
 * `exprel(x)`: $(e^x - 1)/x$, computed accurately for small $x$. Returns 1 for $x=0$.
 * `xexpx(x)`: $x e^x$.
@@ -1276,7 +1319,7 @@ These functions provide numerically stable computations for expressions involvin
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/46.png" /></td><td><img class="clay-image" src="core_files/47.png" /></td></tr><tr><td><img class="clay-image" src="core_files/48.png" /></td><td><img class="clay-image" src="core_files/49.png" /></td></tr><tr><td><img class="clay-image" src="core_files/50.png" /></td><td><img class="clay-image" src="core_files/51.png" /></td></tr><tr><td><img class="clay-image" src="core_files/52.png" /></td><td><img class="clay-image" src="core_files/53.png" /></td></tr><tr><td><img class="clay-image" src="core_files/54.png" /></td><td><img class="clay-image" src="core_files/55.png" /></td></tr><tr><td><img class="clay-image" src="core_files/56.png" /></td><td><img class="clay-image" src="core_files/57.png" /></td></tr><tr><td><img class="clay-image" src="core_files/58.png" /></td><td><img class="clay-image" src="core_files/59.png" /></td></tr><tr><td><img class="clay-image" src="core_files/60.png" /></td><td><img class="clay-image" src="core_files/61.png" /></td></tr><tr><td><img class="clay-image" src="core_files/62.png" /></td><td><img class="clay-image" src="core_files/63.png" /></td></tr><tr><td><img class="clay-image" src="core_files/64.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image46.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image47.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image48.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image49.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image50.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image51.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image52.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image53.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image54.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image55.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image56.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image57.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image58.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image59.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image60.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image61.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image62.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image63.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image64.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1317,6 +1360,7 @@ These functions provide numerically stable computations for expressions involvin
 
 These functions are used for numerically stable computation of sums and differences of exponents.
 
+
 * `logaddexp(x, y)`: $\ln(e^x + e^y)$.
 * `logsubexp(x, y)`: $\ln(|e^x - e^y|)$.
 * `logsumexp(xs)`: $\ln(\sum_{i} e^{x_i})$.
@@ -1343,13 +1387,14 @@ These functions are used for numerically stable computation of sums and differen
 
 Functions used in statistics and machine learning.
 
+
 * `sigmoid(x)`: Sigmoid function $\sigma(x) = \frac{1}{1+e^{-x}}$. Also known as the logistic function.
 * `logit(x)`: Logit function $\operatorname{logit}(x) = \ln(\frac{x}{1-x})$ for $0 < x < 1$.
 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/65.png" /></td><td><img class="clay-image" src="core_files/66.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image65.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image66.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1376,6 +1421,7 @@ Functions used in statistics and machine learning.
 ### Roots and Powers
 
 Basic root and power functions.
+
 
 * `sqrt(x)`: Square root $\sqrt{x}$.
 * `cbrt(x)`: Cubic root $\sqrt[3]{x}$.
@@ -1423,7 +1469,7 @@ Basic root and power functions.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/67.png" /></td><td><img class="clay-image" src="core_files/68.png" /></td></tr><tr><td><img class="clay-image" src="core_files/69.png" /></td><td><img class="clay-image" src="core_files/70.png" /></td></tr><tr><td><img class="clay-image" src="core_files/71.png" /></td><td><img class="clay-image" src="core_files/72.png" /></td></tr><tr><td><img class="clay-image" src="core_files/73.png" /></td><td><img class="clay-image" src="core_files/74.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image67.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image68.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image69.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image70.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image71.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image72.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image73.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image74.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1433,6 +1479,7 @@ Basic root and power functions.
 ### Exponent/Log Utilities
 
 Functions related to powers of 2 and general bases.
+
 
 * `low-2-exp(x)`: Finds the largest integer $n$ such that $2^n \le |x|$. Returns `long`.
 * `high-2-exp(x)`: Finds the smallest integer $n$ such that $2^n \ge |x|$. Returns `long`.
@@ -1460,17 +1507,20 @@ Functions related to powers of 2 and general bases.
 Functions for performing bitwise operations on `long` primitive types.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `bit-and`, `bit-or`, `bit-xor`,
 * `bit-not`, `bit-nand`, `bit-nor`, `bit-xnor`, `bit-and-not`
 * `bit-set`, `bit-clear`, `bit-flip`, `bit-test`
 * `<<`, `bit-shift-left`, `>>`, `bit-shift-right`, `>>>`, `unsigned-bit-shift-right`
 * `bit-count`
+* `most-significant-bit`, `leading-zero-bits``
 :::
 
 
 ### Logical Bitwise Operations
 
 These functions perform standard logical operations on the individual bits of their `long` arguments. They are inlined and accept one or more arguments for multi-arity operations.
+
 
 *   `bit-and`: Bitwise AND ($\land$).
 *   `bit-or`: Bitwise OR ($\lor$).
@@ -1509,6 +1559,7 @@ These functions perform standard logical operations on the individual bits of th
 
 These functions shift the bits of a `long` value left or right.
 
+
 *   `<<` / `bit-shift-left`: Signed left shift ($x \ll \text{shift}$). Bits shifted off the left are discarded, and zero bits are shifted in from the right.
 *   `>>` / `bit-shift-right`: Signed right shift ($x \gg \text{shift}$). Bits shifted off the right are discarded. The sign bit (the leftmost bit) is extended to fill in from the left, preserving the number's sign. 
 *   `>>>` / `unsigned-bit-shift-right`: Unsigned right shift ($x \ggg \text{shift}$). Bits shifted off the right are discarded. Zero bits are shifted in from the left, regardless of the number's sign.
@@ -1539,6 +1590,7 @@ These functions shift the bits of a `long` value left or right.
 
 Functions to manipulate individual bits within a `long` value.
 
+
 *   `bit-set`: Sets a specific bit at the given index to `1`.
 *   `bit-clear`: Clears a specific bit at the given index to `0`.
 *   `bit-flip`: Flips the state of a specific bit at the given index (`0` becomes `1`, `1` becomes `0`).
@@ -1561,9 +1613,16 @@ Functions to manipulate individual bits within a `long` value.
 :::
 
 
-### Bit count
+### Counts and bit positions
 
-Count set bits in a `long` value.
+Functions that count or find bit specific set bit position:
+
+
+* `bit-count` - number of set bits
+* `leading-zero-bits` - number of leading zero bits, returns `0` for negative numbers
+* `trailing-zero-bits` - number of trailing zero bits, returns `64` for `0` 
+* `most-significant-bit` - position of the most significant set bit, returns `-1` for `0` and `63` for negative numbers
+* `least-significant-bit` - position of the least significant set bit, returns `-1` for `0`
 
 ::: {.callout-note title="Examples"}
 
@@ -1573,6 +1632,22 @@ Count set bits in a `long` value.
 (m/bit-count 255) ;; => 8
 (m/bit-count 1) ;; => 1
 (m/bit-count -1) ;; => 64
+(m/leading-zero-bits 123) ;; => 57
+(m/leading-zero-bits Long/MAX_VALUE) ;; => 1
+(m/leading-zero-bits -1) ;; => 0
+(m/leading-zero-bits Long/MIN_VALUE) ;; => 0
+(m/trailing-zero-bits 32) ;; => 5
+(m/trailing-zero-bits 1) ;; => 0
+(m/trailing-zero-bits 0) ;; => 64
+(m/most-significant-bit 0) ;; => -1
+(m/most-significant-bit 1) ;; => 0
+(m/most-significant-bit 2) ;; => 1
+(m/most-significant-bit 3) ;; => 1
+(m/most-significant-bit -1) ;; => 63
+(m/most-significant-bit Long/MIN_VALUE) ;; => 63
+(m/least-significant-bit 0) ;; => -1
+(m/least-significant-bit 1) ;; => 0
+(m/least-significant-bit 32) ;; => 5
 ```
 :::
 
@@ -1585,10 +1660,12 @@ Count set bits in a `long` value.
 Functions for inspecting and manipulating the binary representation of floating-point numbers, and for finding adjacent floating-point values.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `next-double`, `prev-double`, `ulp`
 * `double-bits`, `double-high-bits`, `double-low-bits`, `bits->double`
 * `double-exponent`, `double-significand`
 :::
+
 
 * `next-double(x)`: Returns the floating-point value adjacent to `x` in the direction of positive infinity. Can take an optional `delta` argument to find the value `delta` steps away.
 * `prev-double(x)`: Returns the floating-point value adjacent to `x` in the direction of negative infinity. Can take an optional `delta` argument to find the value `delta` steps away.
@@ -1676,6 +1753,7 @@ Convert back to a double:
 Functions for common combinatorial calculations, including factorials and binomial coefficients.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `factorial20`, `factorial`, `inv-factorial`, `log-factorial`
 * `falling-factorial`, `falling-factorial-int`, `rising-factorial`, `rising-factorial-int`
 * `combinations`, `log-combinations`
@@ -1685,6 +1763,7 @@ Functions for common combinatorial calculations, including factorials and binomi
 ### Factorials
 
 The factorial of a non-negative integer $n$, denoted by $n!$, is the product of all positive integers less than or equal to $n$. $0!$ is defined as $1$.
+
 
 * `factorial20(n)`: Computes $n!$ for $0 \le n \le 20$ using a precomputed table. Returns `long`.
 * `factorial(n)`: Computes $n!$ for any non-negative integer $n$. For $n > 20$, it uses the Gamma function: $n! = \Gamma(n+1)$. Returns `double`.
@@ -1712,6 +1791,7 @@ The factorial of a non-negative integer $n$, denoted by $n!$, is the product of 
 
 These functions generalize the factorial to falling (descending) and rising (Pochhammer) products.
 
+
 * `falling-factorial-int(n, x)`: Computes the falling factorial $x^{\underline{n}} = x(x-1)\dots(x-n+1)$ for integer $n \ge 0$.
 * `falling-factorial(n, x)`: Computes the falling factorial for real $n$, $x^{\underline{n}} = \frac{\Gamma(x+1)}{\Gamma(x-n+1)}$.
 * `rising-factorial-int(n, x)`: Computes the rising factorial (Pochhammer symbol) $x^{\overline{n}} = x(x+1)\dots(x+n-1)$ for integer $n \ge 0$.
@@ -1736,6 +1816,7 @@ These functions generalize the factorial to falling (descending) and rising (Poc
 ### Combinations
 
 The binomial coefficient $\binom{n}{k}$ represents the number of ways to choose $k$ elements from a set of $n$ distinct elements, without regard to the order of selection.
+
 
 * `combinations(n, k)`: Computes the binomial coefficient $\binom{n}{k} = \frac{n!}{k!(n-k)!}$. Returns `double`.
 * `log-combinations(n, k)`: Computes the natural logarithm of the binomial coefficient, $\ln\binom{n}{k}$. Returns `double`.
@@ -1763,11 +1844,13 @@ The binomial coefficient $\binom{n}{k}$ represents the number of ways to choose 
 Functions for determining the rank of elements within a collection and the order (indices) required to sort it.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `rank`, `rank1`
 * `order`
 :::
 
 `rank` computes the rank of each element in a collection. Ranks are 0-based indices indicating the position an element would have if the collection were sorted. It supports various tie-breaking strategies:
+
 
 * `:average`: Assign the average rank to tied elements (default).
 * `:first`: Assign ranks based on their original order for ties.
@@ -1800,8 +1883,8 @@ Ascending
 (m/rank data :dense) ;; => (1 0 2 0 1 0 0 0)
 (m/rank data :min) ;; => (5 0 7 0 5 0 0 0)
 (m/rank data :max) ;; => (6 4 7 4 6 4 4 4)
-(m/rank data :random) ;; => [5 4 7 3 6 1 0 2]
-(m/rank data :random) ;; => [6 4 7 3 5 0 1 2]
+(m/rank data :random) ;; => [6 3 7 0 5 1 4 2]
+(m/rank data :random) ;; => [5 0 7 2 6 4 3 1]
 (m/rank data :first) ;; => [5 0 7 1 6 2 3 4]
 (m/rank data :last) ;; => [6 4 7 3 5 2 1 0]
 ```
@@ -1817,8 +1900,8 @@ Descending
 (m/rank data :dense true) ;; => (1 2 0 2 1 2 2 2)
 (m/rank data :min true) ;; => (1 3 0 3 1 3 3 3)
 (m/rank data :max true) ;; => (2 7 0 7 2 7 7 7)
-(m/rank data :random true) ;; => [1 4 0 3 2 5 6 7]
-(m/rank data :random true) ;; => [2 3 0 4 1 6 7 5]
+(m/rank data :random true) ;; => [1 3 0 6 2 7 4 5]
+(m/rank data :random true) ;; => [1 7 0 6 2 4 3 5]
 (m/rank data :first true) ;; => [1 3 0 4 2 5 6 7]
 (m/rank data :last true) ;; => [2 7 0 6 1 5 4 3]
 ```
@@ -1860,6 +1943,7 @@ Descending
 Functions for mapping values between numerical ranges (normalization) and for various types of interpolation, smoothing the transition between values. These tools are useful for graphics, animation, signal processing, and data manipulation.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `norm`, `mnorm`, `cnorm`, `make-norm`
 * `lerp`, `mlerp`
 * `smoothstep`
@@ -1870,6 +1954,7 @@ Functions for mapping values between numerical ranges (normalization) and for va
 ### Mapping and Normalization
 
 These functions map a value from one numerical range to another.
+
 
 * `norm(v, start, stop)`: Maps `v` from the range $[start, stop]$ to $[0, 1]$. The formula is $\frac{v - start}{stop - start}$.
 * `norm(v, start1, stop1, start2, stop2)`: Maps `v` from the range $[start1, stop1]$ to $[start2, stop2]$. The formula is $start2 + (stop2 - start2) \frac{v - start1}{stop1 - start1}$.
@@ -1901,6 +1986,7 @@ These functions map a value from one numerical range to another.
 
 Interpolation functions find intermediate values between two points based on a blending factor, often called `t` (for time). The factor `t` typically ranges from 0 to 1, where `t=0` corresponds to the start value and `t=1` to the stop value.
 
+
 * `lerp(start, stop, t)`: Linear interpolation. Blends `start` and `stop` linearly based on `t`. The formula is $start + t \cdot (stop - start)$.
 * `mlerp`: Macro version of `lerp` for inlining.
 * `smoothstep(edge0, edge1, x)`: Smooth interpolation between 0 and 1. If $x \le edge0$, returns 0. If $x \ge edge1$, returns 1. Otherwise, it performs a cubic Hermite interpolation for $x$ mapped from $[edge0, edge1]$ to $[0, 1]$. This provides a smooth transition with zero derivative at the edges. The formula for the interpolation step is $t^2 (3 - 2t)$, where $t = \operatorname{cnorm}(x, edge0, edge1)$.
@@ -1911,18 +1997,14 @@ Interpolation functions find intermediate values between two points based on a b
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="core_files/75.png" /></td><td><img class="clay-image" src="core_files/76.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image75.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image76.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="core_files/77.png" />
-```
-
+![](core_files/image77.png)
 :::
 
 
@@ -1953,16 +2035,20 @@ Functions for calculating distances between points or the magnitude (Euclidean n
 
 
 ::: {.callout-tip title="Defined functions"}
+
 * `dist`, `qdist`, `hypot`, `hypot-sqrt`
 * `haversine-dist`
 :::
 
+
 * `dist(x1, y1, x2, y2)`: Calculates the Euclidean distance between two 2D points $(x_1, y_1)$ and $(x_2, y_2)$. Also accepts pairs of coordinates `[x1 y1]` and `[x2 y2]`.
 $$ \operatorname{dist}((x_1, y_1), (x_2, y_2)) = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2} $$
+
 * `qdist`: A faster, less accurate version of `dist` using [[qsqrt]] instead of [[sqrt]].
 * `hypot(x, y)` and `hypot(x, y, z)`: Calculates the Euclidean norm (distance from the origin) of a 2D or 3D vector $\sqrt{x^2 + y^2}$ or $\sqrt{x^2 + y^2 + z^2}$. This function uses a numerically stable algorithm to avoid potential overflow or underflow issues compared to a direct calculation.
 $$ \operatorname{hypot}(x, y) = \sqrt{x^2 + y^2} $$
 $$ \operatorname{hypot}(x, y, z) = \sqrt{x^2 + y^2 + z^2} $$
+
 * `hypot-sqrt(x, y)` and `hypot-sqrt(x, y, z)`: Calculates the Euclidean norm using the direct formula $\sqrt{x^2+y^2}$ or $\sqrt{x^2+y^2+z^2}$. This may be less numerically stable than [[hypot]] for inputs with vastly different magnitudes.
 * `haversine-dist(lat1, lon1, lat2, lon2)`: Calculates the great-circle distance between two points on a sphere given their latitude and longitude (in radians), assuming a sphere with radius $R=1$. This function uses the haversine formula component computed by [[haversin]] (described in the Trigonometry section) and the inverse haversine formula to find the angle, then scales by $R=1$. Also accepts coordinate pairs `[lat1 lon1]` and `[lat2 lon2]`. The distance is $d = 2 \arcsin(\sqrt{a})$, where $a$ is the value computed by `(haversin lat1 lon1 lat2 lon2)`.
 
@@ -1992,10 +2078,12 @@ $$ \operatorname{hypot}(x, y, z) = \sqrt{x^2 + y^2 + z^2} $$
 Functions for partitioning numerical ranges and grouping data into intervals. These are useful for data analysis, histogram creation, and data binning.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `slice-range`, `cut`
 * `co-intervals`, `group-by-intervals`
 * `sample`
 :::
+
 
 * `slice-range(cnt)` / `slice-range(start, end, cnt)`: Generates a sequence of `cnt` evenly spaced `double` values between `start` and `end` (inclusive). If only `cnt` is provided, the range `[0.0, 1.0]` is used. If `cnt` is 1, returns the midpoint.
 * `cut(data, breaks)` / `cut(x1, x2, breaks)`: Divides a numerical range into `breaks` adjacent intervals. The range is either explicitly given by `x1, x2` or determined by the min/max finite values in `data`. Returns a sequence of 2-element vectors `[lower-bound upper-bound]`. The intervals are effectively $[min\_value, p_1], (p_1, p_2], \dots, (p_{breaks-1}, max\_value]$. The lower bound of the first interval is slightly adjusted downwards using [[prev-double]] to ensure the exact minimum is included.
@@ -2015,6 +2103,7 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 
 :::
 
+
 * `co-intervals(data, [number, overlap])`: Generates `number` (default 6) overlapping intervals from the sorted finite values in `data`. Each interval aims to contain a similar number of data points. `overlap` (default 0.5) controls the proportion of overlap between consecutive intervals. Returns a sequence of 2-element vectors `[lower-bound upper-bound]`.
 * `group-by-intervals(intervals, coll)` / `group-by-intervals(coll)`: Groups the values in `coll` into the provided `intervals`. Returns a map where keys are the interval vectors and values are sequences of numbers from `coll` falling into that interval (checked using [[between-?]] for $(lower, upper]$). If no intervals are provided, it first computes them using [[co-intervals]] on `coll`.
 
@@ -2031,8 +2120,8 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 
 ::: {.sourceClojure}
 ```clojure
-(m/co-intervals sample-data 4) ;; => ([10.361028838705494 13.575179292825112] [11.439938958995295 15.12402672157053] [14.226862820285236 19.755315163460335] [18.171271409207534 22.812045032794373])
-(m/co-intervals sample-data 4 0.2) ;; => ([10.361028838705494 11.607117501675683] [11.605872930745436 15.122782150640283] [15.029405863414258 19.717439549712285] [19.71619497878204 22.812045032794373])
+(m/co-intervals sample-data 4) ;; => ([5.234863065676247 14.558998535013508] [13.805386070116523 16.838232984618834] [16.100023442158758 20.478524577876367] [17.69189838238237 25.44126811617936])
+(m/co-intervals sample-data 4 0.2) ;; => ([5.234863065676247 14.164081517352304] [14.126917948547632 16.700442709703182] [16.13718701096343 19.241818603827394] [19.20465503502272 25.44126811617936])
 ```
 :::
 
@@ -2050,38 +2139,38 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 
 ::: {.sourceClojure}
 ```clojure
-{[10.361028838705494 13.575179292825112] (11.440561244460419
-                                          11.169822639131455
-                                          12.471234662081736
-                                          11.29193360374392
-                                          10.361651124170617
-                                          10.730130082479064
-                                          11.60649521621056
-                                          13.574557007359989),
- [11.439938958995295 15.12402672157053] (15.030028148879381
-                                         15.12215986517516
-                                         11.440561244460419
-                                         15.123404436105407
-                                         12.471234662081736
-                                         14.22748510575036
-                                         11.60649521621056
-                                         13.574557007359989),
- [14.226862820285236 19.755315163460335] (15.030028148879381
-                                          19.347879686502612
-                                          15.12215986517516
-                                          15.123404436105407
-                                          19.75469287799521
-                                          19.71681726424716
-                                          14.22748510575036
-                                          18.171893694672658),
- [18.171271409207534 22.812045032794373] (19.347879686502612
-                                          19.75469287799521
-                                          22.77497763540948
-                                          19.71681726424716
-                                          22.81142274732925
-                                          21.030280454258165
-                                          19.820627762118885
-                                          18.171893694672658)}
+{[13.805386070116523 16.838232984618834] (14.540416750611172
+                                          16.681860925300846
+                                          16.155768795365766
+                                          16.118605226561094
+                                          16.819651200216498
+                                          13.823967854518859
+                                          14.321355098383474
+                                          14.145499732949968),
+ [16.100023442158758 20.478524577876367] (16.681860925300846
+                                          16.155768795365766
+                                          17.710480166784706
+                                          20.45994279347403
+                                          16.118605226561094
+                                          16.819651200216498
+                                          18.642691186030024
+                                          19.223236819425058),
+ [17.69189838238237 25.44126811617936] (25.422686331777022
+                                        17.710480166784706
+                                        22.76995232657069
+                                        20.45994279347403
+                                        23.988690728355373
+                                        18.642691186030024
+                                        21.16877768951245
+                                        19.223236819425058),
+ [5.234863065676247 14.558998535013508] (13.327234626859958
+                                         5.2534448500785835
+                                         5.617355939340497
+                                         14.540416750611172
+                                         12.136433600237709
+                                         13.823967854518859
+                                         14.321355098383474
+                                         14.145499732949968)}
 ```
 :::
 
@@ -2105,11 +2194,7 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 :::
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="core_files/78.png" />
-```
-
+![](core_files/image78.png)
 :::
 
 
@@ -2119,7 +2204,9 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 This section contains a collection of miscellaneous utility functions that don't fit neatly into the preceding categories, including integer number theory functions, boolean operations, data structure conversions, and error calculation utilities.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `gcd`, `lcm`
+* `agm`
 * `bool-not`, `bool-xor`, `xor`
 * `identity-long`, `identity-double`
 * `relative-error`, `absolute-error`
@@ -2132,8 +2219,10 @@ This section contains a collection of miscellaneous utility functions that don't
 
 Functions for calculating the greatest common divisor (GCD) and least common multiple (LCM) of integers.
 
+
 * `gcd(a, b)`: Computes the greatest common divisor of two `long` integers `a` and `b`. Uses the binary GCD algorithm (Stein's algorithm), which is typically faster than the Euclidean algorithm for integers.
 $$ \operatorname{gcd}(a, b) = \max \{ d \in \mathbb{Z}^+ : d \mid a \land d \mid b \} $$
+
 * `lcm(a, b)`: Computes the least common multiple of two `long` integers `a` and `b`.
 $$ \operatorname{lcm}(a, b) = \frac{|a \cdot b|}{\operatorname{gcd}(a, b)} $$
 
@@ -2155,9 +2244,33 @@ $$ \operatorname{lcm}(a, b) = \frac{|a \cdot b|}{\operatorname{gcd}(a, b)} $$
 :::
 
 
+### Arithmetic-geometric mean
+
+Function which calcuates arithmetic-geometric mean (agM). Default number of iteration is set to 100 and absolute accuracy is 1.0e-12. The result has the following property:
+
+$$\operatorname{abM}(x,y)=\sqrt(xy)=\frac{1}{2}(x+y)$$
+
+::: {.callout-note title="Examples"}
+
+
+::: {.sourceClojure}
+```clojure
+(m/agm 24 6) ;; => 13.458171481725616
+(m/agm 0.001 1111) ;; => 114.0097510577018
+(m/agm 1.0E111 2.12345E15) ;; => 7.085827574301799E108
+(m/agm 1.0E-111 2.12345E-15) ;; => 1.061725E-15
+(m/agm 1.0E-111 2.12345E15) ;; => 1.141261114360715E13
+```
+:::
+
+
+:::
+
+
 ### Boolean and Identity Utilities
 
 Basic boolean operations and identity functions for primitive types.
+
 
 * `bool-not(x)`: Primitive boolean NOT. Returns `true` if `x` is logically false, `false` otherwise.
 * `bool-xor(x, y)` / `xor(x, y)`: Primitive boolean XOR (exclusive OR). Returns `true` if exactly one of `x` or `y` is logically true. Accepts multiple arguments, chaining the XOR operation.
@@ -2187,8 +2300,10 @@ Basic boolean operations and identity functions for primitive types.
 
 Functions to compute the difference between a value and its approximation.
 
+
 * `absolute-error(v, v-approx)`: Computes the absolute difference between a value `v` and its approximation `v-approx`.
 $$ \operatorname{absolute-error}(v, v_{\text{approx}}) = |v - v_{\text{approx}}| $$
+
 * `relative-error(v, v-approx)`: Computes the relative difference between a value `v` and its approximation `v-approx`.
 $$ \operatorname{relative-error}(v, v_{\text{approx}}) = \left| \frac{v - v_{\text{approx}}}{v} \right| $$
 
@@ -2212,6 +2327,7 @@ $$ \operatorname{relative-error}(v, v_{\text{approx}}) = \left| \frac{v - v_{\te
 
 Utilities for converting between Clojure sequences and primitive Java arrays (`double[]` and `double[][]`). These are often necessary for interoperation with Java libraries or for performance-critical operations.
 
+
 * `seq->double-array(vs)`: Converts a sequence `vs` into a `double[]` array. If `vs` is already a `double[]`, it is returned directly. If `vs` is a single number, returns a `double[]` of size 1 containing that number.
 * `double-array->seq(res)`: Converts a `double[]` array `res` into a sequence. This is an alias for Clojure's built-in `seq` function which works correctly for Java arrays.
 * `seq->double-double-array(vss)`: Converts a sequence of sequences `vss` into a `double[][]` array. If `vss` is already a `double[][]`, it is returned directly.
@@ -2222,9 +2338,9 @@ Utilities for converting between Clojure sequences and primitive Java arrays (`d
 
 ::: {.sourceClojure}
 ```clojure
-(m/seq->double-array [1 2 3]) ;; => #object["[D" 0x70099356 "[D@70099356"]
+(m/seq->double-array [1 2 3]) ;; => #object["[D" 0x65ceb6a7 "[D@65ceb6a7"]
 (m/double-array->seq (double-array [1.0 2.0 3.0])) ;; => (1.0 2.0 3.0)
-(m/seq->double-double-array [[1 2] [3 4]]) ;; => #object["[[D" 0x28ddcef9 "[[D@28ddcef9"]
+(m/seq->double-double-array [[1 2] [3 4]]) ;; => #object["[[D" 0x1684a8f9 "[[D@1684a8f9"]
 (m/double-double-array->seq (into-array (map double-array [[1 2] [3 4]]))) ;; => ((1.0 2.0) (3.0 4.0))
 ```
 :::
@@ -2236,6 +2352,7 @@ Utilities for converting between Clojure sequences and primitive Java arrays (`d
 ### Primitive Operators Toggle
 
 Macros to replace or restore core Clojure math functions with `fastmath.core` primitive-specialized versions. This can improve performance but should be used carefully as the `fastmath.core` versions have specific type and return value behaviors.
+
 
 * `use-primitive-operators`: Replaces a select set of `clojure.core` functions (like `+`, `-`, `*`, `/`, comparison operators, bitwise operators, `inc`, `dec`, predicates) with their primitive-specialized `fastmath.core` macro equivalents within the current namespace.
 * `unuse-primitive-operators`: Reverts the changes made by `use-primitive-operators`, restoring the original `clojure.core` functions in the current namespace. Recommended practice is to call this at the end of any namespace that calls `use-primitive-operators` (especially important in Clojure 1.12+).
@@ -2256,7 +2373,7 @@ Example usage (typically done at the top or bottom of a namespace):
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th>Constant symbol</th><th>Value</th><th>Description</th></tr></thead><tbody><tr><td>-E</td><td>-2.718281828459045</td><td><span data-qmd="Value of $-\mathrm{e}$"></span></td></tr><tr><td>-HALF_PI</td><td>-1.5707963267948966</td><td><span data-qmd="Value of $\frac{\pi}{2}$"></span></td></tr><tr><td>-PI</td><td>-3.141592653589793</td><td><span data-qmd="Value of $-\pi$"></span></td></tr><tr><td>-QUARTER_PI</td><td>-0.7853981633974483</td><td><span data-qmd="Value of $\frac{\pi}{4}$"></span></td></tr><tr><td>-TAU</td><td>-6.283185307179586</td><td><span data-qmd="Value of $-2\pi$"></span></td></tr><tr><td>-THIRD_PI</td><td>1.0471975511965976</td><td><span data-qmd="Value of $\frac{\pi}{3}$"></span></td></tr><tr><td>-TWO_PI</td><td>-6.283185307179586</td><td><span data-qmd="Value of $-2\pi$"></span></td></tr><tr><td>CATALAN_G</td><td>0.915965594177219</td><td><span data-qmd="Catalan G"></span></td></tr><tr><td>E</td><td>2.718281828459045</td><td><span data-qmd="Value of $\mathrm{e}$"></span></td></tr><tr><td>EPSILON</td><td>1.0E-10</td><td><span data-qmd="$\varepsilon$, a small number"></span></td></tr><tr><td>FOUR_INV_PI</td><td>1.2732395447351628</td><td><span data-qmd="Value of $\frac{4}{\pi}$"></span></td></tr><tr><td>GAMMA</td><td>0.5772156649015329</td><td><span data-qmd="$\gamma$, Euler-Mascheroni constant"></span></td></tr><tr><td>HALF_PI</td><td>1.5707963267948966</td><td><span data-qmd="Value of $\frac{\pi}{2}$"></span></td></tr><tr><td>INV_FOUR_PI</td><td>0.07957747154594767</td><td><span data-qmd="Value of $\frac{2}{2\pi}$"></span></td></tr><tr><td>INV_LN2</td><td>1.4426950408889634</td><td><span data-qmd="Value of $\frac{1}{\ln{2}}$"></span></td></tr><tr><td>INV_LOG_HALF</td><td>-1.4426950408889634</td><td><span data-qmd="Value of $\frac{1}{\ln{\frac{1}{2}}}$"></span></td></tr><tr><td>INV_PI</td><td>0.3183098861837907</td><td><span data-qmd="Value of $\frac{1}{\pi}$"></span></td></tr><tr><td>INV_SQRT2PI</td><td>0.3989422804014327</td><td><span data-qmd="Value of $\frac{1}{\sqrt{2\pi}}$"></span></td></tr><tr><td>INV_SQRTPI</td><td>0.5641895835477563</td><td><span data-qmd="Value of $\frac{1}{\sqrt\pi}$"></span></td></tr><tr><td>INV_SQRT_2</td><td>0.7071067811865475</td><td><span data-qmd="Value of $\frac{1}{\sqrt{2}}$"></span></td></tr><tr><td>INV_TWO_PI</td><td>0.15915494309189535</td><td><span data-qmd="Value of $\frac{1}{2\pi}$"></span></td></tr><tr><td>LANCZOS_G</td><td>4.7421875</td><td><span data-qmd="Lanchos approximation of `g` constant"></span></td></tr><tr><td>LN10</td><td>2.302585092994046</td><td><span data-qmd="Value of $\ln{10}$"></span></td></tr><tr><td>LN2</td><td>0.6931471805599453</td><td><span data-qmd="Value of $\ln{2}$"></span></td></tr><tr><td>LN2_2</td><td>0.34657359027997264</td><td><span data-qmd="Value of $\frac{\ln{2}}{2}$"></span></td></tr><tr><td>LOG10E</td><td>0.4342944819032518</td><td><span data-qmd="$\log_{10}{\mathrm{e}}$"></span></td></tr><tr><td>LOG2E</td><td>1.4426950408889634</td><td><span data-qmd="$\log_{2}{\mathrm{e}}$"></span></td></tr><tr><td>LOG_HALF</td><td>-0.6931471805599453</td><td><span data-qmd="Value of $\ln{\frac{1}{2}}$"></span></td></tr><tr><td>LOG_PI</td><td>1.1447298858494002</td><td><span data-qmd="Value of $\ln{\pi}$"></span></td></tr><tr><td>LOG_TWO_PI</td><td>1.8378770664093453</td><td><span data-qmd="Value of $\ln{2\pi}$"></span></td></tr><tr><td>MACHINE-EPSILON</td><td>1.1102230246251565E-16</td><td><span data-qmd="ulp(1)/2"></span></td></tr><tr><td>MACHINE-EPSILON10</td><td>1.1102230246251565E-15</td><td><span data-qmd="5ulp(1)"></span></td></tr><tr><td>M_1_PI</td><td>0.3183098861837907</td><td><span data-qmd="Value of $\frac{1}{\pi}$"></span></td></tr><tr><td>M_2_PI</td><td>0.6366197723675814</td><td><span data-qmd="Value of $\frac{2}{\pi}$"></span></td></tr><tr><td>M_2_SQRTPI</td><td>1.1283791670955126</td><td><span data-qmd="Value of $\frac{2}{\sqrt\pi}$"></span></td></tr><tr><td>M_3PI_4</td><td>2.356194490192345</td><td><span data-qmd="Value of $\frac{3\pi}{4}$"></span></td></tr><tr><td>M_E</td><td>2.718281828459045</td><td><span data-qmd="Value of $\mathrm{e}$"></span></td></tr><tr><td>M_INVLN2</td><td>1.4426950408889634</td><td><span data-qmd="Value of $\frac{1}{\ln{2}}$"></span></td></tr><tr><td>M_IVLN10</td><td>0.43429448190325176</td><td><span data-qmd="Value of $\frac{1}{\ln{10}}$"></span></td></tr><tr><td>M_LN10</td><td>2.302585092994046</td><td><span data-qmd="Value of $\ln{10}$"></span></td></tr><tr><td>M_LN2</td><td>0.6931471805599453</td><td><span data-qmd="Value of $\ln{2}$"></span></td></tr><tr><td>M_LOG10E</td><td>0.4342944819032518</td><td><span data-qmd="Value of $\log_{10}{e}$"></span></td></tr><tr><td>M_LOG2E</td><td>1.4426950408889634</td><td><span data-qmd="Value of $\log_{2}{e}$"></span></td></tr><tr><td>M_LOG2_E</td><td>0.6931471805599453</td><td><span data-qmd="Value of $\ln{2}$"></span></td></tr><tr><td>M_PI</td><td>3.141592653589793</td><td><span data-qmd="Value of $\pi$"></span></td></tr><tr><td>M_PI_2</td><td>1.5707963267948966</td><td><span data-qmd="Value of $\frac{\pi}{2}$"></span></td></tr><tr><td>M_PI_4</td><td>0.7853981633974483</td><td><span data-qmd="Value of $\frac{\pi}{4}$"></span></td></tr><tr><td>M_SQRT1_2</td><td>0.7071067811865475</td><td><span data-qmd="Value of $\frac{1}{\sqrt{2}}$"></span></td></tr><tr><td>M_SQRT2</td><td>1.4142135623730951</td><td><span data-qmd="Value of $\sqrt{2}$"></span></td></tr><tr><td>M_SQRT3</td><td>1.7320508075688772</td><td><span data-qmd="Value of $\sqrt{3}$"></span></td></tr><tr><td>M_SQRT_PI</td><td>1.7724538509055159</td><td><span data-qmd="Value of $\sqrt\pi$"></span></td></tr><tr><td>M_TWOPI</td><td>6.283185307179586</td><td><span data-qmd="Value of $2\pi$"></span></td></tr><tr><td>ONE_SIXTH</td><td>0.16666666666666666</td><td><span data-qmd="Value of $\frac{1}{6}$"></span></td></tr><tr><td>ONE_THIRD</td><td>0.3333333333333333</td><td><span data-qmd="Value of $\frac{1}{3}$"></span></td></tr><tr><td>PHI</td><td>1.618033988749895</td><td><span data-qmd="Golden ratio $\phi$"></span></td></tr><tr><td>PI</td><td>3.141592653589793</td><td><span data-qmd="Value of $\pi$"></span></td></tr><tr><td>PI2</td><td>9.869604401089358</td><td><span data-qmd="Value of $\pi^2$"></span></td></tr><tr><td>QUARTER_PI</td><td>0.7853981633974483</td><td><span data-qmd="Value of $\frac{\pi}{4}$"></span></td></tr><tr><td>SILVER</td><td>2.414213562373095</td><td><span data-qmd="Silver ratio $\delta_S$"></span></td></tr><tr><td>SIXTH</td><td>0.16666666666666666</td><td><span data-qmd="Value of $\frac{1}{6}$"></span></td></tr><tr><td>SQRT2</td><td>1.4142135623730951</td><td><span data-qmd="Value of $\sqrt{2}$"></span></td></tr><tr><td>SQRT2PI</td><td>2.5066282746310002</td><td><span data-qmd="Value of $\sqrt{2\pi}$"></span></td></tr><tr><td>SQRT2_2</td><td>0.7071067811865476</td><td><span data-qmd="Value of $\frac{\sqrt{2}}{2}$"></span></td></tr><tr><td>SQRT3</td><td>1.7320508075688772</td><td><span data-qmd="Value of $\sqrt{3}$"></span></td></tr><tr><td>SQRT3_2</td><td>0.8660254037844386</td><td><span data-qmd="Value of $\frac{\sqrt{3}}{2}$"></span></td></tr><tr><td>SQRT3_3</td><td>0.5773502691896257</td><td><span data-qmd="Value of $\frac{\sqrt{3}}{3}$"></span></td></tr><tr><td>SQRT3_4</td><td>0.4330127018922193</td><td><span data-qmd="Value of $\frac{\sqrt{3}}{4}$"></span></td></tr><tr><td>SQRT5</td><td>2.23606797749979</td><td><span data-qmd="Value of $\sqrt{5}$"></span></td></tr><tr><td>SQRTPI</td><td>1.7724538509055159</td><td><span data-qmd="Value of $\sqrt{\pi}$"></span></td></tr><tr><td>SQRT_2_PI</td><td>0.7978845608028654</td><td><span data-qmd="Value of $\sqrt{\frac{2}{\pi}}$"></span></td></tr><tr><td>SQRT_HALFPI</td><td>1.2533141373155001</td><td><span data-qmd="Value of $\sqrt{\frac{1}{2}\pi}$"></span></td></tr><tr><td>TAU</td><td>6.283185307179586</td><td><span data-qmd="Value of $2\pi$"></span></td></tr><tr><td>THIRD</td><td>0.3333333333333333</td><td><span data-qmd="Value of $\frac{1}{3}$"></span></td></tr><tr><td>THIRD_PI</td><td>1.0471975511965976</td><td><span data-qmd="Value of $\frac{\pi}{3}$"></span></td></tr><tr><td>TWO_INV_PI</td><td>0.6366197723675814</td><td><span data-qmd="Value of $\frac{2}{\pi}$"></span></td></tr><tr><td>TWO_PI</td><td>6.283185307179586</td><td><span data-qmd="Value of $2\pi$"></span></td></tr><tr><td>TWO_THIRD</td><td>0.6666666666666666</td><td><span data-qmd="Value of $\frac{2}{3}$"></span></td></tr><tr><td>TWO_THIRDS</td><td>0.6666666666666666</td><td><span data-qmd="Value of $\frac{2}{3}$"></span></td></tr><tr><td>deg-in-rad</td><td>0.017453292519943295</td><td><span data-qmd="$\frac{\pi}{180}$"></span></td></tr><tr><td>double-one-minus-epsilon</td><td>0.9999999999999999</td><td><span data-qmd="Value of 0x1.fffffffffffffp-1d = 0.(9)"></span></td></tr><tr><td>rad-in-deg</td><td>57.29577951308232</td><td><span data-qmd="$\frac{180}{\pi}$"></span></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th>Constant symbol</th><th>Value</th><th>Description</th></tr></thead><tbody><tr><td>-E</td><td>-2.718281828459045</td><td><div><p>Value of <span><script>katex.render("-\\mathrm{e}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-HALF_PI</td><td>-1.5707963267948966</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-PI</td><td>-3.141592653589793</td><td><div><p>Value of <span><script>katex.render("-\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-QUARTER_PI</td><td>-0.7853981633974483</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{4}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-TAU</td><td>-6.283185307179586</td><td><div><p>Value of <span><script>katex.render("-2\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-THIRD_PI</td><td>1.0471975511965976</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>-TWO_PI</td><td>-6.283185307179586</td><td><div><p>Value of <span><script>katex.render("-2\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>CATALAN_G</td><td>0.915965594177219</td><td><div><p>Catalan G</p></div></td></tr><tr><td>E</td><td>2.718281828459045</td><td><div><p>Value of <span><script>katex.render("\\mathrm{e}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>EPSILON</td><td>1.0E-10</td><td><div><p><span><script>katex.render("\\varepsilon", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span>, a small number</p></div></td></tr><tr><td>FOUR_INV_PI</td><td>1.2732395447351628</td><td><div><p>Value of <span><script>katex.render("\\frac{4}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>GAMMA</td><td>0.5772156649015329</td><td><div><p><span><script>katex.render("\\gamma", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span>, Euler-Mascheroni constant</p></div></td></tr><tr><td>HALF_PI</td><td>1.5707963267948966</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_FOUR_PI</td><td>0.07957747154594767</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{2\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_LN2</td><td>1.4426950408889634</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\ln{2}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_LOG_HALF</td><td>-1.4426950408889634</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\ln{\\frac{1}{2}}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_PI</td><td>0.3183098861837907</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_SQRT2PI</td><td>0.3989422804014327</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\sqrt{2\\pi}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_SQRTPI</td><td>0.5641895835477563</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\sqrt\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_SQRT_2</td><td>0.7071067811865475</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\sqrt{2}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>INV_TWO_PI</td><td>0.15915494309189535</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{2\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LANCZOS_G</td><td>4.7421875</td><td><div><p>Lanchos approximation of <code>g</code> constant</p></div></td></tr><tr><td>LN10</td><td>2.302585092994046</td><td><div><p>Value of <span><script>katex.render("\\ln{10}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LN2</td><td>0.6931471805599453</td><td><div><p>Value of <span><script>katex.render("\\ln{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LN2_2</td><td>0.34657359027997264</td><td><div><p>Value of <span><script>katex.render("\\frac{\\ln{2}}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LOG10E</td><td>0.4342944819032518</td><td><div><p><span><script>katex.render("\\log_{10}{\\mathrm{e}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LOG2E</td><td>1.4426950408889634</td><td><div><p><span><script>katex.render("\\log_{2}{\\mathrm{e}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LOG_HALF</td><td>-0.6931471805599453</td><td><div><p>Value of <span><script>katex.render("\\ln{\\frac{1}{2}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LOG_PI</td><td>1.1447298858494002</td><td><div><p>Value of <span><script>katex.render("\\ln{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>LOG_TWO_PI</td><td>1.8378770664093453</td><td><div><p>Value of <span><script>katex.render("\\ln{2\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>MACHINE-EPSILON</td><td>1.1102230246251565E-16</td><td><div><p>ulp(1)/2</p></div></td></tr><tr><td>MACHINE-EPSILON10</td><td>1.1102230246251565E-15</td><td><div><p>5ulp(1)</p></div></td></tr><tr><td>M_1_PI</td><td>0.3183098861837907</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_2_PI</td><td>0.6366197723675814</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_2_SQRTPI</td><td>1.1283791670955126</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{\\sqrt\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_3PI_4</td><td>2.356194490192345</td><td><div><p>Value of <span><script>katex.render("\\frac{3\\pi}{4}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_E</td><td>2.718281828459045</td><td><div><p>Value of <span><script>katex.render("\\mathrm{e}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_INVLN2</td><td>1.4426950408889634</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\ln{2}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_IVLN10</td><td>0.43429448190325176</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\ln{10}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_LN10</td><td>2.302585092994046</td><td><div><p>Value of <span><script>katex.render("\\ln{10}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_LN2</td><td>0.6931471805599453</td><td><div><p>Value of <span><script>katex.render("\\ln{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_LOG10E</td><td>0.4342944819032518</td><td><div><p>Value of <span><script>katex.render("\\log_{10}{e}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_LOG2E</td><td>1.4426950408889634</td><td><div><p>Value of <span><script>katex.render("\\log_{2}{e}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_LOG2_E</td><td>0.6931471805599453</td><td><div><p>Value of <span><script>katex.render("\\ln{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_PI</td><td>3.141592653589793</td><td><div><p>Value of <span><script>katex.render("\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_PI_2</td><td>1.5707963267948966</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_PI_4</td><td>0.7853981633974483</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{4}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_SQRT1_2</td><td>0.7071067811865475</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{\\sqrt{2}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_SQRT2</td><td>1.4142135623730951</td><td><div><p>Value of <span><script>katex.render("\\sqrt{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_SQRT3</td><td>1.7320508075688772</td><td><div><p>Value of <span><script>katex.render("\\sqrt{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_SQRT_PI</td><td>1.7724538509055159</td><td><div><p>Value of <span><script>katex.render("\\sqrt\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>M_TWOPI</td><td>6.283185307179586</td><td><div><p>Value of <span><script>katex.render("2\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>ONE_SIXTH</td><td>0.16666666666666666</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{6}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>ONE_THIRD</td><td>0.3333333333333333</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>PHI</td><td>1.618033988749895</td><td><div><p>Golden ratio <span><script>katex.render("\\phi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>PI</td><td>3.141592653589793</td><td><div><p>Value of <span><script>katex.render("\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>PI2</td><td>9.869604401089358</td><td><div><p>Value of <span><script>katex.render("\\pi^2", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>QUARTER_PI</td><td>0.7853981633974483</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{4}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SILVER</td><td>2.414213562373095</td><td><div><p>Silver ratio <span><script>katex.render("\\delta_S", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SIXTH</td><td>0.16666666666666666</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{6}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT2</td><td>1.4142135623730951</td><td><div><p>Value of <span><script>katex.render("\\sqrt{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT2PI</td><td>2.5066282746310002</td><td><div><p>Value of <span><script>katex.render("\\sqrt{2\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT2_2</td><td>0.7071067811865476</td><td><div><p>Value of <span><script>katex.render("\\frac{\\sqrt{2}}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT3</td><td>1.7320508075688772</td><td><div><p>Value of <span><script>katex.render("\\sqrt{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT3_2</td><td>0.8660254037844386</td><td><div><p>Value of <span><script>katex.render("\\frac{\\sqrt{3}}{2}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT3_3</td><td>0.5773502691896257</td><td><div><p>Value of <span><script>katex.render("\\frac{\\sqrt{3}}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT3_4</td><td>0.4330127018922193</td><td><div><p>Value of <span><script>katex.render("\\frac{\\sqrt{3}}{4}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT5</td><td>2.23606797749979</td><td><div><p>Value of <span><script>katex.render("\\sqrt{5}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRTPI</td><td>1.7724538509055159</td><td><div><p>Value of <span><script>katex.render("\\sqrt{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT_2_PI</td><td>0.7978845608028654</td><td><div><p>Value of <span><script>katex.render("\\sqrt{\\frac{2}{\\pi}}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>SQRT_HALFPI</td><td>1.2533141373155001</td><td><div><p>Value of <span><script>katex.render("\\sqrt{\\frac{1}{2}\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>TAU</td><td>6.283185307179586</td><td><div><p>Value of <span><script>katex.render("2\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>THIRD</td><td>0.3333333333333333</td><td><div><p>Value of <span><script>katex.render("\\frac{1}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>THIRD_PI</td><td>1.0471975511965976</td><td><div><p>Value of <span><script>katex.render("\\frac{\\pi}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>TWO_INV_PI</td><td>0.6366197723675814</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>TWO_PI</td><td>6.283185307179586</td><td><div><p>Value of <span><script>katex.render("2\\pi", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>TWO_THIRD</td><td>0.6666666666666666</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>TWO_THIRDS</td><td>0.6666666666666666</td><td><div><p>Value of <span><script>katex.render("\\frac{2}{3}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>deg-in-rad</td><td>0.017453292519943295</td><td><div><p><span><script>katex.render("\\frac{\\pi}{180}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr><tr><td>double-one-minus-epsilon</td><td>0.9999999999999999</td><td><div><p>Value of 0x1.fffffffffffffp-1d = 0.(9)</p></div></td></tr><tr><td>rad-in-deg</td><td>57.29577951308232</td><td><div><p><span><script>katex.render("\\frac{180}{\\pi}", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -2272,11 +2389,13 @@ High-performance mathematical functions and constants for Clojure,
 
   Key features:
 
+
   - Most functions are specialized for primitive types (`double` and `long`) and are inlined for performance.
   - Primarily backed by the [FastMath](https://github.com/jeffhain/jafama) library and custom primitive implementations.
   - Provides an option to replace `clojure.core`'s standard numerical operators with primitive-specialized macros.
 
   This namespace contains functions for:
+
 
   - Basic arithmetic (`+`, `-`, `*`, `/`, etc.)
   - Comparisons and predicates (`==`, `<`, `zero?`, `pos?`, etc.)
@@ -2294,6 +2413,7 @@ High-performance mathematical functions and constants for Clojure,
   A set of inlined macros designed to replace selected `clojure.core` arithmetic, comparison, and bitwise operators for potential performance gains with primitive arguments. These macros operate on `double` and `long` primitives and generally return primitive values.
 
   Replaced operators:
+
 
   - `* + - / > < >= <= == rem quot mod`
   - `bit-or bit-and bit-xor bit-not bit-and-not`
@@ -2316,6 +2436,7 @@ High-performance mathematical functions and constants for Clojure,
 
 
 #### *
+
 
 + `(*)`
 + `(* a)`
@@ -2340,6 +2461,7 @@ Primitive and inlined `*`.
 
 #### +
 
+
 + `(+)`
 + `(+ a)`
 + `(+ a b)`
@@ -2362,6 +2484,7 @@ Primitive and inlined `+`.
 
 
 #### -
+
 
 + `(- a)`
 + `(- a b)`
@@ -2511,6 +2634,7 @@ Value of $-2\pi$
 
 #### /
 
+
 + `(/ a)`
 + `(/ a b)`
 + `(/ a b c)`
@@ -2533,6 +2657,7 @@ Primitive and inlined `/`.
 
 #### <
 
+
 + `(< _)`
 + `(< a b)`
 + `(< a b & r)`
@@ -2553,6 +2678,7 @@ Primitive math less-then function.
 
 #### <<
 
+
 + `(<< x shift)`
 
 Shift bits left
@@ -2570,6 +2696,7 @@ Shift bits left
 
 
 #### <=
+
 
 + `(<= _)`
 + `(<= a b)`
@@ -2591,6 +2718,7 @@ Primitive math less-and-equal function.
 
 #### ==
 
+
 + `(== _)`
 + `(== a b)`
 + `(== a b & r)`
@@ -2610,6 +2738,7 @@ Primitive math equality function.
 
 
 #### >
+
 
 + `(> _)`
 + `(> a b)`
@@ -2631,6 +2760,7 @@ Primitive math greater-than function.
 
 #### >=
 
+
 + `(>= _)`
 + `(>= a b)`
 + `(>= a b & r)`
@@ -2651,6 +2781,7 @@ Primitive math greater-and-equal function.
 
 #### >>
 
+
 + `(>> x shift)`
 
 Shift bits right and keep most significant bit unchanged
@@ -2668,6 +2799,7 @@ Shift bits right and keep most significant bit unchanged
 
 
 #### >>>
+
 
 + `(>>> x shift)`
 
@@ -2873,7 +3005,7 @@ Value of $\frac{1}{\sqrt{2\pi}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1977">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2014">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2891,7 +3023,7 @@ Value of $\frac{1}{\sqrt\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1978">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2015">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2909,7 +3041,7 @@ Value of $\frac{1}{\sqrt{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1982">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2019">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3143,7 +3275,7 @@ Value of $\frac{1}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1974">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2011">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3161,7 +3293,7 @@ Value of $\frac{2}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1975">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2012">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3179,7 +3311,7 @@ Value of $\frac{2}{\sqrt\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1976">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2013">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3197,7 +3329,7 @@ Value of $\frac{3\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1984">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2021">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3215,7 +3347,7 @@ Value of $\mathrm{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1966">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2003">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3233,7 +3365,7 @@ Value of $\frac{1}{\ln{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1989">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2026">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3251,7 +3383,7 @@ Value of $\frac{1}{\ln{10}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1987">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2024">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3269,7 +3401,7 @@ Value of $\ln{10}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1970">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2007">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3287,7 +3419,7 @@ Value of $\ln{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1969">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2006">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3305,7 +3437,7 @@ Value of $\log_{10}{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1968">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2005">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3323,7 +3455,7 @@ Value of $\log_{2}{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1967">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2004">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3341,7 +3473,7 @@ Value of $\ln{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1988">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2025">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3359,7 +3491,7 @@ Value of $\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1971">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2008">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3377,7 +3509,7 @@ Value of $\frac{\pi}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1972">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2009">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3395,7 +3527,7 @@ Value of $\frac{\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1973">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2010">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3413,7 +3545,7 @@ Value of $\frac{1}{\sqrt{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1981">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2018">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3431,7 +3563,7 @@ Value of $\sqrt{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1980">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2017">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3449,7 +3581,7 @@ Value of $\sqrt{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1986">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2023">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3467,7 +3599,7 @@ Value of $\sqrt\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1985">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2022">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3485,7 +3617,7 @@ Value of $2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1983">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2020">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3539,7 +3671,7 @@ Golden ratio $\phi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1962">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1999">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3611,7 +3743,7 @@ Silver ratio $\delta_S$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1963">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2000">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3647,7 +3779,7 @@ Value of $\sqrt{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1944">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1981">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3665,7 +3797,7 @@ Value of $\sqrt{2\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1958">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1995">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3683,7 +3815,7 @@ Value of $\frac{\sqrt{2}}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1945">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1982">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3701,7 +3833,7 @@ Value of $\sqrt{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1948">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1985">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3719,7 +3851,7 @@ Value of $\frac{\sqrt{3}}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1949">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1986">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3737,7 +3869,7 @@ Value of $\frac{\sqrt{3}}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1950">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1987">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3755,7 +3887,7 @@ Value of $\frac{\sqrt{3}}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1951">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1988">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3773,7 +3905,7 @@ Value of $\sqrt{5}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1954">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1991">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3791,7 +3923,7 @@ Value of $\sqrt{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1957">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1994">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3809,7 +3941,7 @@ Value of $\sqrt{\frac{2}{\pi}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1979">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2016">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3827,7 +3959,7 @@ Value of $\sqrt{\frac{1}{2}\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1959">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1996">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3965,6 +4097,7 @@ Value of $\frac{2}{3}$
 
 #### abs
 
+
 + `(abs x)`
 
 Absolute value.
@@ -3983,13 +4116,14 @@ Absolute value.
 
 #### absolute-error
 
+
 + `(absolute-error v v-approx)`
 
 Absolute error between two values
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2197">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2234">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4000,6 +4134,7 @@ Absolute error between two values
 
 
 #### acos
+
 
 + `(acos x)`
 
@@ -4019,6 +4154,7 @@ acos(x)
 
 #### acosh
 
+
 + `(acosh x)`
 
 acosh(x)
@@ -4036,6 +4172,7 @@ acosh(x)
 
 
 #### acot
+
 
 + `(acot x)`
 
@@ -4055,6 +4192,7 @@ acot(x)
 
 #### acoth
 
+
 + `(acoth x)`
 
 Area hyperbolic cotangent
@@ -4072,6 +4210,7 @@ Area hyperbolic cotangent
 
 
 #### acovercos
+
 
 + `(acovercos x)`
 
@@ -4091,6 +4230,7 @@ Arc covercosine
 
 #### acoversin
 
+
 + `(acoversin x)`
 
 Arc coversine
@@ -4108,6 +4248,7 @@ Arc coversine
 
 
 #### acrd
+
 
 + `(acrd x)`
 
@@ -4127,6 +4268,7 @@ Inverse chord
 
 #### acsc
 
+
 + `(acsc x)`
 
 acsc(x)
@@ -4144,6 +4286,7 @@ acsc(x)
 
 
 #### acsch
+
 
 + `(acsch v)`
 
@@ -4163,6 +4306,7 @@ Area hyperbolic cosecant
 
 #### aexcsc
 
+
 + `(aexcsc x)`
 
 Arc excosecant
@@ -4181,6 +4325,7 @@ Arc excosecant
 
 #### aexsec
 
+
 + `(aexsec x)`
 
 Arc exsecant
@@ -4193,11 +4338,39 @@ Arc exsecant
 
 
 ```{=html}
+<span id="#LOS-agm"></span>
+```
+
+
+#### agm
+
+
++ `(agm x y)`
++ `(agm x y abs-tol)`
++ `(agm x y abs-tol max-iters)`
+
+Arithmetic-geometric mean.
+
+  Defaults:
+
+
+  * absolute tolerance: 1.0e-12
+  * max-iters: 100
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2369">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-ahacovercos"></span>
 ```
 
 
 #### ahacovercos
+
 
 + `(ahacovercos x)`
 
@@ -4217,6 +4390,7 @@ Arc hacovercosine
 
 #### ahacoversin
 
+
 + `(ahacoversin x)`
 
 Arc hacoversine
@@ -4234,6 +4408,7 @@ Arc hacoversine
 
 
 #### ahavercos
+
 
 + `(ahavercos x)`
 
@@ -4253,6 +4428,7 @@ Arc havecosine
 
 #### ahaversin
 
+
 + `(ahaversin x)`
 
 Arc haversine
@@ -4270,6 +4446,7 @@ Arc haversine
 
 
 #### approx
+
 
 + `(approx v)`
 + `(approx v digits)`
@@ -4289,6 +4466,7 @@ Round `v` to specified (default: 2) decimal places. Be aware of floating point n
 
 
 #### approx-eq
+
 
 + `(approx-eq a b)`
 + `(approx-eq a b digits)`
@@ -4329,6 +4507,7 @@ Alias for [approx-eq](#LOS-approx-eq)
 
 #### asec
 
+
 + `(asec x)`
 
 asec(x)
@@ -4346,6 +4525,7 @@ asec(x)
 
 
 #### asech
+
 
 + `(asech x)`
 
@@ -4365,6 +4545,7 @@ Area hyperbolic secant
 
 #### asin
 
+
 + `(asin x)`
 
 asin(x)
@@ -4382,6 +4563,7 @@ asin(x)
 
 
 #### asinh
+
 
 + `(asinh x)`
 
@@ -4401,6 +4583,7 @@ asinh(x)
 
 #### atan
 
+
 + `(atan x)`
 
 atan(x)
@@ -4418,6 +4601,7 @@ atan(x)
 
 
 #### atan2
+
 
 + `(atan2 x y)`
 
@@ -4437,6 +4621,7 @@ atan2(x,y)
 
 #### atanh
 
+
 + `(atanh x)`
 
 atanh(x)
@@ -4454,6 +4639,7 @@ atanh(x)
 
 
 #### avercos
+
 
 + `(avercos x)`
 
@@ -4473,6 +4659,7 @@ Arc vecosine
 
 #### aversin
 
+
 + `(aversin x)`
 
 Arc versine
@@ -4491,6 +4678,7 @@ Arc versine
 
 #### between-?
 
+
 + `(between-? [x y] v)`
 + `(between-? x y v)`
 
@@ -4498,7 +4686,7 @@ Check if given number is within the range (x,y].
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2187">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2224">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4510,6 +4698,7 @@ Check if given number is within the range (x,y].
 
 #### between?
 
+
 + `(between? [x y] v)`
 + `(between? x y v)`
 
@@ -4517,7 +4706,7 @@ Check if given number is within the range [x,y].
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2180">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2217">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4528,6 +4717,7 @@ Check if given number is within the range [x,y].
 
 
 #### bit-and
+
 
 + `(bit-and x)`
 + `(bit-and x y)`
@@ -4549,6 +4739,7 @@ x ∧ y - bitwise AND
 
 #### bit-and-not
 
+
 + `(bit-and-not x)`
 + `(bit-and-not x y)`
 + `(bit-and-not x y & r)`
@@ -4569,6 +4760,7 @@ x ∧ ~y - bitwise AND (with complement second argument)
 
 #### bit-clear
 
+
 + `(bit-clear x bit)`
 
 Clear bit (set to `0`).
@@ -4586,6 +4778,7 @@ Clear bit (set to `0`).
 
 
 #### bit-count
+
 
 + `(bit-count x)`
 
@@ -4605,6 +4798,7 @@ Count bits
 
 #### bit-flip
 
+
 + `(bit-flip x bit)`
 
 Flip bit (set to `0` when `1` or to `1` when `0`).
@@ -4622,6 +4816,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 #### bit-nand
+
 
 + `(bit-nand x)`
 + `(bit-nand x y)`
@@ -4643,6 +4838,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 #### bit-nor
 
+
 + `(bit-nor x)`
 + `(bit-nor x y)`
 + `(bit-nor x y & r)`
@@ -4663,6 +4859,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 #### bit-not
 
+
 + `(bit-not x)`
 
 ~x - bitwise NOT
@@ -4680,6 +4877,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 #### bit-or
+
 
 + `(bit-or x)`
 + `(bit-or x y)`
@@ -4701,6 +4899,7 @@ x ∨ y - bitwise OR
 
 #### bit-set
 
+
 + `(bit-set x bit)`
 
 Set bit (set to `1`).
@@ -4718,6 +4917,7 @@ Set bit (set to `1`).
 
 
 #### bit-shift-left
+
 
 + `(bit-shift-left x shift)`
 
@@ -4737,6 +4937,7 @@ Shift bits left
 
 #### bit-shift-right
 
+
 + `(bit-shift-right x shift)`
 
 Shift bits right and keep most significant bit unchanged
@@ -4755,6 +4956,7 @@ Shift bits right and keep most significant bit unchanged
 
 #### bit-test
 
+
 + `(bit-test x bit)`
 
 Test bit (return to `true` when `1` or `false` when `0`).
@@ -4772,6 +4974,7 @@ Test bit (return to `true` when `1` or `false` when `0`).
 
 
 #### bit-xnor
+
 
 + `(bit-xnor x)`
 + `(bit-xnor x y)`
@@ -4793,6 +4996,7 @@ Test bit (return to `true` when `1` or `false` when `0`).
 
 #### bit-xor
 
+
 + `(bit-xor x)`
 + `(bit-xor x y)`
 + `(bit-xor x y & r)`
@@ -4813,13 +5017,14 @@ x⊕y - bitwise XOR
 
 #### bits->double
 
+
 + `(bits->double v)`
 
 Convert 64 bits to double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1901">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1906">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4830,6 +5035,7 @@ Convert 64 bits to double
 
 
 #### bool-not
+
 
 + `(bool-not x)`
 
@@ -4848,6 +5054,7 @@ Primitive boolean not
 
 
 #### bool-xor
+
 
 + `(bool-xor x y)`
 + `(bool-xor x y & r)`
@@ -4868,6 +5075,7 @@ Primitive boolean xor
 
 #### cb
 
+
 + `(cb x)`
 
 x^3
@@ -4886,6 +5094,7 @@ x^3
 
 #### cbrt
 
+
 + `(cbrt x)`
 
 cubic root, cbrt(x)
@@ -4903,6 +5112,7 @@ cubic root, cbrt(x)
 
 
 #### ceil
+
 
 + `(ceil x)`
 + `(ceil x scale)`
@@ -4927,6 +5137,7 @@ Calculates the ceiling of a number.
 
 #### cexpexp
 
+
 + `(cexpexp x)`
 
 1-exp(-exp(x))
@@ -4944,6 +5155,7 @@ Calculates the ceiling of a number.
 
 
 #### cloglog
+
 
 + `(cloglog x)`
 
@@ -4963,6 +5175,7 @@ log(-log(1-x))
 
 #### cnorm
 
+
 + `(cnorm v start1 stop1 start2 stop2)`
 + `(cnorm v start stop)`
 
@@ -4970,7 +5183,7 @@ Constrained version of norm. Result of [norm](#LOS-norm) is applied to [constrai
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2025">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2062">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4982,6 +5195,7 @@ Constrained version of norm. Result of [norm](#LOS-norm) is applied to [constrai
 
 #### co-intervals
 
+
 + `(co-intervals data)`
 + `(co-intervals data number)`
 + `(co-intervals data number overlap)`
@@ -4991,6 +5205,7 @@ Divides a sequence of numerical `data` into `number` (default 6) overlapping int
   The intervals are constructed such that each contains a similar number of values from the sorted data, aiming to replicate the behavior of R's `co.intervals()` function. Invalid doubles (NaN, infinite) are removed from the input data before processing.
 
   Arguments:
+
   - `data`: A collection of numbers.
   - `number`: The desired number of intervals (default 6, long).
   - `overlap`: The desired overlap proportion between consecutive intervals (default 0.5, double).
@@ -4999,7 +5214,7 @@ Divides a sequence of numerical `data` into `number` (default 6) overlapping int
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2253">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2290">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5010,6 +5225,7 @@ Divides a sequence of numerical `data` into `number` (default 6) overlapping int
 
 
 #### combinations
+
 
 + `(combinations n k)`
 
@@ -5029,13 +5245,14 @@ Binomial coefficient (n choose k)
 
 #### constrain ^~MACRO~^
 
+
 + `(constrain value mn mx)`
 
 Clamp `value` to the range `[mn,mx]`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1991">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2028">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5046,6 +5263,7 @@ Clamp `value` to the range `[mn,mx]`.
 
 
 #### copy-sign
+
 
 + `(copy-sign magnitude sign)`
 
@@ -5065,6 +5283,7 @@ Returns a value with a magnitude of first argument and sign of second.
 
 #### cos
 
+
 + `(cos x)`
 
 cos(x)
@@ -5083,13 +5302,14 @@ cos(x)
 
 #### cos-interpolation
 
+
 + `(cos-interpolation start stop t)`
 
 oF interpolateCosine interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), [quad-interpolation](#LOS-quad-interpolation) or [smooth-interpolation](#LOS-smooth-interpolation).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2059">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2096">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5100,6 +5320,7 @@ oF interpolateCosine interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mler
 
 
 #### cosh
+
 
 + `(cosh x)`
 
@@ -5119,6 +5340,7 @@ cosh(x)
 
 #### cospi
 
+
 + `(cospi x)`
 
 cos(pi*x)
@@ -5136,6 +5358,7 @@ cos(pi*x)
 
 
 #### cot
+
 
 + `(cot x)`
 
@@ -5155,6 +5378,7 @@ cot(x)
 
 #### coth
 
+
 + `(coth x)`
 
 Hyperbolic cotangent
@@ -5172,6 +5396,7 @@ Hyperbolic cotangent
 
 
 #### cotpi
+
 
 + `(cotpi x)`
 
@@ -5191,6 +5416,7 @@ cot(pi*x)
 
 #### covercos
 
+
 + `(covercos x)`
 
 Covercosine
@@ -5208,6 +5434,7 @@ Covercosine
 
 
 #### coversin
+
 
 + `(coversin x)`
 
@@ -5227,6 +5454,7 @@ Coversine
 
 #### crd
 
+
 + `(crd x)`
 
 Chord
@@ -5244,6 +5472,7 @@ Chord
 
 
 #### csc
+
 
 + `(csc x)`
 
@@ -5263,6 +5492,7 @@ csc(x)
 
 #### csch
 
+
 + `(csch x)`
 
 Hyperbolic cosecant
@@ -5280,6 +5510,7 @@ Hyperbolic cosecant
 
 
 #### cscpi
+
 
 + `(cscpi x)`
 
@@ -5299,6 +5530,7 @@ csc(pi*x)
 
 #### cut
 
+
 + `(cut data breaks)`
 + `(cut x1 x2 breaks)`
 
@@ -5316,13 +5548,14 @@ Divides a numerical range or a sequence of numbers into a specified number of eq
   This means intervals are generally closed on the right, `[a, b]`, with the first interval's lower bound slightly adjusted downwards to ensure inclusion of the exact minimum value if necessary due to floating point precision.
 
   Arguments:
+
   - `data`: A collection of numbers (used to determine range).
   - `x1`, `x2`: The start and end points of the range.
   - `breaks`: The desired number of intervals (a positive long).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2227">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2264">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5333,6 +5566,7 @@ Divides a numerical range or a sequence of numbers into a specified number of eq
 
 
 #### dec
+
 
 + `(dec x)`
 
@@ -5370,6 +5604,7 @@ $\frac{\pi}{180}$
 
 #### degrees
 
+
 + `(degrees rad)`
 
 Convert radians into degrees.
@@ -5388,6 +5623,7 @@ Convert radians into degrees.
 
 #### delta-eq
 
+
 + `(delta-eq a b)`
 + `(delta-eq a b accuracy)`
 + `(delta-eq a b abs-tol rel-tol)`
@@ -5395,6 +5631,7 @@ Convert radians into degrees.
 Checks if two floating-point numbers `a` and `b` are approximately equal within given tolerances.
 
   The check returns true if `abs(a - b)` is less than a combined tolerance, or if `(== a b)`.
+
 
   - 2-arity `(delta-eq a b)`: Uses a default absolute tolerance of `1.0e-6`.
   - 3-arity `(delta-eq a b abs-tol)`: Uses the provided absolute tolerance `abs-tol`.
@@ -5432,6 +5669,7 @@ Alias for [delta-eq](#LOS-delta-eq)
 
 #### difference-of-products
 
+
 + `(difference-of-products a b c d)`
 
 Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation.
@@ -5449,6 +5687,7 @@ Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation.
 
 
 #### dist
+
 
 + `(dist [x1 y1] [x2 y2])`
 + `(dist x1 y1 x2 y2)`
@@ -5475,7 +5714,7 @@ Convert double array into sequence.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2444">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2502">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5489,7 +5728,7 @@ Convert double array into sequence.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2441">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2499">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5501,13 +5740,14 @@ Convert double array into sequence.
 
 #### double-bits
 
+
 + `(double-bits v)`
 
 Returns double as 64-bits (long)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1894">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1899">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5519,13 +5759,14 @@ Returns double as 64-bits (long)
 
 #### double-double-array->seq
 
+
 + `(double-double-array->seq res)`
 
 Convert double array of double arrays into sequence of sequences. 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2459">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2517">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5539,7 +5780,7 @@ Convert double array of double arrays into sequence of sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2442">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2500">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5551,13 +5792,14 @@ Convert double array of double arrays into sequence of sequences.
 
 #### double-exponent
 
+
 + `(double-exponent v)`
 
 Extract exponent information from double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1908">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1913">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5569,13 +5811,14 @@ Extract exponent information from double
 
 #### double-high-bits
 
+
 + `(double-high-bits v)`
 
 Returns high word from double as bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1880">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1885">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5587,13 +5830,14 @@ Returns high word from double as bits
 
 #### double-low-bits
 
+
 + `(double-low-bits v)`
 
 Returns low word from double as bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1887">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1892">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5611,7 +5855,7 @@ Value of 0x1.fffffffffffffp-1d = 0.(9)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1940">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1977">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5623,13 +5867,14 @@ Value of 0x1.fffffffffffffp-1d = 0.(9)
 
 #### double-significand
 
+
 + `(double-significand v)`
 
 Extract significand from double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1915">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1920">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5640,6 +5885,7 @@ Extract significand from double
 
 
 #### eq
+
 
 + `(eq _)`
 + `(eq a b)`
@@ -5661,6 +5907,7 @@ Primitive math equality function.
 
 #### even?
 
+
 + `(even? x)`
 
 Primitive and inlined `even?`
@@ -5678,6 +5925,7 @@ Primitive and inlined `even?`
 
 
 #### excsc
+
 
 + `(excsc x)`
 
@@ -5697,6 +5945,7 @@ Excosecant
 
 #### exp
 
+
 + `(exp x)`
 
 exp(x) = e^x
@@ -5714,6 +5963,7 @@ exp(x) = e^x
 
 
 #### exp10
+
 
 + `(exp10 x)`
 
@@ -5733,6 +5983,7 @@ exp10(x) = 10^x
 
 #### exp2
 
+
 + `(exp2 x)`
 
 exp2(x) = 2^x
@@ -5750,6 +6001,7 @@ exp2(x) = 2^x
 
 
 #### expexp
+
 
 + `(expexp x)`
 
@@ -5769,6 +6021,7 @@ exp(-exp(-x))
 
 #### expm1
 
+
 + `(expm1 x)`
 
 exp(x)-1 for small x
@@ -5786,6 +6039,7 @@ exp(x)-1 for small x
 
 
 #### exprel
+
 
 + `(exprel x)`
 
@@ -5805,6 +6059,7 @@ exp(x)-1 for small x
 
 #### exsec
 
+
 + `(exsec x)`
 
 Exsecant
@@ -5822,6 +6077,7 @@ Exsecant
 
 
 #### factorial
+
 
 + `(factorial n)`
 
@@ -5841,6 +6097,7 @@ Factorial
 
 #### factorial20
 
+
 + `(factorial20 n)`
 
 Factorial table up to 20!
@@ -5859,6 +6116,7 @@ Factorial table up to 20!
 
 #### falling-factorial
 
+
 + `(falling-factorial n x)`
 
 Falling (descending) factorial.
@@ -5876,6 +6134,7 @@ Falling (descending) factorial.
 
 
 #### falling-factorial-int
+
 
 + `(falling-factorial-int n x)`
 
@@ -5897,6 +6156,7 @@ Falling (descending) factorial for integer n.
 
 *Deprecated: Use `*` instead*
 
+
 + `(fast*)`
 + `(fast* a)`
 + `(fast* a b)`
@@ -5906,7 +6166,7 @@ Primitive and inlined `*` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2526">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2584">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5920,6 +6180,7 @@ Primitive and inlined `*` as a function
 
 *Deprecated: Use `+` instead*
 
+
 + `(fast+)`
 + `(fast+ a)`
 + `(fast+ a b)`
@@ -5929,7 +6190,7 @@ Primitive and inlined `+` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2506">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2564">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5943,6 +6204,7 @@ Primitive and inlined `+` as a function
 
 *Deprecated: Use `-` instead*
 
+
 + `(fast-)`
 + `(fast- a)`
 + `(fast- a b)`
@@ -5952,7 +6214,7 @@ Primitive and inlined `-` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2516">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2574">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5966,6 +6228,7 @@ Primitive and inlined `-` as a function
 
 *Deprecated: Use `/` instead*
 
+
 + `(fast-div)`
 + `(fast-div a)`
 + `(fast-div a b)`
@@ -5975,7 +6238,7 @@ Primitive and inlined `/` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2536">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2594">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5989,13 +6252,14 @@ Primitive and inlined `/` as a function
 
 *Deprecated: Use `identity-double` instead*
 
+
 + `(fast-identity a)`
 
 Identity on double.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2564">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2622">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6009,6 +6273,7 @@ Identity on double.
 
 *Deprecated: Use `max` instead*
 
+
 + `(fast-max a)`
 + `(fast-max a b)`
 + `(fast-max a b & r)`
@@ -6017,7 +6282,7 @@ Primitive and inlined `max` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2546">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2604">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6031,6 +6296,7 @@ Primitive and inlined `max` as a function
 
 *Deprecated: Use `min` instead*
 
+
 + `(fast-min a)`
 + `(fast-min a b)`
 + `(fast-min a b & r)`
@@ -6039,7 +6305,7 @@ Primitive and inlined `min` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2555">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2613">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6050,6 +6316,7 @@ Primitive and inlined `min` as a function
 
 
 #### floor
+
 
 + `(floor x)`
 + `(floor x scale)`
@@ -6074,6 +6341,7 @@ Calculates the floor of a number.
 
 #### fma
 
+
 + `(fma x y z)`
 
 `(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+
@@ -6091,6 +6359,7 @@ Calculates the floor of a number.
 
 
 #### fpow
+
 
 + `(fpow x exponent)`
 
@@ -6110,6 +6379,7 @@ Fast version of pow where exponent is integer.
 
 #### frac
 
+
 + `(frac v)`
 
 Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [sfrac](#LOS-sfrac) for signed version.
@@ -6128,13 +6398,14 @@ Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [sfrac](
 
 #### gcd
 
+
 + `(gcd a b)`
 
 Fast binary greatest common divisor (Stein's algorithm)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2318">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2355">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6146,6 +6417,7 @@ Fast binary greatest common divisor (Stein's algorithm)
 
 #### group-by-intervals
 
+
 + `(group-by-intervals coll)`
 + `(group-by-intervals intervals coll)`
 
@@ -6155,6 +6427,7 @@ Groups values from a sequence `coll` into specified intervals.
   Each interval is a 2-element vector `[lower upper]`. Values are included in an interval if they are strictly greater than the `lower` bound and less than or equal to the `upper` bound, using [between-?](#LOS-between-?).
 
   Arguments:
+
   - `intervals`: A sequence of 2-element vectors representing the intervals `[lower upper]`.
   - `coll`: A collection of numerical values to be grouped.
 
@@ -6164,7 +6437,7 @@ Groups values from a sequence `coll` into specified intervals.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2284">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2321">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6175,6 +6448,7 @@ Groups values from a sequence `coll` into specified intervals.
 
 
 #### hacovercos
+
 
 + `(hacovercos x)`
 
@@ -6194,6 +6468,7 @@ Hacovercosine
 
 #### hacoversin
 
+
 + `(hacoversin x)`
 
 Hacoversine
@@ -6212,6 +6487,7 @@ Hacoversine
 
 #### havercos
 
+
 + `(havercos x)`
 
 Havercosine
@@ -6229,6 +6505,7 @@ Havercosine
 
 
 #### haversin
+
 
 + `(haversin x)`
 + `(haversin [lat1 lon1] [lat2 lon2])`
@@ -6266,6 +6543,7 @@ Haversine ([haversin](#LOS-haversin) alias)
 
 #### haversine-dist
 
+
 + `(haversine-dist [lat1 lon1] [lat2 lon2])`
 + `(haversine-dist lat1 lon1 lat2 lon2)`
 
@@ -6285,6 +6563,7 @@ Haversine distance `d` for `r=1`
 
 #### high-2-exp
 
+
 + `(high-2-exp x)`
 
 Finds the smallest integer `n` such that `2^n >= |x|`. See [low-2-exp](#LOS-low-2-exp).
@@ -6303,6 +6582,7 @@ Finds the smallest integer `n` such that `2^n >= |x|`. See [low-2-exp](#LOS-low-
 
 #### high-exp
 
+
 + `(high-exp b x)`
 
 Finds the smallest integer `n` such that `b^n >= |x|`. See also [low-exp](#LOS-low-exp).
@@ -6320,6 +6600,7 @@ Finds the smallest integer `n` such that `b^n >= |x|`. See also [low-exp](#LOS-l
 
 
 #### hypot
+
 
 + `(hypot x y)`
 + `(hypot x y z)`
@@ -6344,6 +6625,7 @@ Calculates the Euclidean norm (distance from the origin) for 2 or 3 arguments.
 
 #### hypot-sqrt
 
+
 + `(hypot-sqrt x y)`
 + `(hypot-sqrt x y z)`
 
@@ -6367,6 +6649,7 @@ Calculates the Euclidean norm (distance from the origin) using a direct sqrt of 
 
 *Deprecated: Use long-abs.*
 
+
 + `(iabs x)`
 
 Absolute value, `long` version. See [abs](#LOS-abs).
@@ -6384,6 +6667,7 @@ Absolute value, `long` version. See [abs](#LOS-abs).
 
 
 #### identity-double
+
 
 + `(identity-double a)`
 
@@ -6403,6 +6687,7 @@ Identity on double.
 
 #### identity-long
 
+
 + `(identity-long a)`
 
 Identity on long.
@@ -6420,6 +6705,7 @@ Identity on long.
 
 
 #### inc
+
 
 + `(inc x)`
 
@@ -6439,13 +6725,14 @@ Primitive and inlined `inc`
 
 #### inf?
 
+
 + `(inf? v)`
 
 Check if a number is an infinite (positive or negative).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2150">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2187">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6456,6 +6743,7 @@ Check if a number is an infinite (positive or negative).
 
 
 #### integer?
+
 
 + `(integer? v)`
 
@@ -6475,6 +6763,7 @@ Check if given real number is an integer.
 
 #### inv-factorial
 
+
 + `(inv-factorial n)`
 
 Inverse of factorial, 1/n!
@@ -6493,13 +6782,14 @@ Inverse of factorial, 1/n!
 
 #### invalid-double?
 
+
 + `(invalid-double? v)`
 
 Check if a number is not finite double (NaN or ±Inf).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2168">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2205">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6510,6 +6800,7 @@ Check if a number is not finite double (NaN or ±Inf).
 
 
 #### itrunc
+
 
 + `(itrunc v)`
 
@@ -6529,7 +6820,7 @@ Truncate fractional part, keep sign. Returns `long`.
 
 #### jvm-version ^~CONST~^
 
-`jvm-version = 21`
+`jvm-version = 25`
 
 
 ```{=html}
@@ -6545,13 +6836,54 @@ Truncate fractional part, keep sign. Returns `long`.
 
 #### lcm
 
+
 + `(lcm a b)`
 
 Fast binary least common multiplier.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2323">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2360">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-leading-zero-bits"></span>
+```
+
+
+#### leading-zero-bits
+
+
++ `(leading-zero-bits v)`
+
+Leading zero bits
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1937">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-least-significant-bit"></span>
+```
+
+
+#### least-significant-bit
+
+
++ `(least-significant-bit v)`
+
+Returns the least significant bit position.
+
+  Returns `-1` for `0`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1960">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6563,13 +6895,14 @@ Fast binary least common multiplier.
 
 #### lerp
 
+
 + `(lerp start stop t)`
 
 Linear interpolation between `start` and `stop` for amount `t`. See also [mlerp](#LOS-mlerp), [cos-interpolation](#LOS-cos-interpolation), [quad-interpolation](#LOS-quad-interpolation) or [smooth-interpolation](#LOS-smooth-interpolation).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2045">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2082">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6580,6 +6913,7 @@ Linear interpolation between `start` and `stop` for amount `t`. See also [mlerp]
 
 
 #### ln
+
 
 + `(ln x)`
 
@@ -6598,6 +6932,7 @@ log(x)=ln(x)
 
 
 #### log
+
 
 + `(log x)`
 + `(log base x)`
@@ -6618,6 +6953,7 @@ log(x)=ln(x) or logarithm with given `base`.
 
 #### log-combinations
 
+
 + `(log-combinations n k)`
 
 Log of binomial coefficient (n choose k)
@@ -6635,6 +6971,7 @@ Log of binomial coefficient (n choose k)
 
 
 #### log-factorial
+
 
 + `(log-factorial x)`
 
@@ -6654,6 +6991,7 @@ Log factorial, alias to log-gamma
 
 #### log10
 
+
 + `(log10 x)`
 
 log_10(x)
@@ -6671,6 +7009,7 @@ log_10(x)
 
 
 #### log1mexp
+
 
 + `(log1mexp x)`
 
@@ -6690,6 +7029,7 @@ log(1-exp(x)), x<0
 
 #### log1p
 
+
 + `(log1p x)`
 
 log(1+x) for small x
@@ -6707,6 +7047,7 @@ log(1+x) for small x
 
 
 #### log1pexp
+
 
 + `(log1pexp x)`
 
@@ -6726,6 +7067,7 @@ log(1+exp(x))
 
 #### log1pmx
 
+
 + `(log1pmx x)`
 
 log(1+x)-x
@@ -6744,6 +7086,7 @@ log(1+x)-x
 
 #### log1psq
 
+
 + `(log1psq x)`
 
 log(1+x^2))
@@ -6761,6 +7104,7 @@ log(1+x^2))
 
 
 #### log2
+
 
 + `(log2 x)`
 
@@ -6782,13 +7126,14 @@ Logarithm with base 2.
 
 #### log2int
 
+
 + `(log2int v)`
 
 Fast and integer version of log2, returns long
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1922">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1927">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6799,6 +7144,7 @@ Fast and integer version of log2, returns long
 
 
 #### log2mexp
+
 
 + `(log2mexp x)`
 
@@ -6818,6 +7164,7 @@ log(2-exp(x))
 
 #### logaddexp
 
+
 + `(logaddexp x y)`
 
 log(exp(x)+exp(y))
@@ -6835,6 +7182,7 @@ log(exp(x)+exp(y))
 
 
 #### logb
+
 
 + `(logb b x)`
 
@@ -6856,6 +7204,7 @@ Logarithm with base `b`.
 
 #### logcosh
 
+
 + `(logcosh x)`
 
 log(cosh(x))
@@ -6873,6 +7222,7 @@ log(cosh(x))
 
 
 #### logexpm1
+
 
 + `(logexpm1 x)`
 
@@ -6908,6 +7258,7 @@ Alias for [sigmoid](#LOS-sigmoid)
 
 #### logit
 
+
 + `(logit x)`
 
 Logit function
@@ -6925,6 +7276,7 @@ Logit function
 
 
 #### loglog
+
 
 + `(loglog x)`
 
@@ -6944,6 +7296,7 @@ Logit function
 
 #### logmxp1
 
+
 + `(logmxp1 x)`
 
 log(x)-x+1
@@ -6961,6 +7314,7 @@ log(x)-x+1
 
 
 #### logsubexp
+
 
 + `(logsubexp x y)`
 
@@ -6980,6 +7334,7 @@ log(abs(exp(x)-exp(y)))
 
 #### logsumexp
 
+
 + `(logsumexp xs)`
 
 log(exp(x1)+...+exp(xn))
@@ -6998,6 +7353,7 @@ log(exp(x1)+...+exp(xn))
 
 #### long-abs
 
+
 + `(long-abs x)`
 
 Absolut value, `long` version. See [abs](#LOS-abs).
@@ -7015,6 +7371,7 @@ Absolut value, `long` version. See [abs](#LOS-abs).
 
 
 #### long-add
+
 
 + `(long-add)`
 + `(long-add a)`
@@ -7039,6 +7396,7 @@ Primitive and inlined `+`. Coerces arguments and returned value to a long.
 
 #### long-dec
 
+
 + `(long-dec x)`
 
 Primitive and inlined `dec` coerced to a long
@@ -7056,6 +7414,7 @@ Primitive and inlined `dec` coerced to a long
 
 
 #### long-div
+
 
 + `(long-div a)`
 + `(long-div a b)`
@@ -7079,6 +7438,7 @@ Primitive and inlined `/`. Coerces to arguments and returned value to a long.
 
 #### long-inc
 
+
 + `(long-inc x)`
 
 Primitive and inlined `inc` coerced to a long
@@ -7096,6 +7456,7 @@ Primitive and inlined `inc` coerced to a long
 
 
 #### long-max
+
 
 + `(long-max a)`
 + `(long-max a b)`
@@ -7119,6 +7480,7 @@ Primitive and inlined `max`. Coerces arguments and returned values to longs.
 
 #### long-min
 
+
 + `(long-min a)`
 + `(long-min a b)`
 + `(long-min a b c)`
@@ -7141,6 +7503,7 @@ Primitive and inlined `min`. Coerces arguments and returned values to longs.
 
 #### long-mod
 
+
 + `(long-mod x y)`
 
 Primitive and inlined `mod` coerced to longs
@@ -7158,6 +7521,7 @@ Primitive and inlined `mod` coerced to longs
 
 
 #### long-mult
+
 
 + `(long-mult)`
 + `(long-mult a)`
@@ -7182,6 +7546,7 @@ Primitive and inlined `*`. Coerces arguments and returned value to a long.
 
 #### long-quot
 
+
 + `(long-quot x y)`
 
 Primitive and inlined `quot` coerced to longs
@@ -7200,6 +7565,7 @@ Primitive and inlined `quot` coerced to longs
 
 #### long-rem
 
+
 + `(long-rem x y)`
 
 Primitive and inlined `rem` coerced to longs
@@ -7217,6 +7583,7 @@ Primitive and inlined `rem` coerced to longs
 
 
 #### long-sub
+
 
 + `(long-sub a)`
 + `(long-sub a b)`
@@ -7240,6 +7607,7 @@ Primitive and inlined `-`. Coerces arguments and returned value to a long.
 
 #### low-2-exp
 
+
 + `(low-2-exp x)`
 
 Finds the greatest integer `n` such that `2^n <= |x|`. See [high-2-exp](#LOS-high-2-exp).
@@ -7257,6 +7625,7 @@ Finds the greatest integer `n` such that `2^n <= |x|`. See [high-2-exp](#LOS-hig
 
 
 #### low-exp
+
 
 + `(low-exp b x)`
 
@@ -7276,6 +7645,7 @@ Finds the greatest integer `n` such that `b^n <= |x|`. See also [high-exp](#LOS-
 
 #### make-norm
 
+
 + `(make-norm start stop)`
 + `(make-norm start stop dstart dstop)`
 
@@ -7283,7 +7653,7 @@ Make [norm](#LOS-norm) function for given range. Resulting function accepts `dou
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2016">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2053">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7294,6 +7664,7 @@ Make [norm](#LOS-norm) function for given range. Resulting function accepts `dou
 
 
 #### max
+
 
 + `(max a)`
 + `(max a b)`
@@ -7317,6 +7688,7 @@ Primitive and inlined `max`.
 
 #### min
 
+
 + `(min a)`
 + `(min a b)`
 + `(min a b c)`
@@ -7339,13 +7711,14 @@ Primitive and inlined `min`.
 
 #### mlerp ^~MACRO~^
 
+
 + `(mlerp start stop t)`
 
 [lerp](#LOS-lerp) as macro. For inline code. See also [lerp](#LOS-lerp), [cos-interpolation](#LOS-cos-interpolation), [quad-interpolation](#LOS-quad-interpolation) or [smooth-interpolation](#LOS-smooth-interpolation).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2053">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2090">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7357,6 +7730,7 @@ Primitive and inlined `min`.
 
 #### mnorm ^~MACRO~^
 
+
 + `(mnorm v start stop)`
 + `(mnorm v start1 stop1 start2 stop2)`
 
@@ -7364,7 +7738,7 @@ Macro version of [norm](#LOS-norm).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2009">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2046">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7375,6 +7749,7 @@ Macro version of [norm](#LOS-norm).
 
 
 #### mod
+
 
 + `(mod x y)`
 
@@ -7388,11 +7763,33 @@ Primitive and inlined `mod`
 
 
 ```{=html}
+<span id="#LOS-most-significant-bit"></span>
+```
+
+
+#### most-significant-bit
+
+
++ `(most-significant-bit v)`
+
+Returns the most significant bit position. Can be treated as floor(log2(v)) for positive, integer `v`.
+
+  Returns `-1` for `0` and `63` for negative numbers.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1951">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-mpow"></span>
 ```
 
 
 #### mpow
+
 
 + `(mpow x e m)`
 
@@ -7419,6 +7816,7 @@ Calculates the modular exponentiation $(x^e \pmod m)$.
 
 #### muladd
 
+
 + `(muladd x y z)`
 
 `(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+
@@ -7437,13 +7835,14 @@ Calculates the modular exponentiation $(x^e \pmod m)$.
 
 #### nan?
 
+
 + `(nan? v)`
 
 Check if a number is a NaN
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2144">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2181">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7454,6 +7853,7 @@ Check if a number is a NaN
 
 
 #### near-zero?
+
 
 + `(near-zero? x)`
 + `(near-zero? x abs-tol)`
@@ -7475,13 +7875,14 @@ Checks if given value is near zero with absolute (default: `1.0e-6`) and/or rela
 
 #### neg-inf?
 
+
 + `(neg-inf? v)`
 
 Check if a number is negatively infinite.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2162">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2199">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7492,6 +7893,7 @@ Check if a number is negatively infinite.
 
 
 #### neg?
+
 
 + `(neg? x)`
 
@@ -7511,6 +7913,7 @@ Primitive and inlined `neg?`
 
 #### negative-zero?
 
+
 + `(negative-zero? x)`
 
 Check if zero is negative, ie. -0.0
@@ -7528,6 +7931,7 @@ Check if zero is negative, ie. -0.0
 
 
 #### negmuladd
+
 
 + `(negmuladd x y z)`
 
@@ -7547,6 +7951,7 @@ Check if zero is negative, ie. -0.0
 
 #### next-double
 
+
 + `(next-double v)`
 + `(next-double v delta)`
 
@@ -7554,7 +7959,7 @@ Next double value. Optional value `delta` sets step amount.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1862">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1867">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7566,6 +7971,7 @@ Next double value. Optional value `delta` sets step amount.
 
 #### norm
 
+
 + `(norm v start stop)`
 + `(norm v start1 stop1 start2 stop2)`
 
@@ -7573,7 +7979,7 @@ Normalize `v` from the range `[start,stop]` to the range `[0,1]` or map `v` from
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1996">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2033">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7584,6 +7990,7 @@ Normalize `v` from the range `[start,stop]` to the range `[0,1]` or map `v` from
 
 
 #### not-neg?
+
 
 + `(not-neg? x)`
 
@@ -7603,6 +8010,7 @@ Primitive and inlined `not-neg?` (x>=0.0)
 
 #### not-pos?
 
+
 + `(not-pos? x)`
 
 Primitive and inlined `not-pos?` (x<=0.0)
@@ -7621,6 +8029,7 @@ Primitive and inlined `not-pos?` (x<=0.0)
 
 #### not-zero?
 
+
 + `(not-zero? x)`
 
 Primitive and inlined x<>0.0
@@ -7638,6 +8047,7 @@ Primitive and inlined x<>0.0
 
 
 #### not==
+
 
 + `(not== _)`
 + `(not== a b)`
@@ -7661,6 +8071,7 @@ Not equality. For more than two arguments, returns `true` when all values are un
 
 #### odd?
 
+
 + `(odd? x)`
 
 Primitive and inlined `odd?`
@@ -7678,6 +8089,7 @@ Primitive and inlined `odd?`
 
 
 #### one?
+
 
 + `(one? x)`
 
@@ -7697,6 +8109,7 @@ Primitive and inlined `one?` (x==1.0)
 
 #### order
 
+
 + `(order vs)`
 + `(order vs decreasing?)`
 
@@ -7707,6 +8120,7 @@ Computes the permutation of indices that would sort the input collection `vs`.
 
   Arguments:
 
+
   - `vs`: A collection of comparable values.
   - `decreasing?`: Optional boolean (default false). If true, the indices permute for a descending sort.
 
@@ -7714,7 +8128,7 @@ Computes the permutation of indices that would sort the input collection `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2419">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2477">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7726,13 +8140,14 @@ Computes the permutation of indices that would sort the input collection `vs`.
 
 #### pos-inf?
 
+
 + `(pos-inf? v)`
 
 Check if a number is positively infinite.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2156">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2193">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7743,6 +8158,7 @@ Check if a number is positively infinite.
 
 
 #### pos?
+
 
 + `(pos? x)`
 
@@ -7762,6 +8178,7 @@ Primitive and inlined `pos?`
 
 #### pow
 
+
 + `(pow x exponent)`
 
 Power of a number
@@ -7779,6 +8196,7 @@ Power of a number
 
 
 #### pow10
+
 
 + `(pow10 x)`
 
@@ -7798,6 +8216,7 @@ x^10
 
 #### pow2
 
+
 + `(pow2 x)`
 
 x^2, x*x
@@ -7816,6 +8235,7 @@ x^2, x*x
 
 #### pow3
 
+
 + `(pow3 x)`
 
 x^3
@@ -7828,11 +8248,31 @@ x^3
 
 
 ```{=html}
+<span id="#LOS-power-of-two?"></span>
+```
+
+
+#### power-of-two?
+
+
++ `(power-of-two? v)`
+
+Checks if `v` is a power of two, v=2^p for some p. Only for positive values.
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1850">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-prev-double"></span>
 ```
 
 
 #### prev-double
+
 
 + `(prev-double v)`
 + `(prev-double v delta)`
@@ -7841,7 +8281,7 @@ Next double value. Optional value `delta` sets step amount.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1871">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1876">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7852,6 +8292,7 @@ Next double value. Optional value `delta` sets step amount.
 
 
 #### qceil
+
 
 + `(qceil x)`
 
@@ -7871,6 +8312,7 @@ Fast version of [ceil](#LOS-ceil). Returns `long`.
 
 #### qcos
 
+
 + `(qcos x)`
 
 Fast and less accurate cos(x)
@@ -7888,6 +8330,7 @@ Fast and less accurate cos(x)
 
 
 #### qdist
+
 
 + `(qdist [x1 y1] [x2 y2])`
 + `(qdist x1 y1 x2 y2)`
@@ -7908,6 +8351,7 @@ Quick version of Euclidean distance between points. [qsqrt](#LOS-qsqrt) is used 
 
 #### qexp
 
+
 + `(qexp x)`
 
 Quick and less accurate version of [exp](#LOS-exp).
@@ -7925,6 +8369,7 @@ Quick and less accurate version of [exp](#LOS-exp).
 
 
 #### qfloor
+
 
 + `(qfloor x)`
 
@@ -7944,6 +8389,7 @@ Fast version of [floor](#LOS-floor). Returns `long`.
 
 #### qlog
 
+
 + `(qlog x)`
 
 Fast and less accurate version of [log](#LOS-log).
@@ -7961,6 +8407,7 @@ Fast and less accurate version of [log](#LOS-log).
 
 
 #### qpow
+
 
 + `(qpow x exponent)`
 
@@ -7980,6 +8427,7 @@ Fast and less accurate version of [pow](#LOS-pow).
 
 #### qround
 
+
 + `(qround x)`
 
 Fast version of [round](#LOS-round). Returns `long`
@@ -7997,6 +8445,7 @@ Fast version of [round](#LOS-round). Returns `long`
 
 
 #### qsin
+
 
 + `(qsin x)`
 
@@ -8016,6 +8465,7 @@ Fast and less accurate sin(x)
 
 #### qsqrt
 
+
 + `(qsqrt x)`
 
 Approximated [sqrt](#LOS-sqrt) using binary operations with error `1.0E-2`.
@@ -8034,13 +8484,14 @@ Approximated [sqrt](#LOS-sqrt) using binary operations with error `1.0E-2`.
 
 #### quad-interpolation
 
+
 + `(quad-interpolation start stop t)`
 
 Quad interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), [cos-interpolation](#LOS-cos-interpolation) or [smooth-interpolation](#LOS-smooth-interpolation).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2069">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2106">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8051,6 +8502,7 @@ Quad interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), [cos-interpo
 
 
 #### quot
+
 
 + `(quot x y)`
 
@@ -8088,6 +8540,7 @@ $\frac{180}{\pi}$
 
 #### radians
 
+
 + `(radians deg)`
 
 Convert degrees into radians.
@@ -8106,6 +8559,7 @@ Convert degrees into radians.
 
 #### rank
 
+
 + `(rank vs)`
 + `(rank vs ties)`
 + `(rank vs ties desc?)`
@@ -8115,9 +8569,11 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
   Arguments:
   
+
   - `vs`: A collection of comparable values.
   - `ties`: The tie-breaking strategy (keyword, optional, default `:average`).
     Supported strategies:
+
     - `:average`: Assign the average rank to all tied values.
     - `:first`: Assign ranks based on their appearance order in the input.
     - `:last`: Assign ranks based on their appearance order in the input (reverse of `:first`).
@@ -8131,7 +8587,7 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2370">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2428">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8145,7 +8601,7 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2416">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2474">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8157,13 +8613,14 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
 #### relative-error
 
+
 + `(relative-error v v-approx)`
 
 Relative error between two values
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2202">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2239">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8174,6 +8631,7 @@ Relative error between two values
 
 
 #### rem
+
 
 + `(rem x y)`
 
@@ -8193,6 +8651,7 @@ Primitive and inlined `rem`
 
 #### remainder
 
+
 + `(remainder dividend divisor)`
 
 From `FastMath` doc: returns dividend - divisor * n,
@@ -8211,6 +8670,7 @@ From `FastMath` doc: returns dividend - divisor * n,
 
 
 #### rint
+
 
 + `(rint x)`
 + `(rint x scale)`
@@ -8233,6 +8693,7 @@ Round to a `double` value. See [round](#LOS-round), [qround](#LOS-qround).
 
 #### rising-factorial
 
+
 + `(rising-factorial n x)`
 
 Rising (Pochhammer) factorial.
@@ -8250,6 +8711,7 @@ Rising (Pochhammer) factorial.
 
 
 #### rising-factorial-int
+
 
 + `(rising-factorial-int n x)`
 
@@ -8269,6 +8731,7 @@ Rising (Pochhammer) factorial for integer n.
 
 #### round
 
+
 + `(round x)`
 
 Round to a `long` value. See: [rint](#LOS-rint), [qround](#LOS-qround).
@@ -8286,6 +8749,7 @@ Round to a `long` value. See: [rint](#LOS-rint), [qround](#LOS-qround).
 
 
 #### round-even
+
 
 + `(round-even x)`
 
@@ -8305,13 +8769,14 @@ Round evenly, IEEE / IEC rounding
 
 #### round-up-pow2
 
+
 + `(round-up-pow2 v)`
 
 Rounds a positive `long` integer up to the smallest power of 2 greater than or equal to the input value.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1850">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1855">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8322,6 +8787,7 @@ Rounds a positive `long` integer up to the smallest power of 2 greater than or e
 
 
 #### rqsqrt
+
 
 + `(rqsqrt x)`
 
@@ -8341,6 +8807,7 @@ Reciprocal of [qsqrt](#LOS-qsqrt). Quick and less accurate.
 
 #### safe-sqrt
 
+
 + `(safe-sqrt value)`
 
 Safe sqrt, for value <= 0 result is 0.
@@ -8359,6 +8826,7 @@ Safe sqrt, for value <= 0 result is 0.
 
 #### sample
 
+
 + `(sample f number-of-values)`
 + `(sample f number-of-values domain?)`
 + `(sample f domain-min domain-max number-of-values)`
@@ -8370,6 +8838,7 @@ Samples a function `f` by evaluating it at evenly spaced points within a numeric
 
   Arguments:
 
+
   - `f`: The function to sample. Should accept a single `double` argument.
   - `number-of-values`: The total number of points to generate (a positive `long`).
   - `domain-min`: The lower bound of the sampling range (a `double`). Defaults to `0.0`.
@@ -8377,6 +8846,7 @@ Samples a function `f` by evaluating it at evenly spaced points within a numeric
   - `domain?`: A boolean flag. If `true`, returns pairs `[x, (f x)]`. If `false` (default), returns just `(f x)`.
 
   Arities:
+
 
   - `[f number-of-values]`: Samples `f` in `[0.0, 1.0]`. Returns `(f x)` values.
   - `[f number-of-values domain?]`: Samples `f` in `[0.0, 1.0]`. Returns `[x, (f x)]` pairs if `domain?` is true, otherwise `(f x)` values.
@@ -8389,7 +8859,7 @@ Samples a function `f` by evaluating it at evenly spaced points within a numeric
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2332">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2390">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8400,6 +8870,7 @@ Samples a function `f` by evaluating it at evenly spaced points within a numeric
 
 
 #### sec
+
 
 + `(sec x)`
 
@@ -8419,6 +8890,7 @@ sec(x)
 
 #### sech
 
+
 + `(sech x)`
 
 Hyperbolic secant
@@ -8436,6 +8908,7 @@ Hyperbolic secant
 
 
 #### secpi
+
 
 + `(secpi x)`
 
@@ -8455,13 +8928,14 @@ sec(pi*x)
 
 #### seq->double-array
 
+
 + `(seq->double-array vs)`
 
 Convert sequence to double array. Returns input if `vs` is double array already.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2506">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8473,6 +8947,7 @@ Convert sequence to double array. Returns input if `vs` is double array already.
 
 #### seq->double-double-array
 
+
 + `(seq->double-double-array vss)`
 
 Convert sequence to double-array of double-arrays.
@@ -8481,7 +8956,7 @@ Convert sequence to double-array of double-arrays.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2464">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2522">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8492,6 +8967,7 @@ Convert sequence to double-array of double-arrays.
 
 
 #### sfrac
+
 
 + `(sfrac v)`
 
@@ -8511,6 +8987,7 @@ Fractional part, always returns values from -1.0 to 1.0 (exclusive). See [frac](
 
 #### sgn
 
+
 + `(sgn value)`
 
 Returns -1 when `value` is negative, 1 otherwise. See also [signum](#LOS-signum).
@@ -8528,6 +9005,7 @@ Returns -1 when `value` is negative, 1 otherwise. See also [signum](#LOS-signum)
 
 
 #### sigmoid
+
 
 + `(sigmoid x)`
 
@@ -8547,6 +9025,7 @@ Sigmoid function
 
 #### signum
 
+
 + `(signum value)`
 
 Returns 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [sgn](#LOS-sgn).
@@ -8564,6 +9043,7 @@ Returns 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [sgn](#LOS-sgn
 
 
 #### sin
+
 
 + `(sin x)`
 
@@ -8583,6 +9063,7 @@ sin(x)
 
 #### sinc
 
+
 + `(sinc v)`
 
 Sinc function.
@@ -8600,6 +9081,7 @@ Sinc function.
 
 
 #### sinh
+
 
 + `(sinh x)`
 
@@ -8619,6 +9101,7 @@ sinh(x)
 
 #### sinpi
 
+
 + `(sinpi x)`
 
 sin(pi*x)
@@ -8637,11 +9120,13 @@ sin(pi*x)
 
 #### slice-range
 
+
 + `(slice-range data cnt)`
 + `(slice-range start end cnt)`
 + `(slice-range cnt)`
 
 Generates `cnt` evenly spaced points within a numerical range.
+
 
   - `(slice-range cnt)`: Generates `cnt` points in the range `[0.0, 1.0]`.
   - `(slice-range data cnt)`: Generates `cnt` points in the range `[(min data), (max data)]`.
@@ -8653,7 +9138,7 @@ Generates `cnt` evenly spaced points within a numerical range.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2209">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2246">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8665,13 +9150,14 @@ Generates `cnt` evenly spaced points within a numerical range.
 
 #### smooth-interpolation
 
+
 + `(smooth-interpolation start stop t)`
 
 Smoothstep based interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), [quad-interpolation](#LOS-quad-interpolation) or [cos-interpolation](#LOS-cos-interpolation).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2064">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2101">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8683,6 +9169,7 @@ Smoothstep based interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), 
 
 #### smooth-max
 
+
 + `(smooth-max xs)`
 + `(smooth-max xs alpha)`
 + `(smooth-max xs alpha family)`
@@ -8693,6 +9180,7 @@ Smooth maximum function.
 
   Family:
 
+
   * `:lse` - LogSumExp (default)
   * `:boltzmann` - Boltzmann operator, works for small alpha values
   * `:mellowmax`
@@ -8701,7 +9189,7 @@ Smooth maximum function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2115">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2152">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8713,13 +9201,14 @@ Smooth maximum function.
 
 #### smoothstep
 
+
 + `(smoothstep edge0 edge1 x)`
 
 GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2077">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2114">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8730,6 +9219,7 @@ GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smooth
 
 
 #### spow
+
 
 + `(spow x exponent)`
 
@@ -8749,6 +9239,7 @@ Symmetric power of a number (keeping a sign of the argument.
 
 #### sq
 
+
 + `(sq x)`
 
 x^2, x*x
@@ -8766,6 +9257,7 @@ x^2, x*x
 
 
 #### sqrt
+
 
 + `(sqrt x)`
 
@@ -8785,6 +9277,7 @@ square root, sqrt(x)
 
 #### sum-of-products
 
+
 + `(sum-of-products a b c d)`
 
 Kahan's algorithm for (a*b)+(c*d) to avoid catastrophic cancellation.
@@ -8802,6 +9295,7 @@ Kahan's algorithm for (a*b)+(c*d) to avoid catastrophic cancellation.
 
 
 #### tan
+
 
 + `(tan x)`
 
@@ -8821,6 +9315,7 @@ tan(x)
 
 #### tanh
 
+
 + `(tanh x)`
 
 tanh(x)
@@ -8838,6 +9333,7 @@ tanh(x)
 
 
 #### tanpi
+
 
 + `(tanpi x)`
 
@@ -8857,6 +9353,7 @@ tan(pi*x)
 
 #### tpow
 
+
 + `(tpow x exponent)`
 + `(tpow x exponent shift)`
 
@@ -8872,11 +9369,31 @@ Calculates truncated power.
 
 
 ```{=html}
+<span id="#LOS-trailing-zero-bits"></span>
+```
+
+
+#### trailing-zero-bits
+
+
++ `(trailing-zero-bits v)`
+
+Trailing zero bits
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1944">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
 <span id="#LOS-trunc"></span>
 ```
 
 
 #### trunc
+
 
 + `(trunc v)`
 
@@ -8896,13 +9413,14 @@ Truncate fractional part, keep sign. Returns `double`.
 
 #### ulp
 
+
 + `(ulp x)`
 
 Unit in the Last Place, distance between next value larger than `x` and `x`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1932">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1969">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8913,6 +9431,7 @@ Unit in the Last Place, distance between next value larger than `x` and `x`
 
 
 #### unsigned-bit-shift-right
+
 
 + `(unsigned-bit-shift-right x shift)`
 
@@ -8932,6 +9451,7 @@ Shift bits right and set most significant bit to `0`
 
 #### unuse-primitive-operators
 
+
 + `(unuse-primitive-operators)`
 + `(unuse-primitive-operators skip-set)`
 
@@ -8939,7 +9459,7 @@ Undoes the work of [use-primitive-operators](#LOS-use-primitive-operators). This
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2495">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2553">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8951,6 +9471,7 @@ Undoes the work of [use-primitive-operators](#LOS-use-primitive-operators). This
 
 #### use-primitive-operators
 
+
 + `(use-primitive-operators)`
 + `(use-primitive-operators skip-set)`
 
@@ -8959,7 +9480,7 @@ Replaces Clojure's arithmetic and number coercion functions with primitive equiv
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2484">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2542">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8971,13 +9492,14 @@ Replaces Clojure's arithmetic and number coercion functions with primitive equiv
 
 #### valid-double?
 
+
 + `(valid-double? v)`
 
 Check if a number is finite double.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2174">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2211">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8988,6 +9510,7 @@ Check if a number is finite double.
 
 
 #### vercos
+
 
 + `(vercos x)`
 
@@ -9007,6 +9530,7 @@ Vercosine
 
 #### versin
 
+
 + `(versin x)`
 
 Versine
@@ -9025,6 +9549,7 @@ Versine
 
 #### wrap
 
+
 + `(wrap [start stop] value)`
 + `(wrap start stop value)`
 
@@ -9032,7 +9557,7 @@ Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2086">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2123">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9043,6 +9568,7 @@ Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.
 
 
 #### xexpx
+
 
 + `(xexpx x)`
 
@@ -9062,6 +9588,7 @@ x * exp(x)
 
 #### xexpy
 
+
 + `(xexpy x y)`
 
 x * exp(x)
@@ -9079,6 +9606,7 @@ x * exp(x)
 
 
 #### xlog1py
+
 
 + `(xlog1py x y)`
 
@@ -9098,6 +9626,7 @@ x * log(1+y)
 
 #### xlogx
 
+
 + `(xlogx x)`
 
 x * log(x)
@@ -9115,6 +9644,7 @@ x * log(x)
 
 
 #### xlogy
+
 
 + `(xlogy x y)`
 
@@ -9134,6 +9664,7 @@ x * log(y)
 
 #### xor
 
+
 + `(xor x y)`
 + `(xor x y & r)`
 
@@ -9152,6 +9683,7 @@ Primitive boolean xor
 
 
 #### zero?
+
 
 + `(zero? x)`
 

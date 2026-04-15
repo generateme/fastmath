@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: calculus.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="calculus_files/md-default0.js" type="text/javascript"></script><script src="calculus_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -53,6 +52,7 @@ Integration and derivatives
 
   Integrate univariate and multivariate functions.
 
+
   * VEGAS / VEGAS+ - Monte Carlo integration of multivariate function
   * h-Cubature - h-adaptive integration of multivariate function
   * Guass-Kronrod and Gauss-Legendre - quadrature integration of univariate functions
@@ -61,6 +61,7 @@ Integration and derivatives
   Integrant is substituted in case of improper integration bounds.
 
   Derivatives (finite differences method):
+
 
   * derivatives of any degree and any order of accuracy
   * gradient and hessian for multivariate functions
@@ -72,6 +73,7 @@ Integration and derivatives
 
 
 #### cubature
+
 
 + `(cubature f lower upper)`
 + `(cubature f lower upper options)`
@@ -86,11 +88,13 @@ Cubature - h-adaptive integration of multivariate function, n>1 dimensions.
 
   Arguments:
 
+
   * `f` - integrant
   * `lower` - seq of lower bounds
   * `upper` - seq of upper bounds
   
   Options:
+
 
   * `:initvid` - initial subdivision per dimension, default: 2.
   * `:max-evals` - maximum number of evaluations, default: max integer value.
@@ -100,6 +104,7 @@ Cubature - h-adaptive integration of multivariate function, n>1 dimensions.
   * `:info?` - return full information about integration, default: false
 
   Function returns a map containing (if info? is true, returns result otherwise):
+
 
   * `:result` - integration value
   * `:error` - integration error
@@ -122,6 +127,7 @@ Cubature - h-adaptive integration of multivariate function, n>1 dimensions.
 
 #### derivative
 
+
 + `(derivative f)`
 + `(derivative f n)`
 + `(derivative f n options)`
@@ -131,6 +137,7 @@ Create nth derivative of `f` using finite difference method for given accuracy `
   Returns function.
 
   Arguments:
+
 
   * `n` - derivative
   * `:acc` - order of accuracy (default: 2)
@@ -152,12 +159,14 @@ Create nth derivative of `f` using finite difference method for given accuracy `
 
 #### extrapolate
 
+
 + `(extrapolate g)`
 + `(extrapolate g options)`
 
 Richardson extrapolation for given function `g=g(x,h)`. Returns extrapolated function f(x).
 
   Options:
+
 
   * `:contract` - shrinkage factor, default=`1/2`
   * `:power` - set to `2.0` for even functions around `x0`, default `1.0`
@@ -181,6 +190,7 @@ Richardson extrapolation for given function `g=g(x,h)`. Returns extrapolated fun
 
 #### f'
 
+
 + `(f' f)`
 
 First central derivative with order of accuracy 2.
@@ -198,6 +208,7 @@ First central derivative with order of accuracy 2.
 
 
 #### f''
+
 
 + `(f'' f)`
 
@@ -217,6 +228,7 @@ Second central derivative with order of accuracy 2.
 
 #### f'''
 
+
 + `(f''' f)`
 
 Third central derivative with order of accuracy 2.
@@ -234,6 +246,7 @@ Third central derivative with order of accuracy 2.
 
 
 #### fx->gx+h
+
 
 + `(fx->gx+h f)`
 
@@ -253,6 +266,7 @@ Convert f(x) to g(x,h)=f(x+h)
 
 #### fx->gx-h
 
+
 + `(fx->gx-h f)`
 
 Convert f(x) to g(x,h)=f(x-h)
@@ -271,6 +285,7 @@ Convert f(x) to g(x,h)=f(x-h)
 
 #### gradient
 
+
 + `(gradient f)`
 + `(gradient f options)`
 
@@ -279,6 +294,7 @@ Create first partial derivatives of multivariate function for given accuracy `:a
   Returns function.
 
   Options:
+
 
   * `:acc` - order of accuracy, 2 (default) or 4.
   * `:h` - step, default `1.0e-6`
@@ -296,6 +312,7 @@ Create first partial derivatives of multivariate function for given accuracy `:a
 
 
 #### hessian
+
 
 + `(hessian f)`
 + `(hessian f options)`
@@ -316,6 +333,7 @@ Creates function returning Hessian matrix for mulitvariate function `f` and give
 
 #### integrate
 
+
 + `(integrate f)`
 + `(integrate f lower upper)`
 + `(integrate f lower upper {:keys [rel abs max-iters min-iters max-evals info? integrator integration-points], :or {rel BaseAbstractUnivariateIntegrator/DEFAULT_RELATIVE_ACCURACY, abs BaseAbstractUnivariateIntegrator/DEFAULT_ABSOLUTE_ACCURACY, min-iters BaseAbstractUnivariateIntegrator/DEFAULT_MIN_ITERATIONS_COUNT, max-evals Integer/MAX_VALUE, integration-points 7, integrator :gauss-kronrod, info? false}, :as options})`
@@ -326,11 +344,13 @@ Univariate integration.
 
   Arguments:
 
+
   * `f` - integrant
   * `lower` - lower bound
   * `upper` - upper bound
 
   Options:
+
 
   * `:integrator` - integration algorithm, one of: `:romberg`, `:trapezoid`, `:midpoint`, `:simpson`, `:gauss-legendre` and `:gauss-kronrod` (default).
   * `:min-iters` - minimum number of iterations (default: 3), not used in `:gauss-kronrod`
@@ -345,6 +365,7 @@ Univariate integration.
   `:gauss-kronrod` is h-adaptive implementation
 
   Function returns a map containing (if info? is true, returns result otherwise):
+
 
   * `:result` - integration value
   * `:error` - integration error (`:gauss-kronrod` only)
@@ -367,6 +388,7 @@ Univariate integration.
 
 #### vegas
 
+
 + `(vegas f lower upper)`
 + `(vegas f lower upper options)`
 
@@ -376,11 +398,13 @@ VEGAS+ - Monte Carlo integration of multivariate function, n>1 dimensions.
 
   Arguments:
 
+
   * `f` - integrant
   * `lower` - seq of lower bounds
   * `upper` - seq of upper bounds
   
   Additional options:
+
 
   * `:max-iters` - maximum number of iterations, default: 10
   * `:nevals` - number of evaluations per iteration, default: 10000
@@ -401,6 +425,7 @@ VEGAS+ - Monte Carlo integration of multivariate function, n>1 dimensions.
   `:nstrats` can be also a list, then each dimension is divided independently according to a given number. If list is lower then number of dimensions, then it's cycled.
 
   Function returns a map with following keys (if info? is true, returns result otherwise):
+
 
   * `:result` - value of integral
   * `:iterations` - number of iterations (excluding warmup)
@@ -433,6 +458,7 @@ VEGAS+ - Monte Carlo integration of multivariate function, n>1 dimensions.
 
 #### cubic
 
+
 + `(cubic a b c d)`
 
 Real solution of cubic formula ax^3+bx^2+cx+d=0. Returns `NaNs` where no real solutions are found.
@@ -451,12 +477,14 @@ Real solution of cubic formula ax^3+bx^2+cx+d=0. Returns `NaNs` where no real so
 
 #### find-root
 
+
 + `(find-root f lower-bound upper-bound)`
 + `(find-root f lower-bound upper-bound {:keys [absolute-accuracy relative-accuracy max-iters initial-value solver], :or {max-iters 100, solver :brent}})`
 
 Find zero (root) of a function `f` in given range [`lower-bound`, `upper-bound`].
 
   Optional parameters:
+
 
   * `:absolute-accuracy` - default 1.0e-8
   * `:relative-accuracy`
@@ -477,6 +505,7 @@ Find zero (root) of a function `f` in given range [`lower-bound`, `upper-bound`]
 
 
 #### quadratic
+
 
 + `(quadratic a b c)`
 

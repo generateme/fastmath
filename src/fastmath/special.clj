@@ -5,6 +5,8 @@
   * Modified Bessel I, K 
   * Spherical Bessel j, y
   * Modified spherical Bessel i1, i2, k
+  * Elliptic K, E, Pi, Rf, Rd, Rj, Rg, Rc
+  * Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
   * Gamma, log, digamma, trigamma, polygamma, regularized, lower/upper incomplete
   * Beta, log, regularized, incomplete
   * Erf, inverse
@@ -16,12 +18,13 @@
   * Minkowski
   * Harmonic H
   * Owen's T
-  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U "
+  * Complex: (log)Gamma, Hypergeometric pFq, Tricomis U, (scaled) Bessel K of half-odd order."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.special.poly :as spoly]
             [fastmath.special.airy :as airy]
             [fastmath.special.hypergeometric :as hg]
+            [fastmath.special.ellip :as ellip]
             [fastmath.polynomials :as poly]
             [fastmath.complex :as cplx])
   (:import [fastmath.java Array]
@@ -800,6 +803,23 @@
     3 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)) (m/inc (m// x)))
     (loop [i (long 5)
            ^Vec2 pair (let [b1 (m/* (m/sqrt (m// m/HALF_PI x)) (m/exp (m/- x)))
+                            b3 (m/* b1 (m/inc (m// x)))]
+                        (Vec2. b1 b3))]
+      (if (m/> i odd-numerator)
+        (.y pair)
+        (recur (m/+ i 2) (Vec2. (.y pair) (m/+ (m/* (.y pair) (m// (m/- i 2.0) x))
+                                               (.x pair))))))))
+
+(defn bessel-K-half-odd-scaled
+  "Bessel K_a function scaled by e^x for a = order/2
+
+  Function accepts only odd integers for order"
+  ^double [^long odd-numerator ^double x]
+  (case (int odd-numerator)
+    1 (m/* (m/sqrt (m// m/HALF_PI x)))
+    3 (m/* (m/sqrt (m// m/HALF_PI x)) (m/inc (m// x)))
+    (loop [i (long 5)
+           ^Vec2 pair (let [b1 (m/* (m/sqrt (m// m/HALF_PI x)))
                             b3 (m/* b1 (m/inc (m// x)))]
                         (Vec2. b1 b3))]
       (if (m/> i odd-numerator)
@@ -2283,7 +2303,17 @@
   "Complex version of gamma function."
   ^Vec2 [^Vec2 z] (cplx/exp (log-gamma-complex z)))
 
-(defn tricomis-U-complex [a b z]
+(defn tricomis-U-complex
+  "Complex version of Tricomi's confluent hypergeometric function U(a,b,z) of the second kind.
+
+  Arguments `a`, `b` and `z` can be real or complex numbers; plain numbers are promoted to
+  complex automatically via `ensure-complex`.
+
+  - Input: `a`, `b`, `z` — real or complex numbers (scalars or [[Vec2]] complex pairs)
+  - Returns: [[Vec2]] complex number
+
+  See also the real-valued [[tricomis-U]]."
+  [a b z]
   (let [a (cplx/ensure-complex a)
         b (cplx/ensure-complex b)
         z (cplx/ensure-complex z)
@@ -2297,3 +2327,133 @@
                                        (cplx/mult (gamma-complex a)
                                                   (gamma-complex p2)))))
         (cplx/mult (cplx/div cplx/PI (cplx/sin (cplx/scale b m/PI)))))))
+
+(def ^:private CPLX_HALF_PI (cplx/complex m/HALF_PI 0.0))
+
+(defn bessel-K-half-odd-complex
+  "Bessel K_a function for a = order/2 for complex numbers
+
+  Function accepts only odd integers for order"
+  ^Vec2 [^long odd-numerator ^Vec2 x]
+  (case (int odd-numerator)
+    1 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
+    3 (cplx/mult (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
+                 (cplx/add (cplx/reciprocal x) cplx/ONE))
+    (loop [i (long 5)
+           [b1 b3] (let [b1 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x)) (cplx/exp (cplx/neg x)))
+                         b3 (cplx/mult b1 (cplx/add (cplx/reciprocal x) cplx/ONE))]
+                     [b1 b3])]
+      (if (m/> i odd-numerator)
+        b3
+        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/div (Vec2. (m/- i 2.0) 0.0) x)))])))))
+
+(defn bessel-K-half-odd-scaled-complex
+  "Bessel K_a function scaled by e^x for a = order/2 for complex numbers
+
+  Function accepts only odd integers for order"
+  [^long odd-numerator x]
+  (case (int odd-numerator)
+    1 (cplx/sqrt (cplx/div CPLX_HALF_PI x))
+    3 (cplx/mult (cplx/sqrt (cplx/div CPLX_HALF_PI x))
+                 (cplx/add (cplx/reciprocal x) cplx/ONE))
+    (loop [i (long 5)
+           [b1 b3] (let [b1 (cplx/sqrt (cplx/div CPLX_HALF_PI x))
+                         b3 (cplx/mult b1 (cplx/add (cplx/reciprocal x) cplx/ONE))]
+                     [b1 b3])]
+      (if (m/> i odd-numerator)
+        b3
+        (recur (m/+ i 2) [b3 (cplx/add b1 (cplx/mult b3 (cplx/scale (cplx/reciprocal x) (m/- i 2.0))))])))))
+
+;; elliptic
+
+(defn elliptic-K
+  "Elliptic K - complete (K) and incomplete (F) elliptic integral of the first kind."
+  (^double [^double m] (ellip/K m))
+  (^double [^double phi ^double m] (ellip/K phi m)))
+
+(defn elliptic-F
+  "Elliptic F - incomplete elliptic integral of the first kind."
+  ^double [^double phi ^double m] (ellip/K phi m))
+
+(defn elliptic-E
+  "Elliptic E - complete and incomplete elliptic integral of the second kind"
+  (^double [^double m] (ellip/E m))
+  (^double [^double phi ^double m] (ellip/E phi m)))
+
+(defn elliptic-PI
+  "Elliptic PI - complete and incomplete elliptic integral of the third kind"
+  (^double [^double n ^double m] (ellip/PI n m))
+  (^double [^double n ^double phi ^double m] (ellip/PI n phi m)))
+
+(defn elliptic-D
+  "Elliptic D - complete and incomplete elliptic integral of Legendre’s type"
+  (^double [^double x]
+   (m// (m/- (ellip/K x) (ellip/E x))
+        (m/* x x)))
+  (^double [^double phi ^double x]
+   (m// (m/- (ellip/K phi x) (ellip/E phi x))
+        (m/* x x))))
+
+(defn elliptic-Rf
+  "Symmetric Rf elliptic intergral of the first kind."
+  ^double [^double x ^double y ^double z]
+  (ellip/Rf x y z))
+
+(defn elliptic-Rd
+  "Symmetric Rd elliptic intergral, symmetry on two variables."
+  ^double [^double x ^double y ^double z]
+  (ellip/Rd x y z))
+
+(defn elliptic-Rg
+  "Symmetric Rg elliptic intergral of the second kind"
+  ^double [^double x ^double y ^double z]
+  (ellip/Rg x y z))
+
+(defn elliptic-Rj
+  "Symmetric Rj elliptic intergral of the third kind"
+  ^double [^double x ^double y ^double z ^double p]
+  (ellip/Rj x y z p))
+
+(defn elliptic-Rc
+  "Rc elliptic intergral"
+  ^double [^double x ^double y]
+  (ellip/Rc x y))
+
+;; Jacobi
+
+(defn jacobi-am
+  "Amplitude phi=am(u,m) such that u=F(phi,m)
+
+  Inverse of the elliptic incomplete intergral of the first kind."
+  ^double [^double u ^double m]
+  (ellip/am u m))
+
+;; Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
+
+(defn jacobi-sn "Jacobi sn(u,m)" ^double [^double u ^double k] (ellip/jsn u k))
+(defn jacobi-cn "Jacobi cn(u,m)" ^double [^double u ^double k] (ellip/jcn u k))
+(defn jacobi-dn "Jacobi dn(u,m)" ^double [^double u ^double k] (ellip/jdn u k))
+(defn jacobi-sc "Jacobi sc(u,m)" ^double [^double u ^double k] (ellip/jsc u k))
+(defn jacobi-sd "Jacobi sd(u,m)" ^double [^double u ^double k] (ellip/jsd u k))
+(defn jacobi-cs "Jacobi cs(u,m)" ^double [^double u ^double k] (ellip/jcs u k))
+(defn jacobi-cd "Jacobi cd(u,m)" ^double [^double u ^double k] (ellip/jcd u k))
+(defn jacobi-ds "Jacobi ds(u,m)" ^double [^double u ^double k] (ellip/jds u k))
+(defn jacobi-dc "Jacobi dc(u,m)" ^double [^double u ^double k] (ellip/jdc u k))
+(defn jacobi-ns "Jacobi ns(u,m)" ^double [^double u ^double k] (ellip/jns u k))
+(defn jacobi-nc "Jacobi nc(u,m)" ^double [^double u ^double k] (ellip/jnc u k))
+(defn jacobi-nd "Jacobi nd(u,m)" ^double [^double u ^double k] (ellip/jnd u k))
+
+;; Inverse of Jacobi am, sn, cn, dn, sc, sd, cs, cd, ds, dc, ns, nc, nd
+
+(defn jacobi-asn "Jacobi arcsn(u,m)" ^double [^double x ^double k] (ellip/jasn x k))
+(defn jacobi-acn "Jacobi arccn(u,m)" ^double [^double x ^double k] (ellip/jacn x k))
+(defn jacobi-adn "Jacobi arcdn(u,m)" ^double [^double x ^double k] (ellip/jadn x k))
+(defn jacobi-asc "Jacobi arcsc(u,m)" ^double [^double x ^double k] (ellip/jasc x k))
+(defn jacobi-asd "Jacobi arcsd(u,m)" ^double [^double x ^double k] (ellip/jasd x k))
+(defn jacobi-acs "Jacobi arccs(u,m)" ^double [^double x ^double k] (ellip/jacs x k))
+(defn jacobi-acd "Jacobi arccd(u,m)" ^double [^double x ^double k] (ellip/jacd x k))
+(defn jacobi-ads "Jacobi arcds(u,m)" ^double [^double x ^double k] (ellip/jads x k))
+(defn jacobi-adc "Jacobi arcdc(u,m)" ^double [^double x ^double k] (ellip/jadc x k))
+(defn jacobi-ans "Jacobi arcns(u,m)" ^double [^double x ^double k] (ellip/jans x k))
+(defn jacobi-anc "Jacobi arcnc(u,m)" ^double [^double x ^double k] (ellip/janc x k))
+(defn jacobi-and "Jacobi arcnd(u,m)" ^double [^double x ^double k] (ellip/jand x k))

@@ -70,7 +70,7 @@
 
   Always uses all coefficients data, remove first half of coefficients to use only details level."
   (^double [coeffs] (threshold coeffs :visu))
-  (^double [coeffs thr] (threshold coeffs thr 0.75))
+  (^double [coeffs thr] (threshold coeffs thr 0.25))
   (^double [coeffs thr ^double top-n-ratio]
    (let [n (count coeffs)]
      (if (number? thr)
@@ -106,14 +106,15 @@
       * `:hyperbole`
   * `:thr` can be a number of one of the [[threshold]] methods (default: `:sure`)
   * `:skip` can be used to leave `:skip` number of coefficients unaffected (default: 0)
-  * `:high?` use only details level to estimate a threshold (`true` for `:visu` and `:universal`, `false` otherwise)  
+  * `:high?` use only details level to estimate a threshold (`true` for `:visu` and `:universal`, `false` otherwise)
+  * `:top-n-ratio` for `:topn` and `minfdr` sets ratio of highest coefficients to keep  
 
   Use on transformed sequences or call with transformer object."
-  ([coeffs {:keys [method thr ^long skip high?]
-            :or {method :hard thr :sure skip 0 high? (#{:visu :universal} thr)}}]
+  ([coeffs {:keys [method thr ^long skip high? ^double top-n-ratio]
+            :or {method :hard thr :sure skip 0 high? (#{:visu :universal} thr) top-n-ratio 0.25}}]
    (let [n (count coeffs)
          t (double-array coeffs)
-         lambda (threshold (if high? (drop (m// n 2) coeffs) coeffs) thr)
+         lambda (threshold (if high? (drop (m// n 2) coeffs) coeffs) thr top-n-ratio)
          ids (range skip n)]
      (case method
        :soft (doseq [^long i ids]

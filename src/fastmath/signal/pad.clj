@@ -7,12 +7,16 @@
 (set! *warn-on-reflection* true)
 
 (defn pad-position
-  "Calculate position of original signal in the padded one based on `side` method (`:left`, `:right`, `:both`)."
+  "Calculate position of original signal in the padded one based on `side` method (`:left`, `:right`, `:both`).
+
+  * `side` - `:left`, `:right` or `:both`
+  * `N` - buffer (target) size
+  * `len` - signal (source) size"
   ^long [side ^long N ^long len]
   (case side
     :left (m/- N len)
     :right 0
-    (m/round-even (m// (m/- N len) 2.0))))
+    (m/round (m// (m/- N len) 2.0))))
 
 (defn out-len-pos
   "Returns new, zero-padded signal with information about position." 

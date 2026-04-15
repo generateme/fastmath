@@ -9,9 +9,9 @@
             [fastmath.vector :as v]
             [fastmath.complex :as cplx]
             [fastmath.kernel :as kernel]
-            [fastmath.transform :as t]
             [fastmath.signal :as signal]
-            [fastmath.transform.wavelets :as wv]))
+            [fastmath.transform.wavelets :as wv]
+            [fastmath.transform :as t]))
 
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
@@ -171,7 +171,7 @@
 (def line-common {:linetype "dashed" :color color-light})
 
 (defn add-common
-  [object {:keys [title xlab ylab xlim ylim hline vline filllab]}]
+  [object {:keys [title xlab ylab xlim ylim hline vline filllab ylog xlog]}]
   (r/r+ object
         (when title (gg/labs :title title))
         (when filllab (gg/labs :fill filllab))
@@ -180,7 +180,9 @@
         (when xlim (gg/xlim xlim))
         (when ylim (gg/ylim ylim))
         (when hline (apply gg/geom_hline (flatten (seq (merge line-common hline)))))
-        (when vline (apply gg/geom_vline (flatten (seq (merge line-common vline)))))))
+        (when vline (apply gg/geom_vline (flatten (seq (merge line-common vline)))))
+        (when ylog (gg/scale_y_continuous :trans ylog))
+        (when xlog (gg/scale_x_continuous :trans xlog))))
 
 (defn function
   "Single function"
@@ -236,7 +238,7 @@
          (add-common opts)))))
 
 (defn line
-  ([ys] (line (range) ys))
+  ([ys] (line (map double (range)) ys))
   ([xs ys] (line xs ys nil))
   ([xs ys {:keys [color]
            :or {color color-main}
@@ -606,7 +608,7 @@
            :or {size 256 pad 4096 cut 200}
            :as opts}]
   (let [w (kernel/window window size opts)
-        coeffs (if (m/pos? pad) (t/pad w pad :zero) w)
+        coeffs (if (m/pos? pad) (signal/pad w pad :zero) w)
         s (map signal/linear->db (magnitudes coeffs))
         db (if (m/pos? cut) (take cut s) s)]
     (map #(m/constrain % -150.0 ##Inf) (v/shift db (m/- (double (first db)))))))

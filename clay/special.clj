@@ -3,7 +3,7 @@
   (:require [fastmath.core :as m]
             [fastmath.special :as special]
             [fastmath.complex :as complex]
-            
+
             [scicloj.kindly.v4.kind :as kind]
             [fastmath.dev.ggplot :as gg]
             [fastmath.dev.clay :as utls]
@@ -77,7 +77,7 @@
   (special/gamma-complex (complex/complex 0.0 1.0))
   (special/gamma-complex (complex/complex -1.5 -1.0)))
 
-;; ### Log gamma 
+;; ### Log gamma
 
 ;; Logartihm of gamma `log-gamma` $\log\Gamma(x)$ with derivatives: `digamma` $\psi$, `trigamma` $\psi_1$  and `polygamma` $\psi^{(m)}$.
 
@@ -339,7 +339,9 @@
 ;; * `bessel-J0`, `bessel-J1`, `bessel-J`, `jinc`
 ;; * `bessel-Y0`, `bessel-Y1`, `bessel-Y`
 ;; * `bessel-I0`, `bessel-I1`, `bessel-I`
-;; * `bessel-K0`, `bessel-K1`, `bessel-K`, `bessel-K-half-odd`
+;; * `bessel-K0`, `bessel-K1`, `bessel-K`
+;; * `bessel-K-half-odd`, `bessel-K-half-odd-scaled`
+;; * `bessel-K-half-odd-complex`, `bessel-K-half-odd-scaled-complex`
 ;; * `spherical-bessel-j0`, `spherical-bessel-j1`, `spherical-bessel-j2`,`spherical-bessel-j`
 ;; * `spherical-bessel-y0`, `spherical-bessel-y1`, `spherical-bessel-y2`,`spherical-bessel-y`
 ;; * `spherical-bessel-1-i0`, `spherical-bessel-1-i1`, `spherical-bessel-1-i2`,`spherical-bessel-1-i`
@@ -534,8 +536,6 @@
   (special/bessel-I -3 -1)
   (special/bessel-I -3.1 -1))
 
-;; ---
-
 ;; Two modfified spherical Bessel functions of the first kind `spherical-bessel-1-i` $i_\alpha^{(1)}(x)$ and `spherical-bessel-2-i` $i_\alpha^{(2)}(x)$. `spherical-bessel-1-i0`, `spherical-bessel-1-i1`, `spherical-bessel-1-i2`, `spherical-bessel-2-i0`, `spherical-bessel-2-i1` and `spherical-bessel-2-i2` are functions of orders `0`,`1` and `2`. Functions are defined for positive argument.
 
 ;; $$i_\alpha^{(1)}(x)=\sqrt{\frac{\pi}{2x}}I_{\alpha+\frac{1}{2}}(x)$$
@@ -634,7 +634,7 @@
 
 ;; ---
 
-;; Additionally `bessel-K-half-odd` function is optimized version for order of the half of odd integer, ie `1/2`, `3/2`, `5/2` and so on. First argument is an odd numerator. 
+;; Additionally `bessel-K-half-odd` function is optimized version for order of the half of odd integer, ie `1/2`, `3/2`, `5/2` and so on. First argument is an odd numerator.
 
 (gg/->image (gg/functions [["1/2" (partial special/bessel-K-half-odd 1)]
                            ["3/2" (partial special/bessel-K-half-odd 3)]
@@ -653,6 +653,42 @@
    (special/bessel-K 1.5 2.3)]
   [(special/bessel-K-half-odd 5 2.3)
    (special/bessel-K 2.5 2.3)])
+
+;; The other variant is `bessel-K-half-odd-scaled` which is $K$ multiplied by $e^x$ ($e^{x}K_\frac{a}{2}(x)$).
+
+(gg/->image (gg/functions [["1/2" (partial special/bessel-K-half-odd-scaled 1)]
+                           ["3/2" (partial special/bessel-K-half-odd-scaled 3)]
+                           ["5/2" (partial special/bessel-K-half-odd-scaled 5)]
+                           ["7/2" (partial special/bessel-K-half-odd-scaled 7)]]
+                          {:x [0.01 5]
+                           :ylim [nil 5]
+                           :legend-name "order"
+                           :title "exp(x)K(a/2,x)"
+                           :palette gg/palette-blue-1}))
+
+(utls/examples-note
+  (special/bessel-K-half-odd-scaled 1 2.3)
+  (special/bessel-K-half-odd-scaled 3 2.3)
+  (special/bessel-K-half-odd-scaled 5 2.3))
+
+;; Both functions have their complex versions.
+
+(kind/table
+ [[(gg/->image (gg/complex-function (partial special/bessel-K-half-odd-complex 3)
+                                    {:x [-2.5 3.5] :y [-3 3]
+                                     :steps 500 :title "Complex Bessel K_3/2(z)"}))
+   (gg/->image (gg/complex-function (partial special/bessel-K-half-odd-scaled-complex 3)
+                                    {:x [-2.5 3.5] :y [-3 3]
+                                     :steps 500 :title "Complex, scaled, Bessel K_3/2(z)"}))]
+  [(gg/->image (gg/complex-function (partial special/bessel-K-half-odd-complex 5)
+                                    {:x [-2.5 3.5] :y [-3 3]
+                                     :steps 500 :title "Complex Bessel K_5/2(z)"}))
+   (gg/->image (gg/complex-function (partial special/bessel-K-half-odd-scaled-complex 5)
+                                    {:x [-2.5 3.5] :y [-3 3]
+                                     :steps 500 :title "Complex, scaled, Bessel K_5/2(z)"}))]])
+
+
+;; 
 
 ;; ---
 
@@ -711,8 +747,275 @@
 ;; $$h^{(2)}_\alpha(x)=j_\alpha(x)- i j_\alpha(x)$$
 
 (utls/examples-note
- (special/spherical-hankel-1 1 2.3)
- (special/spherical-hankel-2 1 2.3))
+  (special/spherical-hankel-1 1 2.3)
+  (special/spherical-hankel-2 1 2.3))
+
+;; ## Elliptic
+
+;; Elliptic intergrals.
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `elliptic-K`, `elliptic-F`, `elliptic-E`, `elliptic-PI`, `elliptic-D`
+;; * `elliptic-Rf`, `elliptic-Rd`, `elliptic-Rg`, `elliptic-Rj`, `elliptic-Rc`
+;; :::
+
+;; ### Elliptic F and K 
+
+;; Incomplete `F` and complete `K` elliptic integrals of the first kind. `K` with 2-arity is equal to `F`.
+
+(kind/table
+ [[(gg/->image (gg/function special/elliptic-K
+                            {:x [-5 0.9999999]
+                             :ylim [0 nil]
+                             :title "K(m), complete"
+                             :palette gg/palette-blue-1}))
+   (gg/->image (gg/functions [["-0.5" (partial special/elliptic-K -0.5)]
+                              ["-1.5" (partial   special/elliptic-K -1.5)]
+                              ["0.5" (partial   special/elliptic-K 0.5)]
+                              ["1.5" (partial special/elliptic-K 1.5)]]
+                             {:x [-5 0.9999999]
+                              :legend-name "phi"
+                              :title "F(phi,m), incomplete"
+                              :palette gg/palette-blue-1}))]])
+
+(utls/examples
+  (special/elliptic-K 0.4)
+  (special/elliptic-K -0.4)
+  (special/elliptic-K 1 -0.4)
+  (special/elliptic-F 1 -0.4))
+
+;; ### Elliptic E
+
+;; Incomplete and complete `E` elliptic integrals of the second kind.
+
+(kind/table
+ [[(gg/->image (gg/function special/elliptic-E
+                            {:x [-5 0.9999999]
+                             :ylim [0 nil]
+                             :title "E(m), complete"
+                             :palette gg/palette-blue-1}))
+   (gg/->image (gg/functions [["-0.5" (partial special/elliptic-E -0.5)]
+                              ["-1.5" (partial   special/elliptic-E -1.5)]
+                              ["0.5" (partial   special/elliptic-E 0.5)]
+                              ["1.5" (partial special/elliptic-E 1.5)]]
+                             {:x [-5 0.9999999]
+                              :legend-name "phi"
+                              :title "E(phi,m), incomplete"
+                              :palette gg/palette-blue-1}))]])
+
+(utls/examples
+  (special/elliptic-E 0.4)
+  (special/elliptic-E -0.4)
+  (special/elliptic-E 1 -0.4)
+  (special/elliptic-E -1 -0.4))
+
+;; ### Elliptic PI
+
+;; Incomplete and complete $\Pi$ elliptic integrals of the third kind.
+
+(utls/examples
+  (special/elliptic-PI 0.2 0.4)
+  (special/elliptic-PI -0.2 -0.4)
+  (special/elliptic-PI 0.2 1 -0.4)
+  (special/elliptic-PI 0.2 -1 -0.4))
+
+;; ### Elliptic D
+
+;; Incomplete and complete `D` elliptic integrals of Legendre's type.
+
+;; $$D(\phi,m)=\frac{K(\phi,m)-E(\phi,m)}{m^2}$$
+;; $$D(m)=\frac{K(m)-E(m)}{m^2}$$
+
+(kind/table
+ [[(gg/->image (gg/function special/elliptic-D
+                            {:x [-2 0.9999999]
+                             :ylim [-10 10]
+                             :title "D(m), complete"
+                             :palette gg/palette-blue-1}))
+   (gg/->image (gg/functions [["-0.5" (partial special/elliptic-D -0.5)]
+                              ["-1.5" (partial   special/elliptic-D -1.5)]
+                              ["0.5" (partial   special/elliptic-D 0.5)]
+                              ["1.5" (partial special/elliptic-D 1.5)]]
+                             {:x [-2 0.9999999]
+                              :ylim [-10 10]
+                              :legend-name "phi"
+                              :title "D(phi,m), incomplete"
+                              :palette gg/palette-blue-1}))]])
+
+
+(utls/examples
+  (special/elliptic-D 0.5)
+  (special/elliptic-D -0.5)
+  (special/elliptic-D -0.2 -0.4)
+  (special/elliptic-D 0.2 -0.4))
+
+;; ### Symmetric
+
+;; Collection of Carlson, symmetric versions of elliptic intervals
+
+;; * $R_f$ - symmetric elliptic intergral of the first kind.
+;; * $R_d$ - symmetric elliptic intergral, symmetry first on two variables.
+;; * $R_g$ - symmetric elliptic intergral of the second kind.
+;; * $R_j$ - symmetric elliptic intergral of the third kind.
+;; * $R_c$ - degenerate symmetric elliptic integral
+
+(utls/examples
+  (special/elliptic-Rf 1 2 3)
+  (special/elliptic-Rd 1 2 3)
+  (special/elliptic-Rg 1 2 3)
+  (special/elliptic-Rj 1 2 3 4)
+  (special/elliptic-Rj 1 2 3 -4)
+  (special/elliptic-Rc 1 2)
+  (special/elliptic-Rc 1 -2))
+
+;; ## Jacobi
+
+;; Collection of Jacobi functions and their inverses.
+
+;; ::: {.callout-tip title="Defined functions"}
+;; * `jacobi-am`
+;; * `jacobi-sn`, `jacobi-cn`, `jacobi-dn`
+;; * `jacobi-ns`, `jacobi-cs`, `jacobi-ds`
+;; * `jacobi-nc`, `jacobi-sc`, `jacobi-dc`
+;; * `jacobi-nd`, `jacobi-sd`, `jacobi-cd`
+;; * `jacobi-asn`, `jacobi-acn`, `jacobi-adn`
+;; * `jacobi-ans`, `jacobi-acs`, `jacobi-ads`
+;; * `jacobi-anc`, `jacobi-asc`, `jacobi-adc`
+;; * `jacobi-and`, `jacobi-asd`, `jacobi-acd`
+
+;; :::
+
+;; `jacobi-am` is an inverse (in regards of the first argument) of incomplete elliptic integral of the first kind.
+
+;; $$\phi=\operatorname{am}(u,m)\text{ such that }u=F(\phi,m)$$
+
+(gg/->image (gg/functions [["0.50" #(special/jacobi-am % 0.5)]
+                           ["0.10" #(special/jacobi-am % 0.4)]
+                           ["0.40" #(special/jacobi-am % 0.4)]
+                           ["0.85" #(special/jacobi-am % 0.85)]
+                           ["0.99" #(special/jacobi-am % 0.99)]]
+                          {:x [-6 6]
+                           :legend-name "m"
+                           :ylab "phi" :xlab "u"
+                           :title "phi=am(u,m)"
+                           :palette gg/palette-blue-1}))
+
+(utls/examples
+  (special/jacobi-am 1 0.5)
+  (special/jacobi-am -1 0.5)
+  (special/jacobi-am 1 0.99)
+  (special/jacobi-am -1 0.99)
+  (special/jacobi-am 10 0.5)
+  (special/jacobi-am -10 0.5)
+  (special/jacobi-am 10 0.99)
+  (special/jacobi-am -10 0.99))
+
+(kind/table
+ [[(gg/->image (gg/function2d special/jacobi-sn
+                              {:varg? false :x [-10 10] :y [-10 10]
+                               :title "sn(u,m)" :ylab "m" :xlab "u"}))
+   (gg/->image (gg/function2d special/jacobi-cn
+                              {:varg? false :x [-10 10] :y [-10 10]
+                               :title "cn(u,m)" :ylab "m" :xlab "u"}))
+   (gg/->image (gg/function2d special/jacobi-dn
+                              {:varg? false :x [-10 10] :y [-10 10]
+                               :title "dn(u,m)" :ylab "m" :xlab "u"}))]])
+
+^:kindly/hide-code
+(defn jacobi-plot
+  ([f n] (jacobi-plot f n nil))
+  ([f n conf]
+   (gg/->image (gg/functions [["0.50" #(f % 0.5)]
+                              ["1.10" #(f % 1.1)]
+                              ["-2.0" #(f % -2.0)]]
+                             (merge {:x [-10 10]
+                                     :ylim [-2 2]
+                                     :legend-name "k"
+                                     :ylab "k" :xlab "u"
+                                     :title (str n "(u,k)")
+                                     :palette gg/palette-blue-1} conf)))))
+
+(kind/table
+ [[(jacobi-plot special/jacobi-sn "sn")
+   (jacobi-plot special/jacobi-cn "cn")
+   (jacobi-plot special/jacobi-dn "dn" {:ylim [-0.1 2.0]})]
+  [(jacobi-plot special/jacobi-sc "sc")
+   (jacobi-plot special/jacobi-sd "sd")
+   (jacobi-plot special/jacobi-cs "cs")]
+  [(jacobi-plot special/jacobi-cd "cd")
+   (jacobi-plot special/jacobi-ds "ds")
+   (jacobi-plot special/jacobi-dc "dc" )]
+  [(jacobi-plot special/jacobi-ns "ns" {:ylim [-2.5 2.5]})
+   (jacobi-plot special/jacobi-nc "nc" {:ylim [-2.5 2.5]})
+   (jacobi-plot special/jacobi-nd "nd" {:ylim [0.5 2.5]})]])
+
+(utls/examples
+  (special/jacobi-sn 1.5 2)
+  (special/jacobi-sn 1.5 0.5)
+  (special/jacobi-sn 1.5 -2)
+  (special/jacobi-cn 1.5 2)
+  (special/jacobi-cn 1.5 0.5)
+  (special/jacobi-cn 1.5 -2)
+  (special/jacobi-dn 1.5 2)
+  (special/jacobi-dn 1.5 0.5)
+  (special/jacobi-dn 1.5 -2)
+  (special/jacobi-sc 1.5 2)
+  (special/jacobi-sc 1.5 0.5)
+  (special/jacobi-sc 1.5 -2)
+  (special/jacobi-sd 1.5 2)
+  (special/jacobi-sd 1.5 0.5)
+  (special/jacobi-sd 1.5 -2)
+  (special/jacobi-cs 1.5 2)
+  (special/jacobi-cs 1.5 0.5)
+  (special/jacobi-cs 1.5 -2)
+  (special/jacobi-cd 1.5 2)
+  (special/jacobi-cd 1.5 0.5)
+  (special/jacobi-cd 1.5 -2)
+  (special/jacobi-ds 1.5 2)
+  (special/jacobi-ds 1.5 0.5)
+  (special/jacobi-ds 1.5 -2)
+  (special/jacobi-dc 1.5 2)
+  (special/jacobi-dc 1.5 0.5)
+  (special/jacobi-dc 1.5 -2)
+  (special/jacobi-ns 1.5 2)
+  (special/jacobi-ns 1.5 0.5)
+  (special/jacobi-ns 1.5 -2)
+  (special/jacobi-nc 1.5 2)
+  (special/jacobi-nc 1.5 0.5)
+  (special/jacobi-nc 1.5 -2)
+  (special/jacobi-nd 1.5 2)
+  (special/jacobi-nd 1.5 0.5)
+  (special/jacobi-nd 1.5 -2))
+
+;; Inverses of Jacobi functions
+
+(kind/table
+ [[(jacobi-plot special/jacobi-asn "arcsn" {:x [-1.1 1.1]})
+   (jacobi-plot special/jacobi-acn "arccn" {:x [-1.1 1.1] :ylim [-0.1 nil]})
+   (jacobi-plot special/jacobi-adn "arcdn" {:x [-2 2] :ylim [-0.1 nil]})]
+  [(jacobi-plot special/jacobi-asc "arcsc")
+   (jacobi-plot special/jacobi-asd "arcsd" {:x [-3 3]})
+   (jacobi-plot special/jacobi-acs "arccs" {:ylim [-0.1 nil]})]
+  [(jacobi-plot special/jacobi-acd "arccd" {:x [-2.5 2.5] :ylim [-0.1 nil]})
+   (jacobi-plot special/jacobi-ads "arcds" {:x [-5 5] :ylim [-0.1 nil]})
+   (jacobi-plot special/jacobi-adc "arcdc" {:x [-5 5] :ylim [-0.1 nil]})]
+  [(jacobi-plot special/jacobi-ans "arcns" {:x [-5 5] :ylim [-0.1 nil]})
+   (jacobi-plot special/jacobi-anc "arcnc" {:x [-5 5] :ylim [-0.1 nil]})
+   (jacobi-plot special/jacobi-and "arcnd" {:x [-5 5] :ylim [-0.1 nil]})]])
+
+(utls/examples
+  (special/jacobi-asn (special/jacobi-sn 0.15 0.5) 0.5)
+  (special/jacobi-acn (special/jacobi-cn 0.15 0.5) 0.5)
+  (special/jacobi-adn (special/jacobi-dn 0.15 0.5) 0.5)
+  (special/jacobi-asc (special/jacobi-sc 0.15 0.5) 0.5)
+  (special/jacobi-asd (special/jacobi-sd 0.15 0.5) 0.5)
+  (special/jacobi-acs (special/jacobi-cs 0.15 0.5) 0.5)
+  (special/jacobi-acd (special/jacobi-cd 0.15 0.5) 0.5)
+  (special/jacobi-ads (special/jacobi-ds 0.15 0.5) 0.5)
+  (special/jacobi-adc (special/jacobi-dc 0.15 0.5) 0.5)
+  (special/jacobi-ans (special/jacobi-ns 0.15 0.5) 0.5)
+  (special/jacobi-anc (special/jacobi-nc 0.15 0.5) 0.5)
+  (special/jacobi-and (special/jacobi-nd 0.15 0.5) 0.5))
 
 ;; ## Erf
 

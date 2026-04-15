@@ -41,7 +41,8 @@
     (t/is (== (reduce clojure.core/- (map long numbers))
               (reduce m/long-sub numbers)))))
 
-
+(t/deftest agm
+  (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 
 (t/deftest angles
   (t/is (= 180.0 (m/degrees m/PI)))

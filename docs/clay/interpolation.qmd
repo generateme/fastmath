@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: interpolation.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,11 +19,12 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="interpolation_files/md-default61.js" type="text/javascript"></script><script src="interpolation_files/md-default62.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 # Interpolation {.unnumbered}
 
 Interpolation namespace defines the unified API for various interpolation methods. Most of them also extrapolates. Methods include:
+
 
 * 1d interpolation
 * 2d interpolation on irregular grid points
@@ -92,7 +92,31 @@ List of all possible methods:
 
 ::: {.printedClojure}
 ```clojure
-(:akima :b-spline :barycentric :bicubic :bilinear :cir :cubic :cubic-2d :cubic-smoothing :divided-difference :gp :kriging :linear :loess :microsphere-projection :monotone :neville :pava :polynomial :rbf :shepard :sprague :step :step-after :step-before)
+(:akima
+ :b-spline
+ :barycentric
+ :bicubic
+ :bilinear
+ :cir
+ :cubic
+ :cubic-2d
+ :cubic-smoothing
+ :divided-difference
+ :gp
+ :kriging
+ :linear
+ :loess
+ :microsphere-projection
+ :monotone
+ :neville
+ :pava
+ :polynomial
+ :rbf
+ :shepard
+ :sprague
+ :step
+ :step-after
+ :step-before)
 
 ```
 :::
@@ -149,20 +173,12 @@ Points used in interpolation
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/0.png" />
-```
-
+![](interpolation_files/image0.png)
 :::
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/1.png" />
-```
-
+![](interpolation_files/image1.png)
 :::
 
 
@@ -429,11 +445,7 @@ See more on [Wikipedia](https://en.wikipedia.org/wiki/Linear_interpolation)
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/2.png" />
-```
-
+![](interpolation_files/image2.png)
 :::
 
 
@@ -494,11 +506,7 @@ See more on [Wikipedia](https://en.wikipedia.org/wiki/Spline_interpolation)
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/3.png" />
-```
-
+![](interpolation_files/image3.png)
 :::
 
 
@@ -558,11 +566,7 @@ See more on [Wikipedia](https://en.wikipedia.org/wiki/Akima_spline)
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/4.png" />
-```
-
+![](interpolation_files/image4.png)
 :::
 
 
@@ -622,11 +626,7 @@ See more on [Wikipedia](https://en.wikipedia.org/wiki/Neville%27s_algorithm)
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/5.png" />
-```
-
+![](interpolation_files/image5.png)
 :::
 
 
@@ -682,7 +682,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/6.png" /></td><td><img class="clay-image" src="interpolation_files/7.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/8.png" /></td><td><img class="clay-image" src="interpolation_files/9.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/10.png" /></td><td><img class="clay-image" src="interpolation_files/11.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image6.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image7.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image8.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image9.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image10.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image11.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -732,7 +732,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/12.png" /></td><td><img class="clay-image" src="interpolation_files/13.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/14.png" /></td><td><img class="clay-image" src="interpolation_files/15.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/16.png" /></td><td><img class="clay-image" src="interpolation_files/17.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image12.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image13.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image14.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image15.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image16.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image17.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -792,11 +792,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/18.png" />
-```
-
+![](interpolation_files/image18.png)
 :::
 
 
@@ -854,11 +850,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/19.png" />
-```
-
+![](interpolation_files/image19.png)
 :::
 
 
@@ -916,11 +908,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/20.png" />
-```
-
+![](interpolation_files/image20.png)
 :::
 
 
@@ -973,7 +961,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/21.png" /></td><td><img class="clay-image" src="interpolation_files/22.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/23.png" /></td><td><img class="clay-image" src="interpolation_files/24.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/25.png" /></td><td><img class="clay-image" src="interpolation_files/26.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image21.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image22.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image23.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image24.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image25.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image26.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1003,7 +991,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/27.png" /></td><td><img class="clay-image" src="interpolation_files/28.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/29.png" /></td><td><img class="clay-image" src="interpolation_files/30.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image27.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image28.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image29.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image30.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1033,7 +1021,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/31.png" /></td><td><img class="clay-image" src="interpolation_files/32.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/33.png" /></td><td><img class="clay-image" src="interpolation_files/34.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image31.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image32.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image33.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image34.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1167,7 +1155,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="interpolation_files/35.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image35.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1184,7 +1172,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-0.32330035067568214
+0.43508879266120354
 
 ```
 :::
@@ -1201,7 +1189,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 
 ::: {.printedClojure}
 ```clojure
-53.02823885251406
+54.186288298257644
 
 ```
 :::
@@ -1221,7 +1209,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/36.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/37.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image36.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image37.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1250,7 +1238,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/38.png" /></td><td><img class="clay-image" src="interpolation_files/39.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/40.png" /></td><td><img class="clay-image" src="interpolation_files/41.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image38.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image39.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image40.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image41.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1259,7 +1247,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/42.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/43.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/44.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/45.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image42.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image43.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image44.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image45.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1289,7 +1277,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><img class="clay-image" src="interpolation_files/46.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/47.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/48.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/49.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image46.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image47.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image48.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image49.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1369,7 +1357,7 @@ Rational interpolation as described in [Numerical Recipes ch. 3.4](https://numer
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="interpolation_files/50.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/51.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/52.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image50.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image51.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image52.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1429,18 +1417,28 @@ empirical-matheron
 
 ::: {.printedClojure}
 ```clojure
-[{:n 116, :h 3.3604788552002978, :gamma 0.05610650116225876} {:n 385, :h 7.841219583707931, :gamma 0.18995728933979483} {:n 606, :h 12.72578480586009, :gamma 0.399844655716175} {:n 856, :h 17.611233442491304, :gamma 0.4194793467635297} {:n 1019, :h 22.694649851980536, :gamma 0.4993167205111838} {:n 1173, :h 27.74503808347392, :gamma 0.5232922610403302} {:n 1322, :h 32.696030602647625, :gamma 0.5223125852571721} {:n 1527, :h 37.65818295299809, :gamma 0.5426056881417575} {:n 1594, :h 42.65227807229347, :gamma 0.5227361157844413} {:n 1803, :h 47.67443166086058, :gamma 0.5243286183079909} {:n 1784, :h 52.675449304556054, :gamma 0.5272068497879318} {:n 1922, :h 57.731016242599935, :gamma 0.5285755419763869} {:n 1909, :h 62.70585327047225, :gamma 0.5652895296636227} {:n 1966, :h 67.77992830214916, :gamma 0.5265816327093601} {:n 1977, :h 72.71580210020514, :gamma 0.49759061919470493}]
+[{:n 116, :h 3.3604788552002978, :gamma 0.05610650116225876}
+ {:n 385, :h 7.841219583707931, :gamma 0.18995728933979483}
+ {:n 606, :h 12.72578480586009, :gamma 0.399844655716175}
+ {:n 856, :h 17.611233442491304, :gamma 0.4194793467635297}
+ {:n 1019, :h 22.694649851980536, :gamma 0.4993167205111838}
+ {:n 1173, :h 27.74503808347392, :gamma 0.5232922610403302}
+ {:n 1322, :h 32.696030602647625, :gamma 0.5223125852571721}
+ {:n 1527, :h 37.65818295299809, :gamma 0.5426056881417575}
+ {:n 1594, :h 42.65227807229347, :gamma 0.5227361157844413}
+ {:n 1803, :h 47.67443166086058, :gamma 0.5243286183079909}
+ {:n 1784, :h 52.675449304556054, :gamma 0.5272068497879318}
+ {:n 1922, :h 57.731016242599935, :gamma 0.5285755419763869}
+ {:n 1909, :h 62.70585327047225, :gamma 0.5652895296636227}
+ {:n 1966, :h 67.77992830214916, :gamma 0.5265816327093601}
+ {:n 1977, :h 72.71580210020514, :gamma 0.49759061919470493}]
 
 ```
 :::
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/53.png" />
-```
-
+![](interpolation_files/image53.png)
 :::
 
 
@@ -1453,11 +1451,7 @@ empirical-matheron
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/54.png" />
-```
-
+![](interpolation_files/image54.png)
 :::
 
 
@@ -1481,7 +1475,21 @@ empirical-highly-robust
 
 ::: {.printedClojure}
 ```clojure
-[{:n 116, :h 3.3604788552002978, :gamma 0.02913016400873318} {:n 385, :h 7.841219583707931, :gamma 0.14056514492191244} {:n 606, :h 12.72578480586009, :gamma 0.42633847448010354} {:n 856, :h 17.611233442491304, :gamma 0.44483727296978925} {:n 1019, :h 22.694649851980536, :gamma 0.5434941912574424} {:n 1173, :h 27.74503808347392, :gamma 0.571757191071463} {:n 1322, :h 32.696030602647625, :gamma 0.5504904163482222} {:n 1527, :h 37.65818295299809, :gamma 0.5905951431086924} {:n 1594, :h 42.65227807229347, :gamma 0.5577607587471852} {:n 1803, :h 47.67443166086058, :gamma 0.555261258787647} {:n 1784, :h 52.675449304556054, :gamma 0.561444986664588} {:n 1922, :h 57.731016242599935, :gamma 0.5631892305752904} {:n 1909, :h 62.70585327047225, :gamma 0.6128688264262536} {:n 1966, :h 67.77992830214916, :gamma 0.5591266023267967} {:n 1977, :h 72.71580210020514, :gamma 0.5142798048326319}]
+[{:n 116, :h 3.3604788552002978, :gamma 0.02913016400873318}
+ {:n 385, :h 7.841219583707931, :gamma 0.14056514492191244}
+ {:n 606, :h 12.72578480586009, :gamma 0.42633847448010354}
+ {:n 856, :h 17.611233442491304, :gamma 0.44483727296978925}
+ {:n 1019, :h 22.694649851980536, :gamma 0.5434941912574424}
+ {:n 1173, :h 27.74503808347392, :gamma 0.571757191071463}
+ {:n 1322, :h 32.696030602647625, :gamma 0.5504904163482222}
+ {:n 1527, :h 37.65818295299809, :gamma 0.5905951431086924}
+ {:n 1594, :h 42.65227807229347, :gamma 0.5577607587471852}
+ {:n 1803, :h 47.67443166086058, :gamma 0.555261258787647}
+ {:n 1784, :h 52.675449304556054, :gamma 0.561444986664588}
+ {:n 1922, :h 57.731016242599935, :gamma 0.5631892305752904}
+ {:n 1909, :h 62.70585327047225, :gamma 0.6128688264262536}
+ {:n 1966, :h 67.77992830214916, :gamma 0.5591266023267967}
+ {:n 1977, :h 72.71580210020514, :gamma 0.5142798048326319}]
 
 ```
 :::
@@ -1505,11 +1513,7 @@ empirical-highly-robust
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/55.png" />
-```
-
+![](interpolation_files/image55.png)
 :::
 
 
@@ -1574,18 +1578,14 @@ empirical-highly-robust
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="interpolation_files/56.png" />
-```
-
+![](interpolation_files/image56.png)
 :::
 
 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="interpolation_files/57.png" /></td><td><img class="clay-image" src="interpolation_files/58.png" /></td></tr><tr><td><img class="clay-image" src="interpolation_files/59.png" /></td><td><img class="clay-image" src="interpolation_files/60.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image57.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image58.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="interpolation_files/image59.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="interpolation_files/image60.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::

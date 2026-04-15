@@ -3425,3 +3425,4 @@ boot-mpg-stratified
 
 (codox/make-public-fns-table-clay 'fastmath.stats)
 (codox/make-public-fns-table-clay 'fastmath.stats.bootstrap)
+

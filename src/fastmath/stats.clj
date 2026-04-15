@@ -55,7 +55,9 @@
             [fastmath.optimization :as opt]
             [fastmath.kernel.density :as kd]
             [fastmath.special :as special]
-            [fastmath.solver :as solver])
+            [fastmath.solver :as solver]
+
+            [fastmath.stats.binary :as binary])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -3987,114 +3989,6 @@
 
 ;; binary classification statistics
 
-(defn- binary-measures-all-calc
-  [in]
-  (let [{:keys [^double tp ^double fp ^double fn ^double tn] :as details} (merge {:tp 0.0
-                                                                                 :fn 0.0
-                                                                                 :fp 0.0
-                                                                                 :tn 0.0} in)
-        cp (+ tp fn)
-        cn (+ fp tn)
-        total (+ cp cn)
-        pcp (+ tp fp)
-        pcn (+ fn tn)
-        ppv (/ tp pcp)
-        npv (/ tn pcn)
-        tpr (/ tp cp)
-        fpr (/ fp cn)
-        tnr (- 1.0 fpr)
-        fnr (- 1.0 tpr)
-        lr+ (/ tpr fpr)
-        lr- (/ fnr tnr)
-        ts (/ tp (+ tp fn fp))
-        f-beta (clojure.core/fn [^double beta] (let [b2 (* beta beta)]
-                                                 (* (inc b2) (/ (* ppv tpr)
-                                                                (+ (* b2 ppv) tpr)))))
-        f1-score (f-beta 1.0)
-        mcc (/ (- (* tp tn) (* fp fn))
-               (m/sqrt (* (+ tp fp)
-                          (+ tp fn)
-                          (+ tn fp)
-                          (+ tn fn))))]
-    (merge details {:cp cp :p cp
-                    :cn cn :n cn
-                    :pcp pcp :pp pcp
-                    :pcn pcn :pn pcn
-                    :total total
-                    :tpr tpr
-                    :recall tpr
-                    :sensitivity tpr
-                    :hit-rate tpr
-                    :fnr fnr
-                    :miss-rate fnr
-                    :fpr fpr
-                    :fall-out fpr
-                    :tnr tnr
-                    :specificity tnr
-                    :selectivity tnr
-                    :prevalence (/ cp total)
-                    :accuracy (/ (+ tp tn) total)
-                    :ba (/ (+ tpr tnr) 2.0)
-                    :ppv ppv
-                    :precision ppv
-                    :fdr (- 1.0 ppv)
-                    :npv npv
-                    :for (- 1.0 npv)
-                    :lr+ lr+
-                    :lr- lr-
-                    :dor (/ lr+ lr-)
-                    :fm (m/sqrt (* ppv tpr))
-                    :pt (/ (- (m/sqrt (* tpr fpr)) fpr)
-                           (- tpr fpr))
-                    :ts ts
-                    :jaccard ts
-                    :f-measure f1-score
-                    :f1-score f1-score
-                    :f-beta f-beta
-                    :mcc mcc
-                    :phi mcc
-                    :bm (dec (+ tpr tnr))
-                    :kappa (/ (* 2.0 (- (* tp tn) (* fp fn)))
-                              (+ (* (+ tp fp)
-                                    (+ fp tn))
-                                 (* (+ tp fn)
-                                    (+ fn tn))))
-                    :mk (dec (+ ppv npv))})))
-
-(defn- binary-confusion
-  [t p]
-  (cond
-    (and t p) :tp
-    (and t (not p)) :fn
-    (and (not t) p) :fp
-    :else :tn))
-
-(defn- binary-process-list
-  [xs true-value]
-  (if-not true-value
-    (if (every? number? xs) (map m/not-zero? xs) xs)
-    (let [f (if (sequential? true-value) (set true-value) true-value)]
-      (map f xs))))
-
-(defn- infer-confusion-matrix
-  [confusion-matrix]
-  (cond
-
-    (and (map? confusion-matrix)
-         (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix)))
-    (into {} (map (fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix))
-
-    (and (sequential? confusion-matrix)
-         (= 2 (count confusion-matrix))
-         (every? sequential? confusion-matrix))
-    (zipmap [:tp :fn :fp :tn] (flatten confusion-matrix))
-
-    (and (sequential? confusion-matrix)
-         (every? number? confusion-matrix))
-    (zipmap [:tp :fn :fp :tn] confusion-matrix)
-    
-    :else confusion-matrix))
-
 (defn confusion-matrix
   "Creates a 2x2 confusion matrix for binary classification.
 
@@ -4141,12 +4035,12 @@
   This function is commonly used to prepare input for binary classification
   metrics like those provided by [[binary-measures-all]] and [[binary-measures]]."
   ([tp fn fp tn] {:tp tp :fn fn :fp fp :tn tn})
-  ([confusion-mat] (infer-confusion-matrix confusion-mat))
+  ([confusion-mat] (binary/infer-confusion-matrix confusion-mat))
   ([actual prediction] (confusion-matrix actual prediction nil))
   ([actual prediction encode-true]
-   (let [truth (binary-process-list actual encode-true)
-         prediction (binary-process-list prediction encode-true)]
-     (frequencies (map binary-confusion truth prediction)))))
+   (let [truth (binary/binary-process-list actual encode-true)
+         prediction (binary/binary-process-list prediction encode-true)]
+     (frequencies (map binary/binary-confusion truth prediction)))))
 
 (def ^{:deprecated "Use `confusion-matrix`"} ->confusion-matrix confusion-matrix)
 
@@ -4231,13 +4125,13 @@
   See also [[confusion-matrix]], [[binary-measures]] (for a selected subset of metrics),
   [[mcc]], [[contingency-2x2-measures-all]] (for a broader set of 2x2 table measures).
   "
-  ([tp fn fp tn] (binary-measures-all-calc (binary-measures-all {:tp tp :fn fn :fp fp :tn tn})))
-  ([confusion-matrix] (binary-measures-all-calc (infer-confusion-matrix confusion-matrix)))
+  ([tp fn fp tn] (binary/binary-measures-all-calc (binary-measures-all {:tp tp :fn fn :fp fp :tn tn})))
+  ([confusion-matrix] (binary/binary-measures-all-calc (binary/infer-confusion-matrix confusion-matrix)))
   ([actual prediction] (binary-measures-all actual prediction nil))
   ([actual prediction true-value]
-   (let [truth (binary-process-list actual true-value)
-         prediction (binary-process-list prediction true-value)]
-     (binary-measures-all-calc (frequencies (map binary-confusion truth prediction))))))
+   (let [truth (binary/binary-process-list actual true-value)
+         prediction (binary/binary-process-list prediction true-value)]
+     (binary/binary-measures-all-calc (frequencies (map binary/binary-confusion truth prediction))))))
 
 (defn- cm-select-keys
   [cm]
@@ -4295,6 +4189,125 @@
   ([confusion-matrix] (cm-select-keys (binary-measures-all confusion-matrix)))
   ([actual prediction] (binary-measures actual prediction nil))
   ([actual prediction true-value] (cm-select-keys (binary-measures-all actual prediction true-value))))
+
+;;
+
+(defn multilabel-measure
+  "Calculates an average of selected metric for multilabel binary classification results using one vs the rest strategy. Possible variants are `macro`, `weighted` and `micro`. 
+
+  Possible metrics are the same as in [[binary-measures-all]].  
+
+  Options:
+
+  - `:average` - average function or `:micro` (default: `mean`)
+  - `:metric` - measure to calculate (default: `:f1-score`).
+  - `:weighted?` - `weighted` average variant (default: `false`)
+  - `:beta` - beta for `:f-beta` (default: `0.5`)"
+  ([actual prediction] (multilabel-measure actual prediction nil))
+  ([actual prediction {:keys [average ^double beta metric weighted?]
+                       :or {average mean beta 0.5 metric :f1-score weighted? false}}]
+   (let [all-labels (distinct (concat actual prediction))
+         measures (->> all-labels
+                       (map (fn [label] (let [res (get (binary-measures-all actual prediction #{label}) metric)]
+                                         (if (fn? res) (res beta) res))))
+                       (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
+     (cond
+       (not average) (zipmap all-labels measures)
+       (= average :micro) (m// (count= actual prediction) (double (count actual)))
+       weighted? (let [weights (map (frequencies actual) all-labels)]
+                   (average measures weights))
+       :else (average measures)))))
+
+(defn binary-measures-thr
+  "Calculate binary metrics at given thresholds.
+  
+  Each measure is a sequence with value for given threshold. Ties are interpolated lineary.
+
+  A `true-value` determines which label(s) is true.  
+
+  Curves:
+
+  * ROC (Receiver Operating Characteristic) - `:fpr` and `:tpr`
+  * PR or PrecRec (Precision-Recall) - `:recall` and `:precision`
+  * DET (Detection Error Tradeoff) - `:fpr` and `:fnr`
+
+  Returned measures contain:
+
+  * `:thr` - thresholds  
+  * `:p`, `:n`, `:total`
+  * `:tp`, `:fp`, `:fn`, `:tn`
+  * `:tpr`/`:recall`/`:sensitivity`, `:fnr`/`:miss-rate`, `:fpr`/`:fallout`, `:tnr`/`:specificity`
+  * `:ppv`/`:precision`, `:fdr`, `:for`, `:npv`
+  * `:mcc`
+  * `:f1-score`
+  * `:kappa`
+  * `:fm`
+  * `:ts`/`:jaccard`"
+  ([labels scores] (binary-measures-thr labels scores nil))
+  ([labels scores true-value] (binary/binary-measures-thr labels scores true-value)))
+
+(defn auc
+  "Calculate AUC, area under curve for binary threshold measures.
+
+  `x-axis` and `y-axis` can be keywords when `performance` map (result of [[binary-measures-thr]] call) or sequences of values.
+
+  By default it's a ROC (Receiver Operating Characteristic) curve, `:fpr` and `:tpr`.
+  For PR curve (Precision-Recall), call with `:recall` and `:precision`
+  For DET curve (Detection error tradeoff), call with `:fpr` and `:fnr`.
+
+  Calculation is based on trapezoidal integration."
+  ([performance] (auc performance :fpr :tpr))
+  ([performance x-axis y-axis] (auc (performance x-axis) (performance y-axis)))
+  ([x-axis y-axis]
+   (->> (map vector x-axis y-axis)
+        (partition 2 1)
+        (reduce (fn [^double curr [[^double x1 ^double y1] [^double x2 ^double y2]]]
+                  (m/+ curr (m/* 0.5 (m/- x2 x1)
+                                 (m/+ y1 y2)))) 0.0))))
+
+(defn auc-roc
+  "Calulate ROC AUC using U-statistic."
+  ([labels scores] (auc-roc labels scores nil))
+  ([labels scores true-value]
+   (let [labels (binary/binary-process-list labels true-value)
+         {^long t true ^long f false :or {t 0 f 0}} (frequencies labels)
+         rank (m/rank1 scores)
+         sum (v/sum (map (fn [l r] (if l r 0.0)) labels rank))]
+     (m/constrain (m// (m/- sum (m/* t (m/inc t) 0.5))
+                       (m/* t f)) 0.0 1.0))))
+
+(defn multilabel-auc
+  "Calculates an average of AUC for multilabel binary thresholded results using one vs the rest strategy.  Possible variants are `macro`, `weighted`
+
+  Possible metrics are pairs of measures or keywords:
+
+  * `:roc` for ROC
+  * `:pr` for Precission-Recall
+  * `:det` for DET
+
+  Options:
+  
+  - `:average` - average function (default: `mean`)
+  - `:metric` - measure to calculate (default: `:roc`)
+  - `:weighted?` - `weighted` average variant (default: `false`)"
+  ([labels scores] (multilabel-auc labels scores nil))
+  ([labels scores {:keys [average metric weighted?]
+                   :or {average mean metric :roc weighted? false}}]
+   (let [[x-axis y-axis] (case metric
+                           :roc [:fpr :tpr]
+                           :pr [:recall :precision]
+                           :det [:fpr :fnr]
+                           metric)
+         all-labels (distinct labels)
+         measures (->> all-labels
+                       (map (fn [label] (-> (binary-measures-thr labels scores #{label})
+                                           (auc x-axis y-axis))))
+                       (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
+     (cond
+       (not average) (zipmap all-labels measures)
+       weighted? (let [weights (map (frequencies labels) all-labels)]
+                   (average measures weights))
+       :else (average measures)))))
 
 ;; contingency 2x2
 
@@ -5208,7 +5221,7 @@
   ([xs maybe-params]
    (if (map? maybe-params)
      (let [{:keys [true-false-conv] :as params} maybe-params
-           xxs (binary-process-list xs true-false-conv)
+           xxs (binary/binary-process-list xs true-false-conv)
            nos (count (filter identity xxs))
            not (count xxs)]
        (binomial-test nos not params))

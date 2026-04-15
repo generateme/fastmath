@@ -7,7 +7,7 @@
                           :theme [:cosmo "../../clay/custom.scss"]
                           :anchor-sections true
                           :reference-location :margin
-                          :fontsize "0.9em"}}
+                          :fontsize "1.0em"}}
           :code-block-background true
           :title "Fastmath documentation"}
  :subdirs-to-sync ["clay/resources/"]
@@ -15,4 +15,6 @@
  :base-source-path "clay/"
  :base-target-path "docs/clay"
  :pprint-margin nil
- :kindly/options {:kinds-that-hide-code #{:kind/hiccup :kind/fragment :kind/image :kind/table :kind/plotly}}}
+ :kindly/options {:kinds-that-hide-code #{:kind/hiccup :kind/fragment
+                                          :kind/image :kind/table
+                                          :kind/plotly :kind/audio}}}

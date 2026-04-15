@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: complex_quaternions.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="complex_quaternions_files/md-default36.js" type="text/javascript"></script><script src="complex_quaternions_files/md-default37.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -45,6 +44,7 @@ code-block-background: true
 ## Complex numbers
 
 ::: {.callout-tip title="Defined functions"}
+
 * `complex`, `ensure-complex`
 :::
 
@@ -79,15 +79,12 @@ This section covers constants, predicates, and a comprehensive set of operations
 
 Plots are based on domain coloring in HSB space, where
 
+
 * hue - represents argument
 * saturation/brightness - represents fractional part of logarithm of magnitude
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="complex_quaternions_files/0.png" />
-```
-
+![](complex_quaternions_files/image0.png)
 :::
 
 
@@ -139,7 +136,7 @@ List of defined complex constants.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th>constant</th><th>z</th><th>value</th></tr></thead><tbody><tr><td>I</td><td><span data-qmd="$0+i$"></span></td><td>#vec2 [0.0, 1.0]</td></tr><tr><td>-I</td><td><span data-qmd="$0-i$"></span></td><td>#vec2 [0.0, -1.0]</td></tr><tr><td>I-</td><td><span data-qmd="$0-i$"></span></td><td>#vec2 [0.0, -1.0]</td></tr><tr><td>ZERO</td><td><span data-qmd="$0+0i$"></span></td><td>#vec2 [0.0, 0.0]</td></tr><tr><td>ONE</td><td><span data-qmd="$1+0i$"></span></td><td>#vec2 [1.0, 0.0]</td></tr><tr><td>TWO</td><td><span data-qmd="$2+0i$"></span></td><td>#vec2 [2.0, 0.0]</td></tr><tr><td>PI</td><td><span data-qmd="$\pi+0i$"></span></td><td>#vec2 [3.141592653589793, 0.0]</td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th>constant</th><th>z</th><th>value</th></tr></thead><tbody><tr><td>I</td><td><div><p><span><script>katex.render("0+i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [0.0, 1.0]</td></tr><tr><td>-I</td><td><div><p><span><script>katex.render("0-i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [0.0, -1.0]</td></tr><tr><td>I-</td><td><div><p><span><script>katex.render("0-i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [0.0, -1.0]</td></tr><tr><td>ZERO</td><td><div><p><span><script>katex.render("0+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [0.0, 0.0]</td></tr><tr><td>ONE</td><td><div><p><span><script>katex.render("1+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [1.0, 0.0]</td></tr><tr><td>TWO</td><td><div><p><span><script>katex.render("2+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [2.0, 0.0]</td></tr><tr><td>PI</td><td><div><p><span><script>katex.render("\\pi+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec2 [3.141592653589793, 0.0]</td></tr></tbody></table>
 ```
 
 :::
@@ -153,6 +150,7 @@ These operations include extracting components, calculating magnitude and argume
 performing arithmetic (addition, subtraction, multiplication, division), negation, reciprocals, and square roots.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `re`, `im`
 * `delta-eq`, `csgn`, `flip`
 * `abs`, `norm`, `normalize`, `conjugate`
@@ -163,7 +161,9 @@ performing arithmetic (addition, subtraction, multiplication, division), negatio
 * `sqrt`, `sqrt1z`
 :::
 
+
 *   **Components**
+
 
     *   `re`: Returns the real part of a complex number $z$. For $z = a + bi$, returns $a$.
     *   `im`: Returns the imaginary part of a complex number $z$. For $z = a + bi$, returns $b$.
@@ -181,7 +181,9 @@ performing arithmetic (addition, subtraction, multiplication, division), negatio
 
 :::
 
+
 *   **Properties and Comparisons**
+
 
     *   `abs`: Calculates the magnitude or modulus of a complex number $|z|$. For $z = a + bi$: $$|z| = \sqrt{a^2 + b^2}$$ This corresponds to the length of the vector `(Vec2. a b)`.
     *   `norm`: Calculates the squared magnitude $|z|^2$. For $z = a + bi$: $$|z|^2 = a^2 + b^2$$ This avoids the square root calculation and is often used when comparing magnitudes.
@@ -224,7 +226,9 @@ z2 ;; => #vec2 [-0.5, 2.5]
 
 :::
 
+
 *   **Arithmetic Operations**
+
 
     *   `add`: Computes the sum of two complex numbers, $z_1 + z_2$. If $z_1 = a + bi$ and $z_2 = c + di$: $$z_1 + z_2 = (a+c) + (b+d)i$$
     *   `adds`: Adds a real scalar $s$ to a complex number $z$. For $z = a + bi$: $$z + s = (a+s) + bi$$
@@ -265,13 +269,15 @@ z2 ;; => #vec2 [-0.5, 2.5]
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="complex_quaternions_files/1.png" /></td><td><img class="clay-image" src="complex_quaternions_files/2.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image1.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image2.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
 
 
+
 *   **Roots**
+
 
     *   `sqrt`: Computes the principal square root of a complex number: $$\sqrt{z} = \sqrt{\frac{|a| + x}{2}} + i \cdot \operatorname{sgn}(b) \cdot \sqrt{\frac{|z| - a}{2}}$$
     *   `sqrt1z`: Computes $\sqrt{1 - z^2}$ for a complex number $z$.
@@ -297,7 +303,7 @@ z2 ;; => #vec2 [-0.5, 2.5]
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="complex_quaternions_files/3.png" /></td><td><img class="clay-image" src="complex_quaternions_files/4.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image3.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image4.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -309,11 +315,13 @@ z2 ;; => #vec2 [-0.5, 2.5]
 Predicates are functions that return a boolean value, indicating whether a complex number satisfies a specific condition. They are useful for checking the nature or state of a complex number, such as whether it is real, imaginary, zero, infinite, or invalid.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `real?`, `imaginary?`
 * `zero?`
 * `inf?`,`nan?`
 * `invalid?`, `valid?`
 :::
+
 
 *   `real?`: Checks if a complex number `z` has a zero imaginary part. $z = a + bi$ is real if $b = \operatorname{im}(z) = 0$.
 *   `imaginary?`: Checks if a complex number `z` has a zero real part. $z = a + bi$ is pure imaginary if $a = \operatorname{re}(z) = 0$.
@@ -352,9 +360,11 @@ Predicates are functions that return a boolean value, indicating whether a compl
 Complex numbers extend the real-valued exponential and logarithm functions. Complex exponentiation allows raising a complex base to a complex power, while the complex logarithm is the inverse operation of exponentiation. Unlike real logarithms, the complex logarithm is multi-valued, but the functions provided here compute the principal value.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `pow`, `exp`
 * `log`, `logb`
 :::
+
 
 *   `exp`: Computes the complex exponential $e^z$. For $z = x + iy$: $$e^z = e^{x+iy} = e^x (\cos y + i \sin y)$$
 *   `log`: Computes the principal value of the complex natural logarithm $\log z$. This is given by: $$\log z = \ln|z| + i \arg(z)$$ where $\ln|z|$ is the real natural logarithm of the magnitude $|z|$, and $\arg(z)$ is the principal argument of $z$.
@@ -383,7 +393,7 @@ Complex numbers extend the real-valued exponential and logarithm functions. Comp
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><img class="clay-image" src="complex_quaternions_files/5.png" /></td><td><img class="clay-image" src="complex_quaternions_files/6.png" /></td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/7.png" /></td><td><img class="clay-image" src="complex_quaternions_files/8.png" /></td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/9.png" /></td><td><img class="clay-image" src="complex_quaternions_files/10.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image5.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image6.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image7.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image8.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image9.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image10.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -400,6 +410,7 @@ $$ \sinh z = \frac{e^{z} - e^{-z}}{2} \quad \cosh z = \frac{e^{z} + e^{-z}}{2} $
 This leads to relationships between complex trigonometric and hyperbolic functions, such as $\sin(z) = -i \sinh(iz)$ and $\cos(z) = \cosh(iz)$. These functions are implemented using formulas that provide numerical stability, especially for large arguments.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `sin`, `cos`, `tan`
 * `sec`, `csc`, `cot`
 * `sinh`, `cosh`, `tanh`
@@ -410,19 +421,24 @@ This leads to relationships between complex trigonometric and hyperbolic functio
 * `asech`, `acsch`, `acoth`
 :::
 
+
 *   **Standard Trigonometric Functions**: `sin`, `cos`, `tan`, `sec`, `csc`, `cot`
     *   These are the direct extensions of real trigonometric functions. For $z = x + iy$:
         $$ \sin z = \sin x \cosh y + i \cos x \sinh y $$
         $$ \cos z = \cos x \cosh y - i \sin x \sinh y $$
         $$ \tan z = \frac{\sin x \cos x + i \sinh y \cosh y}{\cos^2 x + \sinh^2 y} $$
+
     *   `sec(z)`, `csc(z)`, and `cot(z)` are computed as the reciprocals of `cos(z)`, `sin(z)`, and `tan(z)`, respectively.
+
 
 *   **Hyperbolic Trigonometric Functions**: `sinh`, `cosh`, `tanh`, `sech`, `csch`, `coth`
     *   These are also extensions of real hyperbolic functions. For $z = x + iy$:
         $$ \sinh z = \sinh x \cos y + i \cosh x \sin y $$
         $$ \cosh z = \cosh x \cos y + i \sinh x \sin y $$
         $$ \tanh z = \frac{\sinh x \cosh x + i \sin y \cos y}{\sinh^2 x + \cos^2 y} $$
+
     *   `sech(z)`, `csch(z)`, and `coth(z)` are computed as the reciprocals of `cosh(z)`, `sinh(z)`, and `tanh(z)`, respectively.
+
 
 *   **Inverse Trigonometric Functions**: `asin`, `acos`, `atan`, `asec`, `acsc`, `acot`
     *   These are the multi-valued inverse functions. The implementations return the principal values, which are related to complex logarithms. For example:
@@ -432,6 +448,7 @@ This leads to relationships between complex trigonometric and hyperbolic functio
         $$ \operatorname{arcsec} z = \arccos(1/z) $$
         $$ \operatorname{arccsc} z = \arcsin(1/z) $$
         $$ \operatorname{arccot} z = \operatorname{atan}(1/z) $$
+
 
 
 *   **Inverse Hyperbolic Trigonometric Functions**: `asinh`, `acosh`, `atanh`, `asech`, `acsch`, `acoth`
@@ -485,7 +502,7 @@ These functions are continuous and analytic everywhere in the complex plane, exc
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td>sin</td><td>cos</td><td>tan</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/11.png" /></td><td><img class="clay-image" src="complex_quaternions_files/12.png" /></td><td><img class="clay-image" src="complex_quaternions_files/13.png" /></td></tr><tr><td>sec</td><td>csc</td><td>cot</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/14.png" /></td><td><img class="clay-image" src="complex_quaternions_files/15.png" /></td><td><img class="clay-image" src="complex_quaternions_files/16.png" /></td></tr><tr><td>asin</td><td>acos</td><td>atan</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/17.png" /></td><td><img class="clay-image" src="complex_quaternions_files/18.png" /></td><td><img class="clay-image" src="complex_quaternions_files/19.png" /></td></tr><tr><td>asec</td><td>acsc</td><td>acot</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/20.png" /></td><td><img class="clay-image" src="complex_quaternions_files/21.png" /></td><td><img class="clay-image" src="complex_quaternions_files/22.png" /></td></tr><tr><td>sinh</td><td>cosh</td><td>tanh</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/23.png" /></td><td><img class="clay-image" src="complex_quaternions_files/24.png" /></td><td><img class="clay-image" src="complex_quaternions_files/25.png" /></td></tr><tr><td>sech</td><td>csch</td><td>coth</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/26.png" /></td><td><img class="clay-image" src="complex_quaternions_files/27.png" /></td><td><img class="clay-image" src="complex_quaternions_files/28.png" /></td></tr><tr><td>asinh</td><td>acosh</td><td>atanh</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/29.png" /></td><td><img class="clay-image" src="complex_quaternions_files/30.png" /></td><td><img class="clay-image" src="complex_quaternions_files/31.png" /></td></tr><tr><td>asech</td><td>acsch</td><td>acoth</td></tr><tr><td><img class="clay-image" src="complex_quaternions_files/32.png" /></td><td><img class="clay-image" src="complex_quaternions_files/33.png" /></td><td><img class="clay-image" src="complex_quaternions_files/34.png" /></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td>sin</td><td>cos</td><td>tan</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image11.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image12.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image13.png" /></p></div></td></tr><tr><td>sec</td><td>csc</td><td>cot</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image14.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image15.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image16.png" /></p></div></td></tr><tr><td>asin</td><td>acos</td><td>atan</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image17.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image18.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image19.png" /></p></div></td></tr><tr><td>asec</td><td>acsc</td><td>acot</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image20.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image21.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image22.png" /></p></div></td></tr><tr><td>sinh</td><td>cosh</td><td>tanh</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image23.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image24.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image25.png" /></p></div></td></tr><tr><td>sech</td><td>csch</td><td>coth</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image26.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image27.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image28.png" /></p></div></td></tr><tr><td>asinh</td><td>acosh</td><td>atanh</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image29.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image30.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image31.png" /></p></div></td></tr><tr><td>asech</td><td>acsch</td><td>acoth</td></tr><tr><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image32.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image33.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="complex_quaternions_files/image34.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -495,6 +512,7 @@ These functions are continuous and analytic everywhere in the complex plane, exc
 ## Quaternions
 
 ::: {.callout-tip title="Defined functions"}
+
 * `quaternion`, `complex->quaternion`, `ensure-quaternion`
 :::
 
@@ -592,7 +610,7 @@ Predefined quaternion constants for common values.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><thead><tr><th>constant</th><th>q</th><th>value</th></tr></thead><tbody><tr><td>ZERO</td><td><span data-qmd="$0+0i+0j+0k$"></span></td><td>#vec4 [0.0, 0.0, 0.0, 0.0]</td></tr><tr><td>ONE</td><td><span data-qmd="$1+0i+0j+0k$"></span></td><td>#vec4 [1.0, 0.0, 0.0, 0.0]</td></tr><tr><td>I</td><td><span data-qmd="$0+i+0j+0k$"></span></td><td>#vec4 [0.0, 1.0, 0.0, 0.0]</td></tr><tr><td>J</td><td><span data-qmd="$0+0i+j+0k$"></span></td><td>#vec4 [0.0, 0.0, 1.0, 0.0]</td></tr><tr><td>K</td><td><span data-qmd="$0+0i+0j+k$"></span></td><td>#vec4 [0.0, 0.0, 0.0, 1.0]</td></tr><tr><td>-I</td><td><span data-qmd="$0-i+0j+0k$"></span></td><td>#vec4 [0.0, -1.0, 0.0, 0.0]</td></tr><tr><td>-J</td><td><span data-qmd="$0+0i-j+0k$"></span></td><td>#vec4 [0.0, 0.0, -1.0, 0.0]</td></tr><tr><td>-K</td><td><span data-qmd="$0+0i+0j-k$"></span></td><td>#vec4 [0.0, 0.0, 0.0, -1.0]</td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><thead><tr><th>constant</th><th>q</th><th>value</th></tr></thead><tbody><tr><td>ZERO</td><td><div><p><span><script>katex.render("0+0i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 0.0, 0.0, 0.0]</td></tr><tr><td>ONE</td><td><div><p><span><script>katex.render("1+0i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [1.0, 0.0, 0.0, 0.0]</td></tr><tr><td>I</td><td><div><p><span><script>katex.render("0+i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 1.0, 0.0, 0.0]</td></tr><tr><td>J</td><td><div><p><span><script>katex.render("0+0i+j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 0.0, 1.0, 0.0]</td></tr><tr><td>K</td><td><div><p><span><script>katex.render("0+0i+0j+k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 0.0, 0.0, 1.0]</td></tr><tr><td>-I</td><td><div><p><span><script>katex.render("0-i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, -1.0, 0.0, 0.0]</td></tr><tr><td>-J</td><td><div><p><span><script>katex.render("0+0i-j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 0.0, -1.0, 0.0]</td></tr><tr><td>-K</td><td><div><p><span><script>katex.render("0+0i+0j-k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script></span></p></div></td><td>#vec4 [0.0, 0.0, 0.0, -1.0]</td></tr></tbody></table>
 ```
 
 :::
@@ -605,12 +623,15 @@ Functions to create quaternions and access their scalar and vector components.
 
 
 ::: {.callout-tip title="Defined functions"}
+
 * `scalar`, `re`, `vector`, `im-i`, `im-j`, `im-k`
 * `delta-eq`, `qsgn`, `arg`, `norm`, `normalize`, `conjugate`, `reciprocal`
 * `add`, `adds`, `sub`, `scale`, `mult`, `div`, `neg`, `sq`, `sqrt`
 :::
 
+
 * **Components**
+
 
 *   `scalar`, `re`: Returns the scalar (real) part $a$ of a quaternion $a+bi+cj+dk$.
 *   `im-i`, `im-j`, `im-k`: Return the coefficients of the $i$, $j$, and $k$ components, respectively.
@@ -633,7 +654,9 @@ Functions to create quaternions and access their scalar and vector components.
 
 :::
 
+
 * **Properties and Comparisons**
+
 
 *   `arg`: Computes the argument $\theta$ such that $q = |q| (\cos \theta + \mathbf{v} \sin \theta)$, where $\mathbf{v}$ is a unit 3D vector. Calculated as: $$\operatorname{arg}(z)=\operatorname{atan2}(|v|, \operatorname{re}(q))$$
 *   `norm`: Calculates the magnitude (Euclidean norm) of the quaternion: $$|q| = \sqrt{a^2+b^2+c^2+d^2}$$
@@ -669,9 +692,11 @@ q2 ;; => #vec4 [-0.5, 2.5, -1.0, 1.5]
 
 :::
 
+
 * **Arithemtic Operations**
 
 Basic arithmetic extended to quaternions.
+
 
 *   `add`: Sum of two quaternions: $$q_1 + q_2 = (a_1+a_2) + (b_1+b_2)i + (c_1+c_2)j + (d_1+d_2)k$$
 *   `adds`: Adds a real scalar $s$ to a quaternion: $q = a+bi+cj+dk$: $$q+s = (a+s)+bi+cj+dk$$
@@ -680,6 +705,7 @@ Basic arithmetic extended to quaternions.
 *   `mult`: Quaternion multiplication. Note that quaternion multiplication is non-commutative ($q_1 q_2 \neq q_2 q_1$ in general).
     If $q_1 = a_1 + \mathbf{v}_1$ and $q_2 = a_2 + \mathbf{v}_2$, where $\mathbf{v}_1, \mathbf{v}_2$ are vector parts:
     $$ q_1 q_2 = (a_1 a_2 - \mathbf{v}_1 \cdot \mathbf{v}_2) + (a_1 \mathbf{v}_2 + a_2 \mathbf{v}_1 + \mathbf{v}_1 \times \mathbf{v}_2) $$
+
 *   `div`: Quaternion division $$q_1 / q_2 = q_1 \cdot q_2^{-1}$$
 *   `reciprocal`: Returns the reciprocal: $$q^{-1} = \bar{q} / |q|^2$$
 *   `neg`: Negation: $$-q = -a - bi - cj - dk$$
@@ -715,11 +741,13 @@ Basic arithmetic extended to quaternions.
 Functions to check the type or state of a quaternion and compute fundamental properties.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `real?`, `imaginary?`
 * `zero?`
 * `inf?`, `nan?`
 * `invalid?`, `valid?`
 :::
+
 
 *   `real?`: Checks if the quaternion has a zero vector part ($b=c=d=0$).
 *   `imaginary?`: Checks if the quaternion has a zero scalar part ($a=0$).
@@ -753,6 +781,7 @@ Functions to check the type or state of a quaternion and compute fundamental pro
 
 Extensions of exponential, logarithm, and power functions to quaternions.
 
+
 *   `exp`: Computes the quaternion exponential $e^q$.
 *   `log`: Computes the principal value of the quaternion natural logarithm $\log q$.
 *   `logb`: Computes the logarithm of $q$ with a quaternion base $b$: $\log_b q = (\log q) (\log b)^{-1}$.
@@ -780,6 +809,7 @@ Extensions of exponential, logarithm, and power functions to quaternions.
 Extensions of standard and hyperbolic trigonometric functions to quaternions.
 
 ::: {.callout-tip title="Defined functions"}
+
 * `sin`, `cos`, `tan`
 * `sec`, `csc`, `cot`
 * `sinh`, `cosh`, `tanh`
@@ -832,12 +862,14 @@ Functions specifically for using quaternions to represent and manipulate 3D rota
 
 
 ::: {.callout-tip title="Defined functions"}
+
 * `rotation-quaternion`, `rotate`
 * `slerp`
 * `to-euler`, `from-euler`
 * `to-angles`, `from-angles`
 * `to-rotation-matrix`, `from-rotation-matrix`
 :::
+
 
 *   `rotation-quaternion`: Creates a unit quaternion representing a rotation by a given `angle` around a `u` (Vec3) axis.
 *   `rotate`: Rotates a 3D vector `in` (Vec3) using a quaternion `rotq`. Can also create the rotation quaternion directly from angle and axis.
@@ -962,11 +994,7 @@ Let's see how quaternion components changes for different `t`.
 
 
 ::: {.clay-image}
-
-```{=html}
-<img class="clay-image" src="complex_quaternions_files/35.png" />
-```
-
+![](complex_quaternions_files/image35.png)
 :::
 
 
@@ -1106,13 +1134,14 @@ z=0+0i
 
 #### abs
 
+
 + `(abs z)`
 
 Calculates the magnitude (absolute value) of the complex number `z`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L82">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L90">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1124,13 +1153,14 @@ Calculates the magnitude (absolute value) of the complex number `z`.
 
 #### acos
 
+
 + `(acos z)`
 
 acos(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L565">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L573">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1142,13 +1172,14 @@ acos(z)
 
 #### acosh
 
+
 + `(acosh z)`
 
 acosh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L713">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L721">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1160,13 +1191,14 @@ acosh(z)
 
 #### acot
 
+
 + `(acot z)`
 
 acot(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L665">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L673">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1178,13 +1210,14 @@ acot(z)
 
 #### acoth
 
+
 + `(acoth z)`
 
 acoth(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L834">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L842">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1196,13 +1229,14 @@ acoth(z)
 
 #### acsc
 
+
 + `(acsc z)`
 
 acsc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L638">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L646">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1214,13 +1248,14 @@ acsc(z)
 
 #### acsch
 
+
 + `(acsch z)`
 
 acsch(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L800">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L808">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1232,13 +1267,14 @@ acsch(z)
 
 #### add
 
+
 + `(add z1 z2)`
 
 Sum of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L107">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L115">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1250,13 +1286,14 @@ Sum of two complex numbers.
 
 #### adds
 
+
 + `(adds z v)`
 
 Add scalar to complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L121">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1268,13 +1305,14 @@ Add scalar to complex number.
 
 #### arg
 
+
 + `(arg z)`
 
 Argument (angle) of the complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L110">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1286,13 +1324,14 @@ Argument (angle) of the complex number.
 
 #### asec
 
+
 + `(asec z)`
 
 asec(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L612">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L620">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1304,13 +1343,14 @@ asec(z)
 
 #### asech
 
+
 + `(asech z)`
 
 asech(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L765">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L773">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1322,13 +1362,14 @@ asech(z)
 
 #### asin
 
+
 + `(asin z)`
 
 asin(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L552">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1340,13 +1381,14 @@ asin(z)
 
 #### asinh
 
+
 + `(asinh z)`
 
 asinh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L690">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L698">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1358,13 +1400,14 @@ asinh(z)
 
 #### atan
 
+
 + `(atan z)`
 
 atan(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L585">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L593">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1376,13 +1419,14 @@ atan(z)
 
 #### atanh
 
+
 + `(atanh z)`
 
 atanh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L739">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L747">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1393,6 +1437,7 @@ atanh(z)
 
 
 #### complex
+
 
 + `(complex a b)`
 + `(complex a)`
@@ -1421,13 +1466,14 @@ Creates a complex number represented as a [Vec2](#LOS-Vec2).
 
 #### conjugate
 
+
 + `(conjugate z)`
 
 Complex conjugate.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L169">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1439,13 +1485,14 @@ Complex conjugate.
 
 #### cos
 
+
 + `(cos z)`
 
 cos(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L394">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L402">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1457,13 +1504,14 @@ cos(z)
 
 #### cosh
 
+
 + `(cosh z)`
 
 cosh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L475">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L483">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1475,13 +1523,14 @@ cosh(z)
 
 #### cot
 
+
 + `(cot z)`
 
 csc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L456">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1493,13 +1542,14 @@ csc(z)
 
 #### coth
 
+
 + `(coth z)`
 
 coth(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L528">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L536">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1511,13 +1561,14 @@ coth(z)
 
 #### csc
 
+
 + `(csc z)`
 
 csc(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L434">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L442">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1529,13 +1580,14 @@ csc(z)
 
 #### csch
 
+
 + `(csch z)`
 
 csch(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L514">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L522">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1547,6 +1599,7 @@ csch(z)
 
 #### csgn
 
+
 + `(csgn re im)`
 + `(csgn z)`
 
@@ -1556,7 +1609,7 @@ Complex signum function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L70">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L78">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1568,6 +1621,7 @@ Complex signum function.
 
 #### delta-eq
 
+
 + `(delta-eq q1 q2)`
 + `(delta-eq q1 q2 accuracy)`
 
@@ -1575,7 +1629,7 @@ Compare complex numbers with given accuracy (10e-6 by default)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L71">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1587,13 +1641,14 @@ Compare complex numbers with given accuracy (10e-6 by default)
 
 #### div
 
+
 + `(div z1 z2)`
 
 Division of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L166">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L174">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1605,9 +1660,10 @@ Division of two complex numbers.
 
 #### ensure-complex
 
+
 + `(ensure-complex v)`
 
-Convert possible number to complex or return input.
+Convert possible number or Apache Commpons Math Complex type to complex or return input.
 
 
 ```{=html}
@@ -1623,13 +1679,14 @@ Convert possible number to complex or return input.
 
 #### exp
 
+
 + `(exp z)`
 
 exp(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L218">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L226">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1641,13 +1698,14 @@ exp(z)
 
 #### flip
 
+
 + `(flip z)`
 
 Exchange imaginary and real parts
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L80">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L88">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1659,13 +1717,14 @@ Exchange imaginary and real parts
 
 #### im
 
+
 + `(im z)`
 
 Imaginary part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L51">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L59">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1677,13 +1736,14 @@ Imaginary part
 
 #### imaginary?
 
+
 + `(imaginary? z)`
 
 Is z is a pure imaginary number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L54">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L62">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1695,13 +1755,14 @@ Is z is a pure imaginary number?
 
 #### inf?
 
+
 + `(inf? z)`
 
 Is infinite?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L56">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L64">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1713,13 +1774,14 @@ Is infinite?
 
 #### invalid?
 
+
 + `(invalid? z)`
 
 Is NaN or Inf?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L60">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L68">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1731,13 +1793,14 @@ Is NaN or Inf?
 
 #### log
 
+
 + `(log z)`
 
 log(z), principal value
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L232">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L240">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1749,13 +1812,14 @@ log(z), principal value
 
 #### logb
 
+
 + `(logb z b)`
 
 log with base b
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L248">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L256">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1767,13 +1831,14 @@ log with base b
 
 #### muladd
 
+
 + `(muladd x y z)`
 
 (+ z (* x y))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L156">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1785,13 +1850,14 @@ log with base b
 
 #### mult
 
+
 + `(mult z1 z2)`
 
 Multiplication of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L138">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1803,13 +1869,14 @@ Multiplication of two complex numbers.
 
 #### mult-I
 
+
 + `(mult-I z)`
 
 Multiplication by 0+i.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1821,13 +1888,14 @@ Multiplication by 0+i.
 
 #### mult-I-
 
+
 + `(mult-I- z)`
 
 Multiplication by 0-i.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L152">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1839,13 +1907,14 @@ Multiplication by 0-i.
 
 #### nan?
 
+
 + `(nan? z)`
 
 Is NaN?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L66">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1857,13 +1926,14 @@ Is NaN?
 
 #### neg
 
+
 + `(neg z)`
 
 Negation of the complex number, -z.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L191">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L199">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1875,6 +1945,7 @@ Negation of the complex number, -z.
 
 #### norm
 
+
 + `(norm z)`
 
 Calculates the squared magnitude (norm) of the complex number `z`.
@@ -1883,7 +1954,7 @@ Calculates the squared magnitude (norm) of the complex number `z`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L89">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L97">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1895,13 +1966,14 @@ Calculates the squared magnitude (norm) of the complex number `z`.
 
 #### normalize
 
+
 + `(normalize z)`
 
 Normalize complex number to make abs(z) = 1
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L106">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1913,13 +1985,14 @@ Normalize complex number to make abs(z) = 1
 
 #### pow
 
+
 + `(pow z1 z2)`
 
 Complex power, z^z
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L353">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L361">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1931,13 +2004,14 @@ Complex power, z^z
 
 #### re
 
+
 + `(re z)`
 
 Real part
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L50">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1949,13 +2023,14 @@ Real part
 
 #### real?
 
+
 + `(real? z)`
 
 Is z is a real number?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1967,13 +2042,14 @@ Is z is a real number?
 
 #### reciprocal
 
+
 + `(reciprocal z)`
 
 Reciprocal, 1/z.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L177">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L185">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -1985,13 +2061,14 @@ Reciprocal, 1/z.
 
 #### scale
 
+
 + `(scale z v)`
 
 Multiplication by real number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L132">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2003,13 +2080,14 @@ Multiplication by real number
 
 #### sec
 
+
 + `(sec z)`
 
 sec(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L420">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L428">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2021,13 +2099,14 @@ sec(z)
 
 #### sech
 
+
 + `(sech z)`
 
 sech(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L500">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L508">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2039,13 +2118,14 @@ sech(z)
 
 #### sin
 
+
 + `(sin z)`
 
 sin(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L383">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L391">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2057,13 +2137,14 @@ sin(z)
 
 #### sinh
 
+
 + `(sinh z)`
 
 sinh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L464">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L472">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2075,13 +2156,14 @@ sinh(z)
 
 #### sq
 
+
 + `(sq z)`
 
 Square of the complex number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2093,13 +2175,14 @@ Square of the complex number.
 
 #### sqrt
 
+
 + `(sqrt z)`
 
 Sqrt of the complex number, sqrt(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L196">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L204">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2111,13 +2194,14 @@ Sqrt of the complex number, sqrt(z)
 
 #### sqrt1z
 
+
 + `(sqrt1z z)`
 
 sqrt(1-z^2)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L208">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L216">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2129,13 +2213,14 @@ sqrt(1-z^2)
 
 #### sub
 
+
 + `(sub z1 z2)`
 
 Difference of two complex numbers.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L118">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L126">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2147,13 +2232,14 @@ Difference of two complex numbers.
 
 #### tan
 
+
 + `(tan z)`
 
 tan(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L406">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L414">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2165,13 +2251,14 @@ tan(z)
 
 #### tanh
 
+
 + `(tanh z)`
 
 tanh(z)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L486">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L494">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2183,13 +2270,14 @@ tanh(z)
 
 #### valid?
 
+
 + `(valid? z)`
 
 Is valid complex (not NaN or Inf)?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L69">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2201,13 +2289,14 @@ Is valid complex (not NaN or Inf)?
 
 #### zero?
 
+
 + `(zero? z)`
 
 Is zero?
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L55">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2222,6 +2311,7 @@ Operations for quaternions.
   The namespace provides functions for creating quaternions, accessing scalar and vector parts, predicates (e.g., [real?](#LOS-real?), [zero?](#LOS-zero?), [inf?](#LOS-inf?), [nan?](#LOS-nan?)), and fundamental properties (magnitude, argument, normalization).
 
   A comprehensive set of operations is included:
+
   - **Arithmetic:** Addition, subtraction, multiplication, division, negation, square, reciprocal, scaling, conjugation.
   - **Transcendental Functions:** Extensions of standard complex functions like exponential, logarithm, power, trigonometric, hyperbolic functions, and their inverses.
   - **Rotations:** Functions for creating rotation quaternions, rotating 3D vectors ([rotate](#LOS-rotate)), spherical linear interpolation (SLERP), and conversions between quaternions, Euler angles (ZYX body 3-2-1 and z-y'-x''), and rotation matrices.
@@ -2364,6 +2454,7 @@ Operations for quaternions.
 
 #### acos
 
+
 + `(acos q)`
 
 acos(q)
@@ -2381,6 +2472,7 @@ acos(q)
 
 
 #### acosh
+
 
 + `(acosh q)`
 
@@ -2400,6 +2492,7 @@ acosh(q)
 
 #### acot
 
+
 + `(acot q)`
 
 acot(q)
@@ -2417,6 +2510,7 @@ acot(q)
 
 
 #### acoth
+
 
 + `(acoth q)`
 
@@ -2436,6 +2530,7 @@ acoth(q)
 
 #### acsc
 
+
 + `(acsc q)`
 
 acsc(q)
@@ -2453,6 +2548,7 @@ acsc(q)
 
 
 #### acsch
+
 
 + `(acsch q)`
 
@@ -2472,6 +2568,7 @@ acsch(q)
 
 #### add
 
+
 + `(add q1 q2)`
 
 Sum of two quaternions
@@ -2489,6 +2586,7 @@ Sum of two quaternions
 
 
 #### adds
+
 
 + `(adds q1 s)`
 
@@ -2508,6 +2606,7 @@ Adds scalar to a quaternion
 
 #### arg
 
+
 + `(arg quaternion)`
 
 Argument of quaternion, atan2(|vector(q)|, re(q))
@@ -2525,6 +2624,7 @@ Argument of quaternion, atan2(|vector(q)|, re(q))
 
 
 #### asec
+
 
 + `(asec q)`
 
@@ -2544,6 +2644,7 @@ asec(q)
 
 #### asech
 
+
 + `(asech q)`
 
 asech(q)
@@ -2561,6 +2662,7 @@ asech(q)
 
 
 #### asin
+
 
 + `(asin q)`
 
@@ -2580,6 +2682,7 @@ asin(q)
 
 #### asinh
 
+
 + `(asinh q)`
 
 asinh(q)
@@ -2597,6 +2700,7 @@ asinh(q)
 
 
 #### atan
+
 
 + `(atan q)`
 
@@ -2616,6 +2720,7 @@ atan(q)
 
 #### atanh
 
+
 + `(atanh q)`
 
 atanh(q)
@@ -2633,6 +2738,7 @@ atanh(q)
 
 
 #### complex->quaternion
+
 
 + `(complex->quaternion z)`
 
@@ -2652,6 +2758,7 @@ Create quaternion from complex number
 
 #### conjugate
 
+
 + `(conjugate quaternion)`
 
 Conjugate of the quaternion
@@ -2669,6 +2776,7 @@ Conjugate of the quaternion
 
 
 #### cos
+
 
 + `(cos q)`
 
@@ -2688,6 +2796,7 @@ cos(q)
 
 #### cosh
 
+
 + `(cosh q)`
 
 cosh(q)
@@ -2705,6 +2814,7 @@ cosh(q)
 
 
 #### cot
+
 
 + `(cot q)`
 
@@ -2724,6 +2834,7 @@ cot(q)
 
 #### coth
 
+
 + `(coth q)`
 
 coth(q)
@@ -2741,6 +2852,7 @@ coth(q)
 
 
 #### csc
+
 
 + `(csc q)`
 
@@ -2760,6 +2872,7 @@ csc(q)
 
 #### csch
 
+
 + `(csch q)`
 
 csch(q)
@@ -2777,6 +2890,7 @@ csch(q)
 
 
 #### delta-eq
+
 
 + `(delta-eq q1 q2)`
 + `(delta-eq q1 q2 accuracy)`
@@ -2797,6 +2911,7 @@ Compare quaternions with given accuracy (10e-6 by default)
 
 #### div
 
+
 + `(div q1 q2)`
 
 Division two quaternions
@@ -2814,6 +2929,7 @@ Division two quaternions
 
 
 #### ensure-quaternion
+
 
 + `(ensure-quaternion q)`
 
@@ -2833,6 +2949,7 @@ Convert possible number, complex number to a quaternion
 
 #### exp
 
+
 + `(exp q)`
 
 exp(q)
@@ -2851,6 +2968,7 @@ exp(q)
 
 #### from-angles
 
+
 + `(from-angles [x y z])`
 + `(from-angles x y z)`
 
@@ -2859,6 +2977,7 @@ Converts Tait–Bryan angles (z-y′-x'' intrinsic rotation sequence) to a quate
   The angles `[x y z]` correspond to rotations around the local (body) x-axis, followed by the intermediate local y'-axis, and finally the local z''-axis.
 
   Parameters:
+
 
   * `x`: Rotation around the x-axis (radians).
   * `y`: Rotation around the y'-axis (radians).
@@ -2882,6 +3001,7 @@ Converts Tait–Bryan angles (z-y′-x'' intrinsic rotation sequence) to a quate
 
 #### from-euler
 
+
 + `(from-euler [roll pitch yaw])`
 + `(from-euler roll pitch yaw)`
 
@@ -2891,6 +3011,7 @@ Converts Euler angles (ZYX body 3-2-1 convention) to a quaternion.
   The order of input parameters or vector components is [roll pitch yaw].
 
   Parameters:
+
 
   * `roll`: Rotation around the x-axis (radians), expected range `[-pi, pi]`.
   * `pitch`: Rotation around the y'-axis (radians), expected range `[-pi/2, pi/2]`.
@@ -2913,6 +3034,7 @@ Converts Euler angles (ZYX body 3-2-1 convention) to a quaternion.
 
 
 #### from-rotation-matrix
+
 
 + `(from-rotation-matrix m)`
 
@@ -2937,6 +3059,7 @@ Converts a 3x3 rotation matrix to a quaternion.
 
 #### im-i
 
+
 + `(im-i quaternion)`
 
 Return i imaginary part
@@ -2954,6 +3077,7 @@ Return i imaginary part
 
 
 #### im-j
+
 
 + `(im-j quaternion)`
 
@@ -2973,6 +3097,7 @@ Return j imaginary part
 
 #### im-k
 
+
 + `(im-k quaternion)`
 
 Return k imaginary part
@@ -2990,6 +3115,7 @@ Return k imaginary part
 
 
 #### imaginary?
+
 
 + `(imaginary? quaternion)`
 
@@ -3009,6 +3135,7 @@ Is q is a pure imaginary number?
 
 #### inf?
 
+
 + `(inf? quaternion)`
 
 Is infinitive?
@@ -3026,6 +3153,7 @@ Is infinitive?
 
 
 #### invalid?
+
 
 + `(invalid? z)`
 
@@ -3045,6 +3173,7 @@ Is NaN or Inf?
 
 #### log
 
+
 + `(log q)`
 
 log(q)
@@ -3062,6 +3191,7 @@ log(q)
 
 
 #### logb
+
 
 + `(logb quaternion b)`
 
@@ -3081,6 +3211,7 @@ log with base b
 
 #### mult
 
+
 + `(mult q1 q2)`
 
 Multiplication of two quaternions.
@@ -3098,6 +3229,7 @@ Multiplication of two quaternions.
 
 
 #### nan?
+
 
 + `(nan? quaternion)`
 
@@ -3117,6 +3249,7 @@ Is NaN?
 
 #### neg
 
+
 + `(neg quaternion)`
 
 Negation of the quaternion.
@@ -3134,6 +3267,7 @@ Negation of the quaternion.
 
 
 #### norm
+
 
 + `(norm quaternion)`
 
@@ -3153,6 +3287,7 @@ Norm of the quaternion, length of the vector
 
 #### normalize
 
+
 + `(normalize quaternion)`
 
 Normalize quaternion, unit of quaternion.
@@ -3171,6 +3306,7 @@ Normalize quaternion, unit of quaternion.
 
 #### pow
 
+
 + `(pow q p)`
 
 Quaternion power
@@ -3188,6 +3324,7 @@ Quaternion power
 
 
 #### qsgn
+
 
 + `(qsgn re im-i im-j im-k)`
 + `(qsgn q)`
@@ -3210,6 +3347,7 @@ Computes the signum of a quaternion.
 
 #### quaternion
 
+
 + `(quaternion a b c d)`
 + `(quaternion scalar [i j k])`
 + `(quaternion a)`
@@ -3230,6 +3368,7 @@ Create quaternion from individual values or scalar and vector parts, reprezented
 
 #### re
 
+
 + `(re quaternion)`
 
 Returns scalar part of quaternion
@@ -3247,6 +3386,7 @@ Returns scalar part of quaternion
 
 
 #### real?
+
 
 + `(real? quaternion)`
 
@@ -3266,6 +3406,7 @@ Is q is a real number?
 
 #### reciprocal
 
+
 + `(reciprocal quaternion)`
 
 Reciprocal of the quaternion
@@ -3283,6 +3424,7 @@ Reciprocal of the quaternion
 
 
 #### rotate
+
 
 + `(rotate in rotq)`
 + `(rotate in angle u)`
@@ -3303,6 +3445,7 @@ Rotate 3d `in` vector around axis `u`, the same as `fastmath.vector/axis-rotate`
 
 #### rotation-quaternion
 
+
 + `(rotation-quaternion angle u)`
 
 Creates a unit quaternion representing a rotation.
@@ -3313,6 +3456,7 @@ Creates a unit quaternion representing a rotation.
 
   Parameters:
    
+
   * `angle`: The rotation angle in radians (double).
   * `u`: The axis of rotation (Vec3). It will be normalized before use.
 
@@ -3332,6 +3476,7 @@ Creates a unit quaternion representing a rotation.
 
 #### scalar
 
+
 + `(scalar quaternion)`
 
 Returns scalar part of quaternion, double
@@ -3349,6 +3494,7 @@ Returns scalar part of quaternion, double
 
 
 #### scale
+
 
 + `(scale quaternion scale)`
 
@@ -3368,6 +3514,7 @@ Scale the quaternion
 
 #### sec
 
+
 + `(sec q)`
 
 sec(q)
@@ -3385,6 +3532,7 @@ sec(q)
 
 
 #### sech
+
 
 + `(sech q)`
 
@@ -3404,6 +3552,7 @@ sech(q)
 
 #### sin
 
+
 + `(sin q)`
 
 sin(q)
@@ -3421,6 +3570,7 @@ sin(q)
 
 
 #### sinh
+
 
 + `(sinh q)`
 
@@ -3440,6 +3590,7 @@ sinh(q)
 
 #### slerp
 
+
 + `(slerp q1 q2 t)`
 
 Performs Spherical Linear Interpolation (SLERP) between two quaternions.
@@ -3448,6 +3599,7 @@ Performs Spherical Linear Interpolation (SLERP) between two quaternions.
   interpolation between rotations represented by unit quaternions.
 
   Parameters:
+
 
   * `q1`: The starting quaternion (Vec4).
   * `q2`: The ending quaternion (Vec4).
@@ -3473,6 +3625,7 @@ Performs Spherical Linear Interpolation (SLERP) between two quaternions.
 
 #### sq
 
+
 + `(sq quaternion)`
 
 Square of the quaternion.
@@ -3490,6 +3643,7 @@ Square of the quaternion.
 
 
 #### sqrt
+
 
 + `(sqrt q)`
 
@@ -3509,6 +3663,7 @@ sqrt(q)
 
 #### sub
 
+
 + `(sub q1 q2)`
 
 Difference of two quaternions
@@ -3526,6 +3681,7 @@ Difference of two quaternions
 
 
 #### tan
+
 
 + `(tan q)`
 
@@ -3545,6 +3701,7 @@ tan(q)
 
 #### tanh
 
+
 + `(tanh q)`
 
 tanh(q)
@@ -3562,6 +3719,7 @@ tanh(q)
 
 
 #### to-angles
+
 
 + `(to-angles q)`
 
@@ -3583,6 +3741,7 @@ Converts a quaternion `q` to Tait–Bryan angles using the z-y′-x'' intrinsic 
 
 
 #### to-euler
+
 
 + `(to-euler q)`
 
@@ -3606,6 +3765,7 @@ Converts a quaternion `q` to ZYX (body 3-2-1) Euler angles.
 
 #### to-rotation-matrix
 
+
 + `(to-rotation-matrix q)`
 
 Converts a quaternion to a 3x3 rotation matrix.
@@ -3614,6 +3774,7 @@ Converts a quaternion to a 3x3 rotation matrix.
   Unit quaternions are used to represent rotations.
 
   Parameters:
+
 
   * `q`: The quaternion (Vec4) to convert.
 
@@ -3633,6 +3794,7 @@ Converts a quaternion to a 3x3 rotation matrix.
 
 #### valid?
 
+
 + `(valid? z)`
 
 Is valid complex (not NaN or Inf)?
@@ -3651,6 +3813,7 @@ Is valid complex (not NaN or Inf)?
 
 #### vector
 
+
 + `(vector quaternion)`
 
 Returns vector part of quaternion, `Vec3` type
@@ -3668,6 +3831,7 @@ Returns vector part of quaternion, `Vec3` type
 
 
 #### zero?
+
 
 + `(zero? quaternion)`
 

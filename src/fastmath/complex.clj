@@ -44,8 +44,16 @@
   ([] ZERO))
 
 (defn ensure-complex
-  "Convert possible number to complex or return input."
-  [v] (if (number? v) (complex (double v)) v))
+  "Convert possible number or Apache Commpons Math Complex type to complex or return input."
+  [v]
+  (cond
+    (number? v) (Vec2. (double v) 0.0)
+
+    (instance? org.apache.commons.math3.complex.Complex v)
+    (Vec2. (.getReal ^org.apache.commons.math3.complex.Complex v)
+           (.getImaginary ^org.apache.commons.math3.complex.Complex v))
+
+    :else v))
 
 (defn re "Real part" ^double [^Vec2 z] (.x z))
 (defn im "Imaginary part" ^double [^Vec2 z] (.y z))

@@ -311,7 +311,7 @@
   Common parameters:
 
   * `:symmetric?` - symmetric (default, `true`) or periodic window (`false`).
-  * `:normalize?` - for continuous window, if `true` (default) normalized to have maximum value `1.0`. When `false`, integral of the function is `1.0`."
+  * `:normalize?` - for continuous window, if `true` (default) normalized to have maximum value `1.0`. When `false`, integral of the function is `1.0`, other options are: `:L1`, `:L2` and `:LInf` norms."
   ([window-name] (window window-name 256))
   ([window-name ^long N] (window window-name N nil))
   ([window-name ^long N {:keys [symmetric?]

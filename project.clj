@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "3.0.0-alpha5-SNAPSHOT"
+(defproject generateme/fastmath "3.0.0-alpha5"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
@@ -6,15 +6,19 @@
   :dependencies [[net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
 
+                 ;; Wavelets and FFT based
                  [de.sciss/jwave "1.0.3"]
                  [com.github.wendykierp/JTransforms "3.2"]
+
+                 ;; IIR filters
+                 [uk.me.berndporr/iirj "1.7"]
                  
                  [ca.umontreal.iro.simul/ssj "3.3.2"
                   :exclusions [org.jfree/jfreechart
                                org.jfree/jcommon]]
 
-                 [org.clojure/data.int-map "1.3.0"]
-                 [org.clojure/math.combinatorics "0.3.0"]]
+                 [org.clojure/data.int-map "1.3.1"]
+                 [org.clojure/math.combinatorics "0.3.2"]]
   :pedantic? false
   :resource-path "resources/"
   :java-source-paths ["src" "LBFGSBJava/src"]

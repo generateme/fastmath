@@ -7,8 +7,7 @@ format:
     toc-location: right
     anchor-sections: true
     reference-location: margin
-    fontsize: 0.9em
-    output-file: efloat.html
+    fontsize: 1.0em
 code-block-background: true
 
 ---
@@ -20,7 +19,7 @@ code-block-background: true
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="efloat_files/md-default0.js" type="text/javascript"></script><script src="efloat_files/md-default1.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script><script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 
 ::: {.sourceClojure}
 ```clojure
@@ -51,6 +50,7 @@ code-block-background: true
 
 #### ->EFloat
 
+
 + `(->EFloat v low high)`
 
 Positional factory function for class fastmath.efloat.EFloat.
@@ -68,6 +68,7 @@ Positional factory function for class fastmath.efloat.EFloat.
 
 
 #### ->Pair
+
 
 + `(->Pair a b)`
 
@@ -87,6 +88,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### ->double
 
+
 + `(->double ev)`
 
 
@@ -102,6 +104,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### abs
+
 
 + `(abs ev)`
 
@@ -119,6 +122,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### absolute-error
 
+
 + `(absolute-error ev)`
 
 
@@ -134,6 +138,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### acos
+
 
 + `(acos ev)`
 
@@ -151,6 +156,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### add
 
+
 + `(add ev1 ev2)`
 
 
@@ -166,6 +172,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### addf
+
 
 + `(addf ev v)`
 
@@ -183,6 +190,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### ceil
 
+
 + `(ceil ev)`
 
 
@@ -198,6 +206,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### cos
+
 
 + `(cos ev)`
 
@@ -215,6 +224,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### difference-of-products
 
+
 + `(difference-of-products a b c d)`
 
 
@@ -230,6 +240,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### div
+
 
 + `(div ev1 ev2)`
 
@@ -247,6 +258,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 #### divf
 
+
 + `(divf ev v)`
 
 
@@ -262,6 +274,7 @@ Positional factory function for class fastmath.efloat.Pair.
 
 
 #### efloat
+
 
 + `(efloat v)`
 + `(efloat v err)`
@@ -283,6 +296,7 @@ Create EFloat object from a single value or low and high values.
 
 #### equals?
 
+
 + `(equals? ev v)`
 
 
@@ -298,6 +312,7 @@ Create EFloat object from a single value or low and high values.
 
 
 #### floor
+
 
 + `(floor ev)`
 
@@ -315,6 +330,7 @@ Create EFloat object from a single value or low and high values.
 
 #### fma
 
+
 + `(fma ev1 ev2 ev3)`
 
 
@@ -330,6 +346,7 @@ Create EFloat object from a single value or low and high values.
 
 
 #### in-range?
+
 
 + `(in-range? ev v)`
 
@@ -347,6 +364,7 @@ Create EFloat object from a single value or low and high values.
 
 #### lower-bound
 
+
 + `(lower-bound ev)`
 
 
@@ -362,6 +380,7 @@ Create EFloat object from a single value or low and high values.
 
 
 #### map->EFloat
+
 
 + `(map->EFloat m__8001__auto__)`
 
@@ -381,6 +400,7 @@ Factory function for class fastmath.efloat.EFloat, taking a map of keywords to f
 
 #### map->Pair
 
+
 + `(map->Pair m__8001__auto__)`
 
 Factory function for class fastmath.efloat.Pair, taking a map of keywords to field values.
@@ -399,6 +419,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### max
 
+
 + `(max ev1 ev2)`
 
 
@@ -414,6 +435,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### mid-point
+
 
 + `(mid-point ev)`
 
@@ -431,6 +453,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### min
 
+
 + `(min ev1 ev2)`
 
 
@@ -446,6 +469,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### mul
+
 
 + `(mul ev1 ev2)`
 
@@ -463,6 +487,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### mulf
 
+
 + `(mulf ev v)`
 
 
@@ -478,6 +503,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### neg
+
 
 + `(neg ev)`
 
@@ -495,6 +521,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### quadratic
 
+
 + `(quadratic a b c)`
 
 
@@ -510,6 +537,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### relative-error
+
 
 + `(relative-error ev)`
 
@@ -527,6 +555,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### sin
 
+
 + `(sin ev)`
 
 
@@ -542,6 +571,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### sq
+
 
 + `(sq ev)`
 
@@ -559,6 +589,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### sqrt
 
+
 + `(sqrt ev)`
 
 
@@ -574,6 +605,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### sub
+
 
 + `(sub ev1 ev2)`
 
@@ -591,6 +623,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### subf
 
+
 + `(subf ev v)`
 
 
@@ -606,6 +639,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### sum-of-products
+
 
 + `(sum-of-products a b c d)`
 
@@ -623,6 +657,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 #### upper-bound
 
+
 + `(upper-bound ev)`
 
 
@@ -638,6 +673,7 @@ Factory function for class fastmath.efloat.Pair, taking a map of keywords to fie
 
 
 #### width
+
 
 + `(width ev)`
 

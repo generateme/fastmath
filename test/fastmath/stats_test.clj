@@ -455,3 +455,14 @@
       :left :cauchy 0.5317255  1.234632e-06
       :right :cauchy 0.1211189 0.4858579)))
 
+(t/deftest multilabel-measures
+  (t/are [res m] (= res (sut/multilabel-measure [0, 1, 2, 1, 1, 2] [0, 1, 1, 0, 0, 2] m))
+    0.5222222222222223 {}
+    {0 0.5, 1 0.4, 2 0.6666666666666666} {:average nil}
+    0.5 {:average sut/harmean}
+    0.5108729549290354 {:average sut/geomean}
+    0.5055555555555555 {:weighted? true}
+    0.6111111111111112 {:metric :recall}
+    0.5641764963265006 {:metric :f-beta :beta 0.45}
+    {0 0.6666666666666666, 1 0.5, 2 0.8333333333333334} {:metric :accuracy :average nil}
+    0.5 {:average :micro}))

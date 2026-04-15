@@ -2,13 +2,16 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-99.9.9">
+<meta name="generator" content="quarto-1.9.30">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>Complex numbers and quaternions – Fastmath documentation</title>
 <style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
 div.columns{display: flex; gap: min(4vw, 1.5em);}
@@ -21,8 +24,9 @@ ul.task-list li input[type="checkbox"] {
   vertical-align: middle;
 }
 /* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -33,7 +37,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -73,10 +77,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-494121dfa8658343c03537e94414993d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-b6a8276bf55561bdbc268162d41bd1f7.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-5080318e4e0fa5434adc66c5e0128d3e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-e2b40e120cda5ea631b504e525359924.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -106,7 +110,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <script type="text/javascript">
 const typesetMath = (el) => {
@@ -119,7 +123,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -137,7 +141,7 @@ window.Quarto = {
 
 </head>
 
-<body class="nav-sidebar floating">
+<body class="nav-sidebar floating quarto-light">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -486,10 +490,10 @@ window.Quarto = {
 .clay-side-by-side .sourceCode {margin: 0}
 .clay-side-by-side {margin: 1em 0}
 </style>
-<script src="complex_quaternions_files/md-default36.js" type="text/javascript"></script>
-<script src="complex_quaternions_files/md-default37.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" type="text/javascript"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" type="text/javascript"></script>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> complex-quaternions</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>(<span class="kw">ns</span> complex-quaternions</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  (<span class="at">:require</span> [fastmath.complex <span class="at">:as</span> cplx]</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>            [fastmath.quaternion <span class="at">:as</span> quat]</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>            [fastmath.<span class="kw">vector</span> <span class="at">:as</span> v]</span>
@@ -498,7 +502,7 @@ window.Quarto = {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            [fastmath.dev.clay <span class="at">:as</span> utls]</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            [scicloj.kindly.v4.kind <span class="at">:as</span> kind]</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            [fastmath.core <span class="at">:as</span> m]</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            [fastmath.matrix <span class="at">:as</span> mat]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>            [fastmath.matrix <span class="at">:as</span> mat]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="complex-numbers" class="level2">
 <h2 class="anchored" data-anchor-id="complex-numbers">Complex numbers</h2>
@@ -508,7 +512,7 @@ window.Quarto = {
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -526,18 +530,18 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb2"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>(cplx/complex) <span class="co">;; =&gt; #vec2 [0.0, 0.0]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>(cplx/complex) <span class="co">;; =&gt; #vec2 [0.0, 0.0]</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>(cplx/complex <span class="fl">1.0</span>) <span class="co">;; =&gt; #vec2 [1.0, 0.0]</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>(cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>) <span class="co">;; =&gt; #vec2 [1.0, -2.0]</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>(v/vec2 <span class="fl">1.0</span> -<span class="fl">2.0</span>) <span class="co">;; =&gt; #vec2 [1.0, -2.0]</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>(v/seq-&gt;vec2 [<span class="fl">1.0</span> -<span class="fl">2.0</span>]) <span class="co">;; =&gt; #vec2 [1.0, -2.0]</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>(cplx/ensure-complex <span class="fl">2.0</span>) <span class="co">;; =&gt; #vec2 [2.0, 0.0]</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>(cplx/ensure-complex (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec2 [1.0, -2.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>(cplx/ensure-complex (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec2 [1.0, -2.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -549,17 +553,17 @@ Examples
 <li>saturation/brightness - represents fractional part of logarithm of magnitude</li>
 </ul>
 <div class="clay-image">
-<img class="clay-image" src="complex_quaternions_files/0.png">
+<p><img src="complex_quaternions_files/image0.png" class="img-fluid"></p>
 </div>
 <p>We will use these numbers to illustrate operations:</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb3"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z1 </span>(cplx/complex <span class="fl">0.5</span> -<span class="fl">1.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z1 </span>(cplx/complex <span class="fl">0.5</span> -<span class="fl">1.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb4"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z2 </span>(cplx/complex -<span class="fl">0.5</span> <span class="fl">2.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z2 </span>(cplx/complex -<span class="fl">0.5</span> <span class="fl">2.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb5"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z3 </span>(cplx/complex <span class="fl">1.5</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> z3 </span>(cplx/complex <span class="fl">1.5</span> <span class="fl">0.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
 <div class="callout-header d-flex align-content-center">
@@ -567,14 +571,14 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb6"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>z1 <span class="co">;; =&gt; #vec2 [0.5, -1.5]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>z1 <span class="co">;; =&gt; #vec2 [0.5, -1.5]</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>z2 <span class="co">;; =&gt; #vec2 [-0.5, 2.5]</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>z3 <span class="co">;; =&gt; #vec2 [1.5, 0.5]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>z3 <span class="co">;; =&gt; #vec2 [1.5, 0.5]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -583,7 +587,12 @@ Examples
 <p>List of defined complex constants.</p>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th">constant</th>
@@ -594,37 +603,79 @@ Examples
 <tbody>
 <tr class="odd">
 <td>I</td>
-<td><span class="math inline">\(0+i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [0.0, 1.0]</td>
 </tr>
 <tr class="even">
 <td>-I</td>
-<td><span class="math inline">\(0-i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0-i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [0.0, -1.0]</td>
 </tr>
 <tr class="odd">
 <td>I-</td>
-<td><span class="math inline">\(0-i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0-i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [0.0, -1.0]</td>
 </tr>
 <tr class="even">
 <td>ZERO</td>
-<td><span class="math inline">\(0+0i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [0.0, 0.0]</td>
 </tr>
 <tr class="odd">
 <td>ONE</td>
-<td><span class="math inline">\(1+0i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("1+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [1.0, 0.0]</td>
 </tr>
 <tr class="even">
 <td>TWO</td>
-<td><span class="math inline">\(2+0i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("2+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [2.0, 0.0]</td>
 </tr>
 <tr class="odd">
 <td>PI</td>
-<td><span class="math inline">\(\pi+0i\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("\\pi+0i", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec2 [3.141592653589793, 0.0]</td>
 </tr>
 </tbody>
@@ -641,7 +692,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -670,13 +721,13 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb7"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(cplx/re z1) <span class="co">;; =&gt; 0.5</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>(cplx/im z1) <span class="co">;; =&gt; -1.5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>(cplx/re z1) <span class="co">;; =&gt; 0.5</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>(cplx/im z1) <span class="co">;; =&gt; -1.5</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -699,12 +750,12 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb8"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>z1 <span class="co">;; =&gt; #vec2 [0.5, -1.5]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>z1 <span class="co">;; =&gt; #vec2 [0.5, -1.5]</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(cplx/abs z1) <span class="co">;; =&gt; 1.5811388300841898</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>(cplx/norm z1) <span class="co">;; =&gt; 2.5</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>(cplx/arg z1) <span class="co">;; =&gt; -1.2490457723982544</span></span>
@@ -724,7 +775,7 @@ Examples
 <span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>(cplx/csgn z2) <span class="co">;; =&gt; -1.0</span></span>
 <span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>(cplx/csgn cplx/ZERO) <span class="co">;; =&gt; 0.0</span></span>
 <span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO) <span class="co">;; =&gt; false</span></span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO <span class="fl">0.01</span>) <span class="co">;; =&gt; true</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>(cplx/delta-eq (cplx/complex <span class="fl">0.001</span>) cplx/ZERO <span class="fl">0.01</span>) <span class="co">;; =&gt; true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -751,12 +802,12 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb9"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>(cplx/add z1 z2) <span class="co">;; =&gt; #vec2 [0.0, 1.0]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>(cplx/add z1 z2) <span class="co">;; =&gt; #vec2 [0.0, 1.0]</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>(cplx/adds z1 -<span class="fl">3.5</span>) <span class="co">;; =&gt; #vec2 [-3.0, -1.5]</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>(cplx/sub z1 z2) <span class="co">;; =&gt; #vec2 [1.0, -4.0]</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>(cplx/neg z1) <span class="co">;; =&gt; #vec2 [-0.5, 1.5]</span></span>
@@ -767,17 +818,25 @@ Examples
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>(cplx/muladd z1 z2 z3) <span class="co">;; =&gt; #vec2 [5.0, 2.5]</span></span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>(cplx/sq z1) <span class="co">;; =&gt; #vec2 [-2.0, -1.5]</span></span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>(cplx/div z1 z2) <span class="co">;; =&gt; #vec2 [-0.6153846153846154, -0.07692307692307693]</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>(cplx/reciprocal z1) <span class="co">;; =&gt; #vec2 [0.2, 0.6]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>(cplx/reciprocal z1) <span class="co">;; =&gt; #vec2 [0.2, 0.6]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
 <tbody>
 <tr class="odd">
-<td><img src="complex_quaternions_files/1.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/2.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image1.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image2.png" class="img-fluid"></p>
+</div></td>
 </tr>
 </tbody>
 </table>
@@ -796,27 +855,35 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb10"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt z1) <span class="co">;; =&gt; #vec2 [1.0200830432087846, -0.7352342586156434]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt z1) <span class="co">;; =&gt; #vec2 [1.0200830432087846, -0.7352342586156434]</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt z2) <span class="co">;; =&gt; #vec2 [1.0123017723970438, 1.2348096526988264]</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt z3) <span class="co">;; =&gt; #vec2 [1.2411967672541269, 0.20141850719855633]</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt1z z1) <span class="co">;; =&gt; #vec2 [1.782428394950227, 0.4207742662340966]</span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt1z z2) <span class="co">;; =&gt; #vec2 [2.686357605909836, 0.46531407331997443]</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt1z z3) <span class="co">;; =&gt; #vec2 [0.6335517491618166, -1.1838022718621541]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>(cplx/sqrt1z z3) <span class="co">;; =&gt; #vec2 [0.6335517491618166, -1.1838022718621541]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
 <tbody>
 <tr class="odd">
-<td><img src="complex_quaternions_files/3.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/4.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image3.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image4.png" class="img-fluid"></p>
+</div></td>
 </tr>
 </tbody>
 </table>
@@ -832,7 +899,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -859,12 +926,12 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb11"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(cplx/real? cplx/ONE) <span class="co">;; =&gt; true</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(cplx/real? cplx/ONE) <span class="co">;; =&gt; true</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>(cplx/real? cplx/I) <span class="co">;; =&gt; false</span></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>(cplx/imaginary? cplx/ONE) <span class="co">;; =&gt; false</span></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>(cplx/imaginary? cplx/I) <span class="co">;; =&gt; true</span></span>
@@ -875,7 +942,7 @@ Examples
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>(cplx/invalid? (cplx/complex <span class="at">##</span>Inf <span class="dv">1</span>)) <span class="co">;; =&gt; true</span></span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>(cplx/invalid? (cplx/complex <span class="fl">1.0</span> <span class="fl">2.0</span>)) <span class="co">;; =&gt; false</span></span>
 <span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>(cplx/valid? (cplx/complex <span class="fl">1.0</span> <span class="fl">2.0</span>)) <span class="co">;; =&gt; true</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>(cplx/valid? (cplx/complex <span class="at">##</span>Inf <span class="dv">1</span>)) <span class="co">;; =&gt; false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>(cplx/valid? (cplx/complex <span class="at">##</span>Inf <span class="dv">1</span>)) <span class="co">;; =&gt; false</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -889,7 +956,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -911,37 +978,53 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb12"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(cplx/exp z1) <span class="co">;; =&gt; #vec2 [0.11662592901934625, -1.644591201830844]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>(cplx/exp z1) <span class="co">;; =&gt; #vec2 [0.11662592901934625, -1.644591201830844]</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>(cplx/log z1) <span class="co">;; =&gt; #vec2 [0.45814536593707755, -1.2490457723982544]</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>(cplx/logb z1 z2) <span class="co">;; =&gt; #vec2 [-0.4446751692907921, -0.4944697164867257]</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>(cplx/pow z1 z2) <span class="co">;; =&gt; #vec2 [-3.571295577918147, 17.700466856264484]</span></span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>(cplx/pow z3 z1) <span class="co">;; =&gt; #vec2 [1.761680541256831, -1.0235623709790516]</span></span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>(cplx/pow cplx/ZERO cplx/ZERO) <span class="co">;; =&gt; #vec2 [NaN, NaN]</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>(cplx/pow cplx/ZERO (cplx/complex <span class="dv">1</span> <span class="dv">1</span>)) <span class="co">;; =&gt; #vec2 [0.0, 0.0]</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>(cplx/pow (cplx/complex <span class="dv">1</span> <span class="dv">1</span>) cplx/ZERO) <span class="co">;; =&gt; #vec2 [1.0, 0.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>(cplx/pow (cplx/complex <span class="dv">1</span> <span class="dv">1</span>) cplx/ZERO) <span class="co">;; =&gt; #vec2 [1.0, 0.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
 <tbody>
 <tr class="odd">
-<td><img src="complex_quaternions_files/5.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/6.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image5.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image6.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/7.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/8.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image7.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image8.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
-<td><img src="complex_quaternions_files/9.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/10.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image9.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image10.png" class="img-fluid"></p>
+</div></td>
 </tr>
 </tbody>
 </table>
@@ -959,7 +1042,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -978,13 +1061,13 @@ Defined functions
 <ul>
 <li><strong>Standard Trigonometric Functions</strong>: <code>sin</code>, <code>cos</code>, <code>tan</code>, <code>sec</code>, <code>csc</code>, <code>cot</code>
 <ul>
-<li>These are the direct extensions of real trigonometric functions. For <span class="math inline">\(z = x + iy\)</span>: <span class="math display">\[ \sin z = \sin x \cosh y + i \cos x \sinh y \]</span> <span class="math display">\[ \cos z = \cos x \cosh y - i \sin x \sinh y \]</span> <span class="math display">\[ \tan z = \frac{\sin x \cos x + i \sinh y \cosh y}{\cos^2 x + \sinh^2 y} \]</span></li>
-<li><code>sec(z)</code>, <code>csc(z)</code>, and <code>cot(z)</code> are computed as the reciprocals of <code>cos(z)</code>, <code>sin(z)</code>, and <code>tan(z)</code>, respectively.</li>
+<li><p>These are the direct extensions of real trigonometric functions. For <span class="math inline">\(z = x + iy\)</span>: <span class="math display">\[ \sin z = \sin x \cosh y + i \cos x \sinh y \]</span> <span class="math display">\[ \cos z = \cos x \cosh y - i \sin x \sinh y \]</span> <span class="math display">\[ \tan z = \frac{\sin x \cos x + i \sinh y \cosh y}{\cos^2 x + \sinh^2 y} \]</span></p></li>
+<li><p><code>sec(z)</code>, <code>csc(z)</code>, and <code>cot(z)</code> are computed as the reciprocals of <code>cos(z)</code>, <code>sin(z)</code>, and <code>tan(z)</code>, respectively.</p></li>
 </ul></li>
 <li><strong>Hyperbolic Trigonometric Functions</strong>: <code>sinh</code>, <code>cosh</code>, <code>tanh</code>, <code>sech</code>, <code>csch</code>, <code>coth</code>
 <ul>
-<li>These are also extensions of real hyperbolic functions. For <span class="math inline">\(z = x + iy\)</span>: <span class="math display">\[ \sinh z = \sinh x \cos y + i \cosh x \sin y \]</span> <span class="math display">\[ \cosh z = \cosh x \cos y + i \sinh x \sin y \]</span> <span class="math display">\[ \tanh z = \frac{\sinh x \cosh x + i \sin y \cos y}{\sinh^2 x + \cos^2 y} \]</span></li>
-<li><code>sech(z)</code>, <code>csch(z)</code>, and <code>coth(z)</code> are computed as the reciprocals of <code>cosh(z)</code>, <code>sinh(z)</code>, and <code>tanh(z)</code>, respectively.</li>
+<li><p>These are also extensions of real hyperbolic functions. For <span class="math inline">\(z = x + iy\)</span>: <span class="math display">\[ \sinh z = \sinh x \cos y + i \cosh x \sin y \]</span> <span class="math display">\[ \cosh z = \cosh x \cos y + i \sinh x \sin y \]</span> <span class="math display">\[ \tanh z = \frac{\sinh x \cosh x + i \sin y \cos y}{\sinh^2 x + \cos^2 y} \]</span></p></li>
+<li><p><code>sech(z)</code>, <code>csch(z)</code>, and <code>coth(z)</code> are computed as the reciprocals of <code>cosh(z)</code>, <code>sinh(z)</code>, and <code>tanh(z)</code>, respectively.</p></li>
 </ul></li>
 <li><strong>Inverse Trigonometric Functions</strong>: <code>asin</code>, <code>acos</code>, <code>atan</code>, <code>asec</code>, <code>acsc</code>, <code>acot</code>
 <ul>
@@ -1002,12 +1085,12 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb13"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(cplx/sin z1) <span class="co">;; =&gt; #vec2 [1.1278052468056998, -1.868618519182647]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(cplx/sin z1) <span class="co">;; =&gt; #vec2 [1.1278052468056998, -1.868618519182647]</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>(cplx/cos z1) <span class="co">;; =&gt; #vec2 [2.0644336567607153, 1.0208309495976968]</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>(cplx/tan z1) <span class="co">;; =&gt; #vec2 [0.07932445480395665, -0.9443729864226214]</span></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>(cplx/sec z1) <span class="co">;; =&gt; #vec2 [0.38922334164348615, -0.1924650047020439]</span></span>
@@ -1030,13 +1113,18 @@ Examples
 <span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>(cplx/atanh z1) <span class="co">;; =&gt; #vec2 [0.14694666622552977, -1.0172219678978514]</span></span>
 <span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>(cplx/asech z1) <span class="co">;; =&gt; #vec2 [0.5764844975630772, 1.3991340865479363]</span></span>
 <span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>(cplx/acsch z1) <span class="co">;; =&gt; #vec2 [0.24366128541928853, 0.6219473660246817]</span></span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>(cplx/acoth z1) <span class="co">;; =&gt; #vec2 [0.14694666622552977, 0.5535743588970452]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>(cplx/acoth z1) <span class="co">;; =&gt; #vec2 [0.14694666622552977, 0.5535743588970452]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <tbody>
 <tr class="odd">
 <td>sin</td>
@@ -1044,9 +1132,15 @@ Examples
 <td>tan</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/11.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/12.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/13.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image11.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image12.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image13.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>sec</td>
@@ -1054,9 +1148,15 @@ Examples
 <td>cot</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/14.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/15.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/16.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image14.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image15.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image16.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>asin</td>
@@ -1064,9 +1164,15 @@ Examples
 <td>atan</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/17.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/18.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/19.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image17.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image18.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image19.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>asec</td>
@@ -1074,9 +1180,15 @@ Examples
 <td>acot</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/20.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/21.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/22.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image20.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image21.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image22.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>sinh</td>
@@ -1084,9 +1196,15 @@ Examples
 <td>tanh</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/23.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/24.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/25.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image23.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image24.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image25.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>sech</td>
@@ -1094,9 +1212,15 @@ Examples
 <td>coth</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/26.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/27.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/28.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image26.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image27.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image28.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>asinh</td>
@@ -1104,9 +1228,15 @@ Examples
 <td>atanh</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/29.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/30.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/31.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image29.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image30.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image31.png" class="img-fluid"></p>
+</div></td>
 </tr>
 <tr class="odd">
 <td>asech</td>
@@ -1114,9 +1244,15 @@ Examples
 <td>acoth</td>
 </tr>
 <tr class="even">
-<td><img src="complex_quaternions_files/32.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/33.png" class="clay-image img-fluid"></td>
-<td><img src="complex_quaternions_files/34.png" class="clay-image img-fluid"></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image32.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image33.png" class="img-fluid"></p>
+</div></td>
+<td><div class="clay-image">
+<p><img src="complex_quaternions_files/image34.png" class="img-fluid"></p>
+</div></td>
 </tr>
 </tbody>
 </table>
@@ -1132,7 +1268,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1152,32 +1288,32 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb14"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span> -<span class="fl">4.0</span>) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 3.0, -4.0]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span> -<span class="fl">4.0</span>) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 3.0, -4.0]</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">5.0</span> [<span class="fl">1.0</span> <span class="fl">2.0</span> <span class="fl">3.0</span>]) <span class="co">;; =&gt; #vec4 [5.0, 1.0, 2.0, 3.0]</span></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>(quat/quaternion <span class="fl">7.0</span>) <span class="co">;; =&gt; #vec4 [7.0, 0.0, 0.0, 0.0]</span></span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>(quat/complex-&gt;quaternion (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 0.0, 0.0]</span></span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>(quat/ensure-quaternion <span class="fl">5.0</span>) <span class="co">;; =&gt; #vec4 [5.0, 0.0, 0.0, 0.0]</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>(quat/ensure-quaternion (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 0.0, 0.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>(quat/ensure-quaternion (cplx/complex <span class="fl">1.0</span> -<span class="fl">2.0</span>)) <span class="co">;; =&gt; #vec4 [1.0, -2.0, 0.0, 0.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <p>We will use these quaternions to illustrate operations:</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb15"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q1 </span>(quat/quaternion <span class="fl">0.5</span> -<span class="fl">1.5</span> <span class="fl">2.0</span> -<span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q1 </span>(quat/quaternion <span class="fl">0.5</span> -<span class="fl">1.5</span> <span class="fl">2.0</span> -<span class="fl">0.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb16"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q2 </span>(quat/quaternion -<span class="fl">0.5</span> <span class="fl">2.5</span> -<span class="fl">1.0</span> <span class="fl">1.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q2 </span>(quat/quaternion -<span class="fl">0.5</span> <span class="fl">2.5</span> -<span class="fl">1.0</span> <span class="fl">1.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb17"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q3 </span>(quat/quaternion <span class="fl">1.5</span> <span class="fl">0.0</span> <span class="fl">0.0</span> <span class="fl">0.0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q3 </span>(quat/quaternion <span class="fl">1.5</span> <span class="fl">0.0</span> <span class="fl">0.0</span> <span class="fl">0.0</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb18"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q4 </span>(quat/quaternion <span class="fl">0.0</span> <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q4 </span>(quat/quaternion <span class="fl">0.0</span> <span class="fl">1.0</span> -<span class="fl">2.0</span> <span class="fl">3.0</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
 <div class="callout-header d-flex align-content-center">
@@ -1185,15 +1321,15 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb19"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>q2 <span class="co">;; =&gt; #vec4 [-0.5, 2.5, -1.0, 1.5]</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>q3 <span class="co">;; =&gt; #vec4 [1.5, 0.0, 0.0, 0.0]</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>q4 <span class="co">;; =&gt; #vec4 [0.0, 1.0, -2.0, 3.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>q4 <span class="co">;; =&gt; #vec4 [0.0, 1.0, -2.0, 3.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1206,7 +1342,12 @@ Examples
 <p>Predefined quaternion constants for common values.</p>
 <div class="clay-table">
 <div class="table-responsive">
-<table class="table table-hover clay-table caption-top" data-quarto-postprocess="true">
+<table class="table table-hover clay-table caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th">constant</th>
@@ -1217,42 +1358,90 @@ Examples
 <tbody>
 <tr class="odd">
 <td>ZERO</td>
-<td><span class="math inline">\(0+0i+0j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 0.0, 0.0, 0.0]</td>
 </tr>
 <tr class="even">
 <td>ONE</td>
-<td><span class="math inline">\(1+0i+0j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("1+0i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [1.0, 0.0, 0.0, 0.0]</td>
 </tr>
 <tr class="odd">
 <td>I</td>
-<td><span class="math inline">\(0+i+0j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 1.0, 0.0, 0.0]</td>
 </tr>
 <tr class="even">
 <td>J</td>
-<td><span class="math inline">\(0+0i+j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i+j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 0.0, 1.0, 0.0]</td>
 </tr>
 <tr class="odd">
 <td>K</td>
-<td><span class="math inline">\(0+0i+0j+k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i+0j+k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 0.0, 0.0, 1.0]</td>
 </tr>
 <tr class="even">
 <td>-I</td>
-<td><span class="math inline">\(0-i+0j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0-i+0j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, -1.0, 0.0, 0.0]</td>
 </tr>
 <tr class="odd">
 <td>-J</td>
-<td><span class="math inline">\(0+0i-j+0k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i-j+0k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 0.0, -1.0, 0.0]</td>
 </tr>
 <tr class="even">
 <td>-K</td>
-<td><span class="math inline">\(0+0i+0j-k\)</span></td>
+<td><div>
+<p>
+<span></span>
+<script>katex.render("0+0i+0j-k", document.currentScript.parentElement, {displayMode: false, throwOnError: false});</script>
+
+</p>
+</div></td>
 <td>#vec4 [0.0, 0.0, 0.0, -1.0]</td>
 </tr>
 </tbody>
@@ -1269,7 +1458,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1292,17 +1481,17 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb20"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>(quat/scalar q1) <span class="co">;; =&gt; 0.5</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>(quat/scalar q1) <span class="co">;; =&gt; 0.5</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>(quat/re q1) <span class="co">;; =&gt; 0.5</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>(quat/vector q1) <span class="co">;; =&gt; #vec3 [-1.5, 2.0, -0.5]</span></span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>(quat/im-i q1) <span class="co">;; =&gt; -1.5</span></span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>(quat/im-j q1) <span class="co">;; =&gt; 2.0</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>(quat/im-k q1) <span class="co">;; =&gt; -0.5</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>(quat/im-k q1) <span class="co">;; =&gt; -0.5</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1321,12 +1510,12 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb21"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>q1 <span class="co">;; =&gt; #vec4 [0.5, -1.5, 2.0, -0.5]</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>(quat/arg q1) <span class="co">;; =&gt; 1.37713802635057</span></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>(quat/norm q1) <span class="co">;; =&gt; 2.598076211353316</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>(quat/normalize q1) <span class="co">;; =&gt; #vec4 [0.19245008972987526, -0.5773502691896257, 0.769800358919501, -0.19245008972987526]</span></span>
@@ -1341,7 +1530,7 @@ Examples
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>(quat/qsgn q2) <span class="co">;; =&gt; -1.0</span></span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>(quat/qsgn quat/ZERO) <span class="co">;; =&gt; 0.0</span></span>
 <span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>(quat/delta-eq (quat/quaternion <span class="fl">1.0000001</span>) quat/ONE) <span class="co">;; =&gt; true</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>(quat/delta-eq (quat/quaternion <span class="fl">1.0001</span>) quat/ONE) <span class="co">;; =&gt; false</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>(quat/delta-eq (quat/quaternion <span class="fl">1.0001</span>) quat/ONE) <span class="co">;; =&gt; false</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1350,16 +1539,16 @@ Examples
 </ul>
 <p>Basic arithmetic extended to quaternions.</p>
 <ul>
-<li><code>add</code>: Sum of two quaternions: <span class="math display">\[q_1 + q_2 = (a_1+a_2) + (b_1+b_2)i + (c_1+c_2)j + (d_1+d_2)k\]</span></li>
-<li><code>adds</code>: Adds a real scalar <span class="math inline">\(s\)</span> to a quaternion: <span class="math inline">\(q = a+bi+cj+dk\)</span>: <span class="math display">\[q+s = (a+s)+bi+cj+dk\]</span></li>
-<li><code>sub</code>: Difference of two quaternions: <span class="math inline">\(q_1 - q_2 = (a_1-a_2) + (b_1-b_2)i + (c_1-c_2)j + (d_1-d_2)k\)</span>$</li>
-<li><code>scale</code>: Multiplies a quaternion <span class="math inline">\(q\)</span> by a real scalar <span class="math inline">\(s\)</span>: <span class="math display">\[q \cdot s = (as) + (bs)i + (cs)j + (ds)k\]</span></li>
-<li><code>mult</code>: Quaternion multiplication. Note that quaternion multiplication is non-commutative (<span class="math inline">\(q_1 q_2 \neq q_2 q_1\)</span> in general). If <span class="math inline">\(q_1 = a_1 + \mathbf{v}_1\)</span> and <span class="math inline">\(q_2 = a_2 + \mathbf{v}_2\)</span>, where <span class="math inline">\(\mathbf{v}_1, \mathbf{v}_2\)</span> are vector parts: <span class="math display">\[ q_1 q_2 = (a_1 a_2 - \mathbf{v}_1 \cdot \mathbf{v}_2) + (a_1 \mathbf{v}_2 + a_2 \mathbf{v}_1 + \mathbf{v}_1 \times \mathbf{v}_2) \]</span></li>
-<li><code>div</code>: Quaternion division <span class="math display">\[q_1 / q_2 = q_1 \cdot q_2^{-1}\]</span></li>
-<li><code>reciprocal</code>: Returns the reciprocal: <span class="math display">\[q^{-1} = \bar{q} / |q|^2\]</span></li>
-<li><code>neg</code>: Negation: <span class="math display">\[-q = -a - bi - cj - dk\]</span></li>
-<li><code>sq</code>: Square of a quaternion: <span class="math display">\[q^2 = q \cdot q\]</span></li>
-<li><code>sqrt</code>: Computes the principal square root of a quaternion.</li>
+<li><p><code>add</code>: Sum of two quaternions: <span class="math display">\[q_1 + q_2 = (a_1+a_2) + (b_1+b_2)i + (c_1+c_2)j + (d_1+d_2)k\]</span></p></li>
+<li><p><code>adds</code>: Adds a real scalar <span class="math inline">\(s\)</span> to a quaternion: <span class="math inline">\(q = a+bi+cj+dk\)</span>: <span class="math display">\[q+s = (a+s)+bi+cj+dk\]</span></p></li>
+<li><p><code>sub</code>: Difference of two quaternions: <span class="math inline">\(q_1 - q_2 = (a_1-a_2) + (b_1-b_2)i + (c_1-c_2)j + (d_1-d_2)k\)</span>$</p></li>
+<li><p><code>scale</code>: Multiplies a quaternion <span class="math inline">\(q\)</span> by a real scalar <span class="math inline">\(s\)</span>: <span class="math display">\[q \cdot s = (as) + (bs)i + (cs)j + (ds)k\]</span></p></li>
+<li><p><code>mult</code>: Quaternion multiplication. Note that quaternion multiplication is non-commutative (<span class="math inline">\(q_1 q_2 \neq q_2 q_1\)</span> in general). If <span class="math inline">\(q_1 = a_1 + \mathbf{v}_1\)</span> and <span class="math inline">\(q_2 = a_2 + \mathbf{v}_2\)</span>, where <span class="math inline">\(\mathbf{v}_1, \mathbf{v}_2\)</span> are vector parts: <span class="math display">\[ q_1 q_2 = (a_1 a_2 - \mathbf{v}_1 \cdot \mathbf{v}_2) + (a_1 \mathbf{v}_2 + a_2 \mathbf{v}_1 + \mathbf{v}_1 \times \mathbf{v}_2) \]</span></p></li>
+<li><p><code>div</code>: Quaternion division <span class="math display">\[q_1 / q_2 = q_1 \cdot q_2^{-1}\]</span></p></li>
+<li><p><code>reciprocal</code>: Returns the reciprocal: <span class="math display">\[q^{-1} = \bar{q} / |q|^2\]</span></p></li>
+<li><p><code>neg</code>: Negation: <span class="math display">\[-q = -a - bi - cj - dk\]</span></p></li>
+<li><p><code>sq</code>: Square of a quaternion: <span class="math display">\[q^2 = q \cdot q\]</span></p></li>
+<li><p><code>sqrt</code>: Computes the principal square root of a quaternion.</p></li>
 </ul>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
 <div class="callout-header d-flex align-content-center">
@@ -1367,12 +1556,12 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb22"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>(quat/add q1 q2) <span class="co">;; =&gt; #vec4 [0.0, 1.0, 1.0, 1.0]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>(quat/add q1 q2) <span class="co">;; =&gt; #vec4 [0.0, 1.0, 1.0, 1.0]</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>(quat/adds q1 <span class="fl">5.0</span>) <span class="co">;; =&gt; #vec4 [5.5, -1.5, 2.0, -0.5]</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>(quat/sub q1 q2) <span class="co">;; =&gt; #vec4 [1.0, -4.0, 3.0, -2.0]</span></span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>(quat/scale q1 <span class="fl">3.0</span>) <span class="co">;; =&gt; #vec4 [1.5, -4.5, 6.0, -1.5]</span></span>
@@ -1383,7 +1572,7 @@ Examples
 <span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>(quat/mult q1 (quat/reciprocal q1)) <span class="co">;; =&gt; #vec4 [0.9999999999999998, 0.0, 0.0, 0.0]</span></span>
 <span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>(quat/neg q1) <span class="co">;; =&gt; #vec4 [-0.5, 1.5, -2.0, 0.5]</span></span>
 <span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>(quat/sq q1) <span class="co">;; =&gt; #vec4 [-6.25, -1.5, 2.0, -0.5]</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>(quat/sqrt q1) <span class="co">;; =&gt; #vec4 [1.2446035937906728, -0.6026015060070129, 0.8034686746760172, -0.2008671686690043]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>(quat/sqrt q1) <span class="co">;; =&gt; #vec4 [1.2446035937906728, -0.6026015060070129, 0.8034686746760172, -0.2008671686690043]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1397,7 +1586,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1422,12 +1611,12 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb23"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>(quat/real? q3) <span class="co">;; =&gt; true</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>(quat/real? q3) <span class="co">;; =&gt; true</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>(quat/real? q1) <span class="co">;; =&gt; false</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>(quat/imaginary? q4) <span class="co">;; =&gt; true</span></span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>(quat/imaginary? q1) <span class="co">;; =&gt; false</span></span>
@@ -1436,7 +1625,7 @@ Examples
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>(quat/inf? (quat/quaternion <span class="at">##</span>Inf <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span>)) <span class="co">;; =&gt; true</span></span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>(quat/nan? (quat/quaternion <span class="dv">1</span> <span class="at">##</span>NaN <span class="dv">2</span> <span class="dv">3</span>)) <span class="co">;; =&gt; true</span></span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>(quat/invalid? (quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>)) <span class="co">;; =&gt; false</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>(quat/valid? (quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>)) <span class="co">;; =&gt; true</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>(quat/valid? (quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>)) <span class="co">;; =&gt; true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1456,16 +1645,16 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb24"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>(quat/exp q1) <span class="co">;; =&gt; #vec4 [-1.3680759934546958, -0.5413604352188154, 0.7218139136250872, -0.1804534784062718]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>(quat/exp q1) <span class="co">;; =&gt; #vec4 [-1.3680759934546958, -0.5413604352188154, 0.7218139136250872, -0.1804534784062718]</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>(quat/log q1) <span class="co">;; =&gt; #vec4 [0.9547712524422192, -0.8102369618391012, 1.0803159491188017, -0.2700789872797004]</span></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>(quat/logb q1 q2) <span class="co">;; =&gt; #vec4 [-0.20614694633615405, -0.7036653773111262, 0.3406342086858799, -0.011638982288984245]</span></span>
 <span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>(quat/pow q1 q2) <span class="co">;; =&gt; #vec4 [-9.0178461035907, -18.182612909089467, 4.1908222233068875, 1.419324015861925]</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>(quat/pow q3 q1) <span class="co">;; =&gt; #vec4 [0.6265933369573483, -0.6191317465962343, 0.8255089954616457, -0.20637724886541142]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>(quat/pow q3 q1) <span class="co">;; =&gt; #vec4 [0.6265933369573483, -0.6191317465962343, 0.8255089954616457, -0.20637724886541142]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1479,7 +1668,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1501,12 +1690,12 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb25"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>(quat/sin q1) <span class="co">;; =&gt; #vec4 [3.087247974413335, -3.2845213397125193, 4.379361786283359, -1.0948404465708397]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>(quat/sin q1) <span class="co">;; =&gt; #vec4 [3.087247974413335, -3.2845213397125193, 4.379361786283359, -1.0948404465708397]</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>(quat/cos q1) <span class="co">;; =&gt; #vec4 [5.651169511045248, 1.7943421858300115, -2.3924562477733486, 0.5981140619433372]</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>(quat/tan q1) <span class="co">;; =&gt; #vec4 [0.010202871653497671, -0.5844504887495585, 0.7792673183327447, -0.19481682958318616]</span></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>(quat/sec q1) <span class="co">;; =&gt; #vec4 [0.1370413436810704, -0.043512951379207854, 0.05801726850561047, -0.014504317126402617]</span></span>
@@ -1529,7 +1718,7 @@ Examples
 <span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>(quat/atanh q1) <span class="co">;; =&gt; #vec4 [0.0648777988712712, -0.7107620150571328, 0.9476826867428436, -0.2369206716857109]</span></span>
 <span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>(quat/asech q1) <span class="co">;; =&gt; #vec4 [-0.3701071697421568, -0.8833849829668168, 1.1778466439557558, -0.29446166098893894]</span></span>
 <span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>(quat/acsch q1) <span class="co">;; =&gt; #vec4 [0.07987279637814454, 0.22711377640869046, -0.3028183685449206, 0.07570459213623015]</span></span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>(quat/acoth q1) <span class="co">;; =&gt; #vec4 [0.0648777988712712, 0.2134134990436804, -0.2845513320582405, 0.07113783301456013]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>(quat/acoth q1) <span class="co">;; =&gt; #vec4 [0.0648777988712712, 0.2134134990436804, -0.2845513320582405, 0.07113783301456013]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -1543,7 +1732,7 @@ Examples
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Defined functions
+<span class="screen-reader-only">Tip</span>Defined functions
 </div>
 </div>
 <div class="callout-body-container callout-body">
@@ -1564,13 +1753,13 @@ Defined functions
 <li><code>to-rotation-matrix</code>, <code>from-rotation-matrix</code>: Converts between a quaternion and a 3x3 rotation matrix.</li>
 </ul>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb26"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> rot-q </span>(quat/rotation-quaternion m/HALF_PI (v/vec3 <span class="dv">1</span> <span class="dv">1</span> <span class="dv">0</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> rot-q </span>(quat/rotation-quaternion m/HALF_PI (v/vec3 <span class="dv">1</span> <span class="dv">1</span> <span class="dv">0</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb27"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rot-q</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rot-q</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb28"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865476</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.0</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865476</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.4999999999999999</span> <span class="fl">0.0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled" title="Examples">
 <div class="callout-header d-flex align-content-center">
@@ -1578,55 +1767,55 @@ Defined functions
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Examples
+<span class="screen-reader-only">Note</span>Examples
 </div>
 </div>
 <div class="callout-body-container callout-body">
 <div class="sourceClojure">
-<div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(quat/rotate (v/vec3 <span class="dv">1</span> <span class="dv">0</span> <span class="dv">0</span>) rot-q) <span class="co">;; =&gt; #vec3 [0.5000000000000002, 0.4999999999999998, -0.7071067811865475]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>(quat/rotate (v/vec3 <span class="dv">1</span> <span class="dv">0</span> <span class="dv">0</span>) rot-q) <span class="co">;; =&gt; #vec3 [0.5000000000000002, 0.4999999999999998, -0.7071067811865475]</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>(quat/rotate (v/vec3 <span class="dv">1</span> <span class="dv">0</span> <span class="dv">0</span>) m/HALF_PI (v/vec3 <span class="dv">1</span> <span class="dv">1</span> <span class="dv">0</span>)) <span class="co">;; =&gt; #vec3 [0.5000000000000002, 0.4999999999999998, -0.7071067811865475]</span></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>(quat/from-euler m/HALF_PI <span class="dv">1</span> m/HALF_PI) <span class="co">;; =&gt; #vec4 [0.6785040502472879, 0.19907851164308485, 0.6785040502472878, 0.19907851164308485]</span></span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>(quat/to-euler (quat/from-euler m/HALF_PI <span class="dv">1</span> m/HALF_PI)) <span class="co">;; =&gt; #vec3 [1.570796326794897, 1.0000000000000004, 1.570796326794897]</span></span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>(quat/from-angles m/HALF_PI <span class="dv">1</span> m/HALF_PI) <span class="co">;; =&gt; #vec4 [0.199078511643085, 0.6785040502472878, -0.19907851164308474, 0.6785040502472878]</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>(quat/to-angles (quat/from-angles m/HALF_PI <span class="dv">1</span> m/HALF_PI)) <span class="co">;; =&gt; #vec3 [1.5707963267948963, 1.0000000000000002, 1.5707963267948963]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>(quat/to-angles (quat/from-angles m/HALF_PI <span class="dv">1</span> m/HALF_PI)) <span class="co">;; =&gt; #vec3 [1.5707963267948963, 1.0000000000000002, 1.5707963267948963]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
 <p>For a rotation quaternion <code>rot-q</code> conversion between rotation matrix and back looks as follows</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(quat/to-rotation-matrix rot-q)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>(quat/to-rotation-matrix rot-q)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb31"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>#mat3x3 [[<span class="fl">0.5000000000000002</span>, <span class="fl">0.5</span>, <span class="fl">0.7071067811865477</span>]</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>#mat3x3 [[<span class="fl">0.5000000000000002</span>, <span class="fl">0.5</span>, <span class="fl">0.7071067811865477</span>]</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>         [<span class="fl">0.5</span>, <span class="fl">0.5000000000000002</span>, -<span class="fl">0.7071067811865477</span>]</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>         [-<span class="fl">0.7071067811865477</span>, <span class="fl">0.7071067811865477</span>, <span class="fl">2.220446049250313E-16</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>         [-<span class="fl">0.7071067811865477</span>, <span class="fl">0.7071067811865477</span>, <span class="fl">2.220446049250313E-16</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb32"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>(quat/from-rotation-matrix (mat/rows-&gt;mat3x3</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>(quat/from-rotation-matrix (mat/rows-&gt;mat3x3</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>                            [<span class="fl">0.5</span> <span class="fl">0.5</span> m/SQRT2_2]</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                            [<span class="fl">0.5</span> <span class="fl">0.5</span> (<span class="kw">-</span> m/SQRT2_2)]</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>                            [(<span class="kw">-</span> m/SQRT2_2) m/SQRT2_2 <span class="fl">0.0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>                            [(<span class="kw">-</span> m/SQRT2_2) m/SQRT2_2 <span class="fl">0.0</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="printedClojure">
-<div class="sourceCode" id="cb33"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865475</span> <span class="fl">0.5</span> <span class="fl">0.5</span> <span class="fl">0.0</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.7071067811865475</span> <span class="fl">0.5</span> <span class="fl">0.5</span> <span class="fl">0.0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="slerp" class="level4">
 <h4 class="anchored" data-anchor-id="slerp">Slerp</h4>
 <p><code>slerp</code> function performs Spherical Linear Interpolation between two unit quaternions <code>q1</code> and <code>q2</code> based on a parameter <code>t</code> in [0, 1]. Useful for animating rotations.</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb34"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">0.0</span>) <span class="co">;; =&gt; #vec4 [1.0, 0.0, 0.0, 0.0]</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">0.0</span>) <span class="co">;; =&gt; #vec4 [1.0, 0.0, 0.0, 0.0]</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">0.5</span>) <span class="co">;; =&gt; #vec4 [0.7071067811865476, 0.0, 0.0, 0.7071067811865475]</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">1.0</span>) <span class="co">;; =&gt; #vec4 [0.0, 0.0, 0.0, 1.0]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>(quat/slerp quat/ONE (quat/quaternion <span class="dv">0</span> <span class="dv">0</span> <span class="dv">0</span> <span class="dv">1</span>) <span class="fl">1.0</span>) <span class="co">;; =&gt; #vec4 [0.0, 0.0, 0.0, 1.0]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Let’s see how quaternion components changes for different <code>t</code>.</p>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb35"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-start </span>(quat/quaternion -<span class="dv">1</span> -<span class="dv">2</span> -<span class="dv">3</span> -<span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-start </span>(quat/quaternion -<span class="dv">1</span> -<span class="dv">2</span> -<span class="dv">3</span> -<span class="dv">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="sourceClojure">
-<div class="sourceCode" id="cb36"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-end </span>(quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb36"><pre class="sourceCode clojure code-with-copy"><code class="sourceCode clojure"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>(<span class="bu">def</span><span class="fu"> q-end </span>(quat/quaternion <span class="dv">1</span> <span class="dv">2</span> <span class="dv">3</span> <span class="dv">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="clay-image">
-<img class="clay-image" src="complex_quaternions_files/35.png">
+<p><img src="complex_quaternions_files/image35.png" class="img-fluid"></p>
 </div>
 </section>
 </section>
@@ -1689,7 +1878,7 @@ Examples
 <li><code>(abs z)</code></li>
 </ul>
 <p>Calculates the magnitude (absolute value) of the complex number <code>z</code>.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L82">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L90">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acos"></span>
 </section>
 <section id="acos" class="level4">
@@ -1698,7 +1887,7 @@ Examples
 <li><code>(acos z)</code></li>
 </ul>
 <p>acos(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L565">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L573">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acosh"></span>
 </section>
 <section id="acosh" class="level4">
@@ -1707,7 +1896,7 @@ Examples
 <li><code>(acosh z)</code></li>
 </ul>
 <p>acosh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L713">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L721">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acot"></span>
 </section>
 <section id="acot" class="level4">
@@ -1716,7 +1905,7 @@ Examples
 <li><code>(acot z)</code></li>
 </ul>
 <p>acot(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L665">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L673">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acoth"></span>
 </section>
 <section id="acoth" class="level4">
@@ -1725,7 +1914,7 @@ Examples
 <li><code>(acoth z)</code></li>
 </ul>
 <p>acoth(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L834">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L842">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsc"></span>
 </section>
 <section id="acsc" class="level4">
@@ -1734,7 +1923,7 @@ Examples
 <li><code>(acsc z)</code></li>
 </ul>
 <p>acsc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L638">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L646">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-acsch"></span>
 </section>
 <section id="acsch" class="level4">
@@ -1743,7 +1932,7 @@ Examples
 <li><code>(acsch z)</code></li>
 </ul>
 <p>acsch(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L800">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L808">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-add"></span>
 </section>
 <section id="add" class="level4">
@@ -1752,7 +1941,7 @@ Examples
 <li><code>(add z1 z2)</code></li>
 </ul>
 <p>Sum of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L107">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L115">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-adds"></span>
 </section>
 <section id="adds" class="level4">
@@ -1761,7 +1950,7 @@ Examples
 <li><code>(adds z v)</code></li>
 </ul>
 <p>Add scalar to complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L113">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L121">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-arg"></span>
 </section>
 <section id="arg" class="level4">
@@ -1770,7 +1959,7 @@ Examples
 <li><code>(arg z)</code></li>
 </ul>
 <p>Argument (angle) of the complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L102">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L110">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asec"></span>
 </section>
 <section id="asec" class="level4">
@@ -1779,7 +1968,7 @@ Examples
 <li><code>(asec z)</code></li>
 </ul>
 <p>asec(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L612">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L620">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asech"></span>
 </section>
 <section id="asech" class="level4">
@@ -1788,7 +1977,7 @@ Examples
 <li><code>(asech z)</code></li>
 </ul>
 <p>asech(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L765">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L773">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asin"></span>
 </section>
 <section id="asin" class="level4">
@@ -1797,7 +1986,7 @@ Examples
 <li><code>(asin z)</code></li>
 </ul>
 <p>asin(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L544">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L552">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-asinh"></span>
 </section>
 <section id="asinh" class="level4">
@@ -1806,7 +1995,7 @@ Examples
 <li><code>(asinh z)</code></li>
 </ul>
 <p>asinh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L690">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L698">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atan"></span>
 </section>
 <section id="atan" class="level4">
@@ -1815,7 +2004,7 @@ Examples
 <li><code>(atan z)</code></li>
 </ul>
 <p>atan(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L585">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L593">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-atanh"></span>
 </section>
 <section id="atanh" class="level4">
@@ -1824,7 +2013,7 @@ Examples
 <li><code>(atanh z)</code></li>
 </ul>
 <p>atanh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L739">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L747">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-complex"></span>
 </section>
 <section id="complex" class="level4">
@@ -1846,7 +2035,7 @@ Examples
 <li><code>(conjugate z)</code></li>
 </ul>
 <p>Complex conjugate.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L169">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cos"></span>
 </section>
 <section id="cos" class="level4">
@@ -1855,7 +2044,7 @@ Examples
 <li><code>(cos z)</code></li>
 </ul>
 <p>cos(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L394">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L402">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cosh"></span>
 </section>
 <section id="cosh" class="level4">
@@ -1864,7 +2053,7 @@ Examples
 <li><code>(cosh z)</code></li>
 </ul>
 <p>cosh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L475">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L483">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-cot"></span>
 </section>
 <section id="cot" class="level4">
@@ -1873,7 +2062,7 @@ Examples
 <li><code>(cot z)</code></li>
 </ul>
 <p>csc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L448">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L456">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-coth"></span>
 </section>
 <section id="coth" class="level4">
@@ -1882,7 +2071,7 @@ Examples
 <li><code>(coth z)</code></li>
 </ul>
 <p>coth(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L528">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L536">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csc"></span>
 </section>
 <section id="csc" class="level4">
@@ -1891,7 +2080,7 @@ Examples
 <li><code>(csc z)</code></li>
 </ul>
 <p>csc(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L434">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L442">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csch"></span>
 </section>
 <section id="csch" class="level4">
@@ -1900,7 +2089,7 @@ Examples
 <li><code>(csch z)</code></li>
 </ul>
 <p>csch(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L514">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L522">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-csgn"></span>
 </section>
 <section id="csgn" class="level4">
@@ -1911,7 +2100,7 @@ Examples
 </ul>
 <p>Complex signum function.</p>
 <p>Returns <code>0.0</code> for the zero. For any other vector, returns the sign of the real part.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L70">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L78">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-delta-eq"></span>
 </section>
 <section id="delta-eq" class="level4">
@@ -1921,7 +2110,7 @@ Examples
 <li><code>(delta-eq q1 q2 accuracy)</code></li>
 </ul>
 <p>Compare complex numbers with given accuracy (10e-6 by default)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L71">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-div"></span>
 </section>
 <section id="div" class="level4">
@@ -1930,7 +2119,7 @@ Examples
 <li><code>(div z1 z2)</code></li>
 </ul>
 <p>Division of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L166">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L174">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-ensure-complex"></span>
 </section>
 <section id="ensure-complex" class="level4">
@@ -1938,7 +2127,7 @@ Examples
 <ul>
 <li><code>(ensure-complex v)</code></li>
 </ul>
-<p>Convert possible number to complex or return input.</p>
+<p>Convert possible number or Apache Commpons Math Complex type to complex or return input.</p>
 <div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L46">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-exp"></span>
 </section>
@@ -1948,7 +2137,7 @@ Examples
 <li><code>(exp z)</code></li>
 </ul>
 <p>exp(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L218">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L226">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-flip"></span>
 </section>
 <section id="flip" class="level4">
@@ -1957,7 +2146,7 @@ Examples
 <li><code>(flip z)</code></li>
 </ul>
 <p>Exchange imaginary and real parts</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L80">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L88">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-im"></span>
 </section>
 <section id="im" class="level4">
@@ -1966,7 +2155,7 @@ Examples
 <li><code>(im z)</code></li>
 </ul>
 <p>Imaginary part</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L51">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L59">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-imaginary?"></span>
 </section>
 <section id="imaginary" class="level4">
@@ -1975,7 +2164,7 @@ Examples
 <li><code>(imaginary? z)</code></li>
 </ul>
 <p>Is z is a pure imaginary number?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L54">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L62">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-inf?"></span>
 </section>
 <section id="inf" class="level4">
@@ -1984,7 +2173,7 @@ Examples
 <li><code>(inf? z)</code></li>
 </ul>
 <p>Is infinite?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L56">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L64">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-invalid?"></span>
 </section>
 <section id="invalid" class="level4">
@@ -1993,7 +2182,7 @@ Examples
 <li><code>(invalid? z)</code></li>
 </ul>
 <p>Is NaN or Inf?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L60">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L68">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-log"></span>
 </section>
 <section id="log" class="level4">
@@ -2002,7 +2191,7 @@ Examples
 <li><code>(log z)</code></li>
 </ul>
 <p>log(z), principal value</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L232">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L240">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-logb"></span>
 </section>
 <section id="logb" class="level4">
@@ -2011,7 +2200,7 @@ Examples
 <li><code>(logb z b)</code></li>
 </ul>
 <p>log with base b</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L248">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L256">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-muladd"></span>
 </section>
 <section id="muladd" class="level4">
@@ -2020,7 +2209,7 @@ Examples
 <li><code>(muladd x y z)</code></li>
 </ul>
 <p>(+ z (* x y))</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L156">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult"></span>
 </section>
 <section id="mult" class="level4">
@@ -2029,7 +2218,7 @@ Examples
 <li><code>(mult z1 z2)</code></li>
 </ul>
 <p>Multiplication of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L130">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L138">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult-I"></span>
 </section>
 <section id="mult-i" class="level4">
@@ -2038,7 +2227,7 @@ Examples
 <li><code>(mult-I z)</code></li>
 </ul>
 <p>Multiplication by 0+i.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L140">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L148">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-mult-I-"></span>
 </section>
 <section id="mult-i-" class="level4">
@@ -2047,7 +2236,7 @@ Examples
 <li><code>(mult-I- z)</code></li>
 </ul>
 <p>Multiplication by 0-i.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L144">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L152">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-nan?"></span>
 </section>
 <section id="nan" class="level4">
@@ -2056,7 +2245,7 @@ Examples
 <li><code>(nan? z)</code></li>
 </ul>
 <p>Is NaN?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L66">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-neg"></span>
 </section>
 <section id="neg" class="level4">
@@ -2065,7 +2254,7 @@ Examples
 <li><code>(neg z)</code></li>
 </ul>
 <p>Negation of the complex number, -z.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L191">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L199">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-norm"></span>
 </section>
 <section id="norm" class="level4">
@@ -2075,7 +2264,7 @@ Examples
 </ul>
 <p>Calculates the squared magnitude (norm) of the complex number <code>z</code>.</p>
 <p>Also known as the squared modulus or squared Euclidean norm.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L89">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L97">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-normalize"></span>
 </section>
 <section id="normalize" class="level4">
@@ -2084,7 +2273,7 @@ Examples
 <li><code>(normalize z)</code></li>
 </ul>
 <p>Normalize complex number to make abs(z) = 1</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L98">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L106">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-pow"></span>
 </section>
 <section id="pow" class="level4">
@@ -2093,7 +2282,7 @@ Examples
 <li><code>(pow z1 z2)</code></li>
 </ul>
 <p>Complex power, z^z</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L353">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L361">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-re"></span>
 </section>
 <section id="re" class="level4">
@@ -2102,7 +2291,7 @@ Examples
 <li><code>(re z)</code></li>
 </ul>
 <p>Real part</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L50">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L58">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-real?"></span>
 </section>
 <section id="real" class="level4">
@@ -2111,7 +2300,7 @@ Examples
 <li><code>(real? z)</code></li>
 </ul>
 <p>Is z is a real number?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L53">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-reciprocal"></span>
 </section>
 <section id="reciprocal" class="level4">
@@ -2120,7 +2309,7 @@ Examples
 <li><code>(reciprocal z)</code></li>
 </ul>
 <p>Reciprocal, 1/z.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L177">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L185">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-scale"></span>
 </section>
 <section id="scale" class="level4">
@@ -2129,7 +2318,7 @@ Examples
 <li><code>(scale z v)</code></li>
 </ul>
 <p>Multiplication by real number</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L124">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L132">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sec"></span>
 </section>
 <section id="sec" class="level4">
@@ -2138,7 +2327,7 @@ Examples
 <li><code>(sec z)</code></li>
 </ul>
 <p>sec(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L420">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L428">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sech"></span>
 </section>
 <section id="sech" class="level4">
@@ -2147,7 +2336,7 @@ Examples
 <li><code>(sech z)</code></li>
 </ul>
 <p>sech(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L500">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L508">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sin"></span>
 </section>
 <section id="sin" class="level4">
@@ -2156,7 +2345,7 @@ Examples
 <li><code>(sin z)</code></li>
 </ul>
 <p>sin(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L383">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L391">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sinh"></span>
 </section>
 <section id="sinh" class="level4">
@@ -2165,7 +2354,7 @@ Examples
 <li><code>(sinh z)</code></li>
 </ul>
 <p>sinh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L464">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L472">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sq"></span>
 </section>
 <section id="sq" class="level4">
@@ -2174,7 +2363,7 @@ Examples
 <li><code>(sq z)</code></li>
 </ul>
 <p>Square of the complex number.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L153">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L161">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt"></span>
 </section>
 <section id="sqrt" class="level4">
@@ -2183,7 +2372,7 @@ Examples
 <li><code>(sqrt z)</code></li>
 </ul>
 <p>Sqrt of the complex number, sqrt(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L196">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L204">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sqrt1z"></span>
 </section>
 <section id="sqrt1z" class="level4">
@@ -2192,7 +2381,7 @@ Examples
 <li><code>(sqrt1z z)</code></li>
 </ul>
 <p>sqrt(1-z^2)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L208">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L216">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-sub"></span>
 </section>
 <section id="sub" class="level4">
@@ -2201,7 +2390,7 @@ Examples
 <li><code>(sub z1 z2)</code></li>
 </ul>
 <p>Difference of two complex numbers.</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L118">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L126">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tan"></span>
 </section>
 <section id="tan" class="level4">
@@ -2210,7 +2399,7 @@ Examples
 <li><code>(tan z)</code></li>
 </ul>
 <p>tan(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L406">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L414">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-tanh"></span>
 </section>
 <section id="tanh" class="level4">
@@ -2219,7 +2408,7 @@ Examples
 <li><code>(tanh z)</code></li>
 </ul>
 <p>tanh(z)</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L486">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L494">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-valid?"></span>
 </section>
 <section id="valid" class="level4">
@@ -2228,7 +2417,7 @@ Examples
 <li><code>(valid? z)</code></li>
 </ul>
 <p>Is valid complex (not NaN or Inf)?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L61">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L69">source</a></small><hr style="margin: 0"></div>
 <span id="#LOS-zero?"></span>
 </section>
 <section id="zero-1" class="level4">
@@ -2237,7 +2426,7 @@ Examples
 <li><code>(zero? z)</code></li>
 </ul>
 <p>Is zero?</p>
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L55">source</a></small><hr style="margin: 0"></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/complex.clj#L63">source</a></small><hr style="margin: 0"></div>
 </section>
 </section>
 <section id="fastmath.quaternion" class="level3">
@@ -2246,7 +2435,12 @@ Examples
 <p>Quaternions extend complex numbers and are widely used in fields like 3D graphics and physics for representing rotations.</p>
 <p>In <code>fastmath</code>, quaternions are represented as 4-dimensional vectors (<a href="#LOS-Vec4">Vec4</a>) where the components correspond to the scalar part and the three imaginary parts (<span class="math inline">\(i\)</span>, <span class="math inline">\(j\)</span>, <span class="math inline">\(k\)</span>): <span class="math inline">\(q = a + bi + cj + dk\)</span> is <code>(Vec4. a b c d)</code>.</p>
 <p>The namespace provides functions for creating quaternions, accessing scalar and vector parts, predicates (e.g., <a href="#LOS-real?">real?</a>, <a href="#LOS-zero?">zero?</a>, <a href="#LOS-inf?">inf?</a>, <a href="#LOS-nan?">nan?</a>), and fundamental properties (magnitude, argument, normalization).</p>
-<p>A comprehensive set of operations is included: - <strong>Arithmetic:</strong> Addition, subtraction, multiplication, division, negation, square, reciprocal, scaling, conjugation. - <strong>Transcendental Functions:</strong> Extensions of standard complex functions like exponential, logarithm, power, trigonometric, hyperbolic functions, and their inverses. - <strong>Rotations:</strong> Functions for creating rotation quaternions, rotating 3D vectors (<a href="#LOS-rotate">rotate</a>), spherical linear interpolation (SLERP), and conversions between quaternions, Euler angles (ZYX body 3-2-1 and z-y’-x’’), and rotation matrices.</p>
+<p>A comprehensive set of operations is included:</p>
+<ul>
+<li><strong>Arithmetic:</strong> Addition, subtraction, multiplication, division, negation, square, reciprocal, scaling, conjugation.</li>
+<li><strong>Transcendental Functions:</strong> Extensions of standard complex functions like exponential, logarithm, power, trigonometric, hyperbolic functions, and their inverses.</li>
+<li><strong>Rotations:</strong> Functions for creating rotation quaternions, rotating 3D vectors (<a href="#LOS-rotate">rotate</a>), spherical linear interpolation (SLERP), and conversions between quaternions, Euler angles (ZYX body 3-2-1 and z-y’-x’’), and rotation matrices.</li>
+</ul>
 <p>The implementation correctly handles floating-point special values, including <code>##Inf</code> and <code>##NaN</code>.</p>
 <span id="#LOS--I"></span>
 <section id="i-2" class="level4">
@@ -2980,236 +3174,243 @@ Examples
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
-window.document.addEventListener("DOMContentLoaded", function (event) {
-  const toggleBodyColorMode = (bsSheetEl) => {
-    const mode = bsSheetEl.getAttribute("data-mode");
-    const bodyEl = window.document.querySelector("body");
-    if (mode === "dark") {
-      bodyEl.classList.add("quarto-dark");
-      bodyEl.classList.remove("quarto-light");
-    } else {
-      bodyEl.classList.add("quarto-light");
-      bodyEl.classList.remove("quarto-dark");
-    }
-  }
-  const toggleBodyColorPrimary = () => {
-    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
-    if (bsSheetEl) {
-      toggleBodyColorMode(bsSheetEl);
-    }
-  }
-  toggleBodyColorPrimary();  
-  const icon = "";
-  const anchorJS = new window.AnchorJS();
-  anchorJS.options = {
-    placement: 'right',
-    icon: icon
-  };
-  anchorJS.add('.anchored');
-  const isCodeAnnotation = (el) => {
-    for (const clz of el.classList) {
-      if (clz.startsWith('code-annotation-')) {                     
-        return true;
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
       }
+      return false;
     }
-    return false;
-  }
-  const onCopySuccess = function(e) {
-    // button target
-    const button = e.trigger;
-    // don't keep focus
-    button.blur();
-    // flash "checked"
-    button.classList.add('code-copy-button-checked');
-    var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
-    let tooltip;
-    if (window.bootstrap) {
-      button.setAttribute("data-bs-toggle", "tooltip");
-      button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
-      tooltip = new bootstrap.Tooltip(button, 
-        { trigger: "manual", 
-          customClass: "code-copy-button-tooltip",
-          offset: [0, -8]});
-      tooltip.show();    
-    }
-    setTimeout(function() {
-      if (tooltip) {
-        tooltip.hide();
-        button.removeAttribute("data-bs-title");
-        button.removeAttribute("data-bs-toggle");
-        button.removeAttribute("data-bs-placement");
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
       }
-      button.setAttribute("title", currentTitle);
-      button.classList.remove('code-copy-button-checked');
-    }, 1000);
-    // clear code selection
-    e.clearSelection();
-  }
-  const getTextToCopy = function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
       for (const childEl of codeEl.children) {
         if (isCodeAnnotation(childEl)) {
           childEl.remove();
         }
       }
       return codeEl.innerText;
-  }
-  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-    text: getTextToCopy
-  });
-  clipboard.on('success', onCopySuccess);
-  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-      text: getTextToCopy,
-      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
     });
-    clipboardModal.on('success', onCopySuccess);
-  }
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
     }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
-    }
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
-    const config = {
-      allowHTML: true,
-      maxWidth: 500,
-      delay: 100,
-      arrow: false,
-      appendTo: function(el) {
-          return el.parentElement;
-      },
-      interactive: true,
-      interactiveBorder: 10,
-      theme: 'quarto',
-      placement: 'bottom-start',
-    };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
-    window.tippy(el, config); 
-  }
-  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
-  for (var i=0; i<noterefs.length; i++) {
-    const ref = noterefs[i];
-    tippyHover(ref, function() {
-      // use id or data attribute instead here
-      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
-      try { href = new URL(href).hash; } catch {}
-      const id = href.replace(/^#\/?/, "");
-      const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
           }
         }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
         }
-        return container.innerHTML
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
       } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
         if (window.Quarto?.typesetMath) {
           window.Quarto.typesetMath(note);
         }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
       }
     }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
           }
         } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
           .then(res => res.text())
           .then(html => {
             const parser = new DOMParser();
             const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
+            const note = htmlDoc.querySelector('main.content');
             if (note !== null) {
-              const html = processXRef(id, note);
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
               instance.setContent(html);
             } 
           }).finally(() => {
@@ -3217,185 +3418,161 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             instance.show();
           });
         }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
-    });
-  }
-      let selectedAnnoteEl;
-      const selectorForAnnotation = ( cell, annotation) => {
-        let cellAttr = 'data-code-cell="' + cell + '"';
-        let lineAttr = 'data-code-annotation="' +  annotation + '"';
-        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
-        return selector;
-      }
-      const selectCodeLines = (annoteEl) => {
-        const doc = window.document;
-        const targetCell = annoteEl.getAttribute("data-target-cell");
-        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
-        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
-        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
-        const lineIds = lines.map((line) => {
-          return targetCell + "-" + line;
-        })
-        let top = null;
-        let height = null;
-        let parent = null;
-        if (lineIds.length > 0) {
-            //compute the position of the single el (top and bottom and make a div)
-            const el = window.document.getElementById(lineIds[0]);
-            top = el.offsetTop;
-            height = el.offsetHeight;
-            parent = el.parentElement.parentElement;
-          if (lineIds.length > 1) {
-            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
-            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
-            height = bottom - top;
-          }
-          if (top !== null && height !== null && parent !== null) {
-            // cook up a div (if necessary) and position it 
-            let div = window.document.getElementById("code-annotation-line-highlight");
-            if (div === null) {
-              div = window.document.createElement("div");
-              div.setAttribute("id", "code-annotation-line-highlight");
-              div.style.position = 'absolute';
-              parent.appendChild(div);
-            }
-            div.style.top = top - 2 + "px";
-            div.style.height = height + 4 + "px";
-            div.style.left = 0;
-            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
-            if (gutterDiv === null) {
-              gutterDiv = window.document.createElement("div");
-              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
-              gutterDiv.style.position = 'absolute';
-              const codeCell = window.document.getElementById(targetCell);
-              const gutter = codeCell.querySelector('.code-annotation-gutter');
-              gutter.appendChild(gutterDiv);
-            }
-            gutterDiv.style.top = top - 2 + "px";
-            gutterDiv.style.height = height + 4 + "px";
-          }
-          selectedAnnoteEl = annoteEl;
-        }
-      };
-      const unselectCodeLines = () => {
-        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
-        elementsIds.forEach((elId) => {
-          const div = window.document.getElementById(elId);
-          if (div) {
-            div.remove();
-          }
-        });
-        selectedAnnoteEl = undefined;
-      };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
-      // Attach click handler to the DT
-      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
-      for (const annoteDlNode of annoteDls) {
-        annoteDlNode.addEventListener('click', (event) => {
-          const clickedEl = event.target;
-          if (clickedEl !== selectedAnnoteEl) {
-            unselectCodeLines();
-            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
-            if (activeEl) {
-              activeEl.classList.remove('code-annotation-active');
-            }
-            selectCodeLines(clickedEl);
-            clickedEl.classList.add('code-annotation-active');
-          } else {
-            // Unselect the line
-            unselectCodeLines();
-            clickedEl.classList.remove('code-annotation-active');
-          }
-        });
-      }
-  const findCites = (el) => {
-    const parentEl = el.parentElement;
-    if (parentEl) {
-      const cites = parentEl.dataset.cites;
-      if (cites) {
-        return {
-          el,
-          cites: cites.split(' ')
-        };
-      } else {
-        return findCites(el.parentElement)
-      }
-    } else {
-      return undefined;
-    }
-  };
-  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
-  for (var i=0; i<bibliorefs.length; i++) {
-    const ref = bibliorefs[i];
-    const citeInfo = findCites(ref);
-    if (citeInfo) {
-      tippyHover(citeInfo.el, function() {
-        var popup = window.document.createElement('div');
-        citeInfo.cites.forEach(function(cite) {
-          var citeDiv = window.document.createElement('div');
-          citeDiv.classList.add('hanging-indent');
-          citeDiv.classList.add('csl-entry');
-          var biblioDiv = window.document.getElementById('ref-' + cite);
-          if (biblioDiv) {
-            citeDiv.innerHTML = biblioDiv.innerHTML;
-          }
-          popup.appendChild(citeDiv);
-        });
-        return popup.innerHTML;
+      }, function(instance) {
       });
     }
-  }
-});
-</script>
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="./vector_matrix.html" class="pagination-link" aria-label="Vectors and matrices">
