@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 * all binary measures/metrics are implemented also as functions in `fastmath.stats.binary`
+* multclass AUC accepts separate scores for each class
 
 ### Fixed
 
