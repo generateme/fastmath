@@ -4040,7 +4040,8 @@
   ([actual prediction encode-true]
    (let [truth (binary/binary-process-list actual encode-true)
          prediction (binary/binary-process-list prediction encode-true)]
-     (frequencies (map binary/binary-confusion truth prediction)))))
+     (merge {:tp 0 :fn 0 :fp 0 :tn 0}
+            (frequencies (map binary/binary-confusion truth prediction))))))
 
 (def ^{:deprecated "Use `confusion-matrix`"} ->confusion-matrix confusion-matrix)
 
@@ -4190,33 +4191,38 @@
   ([actual prediction] (binary-measures actual prediction nil))
   ([actual prediction true-value] (cm-select-keys (binary-measures-all actual prediction true-value))))
 
-;;
+;; https://www.evidentlyai.com/classification-metrics/multi-class-metrics
 
-(defn multilabel-measure
-  "Calculates an average of selected metric for multilabel binary classification results using one vs the rest strategy. Possible variants are `macro`, `weighted` and `micro`. 
+(defn multiclass-measure
+  "Calculates an average of selected metric for multiclass binary classification results using one vs the rest strategy. Possible variants are `macro`, `weighted` and `micro`. 
 
   Possible metrics are the same as in [[binary-measures-all]].  
 
   Options:
 
-  - `:average` - average function or `:micro` (default: `mean`)
+  - `:average` - average function, `nil` or `:micro` (default: `mean`)
   - `:metric` - measure to calculate (default: `:f1-score`).
   - `:weighted?` - `weighted` average variant (default: `false`)
   - `:beta` - beta for `:f-beta` (default: `0.5`)"
-  ([actual prediction] (multilabel-measure actual prediction nil))
-  ([actual prediction {:keys [average ^double beta metric weighted?]
-                       :or {average mean beta 0.5 metric :f1-score weighted? false}}]
-   (let [all-labels (distinct (concat actual prediction))
-         measures (->> all-labels
-                       (map (fn [label] (let [res (get (binary-measures-all actual prediction #{label}) metric)]
-                                         (if (fn? res) (res beta) res))))
-                       (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
-     (cond
-       (not average) (zipmap all-labels measures)
-       (= average :micro) (m// (count= actual prediction) (double (count actual)))
-       weighted? (let [weights (map (frequencies actual) all-labels)]
-                   (average measures weights))
-       :else (average measures)))))
+  ([actual prediction] (multiclass-measure actual prediction nil))
+  ([actual prediction {:keys [average metric weighted?]
+                       :or {average mean metric :f1-score weighted? false}}]
+   (let [metric-fn (if (keyword? metric) (binary/measures metric) metric)
+         all-classes (distinct (concat actual prediction))
+         cm (partial confusion-matrix actual prediction)]
+     (when-not metric-fn (throw (ex-info "Unknown metric!" {:metric metric})))
+     (if (= average :micro)
+       (->> (map cm all-classes)
+            (apply merge-with m/+)
+            (metric-fn))
+       (let [measures (->> all-classes
+                           (map (comp metric-fn cm))
+                           (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
+         (cond
+           (not average) (zipmap all-classes measures)
+           weighted? (let [weights (map (frequencies actual) all-classes)]
+                       (average measures weights))
+           :else (average measures)))))))
 
 (defn binary-measures-thr
   "Calculate binary metrics at given thresholds.
@@ -4276,8 +4282,8 @@
      (m/constrain (m// (m/- sum (m/* t (m/inc t) 0.5))
                        (m/* t f)) 0.0 1.0))))
 
-(defn multilabel-auc
-  "Calculates an average of AUC for multilabel binary thresholded results using one vs the rest strategy.  Possible variants are `macro`, `weighted`
+(defn multiclass-auc
+  "Calculates an average of AUC for multiclass binary thresholded results using one vs the rest strategy.  Possible variants are `micro`, `macro`, `weighted`
 
   Possible metrics are pairs of measures or keywords:
 
@@ -4285,29 +4291,36 @@
   * `:pr` for Precission-Recall
   * `:det` for DET
 
+  `scores` can be a vector of scores, the same for each class, or a map with classes as keys and values with scores separate for each class.
+
   Options:
   
-  - `:average` - average function (default: `mean`)
+  - `:average` - average function (default: `mean`), `nil` or `:micro`
   - `:metric` - measure to calculate (default: `:roc`)
   - `:weighted?` - `weighted` average variant (default: `false`)"
-  ([labels scores] (multilabel-auc labels scores nil))
-  ([labels scores {:keys [average metric weighted?]
-                   :or {average mean metric :roc weighted? false}}]
+  ([classes scores] (multiclass-auc classes scores nil))
+  ([classes scores {:keys [average metric weighted?]
+                    :or {average mean metric :roc weighted? false}}]
    (let [[x-axis y-axis] (case metric
                            :roc [:fpr :tpr]
                            :pr [:recall :precision]
                            :det [:fpr :fnr]
                            metric)
-         all-labels (distinct labels)
-         measures (->> all-labels
-                       (map (fn [label] (-> (binary-measures-thr labels scores #{label})
-                                           (auc x-axis y-axis))))
-                       (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
-     (cond
-       (not average) (zipmap all-labels measures)
-       weighted? (let [weights (map (frequencies labels) all-labels)]
-                   (average measures weights))
-       :else (average measures)))))
+         all-classes (distinct classes)
+         scores-map (if (map? scores) scores (zipmap all-classes (repeat scores)))]
+     (if (= average :micro)
+       (let [combined-classes (mapcat (fn [cl] (binary/binary-process-list classes #{cl})) all-classes)
+             combined-scores (mapcat scores-map all-classes)]
+         (auc (binary-measures-thr combined-classes combined-scores) x-axis y-axis))
+       (let [measures (->> all-classes
+                           (map (fn [cl] (-> (binary-measures-thr classes (scores-map cl) #{cl})
+                                            (auc x-axis y-axis))))
+                           (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
+         (cond
+           (not average) (zipmap all-classes measures)
+           weighted? (let [weights (map (frequencies classes) all-classes)]
+                       (average measures weights))
+           :else (average measures)))))))
 
 ;; contingency 2x2
 

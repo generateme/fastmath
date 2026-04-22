@@ -60,22 +60,32 @@
   (^double [^double tp ^double fp ^double fn ^double tn] (m/- 1.0 (for tp fp fn tn))))
 
 (defn recall
-  "True positive rate, TPR, recall, sensitivity"
+  "True positive rate, TPR, recall, sensitivity, hit-rate"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (recall tp fp fn tn))
   (^double [^double tp ^double _fp ^double fn ^double _tn] (m// tp (m/+ tp fn))))
 
 (defn sensitivity
-  "True positive rate, TPR, recall, sensitivity"
+  "True positive rate, TPR, recall, sensitivity, hit-rate"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (recall tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (recall tp fp fn tn)))
 
 (defn tpr
-  "True positive rate, TPR, recall, sensitivity"
+  "True positive rate, TPR, recall, sensitivity, hit-rate"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (recall tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn] (recall tp fp fn tn)))
+
+(defn hit-rate
+  "True positive rate, TPR, recall, sensitivity, hit-rate"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (recall tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (recall tp fp fn tn)))
 
 (defn fnr
-  "False negative rate, FNR"
+  "False negative rate, FNR, miss-rate"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (fnr tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn] (m/- 1.0 (recall tp fp fn tn))))
+
+(defn miss-rate
+  "False negative rate, FNR, miss-rate"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (fnr tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (m/- 1.0 (recall tp fp fn tn))))
 
@@ -90,20 +100,25 @@
   (^double [^double tp ^double fp ^double fn ^double tn] (fall-out tp fp fn tn)))
 
 (defn specificity
-  "True negative rate, TNR, specificity"
+  "True negative rate, TNR, specificity, selectivity"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (specificity tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (m/- 1.0 (fall-out tp fp fn tn))))
 
 (defn tnr
-  "True negative rate, TNR, specificity"
+  "True negative rate, TNR, specificity, selectivity"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (specificity tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn] (specificity tp fp fn tn)))
+
+(defn selectivity
+  "True negative rate, TNR, specificity, selectivity"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (specificity tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (specificity tp fp fn tn)))
 
 ;;
 
-(defn prevalance
+(defn prevalence
   "Prevalence, p/(p+n)"
-  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (prevalance tp fp fn tn))
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (prevalence tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn]
    (let [-p (p tp fp fn tn)
          -n (n tp fp fn tn)]
@@ -204,6 +219,13 @@
 
 ;;
 
+(defn p4
+  "P4 metric, "
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (p4 tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn]
+   (let [v4 (m/* 4.0 tn tp)]
+     (m// v4 (m/+ v4 (m/* (m/+ tp tn) (m/+ fp fn)))))))
+
 (defn f1-score
   "Matthews correlcation coefficient, MCC, phi "
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (f1-score tp fp fn tn))
@@ -221,6 +243,24 @@
        (m// (m/* (m/inc beta2) tp)
             (m/+ (m/* beta2 (m/+ tp fn)) tp fp))))))
 
+(defn adj-f-score
+  "Adjusted f-score, agf"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (adj-f-score tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn]
+   (let [rec (m// tp (m/+ tp fn))
+         prec (m// tp (m/+ tp fp))
+         npv (m// tn (m/+ fn tn))
+         spec (m// tn (m/+ tn fp))]
+     (m/sqrt (m/* (m// (m/* 5.0 rec prec)
+                       (m/+ (m/* 4.0 prec) rec))
+                  (m// (m/* 1.25 npv spec)
+                       (m/+ (m/* 0.25 npv) spec)))))))
+
+(defn agf
+  "Adjusted f-score, agf"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (adj-f-score tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn] (adj-f-score tp fp fn tn)))
+
 ;;
 
 (defn fm
@@ -230,11 +270,19 @@
    (m/sqrt (m/* (ppv tp fp fn tn)
                 (tpr tp fp fn tn)))))
 
+(defn gmean
+  "Geometric mean score, sqrt(specificity * recall)"
+  (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (gmean tp fp fn tn))
+  (^double [^double tp ^double fp ^double fn ^double tn]
+   (m/sqrt (m/* (specificity tp fp fn tn)
+                (recall tp fp fn tn)))))
+
+
 (defn jaccard
   "Jaccard index, threat score, TS, critical success index CSI"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (jaccard tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double _tn]
-   (m// tp (m/+ tp fn fp))))
+   (m// tp (m/+ tp fp fn))))
 
 (defn ts
   "Jaccard index, threat score, TS, critical success index CSI"
@@ -267,6 +315,24 @@
              (m/* (m/+ tp fn)
                   (m/+ fn tn))))))
 
+(def measures
+  {:p p :n n :pp pp :pn pn :total total
+   :precision precision :ppv ppv
+   :fdr fdr :for for :npv npv
+   :recall recall :sensitivity sensitivity :hit-rate hit-rate
+   :tpr tpr :miss-rate miss-rate :fnr fnr :fall-out fall-out :fpr fpr
+   :specificity specificity :tnr tnr :selectivity selectivity
+   :prevalence prevalence
+   :accuracy accuracy :error error :ba ba
+   :lr+ lr+ :lr- lr- :dor dor
+   :informedness informedness :bm bm
+   :markedness markedness :mk mk :deltaP deltaP
+   :mcc mcc :phi phi :f1-score f1-score
+   :fm fm :jaccard jaccard :ts ts :csi csi
+   :pt pt :kappa kappa
+   :gmean gmean :p4 p4
+   :adj-f-score adj-f-score :agf agf})
+
 ;;;;;;
 
 (defn binary-confusion
@@ -292,21 +358,43 @@
 
   * `nil` - if labels are numbers, all non-zero values are treated as true. Otherwise returns labels unchanged.
   * a sequence - all values in the sequence are treated as true.
-  * a function - function is used to map true values, function should return true value (any value) and `false`/`nil`"
-  [xs true-value]
-  (if-not true-value
-    (if (every? number? xs) (map m/not-zero? xs) xs)
-    (let [f (if (sequential? true-value) (set true-value) true-value)]
-      (map f xs))))
+  * a function - function is used to map true values, function should return true value (any value) and `false`/`nil` for false.
+  * a value - just a single value."
+  ([xs] (binary-process-list xs nil))
+  ([xs true-value]
+   (let [f (if-not true-value
+             (if (every? number? xs) m/not-zero? boolean)
+             (cond
+               (sequential? true-value) (comp boolean (set true-value))
+               (ifn? true-value) (comp boolean true-value)
+               :else #(= % true-value)))]
+     (map f xs))))
 
 (defn infer-confusion-matrix
+  "Construct a confusion matrix from the input.
+
+  Returns a map with `:tp`, `:fn`, `:fp` and `:tn` keys.  
+
+  Input can be one of:
+
+  * a map with keys [:t :p], [:t :n], [:f :p] and [:f :n]
+  * pair of pairs [[tp fn] [fp tn]]
+  * a sequence of values [tp fn fp tn]
+  * a confusion matrix"
   [confusion-matrix]
   (cond
 
     (and (map? confusion-matrix)
-         (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix)))
-    (into {} (map (fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix))
+         (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix))
+         (every? number? (vals confusion-matrix)))
+    (merge {:tp 0 :fn 0 :fp 0 :tn 0}
+           (into {} (map (fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix)))
 
+    (and (map? confusion-matrix)
+         (every? #{:tp :tn :fp :fn} (keys confusion-matrix))
+         (every? number? (vals confusion-matrix)))
+    (merge {:tp 0 :fn 0 :fp 0 :tn 0} confusion-matrix )
+    
     (and (sequential? confusion-matrix)
          (m/== 2 (count confusion-matrix))
          (every? sequential? confusion-matrix))
@@ -316,12 +404,11 @@
          (every? number? confusion-matrix))
     (zipmap [:tp :fn :fp :tn] confusion-matrix)
     
-    :else confusion-matrix))
+    :else (throw (ex-info "Can't infer confusion matrix from the input." {:input confusion-matrix}))))
 
 (defn binary-measures-all-calc
   [{:keys [^double tp ^double fp ^double fn ^double tn]
-    :or {tp 0.0 fp 0.0 fn 0.0 tn 0.0}
-    :as details}]
+    :or {tp 0.0 fp 0.0 fn 0.0 tn 0.0}}]
   (let [cp (m/+ tp fn)
         cn (m/+ fp tn)
         total (m/+ cp cn)
@@ -342,49 +429,55 @@
         f1-score (f-beta 1.0)
         mcc (mcc tp fp fn tn)
         bm (m/dec (m/+ tpr tnr))
-        mk (m/dec (m/+ ppv npv))]
-    (merge details {:cp cp :p cp
-                    :cn cn :n cn
-                    :pcp pcp :pp pcp
-                    :pcn pcn :pn pcn
-                    :total total
-                    :tpr tpr
-                    :recall tpr
-                    :sensitivity tpr
-                    :hit-rate tpr
-                    :fnr fnr
-                    :miss-rate fnr
-                    :fpr fpr
-                    :fall-out fpr
-                    :tnr tnr
-                    :specificity tnr
-                    :selectivity tnr
-                    :prevalence (m// cp total)
-                    :accuracy (m// (m/+ tp tn) total)
-                    :error (m// (m/+ fp fn) total)
-                    :ba (m// (m/+ tpr tnr) 2.0)
-                    :ppv ppv
-                    :precision ppv
-                    :fdr (m/- 1.0 ppv)
-                    :npv npv
-                    :for (m/- 1.0 npv)
-                    :lr+ lr+
-                    :lr- lr-
-                    :dor (m// lr+ lr-)
-                    :fm (m/sqrt (m/* ppv tpr))
-                    :pt (m// (m/- (m/sqrt (m/* tpr fpr)) fpr)
-                             (m/- tpr fpr))
-                    :ts ts :jaccard ts :csi ts
-                    :f-measure f1-score
-                    :f1-score f1-score
-                    :f-beta f-beta
-                    :mcc mcc :phi mcc
-                    :bm bm :informedness bm
-                    :kappa (kappa tp fp fn tn)
-                    :mk mk :markedness mk :deltaP mk})))
+        mk (m/dec (m/+ ppv npv))
+        agf (agf tp fp fn tn)]
+    {:tp tp :fp fp :fn fn :tn tn
+     :cp cp :p cp
+     :cn cn :n cn
+     :pcp pcp :pp pcp
+     :pcn pcn :pn pcn
+     :total total
+     :tpr tpr
+     :recall tpr
+     :sensitivity tpr
+     :hit-rate tpr
+     :fnr fnr
+     :miss-rate fnr
+     :fpr fpr
+     :fall-out fpr
+     :tnr tnr
+     :specificity tnr
+     :selectivity tnr
+     :prevalence (m// cp total)
+     :accuracy (m// (m/+ tp tn) total)
+     :error (m// (m/+ fp fn) total)
+     :ba (m// (m/+ tpr tnr) 2.0)
+     :ppv ppv
+     :precision ppv
+     :fdr (m/- 1.0 ppv)
+     :npv npv
+     :for (m/- 1.0 npv)
+     :lr+ lr+
+     :lr- lr-
+     :dor (m// lr+ lr-)
+     :fm (m/sqrt (m/* ppv tpr))
+     :pt (m// (m/- (m/sqrt (m/* tpr fpr)) fpr)
+              (m/- tpr fpr))
+     :ts ts :jaccard ts :csi ts
+     :f-measure f1-score
+     :f1-score f1-score
+     :f-beta f-beta
+     :mcc mcc :phi mcc
+     :bm bm :informedness bm
+     :kappa (kappa tp fp fn tn)
+     :mk mk :markedness mk :deltaP mk
+     :gmean (m/sqrt (m/* tnr tpr))
+     :p4 (p4 tp fp fn tn)
+     :adj-f-score agf :agf agf}))
 
 (defn binary-measures-thr
   "Calculate binary metrics at various score thresholds for given labels (true/false)."
+  ([labels scores] (binary-measures-thr labels scores nil))
   ([labels scores true-value]
    (let [labels (binary-process-list labels true-value)
          [tp fp thr] (->> (map vector labels scores)
@@ -425,7 +518,8 @@
          npv (map (fn [^double v] (m/- 1.0 v)) for)
          ts (map (fn [^double tp ^double fn ^double fp]
                    (m// tp (m/+ tp fn fp))) -tp -fn -fp)] 
-     {:p p :n n :total total :tp -tp :fp -fp :fn -fn :tn -tn
+     {:p p :n n :total total :prevalence (m// p total)
+      :tp -tp :fp -fp :fn -fn :tn -tn
       :accuracy (map accuracy -tp -fp -fn -tn)
       :error (map error -tp -fp -fn -tn)
       :tpr tpr :recall tpr :sensitivity tpr
@@ -434,18 +528,12 @@
       :tnr tnr :specificity tnr
       :ppv ppv :precision ppv
       :fdr fdr :for for :npv npv
-      :mcc (map mcc -tp -tn -fp -fn)
+      :mcc (map mcc -tp -fp -fn -tn)
       :f1-score (map (fn [^double tp ^double fp ^double fn]
                        (let [tp2 (m/* 2.0 tp)]
                          (m// tp2 (m/+ tp2 fp fn)))) -tp -fp -fn)
-      :kappa (map kappa -tp -tn -fp -fn)
+      :kappa (map kappa -tp -fp -fn -tn)
       :fm (v/sqrt (v/emult ppv tpr))
       :ts ts :jaccard ts
       :thr (reverse thr)})))
 
-;;
-
-#_(let [labels [1 1 0 0 0 1 1 1 1 0 1 0 1 0 0 0 1 1 1 0 0 0 0 1 0 1 0 0 1 1 0 1 1 1 0 0 1 1 0 1 0 1 0 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 0 1 1 1 1 0 0 0 1 0 1 0 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1 1 0 0 1 0 0 1 0 1 0 1 1 0 1 0 0 0 1 0 0 1 0 0 1 1 1 0 0 0 1 1 0 0 1 0 0 1 0 1 0 0 1 1 1 1 1 0 1 1 0 0 0 0 1 1 0 1 0 1 0 1 1 1 1 1 0 0 0 1 1 0 1 0 0 0 0 1 0 0 1 0 0 0 0 1 1 0 1 1 1 0 1 1 0 1 1 0 1 0 0 0 1 0 0 0 1 0 1 1 0 1 0 1 0]
-        scores [0.6125478 0.364271 0.4321361 0.1402911 0.3848959 0.2444155 0.9706413 0.8901728 0.7817814 0.8687518 0.7166806 0.3601688 0.5479834 0.3852405 0.4237394 0.1017 0.6280956 0.74477 0.6577326 0.4901199 0.07236992 0.1727417 0.1057221 0.8900782 0.9455489 0.9846673 0.3601804 0.4486873 0.0148236 0.5435338 0.2923684 0.7015615 0.7154593 0.7149859 0.1206047 0.3196722 0.9117236 0.7573256 0.09098828 0.5294022 0.257403 0.5899093 0.7084121 0.3266729 0.08654628 0.8794599 0.3626936 0.2301572 0.779772 0.8760862 0.353281 0.2120146 0.7032935 0.6890757 0.6270125 0.2409111 0.402802 0.1347941 0.1204734 0.6654447 0.5363395 0.6234946 0.8851797 0.3537774 0.4089399 0.2656861 0.9321598 0.2485005 0.8588767 0.4917356 0.151351 0.6944575 0.4965132 0.1235049 0.4997881 0.3107186 0.9076511 0.3400782 0.195098 0.371937 0.5173086 0.4195601 0.865639 0.0185276 0.539086 0.005422562 0.7727288 0.7038851 0.3482135 0.2776569 0.4586742 0.05904587 0.1332578 0.08368588 0.5319582 0.4296504 0.7178455 0.5370913 0.2124049 0.9308469 0.08304838 0.4686102 0.3933781 0.6633676 0.3495409 0.1943984 0.8444154 0.9594178 0.2113788 0.9434322 0.5981629 0.834804 0.5768362 0.3803965 0.1618743 0.9123258 0.6429336 0.392174 0.122284 0.5868578 0.1806317 0.08599322 0.7005014 0.06041363 0.531464 0.08425479 0.4484847 0.938583 0.5310065 0.7852131 0.905121 0.7484381 0.6052354 0.8429743 0.8359819 0.3642886 0.4925969 0.4881797 0.259279 0.9910964 0.757364 0.2882583 0.7733362 0.040907 0.110241 0.7607261 0.9845992 0.2532711 0.6972353 0.6205011 0.814586 0.3009731 0.3780921 0.01669441 0.6988265 0.6586926 0.470206 0.5014893 0.2391433 0.05099914 0.08845098 0.1070318 0.7465881 0.4801002 0.3365921 0.5795111 0.1185553 0.2331608 0.4611508 0.3705493 0.7701785 0.537336 0.4632275 0.7902402 0.8834314 0.7451107 0.007746305 0.01265352 0.8683312 0.4394 0.5402213 0.5670432 0.0358154 0.8065439 0.2487075 0.6967022 0.08143913 0.3363153 0.1264804 0.6367285 0.03023506 0.2681383 0.9834944 0.7285364 0.7395543 0.5223845 0.8589705 0.383808 0.6069602 0.1383871]
-        ]
-    )
