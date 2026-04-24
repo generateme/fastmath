@@ -4193,6 +4193,15 @@
 
 ;; https://www.evidentlyai.com/classification-metrics/multi-class-metrics
 
+(defn- ->metric-fn
+  "Converts metric keyword to a function, processing `:f-beta` or `:f-inv-beta` case."
+  [f ^double beta]
+  (cond
+    (= f :f-beta) (binary/->f-beta beta)
+    (= f :f-inv-beta) (binary/->f-inv-beta beta)
+    (keyword? f) (binary/measures f)
+    :else f))
+
 (defn multiclass-measure
   "Calculates an average of selected metric for multiclass binary classification results using one vs the rest strategy. Possible variants are `macro`, `weighted` and `micro`. 
 
@@ -4205,9 +4214,9 @@
   - `:weighted?` - `weighted` average variant (default: `false`)
   - `:beta` - beta for `:f-beta` (default: `0.5`)"
   ([actual prediction] (multiclass-measure actual prediction nil))
-  ([actual prediction {:keys [average metric weighted?]
-                       :or {average mean metric :f1-score weighted? false}}]
-   (let [metric-fn (if (keyword? metric) (binary/measures metric) metric)
+  ([actual prediction {:keys [average metric weighted? ^double beta]
+                       :or {average mean metric :f1-score weighted? false beta 1.0}}]
+   (let [metric-fn (->metric-fn metric beta)
          all-classes (distinct (concat actual prediction))
          cm (partial confusion-matrix actual prediction)]
      (when-not metric-fn (throw (ex-info "Unknown metric!" {:metric metric})))
@@ -4225,7 +4234,7 @@
            :else (average measures)))))))
 
 (defn binary-measures-thr
-  "Calculate binary metrics at given thresholds.
+  "Calculate binary metrics at given thresholds (a performance).
   
   Each measure is a sequence with value for given threshold. Ties are interpolated lineary.
 
@@ -4252,10 +4261,17 @@
   ([labels scores] (binary-measures-thr labels scores nil))
   ([labels scores true-value] (binary/binary-measures-thr labels scores true-value)))
 
+(defn- auc-axis
+  [performance axis]
+  (cond
+    (keyword? axis) (performance axis)
+    (fn? axis) (apply map axis ((juxt :tp :fp :fn :tn) performance))
+    :else axis))
+
 (defn auc
   "Calculate AUC, area under curve for binary threshold measures.
 
-  `x-axis` and `y-axis` can be keywords when `performance` map (result of [[binary-measures-thr]] call) or sequences of values.
+  `x-axis` and `y-axis` can be keywords when `performance` map (result of [[binary-measures-thr]] call), sequences of values or metric function.
 
   By default it's a ROC (Receiver Operating Characteristic) curve, `:fpr` and `:tpr`.
   For PR curve (Precision-Recall), call with `:recall` and `:precision`
@@ -4263,7 +4279,9 @@
 
   Calculation is based on trapezoidal integration."
   ([performance] (auc performance :fpr :tpr))
-  ([performance x-axis y-axis] (auc (performance x-axis) (performance y-axis)))
+  ([performance x-axis y-axis]
+   (auc (auc-axis performance x-axis)
+        (auc-axis performance y-axis)))
   ([x-axis y-axis]
    (->> (map vector x-axis y-axis)
         (partition 2 1)

@@ -461,14 +461,17 @@
         scores [0 1 1 2 3]
         m (sut/binary-measures-thr labels scores)]
     (t/is (m/delta-eq 0.9166666667 (sut/auc m) 1.0e-10))
-    (t/is (m/delta-eq 0.9513888889 (sut/auc m :recall :precision)))
+    (t/is (m/delta-eq 0.9513888889 (sut/auc m :recall :precision) 1.0e-10))
+    (t/is (m/delta-eq 0.3585624955 (sut/auc m (bm/->f-beta 2) :recall) 1.0e-10))
+    (t/is (m/delta-eq 2.25 (sut/auc m :tp [1 1 0.5 0.5 0.5]) 1.0e-10))
     (t/testing "U based auc-roc"
-      (t/is (m/delta-eq 0.9166666667 (sut/auc-roc labels scores))))))
+      (t/is (m/delta-eq 0.9166666667 (sut/auc-roc labels scores) 1.0e-10)))))
 
 (t/deftest multiclass-measures
   (t/are [res m] (= res (sut/multiclass-measure [0, 1, 2, 1, 1, 2] [0, 1, 1, 0, 0, 2] m))
     {0 0.5, 1 0.4, 2 0.6666666666666666} {:average nil}
-    {0 0.6666666666666666, 1 0.5, 2 0.8333333333333334} {:metric :accuracy :average nil})
+    {0 0.6666666666666666, 1 0.5, 2 0.8333333333333334} {:metric :accuracy :average nil}
+    {0 2.6632016632016633, 1 2.1683991683991684, 2 1.1683991683991684} {:metric :f-inv-beta :beta 0.45 :average nil})
   (t/are [res m] (m/delta-eq res (sut/multiclass-measure [0, 1, 2, 1, 1, 2] [0, 1, 1, 0, 0, 2] m) 1.0e-10)
     0.5222222222222223 {}
     0.5 {:average sut/harmean}
@@ -478,7 +481,10 @@
     0.3777777777777777 {:metric :mk}
     0.25 {:metric :mk :average :micro}
     0.5641764963265006 {:metric (bm/->f-beta 0.45)}
-    0.5 {:average :micro}))
+    0.5641764963265006 {:metric :f-beta :beta 0.45}
+    2.0 {:metric :f-inv-beta :beta 0.45}
+    0.5 {:average :micro}
+    1.0 {:metric :tp}))
 
 ;; python
 
@@ -640,6 +646,15 @@
                                                  [1.39414414e-04, 1.57115825e-01, 8.42744760e-01],
                                                  [4.60438469e-05, 3.84191847e-02, 9.61534771e-01],
                                                  [4.78871489e-04, 2.34864482e-01, 7.64656646e-01]]))]
-    (t/are [res m] (m/delta-eq res (sut/multiclass-auc cls probs m))
+    (t/are [res m] (m/delta-eq res (sut/multiclass-auc cls probs m) 1.0e-10)
       0.9991777777777777 {:average :micro}
-      0.9983333333333334 {})))
+      0.9983333333333334 {}
+      0.0016666666666666 {:metric :det}
+      0.9967842720318594 {:metric :pr}
+      0.1778127938399307 {:metric [(bm/->f-beta 2) :recall]})))
+
+(sut/multiclass-auc
+ [1 2 3 1 2 1 2 1]
+ [2 3 4 5 6 6 6 2]
+ {:metric [(fastmath.stats.binary/->f-beta 0.5) :recall]})
+;; => 0.050198815710591066

@@ -1,11 +1,33 @@
 (ns fastmath.stats.binary
   "Binary measures functions"
-  (:refer-clojure :exclude [for])
+  (:refer-clojure :exclude [for fn])
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
+
+(defn tp
+  "True positive"
+  (^double [{:keys [^double tp ^double _fp ^double _fn ^double _tn]}] tp)
+  (^double [^double tp ^double _fp ^double _fn ^double _tn] tp))
+
+(defn fp
+  "False positive"
+  (^double [{:keys [^double _tp ^double fp ^double _fn ^double _tn]}] fp)
+  (^double [^double _tp ^double fp ^double _fn ^double _tn] fp))
+
+(defn fn
+  "False negative"
+  (^double [{:keys [^double _tp ^double _fp ^double fn ^double _tn]}] fn)
+  (^double [^double _tp ^double _fp ^double fn ^double _tn] fn))
+
+(defn tn
+  "True negative"
+  (^double [{:keys [^double _tp ^double _fp ^double _fn ^double tn]}] tn)
+  (^double [^double _tp ^double _fp ^double _fn ^double tn] tn))
+
+;;
 
 (defn p
   "Real positive"
@@ -237,11 +259,21 @@
   "f-beta score creator, returns f-beta measure function for given `beta`"
   [^double beta]
   (let [beta2 (m/* beta beta)]
-    (fn f-beta-score
+    (clojure.core/fn f-beta-score
       (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (f-beta-score tp fp fn tn))
       (^double [^double tp ^double fp ^double fn ^double _tn]
        (m// (m/* (m/inc beta2) tp)
             (m/+ (m/* beta2 (m/+ tp fn)) tp fp))))))
+
+(defn ->f-inv-beta
+  "Inversed f-beta score creator, returns inversed f-beta measure function for given `beta`"
+  [^double beta]
+  (let [beta2 (m/* beta beta)]
+    (clojure.core/fn f-inv-beta-score
+      (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (f-inv-beta-score tp fp fn tn))
+      (^double [^double tp ^double fp ^double fn ^double _tn]
+       (m/inc (m// (m/+ (m/* beta2 fn) fp)
+                   (m/* (m/inc beta2) tp)))))))
 
 (defn adj-f-score
   "Adjusted f-score, agf"
@@ -317,6 +349,7 @@
 
 (def measures
   {:p p :n n :pp pp :pn pn :total total
+   :tp tp :fp fp :fn fn :tn tn
    :precision precision :ppv ppv
    :fdr fdr :for for :npv npv
    :recall recall :sensitivity sensitivity :hit-rate hit-rate
@@ -388,7 +421,7 @@
          (every? #{[:t :p] [:t :n] [:f :p] [:f :n]} (keys confusion-matrix))
          (every? number? (vals confusion-matrix)))
     (merge {:tp 0 :fn 0 :fp 0 :tn 0}
-           (into {} (map (fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix)))
+           (into {} (map (clojure.core/fn [[[a b] v]] [(keyword (str (name a) (name b))) v]) confusion-matrix)))
 
     (and (map? confusion-matrix)
          (every? #{:tp :tn :fp :fn} (keys confusion-matrix))
@@ -483,9 +516,9 @@
          [tp fp thr] (->> (map vector labels scores)
                           (group-by second)
                           (sort-by first m/>)
-                          (reduce (fn [curr [score lst]]
+                          (reduce (clojure.core/fn [curr [score lst]]
                                     (let [[^long tpn ^long fpn] (->> (map first lst)
-                                                                     (reduce (fn [[^long t ^long f] l]
+                                                                     (reduce (clojure.core/fn [[^long t ^long f] l]
                                                                                (if l
                                                                                  [(m/inc t) f]
                                                                                  [t (m/inc f)])) [0 0]))
@@ -493,9 +526,9 @@
                                           tp-step (m// tpn cnt)
                                           fp-step (m// fpn cnt)]
                                       (->> (range cnt)
-                                           (reduce (fn [[[^double tp-last :as tp]
-                                                        [^double fp-last :as fp]
-                                                        thr] _]
+                                           (reduce (clojure.core/fn [[[^double tp-last :as tp]
+                                                                      [^double fp-last :as fp]
+                                                                      thr] _]
                                                      [(conj tp (m/+ tp-last tp-step))
                                                       (conj fp (m/+ fp-last fp-step))
                                                       (conj thr score)]) curr)))) ['(0.0) '(0.0) '(##Inf)]))
@@ -504,19 +537,19 @@
          total (m/+ p n)
          -tp (reverse tp)
          -fp (reverse fp)
-         -fn (map (fn [^double v] (m/- p v)) -tp)
-         -tn (map (fn [^double v] (m/- n v)) -fp)
+         -fn (map (clojure.core/fn [^double v] (m/- p v)) -tp)
+         -tn (map (clojure.core/fn [^double v] (m/- n v)) -fp)
          tpr (when (m/pos? p) (v/div -tp p))
          fnr (when (m/pos? p) (v/div -fn p))
          fpr (when (m/pos? n) (v/div -fp n))
          tnr (when (m/pos? n) (v/div -tn n))
-         ppv (let [tmp (rest (map (fn [^double tp ^double fp] (m// tp (m/+ tp fp))) -tp -fp))]
+         ppv (let [tmp (rest (map (clojure.core/fn [^double tp ^double fp] (m// tp (m/+ tp fp))) -tp -fp))]
                (conj tmp (first tmp)))
-         fdr (map (fn [^double v] (m/- 1.0 v)) ppv)
-         for (let [tmp (butlast (map (fn [^double tn ^double fn] (m// fn (m/+ tn fn))) -tn -fn))]
+         fdr (map (clojure.core/fn [^double v] (m/- 1.0 v)) ppv)
+         for (let [tmp (butlast (map (clojure.core/fn [^double tn ^double fn] (m// fn (m/+ tn fn))) -tn -fn))]
                (concat tmp [(last tmp)]))
-         npv (map (fn [^double v] (m/- 1.0 v)) for)
-         ts (map (fn [^double tp ^double fn ^double fp]
+         npv (map (clojure.core/fn [^double v] (m/- 1.0 v)) for)
+         ts (map (clojure.core/fn [^double tp ^double fn ^double fp]
                    (m// tp (m/+ tp fn fp))) -tp -fn -fp)] 
      {:p p :n n :total total :prevalence (m// p total)
       :tp -tp :fp -fp :fn -fn :tn -tn
@@ -529,7 +562,7 @@
       :ppv ppv :precision ppv
       :fdr fdr :for for :npv npv
       :mcc (map mcc -tp -fp -fn -tn)
-      :f1-score (map (fn [^double tp ^double fp ^double fn]
+      :f1-score (map (clojure.core/fn [^double tp ^double fp ^double fn]
                        (let [tp2 (m/* 2.0 tp)]
                          (m// tp2 (m/+ tp2 fp fn)))) -tp -fp -fn)
       :kappa (map kappa -tp -fp -fn -tn)

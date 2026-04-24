@@ -3,21 +3,26 @@
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
             :url "https://opensource.org/licenses/MIT"}
-  :dependencies [[net.jafama/jafama "2.3.2"]
+  :dependencies [;; all general stuff
+                 [net.jafama/jafama "2.3.2"]
                  [org.apache.commons/commons-math3 "3.6.1"]
 
-                 ;; Wavelets and FFT based
+                 ;; Wavelets and FFT
                  [de.sciss/jwave "1.0.3"]
                  [com.github.wendykierp/JTransforms "3.2"]
 
                  ;; IIR filters
                  [uk.me.berndporr/iirj "1.7"]
-                 
+
+                 ;; Some distributions, interpolations, Eigendecomposition
                  [ca.umontreal.iro.simul/ssj "3.3.2"
                   :exclusions [org.jfree/jfreechart
                                org.jfree/jcommon]]
 
+                 ;; discrete distribution
                  [org.clojure/data.int-map "1.3.1"]
+
+                 ;; integration (permutations)
                  [org.clojure/math.combinatorics "0.3.2"]]
   :pedantic? false
   :resource-path "resources/"
