@@ -4269,15 +4269,31 @@
     :else axis))
 
 (defn auc
-  "Calculate AUC, area under curve for binary threshold measures.
+  "Calculates the Area Under the Curve (AUC) using trapezoidal integration.
 
-  `x-axis` and `y-axis` can be keywords when `performance` map (result of [[binary-measures-thr]] call), sequences of values or metric function.
+  The curve is defined by an x-axis and a y-axis, each resolved from a performance map,
+  a plain sequence of values, or a metric function. Common use cases are:
 
-  By default it's a ROC (Receiver Operating Characteristic) curve, `:fpr` and `:tpr`.
-  For PR curve (Precision-Recall), call with `:recall` and `:precision`
-  For DET curve (Detection error tradeoff), call with `:fpr` and `:fnr`.
+  - ROC curve (default): `x-axis` = `:fpr`, `y-axis` = `:tpr`
+  - Precision-Recall curve: `x-axis` = `:recall`, `y-axis` = `:precision`
+  - DET curve: `x-axis` = `:fpr`, `y-axis` = `:fnr`
 
-  Calculation is based on trapezoidal integration."
+  Parameters:
+
+  - `performance` - a performance map returned by [[binary-measures-thr]]; when called with
+    one argument, defaults to the ROC curve (`:fpr` vs `:tpr`).
+  - `x-axis`, `y-axis` - each can be:
+    - a keyword looked up in `performance` (e.g. `:fpr`, `:tpr`, `:recall`, `:precision`, `:fnr`)
+    - a sequence of numeric values used directly as axis coordinates
+    - a function of `tp`, `fp`, `fn`, `tn` (called with the four columns from `performance`) that returns a sequence of values
+  - `[x-axis y-axis]` - when called with two arguments and no `performance` map, treats both as
+    plain sequences of coordinates and integrates directly.
+
+  Returns the AUC as a double. The value is not constrained; it depends on the direction and
+  range of the input axes. For a standard ROC curve the result lies in `[0.0, 1.0]`.
+  Returns `0.0` for an empty or single-point input.
+
+  See also [[auc-roc]], [[binary-measures-thr]], [[multiclass-auc]]."
   ([performance] (auc performance :fpr :tpr))
   ([performance x-axis y-axis]
    (auc (auc-axis performance x-axis)
@@ -4290,7 +4306,23 @@
                                  (m/+ y1 y2)))) 0.0))))
 
 (defn auc-roc
-  "Calulate ROC AUC using U-statistic."
+  "Calculates the ROC AUC (Area Under the Receiver Operating Characteristic Curve) using the U-statistic (Wilcoxon-Mann-Whitney statistic).
+
+  This method computes AUC directly from labels and continuous scores without constructing the ROC curve explicitly.
+  It is equivalent to the probability that a randomly chosen positive instance is ranked higher than a randomly chosen negative instance.
+  The result is constrained to `[0.0, 1.0]`.
+
+  Parameters:
+
+  - `labels` - a sequence of class labels (binary).
+  - `scores` - a sequence of continuous scores or predicted probabilities, one per label.
+  - `true-value` - (optional) the label value to treat as positive; when `nil`, the positive class is inferred via [[binary-process-list]].
+
+  Returns the AUC score as a double in the range `[0.0, 1.0]`. A value of `1.0` means perfect ranking,
+  `0.5` corresponds to a random classifier, and values below `0.5` indicate worse-than-random ranking.
+  Returns `0.0` when there are no positive or no negative examples.
+
+  See also [[auc]], [[binary-measures-thr]], [[multiclass-auc]]."
   ([labels scores] (auc-roc labels scores nil))
   ([labels scores true-value]
    (let [labels (binary/binary-process-list labels true-value)
@@ -4301,21 +4333,32 @@
                        (m/* t f)) 0.0 1.0))))
 
 (defn multiclass-auc
-  "Calculates an average of AUC for multiclass binary thresholded results using one vs the rest strategy.  Possible variants are `micro`, `macro`, `weighted`
+  "Calculates AUC for a multiclass problem using a one-vs-rest strategy.
 
-  Possible metrics are pairs of measures or keywords:
+  Each class is treated as the positive class in turn, and its AUC is computed against all remaining classes.
+  The final result is aggregated across classes according to the chosen averaging strategy.
 
-  * `:roc` for ROC
-  * `:pr` for Precission-Recall
-  * `:det` for DET
+  Parameters:
 
-  `scores` can be a vector of scores, the same for each class, or a map with classes as keys and values with scores separate for each class.
+  - `classes` - a sequence of true class labels (any comparable values).
+  - `scores` - either a sequence of score vectors (one per instance, shared across all classes)
+    or a map from class label to a sequence of per-instance scores for that class.
+  - `opts` - (optional) a map of options:
+    - `:metric` - the curve to integrate over (default: `:roc`); supported values:
+      - `:roc` - ROC curve (`:fpr` vs `:tpr`)
+      - `:pr` - Precision-Recall curve (`:recall` vs `:precision`)
+      - `:det` - Detection Error Tradeoff curve (`:fpr` vs `:fnr`)
+      - a two-element vector `[x-axis y-axis]` of keywords or metric functions accepted by [[auc]]
+    - `:average` - how to aggregate per-class AUC values (default: `mean`); supported values:
+      - a function (e.g. `mean`) - macro average, applies the function to per-class AUC scores
+      - `:micro` - micro average, concatenates all classes before computing a single AUC
+      - `nil` - returns a map of `{class auc}` with no aggregation
+    - `:weighted?` - when `true`, passes per-class instance counts as weights to `:average` function (default: `false`); ignored when `:average` is `:micro` or `nil`
 
-  Options:
-  
-  - `:average` - average function (default: `mean`), `nil` or `:micro`
-  - `:metric` - measure to calculate (default: `:roc`)
-  - `:weighted?` - `weighted` average variant (default: `false`)"
+  Returns a single aggregated AUC double when `:average` is a function or `:micro`,
+  or a map of `{class auc}` when `:average` is `nil`. `NaN` per-class AUC values are replaced with `0.0`.
+
+  See also [[auc]], [[auc-roc]], [[binary-measures-thr]]."
   ([classes scores] (multiclass-auc classes scores nil))
   ([classes scores {:keys [average metric weighted?]
                     :or {average mean metric :roc weighted? false}}]
