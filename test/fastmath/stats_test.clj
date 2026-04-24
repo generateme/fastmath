@@ -652,9 +652,3 @@
       0.0016666666666666 {:metric :det}
       0.9967842720318594 {:metric :pr}
       0.1778127938399307 {:metric [(bm/->f-beta 2) :recall]})))
-
-(sut/multiclass-auc
- [1 2 3 1 2 1 2 1]
- [2 3 4 5 6 6 6 2]
- {:metric [(fastmath.stats.binary/->f-beta 0.5) :recall]})
-;; => 0.050198815710591066

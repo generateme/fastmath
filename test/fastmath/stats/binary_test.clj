@@ -41,6 +41,37 @@
 ;; R metrica
 
 (t/deftest binary-measures
+  (t/testing "wikipedia example"
+    (let [mat {:tp 20 :fn 10 :fp 180 :tn 1820}
+          res (sut/binary-measures-all-calc mat)]
+      (t/are [k v] (and (m/delta-eq v (res k) 1.0e-2)
+                        (m/delta-eq v ((sut/measures k) mat) 1.0e-2))
+        :p             30
+        :n             2000
+        :pp            200
+        :pn            1830
+        :total         2030
+        :fdr           0.9
+        :accuracy      0.9064
+        :fnr           0.3333
+        :miss-rate     0.3333
+        :recall        0.6667
+        :ppv           0.1
+        :tnr           0.91
+        :f1-score      0.174
+        :for           0.0055
+        :precision     0.1
+        :lr+           7.41
+        :lr-           0.366
+        :prevalence    0.0148
+        :sensitivity   0.6667
+        :npv           0.9945
+        :specificity   0.91
+        :dor           20.22
+        :fpr           0.09
+        :fall-out      0.09
+        :selectivity   0.91
+        :tpr           0.6667)))
   (let [mat (stats/confusion-matrix
              [1 0 1 0 1 1 0 0 1 1 1 1 1 0 0 0 0]
              [0 1 1 0 1 1 0 1 1 0 0 0 1 1 1 1 1])
@@ -66,7 +97,6 @@
       :mk           -0.21212121212
       :markedness   -0.21212121212
       :recall        0.55555555556
-      :ppv           0.45454545455
       :deltaP       -0.21212121212
       :informedness -0.19444444444
       :tnr           0.25
@@ -93,8 +123,19 @@
       :tpr           0.55555555556
       :fm            0.50251890763
       :pt            0.537442846107)
-    (t/testing "fbeta"
-      (t/are [beta v] (m/delta-eq v ((:f-beta res) beta) ((sut/->f-beta beta) mat) 1.0e-10)
+    (t/testing "fbeta and it's inverse"
+      (t/are [beta v] (and (m/delta-eq v ((sut/->f-beta beta) mat) 1.0e-10)
+                           (m/delta-eq v ((:f-beta res) beta) 1.0e-10))
+        1.0   0.5
+        0.5   0.47169811321
+        2.0   0.53191489362
+        -1.0  0.5
+        -0.5  0.47169811321
+        -2.0  0.53191489362
+        0.0   0.45454545455
+        100   0.55554321139
+        0.01  0.45455371833)
+      (t/are [beta v] (m/delta-eq (m// v) ((sut/->f-inv-beta beta) mat) 1.0e-10)
         1.0   0.5
         0.5   0.47169811321
         2.0   0.53191489362
