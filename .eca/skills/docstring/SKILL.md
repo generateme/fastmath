@@ -1,6 +1,6 @@
 ---
 name: docstring
-description: How to write a docstring what should be included in a Clojure function's docstring. 
+description: How to write a docstring what should be included in a Clojure function or namespace docstring. 
 compatibility: Designed for a Clojure project.
 ---
 
@@ -8,21 +8,22 @@ compatibility: Designed for a Clojure project.
 
 First, analyze and understand the code. Use common math knowledge for reasoning.
 
-## Dosctring structure
+## Docstring structure
 
 Write a docstring with the following content:
 
-* Write a single statement about what is a given function about.
-* Optionally write a short paragraph about function context
-* Describe all input parameters in points. In case if input is a `map` type, describe additionally all keys and their meaning and default values (if defined).
-* Describe all returned values and their interpretation if applicable
-* Describe corner cases, exceptions, constrains 
-* Link to other related functions using markdown wikilink syntax, ie: `[[reference]]`.
+* Write a single statement about what is a given function or namespace about.
+* Optionally write a short paragraph about function or namespace context
+* (namespace only) Write a summary about functions defined in the namespace
+* (function only) Describe all input parameters in points. In case if input is a `map` type, describe additionally all keys and their meaning and default values (if defined).
+* (function only) Describe all returned values and their interpretation if applicable
+* (function only) Describe corner cases, exceptions, constrains 
+* (function only) Link to other related functions using markdown wikilink syntax, ie: `[[reference]]`.
 * Use inline code (`) for symbols, input, keywords, Clojure forms
 
 ## Formatting
 
-A docstring is a double quoted text put after a function name. Example of a complete function with a desired docstring.
+A docstring is a double quoted text put after a function or namespace name. Example of a complete function with a desired docstring.
 
 ```clojure
 (defn pearson-correlation

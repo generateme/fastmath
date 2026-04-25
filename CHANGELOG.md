@@ -1,12 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 alpha6 SNAPSHOT]
+## [3.0.0 alpha6]
 
 ### Added
 
 * all binary measures/metrics are implemented also as functions in `fastmath.stats.binary`
 * multclass AUC accepts separate scores for each class
+* interpolations as functions
 
 ### Fixed
 
