@@ -428,7 +428,7 @@
 
   `:remove-outliers?` can be a `true` value for Tukey's fences criterion or `:mad` for median absolute deviation criterion.
 
-  Function return a list of maps sorted by lag `h`, containing:
+  Function returns a list of maps sorted by lag `h`, containing:
 
   * `:n` - number of points in given bin
   * `:h` - average lag
