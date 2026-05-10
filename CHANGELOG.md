@@ -1,6 +1,27 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [3.0.0 alpha7]
+
+### Added
+
+* Variograms
+    - added parametrized semivariograms (like: `->matern`) as regular functions version (like: `matern`)
+	- more estimation methods (loss)
+	- more weighting methods
+	- distance parameter for emipirical variogram
+* interpolating functions added to `fastmath.interpolation` (only multimethod was available)
+* `vec->vector` to convert any sequence or a number to a Clojure vector
+
+### Fixed
+
+* regression prediction failed on a number input
+* variogram fitting for range was failing when `h` were less then `1`
+
+### Changed
+
+* [breaking] variogram `fit-params` returns a map with more info about fitting (like `:loss` or `:weights`)
+
 ## [3.0.0 alpha6]
 
 ### Added

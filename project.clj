@@ -1,4 +1,4 @@
-(defproject generateme/fastmath "3.0.0-alpha6"
+(defproject generateme/fastmath "3.0.0-alpha7"
   :description "Fast and primitive math library"
   :url "https://github.com/generateme/fastmath"
   :license {:name "The MIT Licence"
@@ -28,6 +28,7 @@
   :resource-path "resources/"
   :java-source-paths ["src" "LBFGSBJava/src"]
   :javac-options ["--release" "8"  "-Xlint:unchecked"]
+  :jvm-opts ["-Djdk.attach.allowAttachSelf=true"]
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
   :profiles {:1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}

@@ -330,4 +330,8 @@
    :kde (sort (keys dens/kde-data))
    :window (sort (keys windows))})
 
+;; variograms
+
+
+
 (m/unuse-primitive-operators)

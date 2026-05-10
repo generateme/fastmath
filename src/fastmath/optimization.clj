@@ -341,14 +341,10 @@
   Parameters: optimization method, function and configuration."
   [method f config] (with-optimizer maximizer method f config))
 
-(defn- goal-comparator
-  [goal]
-  (if (= goal :minimize)
-    (fn [^double a ^double b] (< a b))
-    (fn [^double a ^double b] (> a b))))
+(defn- goal-comparator [goal] (if (= goal :minimize) m/< m/>))
 
 (defn- generate-points
-  [method f bounds goal N n jitter]
+  [method f bounds goal N jitter]
   (let [bounds (fix-brent-bounds method bounds)
         dim (find-dimensions bounds)
         [lo high inter genf] (if (= method :brent)
@@ -356,15 +352,14 @@
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
         N (int N)
         N (max (m/fpow 3 dim) N)
-        n (double n)
-        nbest (max 1 (long (if (> n 1.0) n (m/floor (* n N)))))
         gen (r/jittered-sequence-generator (if (< dim 15) :r2 :sobol) dim jitter)]
-    (->> (take N (if (and (not= method :brent)
-                          (m/one? dim)) (map vector gen) gen))
+    (->> (if (and (not= method :brent)
+                  (m/one? dim)) (map vector gen) gen)
          (map #(let [p (inter lo high %)]
                  [(genf p) p]))
+         (filter (comp m/valid-double? first))
+         (take N)
          (sort-by first (goal-comparator goal))
-         (take nbest)
          (map second))))
 
 (defn- scan-and-
@@ -379,12 +374,14 @@
                                :as config}]
   (assert (not (nil? bounds)) "Provide search bounds.")
   (let [goal (or goal (get config :goal :minimize))
-        samples (generate-points method f bounds goal N n jitter)
-        opt (repeatedly (count samples) #(optimizer-fn method f config))
-        ^int tk (get config :take 1)
+        samples (generate-points method f bounds goal N jitter)
+        nbest (max 1 (long (if (> n 1.0) n (m/floor (* n N)))))
+        tk (long (get config :take 1))
         taker (if (> tk 1) (partial take tk) first)
         mapper (if parallel? pmap map)]
-    (->> (mapper #(%1 %2) opt samples)
+    (->> (mapper (fn [s] ((optimizer-fn method f config) s)) samples)
+         (filter (comp (partial every? m/valid-double?) first))
+         (take nbest)
          (sort-by second (goal-comparator goal))
          (taker))))
 

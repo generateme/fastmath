@@ -16,3 +16,6 @@ fastmath.core.matrix/target/
 .calva
 .clerk
 *~
+img.png
+.clj-kondo/imports
+.#*

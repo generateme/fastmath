@@ -1835,7 +1835,11 @@
   (^double [[vs1 vs2-or-val]] (me vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map - v1 v2)))))
+     (mean (map - v1 v2))))
+  (^double [vs1 vs2-or-val weights]
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/- a b))) v1 v2 weights))
+          (sum weights)))))
 
 (defn mae
   "Calculates the Mean Absolute Error (MAE) between two sequences or a sequence and constant value.
@@ -1863,7 +1867,11 @@
   (^double [[vs1 vs2-or-val]] (mae vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/abs -) v1 v2)))))
+     (mean (map (comp m/abs -) v1 v2))))
+  (^double [vs1 vs2-or-val weights]
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/abs (m/- a b)))) v1 v2 weights))
+          (sum weights)))))
 
 (defn mape
   "Calculates the Mean Absolute Percentage Error (MAPE) between two sequences
@@ -1895,7 +1903,12 @@
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (mean (map (fn [^double a ^double b]
-                  (m/abs (/ (- a b) a))) v1 v2)))))
+                  (m/abs (/ (- a b) a))) v1 v2))))
+  (^double [vs1 vs2-or-val weights]
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (m// (sum (map (fn [^double a ^double b ^double w]
+                      (m/abs (m/* w (m/- a b)))) v1 v2 weights))
+          (v/dot v1 weights)))))
 
 (defn rss
   "Calculates the Residual Sum of Squares (RSS) between two sequences or a sequence and a constant value.
@@ -2012,7 +2025,11 @@
   (^double [[vs1 vs2-or-val]] (mse vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (mean (map (comp m/sq -) v1 v2)))))
+     (mean (map (comp m/sq -) v1 v2))))
+  (^double [vs1 vs2-or-val weights]
+   (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
+     (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/sq (m/- a b)))) v1 v2 weights))
+          (sum (weights))))))
 
 (defn rmse
   "Calculates the Root Mean Squared Error (RMSE) between two sequences or a sequence and a constant value.
@@ -2039,8 +2056,8 @@
   See also [[mse]] (Mean Squared Error), [[rss]] (Residual Sum of Squares),
   [[me]] (Mean Error), [[mae]] (Mean Absolute Error), [[r2]] (Coefficient of Determination)."
   (^double [[vs1 vs2-or-val]] (rmse vs1 vs2-or-val))
-  (^double [vs1 vs2-or-val]
-   (m/sqrt (mse vs1 vs2-or-val))))
+  (^double [vs1 vs2-or-val] (m/sqrt (mse vs1 vs2-or-val)))
+  (^double [vs1 vs2-or-val weights] (m/sqrt (mse vs1 vs2-or-val weights))))
 
 (defn count=
   "Count equal values in both seqs. Same as [[L0]]
@@ -5077,12 +5094,12 @@
    (let [kurt (double (or kurt (kurtosis xs type)))
          n (count xs)
          e (/ (* 3.0 (dec n)) (inc n))
-         varb2 (/ (* 24.0 (* n (- n 2) (- n 3)))
+         varb2 (/ (* 24.0 n (- n 2) (- n 3))
                   (* (m/sq (inc n)) (+ n 3) (+ n 5)))
          x (/ (- kurt e) (m/sqrt varb2))
          sqrtbeta1 (* (/ (* 6.0 (+ (* n n) (* -5 n) 2))
                          (* (+ n 7) (+ n 9)))
-                      (m/sqrt (/ (* 6.0 (* (+ n 3) (+ n 5)))
+                      (m/sqrt (/ (* 6.0 (+ n 3) (+ n 5))
                                  (* n (- n 2) (- n 3)))))
          a (+ 6.0 (* (/ 8.0 sqrtbeta1) (+ (/ 2.0 sqrtbeta1)
                                           (m/sqrt (inc (/ 4.0 (* sqrtbeta1 sqrtbeta1)))))))
@@ -5696,7 +5713,7 @@
         psum (sum p)
         p (map (fn [^double p] (/ p psum)) p)
         xhat (map (fn [^double p] (* n p)) p)
-        stat (condp = (double lambda)
+        stat (condp = lambda
                0.0 (* 2.0 (sum (map (fn [^long a ^double b]
                                       (* a (- (m/log a) (m/log b)))) xs xhat)))
                -1.0 (* 2.0 (sum (map (fn [^double a ^long b]
@@ -5738,7 +5755,7 @@
         n1 (count (map first rows))
         n2 (count (map second cols))
         df (* (dec n1) (dec n2))
-        stat (condp = (double lambda)
+        stat (condp = lambda
                0.0 (* 2.0 ^double (reduce (fn [^double sum [k ^long cnt]]
                                             (+ sum (* cnt (- (m/log cnt) (m/log (xhat k)))))) 0.0 xs))
                -1.0 (* 2.0 ^double (reduce (fn [^double sum [k ^double xhv]]
@@ -6192,9 +6209,9 @@
         dx (/ 1.0 nx)
         dy (/ -1.0 ny)]
     (loop [i (long 0)
-           d (double 0.0)
-           dn (double 0.0)
-           dp (double 0.0)]
+           d 0.0
+           dn 0.0
+           dp 0.0]
       (let [id (long (os i))
             nd (+ d (if (< id nx) dx dy))]
         (if (m/== i cnt-)
@@ -6329,8 +6346,8 @@
          (assoc res :n n :stat stat :KS stat
                 :p-value (sides-case sides
                                      (p-value (r/distribution :kolmogorov) stat :right)
-                                     (m/exp (* -2.0 (* stat stat)))
-                                     (m/exp (* -2.0 (* stat stat))))))))))
+                                     (m/exp (* -2.0 stat stat))
+                                     (m/exp (* -2.0 stat stat)))))))))
 
 (defn kruskal-test
   "Performs the Kruskal-Wallis H-test (rank sum test) for independent samples.

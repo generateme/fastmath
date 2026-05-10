@@ -45,6 +45,7 @@
   {:to-double-array m/seq->double-array 
    :to-acm-vec (fn [v] (ArrayRealVector. (m/seq->double-array v)))
    :to-vec (fn [v] (apply vector-of :double v))
+   :to-vector vec
    :as-vec (fn
              ([v xs] (take (count v) (concat xs (repeat 0.0))))
              ([v] (prot/as-vec v nil)))
@@ -84,6 +85,7 @@
   {:to-double-array m/seq->double-array
    :to-acm-vec (fn [v] (ArrayRealVector. (m/seq->double-array v)))
    :to-vec (fn [v] (apply vector-of :double v))
+   :to-vector identity
    :as-vec (fn
              ([v xs] (vec (take (count v) (concat xs (repeat 0.0)))))
              ([v] (prot/as-vec v nil)))
@@ -134,6 +136,7 @@
    :to-acm-vec (fn [^doubles arr] (ArrayRealVector. arr))
    :to-vec (fn [^doubles arr] (let [^Vec v (vector-of :double)]
                                (Vec. (.am v) (alength arr) (.shift v) (.root v) arr (.meta v))))
+   :to-vector vec
    :as-vec (fn ([^doubles v xs] (double-array (take (alength v) (concat xs (repeat 0.0)))))
              ([v] (prot/as-vec v nil)))
    :fmap (fn [^doubles arr f] (amap arr idx _ret (double (f (Array/aget arr idx)))))
@@ -177,6 +180,7 @@
   {:to-double-array (fn [this] (.getDataRef ^ArrayRealVector this))
    :to-acm-vec identity
    :to-vec (fn [v] (apply vector-of :double (.getDataRef ^ArrayRealVector v)))
+   :to-vector (fn [v] (vec (.getDataRef ^ArrayRealVector v)))
    :as-vec (fn
              ([^ArrayRealVector v xs] (ArrayRealVector. (double-array (take (.getDimension v)
                                                                             (concat xs (repeat 0.0))))))
@@ -282,6 +286,7 @@
   prot/VectorProto
   (to-double-array [_] array)
   (to-acm-vec [_] (ArrayRealVector. array))
+  (to-vector [_] (vec array))
   (to-vec [_] (let [^Vec v (vector-of :double)]
                 (Vec. (.am v) (alength array) (.shift v) (.root v) array (.meta v))))
   (as-vec [_ xs] (ArrayVec. (prot/as-vec array xs)))
@@ -318,6 +323,7 @@
   prot/VectorProto
   (to-double-array [v] (double-array [v]))
   (to-acm-vec [v] (ArrayRealVector. 1 (double v)))
+  (to-vector [v] (vector v))
   (to-vec [v] (vector-of :double (double v)))
   (as-vec
     ([_] 0.0)
@@ -433,6 +439,7 @@
   prot/VectorProto
   (to-double-array [v] (double-array v))
   (to-acm-vec [v] (ArrayRealVector. (double-array v)))
+  (to-vector [_] (vector x y z w))
   (to-vec [_] (vector-of :double x y z w))
   (as-vec [_ [x y z w]] (Vec4. (or x 0.0) (or y 0.0) (or z 0.0) (or w 0.0)))
   (as-vec [_] (Vec4. 0.0 0.0 0.0 0.0))
@@ -552,6 +559,7 @@
   prot/VectorProto
   (to-double-array [v] (double-array v))
   (to-acm-vec [v] (ArrayRealVector. (double-array v)))
+  (to-vector [_] (vector x y z))
   (to-vec [_] (vector-of :double x y z))
   (as-vec [_ [x y z]] (Vec3. (or x 0.0) (or y 0.0) (or z 0.0)))
   (as-vec [_] (Vec3. 0.0 0.0 0.0))
@@ -756,6 +764,7 @@
   prot/VectorProto
   (to-double-array [v] (double-array v))
   (to-acm-vec [v] (ArrayRealVector. (double-array v)))
+  (to-vector [_] (vector x y))
   (to-vec [_] (vector-of :double x y))
   (as-vec [_ [x y]] (Vec2. (or x 0.0) (or y 0.0)))
   (as-vec [_] (Vec2. 0.0 0.0))
@@ -847,6 +856,11 @@
     (instance? RealVector v) (seq (prot/to-double-array v))
     (number? v) (list v)
     :else (seq v)))
+
+(defn vec->vector
+  "Converts to a Clojure vector, allow non-numerical entries"
+  [v]
+  (prot/to-vector v))
 
 (defn vec->RealVector
   "Converts to Apache Commons Math RealVector"

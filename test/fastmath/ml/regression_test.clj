@@ -660,11 +660,22 @@
                       (rr/r->clj '(qresid (glm "YD ~ Dens + I(1/Dens) + Var"
                                                :family inverse.gaussian :data yieldden)))))))
 
-;; from Daniel, simplest case
 
 (t/deftest lm-simplest-case
-  (let [model (sut/lm [3 3 5 6] [[1 1] [2 1] [3 2] [4 2]])]
-    (t/is (m/delta-eq 4.25 (model [1 2])))))
+  (t/testing "Daniel's case"
+    (let [model (sut/lm [3 3 5 6] [[1 1] [2 1] [3 2] [4 2]])]
+      (t/is (m/delta-eq 4.25 (model [1 2])))))
+  (t/testing "1d prediction"
+    (let [model (sut/lm [3 3 5 6] [1 2 3 4])]
+      (t/is (m/delta-eq 2.6 (model 1)))
+      (t/is (m/delta-eq 2.6 (model [1])))))
+  (t/testing "1d prediction with offset"
+    (let [model (sut/lm [3 3 5 6] [1 2 3 4] {:offset [11 12 13 14]})]
+      (t/is (m/delta-eq 2.6 (model [11 1])))
+      (t/testing "wrong number of entries on input"
+        (t/is (= {:offset? true :expected 1 :received 0} (try (model 1) (catch clojure.lang.ExceptionInfo e (ex-data e)))))
+        (t/is (= {:offset? true :expected 1 :received 0} (try (model [1]) (catch clojure.lang.ExceptionInfo e (ex-data e)))))
+        (t/is (= {:offset? true :expected 1 :received 2} (try (model [1 2 3]) (catch clojure.lang.ExceptionInfo e (ex-data e)))))))))
 
 (comment (init-r))
 
@@ -723,3 +734,12 @@
     (let [[xs ys] (sut/cir [1 2 3 4] [1, 37, 42, 5])]
       (t/is (v/delta-eq xs [1 3 4]))
       (t/is (v/delta-eq ys [1 28 28])))))
+
+(t/deftest with-offset
+  (t/is (= [1 [2 3]] (sut/with-offset [1 2 3] true)))
+  (t/is (= [0.0 [1 2 3]] (sut/with-offset [1 2 3] false)))
+  (t/is (= [0.0 [1 2 :d]] (sut/with-offset '(1 2 :d) false)))
+  (t/is (= [1 [2 :d]] (sut/with-offset '(1 2 :d) true)))
+  (t/is (= [0.0 [:a :b]] (sut/with-offset [:a :b] false)))
+  (t/testing "exception when offset is not a number"
+    (t/is (= :z (try (sut/with-offset [:z 1 2] true) (catch clojure.lang.ExceptionInfo e (:offset (ex-data e))))))))

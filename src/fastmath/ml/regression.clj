@@ -17,12 +17,15 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn- with-offset
+(defn with-offset
+  "Extracts or sets to zero an offset"
   [xs offset?]
-  (if offset?
-    (let [xs (vec xs)]
-      [(xs 0) (subvec xs 1)])
-    [0.0 (vec xs)]))
+  (let [xs (v/vec->vector xs)]
+    (if offset?
+      (let [offset (xs 0)]
+        (when-not (number? offset) (throw (ex-info "Offset should be a number." {:offset offset})))
+        [(xs 0) (subvec xs 1)])
+      [0.0 xs])))
 
 (defn predict
   "Predict from the given model and data point.
@@ -57,6 +60,9 @@
   (predict [_ xs stderr?]
     (let [[^double off xs] (with-offset xs offset?)
           xs (if transformer (transformer xs) xs)]
+      (when-not (m/== (count beta) (count xs))
+        (throw (ex-info (str "Prediction expects " (count beta) " number of entries "
+                             (when offset? "and offset ") "as input (after transformation).") {:offset? offset? :expected (count beta) :received (count xs)})))
       (if stderr?
         (let [arr (double-array (if intercept? (conj xs 1.0) xs))
               fit (double (m/+ off intercept (v/dot beta xs)))

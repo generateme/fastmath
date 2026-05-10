@@ -79,6 +79,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   "Vector operations"
   (to-double-array [v] "Convert o double array")
   (to-vec [v] "Convert to Clojure primitive vector `Vec`.")
+  (to-vector [v] "Convert to Clojure persistent vector")
   (to-acm-vec [v] "Convert to Apache Commons Math ArrayRealVector")
   (as-vec [v] [v xs] "Create vector from sequence as given type.")
   (fmap [v f] "Apply function to all vector values (like map but returns the same type).")

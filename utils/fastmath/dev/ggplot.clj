@@ -16,6 +16,8 @@
 (r/require-r '[ggplot2 :as gg]
              '[paletteer :as pal]
              '[grDevices :as gr]
+             '[sf :as sf]
+             '[ozmaps :as oz]
              '[base])
 
 (defn ->palette
