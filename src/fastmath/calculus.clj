@@ -20,17 +20,18 @@
             [fastmath.calculus.vegas :as vegas]
             [fastmath.calculus.cubature :as cubature]
             [fastmath.calculus.quadrature :as quadrature]
-            [fastmath.calculus.finite :as finite])
+            [fastmath.calculus.finite :as finite]
+            [fastmath.calculus.divided :as divided])
   (:import [org.apache.commons.math3.analysis UnivariateFunction]
            [org.apache.commons.math3.analysis.integration UnivariateIntegrator
             IterativeLegendreGaussIntegrator MidPointIntegrator
             RombergIntegrator SimpsonIntegrator TrapezoidIntegrator
             BaseAbstractUnivariateIntegrator]
-           
-           [org.apache.commons.math3.exception MaxCountExceededException TooManyEvaluationsException]))
+           [org.apache.commons.math3.exception MaxCountExceededException TooManyEvaluationsException]
+           [fastmath.java Array]))
 
-#_(set! *warn-on-reflection* true)
-#_(set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn vegas
   "VEGAS+ - Monte Carlo integration of multivariate function, n>1 dimensions.
@@ -272,3 +273,13 @@
   "Creates function returning Hessian matrix for mulitvariate function `f` and given `:h` step (default: `5.0e-3`)."
   ([f] (hessian f nil))
   ([f options] (finite/hessian f options)))
+
+;;
+
+(defn divided-all
+  "Divided differences. All levels"
+  [f xs] (divided/divided-all f xs))
+
+(defn divided
+  "Divided differences, last level - single value"
+  ^double [f xs] (divided/divided f xs))

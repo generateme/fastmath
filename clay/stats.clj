@@ -126,7 +126,7 @@
 ;; * `minimum`, `maximum`
 ;; * `sum`
 ;; * `mean`
-;; * `geomean`, `harmean`, `powmean`
+;; * `geomean`, `harmean`, `powmean`, `logmean`
 ;; * `mode`, `modes`
 ;; * `wmode`, `wmodes`
 ;; * `stats-map`
@@ -194,6 +194,13 @@
 
 ;; The behavior depends on $p$: higher $p$ gives more weight to larger values, lower $p$ gives more weight to smaller values.
 
+;; * **Logarithmic mean** (`logmean`): Generalized logarithmic mean for multiple values. For two values it's defined as $L=\frac{x-y}{\ln(x)-\ln(y)}$. For more than two values, there are two definitions, one based on mean value theorem for differential calculus (`:method` set to a `:mean-value`) and as integral interpretation (`:method` set to `:integral`, default).
+
+;; $$L_{MV}=\sqrt[-n]{(-1)^{n+1} n \ln\left(\left[x_0,\, \dots,\, x_n\right]\right)}$$
+;; $$L_I=n! \exp\left[\ln\left(x_0\right), \dots, \ln\left(x_n\right)\right]$$
+
+;; Results of both cases differ for $n>1$, also `:mean-value` method can be unstable for `n>100`.
+
 (utls/examples-note
   (stats/mean residual-sugar)
   (stats/geomean residual-sugar)
@@ -204,7 +211,10 @@
   (stats/powmean residual-sugar 0.0)
   (stats/powmean residual-sugar 1.0)
   (stats/powmean residual-sugar 4.5)
-  (stats/powmean residual-sugar ##Inf))
+  (stats/powmean residual-sugar ##Inf)
+  (stats/logmean residual-sugar)
+  (stats/logmean (range 10 50))
+  (stats/logmean (range 10 50) {:method :mean-value}))
 
 ;; All values of power mean for `residual-sugar` data and range of the power from `-5` to `5`.
 

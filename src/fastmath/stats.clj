@@ -57,7 +57,8 @@
             [fastmath.special :as special]
             [fastmath.solver :as solver]
 
-            [fastmath.stats.binary :as binary])
+            [fastmath.stats.binary :as binary]
+            [fastmath.stats.logmean :as logmean])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.stat.descriptive.rank Percentile Percentile$EstimationType]
            [org.apache.commons.math3.stat.descriptive.moment Kurtosis Skewness]
@@ -485,6 +486,49 @@
      (m/pos-inf? power) (maximum vs)
      (m/neg-inf? power) (minimum vs)
      :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs) weights) (/ power)))))
+
+;; https://www.survo.fi/papers/logmean.pdf
+
+(defn logmean
+  "Calculates the generalized logarithmic mean of a sequence of positive numbers.
+
+  The logarithmic mean generalizes the two-argument logarithmic mean `L(x,y) = (x-y)/(ln(x)-ln(y))`
+  to `n` arguments. For `n=1` the single value is returned as-is; for `n=2` the classical
+  two-argument formula is used; for `n>=3` one of two methods is applied.
+
+  Parameters:
+
+  - `xs` - a sequence of positive numbers (length `n >= 1`)
+  - `opts` - optional map of configuration keys:
+    - `:method` - algorithm to use, one of `:integral` (default) or `:mean-value`
+      (aliases `:divided`, `:divided-differences`); `:integral` uses the integral
+      representation of the generalized log-mean; `:mean-value` uses divided differences
+    - `:tol` - convergence tolerance for the `:integral` series expansion (default `1.0e-15`)
+    - `:max-iters` - maximum number of series iterations for the `:integral` method (default `1000`)
+
+  Returns the generalized logarithmic mean as a `double`. Returns `##NaN` for an empty sequence.
+  All values in `xs` must be strictly positive.
+
+  Note 1: `:mean-value` can be unstable for large number of entries (`n >= 100`) or when differences are very small.
+  Note 2: `:mean-value` and `:integral` are two different interpretations (definitions) and produce different results.
+
+  See also [[mean]], [[geometric-mean]], [[harmonic-mean]]."
+  (^double [xs] (logmean xs nil))
+  (^double [xs {:keys [^double tol ^long max-iters method]
+                :or {tol 1.0e-15 max-iters 1000 method :integral}}]
+   (let [xs (vec xs)
+         n (count xs)]
+     (case n
+       0 ##NaN
+       1 (xs 0)
+       2 (logmean/logmean2 xs)
+       (case method
+         (:mean-value :divided :divided-differences) (if (m/== n 3)
+                                                       (logmean/logmean3-mean-value xs)
+                                                       (logmean/logmean-mean-value xs n))
+         :integral (if (m/== n 3)
+                     (logmean/logmean3-integral xs)
+                     (logmean/logmean-integral xs n max-iters tol)))))))
 
 (defn wmean
   "Weighted mean"
@@ -2380,7 +2424,7 @@
   [[P Q]]
   (let [pairs (->> (map v/vec2 P Q)
                    (remove (fn [^Vec2 v] (or (zero? (.x v))
-                                            (zero? (.y v))))))]
+                                             (zero? (.y v))))))]
     [(map first pairs) (map second pairs)]))
 
 (defn- safe-div
@@ -2583,7 +2627,7 @@
   (^double [groups] (pooled-mad groups 1.4826022185056023))
   (^double [groups ^double const]
    (let [Y (mapcat (fn [g] (let [md (median g)]
-                            (v/shift g (m/- md)))) groups)]
+                             (v/shift g (m/- md)))) groups)]
      (m/* const (median-absolute-deviation Y)))))
 
 ;; effect size
@@ -4392,7 +4436,7 @@
          (auc (binary-measures-thr combined-classes combined-scores) x-axis y-axis))
        (let [measures (->> all-classes
                            (map (fn [cl] (-> (binary-measures-thr classes (scores-map cl) #{cl})
-                                            (auc x-axis y-axis))))
+                                             (auc x-axis y-axis))))
                            (map (fn [^double v] (if (m/nan? v) 0.0 v))))]
          (cond
            (not average) (zipmap all-classes measures)
@@ -4798,7 +4842,7 @@
 ;;
 
 (def binomial-ci-methods (sort [:asymptotic :agresti-coull :clopper-pearson :wilson :prop.test
-                              :cloglog :logit :probit :arcsine]))
+                                :cloglog :logit :probit :arcsine]))
 
 (defn binomial-ci
   "Calculates a confidence interval for a binomial proportion.

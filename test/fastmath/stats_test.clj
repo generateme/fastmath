@@ -65,7 +65,14 @@
     0.5 2.60179
     1.0 2.8125
     2.0 3.230712
-    10.0 5.69326))
+    10.0 5.69326)
+  (t/testing "logmean"
+    (t/is (m/delta-eq 24.663034623 (sut/logmean [30 20])))
+    ;; paper
+    (t/is (m/delta-eq 73578.65538616560 (sut/logmean (range 1 200001))))
+    (t/is (m/nan? (sut/logmean nil)))
+    (t/is (m/== 1.0123 (sut/logmean [1.0123])))
+    (t/is (m/== (sut/logmean [4 2]) (m// 2.0 m/M_LN2)))))
 
 ;; deviations
 

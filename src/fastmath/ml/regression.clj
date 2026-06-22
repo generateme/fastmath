@@ -248,10 +248,10 @@
            ##NaN)) residuals hat sigmas))
 
 (defn- dfbetas
-  [^RealMatrix laverage-coeffs ^RealMatrix xtx-1 sigmas]
+  [^RealMatrix leverage-coeffs ^RealMatrix xtx-1 sigmas]
   (let [d (v/vec->array (mat/diag xtx-1))]
     (map (fn [^RealVector v ^double s]
-           (v/ediv (v/vec->seq v) (v/mult sigmas (m/sqrt s)))) (mat/rows laverage-coeffs) d)))
+           (v/ediv (v/vec->seq v) (v/mult sigmas (m/sqrt s)))) (mat/rows leverage-coeffs) d)))
 
 (defn- covratio
   [residuals hat sigmas ^long p]
@@ -307,7 +307,7 @@
                                       (m/- 1.0 h))) df-))
            (m/safe-sqrt (m// rss df-)))) residuals hat))
 
-(defn- laverage-coeffs
+(defn- leverage-coeffs
   ^RealMatrix [xtxinv xss residuals weights hat p observations]
   (let [^RealMatrix bb (mat/mulm xtxinv (mat/transpose xss))]
     (doseq [^long row (range p)
@@ -332,18 +332,18 @@
 
         sigmas (sigmas wresiduals hat rss df-)        
         
-        ^RealMatrix laverage-coeffs (laverage-coeffs xtxinv xss rresiduals weights hat p observations)
+        ^RealMatrix leverage-coeffs (leverage-coeffs xtxinv xss rresiduals weights hat p observations)
 
         influence {:cooks-distance (lm-cooks-distance wresiduals hat sigma p)
                    :dffits (dffits wresiduals hat sigmas)
-                   :dfbetas (dfbetas laverage-coeffs xtxinv sigmas)
+                   :dfbetas (dfbetas leverage-coeffs xtxinv sigmas)
                    :covratio (covratio wresiduals hat sigmas p)}]
     {:normality (normality-analysis residuals)
      :residuals {:standardized (lm-transform-residuals wresiduals hat (repeat sigma))
                  :studentized (lm-transform-residuals wresiduals hat sigmas)}
-     :laverage {:hat hat
+     :leverage {:hat hat
                 :sigmas sigmas
-                :coefficients (map seq (mat/mat->array2d laverage-coeffs))}
+                :coefficients (map seq (mat/mat->array2d leverage-coeffs))}
      :influence influence
      :influential (measures-influential-rows influence hat observations p)
      :correlation (correlation xtxinv sigma2)}))
@@ -397,7 +397,7 @@
   * `:qt` - (1-alpha/2) quantile of T distribution for residual degrees of freedom
   * `:f-statistic` and `:p-value` - F statistic and respective p-value
   * `:ll` - a map containing log-likelihood and AIC/BIC in two variants: based on log-likelihood and RSS
-  * `:analysis` - laverage, residual and influence analysis - a delay
+  * `:analysis` - leverage, residual and influence analysis - a delay
   * `:decomposition` - decomposition used
   * `:augmentation` - augmentation used
   * `:cv` - cross validation statistic
@@ -406,7 +406,7 @@
   Analysis, delay containing a map:
 
   * `:residuals` - `:standardized` and `:studentized` weighted residuals
-  * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
+  * `:leverage` - `:hat`, `:sigmas` and leveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
   * `:influential` - list of influential observations (ids) for influence measures
   * `:correlation` - correlation matrix of estimated parameters
@@ -940,20 +940,20 @@
 
         df- (m/dec df)
         sigmas (sigmas dresiduals hat rss df-)
-        ^RealMatrix laverage-coeffs (laverage-coeffs xtxinv xss dresiduals
+        ^RealMatrix leverage-coeffs (leverage-coeffs xtxinv xss dresiduals
                                                      (map m/sqrt weights)
                                                      hat p observations)
 
         influence {:cooks-distance (glm-cooks-distance presiduals hat (m/* dispersion p))
                    :dffits (dffits dresiduals hat sigmas)
-                   :dfbetas (dfbetas laverage-coeffs xtxinv sigmas)
+                   :dfbetas (dfbetas leverage-coeffs xtxinv sigmas)
                    :covratio (covratio dresiduals hat sigmas p)}]
     {:residuals {:standardized {:pearson (glm-standardize-residuals presiduals hat inv-sqrt-dispersion)
                                 :deviance (glm-standardize-residuals dresiduals hat inv-sqrt-dispersion)}
                  :studentized (glm-studentized-residuals dresiduals presiduals sigmas hat family)}
-     :laverage {:hat hat
+     :leverage {:hat hat
                 :sigmas sigmas
-                :coefficients (map seq (mat/mat->array2d laverage-coeffs))}
+                :coefficients (map seq (mat/mat->array2d leverage-coeffs))}
      :influence influence
      :influential (measures-influential-rows influence hat observations p)
      :correlation (correlation xtxinv dispersion)}))
@@ -1054,14 +1054,14 @@
   * `:q` - (1-alpha/2) quantile of T or Normal distribution for residual degrees of freedom
   * `:chi2` and `:p-value` - Chi-squared statistic and respective p-value
   * `:ll` - a map containing log-likelihood and AIC/BIC (GLM and based on deviance, dev+2ED)
-  * `:analysis` - laverage, residual and influence analysis - a delay
+  * `:analysis` - leverage, residual and influence analysis - a delay
   * `:iters` and `:converged?` - number of iterations and convergence indicator
   * `:decomposition` - decomposition used
 
   Analysis, delay containing a map:
 
   * `:residuals` - `:standardized` and `:studentized` residuals (pearsons and deviance)
-  * `:laverage` - `:hat`, `:sigmas` and laveraged `:coefficients` (leave-one-out)
+  * `:leverage` - `:hat`, `:sigmas` and leveraged `:coefficients` (leave-one-out)
   * `:influence` - `:cooks-distance`, `:dffits`, `:dfbetas` and `:covratio`
   * `:influential` - list of influential observations (ids) for influence measures
   * `:correlation` - correlation matrix of estimated parameters"
@@ -1391,7 +1391,7 @@
     (v/div (:deviance residuals) (m/sqrt dispersion))))
 
 (defn analysis
-  "Influence analysis, laverage, standardized and studentized residuals, correlation."
+  "Influence analysis, leverage, standardized and studentized residuals, correlation."
   [model]
   (deref (:analysis model)))
 

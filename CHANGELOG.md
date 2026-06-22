@@ -1,6 +1,16 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [3.0.0 alpha8 - unreleased]
+
+### Added
+
+* Logarithmic mean (`fastmath.stats/logmean`) and divided differences (`fastmath.calculcus/divided`)
+
+### Fixed
+
+* [breaking] naming in regression, `:laverage` -> `:leverage`
+
 ## [3.0.0 alpha7]
 
 ### Added

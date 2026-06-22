@@ -267,3 +267,25 @@
     -threesinx-xcosx 3
     xsinx-4cosx 4))
 
+;; divided differences
+
+(t/deftest divided-differences
+  (t/testing "Simple case, logmean as 1/f[dt1,dt2]"
+    (let [dt1 30 dt2 20]
+      (t/is (m/delta-eq 24.663 (m// (sut/divided m/log [dt1 dt2])) 1.0e-4))))
+  (t/testing "wikipedia example (Newton polynomial article)"
+    (let [dd (vec (sut/divided-all m/tan [-3/2 -3/4 0 3/4 3/2]))]
+      (t/are [id res] (v/delta-eq res (dd id) 1.0e-4)
+        0 [0.0]
+        1 [4.83484 4.83484]
+        2 [-10.8784 0.0 10.8784]
+        3 [17.5597 1.24213 1.24213 17.5597]
+        4 [-14.1014 -0.931596 0.0 0.931596 14.1014]))
+    (t/is (m/zero? (sut/divided m/tan [-3/2 -3/4 0 3/4 3/2])))
+    (let [dd (vec (sut/divided-all [6 9 2 5] [0 1 2 3]))]
+      (t/are [id res] (v/delta-eq res (dd id) 1.0e-10)
+        0 [10/3]
+        1 [-5 5]
+        2 [3 -7 3]
+        3 [6 9 2 5]))
+    (t/is (m/delta-eq (double 10/3) (sut/divided [6 9 2 5] [0 1 2 3])))))
