@@ -1506,23 +1506,40 @@
 
 (defn factorial
   "Factorial"
-  ^double [^long n]
-  (if (< n 21)
-    (factorial20-table n)
-    (exp (Gamma/logGamma (inc n)))))
+  ^double [^double x]
+  (if (and (integer? x) (< x 21))
+    (factorial20-table (long x))
+    (exp (Gamma/logGamma (inc x)))))
 
 (defn inv-factorial
-  "Inverse of factorial, 1/n!"
-  ^double [^long n]
-  (if (< n 21)
-    (/ 1.0 (long (factorial20-table n)))
-    (exp (- (Gamma/logGamma (inc n))))))
+  "Inverse of factorial, 1/x!"
+  ^double [^double x]
+  (if (and (integer? x) (< x 21))
+    (/ 1.0 (long (factorial20-table (long x))))
+    (exp (- (Gamma/logGamma (inc x))))))
+
+(defn stirling-factorial
+  "Factorial using Stirling's approximation with correction (6 terms)."
+  ^double [^double x]
+  (let [x2 (* x x)
+        x3 (* x x2)
+        x5 (* x2 x3)
+        x7 (* x2 x5)
+        x9 (* x2 x7)]
+    (* (sqrt (* TWO_PI x))
+       (pow (/ x E) x)
+       (exp (+ (/ 0.08333333333333333 x)
+               (/ -0.002777777777777778 x3)
+               (/ 7.936507936507937E-4 x5)
+               (/ -5.952380952380953E-4 x7)
+               (/ 8.417508417508417E-4 x9)
+               (/ -0.0019175269175269176 (* x2 x9)))))))
 
 (defn log-factorial
   "Log factorial, alias to log-gamma"
-  {:inline (fn [x] `(Gamma/logGamma (double (inc (long ~x)))))
+  {:inline (fn [x] `(Gamma/logGamma (inc (double ~x))))
    :inline-arities #{1}}
-  ^double [^long x] (Gamma/logGamma (inc x)))
+  ^double [^double x] (Gamma/logGamma (inc x)))
 
 (defn falling-factorial-int
   "Falling (descending) factorial for integer n."

@@ -1330,7 +1330,7 @@
 ;; Functions for common combinatorial calculations, including factorials and binomial coefficients.
 
 ;; ::: {.callout-tip title="Defined functions"}
-;; * `factorial20`, `factorial`, `inv-factorial`, `log-factorial`
+;; * `factorial20`, `factorial`, `inv-factorial`, `log-factorial`, `stirling-factorial`
 ;; * `falling-factorial`, `falling-factorial-int`, `rising-factorial`, `rising-factorial-int`
 ;; * `combinations`, `log-combinations`
 ;; :::
@@ -1341,13 +1341,16 @@
 ;;
 ;; * `factorial20(n)`: Computes $n!$ for $0 \le n \le 20$ using a precomputed table. Returns `long`.
 ;; * `factorial(n)`: Computes $n!$ for any non-negative integer $n$. For $n > 20$, it uses the Gamma function: $n! = \Gamma(n+1)$. Returns `double`.
+;; * `stirling-factorial(n)`: Computers $n!$ using Strling's approximation method with error correction (six terms).
 ;; * `inv-factorial(n)`: Computes the inverse factorial, $\frac{1}{n!}$. Returns `double`.
 ;; * `log-factorial(n)`: Computes the natural logarithm of the factorial, $\ln(n!) = \ln(\Gamma(n+1))$. Returns `double`.
 
 (utls/examples-note
   (m/factorial 5)
   (m/factorial20 5)
+  (m/stirling-factorial 5)
   (m/factorial 21)
+  (m/stirling-factorial 21)
   (m/inv-factorial 5)
   (m/log-factorial 5))
 
