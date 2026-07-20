@@ -79,6 +79,7 @@
            [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]))
 
 (set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
@@ -268,7 +269,7 @@
   (if (= method :lbfgsb)
     (lbfgsb/lbfgsb-fn f (assoc config :bounded? true))
     (do
-      (assert (not (nil? bounds)) "Provide bounds")
+      (when (nil? bounds) (throw (ex-info "Provide bounds" nil)))
       (let [bounds (fix-brent-bounds method bounds)
             dim (find-dimensions bounds)
             config (assoc config :dim dim :bounds bounds)
@@ -372,7 +373,7 @@
   [optimizer-fn goal method f {:keys [bounds ^int N ^double n ^double jitter parallel?]
                                :or {N 100 n 0.05 jitter 0.25 parallel? true}
                                :as config}]
-  (assert (not (nil? bounds)) "Provide search bounds.")
+  (when (nil? bounds) (throw (ex-info "Provide search bounds." nil)))
   (let [goal (or goal (get config :goal :minimize))
         samples (generate-points method f bounds goal N jitter)
         nbest (max 1 (long (if (> n 1.0) n (m/floor (* n N)))))
@@ -480,17 +481,17 @@
   * `:gp` - current gaussian process regression instance
   * `:util-fn` - current utility function
   * `:util-best` - best x in utility function"
-  [f {:keys [warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?]
+  [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?]
       :or {kscale 1.0
            kernel :matern-52
-           warm-up (* ^int (count bounds) 1000)
            init-points 3
            utility-function-type :ucb
-           utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [kernel (if (keyword? kernel) (k/kernel kernel) kernel)
+  (let [warm-up (or warm-up (* (count bounds) 1000))
+        utility-param (double (or utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)))
+        kernel (if (keyword? kernel) (k/kernel kernel) kernel)
         optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)

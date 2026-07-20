@@ -60,7 +60,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Based on Claude/Opus approach: https://claude.ai/share/154297ad-95dc-4f56-8c76-b912410182ce
+;; Based on Claude/Opus4.8 approach: https://claude.ai/share/154297ad-95dc-4f56-8c76-b912410182ce
 
 ;; https://www.survo.fi/papers/logmean.pdf
 

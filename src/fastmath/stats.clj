@@ -71,23 +71,59 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 (defn minimum
-  "Finds the minimum value in a sequence of numbers."
+  "Finds the smallest value in a sequence of numbers.
+
+  Accepts either a `double-array` (handled with an optimized, array-specific path) or any other sequence of numbers.
+
+  Parameters:
+
+  - `vs` (sequence of numbers or `double-array`): Input data.
+
+  Returns the minimum value as a double. Throws an exception when `vs` is empty.
+
+  See also [[maximum]], [[extent]]."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (Array/min ^doubles vs)
     (reduce m/min vs)))
 
 (defn maximum
-  "Finds the maximum value in a sequence of numbers."
+  "Finds the largest value in a sequence of numbers.
+
+  Accepts either a `double-array` (handled with an optimized, array-specific path) or any other sequence of numbers.
+
+  Parameters:
+
+  - `vs` (sequence of numbers or `double-array`): Input data.
+
+  Returns the maximum value as a double. Throws an exception when `vs` is empty.
+
+  See also [[minimum]], [[extent]]."
   ^double [vs]
   (if (= (type vs) m/double-array-type)
     (Array/max ^doubles vs)
     (reduce m/max vs)))
 
-(def ^{:doc "List of estimation strategies for [[percentile]]/[[quantile]] functions."}
+(def ^{:doc "Map of available estimation strategies usable by [[percentile]] and [[quantile]].
+
+  Each strategy defines how a percentile position is computed from a sorted sample and how the value at a (possibly fractional) position is estimated, following Hyndman and Fan's classification of sample quantile methods. Pass the corresponding keyword as the `estimation-strategy` argument.
+
+  Available strategies:
+
+  - `:legacy` - Apache Commons Math's original method, close to `:r6` but with min/max returned for out-of-range positions. Default when no strategy is specified.
+  - `:r1` - Inverse of the empirical CDF, no interpolation (a step function).
+  - `:r2` - Like `:r1`, but averages the two candidate values at discontinuities.
+  - `:r3` - Nearest, rounding to even (SAS default).
+  - `:r4` - Linear interpolation of the empirical CDF.
+  - `:r5` - Hazen's method, linear interpolation through the midpoints of the order statistics.
+  - `:r6` - Weibull's method, linear interpolation of the expectations of the order statistics (used by SPSS and Minitab).
+  - `:r7` - Linear interpolation of the modes of the order statistics (default in R and NumPy).
+  - `:r8` - Linear interpolation giving an estimate that is approximately median-unbiased regardless of the underlying distribution.
+  - `:r9` - Linear interpolation giving an estimate that is approximately unbiased for a normal distribution.
+
+  See also [[percentile]], [[quantile]]."}
   estimation-strategies-list {:legacy Percentile$EstimationType/LEGACY
                               :r1 Percentile$EstimationType/R_1
                               :r2 Percentile$EstimationType/R_2
@@ -125,19 +161,25 @@
     (Vec3. t nt (m/+ (.z b) cc))))
 
 (defn sum
-  "Sum of all `vs` values.
+  "Calculates the sum of all values in `vs`.
 
-   Possible compensated summation methods are: `:kahan`, `:neumayer` and `:klein`"
+  By default, plain summation is used (an optimized array-specific path for `double-array`, or a simple reduction otherwise), which is fast but can accumulate floating-point rounding error for long sequences or values of widely differing magnitude. An optional compensated summation algorithm can be selected instead to improve numerical accuracy at the cost of extra computation.
+
+  Parameters:
+
+  - `vs` (sequence of numbers or `double-array`): Values to sum.
+  - `compensation-method` (keyword, optional): Compensated summation algorithm. One of `:kahan`, `:neumayer` (Neumaier's improved Kahan algorithm) or `:klein` (second-order compensated summation). Any other value falls back to plain summation.
+
+  Returns the sum as a double."
   (^double [vs]
    (if (= (type vs) m/double-array-type)
      (Array/sum ^doubles vs)
-     (reduce + vs)))
+     (reduce m/+ vs)))
   (^double [vs compensation-method]
    (case compensation-method
      :kahan (let [^Vec2 r (reduce kahan-step (Vec2. 0.0 0.0) vs)] (.x r))
      :neumayer (v/sum (reduce neumayer-step (Vec2. 0.0 0.0) vs))
-     :klein (v/sum (reduce klein-step (Vec3. 0.0 0.0 0.0) vs))
-     (sum vs))))
+     :klein (v/sum (reduce klein-step (Vec3. 0.0 0.0 0.0) vs)))))
 
 ;; https://www.amherst.edu/media/view/129116/original/Sample+Quantiles.pdf
 
@@ -154,20 +196,18 @@
   Available `estimation-strategy` values:
 
   - `:legacy` (Default): The original method used in Apache Commons Math.
-  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
-      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
 
   See also [[quantile]] (which uses a 0.0-1.0 range) and [[percentiles]]."
   (^double [vs ^double p]
-   (if (zero? p)
+   (if (m/zero? p)
      (minimum vs)
      (StatUtils/percentile (m/seq->double-array vs) p)))
   (^double [vs ^double p estimation-strategy]
-   (if (zero? p)
+   (if (m/zero? p)
      (minimum vs)
      (let [^Percentile perc (.withEstimationType (Percentile.) (get estimation-strategies-list estimation-strategy Percentile$EstimationType/LEGACY))]
        (.evaluate perc (m/seq->double-array vs) p)))))
@@ -185,8 +225,7 @@
   Available `estimation-strategy` values:
 
   - `:legacy` (Default): The original method used in Apache Commons Math.
-  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
@@ -198,7 +237,7 @@
    (let [^Percentile perc (.withEstimationType (Percentile.) (or (estimation-strategies-list estimation-strategy) Percentile$EstimationType/LEGACY))
          d (m/seq->double-array vs)]
      (.setData perc d)
-     (mapv (fn [^double p] (if (zero? p) (minimum d) (.evaluate perc p))) ps))))
+     (mapv (fn [^double p] (if (m/zero? p) (minimum d) (.evaluate perc p))) ps))))
 
 (defn quantile
   "Calculates the q-th quantile of a sequence `vs`.
@@ -213,17 +252,16 @@
   Available `estimation-strategy` values:
 
   - `:legacy` (Default): The original method used in Apache Commons Math.
-  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
 
   See also [[percentile]] (which uses a 0-100 range) and [[quantiles]]."
   (^double [vs ^double q]
-   (percentile vs (m/constrain (* q 100.0) 0.0 100.0)))
+   (percentile vs (m/constrain (m/* q 100.0) 0.0 100.0)))
   (^double [vs ^double q estimation-strategy]
-   (percentile vs (m/constrain (* q 100.0) 0.0 100.0) estimation-strategy)))
+   (percentile vs (m/constrain (m/* q 100.0) 0.0 100.0) estimation-strategy)))
 
 (defn quantiles
   "Calculates the sequence of q-th quantiles of a sequence `vs`.
@@ -238,9 +276,7 @@
   Available `estimation-strategy` values:
 
   - `:legacy` (Default): The original method used in Apache Commons Math.
-  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms
-      recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index
-      (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
+  - `:r1` through `:r9`: Correspond to the nine quantile estimation algorithms recommended by Hyndman and Fan (1996). Each strategy differs slightly in how it calculates the index (e.g., using `np` or `(n+1)p`) and how it interpolates between points.
 
   For detailed mathematical descriptions of each estimation strategy, refer to
   the [Apache Commons Math Percentile documentation](http://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/org/apache/commons/math3/stat/descriptive/rank/Percentile.EstimationType.html).
@@ -248,9 +284,9 @@
   See also [[percentiles]] (which uses a 0-100 range) and [[quantile]]."
   ([vs] (quantiles vs [0.25 0.5 0.75 1.0]))
   ([vs qs]
-   (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs)))
+   (percentiles vs (map (fn [^double v] (m/constrain (m/* v 100.0) 0.0 100.0)) qs)))
   ([vs qs estimation-strategy]
-   (percentiles vs (map #(m/constrain (* ^double % 100.0) 0.0 100.0) qs) estimation-strategy)))
+   (percentiles vs (map (fn [^double v] (m/constrain (m/* v 100.0) 0.0 100.0)) qs) estimation-strategy)))
 
 (defn- wquantile-interpolator
   [vs ws method]
@@ -259,13 +295,13 @@
         data (map first sorted)
         data (conj data (first data))
         wsum (sum probabilities)
-        weights (conj (reductions + (map (fn [^double p] (/ p wsum)) probabilities)) 0.0)]
+        weights (conj (reductions m/+ (map (fn [^double p] (m// p wsum)) probabilities)) 0.0)]
     (case method
       :linear (linear-interp/linear weights data)
       :average (let [interp1 (step-interp/step-before weights data)
                      interp2 (step-interp/step-after weights data)]
-                 (fn [^double x] (* 0.5 (+ ^double (interp1 x)
-                                          ^double (interp2 x)))))
+                 (fn [^double x] (m/* 0.5 (m/+ (double (interp1 x))
+                                              (double (interp2 x))))))
       :step (step-interp/step-before weights data))))
 
 ;; based on spatstat.geom::weighted.quantile
@@ -395,7 +431,7 @@
 
   See also [[geomean]], [[harmean]], [[powmean]], [[median]]."
   (^double [vs] (StatUtils/mean (m/seq->double-array vs)))
-  (^double [vs weights] (/ (sum (map * vs weights)) (sum weights))))
+  (^double [vs weights] (m// (v/dot vs weights) (sum weights))))
 
 (defn geomean
   "Calculates the geometric mean of a sequence `vs`.
@@ -414,8 +450,8 @@
   Returns the calculated geometric mean as a double.
 
   See also [[mean]], [[harmean]], [[powmean]]."
-  (^double [vs] (m/exp (mean (map (fn [^double v] (m/log v)) vs))))
-  (^double [vs weights] (m/exp (mean (map (fn [^double v] (m/log v)) vs) weights))))
+  (^double [vs] (m/exp (mean (map m/log vs))))
+  (^double [vs weights] (m/exp (mean (map m/log vs) weights))))
 
 (defn harmean
   "Calculates the harmonic mean of a sequence `vs`.
@@ -432,8 +468,8 @@
   Returns the calculated harmonic mean as a double.
 
   See also [[mean]], [[geomean]], [[powmean]]."
-  (^double [vs] (/ (mean (map (fn [^double v] (/ v)) vs))))
-  (^double [vs weights] (/ (mean (map (fn [^double v] (/ v)) vs) weights))))
+  (^double [vs] (m// (mean (map m// vs))))
+  (^double [vs weights] (m// (mean (map m// vs) weights))))
 
 (defn powmean
   "Calculates the generalized power mean (also known as the Hölder mean) of a sequence `vs`.
@@ -466,26 +502,26 @@
   See also [[mean]], [[geomean]], [[harmean]]."
   (^double [vs ^double power]
    (cond
-     (zero? power) (geomean vs)
+     (m/zero? power) (geomean vs)
      (m/one? power) (mean vs)
-     (== power m/THIRD) (m/cb (mean (map #(m/cbrt %) vs)))
-     (== power 0.5) (m/sq (mean (map #(m/sqrt %) vs)))
-     (== power 2.0) (m/sqrt (mean (map m/sq vs)))
-     (== power 3.0) (m/cbrt (mean (map m/cb vs)))
+     (m/== power m/THIRD) (m/cb (mean (map m/cbrt vs)))
+     (m/== power 0.5) (m/sq (mean (map m/sqrt vs)))
+     (m/== power 2.0) (m/sqrt (mean (map m/sq vs)))
+     (m/== power 3.0) (m/cbrt (mean (map m/cb vs)))
      (m/pos-inf? power) (maximum vs)
      (m/neg-inf? power) (minimum vs)
-     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (/ power))))
+     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs)) (m// power))))
   (^double [vs weights ^double power]
    (cond
-     (zero? power) (geomean vs weights)
+     (m/zero? power) (geomean vs weights)
      (m/one? power) (mean vs weights)
-     (== power m/THIRD) (m/cb (mean (map m/cbrt vs) weights))
-     (== power 0.5) (m/sq (mean (map m/sqrt vs) weights))
-     (== power 2.0) (m/sqrt (mean (map m/sq vs) weights))
-     (== power 3.0) (m/cbrt (mean (map m/cb vs) weights))
+     (m/== power m/THIRD) (m/cb (mean (map m/cbrt vs) weights))
+     (m/== power 0.5) (m/sq (mean (map m/sqrt vs) weights))
+     (m/== power 2.0) (m/sqrt (mean (map m/sq vs) weights))
+     (m/== power 3.0) (m/cbrt (mean (map m/cb vs) weights))
      (m/pos-inf? power) (maximum vs)
      (m/neg-inf? power) (minimum vs)
-     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs) weights) (/ power)))))
+     :else (m/pow (mean (map (fn [^double v] (m/pow v power)) vs) weights) (m// power)))))
 
 ;; https://www.survo.fi/papers/logmean.pdf
 
@@ -512,7 +548,9 @@
   Note 1: `:mean-value` can be unstable for large number of entries (`n >= 100`) or when differences are very small.
   Note 2: `:mean-value` and `:integral` are two different interpretations (definitions) and produce different results.
 
-  See also [[mean]], [[geometric-mean]], [[harmonic-mean]]."
+  See also [[mean]], [[geometric-mean]], [[harmonic-mean]].
+
+  Generalized integral method is made with Opus 4.8"
   (^double [xs] (logmean xs nil))
   (^double [xs {:keys [^double tol ^long max-iters method]
                 :or {tol 1.0e-15 max-iters 1000 method :integral}}]
@@ -535,69 +573,149 @@
   {:deprecated "Use `mean`"}
   (^double [vs] (mean vs))
   (^double [vs weights]
-   (/ (sum (map * vs weights)) (sum weights))))
+   (m// (v/dot vs weights) (sum weights))))
 
 (defn population-variance
-  "Calculate population variance of `vs`.
+  "Calculates the population (biased) variance of `vs`.
 
-  See [[variance]]."
+  The mean of the squared deviations from the mean is divided by the number of observations `n`, unlike the sample variance [[variance]], which divides by `n-1` (Bessel's correction). Use this version when `vs` represents the entire population rather than a sample drawn from it.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `mu` (double, optional): Precomputed mean of `vs`. When omitted, the mean is computed from `vs`.
+
+  Returns the population variance as a double.
+
+  See also [[variance]], [[population-stddev]], [[population-wvariance]]."
   (^double [vs]
    (StatUtils/populationVariance (m/seq->double-array vs)))
   (^double [vs ^double mu]
    (StatUtils/populationVariance (m/seq->double-array vs) mu)))
 
 (defn population-wvariance
-  "Calculate weighted population variance of `vs`."
+  "Calculates the weighted population (biased) variance of `vs`.
+
+  Each value is weighted by the corresponding entry in `freqs`, and the weighted mean of the squared deviations from the weighted mean is divided by the sum of the weights. This is the weighted analogue of [[population-variance]]; for the unbiased version, dividing by `(sum freqs) - 1` instead, see [[wvariance]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `freqs` (sequence of numbers): Weights (e.g. frequencies) corresponding to each value in `vs`, same length as `vs`.
+
+  Returns the weighted population variance as a double.
+
+  See also [[wvariance]], [[population-variance]], [[population-wstddev]]."
   ^double [vs freqs]
   (let [sw (sum freqs)
-        mu (/ (sum (map * vs freqs)) sw)
+        mu (m// (v/dot vs freqs) sw)
         v (sum (map (fn [^double x ^double w]
-                      (* w (m/sq (- x mu)))) vs freqs))]
-    (/ v sw)))
+                      (m/* w (m/sq (m/- x mu)))) vs freqs))]
+    (m// v sw)))
 
 (defn variance
-  "Calculate variance of `vs`.
+  "Calculates the sample (unbiased) variance of `vs`.
 
-  See [[population-variance]]."
+  The sum of squared deviations from the mean is divided by `n-1` (Bessel's correction), where `n` is the number of observations. Use this version when `vs` is a sample drawn from a larger population; for the biased version dividing by `n`, see [[population-variance]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `mu` (double, optional): Precomputed mean of `vs`. When omitted, the mean is computed from `vs`.
+
+  Returns the sample variance as a double.
+
+  See also [[population-variance]], [[stddev]], [[wvariance]]."
   (^double [vs]
    (StatUtils/variance (m/seq->double-array vs)))
   (^double [vs ^double mu]
    (StatUtils/variance (m/seq->double-array vs) mu)))
 
 (defn wvariance
-  "Calculate weighted (unbiased) variance of `vs`."
+  "Calculates the weighted sample (unbiased) variance of `vs`.
+
+  Each value is weighted by the corresponding entry in `freqs`, and the weighted sum of squared deviations from the weighted mean is divided by `(sum freqs) - 1`. This is the weighted analogue of [[variance]]; for the biased version dividing by `(sum freqs)`, see [[population-wvariance]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `freqs` (sequence of numbers): Weights (e.g. frequencies) corresponding to each value in `vs`, same length as `vs`.
+
+  Returns the weighted sample variance as a double.
+
+  See also [[population-wvariance]], [[variance]], [[wstddev]]."
   ^double [vs freqs]
   (let [sw (sum freqs)
-        mu (/ (sum (map * vs freqs)) sw)
+        mu (m// (v/dot vs freqs) sw)
         v (sum (map (fn [^double x ^double w]
-                      (* w (m/sq (- x mu)))) vs freqs))]
-    (/ v (dec sw))))
+                      (m/* w (m/sq (m/- x mu)))) vs freqs))]
+    (m// v (m/dec sw))))
 
 (defn population-stddev
-  "Calculate population standard deviation of `vs`.
+  "Calculates the population (biased) standard deviation of `vs`.
 
-  See [[stddev]]."
+  Computed as the square root of [[population-variance]], i.e. it divides the sum of squared deviations by `n` rather than `n-1`. Use this version when `vs` represents the entire population rather than a sample drawn from it.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `mu` (double, optional): Precomputed mean of `vs`. When omitted, the mean is computed from `vs`.
+
+  Returns the population standard deviation as a double.
+
+  See also [[stddev]], [[population-variance]], [[population-wstddev]]."
   (^double [vs]
    (m/sqrt (population-variance vs)))
   (^double [vs ^double mu]
    (m/sqrt (population-variance vs mu))))
 
 (defn population-wstddev
-  "Calculate population weighted standard deviation of `vs`"
+  "Calculates the weighted population (biased) standard deviation of `vs`.
+
+  Computed as the square root of [[population-wvariance]], i.e. each value is weighted by the corresponding entry in `freqs` and the sum of squared deviations is divided by the sum of the weights.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `weights` (sequence of numbers): Weights (e.g. frequencies) corresponding to each value in `vs`, same length as `vs`.
+
+  Returns the weighted population standard deviation as a double.
+
+  See also [[wstddev]], [[population-wvariance]], [[population-stddev]]."
   ^doubles [vs weights]
   (m/sqrt (population-wvariance vs weights)))
 
 (defn stddev
-  "Calculate standard deviation of `vs`.
+  "Calculates the sample (unbiased) standard deviation of `vs`.
 
-  See [[population-stddev]]."
+  Computed as the square root of [[variance]], i.e. it divides the sum of squared deviations by `n-1` (Bessel's correction). Use this version when `vs` is a sample drawn from a larger population.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `mu` (double, optional): Precomputed mean of `vs`. When omitted, the mean is computed from `vs`.
+
+  Returns the sample standard deviation as a double.
+
+  See also [[population-stddev]], [[variance]], [[wstddev]]."
   (^double [vs]
    (m/sqrt (variance vs)))
   (^double [vs ^double mu]
    (m/sqrt (variance vs mu))))
 
 (defn wstddev
-  "Calculate weighted (unbiased) standard deviation of `vs`"
+  "Calculates the weighted sample (unbiased) standard deviation of `vs`.
+
+  Computed as the square root of [[wvariance]], i.e. each value is weighted by the corresponding entry in `freqs` and the sum of squared deviations is divided by `(sum freqs) - 1`.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `freqs` (sequence of numbers): Weights (e.g. frequencies) corresponding to each value in `vs`, same length as `vs`.
+
+  Returns the weighted sample standard deviation as a double.
+
+  See also [[population-wstddev]], [[wvariance]], [[stddev]]."
   ^doubles [vs freqs]
   (m/sqrt (wvariance vs freqs)))
 
@@ -626,8 +744,8 @@
   See also [[stddev]], [[mean]]."
   ^double [vs]
   (let [vs (m/seq->double-array vs)]
-    (/ (stddev vs)
-       (mean vs))))
+    (m// (stddev vs)
+         (mean vs))))
 
 (defn median-absolute-deviation
   "Calculates the Median Absolute Deviation (MAD) of a sequence `vs`.
@@ -660,10 +778,10 @@
                        [center-or-estimation-strategy nil]
                        [nil center-or-estimation-strategy])
          m (double (or center (median vs es)))]
-     (median (map (fn [^double x] (m/abs (- x m))) vs) es)))
+     (median (map (fn [^double x] (m/abs (m/- x m))) vs) es)))
   (^double [vs center estimation-strategy]
    (let [m (double (or center (median vs estimation-strategy)))]
-     (median (map (fn [^double x] (m/abs (- x m))) vs) estimation-strategy))))
+     (median (map (fn [^double x] (m/abs (m/- x m))) vs) estimation-strategy))))
 
 (def ^{:doc "Alias for [[median-absolute-deviation]]"}
   mad median-absolute-deviation)
@@ -694,7 +812,7 @@
   (^double [vs] (mean-absolute-deviation vs nil))
   (^double [vs center]
    (let [m (double (or center (mean vs)))]
-     (mean (map (fn [^double x] (m/abs (- x m))) vs)))))
+     (mean (map (fn [^double x] (m/abs (m/- x m))) vs)))))
 
 (defn sem
   "Calculates the Standard Error of the Mean (SEM) for a sequence `vs`.
@@ -719,29 +837,74 @@
 
   See also [[stddev]], [[mean]]."
   ^double [vs]
-  (let [s (stddev vs)]
-    (/ s (m/sqrt (count vs)))))
+  (m// (stddev vs)
+       (m/sqrt (count vs))))
 
-(defmacro ^:private build-extent
-  [nm mid ext]
-  `(defn ~nm
-     ~(str " -/+ " ext " and " mid)
-     [~'vs]
-     (let [vs# (m/seq->double-array ~'vs)
-           m# (~mid vs#)
-           s# (~ext vs#)]
-       [(- m# s#) (+ m# s#) m#])))
+(defn stddev-extent
+  "Calculates the mean of `vs` together with its `-/+` standard deviation extent.
 
-(build-extent stddev-extent mean stddev)
-(build-extent mad-extent median median-absolute-deviation)
-(build-extent sem-extent mean sem)
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns a 3-element vector `[(m/- mean stddev), (m/+ mean stddev), mean]`.
+
+  See also [[mean]], [[stddev]], [[mad-extent]], [[sem-extent]]."
+  [vs]
+  (let [vs (m/seq->double-array vs)
+        m (mean vs)
+        s (stddev vs)]
+    [(m/- m s) (m/+ m s) m]))
+
+(defn mad-extent
+  "Calculates the median of `vs` together with its `-/+` median absolute deviation (MAD) extent.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns a 3-element vector `[(m/- median mad), (m/+ median mad), median]`.
+
+  See also [[median]], [[median-absolute-deviation]], [[stddev-extent]], [[sem-extent]]."
+  [vs]
+  (let [vs (m/seq->double-array vs)
+        m (median vs)
+        s (median-absolute-deviation vs)]
+    [(m/- m s) (m/+ m s) m]))
+
+(defn sem-extent
+  "Calculates the mean of `vs` together with its `-/+` standard error of the mean (SEM) extent.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns a 3-element vector `[(m/- mean sem), (m/+ mean sem), mean]`.
+
+  See also [[mean]], [[sem]], [[stddev-extent]], [[mad-extent]]."
+  [vs]
+  (let [vs (m/seq->double-array vs)
+        m (mean vs)
+        s (sem vs)]
+    [(m/- m s) (m/+ m s) m]))
 
 (defn percentile-extent
-  "Return percentile range and median.
+  "Calculates a pair of percentiles of `vs` together with its median.
 
-  `p` - calculates extent of `p` and `100-p` (default: `p=25`)"
+  By default, computes the `p`-th and `(100-p)`-th percentiles, forming a symmetric interval around the median; two independent percentiles `p1` and `p2` can be given instead.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `p` (double): Lower percentile, in range `[0,100]`. The upper percentile is `100-p`. Defaults to `25.0`.
+  - `p1`, `p2` (doubles): Two independent percentiles, in range `[0,100]`, used instead of `p`/`100-p`.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a 3-element vector `[(percentile vs p1), (percentile vs p2), (median vs)]`.
+
+  See also [[percentile]], [[median]], [[quantile-extent]], [[pi-extent]]."
   ([vs] (percentile-extent vs 25.0))
-  ([vs ^double p] (percentile-extent vs p (- 100.0 p)))
+  ([vs ^double p] (percentile-extent vs p (m/- 100.0 p)))
   ([vs p1 p2] (percentile-extent vs p1 p2 :legacy))
   ([vs ^double p1 ^double p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)]
@@ -750,11 +913,22 @@
       (median avs)])))
 
 (defn quantile-extent
-  "Return quantile range and median.
+  "Calculates a pair of quantiles of `vs` together with its median.
 
-  `q` - calculates extent of `q` and `1.0-q` (default: `q=0.25`)"
+  By default, computes the `q`-th and `(1.0-q)`-th quantiles, forming a symmetric interval around the median; two independent quantiles `q1` and `q2` can be given instead.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `q` (double): Lower quantile, in range `[0,1]`. The upper quantile is `1.0-q`. Defaults to `0.25`.
+  - `q1`, `q2` (doubles): Two independent quantiles, in range `[0,1]`, used instead of `q`/`1.0-q`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a 3-element vector `[(quantile vs q1), (quantile vs q2), (median vs)]`.
+
+  See also [[quantile]], [[median]], [[percentile-extent]], [[pi-extent]]."
   ([vs] (quantile-extent vs 0.25))
-  ([vs ^double q] (quantile-extent vs q (- 1.0 q)))
+  ([vs ^double q] (quantile-extent vs q (m/- 1.0 q)))
   ([vs q1 q2] (quantile-extent vs q1 q2 :legacy))
   ([vs ^double q1 ^double q2 estimation-strategy]
    (let [avs (m/seq->double-array vs)]
@@ -763,69 +937,115 @@
       (median avs)])))
 
 (defn pi
-  "Returns PI as a map, quantile intervals based on interval size.
+  "Calculates the Percentile Interval (PI), a symmetric quantile-based credible interval of `vs`.
 
-  Quantiles are `(1-size)/2` and `1-(1-size)/2`"
+  Given a target probability mass `size`, the interval spans the quantiles `(1-size)/2` and `1-(1-size)/2`, so that `size` proportion of the data lies within it. Unlike [[hpdi-extent]], this interval is not necessarily the narrowest one covering `size`, but it is symmetric with respect to probability mass on each tail.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `size` (double): Target probability content of the interval, in range `[0,1]`. Defaults to `0.5`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a map of two entries, keyed by the lower and upper bound percentage mapping to the corresponding quantile values.
+
+  See also [[pi-extent]] (vector form including the median), [[hpdi-extent]], [[quantile]]."
   ([vs] (pi vs 0.5))
   ([vs ^double size] (pi vs size :legacy))
   ([vs ^double size estimation-strategy]
-   (let [a (* 0.5 (- 1.0 size))
+   (let [a (m/* 0.5 (m/- 1.0 size))
          avs (m/seq->double-array vs)
          q1 (quantile avs a estimation-strategy)
-         q2 (quantile avs (- 1.0 a) estimation-strategy)]
-     {(m/approx (* a 100.0) 2) q1
-      (m/approx (* (- 1.0 a) 100.0) 2) q2})))
+         q2 (quantile avs (m/- 1.0 a) estimation-strategy)]
+     {(m/* a 100.0) q1
+      (m/* (m/- 1.0 a) 100.0) q2})))
 
 (defn pi-extent
-  "Returns PI extent, quantile intervals based on interval size + median.
+  "Calculates the Percentile Interval (PI) of `vs` together with its median.
 
-  Quantiles are `(1-size)/2` and `1-(1-size)/2`"
+  Given a target probability mass `size`, the interval spans the quantiles `(1-size)/2` and `1-(1-size)/2`. This is the vector-returning counterpart of [[pi]], following the same convention as [[percentile-extent]] and [[quantile-extent]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `size` (double): Target probability content of the interval, in range `[0,1]`. Defaults to `0.5`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a 3-element vector `[lower-bound upper-bound median]`.
+
+  See also [[pi]], [[hpdi-extent]], [[quantile-extent]]."
   ([vs] (pi-extent vs 0.5))
   ([vs ^double size] (pi-extent vs size :legacy))
   ([vs ^double size estimation-strategy]
-   (let [a (* 0.5 (- 1.0 size))]
-     (quantile-extent vs a (- 1.0 a) estimation-strategy))))
+   (let [a (m/* 0.5 (m/- 1.0 size))]
+     (quantile-extent vs a (m/- 1.0 a) estimation-strategy))))
 
 (defn hpdi-extent
-  "Higher Posterior Density interval + median.
+  "Calculates the Highest Posterior Density Interval (HPDI) of `vs` together with its median.
 
-  `size` parameter is the target probability content of the interval."
+  Unlike the symmetric [[pi-extent]], which fixes the probability mass on each tail, the HPDI is the narrowest interval that contains the target probability content `size` of the (sorted) samples. It is found by sliding a fixed-size window across the sorted data and picking the position with the smallest width.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `size` (double): Target probability content of the interval, in range `(0,1)`. Defaults to `0.95`.
+
+  Returns a 3-element vector `[lower-bound upper-bound median]`.
+
+  See also [[pi-extent]], [[quantile-extent]]."
   ([vs] (hpdi-extent vs 0.95))
   ([vs ^double size]
    (let [avs (m/seq->double-array vs)
          nsamp (alength avs)
-         gap (m/constrain (m/round (* nsamp size)) 1 (dec nsamp))
-         max-idx (- nsamp gap)]
+         gap (m/constrain (m/round (m/* nsamp size)) 1 (m/dec nsamp))
+         max-idx (m/- nsamp gap)]
      (java.util.Arrays/sort avs)
      (loop [idx (long 0)
             min-idx (long 0)
             mn Double/MAX_VALUE]
-       (if (< idx max-idx)
-         (let [diff (- (aget avs (+ idx gap))
-                       (aget avs idx))]
-           (if (< diff mn)
-             (recur (inc idx) idx diff)
-             (recur (inc idx) min-idx mn)))
-         [(aget avs min-idx) (aget avs (+ min-idx gap)) (median avs)])))))
+       (if (m/< idx max-idx)
+         (let [diff (m/- (aget avs (m/+ idx gap))
+                         (aget avs idx))]
+           (if (m/< diff mn)
+             (recur (m/inc idx) idx diff)
+             (recur (m/inc idx) min-idx mn)))
+         [(aget avs min-idx) (aget avs (m/+ min-idx gap)) (median avs)])))))
 
 (defn iqr
-  "Interquartile range."
+  "Calculates the interquartile range (IQR) of `vs`.
+
+  The IQR is the difference between the third quartile (75th percentile) and the first quartile (25th percentile), and is a robust measure of statistical dispersion that is insensitive to outliers.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns the IQR as a double.
+
+  See also [[percentile-extent]], [[inner-fence-extent]], [[outer-fence-extent]]."
   (^double [vs] (iqr vs :legacy))
   (^double [vs estimation-strategy]
    (let [[^double q1 ^double q3] (percentile-extent vs 25.0 75.0 estimation-strategy)]
-     (- q3 q1))))
+     (m/- q3 q1))))
 
 (defn adjacent-values
-  "Lower and upper adjacent values (LAV and UAV).
+  "Calculates the lower and upper adjacent values (LAV and UAV) of `vs`, together with its median.
 
-  Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
+  LAV and UAV are the actual data values used as whisker endpoints in a Tukey box-and-whisker plot: rather than the inner-fence thresholds themselves (see [[inner-fence-extent]]), they are the most extreme observed values that still fall within those thresholds. Let `Q1` and `Q3` be the 25th and 75th percentiles and `IQR = Q3 - Q1`:
 
-  * LAV is smallest value which is greater or equal to the LIF = `(- Q1 (* 1.5 IQR))`.
-  * UAV is largest value which is lower or equal to the UIF = `(+ Q3 (* 1.5 IQR))`.
-  * third value is a median of samples
+  - LAV is the smallest value in `vs` that is greater than or equal to the lower inner fence, `Q1 - 1.5*IQR`.
+  - UAV is the largest value in `vs` that is less than or equal to the upper inner fence, `Q3 + 1.5*IQR`.
 
+  Parameters:
 
-  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+  - `q1`, `q3`, `m` (doubles): Precomputed first quartile, third quartile, and median, used instead of computing them from `vs`.
+
+  Returns a 3-element vector `[LAV UAV median]`.
+
+  See also [[inner-fence-extent]], [[outer-fence-extent]], [[iqr]], [[percentile-extent]]."
   ([vs]
    (adjacent-values vs :legacy))
   ([vs estimation-strategy]
@@ -834,95 +1054,146 @@
      (adjacent-values avs q1 q3 m)))
   ([vs ^double q1 ^double q3 ^double m]
    (let [avs (m/seq->double-array vs)
-         iqr (* 1.5 (- q3 q1))
-         lav-thr (- q1 iqr)
-         uav-thr (+ q3 iqr)]
+         iqr (m/* 1.5 (m/- q3 q1))
+         lav-thr (m/- q1 iqr)
+         uav-thr (m/+ q3 iqr)]
      (java.util.Arrays/sort avs)
-     [(first (filter #(>= (double %) lav-thr) avs))
-      (last (filter #(<= (double %) uav-thr) avs))
+     [(first (filter (fn [^double v] (m/>= v lav-thr)) avs))
+      (last (filter (fn [^double v] (m/<= v uav-thr)) avs))
       m])))
 
 (defn inner-fence-extent
-  "Returns LIF, UIF and median"
+  "Calculates the lower and upper inner fence thresholds (LIF and UIF) of `vs`, together with its median.
+
+  The inner fences are the classic Tukey box-and-whisker plot outlier thresholds, computed from `Q1` and `Q3`, the 25th and 75th percentiles, and `IQR = Q3 - Q1`:
+
+  - LIF is the lower inner fence, `Q1 - 1.5*IQR`.
+  - UIF is the upper inner fence, `Q3 + 1.5*IQR`.
+
+  Unlike [[adjacent-values]], these are threshold values and not necessarily values present in `vs`. Values below LIF or above UIF are considered (mild) outliers, see [[outliers]] and [[remove-outliers]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a 3-element vector `[LIF UIF median]`.
+
+  See also [[outer-fence-extent]], [[adjacent-values]], [[iqr]], [[percentile-extent]]."
   ([vs] (inner-fence-extent vs :legacy))
   ([vs estimation-strategy]
    (let [[^double q1 ^double m ^double q3] (percentiles vs [25.0 50.0 75.0] estimation-strategy)
-         iqr+ (* 1.5 (- q3 q1))]
-     [(- q1 iqr+) (+ q3 iqr+) m])))
+         iqr+ (m/* 1.5 (m/- q3 q1))]
+     [(m/- q1 iqr+) (m/+ q3 iqr+) m])))
 
 (defn outer-fence-extent
-  "Returns LOF, UOF and median"
+  "Calculates the lower and upper outer fence thresholds (LOF and UOF) of `vs`, together with its median.
+
+  The outer fences are wider outlier thresholds than the inner fences (see [[inner-fence-extent]]), computed from `Q1` and `Q3`, the 25th and 75th percentiles, and `IQR = Q3 - Q1`:
+
+  - LOF is the lower outer fence, `Q1 - 3*IQR`.
+  - UOF is the upper outer fence, `Q3 + 3*IQR`.
+
+  Values beyond the outer fences are considered extreme (far) outliers, in contrast to the milder outliers flagged by the inner fences.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  Returns a 3-element vector `[LOF UOF median]`.
+
+  See also [[inner-fence-extent]], [[adjacent-values]], [[iqr]], [[percentile-extent]]."
   ([vs] (outer-fence-extent vs :legacy))
   ([vs estimation-strategy]
    (let [[^double q1 ^double m ^double q3] (percentiles vs [25.0 50.0 75.0] estimation-strategy)
-         iqr+ (* 3.0 (- q3 q1))]
-     [(- q1 iqr+) (+ q3 iqr+) m])))
+         iqr+ (m/* 3.0 (m/- q3 q1))]
+     [(m/- q1 iqr+) (m/+ q3 iqr+) m])))
 
 (defn span
-  "Width of the sample, maximum value minus minimum value"
+  "Calculates the span (range width) of `vs`.
+
+  The span is the difference between the maximum and the minimum values of the data, and gives the total width covered by the sample.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns the span as a double. Returns `0.0` when all values in `vs` are equal.
+
+  See also [[extent]], [[maximum]], [[minimum]]."
   ^double [vs]
   (let [avs (m/seq->double-array vs)]
-    (- (maximum avs) (minimum avs))))
+    (m/- (maximum avs) (minimum avs))))
 
 (defn extent
-  "Return extent (min, max, mean) values from sequence. Mean is optional (default: true)"
+  "Calculates the minimum and maximum values of `vs`, optionally together with the mean.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `mean?` (boolean): Whether to append the mean value to the result. Defaults to `true`.
+
+  Returns a 2-element vector `[min max]` when `mean?` is `false`, or a 3-element vector `[min max mean]` when `mean?` is `true`.
+
+  See also [[span]], [[maximum]], [[minimum]], [[mean]]."
   ([vs] (extent vs true))
   ([vs mean?]
-   (let [^double fv (first vs)
+   (let [fv (double (first vs))
          mm (reduce (fn [^Vec2 curr ^double v]
-                      (Vec2. (min (.x curr) v) (max (.y curr) v))) (Vec2. fv fv) (rest vs))]
+                      (Vec2. (m/min (.x curr) v) (m/max (.y curr) v))) (Vec2. fv fv) (rest vs))]
      (if mean? (conj mm (mean vs)) mm))))
 
-(defn outliers
-  "Find outliers defined as values outside inner fences.
-
-  Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
-
-  * LIF (Lower Inner Fence) equals `(- Q1 (* 1.5 IQR))`.
-  * UIF (Upper Inner Fence) equals `(+ Q3 (* 1.5 IQR))`.
-
-  Returns a sequence of outliers.
-
-  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  ([vs]
-   (outliers vs :legacy))
-  ([vs estimation-strategy]
+(defn- process-outliers
+  ([f vs] (process-outliers f vs :legacy))
+  ([f vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
          q1 (percentile avs 25.0 estimation-strategy)
          q3 (percentile avs 75.0 estimation-strategy)]
-     (outliers avs q1 q3)))
-  ([vs ^double q1 ^double q3]
-   (let [iqr (* 1.5 (- q3 q1))
-         lif-thr (- q1 iqr)
-         uif-thr (+ q3 iqr)]
-     (filter (fn [^double v]
-               (or (< v lif-thr)
-                   (> v uif-thr))) vs))))
+     (process-outliers f avs q1 q3)))
+  ([f vs ^double q1 ^double q3]
+   (let [iqr (m/* 1.5 (m/- q3 q1))
+         lif-thr (m/- q1 iqr)
+         uif-thr (m/+ q3 iqr)]
+     (f (fn [^double v]
+          (or (m/< v lif-thr)
+              (m/> v uif-thr))) vs))))
+
+(defn outliers
+  "Finds outliers in `vs`, defined as values falling outside the inner fences.
+
+  Let `Q1` and `Q3` be the 25th and 75th percentiles and `IQR = Q3 - Q1`. A value is considered an outlier when it is below the lower inner fence, `Q1 - 1.5*IQR`, or above the upper inner fence, `Q3 + 1.5*IQR`.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+  - `q1`, `q3` (doubles): Precomputed first and third quartiles, used instead of computing them from `vs`.
+
+  Returns a lazy sequence of the values from `vs` that lie outside the inner fences, in their original order.
+
+  See also [[remove-outliers]], [[inner-fence-extent]], [[adjacent-values]], [[iqr]]."
+  ([vs] (process-outliers filter vs))
+  ([vs estimation-strategy] (process-outliers filter vs estimation-strategy))
+  ([vs ^double q1 ^double q3] (process-outliers filter vs q1 q3)))
 
 (defn remove-outliers
-  "Remove outliers defined as values outside inner fences.
+  "Removes outliers from `vs`, defined as values falling outside the inner fences.
 
-  Let Q1 is 25-percentile and Q3 is 75-percentile. IQR is `(- Q3 Q1)`.
+  Let `Q1` and `Q3` be the 25th and 75th percentiles and `IQR = Q3 - Q1`. A value is considered an outlier when it is below the lower inner fence, `Q1 - 1.5*IQR`, or above the upper inner fence, `Q3 + 1.5*IQR`.
 
-  * LIF (Lower Inner Fence) equals `(- Q1 (* 1.5 IQR))`.
-  * UIF (Upper Inner Fence) equals `(+ Q3 (* 1.5 IQR))`.
+  Parameters:
 
-  Returns a sequence without outliers.
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Percentile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+  - `q1`, `q3` (doubles): Precomputed first and third quartiles, used instead of computing them from `vs`.
 
-  Optional `estimation-strategy` argument can be set to change quantile calculations estimation type. See [[estimation-strategies]]."
-  ([vs] (remove-outliers vs :legacy))
-  ([vs estimation-strategy]
-   (let [avs (m/seq->double-array vs)
-         q1 (percentile avs 25.0 estimation-strategy)
-         q3 (percentile avs 75.0 estimation-strategy)]
-     (remove-outliers avs q1 q3)))
-  ([vs ^double q1 ^double q3]
-   (let [iqr (* 1.5 (- q3 q1))
-         lif-thr (- q1 iqr)
-         uif-thr (+ q3 iqr)]
-     (remove (fn [^double v]
-               (or (< v lif-thr)
-                   (> v uif-thr))) vs))))
+  Returns a lazy sequence of the values from `vs` that lie within the inner fences, in their original order.
+
+  See also [[outliers]], [[inner-fence-extent]], [[adjacent-values]], [[iqr]]."
+  ([vs] (process-outliers remove vs))
+  ([vs estimation-strategy] (process-outliers remove vs estimation-strategy))
+  ([vs ^double q1 ^double q3] (process-outliers remove vs q1 q3)))
 
 (defn wmodes
   "Returns the weighted mode(s) of a sequence `vs`.
@@ -1019,22 +1290,21 @@
                         ibins (vec (map-indexed #(conj %2 %1) bins))]
                     (->> ibins
                          (map (fn [[^double L ^long fm ^long id]]
-                                (let [^long f1 (second (get ibins (dec id) [0 0]))
-                                      ^long f2 (second (get ibins (inc id) [0 0]))]
-                                  [(+ L (* step (/ (- fm f1)
-                                                   (- (* 2.0 fm) f1 f2)))) (- fm)])))
+                                (let [f1 (long (second (get ibins (m/dec id) [0 0])))
+                                      f2 (long (second (get ibins (m/inc id) [0 0])))]
+                                  [(m/+ L (m/* step (m// (m/- fm f1)
+                                                         (m/- (m/* 2.0 fm) f1 f2)))) (m/- fm)])))
                          (sort-by second)
                          (map first)))
        :pearson (let [mu (mean avs)
                       m (median avs (:estimation-strategy opts))]
-                  [(- (* 3.0 m) (* 2.0 mu))])
+                  [(m/- (m/* 3.0 m) (m/* 2.0 mu))])
        :kde (let [kde (kd/kernel-density (get opts :kernel :gaussian) avs opts)]
-              (->> (map (fn [^double v] [v (- ^double (kde v))]) vs)
+              (->> (map (fn [^double v] [v (m/- (double (kde v)))]) vs)
                    (sort-by second)
                    (map first)))
-       (seq ^doubles (StatUtils/mode avs)))))
-  ([vs]
-   (seq ^doubles (StatUtils/mode (m/seq->double-array vs)))))
+       (seq (StatUtils/mode avs)))))
+  ([vs] (seq (StatUtils/mode (m/seq->double-array vs)))))
 
 (defn mode
   "Find the value that appears most often in a dataset `vs`.
@@ -1072,14 +1342,23 @@
      (aget ^doubles m 0))))
 
 (defn moment
-  "Calculate moment (central or/and absolute) of given order (default: 2).
+  "Calculates the statistical moment of `vs` of the given `order` (default: `2.0`).
 
-  Additional parameters as a map:
+  This is a general building block used to compute variance-like, skewness-like, and kurtosis-like statistics by combining a few switches: whether deviations are taken as absolute values, around which center, whether the result is averaged, and whether it is normalized by the standard deviation. For example, `order=2.0` with default options gives the population variance, `order=3.0` with `:normalize?` set to `true` gives a skewness-like statistic, and `order=4.0` with `:normalize?` set to `true` gives a kurtosis-like statistic.
 
-  * `:absolute?` - calculate sum as absolute values (default: `false`)
-  * `:mean?` - returns mean (proper moment) or just sum of differences (default: `true`)
-  * `:center` - value of center (default: `nil` = mean)
-  * `:normalize?` - apply normalization by standard deviation to the order power"
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `order` (double): Power to raise the (optionally absolute) deviations to. Defaults to `2.0`.
+  - `opts` (map, optional):
+    - `:absolute?` (boolean) - when `true`, deviations are taken as absolute values before raising to `order`. Defaults to `false`.
+    - `:mean?` (boolean) - when `true`, averages the deviations (a proper moment); when `false`, returns their plain sum. Defaults to `true`.
+    - `:center` (double) - the center to compute deviations from. Defaults to `nil`, meaning the mean of `vs` is used.
+    - `:normalize?` (boolean) - when `true`, divides the result by the standard deviation of `vs` raised to `order`. Defaults to `false`.
+
+  Returns the computed moment as a double.
+
+  See also [[variance]], [[skewness]], [[kurtosis]]."
   (^double [vs] (moment vs 2.0 nil))
   (^double [vs ^double order] (moment vs order nil))
   (^double [vs ^double order {:keys [absolute? center mean? normalize?]
@@ -1087,34 +1366,43 @@
    (let [in (m/seq->double-array vs)
          cin (alength in)
          out (double-array cin)
-         nf (if normalize? (m/pow (variance in) (* 0.5 order)) 1.0)
-         ^double center (or center (mean in))
+         nf (if normalize? (m/pow (variance in) (m/* 0.5 order)) 1.0)
+         center (double (or center (mean in)))
          f (cond
              (m/one? order) m/identity-double
-             (== order 2.0) m/sq
-             (== order 3.0) m/cb
-             (== order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
+             (m/== order 2.0) m/sq
+             (m/== order 3.0) m/cb
+             (m/== order 4.0) (fn ^double [^double diff] (m/sq (m/sq diff)))
              :else (fn ^double [^double diff] (m/pow diff order)))
          a (if absolute? m/abs m/identity-double)]
-     (loop [idx (int 0)]
-       (when (< idx cin)
-         (aset out idx ^double (f (a (- (aget in idx) center))))
-         (recur (inc idx))))
-     (/ (if mean? (mean out) (sum out)) nf))))
+     (loop [idx (long 0)]
+       (when (m/< idx cin)
+         (aset out idx (double (f (a (m/- (aget in idx) center)))))
+         (recur (m/inc idx))))
+     (m// (if mean? (mean out) (sum out)) nf))))
 
 (def ^{:deprecated "Use [[moment]] function"} second-moment moment)
 
 ;;
 
 (defn l-moment
-  "Calculates L-moment, TL-moment (trimmed) or (T)L-moment ratios.
+  "Calculates the L-moment, TL-moment (trimmed L-moment), or (T)L-moment ratio of `vs` for a given `order`.
 
-  Options:
+  L-moments are summary statistics for describing the shape of a probability distribution, computed as linear combinations of the expected order statistics of the sample. Unlike conventional moments, they exist whenever the mean of the distribution exists, are more robust to outliers, and suffer less from bias in small samples. Trimming (`:s`, `:t`) further excludes extreme order statistics, yielding TL-moments, which remain well-defined even for distributions without a finite mean.
 
-  - `:s` (default: 0) - number of left trimmed values
-  - `:t` (default: 0) - number of right tirmmed values
-  - `:sorted?` (default: false) - if input is already sorted
-  - `:ratio?` (default: false) - normalized l-moment, l-moment ratio"
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `order` (long): The order of the L-moment. Order `0` always returns `1.0`.
+  - `opts` (map, optional):
+    - `:s` (long) - number of smallest (left) values trimmed from the sample. Defaults to `0`.
+    - `:t` (long) - number of largest (right) values trimmed from the sample. Defaults to `0`.
+    - `:sorted?` (boolean) - set to `true` when `vs` is already sorted ascending, to skip re-sorting. Defaults to `false`.
+    - `:ratio?` (boolean) - when `true`, returns the (T)L-moment ratio, i.e. the L-moment of `order` normalized by the second L-moment, instead of the raw L-moment. Defaults to `false`.
+
+  Returns the computed (T)L-moment or (T)L-moment ratio as a double.
+
+  See also [[moment]], [[variance]], [[skewness]]."
   (^double [vs ^long order] (l-moment vs order nil))
   (^double [vs ^long order {:keys [^long s ^long t sorted? ratio?]
                             :or {s 0 t 0}
@@ -1126,26 +1414,36 @@
          (let [nopts (assoc opts :sorted? true :ratio? false)
                l2 (l-moment svs 2 nopts)]
            (m// (l-moment svs order nopts) l2))
-         (let [r- (m/dec order)
+         (let [r- (m/long-dec order)
                s+ (m/inc s)
                n (alength svs)
                n-t+ (m/- n t -1)]
            (m// (double (reduce (fn [^double b1 ^long k]
-                                  (let [c1 (m/- (m/+ r- s) k)
-                                        c2 (m/+ t k)]
+                                  (let [c1 (m/long-sub (m/long-add r- s) k)
+                                        c2 (m/long-add t k)]
                                     (-> (if (m/even? k) (m/combinations r- k) (m/- (m/combinations r- k)))
                                         (m/* (double (reduce (fn [^double b2 ^long j]
-                                                               (let [j- (m/dec j)]
+                                                               (let [j- (m/long-dec j)]
                                                                  (-> (m/* (m/combinations j- c1)
-                                                                          (m/combinations (m/- n j) c2)
+                                                                          (m/combinations (m/long-sub n j) c2)
                                                                           (Array/aget svs j-))
                                                                      (m/+ b2)))) 0.0 (range s+ n-t+))))
                                         (m/+ b1))))
                                 0.0 (range order)))
-                (m/* order (m/combinations n (m/+ order s t))))))))))
+                (m/* order (m/combinations n (m/long-add order s t))))))))))
 
 (defn l-variation
-  "Coefficient of L-variation, L-CV"
+  "Calculates the coefficient of L-variation (L-CV) of `vs`.
+
+  This is a robust analogue of the ordinary coefficient of variation [[variation]]: instead of the ratio of the standard deviation to the mean, it is the ratio of the second L-moment (a measure of scale, see [[l-moment]]) to the mean.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns the L-CV as a double.
+
+  See also [[l-moment]], [[variation]], [[mean]]."
   ^double [vs]
   (let [svs (m/seq->double-array vs)]
     (java.util.Arrays/sort svs)
@@ -1201,38 +1499,80 @@
            (solver/find-root (expectile-target vs weights tau (m/- 1.0 tau)) x0 x1)))))))
 
 (defn winsor
-  "Return winsorized data. Trim is done by using quantiles, by default is set to 0.2."
+  "Winsorizes `vs`, clamping extreme values to a pair of quantile-based bounds.
+
+  Values below the lower bound are replaced by the lower bound, and values above the upper bound are replaced by the upper bound, so the size of the sequence is unchanged. `NaN` entries are always replaced by a given replacement value (the median, unless given explicitly).
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `quantile` (double): Trimming proportion applied to each tail, e.g. `0.2` clamps the bottom 20% and top 20% of the data to the 20th and 80th percentile values respectively. Defaults to `0.2`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+  - `low`, `high` (doubles): Explicit lower and upper bounds, used instead of computing them from `quantile`. Order does not matter, the smaller value is always used as the lower bound.
+  - `nan` (double): Replacement value for `NaN` entries in `vs`.
+
+  Returns a lazy sequence of the same length as `vs`, with out-of-bound values clamped and `NaN` values replaced.
+
+  See also [[trim]], [[remove-outliers]], [[quantile]]."
   ([vs] (winsor vs 0.2))
   ([vs quantile] (winsor vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
    (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
-                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+                                      [quantile 0.5 (m/- 1.0 quantile)] estimation-strategy)]
      (winsor vs qlow qhigh qmid)))
   ([vs ^double low ^double high nan]
-   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+   (let [[^double low ^double high] (if (m/< low high) [low high] [high low])]
      (map (fn [^double v]
             (if (m/nan? v)
               nan
               (m/constrain v low high))) vs))))
 
 (defn trim
-  "Return trimmed data. Trim is done by using quantiles, by default is set to 0.2."
+  "Trims `vs`, discarding values falling outside a pair of quantile-based bounds.
+
+  Unlike [[winsor]], which clamps out-of-bound values, this function removes them entirely, so the resulting sequence may be shorter than `vs`. `NaN` entries are always kept but replaced by a given replacement value (the median, unless given explicitly).
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `quantile` (double): Trimming proportion applied to each tail, e.g. `0.2` discards the bottom 20% and top 20% of the data, below the 20th and above the 80th percentile. Defaults to `0.2`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+  - `low`, `high` (doubles): Explicit lower and upper bounds, used instead of computing them from `quantile`. Order does not matter, the smaller value is always used as the lower bound.
+  - `nan` (double): Replacement value for `NaN` entries in `vs`.
+
+  Returns a lazy sequence containing only the values from `vs` within `[low,high]`, with `NaN` values replaced.
+
+  See also [[trim-lower]], [[trim-upper]], [[winsor]], [[remove-outliers]], [[quantile]]."
   ([vs] (trim vs 0.2))
   ([vs quantile] (trim vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
    (let [[qlow qmid qhigh] (quantiles (remove m/nan? vs)
-                                      [quantile 0.5 (- 1.0 quantile)] estimation-strategy)]
+                                      [quantile 0.5 (m/- 1.0 quantile)] estimation-strategy)]
      (trim vs qlow qhigh qmid)))
   ([vs ^double low ^double high nan]
-   (let [[^double low ^double high] (if (< low high) [low high] [high low])]
+   (let [[^double low ^double high] (if (m/< low high) [low high] [high low])]
      (->> vs
           (filter (fn [^double v]
                     (or (m/nan? v)
-                        (<= low v high))))
+                        (m/<= low v high))))
           (map (fn [^double v] (if (m/nan? v) nan v)))))))
 
 (defn trim-lower
-  "Trim data below given quanitle, default: 0.2."
+  "Trims `vs`, discarding values below a given quantile.
+
+  This is a one-sided version of [[trim]]: only values below the cutoff are discarded, values above it are all kept.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `quantile` (double): Trimming proportion, e.g. `0.2` discards values below the 20th percentile. Defaults to `0.2`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  `NaN` entries are always kept but replaced by the median of `vs`.
+
+  Returns a lazy sequence containing only the values from `vs` at or above the cutoff quantile, with `NaN` values replaced.
+
+  See also [[trim-upper]], [[trim]], [[winsor]]."
   ([vs] (trim-lower vs 0.2))
   ([vs quantile] (trim-lower vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
@@ -1240,7 +1580,21 @@
      (trim vs q ##Inf qmid))))
 
 (defn trim-upper
-  "Trim data above given quanitle, default: 0.2."
+  "Trims `vs`, discarding values above a given quantile.
+
+  This is a one-sided version of [[trim]]: only values above the cutoff are discarded, values below it are all kept.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `quantile` (double): Trimming proportion, e.g. `0.2` discards values above the 80th percentile (`1.0-quantile`). Defaults to `0.2`.
+  - `estimation-strategy` (keyword): Quantile estimation method, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
+
+  `NaN` entries are always kept but replaced by the median of `vs`.
+
+  Returns a lazy sequence containing only the values from `vs` at or below the cutoff quantile, with `NaN` values replaced.
+
+  See also [[trim-lower]], [[trim]], [[winsor]]."
   ([vs] (trim-upper vs 0.2))
   ([vs quantile] (trim-upper vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
@@ -1251,9 +1605,9 @@
 
 (defn- yule-skewness
   ^double [vs ^double u]
-  (let [[^double q1 ^double q2 ^double q3] (quantiles vs [u 0.5 (- 1.0 u)])]
-    (/ (+ q3 (* -2.0 q2) q1)
-       (- q3 q1))))
+  (let [[^double q1 ^double q2 ^double q3] (quantiles vs [u 0.5 (m/- 1.0 u)])]
+    (m// (m/+ q3 (m/* -2.0 q2) q1)
+         (m/- q3 q1))))
 
 (defn- bowley-skewness
   ^double [vs]
@@ -1264,76 +1618,59 @@
   (let [m25 (mean (trim vs 0.25))
         u005 (mean (trim-lower vs 0.95))
         l005 (mean (trim-upper vs 0.05))]
-    (/ (- u005 m25) (- m25 l005))))
+    (m// (m/- u005 m25) (m/- m25 l005))))
 
 (defn skewness
-  "Calculate skewness from sequence, a measure of the asymmetry of the
-  probability distribution about its mean.
+  "Calculates the skewness of `vs`, a measure of the asymmetry of a probability distribution about its mean.
+
+  Several skewness definitions are supported through the `typ` argument, ranging from moment-based estimators to robust, quantile- or trimmed-mean-based estimators.
 
   Parameters:
 
-  - `vs` (seq of numbers): The input sequence.
-  - `typ` (keyword or sequence, optional): Specifies the type of skewness measure to calculate.
-    Defaults to `:G1`.
+  - `vs` (sequence of numbers): Input data.
+  - `typ` (keyword or sequence): Skewness measure to calculate. Defaults to `:G1`. One of:
+    - `:G1` (default): sample skewness based on the third standardized moment, adjusted for sample size bias, as implemented by Apache Commons Math `Skewness`.
+    - `:g1` or `:pearson`: Pearson's moment coefficient of skewness, a bias-adjusted version of the third standardized moment. Expected value `0` for symmetric distributions.
+    - `:b1`: sample skewness coefficient (b1), related to `:g1`.
+    - `:B1` or `:yule`: Yule's coefficient (robust), based on quantiles. The sequence form `[:B1 u]` or `[:yule u]` sets the quantile `u` used, default `0.25`.
+    - `:B3`: robust measure comparing the mean and median relative to the mean absolute deviation around the median.
+    - `:skew`: an adjusted skewness definition sometimes used in bootstrap (BCa) calculations.
+    - `:mode`: Pearson's second skewness coefficient, `(mean - mode) / stddev`. The sequence form `[:mode method opts]` sets the mode estimation `method` and its `opts`, see [[mode]].
+    - `:median`: robust measure, `3 * (mean - median) / stddev`.
+    - `:bowley`: Bowley's coefficient (robust), also known as the Yule-Bowley coefficient, based on quartiles `Q1`, `Q2`, `Q3`: `(Q3 + Q1 - 2*Q2) / (Q3 - Q1)`.
+    - `:hogg`: Hogg's robust measure, based on the ratio of differences between trimmed means.
+    - `:l-skewness`: L-skewness (τ₃), the ratio of the third L-moment (λ₃) to the second L-moment (λ₂, L-scale), a robust measure of asymmetry. Calculated directly using [[l-moment]] with `:ratio?` set to `true`. Expected value `0` for symmetric distributions.
 
-  Available `typ` values:
+  Positive values generally indicate a distribution skewed to the right (a longer tail on the right), negative values indicate a distribution skewed to the left (a longer tail on the left), and values near `0` suggest relative symmetry.
 
-  - `:G1` (Default): Sample skewness based on the third standardized moment, as
-    implemented by Apache Commons Math `Skewness`. Adjusted for sample size bias.
-  - `:g1` or `:pearson`: Pearson's moment coefficient of skewness (g1), a bias-adjusted
-    version of the third standardized moment. Expected value 0 for symmetric distributions.
-  - `:b1`: Sample skewness coefficient (b1), related to :g1.
-  - `:B1` or `:yule`: Yule's coefficient (robust), based on quantiles. Takes an optional
-    quantile `u` (default 0.25) via sequence `[:B1 u]` or `[:yule u]`.
-  - `:B3`: Robust measure comparing the mean and median relative to the mean absolute
-    deviation around the median.
-  - `:skew`: An adjusted skewness definition sometimes used in bootstrap (BCa) calculations.
-  - `:mode`: Pearson's second skewness coefficient: `(mean - mode) / stddev`. Requires
-    calculating the mode. Mode calculation method can be specified via sequence
-    `[:mode method opts]`, see [[mode]].
-  - `:median`: Robust measure: `3 * (mean - median) / stddev`.
-  - `:bowley`: Bowley's coefficient (robust), based on quartiles (Q1, Q2, Q3). Also
-    known as Yule-Bowley coefficient. Calculated as `(Q3 + Q1 - 2*Q2) / (Q3 - Q1)`.
-  - `:hogg`: Hogg's robust measure based on the ratio of differences between trimmed means.
-  - `:l-skewness`: L-skewness (τ₃), the ratio of the 3rd L-moment (λ₃) to the
-    2nd L-moment (λ₂, L-scale). Calculated directly using [[l-moment]] with the
-    `:ratio?` option set to true. It's a robust measure of asymmetry.
-    Expected value 0 for symmetric distributions.
+  Returns the calculated skewness as a double.
 
-  Interpretation:
-
-  - Positive values generally indicate a distribution skewed to the right (tail is longer on the right).
-  - Negative values generally indicate a distribution skewed to the left (tail is longer on the left).
-  - Values near 0 suggest relative symmetry.
-
-  Returns the calculated skewness value as a double.
-
-  See also [[skewness-test]], [[normality-test]], [[jarque-bera-test]], [[l-moment]]."
+  See also [[skewness-test]], [[kurtosis]], [[normality-test]], [[jarque-bera-test]], [[l-moment]], [[moment]]."
   (^double [vs] (skewness vs :G1))
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)]
      (if (sequential? typ)
        (let [[typ a b] typ]
          (case typ
-           :mode (/ (- (mean vs) (mode vs a b)) (stddev vs))
+           :mode (m// (m/- (mean vs) (mode vs a b)) (stddev vs))
            (:B1 :yule) (yule-skewness vs a)))
        (case typ
-         :mode (/ (- (mean vs) (mode vs)) (stddev vs))
-         :median (/ (* 3.0 (- (mean vs) (median vs))) (stddev vs))
+         :mode (m// (m/- (mean vs) (mode vs)) (stddev vs))
+         :median (m// (m/* 3.0 (m/- (mean vs) (median vs))) (stddev vs))
          :bowley (bowley-skewness vs)
          :hogg (hogg-skewness vs)
          (:B1 :yule) (yule-skewness vs 0.25)
          :B3 (let [v (median vs)]
-               (/ (- (mean vs) v)
-                  (moment vs 1.0 {:absolute? true :center v})))
+               (m// (m/- (mean vs) v)
+                    (moment vs 1.0 {:absolute? true :center v})))
          :l-skewness (l-moment vs 3 {:ratio? true})
          (let [^Skewness k (Skewness.)
                n (alength vs)
                v (.evaluate k vs)]
            (case typ
-             :b1 (* v (/ (* (- n 2.0) (dec n)) (* n n)))
-             (:pearson :g1) (* v (/ (- n 2.0) (m/sqrt (* n (dec n)))))
-             :skew (* v (/ (- n 2.0) (* n (m/sqrt (dec n))))) ;; BCa based, g1/sqrt(n)
+             :b1 (m/* v (m// (m/* (m/- n 2.0) (m/dec n)) (m/* n n)))
+             (:pearson :g1) (m/* v (m// (m/- n 2.0) (m/sqrt (m/* n (m/dec n)))))
+             :skew (m/* v (m// (m/- n 2.0) (m/* n (m/sqrt (m/dec n))))) ;; BCa based, g1/sqrt(n)
              v)))))))
 
 ;; centered
@@ -1341,76 +1678,55 @@
   ^double [vs]
   (let [[^double e1 ^double e2 ^double e3
          ^double e5 ^double e6 ^double e7] (quantiles vs [0.125 0.25 0.375 0.625 0.75 0.875])]
-    (- (/ (+ (- e7 e5) (- e3 e1))
-          (- e6 e2)) 1.233)))
+    (m/- (m// (m/+ (m/- e7 e5) (m/- e3 e1))
+            (m/- e6 e2)) 1.233)))
 
 ;; centered
 (defn- crow-kurtosis
   (^double [vs] (crow-kurtosis vs 0.025 0.25))
   (^double [vs ^double alpha ^double beta]
-   (let [[^double a1 ^double a2 ^double b1 ^double b2] (quantiles vs [alpha (- 1.0 alpha)
-                                                                      beta (- 1.0 beta)])
-         c (/ (double (r/icdf r/default-normal alpha))
-              (double (r/icdf r/default-normal beta)))]
-     (- (/ (- a2 a1) (- b2 b1)) c))))
+   (let [[^double a1 ^double a2 ^double b1 ^double b2] (quantiles vs [alpha (m/- 1.0 alpha)
+                                                                      beta (m/- 1.0 beta)])
+         c (m// (double (r/icdf r/default-normal alpha))
+                (double (r/icdf r/default-normal beta)))]
+     (m/- (m// (m/- a2 a1) (m/- b2 b1)) c))))
 
 ;; centered
 (defn- hogg-kurtosis
   (^double [vs] (hogg-kurtosis vs 0.05 0.5))
   (^double [vs ^double alpha ^double beta]
-   (let [ua (mean (trim-lower vs (- 1.0 alpha)))
-         ub (mean (trim-lower vs (- 1.0 beta)))
+   (let [ua (mean (trim-lower vs (m/- 1.0 alpha)))
+         ub (mean (trim-lower vs (m/- 1.0 beta)))
          la (mean (trim-upper vs alpha))
          lb (mean (trim-upper vs beta))]
-     (- (/ (- ua la) (- ub lb)) 2.585))))
+     (m/- (m// (m/- ua la) (m/- ub lb)) 2.585))))
 
 
 ;; https://aakinshin.net/posts/misleading-kurtosis/
 (defn kurtosis
-  "Calculates the kurtosis of a sequence, a measure of the 'tailedness' or 'peakedness'
-  of the distribution compared to a normal distribution.
+  "Calculates the kurtosis of `vs`, a measure of the tailedness or peakedness of a distribution compared to a normal distribution.
+
+  Several kurtosis definitions are supported through the `typ` argument, ranging from moment-based estimators to robust, quantile- or trimmed-mean-based estimators. Different types use different algorithms and have different expected values under normality (`0` or `3`).
 
   Parameters:
 
-  - `vs` (seq of numbers): The input sequence.
-  - `typ` (keyword or sequence, optional): Specifies the type of kurtosis measure to calculate.
-    Different types use different algorithms and may have different expected values
-    under normality (e.g., 0 or 3). Defaults to `:G2`.
+  - `vs` (sequence of numbers): Input data.
+  - `typ` (keyword or sequence): Kurtosis measure to calculate. Defaults to `:G2`. One of:
+    - `:G2` (default): sample excess kurtosis based on the fourth standardized moment, as implemented by Apache Commons Math `Kurtosis`. Expected value `0` for a normal distribution.
+    - `:g2` or `:excess`: an alternative sample excess kurtosis, obtained from `:G2` by inverting its finite-sample bias correction. Expected value `0` for a normal distribution.
+    - `:kurt`: the classical kurtosis definition where normal is `3`, calculated as `:g2 + 3`.
+    - `:b2`: another excess kurtosis variant, obtained by applying an additional finite-sample correction factor to `:kurt`. Expected value `0` for a normal distribution.
+    - `:geary`: Geary's g, a robust measure calculated as `mean-absolute-deviation / population-stddev`. Expected value for normal is `sqrt(2/pi) ≈ 0.798`, lower values indicate leptokurtosis.
+    - `:moors`: Moors' robust kurtosis measure based on octiles, centered so that the expected value for normal is `0`.
+    - `:crow`: Crow-Siddiqui robust kurtosis measure based on quantiles, centered so that the expected value for normal is `0`. The sequence form `[:crow alpha beta]` sets the quantile parameters `alpha` and `beta`.
+    - `:hogg`: Hogg's robust kurtosis measure based on trimmed means, centered so that the expected value for normal is `0`. The sequence form `[:hogg alpha beta]` sets the trimming parameters `alpha` and `beta`.
+    - `:l-kurtosis`: L-kurtosis (τ₄), the ratio of the fourth L-moment (λ₄) to the second L-moment (λ₂, L-scale), a robust measure. Calculated directly using [[l-moment]] with `:ratio?` set to `true`. Expected value for a normal distribution is approximately `0.1226`.
 
-  Available `typ` values:
+  For the excess-kurtosis variants (`:G2`, `:g2`, `:excess`, `:b2` and the centered robust measures), positive values indicate a leptokurtic distribution (heavier tails, more peaked than normal), negative values indicate a platykurtic distribution (lighter tails, flatter than normal), and values near `0` suggest kurtosis similar to a normal distribution.
 
-  - `:G2` (Default): Sample kurtosis based on the fourth standardized moment, as
-    implemented by Apache Commons Math `Kurtosis`. Its value approaches 3 for
-    a large normal sample, but the exact expected value depends on sample size.
-  - `:g2` or `:excess`: Sample excess kurtosis. This is calculated from `:G2`
-    and adjusted for sample bias, such that the expected value for a normal
-    distribution is approximately 0.
-  - `:kurt`: Kurtosis definition where normal = 3. Calculated as `:g2` + 3.
-  - `:b2`: Kurtosis defined as fourth moment divided by standard deviation to the power of 4
-  - `:geary`: Geary's 'g', a robust measure calculated as `mean_abs_deviation / population_stddev`.
-    Expected value for normal is `sqrt(2/pi) ≈ 0.798`. Lower values indicate leptokurtosis.
-  - `:moors`: Moors' robust kurtosis measure based on octiles. The implementation
-    returns a centered version where the expected value for normal is 0.
-  - `:crow`: Crow-Siddiqui robust kurtosis measure based on quantiles. The implementation
-    returns a centered version where the expected value for normal is 0.
-    Can accept parameters `alpha` and `beta` via sequential type `[:crow alpha beta]`.
-  - `:hogg`: Hogg's robust kurtosis measure based on trimmed means. The implementation
-    returns a centered version where the expected value for normal is 0.
-    Can accept parameters `alpha` and `beta` via sequential type `[:hogg alpha beta]`.
-  - `:l-kurtosis`: L-kurtosis (τ₄), the ratio of the 4th L-moment (λ₄) to the
-    2nd L-moment (λ₂, L-scale). Calculated directly using [[l-moment]] with the
-    `:ratio?` option set to true. It's a robust measure.
-    Expected value for normal distribution is ≈ 0.1226.
+  Returns the calculated kurtosis as a double.
 
-  Interpretation (for excess kurtosis `:g2`):
-
-  - Positive values indicate a leptokurtic distribution (heavier tails, more peaked than normal).
-  - Negative values indicate a platykurtic distribution (lighter tails, flatter than normal).
-  - Values near 0 suggest kurtosis similar to a normal distribution.
-
-  Returns the calculated kurtosis value as a double.
-
-  See also [[kurtosis-test]], [[bonett-seier-test]], [[normality-test]], [[jarque-bera-test]], [[l-moment]]."
+  See also [[kurtosis-test]], [[bonett-seier-test]], [[skewness]], [[normality-test]], [[jarque-bera-test]], [[l-moment]], [[moment]]."
   (^double [vs] (kurtosis vs :G2))      ; Default to :G2 as per code
   (^double [vs typ]
    (let [vs (m/seq->double-array vs)
@@ -1421,8 +1737,8 @@
            :crow (crow-kurtosis vs a b)
            :hogg (hogg-kurtosis vs a b)))
        (case typ
-         :geary (/ (mean-absolute-deviation vs)
-                   (population-stddev vs))
+         :geary (m// (mean-absolute-deviation vs)
+                     (population-stddev vs))
          :moors (moors-kurtosis vs)
          :crow (crow-kurtosis vs)
          :hogg (hogg-kurtosis vs)
@@ -1432,29 +1748,38 @@
          (let [^Kurtosis k (Kurtosis.)
                v (.evaluate k vs)]
            (case typ
-             (:excess :g2) (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) 
-                              (inc n))
-             :kurt (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) ; g2 + 3
-                             (inc n)))
-             :b2 (- (* (+ 3.0 (/ (- (/ (* v (- n 2) (- n 3)) (dec n)) 6.0) ; g2 + 3
-                                 (inc n)))
-                       (m/sq (- 1.0 (/ 1.0 n)))) 3.0)
+             (:excess :g2) (m// (m/- (m// (m/* v (m/- n 2) (m/- n 3)) (m/dec n)) 6.0) 
+                              (m/inc n))
+             :kurt (m/+ 3.0 (m// (m/- (m// (m/* v (m/- n 2) (m/- n 3)) (m/dec n)) 6.0) ; g2 + 3
+                             (m/inc n)))
+             :b2 (m/- (m/* (m/+ 3.0 (m// (m/- (m// (m/* v (m/- n 2) (m/- n 3)) (m/dec n)) 6.0) ; g2 + 3
+                                 (m/inc n)))
+                       (m/sq (m/- 1.0 (m// 1.0 n)))) 3.0)
              v    ; Default is :G2 (sample kurtosis from Commons Math)
              )))))))
 
 (defn ci
-  "T-student based confidence interval for given data. Alpha value defaults to 0.05.
+  "Calculates the Student's t-distribution based confidence interval for the mean of `vs`, together with the mean itself.
 
-  Last value is mean."
+  The interval is built as `mean ± critical-value * stddev / sqrt(n)`, where the critical value is the `1-alpha/2` quantile of the t-distribution with `n-1` degrees of freedom (`n` being the sample size). This is the standard parametric confidence interval for the mean, assuming approximately normal data.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `alpha` (double): Significance level, in range `(0,1)`. Defaults to `0.05`, giving a 95% confidence interval.
+
+  Returns a 3-element vector `[lower-bound upper-bound mean]`.
+
+  See also [[bootstrap-ci]], [[mean]], [[stddev]], [[sem-extent]]."
   ([vs] (ci vs 0.05))
   ([vs ^double alpha]
    (let [vsa (m/seq->double-array vs)
          cnt (count vs)
-         dist (r/distribution :t {:degrees-of-freedom (dec cnt)})
-         ^double crit-val (r/icdf dist (- 1.0 (* 0.5 alpha)))
-         mean-ci (/ (* crit-val (stddev vsa)) (m/sqrt cnt))
+         dist (r/distribution :t {:degrees-of-freedom (m/dec cnt)})
+         crit-val (double (r/icdf dist (m/- 1.0 (m/* 0.5 alpha))))
+         mean-ci (m// (m/* crit-val (stddev vsa)) (m/sqrt cnt))
          mn (mean vsa)]
-     [(- mn mean-ci) (+ mn mean-ci) mn])))
+     [(m/- mn mean-ci) (m/+ mn mean-ci) mn])))
 
 ;; https://ocw.mit.edu/courses/mathematics/18-05-introduction-to-probability-and-statistics-spring-2014/readings/MIT18_05S14_Reading24.pdf
 (defn bootstrap-ci
@@ -1472,11 +1797,11 @@
    (let [vsa (m/seq->double-array vs)
          cnt (count vs)
          dist (r/distribution :enumerated-real {:data vsa})
-         ^double m (stat-fn vsa)
-         deltas (m/seq->double-array (repeatedly samples #(- ^double (mean (r/->seq dist cnt)) m)))
+         m (double (stat-fn vsa))
+         deltas (m/seq->double-array (repeatedly samples #(m/- (mean (r/->seq dist cnt)) m)))
          q1 (quantile deltas alpha)
-         q2 (quantile deltas (- 1.0 alpha))]
-     [(- m q1) (- m q2) m])))
+         q2 (quantile deltas (m/- 1.0 alpha))]
+     [(m/- m q1) (m/- m q2) m])))
 
 (defn bootstrap
   {:doc "Generate set of samples of given size from provided data.
@@ -1490,50 +1815,41 @@
      (repeatedly samples #(r/->seq dist size)))))
 
 (defn stats-map
-  "Calculates a comprehensive set of descriptive statistics for a numerical dataset.
-
-  This function computes various summary measures and returns them as a map,
-  providing a quick overview of the data's central tendency, dispersion, shape,
-  and potential outliers.
+  "Calculates a comprehensive set of descriptive statistics for `vs` and returns them as a map, giving a quick overview of the data's central tendency, dispersion, shape, and potential outliers.
 
   Parameters:
 
-  - `vs` (seq of numbers): The input sequence of numerical data.
-  - `estimation-strategy` (keyword, optional): Specifies the method for calculating
-    quantiles (including median, quartiles, and values used for fences).
-    Defaults to `:legacy`. See [[percentile]] or [[quantile]] for available
-    strategies (e.g., `:r1` through `:r9`).
+  - `vs` (sequence of numbers): Input data.
+  - `estimation-strategy` (keyword): Quantile estimation method used for the median, quartiles, and fence-related statistics, one of the keys of [[estimation-strategies-list]]. Defaults to `:legacy`.
 
-  Returns a map where keys are statistic names (as keywords) and values are
-  their calculated measures:
+  Returns a map with the following keys:
 
-  - `:Size`: The number of data points in the sequence (count).
-  - `:Min`: The minimum value (see [[minimum]]).
-  - `:Max`: The maximum value (see [[maximum]]).
-  - `:Range`: The difference between the maximum and minimum values (Max - Min).
-  - `:Mean`: The arithmetic average (see [[mean]]).
-  - `:Median`: The middle value (see [[median]] with `estimation-strategy`).
-  - `:Mode`: The most frequent value (see [[mode]] with default method).
-  - `:Q1`: The first quartile (25th percentile) (see [[percentile]] with `estimation-strategy`).
-  - `:Q3`: The third quartile (75th percentile) (see [[percentile]] with `estimation-strategy`).
-  - `:Total`: The sum of all values (see [[sum]]).
-  - `:SD`: The sample standard deviation (see [[stddev]]).
-  - `:Variance`: The sample variance (SD^2, see [[variance]]).
-  - `:MAD`: The Median Absolute Deviation (see [[median-absolute-deviation]]).
-  - `:SEM`: The Standard Error of the Mean (see [[sem]]).
-  - `:LAV`: The Lower Adjacent Value (smallest value within the inner fence, see [[adjacent-values]]).
-  - `:UAV`: The Upper Adjacent Value (largest value within the inner fence, see [[adjacent-values]]).
-  - `:IQR`: The Interquartile Range (Q3 - Q1).
-  - `:LOF`: The Lower Outer Fence (Q1 - 3*IQR, see [[outer-fence-extent]]).
-  - `:UOF`: The Upper Outer Fence (Q3 + 3*IQR, see [[outer-fence-extent]]).
-  - `:LIF`: The Lower Inner Fence (Q1 - 1.5*IQR, see [[inner-fence-extent]]).
-  - `:UIF`: The Upper Inner Fence (Q3 + 1.5*IQR, see [[inner-fence-extent]]).
-  - `:Outliers`: A sequence of data points falling outside the inner fences (see [[outliers]]).
-  - `:Kurtosis`: A measure of tailedness/peakedness (see [[kurtosis]] with default `:G2` type).
-  - `:Skewness`: A measure of asymmetry (see [[skewness]] with default `:G1` type).
+  - `:Size`: number of data points, `count`.
+  - `:Min`: minimum value, see [[minimum]].
+  - `:Max`: maximum value, see [[maximum]].
+  - `:Range`: `Max - Min`.
+  - `:Mean`: arithmetic average, see [[mean]].
+  - `:Median`: middle value, see [[median]].
+  - `:Mode`: most frequent value, see [[mode]] (default method).
+  - `:Q1`: first quartile (25th percentile), see [[percentile]].
+  - `:Q3`: third quartile (75th percentile), see [[percentile]].
+  - `:Total`: sum of all values, see [[sum]].
+  - `:SD`: sample standard deviation, see [[stddev]].
+  - `:Variance`: sample variance, `SD^2`, see [[variance]].
+  - `:MAD`: median absolute deviation, see [[median-absolute-deviation]].
+  - `:SEM`: standard error of the mean, see [[sem]].
+  - `:LAV`: lower adjacent value, the smallest value within the lower inner fence, see [[adjacent-values]].
+  - `:UAV`: upper adjacent value, the largest value within the upper inner fence, see [[adjacent-values]].
+  - `:IQR`: interquartile range, `Q3 - Q1`.
+  - `:LOF`: lower outer fence, `Q1 - 3*IQR`, see [[outer-fence-extent]].
+  - `:UOF`: upper outer fence, `Q3 + 3*IQR`, see [[outer-fence-extent]].
+  - `:LIF`: lower inner fence, `Q1 - 1.5*IQR`, see [[inner-fence-extent]].
+  - `:UIF`: upper inner fence, `Q3 + 1.5*IQR`, see [[inner-fence-extent]].
+  - `:Outliers`: sequence of data points falling outside the inner fences, see [[outliers]].
+  - `:Kurtosis`: measure of tailedness/peakedness, see [[kurtosis]] (default `:G2` type).
+  - `:Skewness`: measure of asymmetry, see [[skewness]] (default `:G1` type).
 
-  This function is a convenient way to get a standard set of summary statistics
-  for a dataset in a single call."
+  See also [[extent]], [[percentile-extent]], [[adjacent-values]], [[inner-fence-extent]], [[outer-fence-extent]], [[outliers]]."
   ([vs] (stats-map vs :legacy))
   ([vs estimation-strategy]
    (let [avs (m/seq->double-array vs)
@@ -1541,18 +1857,18 @@
          mn (Array/min avs)
          mx (Array/max avs)
          sm (Array/sum avs)
-         u (/ sm sz)
+         u (m// sm sz)
          mdn (median avs)
          q1 (percentile avs 25.0 estimation-strategy)
          q3 (percentile avs 75.0 estimation-strategy)
-         iqr (- q3 q1)
+         iqr (m/- q3 q1)
          sd (stddev avs)
          mad (median-absolute-deviation avs)
          [lav uav] (adjacent-values avs q1 q3 mdn)]
      {:Size sz
       :Min mn
       :Max mx
-      :Range (- mx mn)
+      :Range (m/- mx mn)
       :Mean u
       :Median mdn
       :Mode (mode avs)
@@ -1560,48 +1876,92 @@
       :Q3 q3
       :Total sm
       :SD sd
-      :Variance (* sd sd)
+      :Variance (m/* sd sd)
       :MAD mad
-      :SEM (/ sd (m/sqrt sz))
+      :SEM (m// sd (m/sqrt sz))
       :LAV lav
       :UAV uav
       :IQR iqr
-      :LOF (- q1 (* 3.0 iqr))
-      :UOF (+ q3 (* 3.0 iqr))
-      :LIF (- q1 (* 1.5 iqr))
-      :UIF (+ q3 (* 1.5 iqr))
+      :LOF (m/- q1 (m/* 3.0 iqr))
+      :UOF (m/+ q3 (m/* 3.0 iqr))
+      :LIF (m/- q1 (m/* 1.5 iqr))
+      :UIF (m/+ q3 (m/* 1.5 iqr))
       :Outliers (outliers avs q1 q3)
       :Kurtosis (kurtosis avs)
       :Skewness (skewness avs)})))
 
+;;
+
 (defn standardize
-  "Normalize samples to have mean = 0 and stddev = 1."
+  "Standardizes `vs` (z-scores) so that the result has a mean of `0` and a standard deviation of `1`.
+
+  Each value `x` in `vs` is transformed to `(x - mean) / stddev`, using the sample mean and sample standard deviation of `vs`.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns a lazy sequence of standardized values, of the same length as `vs`.
+
+  Not robust to outliers; use [[robust-standardize]] for a median/MAD-based alternative.
+
+  See also [[robust-standardize]], [[mean]], [[stddev]]."
   [vs]
-  (seq ^doubles (StatUtils/normalize (m/seq->double-array vs))))
+  (seq (StatUtils/normalize (m/seq->double-array vs))))
 
 (defn robust-standardize
-  "Normalize samples to have median = 0 and MAD = 1.
+  "Standardizes `vs` using robust, outlier-resistant statistics instead of mean and standard deviation.
 
-  If `q` argument is used, scaling is done by quantile difference (Q_q, Q_(1-q)). Set 0.25 for IQR."
+  Each value `x` in `vs` is transformed to `(x - median) / scale`. By default `scale` is the median absolute deviation (MAD, see [[median-absolute-deviation]]), giving a result centered at `0` with `MAD = 1`. This is a robust counterpart of [[standardize]], less sensitive to outliers.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `q` (double, optional): When provided, `scale` is instead the quantile difference `Q(1-q) - Q(q)`, in range `(0,0.5)`. For example, `0.25` uses the interquartile range (IQR) as the scale.
+
+  Returns a lazy sequence of standardized values, of the same length as `vs`.
+
+  See also [[standardize]], [[median]], [[median-absolute-deviation]], [[iqr]], [[quantiles]]."
   ([vs]
    (let [avs (m/seq->double-array vs)
          mad (median-absolute-deviation avs)
          md (median avs)]
-     (map (fn [^double x] (/ (- x md) mad)) vs)))
+     (map (fn [^double x] (m// (m/- x md) mad)) vs)))
   ([vs ^double q]
-   (let [[^double q1 ^double md ^double q2] (quantiles vs [q 0.5 (- 1.0 q)])
-         diff (m/abs (- q2 q1))]
-     (map (fn [^double x] (/ (- x md) diff)) vs))))
+   (let [[^double q1 ^double md ^double q2] (quantiles vs [q 0.5 (m/- 1.0 q)])
+         diff (m/abs (m/- q2 q1))]
+     (map (fn [^double x] (m// (m/- x md) diff)) vs))))
 
 (defn demean
-  "Subtract mean from a sequence"
+  "Subtracts the mean of `vs` from each of its values, centering the data around `0`.
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+
+  Returns a lazy sequence of the same length as `vs`, with mean `0`.
+
+  See also [[standardize]], [[mean]]."
   [vs]
   (let [m (mean vs)]
     (map (fn [^double v]
-           (- v m)) vs)))
+           (m/- v m)) vs)))
 
 (defn rescale
-  "Lineary rascale data to desired range, [0,1] by default"
+  "Linearly rescales `vs` from its observed range to a target range, `[0,1]` by default.
+
+  Each value is mapped from `[min(vs), max(vs)]` to `[low, high]` using linear interpolation, see [[fastmath.core/make-norm]].
+
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `low`, `high` (doubles): Target range bounds. Default to `0.0` and `1.0`.
+
+  Returns a lazy sequence of the same length as `vs`, rescaled to `[low, high]`.
+
+  Values are not clamped beyond `[low, high]`, since `min(vs)` and `max(vs)` always map exactly to `low` and `high`. Constant input (`min(vs) = max(vs)`) leads to division by zero.
+
+  See also [[standardize]], [[demean]], [[extent]]."
   ([vs] (rescale vs 0.0 1.0))
   ([vs ^double low ^double high]
    (let [avs (m/seq->double-array vs)
@@ -1629,9 +1989,9 @@
   (^double [vs1 vs2]
    (let [avs1 (m/seq->double-array vs1)
          avs2 (m/seq->double-array vs2)]
-     (/ (v/dot (v/shift avs1 (- (mean avs1)))
-               (v/shift avs2 (- (mean avs2))))
-        (dec (alength avs1))))))
+     (m// (v/dot (v/shift avs1 (m/- (mean avs1)))
+               (v/shift avs2 (m/- (mean avs2))))
+        (m/dec (alength avs1))))))
 
 (defn correlation
   "Calculates the correlation coefficient between two sequences.
@@ -1661,9 +2021,9 @@
          cov (covariance avs1 avs2)
          v1 (variance avs1)
          v2 (variance avs2)]
-     (if (or (zero? v1) (zero? v2))
+     (if (or (m/zero? v1) (m/zero? v2))
        ##NaN
-       (/ cov (m/sqrt (* v1 v2)))))))
+       (m// cov (m/sqrt (m/* v1 v2)))))))
 
 (defn spearman-correlation
   "Calculates Spearman's rank correlation coefficient between two sequences.
@@ -1743,8 +2103,8 @@
   (^double [[vs1 vs2]] (kullback-leibler-divergence vs1 vs2))
   (^double [vs1 vs2]
    (let [res (->> (map vector vs1 vs2)
-                  (remove #(zero? (v/prod %)))
-                  (map (fn [[^double p ^double q]] (* p (m/log (/ p q))))))]
+                  (remove #(m/zero? (v/prod %)))
+                  (map (fn [[^double p ^double q]] (m/* p (m/log (m// p q))))))]
      (if (seq res) (sum res) ##Inf))))
 
 (defn ^{:deprecated "Use [[dissimilarity]]."} jensen-shannon-divergence
@@ -1752,7 +2112,7 @@
   (^double [[vs1 vs2]] (jensen-shannon-divergence vs1 vs2))
   (^double [vs1 vs2]
    (let [m (v/mult (mapv + vs1 vs2) 0.5)]
-     (* 0.5 (+ (kullback-leibler-divergence vs1 m)
+     (m/* 0.5 (m/+ (kullback-leibler-divergence vs1 m)
                (kullback-leibler-divergence vs2 m))))))
 
 (defn coefficient-matrix
@@ -1792,7 +2152,7 @@
            cache (atom {})]
        (for [[^long id1 ^doubles a] avss]
          (mapv (fn [[^long id2 ^doubles b]]
-                 (let [key (if (< id1 id2) [id1 id2] [id2 id1])]
+                 (let [key (if (m/< id1 id2) [id1 id2] [id2 id1])]
                    (if (contains? @cache key)
                      (@cache key)
                      (let [cov (measure-fn a b)]
@@ -1947,7 +2307,7 @@
   (^double [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (mean (map (fn [^double a ^double b]
-                  (m/abs (/ (- a b) a))) v1 v2))))
+                  (m/abs (m// (m/- a b) a))) v1 v2))))
   (^double [vs1 vs2-or-val weights]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (m// (sum (map (fn [^double a ^double b ^double w]
@@ -2031,14 +2391,14 @@
   See also [[rss]], [[mse]], [[rmse]], [[pearson-correlation]], [[r2-determination]]."
   (^double [[vs1 vs2-or-val]] (r2 vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
-   (- 1.0 (/ (rss vs1 vs2-or-val)
+   (m/- 1.0 (m// (rss vs1 vs2-or-val)
              (moment vs1 2 {:mean? false}))))
   (^double [vs1 vs2-or-val ^double no-of-variables]
    (let [rr (r2 vs1 vs2-or-val)
          n (count vs1)]
-     (- 1.0 (* (- 1.0 rr)
-               (/ (dec n)
-                  (- n no-of-variables 1.0)))))))
+     (m/- 1.0 (m/* (m/- 1.0 rr)
+               (m// (m/dec n)
+                  (m/- n no-of-variables 1.0)))))))
 
 (defn mse
   "Calculates the Mean Squared Error (MSE) between two sequences or a sequence and a constant value.
@@ -2123,7 +2483,7 @@
   (^long [[vs1 vs2-or-val]] (count= vs1 vs2-or-val))
   (^long [vs1 vs2-or-val]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
-     (count (filter (fn [^double v] (zero? v)) (map - v1 v2))))))
+     (count (filter (fn [^double v] (m/zero? v)) (map m/- v1 v2))))))
 
 (def ^{:doc "Count equal values in both seqs. Alias for [[count==]]"} L0 count=)
 
@@ -2247,54 +2607,68 @@
   (^double [[vs1 vs2-or-val]] (psnr vs1 vs2-or-val))
   (^double [vs1 vs2-or-val]
    (let [mx1 (maximum vs1)
-         ^double mx2 (if (number? vs2-or-val) vs2-or-val (maximum vs2-or-val))]
-     (psnr vs1 vs2-or-val (max mx1 mx2))))
+         mx2 (double (if (number? vs2-or-val) vs2-or-val (maximum vs2-or-val)))]
+     (psnr vs1 vs2-or-val (m/max mx1 mx2))))
   (^double [vs1 vs2-or-val ^double max-value]
-   (- (* 20.0 (m/log10 max-value))
-      (* 10.0 (m/log10 (mse vs1 vs2-or-val))))))
+   (m/- (m/* 20.0 (m/log10 max-value))
+        (m/* 10.0 (m/log10 (mse vs1 vs2-or-val))))))
 
 ;;
 
 (defn- scott-fd-helper
   "Calculate number of bins based on width of the bin."
   ^double [vvs ^double h]
-  (let [h (if (< h m/EPSILON) (median-absolute-deviation vvs) h)]
-    (if (pos? h)
+  (let [h (if (m/< h m/EPSILON) (median-absolute-deviation vvs) h)]
+    (if (m/pos? h)
       (let [[^double mn ^double mx] (extent vvs)]
-        (m/ceil (/ (- mx mn) h)))
+        (m/ceil (m// (m/- mx mn) h)))
       1.0)))
 
 (defn estimate-bins
-  "Estimate number of bins for histogram.
+  "Estimates a suitable number of bins for a histogram of `vs`.
 
-  Possible methods are: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default).
+  Several standard rules of thumb are available, balancing resolution against noise: some rely only on sample size, while others also take the spread or shape of the data into account.
 
-  The number returned is not higher than number of samples."
+  Parameters:
+
+  - `vs` (sequence of numbers): Input data.
+  - `bins-or-estimate-method` (keyword or long): Estimation method to use, or an explicit bin count. Defaults to `:freedman-diaconis`. One of:
+    - `:sqrt`: square root of the sample size, `sqrt(n)`.
+    - `:sturges`: `1 + log2(n)`, assumes roughly normal data, tends to undersmooth for large or non-normal samples.
+    - `:rice`: `2 * cbrt(n)`, depends only on sample size.
+    - `:doane`: a refinement of Sturges' rule that accounts for the sample skewness (see [[skewness]]), better suited for non-normal data.
+    - `:scott`: bin width `3.5 * stddev / cbrt(n)`, assumes roughly normal data.
+    - `:freedman-diaconis` (default): bin width `2 * IQR / cbrt(n)` (see [[iqr]]), robust to outliers.
+    - a `long`: used directly as the number of bins, bypassing estimation.
+
+  Returns the estimated number of bins as a long, never higher than the number of samples in `vs`.
+
+  See also [[histogram]]."
   (^long [vs] (estimate-bins vs :freedman-diaconis))
   (^long [vs bins-or-estimate-method]
    (if-not (keyword? bins-or-estimate-method)
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
-       (min n (int (case bins-or-estimate-method
-                     :sqrt (m/sqrt n)
-                     :sturges (inc (m/ceil (m/log2 n)))
-                     :rice (m/ceil (* 2.0 (m/cbrt n)))
-                     :doane (if (< n 3) 1 (+ (inc (m/log2 n))
-                                             (m/log2 (inc (/ (m/abs (skewness vs))
-                                                             (m/sqrt (/ (* 6.0 (- n 2.0))
-                                                                        (* (inc n) (+ n 3.0)))))))))
-                     :scott (let [vvs (m/seq->double-array vs)
-                                  h (/ (* 3.5 (stddev vvs))
-                                       (m/cbrt n))]
-                              (scott-fd-helper vvs h))
-                     (let [vvs (m/seq->double-array vs)
-                           h (/ (* 2.0 (iqr vvs))
-                                (m/cbrt n))]
-                       (scott-fd-helper vvs h)))))))))
+       (m/min n (int (case bins-or-estimate-method
+                       :sqrt (m/sqrt n)
+                       :sturges (m/inc (m/ceil (m/log2 n)))
+                       :rice (m/ceil (m/* 2.0 (m/cbrt n)))
+                       :doane (if (m/< n 3) 1 (m/+ (m/inc (m/log2 n))
+                                                   (m/log2 (m/inc (m// (m/abs (skewness vs))
+                                                                       (m/sqrt (m// (m/* 6.0 (m/- n 2.0))
+                                                                                    (m/* (m/inc n) (m/+ n 3.0)))))))))
+                       :scott (let [vvs (m/seq->double-array vs)
+                                    h (m// (m/* 3.5 (stddev vvs))
+                                           (m/cbrt n))]
+                                (scott-fd-helper vvs h))
+                       (let [vvs (m/seq->double-array vs)
+                             h (m// (m/* 2.0 (iqr vvs))
+                                    (m/cbrt n))]
+                         (scott-fd-helper vvs h)))))))))
 
 (defn- constrain-data
   [vs ^double mn ^double mx]
-  (filter (fn [^double v] (<= mn v mx)) vs))
+  (filter (fn [^double v] (m/<= mn v mx)) vs))
 
 (defn- process-vs-and-bins
   [vs bins-or-estimate-method ^double mn ^double mx]
@@ -2303,15 +2677,15 @@
       [(constrain-data vs nmn nmx)
        nmn nmx (sort bins-or-estimate-method)])
     (let [nvs (constrain-data vs mn mx)
-          bins (if (== mn mx) 1 (estimate-bins nvs bins-or-estimate-method))]
-      [nvs mn mx (m/slice-range mn mx (inc bins))])))
+          bins (if (m/== mn mx) 1 (estimate-bins nvs bins-or-estimate-method))]
+      [nvs mn mx (m/slice-range mn mx (m/long-inc bins))])))
 
 (defn- histogram-internal
   [[vs ^double mn ^double mx intervals]]
-  (let [diff (- mx mn)
-        bins (if (zero? diff) 1 (dec (count intervals)))
-        bins- (dec bins)
-        step (/ diff bins)
+  (let [diff (m/- mx mn)
+        bins (if (m/zero? diff) 1 (m/dec (count intervals)))
+        bins- (m/dec bins)
+        step (m// diff bins)
         search-array (double-array intervals)
         buff (long-array bins)
         sum (double-array bins)
@@ -2320,17 +2694,17 @@
 
     (doseq [^double v vs]
       (let [b (java.util.Arrays/binarySearch ^doubles search-array v)
-            pos (unchecked-int (min bins- (long (if (neg? b) (m/abs (+ b 2)) b))))]
+            pos (unchecked-int (m/min bins- (long (if (m/neg? b) (m/abs (m/+ b 2)) b))))]
         (fastmath.java.Array/inc ^longs buff pos)
         (fastmath.java.Array/add ^doubles sum pos v)))
 
     (let [bins-map (map (fn [[^double mn ^double mx] ^long cnt ^double s]
-                          (let [step (- mx mn)]
+                          (let [step (m/- mx mn)]
                             {:min mn :max mx :count cnt
                              :step step
                              :mid (m/+ mn (m/* 0.5 step))
-                             :avg (/ s cnt)
-                             :probability (/ cnt dsize)})) (partition 2 1 search-array) buff sum)]
+                             :avg (m// s cnt)
+                             :probability (m// cnt dsize)})) (partition 2 1 search-array) buff sum)]
       {:size bins
        :step step
        :samples size
@@ -2342,31 +2716,30 @@
        :frequencies (into {} (map (juxt :avg :count) bins-map))})))
 
 (defn histogram
-  "Calculate histogram.
+  "Builds a histogram of `vs`, partitioning the data into equal-width bins and counting the samples in each.
 
-  Estimation method can be a number, named method: `:sqrt` `:sturges` `:rice` `:doane` `:scott` `:freedman-diaconis` (default) or a sequence of points used as intervals.
-  In the latter case or when `mn` and `mx` values are provided - data will be filtered to fit in desired interval(s).
+  `vs` can also be a sequence of sequences, in which case a shared set of bin boundaries is derived across all of them (from their combined extent and the largest estimated bin count), and a histogram is computed for each inner sequence using those boundaries, letting the results be compared directly.
 
-  Returns map with keys:
+  Parameters:
 
-  * `:size` - number of bins
-  * `:step` - average distance between bins
-  * `:bins` - seq of pairs of range lower value and number of elements
-  * `:min` - min value
-  * `:max` - max value
-  * `:samples` - number of used samples
-  * `:frequencies` - a map containing counts for bin's average
-  * `:intervals` - intervals used to create bins
-  * `:bins-maps` - seq of maps containing:
-    * `:min` - lower bound
-    * `:mid` - middle value
-    * `:max` - upper bound
-    * `:step` - actual distance between bins 
-    * `:count` - number of elements
-    * `:avg` - average value
-    * `:probability` - probability for bin
+  - `vs` (sequence of numbers, or sequence of sequences of numbers): Input data.
+  - `bins-or-estimate-method` (keyword, long or sequence): Number of bins, or bin-count estimation method, see [[estimate-bins]] (default `:freedman-diaconis`). Alternatively, a sequence of numbers to use directly as explicit bin boundaries (intervals).
+  - `mn`, `mx` (doubles, or a 2-element vector `[mn mx]`): Optional bounds. When provided, data is filtered to keep only values in `[mn,mx]` before binning, and this range is used instead of the data extent. Ignored when `bins-or-estimate-method` is a sequence of boundaries, since its own extent is used instead.
 
-  If difference between min and max values is `0`, number of bins is set to 1."
+  Returns a map (or, when `vs` is a sequence of sequences, a sequence of such maps, one per inner sequence, sharing the same `:intervals`) with the following keys:
+
+  - `:size`: number of bins.
+  - `:step`: average distance between bins.
+  - `:samples`: number of samples actually used (after filtering to `[mn,mx]`).
+  - `:min`, `:max`: lower and upper bounds used for binning.
+  - `:bins`: sequence of pairs `[bin-lower-bound bin-count]`.
+  - `:bins-maps`: sequence of maps, one per bin, with keys `:min` (lower bound), `:max` (upper bound), `:mid` (middle value), `:step` (actual bin width), `:count` (number of elements), `:avg` (average value of the elements in the bin), and `:probability` (fraction of samples in the bin).
+  - `:intervals`: the bin boundaries used to build the histogram.
+  - `:frequencies`: a map from each bin's `:avg` to its `:count`.
+
+  If the difference between `mn` and `mx` is `0`, the number of bins is set to `1`.
+
+  See also [[estimate-bins]]."
   ([vs] (histogram vs :freedman-diaconis))
   ([vs bins-or-estimate-method] (histogram vs bins-or-estimate-method (extent
                                                                        (if (sequential? (first vs))
@@ -2379,13 +2752,13 @@
            nvs (map #(constrain-data % nmn nmx) vs)
            intervals (if sbins?
                        (sort bins-or-estimate-method)
-                       (if (== nmn nmx)
+                       (if (m/== nmn nmx)
                          [nmn nmx]
                          (->> nvs
                               (map #(estimate-bins % bins-or-estimate-method))
                               (reduce m/max 1.0)
-                              (int)
-                              (inc)
+                              (long)
+                              (m/long-inc)
                               (m/slice-range nmn nmx))))]
        (map (fn [vs] (histogram-internal [vs nmn nmx intervals])) nvs))
      (histogram-internal (process-vs-and-bins vs bins-or-estimate-method mn mx)))))
@@ -2396,13 +2769,13 @@
   "Find probabilities from distribution for given intervals from histogram."
   [xs distr bins]
   (let [{:keys [^double step bins]} (if (map? xs) xs (histogram xs bins))
-        last-idx (dec (count bins))
+        last-idx (m/dec (count bins))
         counts (map second bins)]
     [counts (map-indexed (fn [^long id [^double s]]
                            (condp = id
-                             0 (r/cdf distr (+ s step))
-                             last-idx (- 1.0 (r/cdf distr s))
-                             (r/cdf distr s (+ s step)))) bins)]))
+                             0 (r/cdf distr (m/+ s step))
+                             last-idx (m/- 1.0 (r/cdf distr s))
+                             (r/cdf distr s (m/+ s step)))) bins)]))
 (defn- pq-from-histograms
   [P Q bins]
   (let [[Ph Qh] (histogram [P Q] bins)]
@@ -2423,207 +2796,231 @@
 (defn- remove-zeros-pairwise
   [[P Q]]
   (let [pairs (->> (map v/vec2 P Q)
-                   (remove (fn [^Vec2 v] (or (zero? (.x v))
-                                             (zero? (.y v))))))]
+                   (remove (fn [^Vec2 v] (or (m/zero? (.x v))
+                                            (m/zero? (.y v))))))]
     [(map first pairs) (map second pairs)]))
 
 (defn- safe-div
   ^double [^double n ^double d ^double e]
-  (if (zero? d) (/ n e) (/ n d)))
+  (if (m/zero? d) (m// n e) (m// n d)))
 
 (defn- make-safe-log
   [^double ex ^double e]
   (cond
-    (== ex m/E) (fn ^double [^double v] (m/log (if (zero? v) e v)))
-    (== ex 2.0) (fn ^double [^double v] (m/log2 (if (zero? v) e v)))
-    (== ex 10.0) (fn ^double [^double v] (m/log10 (if (zero? v) e v)))
-    :else (fn ^double [^double v] (m/logb ex (if (zero? v) e v)))))
+    (m/== ex m/E) (fn ^double [^double v] (m/log (if (m/zero? v) e v)))
+    (m/== ex 2.0) (fn ^double [^double v] (m/log2 (if (m/zero? v) e v)))
+    (m/== ex 10.0) (fn ^double [^double v] (m/log10 (if (m/zero? v) e v)))
+    :else (fn ^double [^double v] (m/logb ex (if (m/zero? v) e v)))))
 
 (defn dissimilarity
-  "Various PDF distance between two histograms (frequencies) or probabilities.
+  "Calculates a dissimilarity (distance) measure between two probability density functions, `P-observed` and `Q-expected`, given as histograms, frequencies, probabilities, or raw data.
 
-  Q can be a distribution object. Then, histogram will be created out of P.
+  If `Q-expected` is a distribution object, a histogram is built from `P-observed` and compared against it directly. If `:bins` is set (and `Q-expected` is not a distribution), both `P-observed` and `Q-expected` are treated as raw data and turned into a matching pair of histograms.
 
-  Arguments:
+  Parameters:
 
-  * `method` - distance method
-  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution of `:bins` is set)
-  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data or `:bins` is set)
+  - `method` (keyword): Dissimilarity method to use, see below.
+  - `P-observed` (sequence of numbers): Frequencies, probabilities, or raw data.
+  - `Q-expected` (sequence of numbers, or distribution object): Frequencies, probabilities, raw data, or a distribution object to compare `P-observed` against.
+  - `opts` (map, optional):
+    - `:probabilities?` (boolean): Whether `P-observed`/`Q-expected` are normalized to probabilities (summing to `1`) before computing the distance. Defaults to `true`.
+    - `:bins` (long or keyword): Number of bins, or a bin-count estimation method, used to turn raw `P-observed`/`Q-expected` data into histograms, see [[histogram]] and [[estimate-bins]].
+    - `:remove-zeros?` (boolean): Whether to drop paired entries where either `P-observed` or `Q-expected` is zero before computing the distance. Defaults to `false`.
+    - `:epsilon` (double): Small number substituted for `0.0` wherever a division or logarithm would otherwise be undefined. Defaults to `1.0e-6`.
+    - `:log-base` (double): Base of the logarithm used by log-based methods. Defaults to `e`.
+    - `:power` (double): Exponent used by the `:minkowski` method. Defaults to `2.0`.
 
-  Options:
+  `method` is one of: `:euclidean`, `:city-block`, `:manhattan`, `:chebyshev`, `:minkowski`, `:sorensen`, `:gower`, `:soergel`, `:kulczynski`, `:canberra`, `:lorentzian`, `:non-intersection`, `:wave-hedges`, `:czekanowski`, `:motyka`, `:tanimoto`, `:jaccard`, `:dice`, `:bhattacharyya`, `:hellinger`, `:matusita`, `:squared-chord`, `:euclidean-sq`, `:squared-euclidean`, `:pearson-chisq`, `:chisq`, `:neyman-chisq`, `:squared-chisq`, `:symmetric-chisq`, `:divergence`, `:clark`, `:additive-symmetric-chisq`, `:kullback-leibler`, `:jeffreys`, `:k-divergence`, `:topsoe`, `:jensen-shannon`, `:jensen-difference`, `:taneja`, `:kumar-johnson`, `:avg` (the mean of the `:city-block` and `:chebyshev` distances).
 
-  * `:probabilities?` - should P/Q be converted to a probabilities, default: `true`.
-  * `:epsilon` - small number which replaces `0.0` when division or logarithm is used`
-  * `:log-base` - base for logarithms, default: `e`
-  * `:power` - exponent for `:minkowski` distance, default: `2.0`
-  * `:bins` - number of bins or bins estimation method, see [[histogram]].
+  Returns the calculated dissimilarity as a double.
 
-  The list of methods: `:euclidean`, `:city-block`, `:manhattan`, `:chebyshev`, `:minkowski`, `:sorensen`, `:gower`, `:soergel`, `:kulczynski`, `:canberra`, `:lorentzian`, `:non-intersection`, `:wave-hedges`, `:czekanowski`, `:motyka`, `:tanimoto`, `:jaccard`, `:dice`, `:bhattacharyya`, `:hellinger`, `:matusita`, `:squared-chord`, `:euclidean-sq`, `:squared-euclidean`, `:pearson-chisq`, `:chisq`, `:neyman-chisq`, `:squared-chisq`, `:symmetric-chisq`, `:divergence`, `:clark`, `:additive-symmetric-chisq`, `:kullback-leibler`, `:jeffreys`, `:k-divergence`, `:topsoe`, `:jensen-shannon`, `:jensen-difference`, `:taneja`, `:kumar-johnson`, `:avg`
+  Definitions for the individual methods are given in the Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha.
 
-  See more: Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha"
+  See also [[similarity]], [[histogram]], [[estimate-bins]]."
   (^double [method P-observed Q-expected] (dissimilarity method P-observed Q-expected nil))
   (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon ^double log-base ^double power remove-zeros?]
                                           :or {probabilities? true epsilon 1.0e-6 log-base m/E power 2.0}}]
    (let [pq (normalize-PQ P-observed Q-expected bins probabilities?)
          [P Q] (if remove-zeros? (remove-zeros-pairwise pq) pq)
-         log (make-safe-log log-base epsilon)]
+         log-fn (make-safe-log log-base epsilon)]
      (case method
        :euclidean (L2 P Q)
        :city-block (L1 P Q)
        :manhattan (L1 P Q)
        :chebyshev (LInf P Q)
-       :minkowski (m/pow (v/sum (map (fn [^double p ^double q] (m/pow (m/abs (- p q)) power)) P Q))
-                         (/ power))
-       :sorensen (safe-div (L1 P Q) (+ (v/sum P) (v/sum Q)) epsilon)
+       :minkowski (m/pow (v/sum (map (fn [^double p ^double q] (m/pow (m/abs (m/- p q)) power)) P Q))
+                         (m// power))
+       :sorensen (safe-div (L1 P Q) (m/+ (v/sum P) (v/sum Q)) epsilon)
        :gower (safe-div (L1 P Q) (count P) epsilon)
        :soergel (safe-div (L1 P Q) (v/sum (v/emx P Q)) epsilon)
        :kulczynski (safe-div (L1 P Q) (v/sum (v/emn P Q)) epsilon)
        :canberra (v/sum (map (fn [^double p ^double q]
-                               (safe-div (m/abs (- p q)) (+ p q) epsilon)) P Q))
-       :lorentzian (v/sum (map (fn [^double p ^double q] (log (m/inc (m/abs (- p q))))) P Q))
-       :non-intersection (* 0.5 (L1 P Q))
+                               (safe-div (m/abs (m/- p q)) (m/+ p q) epsilon)) P Q))
+       :lorentzian (v/sum (map (fn [^double p ^double q] (log-fn (m/inc (m/abs (m/- p q))))) P Q))
+       :non-intersection (m/* 0.5 (L1 P Q))
        :wave-hedges (v/sum (map (fn [^double p ^double q]
-                                  (safe-div (m/abs (- p q)) (m/max p q) epsilon)) P Q))
-       :czekanowski (safe-div (L1 P Q) (+ (v/sum P) (v/sum Q)) epsilon)
-       :motyka (safe-div (v/sum (v/emx P Q)) (+ (v/sum P) (v/sum Q)) epsilon)
+                                  (safe-div (m/abs (m/- p q)) (m/max p q) epsilon)) P Q))
+       :czekanowski (safe-div (L1 P Q) (m/+ (v/sum P) (v/sum Q)) epsilon)
+       :motyka (safe-div (v/sum (v/emx P Q)) (m/+ (v/sum P) (v/sum Q)) epsilon)
        :tanimoto (let [mx (v/emx P Q)]
                    (safe-div (v/sum (v/sub mx (v/emn P Q))) (v/sum mx) epsilon))
-       :jaccard (safe-div (L2sq P Q) (- (+ (v/sum (v/sq P))
-                                           (v/sum (v/sq Q)))
-                                        (v/sum (v/emult P Q))) epsilon)
-       :dice (safe-div (L2sq P Q) (+ (v/sum (v/sq P))
-                                     (v/sum (v/sq Q))) epsilon)
-       :bhattacharyya (- ^double (log (v/sum (v/sqrt (v/emult P Q)))))
-       :hellinger (* 2.0 (m/sqrt (- 1.0 (v/sum (v/sqrt (v/emult P Q))))))
-       :matusita (m/sqrt (- 2.0 (* 2.0 (v/sum (v/sqrt (v/emult P Q))))))
+       :jaccard (safe-div (L2sq P Q) (m/- (m/+ (v/sum (v/sq P))
+                                               (v/sum (v/sq Q)))
+                                          (v/sum (v/emult P Q))) epsilon)
+       :dice (safe-div (L2sq P Q) (m/+ (v/sum (v/sq P))
+                                       (v/sum (v/sq Q))) epsilon)
+       :bhattacharyya (m/- (double (log-fn (v/sum (v/sqrt (v/emult P Q))))))
+       :hellinger (m/* 2.0 (m/sqrt (m/- 1.0 (v/sum (v/sqrt (v/emult P Q))))))
+       :matusita (m/sqrt (m/- 2.0 (m/* 2.0 (v/sum (v/sqrt (v/emult P Q))))))
        :squared-chord (L2sq (v/sqrt P) (v/sqrt Q))
        :euclidean-sq (L2sq P Q)
        :squared-euclidean (L2sq P Q)
        :pearson-chisq (v/sum (map (fn [^double p ^double q]
-                                    (safe-div (m/sq (- p q)) q epsilon)) P Q))
+                                    (safe-div (m/sq (m/- p q)) q epsilon)) P Q))
        :chisq (v/sum (map (fn [^double p ^double q]
-                            (safe-div (m/sq (- p q)) q epsilon)) P Q))
+                            (safe-div (m/sq (m/- p q)) q epsilon)) P Q))
        :neyman-chisq (v/sum (map (fn [^double p ^double q]
-                                   (safe-div (m/sq (- p q)) p epsilon)) P Q))
+                                   (safe-div (m/sq (m/- p q)) p epsilon)) P Q))
        :squared-chisq (v/sum (map (fn [^double p ^double q]
-                                    (safe-div (m/sq (- p q)) (+ p q) epsilon)) P Q))
-       :symmetric-chisq (* 2.0 (v/sum (map (fn [^double p ^double q]
-                                             (safe-div (m/sq (- p q)) (+ p q) epsilon)) P Q)))
-       :divergence (* 2.0 (v/sum (map (fn [^double p ^double q]
-                                        (safe-div (m/sq (- p q)) (m/sq (+ p q)) epsilon)) P Q)))
+                                    (safe-div (m/sq (m/- p q)) (m/+ p q) epsilon)) P Q))
+       :symmetric-chisq (m/* 2.0 (v/sum (map (fn [^double p ^double q]
+                                               (safe-div (m/sq (m/- p q)) (m/+ p q) epsilon)) P Q)))
+       :divergence (m/* 2.0 (v/sum (map (fn [^double p ^double q]
+                                          (safe-div (m/sq (m/- p q)) (m/sq (m/+ p q)) epsilon)) P Q)))
        :clark (m/sqrt (v/sum (map (fn [^double p ^double q]
-                                    (m/sq (safe-div (m/abs (- p q)) (+ p q) epsilon))) P Q)))
+                                    (m/sq (safe-div (m/abs (m/- p q)) (m/+ p q) epsilon))) P Q)))
        :additive-symmetric-chisq (v/sum (map (fn [^double p ^double q]
-                                               (safe-div (* (m/sq (- p q)) (+ p q))
-                                                         (* p q)
+                                               (safe-div (m/* (m/sq (m/- p q)) (m/+ p q))
+                                                         (m/* p q)
                                                          epsilon)) P Q))
        :kullback-leibler (v/sum (map (fn [^double p ^double q]
-                                       (* p ^double (log (safe-div p q epsilon)))) P Q))
+                                       (m/* p (double (log-fn (safe-div p q epsilon))))) P Q))
        :jeffreys (v/sum (map (fn [^double p ^double q]
-                               (* (- p q) ^double (log (safe-div p q epsilon)))) P Q))
+                               (m/* (m/- p q) (double (log-fn (safe-div p q epsilon))))) P Q))
        :k-divergence (v/sum (map (fn [^double p ^double q]
-                                   (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))) P Q))
+                                   (m/* p (double (log-fn (safe-div (m/* 2.0 p) (m/+ p q) epsilon))))) P Q))
        :topsoe (v/sum (map (fn [^double p ^double q]
-                             (+ (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))
-                                (* q ^double (log (safe-div (* 2.0 q) (+ p q) epsilon))))) P Q))
-       :jensen-shannon (* 0.5 (+ (v/sum (map (fn [^double p ^double q]
-                                               (* p ^double (log (safe-div (* 2.0 p) (+ p q) epsilon)))) P Q))
-                                 (v/sum (map (fn [^double p ^double q]
-                                               (* q ^double (log (safe-div (* 2.0 q) (+ p q) epsilon)))) P Q))))
+                             (m/+ (m/* p (double (log-fn (safe-div (m/* 2.0 p) (m/+ p q) epsilon))))
+                                  (m/* q (double (log-fn (safe-div (m/* 2.0 q) (m/+ p q) epsilon)))))) P Q))
+       :jensen-shannon (m/* 0.5 (m/+ (v/sum (map (fn [^double p ^double q]
+                                                   (m/* p (double (log-fn (safe-div (m/* 2.0 p) (m/+ p q) epsilon))))) P Q))
+                                     (v/sum (map (fn [^double p ^double q]
+                                                   (m/* q (double (log-fn (safe-div (m/* 2.0 q) (m/+ p q) epsilon))))) P Q))))
        :jensen-difference (v/sum (map (fn [^double p ^double q]
-                                        (let [pq2 (* 0.5 (+ p q))]
-                                          (- (* 0.5 (+ (* p ^double (log p))
-                                                       (* q ^double (log q)))) (* pq2 ^double (log pq2))))) P Q))
+                                        (let [pq2 (m/* 0.5 (m/+ p q))]
+                                          (m/- (m/* 0.5 (m/+ (m/* p (double (log-fn p)))
+                                                             (m/* q (double (log-fn q))))) (m/* pq2 (double (log-fn pq2)))))) P Q))
        :taneja (v/sum (map (fn [^double p ^double q]
-                             (let [pq2 (* 0.5 (+ p q))]
-                               (* pq2 ^double (log (safe-div pq2 (m/sqrt (* p q)) epsilon))))) P Q))
+                             (let [pq2 (m/* 0.5 (m/+ p q))]
+                               (m/* pq2 (double (log-fn (safe-div pq2 (m/sqrt (m/* p q)) epsilon)))))) P Q))
        :kumar-johnson (v/sum (map (fn [^double p ^double q]
-                                    (safe-div (m/sq (- (m/sq p) (m/sq q)))
-                                              (* 2.0 (m/sqrt (m/cb (* p q)))) epsilon)) P Q))
-       :avg (* 0.5 (+ (L1 P Q) (LInf P Q)))))))
+                                    (safe-div (m/sq (m/- (m/sq p) (m/sq q)))
+                                              (m/* 2.0 (m/sqrt (m/cb (m/* p q)))) epsilon)) P Q))
+       :avg (m/* 0.5 (m/+ (L1 P Q) (LInf P Q)))))))
 
 (defn similarity
-  "Various PDF similarities between two histograms (frequencies) or probabilities.
+  "Calculates a similarity measure between two probability density functions, `P-observed` and `Q-expected`, given as histograms, frequencies, probabilities, or raw data.
 
-  Q can be a distribution object. Then, histogram will be created out of P.
+  If `Q-expected` is a distribution object, a histogram is built from `P-observed` and compared against it directly. If `:bins` is set (and `Q-expected` is not a distribution), both `P-observed` and `Q-expected` are treated as raw data and turned into a matching pair of histograms.
 
-  Arguments:
+  Parameters:
 
-  * `method` - distance method
-  * `P-observed` - frequencies, probabilities or actual data (when Q is a distribution)
-  * `Q-expected` - frequencies, probabilities or distribution object (when P is a data)
-  
-  Options:
+  - `method` (keyword): Similarity method to use, see below.
+  - `P-observed` (sequence of numbers): Frequencies, probabilities, or raw data.
+  - `Q-expected` (sequence of numbers, or distribution object): Frequencies, probabilities, raw data, or a distribution object to compare `P-observed` against.
+  - `opts` (map, optional):
+    - `:probabilities?` (boolean): Whether `P-observed`/`Q-expected` are normalized to probabilities (summing to `1`) before computing the similarity. Defaults to `true`.
+    - `:bins` (long or keyword): Number of bins, or a bin-count estimation method, used to turn raw `P-observed`/`Q-expected` data into histograms, see [[histogram]] and [[estimate-bins]].
+    - `:epsilon` (double): Small number substituted for `0.0` wherever a division would otherwise be undefined. Defaults to `1.0e-6`.
 
-  * `:probabilities?` - should P/Q be converted to a probabilities, default: `true`.
-  * `:epsilon` - small number which replaces `0.0` when division or logarithm is used`
-  * `:bins` - number of bins or bins estimation method, see [[histogram]].
+  `method` is one of: `:intersection`, `:czekanowski`, `:motyka`, `:kulczynski`, `:ruzicka`, `:inner-product`, `:harmonic-mean`, `:cosine`, `:jaccard`, `:dice`, `:fidelity`, `:squared-chord`.
 
-  The list of methods: `:intersection`, `:czekanowski`, `:motyka`, `:kulczynski`, `:ruzicka`, `:inner-product`, `:harmonic-mean`, `:cosine`, `:jaccard`, `:dice`, `:fidelity`, `:squared-chord`
+  Returns the calculated similarity as a double. Higher values generally indicate more similar distributions, though the range and interpretation depend on the chosen `method`.
 
-  See more: Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha"
+  Definitions for the individual methods are given in the Comprehensive Survey on Distance/Similarity Measures between Probability Density Functions by Sung-Hyuk Cha.
+
+  See also [[dissimilarity]], [[histogram]], [[estimate-bins]]."
   (^double [method P-observed Q-expected] (similarity method P-observed Q-expected nil))
   (^double [method P-observed Q-expected {:keys [bins probabilities? ^double epsilon]
                                           :or {probabilities? true epsilon 1.0e-6}}]
    (let [[P Q] (normalize-PQ P-observed Q-expected bins probabilities?)]
      (case method
        :intersection (v/sum (v/emn P Q))
-       :czekanowski (safe-div (* 2.0 (v/sum (v/emn P Q))) (+ (v/sum P) (v/sum Q)) epsilon)
-       :motyka (safe-div (v/sum (v/emn P Q)) (+ (v/sum P) (v/sum Q)) epsilon)
+       :czekanowski (safe-div (m/* 2.0 (v/sum (v/emn P Q))) (m/+ (v/sum P) (v/sum Q)) epsilon)
+       :motyka (safe-div (v/sum (v/emn P Q)) (m/+ (v/sum P) (v/sum Q)) epsilon)
        :kulczynski (safe-div (v/sum (v/emn P Q)) (L1 P Q) epsilon)
        :ruzicka (safe-div (v/sum (v/emn P Q)) (v/sum (v/emx P Q)) epsilon)
        :inner-product (v/dot P Q)
-       :harmonic-mean (* 2.0 (v/sum (map (fn [^double p ^double q]
-                                           (safe-div (* p q) (+ p q) epsilon)) P Q)))
-       :cosine (safe-div (v/sum (v/emult P Q)) (* (v/mag P) (v/mag Q)) epsilon)
+       :harmonic-mean (m/* 2.0 (v/sum (map (fn [^double p ^double q]
+                                           (safe-div (m/* p q) (m/+ p q) epsilon)) P Q)))
+       :cosine (safe-div (v/sum (v/emult P Q)) (m/* (v/mag P) (v/mag Q)) epsilon)
        :jaccard (let [pq (v/sum (v/emult P Q))]
-                  (safe-div pq (- (+ (v/magsq P) (v/magsq Q)) pq) epsilon))
+                  (safe-div pq (m/- (m/+ (v/magsq P) (v/magsq Q)) pq) epsilon))
        :dice (let [pq (v/sum (v/emult P Q))]
-               (safe-div (* 2.0 pq) (+ (v/magsq P) (v/magsq Q)) epsilon))
+               (safe-div (m/* 2.0 pq) (m/+ (v/magsq P) (v/magsq Q)) epsilon))
        :fidelity (v/sum (v/sqrt (v/emult P Q)))
-       :squared-chord (dec (* 2.0 (v/sum (v/sqrt (v/emult P Q)))))))))
+       :squared-chord (m/dec (m/* 2.0 (v/sum (v/sqrt (v/emult P Q)))))))))
 
 ;;
 
 (defn- weighted-variance-average
   ^double [groups]
   (reduce (fn [^double sum xs]
-            (+ sum (* (dec (count xs))
+            (m/+ sum (m/* (m/dec (count xs))
                       (variance xs)))) 0.0 groups))
 
 (defn pooled-variance
-  "Calculate pooled variance for samples and method.
+  "Calculates the pooled variance of several samples, a weighted combination of their individual variances, used when the samples are assumed to share a common (unknown) variance.
 
-  Methods:
-  * `:unbiased` - weighted average of variances (default)
-  * `:biased` - biased version of `:unbiased`, no count correction.
-  * `:avg` - average of variances"
+  Parameters:
+
+  - `groups` (sequence of sequences of numbers): The independent samples to pool.
+  - `method` (keyword): Pooling method. Defaults to `:unbiased`. One of:
+    - `:unbiased` (default): each group's variance is weighted by its degrees of freedom `n_i - 1`, then the weighted sum is divided by the total degrees of freedom `sum(n_i) - k`, where `k` is the number of groups. This is the classic unbiased pooled-variance estimator.
+    - `:biased`: same weighted sum of variances as `:unbiased`, but divided by the total sample size `sum(n_i)` instead of the total degrees of freedom.
+    - `:avg`: plain, unweighted average of the individual group variances, each group contributing equally regardless of its size.
+
+  Returns the pooled variance as a double.
+
+  See also [[pooled-stddev]], [[variance]], [[cohens-d]]."
   (^double [groups] (pooled-variance groups :unbiased))
   (^double [groups method]
    (let [agroups (map m/seq->double-array groups)]
      (case method
-       :biased (/ (weighted-variance-average agroups)
+       :biased (m// (weighted-variance-average agroups)
                   (sum (map alength agroups)))
-       :avg (/ (sum (map variance agroups))
+       :avg (m// (sum (map variance agroups))
                (count groups))
-       (/ (weighted-variance-average agroups)
-          (- (sum (map alength agroups)) (count groups)))))))
+       (m// (weighted-variance-average agroups)
+          (m/- (sum (map alength agroups)) (count groups)))))))
 
 (defn pooled-stddev
-  "Calculate pooled standard deviation for samples and method
+  "Calculates the pooled standard deviation of several samples, the square root of [[pooled-variance]].
 
-  Methods:
- 
-  * `:unbiased` - sqrt of weighted average of variances (default)
-  * `:biased` - biased version of `:unbiased`, no count correction.
-  * `:avg` - sqrt of average of variances"
+  Parameters:
+
+  - `groups` (sequence of sequences of numbers): The independent samples to pool.
+  - `method` (keyword): Pooling method, see [[pooled-variance]] for details. Defaults to `:unbiased`.
+
+  Returns the pooled standard deviation as a double.
+
+  See also [[pooled-variance]], [[stddev]], [[cohens-d]]."
   (^double [groups] (m/sqrt (pooled-variance groups)))
   (^double [groups method] (m/sqrt (pooled-variance groups method))))
 
 (defn pooled-mad
-  "Calculate pooled median absolute deviation for samples.
+  "Calculates a pooled, robust measure of scale across several samples, based on the median absolute deviation (MAD) of their pooled residuals.
 
-  k is a scaling constant which equals around 1.4826 by default."
+  Each group is first centered by subtracting its own median, and all the centered groups are then concatenated into a single pooled sample of residuals, whose MAD is computed and scaled by `const`.
+
+  Parameters:
+
+  - `groups` (sequence of sequences of numbers): The independent samples to pool.
+  - `const` (double): Scaling constant applied to the MAD of the pooled residuals. Defaults to `1.4826022185056023`, the constant that makes MAD a consistent estimator of the standard deviation for normally distributed data, see [[median-absolute-deviation]].
+
+  Returns the pooled MAD as a double.
+
+  See also [[median-absolute-deviation]], [[pooled-variance]], [[pooled-stddev]]."
   (^double [groups] (pooled-mad groups 1.4826022185056023))
   (^double [groups ^double const]
    (let [Y (mapcat (fn [g] (let [md (median g)]
@@ -2674,12 +3071,12 @@
   (^double [group1 group2 method]
    (let [group1 (m/seq->double-array group1)
          group2 (m/seq->double-array group2)
-         diff (- (mean group1) (mean group2))]
-     (/ diff (pooled-stddev [group1 group2] method)))))
+         diff (m/- (mean group1) (mean group2))]
+     (m// diff (pooled-stddev [group1 group2] method)))))
 
 (defn- effect-size-correction
   ^double [^long df]
-  (- 1.0 (/ 3.0 (dec (* 4.0 df)))))
+  (m/- 1.0 (m// 3.0 (m/dec (m/* 4.0 df)))))
 
 (defn cohens-d-corrected
   "Calculates Cohen's d effect size corrected for bias in small sample sizes.
@@ -2715,12 +3112,12 @@
   (^double [[group1 group2]] (cohens-d-corrected group1 group2))
   (^double [group1 group2] (cohens-d-corrected group1 group2 :unbiased))
   (^double [group1 group2 method]
-   (* (effect-size-correction (if (= method :biased)
-                                (+ (count group1)
-                                   (count group2))
-                                (+ (count group1)
-                                   (count group2) -2)))
-      (cohens-d group1 group2 method))))
+   (m/* (effect-size-correction (long (if (= method :biased)
+                                        (m/+ (count group1)
+                                             (count group2))
+                                        (m/+ (count group1)
+                                             (count group2) -2))))
+        (cohens-d group1 group2 method))))
 
 (defn hedges-g
   "Calculates Hedges's g effect size for comparing the means of two independent groups.
@@ -2807,12 +3204,12 @@
   See also [[cohens-d]], [[hedges-g]] (uncorrected), [[hedges-g-corrected]] (another correction method)."
   (^double [[group1 group2]] (hedges-g* group1 group2))
   (^double [group1 group2]
-   (let [df (+ (count group1) (count group2) -2)
-         df2 (* 0.5 df)
-         j (m/exp (- (special/log-gamma df2)
+   (let [df (m/+ (count group1) (count group2) -2)
+         df2 (m/* 0.5 df)
+         j (m/exp (m/- (special/log-gamma df2)
                      (m/log (m/sqrt df2))
-                     (special/log-gamma (* 0.5 (dec df)))))]
-     (* j (hedges-g group1 group2)))))
+                     (special/log-gamma (m/* 0.5 (m/dec df)))))]
+     (m/* j (hedges-g group1 group2)))))
 
 (defn glass-delta
   "Calculates Glass's delta (Δ), an effect size measure for the difference
@@ -2838,7 +3235,7 @@
   (^double [[group1 group2]] (glass-delta group1 group2))
   (^double [group1 group2]
    (let [group2 (m/seq->double-array group2)]
-     (/ (- (mean group1) (mean group2)) (stddev group2)))))
+     (m// (m/- (mean group1) (mean group2)) (stddev group2)))))
 
 (defn means-ratio
   "Calculates the ratio of the mean of `group1` to the mean of `group2`.
@@ -2872,14 +3269,14 @@
          m1 (mean ag1)
          m2 (mean ag2)]
      (if-not adjusted?
-       (/ m1 m2)
+       (m// m1 m2)
        (let [v1 (variance ag1)
              v2 (variance ag2)
              n1 (alength ag1)
              n2 (alength ag2)
-             J (* 0.5 (- (/ v1 (* n1 m1 m1))
-                         (/ v2 (* n2 m2 m2))))]
-         (m/exp (+ (- (m/log m1) (m/log m2)) J)))))))
+             J (m/* 0.5 (m/- (m// v1 (m/* n1 m1 m1))
+                         (m// v2 (m/* n2 m2 m2))))]
+         (m/exp (m/+ (m/- (m/log m1) (m/log m2)) J)))))))
 
 (defn means-ratio-corrected
   "Calculates a bias-corrected ratio of the mean of `group1` to the mean of `group2`.
@@ -2928,10 +3325,10 @@
   See also [[wmw-odds]], [[ameasure]], [[cohens-d]], [[glass-delta]]."
   (^double [[group1 group2]] (cliffs-delta group1 group2))
   (^double [group1 group2]
-   (/ (sum (for [a group1
+   (m// (sum (for [a group1
                  b group2]
              (m/signum (compare a b))))
-      (* (count group1) (count group2)))))
+      (m/* (count group1) (count group2)))))
 
 ;;
 
@@ -2956,8 +3353,8 @@
    (let [m (count group1)
          n (count group2)
          r1 (sum (take m (m/rank1 (concat group1 group2))))]
-     (/ (- (+ r1 r1) (* m (inc m)))
-        (* 2.0 m n)))))
+     (m// (m/- (m/+ r1 r1) (m/* m (m/inc m)))
+        (m/* 2.0 m n)))))
 
 (defn wmw-odds
   "Calculates the Wilcoxon-Mann-Whitney odds (often denoted as ψ) for two independent samples.
@@ -2987,7 +3384,7 @@
   See also [[cliffs-delta]], [[ameasure]]."
   (^double [[group1 group2]] (wmw-odds group1 group2))
   (^double [group1 group2]
-   (m/exp (m/logit (* 0.5 (inc (cliffs-delta group1 group2)))))))
+   (m/exp (m/logit (m/* 0.5 (m/inc (cliffs-delta group1 group2)))))))
 
 (defn- integrate-kde
   [iterations kde ranges]
@@ -3024,14 +3421,14 @@
           ^double mn1 :mn ^double mx1 :mx} (kd/kernel-density+ kde group1 {:bandwidth bandwidth})
          {kde2 :kde ^double h2 :h
           ^double mn2 :mn ^double mx2 :mx} (kd/kernel-density+ kde group2 {:bandwidth bandwidth})
-         h (* 2.0 (+ h1 h2))
-         mn (- (m/min mn1 mn2) h)
-         mx (+ (m/max mx1 mx2) h)
+         h (m/* 2.0 (m/+ h1 h2))
+         mn (m/- (m/min mn1 mn2) h)
+         mx (m/+ (m/max mx1 mx2) h)
          iters (m/max 2 min-iterations)
          ranges (partition 2 1 (m/slice-range mn mx steps))
          i1 (integrate-kde iters kde1 ranges)
          i2 (integrate-kde iters kde2 ranges)]
-     (sum (map min i1 i2)))))
+     (sum (map m/min i1 i2)))))
 
 ;; https://www.psy.gla.ac.uk/~steve/best/effectsize.ppt.pdf
 
@@ -3220,7 +3617,7 @@
   (^double [group1 group2] (cohens-u3 group1 group2 :legacy))
   (^double [group1 group2 estimation-strategy]
    (let [m (median group1 estimation-strategy)]
-     (/ (count (filter (fn [^double v] (m/< v m)) group2)) (double (count group2))))))
+     (m// (count (filter (fn [^double v] (m/< v m)) group2)) (double (count group2))))))
 
 ;;
 
@@ -3316,13 +3713,13 @@
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)
          mse (.getMeanSquareError lm)]
-     (/ (- (.getRegressionSumSquares lm) mse)
-        (+ (.getTotalSumSquares lm) mse))))
+     (m// (m/- (.getRegressionSumSquares lm) mse)
+        (m/+ (.getTotalSumSquares lm) mse))))
   (^double [group1 group2 ^double degrees-of-freedom]
    (let [lm (local-linear-regression group1 group2)
          mse (.getMeanSquareError lm)]
-     (/ (- (.getRegressionSumSquares lm) (* degrees-of-freedom mse))
-        (+ (.getTotalSumSquares lm) mse)))))
+     (m// (m/- (.getRegressionSumSquares lm) (m/* degrees-of-freedom mse))
+        (m/+ (.getTotalSumSquares lm) mse)))))
 
 (defn epsilon-sq
   "Calculates Epsilon squared (ε²), an effect size measure for the simple linear regression of `group1` on `group2`.
@@ -3356,7 +3753,7 @@
   (^double [[group1 group2]] (epsilon-sq group1 group2))
   (^double [group1 group2]
    (let [lm (local-linear-regression group1 group2)]
-     (/ (- (.getRegressionSumSquares lm) (.getMeanSquareError lm))
+     (m// (m/- (.getRegressionSumSquares lm) (.getMeanSquareError lm))
         (.getTotalSumSquares lm)))))
 
 (defn cohens-f2
@@ -3400,8 +3797,8 @@
                                  :epsilon epsilon-sq
                                  eta-sq)
                type)
-         ^double v (f group1 group2)]
-     (/ v (- 1.0 v)))))
+         v (double (f group1 group2))]
+     (m// v (m/- 1.0 v)))))
 
 (defn cohens-f
   "Calculates Cohen's f, a measure of effect size derived as the square root of Cohen's f² ([[cohens-f2]]).
@@ -3457,7 +3854,7 @@
 
   Note: For comparing dependent correlations (3-arity case), standard statistical tests (e.g., Steiger's test) are more complex than a simple difference of z-transforms and involve the correlation between `group2a` and `group2b`. This function provides the basic difference value."
   (^double [^double r1 ^double r2]
-   (- (m/atanh r1) (m/atanh r2)))
+   (m/- (m/atanh r1) (m/atanh r2)))
   (^double [group1 group2a group2b]
    (cohens-q (pearson-correlation group1 group2a)
              (pearson-correlation group1 group2b)))
@@ -3498,8 +3895,8 @@
   See also [[kruskal-test]], [[rank-epsilon-sq]] (another rank-based effect size)."
   ^double [xss]
   (let [{:keys [^double stat ^long k ^long n]} (kruskal-test xss)]
-    (m/max 0.0 (/ (inc (- stat k))
-                  (- n k)))))
+    (m/max 0.0 (m// (m/inc (m/- stat k))
+                    (m/- n k)))))
 
 (defn rank-epsilon-sq
   "Calculates Rank Epsilon-squared (ε²), a measure of effect size for the Kruskal-Wallis H-test.
@@ -3533,7 +3930,7 @@
   See also [[kruskal-test]], [[rank-eta-sq]] (another rank-based effect size)."
   ^double [xss]
   (let [{:keys [^double stat ^long n]} (kruskal-test xss)]
-    (/ stat (/ (dec (* n n)) (inc n)))))
+    (m// stat (m// (m/dec (m/* n n)) (m/inc n)))))
 
 ;;
 
@@ -3589,7 +3986,7 @@
   [xss]
   (->> (for [[row-id row] (map-indexed vector xss)
              [col-id ^long val] (map-indexed vector row)
-             :when (not (zero? val))]
+             :when (not (m/zero? val))]
          [[row-id col-id] val])
        (into {})))
 
@@ -3686,10 +4083,10 @@
          t (map second rows)
          p (map second cols)
          d (map second diag)
-         s2 (* n n)]
-     (/ (- (* n (sum d)) (v/dot t p))
-        (* (m/sqrt (- s2 (v/dot p p)))
-           (m/sqrt (- s2 (v/dot t t))))))))
+         s2 (m/* n n)]
+     (m// (m/- (m/* n (sum d)) (v/dot t p))
+        (m/* (m/sqrt (m/- s2 (v/dot p p)))
+           (m/sqrt (m/- s2 (v/dot t t))))))))
 
 (declare chisq-test)
 
@@ -3725,7 +4122,7 @@
   (^double [group1 group2] (cramers-c (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
-     (m/sqrt (/ chi2 (+ n chi2))))))
+     (m/sqrt (m// chi2 (m/+ n chi2))))))
 
 (defn cramers-v
   "Calculates Cramer's V, a measure of association (effect size) between two
@@ -3760,8 +4157,8 @@
   (^double [group1 group2] (cramers-v (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
-     (m/sqrt (/ (/ chi2 n)
-                (min (dec k) (dec r)))))))
+     (m/sqrt (m// (m// chi2 n)
+                  (m/min (m/dec k) (m/dec r)))))))
 
 (defn cramers-v-corrected
   "Calculates the **corrected Cramer's V**, a measure of association (effect size)
@@ -3800,14 +4197,14 @@
   (^double [group1 group2] (cramers-v-corrected (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))
-         k1 (dec k)
-         r1 (dec r)
-         n1 (double (dec n))
-         phi2_ (max 0.0 (- (/ chi2 n) (/ (* k1 r1) n1)))
-         k_ (- k (/ (* k1 k1) n1))
-         r_ (- r (/ (* r1 r1) n1))]
-     (m/sqrt (/ phi2_
-                (min (dec k_) (dec r_)))))))
+         k1 (m/dec k)
+         r1 (m/dec r)
+         n1 (m/dec n)
+         phi2_ (m/max 0.0 (m/- (m// chi2 n) (m// (m/* k1 r1) n1)))
+         k_ (m/- k (m// (m/* k1 k1) n1))
+         r_ (m/- r (m// (m/* r1 r1) n1))]
+     (m/sqrt (m// phi2_
+                  (m/min (m/dec k_) (m/dec r_)))))))
 
 (defn cohens-w
   "Calculates Cohen's W effect size for the association between two nominal
@@ -3847,7 +4244,7 @@
   (^double [group1 group2] (cohens-w (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long n]} (chisq-test (infer-ct contingency-table))]
-     (m/sqrt (/ chi2 n)))))
+     (m/sqrt (m// chi2 n)))))
 
 (defn tschuprows-t
   "Calculates Tschuprow's T, a measure of association between two nominal variables
@@ -3887,8 +4284,8 @@
   (^double [group1 group2] (tschuprows-t (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
-     (m/sqrt (/ (/ chi2 n)
-                (m/sqrt (* (dec k) (dec r))))))))
+     (m/sqrt (m// (m// chi2 n)
+                (m/sqrt (m/* (m/dec k) (m/dec r))))))))
 
 (defn cohens-kappa
   "Calculates Cohen's Kappa coefficient (κ), a statistic that measures inter-rater
@@ -3936,19 +4333,19 @@
   (^double [group1 group2] (cohens-kappa (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^long n rows cols diag]} (contingency-table->marginals (infer-ct contingency-table))
-         n2 (* n n)
-         pe (/ (sum (map (fn [r c]
-                           (* ^double (second r) ^double (second c))) rows cols)) n2)
-         p0 (/ (sum (map second diag)) n)]
-     (/ (- p0 pe) (- 1.0 pe)))))
+         n2 (m/* n n)
+         pe (m// (sum (map (fn [r c]
+                             (m/* (double (second r)) (double (second c)))) rows cols)) n2)
+         p0 (m// (sum (map second diag)) n)]
+     (m// (m/- p0 pe) (m/- 1.0 pe)))))
 
 (defn- weighted-kappa-equal-spacing
   ^double [^long R ^long id1 ^long id2]
-  (- 1.0 (/ (m/abs (- id1 id2)) R)))
+  (m/- 1.0 (m// (m/abs (m/- id1 id2)) R)))
 
 (defn- weighted-kappa-fleiss-cohen
   ^double [^long R ^long id1 ^long id2]
-  (- 1.0 (/ (m/sq (- id1 id2)) (m/sq R))))
+  (m/- 1.0 (m// (m/sq (m/- id1 id2)) (m/sq R))))
 
 (defn weighted-kappa
   "Calculates Cohen's weighted Kappa coefficient (κ) for a contingency table,
@@ -4010,20 +4407,20 @@
   (^double [contingency-table weights]
    (let [ct (infer-ct contingency-table)
          R (long (reduce (fn [^long c [^long a ^long b]]
-                           (max c a b)) 0 (keys ct)))
+                           (m/max c a b)) 0 (keys ct)))
          {:keys [^long n rows cols]} (contingency-table->marginals ct)
          wfn (cond
                (= weights :equal-spacing) weighted-kappa-equal-spacing
                (= weights :fleiss-cohen) weighted-kappa-fleiss-cohen
                (fn? weights) weights
                :else (fn [_ id1 id2] (get weights [id1 id2] 0.0)))
-         n2 (* n n)
-         pe (/ (sum (for [[^long idr ^long r] rows
-                          [^long idc ^long c] cols]
-                      (* ^double (wfn R idr idc) r c))) n2)
-         p0 (/ (sum (map (fn [[[^long idr ^long idc] ^long v]]
-                           (* ^double (wfn R idr idc) v)) ct)) n)]
-     (/ (- p0 pe) (- 1.0 pe)))))
+         n2 (m/* n n)
+         pe (m// (sum (for [[^long idr ^long r] rows
+                            [^long idc ^long c] cols]
+                        (m/* (double (wfn R idr idc)) r c))) n2)
+         p0 (m// (sum (map (fn [[[^long idr ^long idc] ^long v]]
+                             (m/* (double (wfn R idr idc)) v)) ct)) n)]
+     (m// (m/- p0 pe) (m/- 1.0 pe)))))
 
 (defn durbin-watson
   "Calculates the Durbin-Watson statistic (d) for a sequence of residuals.
@@ -4045,8 +4442,8 @@
   - Values less than 2 suggest positive autocorrelation (residuals tend to be followed by residuals of the same sign).
   - Values greater than 2 suggest negative autocorrelation (residuals tend to be followed by residuals of the opposite sign)."
   [rs]
-  (let [es (map (fn [[^double x1 ^double x2]] (- x1 x2)) (partition 2 1 rs))]
-    (/ (v/dot es es) (v/dot rs rs))))
+  (let [es (map (fn [[^double x1 ^double x2]] (m/- x1 x2)) (partition 2 1 rs))]
+    (m// (v/dot es es) (v/dot rs rs))))
 
 ;; binary classification statistics
 
@@ -4451,85 +4848,85 @@
   (let [fields [:a :b :c :d]
         a (or a 0) b (or b 0) c (or c 0) d (or d 0)
         table [a b c d]
-        r1 (+ a b) r2 (+ c d)
-        c1 (+ a c) c2 (+ b d)
-        n (+ a b c d)
+        r1 (m/long-add a b) r2 (m/long-add c d)
+        c1 (m/long-add a c) c2 (m/long-add b d)
+        n (m/long-add a b c d)
         dr1 (double r1) dr2 (double r2)
         dc1 (double c1) dc2 (double c2)
         dn (double n)
-        expected [(/ (* r1 c1) dn) (/ (* r1 c2) dn) (/ (* r2 c1) dn) (/ (* r2 c2) dn)]
+        expected [(m// (m/* r1 c1) dn) (m// (m/* r1 c2) dn) (m// (m/* r2 c1) dn) (m// (m/* r2 c2) dn)]
         proportions (v/div table n)
         chi2distr (r/distribution :chi-squared {:degrees-of-freedom 1})
         chi2 (let [diff (v/sub table expected)]
                (v/sum (v/ediv (v/emult diff diff) expected)))
         yates (let [diff (v/shift (v/abs (v/sub table expected)) -0.5)]
                 (v/sum (v/ediv (v/emult diff diff) expected)))
-        cmh (let [nmt (/ (* r1 c1) dn)]
-              (/ (m/sq (- a nmt))
-                 (* nmt (/ (* r2 c2) (* dn (dec dn))))))
-        phi (/ (- (* a d) (* b c))
-               (m/sqrt (* r1 r2 c1 c2)))
-        kappa (/ (* 2.0 (- (* a d) (* b c)))
-                 (+ (* c1 r2) (* r1 c2)))
-        G (/ (- (+ a d) (+ b c)) dn)
-        OR (/ (* a d) (double (* b c)))
-        RD (- (/ a dr1) (/ c dr2))
-        EER (/ a dr1) CER (/ c dr2) ARR (- CER EER)
-        NNT (if (zero? ARR) ##Inf (/ ARR))
-        RR (/ (/ a dr1) (/ c dr2))
-        ad2 (+ (m/sq a) (m/sq d))
-        hbc (* 0.5 (+ b c))
-        pcc (m/sqrt (/ chi2 (+ chi2 dn)))]
+        cmh (let [nmt (m// (m/* r1 c1) dn)]
+              (m// (m/sq (m/- a nmt))
+                   (m/* nmt (m// (m/* r2 c2) (m/* dn (m/dec dn))))))
+        phi (m// (m/- (m/* a d) (m/* b c))
+                 (m/sqrt (m/* r1 r2 c1 c2)))
+        kappa (m// (m/* 2.0 (m/- (m/* a d) (m/* b c)))
+                   (m/+ (m/* c1 r2) (m/* r1 c2)))
+        G (m// (m/- (m/+ a d) (m/+ b c)) dn)
+        OR (m// (m/* a d) (double (m/long-mult b c)))
+        RD (m/- (m// a dr1) (m// c dr2))
+        EER (m// a dr1) CER (m// c dr2) ARR (m/- CER EER)
+        NNT (if (m/zero? ARR) ##Inf (m// ARR))
+        RR (m// (m// a dr1) (m// c dr2))
+        ad2 (m/+ (m/sq a) (m/sq d))
+        hbc (m/* 0.5 (m/+ b c))
+        pcc (m/sqrt (m// chi2 (m/+ chi2 dn)))]
     {:n n
      :table (zipmap fields table)
      :expected (zipmap fields expected)
-     :marginals {:row1 (+ a b) :row2 (+ c d)
-                 :col1 (+ a c) :col2 (+ b d)
+     :marginals {:row1 (m/+ a b) :row2 (m/+ c d)
+                 :col1 (m/+ a c) :col2 (m/+ b d)
                  :total n}
      :proportions {:table (zipmap fields proportions)
-                   :rows (zipmap fields [(/ a dr1) (/ b dr1) (/ c dr2) (/ d dr2)])
-                   :cols (zipmap fields [(/ a dc1) (/ b dc2) (/ c dc1) (/ d dc2)])
+                   :rows (zipmap fields [(m// a dr1) (m// b dr1) (m// c dr2) (m// d dr2)])
+                   :cols (zipmap fields [(m// a dc1) (m// b dc2) (m// c dc1) (m// d dc2)])
                    :marginals (merge (zipmap [:row1 :row2] (v/div [r1 r2] n))
                                      (zipmap [:col1 :col2] (v/div [c1 c2] n)))}
      :p-values {:chi2 (r/ccdf chi2distr chi2)
                 :yates (r/ccdf chi2distr yates)
                 :cochran-mantel-haenszel (r/ccdf chi2distr cmh)}
      :OR OR :lOR (m/log OR) :RR RR
-     :risk {:RR RR :RRR (- 1.0 RR)
+     :risk {:RR RR :RRR (m/- 1.0 RR)
             :RD RD :ES r1 :CS r2
             :EER EER :CER CER :ARR ARR :NNT NNT
-            :ARI (- ARR) :NNH (- NNT) :RRI (dec RR)
-            :AFe (/ (dec RR) RR) :PFu (- 1.0 RR)}
+            :ARI (m/- ARR) :NNH (m/- NNT) :RRI (m/dec RR)
+            :AFe (m// (m/dec RR) RR) :PFu (m/- 1.0 RR)}
      :SE (m/sqrt (v/sum (v/reciprocal table)))
      :measures {:chi2 chi2
                 :yates yates
                 :cochran-mantel-haenszel cmh
                 :cohens-kappa kappa
-                :yules-q (/ (dec OR) (inc OR))
+                :yules-q (m// (m/dec OR) (m/inc OR))
                 :holley-guilfords-g G
                 :huberts-gamma (m/sq G)
-                :youdens-j (/ (- (* a d) (* b c))
-                              (* dr1 dr2))
-                :yules-y (let [sad (m/sqrt (* a d))
-                               sbc (m/sqrt (* b c))]
-                           (/ (- sad sbc) (+ sad sbc)))
+                :youdens-j (m// (m/- (m/* a d) (m/* b c))
+                                (m/* dr1 dr2))
+                :yules-y (let [sad (m/sqrt (m/* a d))
+                               sbc (m/sqrt (m/* b c))]
+                           (m// (m/- sad sbc) (m/+ sad sbc)))
                 :cramers-v (m/abs phi)
                 :phi phi
-                :scotts-pi (/ (- (* a d) (* hbc hbc))
-                              (* (+ a hbc) (+ d hbc)))
-                :cohens-h (* 2.0 (- (m/asin (m/sqrt (/ a dr1)))
-                                    (m/asin (m/sqrt (/ c dr2)))))
+                :scotts-pi (m// (m/- (m/* a d) (m/* hbc hbc))
+                                (m/* (m/+ a hbc) (m/+ d hbc)))
+                :cohens-h (m/* 2.0 (m/- (m/asin (m/sqrt (m// a dr1)))
+                                        (m/asin (m/sqrt (m// c dr2)))))
                 :PCC pcc
-                :PCC-adjusted (* m/SQRT2 pcc)
-                :TCC (m/cos (/ m/PI (inc (m/sqrt OR))))                
-                :F1 (/ (+ a a)
-                       (double (+ a a b c)))
-                :bangdiwalas-b (/ ad2 (+ (* dr1 dc1) (* dr2 dc2)))
-                :mcnemars-chi2 (/ (m/sq (- b c)) (+ b c))
-                :gwets-ac1 (let [bc (+ b c)
-                                 hbc2 (* bc hbc)]
-                             (/ (- ad2 hbc2)
-                                (+ ad2 hbc2 (* (+ a d) (+ b c)))))}}))
+                :PCC-adjusted (m/* m/SQRT2 pcc)
+                :TCC (m/cos (m// m/PI (m/inc (m/sqrt OR))))                
+                :F1 (m// (m/+ a a)
+                         (double (m/long-add a a b c)))
+                :bangdiwalas-b (m// ad2 (m/+ (m/* dr1 dc1) (m/* dr2 dc2)))
+                :mcnemars-chi2 (m// (m/sq (m/- b c)) (m/+ b c))
+                :gwets-ac1 (let [bc (m/+ b c)
+                                 hbc2 (m/* bc hbc)]
+                             (m// (m/- ad2 hbc2)
+                                  (m/+ ad2 hbc2 (m/* (m/+ a d) (m/+ b c)))))}}))
 
 (defn contingency-2x2-measures-all
   "Calculates a comprehensive set of statistics and measures for a 2x2 contingency table.
@@ -4650,24 +5047,24 @@
   * `lags` (long or seq of longs, optional):
     * If a number, calculates ACF for lags from 0 up to this maximum lag.
     * If a sequence of numbers, calculates ACF for each lag specified in the sequence.
-    * If omitted (1-arity call), calculates ACF for lags from 0 up to `(dec (count data))`.
+    * If omitted (1-arity call), calculates ACF for lags from 0 up to `(m/dec (count data))`.
 
   Returns a sequence of doubles: the autocorrelation coefficients for the specified lags.
   The value at lag 0 is always 1.0.
 
   See also [[acf-ci]] (Calculates ACF with confidence intervals), [[pacf]], [[pacf-ci]]."
-  ([data] (acf data (dec (count data))))
+  ([data] (acf data (m/dec (count data))))
   ([data lags]
    (let [vdata (vec (demean data))
-         rcov0 (/ (cov-for-acf vdata vdata))]
+         rcov0 (m// (cov-for-acf vdata vdata))]
      (map (fn [^long lag]
-            (if (zero? lag)
+            (if (m/zero? lag)
               1.0
               (let [v2 (subvec vdata lag)
                     v1 (subvec vdata 0 (count v2))]
-                (* rcov0 (cov-for-acf v1 v2))))) (if (number? lags)
-                                                   (range (inc (int lags)))
-                                                   (seq lags))))))
+                (m/* rcov0 (cov-for-acf v1 v2))))) (if (number? lags)
+                                                     (range (m/inc (long lags)))
+                                                     (seq lags))))))
 
 ;; http://feldman.faculty.pstat.ucsb.edu/174-03/lectures/l13
 (defn pacf
@@ -4683,26 +5080,26 @@
   Returns a sequence of doubles representing the partial autocorrelation coefficients for the specified lags. The value at lag 0 is always 0.0.
 
   See also [[acf]], [[acf-ci]], [[pacf-ci]]."
-  ([data] (pacf data (dec (count data))))
+  ([data] (pacf data (m/long-dec (count data))))
   ([data ^long lags]
    (let [acfs (vec (acf data lags))
          phis (reductions (fn [curr ^long id]
-                            (let [phi (/ (- ^double (acfs id)
-                                            (sum
-                                             (map-indexed (fn [^long idx ^double c]
-                                                            (* c ^double (acfs (dec (- id idx))))) curr)))
-                                         (- 1.0
-                                            ^double (sum (map-indexed (fn [^long id ^double c]
-                                                                        (* c ^double (acfs (inc id)))) curr))))]
+                            (let [phi (m// (m/- (double (acfs id))
+                                                (sum
+                                                 (map-indexed (fn [^long idx ^double c]
+                                                                (m/* c (double (acfs (m/dec (m/- id idx)))))) curr)))
+                                           (m/- 1.0
+                                                (sum (map-indexed (fn [^long id ^double c]
+                                                                    (m/* c (double (acfs (m/inc id))))) curr))))]
 
                               (conj (mapv (fn [^double p1 ^double p2]
-                                            (- p1 (* phi p2))) curr (reverse curr)) phi))) [(acfs 1)] (range 2 (inc lags)))]
+                                            (m/- p1 (m/* phi p2))) curr (reverse curr)) phi))) [(acfs 1)] (range 2 (m/inc lags)))]
      (conj (map last phis) 0.0))))
 
 (defn- p-acf-ci-value
   ^double [data ^double alpha]
-  (* (/ (m/sqrt (count data)))
-     ^double (r/icdf r/default-normal (* 0.5 (inc (- 1.0 alpha))))))
+  (m/* (m// (m/sqrt (count data)))
+       (double (r/icdf r/default-normal (m/* 0.5 (m/inc (m/- 1.0 alpha)))))))
 
 (defn pacf-ci
   "Calculates the Partial Autocorrelation Function (PACF) for a time series and provides approximate confidence intervals.
@@ -4729,7 +5126,7 @@
     at lags from 0 up to `lags` (calculated using [[pacf]]).
 
   See also [[pacf]], [[acf]], [[acf-ci]]."
-  ([data] (pacf-ci data (dec (count data))))
+  ([data] (pacf-ci data (m/dec (count data))))
   ([data lags] (pacf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [pacf-data (pacf data lags)
@@ -4767,7 +5164,7 @@
     variance of the sum of squared sample autocorrelations up to each lag.
 
   See also [[acf]], [[pacf]], [[pacf-ci]]."
-  ([data] (acf-ci data (dec (count data))))
+  ([data] (acf-ci data (m/dec (count data))))
   ([data lags] (acf-ci data lags 0.05))
   ([data ^long lags ^double alpha]
    (let [acf-data (acf data lags)
@@ -4775,32 +5172,32 @@
      {:ci ci
       :acf acf-data
       :cis (map (fn [^double r]
-                  (* ci (m/sqrt (dec (+ r r))))) (reductions (fn [^double acc ^double s]
-                                                               (+ acc (* s s))) acf-data))})))
+                  (m/* ci (m/sqrt (m/dec (m/+ r r))))) (reductions (fn [^double acc ^double s]
+                                                               (m/+ acc (m/* s s))) acf-data))})))
 
 ;;
 
 (defn- estimate-acceleration
   "Estimates acceleration for BCA bootstrap confidence interval computation"
   ^double [avs]
-  (/ (skewness avs :skew) -6.0))
+  (m// (skewness avs :skew) -6.0))
 
 (defn- cdf-accelerated-quantile
   ^double [^double z0 ^double z ^double a]
-  (let [num (+ z0 z)
-        denom (- 1.0 (* a num))]
-    (->> (+ z0 (/ num denom))
+  (let [num (m/+ z0 z)
+        denom (m/- 1.0 (m/* a num))]
+    (->> (m/+ z0 (m// num denom))
          (r/cdf r/default-normal))))
 
 (defn- empirical-cdf
   ^double [vs ^double value]
-  (/ (double (count (filter (fn [^double v] (< v value)) vs))) (count vs)))
+  (m// (double (count (filter (fn [^double v] (m/< v value)) vs))) (count vs)))
 
 (defn- percentile-bca-common
   [avs p1 p2 m accel estimation-strategy]
-  (let [^double z0 (r/icdf r/default-normal (empirical-cdf avs m))
-        ^double z1 (r/icdf r/default-normal (/ ^double p1 100.0))
-        ^double z2 (r/icdf r/default-normal (/ ^double p2 100.0))
+  (let [z0 (double (r/icdf r/default-normal (empirical-cdf avs m)))
+        z1 (double (r/icdf r/default-normal (m// (double p1) 100.0)))
+        z2 (double (r/icdf r/default-normal (m// (double p2) 100.0)))
         q1 (cdf-accelerated-quantile z0 z1 accel)
         q2 (cdf-accelerated-quantile z0 z2 accel)]
     [(quantile avs q1 estimation-strategy)
@@ -4816,7 +5213,7 @@
 
   Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
   ([vs] (percentile-bca-extent vs 2.5))
-  ([vs ^double p] (percentile-bca-extent vs p (- 100.0 p)))
+  ([vs ^double p] (percentile-bca-extent vs p (m/- 100.0 p)))
   ([vs p1 p2] (percentile-bca-extent vs p1 p2 :legacy))
   ([vs p1 p2 estimation-strategy]
    (let [avs (m/seq->double-array vs)
@@ -4834,7 +5231,7 @@
 
   Set `estimation-strategy` to `:r7` to get the same result as in R `coxed::bca`."
   ([vs] (percentile-bc-extent vs 2.5))
-  ([vs ^double p] (percentile-bc-extent vs p (- 100.0 p)))
+  ([vs ^double p] (percentile-bc-extent vs p (m/- 100.0 p)))
   ([vs p1 p2] (percentile-bc-extent vs p1 p2 :legacy))
   ([vs p1 p2 estimation-strategy]
    (percentile-bca-extent vs p1 p2 0.0 estimation-strategy)))
@@ -4891,102 +5288,100 @@
   ([^long number-of-successes ^long number-of-trials method]
    (binomial-ci number-of-successes number-of-trials method 0.05))
   ([^long number-of-successes ^long number-of-trials method ^double alpha]
-   (let [p (/ (double number-of-successes) number-of-trials)
-         alpha2 (* 0.5 alpha)
-         ^double z (r/icdf r/default-normal (- 1.0 alpha2))
-         z2 (* z z)
-         x0? (zero? number-of-successes)
-         xn? (== number-of-trials number-of-successes)]
+   (let [p (m// (double number-of-successes) number-of-trials)
+         alpha2 (m/* 0.5 alpha)
+         z (double (r/icdf r/default-normal (m/- 1.0 alpha2)))
+         z2 (m/* z z)
+         x0? (m/zero? number-of-successes)
+         xn? (m/== number-of-trials number-of-successes)]
      (case method
        :all (into {} (map #(vector %1 (binomial-ci number-of-successes number-of-trials % alpha))
                           binomial-ci-methods))
        :cloglog (let [logp (m/log p)
-                      mu (m/log (- logp))
-                      sd (* z (m/sqrt (-> (- 1.0 p) (/ number-of-trials) (/ p) (/ (* logp logp)))))
+                      mu (m/log (m/- logp))
+                      sd (m/* z (m/sqrt (-> (m/- 1.0 p) (m// number-of-trials) (m// p) (m// (m/* logp logp)))))
                       lcl (cond
                             x0? 0.0
-                            xn? (m/pow alpha2 (/ 1.0 number-of-trials))
-                            :else (m/exp (- (m/exp (+ mu sd)))))
+                            xn? (m/pow alpha2 (m// 1.0 number-of-trials))
+                            :else (m/exp (m/- (m/exp (m/+ mu sd)))))
                       ucl (cond
-                            x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                            x0? (m/- 1.0 (m/pow alpha2 (m// 1.0 number-of-trials)))
                             xn? 1.0
-                            :else (m/exp (- (m/exp (- mu sd)))))]
+                            :else (m/exp (m/- (m/exp (m/- mu sd)))))]
                   [lcl ucl p])
-       :logit (let [logitp (- (m/log p) (m/log1p (- p)))
-                    sd (* z (m/sqrt (-> (/ 1.0 number-of-trials) (/ p) (/ (- 1.0 p)))))
+       :logit (let [logitp (m/- (m/log p) (m/log1p (m/- p)))
+                    sd (m/* z (m/sqrt (-> (m// 1.0 number-of-trials) (m// p) (m// (m/- 1.0 p)))))
                     lcl (cond
                           x0? 0.0
-                          xn? (m/pow alpha2 (/ 1.0 number-of-trials))
-                          :else (let [lcl (m/exp (- logitp sd))]
-                                  (/ lcl (inc lcl))))
+                          xn? (m/pow alpha2 (m// 1.0 number-of-trials))
+                          :else (let [lcl (m/exp (m/- logitp sd))]
+                                  (m// lcl (m/inc lcl))))
                     ucl (cond
-                          x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
+                          x0? (m/- 1.0 (m/pow alpha2 (m// 1.0 number-of-trials)))
                           xn? 1.0
-                          :else (let [ucl (m/exp (+ logitp sd))]
-                                  (/ ucl (inc ucl))))]
+                          :else (let [ucl (m/exp (m/+ logitp sd))]
+                                  (m// ucl (m/inc ucl))))]
                 [lcl ucl p])
-       :probit (let [^double probitp (r/icdf r/default-normal p)
-                     sd (* z (m/sqrt (-> (* p (- 1.0 p))
-                                         (/ number-of-trials)
-                                         (/ (m/sq ^double (r/pdf r/default-normal probitp))))))
-                     ^double lcl (cond
-                                   x0? 0.0
-                                   xn? (m/pow alpha2 (/ 1.0 number-of-trials))
-                                   :else (r/cdf r/default-normal (- probitp sd)))
-                     ^double ucl (cond
-                                   x0? (- 1.0 (m/pow alpha2 (/ 1.0 number-of-trials)))
-                                   xn? 1.0
-                                   :else (r/cdf r/default-normal (+ probitp sd)))]
+       :probit (let [probitp (double (r/icdf r/default-normal p))
+                     sd (m/* z (m/sqrt (-> (m/* p (m/- 1.0 p))
+                                           (m// number-of-trials)
+                                           (m// (m/sq (r/pdf r/default-normal probitp))))))
+                     lcl (cond
+                           x0? 0.0
+                           xn? (m/pow alpha2 (m// 1.0 number-of-trials))
+                           :else (r/cdf r/default-normal (m/- probitp sd)))
+                     ucl (cond
+                           x0? (m/- 1.0 (m/pow alpha2 (m// 1.0 number-of-trials)))
+                           xn? 1.0
+                           :else (r/cdf r/default-normal (m/+ probitp sd)))]
                  [lcl ucl p])
-       :prop.test (let [yatesn (/ (min 0.5 (m/abs (- number-of-successes (* number-of-trials 0.5))))
-                                  number-of-trials)
-                        nn (* 2.0 number-of-trials)
-                        z22n (/ z2 nn)
-                        z22n+ (inc (* 2.0 z22n))
-                        z22n2n (/ z22n nn)
-                        pc (- p yatesn)
-                        pl (if-not (pos? pc) 0.0
-                                   (/ (- (+ pc z22n) (* z (m/sqrt (+ (* pc (/ (- 1.0 pc) number-of-trials))
+       :prop.test (let [yatesn (m// (m/min 0.5 (m/abs (m/- number-of-successes (m/* number-of-trials 0.5))))
+                                    number-of-trials)
+                        nn (m/* 2.0 number-of-trials)
+                        z22n (m// z2 nn)
+                        z22n+ (m/inc (m/* 2.0 z22n))
+                        z22n2n (m// z22n nn)
+                        pc (m/- p yatesn)
+                        pl (if-not (m/pos? pc) 0.0
+                                   (m// (m/- (m/+ pc z22n) (m/* z (m/sqrt (m/+ (m/* pc (m// (m/- 1.0 pc) number-of-trials))
+                                                                               z22n2n))))
+                                        z22n+))
+                        pc (m/+ p yatesn)
+                        pu (if (m/>= pc 1.0) 1.0
+                               (m// (m/+ pc z22n (m/* z (m/sqrt (m/+ (m/* pc (m// (m/- 1.0 pc) number-of-trials))
                                                                      z22n2n))))
-                                      z22n+))
-                        pc (+ p yatesn)
-                        pu (if (>= pc 1.0) 1.0
-                               (/ (+ pc z22n (* z (m/sqrt (+ (* pc (/ (- 1.0 pc) number-of-trials))
-                                                             z22n2n))))
-                                  z22n+))]
+                                    z22n+))]
                     [pl pu p])
-       :wilson (let [z2n (/ z2 number-of-trials)
-                     p1 (+ p (* 0.5 z2n))
-                     p2 (* z (m/sqrt (/ (+ (* p (- 1.0 p))
-                                           (* 0.25 z2n)) number-of-trials)))
-                     p3 (inc z2n)]
-                 [(/ (- p1 p2) p3) (/ (+ p1 p2) p3) p])
-       :clopper-pearson (let [diff (- number-of-trials
-                                      number-of-successes)
-                              lclbeta (if x0? 1.0
-                                          ^double (r/icdf
-                                                   (r/distribution :beta
-                                                                   {:alpha (inc diff)
-                                                                    :beta number-of-successes})
-                                                   (- 1.0 alpha2)))
-                              uclbeta (if xn? 0.0
-                                          ^double (r/icdf
-                                                   (r/distribution :beta
-                                                                   {:alpha diff
-                                                                    :beta (inc number-of-successes)})
-                                                   alpha2))]
-                          [(- 1.0 lclbeta) (- 1.0 uclbeta) p])
-       :agresti-coull (let [x (+ number-of-successes (* 0.5 z2))
-                            n (+ number-of-trials z2)
-                            p' (/ x n)
-                            zse (* z (m/sqrt (* p' (/ (- 1.0 p') n))))]
-                        [(- p' zse) (+ p' zse) p])
+       :wilson (let [z2n (m// z2 number-of-trials)
+                     p1 (m/+ p (m/* 0.5 z2n))
+                     p2 (m/* z (m/sqrt (m// (m/+ (m/* p (m/- 1.0 p))
+                                                 (m/* 0.25 z2n)) number-of-trials)))
+                     p3 (m/inc z2n)]
+                 [(m// (m/- p1 p2) p3) (m// (m/+ p1 p2) p3) p])
+       :clopper-pearson (let [diff (m/- number-of-trials
+                                        number-of-successes)
+                              lclbeta (if x0? 1.0 (double (r/icdf
+                                                           (r/distribution :beta
+                                                                           {:alpha (m/inc diff)
+                                                                            :beta number-of-successes})
+                                                           (m/- 1.0 alpha2))))
+                              uclbeta (if xn? 0.0 (double (r/icdf
+                                                           (r/distribution :beta
+                                                                           {:alpha diff
+                                                                            :beta (m/inc number-of-successes)})
+                                                           alpha2)))]
+                          [(m/- 1.0 lclbeta) (m/- 1.0 uclbeta) p])
+       :agresti-coull (let [x (m/+ number-of-successes (m/* 0.5 z2))
+                            n (m/+ number-of-trials z2)
+                            p' (m// x n)
+                            zse (m/* z (m/sqrt (m/* p' (m// (m/- 1.0 p') n))))]
+                        [(m/- p' zse) (m/+ p' zse) p])
        :arcsine (let [ap (m/asin (m/sqrt p))
-                      zn (/ z (* 2.0 (m/sqrt number-of-trials)))]
-                  [(m/sq (m/sin (max 0.0 (- ap zn))))
-                   (m/sq (m/sin (min m/HALF_PI (+ ap zn)))) p])
-       (let [zse (* z (m/sqrt (* p (/ (- 1.0 p) number-of-trials))))]
-         [(- p zse) (+ p zse) p])))))
+                      zn (m// z (m/* 2.0 (m/sqrt number-of-trials)))]
+                  [(m/sq (m/sin (m/max 0.0 (m/- ap zn))))
+                   (m/sq (m/sin (m/min m/HALF_PI (m/+ ap zn)))) p])
+       (let [zse (m/* z (m/sqrt (m/* p (m// (m/- 1.0 p) number-of-trials))))]
+         [(m/- p zse) (m/+ p zse) p])))))
 
 ;; tests
 
@@ -5034,10 +5429,10 @@
   ([^double stat] (p-value r/default-normal stat))
   ([distribution ^double stat] (p-value distribution stat :two-sided))
   ([distribution ^double stat sides]
-   (let [stat2 (if (r/continuous? distribution) stat (dec stat))]
+   (let [stat2 (if (r/continuous? distribution) stat (m/dec stat))]
      (sides-case sides
-                 (min 1.0 (* 2.0 (min (r/cdf distribution stat)
-                                      (r/ccdf distribution stat2))))
+                 (m/min 1.0 (m/* 2.0 (m/min (r/cdf distribution stat)
+                                            (r/ccdf distribution stat2))))
                  (r/ccdf distribution stat2)
                  (r/cdf distribution stat)))))
 
@@ -5082,15 +5477,15 @@
              :or {sides :two-sided type :g1}}]
    (let [skew (double (or skew (skewness xs type)))
          n (count xs)
-         y (* skew (m/sqrt (/ (* (inc n) (+ n 3))
-                              (* 6.0 (- n 2)))))
-         beta2- (dec (/ (* 3.0 (+ (* n n) (* 27 n) -70) (+ n 1) (+ n 3))
-                        (* (- n 2) (+ n 5) (+ n 7) (+ n 9))))
-         w2 (dec (m/sqrt (* 2.0 beta2-)))
-         delta (/ 1.0 (m/sqrt (* 0.5 (m/log w2))))
-         alpha (m/sqrt (/ 2.0 (dec w2)))
-         ya (double (if (zero? y) (/ 1.0 alpha) (/ y alpha)))
-         Z (* delta (m/log (+ ya (m/sqrt (inc (* ya ya))))))]
+         y (m/* skew (m/sqrt (m// (m/* (m/inc n) (m/+ n 3))
+                                  (m/* 6.0 (m/- n 2)))))
+         beta2- (m/dec (m// (m/* 3.0 (m/+ (m/* n n) (m/* 27 n) -70) (m/+ n 1) (m/+ n 3))
+                            (m/* (m/- n 2) (m/+ n 5) (m/+ n 7) (m/+ n 9))))
+         w2 (m/dec (m/sqrt (m/* 2.0 beta2-)))
+         delta (m// 1.0 (m/sqrt (m/* 0.5 (m/log w2))))
+         alpha (m/sqrt (m// 2.0 (m/dec w2)))
+         ya (double (if (m/zero? y) (m// 1.0 alpha) (m// y alpha)))
+         Z (m/* delta (m/log (m/+ ya (m/sqrt (m/inc (m/* ya ya))))))]
      {:p-value (p-value r/default-normal Z sides)
       :Z Z
       :skewness skew})))
@@ -5137,22 +5532,22 @@
              :or {sides :two-sided type :kurt}}]
    (let [kurt (double (or kurt (kurtosis xs type)))
          n (count xs)
-         e (/ (* 3.0 (dec n)) (inc n))
-         varb2 (/ (* 24.0 n (- n 2) (- n 3))
-                  (* (m/sq (inc n)) (+ n 3) (+ n 5)))
-         x (/ (- kurt e) (m/sqrt varb2))
-         sqrtbeta1 (* (/ (* 6.0 (+ (* n n) (* -5 n) 2))
-                         (* (+ n 7) (+ n 9)))
-                      (m/sqrt (/ (* 6.0 (+ n 3) (+ n 5))
-                                 (* n (- n 2) (- n 3)))))
-         a (+ 6.0 (* (/ 8.0 sqrtbeta1) (+ (/ 2.0 sqrtbeta1)
-                                          (m/sqrt (inc (/ 4.0 (* sqrtbeta1 sqrtbeta1)))))))
-         term1 (- 1.0 (/ 2.0 (* 9.0 a)))
-         denom (inc (* x (m/sqrt (/ 2.0 (- a 4.0)))))
-         term2 (* (m/signum denom) (m/cbrt (/ (- 1.0 (/ 2.0 a))
+         e (m// (m/* 3.0 (m/dec n)) (m/inc n))
+         varb2 (m// (m/* 24.0 n (m/- n 2) (m/- n 3))
+                  (m/* (m/sq (m/inc n)) (m/+ n 3) (m/+ n 5)))
+         x (m// (m/- kurt e) (m/sqrt varb2))
+         sqrtbeta1 (m/* (m// (m/* 6.0 (m/+ (m/* n n) (m/* -5 n) 2))
+                         (m/* (m/+ n 7) (m/+ n 9)))
+                      (m/sqrt (m// (m/* 6.0 (m/+ n 3) (m/+ n 5))
+                                 (m/* n (m/- n 2) (m/- n 3)))))
+         a (m/+ 6.0 (m/* (m// 8.0 sqrtbeta1) (m/+ (m// 2.0 sqrtbeta1)
+                                          (m/sqrt (m/inc (m// 4.0 (m/* sqrtbeta1 sqrtbeta1)))))))
+         term1 (m/- 1.0 (m// 2.0 (m/* 9.0 a)))
+         denom (m/inc (m/* x (m/sqrt (m// 2.0 (m/- a 4.0)))))
+         term2 (m/* (m/signum denom) (m/cbrt (m// (m/- 1.0 (m// 2.0 a))
                                               (m/abs denom))))
-         Z (/ (- term1 term2)
-              (m/sqrt (/ 2.0 (* 9.0 a))))]
+         Z (m// (m/- term1 term2)
+              (m/sqrt (m// 2.0 (m/* 9.0 a))))]
      {:p-value (p-value r/default-normal Z sides)
       :Z Z
       :kurtosis kurt})))
@@ -5200,8 +5595,8 @@
                   :or {sides :one-sided-greater}}]
    (let [{^double skew-Z :Z skew :skewness} (skewness-test xs skew nil)
          {^double kurt-Z :Z kurt :kurtosis} (kurtosis-test xs kurt nil)
-         Z (+ (* skew-Z skew-Z)
-              (* kurt-Z kurt-Z))]
+         Z (m/+ (m/* skew-Z skew-Z)
+              (m/* kurt-Z kurt-Z))]
      {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
       :Z Z
       :skewness skew
@@ -5255,7 +5650,7 @@
    (let [skew (double (or skew (skewness xs :g1)))
          kurt (double (or kurt (kurtosis xs :g2)))
          n (count xs)
-         Z (* n m/SIXTH (+ (* skew skew) (* 0.25 kurt kurt)))]
+         Z (m/* n m/SIXTH (m/+ (m/* skew skew) (m/* 0.25 kurt kurt)))]
      {:p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom 2}) Z sides)
       :Z Z
       :skewness skew
@@ -5298,7 +5693,7 @@
   ([xs params] (bonett-seier-test xs nil params))
   ([xs geary-kurtosis {:keys [sides] :or {sides :two-sided}}]
    (let [n (count xs)]
-     (assert (> n 3) "Test requires sample size > 3 for variance calculation.")
+     (when (m/<= n 3) (throw (ex-info "Test requires sample size > 3 for variance calculation." {:n n})))
      (let [g (double (or geary-kurtosis (kurtosis xs :geary)))
            omega (m/* -13.29 (m/log g))
            Z (m// (m/* (m/sqrt (m/+ n 2))
@@ -5370,30 +5765,30 @@
       :successes number-of-successes
       :trials number-of-trials
       :alpha alpha
-      :level (- 1.0 alpha)
+      :level (m/- 1.0 alpha)
       :test-type sides
       :stat number-of-successes
-      :estimate (/ (double number-of-successes) number-of-trials)
+      :estimate (m// (double number-of-successes) number-of-trials)
       :ci-method ci-method
       :confidence-interval (let [bci (partial binomial-ci number-of-successes number-of-trials ci-method)]
                              (sides-case sides
-                                         (vec (butlast (bci (- 1.0 alpha))))
-                                         [(first (bci (- 1.0 (* alpha 2.0)))) 1.0]
-                                         [0.0 (second (bci (- 1.0 (* alpha 2.0))))]))})))
+                                         (vec (butlast (bci (m/- 1.0 alpha))))
+                                         [(first (bci (m/- 1.0 (m/* alpha 2.0)))) 1.0]
+                                         [0.0 (second (bci (m/- 1.0 (m/* alpha 2.0))))]))})))
 
 ;; t/z
 
 (defn- test-update-ci
   [^double mu ^double stderr [^double l ^double r]]
-  [(+ mu (* l stderr)) (+ mu (* r stderr))])
+  [(m/+ mu (m/* l stderr)) (m/+ mu (m/* r stderr))])
 
 (defn- test-pvalue-ci
   [d sides ^double stat ^double alpha]
   {:confidence-interval (sides-case sides
-                                    (let [^double cint (r/icdf d (- 1.0 (* 0.5 alpha)))]
-                                      [(- stat cint) (+ stat cint)])
-                                    [(- stat ^double (r/icdf d (- 1.0 alpha))) ##Inf]
-                                    [##-Inf (+ stat ^double (r/icdf d (- 1.0 alpha)))])
+                                    (let [cint (double (r/icdf d (m/- 1.0 (m/* 0.5 alpha))))]
+                                      [(m/- stat cint) (m/+ stat cint)])
+                                    [(m/- stat (double (r/icdf d (m/- 1.0 alpha)))) ##Inf]
+                                    [##-Inf (m/+ stat (double (r/icdf d (m/- 1.0 alpha))))])
    :p-value (p-value d stat sides)})
 
 (defn- test-one-sample
@@ -5403,16 +5798,16 @@
         n (alength axs)
         m (mean axs)
         v (variance axs)
-        stderr (m/sqrt (/ v n))]
-    (assert (> stderr (* 10.0 m/MACHINE-EPSILON (m/abs m))) "Constant data, can't perform test.")
+        stderr (m/sqrt (m// v n))]
+    (when (m/< stderr (m/* 10.0 m/MACHINE-EPSILON (m/abs m))) (throw (ex-info "Constant data, can't perform test." {:stderr stderr :mean m})))
     {:n n
      :estimate m
      :mu mu
-     :stat (/ (- m mu) stderr)
+     :stat (m// (m/- m mu) stderr)
      :test-type sides
      :stderr stderr
      :alpha alpha
-     :level (- 1.0 alpha)}))
+     :level (m/- 1.0 alpha)}))
 
 (defn t-test-one-sample
   "Performs a one-sample Student's t-test to compare the sample mean against a hypothesized population mean.
@@ -5458,7 +5853,7 @@
   ([xs m]
    (let [{:keys [^long n ^double stat test-type ^double alpha ^double mu ^double stderr]
           :as res} (test-one-sample xs m)
-         df (dec n)
+         df (m/dec n)
          pvals (-> (test-pvalue-ci (r/distribution :t {:degrees-of-freedom df}) test-type stat alpha)
                    (update :confidence-interval (partial test-update-ci mu stderr)))]
      (assoc (merge pvals res) :df df :t stat))))
@@ -5510,20 +5905,20 @@
 
 (defn- test-equal-variances
   [^double nx ^double ny ^double vx ^double vy]
-  (let [df (- (+ nx ny) 2.0)
-        v (/ (+ (* vx (dec nx))
-                (* vy (dec ny))) df)]
-    [df (m/sqrt (* v (+ (/ 1.0 nx)
-                        (/ 1.0 ny))))]))
+  (let [df (m/- (m/+ nx ny) 2.0)
+        v (m// (m/+ (m/* vx (m/dec nx))
+                (m/* vy (m/dec ny))) df)]
+    [df (m/sqrt (m/* v (m/+ (m// 1.0 nx)
+                        (m// 1.0 ny))))]))
 
 (defn- test-not-equal-variances
   [^double nx ^double ny ^double vx ^double vy]
-  (let [stderrx (m/sqrt (/ vx nx))
-        stderry (m/sqrt (/ vy ny))
+  (let [stderrx (m/sqrt (m// vx nx))
+        stderry (m/sqrt (m// vy ny))
         stderr (m/hypot-sqrt stderrx stderry)
-        df (/ (m/sq (m/sq stderr))
-              (+ (/ (m/sq (m/sq stderrx)) (dec nx))
-                 (/ (m/sq (m/sq stderry)) (dec ny))))]
+        df (m// (m/sq (m/sq stderr))
+              (m/+ (m// (m/sq (m/sq stderrx)) (m/dec nx))
+                 (m// (m/sq (m/sq stderry)) (m/dec ny))))]
     [df stderr]))
 
 (defn- test-two-samples-not-paired
@@ -5543,13 +5938,13 @@
     {:n [nx ny] :nx nx :ny ny
      :estimated-mu [mx my]
      :mu mu
-     :estimate (- mx my mu)
-     :stat (/ (- mx my mu) stderr)
+     :estimate (m/- mx my mu)
+     :stat (m// (m/- mx my mu) stderr)
      :sides sides
      :test-type sides
      :stderr stderr
      :alpha alpha
-     :level (- 1.0 alpha)
+     :level (m/- 1.0 alpha)
      :df df
      :paired? false
      :equal-variances? equal-variances?}))
@@ -5611,10 +6006,10 @@
            :as params}]
    (let [nx (count xs)
          ny (count ys)]
-     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
-                 (and (not equal-variances?)
-                      (> nx 1) (> ny 1))) "Not enough observations.")
-     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
+     (when-not (or (and equal-variances? (m/< 2 (m/+ nx ny)) (m/pos? nx) (m/pos? ny))
+                   (and (not equal-variances?)
+                        (m/> nx 1) (m/> ny 1))) (throw (ex-info "Not enough observations." {:nx nx :ny ny :equal-variances? equal-variances?})))
+     (when (and paired? (m/not== nx ny)) (throw (ex-info "Lengths of xs and ys should be equal." {:nx nx :ny ny})))
      (if paired?
        (-> (t-test-one-sample (map - xs ys) params)
            (assoc :paired? true))
@@ -5674,10 +6069,10 @@
            :as params}]
    (let [nx (count xs)
          ny (count ys)]
-     (assert (or (and equal-variances? (< 2 (+ nx ny)) (pos? nx) (pos? ny))
-                 (and (not equal-variances?)
-                      (> nx 1) (> ny 1))) "Not enough observations.")
-     (when paired? (assert (== nx ny) "Lengths of xs and ys should be equal."))
+     (when-not (or (and equal-variances? (m/< 2 (m/+ nx ny)) (m/pos? nx) (m/pos? ny))
+                   (and (not equal-variances?)
+                        (m/> nx 1) (m/> ny 1))) (throw (ex-info "Not enough observations." {:nx nx :ny ny :equal-variances? equal-variances?})))
+     (when (and paired? (m/not== nx ny)) (throw (ex-info "Lengths of xs and ys should be equal." {:nx nx :ny ny})))
      (if paired?
        (-> (z-test-one-sample (map - xs ys) params)
            (assoc :paired? true))
@@ -5728,9 +6123,9 @@
            :or {sides :two-sided alpha 0.05}}]
    (let [nx (count xs)
          ny (count ys)
-         dfx (dec nx)
-         dfy (dec ny)
-         F (/ (variance xs) (variance ys))
+         dfx (m/dec nx)
+         dfy (m/dec ny)
+         F (m// (variance xs) (variance ys))
          distr (r/distribution :f {:denominator-degrees-of-freedom dfy
                                    :numerator-degrees-of-freedom dfx})]
      {:F F
@@ -5742,31 +6137,31 @@
       :test-type sides
       :p-value (p-value distr F sides)
       :confidence-interval (sides-case sides
-                                       [(/ F ^double (r/icdf distr (- 1.0 (* alpha 0.5))))
-                                        (/ F ^double (r/icdf distr (* alpha 0.5)))]
-                                       [(/ F ^double (r/icdf distr (- 1.0 alpha))) ##Inf]
-                                       [0.0 (/ F ^double (r/icdf distr alpha))])})))
+                                       [(m// F (double (r/icdf distr (m/- 1.0 (m/* alpha 0.5)))))
+                                        (m// F (double (r/icdf distr (m/* alpha 0.5))))]
+                                       [(m// F (double (r/icdf distr (m/- 1.0 alpha)))) ##Inf]
+                                       [0.0 (m// F (double (r/icdf distr alpha)))])})))
 
 (defn- pdt-gof
   "Goodness of fit"
   [xs p ^double lambda]
   (let [cnt (count xs)
         n (sum xs)
-        df (dec cnt)
+        df (m/dec cnt)
         p (or p (repeat cnt 1.0))
         psum (sum p)
-        p (map (fn [^double p] (/ p psum)) p)
-        xhat (map (fn [^double p] (* n p)) p)
+        p (map (fn [^double p] (m// p psum)) p)
+        xhat (map (fn [^double p] (m/* n p)) p)
         stat (condp = lambda
-               0.0 (* 2.0 (sum (map (fn [^long a ^double b]
-                                      (* a (- (m/log a) (m/log b)))) xs xhat)))
-               -1.0 (* 2.0 (sum (map (fn [^double a ^long b]
-                                       (* a (- (m/log a) (m/log b)))) xhat xs)))
-               (* (/ 2.0 (* lambda (inc lambda)))
+               0.0 (m/* 2.0 (sum (map (fn [^long a ^double b]
+                                      (m/* a (m/- (m/log a) (m/log b)))) xs xhat)))
+               -1.0 (m/* 2.0 (sum (map (fn [^double a ^long b]
+                                       (m/* a (m/- (m/log a) (m/log b)))) xhat xs)))
+               (m/* (m// 2.0 (m/* lambda (m/inc lambda)))
                   (sum (map (fn [^long a ^double b]
-                              (* a (dec (m/pow (/ a b) lambda)))) xs xhat))))]
+                              (m/* a (m/dec (m/pow (m// a b) lambda)))) xs xhat))))]
     {:stat stat :df df :n n :expected xhat :p p
-     :estimate (map (fn [^double v] (/ v n)) xs)}))
+     :estimate (map (fn [^double v] (m// v n)) xs)}))
 
 (defn- pdt-distribution
   [xs distr bins ^double lambda]
@@ -5775,16 +6170,16 @@
 
 (defn- pdt-bootstrap-ci
   [{:keys [estimate ^long n ^double alpha ci-sides]} samples]
-  (let [alpha (if (#{:both :two-sided} ci-sides) alpha (* alpha 2.0))
+  (let [alpha (if (#{:both :two-sided} ci-sides) alpha (m/* alpha 2.0))
         d (r/distribution :multinomial {:trials n :ps (if (map? estimate) (vals estimate) estimate)})
         rands (apply map (comp m/seq->double-array vector) (r/->seq d samples))
         vs (sides-case ci-sides
-                       (let [qs [(/ alpha 2.0) (- 1.0 (/ alpha 2.0))]]
+                       (let [qs [(m// alpha 2.0) (m/- 1.0 (m// alpha 2.0))]]
                          (map #(v/div (quantiles % qs) (double n)) rands))
-                       (let [q (/ alpha 2.0)]
-                         (map #(vector (/ (quantile % q) n) 1.0) rands))
-                       (let [q (- 1.0 (/ alpha 2.0))]
-                         (map #(vector 0.0 (/ (quantile % q) n)) rands)))]
+                       (let [q (m// alpha 2.0)]
+                         (map #(vector (m// (quantile % q) n) 1.0) rands))
+                       (let [q (m/- 1.0 (m// alpha 2.0))]
+                         (map #(vector 0.0 (m// (quantile % q) n)) rands)))]
     (if (map? estimate) (zipmap (keys estimate) vs) vs)))
 
 (defn- pdt-multi
@@ -5794,23 +6189,23 @@
         n (double n)
         xhat (->> (for [[k1 ^long v1] rows
                         [k2 ^long v2] cols]
-                    [[k1 k2] (/ (* v1 v2) n)])
+                    [[k1 k2] (m// (m/* v1 v2) n)])
                   (into {}))
         n1 (count (map first rows))
         n2 (count (map second cols))
-        df (* (dec n1) (dec n2))
+        df (m/* (m/dec n1) (m/dec n2))
         stat (condp = lambda
-               0.0 (* 2.0 ^double (reduce (fn [^double sum [k ^long cnt]]
-                                            (+ sum (* cnt (- (m/log cnt) (m/log (xhat k)))))) 0.0 xs))
-               -1.0 (* 2.0 ^double (reduce (fn [^double sum [k ^double xhv]]
-                                             (let [^double cnt (get xs k 0.0)]
-                                               (+ sum (* xhv (- (m/log xhv) (m/log cnt) ))))) 0.0 xhat))
-               (* (/ 2.0 (* lambda (inc lambda)))
-                  ^double (reduce (fn [^double sum [k ^long cnt]]
-                                    (+ sum (* cnt (dec (m/pow (/ cnt ^double (xhat k)) lambda))))) 0.0 xs)))]
+               0.0 (m/* 2.0 (double (reduce (fn [^double sum [k ^long cnt]]
+                                              (m/+ sum (m/* cnt (m/- (m/log cnt) (m/log (xhat k)))))) 0.0 xs)))
+               -1.0 (m/* 2.0 (double (reduce (fn [^double sum [k ^double xhv]]
+                                               (let [^double cnt (get xs k 0.0)]
+                                                 (m/+ sum (m/* xhv (m/- (m/log xhv) (m/log cnt) ))))) 0.0 xhat)))
+               (m/* (m// 2.0 (m/* lambda (m/inc lambda)))
+                    (double (reduce (fn [^double sum [k ^long cnt]]
+                                      (m/+ sum (m/* cnt (m/dec (m/pow (m// cnt ^double (xhat k)) lambda))))) 0.0 xs))))]
     {:stat stat :df df :n n :k n1 :r n2
      :expected xhat
-     :estimate (into {} (map (fn [[k ^long v]] [k (/ v n)]) xs))}))
+     :estimate (into {} (map (fn [[k ^long v]] [k (m// v n)]) xs))}))
 
 (defn power-divergence-test
   "Performs a power divergence test, which encompasses several common statistical tests
@@ -5875,9 +6270,9 @@
                                          (pdt-gof contingency-table-or-xs p lambda)
 
                                          :else (pdt-multi contingency-table-or-xs lambda))
-                                       (update :df (fn [^long df] (- df ddof))))
+                                       (update :df (fn [^long df] (m/- df ddof))))
          distr (r/distribution :chi-squared {:degrees-of-freedom df})
-         res (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (- 1.0 alpha)
+         res (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (m/- 1.0 alpha)
                     :p-value (p-value distr stat sides))]
      (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
 
@@ -5928,21 +6323,21 @@
   [xss]
   (let [Ni (map count xss)
         Zi (map mean xss)
-        Z (/ (sum (mapcat identity xss)) (sum Ni))
+        Z (m// (sum (mapcat identity xss)) (sum Ni))
         SSt (sum (map (fn [^double n ^double z]
-                        (* n (m/sq (- z Z)))) Ni Zi))
+                        (m/* n (m/sq (m/- z Z)))) Ni Zi))
         SSe (sum (map (fn [xs ^double zi]
                         (v/magsq (map (fn [^double v]
-                                        (- v zi)) xs))) xss Zi))
+                                        (m/- v zi)) xs))) xss Zi))
         k (count Ni)
-        DFt (dec k)
-        DFe (- (sum Ni) k)
-        MSe (/ SSe DFe)]
-    {:n Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (/ SSt DFt) :MSe MSe}))
+        DFt (m/dec k)
+        DFe (m/- (sum Ni) k)
+        MSe (m// SSe DFe)]
+    {:n Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (m// SSt DFt) :MSe MSe}))
 
 (defn- update-f-p-value
   [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]
-  (let [F (/ MSt MSe)
+  (let [F (m// MSt MSe)
         distr (r/distribution :f {:numerator-degrees-of-freedom DFt
                                   :denominator-degrees-of-freedom DFe})]
     (assoc aov
@@ -6019,9 +6414,9 @@
   ([xss {:keys [sides statistic scorediff]
          :or {sides :one-sided-greater statistic mean scorediff abs}}]
    (let [res (update-f-p-value (anova (map (fn [xs]
-                                             (let [^double s (statistic xs)]
+                                             (let [s (double (statistic xs))]
                                                (map (fn [^double v]
-                                                      (scorediff (- v s))) xs))) xss)) sides)]
+                                                      (scorediff (m/- v s))) xs))) xss)) sides)]
      (-> (assoc res :W (:F res))
          (dissoc :F)))))
 
@@ -6074,19 +6469,19 @@
          :or {sides :one-sided-greater}}]
    (let [Z (mapcat (fn [xs]
                      (let [s (median xs)]
-                       (map (fn [^double v] (abs (- v s))) xs))) xss)
+                       (map (fn [^double v] (abs (m/- v s))) xs))) xss)
          ranks (m/rank Z)
-         rden (/ (* 2.0 (inc (count ranks))))
+         rden (m// (m/* 2.0 (m/inc (count ranks))))
          qij (map (fn [^double r]
-                    (r/icdf r/default-normal (+ 0.5 (* rden (inc r))))) ranks)
+                    (r/icdf r/default-normal (m/+ 0.5 (m/* rden (m/inc r))))) ranks)
          {:keys [^double SSt ^double SSe ^int DFt ^int DFe]
           :as res} (->> (map count xss)
                         (reductions m/+ 0)
                         (partition 2 1)
                         (map (fn [[d t]] (drop d (take t qij))))
                         (anova))
-         y (/ SSt SSe)
-         chi2 (/ (* y (+ DFt DFe)) (inc y))
+         y (m// SSt SSe)
+         chi2 (m// (m/* y (m/+ DFt DFe)) (m/inc y))
          distr (r/distribution :chi-squared {:degrees-of-freedom DFt})]
      (assoc res
             :chi2 chi2 :df DFt :stat chi2
@@ -6097,10 +6492,10 @@
 (defn- a2-stat
   ^double [^doubles xs d]
   (let [n (alength xs)]
-    (reduce - (- n) (map (fn [^long idx]
-                           (* (/ (+ idx idx 1.0) n)
-                              (+ (m/log (r/cdf d (aget xs idx)))
-                                 (m/log (r/ccdf d (aget xs (- n idx 1))))))) (range n)))))
+    (reduce - (m/- n) (map (fn [^long idx]
+                             (m/* (m// (m/+ idx idx 1.0) n)
+                                  (m/+ (m/log (r/cdf d (aget xs idx)))
+                                       (m/log (r/ccdf d (aget xs (m/- n idx 1))))))) (range n)))))
 
 (defn ad-test-one-sample
   "Performs the Anderson-Darling (AD) test for goodness-of-fit.
@@ -6232,12 +6627,12 @@
               distinct? (distinct xs)
               :else xs)
          n (count xs)
-         dn (/ (double n))
-         idxs (map (fn [^long i] (* i dn)) (range (inc n)))
+         dn (m// (double n))
+         idxs (map (fn [^long i] (m/* i dn)) (range (m/inc n)))
          cdfs (map (partial r/cdf d) (sort xs))
-         ^double dp (reduce m/max (map m/- (rest idxs) cdfs))
-         dn (- ^double (reduce m/min (map m/- (butlast idxs) cdfs)))
-         d (max dp dn)]
+         dp (double (reduce m/max (map m/- (rest idxs) cdfs)))
+         dn (m/- (double (reduce m/min (map m/- (butlast idxs) cdfs))))
+         d (m/max dp dn)]
      {:n n :dp dp :dn dn :d d :sides sides
       :stat (sides-case sides d dp dn) 
       :p-value (sides-case sides
@@ -6249,22 +6644,22 @@
   [vs ^long nx ^long ny]
   (let [vs (vec vs)           ;; concatenated xs and ys
         os (vec (m/order vs)) ;; order of it
-        cnt- (dec (count vs))
-        dx (/ 1.0 nx)
-        dy (/ -1.0 ny)]
+        cnt- (m/dec (count vs))
+        dx (m// 1.0 nx)
+        dy (m// -1.0 ny)]
     (loop [i (long 0)
            d 0.0
            dn 0.0
            dp 0.0]
       (let [id (long (os i))
-            nd (+ d (if (< id nx) dx dy))]
+            nd (m/+ d (if (m/< id nx) dx dy))]
         (if (m/== i cnt-)
-          [(min nd dn) (max nd dp)]
+          [(m/min nd dn) (m/max nd dp)]
           (let [v1 (double (vs id))
-                v2 (double (vs (os (inc i))))]
+                v2 (double (vs (os (m/inc i))))]
             (if (m/not== v1 v2)
-              (recur (inc i) nd (min nd dn) (max nd dp))
-              (recur (inc i) nd dn dp))))))))
+              (recur (m/inc i) nd (m/min nd dn) (m/max nd dp))
+              (recur (m/inc i) nd dn dp))))))))
 
 (defn- ks-c-test
   [^double v ^double x ^double y abs?]
@@ -6370,14 +6765,14 @@
          vs (concat xs ys)
          ties (when (= distinct? :ties) (ks-find-ties vs))
          [dn dp] (process-ks-diffs vs nx ny)
-         dn (- (double dn))
+         dn (m/- (double dn))
          dp (double dp)
-         d (max dn dp)
+         d (m/max dn dp)
          res {:nx nx :ny ny :dp dp :dn dn :d d
               :method method
               :sides sides}]
      (if (= method :exact)
-       (let [n (+ nx ny)
+       (let [n (m/+ nx ny)
              stat (sides-case sides d dp dn)
              corrected-stat (if correct? (ks-correction stat nx ny) stat)]
          (assoc res :n n :stat stat :KS stat
@@ -6385,13 +6780,13 @@
                                      (ks-exact corrected-stat nx ny {:abs? true :ties ties})
                                      (ks-exact corrected-stat nx ny {:abs? false :ties ties})
                                      (ks-exact corrected-stat nx ny {:abs? false :ties ties}))))
-       (let [n (/ (* nx ny) (double (+ nx ny)))
-             stat (* (m/sqrt n) (sides-case sides d dp dn))]
+       (let [n (m// (m/* nx ny) (double (m/long-add nx ny)))
+             stat (m/* (m/sqrt n) (sides-case sides d dp dn))]
          (assoc res :n n :stat stat :KS stat
                 :p-value (sides-case sides
                                      (p-value (r/distribution :kolmogorov) stat :right)
-                                     (m/exp (* -2.0 stat stat))
-                                     (m/exp (* -2.0 stat stat)))))))))
+                                     (m/exp (m/* -2.0 stat stat))
+                                     (m/exp (m/* -2.0 stat stat)))))))))
 
 (defn kruskal-test
   "Performs the Kruskal-Wallis H-test (rank sum test) for independent samples.
@@ -6416,7 +6811,7 @@
   ([xss] (kruskal-test xss {}))
   ([xss {:keys [sides] :or {sides :right}}] ;; as in R
    (let [k (count xss)
-         df (dec k)
+         df (m/dec k)
          xs (flatten xss)
          groups (mapcat (fn [[xs id]] (repeat (count xs) id)) (map vector xss (range)))
          n (count xs)
@@ -6426,13 +6821,13 @@
                    (group-by second)
                    (vals)
                    (map #(let [ranks (map first %)]
-                           (/ (m/sq (sum ranks)) (count ranks))))
+                           (m// (m/sq (sum ranks)) (count ranks))))
                    (sum))
-         stat (/ (- (/ (* 12.0 stat)
-                       (* n (inc n)))
-                    (* 3.0 (inc n)))
-                 (- 1.0 (/ (sum (map (fn [^long t] (- (m/cb t) t)) ties))
-                           (- (m/cb n) n))))]
+         stat (m// (m/- (m// (m/* 12.0 stat)
+                             (m/* n (m/inc n)))
+                        (m/* 3.0 (m/inc n)))
+                   (m/- 1.0 (m// (sum (map (fn [^long t] (m/- (m/cb t) t)) ties))
+                                 (m/- (m/cb n) n))))]
      {:stat stat :n n :df df :k k :sides sides
       :p-value (p-value (r/distribution :chi-squared {:degrees-of-freedom df}) stat sides)})))
 
@@ -6572,15 +6967,15 @@
 
 (defn- yeo-johnson
   [nxs ^double lambda]
-  (let [l2 (- 2.0 lambda)]
+  (let [l2 (m/- 2.0 lambda)]
     (map (fn [^double x]
            (if (m/neg? x)
-             (if (== lambda 2.0)
-               (- (m/log (- 1.0 x)))
-               (- (/ (dec (m/pow (- 1.0 x) l2)) l2)))
+             (if (m/== lambda 2.0)
+               (m/- (m/log (m/- 1.0 x)))
+               (m/- (m// (m/dec (m/pow (m/- 1.0 x) l2)) l2)))
              (if (m/zero? lambda)
-               (m/log (inc x))
-               (/ (dec (m/pow (inc x) lambda)) lambda)))) nxs)))
+               (m/log (m/inc x))
+               (m// (m/dec (m/pow (m/inc x) lambda)) lambda)))) nxs)))
 
 (defn- yeo-johnson-inv
   [nxs ^double lambda]
@@ -6664,4 +7059,3 @@
   ([xs ^double lambda ^double alpha]
    (box-cox-transformation xs lambda {:negative? true :alpha alpha})))
 
-(m/unuse-primitive-operators)

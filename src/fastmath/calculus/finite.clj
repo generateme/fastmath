@@ -13,9 +13,10 @@
   ([g {:keys [^double contract ^double power ^double init-h
               ^double rel ^double abs ^long max-evals ^double tol]
        :or {contract 0.5 power 1.0 init-h 0.5
-            abs m/MACHINE-EPSILON rel (m/sqrt (m/ulp init-h))
+            abs m/MACHINE-EPSILON
             max-evals Integer/MAX_VALUE tol 2.0}}]
-   (let [invcontract (m/pow (m// contract) power)
+   (let [rel (double (or rel (m/sqrt (m/ulp init-h))))
+         invcontract (m/pow (m// contract) power)
          nf (fn ^double [^double x0 ^double h] (cond
                                                 (m/valid-double? x0) (g x0 h)
                                                 (m/pos-inf? x0) (g 0.0 (m// 1.0 h))

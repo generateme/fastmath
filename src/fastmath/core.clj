@@ -1,29 +1,24 @@
 (ns fastmath.core
-  "High-performance mathematical functions and constants for Clojure,
-  optimized for primitive `double` and `long` types.
+  "Core, high-performance mathematical functions and constants, specialized for primitive `double` and `long` types.
 
-  Key features:
+  Most functions here are inlined and operate directly on primitives to avoid boxing overhead, and are primarily backed by the FastMath (jafama) library, Apache Commons Math, and custom primitive implementations. Many mathematical constants (`PI`, `E`, roots, reciprocals, logarithms of common values, etc.) are also provided.
 
-  - Most functions are specialized for primitive types (`double` and `long`) and are inlined for performance.
-  - Primarily backed by the [FastMath](https://github.com/jeffhain/jafama) library and custom primitive implementations.
-  - Provides an option to replace `clojure.core`'s standard numerical operators with primitive-specialized macros.
+  Functions and macros defined in this namespace cover:
 
-  This namespace contains functions for:
-
-  - Basic arithmetic (`+`, `-`, `*`, `/`, etc.)
-  - Comparisons and predicates (`==`, `<`, `zero?`, `pos?`, etc.)
-  - Bitwise operations
-  - Trigonometric and hyperbolic functions
-  - Exponents, logarithms, and powers
-  - Floating-point specific operations (ulp, bits manipulation)
-  - Combinatorics (factorial, combinations)
-  - Distance calculations
-  - Interpolation and mapping
-  - Utility functions (gcd, lcm, error calculation, etc.)
+  - Primitive-typed arithmetic, comparison, predicate and bitwise operators (`+`, `-`, `*`, `/`, `==`, `<`, `zero?`, `pos?`, `bit-and`, `bit-shift-left`, etc.), including `long`-specific variants and fused multiply-add operations (`fma`, `muladd`).
+  - Trigonometric, hyperbolic, and their inverse and reciprocal functions, plus less common variants (versine, haversine, exsecant family).
+  - Exponentials, logarithms (including numerically stable variants such as `log1p`, `logsumexp`, `log1pexp`), and power functions (`pow`, `sq`, `cb`, `fpow`, `mpow`, `tpow`).
+  - Combinatorics: factorials, falling/rising factorials, binomial coefficients.
+  - Rounding, truncation, and floating-point precision helpers: `floor`/`ceil`/`round` variants, approximate equality, ulp stepping (`next-double`, `prev-double`), and raw bit manipulation of doubles.
+  - Distance and hypotenuse calculations.
+  - Interpolation and range mapping: `lerp`, `norm`, `make-norm`, `wrap`, `smoothstep`, `smooth-max`.
+  - Range and interval utilities: `slice-range`, `cut`, `co-intervals`, `group-by-intervals`.
+  - Predicates for special double values (`nan?`, `inf?`, `valid-double?`) and range checks (`between?`).
+  - Other utilities: `gcd`, `lcm`, `agm` (arithmetic-geometric mean), `sample`, `rank`, `order`, error calculation, and `double`-array conversions.
 
   Primitive Math Operators:
 
-  A set of inlined macros designed to replace selected `clojure.core` arithmetic, comparison, and bitwise operators for potential performance gains with primitive arguments. These macros operate on `double` and `long` primitives and generally return primitive values.
+  A set of inlined macros is provided to replace selected `clojure.core` arithmetic, comparison, and bitwise operators for potential performance gains with primitive arguments. These macros operate on `double` and `long` primitives and generally return primitive values.
 
   Replaced operators:
 
@@ -521,7 +516,7 @@
   [^long x ^long bit] (. PrimitiveMath (bitTest x bit)))
 
 (defn bit-count
-  "Count bits"
+  "Count set bits"
   {:inline (fn [x] `(Long/bitCount (long ~x)))
    :inline-arities #{1}}
   ^long [^long x] (Long/bitCount x))
@@ -1243,22 +1238,23 @@
      (log1mexp (- (if (and (== x y)
                            (or (Double/isFinite x) (neg? x))) 0.0 (Math/abs (- x y)))))))
 
-
 (defn logsumexp
   "log(exp(x1)+...+exp(xn))"
   ^double [xs]
-  (loop [[^double x & rst] xs
+  (loop [xs xs
          r 0.0
          alpha ##-Inf]
-    (if (<= x alpha)
-      (let [nr (+ r (FastMath/exp (- x alpha)))]
-        (if-not (seq rst)
-          (+ (FastMath/log nr) alpha)
-          (recur rst nr alpha)))
-      (let [nr (inc (* r (FastMath/exp (- alpha x))))]
-        (if-not (seq rst)
-          (+ (FastMath/log nr) x)
-          (recur rst nr (double x)))))))
+    (let [x (double (first xs))
+          rst (rest xs)]
+      (if (<= x alpha)
+        (let [nr (+ r (FastMath/exp (- x alpha)))]
+          (if-not (seq rst)
+            (+ (FastMath/log nr) alpha)
+            (recur rst nr alpha)))
+        (let [nr (inc (* r (FastMath/exp (- alpha x))))]
+          (if-not (seq rst)
+            (+ (FastMath/log nr) x)
+            (recur rst nr x)))))))
 
 (defn xlogx
   "x * log(x)"
@@ -1395,9 +1391,7 @@
     (FastMath/log (/ x (- 1.0 x)))))
 
 (defn log2
-  "Logarithm with base 2.
-
-  \\\\(\\ln_2{x}\\\\)"
+  "Logarithm with base 2, log_10(x)."
   {:inline (fn [x] `(* (FastMath/log (double ~x)) INV_LN2))
    :inline-arities #{1}}
   ^double [^double x]
@@ -1405,9 +1399,7 @@
 
 ;; \\(\log_b x\\)
 (defn logb
-  "Logarithm with base `b`.
-
-  \\\\(\\ln_b{x}\\\\)"
+  "Logarithm with base `b`. log_b(x)"
   {:inline (fn [b x] `(/ (FastMath/log (double ~x)) (FastMath/log (double ~b))))
    :inline-arities #{2}}
   ^double [^double b ^double x]
@@ -1430,7 +1422,7 @@
 
 ;; Powers (normal, quick)
 
-;; use Math here due to some fastmath innacuracies
+;; using Math here due to some fastmath innacuracies
 
 (defn pow
   "Power of a number"
@@ -1439,7 +1431,7 @@
   ^double [^double x ^double exponent] (. Math (pow x exponent)))
 
 (defn spow
-  "Symmetric power of a number (keeping a sign of the argument."
+  "Symmetric power of a number (keeps a sign of the `x` argument)."
   {:inline (fn [x exponent] `(let [v# (double ~x)]
                               (* (sgn v#) (. Math (pow (abs v#) (double ~exponent))))))
    :inline-arities #{2}}
@@ -1458,14 +1450,19 @@
   ^double [^double x ^long exponent] (. FastMath (powFast x exponent)))
 
 (defn mpow
-  "Calculates the modular exponentiation $(x^e \\pmod m)$.
+  "Calculates modular exponentiation, that is `x` raised to the power `e`, reduced modulo `m`.
 
-  Computes the remainder of `x` raised to the power of `e`, when divided by `m`.
-  Uses binary exponentiation.
+  Uses binary (square-and-multiply) exponentiation, so it runs efficiently even for large exponents.
 
-  `x`: Base (long).
-  `e`: Exponent (long, non-negative).
-  `m`: Modulus (long, positive)."
+  Parameters:
+
+  - `x` (long): Base.
+  - `e` (long): Exponent, must be non-negative.
+  - `m` (long): Modulus, must be positive.
+
+  Returns the result as a long in the range `[0, m-1]`. Returns `0` when `m` is `1`.
+
+  See also [[fpow]], [[pow]]."
   ^long [^long x ^long e ^long m]
   (if (one? m)
     0
@@ -1479,18 +1476,28 @@
                (>> e 1))))))
 
 (defn tpow
-  "Calculates truncated power.
+  "Calculates the truncated power function of `x`.
 
-  For x >= shift returns (x-shift)^exponent, 0.0 otherwise."
+  This is the truncated power basis function commonly used to construct splines, defined as `(x-shift)^exponent` when `x` is greater than `shift`, and `0.0` otherwise.
+
+  Parameters:
+
+  - `x` (double): Input value.
+  - `exponent` (double): Power to raise `(x-shift)` to.
+  - `shift` (double): Truncation point. Defaults to `0.0`.
+
+  Returns `(x-shift)^exponent` as a double when `x > shift`, `0.0` when `x <= shift`."
   (^double [^double x ^double exponent] (tpow x exponent 0.0))
   (^double [^double x ^double exponent ^double shift]
    (let [diff (- x shift)]
      (if (pos? diff) (Math/pow diff exponent) 0.0))))
 
+;;
+
 (def ^:private factorial20-table [1 1 2 6 24 120 720 5040 40320 362880 3628800 39916800 479001600
-                                6227020800 87178291200 1307674368000 20922789888000
-                                355687428096000 6402373705728000 121645100408832000
-                                2432902008176640000])
+                                  6227020800 87178291200 1307674368000 20922789888000
+                                  355687428096000 6402373705728000 121645100408832000
+                                  2432902008176640000])
 
 (defn factorial20
   "Factorial table up to 20!"
@@ -1502,20 +1509,20 @@
   ^double [^long n]
   (if (< n 21)
     (factorial20-table n)
-    (exp (Gamma/logGamma (double (inc n))))))
+    (exp (Gamma/logGamma (inc n)))))
 
 (defn inv-factorial
   "Inverse of factorial, 1/n!"
   ^double [^long n]
   (if (< n 21)
     (/ 1.0 (long (factorial20-table n)))
-    (exp (- (Gamma/logGamma (double (inc n)))))))
+    (exp (- (Gamma/logGamma (inc n))))))
 
 (defn log-factorial
   "Log factorial, alias to log-gamma"
   {:inline (fn [x] `(Gamma/logGamma (double (inc (long ~x)))))
    :inline-arities #{1}}
-  ^double [^long x] (Gamma/logGamma (double (inc x))))
+  ^double [^long x] (Gamma/logGamma (inc x)))
 
 (defn falling-factorial-int
   "Falling (descending) factorial for integer n."
@@ -1525,13 +1532,24 @@
            v 1.0]
       (if (== i n) v
           (recur (inc i) (* v (- x i)))))
-    (/ (falling-factorial-int (- n) (- x n)))))
+    (/ (falling-factorial-int (long-sub n) (- x n)))))
 
 (defn falling-factorial
-  "Falling (descending) factorial."
+  "Calculates the falling (descending) factorial of `x` to the power `n`.
+
+  Defined as the product `x*(x-1)*(x-2)*...*(x-n+1)` for a non-negative integer `n`. When `n` is not a non-negative integer, the definition is extended using the gamma function.
+
+  Parameters:
+
+  - `n` (double): Number of descending terms.
+  - `x` (double): Starting value.
+
+  Returns the falling factorial as a double.
+
+  See also [[rising-factorial]], [[falling-factorial-int]], [[factorial]], [[combinations]]."
   ^double [^double n ^double x]
   (if (integer? n)
-    (falling-factorial-int n x)
+    (falling-factorial-int (long n) x)
     (let [x+ (inc x)]
       (/ (Gamma/gamma x+)
          (Gamma/gamma (- x+ n))))))
@@ -1544,13 +1562,24 @@
            v 1.0]
       (if (== i n) v
           (recur (inc i) (* v (+ x i)))))
-    (/ (rising-factorial-int (- n) (+ x n)))))
+    (/ (rising-factorial-int (long-sub n) (+ x n)))))
 
 (defn rising-factorial
-  "Rising (Pochhammer) factorial."
+  "Calculates the rising (ascending) factorial of `x` to the power `n`, also known as the Pochhammer symbol.
+
+  Defined as the product `x*(x+1)*(x+2)*...*(x+n-1)` for a non-negative integer `n`. When `n` is not a non-negative integer, the definition is extended using the gamma function.
+
+  Parameters:
+
+  - `n` (double): Number of ascending terms.
+  - `x` (double): Starting value.
+
+  Returns the rising factorial as a double.
+
+  See also [[falling-factorial]], [[rising-factorial-int]], [[factorial]], [[combinations]]."
   ^double [^double n ^double x]
   (if (integer? n)
-    (rising-factorial-int n x)
+    (rising-factorial-int (long n) x)
     (/ (Gamma/gamma (+ x n))
        (Gamma/gamma x))))
 
@@ -1759,13 +1788,13 @@
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}
    :deprecated "Use long-abs."}
-  ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
+  ^long [^long x] (let [m (>> x 63)] (bit-xor (long-add m x) m)))
 
 (defn long-abs
   "Absolut value, `long` version. See [[abs]]."
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}}
-  ^long [^long x] (let [m (>> x 63)] (bit-xor (+ m x) m)))
+  ^long [^long x] (let [m (>> x 63)] (bit-xor (long-add m x) m)))
 
 (defn trunc
   "Truncate fractional part, keep sign. Returns `double`."
@@ -1832,25 +1861,67 @@
 ;; `(low-2-exp TWO_PI) => 2` \\(2^2\eq 4\leq 6.28\\)  
 ;; `(high-2-exp TWO_PI) => 3` \\(6.28\leq 2^3\eq 8\\)
 (defn low-2-exp
-  "Finds the greatest integer `n` such that `2^n <= |x|`. See [[high-2-exp]]."
+  "Finds the greatest integer `n` such that `2^n` does not exceed the absolute value of `x`.
+
+  Equivalent to the floor of the base-2 logarithm of `|x|`. Together with [[high-2-exp]] it brackets `|x|` between two consecutive powers of two.
+
+  Parameters:
+
+  - `x` (double): Input value.
+
+  Returns the exponent `n` as a long.
+
+  See also [[high-2-exp]], [[low-exp]]."
   ^long [^double x] (-> x Math/abs log2 floor unchecked-long))
 
 (defn high-2-exp
-  "Finds the smallest integer `n` such that `2^n >= |x|`. See [[low-2-exp]]."
+  "Finds the smallest integer `n` such that `2^n` is not smaller than the absolute value of `x`.
+
+  Equivalent to the ceiling of the base-2 logarithm of `|x|`. Together with [[low-2-exp]] it brackets `|x|` between two consecutive powers of two.
+
+  Parameters:
+
+  - `x` (double): Input value.
+
+  Returns the exponent `n` as a long.
+
+  See also [[low-2-exp]], [[high-exp]]."
   ^long [^double x] (-> x Math/abs log2 ceil unchecked-long))
 
 (defn low-exp
-  "Finds the greatest integer `n` such that `b^n <= |x|`. See also [[high-exp]]."
+  "Finds the greatest integer `n` such that `b^n` does not exceed the absolute value of `x`.
+
+  Equivalent to the floor of the base-`b` logarithm of `|x|`. Together with [[high-exp]] it brackets `|x|` between two consecutive powers of `b`.
+
+  Parameters:
+
+  - `b` (double): Base, must be positive and not equal to `1.0`.
+  - `x` (double): Input value.
+
+  Returns the exponent `n` as a long.
+
+  See also [[high-exp]], [[low-2-exp]]."
   ^long [^double b ^double x] (->> x Math/abs (logb b) floor unchecked-long))
 
 (defn high-exp
-  "Finds the smallest integer `n` such that `b^n >= |x|`. See also [[low-exp]]."
+  "Finds the smallest integer `n` such that `b^n` is not smaller than the absolute value of `x`.
+
+  Equivalent to the ceiling of the base-`b` logarithm of `|x|`. Together with [[low-exp]] it brackets `|x|` between two consecutive powers of `b`.
+
+  Parameters:
+
+  - `b` (double): Base, must be positive and not equal to `1.0`.
+  - `x` (double): Input value.
+
+  Returns the exponent `n` as a long.
+
+  See also [[low-exp]], [[high-2-exp]]."
   ^long [^double b ^double x] (->> x Math/abs (logb b) ceil unchecked-long))
 
 (defn power-of-two?
   "Checks if `v` is a power of two, v=2^p for some p. Only for positive values."
   [^long v]
-  (and (pos? v) (zero? (bit-and v (dec v)))))
+  (and (pos? v) (zero? (bit-and v (long-dec v)))))
 
 (defn round-up-pow2
   "Rounds a positive `long` integer up to the smallest power of 2 greater than or equal to the input value."
@@ -1865,7 +1936,20 @@
     (inc v)))
 
 (defn next-double
-  "Next double value. Optional value `delta` sets step amount."
+  "Returns the closest representable double value greater than `v`, moving toward positive infinity.
+
+  This steps `v` by one ulp (unit in the last place). The optional `delta` argument repeats the step `delta` times, moving further away from `v`.
+
+  Parameters:
+
+  - `v` (double): Starting value.
+  - `delta` (long): Number of steps to take, must be non-negative. Defaults to `1`.
+
+  Returns the resulting double value.
+
+  Returns `NaN` when `v` is `NaN`. Returns `##Inf` when `v` is `##Inf`.
+
+  See also [[prev-double]]."
   {:inline (fn [v] `(. FastMath (nextUp (double ~v))))
    :inline-arities #{1}}
   (^double [^double v]
@@ -1874,7 +1958,20 @@
    (nth (iterate next-double v) delta)))
 
 (defn prev-double
-  "Next double value. Optional value `delta` sets step amount."
+  "Returns the closest representable double value smaller than `v`, moving toward negative infinity.
+
+  This steps `v` by one ulp (unit in the last place). The optional `delta` argument repeats the step `delta` times, moving further away from `v`.
+
+  Parameters:
+
+  - `v` (double): Starting value.
+  - `delta` (long): Number of steps to take, must be non-negative. Defaults to `1`.
+
+  Returns the resulting double value.
+
+  Returns `NaN` when `v` is `NaN`. Returns `##-Inf` when `v` is `##-Inf`.
+
+  See also [[next-double]]."
   {:inline (fn [v] `(. FastMath (nextDown (double ~v))))
    :inline-arities #{1}}
   (^double [^double v]
@@ -2031,7 +2128,20 @@
   `(max (min ~value ~mx) ~mn))
 
 (defn norm
-  "Normalize `v` from the range `[start,stop]` to the range `[0,1]` or map `v` from the range `[start1,stop1]` to the range `[start2,stop2]`. See also [[make-norm]]."
+  "Linearly maps `v` from one range to another.
+
+  With two arities: the 3-argument form normalizes `v` from the range `[start,stop]` to `[0,1]`. The 5-argument form maps `v` from the range `[start1,stop1]` to the range `[start2,stop2]`. Both forms are equivalent to a linear interpolation and extrapolate when `v` lies outside the source range.
+
+  Parameters:
+
+  - `v` (double): Value to map.
+  - `start`, `stop` (doubles): Source range for the 3-arity normalization to `[0,1]`.
+  - `start1`, `stop1` (doubles): Source range for the 5-arity mapping.
+  - `start2`, `stop2` (doubles): Target range for the 5-arity mapping.
+
+  Returns the mapped value as a double.
+
+  See also [[mnorm]] (macro version), [[make-norm]] (returns a reusable mapping function), [[constrain]] (clamps a value to a range)."
   {:inline (fn
              ([v start stop] `(PrimitiveMath/norm (double ~v) (double ~start) (double ~stop)))
              ([v start1 stop1 start2 stop2] `(PrimitiveMath/norm (double ~v)
@@ -2051,7 +2161,18 @@
    `(PrimitiveMath/norm (double ~v) (double ~start1) (double ~stop1) (double ~start2) (double ~stop2))))
 
 (defn make-norm
-  "Make [[norm]] function for given range. Resulting function accepts `double` value (with optional target `[dstart,dstop]` range) and returns `double`."
+  "Creates a reusable function that linearly maps values from a fixed source range.
+
+  This is a partially applied version of [[norm]], useful when the same source range (and optionally the same target range) is reused for many values, avoiding repeated range arguments.
+
+  Parameters:
+
+  - `start`, `stop` (doubles): Fixed source range.
+  - `dstart`, `dstop` (doubles): Fixed target range. When omitted, the returned function accepts them on every call.
+
+  Returns a function of a `double` value `v` to a `double`. When `dstart` and `dstop` are not provided here, the returned function has arity `[v dstart dstop]`; when they are provided, the returned function has arity `[v]`.
+
+  See also [[norm]], [[mnorm]]."
   ([^double start ^double stop]
    (fn ^double [^double v ^double dstart ^double dstop]
      (PrimitiveMath/norm v start stop dstart dstop)))
@@ -2121,7 +2242,18 @@
 ;;`(wrap -1.1 -1 1) => 0.8999999999999999`  
 ;;`(wrap 1.1 -1 1) => -0.8999999999999999`
 (defn wrap
-  "Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.cc/documentation/math/ofMath/#!show_ofWrap)."
+  "Wraps `value` cyclically into the range `[start,stop)`, similar to `openFrameworks`' `ofWrap`.
+
+  When `value` lies outside the range, it is shifted by an integer multiple of the range width until it falls back inside, effectively behaving like a floating-point modulo operation over the range. This is useful for wrapping angles, cyclic coordinates, or any periodic quantity. `start` and `stop` do not need to be ordered, the range is normalized internally.
+
+  Parameters:
+
+  - `[start stop]` (sequence of two doubles), `value` (double): Range provided as a pair, plus the value to wrap.
+  - `start`, `stop`, `value` (doubles): Range boundaries and the value to wrap, given directly.
+
+  Returns the wrapped value as a double, always within `[start,stop)`. Returns `stop` when `start` equals `stop`.
+
+  See also [[constrain]] (clamping instead of wrapping), [[norm]]."
   (^double [[^double start ^double stop] ^double value] (wrap start stop value))
   (^double [^double start ^double stop ^double value]
    (let [p (> start stop)
@@ -2149,32 +2281,99 @@
     (reduce + (map (fn [^double x ^double eax]
                      (/ (* x eax) den)) xs eaxs))))
 
+;; https://iquilezles.org/articles/smin/
+
+(defmacro ^:private smooth-max-kernel [g a b k] `(- ~b (* ~k (~g (/ (- ~b ~a) ~k)))))
+
+(defn- sm-sigmoid  ^double [^double x] (/ x (- 1.0 (exp2 (- x)))))
+
+(defn- sm-circular ^double [^double x]
+  (cond
+    (> x 1.0) x
+    (< x -1.0) 0.0
+    :else (inc (* 0.5 (- x (sqrt (- 2.0 (* x x))))))))
+
+(defn- sm-quadratic ^double [^double x]
+  (cond
+    (> x 1.0) x
+    (< x -1.0) 0.0
+    :else (* 0.25 (inc (* x (+ 2.0 x))))))
+
+(defn- sm-cubic ^double [^double x]
+  (cond
+    (> x 1.0) x
+    (< x -1.0) 0.0
+    :else (* SIXTH (inc (- (* 3.0 x (inc x))
+                           (Math/abs (* x x x)))))))
+
+(defn- sm-quartic ^double [^double x]
+  (cond
+    (> x 1.0) x
+    (< x -1.0) 0.0
+    :else (let [x+ (inc x)]
+            (* 0.0625 x+ x+ (- 3.0 (* x (- x 2.0)))))))
+
+
 (defn smooth-max
-  "Smooth maximum function.
+  "Returns a smooth approximation of the maximum value over a sequence `xs`.
 
-  A smooth function with `alpha` argument. When `alpha` goes to infinity, function returns maximum value of `xs`.
+  Unlike a hard `max`, this function is differentiable everywhere and is
+  controlled by the sharpness parameter `alpha`. As `alpha` increases toward
+  infinity, the result converges to the true maximum. Negative `alpha` values
+  produce a smooth minimum approximation (except for `:p-norm`).
 
-  Family:
+  Parameters:
 
-  * `:lse` - LogSumExp (default)
-  * `:boltzmann` - Boltzmann operator, works for small alpha values
-  * `:mellowmax`
-  * `:p-norm`
-  * `:smu` - smooth maximum unit, epsilon = 1/alpha > 0"
-  (^double [xs] (smooth-max xs 1.0))
+  - `xs` (sequence of numbers): Input values.
+  - `alpha` (double): Sharpness parameter. Defaults to `2.0`. Larger positive
+    values approximate the true maximum more closely; negative values approximate
+    the minimum (except `:p-norm`).
+  - `family` (keyword): Smoothing family to use. Defaults to `:lse`. Available families:
+    - `:lse` - LogSumExp: numerically stable, globally smooth over all elements.
+    - `:boltzmann` - Boltzmann operator (weighted average); best suited for small `alpha` values.
+    - `:mellowmax` - like `:lse` but mean-normalised, independent of sequence length.
+    - `:smu` - smooth maximum unit; pairwise reduction, epsilon `= 1/|alpha|` controls the rounding radius.
+    - `:p-norm` - p-norm-based smooth absolute maximum; always returns non-negative values; does not act as smooth minimum for negative `alpha`.
+    - `:sigmoid`, `:circular`, `:quadratic`, `:cubic`, `:quartic`, `:exponential` - pairwise reductions based on Inigo Quilez smooth minimum kernels for SDFs.
+
+  Returns the smooth maximum as a double.
+
+  See also [[smooth-max-kernel]]."
+  (^double [xs] (smooth-max xs 2.0))
   (^double [xs ^double alpha] (smooth-max xs alpha :lse))
   (^double [xs ^double alpha family]
    (case family
-     :boltzmann (smooth-max-boltzmann xs alpha)
      :lse (/ (logsumexp (scale-xs xs alpha)) alpha)
+     :boltzmann (smooth-max-boltzmann xs alpha)
      :mellowmax (/ (- (logsumexp (scale-xs xs alpha))
                       (log (count xs))) alpha)
      :p-norm (pow (reduce + (map (fn [^double x]
                                    (pow (Math/abs x) alpha)) xs)) (/ alpha))
-     :smu (let [epsilon (/ alpha)]
-            (reduce (fn [^double a ^double b]
-                      (* 0.5 (+ a b (sqrt (+ (sq (- a b))
-                                             epsilon))))) xs)))))
+     :smu (let [epsilon (Math/abs (/ alpha))]
+            (reduce (if (pos? alpha)
+                      (fn [^double a ^double b]
+                        (* 0.5 (+ a b (sqrt (+ (sq (- a b))
+                                               epsilon)))))
+                      (fn [^double a ^double b]
+                        (* 0.5 (+ a b (- (sqrt (+ (sq (- a b))
+                                                  epsilon))))))) xs))
+     :sigmoid (let [k (* M_LN2 (- (/ alpha)))]
+                (reduce (fn [^double a ^double b]
+                          (smooth-max-kernel sm-sigmoid a b k)) xs))
+     :circular (let [k (* 3.414213562373096 (- (/ alpha)))]
+                 (reduce (fn [^double a ^double b]
+                           (smooth-max-kernel sm-circular a b k)) xs))
+     :quadratic (let [k (* 4.0 (- (/ alpha)))]
+                  (reduce (fn [^double a ^double b]
+                            (smooth-max-kernel sm-quadratic a b k)) xs))
+     :cubic (let [k (* 6.0 (- (/ alpha)))]
+              (reduce (fn [^double a ^double b]
+                        (smooth-max-kernel sm-cubic a b k)) xs))
+     :quartic (let [k (* 5.333333333333333 (- (/ alpha)))]
+                (reduce (fn [^double a ^double b]
+                          (smooth-max-kernel sm-quartic a b k)) xs))
+     :exponential (reduce (fn [^double a ^double b]
+                            (/ (log2 (+ (exp2 (* a alpha)) (exp2 (* b alpha)))) alpha)) xs))))
 
 ;;
 
@@ -2244,15 +2443,21 @@
 ;; intervals
 
 (defn slice-range 
-  "Generates `cnt` evenly spaced points within a numerical range.
+  "Generates a sequence of `cnt` evenly spaced double values covering a range.
 
-  - `(slice-range cnt)`: Generates `cnt` points in the range `[0.0, 1.0]`.
-  - `(slice-range data cnt)`: Generates `cnt` points in the range `[(min data), (max data)]`.
-  - `(slice-range start end cnt)`: Generates `cnt` points in the range `[start, end]`.
+  The range can be given explicitly, derived from a collection of data, or defaults to `[0.0, 1.0]` when only `cnt` is provided.
 
-  The range is inclusive, meaning the first point is `start` and the last is `end` (unless `cnt` is 1).
-  If `cnt` is 1, it returns a single value which is the midpoint `(start + end) / 2` of the range.
-  Returns a sequence of `cnt` double values."
+  Parameters:
+
+  - `[cnt]` (long): Number of points; range defaults to `[0.0, 1.0]`.
+  - `[data cnt]` (sequence, long): Range is `[(min data), (max data)]`. Non-finite values (`NaN`, infinities) are removed from `data` before computing the range.
+  - `[start end cnt]` (double, double, long): Explicit inclusive range `[start, end]`.
+
+  The resulting sequence is inclusive, i.e. it starts at `start` (or the derived minimum) and ends at `end` (or the derived maximum). When `cnt` is `1`, a single value equal to the midpoint of the range is returned instead.
+
+  Returns a sequence of `cnt` doubles, or an empty sequence when `cnt` is `0`.
+
+  See also [[make-norm]]."
   ([data ^long cnt]
    (let [d (sort (remove invalid-double? data))]
      (slice-range (first d) (last d) cnt)))
@@ -2262,42 +2467,41 @@
   ([^long cnt] (slice-range 0.0 1.0 cnt)))
 
 (defn cut
-  "Divides a numerical range or a sequence of numbers into a specified number of equally spaced intervals.
+  "Divides a numerical range into `breaks` equally spaced, half-open intervals.
 
-  Given `data` and `breaks`, the range is determined by the minimum and maximum finite values in `data`. Invalid doubles (NaN, infinite) are ignored.
-  Given `x1`, `x2`, and `breaks`, the range is explicitly `[x1, x2]`.
+  The function first generates `breaks + 1` equally spaced boundary points across the range using [[slice-range]], then pairs consecutive points into intervals. Each interval is closed on the right, i.e. `(lower, upper]`, so that every value in the range falls into exactly one interval. The lower bound of the very first interval is nudged one ulp downwards (via [[prev-double]]) so that the exact minimum of the range is included too.
 
-  The function generates `breaks + 1` equally spaced points within the range using [[slice-range]], and then forms `breaks` intervals from these points.
+  Parameters:
 
-  The intervals are returned as a sequence of 2-element vectors `[lower-bound upper-bound]`.
-  Specifically, if the generated points are `p0, p1, ..., p_breaks`, the intervals are formed as:
-  `[[(prev-double p0), p1], [p1, p2], ..., [p_breaks-1, p_breaks]]`.
+  - `[data breaks]` (sequence, long): The range is `[(min data), (max data)]`. Non-finite values (`NaN`, infinities) are removed from `data` before computing the range.
+  - `[x1 x2 breaks]` (double, double, long): Explicit range `[x1, x2]`.
+  - `breaks` (long): Desired number of intervals, must be positive.
 
-  This means intervals are generally closed on the right, `[a, b]`, with the first interval's lower bound slightly adjusted downwards to ensure inclusion of the exact minimum value if necessary due to floating point precision.
+  Returns a sequence of `breaks` 2-element vectors `[lower-bound upper-bound]`.
 
-  Arguments:
-  - `data`: A collection of numbers (used to determine range).
-  - `x1`, `x2`: The start and end points of the range.
-  - `breaks`: The desired number of intervals (a positive long)."
+  See also [[slice-range]], [[co-intervals]]."
   ([data ^long breaks]
    (let [d (sort (remove invalid-double? data))]
      (cut (first d) (last d) breaks)))
   ([^double x1 ^double x2 ^long breaks]
-   (let [[[^double start end] & r] (->> (slice-range x1 x2 (inc breaks))
+   (let [[[^double start end] & r] (->> (slice-range x1 x2 (long-inc breaks))
                                         (partition 2 1))]
      (conj r (list (prev-double start) end)))))
 
 (defn co-intervals
-  "Divides a sequence of numerical `data` into `number` (default 6) overlapping intervals.
+  "Divides `data` into `number` overlapping intervals, each containing a similar count of values.
 
-  The intervals are constructed such that each contains a similar number of values from the sorted data, aiming to replicate the behavior of R's `co.intervals()` function. Invalid doubles (NaN, infinite) are removed from the input data before processing.
+  Unlike [[cut]], which produces equally spaced intervals, this function determines interval boundaries from the sorted data itself so that every interval covers roughly the same number of observations, with consecutive intervals overlapping by a given proportion. This replicates the behaviour of R's `co.intervals()` function. Non-finite values (`NaN`, infinities) are removed from `data` before processing.
 
-  Arguments:
-  - `data`: A collection of numbers.
-  - `number`: The desired number of intervals (default 6, long).
-  - `overlap`: The desired overlap proportion between consecutive intervals (default 0.5, double).
+  Parameters:
 
-  Returns a sequence of intervals, where each interval is represented as a 2-element vector `[lower-bound upper-bound]`."
+  - `data` (sequence of numbers): Values to partition.
+  - `number` (long): Desired number of intervals. Defaults to `6`.
+  - `overlap` (double): Desired overlap proportion between consecutive intervals, in range `[0.0, 1.0]`. Defaults to `0.5`.
+
+  Returns a sequence of intervals, each represented as a 2-element vector `[lower-bound upper-bound]`. The resulting number of intervals may be smaller than `number` when the data does not support that many distinct overlapping groups.
+
+  See also [[cut]], [[group-by-intervals]]."
   ([data] (co-intervals data 6))
   ([data ^long number] (co-intervals data number 0.5))
   ([data ^long number ^double overlap]
@@ -2349,8 +2553,8 @@
     (and (even? a) (odd? b)) (recur (>> a 1) b)
     (and (odd? a) (even? b)) (recur a (>> b 1))
     (and (odd? a) (odd? a)) (if (> a b)
-                              (recur (>> (- a b) 1) b)
-                              (recur (>> (- b a) 1) a))))
+                              (recur (>> (long-sub a b) 1) b)
+                              (recur (>> (long-sub b a) 1) a))))
 
 (defn gcd
   "Fast binary greatest common divisor (Stein's algorithm)"
@@ -2367,12 +2571,21 @@
 ;; arithmetic-geometric-mean
 
 (defn agm
-  "Arithmetic-geometric mean.
+  "Calculates the arithmetic-geometric mean (agM) of two numbers `x` and `y`.
 
-  Defaults:
+  The agM is computed iteratively: at each step the arithmetic mean and the geometric mean of the current pair replace `x` and `y`, and both sequences converge to the same limit, which is returned. This limit lies between `x` and `y`.
 
-  * absolute tolerance: 1.0e-12
-  * max-iters: 100"
+  Parameters:
+
+  - `x`, `y` (doubles): The two numbers to average.
+  - `abs-tol` (double): Absolute tolerance used to detect convergence, i.e. `x` and `y` are considered equal. Defaults to `1.0e-12`.
+  - `max-iters` (long): Maximum number of iterations allowed before giving up. Defaults to `100`.
+
+  Both `x` and `y` should be non-negative, since the geometric mean step involves a square root.
+
+  Returns the arithmetic-geometric mean as a double.
+
+  Throws an exception if convergence is not reached within `max-iters` iterations."
   (^double [^double x ^double y] (agm x y 1.0e-12))
   (^double [^double x ^double y ^double abs-tol] (agm x y abs-tol 100))
   (^double [^double x ^double y ^double abs-tol ^long max-iters ]
@@ -2472,7 +2685,7 @@
          (map (into {} m) vs))))))
 
 (def rank1 ^{:doc "[[rank]] with indexing statring from 1"}
-  (comp (partial map clojure.core/inc) rank))
+  (comp (partial map inc) rank))
 
 (defn order
   "Computes the permutation of indices that would sort the input collection `vs`.

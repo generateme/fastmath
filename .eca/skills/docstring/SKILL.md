@@ -20,6 +20,8 @@ Write a docstring with the following content:
 * (function only) Describe corner cases, exceptions, constrains 
 * (function only) Link to other related functions using markdown wikilink syntax, ie: `[[reference]]`.
 * Use inline code (`) for symbols, input, keywords, Clojure forms
+* There is not column width contstrain. Do not force a newline in the middle of a paragraph.
+* (var only) Put the docstring as a meta tag
 
 ## Formatting
 
@@ -29,9 +31,7 @@ A docstring is a double quoted text put after a function or namespace name. Exam
 (defn pearson-correlation
   "Calculates the Pearson product-moment correlation coefficient between two sequences.
 
-  This function measures the linear relationship between two datasets. The coefficient
-  value ranges from -1.0 (perfect negative linear correlation) to 1.0 (perfect
-  positive linear correlation), with 0.0 indicating no linear correlation.
+  This function measures the linear relationship between two datasets. The coefficient value ranges from -1.0 (perfect negative linear correlation) to 1.0 (perfect positive linear correlation), with 0.0 indicating no linear correlation.
 
   Parameters:
 
@@ -40,14 +40,19 @@ A docstring is a double quoted text put after a function or namespace name. Exam
 
   Both input sequences must contain only numbers and must have the same length.
 
-  Returns the calculated Pearson correlation coefficient as a double. Returns `NaN` if
-  either sequence has zero variance (i.e., all elements are the same).
+  Returns the calculated Pearson correlation coefficient as a double. Returns `NaN` if either sequence has zero variance (i.e., all elements are the same).
 
   See also [[correlation]] (general correlation, defaults to Pearson), [[spearman-correlation]],
   [[kendall-correlation]], [[correlation-matrix]]."
   (^double [[vs1 vs2]] (pearson-correlation vs1 vs2))
   (^double [vs1 vs2]
    (.correlation (PearsonsCorrelation.) (m/seq->double-array vs1) (m/seq->double-array vs2))))
+```
+
+In case of a var, docstring is put in a meta map after `def`.
+
+```clojure
+(def ^{:doc "Count equal values in both seqs. Alias for [[count==]]"} L0 count=)
 ```
 
 ## Gotchas

@@ -111,8 +111,9 @@
 
   Use on transformed sequences or call with transformer object."
   ([coeffs {:keys [method thr ^long skip high? ^double top-n-ratio]
-            :or {method :hard thr :sure skip 0 high? (#{:visu :universal} thr) top-n-ratio 0.25}}]
-   (let [n (count coeffs)
+            :or {method :hard thr :sure skip 0 top-n-ratio 0.25}}]
+   (let [high? (if (nil? high?) (#{:visu :universal} thr) high?)
+         n (count coeffs)
          t (double-array coeffs)
          lambda (threshold (if high? (drop (m// n 2) coeffs) coeffs) thr top-n-ratio)
          ids (range skip n)]

@@ -32,14 +32,16 @@
   :scm {:name "git"
         :url "https://github.com/generateme/fastmath/"}  
   :profiles {:1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
-             :1.11 {:dependencies [[org.clojure/clojure "1.11.3"]]}
-             :1.12 {:dependencies [[org.clojure/clojure "1.12.4"]]}
+             :1.11 {:dependencies [[org.clojure/clojure "1.11.4"]]}
+             :1.12 {:dependencies [[org.clojure/clojure "1.12.5"]]}
+             :1.13 {:dependencies [[org.clojure/clojure "1.13.0-alpha4"]]}
              :eastwood {:plugins [[jonase/eastwood "1.4.3"]]
                         :dependencies [[org.clojure/data.csv "1.1.0"]]
                         :eastwood {:add-linters [:performance :boxed-math :wrong-tag]
                                    :source-paths ["src"]
                                    :exclude-namespaces [:test-paths]}}
-             :dev {:dependencies [[org.clojure/clojure "1.12.4"]
+             :dev {:dependencies [[org.clojure/clojure "1.13.0-alpha4"]
+                                  ;;[org.clojure/clojure "1.12.5"]
                                   [org.clojure/data.csv "1.1.0"]
                                   [org.clojure/data.json "2.5.2"]
                                   [org.scicloj/clay "2.0.13"]

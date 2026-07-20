@@ -263,7 +263,10 @@
                (gg/geom_line :data (tc/dataset data) :mapping (if linetype?
                                                                 (gg/aes :linetype :fname :color :fname :x :x :y :y)
                                                                 (gg/aes :color :fname :x :x :y :y)))
-               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
+               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks
+                                                         :values (if (sequential? linetype?)
+                                                                   linetype?
+                                                                   (map inc (range (count breaks))))))
                (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
          (add-common opts)))))
 
@@ -300,7 +303,9 @@
                (gg/geom_line :data (tc/dataset data) :mapping (if linetype?
                                                                 (gg/aes :linetype :fname :color :fname :x :x :y :y)
                                                                 (gg/aes :color :fname :x :x :y :y)))
-               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (map inc (range (count breaks)))))
+               (when linetype? (gg/scale_linetype_manual :name legend-name :breaks breaks :values (if (sequential? linetype?)
+                                                                                                    linetype?
+                                                                                                    (map inc (range (count breaks))))))
                (gg/scale_color_manual :name legend-name :breaks breaks :values palette))
          (add-common opts)))))
 

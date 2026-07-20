@@ -187,7 +187,6 @@
 ;; #### Smooth maximum
 
 ;; Smooth maximum is a family of functions $\max_\alpha(xs)$ for which $\lim_{\alpha\to\infty}\max_\alpha(xs)=\max(xs)$. 
-
 ;; Five types of smooth maximum are defined (see [wikipedia](https://en.wikipedia.org/wiki/Smooth_maximum) for formulas):
 
 ;; * `:lse` - LogSumExp (default)
@@ -196,7 +195,7 @@
 ;; * `:p-norm`
 ;; * `:smu` - smooth maximum unit, $\epsilon=\frac{1}{\alpha}$
 
-;; `:lse`, `:boltzmann` and `:mellowmax` are also smooth minimum for negative $\alpha$ values.
+;; `:lse`, `:boltzmann`, `:mellowmax` and `:smu` are also smooth minimum for negative $\alpha$ values.
 
 ;; The following plots show value of the smooth max for different $\alpha$ and set of the numbers equal to `[-3.5 -2 -1 0.1 3 4]`. Blue dashed horizontal lines are minimum (-3.5) and maximum values (4.0).
 
@@ -221,21 +220,64 @@
                                                                       :title ":mellowmax"})
       (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
       (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))
+  (-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :smu) {:x [-3.0 3.0]
+                                                                :xlab "alpha"
+                                                                :ylim [-15 20]
+                                                                :title ":smu"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))]
+ [(-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :sigmoid) {:x [-10.0 10.0]
+                                                                    :xlab "alpha"
+                                                                    :ylim [-15 20]
+                                                                    :title ":sigmoid"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))
+  (-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :circular) {:x [-3.0 3.0]
+                                                                     :xlab "alpha"
+                                                                     :ylim [-15 20]
+                                                                     :title ":circular"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))]
+ [(-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :quadratic) {:x [-10.0 10.0]
+                                                                      :xlab "alpha"
+                                                                      :ylim [-15 20]
+                                                                      :title ":quadratic"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))
+  (-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :cubic) {:x [-3.0 3.0]
+                                                                  :xlab "alpha"
+                                                                  :ylim [-15 20]
+                                                                  :title ":cubic"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))]
+ [(-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :quartic) {:x [-10.0 10.0]
+                                                                    :xlab "alpha"
+                                                                    :ylim [-15 20]
+                                                                    :title ":quartic"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
+      (gg/->image))
+  (-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :exponential) {:x [-3.0 3.0]
+                                                                        :xlab "alpha"
+                                                                        :ylim [-15 20]
+                                                                        :title ":exponential"})
+      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
+      (gg/geom-hline :yintercept -3.5 :color gg/color-light :linetype 2)
       (gg/->image))]]
 
-;; The following plots are defined only for positive $\alpha$.
+;; `:p-norm` is defined only for a positive $\alpha$ and positive values.
 
 ^:kind/table
 [[(-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :p-norm) {:x [0.1 10.0]
                                                                    :ylim [nil 20]
                                                                    :xlab "alpha"
                                                                    :title ":p-norm"})
-      (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
-      (gg/->image))
-
-  (-> (gg/function #(m/smooth-max [-3.5 -2 -1 0.1 3 4] % :smu) {:x [0.1 10.0]
-                                                                :xlab "alpha"
-                                                                :title ":smu"})
       (gg/geom-hline :yintercept 4 :color gg/color-light :linetype 2)
       (gg/->image))]]
 
@@ -246,8 +288,51 @@
   (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :boltzmann)
   (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :mellowmax)
   (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :mellowmax)
-  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :p-norm)
-  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :smu))
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :smu)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :smu)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :sigmoid)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :sigmoid)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :circular)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :circular)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :quadratic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :quadratic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :cubic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :cubic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :quartic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :quartic)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :exponential)
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] -4.0 :exponential)
+
+  (m/smooth-max [-3.5 -2 -1 0.1 3 4] 4.0 :p-norm))
+
+^{:kindly/hide-code true :kind/hidden true}
+(defn smooth-m-plot
+  [typ]
+  (-> (gg/functions [["max" (fn [^double x] (m/smooth-max [(m/sin (m/* 4.0 x))
+                                                          (m/exp (m/- x))] 5 typ))]
+                     ["min" (fn [^double x] (m/smooth-max [(m/sin (m/* 4.0 x))
+                                                          (m/exp (m/- x))] -5 typ))]
+                     ["sin" #(m/sin (m/* 4.0 %))]
+                     ["exp" #(m/exp (m/- %))]]
+                    {:x [0 4]
+                     :title (str (name typ) " smooth min/max")
+                     :linetype? [1 1 2 2]
+                     :palette ["#ff0e60" "#000eff" gg/color-main gg/color-main]})
+      (gg/->image)))
+
+;; Smooth minimum (blue) and maximum (red) of two functions for `alpha = 5 or -5`.
+
+^:kind/table
+[[(smooth-m-plot :lse)
+  (smooth-m-plot :boltzmann)]
+ [(smooth-m-plot :mellowmax)
+  (smooth-m-plot :smu)]
+ [(smooth-m-plot :sigmoid)
+  (smooth-m-plot :circular)]
+ [(smooth-m-plot :quadratic)
+  (smooth-m-plot :cubic)]
+ [(smooth-m-plot :quartic)
+  (smooth-m-plot :exponential)]]
 
 ;; ### fma
 

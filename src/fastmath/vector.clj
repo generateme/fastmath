@@ -36,8 +36,8 @@
   [f]
   (fn [[^long midx ^long curr ^double v] ^double x]
     (if (f x v)
-      [curr (inc curr) x]
-      [midx (inc curr) v])))
+      [curr (m/inc curr) x]
+      [midx (m/inc curr) v])))
 
 ;; Add `VectorProto` to Clojure vector using map/reduce terms.
 (extend Seqable
@@ -46,8 +46,7 @@
    :to-acm-vec (fn [v] (ArrayRealVector. (m/seq->double-array v)))
    :to-vec (fn [v] (apply vector-of :double v))
    :to-vector vec
-   :as-vec (fn
-             ([v xs] (take (count v) (concat xs (repeat 0.0))))
+   :as-vec (fn ([v xs] (take (count v) (concat xs (repeat 0.0))))
              ([v] (prot/as-vec v nil)))
    :fmap (fn [v f] (map f v))
    :approx (fn
@@ -1555,7 +1554,7 @@
                   [p0 p1 cnt (sum (sq p1))])
          (rest) ;; drop zero degree
          (map first)
-         (take (m/dec (count xs))))))
+         (take (m/long-dec (count xs))))))
 
 (defn orthonormal-polynomials
   "Generates a sequence of orthonormal vectors by evaluating orthogonal polynomials at the points specified in the input sequence `xs` and normalizing the resulting vectors.
