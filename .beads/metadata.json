@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "fastmath",
+  "project_id": "79686790-cd84-4307-9bb7-c9f6e2129169"
+}
