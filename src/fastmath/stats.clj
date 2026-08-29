@@ -57,6 +57,7 @@
             [fastmath.special :as special]
             [fastmath.solver :as solver]
 
+            [fastmath.stats.bins :as bins]
             [fastmath.stats.binary :as binary]
             [fastmath.stats.logmean :as logmean])
   (:import [org.apache.commons.math3.stat StatUtils]
@@ -2615,15 +2616,6 @@
 
 ;;
 
-(defn- scott-fd-helper
-  "Calculate number of bins based on width of the bin."
-  ^double [vvs ^double h]
-  (let [h (if (m/< h m/EPSILON) (median-absolute-deviation vvs) h)]
-    (if (m/pos? h)
-      (let [[^double mn ^double mx] (extent vvs)]
-        (m/ceil (m// (m/- mx mn) h)))
-      1.0)))
-
 (defn estimate-bins
   "Estimates a suitable number of bins for a histogram of `vs`.
 
@@ -2650,21 +2642,12 @@
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
        (m/min n (int (case bins-or-estimate-method
-                       :sqrt (m/sqrt n)
-                       :sturges (m/inc (m/ceil (m/log2 n)))
-                       :rice (m/ceil (m/* 2.0 (m/cbrt n)))
-                       :doane (if (m/< n 3) 1 (m/+ (m/inc (m/log2 n))
-                                                   (m/log2 (m/inc (m// (m/abs (skewness vs))
-                                                                       (m/sqrt (m// (m/* 6.0 (m/- n 2.0))
-                                                                                    (m/* (m/inc n) (m/+ n 3.0)))))))))
-                       :scott (let [vvs (m/seq->double-array vs)
-                                    h (m// (m/* 3.5 (stddev vvs))
-                                           (m/cbrt n))]
-                                (scott-fd-helper vvs h))
-                       (let [vvs (m/seq->double-array vs)
-                             h (m// (m/* 2.0 (iqr vvs))
-                                    (m/cbrt n))]
-                         (scott-fd-helper vvs h)))))))))
+                       :sqrt (m/max 1 (m/sqrt n))
+                       :sturges (bins/sturges n)
+                       :rice (bins/rice n)
+                       :doane (bins/doane (m/seq->double-array vs) n)
+                       :scott (bins/scott (m/seq->double-array vs) n)
+                       :freedman-diaconis (bins/freedman-diaconis (m/seq->double-array vs) n))))))))
 
 (defn- constrain-data
   [vs ^double mn ^double mx]

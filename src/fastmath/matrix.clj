@@ -1,7 +1,19 @@
 (ns fastmath.matrix
-  "Provides tools for working with various matrix types, including fixed-size (2x2, 3x3, 4x4), Java `double[][]` arrays, and Apache Commons Math `RealMatrix`.
+  "Matrix types and linear algebra operations.
 
-  It offers efficient mathematical operations for linear algebra, geometric transformations, and data manipulation, unifying different representations under a common protocol approach where appropriate."
+  Provides fixed-size matrix types (`Mat2x2`, `Mat3x3`, `Mat4x4`), together with support for general `double[][]` arrays and Apache Commons Math `RealMatrix`. Common operations are unified behind a protocol, so functions such as `mulm`, `inverse`, `transpose` or `det` work uniformly across all supported representations.
+
+  Constructors build matrices from scalars, rows, columns, diagonals or existing arrays and `RealMatrix` objects: `mat2x2`, `mat3x3`, `mat4x4`, `mat`, `real-matrix`, and their `rows->`, `cols->`, `diag->` and `array2d->` counterparts, plus `eye`, `zero` and `diagonal`.
+
+  Element and structural access is provided by `entry`, `row`, `col`, `rows`, `cols`, `diag`, `nrow`, `ncol`, `shape`, `mat->seq`, `mat->array`, `mat->array2d` and their float variants, along with the predicates `square?` and `symmetric?`.
+
+  Arithmetic and linear algebra operations include `add`, `adds`, `sub`, `negate`, `mulm` (and its transposed variants `mulmt`, `tmulm`, `tmulmt`), `emulm`, `mulv`, `vtmul`, `muls`, `outer`, `kronecker`, `transpose`, `inverse`, `det`, `trace`, `cholesky`, `pow`, `norm` and `condition`.
+
+  Matrix decompositions (`qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition`, `sv-decomposition`, `lu-decomposition`, `eigen-decomposition`) return a common decomposition value, accessed with `decomposition-component` and usable as input to `solve`, `inverse` and `singular?`. Related eigen helpers (`eigenvalues`, `eigenvalues-matrix`, `eigenvectors`, `singular-values`) provide direct shortcuts without building a decomposition explicitly.
+
+  Data-oriented helpers treat a matrix as a table of row observations: `bind-rows`, `bind-cols`, `map-rows`, `map-cols`, `differences`, `normalize`, `demean`, `standardize`, `shift-rows`, `shift-cols`, `scale-rows` and `scale-cols`.
+
+  Geometric transformations are provided by `rotation-matrix-2d`, the 3d rotation family `rotation-matrix-3d`, `rotation-matrix-3d-x`, `rotation-matrix-3d-y`, `rotation-matrix-3d-z` and `rotation-matrix-axis-3d`, and `block-diagonal` for combining smaller matrices into a larger one."
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.protocols.matrix :as prot])
@@ -15,7 +27,6 @@
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
-(m/use-primitive-operators #{'abs})
 
 (defn- mat-throw-ioobe
   [dim id]
@@ -50,30 +61,30 @@
   [size clss t1? t2?]
   (let [r (range size)]
     `(new ~clss ~@(for [m1 r m2 r]
-                    `(+ ~@(for [i r]
-                            `(* ~(if t1? (gen-sym i m1) (gen-sym m1 i))
+                    `(m/+ ~@(for [i r]
+                            `(m/* ~(if t1? (gen-sym i m1) (gen-sym m1 i))
                                 (. ~'m2 ~(if t2? (gen-sym m2 i) (gen-sym i m2))))))))))
 
 (defmacro ^:private gen-hashc
   [^long size]
   (let [r (range size)]
     `(mix-collection-hash (unchecked-int (-> ~@(for [x r y r]
-                                                 `(v/dhash-code ~(gen-sym x y))))) ~(* size size))))
+                                                 `(v/dhash-code ~(gen-sym x y))))) ~(m/* size size))))
 
 (defmacro ^:private gen-det2
   [a b c d]
-  `(- (* ~a ~d) (* ~b ~c)))
+  `(m/- (m/* ~a ~d) (m/* ~b ~c)))
 
 (defmacro ^:private gen-det3
   [a b c d e f g h i]
-  `(+ (* ~a (gen-det2 ~e ~f ~h ~i))
-      (* (- ~b) (gen-det2 ~d ~f ~g ~i))
-      (* ~c (gen-det2 ~d ~e ~g ~h))))
+  `(m/+ (m/* ~a (gen-det2 ~e ~f ~h ~i))
+      (m/* (m/- ~b) (gen-det2 ~d ~f ~g ~i))
+      (m/* ~c (gen-det2 ~d ~e ~g ~h))))
 
 (defn- in-range?
   [x y ^long mx]
-  (and (number? x) (m/not-neg? ^long x) (< ^long x mx)
-       (number? y) (m/not-neg? ^long y) (< ^long y mx)))
+  (and (number? x) (m/not-neg? ^long x) (m/< ^long x mx)
+       (number? y) (m/not-neg? ^long y) (m/< ^long y mx)))
 
 (deftype Mat2x2 [^double a00 ^double a01
                  ^double a10 ^double a11]
@@ -82,8 +93,8 @@
   (equals [_ m]
     (and (instance? Mat2x2 m)
          (let [^Mat2x2 m m]
-           (and (== a00 (.a00 m)) (== a01 (.a01 m))
-                (== a10 (.a10 m)) (== a11 (.a11 m))))))
+           (and (m/== a00 (.a00 m)) (m/== a01 (.a01 m))
+                (m/== a10 (.a10 m)) (m/== a11 (.a11 m))))))
   (hashCode [_] (gen-hashc 2))
   clojure.lang.IHashEq 
   (hasheq [_] (gen-hashc 2))
@@ -136,36 +147,36 @@
       0 (Vec2. a00 a01)
       1 (Vec2. a10 a11)
       (mat2x2-throw-ioobe id)))
-  (symmetric? [_] (== a01 a10))
+  (symmetric? [_] (m/== a01 a10))
   (symmetric? [_ tol] (m/delta-eq a01 a10 tol))
   (transpose [_] (Mat2x2. a00 a10 a01 a11))
   (inverse [_] (let [d (gen-det2 a00 a01 a10 a11)]
                  (when-not (zero? d)
-                   (let [d (/ d)]
-                     (Mat2x2. (* d a11) (* d (- a01)) (* d (- a10)) (* d a00))))))
+                   (let [d (m// d)]
+                     (Mat2x2. (m/* d a11) (m/* d (m/- a01)) (m/* d (m/- a10)) (m/* d a00))))))
   (diag [_] (Vec2. a00 a11))
-  (trace [_] (+ a00 a11))
+  (trace [_] (m/+ a00 a11))
   (det [_] (gen-det2 a00 a01 a10 a11))
   (singular? [m] (m/zero? (double (prot/det m))))
   (solve [m b] (prot/mulv (prot/inverse m) b))
   (add [_ m] (let [^Mat2x2 m m]
-               (Mat2x2. (+ a00 (.a00 m))
-                        (+ a01 (.a01 m))
-                        (+ a10 (.a10 m))
-                        (+ a11 (.a11 m)))))
+               (Mat2x2. (m/+ a00 (.a00 m))
+                        (m/+ a01 (.a01 m))
+                        (m/+ a10 (.a10 m))
+                        (m/+ a11 (.a11 m)))))
   (adds [_ v] (let [v (double v)]
-                (Mat2x2. (+ v a00) (+ v a01) (+ v a10) (+ v a11))))
-  (sub [_] (Mat2x2. (- a00) (- a01) (- a10) (- a11)))
+                (Mat2x2. (m/+ v a00) (m/+ v a01) (m/+ v a10) (m/+ v a11))))
+  (sub [_] (Mat2x2. (m/- a00) (m/- a01) (m/- a10) (m/- a11)))
   (sub [_ m] (let [^Mat2x2 m m]
-               (Mat2x2. (- a00 (.a00 m))
-                        (- a01 (.a01 m))
-                        (- a10 (.a10 m))
-                        (- a11 (.a11 m)))))
+               (Mat2x2. (m/- a00 (.a00 m))
+                        (m/- a01 (.a01 m))
+                        (m/- a10 (.a10 m))
+                        (m/- a11 (.a11 m)))))
   (emulm [_ m] (let [^Mat2x2 m m]
-                 (Mat2x2. (* a00 (.a00 m))
-                          (* a01 (.a01 m))
-                          (* a10 (.a10 m))
-                          (* a11 (.a11 m)))))
+                 (Mat2x2. (m/* a00 (.a00 m))
+                          (m/* a01 (.a01 m))
+                          (m/* a10 (.a10 m))
+                          (m/* a11 (.a11 m)))))
   (mulm [_ m2] (let [^Mat2x2 m2 m2] (gen-mulm 2 Mat2x2 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat2x2 m2 m2]
                          (cond
@@ -174,31 +185,31 @@
                            (and (not t1?) t2?) (gen-mulm 2 Mat2x2 false true)
                            :else (gen-mulm 2 Mat2x2 true true))))
   (muls [_ s] (let [s (double s)]
-                (Mat2x2. (* s a00) (* s a01) (* s a10) (* s a11))))
+                (Mat2x2. (m/* s a00) (m/* s a01) (m/* s a10) (m/* s a11))))
   (mulv [_ v] (let [^Vec2 v v]
-                (Vec2. (+ (* a00 (.x v)) (* a01 (.y v)))
-                       (+ (* a10 (.x v)) (* a11 (.y v))))))
+                (Vec2. (m/+ (m/* a00 (.x v)) (m/* a01 (.y v)))
+                       (m/+ (m/* a10 (.x v)) (m/* a11 (.y v))))))
   (vtmul [_ v] (let [^Vec2 v v]
-                 (Vec2. (+ (* a00 (.x v)) (* a10 (.y v)))
-                        (+ (* a01 (.x v)) (* a11 (.y v))))))
+                 (Vec2. (m/+ (m/* a00 (.x v)) (m/* a10 (.y v)))
+                        (m/+ (m/* a01 (.x v)) (m/* a11 (.y v))))))
   (cholesky [m] (do
                   (assert (prot/symmetric? m) "Matrix is not symmetric.")
                   (let [a (m/sqrt a00)
-                        b (/ a10 a)
-                        c (m/sqrt (- a11 (* b b)))]
+                        b (m// a10 a)
+                        c (m/sqrt (m/- a11 (m/* b b)))]
                     (Mat2x2. a 0.0 b c))))
   (norm [_ t] (if (sequential? t)
                 (let [[^double p ^double q] t
-                      qp (/ q p)]
-                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)) qp)) (/ q)))
-                (condp = t
-                  :inf (m/max (+ (m/abs a00) (m/abs a01))
-                              (+ (m/abs a10) (m/abs a11)))
+                      qp (m// q p)]
+                  (m/pow (m/+ (m/pow (m/+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)) qp)) (m// q)))
+                (case t
+                  :inf (m/max (m/+ (m/abs a00) (m/abs a01))
+                              (m/+ (m/abs a10) (m/abs a11)))
                   :max (m/max (m/abs a00) (m/abs a01)
                               (m/abs a10) (m/abs a11))
-                  (m/max (+ (m/abs a00) (m/abs a10))
-                         (+ (m/abs a01) (m/abs a11)))))))
+                  (m/max (m/+ (m/abs a00) (m/abs a10))
+                         (m/+ (m/abs a01) (m/abs a11)))))))
 
 (deftype Mat3x3 [^double a00 ^double a01 ^double a02
                  ^double a10 ^double a11 ^double a12
@@ -208,9 +219,9 @@
   (equals [_ m]
     (and (instance? Mat3x3 m)
          (let [^Mat3x3 m m]
-           (and (== a00 (.a00 m)) (== a01 (.a01 m)) (== a02 (.a02 m))
-                (== a10 (.a10 m)) (== a11 (.a11 m)) (== a12 (.a12 m))
-                (== a20 (.a20 m)) (== a21 (.a21 m)) (== a22 (.a22 m))))))
+           (and (m/== a00 (.a00 m)) (m/== a01 (.a01 m)) (m/== a02 (.a02 m))
+                (m/== a10 (.a10 m)) (m/== a11 (.a11 m)) (m/== a12 (.a12 m))
+                (m/== a20 (.a20 m)) (m/== a21 (.a21 m)) (m/== a22 (.a22 m))))))
   (hashCode [_] (gen-hashc 3))
   clojure.lang.IHashEq 
   (hasheq [_] (gen-hashc 3))
@@ -271,7 +282,7 @@
       1 (Vec3. a10 a11 a12)
       2 (Vec3. a20 a21 a22)
       (mat3x3-throw-ioobe id)))
-  (symmetric? [_] (and (== a01 a10) (== a12 a21) (== a20 a02)))
+  (symmetric? [_] (and (m/== a01 a10) (m/== a12 a21) (m/== a20 a02)))
   (symmetric? [_ tol] (and (m/delta-eq a01 a10 tol) (m/delta-eq a12 a21 tol) (m/delta-eq a20 a02 tol)))
   (transpose [_] (Mat3x3. a00 a10 a20 a01 a11 a21 a02 a12 a22))
   (inverse [_] (let [d (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22)]
@@ -285,31 +296,31 @@
                                       (gen-det2 a10 a11 a20 a21)
                                       (gen-det2 a01 a00 a21 a20)
                                       (gen-det2 a00 a01 a10 a11))]
-                     (prot/muls adj (/ d))))))
+                     (prot/muls adj (m// d))))))
   (diag [_] (Vec3. a00 a11 a22))
-  (trace [_] (+ a00 a11 a22))
+  (trace [_] (m/+ a00 a11 a22))
   (det [_] (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22))
   (singular? [m] (m/zero? (double (prot/det m))))
   (solve [m b] (prot/mulv (prot/inverse m) b))
   (add [_ m] (let [^Mat3x3 m m]
-               (Mat3x3. (+ a00 (.a00 m)) (+ a01 (.a01 m)) (+ a02 (.a02 m))
-                        (+ a10 (.a10 m)) (+ a11 (.a11 m)) (+ a12 (.a12 m))
-                        (+ a20 (.a20 m)) (+ a21 (.a21 m)) (+ a22 (.a22 m)))))
+               (Mat3x3. (m/+ a00 (.a00 m)) (m/+ a01 (.a01 m)) (m/+ a02 (.a02 m))
+                        (m/+ a10 (.a10 m)) (m/+ a11 (.a11 m)) (m/+ a12 (.a12 m))
+                        (m/+ a20 (.a20 m)) (m/+ a21 (.a21 m)) (m/+ a22 (.a22 m)))))
   (adds [_ v] (let [v (double v)]
-                (Mat3x3. (+ v a00) (+ v a01) (+ v a02)
-                         (+ v a10) (+ v a11) (+ v a12)
-                         (+ v a20) (+ v a21) (+ v a22))))
-  (sub [_] (Mat3x3. (- a00) (- a01) (- a02)
-                    (- a10) (- a11) (- a12)
-                    (- a20) (- a21) (- a22)))
+                (Mat3x3. (m/+ v a00) (m/+ v a01) (m/+ v a02)
+                         (m/+ v a10) (m/+ v a11) (m/+ v a12)
+                         (m/+ v a20) (m/+ v a21) (m/+ v a22))))
+  (sub [_] (Mat3x3. (m/- a00) (m/- a01) (m/- a02)
+                    (m/- a10) (m/- a11) (m/- a12)
+                    (m/- a20) (m/- a21) (m/- a22)))
   (sub [_ m] (let [^Mat3x3 m m]
-               (Mat3x3. (- a00 (.a00 m)) (- a01 (.a01 m)) (- a02 (.a02 m))
-                        (- a10 (.a10 m)) (- a11 (.a11 m)) (- a12 (.a12 m))
-                        (- a20 (.a20 m)) (- a21 (.a21 m)) (- a22 (.a22 m)))))
+               (Mat3x3. (m/- a00 (.a00 m)) (m/- a01 (.a01 m)) (m/- a02 (.a02 m))
+                        (m/- a10 (.a10 m)) (m/- a11 (.a11 m)) (m/- a12 (.a12 m))
+                        (m/- a20 (.a20 m)) (m/- a21 (.a21 m)) (m/- a22 (.a22 m)))))
   (emulm [_ m] (let [^Mat3x3 m m]
-                 (Mat3x3. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m))
-                          (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m))
-                          (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)))))
+                 (Mat3x3. (m/* a00 (.a00 m)) (m/* a01 (.a01 m)) (m/* a02 (.a02 m))
+                          (m/* a10 (.a10 m)) (m/* a11 (.a11 m)) (m/* a12 (.a12 m))
+                          (m/* a20 (.a20 m)) (m/* a21 (.a21 m)) (m/* a22 (.a22 m)))))
   (mulm [_ m2] (let [^Mat3x3 m2 m2] (gen-mulm 3 Mat3x3 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat3x3 m2 m2]
                          (cond
@@ -318,43 +329,43 @@
                            (and (not t1?) t2?) (gen-mulm 3 Mat3x3 false true)
                            :else (gen-mulm 3 Mat3x3 true true))))
   (muls [_ s] (let [s (double s)]
-                (Mat3x3. (* s a00) (* s a01) (* s a02)
-                         (* s a10) (* s a11) (* s a12)
-                         (* s a20) (* s a21) (* s a22))))
+                (Mat3x3. (m/* s a00) (m/* s a01) (m/* s a02)
+                         (m/* s a10) (m/* s a11) (m/* s a12)
+                         (m/* s a20) (m/* s a21) (m/* s a22))))
   (mulv [_ v] (let [^Vec3 v v]
-                (Vec3. (+ (* a00 (.x v)) (* a01 (.y v)) (* a02 (.z v)))
-                       (+ (* a10 (.x v)) (* a11 (.y v)) (* a12 (.z v)))
-                       (+ (* a20 (.x v)) (* a21 (.y v)) (* a22 (.z v))))))
+                (Vec3. (m/+ (m/* a00 (.x v)) (m/* a01 (.y v)) (m/* a02 (.z v)))
+                       (m/+ (m/* a10 (.x v)) (m/* a11 (.y v)) (m/* a12 (.z v)))
+                       (m/+ (m/* a20 (.x v)) (m/* a21 (.y v)) (m/* a22 (.z v))))))
   (vtmul [_ v] (let [^Vec3 v v]
-                 (Vec3. (+ (* a00 (.x v)) (* a10 (.y v)) (* a20 (.z v)))
-                        (+ (* a01 (.x v)) (* a11 (.y v)) (* a21 (.z v)))
-                        (+ (* a02 (.x v)) (* a12 (.y v)) (* a22 (.z v))))))
+                 (Vec3. (m/+ (m/* a00 (.x v)) (m/* a10 (.y v)) (m/* a20 (.z v)))
+                        (m/+ (m/* a01 (.x v)) (m/* a11 (.y v)) (m/* a21 (.z v)))
+                        (m/+ (m/* a02 (.x v)) (m/* a12 (.y v)) (m/* a22 (.z v))))))
   (cholesky [m] (do
                   (assert (prot/symmetric? m) "Matrix is not symmetric.")
                   (let [a (m/sqrt a00)
-                        b (/ a10 a)
-                        c (m/sqrt (- a11 (* b b)))
-                        d (/ a20 a)
-                        e (/ (- a21 (* b d)) c)
-                        f (m/sqrt (- a22 (* d d) (* e e)))]
+                        b (m// a10 a)
+                        c (m/sqrt (m/- a11 (m/* b b)))
+                        d (m// a20 a)
+                        e (m// (m/- a21 (m/* b d)) c)
+                        f (m/sqrt (m/- a22 (m/* d d) (m/* e e)))]
                     (Mat3x3. a 0.0 0.0 b c 0.0 d e f))))
   (norm [_ t] (if (sequential? t)
                 (let [[^double p ^double q] t
-                      qp (/ q p)]
-                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p) (m/pow (m/abs a20) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p) (m/pow (m/abs a21) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p) (m/pow (m/abs a22) p)) qp))
-                         (/ q)))
-                (condp = t
-                  :inf (m/max (+ (m/abs a00) (m/abs a01) (m/abs a02))
-                              (+ (m/abs a10) (m/abs a11) (m/abs a12))
-                              (+ (m/abs a20) (m/abs a21) (m/abs a22)))
+                      qp (m// q p)]
+                  (m/pow (m/+ (m/pow (m/+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p) (m/pow (m/abs a20) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p) (m/pow (m/abs a21) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p) (m/pow (m/abs a22) p)) qp))
+                         (m// q)))
+                (case t
+                  :inf (m/max (m/+ (m/abs a00) (m/abs a01) (m/abs a02))
+                              (m/+ (m/abs a10) (m/abs a11) (m/abs a12))
+                              (m/+ (m/abs a20) (m/abs a21) (m/abs a22)))
                   :max (m/max (m/abs a00) (m/abs a01) (m/abs a02)
                               (m/abs a10) (m/abs a11) (m/abs a12)
                               (m/abs a20) (m/abs a21) (m/abs a22))
-                  (m/max (+ (m/abs a00) (m/abs a10) (m/abs a20))
-                         (+ (m/abs a01) (m/abs a11) (m/abs a21))
-                         (+ (m/abs a02) (m/abs a12) (m/abs a22)))))))
+                  (m/max (m/+ (m/abs a00) (m/abs a10) (m/abs a20))
+                         (m/+ (m/abs a01) (m/abs a11) (m/abs a21))
+                         (m/+ (m/abs a02) (m/abs a12) (m/abs a22)))))))
 
 (deftype Mat4x4 [^double a00 ^double a01 ^double a02 ^double a03
                  ^double a10 ^double a11 ^double a12 ^double a13
@@ -365,10 +376,10 @@
   (equals [_ m]
     (and (instance? Mat4x4 m)
          (let [^Mat4x4 m m]
-           (and (== a00 (.a00 m)) (== a01 (.a01 m)) (== a02 (.a02 m)) (== a03 (.a03 m))
-                (== a10 (.a10 m)) (== a11 (.a11 m)) (== a12 (.a12 m)) (== a13 (.a13 m))
-                (== a20 (.a20 m)) (== a21 (.a21 m)) (== a22 (.a22 m)) (== a23 (.a23 m))
-                (== a30 (.a30 m)) (== a31 (.a31 m)) (== a32 (.a32 m)) (== a33 (.a33 m))))))
+           (and (m/== a00 (.a00 m)) (m/== a01 (.a01 m)) (m/== a02 (.a02 m)) (m/== a03 (.a03 m))
+                (m/== a10 (.a10 m)) (m/== a11 (.a11 m)) (m/== a12 (.a12 m)) (m/== a13 (.a13 m))
+                (m/== a20 (.a20 m)) (m/== a21 (.a21 m)) (m/== a22 (.a22 m)) (m/== a23 (.a23 m))
+                (m/== a30 (.a30 m)) (m/== a31 (.a31 m)) (m/== a32 (.a32 m)) (m/== a33 (.a33 m))))))
   (hashCode [_] (gen-hashc 4))
   clojure.lang.IHashEq 
   (hasheq [_] (gen-hashc 4))
@@ -440,68 +451,68 @@
       2 (Vec4. a20 a21 a22 a23)
       3 (Vec4. a30 a31 a32 a33)
       (mat4x4-throw-ioobe id)))
-  (symmetric? [_] (and (== a01 a10) (== a12 a21) (== a20 a02) (== a30 a03) (== a31 a13) (== a32 a23)))
+  (symmetric? [_] (and (m/== a01 a10) (m/== a12 a21) (m/== a20 a02) (m/== a30 a03) (m/== a31 a13) (m/== a32 a23)))
   (symmetric? [_ tol] (and (m/delta-eq a01 a10 tol) (m/delta-eq a12 a21 tol)
                            (m/delta-eq a20 a02 tol) (m/delta-eq a30 a03 tol)
                            (m/delta-eq a31 a13 tol) (m/delta-eq a32 a23 tol)))
   (transpose [_] (Mat4x4. a00 a10 a20 a30 a01 a11 a21 a31 a02 a12 a22 a32 a03 a13 a23 a33))
-  (inverse [_] (let [d (+ (* a00 (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33))
-                          (* (- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
-                          (* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
-                          (* (- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23)))]
+  (inverse [_] (let [d (m/+ (m/* a00 (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33))
+                            (m/* (m/- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
+                            (m/* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
+                            (m/* (m/- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23)))]
                  (when-not (zero? d)
                    (let [adj (Mat4x4. (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33)
-                                      (- (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33))
+                                      (m/- (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33))
                                       (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33)
-                                      (- (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23))
+                                      (m/- (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23))
 
-                                      (- (gen-det3 a10 a12 a13 a20 a22 a23 a30 a32 a33))
+                                      (m/- (gen-det3 a10 a12 a13 a20 a22 a23 a30 a32 a33))
                                       (gen-det3 a00 a02 a03 a20 a22 a23 a30 a32 a33)
-                                      (- (gen-det3 a00 a02 a03 a10 a12 a13 a30 a32 a33))
+                                      (m/- (gen-det3 a00 a02 a03 a10 a12 a13 a30 a32 a33))
                                       (gen-det3 a00 a02 a03 a10 a12 a13 a20 a22 a23)
 
                                       (gen-det3 a10 a11 a13 a20 a21 a23 a30 a31 a33)
-                                      (- (gen-det3 a00 a01 a03 a20 a21 a23 a30 a31 a33))
+                                      (m/- (gen-det3 a00 a01 a03 a20 a21 a23 a30 a31 a33))
                                       (gen-det3 a00 a01 a03 a10 a11 a13 a30 a31 a33)
-                                      (- (gen-det3 a00 a01 a03 a10 a11 a13 a20 a21 a23))
+                                      (m/- (gen-det3 a00 a01 a03 a10 a11 a13 a20 a21 a23))
 
-                                      (- (gen-det3 a10 a11 a12 a20 a21 a22 a30 a31 a32))
+                                      (m/- (gen-det3 a10 a11 a12 a20 a21 a22 a30 a31 a32))
                                       (gen-det3 a00 a01 a02 a20 a21 a22 a30 a31 a32)
-                                      (- (gen-det3 a00 a01 a02 a10 a11 a12 a30 a31 a32))
+                                      (m/- (gen-det3 a00 a01 a02 a10 a11 a12 a30 a31 a32))
                                       (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22))]
-                     (prot/muls adj (/ d))))))
+                     (prot/muls adj (m// d))))))
   (diag [_] (Vec4. a00 a11 a22 a33))
-  (trace [_] (+ a00 a11 a22 a33))
-  (det [_] (+ (* a00 (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33))
-              (* (- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
-              (* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
-              (* (- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23))))
+  (trace [_] (m/+ a00 a11 a22 a33))
+  (det [_] (m/+ (m/* a00 (gen-det3 a11 a12 a13 a21 a22 a23 a31 a32 a33))
+                (m/* (m/- a10) (gen-det3 a01 a02 a03 a21 a22 a23 a31 a32 a33 ))
+                (m/* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
+                (m/* (m/- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23))))
   (singular? [m] (m/zero? (double (prot/det m))))
   (solve [m b] (prot/mulv (prot/inverse m) b))
   (add [_ m] (let [^Mat4x4 m m]
-               (Mat4x4. (+ a00 (.a00 m)) (+ a01 (.a01 m)) (+ a02 (.a02 m)) (+ a03 (.a03 m))
-                        (+ a10 (.a10 m)) (+ a11 (.a11 m)) (+ a12 (.a12 m)) (+ a13 (.a13 m))
-                        (+ a20 (.a20 m)) (+ a21 (.a21 m)) (+ a22 (.a22 m)) (+ a23 (.a23 m))
-                        (+ a30 (.a30 m)) (+ a31 (.a31 m)) (+ a32 (.a32 m)) (+ a33 (.a33 m)))))
+               (Mat4x4. (m/+ a00 (.a00 m)) (m/+ a01 (.a01 m)) (m/+ a02 (.a02 m)) (m/+ a03 (.a03 m))
+                        (m/+ a10 (.a10 m)) (m/+ a11 (.a11 m)) (m/+ a12 (.a12 m)) (m/+ a13 (.a13 m))
+                        (m/+ a20 (.a20 m)) (m/+ a21 (.a21 m)) (m/+ a22 (.a22 m)) (m/+ a23 (.a23 m))
+                        (m/+ a30 (.a30 m)) (m/+ a31 (.a31 m)) (m/+ a32 (.a32 m)) (m/+ a33 (.a33 m)))))
   (adds [_ v] (let [v (double v)]
-                (Mat4x4. (+ v a00) (+ v a01) (+ v a02) (+ v a03)
-                         (+ v a10) (+ v a11) (+ v a12) (+ v a13)
-                         (+ v a20) (+ v a21) (+ v a22) (+ v a23)
-                         (+ v a30) (+ v a31) (+ v a32) (+ v a33))))
-  (sub [_] (Mat4x4. (- a00) (- a01) (- a02) (- a03)
-                    (- a10) (- a11) (- a12) (- a13)
-                    (- a20) (- a21) (- a22) (- a23)
-                    (- a30) (- a31) (- a32) (- a33)))
+                (Mat4x4. (m/+ v a00) (m/+ v a01) (m/+ v a02) (m/+ v a03)
+                         (m/+ v a10) (m/+ v a11) (m/+ v a12) (m/+ v a13)
+                         (m/+ v a20) (m/+ v a21) (m/+ v a22) (m/+ v a23)
+                         (m/+ v a30) (m/+ v a31) (m/+ v a32) (m/+ v a33))))
+  (sub [_] (Mat4x4. (m/- a00) (m/- a01) (m/- a02) (m/- a03)
+                    (m/- a10) (m/- a11) (m/- a12) (m/- a13)
+                    (m/- a20) (m/- a21) (m/- a22) (m/- a23)
+                    (m/- a30) (m/- a31) (m/- a32) (m/- a33)))
   (sub [_ m] (let [^Mat4x4 m m]
-               (Mat4x4. (- a00 (.a00 m)) (- a01 (.a01 m)) (- a02 (.a02 m)) (- a03 (.a03 m))
-                        (- a10 (.a10 m)) (- a11 (.a11 m)) (- a12 (.a12 m)) (- a13 (.a13 m))
-                        (- a20 (.a20 m)) (- a21 (.a21 m)) (- a22 (.a22 m)) (- a23 (.a23 m))
-                        (- a30 (.a30 m)) (- a31 (.a31 m)) (- a32 (.a32 m)) (- a33 (.a33 m)))))
+               (Mat4x4. (m/- a00 (.a00 m)) (m/- a01 (.a01 m)) (m/- a02 (.a02 m)) (m/- a03 (.a03 m))
+                        (m/- a10 (.a10 m)) (m/- a11 (.a11 m)) (m/- a12 (.a12 m)) (m/- a13 (.a13 m))
+                        (m/- a20 (.a20 m)) (m/- a21 (.a21 m)) (m/- a22 (.a22 m)) (m/- a23 (.a23 m))
+                        (m/- a30 (.a30 m)) (m/- a31 (.a31 m)) (m/- a32 (.a32 m)) (m/- a33 (.a33 m)))))
   (emulm [_ m] (let [^Mat4x4 m m]
-                 (Mat4x4. (* a00 (.a00 m)) (* a01 (.a01 m)) (* a02 (.a02 m)) (* a03 (.a03 m))
-                          (* a10 (.a10 m)) (* a11 (.a11 m)) (* a12 (.a12 m)) (* a13 (.a13 m))
-                          (* a20 (.a20 m)) (* a21 (.a21 m)) (* a22 (.a22 m)) (* a23 (.a23 m))
-                          (* a30 (.a30 m)) (* a31 (.a31 m)) (* a32 (.a32 m)) (* a33 (.a33 m)))))
+                 (Mat4x4. (m/* a00 (.a00 m)) (m/* a01 (.a01 m)) (m/* a02 (.a02 m)) (m/* a03 (.a03 m))
+                          (m/* a10 (.a10 m)) (m/* a11 (.a11 m)) (m/* a12 (.a12 m)) (m/* a13 (.a13 m))
+                          (m/* a20 (.a20 m)) (m/* a21 (.a21 m)) (m/* a22 (.a22 m)) (m/* a23 (.a23 m))
+                          (m/* a30 (.a30 m)) (m/* a31 (.a31 m)) (m/* a32 (.a32 m)) (m/* a33 (.a33 m)))))
   (mulm [_ m2] (let [^Mat4x4 m2 m2] (gen-mulm 4 Mat4x4 false false)))
   (mulm [_ t1? m2 t2?] (let [^Mat4x4 m2 m2]
                          (cond
@@ -510,58 +521,58 @@
                            (and (not t1?) t2?) (gen-mulm 4 Mat4x4 false true)
                            :else (gen-mulm 4 Mat4x4 true true))))
   (muls [_ s] (let [s (double s)]
-                (Mat4x4. (* s a00) (* s a01) (* s a02) (* s a03)
-                         (* s a10) (* s a11) (* s a12) (* s a13)
-                         (* s a20) (* s a21) (* s a22) (* s a23)
-                         (* s a30) (* s a31) (* s a32) (* s a33))))
+                (Mat4x4. (m/* s a00) (m/* s a01) (m/* s a02) (m/* s a03)
+                         (m/* s a10) (m/* s a11) (m/* s a12) (m/* s a13)
+                         (m/* s a20) (m/* s a21) (m/* s a22) (m/* s a23)
+                         (m/* s a30) (m/* s a31) (m/* s a32) (m/* s a33))))
   (mulv [_ v] (let [^Vec4 v v]
-                (Vec4. (+ (* a00 (.x v)) (* a01 (.y v)) (* a02 (.z v)) (* a03 (.w v)))
-                       (+ (* a10 (.x v)) (* a11 (.y v)) (* a12 (.z v)) (* a13 (.w v)))
-                       (+ (* a20 (.x v)) (* a21 (.y v)) (* a22 (.z v)) (* a23 (.w v)))
-                       (+ (* a30 (.x v)) (* a31 (.y v)) (* a32 (.z v)) (* a33 (.w v))))))
+                (Vec4. (m/+ (m/* a00 (.x v)) (m/* a01 (.y v)) (m/* a02 (.z v)) (m/* a03 (.w v)))
+                       (m/+ (m/* a10 (.x v)) (m/* a11 (.y v)) (m/* a12 (.z v)) (m/* a13 (.w v)))
+                       (m/+ (m/* a20 (.x v)) (m/* a21 (.y v)) (m/* a22 (.z v)) (m/* a23 (.w v)))
+                       (m/+ (m/* a30 (.x v)) (m/* a31 (.y v)) (m/* a32 (.z v)) (m/* a33 (.w v))))))
   (vtmul [_ v] (let [^Vec4 v v]
-                 (Vec4. (+ (* a00 (.x v)) (* a10 (.y v)) (* a20 (.z v)) (* a30 (.w v)))
-                        (+ (* a01 (.x v)) (* a11 (.y v)) (* a21 (.z v)) (* a31 (.w v)))
-                        (+ (* a02 (.x v)) (* a12 (.y v)) (* a22 (.z v)) (* a32 (.w v)))
-                        (+ (* a03 (.x v)) (* a13 (.y v)) (* a23 (.z v)) (* a33 (.w v))))))
+                 (Vec4. (m/+ (m/* a00 (.x v)) (m/* a10 (.y v)) (m/* a20 (.z v)) (m/* a30 (.w v)))
+                        (m/+ (m/* a01 (.x v)) (m/* a11 (.y v)) (m/* a21 (.z v)) (m/* a31 (.w v)))
+                        (m/+ (m/* a02 (.x v)) (m/* a12 (.y v)) (m/* a22 (.z v)) (m/* a32 (.w v)))
+                        (m/+ (m/* a03 (.x v)) (m/* a13 (.y v)) (m/* a23 (.z v)) (m/* a33 (.w v))))))
   (cholesky [m] (do
                   (assert (prot/symmetric? m) "Matrix is not symmetric.")
                   (let [a (m/sqrt a00)
-                        b (/ a10 a)
-                        c (m/sqrt (- a11 (* b b)))
-                        d (/ a20 a)
-                        e (/ (- a21 (* b d)) c)
-                        f (m/sqrt (- a22 (* d d) (* e e)))
-                        g (/ a30 a)
-                        h (/ (- a31 (* b g)) c)
-                        i (/ (- a32 (* d g) (* e h)) f)
-                        j (m/sqrt (- a33 (* g g) (* h h) (* i i)))]
+                        b (m// a10 a)
+                        c (m/sqrt (m/- a11 (m/* b b)))
+                        d (m// a20 a)
+                        e (m// (m/- a21 (m/* b d)) c)
+                        f (m/sqrt (m/- a22 (m/* d d) (m/* e e)))
+                        g (m// a30 a)
+                        h (m// (m/- a31 (m/* b g)) c)
+                        i (m// (m/- a32 (m/* d g) (m/* e h)) f)
+                        j (m/sqrt (m/- a33 (m/* g g) (m/* h h) (m/* i i)))]
                     (Mat4x4. a 0.0 0.0 0.0 b c 0.0 0.0 d e f 0.0 g h i j))))
   (norm [_ t] (if (sequential? t)
                 (let [[^double p ^double q] t
-                      qp (/ q p)]
-                  (m/pow (+ (m/pow (+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)
-                                      (m/pow (m/abs a20) p) (m/pow (m/abs a30) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)
-                                      (m/pow (m/abs a21) p) (m/pow (m/abs a31) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p)
-                                      (m/pow (m/abs a22) p) (m/pow (m/abs a32) p)) qp)
-                            (m/pow (+ (m/pow (m/abs a03) p) (m/pow (m/abs a13) p)
-                                      (m/pow (m/abs a23) p) (m/pow (m/abs a33) p)) qp))
-                         (/ q)))
-                (condp = t
-                  :inf (m/max (+ (m/abs a00) (m/abs a01) (m/abs a02) (m/abs a03))
-                              (+ (m/abs a10) (m/abs a11) (m/abs a12) (m/abs a13))
-                              (+ (m/abs a20) (m/abs a21) (m/abs a22) (m/abs a23))
-                              (+ (m/abs a30) (m/abs a31) (m/abs a32) (m/abs a33)))
+                      qp (m// q p)]
+                  (m/pow (m/+ (m/pow (m/+ (m/pow (m/abs a00) p) (m/pow (m/abs a10) p)
+                                          (m/pow (m/abs a20) p) (m/pow (m/abs a30) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a01) p) (m/pow (m/abs a11) p)
+                                          (m/pow (m/abs a21) p) (m/pow (m/abs a31) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a02) p) (m/pow (m/abs a12) p)
+                                          (m/pow (m/abs a22) p) (m/pow (m/abs a32) p)) qp)
+                              (m/pow (m/+ (m/pow (m/abs a03) p) (m/pow (m/abs a13) p)
+                                          (m/pow (m/abs a23) p) (m/pow (m/abs a33) p)) qp))
+                         (m// q)))
+                (case t
+                  :inf (m/max (m/+ (m/abs a00) (m/abs a01) (m/abs a02) (m/abs a03))
+                              (m/+ (m/abs a10) (m/abs a11) (m/abs a12) (m/abs a13))
+                              (m/+ (m/abs a20) (m/abs a21) (m/abs a22) (m/abs a23))
+                              (m/+ (m/abs a30) (m/abs a31) (m/abs a32) (m/abs a33)))
                   :max (m/max (m/abs a00) (m/abs a01) (m/abs a02) (m/abs a03)
                               (m/abs a10) (m/abs a11) (m/abs a12) (m/abs a13)
                               (m/abs a20) (m/abs a21) (m/abs a22) (m/abs a23)
                               (m/abs a30) (m/abs a31) (m/abs a32) (m/abs a33))
-                  (m/max (+ (m/abs a00) (m/abs a10) (m/abs a20) (m/abs a30))
-                         (+ (m/abs a01) (m/abs a11) (m/abs a21) (m/abs a31))
-                         (+ (m/abs a02) (m/abs a12) (m/abs a22) (m/abs a32))
-                         (+ (m/abs a03) (m/abs a13) (m/abs a23) (m/abs a33)))))))
+                  (m/max (m/+ (m/abs a00) (m/abs a10) (m/abs a20) (m/abs a30))
+                         (m/+ (m/abs a01) (m/abs a11) (m/abs a21) (m/abs a31))
+                         (m/+ (m/abs a02) (m/abs a12) (m/abs a22) (m/abs a32))
+                         (m/+ (m/abs a03) (m/abs a13) (m/abs a23) (m/abs a33)))))))
 
 (extend (Class/forName "[[D")
   prot/MatrixProto
@@ -582,13 +593,13 @@
    :symmetric? (fn ([^"[[D" arrs] (let [nr (prot/nrow arrs)
                                        nc (prot/ncol arrs)]
                                    (every? identity (for [^long r (range nr)
-                                                          c (range (inc r) nc)]
-                                                      (== ^double (aget arrs r c)
-                                                          ^double (aget arrs c r))))))
+                                                          c (range (m/inc r) nc)]
+                                                      (m/== ^double (aget arrs r c)
+                                                            ^double (aget arrs c r))))))
                  ([^"[[D" arrs ^double tol] (let [nr (prot/nrow arrs)
                                                   nc (prot/ncol arrs)]
                                               (every? identity (for [^long r (range nr)
-                                                                     c (range (inc r) nc)]
+                                                                     c (range (m/inc r) nc)]
                                                                  (m/delta-eq (aget arrs r c)
                                                                              (aget arrs c r) tol))))))
    :transpose (fn [arrs] (into-array (Array/mat2cols arrs)))
@@ -680,8 +691,8 @@
    :emulm (fn [^RealMatrix m1 ^RealMatrix m2] (let [m (.copy m1)]
                                                (doseq [^int r (range (.getRowDimension m))
                                                        ^int c (range (.getColumnDimension m))]
-                                                 (.setEntry m r c (* (.getEntry m1 r c)
-                                                                     (.getEntry m2 r c))))
+                                                 (.setEntry m r c (m/* (.getEntry m1 r c)
+                                                                       (.getEntry m2 r c))))
                                                m))
    :mulm (fn ([^RealMatrix m1 t1? ^RealMatrix m2 t2?]
              (let [m1 (if t1? (.transpose m1) m1)
@@ -699,16 +710,16 @@
    :cholesky (fn [^RealMatrix m] (.getL (CholeskyDecomposition. m)))
    :norm (fn [^RealMatrix m t] (if (sequential? t)
                                 (let [[^double p ^double q] t]
-                                  (if (and (== p 2.0) (== q 2.0))
+                                  (if (and (m/== p 2.0) (m/== q 2.0))
                                     (.getFrobeniusNorm m)
-                                    (let [qp (/ q p)]
+                                    (let [qp (m// q p)]
                                       (-> (->> (prot/cols m)
                                                (map (fn [c] (-> (v/abs c)
                                                                (v/fmap (fn [v] (m/pow v p)))
                                                                (v/sum)
                                                                (m/pow qp)))))
                                           (v/sum)
-                                          (m/pow (/ q))))))
+                                          (m/pow (m// q))))))
                                 (condp = t
                                   :inf (.getNorm (.transpose m))
                                   :max (reduce m/max (for [^int r (range (.getRowDimension m))
@@ -1009,19 +1020,19 @@
     (condp = [i1 i2]
       [Vec2 Vec2] (let [^Vec2 v1 v1
                         ^Vec2 v2 v2]
-                    (Mat2x2. (* (.x v1) (.x v2)) (* (.x v1) (.y v2))
-                             (* (.y v1) (.x v2)) (* (.y v1) (.y v2))))
+                    (Mat2x2. (m/* (.x v1) (.x v2)) (m/* (.x v1) (.y v2))
+                             (m/* (.y v1) (.x v2)) (m/* (.y v1) (.y v2))))
       [Vec3 Vec3] (let [^Vec3 v1 v1
                         ^Vec3 v2 v2]
-                    (Mat3x3. (* (.x v1) (.x v2)) (* (.x v1) (.y v2)) (* (.x v1) (.z v2))
-                             (* (.y v1) (.x v2)) (* (.y v1) (.y v2)) (* (.y v1) (.z v2))
-                             (* (.z v1) (.x v2)) (* (.z v1) (.y v2)) (* (.z v1) (.z v2))))
+                    (Mat3x3. (m/* (.x v1) (.x v2)) (m/* (.x v1) (.y v2)) (m/* (.x v1) (.z v2))
+                             (m/* (.y v1) (.x v2)) (m/* (.y v1) (.y v2)) (m/* (.y v1) (.z v2))
+                             (m/* (.z v1) (.x v2)) (m/* (.z v1) (.y v2)) (m/* (.z v1) (.z v2))))
       [Vec4 Vec4] (let [^Vec4 v1 v1
                         ^Vec4 v2 v2]
-                    (Mat4x4. (* (.x v1) (.x v2)) (* (.x v1) (.y v2)) (* (.x v1) (.z v2)) (* (.x v1) (.w v2))
-                             (* (.y v1) (.x v2)) (* (.y v1) (.y v2)) (* (.y v1) (.z v2)) (* (.y v1) (.w v2))
-                             (* (.z v1) (.x v2)) (* (.z v1) (.y v2)) (* (.z v1) (.z v2)) (* (.z v1) (.w v2))
-                             (* (.w v1) (.x v2)) (* (.w v1) (.y v2)) (* (.w v1) (.z v2)) (* (.w v1) (.w v2))))
+                    (Mat4x4. (m/* (.x v1) (.x v2)) (m/* (.x v1) (.y v2)) (m/* (.x v1) (.z v2)) (m/* (.x v1) (.w v2))
+                             (m/* (.y v1) (.x v2)) (m/* (.y v1) (.y v2)) (m/* (.y v1) (.z v2)) (m/* (.y v1) (.w v2))
+                             (m/* (.z v1) (.x v2)) (m/* (.z v1) (.y v2)) (m/* (.z v1) (.z v2)) (m/* (.z v1) (.w v2))
+                             (m/* (.w v1) (.x v2)) (m/* (.w v1) (.y v2)) (m/* (.w v1) (.z v2)) (m/* (.w v1) (.w v2))))
 
       (let [v1 (v/vec->RealVector v1)
             v2 (v/vec->RealVector v2)]
@@ -1198,32 +1209,6 @@
   "Returns trace of the matrix (sum of diagonal elements)"
   ^double [A] (prot/trace A))
 
-(defn eigenvalues
-  "Returns complex eigenvalues for given matrix as a sequence"
-  [A]
-  (let [^EigenDecomposition m (-> A mat->RealMatrix (EigenDecomposition.))
-        re (.getRealEigenvalues m)
-        im (.getImagEigenvalues m)]
-    (mapv v/vec2 re im)))
-
-(defn singular-values
-  "Returuns singular values of the matrix as sqrt of eigenvalues of A^T * A matrix."
-  [A]
-  (->> (mulm A true A false)
-       (eigenvalues)
-       (map first)
-       (map (fn [^double x] (m/sqrt x)))))
-
-(defn eigenvalues-matrix
-  "Returns eigenvalues for given matrix as a diagonal or block diagonal matrix"
-  [A]
-  (->> (mat->RealMatrix A)
-       (EigenDecomposition.)
-       ^RealMatrix (.getD)
-       (.getData)
-       (m/double-double-array->seq)
-       (apply rows->mat)))
-
 (defn square?
   "Is matrix square?"
   [m]
@@ -1323,7 +1308,7 @@
    (let [sf (comp - (if (fn? shift) shift (constantly (double shift))))]
      (map-cols (fn [v] (v/shift v (sf (v/vec->seq v)))) A))))
 
-(defn- default-scaler [v] (m// (m/sqrt (/ (v/dot v v) (dec (v/size v))))))
+(defn- default-scaler [v] (m// (m/sqrt (m// (v/dot v v) (m/dec (v/size v))))))
 
 (defn scale-rows
   "Multiplies rows by a value (default: 1/(sqrt(sum(x^2)/(n-1)))) or a result of the function"
@@ -1341,62 +1326,36 @@
 
 ;;
 
-(defn eigenvectors
-  "Returns eigenvectors as a matrix (columns). Vectors can be normalized."
-  ([A] (eigenvectors A false))
-  ([A normalize?]
-   (let [evs (->> (mat->RealMatrix A)
-                  (EigenDecomposition.)
-                  ^RealMatrix (.getV)
-                  (.getData)
-                  (m/double-double-array->seq)
-                  (apply rows->mat))]
-     (if normalize? (normalize evs) evs))))
-
-;;
-
-(defn norm
-  "Calculates norm of the matrix for given type, default: 1 (maximum absolute column sum).
-
-  All norm types are:
-
-  * 1 - maximum absolute column sum
-  * :inf -  maximum absolute row sum
-  * 2 - spectral norm, maximum singular value
-  * :max - maximum absolute value
-  * :frobenius - Frobenius norm
-  * [p,q] - generalized L_pq norm, [2,2] - Frobenius norm, [p,p] - entrywise p-norm
-  * [p] - Shatten p-norm, [1] - nuclear/trace norm"
-  (^double [A] (norm A 1))
-  (^double [A norm-type]
-   (cond
-     (= norm-type :frobenius) (prot/norm A [2 2])
-     (= norm-type 2) (reduce m/max (singular-values A))
-     (and (sequential? norm-type)
-          (= 1 (count norm-type))) (let [p (double (first norm-type))]
-                                     (m/pow (->> (singular-values A)
-                                                 (map (fn [^double s] (m/pow s p)))
-                                                 (reduce m/+)) (/ p)))
-     :else (prot/norm A norm-type))))
-
-(defn condition
-  "Condition number calculated for L2 norm by default (see [[norm]] for other norm types).
-
-   Cond(A) = norm(A) * norm(inv(A))"
-  (^double [A] (condition A 2))
-  (^double [A norm-type] (* (norm A norm-type) (norm (inverse A) norm-type))))
-
-;;
-
 (defn rotation-matrix-2d
-  "Creates rotation matrix for a plane"
+  "Creates a 2d rotation matrix.
+
+  Rotates vectors counterclockwise around the origin by `theta` radians.
+
+  Parameters:
+
+  - `theta` (double): rotation angle in radians.
+
+  Returns a `Mat2x2` rotation matrix.
+
+  See also [[rotation-matrix-3d]], [[rotation-matrix-axis-3d]]."
   ^Mat2x2 [^double theta]
   (let [st (m/sin theta)
         ct (m/cos theta)]
-    (Mat2x2. ct (- st) st ct)))
+    (Mat2x2. ct (m/- st) st ct)))
 
 (defn rotation-matrix-3d
-  "Creates rotation matrix for a 3d space. Tait–Bryan angles z-y′-x″"
+  "Creates a 3d rotation matrix from Tait-Bryan angles.
+
+  Combines rotations around all three axes using the intrinsic z-y'-x'' convention: yaw around z, then pitch around the rotated y', then roll around the twice-rotated x''. This is equivalent to the matrix product Rz(z) times Ry(y) times Rx(x).
+
+  Parameters:
+
+  - `[x y z]` (sequence of three doubles): roll, pitch and yaw angles in radians, given as a single sequence.
+  - `x`, `y`, `z` (doubles): roll, pitch and yaw angles in radians, given directly as arguments.
+
+  Returns a `Mat3x3` rotation matrix.
+
+  See also [[rotation-matrix-3d-x]], [[rotation-matrix-3d-y]], [[rotation-matrix-3d-z]], [[rotation-matrix-axis-3d]]."
   (^Mat3x3 [[^double x ^double y ^double z]] (rotation-matrix-3d x y z))
   (^Mat3x3 [^double x ^double y ^double z]
    (let [sx (m/sin x)
@@ -1405,41 +1364,82 @@
          cy (m/cos y)
          sz (m/sin z)
          cz (m/cos z)
-         sycz (* sy cz)
-         sysz (* sy sz)]
-     (Mat3x3.  (* cy cz) (- (* cy sz)) sy
-               (+ (* cx sz) (* sx sycz)) (- (* cx cz) (* sx sysz)) (- (* sx cy))
-               (- (* sx sz) (* cx sycz)) (+ (* sx cz) (* cx sysz)) (* cx cy)))))
+         sycz (m/* sy cz)
+         sysz (m/* sy sz)]
+     (Mat3x3.  (m/* cy cz) (m/- (m/* cy sz)) sy
+               (m/+ (m/* cx sz) (m/* sx sycz)) (m/- (m/* cx cz) (m/* sx sysz)) (m/- (m/* sx cy))
+               (m/- (m/* sx sz) (m/* cx sycz)) (m/+ (m/* sx cz) (m/* cx sysz)) (m/* cx cy)))))
 
 (defn rotation-matrix-3d-x
-  "Creates rotation matrix for a 3d space, x-axis, right hand rule."
+  "Creates a 3d rotation matrix around the x-axis.
+
+  Rotates by `a` radians following the right-hand rule.
+
+  Parameters:
+
+  - `a` (double): rotation angle in radians.
+
+  Returns a `Mat3x3` rotation matrix.
+
+  See also [[rotation-matrix-3d-y]], [[rotation-matrix-3d-z]], [[rotation-matrix-3d]], [[rotation-matrix-axis-3d]]."
   ^Mat3x3 [^double a]
   (let [sa (m/sin a)
         ca (m/cos a)]
     (Mat3x3. 1.0 0.0 0.0
-             0.0 ca (- sa)
+             0.0 ca (m/- sa)
              0.0 sa ca)))
 
 (defn rotation-matrix-3d-y
-  "Creates rotation matrix for a 3d space, y-axis, right hand rule."
+  "Creates a 3d rotation matrix around the y-axis.
+
+  Rotates by `a` radians following the right-hand rule.
+
+  Parameters:
+
+  - `a` (double): rotation angle in radians.
+
+  Returns a `Mat3x3` rotation matrix.
+
+  See also [[rotation-matrix-3d-x]], [[rotation-matrix-3d-z]], [[rotation-matrix-3d]], [[rotation-matrix-axis-3d]]."
   ^Mat3x3 [^double a]
   (let [sa (m/sin a)
         ca (m/cos a)]
     (Mat3x3. ca 0.0 sa
              0.0 1.0 0.0
-             (- sa) 0.0 ca)))
+             (m/- sa) 0.0 ca)))
 
 (defn rotation-matrix-3d-z
-  "Creates rotation matrix for a 3d space, z-axis, right hand rule."
+  "Creates a 3d rotation matrix around the z-axis.
+
+  Rotates by `a` radians following the right-hand rule.
+
+  Parameters:
+
+  - `a` (double): rotation angle in radians.
+
+  Returns a `Mat3x3` rotation matrix.
+
+  See also [[rotation-matrix-3d-x]], [[rotation-matrix-3d-y]], [[rotation-matrix-3d]], [[rotation-matrix-axis-3d]]."
   ^Mat3x3 [^double a]
   (let [sa (m/sin a)
         ca (m/cos a)]
-    (Mat3x3. ca (- sa) 0.0
+    (Mat3x3. ca (m/- sa) 0.0
              sa ca 0.0
              0.0 0.0 1.0)))
 
 (defn rotation-matrix-axis-3d
-  "Creates 3d rotation matrix for axis ratation."
+  "Creates a 3d rotation matrix around an arbitrary axis.
+
+  Uses Rodrigues' rotation formula to build a rotation of `angle` radians around `axis`.
+
+  Parameters:
+
+  - `angle` (double): rotation angle in radians.
+  - `axis` (`Vec3`): the axis of rotation. It is normalized internally, so it does not need to be a unit vector.
+
+  Returns a `Mat3x3` rotation matrix.
+
+  See also [[rotation-matrix-3d]], [[rotation-matrix-3d-x]], [[rotation-matrix-3d-y]], [[rotation-matrix-3d-z]]."
   ^Mat3x3 [^double angle ^Vec3 axis]
   (let [^Vec3 axis (v/normalize axis)
         e1 (.x axis)
@@ -1448,10 +1448,10 @@
         sa (m/sin angle)
         ca (m/cos angle)]
     (add (add (mat3x3 ca ca ca)
-              (muls (outer axis axis) (- 1.0 ca)))
-         (muls (mat3x3 0.0 (- e3) e2
-                       e3 0.0 (- e1)
-                       (- e2) e1 0.0) sa))))
+              (muls (outer axis axis) (m/- 1.0 ca)))
+         (muls (mat3x3 0.0 (m/- e3) e2
+                       e3 0.0 (m/- e1)
+                       (m/- e2) e1 0.0) sa))))
 
 ;; Matrix decomposition
 
@@ -1479,7 +1479,7 @@
     Mat4x4 4
     (let [r (nrow m)
           c (ncol m)]
-      (if (== r c) r (throw (ex-info "Matrix should be square." {:nrow r :ncol c}))))))
+      (if (m/== r c) r (throw (ex-info "Matrix should be square." {:nrow r :ncol c}))))))
 
 (defrecord MatrixDecomposition [source components ^DecompositionSolver solver singular? ^int s]
   prot/MatrixDecompositionProto
@@ -1495,17 +1495,22 @@
     (->mat s (.getInverse ^DecompositionSolver solver))))
 
 (defn qr-decomposition
-  "Performs QR decomposition.
+  "Performs QR decomposition of a matrix.
 
-  A = Q x R, Q is orthogonal (QT x Q = I), R is upper triangular.
-  
-  Solver minimizes using least squares method.
+  Decomposes a matrix `A` as `A = Q x R`, where `Q` is orthogonal (`QT x Q = I`) and `R` is upper triangular. The solver minimizes using the least squares method.
 
-  Components, access with `decomposition-component` function:
+  Parameters:
 
-  * `:H` (Hauseholder reflecors), `:Q`, `:QT`, `:R`  - matrices.
+  - `mat` - a matrix to decompose.
+  - `threshold` (optional, default: `0.0`) - singularity threshold used to determine whether a diagonal element of `R` is considered zero.
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
+
+  - `:H` - Householder reflector vectors, `:Q`, `:QT`, `:R` - matrices.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`.
+
+  See also [[rrqr-decomposition]], [[lu-decomposition]], [[cholesky-decomposition]], [[sv-decomposition]], [[eigen-decomposition]]."
   ([mat] (qr-decomposition mat 0.0))
   ([mat ^double threshold]
    (let [s (->mat-size mat)
@@ -1520,18 +1525,23 @@
                             (not (.isNonSingular solver)) s))))
 
 (defn rrqr-decomposition
-  "Performs Rank-Revealing QR decomposition.
+  "Performs Rank-Revealing QR decomposition of a matrix.
 
-  A = Q x R x inv(P), Q is orthogonal (QT x Q = I), R is upper triangular.
-  
-  Solver minimizes using least squares method.
+  Decomposes a matrix `A` as `A = Q x R x inv(P)`, where `Q` is orthogonal (`QT x Q = I`), `R` is upper triangular and `P` is a permutation matrix chosen so that the numerical rank of `A` can be estimated. The solver minimizes using the least squares method.
 
-  Components, access with `decomposition-component` function:
+  Parameters:
 
-  * `:H` (Hauseholder reflecors), `:Q`, `:QT`, `:R`, `:P` (permutation)  - matrices
-  * `:rank-fn` - calculates numerical matrix rank, accepts threshold for rank computation (default: 0.0).
+  - `mat` - a matrix to decompose.
+  - `threshold` (optional, default: `0.0`) - singularity threshold used to determine whether a diagonal element of `R` is considered zero.
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
+
+  - `:H` - Householder reflector vectors, `:Q`, `:QT`, `:R`, `:P` (permutation) - matrices.
+  - `:rank-fn` - a function computing the numerical rank of the matrix; called with no arguments it uses a drop threshold of `0.0`, or with one `drop-threshold` argument to control which singular directions are treated as zero.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`.
+
+  See also [[qr-decomposition]], [[lu-decomposition]], [[cholesky-decomposition]], [[sv-decomposition]], [[eigen-decomposition]]."
   ([mat] (rrqr-decomposition mat 0.0))
   ([mat ^double threshold]
    (let [s (->mat-size mat)
@@ -1549,18 +1559,28 @@
                             (not (.isNonSingular solver)) s))))
 
 (defn cholesky-decomposition
-  "Performs Cholesky decomposition.
+  "Performs Cholesky decomposition of a matrix.
 
-  Decomposition of real symmetric positive-definite matrix. A = L x LT
-  
-  Solver minimizes using least squares method.
+  Decomposes a real, symmetric, positive-definite matrix `A` as `A = L x LT`, where `L` is lower triangular. The solver minimizes using the least squares method.
 
-  Components, access with `decomposition-component` function:
+  Parameters:
 
-  * `:L`, `:LT` - matrices
-  * `:det` - determinant.
+  - `mat` - a real symmetric positive-definite matrix to decompose.
+  - `symmetry_threshold` (optional) - maximum relative difference allowed between symmetric off-diagonal elements for `mat` to be treated as symmetric; defaults to the implementation's built-in threshold.
+  - `positivity_threshold` (optional) - smallest value accepted for diagonal elements during decomposition; defaults to the implementation's built-in threshold.
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  Both threshold parameters, when provided, must be given together.
+
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
+
+  - `:L`, `:LT` - matrices.
+  - `:det` - determinant.
+
+  Throws an exception when `mat` is not symmetric or not positive-definite within the given thresholds.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`.
+
+  See also [[qr-decomposition]], [[rrqr-decomposition]], [[lu-decomposition]], [[sv-decomposition]], [[eigen-decomposition]]."
   ([mat] (cholesky-decomposition mat CholeskyDecomposition/DEFAULT_RELATIVE_SYMMETRY_THRESHOLD CholeskyDecomposition/DEFAULT_ABSOLUTE_POSITIVITY_THRESHOLD))
   ([mat ^double symmetry_threshold positivity_threshold]
    (let [s (->mat-size mat)
@@ -1574,24 +1594,28 @@
                             (not (.isNonSingular solver)) s))))
 
 (defn sv-decomposition
-  "Performs Singular Value Decomposition (SVD).
+  "Performs Singular Value Decomposition (SVD) of a matrix.
 
-  A = U x S x VT
+  Decomposes a matrix `A` as `A = U x S x VT`, where `U` and `V` are orthogonal and `S` is diagonal, holding the singular values in descending order. The solver minimizes using the least squares method.
 
-  Solver minimizes using least squares method.
+  Parameters:
 
-  Components, access with `decomposition-component` function:
+  - `mat` - a matrix to decompose.
 
-  * `:S`, `:U`, `:UT`, `:V` `:VT` - matrices
-  * `:singular-values` - vector of singular values
-  * `:info`
-      - `:condition-number`
-      - `:inv-condition-number`
-      - `:norm` - L2 norm
-      - `:rank` - effective numerical rank
-  * `coviariance-fn` - convariance function, returns covariance V x J x VT, where J is inverse of squares of singular values. When `min-sv` argument is provided, ignores singular values lower than its value.
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  - `:S`, `:U`, `:UT`, `:V`, `:VT` - matrices.
+  - `:singular-values` - vector of singular values.
+  - `:info` - a map summarizing the decomposition:
+    - `:condition-number` - ratio of the largest to the smallest singular value.
+    - `:inv-condition-number` - inverse of the condition number.
+    - `:norm` - L2 norm of the matrix.
+    - `:rank` - effective numerical rank of the matrix.
+  - `:covariance-fn` - a function returning the covariance matrix `V x J x VT`, where `J` is the inverse of the squared singular values; called with no arguments all singular values are used, or with one `min-sv` argument singular values below it are ignored.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`.
+
+  See also [[qr-decomposition]], [[rrqr-decomposition]], [[cholesky-decomposition]], [[lu-decomposition]], [[eigen-decomposition]], [[singular-values]]."
   [mat]
   (let [s (->mat-size mat)
         ^SingularValueDecomposition svd (SingularValueDecomposition. (mat->RealMatrix mat))
@@ -1613,19 +1637,24 @@
                            (not (.isNonSingular solver)) s)))
 
 (defn lu-decomposition
-  "Performs QR decomposition.
+  "Performs LU decomposition of a matrix.
 
-  A = inv(P) x L x U, L is lower triangular, U is upper triangular.
-  
-  Solver is exact.
+  Decomposes a square matrix `A` as `A = inv(P) x L x U`, where `L` is lower triangular, `U` is upper triangular and `P` is a permutation matrix. The solver is exact.
 
-  Components, access with `decomposition-component` function:
+  Parameters:
 
-  * `:L`, `:U`, `:P` (permutation)  - matrices.
-  * `:det` - determinant
-  * `:pivot` - pivot permutation vector
+  - `mat` - a square matrix to decompose.
+  - `threshold` (optional, default: `1.0e-11`) - singularity threshold below which a pivot element is considered zero.
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
+
+  - `:L`, `:U`, `:P` (permutation) - matrices.
+  - `:det` - determinant.
+  - `:pivot` - pivot permutation vector.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`.
+
+  See also [[qr-decomposition]], [[rrqr-decomposition]], [[cholesky-decomposition]], [[sv-decomposition]], [[eigen-decomposition]]."
   ([mat] (lu-decomposition mat 1.0e-11))
   ([mat ^double threshold]
    (let [s (->mat-size mat)
@@ -1680,7 +1709,7 @@
     (->MatrixDecomposition eigen
                            {:D (delay (.toArray (.getD eigen)))
                             :V (delay (.toArray ^cern.colt.matrix.DoubleMatrix2D @preV))
-                            :VT (delay (.toArray (.viewDice (.getV eigen))))
+                            :VT (delay (.toArray (.viewDice ^cern.colt.matrix.DoubleMatrix2D @preV)))
                             :real-eigenvalues re
                             :imag-eigenvalues ie
                             :eigenvalues (delay (complex-ev @re @ie))
@@ -1691,21 +1720,32 @@
                            s)))
 
 (defn eigen-decomposition
-  "Performs Eigen decomposition.
+  "Performs eigen decomposition of a square matrix.
 
-  A = V x D x VT, D contains eigenvalues (diagonal: real values, subdiagonal: imaginary), V - eigenvectors.
+  Decomposes a square matrix `A` as `A = V x D x VT`, where `D` holds the eigenvalues (real values on the diagonal, imaginary parts on the subdiagonal for complex conjugate pairs) and `V` holds the eigenvectors as columns. The solver is exact.
 
-  Solver is exact.
+  Parameters:
 
-  Components, access with `decomposition-component` function:
+  - `mat` - a square matrix to decompose.
+  - `options` (map, optional):
+    - `:backend` - `:acm` (default) or `:colt`, selects the underlying implementation.
 
-  * `:D`, `:V`, `:VT`, `:sqrt`  - matrices.
-  * `:det` - determinant
-  * `:real-eigenvalues`, `imag-eigenvalues` - eigenvalues
-  * `:eigenvectors` - sequence of eigenvectors
-  * `:complex?` - are eigenvalues complex?
+  With the `:acm` backend (Apache Commons Math), a solver is created only when eigenvalues are real; when eigenvalues are complex, singularity is determined from the determinant instead. This backend also exposes a `:sqrt` component (matrix square root).
 
-  Can be used as input for `solve`, `inverse` and `singular?` functions."
+  With the `:colt` backend (Colt library), no solver is created, so `solve` and `inverse` can not be used on the resulting decomposition; singularity is always determined from the determinant, and the `:sqrt` component is not available. This backend should be used to decompose matrices when `:acm` fails.
+
+  Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
+
+  - `:D`, `:V`, `:VT` - matrices, and `:sqrt` (`:acm` backend only) - matrix square root.
+  - `:det` - determinant.
+  - `:real-eigenvalues`, `:imag-eigenvalues` - real and imaginary parts of the eigenvalues.
+  - `:eigenvalues` - eigenvalues as a sequence of 2d vectors, real and imaginary part each.
+  - `:eigenvectors` - sequence of eigenvectors.
+  - `:complex?` - true when eigenvalues are complex.
+
+  The result can be used as input for `solve`, `inverse` and `singular?`, subject to the backend limitations noted above.
+
+  See also [[eigenvalues]], [[eigenvalues-matrix]], [[eigenvectors]], [[singular-values]]."
   ([mat] (eigen-decomposition mat nil))
   ([mat {:keys [backend] :or {backend :acm}}]
    (case backend
@@ -1713,21 +1753,168 @@
      :colt (eigen-decomposition-colt mat))))
 
 (defn singular?
-  "Returns singularity of the matrix"
+  "Checks whether a matrix, or a matrix decomposition, is singular.
+
+  A matrix is singular when it has no inverse, which is equivalent to a zero determinant.
+
+  Parameters:
+
+  - `mat` - a matrix, or a decomposition value returned by one of the `*-decomposition` functions.
+
+  Returns `true` when `mat` is singular, `false` otherwise. When `mat` is a decomposition, the result was computed once at decomposition time (typically from the solver or, when no solver is available, from the determinant).
+
+  See also [[inverse]], [[det]], [[solve]]."
   [mat]
   (prot/singular? mat))
 
 (defn decomposition-component
-  "Returns value of the component of matrix decomposition"
+  "Returns a component of a matrix decomposition by its keyword name.
+
+  Used together with the decomposition functions (`qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition`, `sv-decomposition`, `lu-decomposition`, `eigen-decomposition`) to extract matrices, vectors or other derived values from the resulting decomposition. Components may be computed lazily and are materialized only on first access.
+
+  Parameters:
+
+  - `decomposition-matrix` - a decomposition value returned by one of the `*-decomposition` functions.
+  - `component-name` - a keyword naming the component to retrieve, for example `:U`, `:V`, `:L`, `:D`, `:det`, `:eigenvectors`. The available keys depend on which decomposition function produced `decomposition-matrix`, see the docstring of the corresponding decomposition function for the full list.
+
+  Returns the value of the requested component, or `nil` when `component-name` is not present in the decomposition.
+
+  See also [[qr-decomposition]], [[rrqr-decomposition]], [[cholesky-decomposition]], [[sv-decomposition]], [[lu-decomposition]], [[eigen-decomposition]]."
   [decomposition-matrix component-name]
   (prot/component decomposition-matrix component-name))
 
 (defn solve
-  "Solve linear equation Ax=b, if decomposition is provided, decomposition is used.
+  "Solves the linear equation `A x = b` for `x`.
 
-  Some decompositions solve using least squares method."
+  Parameters:
+
+  - `A` - a square matrix, or a decomposition value returned by one of the `*-decomposition` functions.
+  - `b` - a vector, the right-hand side of the equation.
+
+  When `A` is a plain matrix, it is solved via `inverse`, which requires `A` to be square and non-singular. When `A` is a decomposition, its associated solver is used directly; `qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition` and `sv-decomposition` solve using the least squares method, while `lu-decomposition` and `eigen-decomposition` (with real eigenvalues) solve exactly. A decomposition produced by the `:colt` backend of `eigen-decomposition` has no solver and can not be used here.
+
+  Returns a vector `x` satisfying the equation, or its least squares approximation.
+
+  See also [[inverse]], [[singular?]], [[decomposition-component]]."
   [A b]
   (prot/solve A b))
+
+(defn eigenvalues
+  "Returns the eigenvalues of a matrix.
+
+  Internally uses the `:colt` backend of `eigen-decomposition`, so no exception is raised for complex eigenvalues.
+
+  Parameters:
+
+  - `A` - a square matrix.
+
+  Returns a sequence of 2d vectors, one per eigenvalue, each holding the real and imaginary part of the eigenvalue in that order. Real eigenvalues have an imaginary part equal to zero.
+
+  See also [[eigen-decomposition]], [[eigenvalues-matrix]], [[eigenvectors]], [[singular-values]]."
+  [A]
+  (let [eig (eigen-decomposition-colt A)
+        re (decomposition-component eig :real-eigenvalues)
+        im (decomposition-component eig :imag-eigenvalues)]
+    (mapv v/vec2 re im)))
+
+(defn singular-values
+  "Returns the singular values of a matrix.
+
+  Computed as the square roots of the (real parts of the) eigenvalues of `A^T x A`.
+
+  Parameters:
+
+  - `A` - a matrix.
+
+  Returns a sequence of singular values as doubles, one per eigenvalue of `A^T x A`, in the order produced by [[eigenvalues]].
+
+  See also [[eigenvalues]], [[sv-decomposition]], [[norm]]."
+  [A]
+  (->> (mulm A true A false)
+       (eigenvalues)
+       (map first)
+       (map (fn [^double x] (m/safe-sqrt x)))))
+
+(defn eigenvalues-matrix
+  "Returns the eigenvalues of a matrix as a diagonal or block diagonal matrix.
+
+  Real eigenvalues appear as entries on the diagonal. Each pair of complex conjugate eigenvalues appears as a 2x2 block on the diagonal instead, holding the real and imaginary parts of that pair.
+
+  Parameters:
+
+  - `A` - a square matrix.
+
+  Returns a matrix of the same size as `A`.
+
+  See also [[eigenvalues]], [[eigen-decomposition]], [[decomposition-component]]."
+  [A]
+  (-> (eigen-decomposition-colt A)
+      (decomposition-component :D)
+      (->> (apply rows->mat))))
+
+(defn eigenvectors
+  "Returns the eigenvectors of a matrix.
+
+  Parameters:
+
+  - `A` - a square matrix.
+  - `normalize?` (optional, default: `false`) - when true, each eigenvector is normalized to unit length.
+
+  Returns a sequence of vectors, one eigenvector per column of `A`, in the same order as the corresponding eigenvalues returned by [[eigenvalues]].
+
+  See also [[eigenvalues]], [[eigen-decomposition]], [[decomposition-component]]."
+  ([A] (eigenvectors A false))
+  ([A normalize?]
+   (let [evs (-> (eigen-decomposition-colt A)
+                 (decomposition-component :eigenvectors)
+                 (->> (mapv vec)))]
+     (if normalize? (map v/normalize evs) evs))))
+
+(defn norm
+  "Calculates a norm of the matrix.
+
+  Parameters:
+
+  - `A` - a matrix.
+  - `norm-type` (optional, default: `1`) - selects which norm to compute:
+    - `1` - maximum absolute column sum.
+    - `:inf` - maximum absolute row sum.
+    - `2` - spectral norm, the largest singular value of `A`.
+    - `:max` - maximum absolute value among all entries.
+    - `:frobenius` - Frobenius norm, equivalent to `[2 2]`.
+    - `[p q]` - generalized entrywise L_pq norm; `[2 2]` is the Frobenius norm, `[p p]` is the entrywise p-norm.
+    - `[p]` - Schatten p-norm, computed from the singular values of `A`; `[1]` is the nuclear (trace) norm.
+
+  Returns the norm as a double.
+
+  See also [[condition]], [[singular-values]], [[sv-decomposition]]."
+  (^double [A] (norm A 1))
+  (^double [A norm-type]
+   (cond
+     (= norm-type :frobenius) (prot/norm A [2 2])
+     (= norm-type 2) (reduce m/max (singular-values A))
+     (and (sequential? norm-type)
+          (= 1 (count norm-type))) (let [p (double (first norm-type))]
+                                     (m/pow (->> (singular-values A)
+                                                 (map (fn [^double s] (m/pow s p)))
+                                                 (reduce m/+)) (m// p)))
+     :else (prot/norm A norm-type))))
+
+(defn condition
+  "Calculates the condition number of a matrix.
+
+  The condition number is defined as `cond(A) = norm(A) x norm(inv(A))` and measures how sensitive the solution of a linear system involving `A` is to small changes in the input; large values indicate a matrix close to singular.
+
+  Parameters:
+
+  - `A` - a matrix.
+  - `norm-type` (optional, default: `2`) - the norm used in the computation, see [[norm]] for all supported types.
+
+  Returns the condition number as a double.
+
+  See also [[norm]], [[singular?]], [[inverse]]."
+  (^double [A] (condition A 2))
+  (^double [A norm-type] (m/* (norm A norm-type) (norm (inverse A) norm-type))))
 
 (defmacro ^:private primitive-ops
   "Generate primitive functions operating on vectors"
@@ -1755,6 +1942,4 @@
 (defmethod print-method Mat2x2 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-method Mat3x3 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-method Mat4x4 [v ^java.io.Writer w] (.write w (str v)))
-
-(m/unuse-primitive-operators #{'abs})
 

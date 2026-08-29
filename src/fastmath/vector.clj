@@ -1,16 +1,21 @@
 (ns fastmath.vector
-  "Provides mathematical vector operations for various vector types, inspired by libraries like Processing and openFrameworks.
+  "Vector types and vector algebra operations.
 
-  Supported vector representations include:
+  Provides vector operations inspired by libraries like Processing and openFrameworks. Supported representations include fixed-size custom types `Vec2` (2d), `Vec3` (3d), `Vec4` (4d) and `ArrayVec` (n-dimensional wrapper around `double[]`); `double` arrays; variable-size Clojure collections (persistent vectors and sequences); and plain numbers, treated as 1d vectors. Most operations are defined through the `VectorProto` protocol, extended for all supported types; the vector types also implement standard Clojure/Java protocols (`Seqable`, `Indexed`, `IFn`, `Counted`, `Associative`, `IReduce`, `ILookup`, and others), so they can be used as sequences, arrays or functions.
 
-  *   **Fixed-size custom types**: `Vec2` (2D), `Vec3` (3D), `Vec4` (4D), and `ArrayVec` (N-dimensional wrapper around `double[]`).
-  *   **Built-in array type**: `double` arrays (`[D`).
-  *   **Variable-size Clojure collections**: persistent vectors (`[]`) and sequences (`ISeq`).
-  *   **Numbers**: Treated as 1D vectors.
+  Constructors build vectors from components, sequences or arrays: `vec2`, `vec3`, `vec4`, `array-vec`, `make-vector`, `real-vector`, `array->vec2`, `array->vec3`, `array->vec4`, `seq->vec2`, `seq->vec3`, `seq->vec4`, and random vectors with `generate-vec2`, `generate-vec3`, `generate-vec4`. Conversion helpers move between representations: `vec->array`, `vec->seq`, `vec->vector`, `vec->RealVector`, `vec->Vec`, `as-vec`.
 
-  Most operations are defined via the [[VectorProto]] protocol, which is extended for all supported types.
+  Basic properties and predicates are provided by `size`, `fmap`, `magsq`, `mag`, `sum`, `prod`, `mx`, `mn`, `emx`, `emn`, `maxdim`, `mindim`, `approx`, `delta-eq`, `edelta-eq`, `zero?`, `is-zero?`, `near-zero?`, `is-near-zero?`, `zero-count` and `nonzero-count`.
 
-  These vector types also implement standard Clojure/Java protocols like `Seqable`, `Indexed`, `IFn`, `Counted`, `Associative`, `IReduce`, `ILookup`, etc., enabling them to be used flexibly as sequences, arrays, or functions."
+  Elementwise and scalar arithmetic includes `add`, `sub`, `shift`, `mult`, `emult`, `div`, `ediv`, `abs`, `reciprocal`, `permute`, `interpolate`, `lerp`, `einterpolate`, `econstrain` and `clamp`.
+
+  Geometric operations include `dot`, `cross`, `triple-product`, `heading`, `rotate`, `axis-rotate`, `perpendicular`, `transform`, `to-polar`, `from-polar`, `project`, `faceforward`, `angle-between`, `relative-angle-between`, `aligned?`, `normalize` (and its `normalize-L1`, `normalize-L2`, `normalize-L2sq`, `normalize-LInf` variants), `set-mag` and `limit`.
+
+  Distance and similarity functions include `dist`, `dist-sq`, `dist-abs`, `dist-cheb`, `dist-discrete`, `dist-canberra`, `dist-emd`, `dist-ang`, `sim-cos` and `distance`.
+
+  Aggregate and statistical helpers include `average`, `average-vectors`, `differences`, `unwrap`, `pow`, `softmax`, `logsoftmax`, `logsumexp` and `logmeanexp`.
+
+  Orthogonal and orthonormal polynomial bases over a sequence of values are built with `orthogonal-polynomials` and `orthonormal-polynomials`."
   (:refer-clojure :exclude [abs zero?])
   (:require [fastmath.core :as m]
             [clojure.string :as s]
@@ -23,7 +28,6 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators #{'abs 'zero?})
 
 ;; ## Vector definitions
 
@@ -52,7 +56,7 @@
    :approx (fn
              ([v] (map m/approx v))
              ([v ^long d] (map (fn [^double x] (m/approx x d)) v)))
-   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (+ b (* x x))) 0.0 v))
+   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (m/+ b (m/* x x))) 0.0 v))
    :mag (fn ^double [v] (m/sqrt (prot/magsq v)))
    :dot (fn ^double [v1 v2] (reduce m/+ (map m/* v1 v2)))
    :add (fn [v1 v2] (map m/+ v1 v2))
@@ -72,7 +76,7 @@
    :size count
    :permute (fn [v1 v2] (map (fn [^long idx] (nth v1 idx)) v2))
    :reciprocal (fn [v] (map (fn [^double v] (m// v)) v))
-   :heading (fn ^double [v] (angle-between v (conj (repeat (dec (count v)) 0.0) 1.0)))
+   :heading (fn ^double [v] (angle-between v (conj (repeat (long (m/dec (count v))) 0.0) 1.0)))
    :interpolate (fn [v1 v2 ^double t f] (map (fn [^double x1 ^double x2] (f x1 x2 t)) v1 v2))
    :einterpolate (fn [v1 v2 v f] (map (fn [^double x1 ^double x2 ^double t] (f x1 x2 t)) v1 v2 v))
    :econstrain (fn [v ^double val1 ^double val2] (map (fn [^double x] (m/constrain x val1 val2)) v))
@@ -92,7 +96,7 @@
    :approx (fn
              ([v] (mapv m/approx v))
              ([v ^long d] (mapv (fn [^double x] (m/approx x d)) v)))
-   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (+ b (* x x))) 0.0 v))
+   :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (m/+ b (m/* x x))) 0.0 v))
    :mag (fn ^double [v] (m/sqrt (prot/magsq v)))
    :dot (fn ^double [v1 v2] (reduce m/+ (map m/* v1 v2)))
    :add (fn [v1 v2] (mapv m/+ v1 v2))
@@ -105,14 +109,14 @@
    :mn (fn ^double [v] (reduce m/min v))
    :emx (fn [v1 v2] (mapv m/max v1 v2))
    :emn (fn [v1 v2] (mapv m/min v1 v2))
-   :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/>) [0 0 (first v)] v)))
-   :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn clojure.core/<) [0 0 (first v)] v)))
+   :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn m/>) [0 0 (first v)] v)))
+   :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn m/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/+ 0.0 v))
    :prod (fn ^double [v] (reduce m/* v))
    :size count
    :permute (fn [v1 v2] (mapv (fn [^long idx] (v1 idx)) v2))
    :reciprocal (fn [v] (mapv (fn [^double v] (m// v)) v))
-   :heading (fn ^double [v] (angle-between v (conj (repeat (dec (count v)) 0.0) 1.0)))
+   :heading (fn ^double [v] (angle-between v (conj (repeat (m/long-dec (count v)) 0.0) 1.0)))
    :interpolate (fn [v1 v2 ^double t f] (mapv (fn [^double x1 ^double x2] (f x1 x2 t)) v1 v2))
    :einterpolate (fn [v1 v2 v f] (mapv (fn [^double x1 ^double x2 ^double t] (f x1 x2 t)) v1 v2 v))
    :econstrain (fn [v ^double val1 ^double val2] (mapv (fn [^double x] (m/constrain x val1 val2)) v))
@@ -123,9 +127,9 @@
   [^doubles arr pred]
   (let [s (alength arr)]
     (loop [idx (unchecked-long 0)]
-      (if (< idx s)
+      (if (m/< idx s)
         (if (pred (aget arr idx))
-          (recur (inc idx))
+          (recur (m/inc idx))
           false)
         true))))
 
@@ -211,7 +215,7 @@
    :prod (fn [^ArrayRealVector v1] (prot/prod (.getDataRef v1)))
    :size (fn ^long [^ArrayRealVector v1] (.getDimension v1))
    :heading (fn [^ArrayRealVector v1] (prot/heading (.getDataRef v1)))
-   :reciprocal (fn [v1] (prot/fmap v1 /))
+   :reciprocal (fn [v1] (prot/fmap v1 m//))
    :interpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 ^double t f]
                   (ArrayRealVector. ^doubles (prot/interpolate (.getDataRef v1) (.getDataRef v2) t f)))
    :einterpolate (fn [^ArrayRealVector v1 ^ArrayRealVector v2 ^ArrayRealVector t f]
@@ -224,7 +228,7 @@
 
 (defn- vec-id-check
   [^long len id]
-  (and (number? id) (< (unchecked-int id) len)))
+  (and (number? id) (m/< (unchecked-int id) len)))
 
 (defn- assert-number
   [n]
@@ -233,7 +237,7 @@
 ;; Array Vector
 (deftype ArrayVec [^doubles array]
   Object
-  (toString [_] (str "#arrayvec " (if (> (alength array) 10)
+  (toString [_] (str "#arrayvec " (if (m/> (alength array) 10)
                                     (str "[" (s/join " " (take 10 array)) "...]")
                                     (vec array))))
   (equals [_ v]
@@ -253,7 +257,7 @@
   (nth [_ id] (Array/aget array (unchecked-long id)))
   (nth [_ id not-found]
     (let [id (unchecked-long id)]
-      (if (< id (alength array)) (Array/aget array id) not-found)))
+      (if (m/< id (alength array)) (Array/aget array id) not-found)))
   ILookup
   (valAt [_ id] (when (vec-id-check (alength array) id) (Array/aget array (unchecked-long id))))
   (valAt [_ id not-found] (if (vec-id-check (alength array) id) (Array/aget array (unchecked-long id)) not-found))
@@ -333,23 +337,23 @@
     ([v d] (m/approx v d)))
   (magsq [v] (m/sq v))
   (mag [v] (m/abs (double v)))
-  (dot [v1 v2] (* (double v1) (double v2)))
-  (add [v1 v2] (+ (double v1) (double v2)))
-  (sub [v1 v2] (- (double v1) (double v2)))
-  (shift [v1 v2] (+ (double v1) (double v2)))
-  (mult [v1 v] (* (double v1) (double v)))
-  (emult [v1 v2] (* (double v1) (double v2)))
+  (dot [v1 v2] (m/* (double v1) (double v2)))
+  (add [v1 v2] (m/+ (double v1) (double v2)))
+  (sub [v1 v2] (m/- (double v1) (double v2)))
+  (shift [v1 v2] (m/+ (double v1) (double v2)))
+  (mult [v1 v] (m/* (double v1) (double v)))
+  (emult [v1 v2] (m/* (double v1) (double v2)))
   (abs [v] (m/abs (double v)))
   (mx [v] v)
   (mn [v] v)
-  (emx [v1 v2] (max (double v1) (double v2)))
-  (emn [v1 v2] (min (double v1) (double v2)))
+  (emx [v1 v2] (m/max (double v1) (double v2)))
+  (emn [v1 v2] (m/min (double v1) (double v2)))
   (maxdim [_] 0)
   (mindim [_] 0)
   (sum [v] v)
   (prod [v] v)
   (size [_] 1)
-  (reciprocal [v] (/ (double v)))
+  (reciprocal [v] (m// (double v)))
   (interpolate [v1 v2 t f] (f v1 v2 t))
   (einterpolate [v1 v2 t f] (f v1 v2 t))
   (econstrain [v val1 val2] (m/constrain (double v) (double val1) (double val2)))
@@ -359,12 +363,12 @@
   "double hashcode"
   (^long [^long state ^double a]
    (let [abits (Double/doubleToLongBits a)
-         elt (bit-xor abits (m/>>> abits 32))]
-     (+ elt (* 31 state))))
+         elt (m/bit-xor abits (m/>>> abits 32))]
+     (m/+ elt (m/* 31 state))))
   (^long [^double a]
    (let [abits (Double/doubleToLongBits a)
-         elt (bit-xor abits (m/>>> abits 32))]
-     (+ elt 31))))
+         elt (m/bit-xor abits (m/>>> abits 32))]
+     (m/+ elt 31))))
 
 (defn- vec-throw-ioobe
   [^long id len]
@@ -379,10 +383,10 @@
   (equals [_ v]
     (and (instance? Vec4 v)
          (let [^Vec4 v v]
-           (and (== x (.x v))
-                (== y (.y v))
-                (== z (.z v))
-                (== w (.w v))))))
+           (and (m/== x (.x v))
+                (m/== y (.y v))
+                (m/== z (.z v))
+                (m/== w (.w v))))))
   (hashCode [_]
     (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code (dhash-code x) y) z) w)) 4))
   clojure.lang.IHashEq 
@@ -445,35 +449,35 @@
   (fmap [_ f] (Vec4. (f x) (f y) (f z) (f w)))
   (approx [_] (Vec4. (m/approx x) (m/approx y) (m/approx z) (m/approx w)))
   (approx [_ d] (Vec4. (m/approx x d) (m/approx y d) (m/approx z d) (m/approx w d)))
-  (magsq [_] (+ (* x x) (* y y) (* z z) (* w w)))
+  (magsq [_] (m/+ (m/* x x) (m/* y y) (m/* z z) (m/* w w)))
   (mag [v1] (m/sqrt (prot/magsq v1)))
   (dot [_ v2]
-    (let [^Vec4 v2 v2] (+ (* x (.x v2)) (* y (.y v2)) (* z (.z v2)) (* w (.w v2)))))
+    (let [^Vec4 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)) (m/* z (.z v2)) (m/* w (.w v2)))))
   (add [_ v2]
-    (let [^Vec4 v2 v2] (Vec4. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)) (+ w (.w v2)))))
+    (let [^Vec4 v2 v2] (Vec4. (m/+ x (.x v2)) (m/+ y (.y v2)) (m/+ z (.z v2)) (m/+ w (.w v2)))))
   (sub [_ v2] 
-    (let [^Vec4 v2 v2] (Vec4. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)) (- w (.w v2)))))
-  (shift [_ v] (let [dv (double v)] (Vec4. (+ x dv) (+ y dv) (+ z dv) (+ w dv))))
-  (mult [_ v] (let [dv (double v)] (Vec4. (* x dv) (* y dv) (* z dv) (* w dv))))
+    (let [^Vec4 v2 v2] (Vec4. (m/- x (.x v2)) (m/- y (.y v2)) (m/- z (.z v2)) (m/- w (.w v2)))))
+  (shift [_ v] (let [dv (double v)] (Vec4. (m/+ x dv) (m/+ y dv) (m/+ z dv) (m/+ w dv))))
+  (mult [_ v] (let [dv (double v)] (Vec4. (m/* x dv) (m/* y dv) (m/* z dv) (m/* w dv))))
   (emult [_ v]
-    (let [^Vec4 v v] (Vec4. (* x (.x v)) (* y (.y v)) (* z (.z v)) (* w (.w v)))))
+    (let [^Vec4 v v] (Vec4. (m/* x (.x v)) (m/* y (.y v)) (m/* z (.z v)) (m/* w (.w v)))))
   (abs [_] (Vec4. (m/abs x) (m/abs y) (m/abs z) (m/abs w)))
-  (mx [_] (max x y z w))
-  (mn [_] (min x y z w))
+  (mx [_] (m/max x y z w))
+  (mn [_] (m/min x y z w))
   (emx [_ v]
-    (let [^Vec4 v v] (Vec4. (max (.x v) x) (max (.y v) y) (max (.z v) z) (max (.w v) w))))
+    (let [^Vec4 v v] (Vec4. (m/max (.x v) x) (m/max (.y v) y) (m/max (.z v) z) (m/max (.w v) w))))
   (emn [_ v]
-    (let [^Vec4 v v] (Vec4. (min (.x v) x) (min (.y v) y) (min (.z v) z) (min (.w v) w))))
+    (let [^Vec4 v v] (Vec4. (m/min (.x v) x) (m/min (.y v) y) (m/min (.z v) z) (m/min (.w v) w))))
   (maxdim [_]
     (max-key [x y z w] 0 1 2 3))
   (mindim [_]
     (min-key [x y z w] 0 1 2 3))
-  (sum [_] (+ x y z w))
-  (prod [_] (* x y z w))
+  (sum [_] (m/+ x y z w))
+  (prod [_] (m/* x y z w))
   (size [_] 4)
   (permute [p [^long i1 ^long i2 ^long i3 ^long i4]]
     (Vec4. (p i1) (p i2) (p i3) (p i4)))
-  (reciprocal [_] (Vec4. (/ x) (/ y) (/ z) (/ w)))
+  (reciprocal [_] (Vec4. (m// x) (m// y) (m// z) (m// w)))
   (interpolate [_ v2 t f]
     (let [^Vec4 v2 v2] (Vec4. (f x (.x v2) t)
                               (f y (.y v2) t)
@@ -504,9 +508,9 @@
   (equals [_ v]
     (and (instance? Vec3 v)
          (let [^Vec3 v v]
-           (and (== x (.x v))
-                (== y (.y v))
-                (== z (.z v))))))
+           (and (m/== x (.x v))
+                (m/== y (.y v))
+                (m/== z (.z v))))))
   (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
   clojure.lang.IHashEq 
   (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code (dhash-code x) y) z)) 3))
@@ -565,44 +569,44 @@
   (fmap [_ f] (Vec3. (f x) (f y) (f z)))
   (approx [_] (Vec3. (m/approx x) (m/approx y) (m/approx z)))
   (approx [_ d] (Vec3. (m/approx x d) (m/approx y d) (m/approx z d)))
-  (magsq [_] (+ (* x x) (* y y) (* z z)))
+  (magsq [_] (m/+ (m/* x x) (m/* y y) (m/* z z)))
   (mag [_] (m/hypot-sqrt x y z))
   (dot [_ v2]
-    (let [^Vec3 v2 v2] (+ (* x (.x v2)) (* y (.y v2)) (* z (.z v2)))))
+    (let [^Vec3 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)) (m/* z (.z v2)))))
   (add [_ v2] 
-    (let [^Vec3 v2 v2] (Vec3. (+ x (.x v2)) (+ y (.y v2)) (+ z (.z v2)))))
+    (let [^Vec3 v2 v2] (Vec3. (m/+ x (.x v2)) (m/+ y (.y v2)) (m/+ z (.z v2)))))
   (sub [_ v2]
-    (let [^Vec3 v2 v2] (Vec3. (- x (.x v2)) (- y (.y v2)) (- z (.z v2)))))
-  (shift [_ v] (let [dv (double v)] (Vec3. (+ x dv) (+ y dv) (+ z dv))))
-  (mult [_ v] (let [dv (double v)] (Vec3. (* x dv) (* y dv) (* z dv))))
+    (let [^Vec3 v2 v2] (Vec3. (m/- x (.x v2)) (m/- y (.y v2)) (m/- z (.z v2)))))
+  (shift [_ v] (let [dv (double v)] (Vec3. (m/+ x dv) (m/+ y dv) (m/+ z dv))))
+  (mult [_ v] (let [dv (double v)] (Vec3. (m/* x dv) (m/* y dv) (m/* z dv))))
   (emult [_ v] 
-    (let [^Vec3 v v] (Vec3. (* x (.x v)) (* y (.y v)) (* z (.z v)))))
+    (let [^Vec3 v v] (Vec3. (m/* x (.x v)) (m/* y (.y v)) (m/* z (.z v)))))
   (abs [_] (Vec3. (m/abs x) (m/abs y) (m/abs z)))
-  (mx [_] (max x y z))
-  (mn [_] (min x y z))
+  (mx [_] (m/max x y z))
+  (mn [_] (m/min x y z))
   (emx [_ v]
-    (let [^Vec3 v v] (Vec3. (max (.x v) x) (max (.y v) y) (max (.z v) z))))
+    (let [^Vec3 v v] (Vec3. (m/max (.x v) x) (m/max (.y v) y) (m/max (.z v) z))))
   (emn [_ v]
-    (let [^Vec3 v v] (Vec3. (min (.x v) x) (min (.y v) y) (min (.z v) z))))
+    (let [^Vec3 v v] (Vec3. (m/min (.x v) x) (m/min (.y v) y) (m/min (.z v) z))))
   (maxdim [_]
-    (if (> x y)
-      (if (> x z) 0 2)
-      (if (> y z) 1 2)))
+    (if (m/> x y)
+      (if (m/> x z) 0 2)
+      (if (m/> y z) 1 2)))
   (mindim [_]
-    (if (< x y)
-      (if (< x z) 0 2)
-      (if (< y z) 1 2)))
+    (if (m/< x y)
+      (if (m/< x z) 0 2)
+      (if (m/< y z) 1 2)))
   (base-from [v]
-    (let [v2 (if (> (m/abs x) (m/abs y))
-               (div (Vec3. (- z) 0.0 x) (m/hypot-sqrt x z))
-               (div (Vec3. 0.0 z (- y)) (m/hypot-sqrt y z)))]
+    (let [v2 (if (m/> (m/abs x) (m/abs y))
+               (div (Vec3. (m/- z) 0.0 x) (m/hypot-sqrt x z))
+               (div (Vec3. 0.0 z (m/- y)) (m/hypot-sqrt y z)))]
       [v v2 (prot/cross v v2)]))
-  (sum [_] (+ x y z))
-  (prod [_] (* x y z))
+  (sum [_] (m/+ x y z))
+  (prod [_] (m/* x y z))
   (size [_] 3)
   (permute [p [^long i1 ^long i2 ^long i3]]
     (Vec3. (p i1) (p i2) (p i3)))
-  (reciprocal [_] (Vec3. (/ x) (/ y) (/ z)))
+  (reciprocal [_] (Vec3. (m// x) (m// y) (m// z)))
   (interpolate [_ v2 t f]
     (let [^Vec3 v2 v2] (Vec3. (f x (.x v2) t)
                               (f y (.y v2) t)
@@ -622,9 +626,9 @@
   (heading [v1] (angle-between v1 (Vec3. 1 0 0)))
   (cross [_ v2]
     (let [^Vec3 v2 v2
-          cx (- (* y (.z v2)) (* (.y v2) z))
-          cy (- (* z (.x v2)) (* (.z v2) x))
-          cz (- (* x (.y v2)) (* (.x v2) y))]
+          cx (m/- (m/* y (.z v2)) (m/* (.y v2) z))
+          cy (m/- (m/* z (.x v2)) (m/* (.z v2) x))
+          cz (m/- (m/* x (.y v2)) (m/* (.x v2) y))]
       (Vec3. cx cy cz)))
   (perpendicular [v1 v2] (normalize (prot/cross v1 v2)))
   (transform [_ o vx vy vz]
@@ -632,9 +636,9 @@
           ^Vec3 vx vx
           ^Vec3 vy vy
           ^Vec3 vz vz]
-      (Vec3. (+ (.x o) (* x (.x vx)) (* y (.x vy)) (* z (.x vz)))
-             (+ (.y o) (* x (.y vx)) (* y (.y vy)) (* z (.y vz)))
-             (+ (.z o) (* x (.z vx)) (* y (.z vy)) (* z (.z vz))))))
+      (Vec3. (m/+ (.x o) (m/* x (.x vx)) (m/* y (.x vy)) (m/* z (.x vz)))
+             (m/+ (.y o) (m/* x (.y vx)) (m/* y (.y vy)) (m/* z (.y vz)))
+             (m/+ (.z o) (m/* x (.z vx)) (m/* y (.z vy)) (m/* z (.z vz))))))
   (axis-rotate [_ angle axis]
     (let [^Vec3 axis axis
           ^Vec3 ax (normalize axis)
@@ -646,19 +650,19 @@
           sax (.x sa)
           say (.y sa)
           saz (.z sa)
-          ^Vec3 cb (prot/mult ax (- 1.0 cosa))
+          ^Vec3 cb (prot/mult ax (m/- 1.0 cosa))
           cbx (.x cb)
           cby (.y cb)
           cbz (.z cb)
-          nx (+ (* x (+ (* axx cbx) cosa))
-                (* y (- (* axx cby) saz))
-                (* z (+ (* axx cbz) say)))
-          ny (+ (* x (+ (* axy cbx) saz))
-                (* y (+ (* axy cby) cosa))
-                (* z (- (* axy cbz) sax)))
-          nz (+ (* x (- (* axz cbx) say))
-                (* y (+ (* axz cby) sax))
-                (* z (+ (* axz cbz) cosa)))]
+          nx (m/+ (m/* x (m/+ (m/* axx cbx) cosa))
+                  (m/* y (m/- (m/* axx cby) saz))
+                  (m/* z (m/+ (m/* axx cbz) say)))
+          ny (m/+ (m/* x (m/+ (m/* axy cbx) saz))
+                  (m/* y (m/+ (m/* axy cby) cosa))
+                  (m/* z (m/- (m/* axy cbz) sax)))
+          nz (m/+ (m/* x (m/- (m/* axz cbx) say))
+                  (m/* y (m/+ (m/* axz cby) sax))
+                  (m/* z (m/+ (m/* axz cbz) cosa)))]
       (Vec3. nx ny nz)))
   (axis-rotate [v1 angle axis pivot]
     (prot/add (prot/axis-rotate (prot/sub v1 pivot) angle axis) pivot))
@@ -669,30 +673,30 @@
           d (m/sin angley)
           e (m/cos anglez)
           f (m/sin anglez)
-          cex (* c e x)
-          cfy (* c f y)
-          dz (* d z)
-          nx (+ (- cex cfy) dz)
-          af (* a f)
-          de (* d e)
-          bde (* b de)
-          ae (* a e)
-          bdf (* b d f)
-          bcz (* b c z)
-          ny (- (+ (* (+ af bde) x) (* (- ae bdf) y)) bcz)
-          bf (* b f)
-          ade (* a de)
-          adf (* a d f)
-          be (* b e)
-          acz (* a c z)
-          nz (+ (* (- bf ade) x) (* (+ adf be) y) acz)]
+          cex (m/* c e x)
+          cfy (m/* c f y)
+          dz (m/* d z)
+          nx (m/+ (m/- cex cfy) dz)
+          af (m/* a f)
+          de (m/* d e)
+          bde (m/* b de)
+          ae (m/* a e)
+          bdf (m/* b d f)
+          bcz (m/* b c z)
+          ny (m/- (m/+ (m/* (m/+ af bde) x) (m/* (m/- ae bdf) y)) bcz)
+          bf (m/* b f)
+          ade (m/* a de)
+          adf (m/* a d f)
+          be (m/* b e)
+          acz (m/* a c z)
+          nz (m/+ (m/* (m/- bf ade) x) (m/* (m/+ adf be) y) acz)]
       (Vec3. nx ny nz)))
   (to-polar [v1]
     (let [^double r (prot/mag v1)
-          zr (/ z r)
+          zr (m// z r)
           theta (cond
-                  (<= zr -1.0) m/PI
-                  (>= zr 1.0) 0
+                  (m/<= zr -1.0) m/PI
+                  (m/>= zr 1.0) 0
                   :else (m/acos zr))
           phi (m/atan2 y x)]
       (Vec3. r theta phi)))
@@ -701,9 +705,9 @@
           ct (m/cos y)
           sp (m/sin z)
           cp (m/cos z)]
-      (Vec3. (* x st cp)
-             (* x st sp)
-             (* x ct)))))
+      (Vec3. (m/* x st cp)
+             (m/* x st sp)
+             (m/* x ct)))))
 
 ;; Create Vec2 and add all necessary protocols
 (deftype Vec2 [^double x ^double y]
@@ -712,8 +716,8 @@
   (equals [_ v]
     (and (instance? Vec2 v)
          (let [^Vec2 v v]
-           (and (== x (.x v))
-                (== y (.y v))))))
+           (and (m/== x (.x v))
+                (m/== y (.y v))))))
   (hashCode [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
   clojure.lang.IHashEq 
   (hasheq [_] (mix-collection-hash (unchecked-int (dhash-code (dhash-code x) y)) 2))
@@ -770,37 +774,37 @@
   (fmap [_ f] (Vec2. (f x) (f y)))
   (approx [_] (Vec2. (m/approx x) (m/approx y)))
   (approx [_ d] (Vec2. (m/approx x d) (m/approx y d)))
-  (magsq [_] (+ (* x x) (* y y)))
+  (magsq [_] (m/+ (m/* x x) (m/* y y)))
   (mag [_] (m/hypot-sqrt x y))
   (dot [_ v2] 
-    (let [^Vec2 v2 v2] (+ (* x (.x v2)) (* y (.y v2)))))
+    (let [^Vec2 v2 v2] (m/+ (m/* x (.x v2)) (m/* y (.y v2)))))
   (add [_ v2] 
-    (let [^Vec2 v2 v2] (Vec2. (+ x (.x v2)) (+ y (.y v2)))))
+    (let [^Vec2 v2 v2] (Vec2. (m/+ x (.x v2)) (m/+ y (.y v2)))))
   (sub [_ v2]
-    (let [^Vec2 v2 v2] (Vec2. (- x (.x v2)) (- y (.y v2)))))
-  (shift [_ v] (let [dv (double v)] (Vec2. (+ x dv) (+ y dv))))
-  (mult [_ v] (let [dv (double v)] (Vec2. (* x dv) (* y dv))))
+    (let [^Vec2 v2 v2] (Vec2. (m/- x (.x v2)) (m/- y (.y v2)))))
+  (shift [_ v] (let [dv (double v)] (Vec2. (m/+ x dv) (m/+ y dv))))
+  (mult [_ v] (let [dv (double v)] (Vec2. (m/* x dv) (m/* y dv))))
   (emult [_ v] 
-    (let [^Vec2 v v] (Vec2. (* x (.x v)) (* y (.y v)))))
+    (let [^Vec2 v v] (Vec2. (m/* x (.x v)) (m/* y (.y v)))))
   (abs [_] (Vec2. (m/abs x) (m/abs y)))
-  (mx [_] (max x y))
-  (mn [_] (min x y))
+  (mx [_] (m/max x y))
+  (mn [_] (m/min x y))
   (emx [_ v]
-    (let [^Vec2 v v] (Vec2. (max (.x v) x) (max (.y v) y))))
+    (let [^Vec2 v v] (Vec2. (m/max (.x v) x) (m/max (.y v) y))))
   (emn [_ v]
-    (let [^Vec2 v v] (Vec2. (min (.x v) x) (min (.y v) y))))
+    (let [^Vec2 v v] (Vec2. (m/min (.x v) x) (m/min (.y v) y))))
   (maxdim [_]
-    (if (> x y) 0 1))
+    (if (m/> x y) 0 1))
   (mindim [_]
-    (if (< x y) 0 1))
+    (if (m/< x y) 0 1))
   (base-from [v]
     [v (prot/perpendicular v)])
-  (sum [_] (+ x y))
-  (prod [_] (* x y))
+  (sum [_] (m/+ x y))
+  (prod [_] (m/* x y))
   (size [_] 2)
   (permute [p [^long i1 ^long i2]]
     (Vec2. (p i1) (p i2)))
-  (reciprocal [_] (Vec2. (/ x) (/ y)))
+  (reciprocal [_] (Vec2. (m// x) (m// y)))
   (interpolate [_ v2 t f]
     (let [^Vec2 v2 v2] (Vec2. (f x (.x v2) t)
                               (f y (.y v2) t))))
@@ -817,25 +821,25 @@
   (heading [_] (m/atan2 y x))
   (cross [_ v]
     (let [^Vec2 v v]
-      (- (* x (.y v)) (* y (.x v)))))
+      (m/- (m/* x (.y v)) (m/* y (.x v)))))
   (rotate [_ angle]
     (let [sa (m/sin angle)
           ca (m/cos angle)
-          nx (- (* x ca) (* y sa))
-          ny (+ (* x sa) (* y ca))]
+          nx (m/- (m/* x ca) (m/* y sa))
+          ny (m/+ (m/* x sa) (m/* y ca))]
       (Vec2. nx ny)))
   (perpendicular [_]
-    (normalize (Vec2. (- y) x)))
+    (normalize (Vec2. (m/- y) x)))
   (transform [_ o vx vy]
     (let [^Vec2 o o
           ^Vec2 vx vx
           ^Vec2 vy vy]
-      (Vec2. (+ (.x o) (* x (.x vx)) (* y (.x vy))) (+ (.y o) (* x (.y vx)) (* y (.y vy))))))
+      (Vec2. (m/+ (.x o) (m/* x (.x vx)) (m/* y (.x vy))) (m/+ (.y o) (m/* x (.y vx)) (m/* y (.y vy))))))
   (to-polar [v]
     (Vec2. (prot/mag v) (prot/heading v)))
   (from-polar [_]
-    (Vec2. (* x (m/cos y))
-           (* x (m/sin y)))))
+    (Vec2. (m/* x (m/cos y))
+           (m/* x (m/sin y)))))
 
 ;;
 
@@ -1123,13 +1127,13 @@
        2 (vec2)
        3 (vec3)
        4 (vec4)
-       (array-vec dims)))))
+       (double-array dims)))))
 
 ;; ## Common vector functions
 
 (defn div
   "Vector division or reciprocal."
-  ([v1 ^double v] (prot/mult v1 (/ v)))
+  ([v1 ^double v] (prot/mult v1 (m// v)))
   ([v1] (prot/reciprocal v1)))
 
 (defn ediv
@@ -1159,13 +1163,13 @@
 (defn average-vectors
   "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
   ([init vs]
-   (div (reduce prot/add init vs) (inc (size vs))))
+   (div (reduce prot/add init vs) (m/inc (size vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
 
 (defn average
   "Mean or weighted average of the vector"
-  (^double [v] (/ (sum v) (size v)))
-  (^double [v weights] (/ (dot v weights) (sum weights))))
+  (^double [v] (m// (sum v) (size v)))
+  (^double [v weights] (m// (dot v weights) (sum weights))))
 
 (defn dist
   "Euclidean distance between vectors"
@@ -1203,34 +1207,42 @@
   "Canberra distance"
   ^double [v1 v2]
   (let [num (prot/abs (prot/sub v1 v2))
-        denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (m/zero? v) 0.0 (/ v))))]
+        denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (m/zero? v) 0.0 (m// v))))]
     (sum (prot/emult num denom))))
 
 (defn dist-emd
   "Earth Mover's Distance"
   ^double [v1 v2]
   (first (reduce (fn [[^double s ^double l] [^double a ^double b]]
-                   [(+ s (m/abs l)) (- (+ a l) b)]) [0.0 0.0] (map vector v1 v2))))
+                   [(m/+ s (m/abs l)) (m/- (m/+ a l) b)]) [0.0 0.0] (map vector v1 v2))))
 
 (defn dist-ang
   "Angular distance"
   ^double [v1 v2]
-  (* (m/acos (/ (dot v1 v2) (* (mag v1) (mag v2)))) m/M_1_PI))
+  (m/* (m/acos (m// (dot v1 v2) (m/* (mag v1) (mag v2)))) m/M_1_PI))
 
 (defn sim-cos
   "Cosine similarity"
   ^double [v1 v2]
-  (/ (dot v1 v2) (* (mag v1) (mag v2))))
+  (m// (dot v1 v2) (m/* (mag v1) (mag v2))))
 
 ;; List of distance fn
-(def distances {:euclid dist
-              :euclid-sq dist-sq
-              :abs dist-abs
-              :cheb dist-cheb
-              :canberra dist-canberra
-              :emd dist-emd
-              :angular dist-ang
-              :discrete dist-discrete})
+(def distances {:euclide dist
+                :euclid-sq dist-sq
+                :euclidean dist
+                :euclidean-sq dist-sq
+                :abs dist-abs
+                :cheb dist-cheb
+                :chebyshev dist-cheb
+                :canberra dist-canberra
+                :emd dist-emd
+                :angular dist-ang
+                :discrete dist-discrete})
+
+(defn distance
+  "Distance between two vectors for given type (default: `:euclidean`)."
+  (^double [v1 v2] (distance :euclidean v1 v2))
+  (^double [distance-method v1 v2] ((distances distance-method) v1 v2)))
 
 (defn normalize
   "Returns a new vector of the same direction as `v` and magnitude of 1.
@@ -1279,7 +1291,7 @@
 (defn limit
   "Limits length of the vector by given value"
   [v ^double len]
-  (if (> (magsq v) (* len len))
+  (if (m/> (magsq v) (m/* len len))
     (set-mag v len)
     v))
 
@@ -1292,10 +1304,10 @@
   (if (or (is-zero? v1) (is-zero? v2))
     0
     (let [d (dot v1 v2)
-          amt (/ d (* (mag v1) (mag v2)))]
+          amt (m// d (m/* (mag v1) (mag v2)))]
       (cond
-        (<= amt -1.0) m/PI
-        (>= amt 1.0) 0
+        (m/<= amt -1.0) m/PI
+        (m/>= amt 1.0) 0
         :else (m/acos amt)))))
 
 (defn relative-angle-between
@@ -1307,7 +1319,7 @@
 
   See also [[angle-between]] (absolute angle between vectors) and [[heading]]."
   ^double [v1 v2]
-  (- (heading v2) (heading v1)))
+  (m/- (heading v2) (heading v1)))
 
 (defn aligned?
   "Checks if two vectors are aligned, meaning they point in approximately the same direction.
@@ -1316,14 +1328,14 @@
 
   Defaults to an absolute tolerance of `1.0e-6`."
   ([v1 v2 ^double tol]
-   (< (angle-between v1 v2) tol))
+   (m/< (angle-between v1 v2) tol))
   ([v1 v2]
-   (< (angle-between v1 v2) 1.0e-6)))
+   (m/< (angle-between v1 v2) 1.0e-6)))
 
 (defn faceforward
   "Flips vector `n` if `dot(n, v)` is negative. Returns `n` if `dot(n, v)` is non-negative. Useful for ensuring consistent vector orientation, such as making a normal vector face towards a reference vector `v`."
   [n v]
-  (if (neg? (dot n v)) 
+  (if (m/neg? (dot n v)) 
     (sub n)
     n))
 
@@ -1331,7 +1343,7 @@
   "Calculates the vector projection of `v1` onto `v2`.
   The projection is a vector along the direction of `v2` that represents the component of `v1` in that direction."
   [v1 v2]
-  (mult v2 (/ (dot v1 v2) (magsq v2))))
+  (mult v2 (m// (dot v1 v2) (magsq v2))))
 
 (defn generate-vec2
   "Generates Vec2 with fn(s)"
@@ -1407,7 +1419,7 @@
        v
        (let [l (count v)]
          (recur (sub (subvec v lag)
-                     (subvec v 0 (- l lag)))
+                     (subvec v 0 (m/long-sub l lag)))
                 (m/dec d)))))))
 
 (defn unwrap
@@ -1474,11 +1486,11 @@
 
   Returns a new vector of the same type and dimension as the input."
   ([v]
-   (let [nv (exp (shift v (- (mx v))))
+   (let [nv (exp (shift v (m/- (mx v))))
          sm (sum nv)]
      (div nv sm)))
   ([v ^double t]
-   (let [nv (exp (div (shift v (- (mx v))) t))
+   (let [nv (exp (div (shift v (m/- (mx v))) t))
          sm (sum nv)]
      (div nv sm))))
 
@@ -1496,12 +1508,12 @@
 
   Returns a new vector of the same type and dimension as the input."
   ([v]
-   (let [shifted (shift v (- (mx v)))
-         lsm (- (m/log (sum (exp shifted))))]
+   (let [shifted (shift v (m/- (mx v)))
+         lsm (m/- (m/log (sum (exp shifted))))]
      (shift shifted lsm)))
   ([v ^double t]
-   (let [shifted (div (shift v (- (mx v))) t)
-         lsm (- (m/log (sum (exp shifted))))]
+   (let [shifted (div (shift v (m/- (mx v))) t)
+         lsm (m/- (m/log (sum (exp shifted))))]
      (shift shifted lsm))))
 
 (defn logsumexp
@@ -1513,7 +1525,7 @@
   Returns a double value."
   ^double [v]
   (let [m (mx v)]
-    (+ m (m/log (sum (exp (shift v (- m))))))))
+    (m/+ m (m/log (sum (exp (shift v (m/- m))))))))
 
 (defn logmeanexp
   "Calculates the numerically stable log of the mean of the exponential of each element in vector `v`.
@@ -1526,7 +1538,7 @@
   Returns a double value."
   ^double [v]
   (let [m (mx v)]
-    (+ m (m/log (average (exp (shift v (- m))))))))
+    (m/+ m (m/log (average (exp (shift v (m/- m))))))))
 
 ;;
 
@@ -1548,7 +1560,7 @@
     (->> (iterate (fn [[prev curr ^double nprev ^double ncurr]]
                     (let [sigma (m// (sum (emult xs (sq curr))) ncurr)
                           gamma (m// ncurr nprev)
-                          np (sub (emult curr (shift xs (- sigma)))
+                          np (sub (emult curr (shift xs (m/- sigma)))
                                   (mult prev gamma))]
                       [curr np ncurr (sum (sq np))]))
                   [p0 p1 cnt (sum (sq p1))])
@@ -1571,4 +1583,3 @@
 (defmethod print-method Vec3 [v ^java.io.Writer w] (.write w (str v)))
 (defmethod print-method Vec4 [v ^java.io.Writer w] (.write w (str v)))
 
-(m/unuse-primitive-operators #{'abs 'zero?})

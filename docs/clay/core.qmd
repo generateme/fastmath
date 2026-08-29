@@ -9,6 +9,7 @@ format:
     reference-location: margin
     fontsize: 1.0em
 code-block-background: true
+title: Fastmath documentation
 
 ---
 <style></style><style>.printedClojure .sourceCode {
@@ -250,21 +251,10 @@ Absolute value
 * `remainder` returns $dividend - divisor * n$, where $n$ is the mathematical integer closest to $\frac{dividend}{divisor}$. Returned value is inside the $[\frac{-|divisor|}{2},\frac{|divisor|}{2}]$ range.
 * `wrap` wraps the value to be within given interval (right open) $[a,b)$ `
 
-
-::: {.callout-note}
-## ERR
-```
-Apr 15, 2026 4:06:58 PM clojure.tools.logging$eval21120$fn__21123 invoke
-INFO: [:clojisr.v1.session/gc-clean-r-objects {:objects-before 7494, :objects-after 5890}]
-
-```
-:::
-
-
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image0.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image1.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image2.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image3.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image79.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image80.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image81.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image82.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -342,7 +332,7 @@ The following plots show value of the smooth max for different $\alpha$ and set 
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image4.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image5.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image6.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image83.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image84.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image85.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -353,7 +343,7 @@ The following plots are defined only for positive $\alpha$.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image7.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image8.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image86.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image87.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -463,7 +453,7 @@ Various rounding functions.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image9.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image10.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image11.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image12.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image13.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image14.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image88.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image89.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image90.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image91.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image92.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image93.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -546,7 +536,7 @@ $$\operatorname{copy-sign}(x,y)=\begin{cases}
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image15.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image16.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image94.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image95.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -852,7 +842,7 @@ Standard trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image17.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image18.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image19.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image96.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image97.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image98.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -884,7 +874,7 @@ Quick trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image20.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image21.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image22.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image23.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image99.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image100.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image101.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image102.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -949,7 +939,7 @@ Inverse trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image24.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image25.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image26.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image103.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image104.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image105.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -992,7 +982,7 @@ Inverse trigonometric functions:
 :::
 
 ::: {.clay-image}
-![](core_files/image27.png)
+![](core_files/image106.png)
 :::
 
 
@@ -1012,7 +1002,7 @@ Hyperbolic functions
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image28.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image29.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image30.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image107.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image108.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image109.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1064,7 +1054,7 @@ Inverse hyperbolic functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image31.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image32.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image33.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image110.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image111.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image112.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1135,7 +1125,7 @@ Historical/Specific trigonometric functions:
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image34.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image35.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image36.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image37.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image38.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image39.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image40.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image41.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image113.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image114.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image115.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image116.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image117.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image118.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image119.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image120.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1227,7 +1217,7 @@ This section covers exponential, logarithmic, and power functions, including var
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image42.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image43.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image121.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image122.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1263,7 +1253,7 @@ This section covers exponential, logarithmic, and power functions, including var
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image44.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image45.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image123.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image124.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1319,7 +1309,7 @@ These functions provide numerically stable computations for expressions involvin
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image46.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image47.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image48.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image49.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image50.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image51.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image52.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image53.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image54.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image55.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image56.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image57.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image58.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image59.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image60.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image61.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image62.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image63.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image64.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image125.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image126.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image127.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image128.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image129.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image130.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image131.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image132.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image133.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image134.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image135.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image136.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image137.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image138.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image139.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image140.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image141.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image142.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image143.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1394,7 +1384,7 @@ Functions used in statistics and machine learning.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image65.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image66.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image144.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image145.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1469,7 +1459,7 @@ Basic root and power functions.
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image67.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image68.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image69.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image70.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image71.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image72.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image73.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image74.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image146.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image147.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image148.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image149.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image150.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image151.png" /></p></div></td></tr><tr><td><div class="clay-image"><p><img alt="" src="core_files/image152.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image153.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
@@ -1883,8 +1873,8 @@ Ascending
 (m/rank data :dense) ;; => (1 0 2 0 1 0 0 0)
 (m/rank data :min) ;; => (5 0 7 0 5 0 0 0)
 (m/rank data :max) ;; => (6 4 7 4 6 4 4 4)
-(m/rank data :random) ;; => [6 3 7 0 5 1 4 2]
-(m/rank data :random) ;; => [5 0 7 2 6 4 3 1]
+(m/rank data :random) ;; => [6 2 7 3 5 0 4 1]
+(m/rank data :random) ;; => [5 2 7 4 6 1 0 3]
 (m/rank data :first) ;; => [5 0 7 1 6 2 3 4]
 (m/rank data :last) ;; => [6 4 7 3 5 2 1 0]
 ```
@@ -1900,8 +1890,8 @@ Descending
 (m/rank data :dense true) ;; => (1 2 0 2 1 2 2 2)
 (m/rank data :min true) ;; => (1 3 0 3 1 3 3 3)
 (m/rank data :max true) ;; => (2 7 0 7 2 7 7 7)
-(m/rank data :random true) ;; => [1 3 0 6 2 7 4 5]
-(m/rank data :random true) ;; => [1 7 0 6 2 4 3 5]
+(m/rank data :random true) ;; => [1 5 0 4 2 6 7 3]
+(m/rank data :random true) ;; => [1 3 0 7 2 5 4 6]
 (m/rank data :first true) ;; => [1 3 0 4 2 5 6 7]
 (m/rank data :last true) ;; => [2 7 0 6 1 5 4 3]
 ```
@@ -1997,14 +1987,14 @@ Interpolation functions find intermediate values between two points based on a b
 ::: {.clay-table}
 
 ```{=html}
-<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image75.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image76.png" /></p></div></td></tr></tbody></table>
+<table class="table table-hover table-responsive clay-table"><tbody><tr><td><div class="clay-image"><p><img alt="" src="core_files/image154.png" /></p></div></td><td><div class="clay-image"><p><img alt="" src="core_files/image155.png" /></p></div></td></tr></tbody></table>
 ```
 
 :::
 
 
 ::: {.clay-image}
-![](core_files/image77.png)
+![](core_files/image156.png)
 :::
 
 
@@ -2120,8 +2110,8 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 
 ::: {.sourceClojure}
 ```clojure
-(m/co-intervals sample-data 4) ;; => ([5.234863065676247 14.558998535013508] [13.805386070116523 16.838232984618834] [16.100023442158758 20.478524577876367] [17.69189838238237 25.44126811617936])
-(m/co-intervals sample-data 4 0.2) ;; => ([5.234863065676247 14.164081517352304] [14.126917948547632 16.700442709703182] [16.13718701096343 19.241818603827394] [19.20465503502272 25.44126811617936])
+(m/co-intervals sample-data 4) ;; => ([4.49707437928279 13.853148335404969] [11.01329017688537 17.653842889858296] [13.938691814589182 18.899429166876388] [17.653842889858296 24.00263582677146])
+(m/co-intervals sample-data 4 0.2) ;; => ([4.49707437928279 11.899195745961103] [11.87131778987598 17.44935910904023] [15.470094865053646 18.2356928741345] [18.207814918049372 24.00263582677146])
 ```
 :::
 
@@ -2139,38 +2129,38 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 
 ::: {.sourceClojure}
 ```clojure
-{[13.805386070116523 16.838232984618834] (14.540416750611172
-                                          16.681860925300846
-                                          16.155768795365766
-                                          16.118605226561094
-                                          16.819651200216498
-                                          13.823967854518859
-                                          14.321355098383474
-                                          14.145499732949968),
- [16.100023442158758 20.478524577876367] (16.681860925300846
-                                          16.155768795365766
-                                          17.710480166784706
-                                          20.45994279347403
-                                          16.118605226561094
-                                          16.819651200216498
-                                          18.642691186030024
-                                          19.223236819425058),
- [17.69189838238237 25.44126811617936] (25.422686331777022
-                                        17.710480166784706
-                                        22.76995232657069
-                                        20.45994279347403
-                                        23.988690728355373
-                                        18.642691186030024
-                                        21.16877768951245
-                                        19.223236819425058),
- [5.234863065676247 14.558998535013508] (13.327234626859958
-                                         5.2534448500785835
-                                         5.617355939340497
-                                         14.540416750611172
-                                         12.136433600237709
-                                         13.823967854518859
-                                         14.321355098383474
-                                         14.145499732949968)}
+{[11.01329017688537 17.653842889858296] (15.484033843096208
+                                         11.885256767918541
+                                         13.952630792631744
+                                         17.43542013099767
+                                         13.839209357362407
+                                         11.027229154927932
+                                         12.183011041459864
+                                         17.639903911815733),
+ [13.938691814589182 18.899429166876388] (15.484033843096208
+                                          18.04281819126424
+                                          18.885490188833824
+                                          13.952630792631744
+                                          17.43542013099767
+                                          17.667781867900857
+                                          18.221753896091936
+                                          17.639903911815733),
+ [17.653842889858296 24.00263582677146] (18.04281819126424
+                                         18.885490188833824
+                                         21.373969017906703
+                                         23.9886968487289
+                                         17.667781867900857
+                                         23.291857436587115
+                                         19.572531439818867
+                                         18.221753896091936),
+ [4.49707437928279 13.853148335404969] (8.913115799438962
+                                        10.045745818150634
+                                        11.885256767918541
+                                        13.839209357362407
+                                        11.027229154927932
+                                        7.598112323316683
+                                        4.511013357325352
+                                        12.183011041459864)}
 ```
 :::
 
@@ -2194,7 +2184,7 @@ Functions for partitioning numerical ranges and grouping data into intervals. Th
 :::
 
 ::: {.clay-image}
-![](core_files/image78.png)
+![](core_files/image157.png)
 :::
 
 
@@ -2338,9 +2328,9 @@ Utilities for converting between Clojure sequences and primitive Java arrays (`d
 
 ::: {.sourceClojure}
 ```clojure
-(m/seq->double-array [1 2 3]) ;; => #object["[D" 0x65ceb6a7 "[D@65ceb6a7"]
+(m/seq->double-array [1 2 3]) ;; => #object["[D" 0x4ddf5889 "[D@4ddf5889"]
 (m/double-array->seq (double-array [1.0 2.0 3.0])) ;; => (1.0 2.0 3.0)
-(m/seq->double-double-array [[1 2] [3 4]]) ;; => #object["[[D" 0x1684a8f9 "[[D@1684a8f9"]
+(m/seq->double-double-array [[1 2] [3 4]]) ;; => #object["[[D" 0x3cb71b9f "[[D@3cb71b9f"]
 (m/double-double-array->seq (into-array (map double-array [[1 2] [3 4]]))) ;; => ((1.0 2.0) (3.0 4.0))
 ```
 :::
@@ -2449,7 +2439,7 @@ Primitive and inlined `*`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L141">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L141">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2473,7 +2463,7 @@ Primitive and inlined `+`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L95">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L95">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2496,7 +2486,7 @@ Primitive and inlined `-`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L119">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L119">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2514,7 +2504,7 @@ Value of $-\mathrm{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L678">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L678">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2532,7 +2522,7 @@ Value of $\frac{\pi}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L673">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L673">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2550,7 +2540,7 @@ Value of $-\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L672">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L672">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2568,7 +2558,7 @@ Value of $\frac{\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L675">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L675">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2586,7 +2576,7 @@ Value of $-2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L677">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L677">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2604,7 +2594,7 @@ Value of $\frac{\pi}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L674">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L674">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2622,7 +2612,7 @@ Value of $-2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L676">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L676">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2645,7 +2635,7 @@ Primitive and inlined `/`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L165">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L165">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2666,7 +2656,7 @@ Primitive math less-then function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L376">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L376">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2685,7 +2675,7 @@ Shift bits left
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L535">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L535">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2706,7 +2696,7 @@ Primitive math less-and-equal function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L398">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L398">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2727,7 +2717,7 @@ Primitive math equality function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L355">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L355">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2748,7 +2738,7 @@ Primitive math greater-than function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L387">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L387">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2769,7 +2759,7 @@ Primitive math greater-and-equal function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L409">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L409">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2788,7 +2778,7 @@ Shift bits right and keep most significant bit unchanged
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L547">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L547">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2807,7 +2797,7 @@ Shift bits right and set most significant bit to `0`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L559">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L559">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2825,7 +2815,7 @@ Catalan G
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L687">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L687">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2843,7 +2833,7 @@ Value of $\mathrm{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L671">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L671">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2861,7 +2851,7 @@ $\varepsilon$, a small number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L684">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L684">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2879,7 +2869,7 @@ Value of $\frac{4}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L681">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L681">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2897,7 +2887,7 @@ $\gamma$, Euler-Mascheroni constant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L685">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L685">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2915,7 +2905,7 @@ Value of $\frac{\pi}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L666">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L666">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2933,7 +2923,7 @@ Value of $\frac{2}{2\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L683">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L683">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2951,7 +2941,7 @@ Value of $\frac{1}{\ln{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1151">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1151">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2969,7 +2959,7 @@ Value of $\frac{1}{\ln{\frac{1}{2}}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1154">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1154">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -2987,7 +2977,7 @@ Value of $\frac{1}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L679">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L679">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3005,7 +2995,7 @@ Value of $\frac{1}{\sqrt{2\pi}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2014">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2014">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3023,7 +3013,7 @@ Value of $\frac{1}{\sqrt\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2015">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2015">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3041,7 +3031,7 @@ Value of $\frac{1}{\sqrt{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2019">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2019">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3059,7 +3049,7 @@ Value of $\frac{1}{2\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L682">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L682">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3077,7 +3067,7 @@ Lanchos approximation of `g` constant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L686">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L686">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3095,7 +3085,7 @@ Value of $\ln{10}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1153">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3113,7 +3103,7 @@ Value of $\ln{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1150">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1150">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3131,7 +3121,7 @@ Value of $\frac{\ln{2}}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1152">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1152">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3149,7 +3139,7 @@ $\log_{10}{\mathrm{e}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1429">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1429">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3167,7 +3157,7 @@ $\log_{2}{\mathrm{e}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1426">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1426">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3185,7 +3175,7 @@ Value of $\ln{\frac{1}{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1155">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1155">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3203,7 +3193,7 @@ Value of $\ln{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1156">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1156">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3221,7 +3211,7 @@ Value of $\ln{2\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1157">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1157">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3239,7 +3229,7 @@ ulp(1)/2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L690">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L690">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3257,7 +3247,7 @@ ulp(1)/2
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L693">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L693">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3275,7 +3265,7 @@ Value of $\frac{1}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2011">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2011">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3293,7 +3283,7 @@ Value of $\frac{2}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2012">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2012">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3311,7 +3301,7 @@ Value of $\frac{2}{\sqrt\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2013">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2013">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3329,7 +3319,7 @@ Value of $\frac{3\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2021">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2021">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3347,7 +3337,7 @@ Value of $\mathrm{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2003">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2003">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3365,7 +3355,7 @@ Value of $\frac{1}{\ln{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2026">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2026">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3383,7 +3373,7 @@ Value of $\frac{1}{\ln{10}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2024">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2024">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3401,7 +3391,7 @@ Value of $\ln{10}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2007">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2007">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3419,7 +3409,7 @@ Value of $\ln{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2006">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2006">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3437,7 +3427,7 @@ Value of $\log_{10}{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2005">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2005">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3455,7 +3445,7 @@ Value of $\log_{2}{e}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2004">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2004">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3473,7 +3463,7 @@ Value of $\ln{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2025">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2025">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3491,7 +3481,7 @@ Value of $\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2008">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2008">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3509,7 +3499,7 @@ Value of $\frac{\pi}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2009">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2009">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3527,7 +3517,7 @@ Value of $\frac{\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2010">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2010">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3545,7 +3535,7 @@ Value of $\frac{1}{\sqrt{2}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2018">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2018">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3563,7 +3553,7 @@ Value of $\sqrt{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2017">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2017">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3581,7 +3571,7 @@ Value of $\sqrt{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2023">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2023">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3599,7 +3589,7 @@ Value of $\sqrt\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2022">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2022">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3617,7 +3607,7 @@ Value of $2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2020">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2020">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3635,7 +3625,7 @@ Value of $\frac{1}{6}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L701">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L701">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3653,7 +3643,7 @@ Value of $\frac{1}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L697">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L697">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3671,7 +3661,7 @@ Golden ratio $\phi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1999">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1999">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3689,7 +3679,7 @@ Value of $\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L665">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L665">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3707,7 +3697,7 @@ Value of $\pi^2$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L688">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L688">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3725,7 +3715,7 @@ Value of $\frac{\pi}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L668">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L668">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3743,7 +3733,7 @@ Silver ratio $\delta_S$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2000">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2000">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3761,7 +3751,7 @@ Value of $\frac{1}{6}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L700">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L700">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3779,7 +3769,7 @@ Value of $\sqrt{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1981">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1981">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3797,7 +3787,7 @@ Value of $\sqrt{2\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1995">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1995">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3815,7 +3805,7 @@ Value of $\frac{\sqrt{2}}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1982">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1982">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3833,7 +3823,7 @@ Value of $\sqrt{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1985">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1985">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3851,7 +3841,7 @@ Value of $\frac{\sqrt{3}}{2}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1986">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1986">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3869,7 +3859,7 @@ Value of $\frac{\sqrt{3}}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1987">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1987">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3887,7 +3877,7 @@ Value of $\frac{\sqrt{3}}{4}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1988">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1988">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3905,7 +3895,7 @@ Value of $\sqrt{5}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1991">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1991">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3923,7 +3913,7 @@ Value of $\sqrt{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1994">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1994">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3941,7 +3931,7 @@ Value of $\sqrt{\frac{2}{\pi}}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2016">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2016">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3959,7 +3949,7 @@ Value of $\sqrt{\frac{1}{2}\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1996">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1996">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3977,7 +3967,7 @@ Value of $2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L670">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L670">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -3995,7 +3985,7 @@ Value of $\frac{1}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L696">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L696">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4013,7 +4003,7 @@ Value of $\frac{\pi}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L667">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L667">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4031,7 +4021,7 @@ Value of $\frac{2}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L680">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L680">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4049,7 +4039,7 @@ Value of $2\pi$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L669">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L669">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4067,7 +4057,7 @@ Value of $\frac{2}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L698">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L698">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4085,7 +4075,7 @@ Value of $\frac{2}{3}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L699">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L699">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4104,7 +4094,7 @@ Absolute value.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1751">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1751">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4123,7 +4113,7 @@ Absolute error between two values
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2234">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2238">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4142,7 +4132,7 @@ acos(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L772">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L772">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4161,7 +4151,7 @@ acosh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L808">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L808">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4180,7 +4170,7 @@ acot(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L872">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L872">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4199,7 +4189,7 @@ Area hyperbolic cotangent
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L916">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L916">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4218,7 +4208,7 @@ Arc covercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L990">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L990">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4237,7 +4227,7 @@ Arc coversine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L978">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L978">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4256,7 +4246,7 @@ Inverse chord
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L942">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L942">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4275,7 +4265,7 @@ acsc(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L884">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L884">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4294,7 +4284,7 @@ Area hyperbolic cosecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L928">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L928">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4313,7 +4303,7 @@ Arc excosecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1071">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1071">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4332,7 +4322,7 @@ Arc exsecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1065">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1065">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4359,7 +4349,7 @@ Arithmetic-geometric mean.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2369">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2373">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4378,7 +4368,7 @@ Arc hacovercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1047">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1047">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4397,7 +4387,7 @@ Arc hacoversine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1035">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1035">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4416,7 +4406,7 @@ Arc havecosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1041">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1041">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4435,7 +4425,7 @@ Arc haversine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1029">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1029">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4455,7 +4445,7 @@ Round `v` to specified (default: 2) decimal places. Be aware of floating point n
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1779">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1779">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4479,7 +4469,7 @@ Checks equality approximately up to selected number of digits (2 by default).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1784">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1784">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4495,7 +4485,7 @@ Alias for [approx-eq](#LOS-approx-eq)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1811">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1811">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4514,7 +4504,7 @@ asec(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L878">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L878">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4533,7 +4523,7 @@ Area hyperbolic secant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L922">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L922">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4552,7 +4542,7 @@ asin(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L766">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L766">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4571,7 +4561,7 @@ asinh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L802">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L802">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4590,7 +4580,7 @@ atan(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L778">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L778">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4609,7 +4599,7 @@ atan2(x,y)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L890">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L890">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4628,7 +4618,7 @@ atanh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L814">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L814">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4647,7 +4637,7 @@ Arc vecosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L984">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L984">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4666,7 +4656,7 @@ Arc versine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L972">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L972">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4686,7 +4676,7 @@ Check if given number is within the range (x,y].
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2224">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2228">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4706,7 +4696,7 @@ Check if given number is within the range [x,y].
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2217">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2221">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4727,7 +4717,7 @@ x ∧ y - bitwise AND
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L437">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L437">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4748,7 +4738,7 @@ x ∧ ~y - bitwise AND (with complement second argument)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L453">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L453">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4767,7 +4757,7 @@ Clear bit (set to `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L505">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L505">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4786,7 +4776,7 @@ Count bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L523">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L523">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4805,7 +4795,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L511">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L511">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4826,7 +4816,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L445">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L445">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4847,7 +4837,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L469">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L469">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4866,7 +4856,7 @@ Flip bit (set to `0` when `1` or to `1` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L493">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L493">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4887,7 +4877,7 @@ x ∨ y - bitwise OR
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L461">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L461">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4906,7 +4896,7 @@ Set bit (set to `1`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L499">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L499">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4925,7 +4915,7 @@ Shift bits left
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L529">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L529">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4944,7 +4934,7 @@ Shift bits right and keep most significant bit unchanged
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L541">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L541">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4963,7 +4953,7 @@ Test bit (return to `true` when `1` or `false` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L517">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L517">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -4984,7 +4974,7 @@ Test bit (return to `true` when `1` or `false` when `0`).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L485">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L485">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5005,7 +4995,7 @@ x⊕y - bitwise XOR
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L477">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L477">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5024,7 +5014,7 @@ Convert 64 bits to double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1906">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1906">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5043,7 +5033,7 @@ Primitive boolean not
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L565">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L565">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5063,7 +5053,7 @@ Primitive boolean xor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L571">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L571">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5082,7 +5072,7 @@ x^3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1598">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1598">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5101,7 +5091,7 @@ cubic root, cbrt(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1335">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1335">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5125,7 +5115,7 @@ Calculates the ceiling of a number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1691">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1691">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5144,7 +5134,7 @@ Calculates the ceiling of a number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1307">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1307">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5163,7 +5153,7 @@ log(-log(1-x))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1280">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1280">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5183,7 +5173,7 @@ Constrained version of norm. Result of [norm](#LOS-norm) is applied to [constrai
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2062">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2062">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5214,7 +5204,7 @@ Divides a sequence of numerical `data` into `number` (default 6) overlapping int
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2290">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2294">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5233,7 +5223,7 @@ Binomial coefficient (n choose k)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1557">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1557">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5252,7 +5242,7 @@ Clamp `value` to the range `[mn,mx]`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2028">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2028">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5271,7 +5261,7 @@ Returns a value with a magnitude of first argument and sign of second.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L721">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L721">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5290,7 +5280,7 @@ cos(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L742">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L742">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5309,7 +5299,7 @@ oF interpolateCosine interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mler
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2096">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2096">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5328,7 +5318,7 @@ cosh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L790">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L790">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5347,7 +5337,7 @@ cos(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L748">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L748">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5366,7 +5356,7 @@ cot(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L834">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L834">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5385,7 +5375,7 @@ Hyperbolic cotangent
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L897">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L897">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5404,7 +5394,7 @@ cot(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L840">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L840">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5423,7 +5413,7 @@ Covercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L966">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L966">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5442,7 +5432,7 @@ Coversine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L954">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L954">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5461,7 +5451,7 @@ Chord
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L936">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L936">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5480,7 +5470,7 @@ csc(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L858">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L858">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5499,7 +5489,7 @@ Hyperbolic cosecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L909">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L909">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5518,7 +5508,7 @@ csc(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L864">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L864">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5555,7 +5545,7 @@ Divides a numerical range or a sequence of numbers into a specified number of eq
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2264">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2268">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5574,7 +5564,7 @@ Primitive and inlined `dec`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L199">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L199">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5592,7 +5582,7 @@ $\frac{\pi}{180}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1350">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1350">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5611,7 +5601,7 @@ Convert radians into degrees.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1358">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1358">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5641,7 +5631,7 @@ Checks if two floating-point numbers `a` and `b` are approximately equal within 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1795">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1795">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5657,7 +5647,7 @@ Alias for [delta-eq](#LOS-delta-eq)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1812">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1812">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5676,7 +5666,7 @@ Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L652">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L652">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5696,7 +5686,7 @@ Euclidean distance between points `(x1,y1)` and `(x2,y2)`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1662">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1662">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5714,7 +5704,7 @@ Convert double array into sequence.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2502">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2506">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5728,7 +5718,7 @@ Convert double array into sequence.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2499">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2503">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5747,7 +5737,7 @@ Returns double as 64-bits (long)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1899">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1899">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5766,7 +5756,7 @@ Convert double array of double arrays into sequence of sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2517">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2521">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5780,7 +5770,7 @@ Convert double array of double arrays into sequence of sequences.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2500">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2504">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5799,7 +5789,7 @@ Extract exponent information from double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1913">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1913">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5818,7 +5808,7 @@ Returns high word from double as bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1885">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1885">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5837,7 +5827,7 @@ Returns low word from double as bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1892">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1892">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5855,7 +5845,7 @@ Value of 0x1.fffffffffffffp-1d = 0.(9)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1977">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1977">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5874,7 +5864,7 @@ Extract significand from double
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1920">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1920">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5895,7 +5885,7 @@ Primitive math equality function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L365">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L365">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5914,7 +5904,7 @@ Primitive and inlined `even?`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L333">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L333">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5933,7 +5923,7 @@ Excosecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1059">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1059">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5952,7 +5942,7 @@ exp(x) = e^x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1086">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1086">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5971,7 +5961,7 @@ exp10(x) = 10^x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1098">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1098">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -5990,7 +5980,7 @@ exp2(x) = 2^x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1092">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1092">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6009,7 +5999,7 @@ exp(-exp(-x))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1314">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1314">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6028,7 +6018,7 @@ exp(x)-1 for small x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1130">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6047,7 +6037,7 @@ exp(x)-1 for small x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1136">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1136">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6066,7 +6056,7 @@ Exsecant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1053">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1053">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6085,7 +6075,7 @@ Factorial
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1500">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1500">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6104,7 +6094,7 @@ Factorial table up to 20!
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1495">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1495">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6123,7 +6113,7 @@ Falling (descending) factorial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1530">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1530">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6142,7 +6132,7 @@ Falling (descending) factorial for integer n.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1520">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1520">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6166,7 +6156,7 @@ Primitive and inlined `*` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2584">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2588">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6190,7 +6180,7 @@ Primitive and inlined `+` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2564">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2568">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6214,7 +6204,7 @@ Primitive and inlined `-` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2574">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2578">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6238,7 +6228,7 @@ Primitive and inlined `/` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2594">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2598">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6259,7 +6249,7 @@ Identity on double.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2622">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2626">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6282,7 +6272,7 @@ Primitive and inlined `max` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2604">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2608">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6305,7 +6295,7 @@ Primitive and inlined `min` as a function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2613">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2617">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6329,7 +6319,7 @@ Calculates the floor of a number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1679">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1679">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6348,7 +6338,7 @@ Calculates the floor of a number.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L637">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L637">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6367,7 +6357,7 @@ Fast version of pow where exponent is integer.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1454">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1454">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6386,7 +6376,7 @@ Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [sfrac](
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1821">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1821">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6405,7 +6395,7 @@ Fast binary greatest common divisor (Stein's algorithm)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2355">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2359">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6437,7 +6427,7 @@ Groups values from a sequence `coll` into specified intervals.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2321">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2325">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6456,7 +6446,7 @@ Hacovercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1023">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1023">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6475,7 +6465,7 @@ Hacoversine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1011">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1011">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6494,7 +6484,7 @@ Havercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1017">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1017">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6515,7 +6505,7 @@ Haversine formula for value or lattitude and longitude pairs.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L996">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L996">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6531,7 +6521,7 @@ Haversine ([haversin](#LOS-haversin) alias)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1009">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1009">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6551,7 +6541,7 @@ Haversine distance `d` for `r=1`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1077">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1077">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6570,7 +6560,7 @@ Finds the smallest integer `n` such that `2^n >= |x|`. See [low-2-exp](#LOS-low-
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1838">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1838">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6589,7 +6579,7 @@ Finds the smallest integer `n` such that `b^n >= |x|`. See also [low-exp](#LOS-l
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1846">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1846">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6613,7 +6603,7 @@ Calculates the Euclidean norm (distance from the origin) for 2 or 3 arguments.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1635">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1635">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6635,7 +6625,7 @@ Calculates the Euclidean norm (distance from the origin) using a direct sqrt of 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1649">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1649">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6656,7 +6646,7 @@ Absolute value, `long` version. See [abs](#LOS-abs).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1757">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1757">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6675,7 +6665,7 @@ Identity on double.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L595">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L595">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6694,7 +6684,7 @@ Identity on long.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L600">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L600">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6713,7 +6703,7 @@ Primitive and inlined `inc`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L187">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L187">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6732,7 +6722,7 @@ Check if a number is an infinite (positive or negative).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2187">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2191">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6751,7 +6741,7 @@ Check if given real number is an integer.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L605">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L605">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6770,7 +6760,7 @@ Inverse of factorial, 1/n!
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1507">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1507">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6789,7 +6779,7 @@ Check if a number is not finite double (NaN or ±Inf).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2205">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2209">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6808,7 +6798,7 @@ Truncate fractional part, keep sign. Returns `long`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1774">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1774">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6820,11 +6810,11 @@ Truncate fractional part, keep sign. Returns `long`.
 
 #### jvm-version ^~CONST~^
 
-`jvm-version = 25`
+`jvm-version = 27`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L55">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L55">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6843,7 +6833,7 @@ Fast binary least common multiplier.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2360">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2364">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6862,7 +6852,7 @@ Leading zero bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1937">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1937">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6883,7 +6873,7 @@ Returns the least significant bit position.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1960">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1960">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6902,7 +6892,7 @@ Linear interpolation between `start` and `stop` for amount `t`. See also [mlerp]
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2082">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2082">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6921,7 +6911,7 @@ log(x)=ln(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1112">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1112">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6941,7 +6931,7 @@ log(x)=ln(x) or logarithm with given `base`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1104">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1104">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6960,7 +6950,7 @@ Log of binomial coefficient (n choose k)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1572">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1572">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6979,7 +6969,7 @@ Log factorial, alias to log-gamma
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1514">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1514">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -6998,7 +6988,7 @@ log_10(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1118">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1118">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7017,7 +7007,7 @@ log(1-exp(x)), x<0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1169">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1169">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7036,7 +7026,7 @@ log(1+x) for small x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1124">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1124">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7055,7 +7045,7 @@ log(1+exp(x))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1159">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1159">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7074,7 +7064,7 @@ log(1+x)-x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1205">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1205">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7093,7 +7083,7 @@ log(1+x^2))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1183">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1183">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7114,7 +7104,7 @@ Logarithm with base 2.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1397">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1397">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7133,7 +7123,7 @@ Fast and integer version of log2, returns long
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1927">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1927">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7152,7 +7142,7 @@ log(2-exp(x))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1176">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1176">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7171,7 +7161,7 @@ log(exp(x)+exp(y))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1231">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1231">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7192,7 +7182,7 @@ Logarithm with base `b`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1407">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1407">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7211,7 +7201,7 @@ log(cosh(x))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1416">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1416">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7230,7 +7220,7 @@ log(exp(x)-1))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1190">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1190">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7246,7 +7236,7 @@ Alias for [sigmoid](#LOS-sigmoid)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1380">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1380">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7265,7 +7255,7 @@ Logit function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1382">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1382">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7284,7 +7274,7 @@ Logit function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1287">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1287">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7303,7 +7293,7 @@ log(x)-x+1
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1220">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1220">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7322,7 +7312,7 @@ log(abs(exp(x)-exp(y)))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1239">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1239">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7341,7 +7331,7 @@ log(exp(x1)+...+exp(xn))
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1247">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1247">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7360,7 +7350,7 @@ Absolut value, `long` version. See [abs](#LOS-abs).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1764">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1764">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7384,7 +7374,7 @@ Primitive and inlined `+`. Coerces arguments and returned value to a long.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L107">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L107">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7403,7 +7393,7 @@ Primitive and inlined `dec` coerced to a long
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L205">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L205">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7426,7 +7416,7 @@ Primitive and inlined `/`. Coerces to arguments and returned value to a long.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L176">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L176">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7445,7 +7435,7 @@ Primitive and inlined `inc` coerced to a long
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L193">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L193">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7468,7 +7458,7 @@ Primitive and inlined `max`. Coerces arguments and returned values to longs.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L280">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L280">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7491,7 +7481,7 @@ Primitive and inlined `min`. Coerces arguments and returned values to longs.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L258">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L258">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7510,7 +7500,7 @@ Primitive and inlined `mod` coerced to longs
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L241">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L241">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7534,7 +7524,7 @@ Primitive and inlined `*`. Coerces arguments and returned value to a long.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L153">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L153">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7553,7 +7543,7 @@ Primitive and inlined `quot` coerced to longs
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L229">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L229">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7572,7 +7562,7 @@ Primitive and inlined `rem` coerced to longs
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L217">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L217">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7595,7 +7585,7 @@ Primitive and inlined `-`. Coerces arguments and returned value to a long.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L130">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L130">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7614,7 +7604,7 @@ Finds the greatest integer `n` such that `2^n <= |x|`. See [high-2-exp](#LOS-hig
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1834">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1834">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7633,7 +7623,7 @@ Finds the greatest integer `n` such that `b^n <= |x|`. See also [high-exp](#LOS-
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1842">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1842">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7653,7 +7643,7 @@ Make [norm](#LOS-norm) function for given range. Resulting function accepts `dou
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2053">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2053">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7676,7 +7666,7 @@ Primitive and inlined `max`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L269">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L269">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7699,7 +7689,7 @@ Primitive and inlined `min`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L247">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L247">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7718,7 +7708,7 @@ Primitive and inlined `min`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2090">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2090">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7738,7 +7728,7 @@ Macro version of [norm](#LOS-norm).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2046">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2046">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7757,7 +7747,7 @@ Primitive and inlined `mod`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L235">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L235">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7778,7 +7768,7 @@ Returns the most significant bit position. Can be treated as floor(log2(v)) for 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1951">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1951">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7804,7 +7794,7 @@ Calculates the modular exponentiation $(x^e \pmod m)$.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1460">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1460">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7823,7 +7813,7 @@ Calculates the modular exponentiation $(x^e \pmod m)$.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L630">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L630">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7842,7 +7832,7 @@ Check if a number is a NaN
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2181">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2185">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7863,7 +7853,7 @@ Checks if given value is near zero with absolute (default: `1.0e-6`) and/or rela
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1814">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1814">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7882,7 +7872,7 @@ Check if a number is negatively infinite.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2199">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2203">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7901,7 +7891,7 @@ Primitive and inlined `neg?`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L309">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L309">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7920,7 +7910,7 @@ Check if zero is negative, ie. -0.0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L587">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L587">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7939,7 +7929,7 @@ Check if zero is negative, ie. -0.0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L644">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L644">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7959,7 +7949,7 @@ Next double value. Optional value `delta` sets step amount.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1867">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1867">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7979,7 +7969,7 @@ Normalize `v` from the range `[start,stop]` to the range `[0,1]` or map `v` from
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2033">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2033">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -7998,7 +7988,7 @@ Primitive and inlined `not-neg?` (x>=0.0)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L321">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L321">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8017,7 +8007,7 @@ Primitive and inlined `not-pos?` (x<=0.0)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L327">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L327">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8036,7 +8026,7 @@ Primitive and inlined x<>0.0
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L297">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L297">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8059,7 +8049,7 @@ Not equality. For more than two arguments, returns `true` when all values are un
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L420">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L420">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8078,7 +8068,7 @@ Primitive and inlined `odd?`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L339">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L339">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8097,7 +8087,7 @@ Primitive and inlined `one?` (x==1.0)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L303">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L303">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8128,7 +8118,7 @@ Computes the permutation of indices that would sort the input collection `vs`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2477">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2481">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8147,7 +8137,7 @@ Check if a number is positively infinite.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2193">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2197">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8166,7 +8156,7 @@ Primitive and inlined `pos?`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L315">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L315">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8185,7 +8175,7 @@ Power of a number
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1435">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1435">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8204,7 +8194,7 @@ x^10
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1610">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1610">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8223,7 +8213,7 @@ x^2, x*x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1592">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1592">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8242,7 +8232,7 @@ x^3
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1604">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1604">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8261,7 +8251,7 @@ Checks if `v` is a power of two, v=2^p for some p. Only for positive values.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1850">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1850">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8281,7 +8271,7 @@ Next double value. Optional value `delta` sets step amount.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1876">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1876">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8300,7 +8290,7 @@ Fast version of [ceil](#LOS-ceil). Returns `long`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1731">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1731">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8319,7 +8309,7 @@ Fast and less accurate cos(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L826">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L826">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8339,7 +8329,7 @@ Quick version of Euclidean distance between points. [qsqrt](#LOS-qsqrt) is used 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1670">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1670">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8358,7 +8348,7 @@ Quick and less accurate version of [exp](#LOS-exp).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1342">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1342">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8377,7 +8367,7 @@ Fast version of [floor](#LOS-floor). Returns `long`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1725">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1725">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8396,7 +8386,7 @@ Fast and less accurate version of [log](#LOS-log).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1322">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1322">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8415,7 +8405,7 @@ Fast and less accurate version of [pow](#LOS-pow).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1448">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1448">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8434,7 +8424,7 @@ Fast version of [round](#LOS-round). Returns `long`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1737">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1737">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8453,7 +8443,7 @@ Fast and less accurate sin(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L820">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L820">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8472,7 +8462,7 @@ Approximated [sqrt](#LOS-sqrt) using binary operations with error `1.0E-2`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1623">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1623">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8491,7 +8481,7 @@ Quad interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), [cos-interpo
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2106">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2106">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8510,7 +8500,7 @@ Primitive and inlined `quot`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L223">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L223">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8528,7 +8518,7 @@ $\frac{180}{\pi}$
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1349">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1349">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8547,7 +8537,7 @@ Convert degrees into radians.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1352">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1352">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8587,7 +8577,7 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2428">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2432">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8601,7 +8591,7 @@ Assigns ranks to values in a collection, handling ties according to a specified 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2474">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2478">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8620,7 +8610,7 @@ Relative error between two values
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2239">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2243">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8639,7 +8629,7 @@ Primitive and inlined `rem`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L211">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L211">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8659,7 +8649,7 @@ From `FastMath` doc: returns dividend - divisor * n,
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1743">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1743">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8681,7 +8671,7 @@ Round to a `double` value. See [round](#LOS-round), [qround](#LOS-qround).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1709">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1709">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8700,7 +8690,7 @@ Rising (Pochhammer) factorial.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1549">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1549">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8719,7 +8709,7 @@ Rising (Pochhammer) factorial for integer n.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1539">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1539">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8738,7 +8728,7 @@ Round to a `long` value. See: [rint](#LOS-rint), [qround](#LOS-qround).
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1703">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1703">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8757,7 +8747,7 @@ Round evenly, IEEE / IEC rounding
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1719">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1719">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8776,7 +8766,7 @@ Rounds a positive `long` integer up to the smallest power of 2 greater than or e
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1855">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1855">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8795,7 +8785,7 @@ Reciprocal of [qsqrt](#LOS-qsqrt). Quick and less accurate.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1629">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1629">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8814,7 +8804,7 @@ Safe sqrt, for value <= 0 result is 0.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1618">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1618">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8859,7 +8849,7 @@ Samples a function `f` by evaluating it at evenly spaced points within a numeric
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2390">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2394">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8878,7 +8868,7 @@ sec(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L846">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L846">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8897,7 +8887,7 @@ Hyperbolic secant
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L903">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L903">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8916,7 +8906,7 @@ sec(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L852">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L852">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8935,7 +8925,7 @@ Convert sequence to double array. Returns input if `vs` is double array already.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2506">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2510">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8956,7 +8946,7 @@ Convert sequence to double-array of double-arrays.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2522">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2526">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8975,7 +8965,7 @@ Fractional part, always returns values from -1.0 to 1.0 (exclusive). See [frac](
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1825">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1825">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -8994,7 +8984,7 @@ Returns -1 when `value` is negative, 1 otherwise. See also [signum](#LOS-signum)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L712">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L712">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9013,7 +9003,7 @@ Sigmoid function
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1373">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1373">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9032,7 +9022,7 @@ Returns 1 if `value` is > 0, 0 if it is 0, -1 otherwise. See also [sgn](#LOS-sgn
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L703">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L703">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9051,7 +9041,7 @@ sin(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L730">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L730">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9070,7 +9060,7 @@ Sinc function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1365">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1365">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9089,7 +9079,7 @@ sinh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L784">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L784">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9108,7 +9098,7 @@ sin(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L736">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L736">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9138,7 +9128,24 @@ Generates `cnt` evenly spaced points within a numerical range.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2246">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2250">source</a></small><hr style="margin: 0" /></div>
+```
+
+
+
+```{=html}
+<span id="#LOS-smin"></span>
+```
+
+
+#### smin
+
+
++ `(smin g a b k)`
+
+
+```{=html}
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2181">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9157,7 +9164,7 @@ Smoothstep based interpolation. See also [lerp](#LOS-lerp)/[mlerp](#LOS-mlerp), 
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2101">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2101">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9189,7 +9196,7 @@ Smooth maximum function.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2152">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2152">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9208,7 +9215,7 @@ GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smooth
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2114">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2114">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9227,7 +9234,7 @@ Symmetric power of a number (keeping a sign of the argument.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1441">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1441">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9246,7 +9253,7 @@ x^2, x*x
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1586">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1586">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9265,7 +9272,7 @@ square root, sqrt(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1329">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1329">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9284,7 +9291,7 @@ Kahan's algorithm for (a*b)+(c*d) to avoid catastrophic cancellation.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L658">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L658">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9303,7 +9310,7 @@ tan(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L754">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L754">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9322,7 +9329,7 @@ tanh(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L796">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L796">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9341,7 +9348,7 @@ tan(pi*x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L760">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L760">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9363,7 +9370,7 @@ Calculates truncated power.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1481">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1481">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9382,7 +9389,7 @@ Trailing zero bits
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1944">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1944">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9401,7 +9408,7 @@ Truncate fractional part, keep sign. Returns `double`.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1770">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1770">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9420,7 +9427,7 @@ Unit in the Last Place, distance between next value larger than `x` and `x`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1969">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1969">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9439,7 +9446,7 @@ Shift bits right and set most significant bit to `0`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L553">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L553">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9459,7 +9466,7 @@ Undoes the work of [use-primitive-operators](#LOS-use-primitive-operators). This
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2553">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2557">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9480,7 +9487,7 @@ Replaces Clojure's arithmetic and number coercion functions with primitive equiv
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2542">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2546">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9499,7 +9506,7 @@ Check if a number is finite double.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2211">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2215">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9518,7 +9525,7 @@ Vercosine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L960">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L960">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9537,7 +9544,7 @@ Versine
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L948">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L948">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9557,7 +9564,7 @@ Wrap overflowed value into the range, similar to [ofWrap](http://openframeworks.
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L2123">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L2123">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9576,7 +9583,7 @@ x * exp(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1294">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1294">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9595,7 +9602,7 @@ x * exp(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1300">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1300">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9614,7 +9621,7 @@ x * log(1+y)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1274">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1274">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9633,7 +9640,7 @@ x * log(x)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1263">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1263">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9652,7 +9659,7 @@ x * log(y)
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L1268">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L1268">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9672,7 +9679,7 @@ Primitive boolean xor
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L578">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L578">source</a></small><hr style="margin: 0" /></div>
 ```
 
 
@@ -9691,7 +9698,7 @@ Primitive and inlined `zero?`
 
 
 ```{=html}
-<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src/fastmath/core.clj#L291">source</a></small><hr style="margin: 0" /></div>
+<div style="text-align: right"><small><a href="https://github.com/generateme/fastmath/tree/3.x/src//home/ts/clojure/fastmath/src/fastmath/core.clj#L291">source</a></small><hr style="margin: 0" /></div>
 ```
 
 

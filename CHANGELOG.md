@@ -6,10 +6,18 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 * Logarithmic mean (`fastmath.stats/logmean`) and divided differences (`fastmath.calculcus/divided`)
+* `stirling-factorial` - factorial approximation
+* refactored 
 
 ### Fixed
 
 * [breaking] naming in regression, `:laverage` -> `:leverage`
+* Clojure 1.13 bug with destructuring
+* All distributions are accessible as regular function (additionally to a `distribution` multimethod).
+
+### Changed
+
+* Removed `reciprocal-sqrt` distiribution, use `power` instead.
 
 ## [3.0.0 alpha7]
 

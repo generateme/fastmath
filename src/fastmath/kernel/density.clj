@@ -340,7 +340,8 @@
         mx (m/* 3.0 init-h)]
     (-> (opt f {:initial [init-h]
                 :bounds [[mn mx]]})
-        ^double (ffirst)
+        (ffirst)
+        (double)
         (m/* sd))))
 
 (defn- infer-h

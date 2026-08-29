@@ -363,3 +363,14 @@
 
 ;;
 
+(t/deftest eigen
+  (t/testing "Eigenvalues"
+    (t/are [m res] (every? identity (map v/delta-eq (map vec (sut/eigenvalues m)) res))
+      m22 [[3.141428,0] [-11.141428,0]]
+      m33 [[-4.687435 0.000000] [3.343718 2.677027]  [3.343718 -2.677027]]))
+  (t/testing "Eigenvectors"
+    (t/are [m res] (every? identity (map v/delta-eq (sut/eigenvectors m true) res))
+      m22 [[0.9346357 0.3556066] [-0.222560  0.974919]]
+      m33 [[] [] []])))
+
+(sut/eigenvectors m33 true)

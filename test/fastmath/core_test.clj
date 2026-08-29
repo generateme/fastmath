@@ -1,7 +1,6 @@
 (ns fastmath.core-test
   (:require [fastmath.core :as m]
-            [clojure.test :as t]
-            [fastmath.vector :as v]))
+            [clojure.test :as t]))
 
 (m/use-primitive-operators)
 
@@ -88,3 +87,19 @@
 
 ;;
 
+(t/deftest bernoulli
+  (t/are [n res] (m/delta-eq (m/bernoulli n) (double res))
+    0 1
+    1 1/2
+    2 1/6
+    4 -1/30
+    6 1/42
+    8 -1/30
+    10 5/66
+    12 -691/2730
+    14 7/6
+    16 -3617/510
+    18 43867/798
+    20 -174611/330)
+  (t/are [n] (m/zero? (m/bernoulli n))
+    3 5 7 9 11 13 15 17 19 21))

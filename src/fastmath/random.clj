@@ -103,31 +103,30 @@
   To create distribution call [[distribution]] multimethod with name as a keyword and map as parameters."  
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.kernel.density :as k]
+            [fastmath.matrix :as mat]
             [fastmath.protocols :as prot]
+            [fastmath.special :as special]
+            [fastmath.random.distributions :as distr]
+            [fastmath.solver :as solver]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.interpolation.cubic :as cubic-interp]
             [fastmath.interpolation.monotone :as monotone-interp]
             [fastmath.interpolation.step :as step-interp]
-            [fastmath.calculus.quadrature :as quad]
-            [fastmath.solver :as solver]
-            [fastmath.special :as special]
-            [clojure.data.int-map :as im]            )
+            [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
-           [fastmath.java R2 Array]
-           [umontreal.ssj.probdist ContinuousDistribution DiscreteDistributionInt InverseGammaDist AndersonDarlingDistQuick ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LogarithmicDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
-           [umontreal.ssj.probdistmulti DirichletDist MultinomialDist]
+           [fastmath.java R2]
+           [umontreal.ssj.probdist AndersonDarlingDist AndersonDarlingDistQuick BetaSymmetricalDist
+            InverseGammaDist  ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HalfNormalDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
-           [org.apache.commons.math3.stat StatUtils]
-           [org.apache.commons.math3.distribution AbstractRealDistribution RealDistribution BetaDistribution CauchyDistribution ChiSquaredDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
-           [org.apache.commons.math3.distribution IntegerDistribution AbstractIntegerDistribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
+           [org.apache.commons.math3.distribution BetaDistribution CauchyDistribution ChiSquaredDistribution ConstantRealDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
+           [org.apache.commons.math3.distribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
 
 
 (set! *unchecked-math* :warn-on-boxed)
-#_(set! *warn-on-reflection* true)
+(set! *warn-on-reflection* true)
 (m/use-primitive-operators)
 
 ;; Helper macro which creates RNG object of given class and/or seed.
@@ -139,7 +138,23 @@
      (new ~cl)))
 
 (defmulti rng
-  "Create RNG for given name (as keyword) and optional seed. Return object enhanced with [[RNGProto]]. See: [[rngs-list]] for names."
+  "Creates a random number generator, from Apache Commons Math, for the given algorithm.
+
+  Dispatches on `rng-name` to construct the underlying generator object; see [[rngs-list]] for the complete list of registered names. Use [[synced-rng]] to get a thread-safe wrapper around one of these generators.
+
+  Parameters:
+
+  - `rng-name` (keyword): algorithm to use:
+      - `:jdk` - `java.util.Random` (`JDKRandomGenerator`).
+      - `:mersenne` - Mersenne Twister.
+      - `:isaac` - ISAAC.
+      - `:well512a`, `:well1024a`, `:well19937a`, `:well19937c`, `:well44497a`, `:well44497b` - WELL generator variants.
+      - `:default` - alias for `:jdk`.
+  - `seed` (optional, long): initial seed. When given, the generator produces a fully reproducible sequence of values for a given `rng-name`; when omitted, the generator seeds itself (implementation-dependent, typically from system entropy or clock).
+
+  Returns a new, mutable generator object implementing [[RNGProto]] (`irandom`, `lrandom`, `frandom`, `drandom`, `grandom`, `brandom`, `set-seed`, `set-seed!`, `->seq`), usable wherever an `rng` parameter is expected throughout the namespace, for example `(irandom (rng :isaac 1337))`.
+
+  See also [[rngs-list]], [[synced-rng]], [[default-rng]]."
   (fn [m & _] m))
 
 (def ^:private rng-class->keyword {MersenneTwister :mersenne
@@ -392,7 +407,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (^long [sides]
    (inc (irand sides)))
   (^long [dices sides]
-   (reduce clojure.core/+ (repeatedly dices #(inc (irand sides)))))  )
+   (reduce m/+ (repeatedly dices #(inc (irand sides)))))  )
 
 ;; rng versions
 
@@ -424,13 +439,24 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (^long [rng sides]
    (inc (irandom rng sides)))
   (^long [rng dices sides]
-   (reduce clojure.core/+ (repeatedly dices #(inc (irandom rng sides))))))
+   (reduce m/+ (repeatedly dices #(inc (irandom rng sides))))))
 
 ;; generators
 
 ;; http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/#more-2165
 (defn ball-random
-  "Return random vector from a ball"
+  "Draws a uniformly random point from the interior of a `dims`-dimensional unit ball.
+
+  Uses the method described in this [article](http://extremelearning.com.au/how-to-generate-uniformly-random-points-on-n-spheres-and-n-balls/#more-2165): draws `dims + 2` independent `N(0,1)` samples, normalizes them to a unit vector (a uniformly random point on the `(dims + 2)`-dimensional unit sphere), and keeps only its first `dims` coordinates. Projecting a uniform sample from a sphere two dimensions higher down onto `dims` coordinates yields a point uniformly distributed by volume within the `dims`-ball, unlike naively rejecting or normalizing `dims`-dimensional samples, which biases the result.
+
+  Parameters:
+
+  - `rng` (optional): random number generator to draw the underlying gaussian samples from. Default: [[default-rng]].
+  - `dims` (long): dimensionality of the ball.
+
+  Returns a double when `dims` is `1`, a `Vec2`, `Vec3` or `Vec4` when `dims` is `2`, `3` or `4`, or a plain vector of doubles otherwise; magnitude of the result is always less than or equal to `1.0`.
+
+  Used internally by the `:ball` method of [[sequence-generator]]."
   ([^long dims] (ball-random default-rng dims))
   ([rng ^long dims]
    (let [u (double-array (repeatedly (+ dims 2) #(grandom rng)))
@@ -498,23 +524,25 @@ Returns true or false with equal probability. You can set `p` probability for `t
 ;; Sequence creators
 
 (defmulti
-  ^{:doc "Create Sequence generator. See [[sequence-generators-list]] for names.
+  ^{:doc "Creates a lazy, infinite sequence of random or quasi-random points.
 
-Values:
+  Dispatches on `seq-generator` to pick the sampling method; every point in the resulting sequence has `dimensions` components. See [[sequence-generators-list]] for the full list of registered `seq-generator` keys, and [[jittered-sequence-generator]] to add blue-noise jitter to `:r2`, `:halton` and `:sobol` sequences.
 
-* `:r2`, `:halton`, `:sobol`, `:default`/`:uniform` - range `[0-1] for each dimension`
-* `:gaussian` - from `N(0,1)` distribution
-* `:sphere` -  from surface of unit sphere (ie. euclidean distance from origin equals 1.0)
-* `:ball` - from an unit ball
+  Parameters:
 
-Possible dimensions:
+  - `seq-generator`: keyword selecting the generator:
+      - `:r2`, `:halton`, `:sobol` - low-discrepancy (quasi-random) sequences filling `[0,1]` for each dimension more evenly than pseudo-random sampling.
+      - `:default`, `:uniform` or any other unregistered keyword - independent uniform pseudo-random points from `[0,1]` for each dimension.
+      - `:gaussian` - independent pseudo-random points, each component drawn from `N(0,1)`.
+      - `:sphere` - pseudo-random points on the surface of a unit sphere (euclidean distance from origin equals `1.0`).
+      - `:ball` - pseudo-random points uniformly distributed within a unit ball.
+  - `dimensions` (long): number of components per point. Limited to `1-15` for `:r2`, `1-40` for `:halton` and `1-1000` for `:sobol`; unrestricted (`1+`) for the other generators.
 
-* `:r2` - 1-15
-* `:halton` - 1-40
-* `:sobol` - 1-1000
-* the rest - 1+
+  Returns a lazy, infinite sequence of points: a double when `dimensions` is `1`, a `Vec2`, `Vec3` or `Vec4` when `dimensions` is `2`, `3` or `4`, or a plain vector of doubles otherwise.
 
-See also [[jittered-sequence-generator]]."}
+  Throws an assertion error when `dimensions` exceeds the allowed range for `:r2`, `:halton` or `:sobol`.
+
+  See also [[jittered-sequence-generator]]."}
   sequence-generator (fn [seq-generator _] seq-generator))
 (defmethod sequence-generator :halton [seq-generator dimensions] (rv-generators seq-generator dimensions))
 (defmethod sequence-generator :sobol [seq-generator dimensions] (rv-generators seq-generator dimensions))
@@ -526,11 +554,20 @@ See also [[jittered-sequence-generator]]."}
 (defmethod sequence-generator :ball [_ dimensions] (repeatedly (partial ball-random dimensions)))
 
 (defn jittered-sequence-generator
-  "Create jittered sequence generator.
+  "Creates a lazy, infinite sequence of jittered [[sequence-generator]] points.
 
-  Suitable for `:r2`, `:sobol` and `:halton` sequences.
+  Perturbs each point of the underlying `seq-generator` sequence by a small amount of noise, according to this [article](http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/), breaking up the perfectly regular structure of low-discrepancy sequences while keeping their approximately uniform coverage, closer to a blue-noise point distribution. Two jittering strategies are used depending on `seq-generator`:
 
-  `jitter` parameter range is from `0` (no jitter) to `1` (full jitter). Default: 0.25.
+  - `:sphere` and `:gaussian` - each coordinate is offset by independent `N(0,1)` noise scaled by `jitter`; the result is not renormalized back onto the sphere or wrapped, so points may drift away from it.
+  - every other generator (including `:r2`, `:halton`, `:sobol`, `:default`/`:uniform` and `:ball`) - each coordinate is offset by scaled quasi-random noise (tuned per `seq-generator`, falling back to generic constants for unlisted ones) and wrapped back into `[0,1]` with `frac`.
+
+  Parameters:
+
+  - `seq-generator`: keyword selecting the base generator, same as for [[sequence-generator]]. Intended for `:r2`, `:sobol` and `:halton`, whose evenly spaced points benefit most from jittering, but works with any registered generator.
+  - `dimensions` (long): number of components per point, passed through to [[sequence-generator]].
+  - `jitter` (double, optional): jitter amount, from `0.0` (no jitter, identical to the unjittered [[sequence-generator]] sequence) to `1.0` (full jitter). Default: `0.25`.
+
+  Returns a lazy, infinite sequence of points, same shape as [[sequence-generator]] for the given `dimensions` (a double, `Vec2`, `Vec3`, `Vec4` or a plain vector).
 
   See also [[sequence-generator]]."
   ([seq-generator ^long dimensions] (jittered-sequence-generator seq-generator dimensions 0.25))
@@ -589,44 +626,146 @@ See also [[jittered-sequence-generator]]."}
 (defonce ^:private value-noise-config (noise-config {:noise-type :value}))
 
 (defn vnoise
-  "Value Noise.
+  "Value noise, 6-octave FBM with Hermite interpolation.
 
-  6 octaves, Hermite interpolation (cubic, h01)."
+  A ready-to-use, zero-argument preset of [[fbm-noise]] with `:noise-type` `:value`, `:interpolation` `:hermite`, `:octaves` `6`, `:lacunarity` `2.0` and `:gain` `0.5`. The underlying noise interpolates randomly assigned values at integer lattice points, giving a blockier, less directional look than gradient-based [[noise]]. The `:seed` is fixed once when the namespace loads, so repeated calls with the same arguments always return the same value.
+
+  Accepts 1, 2 or 3 double arguments (`x`, `x y` or `x y z`) and returns a double from the `[0,1]` range.
+
+  See also [[noise]], [[simplex]], [[single-noise]], [[fbm-noise]], [[billow-noise]], [[ridgedmulti-noise]]."
   (^double [^double x] (FBM/noise value-noise-config x))
   (^double [^double x ^double y] (FBM/noise value-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise value-noise-config x y z)))
 
 (defn noise
-  "Improved Perlin Noise.
+  "Improved Perlin noise, 6-octave FBM with quintic interpolation.
 
-  6 octaves, quintic interpolation."
+  A ready-to-use, zero-argument preset of [[fbm-noise]] with `:noise-type` `:gradient`, `:interpolation` `:quintic`, `:octaves` `6`, `:lacunarity` `2.0` and `:gain` `0.5`. Gradient noise interpolates dot products of pseudo-random gradient vectors at lattice points, and the quintic (`6t^5 - 15t^4 + 10t^3`) interpolation removes second-derivative discontinuities at cell boundaries, giving the smoother look of Ken Perlin's improved noise. The `:seed` is fixed once when the namespace loads, so repeated calls with the same arguments always return the same value.
+
+  Accepts 1, 2 or 3 double arguments (`x`, `x y` or `x y z`) and returns a double from the `[0,1]` range.
+
+  See also [[vnoise]], [[simplex]], [[single-noise]], [[fbm-noise]], [[billow-noise]], [[ridgedmulti-noise]]."
   (^double [^double x] (FBM/noise perlin-noise-config x))
   (^double [^double x ^double y] (FBM/noise perlin-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise perlin-noise-config x y z)))
 
 (defn simplex
-  "Simplex noise. 6 octaves."
+  "Simplex noise, 6-octave FBM.
+
+  A ready-to-use, zero-argument preset of [[fbm-noise]] with `:noise-type` `:simplex`, `:octaves` `6`, `:lacunarity` `2.0` and `:gain` `0.5`. Simplex noise evaluates gradients on a simplectic (triangular/tetrahedral) lattice rather than a square/cubic grid, which reduces directional artifacts and scales better to higher dimensions than gradient noise. The `:seed` is fixed once when the namespace loads, so repeated calls with the same arguments always return the same value.
+
+  Accepts 1, 2 or 3 double arguments (`x`, `x y` or `x y z`) and returns a double from the `[0,1]` range.
+
+  See also [[noise]], [[vnoise]], [[single-noise]], [[fbm-noise]], [[billow-noise]], [[ridgedmulti-noise]]."
   (^double [^double x] (FBM/noise simplex-noise-config x))
   (^double [^double x ^double y] (FBM/noise simplex-noise-config x y))
   (^double [^double x ^double y ^double z] (FBM/noise simplex-noise-config x y z)))
 
-(defmacro ^:private gen-noise-function
-  "Generate various noise as static function"
-  [noise-type method]
-  `(defn ~noise-type
-     ~(str "Create " noise-type " function with optional configuration.")
-     ([] (~noise-type {}))
-     ([cfg#]
-      (let [ncfg# (noise-config cfg#)]
-        (fn
-          ([x#] (~method ncfg# x#))
-          ([x# y#] (~method ncfg# x# y#))
-          ([x# y# z#] (~method ncfg# x# y# z#)))))))
+(defn single-noise
+  "Creates a single-octave noise function.
 
-(gen-noise-function single-noise Noise/noise)
-(gen-noise-function fbm-noise FBM/noise)
-(gen-noise-function billow-noise Billow/noise)
-(gen-noise-function ridgedmulti-noise RidgedMulti/noise)
+  Produces raw, unblended noise: one evaluation of the underlying noise type (value, gradient or simplex, selected by `:noise-type`) per point, without combining multiple octaves. This is the base building block used by [[fbm-noise]], [[billow-noise]] and [[ridgedmulti-noise]] to build multi-octave noise.
+
+  Parameters:
+
+  - `cfg` (optional, map): noise configuration, all keys optional:
+      - `:seed` - long seed for the noise's internal RNG, default: random.
+      - `:noise-type` - `:value`, `:gradient` or `:simplex`, default: `:gradient`.
+      - `:interpolation` - `:none`, `:linear`, `:hermite` or `:quintic`, used only by `:value` and `:gradient` noise types, default: `:hermite`.
+      - `:normalize?` - normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+      - `:octaves`, `:lacunarity`, `:gain` - accepted for consistency with [[fbm-noise]], [[billow-noise]] and [[ridgedmulti-noise]] but have no effect here, since only a single octave is evaluated.
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double from the `[0,1]` range when `:normalize?` is true (the default), or `[-1,1]` otherwise.
+
+  See also [[fbm-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[noise]], [[vnoise]], [[simplex]], [[random-noise-cfg]], [[random-noise]]."
+  ([] (single-noise nil))
+  ([cfg]
+   (let [ncfg (noise-config cfg)]
+     (fn
+       (^double [^double x] (Noise/noise ncfg x))
+       (^double [^double x ^double y] (Noise/noise ncfg x y))
+       (^double [^double x ^double y ^double z] (Noise/noise ncfg x y z))))))
+
+(defn fbm-noise
+  "Creates a Fractal Brownian Motion (FBM) noise function.
+
+  Sums several octaves of the underlying noise type, each with frequency scaled by `:lacunarity` and amplitude scaled by `:gain` relative to the previous octave, producing natural, self-similar terrain-like noise. [[noise]], [[vnoise]] and [[simplex]] are ready-to-use FBM noise functions with fixed presets.
+
+  Parameters:
+
+  - `cfg` (optional, map): noise configuration, all keys optional:
+      - `:seed` - long seed for the noise's internal RNG, default: random.
+      - `:noise-type` - `:value`, `:gradient` or `:simplex`, default: `:gradient`.
+      - `:interpolation` - `:none`, `:linear`, `:hermite` or `:quintic`, used only by `:value` and `:gradient` noise types, default: `:hermite`.
+      - `:octaves` - number of octaves summed together, default: `6`.
+      - `:lacunarity` - frequency multiplier applied to each successive octave, default: `2.0`.
+      - `:gain` - amplitude multiplier applied to each successive octave, default: `0.5`.
+      - `:normalize?` - normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double from the `[0,1]` range when `:normalize?` is true (the default), or `[-1,1]` otherwise.
+
+  See also [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[noise]], [[vnoise]], [[simplex]], [[random-noise-cfg]], [[random-noise]]."
+  ([] (fbm-noise nil))
+  ([cfg]
+   (let [ncfg (noise-config cfg)]
+     (fn
+       (^double [^double x] (FBM/noise ncfg x))
+       (^double [^double x ^double y] (FBM/noise ncfg x y))
+       (^double [^double x ^double y ^double z] (FBM/noise ncfg x y z))))))
+
+(defn billow-noise
+  "Creates a billow noise function.
+
+  Similar to [[fbm-noise]], sums several octaves of the underlying noise type scaled by `:lacunarity` and `:gain`, but folds each octave's value through `abs(v) * 2 - 1` before summing. This produces puffy, billowy cloud-like patterns instead of the smoother look of plain FBM noise.
+
+  Parameters:
+
+  - `cfg` (optional, map): noise configuration, all keys optional:
+      - `:seed` - long seed for the noise's internal RNG, default: random.
+      - `:noise-type` - `:value`, `:gradient` or `:simplex`, default: `:gradient`.
+      - `:interpolation` - `:none`, `:linear`, `:hermite` or `:quintic`, used only by `:value` and `:gradient` noise types, default: `:hermite`.
+      - `:octaves` - number of octaves summed together, default: `6`.
+      - `:lacunarity` - frequency multiplier applied to each successive octave, default: `2.0`.
+      - `:gain` - amplitude multiplier applied to each successive octave, default: `0.5`.
+      - `:normalize?` - normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double from the `[0,1]` range when `:normalize?` is true (the default), or `[-1,1]` otherwise.
+
+  See also [[single-noise]], [[fbm-noise]], [[ridgedmulti-noise]], [[random-noise-cfg]], [[random-noise]]."
+  ([] (billow-noise nil))
+  ([cfg]
+   (let [ncfg (noise-config cfg)]
+     (fn
+       (^double [^double x] (Billow/noise ncfg x))
+       (^double [^double x ^double y] (Billow/noise ncfg x y))
+       (^double [^double x ^double y ^double z] (Billow/noise ncfg x y z))))))
+
+(defn ridgedmulti-noise
+  "Creates a ridged multifractal noise function.
+
+  Combines several octaves of the underlying noise type into sharp, ridge-like features: each octave's value is folded through `(1 - abs(v))^2`, weighted by the strength of the previous octave's signal (scaled by `:gain` and clamped to `[0,1]`), with frequency scaled by `:lacunarity` as usual. This feedback between octaves produces the jagged mountain-range look typical of ridged multifractal noise.
+
+  Parameters:
+
+  - `cfg` (optional, map): noise configuration, all keys optional:
+      - `:seed` - long seed for the noise's internal RNG, default: random.
+      - `:noise-type` - `:value`, `:gradient` or `:simplex`, default: `:gradient`.
+      - `:interpolation` - `:none`, `:linear`, `:hermite` or `:quintic`, used only by `:value` and `:gradient` noise types, default: `:hermite`.
+      - `:octaves` - number of octaves combined together, default: `6`.
+      - `:lacunarity` - frequency multiplier applied to each successive octave, default: `2.0`.
+      - `:gain` - factor scaling the inter-octave weight feedback, default: `0.5`.
+      - `:normalize?` - normalize result to `[0,1]` range (`true`, default) or leave it in `[-1,1]` (`false`).
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double from the `[0,1]` range when `:normalize?` is true (the default), or `[-1,1]` otherwise.
+
+  See also [[single-noise]], [[fbm-noise]], [[billow-noise]], [[random-noise-cfg]], [[random-noise]]."
+  ([] (ridgedmulti-noise nil))
+  ([cfg]
+   (let [ncfg (noise-config cfg)]
+     (fn
+       (^double [^double x] (RidgedMulti/noise ncfg x))
+       (^double [^double x ^double y] (RidgedMulti/noise ncfg x y))
+       (^double [^double x ^double y ^double z] (RidgedMulti/noise ncfg x y z))))))
 
 (defn- make-warp-1d
   [n ^double scale ^long depth]
@@ -662,15 +801,20 @@ See also [[jittered-sequence-generator]]."}
     (fn [^double x ^double y ^double z] (warp-noise-3d-proto x y z depth))))
 
 (defn warp-noise-fn
-  "Create warp noise (see [Inigo Quilez article](http://www.iquilezles.org/www/articles/warp/warp.htm)).
+  "Creates a domain-warped noise function.
+
+  Applies domain warping as described in [Inigo Quilez's article](http://www.iquilezles.org/www/articles/warp/warp.htm): at each of `depth` warp levels, the input coordinates are recursively perturbed by evaluating the warp itself (with fixed constant offsets) at the previous level, scaled by `scale` and added to the coordinates, before evaluating `noise` at the warped position. A `depth` of `0` performs no warping and simply evaluates `noise` directly.
 
   Parameters:
 
-  * noise function, default: vnoise
-  * scale factor, default: 4.0
-  * depth (1 or 2), default 1
+  - `noise` (optional, function): the noise function to warp; must accept 1, 2 or 3 double arguments, same shape as [[vnoise]], [[noise]] or [[simplex]]. Defaults to [[vnoise]].
+  - `scale` (optional, double): strength of the coordinate perturbation added at each warp level. Defaults to `4.0`.
+  - `depth` (optional, long): number of recursive warp levels; each additional level multiplies the number of `noise` evaluations, so larger values are increasingly expensive. Defaults to `1`.
 
-  Normalization of warp noise depends on normalization of noise function."
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double. The normalization (value range) of the returned function follows the normalization of `noise`.
+
+  See also [[vnoise]], [[noise]], [[simplex]], [[random-noise]]."
+  {:deprecated "Use `warp-noise` instead."}
   ([noise ^double scale ^long depth]
    (let [n1 (make-warp-1d noise scale depth)
          n2 (make-warp-2d noise scale depth)
@@ -683,6 +827,32 @@ See also [[jittered-sequence-generator]]."}
   ([noise] (warp-noise-fn noise 4.0 1))
   ([] (warp-noise-fn vnoise 4.0 1)))
 
+(defn warp-noise
+  "Creates a domain-warped noise function.
+
+  Applies domain warping as described in [Inigo Quilez's article](http://www.iquilezles.org/www/articles/warp/warp.htm): at each of `depth` warp levels, the input coordinates are recursively perturbed by evaluating the warp itself (with fixed constant offsets) at the previous level, scaled by `scale` and added to the coordinates, before evaluating `noise` at the warped position. A `depth` of `0` performs no warping and simply evaluates `noise` directly.
+
+  Parameters:
+
+  - `noise` (optional, function): the noise function to warp; must accept 1, 2 or 3 double arguments, same shape as [[vnoise]], [[noise]] or [[simplex]]. Defaults to [[vnoise]].
+  - `scale` (optional, double): strength of the coordinate perturbation added at each warp level. Defaults to `4.0`.
+  - `depth` (optional, long): number of recursive warp levels; each additional level multiplies the number of `noise` evaluations, so larger values are increasingly expensive. Defaults to `1`.
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`), returning a double. The normalization (value range) of the returned function follows the normalization of `noise`.
+
+  See also [[vnoise]], [[noise]], [[simplex]], [[random-noise]]."
+  ([noise ^double scale ^long depth]
+   (let [n1 (make-warp-1d noise scale depth)
+         n2 (make-warp-2d noise scale depth)
+         n3 (make-warp-3d noise scale depth)]
+     (fn
+       (^double [^double x] (n1 x))
+       (^double [^double x ^double y] (n2 x y))
+       (^double [^double x ^double y ^double z] (n3 x y z)))))
+  ([noise ^double scale] (warp-noise noise scale 1))
+  ([noise] (warp-noise noise 4.0 1))
+  ([] (warp-noise vnoise 4.0 1)))
+
 (defonce ^{:doc "List of possible noise generators as a map of names and functions."}
   noise-generators
   {:fbm fbm-noise
@@ -691,9 +861,30 @@ See also [[jittered-sequence-generator]]."}
    :ridgemulti ridgedmulti-noise})
 
 (defn random-noise-cfg
-  "Create random noise configuration.
+  "Generates a randomized noise configuration map.
 
-  Optional map with fixed values."
+  Produces a configuration suitable for [[random-noise]] (or, for its `:seed`, `:noise-type`, `:interpolation`, `:octaves`, `:lacunarity`, `:gain` and `:normalize?` keys, for [[fbm-noise]], [[single-noise]], [[billow-noise]] and [[ridgedmulti-noise]] directly), with every key assigned a random but sensible value, so calling it repeatedly yields varied noise behavior without manual tuning.
+
+  Parameters:
+
+  - `pre-config` (optional, map): fixed values to use instead of randomizing; any keys present here override the corresponding randomly generated value. Defaults to an empty map, meaning every key is randomized.
+
+  The randomized keys are:
+
+  - `:seed` - a random integer seed.
+  - `:generator` - one of `:single`, `:fbm`, `:billow`, `:ridgemulti`, used by [[random-noise]] to pick the blending method.
+  - `:noise-type` - one of `:value`, `:gradient`, `:simplex`.
+  - `:interpolation` - one of `:none`, `:linear`, `:hermite`, `:quintic`.
+  - `:octaves` - integer between `1` and `9`.
+  - `:lacunarity` - double between `1.5` and `2.5`.
+  - `:gain` - double between `0.2` and `0.8`.
+  - `:warp-scale` - `0.0` (no warp) with 80% probability, otherwise either `4.0` or a random double between `0.1` and `10.0`.
+  - `:warp-depth` - `1` with 80% probability, otherwise a random integer between `1` and `3`.
+  - `:normalize?` - always `true`.
+
+  Returns a configuration map.
+
+  See also [[random-noise]], [[fbm-noise]], [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[warp-noise-fn]]."
   ([pre-config]
    (merge {:seed (irand)
            :generator (rand-nth [:single :fbm :billow :ridgemulti])
@@ -708,9 +899,18 @@ See also [[jittered-sequence-generator]]."}
   ([] (random-noise-cfg nil)))
 
 (defn random-noise-fn
-  "Create random noise function from all possible options.
+  "Generates a fully random noise function.
 
-  Optionally provide own configuration `cfg`. In this case one of 4 different blending methods will be selected."
+  Combines [[random-noise-cfg]] with one of the noise blending methods (`:single`, `:fbm`, `:billow`, `:ridgemulti`, see `noise-generators`) and, when the resulting configuration requests warping (`:warp-scale` greater than `0.0`), wraps the noise with [[warp-noise-fn]]. The result is a ready-to-use noise function in the same shape as [[noise]], [[vnoise]] and [[simplex]].
+
+  Parameters:
+
+  - `cfg` (optional, map): configuration overrides passed to [[random-noise-cfg]]; any key not provided is filled in randomly. Defaults to `nil`, meaning a fully random configuration.
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`) returning a double.
+
+  See also [[random-noise-cfg]], [[warp-noise]], [[fbm-noise]], [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]]."
+  {:deprecated "Use `random-noise` instead."}
   ([cfg]
    (let [cfg (random-noise-cfg cfg)
          gen-fn (noise-generators (get cfg :generator :fbm))
@@ -720,19 +920,47 @@ See also [[jittered-sequence-generator]]."}
        noise)))
   ([] (random-noise-fn nil)))
 
+(defn random-noise
+  "Generates a fully random noise function.
+
+  Combines [[random-noise-cfg]] with one of the noise blending methods (`:single`, `:fbm`, `:billow`, `:ridgemulti`, see `noise-generators`) and, when the resulting configuration requests warping (`:warp-scale` greater than `0.0`), wraps the noise with [[warp-noise-fn]]. The result is a ready-to-use noise function in the same shape as [[noise]], [[vnoise]] and [[simplex]].
+
+  Parameters:
+
+  - `cfg` (optional, map): configuration overrides passed to [[random-noise-cfg]]; any key not provided is filled in randomly. Defaults to `nil`, meaning a fully random configuration.
+
+  Returns a function of one, two or three double arguments (`x`, `[x y]` or `[x y z]`) returning a double.
+
+  See also [[random-noise-cfg]], [[warp-noise]], [[fbm-noise]], [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]]."
+  ([cfg]
+   (let [cfg (random-noise-cfg cfg)
+         gen-fn (noise-generators (get cfg :generator :fbm))
+         noise (gen-fn cfg)]
+     (if (pos? ^double (:warp-scale cfg))
+       (warp-noise-fn noise (:warp-scale cfg) (:warp-depth cfg))
+       noise)))
+  ([] (random-noise nil)))
+
+
 ;; ### Discrete noise
 
 (defn discrete-noise
-  "Discrete noise. Parameters:
+  "Computes a deterministic hash-based noise value for one or two integer coordinates.
 
-  * X (long)
-  * Y (long, optional)
+  Unlike stochastic random number generators, `discrete-noise` is a pure function: calling it repeatedly with the same `X` (and `Y`) always returns the same value, which makes it useful as a coordinate-based building block for procedural noise and hashing.
 
-  Returns double value from [0,1] range"
+  Parameters:
+
+  - `X` (long): first coordinate.
+  - `Y` (long, optional): second coordinate. Defaults to `0`, producing a 1d hash of `X` alone.
+
+  Returns a double in the `[0,1]` range.
+
+  See also [[vnoise]], [[simplex]], [[random-noise-fn]]."
   (^double [^long X ^long Y] (Discrete/value X Y))
   (^double [^long X] (Discrete/value X 0)))
 
-;; Distribution
+;; Distributions
 
 (defmulti
   ^{:doc "Create distribution object.
@@ -743,9 +971,1807 @@ See also [[jittered-sequence-generator]]."}
 All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."}
   distribution (fn ([k _] k) ([k] k)))
 
-(extend Object
-  prot/DistributionIdProto
-  {:distribution? (constantly false)})
+(defmacro ^:private add-distr-method
+  [d]
+  (let [kd (keyword d)]
+    `(defmethod distribution ~kd
+       ([_#] (distribution ~kd nil))
+       ([_# opts#] (~d opts#)))))
+
+;;
+
+(defn beta
+  "Creates a beta distribution object.
+
+  The beta distribution is a continuous distribution supported on the interval `[0, 1]`, shaped by two positive parameters `alpha` and `beta` that control its skewness. It is commonly used to model random proportions and probabilities, and as a conjugate prior for the Bernoulli/binomial parameter in Bayesian statistics.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): first shape parameter. Default: `2.0`.
+  - `beta` (double): second shape parameter. Default: `2.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `BetaDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]], [[uniform-real]]."
+  (^BetaDistribution [] (beta nil))
+  (^BetaDistribution [{:keys [^double alpha ^double beta ^double inverse-abs-accuracy rng]
+                       :or {alpha 2.0 beta 2.0 inverse-abs-accuracy BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (BetaDistribution. (or rng (JDKRandomGenerator.)) alpha beta inverse-abs-accuracy)))
+
+(add-distr-method beta)
+
+(defn cauchy
+  "Creates a Cauchy distribution object.
+
+  The Cauchy distribution is a continuous, symmetric, heavy-tailed distribution centered on `median` with spread controlled by `scale`. Its mean and variance are undefined due to the heaviness of its tails, which makes it a useful example and stress-test case for statistical methods that assume finite moments.
+
+  Parameters (single, optional map):
+
+  - `median` (double): location parameter, the center and median of the distribution. Default: `0.0`.
+  - `scale` (double): scale parameter controlling the spread of the distribution. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `CauchyDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[levy]], [[t]]."
+  (^CauchyDistribution [] (cauchy nil))
+  (^CauchyDistribution [{:keys [^double median ^double scale ^double inverse-abs-accuracy rng]
+                         :or {median 0.0 scale 1.0 inverse-abs-accuracy CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (CauchyDistribution. (or rng (JDKRandomGenerator.)) median scale inverse-abs-accuracy)))
+
+(add-distr-method cauchy)
+
+(defn chi-squared
+  "Creates a chi-squared distribution object.
+
+  The chi-squared distribution is a continuous distribution over non-negative reals, arising as the distribution of a sum of squares of `degrees-of-freedom` independent standard normal random variables. It is widely used in hypothesis testing (chi-squared tests, goodness-of-fit) and interval estimation.
+
+  Parameters (single, optional map):
+
+  - `degrees-of-freedom` (double): number of degrees of freedom, shaping the distribution. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `ChiSquaredDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[f]], [[t]], [[gamma]]."
+  (^ChiSquaredDistribution [] (chi-squared nil))
+  (^ChiSquaredDistribution [{:keys [^double degrees-of-freedom ^double inverse-abs-accuracy rng]
+                             :or {degrees-of-freedom 1.0 inverse-abs-accuracy ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ChiSquaredDistribution. (or rng (JDKRandomGenerator.)) degrees-of-freedom inverse-abs-accuracy)))
+
+(add-distr-method chi-squared)
+
+(defn constant
+  "Creates a constant, Dirac (degenerate) distribution object.
+
+  The constant distribution always returns the same `value` with probability `1.0`; it has zero variance and represents a deterministic random variable. It is mostly useful as a placeholder or edge case where a distribution object is expected but the value should not actually vary.
+
+  Parameters (single, optional map):
+
+  - `value` (double): the single value always returned by the distribution. Default: `0.0`.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values. Unlike other continuous distributions here, this constructor does not accept an `rng`, since no randomness is involved.
+
+  Returns a `ConstantRealDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-real]]."
+  (^ConstantRealDistribution [] (constant nil))
+  (^ConstantRealDistribution [{:keys [^double value]
+                               :or {value 0.0}}]
+   (ConstantRealDistribution. value)))
+
+(add-distr-method constant)
+
+(defn exponential
+  "Creates an exponential distribution object.
+
+  The exponential distribution is a continuous distribution over non-negative reals, modelling the waiting time between independent events occurring at a constant average rate. It is the continuous analogue of the [[geometric]] distribution and is memoryless.
+
+  Parameters (single, optional map):
+
+  - `mean` (double): mean of the distribution, ie. the average waiting time (the reciprocal of the rate). Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns an `ExponentialDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[geometric]], [[gamma]], [[weibull]]."
+  (^ExponentialDistribution [] (exponential nil))
+  (^ExponentialDistribution [{:keys [^double mean ^double inverse-abs-accuracy rng]
+                              :or {mean 1.0 inverse-abs-accuracy ExponentialDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ExponentialDistribution. (or rng (JDKRandomGenerator.)) mean inverse-abs-accuracy)))
+
+(add-distr-method exponential)
+
+(defn f
+  "Creates an F-distribution (Fisher-Snedecor) object.
+
+  The F-distribution is a continuous distribution over non-negative reals, arising as the ratio of two independent chi-squared random variables, each divided by their own degrees of freedom. It is widely used for comparing variances and in analysis of variance (ANOVA) and regression F-tests.
+
+  Parameters (single, optional map):
+
+  - `numerator-degrees-of-freedom` (double): degrees of freedom of the numerator chi-squared variable. Default: `1.0`.
+  - `denominator-degrees-of-freedom` (double): degrees of freedom of the denominator chi-squared variable. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns an `FDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[chi-squared]], [[t]]."
+  (^FDistribution [] (f nil))
+  (^FDistribution [{:keys [^double numerator-degrees-of-freedom ^double denominator-degrees-of-freedom ^double inverse-abs-accuracy rng]
+                    :or {numerator-degrees-of-freedom 1.0 denominator-degrees-of-freedom 1.0
+                         inverse-abs-accuracy FDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (FDistribution. (or rng (JDKRandomGenerator.)) numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-abs-accuracy)))
+
+(add-distr-method f)
+
+(defn gamma
+  "Creates a gamma distribution object.
+
+  The gamma distribution is a continuous distribution over positive reals, shaped by a `shape` parameter and a `scale` parameter. It generalizes the [[exponential]] and [[chi-squared]] distributions and is commonly used to model waiting times, sums of exponential variables, and as a conjugate prior in Bayesian statistics.
+
+  Parameters (single, optional map):
+
+  - `shape` (double): shape parameter, controlling the form of the distribution. Default: `2.0`.
+  - `scale` (double): scale parameter, stretching or shrinking the distribution. Default: `2.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `GammaDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[exponential]], [[chi-squared]], [[beta]]."
+  (^GammaDistribution [] (gamma nil))
+  (^GammaDistribution [{:keys [^double shape ^double scale ^double inverse-abs-accuracy rng]
+                        :or {shape 2.0 scale 2.0 inverse-abs-accuracy GammaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (GammaDistribution. (or rng (JDKRandomGenerator.)) shape scale inverse-abs-accuracy)))
+
+(add-distr-method gamma)
+
+(defn gumbel
+  "Creates a Gumbel distribution object.
+
+  The Gumbel distribution is a continuous, right-skewed distribution used to model the maximum (or minimum) of a number of samples of other distributions; it is a type-I extreme value distribution. It is commonly used in flood, wind and other extreme-event analysis.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, shifting the mode of the distribution. Default: `1.0`.
+  - `beta` (double): scale parameter, controlling the spread of the distribution. Default: `2.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `GumbelDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[levy]], [[laplace]]."
+  (^GumbelDistribution [] (gumbel nil))
+  (^GumbelDistribution [{:keys [^double mu ^double beta rng]
+                         :or {mu 1.0 beta 2.0}}]
+   (GumbelDistribution. (or rng (JDKRandomGenerator.)) mu beta)))
+
+(add-distr-method gumbel)
+
+(defn laplace
+  "Creates a Laplace distribution object.
+
+  The Laplace distribution, also known as the double exponential distribution, is a continuous, symmetric distribution formed from two exponential distributions back to back around a location parameter. Compared to the [[normal]] distribution it has a sharper peak and heavier tails, making it useful for modelling data with more extreme outliers.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the center and mean of the distribution. Default: `0.0`.
+  - `beta` (double): scale parameter, controlling the spread of the distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `LaplaceDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[logistic]]."
+  (^LaplaceDistribution [] (laplace nil))
+  (^LaplaceDistribution [{:keys [^double mu ^double beta rng]
+                          :or {mu 0.0 beta 1.0}}]
+   (LaplaceDistribution. (or rng (JDKRandomGenerator.)) mu beta)))
+
+(add-distr-method laplace)
+
+(defn levy
+  "Creates a Levy distribution object.
+
+  The Levy distribution is a continuous, heavy-tailed distribution supported on `[mu, Infinity)`, notable for having a closed-form probability density and cumulative distribution function despite an undefined mean and variance. It is a special case of the inverse-gamma distribution family and appears in random walk and stable-distribution theory.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `c` (double): scale parameter, controlling the spread of the distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `LevyDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[cauchy]], [[gumbel]]."
+  (^LevyDistribution [] (levy nil))
+  (^LevyDistribution [{:keys [^double mu ^double c rng]
+                       :or {mu 0.0 c 1.0}}]
+   (LevyDistribution. (or rng (JDKRandomGenerator.)) mu c)))
+
+(add-distr-method levy)
+
+(defn logistic
+  "Creates a logistic distribution object.
+
+  The logistic distribution is a continuous, symmetric distribution whose cumulative distribution function is the logistic (sigmoid) function. It resembles the [[normal]] distribution in shape but has heavier tails, and underlies logistic regression as well as some growth models.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the center and mean of the distribution. Default: `0.0`.
+  - `s` (double): scale parameter, controlling the spread of the distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `LogisticDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[laplace]]."
+  (^LogisticDistribution [] (logistic nil))
+  (^LogisticDistribution [{:keys [^double mu ^double s rng]
+                           :or {mu 0.0 s 1.0}}]
+   (LogisticDistribution. (or rng (JDKRandomGenerator.)) mu s)))
+
+(add-distr-method logistic)
+
+(defn log-normal
+  "Creates a log-normal distribution object.
+
+  The log-normal distribution is a continuous distribution over positive reals whose logarithm follows a [[normal]] distribution. It is commonly used to model quantities that result from the multiplicative combination of many independent positive factors, such as incomes, stock prices or particle sizes.
+
+  Parameters (single, optional map):
+
+  - `scale` (double): location parameter of the underlying normal distribution of the logarithm of the variable (often denoted `mu`). Default: `1.0`.
+  - `shape` (double): scale parameter of the underlying normal distribution of the logarithm of the variable (often denoted `sigma`); controls the spread. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `LogNormalDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[pareto]]."
+  (^LogNormalDistribution [] (log-normal nil))
+  (^LogNormalDistribution [{:keys [^double scale ^double shape ^double inverse-abs-accuracy rng]
+                            :or {scale 1.0 shape 1.0 inverse-abs-accuracy LogNormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (LogNormalDistribution. (or rng (JDKRandomGenerator.)) scale shape inverse-abs-accuracy)))
+
+(add-distr-method log-normal)
+
+(defn nakagami
+  "Creates a Nakagami distribution object.
+
+  The Nakagami distribution is a continuous distribution over positive reals, often used to model the amplitude of fading wireless communication signals. Its shape parameter `mu` controls the fading severity, while `omega` controls the average signal power (spread).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): shape parameter controlling the severity of fading; must be at least `0.5`. Default: `1.0`.
+  - `omega` (double): spread parameter, the average of the squared random variable. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `NakagamiDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[weibull]], [[gamma]]."
+  (^NakagamiDistribution [] (nakagami nil))
+  (^NakagamiDistribution [{:keys [^double mu ^double omega ^double inverse-abs-accuracy rng]
+                           :or {mu 1.0 omega 1.0 inverse-abs-accuracy NakagamiDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (NakagamiDistribution. (or rng (JDKRandomGenerator.)) mu omega inverse-abs-accuracy)))
+
+(add-distr-method nakagami)
+
+(defn normal
+  "Creates a normal (Gaussian) distribution object.
+
+  The normal distribution is a continuous, symmetric, bell-shaped distribution fully described by its mean `mu` and standard deviation `sd`. It is the most widely used distribution in statistics, arising naturally as the limit of sums of many independent random variables via the central limit theorem.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the distribution, its center of symmetry. Default: `0.0`.
+  - `sd` (double): standard deviation, controlling the spread of the distribution. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `NormalDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[log-normal]], [[laplace]], [[logistic]]."
+  (^NormalDistribution [] (normal nil))
+  (^NormalDistribution [{:keys [^double mu ^double sd ^double inverse-abs-accuracy rng]
+                         :or {mu 0.0 sd 1.0 inverse-abs-accuracy NormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (NormalDistribution. (or rng (JDKRandomGenerator.)) mu sd inverse-abs-accuracy)))
+
+(add-distr-method normal)
+
+(defn pareto
+  "Creates a Pareto (Type I) distribution object.
+
+  The Pareto distribution is a continuous, heavy-tailed distribution supported on `[scale, Infinity)`, modelling quantities where a small share of values accounts for a large share of the total, such as wealth distributions, file sizes or the classic 80/20 rule. Its `shape` parameter controls how quickly probability decays for larger values.
+
+  Parameters (single, optional map):
+
+  - `scale` (double): scale parameter, the minimum possible value of the distribution. Default: `1.0`.
+  - `shape` (double): shape parameter (also known as the tail index or `alpha`); smaller values give heavier tails. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `ParetoDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[zipf]], [[log-normal]]."
+  (^ParetoDistribution [] (pareto nil))
+  (^ParetoDistribution [{:keys [^double scale ^double shape ^double inverse-abs-accuracy rng]
+                         :or {scale 1.0 shape 1.0 inverse-abs-accuracy ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (ParetoDistribution. (or rng (JDKRandomGenerator.)) scale shape inverse-abs-accuracy)))
+
+(add-distr-method pareto)
+
+(defn t
+  "Creates a Student's t-distribution object.
+
+  Student's t-distribution is a continuous, symmetric, bell-shaped distribution similar to the [[normal]] distribution but with heavier tails, controlled by its `degrees-of-freedom`. As degrees of freedom grow, the distribution approaches the standard normal distribution; it is widely used for inference about a mean when the sample size is small or the variance is unknown.
+
+  Parameters (single, optional map):
+
+  - `degrees-of-freedom` (double): number of degrees of freedom, shaping the heaviness of the tails. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `TDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[cauchy]], [[f]]."
+  (^TDistribution [] (t nil))
+  (^TDistribution [{:keys [^double degrees-of-freedom ^double inverse-abs-accuracy rng]
+                    :or {degrees-of-freedom 1.0 inverse-abs-accuracy TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (TDistribution. (or rng (JDKRandomGenerator.)) degrees-of-freedom inverse-abs-accuracy)))
+
+(add-distr-method t)
+
+(defn triangular
+  "Creates a triangular distribution object.
+
+  The triangular distribution is a continuous distribution supported on `[a, b]`, with probability density rising linearly from `a` to the mode `c` and then falling linearly to `b`, forming a triangle shape. It is often used as a simple model when only a minimum, maximum and most likely value are known, such as in project estimation.
+
+  Parameters (single, optional map):
+
+  - `a` (double): lower limit of the support. Default: `-1.0`.
+  - `c` (double): mode, the most likely value; must lie between `a` and `b`. Default: `0.0`.
+  - `b` (double): upper limit of the support. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `TriangularDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-real]]."
+  (^TriangularDistribution [] (triangular nil))
+  (^TriangularDistribution [{:keys [^double a ^double c ^double b ^double rng]
+                             :or {a -1.0 c 0.0 b 1.0}}]
+   (TriangularDistribution. (or rng (JDKRandomGenerator.)) a c b)))
+
+(add-distr-method triangular)
+
+(defn uniform-real
+  "Creates a continuous uniform distribution object over the interval `[lower, upper]`.
+
+  Every value within `[lower, upper]` is equally likely; the density is constant across the support and zero outside of it. It is the continuous analogue of [[uniform-int]].
+
+  Parameters (single, optional map):
+
+  - `lower` (double): lower bound of the support, inclusive. Default: `0.0`.
+  - `upper` (double): upper bound of the support, inclusive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `UniformRealDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-int]], [[triangular]]."
+  (^UniformRealDistribution [] (uniform-real nil))
+  (^UniformRealDistribution [{:keys [^double lower ^double upper rng]
+                              :or {lower 0.0 upper 1.0}}]
+   (let [^RandomGenerator rng (or rng (JDKRandomGenerator.))]
+     (UniformRealDistribution. rng lower upper))))
+
+(add-distr-method uniform-real)
+
+(defn weibull
+  "Creates a Weibull distribution object.
+
+  The Weibull distribution is a continuous distribution over non-negative reals, widely used in reliability engineering and survival analysis to model time-to-failure data. Its shape parameter `alpha` determines whether the failure rate increases, decreases or stays constant over time (with `alpha` equal to `1.0` reducing to the [[exponential]] distribution).
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shape parameter, controlling the failure-rate behaviour over time. Default: `1.0`.
+  - `beta` (double): scale parameter, stretching or shrinking the distribution. Default: `1.0`.
+  - `inverse-abs-accuracy` (double): accuracy used when inverting the cumulative distribution function (`icdf`). Default: the implementation's default accuracy.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `WeibullDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[exponential]], [[nakagami]], [[gumbel]]."
+  (^WeibullDistribution [] (weibull nil))
+  (^WeibullDistribution [{:keys [^double alpha ^double beta ^double inverse-abs-accuracy rng]
+                          :or {alpha 1.0 beta 1.0 inverse-abs-accuracy WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY}}]
+   (WeibullDistribution. (or rng (JDKRandomGenerator.)) alpha beta inverse-abs-accuracy)))
+
+(add-distr-method weibull)
+
+(defn empirical
+  "Creates an empirical distribution object estimated from a sample of `data`.
+
+  The empirical distribution builds a histogram out of the provided `data` and treats it as a piecewise, continuous distribution: sampling picks a bin according to its observed frequency and then draws uniformly within that bin. It is useful for approximating an unknown continuous distribution directly from observations, without assuming any particular parametric form.
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of doubles): sample used to build the histogram. Default: `[1.0]`.
+  - `bin-count` (long): number of histogram bins. Default: estimated automatically from `data` using the Freedman-Diaconis rule.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns an `EmpiricalDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[enumerated-real]]."
+  (^EmpiricalDistribution [] (empirical nil))
+  (^EmpiricalDistribution [{:keys [bin-count data rng]
+                            :or {data [1.0]}}]
+   (let [^doubles data (m/seq->double-array data)
+         bin-count (int (if (number? bin-count) bin-count (bins/freedman-diaconis data (alength data))))
+         ^RandomGenerator rng (or rng (JDKRandomGenerator.))
+         ^EmpiricalDistribution d (EmpiricalDistribution. bin-count rng)]
+     (.load d data)
+     d)))
+
+(add-distr-method empirical)
+
+(defn enumerated-real
+  "Creates an enumerated real distribution object over an explicit, finite set of double values.
+
+  The distribution puts all of its probability mass on the values listed in `data`. Each value's probability is given by the corresponding entry in `probabilities`, or, when `probabilities` is not supplied, all values are treated as equally likely. Repeated values in `data` accumulate probability mass.
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of doubles): the finite set of values the distribution can take. Default: `[1.0]`.
+  - `probabilities` (sequence of doubles): probability associated with each corresponding value in `data`; does not need to be normalized. Default: `nil`, meaning uniform probabilities.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns an `EnumeratedRealDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[enumerated-int]], [[empirical]]."
+  (^EnumeratedRealDistribution [] (enumerated-real nil))
+  (^EnumeratedRealDistribution [{:keys [data probabilities rng]
+                                 :or {data [1.0]}}]
+   (let [^RandomGenerator r (or rng (JDKRandomGenerator.))]
+     (if probabilities
+       (EnumeratedRealDistribution. r (m/seq->double-array data) (m/seq->double-array probabilities))
+       (EnumeratedRealDistribution. r ^doubles (m/seq->double-array data))))))
+
+(add-distr-method enumerated-real)
+
+(defn enumerated-int
+  "Creates an enumerated integer distribution object over an explicit, finite set of integer values.
+
+  The distribution puts all of its probability mass on the values listed in `data`. Each value's probability is given by the corresponding entry in `probabilities`, or, when `probabilities` is not supplied, all values are treated as equally likely. Repeated values in `data` accumulate probability mass.
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of longs): the finite set of values the distribution can take. Default: `[1]`.
+  - `probabilities` (sequence of doubles): probability associated with each corresponding value in `data`; does not need to be normalized. Default: `nil`, meaning uniform probabilities.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns an `EnumeratedIntegerDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[enumerated-real]], [[uniform-int]]."
+  (^EnumeratedIntegerDistribution [] (enumerated-int nil))
+  (^EnumeratedIntegerDistribution [{:keys [data probabilities rng]
+                                    :or {data [1]}}]
+   (let [^RandomGenerator r (or rng (JDKRandomGenerator.))]
+     (if probabilities
+       (EnumeratedIntegerDistribution. r (int-array data) (m/seq->double-array probabilities))
+       (EnumeratedIntegerDistribution. r (int-array data))))))
+
+(add-distr-method enumerated-int)
+
+(defn bernoulli
+  "Creates a Bernoulli distribution object.
+
+  The Bernoulli distribution is a discrete distribution over the two outcomes `0` and `1`, taking the value `1` with probability `p` and `0` with probability `(- 1.0 p)`. It is the special case of the [[binomial]] distribution with a single trial and is commonly used to model a single yes/no or success/failure event.
+
+  Parameters (single, optional map):
+
+  - `p` (double): probability of success (drawing `1`). Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `BinomialDistribution` object (with a single trial) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[binomial]], [[geometric]]."
+  (^BinomialDistribution [] (bernoulli nil))
+  (^BinomialDistribution [{:keys [^double p rng]
+                           :or {p 0.5}}]
+   (BinomialDistribution. (or rng (JDKRandomGenerator.)) 1 p)))
+
+(add-distr-method bernoulli)
+
+(defn binomial
+  "Creates a binomial distribution object.
+
+  The binomial distribution is a discrete distribution over the integers `0` to `trials`, giving the probability of observing a given number of successes out of `trials` independent yes/no experiments, each succeeding with probability `p`. It generalizes the [[bernoulli]] distribution to repeated trials.
+
+  Parameters (single, optional map):
+
+  - `trials` (long): number of independent trials. Default: `20`.
+  - `p` (double): probability of success on each trial. Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `BinomialDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[bernoulli]], [[pascal]], [[hypergeometric]]."
+  (^BinomialDistribution [] (binomial nil))
+  (^BinomialDistribution [{:keys [^long trials ^double p rng]
+                           :or {trials 20 p 0.5}}]
+   (BinomialDistribution. (or rng (JDKRandomGenerator.)) trials p)))
+
+(add-distr-method binomial)
+
+(defn geometric
+  "Creates a geometric distribution object.
+
+  The geometric distribution is a discrete distribution over the non-negative integers, modelling the number of failures before the first success in a sequence of independent yes/no trials, each succeeding with probability `p`. It is the discrete analogue of the [[exponential]] distribution.
+
+  Parameters (single, optional map):
+
+  - `p` (double): probability of success on each trial. Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `GeometricDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[bernoulli]], [[pascal]], [[exponential]]."
+  (^GeometricDistribution [] (geometric nil))
+  (^GeometricDistribution [{:keys [^double p rng]
+                            :or {p 0.5}}]
+   (GeometricDistribution. (or rng (JDKRandomGenerator.)) p)))
+
+(add-distr-method geometric)
+
+(defn hypergeometric
+  "Creates a hypergeometric distribution object.
+
+  The hypergeometric distribution is a discrete distribution modelling the number of successes obtained when drawing `sample-size` elements without replacement from a finite population of `population-size` elements, of which `number-of-successes` are considered successes. Unlike [[binomial]], draws are not independent since sampling is done without replacement.
+
+  Parameters (single, optional map):
+
+  - `population-size` (long): total size of the population being sampled from. Default: `100`.
+  - `number-of-successes` (long): number of success elements present in the population. Default: `50`.
+  - `sample-size` (long): number of elements drawn from the population without replacement. Default: `25`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `HypergeometricDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[binomial]], [[pascal]]."
+  (^HypergeometricDistribution [] (hypergeometric nil))
+  (^HypergeometricDistribution [{:keys [^long population-size ^long number-of-successes ^long sample-size rng]
+                                 :or {population-size 100 number-of-successes 50 sample-size 25}}]
+   (HypergeometricDistribution. (or rng (JDKRandomGenerator.)) population-size number-of-successes sample-size)))
+
+(add-distr-method hypergeometric)
+
+(defn pascal
+  "Creates a Pascal distribution object.
+
+  The Pascal distribution is a discrete distribution (a form of the negative binomial distribution) over the non-negative integers, modelling the number of failures observed before accumulating `r` successes in a sequence of independent yes/no trials, each succeeding with probability `p`. It generalizes the [[geometric]] distribution to more than one required success.
+
+  Parameters (single, optional map):
+
+  - `r` (long): number of successes to accumulate. Default: `20`.
+  - `p` (double): probability of success on each trial. Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `PascalDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[geometric]], [[binomial]], [[hypergeometric]]."
+  (^PascalDistribution [] (pascal nil))
+  (^PascalDistribution [{:keys [^long r ^double p rng]
+                         :or {r 20 p 0.5}}]
+   (PascalDistribution. (or rng (JDKRandomGenerator.)) r p)))
+
+(add-distr-method pascal)
+
+(defn poisson
+  "Creates a Poisson distribution object.
+
+  The Poisson distribution is a discrete distribution over the non-negative integers, modelling the number of events occurring in a fixed interval when events happen independently at a constant average rate. It is commonly used for count data, such as arrivals, defects or occurrences per unit of time or space.
+
+  Parameters (single, optional map):
+
+  - `p` (double): the distribution's rate parameter (mean number of events, traditionally denoted lambda). Default: `0.5`.
+  - `epsilon` (double): convergence criterion used internally when computing probabilities. Default: the implementation's default epsilon.
+  - `max-iterations` (long): maximum number of iterations used internally when computing probabilities. Default: the implementation's default maximum.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `PoissonDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[binomial]], [[exponential]]."
+  (^PoissonDistribution [] (poisson nil))
+  (^PoissonDistribution [{:keys [^double p ^double epsilon ^long max-iterations rng]
+                          :or {p 0.5 epsilon PoissonDistribution/DEFAULT_EPSILON max-iterations PoissonDistribution/DEFAULT_MAX_ITERATIONS}}]
+   (PoissonDistribution. (or rng (JDKRandomGenerator.)) p epsilon max-iterations)))
+
+(add-distr-method poisson)
+
+(defn uniform-int
+  "Creates a discrete uniform distribution object over the integers from `lower` to `upper`, inclusive.
+
+  Every integer in the `[lower, upper]` range is equally likely to be drawn. It is the discrete analogue of [[uniform-real]].
+
+  Parameters (single, optional map):
+
+  - `lower` (long): lowest value in the support, inclusive. Default: `0`.
+  - `upper` (long): highest value in the support, inclusive. Default: `Integer/MAX_VALUE`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `UniformIntegerDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-real]], [[enumerated-int]]."
+  (^UniformIntegerDistribution [] (uniform-int nil))
+  (^UniformIntegerDistribution [{:keys [^long lower ^long upper rng]
+                                 :or {lower 0 upper Integer/MAX_VALUE}}]
+   (UniformIntegerDistribution. (or rng (JDKRandomGenerator.)) lower upper)))
+
+(add-distr-method uniform-int)
+
+(defn zipf
+  "Creates a Zipf distribution object.
+
+  The Zipf distribution is a discrete distribution over the ranks `1` to `number-of-elements`, where the probability of rank `k` is proportional to `k` raised to the negative `exponent`. It is commonly used to model frequency data in which a small number of elements occur very often and the rest occur rarely, such as word frequencies in natural language or city population sizes.
+
+  Parameters (single, optional map):
+
+  - `number-of-elements` (long): number of elements `N`, ie. the highest rank in the distribution support. Default: `100`.
+  - `exponent` (double): exponent characterizing the distribution (also known as `s`); higher values make the distribution decay faster for higher ranks. Default: `3.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a `ZipfDistribution` object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[pascal]], [[geometric]], [[hypergeometric]]."
+  (^ZipfDistribution [] (zipf nil))
+  (^ZipfDistribution [{:keys [^long number-of-elements ^double exponent rng]
+                       :or {number-of-elements 100 exponent 3.0}}]
+   (ZipfDistribution. (or rng (JDKRandomGenerator.)) number-of-elements exponent)))
+
+(add-distr-method zipf)
+
+(defn multi-normal
+  "Creates a multivariate normal (Gaussian) distribution object.
+
+  The multivariate normal distribution is a continuous distribution over `n`-dimensional real vectors, generalizing the [[normal]] distribution to multiple, possibly correlated dimensions. It is fully described by a mean vector and a covariance matrix, and is central to multivariate statistics, sampling correlated random vectors, and many machine learning models.
+
+  Parameters (single, optional map):
+
+  - `means` (sequence of doubles): mean vector, one value per dimension. Default: `[0.0 0.0]`; when only `covariances` is supplied, defaults instead to a zero vector matching its dimension.
+  - `covariances` (sequence of sequences of doubles): covariance matrix; must be square, symmetric and positive semi-definite, with a dimension matching `means`. Default: the identity matrix sized to match `means` (a `2x2` identity matrix when neither `means` nor `covariances` is given).
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates a 2-dimensional standard normal distribution with zero means and identity covariance.
+
+  Throws an exception (`ex-info`) if the dimensions of `means` and `covariances` do not match each other.
+
+  Returns a `MultivariateNormalDistribution` object which can be used with [[pdf]], [[lpdf]], [[sample]], [[means]], [[covariance]] and other distribution protocol functions. Unlike univariate distributions, it exposes no `cdf` or `icdf`, and `[[sample]]` returns a vector rather than a scalar.
+
+  See also [[distribution]], [[normal]], [[means]], [[covariance]]."
+  ([] (multi-normal nil))
+  ([{:keys [means covariances rng]
+     :or {means [0.0 0.0]}}]
+   (let [covariances (cond
+                       (and means (not covariances)) (-> (mat/eye (count means) true)
+                                                         (mat/mat->array2d))
+                       (not covariances) [[1.0 0.0] [0.0 1.0]]
+                       :else covariances)
+         means (if-not means (repeat (count (first covariances)) 0.0) means)]
+     (when (not= (count means) (count (first covariances)) (count covariances)) (throw (ex-info "Means and covariances sizes do not match."
+                                                                                                {:means means :covariances covariances})))
+     (MultivariateNormalDistribution. (or rng (JDKRandomGenerator.)) (m/seq->double-array means) (m/seq->double-double-array covariances)))))
+
+(add-distr-method multi-normal)
+
+;; SSJ
+
+(defn anderson-darling
+  "Creates a distribution object for the Anderson-Darling goodness-of-fit test statistic.
+
+  Given a sample of `n` independent uniform(0,1) random variables, the Anderson-Darling statistic compares the sorted sample values against the ideal uniform distribution, weighting discrepancies in the tails more heavily than the Kolmogorov-Smirnov statistic does. This distribution describes the sampling distribution of that statistic for a sample of size `n`, and is used to obtain critical values or p-values when testing whether a sample follows a fully specified distribution.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `AndersonDarlingDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[anderson-darling-quick]]."
+  ([] (anderson-darling nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :anderson-darling (AndersonDarlingDist. n) rng [:n :rng])))
+
+(add-distr-method anderson-darling)
+
+(defn anderson-darling-quick
+  "Creates a distribution object for the Anderson-Darling goodness-of-fit test statistic, using a faster computation algorithm.
+
+  This is a variant of [[anderson-darling]] describing the same underlying statistic for a sample of size `n`, but relying on an alternative, quicker algorithm to evaluate the distribution's functions. It is preferable when the distribution has to be evaluated many times and computation speed matters more than using the original, reference algorithm.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `AndersonDarlingDistQuick` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[anderson-darling]]."
+  ([] (anderson-darling-quick nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :anderson-darling-quick (AndersonDarlingDistQuick. n) rng [:n :rng])))
+
+(add-distr-method anderson-darling-quick)
+
+(defn beta-symmetrical
+  "Creates a symmetrical beta distribution object.
+
+  The symmetrical beta distribution is a continuous distribution supported on the interval `[0, 1]`, the special case of the [[beta]] distribution where both shape parameters are equal to `alpha`. Being symmetrical, its density is centered and mirrored around `0.5`.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shared shape parameter, `alpha = beta` in the general beta distribution. Default: `2.0`.
+  - `d` (long): approximate number of decimal digits of precision used internally when computing the distribution, complementary distribution and inverse functions. Default: `14`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `BetaSymmetricalDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[beta]]."
+  ([] (beta-symmetrical nil))
+  ([{:keys [^double alpha ^long d rng]
+     :or {alpha 2.0 d 14}}]
+   (distr/ssj-continuous :beta-symmetrical (BetaSymmetricalDist. alpha d) rng [:alpha :d :rng])))
+
+(add-distr-method beta-symmetrical)
+
+(defn chi
+  "Creates a chi distribution object.
+
+  The chi distribution is a continuous distribution over non-negative reals, describing the distribution of the square root of a sum of squares of `nu` independent standard normal random variables. It generalizes the [[normal]] distribution's absolute value (for `nu` equal to `1`) and the Rayleigh distribution (for `nu` equal to `2`), and is related to the [[chi-squared]] distribution.
+
+  Parameters (single, optional map):
+
+  - `nu` (long): number of degrees of freedom, ie. the number of underlying standard normal variables. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `ChiDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[chi-squared]], [[normal]]."
+  ([] (chi nil))
+  ([{:keys [^long nu rng]
+     :or {nu 1}}]
+   (distr/ssj-continuous :chi (ChiDist. nu) rng [:nu :rng])))
+
+(add-distr-method chi)
+
+(defn chi-squared-noncentral
+  "Creates a noncentral chi-squared distribution object.
+
+  The noncentral chi-squared distribution is a continuous distribution over non-negative reals, generalizing the [[chi-squared]] distribution to the case where the underlying normal random variables have a nonzero, shared mean (encoded through the noncentrality parameter `lambda`). It is used, among others, in power calculations for chi-squared tests and in analyses involving sums of squares of non-centered normal variables.
+
+  Parameters (single, optional map):
+
+  - `nu` (double): number of degrees of freedom. Default: `1.0`.
+  - `lambda` (double): noncentrality parameter; `lambda` equal to `0.0` reduces the distribution to a central [[chi-squared]] distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `ChiSquareNoncentralDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[chi-squared]], [[chi]]."
+  ([] (chi-squared-noncentral nil))
+  ([{:keys [^double nu ^double lambda rng]
+     :or {nu 1.0 lambda 1.0}}]
+   (distr/ssj-continuous :chi-squared-noncentral (ChiSquareNoncentralDist. nu lambda) rng [:nu :lambda :rng])))
+
+(add-distr-method chi-squared-noncentral)
+
+(defn cramer-von-mises
+  "Creates a distribution object for the Cramer-von Mises goodness-of-fit test statistic.
+
+  Given a sample of `n` independent uniform(0,1) random variables, the Cramer-von Mises statistic measures the squared distance between the empirical distribution function of the sorted sample and the ideal uniform distribution. This distribution describes the sampling distribution of that statistic for a sample of size `n`, and is used to obtain critical values or p-values when testing whether a sample follows a fully specified distribution. Unlike most other SSJ-backed distributions here, it exposes no closed-form density, so its `pdf` is approximated numerically from the cumulative distribution function.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `CramerVonMisesDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[anderson-darling]], [[anderson-darling-quick]]."
+  ([] (cramer-von-mises nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous-no-pdf :cramer-von-mises (CramerVonMisesDist. n) rng [:n :rng])))
+
+(add-distr-method cramer-von-mises)
+
+(defn erlang
+  "Creates an Erlang distribution object.
+
+  The Erlang distribution is a continuous distribution over non-negative reals, describing the sum of `k` independent [[exponential]] random variables each with rate `lambda`. It is the special case of the [[gamma]] distribution restricted to an integer shape parameter, and commonly models waiting times for multiple sequential events, such as queueing systems.
+
+  Parameters (single, optional map):
+
+  - `k` (long): number of exponential stages summed together (shape parameter); must be a positive integer. Default: `2`.
+  - `lambda` (double): rate parameter of each underlying exponential stage. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `ErlangDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[exponential]], [[gamma]]."
+  ([] (erlang nil))
+  ([{:keys [^long k ^double lambda rng]
+     :or {k 2 lambda 1.0}}]
+   (distr/ssj-continuous :erlang (ErlangDist. k lambda) rng [:k :lambda :rng])))
+
+(add-distr-method erlang)
+
+(defn fatigue-life
+  "Creates a fatigue life (Birnbaum-Saunders) distribution object.
+
+  The fatigue life distribution is a continuous distribution over reals greater than `alpha`, originally derived to model the time to failure of materials under cyclic stress caused by crack growth. It is constructed from a transformation of a standard normal random variable and is widely used in reliability and survival analysis.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `beta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `gamma` (double): shape parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `FatigueLifeDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[weibull]], [[normal]]."
+  ([] (fatigue-life nil))
+  ([{:keys [^double alpha ^double beta ^double gamma rng]
+     :or {alpha 0.0 beta 1.0 gamma 1.0}}]
+   (distr/ssj-continuous :fatigue-life (FatigueLifeDist. alpha beta gamma) rng [:alpha :beta :gamma :rng])))
+
+(add-distr-method fatigue-life)
+
+(defn folded-normal
+  "Creates a folded normal distribution object.
+
+  The folded normal distribution is a continuous distribution over non-negative reals, describing the distribution of the absolute value of a [[normal]] random variable with mean `mu` and standard deviation `sigma`. It is used, among others, to model measurement magnitudes or absolute errors when only the size, not the sign, of an underlying normally distributed quantity can be observed.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the underlying normal distribution, before folding. Default: `0.0`.
+  - `sigma` (double): standard deviation of the underlying normal distribution; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `FoldedNormalDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[half-normal]]."
+  ([] (folded-normal nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 0.0 sigma 1.0}}]
+   (distr/ssj-continuous :folded-normal (FoldedNormalDist. mu sigma) rng [:mu :sigma :rng])))
+
+(add-distr-method folded-normal)
+
+(defn frechet
+  "Creates a Frechet distribution object.
+
+  The Frechet distribution is a continuous, heavy-tailed distribution supported on `(delta, Infinity)`, one of the three families of extreme value distributions (the type II extreme value distribution). It commonly models the maximum of a number of samples, such as extreme rainfall, flood levels or maximum returns in finance.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shape parameter; must be positive. Default: `1.0`.
+  - `beta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `delta` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `FrechetDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gumbel]], [[weibull]], [[pareto]]."
+  ([] (frechet nil))
+  ([{:keys [^double alpha ^double beta ^double delta rng]
+     :or {alpha 1.0 beta 1.0 delta 0.0}}]
+   (distr/ssj-continuous :frechet (FrechetDist. alpha beta delta) rng [:alpha :beta :delta :rng])))
+
+(add-distr-method frechet)
+
+(defn half-normal
+  "Creates a half-normal distribution object.
+
+  The half-normal distribution is a continuous distribution over reals not less than `mu`, obtained by folding a [[normal]] distribution at its location `mu` and keeping only the non-negative half. It is the one-sided special case of the [[folded-normal]] distribution and is often used to model magnitudes or absolute errors that cannot be negative.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `sigma` (double): scale parameter, related to the spread of the distribution; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `HalfNormalDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[folded-normal]], [[normal]], [[chi]]."
+  ([] (half-normal nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 0.0 sigma 1.0}}]
+   (distr/ssj-continuous :half-normal (HalfNormalDist. mu sigma) rng [:mu :sigma :rng])))
+
+(add-distr-method half-normal)
+
+(defn hyperbolic-secant
+  "Creates a hyperbolic secant distribution object.
+
+  The hyperbolic secant distribution is a continuous, symmetric, bell-shaped distribution whose density is proportional to the hyperbolic secant of the standardized variable. Its shape lies between the [[normal]] and [[cauchy]] distributions: it is more peaked and has slightly heavier tails than the normal distribution, while remaining much lighter-tailed than the Cauchy distribution.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the center of the distribution. Default: `0.0`.
+  - `sigma` (double): scale parameter, controlling the spread of the distribution; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `HyperbolicSecantDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[logistic]], [[cauchy]]."
+  ([] (hyperbolic-secant nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 0.0 sigma 1.0}}]
+   (distr/ssj-continuous :hyperbolic-secant (HyperbolicSecantDist. mu sigma) rng [:mu :sigma :rng])))
+
+(add-distr-method hyperbolic-secant)
+
+(defn hypoexponential-equal
+  "Creates a hypoexponential distribution object with equally spaced rates.
+
+  The hypoexponential distribution describes the sum of independent [[exponential]] random variables (phases), possibly with different rates. This variant models the sum of `k` phases whose rates are equally spaced with common difference `h`, out of `n` available equally spaced rates (with `n` at least `k`); it is a compact way to specify such a distribution without listing every individual rate, useful for approximating other positive-valued distributions in queueing and reliability models.
+
+  Parameters (single, optional map):
+
+  - `n` (long): total number of equally spaced rates the distribution is built from; must be at least `k`. Default: `1`.
+  - `k` (long): number of phases, out of the `n` available, that are summed together. Default: `1`.
+  - `h` (double): common spacing between consecutive rates. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `HypoExponentialDistEqual` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[hypoexponential]], [[erlang]], [[exponential]]."
+  ([] (hypoexponential-equal nil))
+  ([{:keys [^long n ^long k ^double h rng]
+     :or {n 1 k 1 h 1.0}}]
+   (distr/ssj-continuous :hypoexponential-equal (HypoExponentialDistEqual. n k h) rng [:n :k :h :rng])))
+
+(add-distr-method hypoexponential-equal)
+
+(defn hypoexponential
+  "Creates a hypoexponential distribution object with explicit rates.
+
+  The hypoexponential distribution is a continuous distribution over non-negative reals, describing the sum of independent [[exponential]] random variables, one for each rate listed in `lambdas`. Unlike the [[erlang]] distribution, the rates need not be equal, which lets the distribution capture more general shapes for multi-stage processes such as sequential tasks or phase-type service times.
+
+  Parameters (single, optional map):
+
+  - `lambdas` (sequence of doubles): rate of each independent exponential phase summed together. Default: `[1.0]`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `HypoExponentialDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[hypoexponential-equal]], [[erlang]], [[exponential]]."
+  ([] (hypoexponential nil))
+  ([{:keys [lambdas rng]
+     :or {lambdas [1.0]}}]
+   (distr/ssj-continuous :hypoexponential (HypoExponentialDist. (m/seq->double-array lambdas))
+                         rng [:lambdas :rng])))
+
+(add-distr-method hypoexponential)
+
+(defn inverse-gamma
+  "Creates an inverse gamma distribution object.
+
+  The inverse gamma distribution is a continuous distribution over positive reals, describing the distribution of the reciprocal of a [[gamma]]-distributed random variable. It is commonly used as a conjugate prior for the variance parameter of a normal distribution in Bayesian statistics.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shape parameter; must be positive. Default: `1.0`.
+  - `beta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `InverseGammaDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]]."
+  ([] (inverse-gamma nil))
+  ([{:keys [^double alpha ^double beta rng]
+     :or {alpha 1.0 beta 1.0}}]
+   (distr/ssj-continuous :inverse-gamma (InverseGammaDist. alpha beta) rng [:alpha :beta :rng])))
+
+(add-distr-method inverse-gamma)
+
+(defn inverse-gaussian
+  "Creates an inverse Gaussian (Wald) distribution object.
+
+  The inverse Gaussian distribution is a continuous distribution over positive reals, describing, among other interpretations, the first passage time of a Brownian motion with positive drift towards a fixed positive threshold. Despite its name, it is not obtained by inverting the [[normal]] distribution's cdf, but rather because its cumulant generating function is the functional inverse of that of the normal distribution.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the distribution; must be positive. Default: `1.0`.
+  - `lambda` (double): shape parameter, controlling how concentrated the distribution is around its mean; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `InverseGaussianDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]], [[normal]]."
+  ([] (inverse-gaussian nil))
+  ([{:keys [^double mu ^double lambda rng]
+     :or {mu 1.0 lambda 1.0}}]
+   (distr/ssj-continuous :inverse-gaussian (InverseGaussianDist. mu lambda) rng [:mu :lambda :rng])))
+
+(add-distr-method inverse-gaussian)
+
+(defn johnson-sb
+  "Creates a Johnson SB (bounded) distribution object.
+
+  The Johnson SB distribution is a continuous, four-parameter distribution supported on the bounded interval `(xi, xi + lambda)`, obtained by applying a logit-like transformation to a standard normal random variable. It belongs to the flexible Johnson system of distributions, alongside [[johnson-sl]] and [[johnson-su]], and can approximate a wide range of bounded, possibly skewed shapes by fitting its shape parameters to observed data.
+
+  Parameters (single, optional map):
+
+  - `gamma` (double): first shape parameter, controlling skewness. Default: `0.0`.
+  - `delta` (double): second shape parameter; must be positive. Default: `1.0`.
+  - `xi` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `lambda` (double): scale parameter, the width of the support; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `JohnsonSBDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[johnson-sl]], [[johnson-su]], [[beta]]."
+  ([] (johnson-sb nil))
+  ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
+     :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
+   (distr/ssj-continuous :johnson-sb (JohnsonSBDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+
+(add-distr-method johnson-sb)
+
+(defn johnson-sl
+  "Creates a Johnson SL (log-normal, semi-bounded) distribution object.
+
+  The Johnson SL distribution is a continuous, four-parameter distribution supported on the semi-bounded interval `(xi, Infinity)`, obtained by applying a logarithmic transformation to a standard normal random variable; it is equivalent to a shifted and rescaled [[log-normal]] distribution. It belongs to the Johnson system of distributions, alongside [[johnson-sb]] and [[johnson-su]].
+
+  Parameters (single, optional map):
+
+  - `gamma` (double): first shape parameter, controlling skewness. Default: `0.0`.
+  - `delta` (double): second shape parameter; must be positive. Default: `1.0`.
+  - `xi` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `lambda` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `JohnsonSLDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[johnson-sb]], [[johnson-su]], [[log-normal]]."
+  ([] (johnson-sl nil))
+  ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
+     :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
+   (distr/ssj-continuous :johnson-sl (JohnsonSLDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+
+(add-distr-method johnson-sl)
+
+(defn johnson-su
+  "Creates a Johnson SU (unbounded) distribution object.
+
+  The Johnson SU distribution is a continuous, four-parameter distribution supported on the whole real line, obtained by applying an inverse hyperbolic sine transformation to a standard normal random variable. It belongs to the Johnson system of distributions, alongside [[johnson-sb]] and [[johnson-sl]], and its flexible shape makes it useful for fitting skewed or heavy-tailed data that a plain [[normal]] distribution cannot capture.
+
+  Parameters (single, optional map):
+
+  - `gamma` (double): first shape parameter, controlling skewness. Default: `0.0`.
+  - `delta` (double): second shape parameter; must be positive. Default: `1.0`.
+  - `xi` (double): location parameter. Default: `0.0`.
+  - `lambda` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `JohnsonSUDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[johnson-sb]], [[johnson-sl]], [[normal]]."
+  ([] (johnson-su nil))
+  ([{:keys [^double gamma ^double delta ^double xi ^double lambda rng]
+     :or {gamma 0.0 delta 1.0 xi 0.0 lambda 1.0}}]
+   (distr/ssj-continuous :johnson-su (JohnsonSUDist. gamma delta xi lambda) rng [:gamma :delta :xi :lambda :rng])))
+
+(add-distr-method johnson-su)
+
+(defn kolmogorov-smirnov
+  "Creates a distribution object for the (two-sided) Kolmogorov-Smirnov goodness-of-fit test statistic.
+
+  Given a sample of `n` independent uniform(0,1) random variables, the Kolmogorov-Smirnov statistic measures the largest absolute distance between the empirical distribution function of the sorted sample and the ideal uniform distribution. This distribution describes the sampling distribution of that statistic for a sample of size `n`, and is used to obtain critical values or p-values when testing whether a sample follows a fully specified distribution.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `KolmogorovSmirnovDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[kolmogorov-smirnov+]], [[kolmogorov-smirnov-quick]], [[anderson-darling]], [[cramer-von-mises]]."
+  ([] (kolmogorov-smirnov nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :kolmogorov-smirnov (KolmogorovSmirnovDist. n) rng [:n :rng])))
+
+(add-distr-method kolmogorov-smirnov)
+
+(defn kolmogorov-smirnov+
+  "Creates a distribution object for the one-sided Kolmogorov-Smirnov (D+) goodness-of-fit test statistic.
+
+  This is the one-sided variant of [[kolmogorov-smirnov]], describing the sampling distribution of the largest positive (rather than absolute) deviation between the empirical distribution function of a sample of `n` independent uniform(0,1) variables and the ideal uniform distribution. It is sensitive to departures where the empirical distribution lies above the hypothesized one.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `KolmogorovSmirnovPlusDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[kolmogorov-smirnov]], [[kolmogorov-smirnov-quick]]."
+  ([] (kolmogorov-smirnov+ nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :kolmogorov-smirnov+ (KolmogorovSmirnovPlusDist. n) rng [:n :rng])))
+
+(add-distr-method kolmogorov-smirnov+)
+
+(defn kolmogorov-smirnov-quick
+  "Creates a distribution object for the (two-sided) Kolmogorov-Smirnov goodness-of-fit test statistic, using a faster computation algorithm.
+
+  This is a variant of [[kolmogorov-smirnov]] describing the same underlying statistic for a sample of size `n`, but relying on an alternative, quicker algorithm to evaluate the distribution's functions, similar in spirit to [[anderson-darling-quick]].
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `KolmogorovSmirnovDistQuick` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[kolmogorov-smirnov]], [[kolmogorov-smirnov+]]."
+  ([] (kolmogorov-smirnov-quick nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :kolmogorov-smirnov-quick (KolmogorovSmirnovDistQuick. n) rng [:n :rng])))
+
+(add-distr-method kolmogorov-smirnov-quick)
+
+(defn kolmogorov
+  "Creates a Kolmogorov distribution object.
+
+  The Kolmogorov distribution is a continuous, parameter-free distribution over positive reals equal to the limiting distribution of `(* (m/sqrt n) (kolmogorov-smirnov n))` as `n` grows to infinity, that is, of the scaled two-sided Kolmogorov-Smirnov statistic; equivalently, it is the distribution of the supremum of the absolute value of a standard Brownian bridge on `[0, 1]`. It underlies the asymptotic (large-sample) Kolmogorov-Smirnov goodness-of-fit test, used when the exact, finite-sample distribution given by [[kolmogorov-smirnov]] is impractical to compute.
+
+  Parameters (single, optional map):
+
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[kolmogorov-smirnov]], [[kolmogorov-smirnov-quick]], [[kolmogorov-smirnov+]]."
+  ([] (kolmogorov nil))
+  ([{:keys [rng]}]
+   (distr/kolmogorov rng)))
+
+(add-distr-method kolmogorov)
+
+(defn log-logistic
+  "Creates a log-logistic (Fisk) distribution object.
+
+  The log-logistic distribution is a continuous distribution over positive reals whose logarithm follows a [[logistic]] distribution. It resembles the [[log-normal]] and [[weibull]] distributions in shape and is commonly used in survival analysis and to model income and other positively-skewed data, since, unlike the Weibull distribution, its hazard function can be non-monotonic.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): scale parameter; must be positive. Default: `1.0`.
+  - `beta` (double): shape parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `LoglogisticDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[logistic]], [[log-normal]], [[weibull]]."
+  ([] (log-logistic nil))
+  ([{:keys [^double alpha ^double beta rng]
+     :or {alpha 1.0 beta 1.0}}]
+   (distr/ssj-continuous :log-logistic (LoglogisticDist. alpha beta) rng [:alpha :beta :rng])))
+
+(add-distr-method log-logistic)
+
+(defn normal-inverse-gaussian
+  "Creates a normal-inverse Gaussian distribution object.
+
+  The normal-inverse Gaussian distribution is a continuous, heavy-tailed distribution over the whole real line, constructed as a normal-variance mixture where the mixing variance follows an [[inverse-gaussian]] distribution. It can flexibly model both skewness and excess kurtosis and is widely used in finance to model asset returns.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): tail heaviness parameter; must be positive. Default: `1.0`.
+  - `beta` (double): asymmetry parameter; must satisfy `(< (m/abs beta) alpha)`. Default: `0.0`.
+  - `mu` (double): location parameter. Default: `0.0`.
+  - `delta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `NormalInverseGaussianDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[inverse-gaussian]], [[normal]]."
+  ([] (normal-inverse-gaussian nil))
+  ([{:keys [^double alpha ^double beta ^double mu ^double delta rng]
+     :or {alpha 1.0 beta 0.0 mu 0.0 delta 1.0}}]
+   (distr/ssj-continuous :normal-inverse-gaussian (NormalInverseGaussianDist. alpha beta mu delta) rng
+                         [:alpha :beta :mu :delta :rng])))
+
+(add-distr-method normal-inverse-gaussian)
+
+(defn pearson-6
+  "Creates a Pearson type VI distribution object.
+
+  The Pearson type VI distribution (also known as the scaled beta distribution of the second kind) is a continuous distribution over positive reals, shaped by two shape parameters `alpha1` and `alpha2` and a scale parameter `beta`. It is related to the [[f]] and [[beta]] distributions through a change of variables, and is used, among others, to model positive, right-skewed quantities.
+
+  Parameters (single, optional map):
+
+  - `alpha1` (double): first shape parameter; must be positive. Default: `1.0`.
+  - `alpha2` (double): second shape parameter; must be positive. Default: `1.0`.
+  - `beta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `Pearson6Dist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[beta]], [[f]], [[gamma]]."
+  ([] (pearson-6 nil))
+  ([{:keys [^double alpha1 ^double alpha2 ^double beta rng]
+     :or {alpha1 1.0 alpha2 1.0 beta 1.0}}]
+   (distr/ssj-continuous :pearson-6 (Pearson6Dist. alpha1 alpha2 beta) rng
+                         [:alpha1 :alpha2 :beta :rng])))
+
+(add-distr-method pearson-6)
+
+(defn power
+  "Creates a power-function distribution object.
+
+  The power-function distribution is a continuous distribution over the bounded interval `[a, b]`, whose cumulative distribution function grows as the `c`-th power of the normalized position within the interval. It generalizes the [[uniform-real]] distribution, recovered when `c` is equal to `1.0`, and provides a simple way to model quantities concentrated towards one end of a bounded range.
+
+  Parameters (single, optional map):
+
+  - `a` (double): lower bound of the support. Default: `0.0`.
+  - `b` (double): upper bound of the support. Default: `1.0`.
+  - `c` (double): shape parameter, controlling how the density concentrates near `b` (for values greater than `1.0`) or near `a` (for values less than `1.0`); must be positive. Default: `2.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `PowerDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-real]], [[triangular]]."
+  ([] (power nil))
+  ([{:keys [^double a ^double b ^double c rng]
+     :or {a 0.0 b 1.0 c 2.0}}]
+   (distr/ssj-continuous :power (PowerDist. a b c) rng
+                         [:a :b :c :rng])))
+
+(add-distr-method power)
+
+(defn rayleigh
+  "Creates a Rayleigh distribution object.
+
+  The Rayleigh distribution is a continuous distribution over reals not less than `a`, arising as the magnitude of a two-dimensional vector whose components are independent, identically-distributed, zero-mean normal random variables. It is commonly used to model wind speeds, wave heights and the magnitude of radio signals affected by multipath fading.
+
+  Parameters (single, optional map):
+
+  - `a` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `beta` (double): scale parameter; must be positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `RayleighDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[chi]], [[weibull]], [[normal]]."
+  ([] (rayleigh nil))
+  ([{:keys [^double a ^double beta rng]
+     :or {a 0.0 beta 1.0}}]
+   (distr/ssj-continuous :rayleigh (RayleighDist. a beta) rng
+                         [:a :beta :rng])))
+
+(add-distr-method rayleigh)
+
+(defn watson-g
+  "Creates a distribution object for the Watson G goodness-of-fit test statistic.
+
+  The Watson G statistic is a variant of the [[kolmogorov-smirnov]] statistic adjusted to be invariant to the choice of origin, making it especially suited for testing goodness-of-fit on circular (directional) data, such as angles or times of day. This distribution describes the sampling distribution of that statistic for a sample of size `n`.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `WatsonGDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[watson-u]], [[kolmogorov-smirnov]]."
+  ([] (watson-g nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :watson-g (WatsonGDist. n) rng [:n :rng])))
+
+(add-distr-method watson-g)
+
+(defn watson-u
+  "Creates a distribution object for the Watson U-squared goodness-of-fit test statistic.
+
+  The Watson U-squared statistic is a variant of the [[cramer-von-mises]] statistic adjusted to be invariant to the choice of origin, making it especially suited for testing goodness-of-fit on circular (directional) data, such as angles or times of day. This distribution describes the sampling distribution of that statistic for a sample of size `n`.
+
+  Parameters (single, optional map):
+
+  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `WatsonUDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[watson-g]], [[cramer-von-mises]]."
+  ([] (watson-u nil))
+  ([{:keys [^long n rng]
+     :or {n 1}}]
+   (distr/ssj-continuous :watson-u (WatsonUDist. n) rng [:n :rng])))
+
+(add-distr-method watson-u)
+
+(defn multinomial
+  "Creates a multinomial distribution object.
+
+  The multinomial distribution is a discrete, multivariate distribution generalizing the [[binomial]] distribution to more than two possible outcomes: it describes the counts of each of several categories obtained from `n` independent trials, where each trial falls into category `i` with probability `ps[i]`. It is commonly used to model counts of outcomes across multiple categories, such as votes for several candidates or colors drawn from a bag.
+
+  Parameters (single, optional map):
+
+  - `n` (long): number of independent trials distributed among the categories. Default: `1`.
+  - `ps` (sequence of doubles): relative probability of each category; does not need to sum to `1.0`, since values are normalized internally. Default: `[1]`, a single, certain category.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object (backed by the SSJ `MultinomialDist` class), with as many dimensions as there are entries in `ps`, which can be used with [[pdf]], [[cdf]], [[sample]], [[means]], [[covariance]] and other distribution protocol functions. Each value returned by `sample` (and accepted by `pdf`/`cdf`) is a vector of non-negative integer counts summing to `n`, one per category. Unlike univariate distributions, it exposes no `icdf`, `mean` or `variance`.
+
+  See also [[distribution]], [[binomial]], [[multi-normal]]."
+  ([] (multinomial nil))
+  ([{:keys [^long n ps rng]
+     :or {n 1 ps [1]}}]
+   (distr/multinomial n ps binomial rng)))
+
+(add-distr-method multinomial)
+
+;; custom
+
+(defn dirichlet
+  "Creates a Dirichlet distribution object.
+
+  The Dirichlet distribution is a continuous, multivariate distribution over the open probability simplex, ie. over vectors of positive values summing to `1.0`, generalizing the [[beta]] distribution to more than two categories. It is commonly used as a prior over probability vectors in Bayesian statistics, for example over the category probabilities of a [[multinomial]] distribution.
+
+  Parameters (single, optional map):
+
+  - `alpha` (sequence of doubles, or long): concentration parameter for each dimension of the simplex. Larger values concentrate samples closer to the uniform point, smaller values push mass towards the corners of the simplex. When given as a plain integer `n`, it is treated as a symmetric Dirichlet distribution with `n` dimensions, each with concentration `1.0` (ie. uniform over the simplex). Default: `[1 1]`, ie. uniform over the 2-dimensional simplex.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object, with as many dimensions as entries in `alpha`, which can be used with [[pdf]], [[lpdf]], [[sample]], [[means]], [[covariance]] and other distribution protocol functions. Sampled vectors, and the values accepted by `pdf`/`lpdf`, are vectors of positive doubles summing (approximately) to `1.0`. Unlike univariate distributions, it exposes no `cdf`, `icdf`, `mean` or `variance`.
+
+  See also [[distribution]], [[beta]], [[multinomial]], [[gamma]]."
+  ([] (dirichlet nil))
+  ([{:keys [alpha rng]
+     :or {alpha [1 1]}}]
+   (distr/dirichlet alpha gamma rng)))
+
+(add-distr-method dirichlet)
+
+(defn continuous-distribution
+  "Creates a continuous distribution object estimated from a sample of `data` using kernel density estimation (KDE).
+
+  Rather than assuming a parametric family, this builds a smooth, nonparametric estimate of the underlying density from `data` using a chosen kernel and bandwidth (see [[fastmath.kernel.density]]), then numerically integrates it to obtain matching `cdf` and `icdf` functions. It is useful for approximating an unknown continuous distribution directly from observations, offering a smoother alternative to [[empirical]].
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of doubles): sample used to estimate the density. Default: `[-1 0 1]`.
+  - `kde` (keyword or function): kernel used for the density estimation, either a keyword naming a kernel (eg. `:epanechnikov`, `:gaussian`) or a custom kernel function; see [[fastmath.kernel.density/kernel-density]]. Default: `:epanechnikov`.
+  - `bandwidth` (double or keyword): bandwidth used by the kernel density estimator; either a fixed positive number or one of `:nrd`, `:nrd0`, `:nrd-adjust`, `:rlcv`, `:lcv`, `:lscv` to infer it from `data`. Default: inferred automatically.
+  - `steps` (long): number of subintervals used when numerically integrating the density into a `cdf`/`icdf` pair, see [[integrate-pdf]]. Default: `5000`.
+  - `interpolator` (keyword or function): interpolation method used between the integrated `cdf`/`icdf` points; one of `:linear`, `:cubic`, `:monotone`, or a custom function. Default: `:linear`.
+  - `rng`: random number generator used for sampling.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[kde]], [[empirical]], [[enumerated-real]]."
+  ([] (continuous-distribution nil))
+  ([options]
+   (distr/continuous-distribution (merge {:data [-1 0 1] :steps 5000 :kde :epanechnikov :rng (:rng options)} options))))
+
+(add-distr-method continuous-distribution)
+
+(defn kde
+  "Creates a continuous distribution object estimated from a sample of data using kernel density estimation (KDE).
+
+  Alias for [[continuous-distribution]]; see its docstring for the accepted parameters (`:data`, `:kde`, `:bandwidth`, `:steps`, `:interpolator`, `:rng`) and their defaults.
+
+  See also [[distribution]], [[continuous-distribution]], [[empirical]]."
+  ([] (kde nil))
+  ([options] (continuous-distribution options)))
+
+(add-distr-method kde)
+
+(defn negative-binomial
+  "Creates a negative binomial distribution object.
+
+  The negative binomial distribution is a discrete distribution over the non-negative integers, modelling the number of failures observed before accumulating `r` successes in a sequence of independent yes/no trials, each succeeding with probability `p`. Unlike [[pascal]], which is restricted to an integer number of successes, `r` here may be any positive real number (a generalized, or Polya, negative binomial distribution).
+
+  Parameters (single, optional map):
+
+  - `r` (double): number of successes to accumulate; need not be an integer. Default: `20`.
+  - `p` (double): probability of success on each trial. Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[pascal]], [[geometric]], [[binomial]]."
+  ([] (negative-binomial nil))
+  ([{:keys [^long r ^double p rng]
+     :or {r 20 p 0.5}}]
+   (distr/negative-binomial r p rng)))
+
+(add-distr-method negative-binomial)
+
+(defn logarithmic
+  "Creates a logarithmic (log-series) distribution object.
+
+  The logarithmic distribution is a discrete distribution over the positive integers `1, 2, 3, ...`, whose probability mass decays proportionally to `(/ (m/pow p k) k)`. It was introduced by Fisher to model species-abundance data (the number of species represented by a given number of individuals) and is also used to build the negative binomial distribution as a Poisson mixture.
+
+  Parameters (single, optional map):
+
+  - `p` (double): shape parameter, strictly between `0.0` and `1.0`; larger values give a heavier tail. Default: `0.5`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[geometric]], [[negative-binomial]]."
+  ([] (logarithmic nil))
+  ([{:keys [^double p rng]
+     :or {p 0.5}}]
+   (distr/logarithmic p rng)))
+
+(add-distr-method logarithmic)
+
+;;
+
+(defn half-cauchy
+  "Creates a half-Cauchy distribution object.
+
+  The half-Cauchy distribution is the continuous distribution of the absolute deviation `(- x mu)` of a Cauchy-distributed variable restricted to values not below `mu`, i.e. the right half of a Cauchy distribution centered at `mu` and folded onto `[mu, ##Inf]`. Like the Cauchy distribution, it is heavy-tailed, and it is commonly used as a weakly informative prior for scale parameters in Bayesian modelling.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter, the lower bound of the support. Default: `0.0`.
+  - `scale` (double): scale parameter controlling the spread of the distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Density is `0.0` for `x` below `mu`. Mean and variance are undefined (`##NaN`), since they are undefined for the parent Cauchy distribution.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[cauchy]], [[half-normal]], [[levy]]."
+  ([] (half-cauchy nil))
+  ([{:keys [^double mu ^double scale rng]
+     :or {mu 0.0 scale 1.0}}]
+   (distr/half-cauchy mu scale rng)))
+
+(add-distr-method half-cauchy)
+
+;;
+
+(defn integer-discrete-distribution
+  "Creates a discrete distribution object over a fixed, finite set of integer values.
+
+  Given a collection of `data` values and matching `probabilities`, the resulting probability mass function assigns to each distinct value the sum of the weights of its occurrences, normalized to sum to `1.0`. It is a general way to build an arbitrary discrete distribution from a user-supplied support and mass, as opposed to distributions parameterized analytically, such as [[poisson]] or [[binomial]].
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of longs): finite integer support of the distribution; repeated values accumulate probability mass. Default: `[1]`.
+  - `probabilities` (sequence of doubles): weight associated with each element of `data`, in the same order; weights need not sum to `1.0`, as they are normalized internally. Default: equal weight for every element of `data`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values, a degenerate distribution concentrated on `1`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[integer-discrete]], [[real-discrete-distribution]], [[categorical-distribution]], [[enumerated-int]]."
+  ([] (integer-discrete-distribution nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1]}}]
+   (distr/integer-discrete-distribution data probabilities rng)))
+
+(add-distr-method integer-discrete-distribution)
+
+(defn integer-discrete
+  "Creates a discrete distribution object over a fixed, finite set of integer values.
+
+  Alias for [[integer-discrete-distribution]]; see its docstring for the accepted parameters (`:data`, `:probabilities`, `:rng`) and their defaults.
+
+  See also [[distribution]], [[integer-discrete-distribution]]."
+  ([] (integer-discrete nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1]}}]
+   (distr/integer-discrete-distribution data probabilities rng)))
+
+(add-distr-method integer-discrete)
+
+(defn real-discrete-distribution
+  "Creates a discrete distribution object over a fixed, finite set of real (double) values.
+
+  Given a collection of `data` values and matching `probabilities`, the resulting probability mass function assigns to each distinct value the sum of the weights of its occurrences, normalized to sum to `1.0`. It is the real-valued counterpart of [[integer-discrete-distribution]], useful for building an arbitrary discrete distribution over a fixed, non-integer support.
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of doubles): finite support of the distribution; repeated values accumulate probability mass. Default: `[1.0]`.
+  - `probabilities` (sequence of doubles): weight associated with each element of `data`, in the same order; weights need not sum to `1.0`, as they are normalized internally. Default: equal weight for every element of `data`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values, a degenerate distribution concentrated on `1.0`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[real-discrete]], [[integer-discrete-distribution]], [[categorical-distribution]], [[enumerated-real]]."
+  ([] (real-discrete-distribution nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1.0]}}]
+   (distr/real-discrete-distribution data probabilities rng)))
+
+(add-distr-method real-discrete-distribution)
+
+(defn real-discrete
+  "Creates a discrete distribution object over a fixed, finite set of real (double) values.
+
+  Alias for [[real-discrete-distribution]]; see its docstring for the accepted parameters (`:data`, `:probabilities`, `:rng`) and their defaults.
+
+  See also [[distribution]], [[real-discrete-distribution]]."
+  ([] (real-discrete nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1.0]}}]
+   (distr/real-discrete-distribution data probabilities rng)))
+
+(add-distr-method real-discrete)
+
+(defn categorical-distribution
+  "Creates a discrete distribution object over an arbitrary, finite set of category values.
+
+  Given a collection of `data` values of any type, such as keywords, strings or numbers, and matching `probabilities`, the resulting probability mass function assigns to each distinct value the sum of the weights of its occurrences, normalized to sum to `1.0`. 
+
+  Parameters (single, optional map):
+
+  - `data` (sequence of any values): finite support of the distribution, not necessarily numeric; repeated values accumulate probability mass. Default: `[1]`.
+  - `probabilities` (sequence of doubles): weight associated with each element of `data`, in the same order; weights need not sum to `1.0`, as they are normalized internally. Default: equal weight for every element of `data`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values, a degenerate distribution concentrated on `1`.
+
+  Mean and variance are undefined (`##NaN`), since the support is not necessarily numeric.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]] and [[sample]].
+
+  See also [[distribution]], [[categorical]], [[integer-discrete-distribution]], [[real-discrete-distribution]]."
+  ([] (categorical-distribution nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1]}}]
+   (distr/categorical-distribution data probabilities rng)))
+
+(add-distr-method categorical-distribution)
+
+(defn categorical
+  "Creates a discrete distribution object over an arbitrary, finite set of category values.
+
+  Alias for [[categorical-distribution]]; see its docstring for the accepted parameters (`:data`, `:probabilities`, `:rng`) and their defaults.
+
+  See also [[distribution]], [[categorical-distribution]]."
+  ([] (categorical nil))
+  ([{:keys [data probabilities rng]
+     :or {data [1]}}]
+   (distr/categorical-distribution data probabilities rng)))
+
+(add-distr-method categorical)
+
+(defn fishers-noncentral-hypergeometric
+  "Creates Fisher's noncentral hypergeometric distribution object.
+
+  Fisher's noncentral hypergeometric distribution is a discrete distribution over the number of successes obtained when drawing `n` elements without replacement from a finite population of `ns` success and `nf` failure elements, in which each success element is `omega` times as likely as a failure element to be included among the draws. Equivalently, it is the conditional distribution of one cell of a 2x2 contingency table given both of its margins and an odds ratio `omega`. Setting `omega` to `1.0` recovers the ordinary [[hypergeometric]] distribution. It arises in exact tests and confidence intervals for the odds ratio of a 2x2 table, such as Fisher's exact test.
+
+  Parameters (single, optional map):
+
+  - `ns` (long): number of success elements in the population. Default: `5`.
+  - `nf` (long): number of failure elements in the population. Default: `5`.
+  - `n` (long): number of elements drawn without replacement. Default: `5`.
+  - `omega` (double): odds ratio, the relative likelihood of a success versus a failure element being among the draws; `1.0` corresponds to the ordinary hypergeometric distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  The support is the integer range from `(max 0 (- n nf))` to `(min ns n)`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[wallenius-noncentral-hypergeometric]], [[hypergeometric]]."
+  ([] (fishers-noncentral-hypergeometric nil))
+  ([{:keys [^long ns ^long nf ^long n ^double omega rng]
+     :or {ns 5 nf 5 n 5 omega 1.0}}]
+   (distr/fishers-noncentral-hypergeometric {:ns ns :nf nf :n n :omega omega :rng rng})))
+
+(add-distr-method fishers-noncentral-hypergeometric)
+
+(defn wallenius-noncentral-hypergeometric
+  "Creates Wallenius' noncentral hypergeometric distribution object.
+
+  Wallenius' noncentral hypergeometric distribution is a discrete distribution over the number of successes obtained by sequentially drawing `n` elements without replacement from a finite population of `ns` success and `nf` failure elements, where at each individual draw a remaining success element is `omega` times as likely to be picked as a remaining failure element. Unlike [[fishers-noncentral-hypergeometric]], which conditions a pair of counts on their sum, this distribution arises from an explicit biased sequential sampling (urn) process, making it the appropriate model for selection sampling where items are removed one at a time under a persistent bias. Setting `omega` to `1.0` recovers the ordinary [[hypergeometric]] distribution.
+
+  Parameters (single, optional map):
+
+  - `ns` (long): number of success elements in the population. Default: `5`.
+  - `nf` (long): number of failure elements in the population. Default: `5`.
+  - `n` (long): number of elements drawn without replacement. Default: `5`.
+  - `omega` (double): odds ratio, the relative likelihood of a remaining success versus a remaining failure element being picked at each draw; `1.0` corresponds to the ordinary hypergeometric distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  The support is the integer range from `(max 0 (- n nf))` to `(min ns n)`. Unlike [[fishers-noncentral-hypergeometric]], the probability mass function is evaluated via numerical integration, so construction may be relatively slow.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[fishers-noncentral-hypergeometric]], [[hypergeometric]]."
+  ([] (wallenius-noncentral-hypergeometric nil))
+  ([{:keys [^long ns ^long nf ^long n ^double omega rng]
+     :or {ns 5 nf 5 n 5 omega 1.0}}]
+   (distr/wallenius-noncentral-hypergeometric {:ns ns :nf nf :n n :omega omega :rng rng})))
+
+(add-distr-method wallenius-noncentral-hypergeometric)
+
+;;
+
+(defn truncated
+  "Creates a truncated version of an existing distribution object, restricted to a `[left, right]` interval.
+
+  Given a base distribution `distr`, this conditions it on lying within `[left, right]`: the resulting density is the density of `distr` renormalized by the probability mass `distr` originally assigned to that interval, and is zero outside of it. Sampling is done by rejection: `distr` is repeatedly sampled until a value falling inside `[left, right]` is obtained. It is useful for restricting the support of an otherwise unbounded or wide distribution, for example to build a bounded prior in Bayesian modelling.
+
+  Parameters (single, optional map):
+
+  - `distr`: the distribution to truncate. Default: a standard [[normal]] distribution.
+  - `left` (double): lower truncation bound. Default: `nil`, meaning `distr`'s own [[lower-bound]] is used, i.e. no truncation on the left.
+  - `right` (double): upper truncation bound. Default: `nil`, meaning `distr`'s own [[upper-bound]] is used, i.e. no truncation on the right.
+  - `rng`: random number generator, used only to build the default `distr` when it is not supplied; ignored when `distr` is given explicitly (in that case `distr` itself is reused as the source of randomness).
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  `mean` and `variance` are computed by numerical (Gauss-Kronrod) integration over `[left, right]`, so construction may be relatively slow and their accuracy depends on the smoothness of `distr`'s density on that interval.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]]."
+  ([] (truncated nil))
+  ([{:keys [distr left right rng]}]
+   (let [distr (or distr (normal rng))]
+     (distr/truncated distr left right))))
+
+(add-distr-method truncated)
+
+;;
+
+(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."} default-normal (normal))
+
 
 (defn distribution?
   "Checks if `distr` is a distribution object."
@@ -794,6 +2820,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   "Does distribution support continuous domain?"
   [d] (prot/continuous? d))
 
+(defn discrete?
+  "Does distribution support discrete domain?"
+  [d] (not (prot/continuous? d)))
+
 (defn observe1
   "Log of probability/density of the value. Alias for [[lpdf]]."
   ^double [d v]
@@ -806,10 +2836,10 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                      (reduced s)
                                      (+ s v))) 0.0 (map #(prot/lpdf d %) vs)))
 
-(defmacro observe
+(defn observe
   "Log likelihood of samples. Alias for [[log-likelihood]]."
-  [d vs]
-  `(log-likelihood ~d ~vs))
+  ^double [d vs]
+  (log-likelihood d vs))
 
 (defn likelihood
   "Likelihood of samples"
@@ -845,700 +2875,15 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   [d] (prot/distribution-id d))
 
 (defn distribution-parameters
-  "Distribution highest supported value.
+  "Distribution parameters"
+  [d]
+  (let [d' (if (keyword? d) (distribution d) d)]
+    (prot/distribution-parameters d')))
 
-  When `all?` is true, technical parameters are included, ie: `:rng` and `:inverser-cumm-accuracy`."
-  ([d] (distribution-parameters d false))
-  ([d all?]
-   (let [d' (if (keyword? d) (distribution d) d)]
-     (if-not all?
-       (-> (prot/distribution-parameters d')
-           (set)
-           (disj :rng :inverse-cumm-accuracy :epsilon :max-iterations)
-           (vec))
-       (prot/distribution-parameters d')))))
-
-(defn integrate-pdf
-  "Integrate PDF function, returns CDF and iCDF
-
-  Parameters:
-  * `pdf-func` - univariate function
-  * `mn` - lower bound for integration, value of pdf-func should be 0.0 at this point
-  * `mx` - upper bound for integration
-  * `steps` - how much subintervals to integrate (default 1000)
-  * `interpolator` - interpolation method between integrated points (default :linear)
-
-  Also other integration related parameters are accepted (`:gauss-kronrod` integration is used).
-
-  Possible interpolation methods: `:linear` (default), `:spline`, `:monotone` or any function from `fastmath.interpolation`"
-  ([pdf-func mn mx steps]
-   (integrate-pdf pdf-func {:mn mn :mx mx :steps steps}))
-  ([pdf-func {:keys [^double mn ^double mx ^long steps interpolator]
-              :or {mn 0.0 mx 1.0 steps 1000 interpolator :linear}
-              :as options}]
-   (let [diff3 (* 5.0 (/ (- mx mn) steps))
-         mn (- mn diff3)
-         mx (+ mx diff3)
-         xs (m/slice-range mn mx steps)
-         f (fn [^double x] (if (<= mn x mx) (pdf-func x) 0.0))
-         int-options (assoc options :info? false)
-         ys (->> (partition 2 1 xs)
-                 (map (fn [[^double x1 ^double x2]]
-                        (m/max m/MACHINE-EPSILON ;; in case if integration is zero
-                               ^double (quad/gk-quadrature f x1 x2 int-options))))
-                 (reductions m/+ 0.0)
-                 (m/seq->double-array))
-         ys (v/div ys (Array/aget ys (dec steps))) ;; normalize to ensure 1 at the endpoint
-         intpol (case interpolator
-                  :linear linear-interp/linear
-                  :cubic cubic-interp/cubic
-                  :monotone monotone-interp/monotone
-                  (if (fn? interpolator) interpolator linear-interp/linear))]
-     [(let [i (intpol xs ys)] (fn [^double x] (m/constrain (double (i x)) 0.0 1.0)))
-      (intpol ys xs)])))
-
-;; apache commons math
-(extend RealDistribution
-  prot/DistributionProto
-  {:cdf (fn
-          (^double [^RealDistribution d ^double v] (.cumulativeProbability d v))
-          (^double [^RealDistribution d ^double v1 ^double v2] (.cumulativeProbability d v1 v2)))
-   :pdf (fn ^double [^RealDistribution d ^double v] (.density d v))
-   :lpdf (fn ^double [^AbstractRealDistribution d ^double v] (.logDensity d v))
-   :icdf (fn ^double [^RealDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :probability (fn ^double [^RealDistribution d ^double p] (.density d p))
-   :sample (fn ^double [^RealDistribution d] (.sample d))
-   :dimensions (constantly 1)
-   :source-object identity
-   :continuous? (constantly true)} 
-  prot/UnivariateDistributionProto
-  {:mean (fn ^double [^RealDistribution d] (.getNumericalMean d))
-   :variance (fn ^double [^RealDistribution d] (.getNumericalVariance d))
-   :lower-bound (fn ^double [^RealDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn ^double [^RealDistribution d] (.getSupportUpperBound d))}
-  prot/RNGProto
-  {:drandom (fn ^double [^RealDistribution d] (.sample d))
-   :frandom (fn [^RealDistribution d] (unchecked-float (.sample d)))
-   :lrandom (fn ^long [^RealDistribution d] (m/round-even (.sample d)))
-   :irandom (fn ^long [^RealDistribution d] (unchecked-int (m/round-even (.sample d))))
-   :->seq (fn
-            ([^RealDistribution d] (repeatedly #(.sample d)))
-            ([^RealDistribution d n] (repeatedly n #(.sample d))))
-   :set-seed! (fn [^RealDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
-
-;; ssj
-
-(defn- reify-continuous-ssj
-  [^ContinuousDistribution d ^RandomGenerator rng nm & ks]
-  (let [kss (vec (conj ks :rng))]
-    (reify
-      prot/DistributionProto
-      (pdf [_ v] (.density d v))
-      (lpdf [_ v] (m/log (.density d v)))
-      (probability [_ v] (.density d v))
-      (cdf [_ v] (.cdf d v))
-      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
-      (icdf [_ v] (.inverseF d v))
-      (sample [_] (.inverseF d (prot/drandom rng)))
-      (dimensions [_] 1)
-      (source-object [_] d)
-      (continuous? [_] true)
-      prot/DistributionIdProto
-      (distribution? [_] true)
-      (distribution-id [_] nm)
-      (distribution-parameters [_] kss)
-      prot/UnivariateDistributionProto
-      (mean [_] (.getMean d))
-      (variance [_] (.getVariance d))
-      (lower-bound [_] (.getXinf d))
-      (upper-bound [_] (.getXsup d))
-      prot/RNGProto
-      (drandom [_] (.inverseF d (prot/drandom rng)))
-      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
-      (lrandom [_] (m/round-even (.inverseF d (prot/drandom rng))))
-      (irandom [_] (unchecked-int (m/round-even (.inverseF d (prot/drandom rng)))))
-      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
-      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
-      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
-
-(defn- reify-continuous-ssj-no-pdf
-  [^ContinuousDistribution d ^RandomGenerator rng nm & ks]
-  (let [kss (vec (conj ks :rng))]
-    (reify
-      prot/DistributionProto
-      (pdf [_ v] (/ (- (.cdf d (+ ^double v 0.5e-6))
-                       (.cdf d (- ^double v 0.5e-6)))
-                    1.0e-6))
-      (lpdf [rd v] (m/log (prot/pdf rd v)))
-      (probability [rd v] (prot/pdf rd v))
-      (cdf [_ v] (.cdf d v))
-      (cdf [_ v1 v2] (- (.cdf d v2) (.cdf d v1)))
-      (icdf [_ v] (.inverseF d v))
-      (sample [_] (.inverseF d (prot/drandom rng)))
-      (dimensions [_] 1)
-      (source-object [_] d)
-      (continuous? [_] true)
-      prot/DistributionIdProto
-      (distribution? [_] true)
-      (distribution-id [_] nm)
-      (distribution-parameters [_] kss)
-      prot/UnivariateDistributionProto
-      (mean [_] (.getMean d))
-      (variance [_] (.getVariance d))
-      (lower-bound [_] (.getXinf d))
-      (upper-bound [_] (.getXsup d))
-      prot/RNGProto
-      (drandom [_] (.inverseF d (prot/drandom rng)))
-      (frandom [_] (unchecked-float (.inverseF d (prot/drandom rng))))
-      (lrandom [_] (m/round-even (.inverseF d (prot/drandom rng))))
-      (irandom [_] (unchecked-int (m/round-even (.inverseF d (prot/drandom rng)))))
-      (->seq [_] (repeatedly #(.inverseF d (prot/drandom rng))))
-      (->seq [_ n] (repeatedly n #(.inverseF d (prot/drandom rng))))
-      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
-
-(defn- reify-integer-ssj
-  [^DiscreteDistributionInt d ^RandomGenerator rng nm m]
-  (let [kss (vec (conj (keys m) :rng))
-        icdf-fn (case nm
-                  :logarithmic (let [upper (/ 25.0 (- 1.0 ^double (get m :theta 0.5)))
-                                     r (range 0 (inc upper))]                                 
-                                 (step-interp/step-before (rest (reductions
-                                                                 (fn [^double s ^double v]
-                                                                   (+ s (.prob d v))) 0.0 r)) r))
-                  (fn [^double v] (.inverseF d v)))]
-    (reify
-      prot/DistributionProto
-      (pdf [_ v] (.prob d (m/floor v)))
-      (lpdf [_ v] (m/log (.prob d (m/floor v))))
-      (cdf [_ v] (.cdf d (m/floor v)))
-      (cdf [_ v1 v2] (- (.cdf d (m/floor v2)) (.cdf d (m/floor v1))))
-      (icdf [_ v] (unchecked-long (icdf-fn v)))
-      (probability [_ v] (.prob d (m/floor v)))
-      (sample [_] (unchecked-long (icdf-fn (prot/drandom rng))))
-      (dimensions [_] 1)
-      (source-object [_] d)
-      (continuous? [_] false)
-      prot/DistributionIdProto
-      (distribution? [_] true)
-      (distribution-id [_] nm)
-      (distribution-parameters [_] kss)
-      prot/UnivariateDistributionProto
-      (mean [_] (.getMean d))
-      (variance [_] (.getVariance d))
-      (lower-bound [_] (.getXinf d))
-      (upper-bound [_] (.getXsup d))
-      prot/RNGProto
-      (drandom [_] (.inverseF d (prot/drandom rng)))
-      (frandom [_] (unchecked-float (icdf-fn (prot/drandom rng))))
-      (lrandom [_] (unchecked-long (icdf-fn (prot/drandom rng))))
-      (irandom [_] (unchecked-int (icdf-fn (prot/drandom rng))))
-      (->seq [_] (repeatedly #(unchecked-long (icdf-fn (prot/drandom rng)))))
-      (->seq [_ n] (repeatedly n #(unchecked-long (icdf-fn (prot/drandom rng)))))
-      (set-seed! [d seed] (prot/set-seed! rng seed) d))))
-
-(extend IntegerDistribution
-  prot/DistributionProto
-  {:cdf (fn
-          (^double [^IntegerDistribution d ^double v] (.cumulativeProbability d (m/floor v)))
-          (^double [^IntegerDistribution d ^double v1 ^double v2] (.cumulativeProbability d (m/floor v1) (m/floor v2))))
-   :icdf (fn ^long [^IntegerDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :pdf (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
-   :lpdf (fn ^double [^AbstractIntegerDistribution d ^double p] (.logProbability d (m/floor p)))
-   :probability (fn ^double [^IntegerDistribution d ^double p] (.probability d (m/floor p)))
-   :sample (fn ^long [^IntegerDistribution d] (.sample d))
-   :dimensions (constantly 1)
-   :source-object identity
-   :continuous? (constantly false)}
-  prot/UnivariateDistributionProto
-  {:mean (fn ^double [^IntegerDistribution d] (.getNumericalMean d))
-   :variance (fn ^double [^IntegerDistribution d] (.getNumericalVariance d))
-   :lower-bound (fn ^long [^IntegerDistribution d] (.getSupportLowerBound d))
-   :upper-bound (fn ^long [^IntegerDistribution d] (.getSupportUpperBound d))}
-  prot/RNGProto
-  {:drandom (fn ^double [^IntegerDistribution d] (unchecked-double (.sample d)))
-   :frandom (fn [^IntegerDistribution d] (unchecked-float (.sample d)))
-   :lrandom (fn ^long [^IntegerDistribution d] (unchecked-long (.sample d)))
-   :irandom (fn ^long [^IntegerDistribution d] (.sample d))
-   :->seq (fn
-            ([^IntegerDistribution d] (repeatedly #(.sample d)))
-            ([^IntegerDistribution d n] (repeatedly n #(.sample d))))
-   :set-seed! (fn [^IntegerDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
-
-(extend MultivariateNormalDistribution
-  prot/DistributionProto
-  {:pdf (fn ^double [^MultivariateNormalDistribution d v] (.density d (m/seq->double-array v)))
-   :lpdf (fn ^double [^MultivariateNormalDistribution d v] (m/log (.density d (m/seq->double-array v))))
-   :sample (fn [^MultivariateNormalDistribution d] (vec (.sample d)))
-   :dimensions (fn ^long [^MultivariateNormalDistribution d] (.getDimension d))
-   :source-object identity
-   :continuous? (constantly true)}
-  prot/MultivariateDistributionProto
-  {:means (fn [^MultivariateNormalDistribution d] (vec (.getMeans d)))
-   :covariance (fn [^MultivariateNormalDistribution d]
-                 (let [^org.apache.commons.math3.linear.Array2DRowRealMatrix cv (.getCovariances d)]
-                   (m/double-double-array->seq (.getDataRef cv))))}
-  prot/RNGProto
-  {:->seq (fn
-            ([^MultivariateNormalDistribution d] (repeatedly #(vec (.sample d))))
-            ([^MultivariateNormalDistribution d n] (repeatedly n #(vec (.sample d)))))
-   :set-seed! (fn [^MultivariateNormalDistribution d ^long seed] (.reseedRandomGenerator d seed) d)})
-
-(defmacro ^:private make-acm-distr
-  [nm obj ks vs]
-  (let [or-map (zipmap ks vs)] 
-    `(do
-       (extend ~obj
-         prot/DistributionIdProto
-         {:distribution? (constantly true)
-          :distribution-id (fn [d#] ~nm)
-          :distribution-parameters (fn [d#] [~@(conj (map keyword ks) :rng)])})
-       (defmethod distribution ~nm
-         ([n# {:keys [~@ks]
-               :or ~or-map
-               :as all#}]
-          (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
-            (new ~obj r# ~@ks)))
-         ([n#] (distribution ~nm {}))))))
-
-(make-acm-distr :beta BetaDistribution
-                [alpha beta inverse-cumm-accuracy]
-                [2.0 5.0 BetaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :cauchy CauchyDistribution
-                [median scale inverse-cumm-accuracy]
-                [0.0 1.0 CauchyDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :chi-squared ChiSquaredDistribution
-                [degrees-of-freedom inverse-cumm-accuracy]
-                [1.0 ChiSquaredDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :exponential ExponentialDistribution
-                [mean inverse-cumm-accuracy]
-                [1.0 ExponentialDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :f FDistribution
-                [numerator-degrees-of-freedom denominator-degrees-of-freedom inverse-cumm-accuracy]
-                [1.0 1.0 FDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :gamma GammaDistribution
-                [shape scale inverse-cumm-accuracy]
-                [2.0 2.0 GammaDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :gumbel GumbelDistribution [mu beta] [1.0 2.0])
-(make-acm-distr :laplace LaplaceDistribution [mu beta] [0.0 1.0])
-(make-acm-distr :levy LevyDistribution [mu c] [0.0 1.0])
-(make-acm-distr :logistic LogisticDistribution [mu s] [0.0 1.0])
-
-(make-acm-distr :log-normal LogNormalDistribution
-                [scale shape inverse-cumm-accuracy]
-                [1.0 1.0 LogNormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :nakagami NakagamiDistribution
-                [mu omega inverse-cumm-accuracy]
-                [1.0 1.0 NakagamiDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :normal NormalDistribution
-                [mu sd inverse-cumm-accuracy]
-                [0.0 1.0 NormalDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :pareto ParetoDistribution
-                [scale shape inverse-cumm-accuracy]
-                [1.0 1.0 ParetoDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :t TDistribution
-                [degrees-of-freedom inverse-cumm-accuracy]
-                [1.0 TDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(make-acm-distr :triangular TriangularDistribution [a c b] [-1.0 0.0 1.0])
-(make-acm-distr :uniform-real UniformRealDistribution [^double lower ^double upper] [0.0 1.0])
-
-(make-acm-distr :weibull WeibullDistribution
-                [alpha beta inverse-cumm-accuracy]
-                [2.0 1.0 WeibullDistribution/DEFAULT_INVERSE_ABSOLUTE_ACCURACY])
-
-(extend EmpiricalDistribution
-  prot/DistributionIdProto
-  {:distribution? (constantly true)
-   :distribution-id (fn [_] :empirical)
-   :distribution-parameters (fn [_] [:rng :bin-count :data])})
-
-(defmethod distribution :empirical
-  ([_ {:keys [^long bin-count data]
-       :or {data [1.0]}
-       :as all}]
-   (let [bin-count (or bin-count (unchecked-long (max (* 0.1 (count data)) 1.0)))
-         ^RandomGenerator r (or (:rng all) (rng :jvm))
-         ^EmpiricalDistribution d (EmpiricalDistribution. bin-count r)]
-     (.load d ^doubles (m/seq->double-array data))
-     d))
-  ([_] (distribution :empirical {})))
-
-(extend EnumeratedRealDistribution
-  prot/DistributionProto
-  {:cdf (fn
-          (^double [^EnumeratedRealDistribution d ^double v] (.cumulativeProbability d v))
-          (^double [^EnumeratedRealDistribution d ^double v1 ^double v2] (.probability d v1 v2)))
-   :icdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.inverseCumulativeProbability d p))
-   :pdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.probability d p))
-   :lpdf (fn ^double [^EnumeratedRealDistribution d ^double p] (.logDensity d p))
-   :probability (fn ^double [^EnumeratedRealDistribution d ^double p] (.probability d p))
-   :sample (fn ^double [^EnumeratedRealDistribution d] (.sample d))
-   :dimensions (constantly 1)
-   :source-object identity
-   :continuous? (constantly false)}
-  prot/DistributionIdProto
-  {:distribution? (constantly true)
-   :distribution-id (fn [_] :enumerated-real)
-   :distribution-parameters (fn [_] [:rng :data :probabilities])})
-
-(defmethod distribution :enumerated-real
-  ([_ {:keys [data probabilities]
-       :or {data [1.0]}
-       :as all}]
-   (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
-     (if probabilities
-       (EnumeratedRealDistribution. r (m/seq->double-array data) (m/seq->double-array probabilities))
-       (EnumeratedRealDistribution. r ^doubles (m/seq->double-array data)))))
-  ([_] (distribution :enumerated-real {})))
-
-;; integer
-
-(defmethod distribution :bernoulli
-  ([_ {:keys [^double p]
-       :or {p 0.5}
-       :as all}]
-   (BinomialDistribution. (or (:rng all) (rng :jvm)) 1 p))
-  ([_] (distribution :bernoulli {})))
-
-(extend EnumeratedIntegerDistribution
-  prot/DistributionIdProto
-  {:distribution? (constantly true)
-   :distribution-id (fn [_] :enumerated-int)
-   :distribution-parameters (fn [_] [:data :probabilities :rng])})
-
-(defmethod distribution :enumerated-int
-  ([_ {:keys [data probabilities]
-       :or {data [1]}
-       :as all}]
-   (let [^RandomGenerator r (or (:rng all) (rng :jvm))]
-     (if probabilities
-       (EnumeratedIntegerDistribution. r (int-array data) (m/seq->double-array probabilities))
-       (EnumeratedIntegerDistribution. r (int-array data)))))
-  ([_] (distribution :enumerated-int {})))
-
-(make-acm-distr :binomial BinomialDistribution [trials p] [20 0.5])
-(make-acm-distr :geometric GeometricDistribution [p] [0.5])
-(make-acm-distr :hypergeometric HypergeometricDistribution
-                [population-size number-of-successes sample-size] [100 50 25])
-(make-acm-distr :pascal PascalDistribution [r p] [20 0.5])
-(make-acm-distr :poisson PoissonDistribution
-                [p epsilon max-iterations]
-                [0.5 PoissonDistribution/DEFAULT_EPSILON PoissonDistribution/DEFAULT_MAX_ITERATIONS])
-(make-acm-distr :uniform-int UniformIntegerDistribution [lower upper] [0 Integer/MAX_VALUE])
-(make-acm-distr :zipf ZipfDistribution [number-of-elements exponent] [100 3.0])
-
-;; ssj
-
-(defmacro ^:private make-ssj-distr
-  [rf nm obj ks vs]
-  (let [or-map (zipmap ks vs)
-        k-map (zipmap (map keyword ks) vs)]
-    `(defmethod distribution ~nm
-       ([n# {:keys [~@ks]
-             :or ~or-map
-             :as all#}]
-        (let [^RandomGenerator r# (or (:rng all#) (rng :jvm))]
-          (~rf (new ~obj ~@ks) r# ~nm (merge ~k-map all#))))
-       ([n#] (distribution ~nm {})))))
-
-(defmacro ^:private make-ssjc-distr
-  [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj ~nm ~obj ~ks ~vs))
-(defmacro ^:private make-ssjc-distr-no-pdf
-  [nm obj ks vs] `(make-ssj-distr reify-continuous-ssj-no-pdf ~nm ~obj ~ks ~vs))
-(defmacro ^:private make-ssji-distr
-  [nm obj ks vs] `(make-ssj-distr reify-integer-ssj ~nm ~obj ~ks ~vs))
-
-(make-ssjc-distr :anderson-darling AndersonDarlingDistQuick [n] [1.0])
-(make-ssjc-distr :inverse-gamma InverseGammaDist [alpha beta] [2.0 1.0])
-(make-ssjc-distr :chi ChiDist [nu] [1.0])
-(make-ssjc-distr :chi-squared-noncentral ChiSquareNoncentralDist [nu lambda] [1.0 1.0])
-(make-ssjc-distr-no-pdf :cramer-von-mises CramerVonMisesDist [n] [1.0])
-(make-ssjc-distr :erlang ErlangDist [k lambda] [1 1])
-(make-ssjc-distr :fatigue-life FatigueLifeDist [mu beta gamma] [0.0 1.0 1.0])
-(make-ssjc-distr :folded-normal FoldedNormalDist [mu sigma] [0.0 1.0])
-(make-ssjc-distr :frechet FrechetDist [alpha beta delta] [1.0 1.0 0.0])
-(make-ssjc-distr :hyperbolic-secant HyperbolicSecantDist [mu sigma] [0.0 1.0])
-(make-ssjc-distr :inverse-gaussian InverseGaussianDist [mu lambda] [1.0 1.0])
-(make-ssjc-distr :hypoexponential-equal HypoExponentialDistEqual [n k h] [1.0 1.0 1.0])
-(make-ssjc-distr :johnson-sb JohnsonSBDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
-(make-ssjc-distr :johnson-sl JohnsonSLDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
-(make-ssjc-distr :johnson-su JohnsonSUDist [gamma delta xi lambda] [0.0 1.0 0.0 1.0])
-(make-ssjc-distr :kolmogorov-smirnov KolmogorovSmirnovDistQuick [n] [1.0])
-(make-ssjc-distr :kolmogorov-smirnov+ KolmogorovSmirnovPlusDist [n] [1.0])
-(make-ssji-distr :logarithmic LogarithmicDist [theta] [0.5])
-(make-ssjc-distr :log-logistic LoglogisticDist [alpha beta] [3.0 1.0])
-(make-ssjc-distr :normal-inverse-gaussian NormalInverseGaussianDist [alpha beta mu delta] [1.0 0.0 0.0 1.0])
-(make-ssjc-distr :pearson-6 Pearson6Dist [alpha1 alpha2 beta] [1.0 1.0 1.0])
-(make-ssjc-distr :power PowerDist [a b c] [0.0 1.0 2.0])
-(make-ssjc-distr :rayleigh RayleighDist [a beta] [0.0 1.0])
-(make-ssjc-distr :watson-g WatsonGDist [n] [2.0])
-(make-ssjc-distr :watson-u WatsonUDist [n] [2.0])
-
-(defmethod distribution :hypoexponential
-  ([k {:keys [lambdas]
-       :or {lambdas [1.0]}
-       :as all}]
-   (reify-continuous-ssj (HypoExponentialDist. (m/seq->double-array lambdas)) (or (:rng all) (rng :jvm)) k :lambdas))
-  ([_] (distribution :hypoexponential {})))
-
-(defmethod distribution :reciprocal-sqrt
-  ([_ {:keys [^double a]
-       :or {a 0.5}
-       :as all}]
-   (let [f (* 2.0 (m/sqrt a))
-         icdf-fn (fn [^double x]
-                   (cond
-                     (m/not-pos? x) a
-                     :else (m/sq (* 0.5 (+ (min x 1.0) f)))))
-         ^double b (icdf-fn 1.0)
-         m (* (/ 2.0 3.0) (- (m/pow b 1.5) (m/pow a 1.5)))
-         m1 (* 15.0 m m)
-         m2 (* -10.0 m)
-         v (* (/ 2.0 15.0)
-              (- (* (m/sqrt b)
-                    (+ m1 (* m2 b) (* 3.0 b b)))
-                 (* (m/sqrt a)
-                    (+ m1 (* m2 a) (* 3.0 a a)))))
-         r (or (:rng all) (rng :jvm))]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (if (<= a ^double v b) (/ (m/sqrt v)) 0.0))
-       (lpdf [d v] (m/log (prot/pdf d v)))
-       (cdf [_ v] (cond
-                    (< ^double v a) 0.0
-                    (> ^double v b) 1.0
-                    :else (- (* 2.0 (m/sqrt ^double v)) f)))
-       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
-       (icdf [_ v] (icdf-fn v))
-       (probability [d v] (prot/pdf d v))
-       (sample [_] (icdf-fn (prot/drandom r)))
-       (dimensions [_] 1)
-       (source-object [d] d)
-       (continuous? [_] true)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :reciprocal-sqrt)
-       (distribution-parameters [_] [:a :rng])
-       prot/UnivariateDistributionProto
-       (mean [_] m)
-       (variance [_] v)
-       (lower-bound [_] a)
-       (upper-bound [_] b)
-       prot/RNGProto
-       (drandom [_] (icdf-fn (prot/drandom r)))
-       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
-       (lrandom [_] (m/round-even (icdf-fn (prot/drandom r))))
-       (irandom [_] (unchecked-int (m/round-even (icdf-fn (prot/drandom r)))))
-       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
-       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
-       (set-seed! [d seed] (prot/set-seed! r seed) d))))
-  ([_] (distribution :reciprocal-sqrt {})))
 
 ;;
 
-(extend MultivariateNormalDistribution
-  prot/DistributionIdProto
-  {:distribution? (constantly true)
-   :distribution-id (fn [_] :multi-normal)
-   :distribution-parameters (fn [_] [:means :covariances :rng])})
 
-(defmethod distribution :multi-normal
-  ([_ {:keys [means covariances] :as all}]
-   (let [covariances (cond
-                       (and means (not covariances)) (for [id (range (count means))
-                                                           :let [a (double-array (count means))]]
-                                                       (do (aset a id 1.0)
-                                                           a))
-                       (not covariances) [[1.0 0.0] [0.0 1.0]]
-                       :else covariances)
-         means (if-not means (repeat (count (first covariances)) 0.0) means)]
-     (assert (= (count means) (count (first covariances)))
-             "Means and covariances sizes do not match.")
-     (MultivariateNormalDistribution. (or (:rng all) (rng :jvm)) (m/seq->double-array means) (m/seq->double-double-array covariances))))
-  ([_] (distribution :multi-normal {})))
-
-(def ^{:const true :private true :tag 'double} zero+epsilon (m/next-double 0.0))
-(def ^{:const true :private true :tag 'double} one-epsilon (m/prev-double 1.0))
-
-(defn- dirichlet-rev-log-beta
-  ^double [alpha]
-  (let [d (special/log-gamma (reduce m/+ alpha))
-        ^double n (reduce m/+ (map #(special/log-gamma %) alpha))]
-    (- d n)))
-
-#_(defn- dirichlet-lpdf
-    ^double [alpha- values ^double lbeta]
-    (if (every? #(< 0.0 ^double % 1.0) values)
-      (let [^double p (reduce m/fast+ (mapv (fn [^double ai ^double x] 
-                                              (* ai (m/log x))) alpha- values))]
-        (+ lbeta p))
-      ##-Inf))
-
-(defn- dirichlet-lpdf
-  ^double [alpha- values ^double lbeta]
-  (let [v (reduce m/+ lbeta (map (fn [^double ai ^double x] 
-                                   (* ai (m/log x))) alpha- values))]
-    (if (m/invalid-double? v) ##-Inf v)))
-
-(defmethod distribution :dirichlet
-  ([_ {:keys [alpha] :as all}]
-   (let [alpha (cond
-                 (nil? alpha) (double-array [1 1])
-                 (seqable? alpha) (do (assert (> (count alpha) 1))
-                                      (m/seq->double-array alpha))
-                 (integer? alpha) (do (assert (> (int alpha) 1))
-                                      (double-array alpha 1.0))
-                 :else (double-array [1 1]))
-         r (or (:rng all) (rng :jvm))
-         sampler (mapv #(distribution :gamma {:shape % :scale 1.0 :rng r}) alpha)
-
-         lbeta (dirichlet-rev-log-beta alpha)
-         alpha- (map clojure.core/dec alpha)
-         
-         m (delay (seq (DirichletDist/getMean alpha)))
-         cv (delay (mapv vec (DirichletDist/getCovariance alpha)))
-         dim (count alpha)]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
-       (lpdf [_ v] (dirichlet-lpdf alpha- v lbeta))
-       (probability [_ v] (m/exp (dirichlet-lpdf alpha- v lbeta)))
-       (sample [_] (let [samples (map #(prot/sample %) sampler)
-                         s (v/sum samples)]
-                     (mapv (fn [^double v] (cond
-                                            (zero? v) zero+epsilon
-                                            (== v 1.0) one-epsilon
-                                            :else v))
-                           (if (> s 1.0e-6)
-                             (v/div samples s)
-                             (let [a (int-array dim)]
-                               (aset ^ints a (irand dim) 1)
-                               a)))))
-       (dimensions [_] dim)
-       (source-object [this] this)
-       (continuous? [_] true)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :dirichlet)
-       (distribution-parameters [_] [:alpha :rng])
-       prot/MultivariateDistributionProto
-       (means [_] @m)
-       (covariance [_] @cv)
-       prot/RNGProto
-       (->seq [d] (repeatedly #(prot/sample d)))
-       (->seq [d n] (repeatedly n #(prot/sample d)))
-       (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
-  ([_] (distribution :dirichlet {})))
-
-(defmethod distribution :multinomial
-  ([_ {:keys [^int trials ps]
-       :or {trials 20 ps [0.5 0.5]}:as all}]
-   (let [ps (m/seq->double-array (v/div ps (v/sum ps)))
-         r (or (:rng all) (rng :jvm))
-         
-         m (delay (seq (MultinomialDist/getMean trials ps)))
-         cv (delay (mapv vec (MultinomialDist/getCovariance trials ps)))
-         dim (count ps)
-         binom-probs (mapv (fn [^double prob ^double sum]
-                             (/ prob (- 1.0 sum))) ps (reductions m/+ 0.0 ps))]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (MultinomialDist/prob trials ps (int-array v)))
-       (lpdf [_ v] (m/log (MultinomialDist/prob trials ps (int-array v))))
-       (probability [_ v] (MultinomialDist/prob trials ps (int-array v)))
-       (cdf [_ v] (MultinomialDist/cdf trials ps (int-array v)))
-       (sample [_] (first (reduce (fn [[buf ^int curr] ^double prob]
-                                    (let [res (int (prot/sample (distribution :binomial
-                                                                              {:trials curr
-                                                                               :p (m/constrain prob 0.0 1.0)})))]
-                                      [(conj buf res) (- curr res)])) [[] trials] binom-probs)))
-       (dimensions [_] dim)
-       (source-object [this] this)
-       (continuous? [_] false)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :multinomial)
-       (distribution-parameters [_] [:n :ps :rng])
-       prot/MultivariateDistributionProto
-       (means [_] @m)
-       (covariance [_] @cv)
-       prot/RNGProto
-       (->seq [d] (repeatedly #(prot/sample d)))
-       (->seq [d n] (repeatedly n #(prot/sample d)))
-       (set-seed! [d seed] (prot/set-seed! r seed) d)))) 
-  ([_] (distribution :multinomial {})))
-
-;; 
-
-(defn- find-first-non-zero
-  ^double [f xs]
-  (or (->> xs
-           (map #(vector % (f %)))
-           (filter #(pos? ^double (second %)))
-           (ffirst))
-      (first xs)))
-
-(defn- narrow-range
-  [kd [^double mn ^double mx ^double step] ^long steps]
-  [(- (find-first-non-zero kd (m/slice-range mn mx steps)) step)
-   (+ (find-first-non-zero kd (m/slice-range mx mn steps)) step)])
-
-(defmethod distribution :continuous-distribution
-  ([_ {:keys [data ^long steps kde bandwidth]
-       :or {data [-1 0 1] steps 5000 kde :epanechnikov}
-       :as all}]
-   (let [{:keys [kde ^double mn ^double mx]} (k/kernel-density+ kde data {:bandwidth bandwidth})
-         step (/ (- mx mn) steps)
-         [^double mn ^double mx] (narrow-range kde [mn mx step] (* 4 steps))
-         [cdf-fn icdf-fn] (integrate-pdf kde (merge all {:mn mn :mx mx :steps steps}))
-         r (or (:rng all) (rng :jvm))
-         m (delay (StatUtils/mean (m/seq->double-array data)))
-         v (delay (StatUtils/variance (m/seq->double-array data) ^double @m))]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (kde v))
-       (lpdf [_ v] (m/log (kde v)))
-       (cdf [_ v] (m/constrain ^double (cdf-fn v) 0.0 1.0))
-       (cdf [d v1 v2] (- ^double (prot/cdf d v2) ^double (prot/cdf d v1)))
-       (icdf [_ v] (icdf-fn (m/constrain ^double v 0.0 1.0)))
-       (probability [_ v] (kde v))
-       (sample [_] (icdf-fn (prot/drandom r)))
-       (dimensions [_] 1)
-       (source-object [d] d)
-       (continuous? [_] true)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :kde)
-       (distribution-parameters [_] [:data :steps :kde :bandwidth :rng])
-       prot/UnivariateDistributionProto
-       (mean [_] @m)
-       (variance [_] @v)
-       (lower-bound [_] (- mn step))
-       (upper-bound [_] (+ mx step))
-       prot/RNGProto
-       (drandom [_] (icdf-fn (prot/drandom r)))
-       (frandom [_] (unchecked-float (icdf-fn (prot/drandom r))))
-       (lrandom [_] (m/round-even (icdf-fn (prot/drandom r))))
-       (irandom [_] (unchecked-int (m/round-even (icdf-fn (prot/drandom r)))))
-       (->seq [_] (repeatedly #(icdf-fn (prot/drandom r))))
-       (->seq [_ n] (repeatedly n #(icdf-fn (prot/drandom r))))
-       (set-seed! [d seed] (prot/set-seed! r seed) d))))
-  ([_] (distribution :continuous-distribution {})))
-
-(defmethod distribution :kde
-  [_ & r] (apply distribution :continuous-distribution r))
-
-;;
 
 (defn- diff-cdf
   ^double [cdf-fn ^double v1 ^double v2]
@@ -1582,196 +2927,42 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
           (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
      ([_#] (distribution ~d-name {}))))
 
-(defn- discrete-binary-search
-  ([cdf-fn ^double p [mid step]] (discrete-binary-search cdf-fn step p [0 mid]))
-  ([cdf-fn ^long step ^double p [^long mn ^long mx]]
-   (cond
-     (> p ^double (cdf-fn mx)) (recur cdf-fn (* 2 step) p [mx (+ mx step)])
-     (m/one? (- mx mn)) (if (>= ^double (cdf-fn mn) p) mn mx)
-     :else (let [mid (/ (+ mn mx) 2)]
-             (if (> ^double (cdf-fn mid) p)
-               (recur cdf-fn step p [mn mid])
-               (recur cdf-fn step p [mid mx]))))))
 
-(distribution-template :negative-binomial
-    {:continuous? false :lower-bound 0 :upper-bound Integer/MAX_VALUE :mean mmean
-     :distribution-parameters [:r :p :rng]}
-  {:keys [^double r ^double p] :or {r 20.0 p 0.5}} args
-  p- (- 1.0 p)
-  mmean (/ (* r p-) p)
-  vvariance (/ mmean p)
-  lgr (special/log-gamma r)
-  lp- (m/log (- 1.0 p))
-  lpr (* r (m/log p))
-  lpdf-fn (fn [^long k]
-            (if (neg? k)
-              ##-Inf
-              (+ (- (special/log-gamma (+ r k))
-                    (+ (m/log-factorial k) lgr))
-                 (* k lp-) lpr)))
-  cdf-fn (fn [^double k]
-           (if (neg? k)
-             0.0
-             (special/regularized-beta p r (inc (m/rint k)))))
-  icdf-fn (fn [^double p]
-            (cond
-              (m/not-pos? p) 0
-              (>= p 1.0) ##Inf
-              :else (discrete-binary-search cdf-fn p [(long mmean) (long (m/sqrt vvariance))]))))
 
-(defn- build-discrete
-  [kind data probabilities]
-  (let [cnt (count data)
-        probabilities (or probabilities (repeat cnt 1))
-        ^double sum (reduce m/+ probabilities)
-        [emptymap upd corr] (if (= :int kind)
-                              [(im/int-map) im/update unchecked-long]
-                              [(sorted-map) update unchecked-double])
-        pmf (reduce (fn [m [v ^double p]]
-                      (upd m v (fnil m/+ 0.0) (/ p sum))) emptymap (map vector data probabilities))
-        cumsum (reductions m/+ (vals pmf))
-        ks (keys pmf)
-        ^double mnk (first ks)
-        icdf (let [stepf (step-interp/step-before cumsum ks)]
-               (fn [^double x]
-                 (corr (stepf x))))
-        cdf (let [stepf (step-interp/step-after ks cumsum)]
-              (fn [^double x]
-                (if (< x mnk) 0.0 (stepf x))))]
-    [pmf cdf icdf mnk (last ks)]))
 
-(distribution-template :integer-discrete-distribution
-                       {:mean mmean :variance @variance :distribution-parameters [:data :probabilities :rng]
-                        :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
-                       {:keys [data probabilities]
-                        :or {data [0]}} args
-                       [pmf cdf-fn icdf-fn
-                        ^long lower-bound ^long upper-bound] (build-discrete :int data probabilities)
-                       pdf-fn (fn [^long k] (get pmf k 0.0))
-                       ^double mmean (reduce-kv (fn [^double s ^long k ^double v]
-                                                  (+ s (* k v))) 0.0 pmf)
-                       variance (delay (- ^double (reduce-kv (fn [^double s ^long k ^double v]
-                                                               (+ s (* k k v))) 0.0 pmf) (* mmean mmean))))
 
-(distribution-template :real-discrete-distribution
-                       {:mean mmean :variance @variance :distribution-parameters [:data :probabilities :rng]
-                        :lower-bound lower-bound :upper-bound upper-bound :continuous? false :pdf? true}
-                       {:keys [data probabilities]
-                        :or {data [0]}} args
-                       [pmf cdf-fn icdf-fn
-                        ^double lower-bound ^double upper-bound] (build-discrete :double data probabilities)
-                       pdf-fn (fn [^double k] (get pmf k 0.0))
-                       ^double mmean (reduce-kv (fn [^double s ^double k ^double v]
-                                                  (+ s (* k v))) 0.0 pmf)
-                       variance (delay (- ^double (reduce-kv (fn [^double s ^double k ^double v]
-                                                               (+ s (* k k v))) 0.0 pmf) (* mmean mmean))))
-
-(defmethod distribution :categorical-distribution
-  ([_ {:keys [data probabilities]
-       :or {data [0]}
-       :as all}]
-   (let [r (or (:rng all) (rng :jvm))
-         
-         ^clojure.lang.ILookup unique (vec (distinct data))
-         ^clojure.lang.ILookup dict (zipmap unique (range (count unique)))
-
-         enumerated (distribution :integer-discrete-distribution
-                                  {:data (map dict data) :probabilities probabilities :rng r})]
-     (reify
-       prot/DistributionProto
-       (pdf [_ v] (prot/pdf enumerated (.valAt dict v -1)))
-       (lpdf [_ v] (prot/lpdf enumerated (.valAt dict v -1)))
-       (cdf [_ v] (prot/cdf enumerated (.valAt dict v -1)))
-       (icdf [_ v] (.valAt unique (prot/icdf enumerated v)))
-       (probability [_ v] (prot/probability enumerated (.valAt dict v -1)))
-       (sample [_] (.valAt unique (prot/sample enumerated)))
-       (dimensions [_] 1)
-       (source-object [_] enumerated)
-       (continuous? [_] false)
-       prot/DistributionIdProto
-       (distribution? [_] true)
-       (distribution-id [_] :categorical-distribution)
-       (distribution-parameters [_] [:data :probabilities :rng])
-       prot/UnivariateDistributionProto
-       (mean [_] ##NaN)
-       (variance [_] ##NaN)
-       prot/RNGProto
-       (->seq [_] (map #(.valAt unique %) (prot/->seq enumerated)))
-       (->seq [_ n] (map #(.valAt unique %) (prot/->seq enumerated n)))
-       (set-seed! [d seed] (prot/set-seed! r seed) d))))
-  ([_] (distribution :categorical-distribution {})))
-
-(def ^{:const true :private true :tag 'double} LOG_M_2_PI (m/log m/M_2_PI))
-
-(distribution-template :half-cauchy
-                       {:mean ##NaN :variance ##NaN :distribution-parameters [:scale :rng]
-                        :lower-bound 0.0 :upper-bound ##Inf}
-                       {:keys [^double scale]
-                        :or {scale 1.0}} args
-                       ls (m/log scale)
-                       lpdf-fn (fn [^double x]
-                                 (if (neg? x)
-                                   ##-Inf
-                                   (- LOG_M_2_PI ls (m/log1p (m/sq (/ x scale))))))
-                       icdf-fn (fn [^double p]
-                                 (cond
-                                   (m/not-pos? p) 0.0
-                                   (>= p 1.0) 1.0
-                                   :else (* scale (m/tan (* m/HALF_PI p)))))
-                       cdf-fn (fn [^double v]
-                                (* m/M_2_PI (m/atan (/ v scale)))))
-
-(distribution-template :half-normal
-                       {:mean mmean :variance variance
-                        :distribution-parameters [:sigma :rng]
-                        :lower-bound 0.0 :uppor-bound ##Inf}
-                       {:keys [^double sigma] :or {sigma 1.0}} args
-                       mmean (* sigma (/ m/SQRT2 m/M_SQRT_PI))
-                       variance (* sigma sigma (- 1.0 (/ 2.0 m/PI)))
-                       dist (distribution :normal {:mu 0.0 :sd sigma})
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (neg? x)
-                                   ##-Inf
-                                   (+ m/M_LN2 (lpdf dist x))))
-                       cdf-fn (fn ^double [^double x]
-                                (if (neg? x)
-                                  0.0
-                                  (dec (* 2.0 (cdf dist x)))))
-                       icdf-fn (fn ^double [^double x]
-                                 (icdf dist (* 0.5 (inc x)))))
-
-;; source: https://github.com/cran/gamlss.dist
+;; source: gamlss documentation
 
 (distribution-template :zaga
-    {:mean mmean :distribution-parameters [:mu :sigma :nu :lower-tail? :rng]
-     :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma ^double nu lower-tail?]
-   :or {mu 1.0 sigma 1.0 nu 0.1 lower-tail? true}} args
-  mmean (* (- 1.0 nu) mu)
-  s2 (* sigma sigma)
-  rs2 (/ s2)
-  lgrs2 (special/log-gamma rs2)
-  mus2 (* s2 mu)
-  rmus2 (/ mus2)
-  variance (* mmean mu (+ s2 nu))
-  lnu (m/log nu)
-  -nu (- 1.0 nu)
-  l1nu (m/log -nu)
-  gamma-dist (distribution :gamma (assoc args :rng r :shape rs2 :scale mus2))
-  lpdf-fn (fn [^double x]
-            (if (zero? x)
-              lnu
-              (let [xx (* x rmus2)]
-                (- (+ l1nu (* rs2 (m/log xx))) xx (m/log x) lgrs2))))
-  cdf-fn (fn [^double x]
-           (let [cdf (if (zero? x)
-                       nu
-                       (+ nu (* -nu (cdf gamma-dist x))))]
-             (if lower-tail? cdf (- 1.0 cdf))))
-  icdf-fn (fn [^double x]
-            (let [p (if lower-tail? x (- 1.0 x))
-                  p (if (<= p nu) nu p)]
-              (prot/icdf gamma-dist (/ (- p nu) -nu)))))
+                       {:mean mmean :distribution-parameters [:mu :sigma :nu :lower-tail? :rng]
+                        :lower-bound 0.0 :upper-bound ##Inf}
+                       {:keys [^double mu ^double sigma ^double nu lower-tail?]
+                        :or {mu 1.0 sigma 1.0 nu 0.1 lower-tail? true}} args
+                       mmean (* (- 1.0 nu) mu)
+                       s2 (* sigma sigma)
+                       rs2 (/ s2)
+                       lgrs2 (special/log-gamma rs2)
+                       mus2 (* s2 mu)
+                       rmus2 (/ mus2)
+                       variance (* mmean mu (+ s2 nu))
+                       lnu (m/log nu)
+                       -nu (- 1.0 nu)
+                       l1nu (m/log -nu)
+                       gamma-dist (distribution :gamma (assoc args :rng r :shape rs2 :scale mus2))
+                       lpdf-fn (fn [^double x]
+                                 (if (zero? x)
+                                   lnu
+                                   (let [xx (* x rmus2)]
+                                     (- (+ l1nu (* rs2 (m/log xx))) xx (m/log x) lgrs2))))
+                       cdf-fn (fn [^double x]
+                                (let [cdf (if (zero? x)
+                                            nu
+                                            (+ nu (* -nu (cdf gamma-dist x))))]
+                                  (if lower-tail? cdf (- 1.0 cdf))))
+                       icdf-fn (fn [^double x]
+                                 (let [p (if lower-tail? x (- 1.0 x))
+                                       p (if (<= p nu) nu p)]
+                                   (prot/icdf gamma-dist (/ (- p nu) -nu)))))
 
 (distribution-template :nbi
     {:mean mu
@@ -1954,7 +3145,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   cdf-fn (if (< sigma 0.00001)
            (fn ^double [^long x] (prot/cdf dist x))
            (memoize (fn ^double [^long q]
-                      (reduce m/+ (map #(m/exp (lpdf-fn %)) (range (inc (long q))))))))
+                      (reduce m/+ (map #(m/exp (lpdf-fn %)) (range (m/inc q)))))))
   icdf-fn (if (< sigma 0.00001)
             (fn ^double [^double p] (prot/icdf dist p))
             (let [r (range 0 (inc bd))]
@@ -2049,53 +3240,29 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                                      (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew)) 0.0))))
 
 (distribution-template :zibb
-                       {:mean mmean
-                        :distribution-parameters [:mu :sigma :bd :nu :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound bd}
-                       {:keys [^double mu ^double sigma ^double bd ^double nu]
-                        :or {mu 0.5 sigma 0.5 nu 0.1 bd 1.0}} args
-                       lnu (m/log nu)
-                       nu- (- 1.0 nu)
-                       lnu- (m/log nu-)
-                       mmean (* nu- bd mu)
-                       variance (+ (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
-                                   (* nu nu- bd bd mu mu))
-                       dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
-                       lpdf0- (m/log (+ nu (* nu- (pdf dist 0.0))))
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (zero? x) lpdf0- (+ lnu- (lpdf dist x))))
-                       cdf-fn (fn ^double [^double q]
-                                (min 1.0 (+ nu (* nu- (cdf dist q)))))
-                       icdf-fn (fn ^double [^double p]
-                                 (let [pnew (max 0.0 (- (/ (- p nu) nu-)1.0e-7))]
-                                   (if (pos? pnew)
-                                     (prot/icdf dist pnew) 0.0))))
+    {:mean mmean
+     :distribution-parameters [:mu :sigma :bd :nu :rng]
+     :continuous? false :lower-bound 0.0 :upper-bound bd}
+  {:keys [^double mu ^double sigma ^double bd ^double nu]
+   :or {mu 0.5 sigma 0.5 nu 0.1 bd 1.0}} args
+  lnu (m/log nu)
+  nu- (- 1.0 nu)
+  lnu- (m/log nu-)
+  mmean (* nu- bd mu)
+  variance (+ (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
+              (* nu nu- bd bd mu mu))
+  dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
+  lpdf0- (m/log (+ nu (* nu- (pdf dist 0.0))))
+  lpdf-fn (fn ^double [^double x]
+            (if (zero? x) lpdf0- (+ lnu- (lpdf dist x))))
+  cdf-fn (fn ^double [^double q]
+           (min 1.0 (+ nu (* nu- (cdf dist q)))))
+  icdf-fn (fn ^double [^double p]
+            (let [pnew (max 0.0 (- (/ (- p nu) nu-)1.0e-7))]
+              (if (pos? pnew)
+                (prot/icdf dist pnew) 0.0)))
+  )
 
-(defonce ^{:doc "Default normal distribution (u=0.0, sigma=1.0)."} default-normal (distribution :normal))
-
-(distribution-template :truncated
-                       {:mean ##NaN :variance ##NaN
-                        :distribution-parameters [:distr :left :right :rng]
-                        :continuous? (continuous? distribution)
-                        :lower-bound left-bound :upper-bound right-bound}
-                       {:keys [distr left right]
-                        :or {distr default-normal}} args
-                       left-cdf (if left (cdf distr left) 0.0)
-                       right-cdf (if right (cdf distr right) 1.0)
-                       cdf-diff (- right-cdf left-cdf)
-                       lcdf-diff (m/log cdf-diff)
-                       left-bound (or left (lower-bound distr))
-                       right-bound (or right (upper-bound distr))
-                       ^double left (or left ##-Inf)
-                       ^double right (or right ##Inf)
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (and (<= left x) (<= x right))
-                                   (- (lpdf distr x) lcdf-diff)
-                                   ##-Inf))
-                       cdf-fn (fn ^double [^double x]
-                                (m/constrain (/ (- (cdf distr x) left-cdf) cdf-diff) 0.0 1.0))
-                       icdf-fn (fn ^double [^double x]
-                                 (icdf distr (+ left-cdf (* x cdf-diff)))))
 
 (distribution-template :mixture
     {:pdf? true :distribution-parameters [:distrs :weights :rng]
@@ -2128,185 +3295,8 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
                   target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
               (solver/find-root target-fn mn mx))))
 
-;; from Julia
-(distribution-template :kolmogorov
-    {:pdf? true :distribution-parameters [:rng]
-     :mean 0.8687311606361591 :variance 0.0677732039638651
-     :continuous? true :lower-bound 0.0 :upper-bound ##Inf}
-  cdf-raw (fn ^double [^double x]
-            (let [a (- (m/sq (/ m/PI x)))
-                  f (m/exp a)
-                  f2 (* f f)
-                  u (inc (* f (inc f2)))]
-              (/ (* m/SQRT2PI (m/exp (* 0.125 a)) u) x)))
-  ccdf-raw (fn [^double ^double x]
-             (let [f (m/exp (* -2.0 x x))
-                   f2 (* f f)
-                   f3 (* f f2)
-                   f5 (* f2 f3)
-                   f7 (* f2 f5)
-                   u (- 1.0 (* f3 (- 1.0 (* f5 (- 1.0 f7)))))]
-               (* 2.0 f u)))
-  cdf-fn (fn ^double [^double x]
-           (cond
-             (not (pos? x)) 0.0
-             (<= x 1.0) (cdf-raw x)
-             :else (- 1.0 ^double (ccdf-raw x))))
-  pdf-fn (fn ^double [^double x]
-           (cond
-             (not (pos? x)) 0.0
-             (<= x 1.0) (let [c (/ m/PI (* 2.0 x))
-                              ks (map (fn [^long i]
-                                        (let [k (m/sq (* i c))]
-                                          (* (dec k) (m/exp (* -0.5 k)))))
-                                      (range 1 40 2))
-                              ^double s (reduce m/+ ks)]
-                          (/ (* m/SQRT2PI s) (* x x)))
-             :else (let [ks (map (fn [^double a ^long i]
-                                   (* a i i (m/exp (* -2.0 (m/sq (* i x))))))
-                                 (cycle [1.0 -1.0]) (range 1 21))
-                         ^double s (reduce m/+ ks)]
-                     (* 8.0 x s))))
-  icdf-fn (fn ^double [^double p]
-            (let [h1 (fn ^double [^double q] (- ^double (cdf-fn q) p))]
-              (if (< 0.5626816957524641 p) ;; cdf(mean)
-                (loop [interval 1.1290640320985719 ;; mean + sigma
-                       j 2]
-                  (if (< ^double (cdf-fn interval) p)
-                    (recur (+ 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
-                    (solver/find-root h1 0.8687311606361591 interval)))
-                (loop [interval 0.6083982891737463 ;; mean - sigma
-                       j 2]
-                  (if (> ^double (cdf-fn interval) p)
-                    (recur (- 0.8687311606361591 (* j 0.26033287146241274)) (inc j))
-                    (solver/find-root h1 interval 0.8687311606361591)))))))
 
-;; from Julia
-(distribution-template :fishers-noncentral-hypergeometric
-                       {:pdf? true :distribution-parameters [:rng :ns :nf :n :omega]
-                        :continuous? false :lower-bound mlower-bound :upper-bound mupper-bound
-                        :mean mmean}
-                       {:keys [^long ns ^long nf ^long n ^double omega]
-                        :or {ns 10 nf 10 n 5 omega 1.0}} args
-                       mlower-bound (max 0 (- n nf))
-                       mupper-bound (min ns n)
-                       mode (let [A (dec omega)
-                                  B (- n nf (* (+ ns n 2) omega))
-                                  C (* (inc ns) (* (inc n)) omega)]
-                              (long (m/floor (/ (* -2.0 C)
-                                                (- B (m/sqrt (- (* B B) (* 4.0 A C))))))))
-                       fri (fn [^long i]
-                             (* (/ (* (inc (- ns i)) omega)
-                                   (* i (+ (- nf n) i)))
-                                (inc (- n i))))
-                       fri+ (fn [^long i]
-                              (* (/ (* (- ns i) omega)
-                                    (* (inc i)
-                                       (inc (+ (- nf n) i))))
-                                 (- n i)))
-                       expectation (fn [f]
-                                     (let [[^double s ^double m] (loop [m (double (f mode))
-                                                                        fi 1.0
-                                                                        s 1.0
-                                                                        i (inc mode)]
-                                                                   (if (> i mupper-bound)
-                                                                     [s m]
-                                                                     (let [^double ri (fri i)
-                                                                           nfi (* fi ri)
-                                                                           sfi (+ s nfi)]
-                                                                       (if (== sfi s)
-                                                                         [s m]
-                                                                         (recur (+ m (* ^double (f i) nfi))
-                                                                                nfi sfi (inc i))))))]
-                                       (loop [m m
-                                              fi 1.0
-                                              s s
-                                              i (dec mode)]
-                                         (if (< i mlower-bound)
-                                           (/ m s)
-                                           (let [^double ri (fri+ i) 
-                                                 nfi (/ fi ri)
-                                                 sfi (+ s nfi)]
-                                             (if (== sfi s)
-                                               (/ m s)
-                                               (recur (+ m (* ^double (f i) nfi))
-                                                      nfi sfi (dec i))))))))
-                       ^double mmean (expectation identity)
-                       variance (expectation (fn [^double t] (m/sq (- t mmean))))
-                       pdf-fn (fn [^double k]
-                                (if-not (m/between? mlower-bound mupper-bound k)
-                                  0.0
-                                  (let [k (int k)
-                                        [^double s ^double fk] (loop [fk 1.0
-                                                                      fi 1.0
-                                                                      s 1.0
-                                                                      i (inc mode)]
-                                                                 (if (> i mupper-bound)
-                                                                   [s fk]
-                                                                   (let [^double ri (fri i)
-                                                                         nfi (* fi ri)
-                                                                         sfi (+ s nfi)]
-                                                                     (if (and (== sfi s)
-                                                                              (> i k))
-                                                                       [s fk]
-                                                                       (recur (if (== k i) nfi fk)
-                                                                              nfi sfi (inc i))))))]
-                                    (loop [fk fk
-                                           fi 1.0
-                                           s s
-                                           i (dec mode)]
-                                      (if (< i mlower-bound)
-                                        (/ fk s)
-                                        (let [^double ri (fri+ i) 
-                                              nfi (/ fi ri)
-                                              sfi (+ s nfi)]
-                                          (if (and (== sfi s)
-                                                   (< i k))
-                                            (/ fk s)
-                                            (recur (if (== k i) nfi fk)
-                                                   nfi sfi (dec i)))))))))
-                       cdf-fn (fn [^double k]                                
-                                (cond
-                                  (< k mlower-bound) 0.0
-                                  (>= k mupper-bound) 1.0
-                                  :else (let [k (int k)
-                                              [^double s ^double fk] (loop [fk (if (>= k mode) 1.0 0.0)
-                                                                            fi 1.0
-                                                                            s 1.0
-                                                                            i (inc mode)]
-                                                                       (if (> i mupper-bound)
-                                                                         [s fk]
-                                                                         (let [^double ri (fri i)
-                                                                               nfi (* fi ri)
-                                                                               sfi (+ s nfi)]
-                                                                           (if (and (== sfi s)
-                                                                                    (> i k))
-                                                                             [s fk]
-                                                                             (recur (if (<= i k)
-                                                                                      (+ fk nfi) fk)
-                                                                                    nfi sfi (inc i))))))]
-                                          (loop [fk fk
-                                                 fi 1.0
-                                                 s s
-                                                 i (dec mode)]
-                                            (if (< i mlower-bound)
-                                              (/ fk s)
-                                              (let [^double ri (fri+ i) 
-                                                    nfi (/ fi ri)
-                                                    sfi (+ s nfi)]
-                                                (if (and (== sfi s)
-                                                         (< i k))
-                                                  (/ fk s)
-                                                  (recur (if (<= i k) (+ fk nfi) fk)
-                                                         nfi sfi (dec i)))))))))
-                       icdf-fn (fn [^double q]
-                                 (if-not (<= 0.0 q 1.0)
-                                   ##NaN
-                                   (loop [i mlower-bound]
-                                     (cond
-                                       (> i mupper-bound) mupper-bound
-                                       (> q ^double (cdf-fn i)) (recur (inc i)) 
-                                       :else i)))))
+
 
 (defonce ^{:doc "List of distributions."}
   distributions-list
@@ -2374,9 +3364,25 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    :halton (partial jittered-sequence-sampling :halton)})
 
 (defn ->seq
-  "Returns lazy sequence of random samples (can be limited to optional `n` values).
+  "Returns a lazy sequence of random samples.
 
-  Additionally one of the sampling methods can be provided, ie: `:uniform`, `:antithetic`, `:systematic` and `:stratified`."
+  Works with either a random number generator or a distribution as `rng`, producing raw uniform draws or values following the given distribution, respectively.
+
+  Parameters:
+
+  - `rng` (optional): a random number generator or a distribution to sample from. Defaults to the default random number generator.
+  - `n` (optional, long): limits the returned sequence to `n` values. When omitted, an infinite lazy sequence is returned.
+  - `sampling-method` (optional, keyword): selects a sampling scheme applied to the underlying uniform draws, instead of plain independent sampling. Requires `n` to be given; `nil` falls back to plain sampling. One of:
+    - `:uniform` - order statistics of `n` uniform draws, simulating a sorted uniform sample.
+    - `:systematic` - low-variance systematic sampling using a single shared random offset.
+    - `:stratified` - stratified sampling, one random draw per equal-width stratum.
+    - `:antithetic` - antithetic sampling, pairing each draw `r` with its complement `1 - r`.
+    - `:r2`, `:sobol`, `:halton` - jittered low-discrepancy sequences.
+    When `rng` is a distribution, the resulting uniform values are transformed through its inverse cumulative distribution function; otherwise they are returned as-is.
+
+  Returns a lazy sequence of samples.
+
+  See also [[white-noise]], [[distribution?]], [[icdf]]."
   ([] (prot/->seq default-rng))
   ([rng] (prot/->seq rng))
   ([rng n] (prot/->seq rng n))
@@ -2426,37 +3432,51 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 (defn ma
   "Generates a Moving Average (MA) stochastic process.
 
-  An MA(q) process is a time series where the current value is a linear combination
-  of past white noise error terms. This function generates a first-order MA(1)
-  process by default, or an MA(q) process if a collection of `theta` coefficients
-  is provided.
-
-  This function generates the process based on a provided sequence of white noise.
+  An MA(q) process expresses the current value as a linear combination of the current and past white noise error terms `et`. A single `theta` coefficient produces an MA(1) process `Yt = et + theta1 et-1`; a sequence of q coefficients produces an MA(q) process `Yt = et + theta1 et-1 + theta2 et-2 + ... + thetaq et-q`.
 
   Parameters:
 
-  - `theta` (optional, number or sequence of numbers): The MA coefficient(s) (θ).
-    If a single number, generates an MA(1) process `Yt = εt + θ₁εt-₁`.
-    If a sequence of numbers `[θ₁, θ₂, ..., θq]`, generates an MA(q) process.
-    The sequence is interpreted such that `theta[i]` is the coefficient for `εt-(i+1)`.
-    Defaults to `0.0` (pure white noise).
-  - `signal` (optional, sequence of numbers): The underlying white noise series (εt).
-    Defaults to a sequence of standard normal random numbers (`white-noise`).
+  - `theta` (optional, number or sequence of numbers): the MA coefficient(s). A single number produces an MA(1) process; a sequence `[theta1 theta2 ... thetaq]` produces an MA(q) process, where `theta[i]` is the coefficient for `et-(i+1)`. Defaults to `0.0` (pure white noise, `signal` is returned unchanged).
+  - `signal` (optional, sequence of numbers): the underlying white noise series (`et`). Defaults to a sequence of standard normal random numbers, see [[white-noise]].
 
-  Returns a lazy sequence representing the generated MA process.
+  Returns a lazy sequence representing the generated MA process. Leading elements of `signal` are consumed to seed the initial history and to warm up the recursion, so the returned sequence is shorter than `signal`.
 
-  See also [[ar]] (Autoregressive process), [[arma]] (ARMA process), [[arfima]] (ARFIMA process),
-  [[white-noise]]."
+  See also [[ar]], [[arma]], [[fi]], [[arfima]], [[white-noise]]."
   ([] (ma 0.0))
   ([theta] (ma theta (white-noise)))
   ([theta signal] (ma-or-ar true theta signal)))
 
 (defn ar
+  "Generates an Autoregressive (AR) stochastic process.
+
+  An AR(p) process expresses the current value as a linear combination of the current white noise error term and past values of the process itself. A single `phi` coefficient produces an AR(1) process `Yt = phi1 Yt-1 + et`; a sequence of p coefficients produces an AR(p) process `Yt = phi1 Yt-1 + phi2 Yt-2 + ... + phip Yt-p + et`.
+
+  Parameters:
+
+  - `phi` (optional, number or sequence of numbers): the AR coefficient(s). A single number produces an AR(1) process; a sequence `[phi1 phi2 ... phip]` produces an AR(p) process, where `phi[i]` is the coefficient for `Yt-(i+1)`. Defaults to `0.0` (pure white noise, `signal` is returned unchanged).
+  - `signal` (optional, sequence of numbers): the driving white noise series (`et`). Defaults to a sequence of standard normal random numbers, see [[white-noise]].
+
+  Returns a lazy sequence representing the generated AR process. Leading elements of `signal` are consumed to seed the initial history and to warm up the recursion, so the returned sequence is shorter than `signal`.
+
+  See also [[ma]], [[arma]], [[fi]], [[arfima]], [[white-noise]]."
   ([] (ar 0.0))
   ([phi] (ar phi (white-noise)))
   ([phi signal] (ma-or-ar false phi signal)))
 
 (defn arma
+  "Generates an Autoregressive Moving Average (ARMA) stochastic process.
+
+  An ARMA(p,q) process combines an MA(q) filter and an AR(p) filter: the driving `signal` is first passed through an MA(q) filter using `theta` (see [[ma]]), and the resulting series is then passed through an AR(p) filter using `phi` (see [[ar]]), giving `Yt = phi1 Yt-1 + ... + phip Yt-p + et + theta1 et-1 + ... + thetaq et-q`.
+
+  Parameters:
+
+  - `phi` (optional, number or sequence of numbers): the AR coefficient(s), see [[ar]]. Defaults to `0.0`.
+  - `theta` (optional, number or sequence of numbers): the MA coefficient(s), see [[ma]]. Defaults to `0.0`.
+  - `signal` (optional, sequence of numbers): the underlying white noise series. Defaults to a sequence of standard normal random numbers, see [[white-noise]].
+
+  Returns a lazy sequence representing the generated ARMA process. As with [[ma]] and [[ar]], leading elements of `signal` are consumed while seeding both filters, so the returned sequence is noticeably shorter than `signal`.
+
+  See also [[ma]], [[ar]], [[fi]], [[arfima]], [[white-noise]]."
   ([] (arma 0.0 0.0))
   ([phi theta] (arma phi theta (white-noise)))
   ([phi theta signal] (->> signal (ma theta) (ar phi))))
@@ -2466,7 +3486,7 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   (->> (range d)
        (map (fn [^long k]
               (m/* (if (m/even? k) 1.0 -1.0)
-                   (m/combinations d (m/inc k)))))))
+                   (m/combinations d (m/long-inc k)))))))
 
 (defn- fi-diffs
   [^double d ^long limit]
@@ -2476,13 +3496,26 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
       (vec)))
 
 (defn fi
+  "Generates a Fractionally Integrated (FI) process, or applies fractional integration to a series.
+
+  Filters `signal` through the fractional differencing operator `(1-B)^-d`, where `B` is the backshift operator. Positive `d` adds long-range dependence (long memory) to the series, negative `d` produces anti-persistent, over-differenced behavior, and an integer `d` reduces to plain cumulative summation of order `d`.
+
+  Parameters:
+
+  - `d` (double, optional): the fractional differencing order. Defaults to `0.0` (identity, `signal` is returned unchanged).
+  - `dlimit` (long, optional): for non-integer `d`, truncates the fractional differencing filter to this many lag coefficients (computed with Hosking's recursive formula). Ignored when `d` is an integer. When called with two arguments they are interpreted as `d signal` and `dlimit` defaults to `0`; when called with three arguments they are interpreted as `d dlimit signal`.
+  - `signal` (optional, sequence of numbers): the input series to integrate. Defaults to a sequence of standard normal random numbers, see [[white-noise]].
+
+  Returns a lazy sequence representing the fractionally integrated series. Integer `d` is handled by an exact finite expansion using binomial coefficients, applied with [[ar]]. Non-integer `d` with `dlimit` greater than `0` uses a truncated approximation, also applied with [[ar]]. Non-integer `d` with `dlimit` equal to `0` (the default) uses an exact recursive expansion whose coefficient count keeps growing as more of `signal` is consumed, trading speed for accuracy. In every non-identity case, leading elements of `signal` are consumed to seed the initial history, so the returned sequence is shorter than `signal`.
+
+  See also [[ar]], [[ma]], [[arma]], [[arfima]]."
   ([] (fi 0.0))
   ([^double d] (fi d (white-noise)))
   ([^double d signal] (fi d 0 signal))
   ([^double d ^long dlimit signal]
    (cond
      (m/zero? d) signal
-     (m/integer? d) (ar (i-diffs d) signal)
+     (m/integer? d) (ar (i-diffs (long d)) signal)
      (m/pos? dlimit) (ar (fi-diffs d dlimit) signal)
      :else (letfn [(step [sig history coeffs ^long k]
                      (when (seq sig)
@@ -2496,6 +3529,21 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
              (lazy-seq (step (rest signal) (list (first signal)) [] 0))))))
 
 (defn arfima
+  "Generates an Autoregressive Fractionally Integrated Moving Average (ARFIMA) stochastic process.
+
+  An ARFIMA(p,d,q) process combines an MA(q) filter, fractional integration of order `d` and an AR(p) filter: the driving `signal` is first passed through an MA(q) filter using `theta` (see [[ma]]), then through the fractional integration filter using `d` and `dlimit` (see [[fi]]), and finally through an AR(p) filter using `phi` (see [[ar]]).
+
+  Parameters:
+
+  - `phi` (optional, number or sequence of numbers): the AR coefficient(s), see [[ar]]. Defaults to `0`.
+  - `d` (double, optional): the fractional differencing order, see [[fi]]. Defaults to `0`.
+  - `dlimit` (long, optional): truncation limit for the fractional integration step when `d` is not an integer, see [[fi]]. Defaults to `0` (no truncation). When called with four arguments they are interpreted as `phi d theta signal`; when called with five arguments they are interpreted as `phi d dlimit theta signal`.
+  - `theta` (optional, number or sequence of numbers): the MA coefficient(s), see [[ma]]. Defaults to `0`.
+  - `signal` (optional, sequence of numbers): the underlying white noise series. Defaults to a sequence of standard normal random numbers, see [[white-noise]].
+
+  Returns a lazy sequence representing the generated ARFIMA process. As with [[ma]], [[fi]] and [[ar]], leading elements of `signal` are consumed while seeding each of the three filters in turn, so the returned sequence is noticeably shorter than `signal`.
+
+  See also [[ma]], [[ar]], [[fi]], [[arma]], [[white-noise]]."
   ([] (arfima 0 0 0))
   ([phi d theta] (arfima phi d theta (white-noise)))
   ([phi d theta signal] (arfima phi d 0 theta signal))

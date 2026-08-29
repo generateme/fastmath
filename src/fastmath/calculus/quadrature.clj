@@ -1,13 +1,15 @@
 (ns fastmath.calculus.quadrature
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
-            [fastmath.calculus.common :as cc])
+            [fastmath.calculus.common :as cc]
+            [fastmath.matrix :as mat])
   (:import [java.util TreeSet Comparator]
            [fastmath.java Array]
            [fastmath.vector Vec2]
            [org.apache.commons.math3.linear Array2DRowRealMatrix EigenDecomposition]))
 
-
+(set! *warn-on-reflection* true)
+(set! *unchecked-math* :warn-on-boxed)
 
 ;; quadgk
 ;; https://github.com/JuliaMath/QuadGK.jl/blob/master/src/gausskronrod.jl
@@ -44,7 +46,7 @@
 (defn get-quadrature-points
   [b ^long n]
   (let [cb (count b)
-        m (m/inc cb)
+        m (m/long-inc cb)
         buff (double-array (m/sq m))]
     (doseq [^long i (range cb)
             :let [^double v (b i)]]
@@ -53,10 +55,8 @@
     (let [lambdas (->> buff
                        (partition m)
                        (m/seq->double-double-array)
-                       (Array2DRowRealMatrix.)
-                       (EigenDecomposition.)
-                       (.getRealEigenvalues)
-                       (reverse)
+                       (mat/eigenvalues)
+                       (map first)
                        (take n))]
       (mapv (partial newton-iterations b) lambdas))))
 
@@ -126,15 +126,44 @@
                  (->> x rest (take-nth 2)))]
     {:x x :w w :gw gw :gk-evals (m/+ (m/* 4 n) 2)}))
 
+;; precomputed from julia
+(def kronrod-7-result
+  {:x
+   [-9.9145537112081263920685469752598e-01,
+    -9.4910791234275852452618968404809e-01,
+    -8.6486442335976907278971278864098e-01,
+    -7.415311855993944398638647732811e-01,
+    -5.8608723546769113029414483825842e-01,
+    -4.0584515137739716690660641207707e-01,
+    -2.0778495500789846760068940377309e-01,
+    0.0],
+   :w
+   [2.2935322010529224963732008059913e-02,
+    6.3092092629978553290700663189093e-02,
+    1.0479001032225018383987632254189e-01,
+    1.4065325971552591874518959051021e-01,
+    1.6900472663926790282658342659795e-01,
+    1.9035057806478540991325640242055e-01,
+    2.0443294007529889241416199923466e-01,
+    2.0948214108472782801299917489173e-01],
+   :gw
+   [1.2948496616886969327061143267787e-01,
+    2.797053914892766679014677714229e-01,
+    3.8183005050511894495036977548818e-01,
+    4.1795918367346938775510204081658e-01],
+   :gk-evals 30})
+
 (defn kronrod-
   [^long n]
-  (let [last-j (m/quot (m/inc (m/* 3 n)) 2)
-        b (mapv (fn [^double j]
-                  (if (m/<= j last-j)
-                    (let [j2 (m/sq j)]
-                      (m// j2 (m/dec (m/* 4.0 j2)) ))
-                    0.0)) (range 1 (inc (m/* 2 n))))]
-    (kronrodjacobi b n)))
+  (if (m/== n 7)
+    kronrod-7-result
+    (let [last-j (m/quot (m/inc (m/* 3 n)) 2)
+          b (mapv (fn [^double j]
+                    (if (m/<= j last-j)
+                      (let [j2 (m/sq j)]
+                        (m// j2 (m/dec (m/* 4.0 j2)) ))
+                      0.0)) (range 1 (inc (m/* 2 n))))]
+      (kronrodjacobi b n))))
 
 (def kronrod (memoize kronrod-))
 

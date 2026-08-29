@@ -40,16 +40,19 @@
                         :eastwood {:add-linters [:performance :boxed-math :wrong-tag]
                                    :source-paths ["src"]
                                    :exclude-namespaces [:test-paths]}}
-             :dev {:dependencies [[org.clojure/clojure "1.13.0-alpha4"]
-                                  ;;[org.clojure/clojure "1.12.5"]
+             :dev {:dependencies [;;[org.clojure/clojure "1.13.0-alpha4"]
+                                  [org.clojure/clojure "1.12.5"]
                                   [org.clojure/data.csv "1.1.0"]
                                   [org.clojure/data.json "2.5.2"]
                                   [org.scicloj/clay "2.0.13"]
                                   [zprint "1.3.0"]
                                   [scicloj/clojisr "1.0.0"]
-                                  [scicloj/tablecloth "7.059"]
+                                  ;; [scicloj/tablecloth "7.059"]
                                   [virgil "0.5.0"]
-                                  [org.ow2.asm/asm "9.9"]]
+                                  [org.ow2.asm/asm "9.9"]
+                                  [clojure2d/clojure2d "1.5.0-alpha2-SNAPSHOT"]
+                                  [org.scicloj/plotje "0.8.1" :exclusions [clojure2d/clojure2d
+                                                                           generateme/fastmath]]]
                    :source-paths ["notebooks" "utils"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}}

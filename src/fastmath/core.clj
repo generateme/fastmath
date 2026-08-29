@@ -37,8 +37,8 @@
   Note that the `fastmath.core` versions are not a complete drop-in replacement due to their primitive-specific behavior (e.g., return types), and calling `unuse-primitive-operators` at the end of the namespace is recommended, especially in Clojure 1.12+."
   (:refer-clojure
    :exclude [* + - / > < >= <= == rem quot mod bit-or bit-and bit-and-not bit-set bit-clear bit-test bit-flip bit-xor bit-not bit-shift-left bit-shift-right unsigned-bit-shift-right inc dec zero? neg? pos? min max even? odd? abs integer?])
-  (:import [net.jafama FastMath]
-           [fastmath.java PrimitiveMath]
+  (:import [fastmath.java PrimitiveMath]
+           [net.jafama FastMath]
            [org.apache.commons.math3.util Precision]
            [org.apache.commons.math3.special Gamma Beta]))
 
@@ -1494,6 +1494,34 @@
 
 ;;
 
+(set! *unchecked-math* true)
+
+(defn bernoulli
+  "Calculates the `n`-th Bernoulli number, `B_n`.
+
+  This implementation uses the `B_1 = +1/2` sign convention, giving the sequence `B_0 = 1`, `B_1 = 1/2`, `B_2 = 1/6`, `B_3 = 0`, `B_4 = -1/30`, and so on.
+
+  Parameters:
+
+  - `n` (long): Index of the Bernoulli number to compute, must be non-negative.
+
+  Returns `B_n` as a double. All odd-indexed Bernoulli numbers above `B_1` (i.e. `B_3`, `B_5`, `B_7`, ...) are `0.0`.
+
+  See also [[factorial]]."
+  ^double [^long n]
+  (loop [m 0
+         j m
+         buff (mapv (fn [^long m] (clojure.core// 1 m)) (range 1 (+ n 2)))]
+    (cond
+      (pos? j) (let [j- (dec j)]
+                 (recur m j- (assoc buff j- (clojure.core/* j (clojure.core/- (buff j-) (buff j))))))
+      (< m n) (let [m+ (inc m)]
+                (recur m+ m+ buff))
+      :else (buff 0))))
+
+(set! *unchecked-math* :warn-on-boxed)
+
+;;
 (def ^:private factorial20-table [1 1 2 6 24 120 720 5040 40320 362880 3628800 39916800 479001600
                                   6227020800 87178291200 1307674368000 20922789888000
                                   355687428096000 6402373705728000 121645100408832000
@@ -1534,6 +1562,24 @@
                (/ -5.952380952380953E-4 x7)
                (/ 8.417508417508417E-4 x9)
                (/ -0.0019175269175269176 (* x2 x9)))))))
+
+(defn log-stirling-factorial
+  "Log factorial using Stirling's approximation with correction (6 terms)."
+  ^double [^double x]
+  (let [lx (log x)
+        x2 (* x x)
+        x3 (* x x2)
+        x5 (* x2 x3)
+        x7 (* x2 x5)
+        x9 (* x2 x7)]
+    (+ (* 0.5 (+ LOG_TWO_PI lx))
+       (* x (dec lx))
+       (+ (/ 0.08333333333333333 x)
+          (/ -0.002777777777777778 x3)
+          (/ 7.936507936507937E-4 x5)
+          (/ -5.952380952380953E-4 x7)
+          (/ 8.417508417508417E-4 x9)
+          (/ -0.0019175269175269176 (* x2 x9))))))
 
 (defn log-factorial
   "Log factorial, alias to log-gamma"
