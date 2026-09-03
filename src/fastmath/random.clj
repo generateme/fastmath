@@ -86,7 +86,7 @@
   * [[vnoise]] - Value Noise (as in Processing, 6 octaves, hermite interpolation)
   * [[simplex]] - Simplex Noise (6 octaves)
 
-  For random noise generation you can use [[random-noise-cfg]] and [[random-noise-fn]]. Both can be feed with configuration. Additional configuration:
+  For random noise generation you can use [[random-noise-cfg]] and [[random-noise]]. Both can be feed with configuration. Additional configuration:
 
   * `:generator` can be set to one of the noise variants, defaults to `:fbm`
   * `:warp-scale` - 0.0 - do not warp, >0.0 warp
@@ -108,9 +108,6 @@
             [fastmath.special :as special]
             [fastmath.random.distributions :as distr]
             [fastmath.solver :as solver]
-            [fastmath.interpolation.linear :as linear-interp]
-            [fastmath.interpolation.cubic :as cubic-interp]
-            [fastmath.interpolation.monotone :as monotone-interp]
             [fastmath.interpolation.step :as step-interp]
             [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
@@ -884,7 +881,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   Returns a configuration map.
 
-  See also [[random-noise]], [[fbm-noise]], [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[warp-noise-fn]]."
+  See also [[random-noise]], [[fbm-noise]], [[single-noise]], [[billow-noise]], [[ridgedmulti-noise]], [[warp-noise]]."
   ([pre-config]
    (merge {:seed (irand)
            :generator (rand-nth [:single :fbm :billow :ridgemulti])
@@ -901,7 +898,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 (defn random-noise-fn
   "Generates a fully random noise function.
 
-  Combines [[random-noise-cfg]] with one of the noise blending methods (`:single`, `:fbm`, `:billow`, `:ridgemulti`, see `noise-generators`) and, when the resulting configuration requests warping (`:warp-scale` greater than `0.0`), wraps the noise with [[warp-noise-fn]]. The result is a ready-to-use noise function in the same shape as [[noise]], [[vnoise]] and [[simplex]].
+  Combines [[random-noise-cfg]] with one of the noise blending methods (`:single`, `:fbm`, `:billow`, `:ridgemulti`, see `noise-generators`) and, when the resulting configuration requests warping (`:warp-scale` greater than `0.0`), wraps the noise with [[warp-noise]]. The result is a ready-to-use noise function in the same shape as [[noise]], [[vnoise]] and [[simplex]].
 
   Parameters:
 
@@ -916,7 +913,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
          gen-fn (noise-generators (get cfg :generator :fbm))
          noise (gen-fn cfg)]
      (if (pos? ^double (:warp-scale cfg))
-       (warp-noise-fn noise (:warp-scale cfg) (:warp-depth cfg))
+       (warp-noise noise (:warp-scale cfg) (:warp-depth cfg))
        noise)))
   ([] (random-noise-fn nil)))
 
@@ -937,7 +934,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
          gen-fn (noise-generators (get cfg :generator :fbm))
          noise (gen-fn cfg)]
      (if (pos? ^double (:warp-scale cfg))
-       (warp-noise-fn noise (:warp-scale cfg) (:warp-depth cfg))
+       (warp-noise noise (:warp-scale cfg) (:warp-depth cfg))
        noise)))
   ([] (random-noise nil)))
 
@@ -956,7 +953,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
 
   Returns a double in the `[0,1]` range.
 
-  See also [[vnoise]], [[simplex]], [[random-noise-fn]]."
+  See also [[vnoise]], [[simplex]], [[random-noise]]."
   (^double [^long X ^long Y] (Discrete/value X Y))
   (^double [^long X] (Discrete/value X 0)))
 
@@ -972,11 +969,12 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
   distribution (fn ([k _] k) ([k] k)))
 
 (defmacro ^:private add-distr-method
-  [d]
-  (let [kd (keyword d)]
-    `(defmethod distribution ~kd
-       ([_#] (distribution ~kd nil))
-       ([_# opts#] (~d opts#)))))
+  ([d]
+   `(add-distr-method ~d ~(keyword d)))
+  ([d kd]
+   `(defmethod distribution ~kd
+      ([_#] (distribution ~kd nil))
+      ([_# opts#] (~d opts#)))))
 
 ;;
 
@@ -2525,6 +2523,64 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (add-distr-method negative-binomial)
 
+(defn nbi
+  "Creates a negative binomial (type I) distribution object, using gamlss-style parameter names.
+
+  Alias for [[negative-binomial]], reparameterized in terms of the mean `mu` and a dispersion parameter `sigma`, matching the naming and parametrization used by R's `gamlss.dist` package (its `NBI` family, also known as the `NB1` parametrization). The underlying [[negative-binomial]] parameters are recovered as `r = 1 / sigma` and `p = r / (r + mu)`, giving mean `mu` and variance `(+ mu (* sigma mu mu))`, i.e. a variance that is linear in `mu`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the distribution, strictly positive. Default: `1.0`.
+  - `sigma` (double): dispersion parameter, strictly positive; larger values give more overdispersion relative to a [[poisson]] distribution with the same mean, which is approached as `sigma` tends to `0`. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  When `sigma` is below `1.0e-4`, `r = 1 / sigma` grows so large that evaluating [[negative-binomial]] directly loses numerical precision; in that regime this falls back to an exact [[poisson]] distribution with rate `mu`, which is the limit of `nbi` as `sigma` tends to `0`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[negative-binomial]], [[nbii]], [[poisson]]."
+  ([] (nbi nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 1.0 sigma 1.0}}]
+   (if (m/< sigma 1.0e-4)
+     (poisson {:p mu :rng rng})
+     (let [r (m// 1.0 sigma)
+           p (m// r (m/+ r mu))]
+       (distr/negative-binomial r p rng)))))
+
+(add-distr-method nbi)
+
+(defn nbii
+  "Creates a negative binomial (type II) distribution object, using gamlss-style parameter names.
+
+  Alias for [[negative-binomial]], reparameterized in terms of the mean `mu` and a dispersion parameter `sigma`, matching the naming and parametrization used by R's `gamlss.dist` package (its `NBII` family). The underlying [[negative-binomial]] parameters are recovered as `r = mu / sigma` and `p = r / (r + mu)`, giving mean `mu` and variance `(* mu (+ 1.0 sigma))`, i.e. a variance that is linear in the dispersion parameter, unlike [[nbi]] whose variance is quadratic in `mu`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the distribution, strictly positive. Default: `1.0`.
+  - `sigma` (double): dispersion parameter, strictly positive; larger values give more overdispersion relative to a [[poisson]] distribution with the same mean, which is approached as `sigma` tends to `0`. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  When `sigma` is below `1.0e-4`, `r = mu / sigma` grows so large that evaluating [[negative-binomial]] directly loses numerical precision; in that regime this falls back to an exact [[poisson]] distribution with rate `mu`, which is the limit of `nbii` as `sigma` tends to `0`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[negative-binomial]], [[nbi]], [[poisson]]."
+  ([] (nbii nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 1.0 sigma 1.0}}]
+   (if (m/< sigma 1.0e-4)
+     (poisson {:p mu :rng rng})
+     (let [r (m// mu sigma)
+           p (m// r (m/+ r mu))]
+       (distr/negative-binomial r p rng)))))
+
+(add-distr-method nbii)
+
 (defn logarithmic
   "Creates a logarithmic (log-series) distribution object.
 
@@ -2742,6 +2798,608 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 ;;
 
+(defn reciprocal
+  "Creates a reciprocal (log-uniform) distribution object.
+
+  The reciprocal distribution is a continuous distribution over the positive interval `[a, b]` whose density is proportional to `(/ 1.0 x)`, equivalently, its logarithm, `(m/log x)`, is uniformly distributed over `[(m/log a), (m/log b)]`. It is commonly used to sample scale-invariant quantities spanning several orders of magnitude, such as hyperparameters in a search space or physical quantities of unknown scale, since it assigns equal probability mass to intervals of equal relative (rather than absolute) width.
+
+  Parameters (single, optional map):
+
+  - `a` (double): lower bound of the support, must be strictly positive. Default: `1.0`.
+  - `b` (double): upper bound of the support, must be greater than `a`. Default: `10.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[uniform-real]], [[log-normal]], [[pareto]]."
+  ([] (reciprocal nil))
+  ([{:keys [^double a ^double b rng]
+     :or {a 1 b 10}}]
+   (distr/reciprocal a b rng)))
+
+(add-distr-method reciprocal)
+
+(defn ex-gaussian
+  "Creates an ex-Gaussian (exponentially modified Gaussian) distribution object.
+
+  The ex-Gaussian distribution is the continuous distribution of the sum of an independent [[normal]] variable with mean `mu` and standard deviation `sigma`, and an [[exponential]] variable with mean `tau`. It is right-skewed, with the normal component shaping its bell-like core and the exponential component stretching its right tail, and is widely used to model human reaction-time data as well as chromatography peak shapes.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the normal component. Default: `0.0`.
+  - `sigma` (double): standard deviation of the normal component. Default: `1.0`.
+  - `tau` (double): mean of the exponential component, controlling the length of the right tail. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[exponential]], [[exgaus]]."
+  ([] (ex-gaussian nil))
+  ([{:keys [^double mu ^double sigma ^double tau rng]
+     :or {mu 0.0 sigma 1.0 tau 1.0}}]
+   (distr/ex-gaussian {:mu mu :sigma sigma :tau tau :rng rng :normal normal :exponential exponential})))
+
+(add-distr-method ex-gaussian)
+
+(defn exgaus
+  "Creates an ex-Gaussian (exponentially modified Gaussian) distribution object, using gamlss-style parameter names.
+
+  Alias for [[ex-gaussian]], renaming its `tau` parameter (mean of the exponential component) to `nu`, matching the naming used by R's `gamlss.dist` package. Registered under the `:exgaus` key, distinct from `ex-gaussian`'s `:ex-gaussian` key, so that `(distribution :exgaus {:nu ...})` and `(distribution :ex-gaussian {:tau ...})` are equivalent ways of building the same distribution.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the normal component. Default: `0.0`.
+  - `sigma` (double): standard deviation of the normal component. Default: `1.0`.
+  - `nu` (double): mean of the exponential component, controlling the length of the right tail. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[ex-gaussian]]."
+  ([] (exgaus nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 0.0 sigma 1.0 nu 1.0}}]
+   (distr/ex-gaussian {:mu mu :sigma sigma :tau nu :rng rng :normal normal :exponential exponential})))
+
+(add-distr-method exgaus)
+
+(defn beta-binomial
+  "Creates a beta-binomial distribution object.
+
+  The beta-binomial distribution is a discrete distribution over the integers `0` to `n`, obtained as a compound of the [[binomial]] distribution whose success probability `p` is itself random, drawn from a [[beta]] distribution with shape parameters `alpha` and `beta`. Compared to the binomial distribution, it is overdispersed, making it a common model for count data (e.g. successes out of `n` trials) exhibiting more variability than the binomial would predict.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): first shape parameter of the underlying beta distribution. Default: `0.5`.
+  - `beta` (double): second shape parameter of the underlying beta distribution. Default: `0.5`.
+  - `n` (long): number of trials, the upper bound of the support. Default: `10`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[bb]], [[binomial]], [[beta]], [[hypergeometric]]."
+  ([] (beta-binomial nil))
+  ([{:keys [^double alpha ^double beta ^long n rng]
+     :or {alpha 0.5 beta 0.5 n 10}}]
+   (distr/beta-binomial alpha beta n rng)))
+
+(add-distr-method beta-binomial)
+
+(defn bb
+  "Creates a beta-binomial distribution object, using gamlss-style parameter names.
+
+  Alias for [[beta-binomial]], reparameterized in terms of the mean success probability `mu` and a dispersion parameter `sigma`, matching the naming used by R's `gamlss.dist` package (its `BB` family). The underlying [[beta-binomial]] shape parameters are recovered as `alpha = mu / sigma` and `beta = (1 - mu) / sigma`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean success probability, in `(0, 1)`. Default: `0.5`.
+  - `sigma` (double): dispersion parameter; larger values give more overdispersion relative to the [[binomial]] distribution. Default: `1.0`.
+  - `bd` (long): binomial denominator, i.e. number of trials, the upper bound of the support. Default: `10`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[beta-binomial]]."
+  ([] (bb nil))
+  ([{:keys [^double mu ^double sigma ^long bd rng]
+     :or {mu 0.5 sigma 1.0 bd 10}}]
+   (distr/beta-binomial (m// mu sigma) (m// (m/- 1.0 mu) sigma) bd rng)))
+
+(add-distr-method bb)
+
+(defn zero-inflated-binomial
+  "Creates a zero-inflated binomial distribution object, using gamlss-style parameter names.
+
+  The zero-inflated binomial distribution augments the [[binomial]] distribution with an extra point mass at `0`, on top of whatever probability the binomial itself already places there. It is a common model for count data (successes out of `bd` trials) exhibiting more zeros than a plain [[binomial]] would predict. With probability `sigma` the outcome is forced to `0`; with probability `(1 - sigma)` it is drawn from a binomial distribution with success probability `mu` and `bd` trials. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZIBI` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): success probability of the underlying binomial component, in `(0, 1)`. Default: `0.5`.
+  - `sigma` (double): zero-inflation probability, in `[0, 1)`, i.e. the extra probability of observing `0` beyond the binomial's own mass at `0`. Default: `0.1`.
+  - `bd` (long): binomial denominator, i.e. number of trials, the upper bound of the support. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[binomial]], [[zero-inflated-beta-binomial]]."
+  ([] (zero-inflated-binomial nil))
+  ([{:keys [^double mu ^double sigma ^long bd rng]
+     :or {mu 0.5 sigma 0.1 bd 1}}]
+   (distr/zero-inflated-binomial {:mu mu :sigma sigma :bd bd :rng rng :binomial binomial})))
+
+(add-distr-method zero-inflated-binomial)
+(add-distr-method zero-inflated-binomial :zibi)
+
+(defn zero-adjusted-binomial
+  "Creates a zero-adjusted binomial distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted binomial distribution is a hurdle model over the integers `0` to `bd`: with probability `sigma` the outcome is exactly `0`, and with probability `(1 - sigma)` it is drawn from a zero-truncated binomial distribution with success probability `mu` and `bd` trials, i.e. the binomial's own positive-value probabilities rescaled to sum to `(1 - sigma)`. Unlike [[zero-inflated-binomial]], which adds an extra point mass at `0` on top of the binomial's own mass there, this distribution replaces that mass entirely, so `sigma` is exactly the probability of observing `0`, not merely an addition to it. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZABI` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): success probability of the underlying binomial component, in `(0, 1)`. Default: `0.5`.
+  - `sigma` (double): probability of observing `0`, in `[0, 1)`. Default: `0.1`.
+  - `bd` (long): binomial denominator, i.e. number of trials, the upper bound of the support. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[binomial]], [[zero-inflated-binomial]]."
+  ([] (zero-adjusted-binomial nil))
+  ([{:keys [^double mu ^double sigma ^long bd rng]
+     :or {mu 0.5 sigma 0.1 bd 1}}]
+   (distr/zero-adjusted-binomial {:mu mu :sigma sigma :bd bd :rng rng :binomial binomial})))
+
+(add-distr-method zero-adjusted-binomial)
+(add-distr-method zero-adjusted-binomial :zabi)
+
+
+(defn zero-inflated-beta-binomial
+  "Creates a zero-inflated beta-binomial distribution object, using gamlss-style parameter names.
+
+  The zero-inflated beta-binomial distribution augments the [[bb]]/[[beta-binomial]] distribution with an extra point mass at `0`, on top of whatever probability the beta-binomial itself already places there. It is a common model for count data (successes out of `bd` trials) exhibiting more zeros than a plain beta-binomial or [[binomial]] would predict. With probability `nu` the outcome is forced to `0`; with probability `(1 - nu)` it is drawn from a beta-binomial distribution parameterized by mean success probability `mu`, dispersion `sigma` and `bd` trials (as in [[bb]]). Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZIBB` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean success probability of the underlying beta-binomial component, in `(0, 1)`. Default: `0.5`.
+  - `sigma` (double): dispersion parameter of the underlying beta-binomial component; larger values give more overdispersion relative to the [[binomial]] distribution. Default: `0.1`.
+  - `nu` (double): zero-inflation probability, in `[0, 1)`, i.e. the extra probability of observing `0` beyond the beta-binomial's own mass at `0`. Default: `0.1`.
+  - `bd` (long): binomial denominator, i.e. number of trials, the upper bound of the support. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[bb]], [[beta-binomial]]."
+  ([] (zero-inflated-beta-binomial nil))
+  ([{:keys [^double mu ^double sigma ^long bd ^double nu rng]
+     :or {mu 0.5 sigma 0.1 nu 0.1 bd 1}}]
+   (distr/zero-inflated-beta-binomial {:mu mu :sigma sigma :nu nu :bd bd :rng rng})))
+
+(add-distr-method zero-inflated-beta-binomial)
+(add-distr-method zero-inflated-beta-binomial :zibb)
+
+(defn zero-adjusted-beta-binomial
+  "Creates a zero-adjusted beta-binomial distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted beta-binomial distribution is a hurdle model over the integers `0` to `bd`: with probability `nu` the outcome is exactly `0`, and with probability `(1 - nu)` it is drawn from a zero-truncated beta-binomial distribution parameterized by mean success probability `mu`, dispersion `sigma` and `bd` trials (as in [[bb]]), i.e. the beta-binomial's own positive-value probabilities rescaled to sum to `(1 - nu)`. Unlike [[zero-inflated-beta-binomial]], which adds an extra point mass at `0` on top of the beta-binomial's own mass there, this distribution replaces that mass entirely, so `nu` is exactly the probability of observing `0`, not merely an addition to it. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZABB` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean success probability of the underlying beta-binomial component, in `(0, 1)`. Default: `0.5`.
+  - `sigma` (double): dispersion parameter of the underlying beta-binomial component; larger values give more overdispersion relative to the [[binomial]] distribution. Default: `0.1`.
+  - `nu` (double): probability of observing `0`, in `[0, 1)`. Default: `0.1`.
+  - `bd` (long): binomial denominator, i.e. number of trials, the upper bound of the support. Default: `1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[bb]], [[beta-binomial]], [[zero-inflated-beta-binomial]]."
+  ([] (zero-adjusted-beta-binomial nil))
+  ([{:keys [^double mu ^double sigma ^long bd ^double nu rng]
+     :or {mu 0.5 sigma 0.1 nu 0.1 bd 1}}]
+   (distr/zero-adjusted-beta-binomial {:mu mu :sigma sigma :nu nu :bd bd :rng rng})))
+
+(add-distr-method zero-adjusted-beta-binomial)
+(add-distr-method zero-adjusted-beta-binomial :zabb)
+
+(defn zero-inflated-negative-binomial
+  "Creates a zero-inflated negative binomial distribution object, using gamlss-style parameter names.
+
+  The zero-inflated negative binomial distribution augments the [[nbi]]/[[negative-binomial]] distribution with an extra point mass at `0`, on top of whatever probability the negative binomial itself already places there. It is a common model for unbounded count data exhibiting more zeros than a plain [[nbi]] or [[poisson]] would predict. With probability `nu` the outcome is forced to `0`; with probability `(1 - nu)` it is drawn from a negative binomial distribution parameterized by mean `mu` and dispersion `sigma` (as in [[nbi]]). Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZINBI` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the underlying negative binomial component, strictly positive. Default: `1.0`.
+  - `sigma` (double): dispersion parameter of the underlying negative binomial component; larger values give more overdispersion relative to a [[poisson]] distribution with the same mean. Default: `1.0`.
+  - `nu` (double): zero-inflation probability, in `[0, 1)`, i.e. the extra probability of observing `0` beyond the negative binomial's own mass at `0`. Default: `0.3`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[nbi]], [[negative-binomial]], [[zero-inflated-binomial]]."
+  ([] (zero-inflated-negative-binomial nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 1.0 sigma 1.0 nu 0.3}}]
+   (distr/zero-inflated-negative-binomial {:mu mu :sigma sigma :nu nu :rng rng :nbi nbi})))
+
+(add-distr-method zero-inflated-negative-binomial)
+(add-distr-method zero-inflated-negative-binomial :zinbi)
+
+(defn zero-adjusted-negative-binomial
+  "Creates a zero-adjusted negative binomial distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted negative binomial distribution is a hurdle model over the non-negative integers: with probability `nu` the outcome is exactly `0`, and with probability `(1 - nu)` it is drawn from a zero-truncated negative binomial distribution parameterized by mean `mu` and dispersion `sigma` (as in [[nbi]]), i.e. the negative binomial's own positive-value probabilities rescaled to sum to `(1 - nu)`. Unlike [[zero-inflated-negative-binomial]], which adds an extra point mass at `0` on top of the negative binomial's own mass there, this distribution replaces that mass entirely, so `nu` is exactly the probability of observing `0`, not merely an addition to it. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZANBI` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the underlying negative binomial component, strictly positive. Default: `1.0`.
+  - `sigma` (double): dispersion parameter of the underlying negative binomial component; larger values give more overdispersion relative to a [[poisson]] distribution with the same mean. Default: `1.0`.
+  - `nu` (double): probability of observing `0`, in `[0, 1)`. Default: `0.3`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[nbi]], [[negative-binomial]], [[zero-inflated-negative-binomial]]."
+  ([] (zero-adjusted-negative-binomial nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 1.0 sigma 1.0 nu 0.3}}]
+   (distr/zero-adjusted-negative-binomial {:mu mu :sigma sigma :nu nu :rng rng :nbi nbi})))
+
+(add-distr-method zero-adjusted-negative-binomial)
+(add-distr-method zero-adjusted-negative-binomial :zanbi)
+
+(defn zero-inflated-poisson
+  "Creates a zero-inflated Poisson distribution object, using gamlss-style parameter names.
+
+  The zero-inflated Poisson distribution augments the [[poisson]] distribution with an extra point mass at `0`, on top of whatever probability the Poisson itself already places there. It is a common model for count data exhibiting more zeros than a plain [[poisson]] would predict. With probability `sigma` the outcome is forced to `0`; with probability `(1 - sigma)` it is drawn from a [[poisson]] distribution with rate `mu`. Note that the mean of the resulting distribution is `(1 - sigma) * mu`, not `mu` itself; see [[zero-inflated-poisson2]] for a reparameterization where `mu` is the mean directly. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZIP` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): rate of the underlying [[poisson]] component, strictly positive. Default: `5.0`.
+  - `sigma` (double): zero-inflation probability, in `[0, 1)`, i.e. the extra probability of observing `0` beyond the Poisson's own mass at `0`. Default: `0.1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[poisson]], [[zero-inflated-poisson2]], [[zero-inflated-negative-binomial]]."
+  ([] (zero-inflated-poisson nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 5.0 sigma 0.1}}]
+   (distr/zero-inflated-poisson {:mu mu :sigma sigma :rng rng :poisson poisson})))
+
+(add-distr-method zero-inflated-poisson)
+(add-distr-method zero-inflated-poisson :zip)
+
+(defn zero-inflated-poisson2
+  "Creates a zero-inflated Poisson distribution object, mean-parameterized, using gamlss-style parameter names.
+
+  Alias for [[zero-inflated-poisson]], reparameterized so that `mu` is the mean of the resulting distribution directly (rather than the rate of the underlying [[poisson]] component). The underlying [[poisson]] rate is recovered as `mu / (1 - sigma)`, so that the mean works out to `mu` exactly, matching the naming and parameterization used by R's `gamlss.dist` package (its `ZIP2` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the resulting distribution, strictly positive. Default: `5.0`.
+  - `sigma` (double): zero-inflation probability, in `[0, 1)`. Default: `0.1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[poisson]], [[zero-inflated-poisson]]."
+  ([] (zero-inflated-poisson2 nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 5.0 sigma 0.1}}]
+   (let [nmu (m// mu (m/- 1.0 sigma))]
+     (distr/zero-inflated-poisson {:mu nmu :sigma sigma :rng rng :poisson poisson}))))
+
+(add-distr-method zero-inflated-poisson2)
+(add-distr-method zero-inflated-poisson2 :zip2)
+
+(defn zero-adjusted-poisson
+  "Creates a zero-adjusted Poisson distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted Poisson distribution is a hurdle model over the non-negative integers: with probability `sigma` the outcome is exactly `0`, and with probability `(1 - sigma)` it is drawn from a zero-truncated [[poisson]] distribution with rate `mu`, i.e. the Poisson's own positive-value probabilities rescaled to sum to `(1 - sigma)`. Unlike [[zero-inflated-poisson]], which adds an extra point mass at `0` on top of the Poisson's own mass there, this distribution replaces that mass entirely, so `sigma` is exactly the probability of observing `0`, not merely an addition to it. Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZAP` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): rate of the underlying [[poisson]] component, strictly positive. Default: `5.0`.
+  - `sigma` (double): probability of observing `0`, in `[0, 1)`. Default: `0.1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[poisson]], [[zero-inflated-poisson]]."
+  ([] (zero-adjusted-poisson nil))
+  ([{:keys [^double mu ^double sigma rng]
+     :or {mu 5.0 sigma 0.1}}]
+   (distr/zero-adjusted-poisson {:mu mu :sigma sigma :rng rng :poisson poisson})))
+
+(add-distr-method zero-adjusted-poisson)
+(add-distr-method zero-adjusted-poisson :zap)
+
+(defn zero-adjusted-gamma
+  "Creates a zero-adjusted gamma distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted gamma distribution is a hurdle model mixing a discrete point mass at `0` with an otherwise continuous [[gamma]] distribution: with probability `nu` the outcome is exactly `0`, and with probability `(1 - nu)` it is drawn from a [[gamma]] distribution parameterized by mean `mu` and coefficient of variation `sigma` (shape `1/sigma^2`, scale `sigma^2 * mu`). Since the underlying [[gamma]] distribution places no mass at `0` itself, `nu` is exactly `P(X = 0)`, with no rescaling needed for the positive part (unlike the discrete hurdle distributions such as [[zero-adjusted-negative-binomial]]). Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZAGA` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the underlying gamma component, strictly positive. Default: `1.0`.
+  - `sigma` (double): coefficient of variation of the underlying gamma component, strictly positive. Default: `1.0`.
+  - `nu` (double): probability of observing `0`, in `[0, 1)`. Default: `0.1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]], [[zero-adjusted-negative-binomial]]."
+  ([] (zero-adjusted-gamma nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 1.0 sigma 1.0 nu 0.1}}]
+   (distr/zero-adjusted-gamma {:mu mu :sigma sigma :nu nu :rng rng :gamma gamma})))
+
+(add-distr-method zero-adjusted-gamma)
+(add-distr-method zero-adjusted-gamma :zaga)
+
+(defn zero-adjusted-inverse-gaussian
+  "Creates a zero-adjusted inverse Gaussian distribution object, using gamlss-style parameter names.
+
+  The zero-adjusted inverse Gaussian distribution is a hurdle model mixing a discrete point mass at `0` with an otherwise continuous [[inverse-gaussian]] distribution: with probability `nu` the outcome is exactly `0`, and with probability `(1 - nu)` it is drawn from an [[inverse-gaussian]] distribution parameterized by mean `mu` and dispersion `sigma` (`lambda = 1/sigma^2`). Since the underlying [[inverse-gaussian]] distribution places no mass at `0` itself, `nu` is exactly `P(X = 0)`, with no rescaling needed for the positive part (unlike the discrete hurdle distributions such as [[zero-adjusted-negative-binomial]]). Matches the naming and parameterization used by R's `gamlss.dist` package (its `ZAIG` family).
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean of the underlying inverse Gaussian component, strictly positive. Default: `1.0`.
+  - `sigma` (double): dispersion of the underlying inverse Gaussian component, strictly positive. Default: `1.0`.
+  - `nu` (double): probability of observing `0`, in `[0, 1)`. Default: `0.1`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[inverse-gaussian]], [[zero-adjusted-gamma]]."
+  ([] (zero-adjusted-inverse-gaussian nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 1.0 sigma 1.0 nu 0.1}}]
+   (distr/zero-adjusted-inverse-gaussian {:mu mu :sigma sigma :nu nu :rng rng :inverse-gaussian inverse-gaussian})))
+
+(add-distr-method zero-adjusted-inverse-gaussian)
+(add-distr-method zero-adjusted-inverse-gaussian :zaig)
+
+(defn generalized-extreme-value
+  "Creates a generalized extreme value (GEV) distribution object.
+
+  The GEV distribution is the limiting distribution of normalized maxima (or, via negation, minima) of independent, identically distributed samples, and unifies the three classical extreme-value families: Gumbel (`xi = 0`), Fréchet (`xi > 0`, heavy right tail), and (reversed) Weibull (`xi < 0`, bounded above). It is standard in extreme-value analysis of e.g. flood, temperature, or wind-speed maxima.
+
+  For shape `xi != 0` and `z = 1 + xi * (x - mu) / sigma`, the CDF is `exp(-z^(-1/xi))` on the support where `z > 0`; for `xi = 0` it degenerates to the Gumbel CDF `exp(-exp(-(x - mu) / sigma))`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter. Default: `0.0`.
+  - `sigma` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `xi` (double): shape parameter. `xi = 0` gives the Gumbel (type I) distribution, unbounded on both sides; `xi > 0` gives the Fréchet (type II) distribution, bounded below at `mu - sigma/xi`, with a heavy right tail; `xi < 0` gives the (reversed) Weibull (type III) distribution, bounded above at `mu - sigma/xi`. Default: `0.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `mean` and `variance` are finite only for `xi < 1` and `xi < 0.5` respectively; outside those ranges they are `##Inf`.
+
+  Matches the standard `(mu, sigma, xi)` parameterization used in extreme-value statistics; note that R's `EnvStats` package (`GEVD` family) uses a shape parameter `kappa` such that `xi = -kappa`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]]."
+  ([] (generalized-extreme-value nil))
+  ([{:keys [^double mu ^double sigma ^double xi rng]
+     :or {mu 0.0 sigma 1.0 xi 0.0}}]
+   (distr/generalized-extreme-value mu sigma xi rng)))
+
+(add-distr-method generalized-extreme-value)
+(add-distr-method generalized-extreme-value :gev)
+
+(defn generalized-logistic
+  "Creates a generalized logistic distribution object (type I / skew-logistic).
+
+  The type I generalized logistic distribution is a skewed generalization of the standard logistic distribution, with CDF equal to the standard logistic CDF raised to the power `alpha`: `F(x) = (1 + exp(-z))^(-alpha)`, where `z = (x - mu) / sigma`. Equivalently, it is the distribution of the maximum of `alpha` i.i.d. standard logistic random variables (with `alpha` generalized to any positive real). `alpha = 1` recovers the standard (symmetric) logistic distribution; `alpha != 1` introduces skew, right-skewed for `alpha > 1` and left-skewed for `alpha < 1`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter. Default: `0.0`.
+  - `sigma` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `alpha` (double): shape parameter, strictly positive. `alpha = 1` gives the standard logistic distribution. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Support is the whole real line for any `alpha > 0`; mean and variance are always finite, given by `mu + sigma * (digamma(alpha) + Euler-Mascheroni constant)` and `sigma^2 * (trigamma(alpha) + pi^2/6)` respectively.
+
+  Matches the `(location, scale, shape)` parameterization used by R's `glogis` package.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[logistic]]."
+  ([] (generalized-logistic nil))
+  ([{:keys [^double mu ^double sigma ^double alpha rng]
+     :or {mu 0.0 sigma 1.0 alpha 1.0}}]
+   (distr/generalized-logistic mu sigma alpha rng)))
+
+(add-distr-method generalized-logistic)
+
+(defn generalized-pareto
+  "Creates a generalized Pareto distribution (GPD) object.
+
+  The GPD is the limiting distribution of excesses over a high threshold (i.e. of `X - u` given `X > u`, as `u` increases), and is the standard model for peaks-over-threshold extreme value analysis, complementing the [[generalized-extreme-value]] distribution's block-maxima approach. It unifies the exponential (`xi = 0`), Pareto type II / Lomax (`xi > 0`, heavy right tail), and bounded (`xi < 0`) families.
+
+  For shape `xi != 0` and `t = 1 + xi * (x - mu) / sigma`, the CDF is `1 - t^(-1/xi)` on the support `x >= mu` where `t > 0`; for `xi = 0` it degenerates to the shifted exponential CDF `1 - exp(-(x - mu) / sigma)`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter; also the (always finite) lower bound of the support. Default: `0.0`.
+  - `sigma` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `xi` (double): shape parameter. `xi = 0` gives the shifted exponential distribution, unbounded above; `xi > 0` gives a Pareto type II (Lomax) distribution, unbounded above with a heavy right tail; `xi < 0` gives a distribution bounded above at `mu - sigma/xi`. Default: `0.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `mean` and `variance` are finite only for `xi < 1` and `xi < 0.5` respectively; outside those ranges they are `##Inf`.
+
+  Matches the standard `(mu, sigma, xi)` / `(loc, scale, shape)` parameterization used in extreme-value statistics, e.g. R's `evd` package (`gpd` family).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[generalized-extreme-value]], [[pareto]]."
+  ([] (generalized-pareto nil))
+  ([{:keys [^double mu ^double sigma ^double xi rng]
+     :or {mu 0.0 sigma 1.0 xi 0.0}}]
+   (distr/generalized-pareto mu sigma xi rng)))
+
+(add-distr-method generalized-pareto)
+(add-distr-method generalized-pareto :gpd)
+
+(defn generalized-exponential
+  "Creates a generalized exponential distribution object (Gupta-Kundu exponentiated exponential distribution).
+
+  The generalized exponential distribution raises the standard exponential CDF to a shape power `alpha`: `F(x) = (1 - exp(-lambda * x))^alpha`, for `x >= 0`. It was introduced by Gupta and Kundu (1999) as a flexible alternative to the gamma and Weibull distributions, sharing the same two-parameter (shape, scale/rate) structure. `alpha = 1` recovers the standard exponential distribution with rate `lambda`.
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shape parameter, strictly positive. For `alpha < 1` the pdf is strictly decreasing (with an unbounded value at `x = 0`); for `alpha > 1` it is unimodal, rising from `0` at `x = 0` to a peak and then decaying; `alpha = 1` gives the (monotonically decreasing) exponential density. Default: `1.0`.
+  - `lambda` (double): rate (scale) parameter, strictly positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Mean and variance are always finite, given by `(digamma(alpha + 1) + Euler-Mascheroni constant) / lambda` and `(pi^2/6 - trigamma(alpha + 1)) / lambda^2` respectively (Gupta & Kundu 1999).
+
+  Matches the `(alpha, lambda)` (shape, scale) parameterization used by R's `reliaR` package (`gen.exp` family).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[exponential]], [[weibull]], [[gamma]]."
+  ([] (generalized-exponential nil))
+  ([{:keys [^double alpha ^double lambda rng]
+     :or {alpha 1.0 lambda 1.0}}]
+   (distr/generalized-exponential alpha lambda rng)))
+
+(add-distr-method generalized-exponential)
+(add-distr-method generalized-exponential :ge)
+
+(defn generalized-gamma
+  "Creates a generalized gamma distribution object (Stacy distribution), using gamlss-style parameter names.
+
+  The generalized gamma distribution is a flexible three-parameter continuous distribution over positive reals that includes the [[gamma]] (`nu = 1`), Weibull (`sigma = 1`), and log-normal (`nu = 0`, in the limit) distributions as special cases. Following the parameterization used by R's `gamlss.dist` package (its `GG` family, Lopatatzidis & Green 2000), its density is `f(y) = theta^theta * z^theta * |nu| * exp(-theta * z) / (Gamma(theta) * y)`, where `z = (y/mu)^nu` and `theta = 1 / (sigma^2 * nu^2)`, for `y > 0`.
+
+  Equivalently, `Y = mu * (U / theta)^(1/nu)` where `U` follows a [[gamma]] distribution with shape `theta` and scale `1`; this relationship is used internally for `cdf`/`icdf`/sampling. For `nu = 0`, the distribution degenerates to [[log-normal]] with `scale = log(mu)`, `shape = sigma`.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): scale parameter, strictly positive. For `nu = 1` (i.e. the ordinary [[gamma]] distribution) this is exactly the mean. Default: `1.0`.
+  - `sigma` (double): dispersion parameter, strictly positive; smaller values concentrate the distribution more tightly. Default: `0.5`.
+  - `nu` (double): shape parameter, any real number; controls the skewness/tail behavior and which special case the distribution reduces to (`nu = 1`: gamma; `nu = 0`: log-normal; general `nu`: full Stacy generalized gamma family). Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `mean` is finite only for `nu > -1/sigma^2`, and `variance` only for `nu > -1/(2*sigma^2)`; outside those ranges they are `##Inf`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]], [[weibull]], [[log-normal]]."
+  ([] (generalized-gamma nil))
+  ([{:keys [^double mu ^double sigma ^double nu rng]
+     :or {mu 1.0 sigma 0.5 nu 1.0}}]
+   (distr/generalized-gamma {:mu mu :sigma sigma :nu nu :rng rng :gamma gamma :log-normal log-normal})))
+
+(add-distr-method generalized-gamma)
+(add-distr-method generalized-gamma :gg)
+
+(defn generalized-normal
+  "Creates a generalized normal distribution object (exponential power / Subbotin distribution).
+
+  The generalized normal distribution is a symmetric, unimodal continuous distribution over the whole real line with density `f(x) = beta / (2 * alpha * Gamma(1/beta)) * exp(-(|x - mu| / alpha)^beta)`. It generalizes several common distributions via its shape parameter `beta`: `beta = 2` gives the [[normal]] distribution (with standard deviation `alpha / sqrt(2)`), `beta = 1` gives the [[laplace]] distribution (with scale `alpha`), and `beta -> Infinity` approaches a uniform distribution on `[mu - alpha, mu + alpha]`. Larger `beta` produces flatter, more platykurtic shapes; smaller `beta` produces more peaked, heavier-tailed shapes.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter (and, by symmetry, the mean). Default: `0.0`.
+  - `alpha` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `beta` (double): shape parameter, strictly positive. Default: `1.0` (i.e. [[laplace]] by default).
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  `variance` is `alpha^2 * Gamma(3/beta) / Gamma(1/beta)`, always finite for `beta > 0`.
+
+  Matches the `(mu, alpha, beta)` parameterization used by R's `gnorm` package.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[laplace]]."
+  ([] (generalized-normal nil))
+  ([{:keys [^double mu ^double alpha ^double beta rng]
+     :or {mu 0.0 alpha 1.0 beta 1.0}}]
+   (distr/generalized-normal {:mu mu :alpha alpha :beta beta :rng rng :gamma gamma})))
+
+(add-distr-method generalized-normal)
+(add-distr-method generalized-normal :gnd)
+
+(defn generalized-inverse-gaussian
+  "Creates a generalized inverse Gaussian distribution object (GIG, Sichel's distribution).
+
+  The generalized inverse Gaussian distribution is a flexible three-parameter continuous distribution over positive reals whose density involves the modified Bessel function of the second kind, `K_lambda`: `f(x) = (psi/chi)^(lambda/2) / (2 * K_lambda(sqrt(chi*psi))) * x^(lambda - 1) * exp(-(chi/x + psi*x) / 2)`, for `x > 0`. It includes the [[gamma]] distribution as a limiting case (`chi -> 0`, `lambda > 0`), the inverse gamma distribution as a limiting case (`psi -> 0`, `lambda < 0`), and the ordinary inverse Gaussian distribution as a special case (`lambda = -1/2`). It is widely used in finance (as the mixing distribution of the generalized hyperbolic distribution family) and in actuarial/ecological modelling (Sichel's distribution).
+
+  Parameters (single, optional map):
+
+  - `chi` (double): strictly positive; controls the behavior near `0`.
+  - `psi` (double): strictly positive; controls the tail decay.
+  - `lambda` (double): shape parameter, any real number.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Note: this implementation requires `chi > 0` and `psi > 0` strictly (the general, non-degenerate GIG); the gamma/inverse-gamma limiting cases (`chi = 0` or `psi = 0`) are not supported directly — use [[gamma]] or an appropriately-parameterized [[gamma]]-based distribution instead.
+
+  `mean` and `variance` are always finite, computed from ratios of modified Bessel functions of the second kind: `mean = sqrt(chi/psi) * K_(lambda+1)(omega) / K_lambda(omega)` where `omega = sqrt(chi*psi)`, and similarly for the second moment via `K_(lambda+2)`. There is no closed-form `cdf`/`icdf`, so at construction time the density is numerically integrated once over a generous range (25 standard deviations past the mean) into a monotone-interpolated table (following the same approach as [[continuous-distribution]]), which `cdf` and `icdf` then look up; this makes construction itself relatively more expensive (single-digit milliseconds), but individual `cdf`/`icdf` calls fast, at the cost of a small interpolation error (empirically below `1e-5` in absolute terms across a range of tested parameters).
+
+  Matches the `(chi, psi, lambda)` parameterization used by R's `GeneralizedHyperbolic` package (`dgig`/`pgig`/`qgig`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[gamma]], [[inverse-gaussian]]."
+  ([] (generalized-inverse-gaussian nil))
+  ([{:keys [^double chi ^double psi ^double lambda rng]
+     :or {chi 1.0 psi 1.0 lambda 1.0}}]
+   (distr/generalized-inverse-gaussian {:chi chi :psi psi :lambda lambda :rng rng})))
+
+(add-distr-method generalized-inverse-gaussian)
+(add-distr-method generalized-inverse-gaussian :gig)
+
+;;
+
 (defn truncated
   "Creates a truncated version of an existing distribution object, restricted to a `[left, right]` interval.
 
@@ -2767,6 +3425,32 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
      (distr/truncated distr left right))))
 
 (add-distr-method truncated)
+
+(defn mixture
+  "Creates a finite mixture distribution object combining several component distributions.
+
+  A mixture distribution samples one of several component distributions, `distrs`, each chosen with its own probability (proportional to the corresponding entry in `weights`), and then samples from the selected component. Its density, cumulative distribution function and mean are therefore the `weights`-weighted average of those of the individual components, while its variance additionally accounts for the variability between component means, via the law of total variance. Components need not share the same type, domain (discrete or continuous) or support, making mixtures a flexible way to model multimodal or heterogeneous data.
+
+  Parameters (single, optional map):
+
+  - `distrs` (sequence of distributions): the component distributions to mix. Default: a single standard [[normal]] distribution.
+  - `weights` (sequence of doubles): relative weight of each entry in `distrs`, in the same order; weights need not sum to `1.0`, as they are normalized internally. Default: equal weight for every component.
+  - `rng`: random number generator used to select components and for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values, equivalent to a plain standard normal distribution.
+
+  `continuous?` is `true` as soon as at least one component is continuous. `icdf` is obtained by numerically inverting `cdf` via root finding, so it may be relatively slow to evaluate and only approximately accurate.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[categorical]], [[truncated]]."
+  ([] (mixture nil))
+  ([{:keys [distrs weights rng]}]
+   (let [distrs (or distrs [(normal rng)])
+         weights (or weights (repeat (count distrs) 1.0))]
+     (distr/mixture distrs weights rng))))
+
+(add-distr-method mixture)
 
 ;;
 
@@ -2882,421 +3566,6 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 
 ;;
-
-
-
-(defn- diff-cdf
-  ^double [cdf-fn ^double v1 ^double v2]
-  (- ^double (cdf-fn v2) ^double (cdf-fn v1)))
-
-(defmacro ^:private distribution-template
-  [d-name {:keys [pdf? dimensions continuous? distribution-parameters mean variance lower-bound upper-bound]
-           :or {pdf? false dimensions 1 continuous? true mean 'mean variance 'variance}} & let-body]
-  `(defmethod distribution ~d-name
-     ([_# ~'args]
-      (let [~'r (or (:rng ~'args) (rng :jvm))
-            ~@let-body]
-        (reify
-          prot/DistributionProto
-          (pdf [_# ~'v] ~(if pdf? `(~'pdf-fn ~'v) `(m/exp (~'lpdf-fn ~'v))))
-          (lpdf [_# ~'v] ~(if pdf? `(m/log (~'pdf-fn ~'v)) `(~'lpdf-fn ~'v)))
-          (cdf [_# v#] (~'cdf-fn v#))
-          (cdf [_# v1# v2#] (diff-cdf ~'cdf-fn v1# v2#))
-          (icdf [_# v#] (~'icdf-fn v#))
-          (probability [_# ~'v] ~(if pdf? `(~'pdf-fn ~'v) `(m/exp (~'lpdf-fn ~'v))))
-          (sample [_#] (~'icdf-fn (prot/drandom ~'r)))
-          (dimensions [_#] ~dimensions)
-          (source-object [d#] d#)
-          (continuous? [_#] ~continuous?)
-          prot/DistributionIdProto
-          (distribution? [_#] true)
-          (distribution-id [_#] ~d-name)
-          (distribution-parameters [_#] ~distribution-parameters)
-          prot/UnivariateDistributionProto
-          (mean [_#] ~mean)
-          (variance [_#] ~variance)
-          (lower-bound [_#] ~lower-bound)
-          (upper-bound [_#] ~upper-bound)
-          prot/RNGProto
-          (drandom [_#] (~'icdf-fn (prot/drandom ~'r)))
-          (frandom [_#] (unchecked-float (~'icdf-fn (prot/drandom ~'r))))
-          (lrandom [_#] (m/round-even (~'icdf-fn (prot/drandom ~'r))))
-          (irandom [_#] (unchecked-int (m/round-even (~'icdf-fn (prot/drandom ~'r)))))
-          (->seq [_#] (repeatedly #(~'icdf-fn (prot/drandom ~'r))))
-          (->seq [_# n#] (repeatedly n# #(~'icdf-fn (prot/drandom ~'r))))
-          (set-seed! [d# seed#] (prot/set-seed! ~'r seed#) d#))))
-     ([_#] (distribution ~d-name {}))))
-
-
-
-
-
-;; source: gamlss documentation
-
-(distribution-template :zaga
-                       {:mean mmean :distribution-parameters [:mu :sigma :nu :lower-tail? :rng]
-                        :lower-bound 0.0 :upper-bound ##Inf}
-                       {:keys [^double mu ^double sigma ^double nu lower-tail?]
-                        :or {mu 1.0 sigma 1.0 nu 0.1 lower-tail? true}} args
-                       mmean (* (- 1.0 nu) mu)
-                       s2 (* sigma sigma)
-                       rs2 (/ s2)
-                       lgrs2 (special/log-gamma rs2)
-                       mus2 (* s2 mu)
-                       rmus2 (/ mus2)
-                       variance (* mmean mu (+ s2 nu))
-                       lnu (m/log nu)
-                       -nu (- 1.0 nu)
-                       l1nu (m/log -nu)
-                       gamma-dist (distribution :gamma (assoc args :rng r :shape rs2 :scale mus2))
-                       lpdf-fn (fn [^double x]
-                                 (if (zero? x)
-                                   lnu
-                                   (let [xx (* x rmus2)]
-                                     (- (+ l1nu (* rs2 (m/log xx))) xx (m/log x) lgrs2))))
-                       cdf-fn (fn [^double x]
-                                (let [cdf (if (zero? x)
-                                            nu
-                                            (+ nu (* -nu (cdf gamma-dist x))))]
-                                  (if lower-tail? cdf (- 1.0 cdf))))
-                       icdf-fn (fn [^double x]
-                                 (let [p (if lower-tail? x (- 1.0 x))
-                                       p (if (<= p nu) nu p)]
-                                   (prot/icdf gamma-dist (/ (- p nu) -nu)))))
-
-(distribution-template :nbi
-    {:mean mu
-     :distribution-parameters [:mu :sigma :rng]
-     :continuous? false
-     :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma]
-   :or {mu 1.0 sigma 1.0}} args
-  variance (+ mu (* sigma mu mu))
-  distr (if (< sigma 0.0001)
-          (distribution :poisson {:p mu :rng r})
-          (let [nbinom-r (/ sigma)]
-            (distribution :negative-binomial {:r nbinom-r
-                                              :p (/ nbinom-r (+ nbinom-r mu))
-                                              :rng r})))
-  lpdf-fn (fn ^double [^double v] (prot/lpdf distr v))
-  cdf-fn (fn ^double [^double v] (prot/cdf distr v))
-  icdf-fn (fn ^double [^double v] (prot/icdf distr v)))
-
-(distribution-template :zinbi
-    {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma ^double nu]
-   :or {mu 1.0 sigma 1.0 nu 0.3}} args
-  nu- (- 1.0 nu)
-  lnu- (m/log nu-)
-  mmean (* nu- mu)
-  variance (+ mmean (* mmean mu (+ sigma nu)))
-  distr (distribution :nbi {:mu mu :sigma sigma :rng r})
-  lpdf-fn (fn ^double [^double x]
-            (let [fy (lpdf distr x)]
-              (if (zero? x)
-                (m/log (+ nu (* nu- (m/exp fy))))
-                (+ lnu- fy))))
-  cdf-fn (fn ^double [^double x]
-           (+ nu (* nu- (cdf distr x))))
-  icdf-fn (fn ^double [^double x]
-            (let [pnew (max 0.0 (- (/ (- x nu) nu-) 1.0e-7))]
-              (prot/icdf distr pnew))))
-
-(distribution-template :zanbi
-    {:mean mmean :distribution-parameters [:mu :sigma :nu :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma ^double nu]
-   :or {mu 1.0 sigma 1.0 nu 0.3}} args
-  lnu (m/log nu)
-  nu- (- 1.0 nu)
-  lnu- (m/log nu-)
-  c (/ nu- (- 1.0 (m/pow (inc (* mu sigma)) (- (/ sigma)))))
-  mmean (* mu c)
-  variance (+ mmean (* mmean mu (inc (- sigma c))))
-  distr (distribution :nbi {:mu mu :sigma sigma :rng r})
-  lfy0 (- (m/log (- 1.0 (m/exp (lpdf distr 0.0)))))
-  lpdf-fn (fn ^double [^double x]
-            (let [fy (lpdf distr x)]                                   
-              (if (zero? x) lnu (+ lnu- fy lfy0))))
-  cdf0 (cdf distr 0.0)
-  rcdf0- (/ (- 1.0 cdf0))
-  cdf-fn (fn ^double [^double x]
-           (if (zero? x)
-             nu
-             (+ nu (* nu- (- (cdf distr x) cdf0) rcdf0-))))
-  icdf-fn (fn ^double [^double x]
-            (let [pnew (- (/ (- x nu) nu-) 1.0e-10)
-                  pnew2 (+ (* cdf0 (- 1.0 pnew)) pnew)]
-              (prot/icdf distr (max 0.0 pnew2)))))
-
-(distribution-template :zip
-    {:mean mmean :distribution-parameters [:mu :sigma :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma]
-   :or {mu 5 sigma 0.1}} args
-  sigma- (- 1.0 sigma)
-  mmean (* sigma- mu)
-  variance (* mmean (inc (* mu sigma)))
-  lsigma-mu (- (m/log sigma-) mu)
-  lmu (m/log mu)
-  lpdf0 (m/log (+ sigma (* sigma- (m/exp (- mu)))))
-  lpdf-fn (fn ^double [^long x]
-            (if (zero? x) lpdf0 (- (+ lsigma-mu (* x lmu))
-                                   (special/log-gamma (inc x)))))
-  dist (distribution :poisson {:p mu :rng r})
-  cdf-fn (fn ^double [^long x]
-           (+ sigma (* sigma- (cdf dist x))))
-  icdf-fn (fn ^double [^double x]
-            (let [pnew (- (/ (- x sigma) sigma-) 1.0e-7)]
-              (prot/icdf dist (max 0.0 pnew)))))
-
-(distribution-template :zip2
-    {:mean mu
-     :distribution-parameters [:mu :sigma :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound ##Inf}
-  {:keys [^double mu ^double sigma]
-   :or {mu 5.0 sigma 0.1}} args
-  sigma- (- 1.0 sigma)
-  lsigma- (m/log sigma-)
-  variance (* mu (inc (/ (* mu sigma) sigma-)))
-  mus (/ mu sigma-)
-  lmu (m/log mu)
-  lpdf0 (m/log (+ sigma (* sigma- (m/exp (- mus)))))
-  lpdf-fn (fn ^double [^long x]
-            (if (zero? x) lpdf0 (+ (- (* (- 1.0 x) lsigma-) mus
-                                      (special/log-gamma (inc x)))
-                                   (* x lmu))))
-  dist (distribution :poisson {:p mus :rng r})
-  cdf-fn (fn ^double [^long x]
-           (+ sigma (* sigma- (cdf dist x))))
-  icdf-fn (fn ^double [^double x]
-            (let [pnew (- (/ (- x sigma) sigma-) 1.0e-7)]
-              (if (pos? pnew) (prot/icdf dist pnew) 0.0))))
-
-(distribution-template :exgaus
-                       {:distribution-parameters [:mu :sigma :nu :rng]
-                        :continuous? true :lower-bound ##-Inf :upper-bound ##Inf}
-                       {:keys [^double mu ^double sigma ^double nu]
-                        :or {mu 0.0 sigma 1.0 nu 1.0}} args
-                       mean (+ mu nu)
-                       sigma2 (* sigma sigma)
-                       variance (+ sigma2 (* nu nu))
-                       -lnu (- (m/log nu))
-                       sigma2nu (/ sigma2 nu)
-                       dist (distribution :normal {:mu mu :sd sigma :rng r})
-                       ndist (distribution :normal {:rng r})
-                       lpdf-fn (if (> nu (* sigma 0.05))
-                                 (fn ^double [^double x]
-                                   (let [z (- x mu sigma2nu)]                                   
-                                     (+ (- -lnu (/ (+ z (* 0.5 sigma2nu)) nu))
-                                        (m/log (cdf ndist (/ z sigma))))))
-                                 (fn ^double [^double x] (prot/lpdf dist x)))
-                       cdf-fn (if (> nu (* sigma 0.05))
-                                (let [exppart (- (m/sq (+ mu sigma2nu)) (* mu mu))]
-                                  (fn ^double [^double q]
-                                    (let [z (- q mu sigma2nu)
-                                          pnorm1 (cdf ndist (/ (- q mu) sigma))
-                                          pnorm2 (cdf ndist (/ z sigma))]
-                                      (- pnorm1 (* pnorm2 (m/exp (/ (- exppart (* 2.0 q sigma2nu))
-                                                                    (* 2.0 sigma2))))))))
-                                (fn ^double [^double q]
-                                  (prot/cdf dist q)))
-                       ^double hmu (cdf-fn mu)
-                       icdf-fn (fn ^double [^double p]
-                                 (let [h1 (fn ^double [^double q] (- ^double (cdf-fn q) p))]
-                                   (if (< hmu p)
-                                     (loop [interval (+ mu sigma)
-                                            j 2]
-                                       (if (< ^double (cdf-fn interval) p)
-                                         (recur (+ mu (* j sigma)) (inc j))
-                                         (solver/find-root h1 mu interval)))
-                                     (loop [interval (- mu sigma)
-                                            j 2]
-                                       (if (> ^double (cdf-fn interval) p)
-                                         (recur (- mu (* j sigma)) (inc j))
-                                         (solver/find-root h1 interval mu)))))))
-
-(distribution-template :bb
-    {:mean mmean :distribution-parameters [:mu :sigma :bd :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound bd}
-  {:keys [^double mu ^double sigma ^long bd]
-   :or {mu 0.5 sigma 1.0 bd 10}} args
-  mmean (* bd mu)
-  variance (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd))
-                                       (inc sigma))))
-  dist (distribution :binomial {:p mu :trials bd :rng r})
-  lpdf-fn (if (< sigma 0.00001)
-            (fn ^double [^long x] (prot/lpdf dist x))
-            (let [rsigma (/ sigma)
-                  mursigma (* mu rsigma)
-                  mu-rsigma (* (- 1.0 mu) rsigma)
-                  lgamma-part (- (+ (special/log-gamma (inc bd))
-                                    (special/log-gamma rsigma))
-                                 (special/log-gamma mursigma)
-                                 (special/log-gamma mu-rsigma)
-                                 (special/log-gamma (+ bd rsigma)))]
-              (fn ^double [^long x]
-                (+ (- lgamma-part
-                      (special/log-gamma (inc x))
-                      (special/log-gamma (inc (- bd x))))
-                   (special/log-gamma (+ x mursigma))
-                   (special/log-gamma (- (+ bd mu-rsigma) x))))))
-  cdf-fn (if (< sigma 0.00001)
-           (fn ^double [^long x] (prot/cdf dist x))
-           (memoize (fn ^double [^long q]
-                      (reduce m/+ (map #(m/exp (lpdf-fn %)) (range (m/inc q)))))))
-  icdf-fn (if (< sigma 0.00001)
-            (fn ^double [^double p] (prot/icdf dist p))
-            (let [r (range 0 (inc bd))]
-              (step-interp/step-before (rest (reductions
-                                              (fn [^double s ^double v]
-                                                (+ s (m/exp (lpdf-fn v)))) 0.0 r)) r))))
-
-
-(distribution-template :zabi
-    {:mean mmean
-     :distribution-parameters [:mu :sigma :bd :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound bd}
-  {:keys [^double mu ^double sigma ^long bd]
-   :or {mu 0.5 sigma 0.1 bd 1}} args
-  sigma- (- 1.0 sigma)
-  mmean (/ (* sigma- bd mu)
-           (- 1.0 (m/pow (- 1.0 mu) bd)))
-  variance (- (* mmean (+ (- 1.0 mu) (* bd mu))) (* mmean mmean))
-  lsigma (m/log sigma)
-  lsigma- (m/log sigma-)
-  dist (distribution :binomial {:trials bd :p mu :rng r})
-  lpdf0- (m/log (- 1.0 (pdf dist 0.0)))
-  lpdf-fn (fn ^double [^double x]
-            (if (zero? x)
-              lsigma
-              (- (+ lsigma- (lpdf dist x)) lpdf0-)))
-  cdf2 (cdf dist 0.0)
-  rcdf2- (/ (- 1.0 cdf2))
-  cdf-fn (fn ^double [^double q]
-           (if (zero? q)
-             sigma
-             (let [cdf1 (cdf dist q)]
-               (+ sigma (* sigma- (- cdf1 cdf2) rcdf2-)))))
-  icdf-fn (fn ^double [^double p]
-            (let [pnew (- (/ (- p sigma) sigma-) 1.0e-10)]
-              (if (pos? pnew)
-                (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew))
-                0.0))))
-
-(distribution-template :zibi
-                       {:mean mmean
-                        :distribution-parameters [:mu :sigma :bd :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound bd}
-                       {:keys [^double mu ^double sigma ^long bd]
-                        :or {mu 0.5 sigma 0.1 bd 1}} args
-                       sigma- (- 1.0 sigma)
-                       lsigma- (m/log sigma-)
-                       mmean (* sigma- bd mu)
-                       variance (* mmean (+ (- 1.0 mu) (* sigma bd mu)))
-                       dist (distribution :binomial {:trials bd :p mu :rng r})
-                       pdf0 (m/log (+ sigma (* sigma- (pdf dist 0.0))))
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (zero? x)
-                                   pdf0
-                                   (+ lsigma- (lpdf dist x))))
-                       cdf-fn (fn ^double [^double q]
-                                (+ sigma (* sigma- (cdf dist q))))
-                       icdf-fn (fn ^double [^double p]
-                                 (let [pnew (- (/ (- p sigma) sigma-) 1.0e-10)]
-                                   (if (pos? pnew) (prot/icdf dist pnew) 0.0))))
-
-;; mean and variance from the paper: https://www.gamlss.com/wp-content/uploads/2018/01/DistributionsForModellingLocationScaleandShape.pdf
-
-(distribution-template :zabb
-                       {:mean mmean :distribution-parameters [:mu :sigma :bd :nu :rng]
-                        :continuous? false :lower-bound 0.0 :upper-bound bd}
-                       {:keys [^double mu ^double sigma ^double bd ^double nu]
-                        :or {mu 0.5 sigma 0.1 nu 0.1 bd 1.0}} args
-                       lnu (m/log nu)
-                       nu- (- 1.0 nu)
-                       lnu- (m/log nu-)
-                       dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
-                       pdf0- (- 1.0 (pdf dist 0.0))
-                       mmean (/ (* nu- mu bd) pdf0-)
-                       variance (- (/ (* nu- (+ (* bd mu (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
-                                                (* bd bd mu mu))) pdf0-)
-                                   (* mmean mmean))
-                       -lpdf0- (- (m/log pdf0-))
-                       cdf2 (cdf dist 0.0)
-                       rcdf2- (/ (- 1.0 cdf2))
-                       lpdf-fn (fn ^double [^double x]
-                                 (if (zero? x)
-                                   lnu
-                                   (+ lnu- (lpdf dist x) -lpdf0-)))
-                       cdf-fn (fn ^double [^double q]
-                                (if (zero? q)
-                                  nu
-                                  (min 1.0 (+ nu (* nu- (- (cdf dist q) cdf2) rcdf2-)))))
-                       icdf-fn (fn ^double [^double p]
-                                 (let [pnew (max 0.0 (- (/ (- p nu) nu-)1.0e-7))]
-                                   (if (pos? pnew)
-                                     (prot/icdf dist (+ (* cdf2 (- 1.0 pnew)) pnew)) 0.0))))
-
-(distribution-template :zibb
-    {:mean mmean
-     :distribution-parameters [:mu :sigma :bd :nu :rng]
-     :continuous? false :lower-bound 0.0 :upper-bound bd}
-  {:keys [^double mu ^double sigma ^double bd ^double nu]
-   :or {mu 0.5 sigma 0.5 nu 0.1 bd 1.0}} args
-  lnu (m/log nu)
-  nu- (- 1.0 nu)
-  lnu- (m/log nu-)
-  mmean (* nu- bd mu)
-  variance (+ (* mmean (- 1.0 mu) (inc (/ (* sigma (dec bd)) (inc sigma))))
-              (* nu nu- bd bd mu mu))
-  dist (distribution :bb {:mu mu :sigma sigma :bd bd :rng r})
-  lpdf0- (m/log (+ nu (* nu- (pdf dist 0.0))))
-  lpdf-fn (fn ^double [^double x]
-            (if (zero? x) lpdf0- (+ lnu- (lpdf dist x))))
-  cdf-fn (fn ^double [^double q]
-           (min 1.0 (+ nu (* nu- (cdf dist q)))))
-  icdf-fn (fn ^double [^double p]
-            (let [pnew (max 0.0 (- (/ (- p nu) nu-)1.0e-7))]
-              (if (pos? pnew)
-                (prot/icdf dist pnew) 0.0)))
-  )
-
-
-(distribution-template :mixture
-    {:pdf? true :distribution-parameters [:distrs :weights :rng]
-     :mean mean-val
-     :continuous? continuous? :lower-bound lower-bound :upper-bound upper-bound}
-  {:keys [distrs weights]
-   :or {distrs [default-normal]}} args
-  cnt (count distrs)
-  weights (vec (or weights (repeat cnt 1.0)))
-  weights (v/div weights (v/sum weights))
-  continuous? (continuous? (first distrs))
-  lower-bound (reduce m/min (map lower-bound distrs))
-  upper-bound (reduce m/max (map upper-bound distrs))
-  mean-val (reduce m/+ (map (fn ^double [^double w d]
-                              (* w (mean d))) weights distrs))
-  variance (- ^double (reduce m/+ (map (fn ^double [^double w d]
-                                         (* w (+ (m/sq (mean d))
-                                                 (variance d)))) weights distrs))
-              (m/sq mean-val))
-  pdf-fn (fn ^double [^double x]
-           (reduce m/+ (map (fn ^double [^double w d]
-                              (* w (pdf d x))) weights distrs)))
-  cdf-fn (fn ^double [^double x]
-           (reduce m/+ (map (fn ^double [^double w d]
-                              (* w (cdf d x))) weights distrs)))
-  icdf-fn (fn [^double x]
-            (let [icdfs (map #(icdf % x) distrs)
-                  mn (reduce m/min icdfs)
-                  mx (reduce m/max icdfs)
-                  target-fn (fn ^double [^double v] (- ^double (cdf-fn v) x))]
-              (solver/find-root target-fn mn mx))))
-
-
-
 
 (defonce ^{:doc "List of distributions."}
   distributions-list

@@ -7,7 +7,8 @@ All notable changes to this project will be documented in this file. This change
 
 * Logarithmic mean (`fastmath.stats/logmean`) and divided differences (`fastmath.calculcus/divided`)
 * `stirling-factorial` - factorial approximation
-* refactored 
+* refactored distributions to allow standalone functions
+* added `generalized-*` distributions.
 
 ### Fixed
 

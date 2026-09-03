@@ -77,7 +77,8 @@ Every source file starts with:
 
 Available skill for this project
 
-- `docstring` - Load this skill for function or var documentation.
+- `docstring` - load this skill for function or var documentation.
 - `obsidian` - for general topic memory store and retrieve in Obsidian
 - `codebase-memory` - knowledge-graph tools (search_graph, trace_path, get_architecture, ...) for structural code exploration; project indexed as `home-ts-clojure-fastmath`
 - `clojure-eval` - evaluate Clojure against a running nREPL via `clj-nrepl-eval`, to verify edits compile and behave as expected
+- `lemmalog` - externalize working memory to store facts and logical state via `lemmalog` MCP
