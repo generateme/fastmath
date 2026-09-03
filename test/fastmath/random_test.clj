@@ -1050,6 +1050,864 @@
     0.3 4.0 -2    0.107726655315 0.009531640077
     3.0 3.0 0     1.155929879761 0.434446032916))
 
+;; reference values from R's GeneralizedHyperbolic package: dghyp/pghyp/qghyp/ghypMean/ghypVar
+;; (mu, delta, alpha, beta, lambda) parameterization, cross-checked live in nREPL.
+;; pdf/mean/variance are closed-form (default tolerance); cdf/icdf go through
+;; the same integrate-pdf/:monotone interpolation table as [[gig]] - empirically
+;; below ~1e-6 absolute error against R here, but an explicit looser tolerance
+;; is still used below, consistent with the other interpolation-backed distributions.
+
+(t/deftest gh
+  (t/testing "registered under both :generalized-hyperbolic and :gh keys"
+    (let [d1 (sut/distribution :generalized-hyperbolic {:mu 1.0 :delta 2.0 :alpha 1.5 :beta -0.5 :lambda 0.5})
+          d2 (sut/distribution :gh {:mu 1.0 :delta 2.0 :alpha 1.5 :beta -0.5 :lambda 0.5})]
+      (t/is (m/delta-eq (sut/pdf d1 1.0) (sut/pdf d2 1.0)))
+      (t/is (m/delta-eq (sut/cdf d1 1.0) (sut/cdf d2 1.0)))))
+  (t/testing "defaults match R's dghyp defaults (mu=0, delta=1, alpha=1, beta=0, lambda=1)"
+    (let [dist (sut/distribution :gh nil)]
+      (t/is (m/delta-eq 0.2715716633 (sut/pdf dist 0.5)))))
+  (t/testing "support is the whole real line"
+    (let [dist (sut/distribution :gh {:mu 0.5 :delta 1.2 :alpha 2.0 :beta 0.7 :lambda 1.0})]
+      (t/is (Double/isInfinite (sut/lower-bound dist)))
+      (t/is (neg? (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (pos? (sut/upper-bound dist)))))
+  (t/testing "lambda=-1/2 degenerates exactly to the normal-inverse-gaussian distribution"
+    (let [gh (sut/distribution :gh {:mu 1.0 :delta 2.0 :alpha 1.5 :beta -0.5 :lambda -0.5})
+          nig (sut/distribution :normal-inverse-gaussian {:alpha 1.5 :beta -0.5 :mu 1.0 :delta 2.0})]
+      (doseq [x [-3.0 -1.0 0.0 2.0 4.0]]
+        (t/is (m/delta-eq (sut/pdf gh x) (sut/pdf nig x))))
+      (t/is (m/delta-eq (sut/mean gh) (sut/mean nig)))
+      (t/is (m/delta-eq (sut/variance gh) (sut/variance nig)))))
+  (t/testing "pdf/cdf are never NaN or throw, at extreme/infinite inputs across a range of lambda"
+    (doseq [lambda [-3.0 -1.0 -0.5 0.0 0.5 1.0 2.5 5.0]]
+      (let [dist (sut/distribution :gh {:mu 0.5 :delta 1.2 :alpha 2.0 :beta 0.7 :lambda lambda})]
+        (doseq [x [##-Inf ##Inf 1e-300 1e300 -1e300 1e150 -1e150 1e10]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf lambda=" lambda " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf lambda=" lambda " x=" x)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf))))))
+  (t/are [mu delta alpha beta lambda vd d vp p]
+      (let [dist (sut/distribution :gh {:mu mu :delta delta :alpha alpha :beta beta :lambda lambda})]
+        (and (m/delta-eq d (sut/pdf dist vd))
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-5)))
+    0.0 1.0 1.0 0.0  1.0  -5   0.005069491583 -5 0.005143606904
+    0.0 1.0 1.0 0.0  1.0  -1   0.201955319875 -1 0.234335935300
+    0.0 1.0 1.0 0.0  1.0   0   0.305594801587  0 0.500000000000
+    0.0 1.0 1.0 0.0  1.0   0.5 0.271571663331  0.5 0.646864175300
+    0.0 1.0 1.0 0.0  1.0   1   0.201955319875  1  0.765664064700
+    0.0 1.0 1.0 0.0  1.0   3   0.035162577802  3  0.963624141900
+    0.0 1.0 1.0 0.0  1.0   5   0.005069491583  5  0.994856393100
+    0.0 1.0 2.0 0.5  1.0  -5   0.000009730700 -5  0.000003945680
+    0.0 1.0 2.0 0.5  1.0  -1   0.114107667510 -1  0.054110589220
+    0.0 1.0 2.0 0.5  1.0   0   0.430767964314   0 0.322719773800
+    0.0 1.0 2.0 0.5  1.0   0.5 0.436811434412 0.5 0.547947468500
+    0.0 1.0 2.0 0.5  1.0   1   0.310176799081   1 0.736934062500
+    0.0 1.0 2.0 0.5  1.0   3   0.025559632908   3 0.982069751600
+    0.0 1.0 2.0 0.5  1.0   5   0.001444163921   5 0.999016699200
+    1.0 2.0 1.5 -0.5 0.5  -5   0.004662186166  -5 0.004638468949
+    1.0 2.0 1.5 -0.5 0.5  -1   0.176259386636  -1 0.211239220300
+    1.0 2.0 1.5 -0.5 0.5   0   0.290527658585   0 0.447918115000
+    1.0 2.0 1.5 -0.5 0.5   0.5 0.305401605012 0.5 0.599038336600
+    1.0 2.0 1.5 -0.5 0.5   1   0.264581233073   1 0.743805885300
+    1.0 2.0 1.5 -0.5 0.5   3   0.023854114013   3 0.986592126900
+    1.0 2.0 1.5 -0.5 0.5   5   0.000598413111   5 0.999694418700
+    -1.0 0.5 3.0 1.0 -0.5 -5   0.000000018542  -5 0.000000004276
+    -1.0 0.5 3.0 1.0 -0.5 -1   1.089541771746  -1 0.349179969500
+    -1.0 0.5 3.0 1.0 -0.5  0   0.125975408510   0 0.955614305100
+    -1.0 0.5 3.0 1.0 -0.5  0.5 0.029979255678 0.5 0.988820173600
+    -1.0 0.5 3.0 1.0 -0.5  1   0.007734209888   1 0.996981433000
+    -1.0 0.5 3.0 1.0 -0.5  3   0.000055273799   3 0.999976208000
+    -1.0 0.5 3.0 1.0 -0.5  5   0.000000566621   5 0.999999745400
+    2.0 1.5 1.2 0.8 2.0   -5   0.000000863944  -5 0.000000464208
+    2.0 1.5 1.2 0.8 2.0   -1   0.001067570091  -1 0.000625881361
+    2.0 1.5 1.2 0.8 2.0    0   0.005270851056   0 0.003288045743
+    2.0 1.5 1.2 0.8 2.0    0.5 0.010979348165 0.5 0.007195481132
+    2.0 1.5 1.2 0.8 2.0    1   0.021417154778   1 0.015056206170
+    2.0 1.5 1.2 0.8 2.0    3   0.106079862053   3 0.138640670300
+    2.0 1.5 1.2 0.8 2.0    5   0.129720887446   5 0.389570227000))
+
+(t/deftest gh-icdf
+  (t/are [mu delta alpha beta lambda p vq]
+      (let [dist (sut/distribution :gh {:mu mu :delta delta :alpha alpha :beta beta :lambda lambda})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    0.0 1.0 1.0 0.0  1.0  0.05 -2.669835381000
+    0.0 1.0 1.0 0.0  1.0  0.25 -0.924464417500
+    0.0 1.0 1.0 0.0  1.0  0.50  0.000000000000
+    0.0 1.0 1.0 0.0  1.0  0.75  0.924464417500
+    0.0 1.0 1.0 0.0  1.0  0.95  2.669835381000
+    0.0 1.0 2.0 0.5  1.0  0.05 -1.037332207000
+    0.0 1.0 2.0 0.5  1.0  0.25 -0.178270415100
+    0.0 1.0 2.0 0.5  1.0  0.50  0.392238684700
+    0.0 1.0 2.0 0.5  1.0  0.75  1.042966006000
+    0.0 1.0 2.0 0.5  1.0  0.95  2.271338780000
+    1.0 2.0 1.5 -0.5 0.5  0.05 -2.589666168000
+    1.0 2.0 1.5 -0.5 0.5  0.25 -0.794663677600
+    1.0 2.0 1.5 -0.5 0.5  0.50  0.175684797400
+    1.0 2.0 1.5 -0.5 0.5  0.75  1.023551004000
+    1.0 2.0 1.5 -0.5 0.5  0.95  2.222961341000
+    -1.0 0.5 3.0 1.0 -0.5 0.05 -1.459721739000
+    -1.0 0.5 3.0 1.0 -0.5 0.25 -1.097380091000
+    -1.0 0.5 3.0 1.0 -0.5 0.50 -0.865648523700
+    -1.0 0.5 3.0 1.0 -0.5 0.75 -0.597948455600
+    -1.0 0.5 3.0 1.0 -0.5 0.95 -0.041865152320
+    2.0 1.5 1.2 0.8 2.0   0.05  1.928518803000
+    2.0 1.5 1.2 0.8 2.0   0.25  3.933697962000
+    2.0 1.5 1.2 0.8 2.0   0.50  5.884314119000
+    2.0 1.5 1.2 0.8 2.0   0.75  8.510485776000
+    2.0 1.5 1.2 0.8 2.0   0.95 13.710063820000))
+
+(t/deftest gh-mv
+  (t/are [mu delta alpha beta lambda mean-v var-v]
+      (let [dist (sut/distribution :gh {:mu mu :delta delta :alpha alpha :beta beta :lambda lambda})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    0.0 1.0 1.0 0.0  1.0   0.000000000000  2.699483936000
+    0.0 1.0 2.0 0.5  1.0   0.475739211500  1.045544872000
+    1.0 2.0 1.5 -0.5 0.5   0.042893218810  2.215990258000
+    -1.0 0.5 3.0 1.0 -0.5 -0.823223304700  0.198873782200
+    2.0 1.5 1.2 0.8 2.0    6.598150838000 13.993602450000))
+
+;; reference values from R's bayesmeta package: dhalflogistic/phalflogistic/
+;; qhalflogistic/ehalflogistic/vhalflogistic (scale parameterization).
+
+(t/deftest half-logistic
+  (t/testing "defaults are scale=1"
+    (let [dist (sut/distribution :half-logistic nil)]
+      (t/is (m/delta-eq 0.470007424403 (sut/pdf dist 0.5)))))
+  (t/testing "support is [0, +Inf); pdf/cdf are exactly 0 below 0"
+    (let [dist (sut/distribution :half-logistic {:scale 2.0})]
+      (t/is (m/delta-eq 0.0 (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist 0.0)))))
+  (t/testing "matches the alpha=1 special case of generalized-half-logistic (lambda=1/scale)"
+    (doseq [scale [0.5 1.0 2.5]]
+      (let [hl (sut/distribution :half-logistic {:scale scale})
+            ghl (sut/distribution :ghl {:alpha 1.0 :lambda (/ 1.0 scale)})]
+        (doseq [x [0.0 0.3 1.0 2.5 5.0]]
+          (t/is (m/delta-eq (sut/pdf hl x) (sut/pdf ghl x)))
+          (t/is (m/delta-eq (sut/cdf hl x) (sut/cdf ghl x))))
+        (t/is (m/delta-eq (sut/mean hl) (sut/mean ghl) 1.0e-6))
+        (t/is (m/delta-eq (sut/variance hl) (sut/variance ghl) 1.0e-6)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme/infinite/negative-zero inputs"
+    (doseq [scale [0.01 0.5 1.0 2.0 100.0]]
+      (let [dist (sut/distribution :half-logistic {:scale scale})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf scale=" scale " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf scale=" scale " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf scale=" scale " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [scale vd d vp p]
+      (let [dist (sut/distribution :half-logistic {:scale scale})]
+        (and (m/delta-eq d (sut/pdf dist vd))
+             (m/delta-eq p (sut/cdf dist vp))))
+    1.0 0    0.500000000000 0   0.000000000000
+    1.0 0.2  0.495033145424 0.2 0.099667994625
+    1.0 0.5  0.470007424403 0.5 0.244918662404
+    1.0 1    0.393223866483 1   0.462117157260
+    1.0 2    0.209987170807 2   0.761594155956
+    1.0 5    0.013296113342 5   0.986614298151
+    1.0 10   0.000090791615 10  0.999909204263
+    0.5 0    1.000000000000 0   0.000000000000
+    0.5 0.2  0.961042982966 0.2 0.197375320225
+    0.5 0.5  0.786447732966 0.5 0.462117157260
+    0.5 1    0.419974341614 1   0.761594155956
+    0.5 2    0.070650824853 2   0.964027580076
+    0.5 5    0.000181583231 5   0.999909204263
+    2.0 0    0.250000000000 0   0.000000000000
+    2.0 0.2  0.249376040193 0.2 0.049958374958
+    2.0 0.5  0.246134082738 0.5 0.124353001772
+    2.0 1    0.235003712202 1   0.244918662404
+    2.0 2    0.196611933241 2   0.462117157260
+    2.0 5    0.070103716545 5   0.848283639958
+    2.0 10   0.006648056671 10  0.986614298151
+    1.5 0    0.333333333333 0   0.000000000000
+    1.5 0.2  0.331856230397 0.2 0.066568076502
+    1.5 0.5  0.324242881340 0.5 0.165140412925
+    1.5 1    0.298876519868 1   0.321512737532
+    1.5 2    0.220121346204 2   0.582782945348
+    1.5 5    0.044344965549 5   0.931109608668
+    3.0 0    0.166666666667 0   0.000000000000
+    3.0 0.2  0.166481618569 0.2 0.033320993139
+    3.0 0.5  0.165514596617 0.5 0.083140966434
+    3.0 1    0.162121440670 1   0.165140412925
+    3.0 2    0.149438259934 2   0.321512737532
+    3.0 5    0.089086474930 5   0.682261790238))
+
+(t/deftest half-logistic-icdf
+  (t/are [scale p vq]
+      (let [dist (sut/distribution :half-logistic {:scale scale})]
+        (m/delta-eq vq (sut/icdf dist p)))
+    1.0 0.05 0.100083458557
+    1.0 0.25 0.510825623766
+    1.0 0.50 1.098612288668
+    1.0 0.75 1.945910149055
+    1.0 0.95 3.663561646130
+    0.5 0.05 0.050041729278
+    0.5 0.25 0.255412811883
+    0.5 0.50 0.549306144334
+    0.5 0.75 0.972955074528
+    0.5 0.95 1.831780823065
+    2.0 0.05 0.200166917114
+    2.0 0.25 1.021651247532
+    2.0 0.50 2.197224577336
+    2.0 0.75 3.891820298111
+    2.0 0.95 7.327123292259
+    1.5 0.05 0.150125187835
+    1.5 0.25 0.766238435649
+    1.5 0.50 1.647918433002
+    1.5 0.75 2.918865223583
+    1.5 0.95 5.495342469194
+    3.0 0.05 0.300250375671
+    3.0 0.25 1.532476871298
+    3.0 0.50 3.295836866004
+    3.0 0.75 5.837730447166
+    3.0 0.95 10.990684938389))
+
+(t/deftest half-logistic-mv
+  (t/are [scale mean-v var-v]
+      (let [dist (sut/distribution :half-logistic {:scale scale})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    1.0 1.386294361120 1.368056078024
+    0.5 0.693147180560 0.342014019506
+    2.0 2.772588722240 5.472224312095
+    1.5 2.079441541680 3.078126175553
+    3.0 4.158883083360 12.312504702213))
+
+;; reference values from R's base `stats` package: df/pf/qf(x, df1, df2, ncp).
+;; mean/variance closed-form formulas cross-checked against R's own
+;; high-precision numerical integration (rel.tol=1e-10) of x*df(...) /
+;; x^2*df(...) over [0, Inf).
+
+(t/deftest f-noncentral
+  (t/testing "defaults are df1=1, df2=1, ncp=1"
+    (let [dist (sut/distribution :f-noncentral nil)]
+      (t/is (m/delta-eq 0.2499108 (sut/pdf dist 0.5) 1.0e-6))))
+  (t/testing "support is [0, +Inf); pdf/cdf are exactly 0 below 0"
+    (let [dist (sut/distribution :f-noncentral {:df1 3.0 :df2 5.0 :ncp 2.0})]
+      (t/is (m/delta-eq 0.0 (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist 0.0)))))
+  (t/testing "pdf(0) follows the central-F boundary convention based on df1: 0 (df1>2), e^(-ncp/2) (df1=2), +Inf (df1<2)"
+    (t/is (m/delta-eq 0.0 (sut/pdf (sut/distribution :f-noncentral {:df1 3.0 :df2 5.0 :ncp 2.0}) 0.0)))
+    (t/is (m/delta-eq (Math/exp -5.0) (sut/pdf (sut/distribution :f-noncentral {:df1 2.0 :df2 8.0 :ncp 10.0}) 0.0)))
+    (t/is (Double/isInfinite (sut/pdf (sut/distribution :f-noncentral {:df1 1.0 :df2 10.0 :ncp 5.0}) 0.0))))
+  (t/testing "ncp=0 reduces exactly to the central f distribution with the same df1/df2"
+    (let [fnc (sut/distribution :f-noncentral {:df1 5.0 :df2 20.0 :ncp 0.0})
+          fc (sut/distribution :f {:numerator-degrees-of-freedom 5.0 :denominator-degrees-of-freedom 20.0})]
+      (doseq [x [0.1 0.5 1.0 2.0 5.0 10.0]]
+        (t/is (m/delta-eq (sut/pdf fnc x) (sut/pdf fc x)))
+        (t/is (m/delta-eq (sut/cdf fnc x) (sut/cdf fc x))))
+      (t/is (m/delta-eq (sut/mean fnc) (sut/mean fc)))
+      (t/is (m/delta-eq (sut/variance fnc) (sut/variance fc)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme/infinite/negative-zero inputs"
+    (doseq [df1 [0.5 1.0 2.0 3.0 10.0]
+            df2 [1.0 3.0 5.0 20.0]
+            ncp [0.0 1.0 5.0 20.0]]
+      (let [dist (sut/distribution :f-noncentral {:df1 df1 :df2 df2 :ncp ncp})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf df1=" df1 " df2=" df2 " ncp=" ncp " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf df1=" df1 " df2=" df2 " ncp=" ncp " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf df1=" df1 " df2=" df2 " ncp=" ncp " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [df1 df2 ncp vd d vp p]
+      (let [dist (sut/distribution :f-noncentral {:df1 df1 :df2 df2 :ncp ncp})]
+        (and (m/delta-eq d (sut/pdf dist vd) 1.0e-8)
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-8)))
+    3.0 5.0 2.0   0    0.000000000000 0   0.000000000000
+    3.0 5.0 2.0   0.5  0.383289609397 0.5 0.156955143502
+    3.0 5.0 2.0   1    0.327982758665 1   0.337743799128
+    3.0 5.0 2.0   2    0.186995588358 2   0.590539309716
+    3.0 5.0 2.0   5    0.040915612366 5   0.867755079741
+    3.0 5.0 2.0   10   0.007595516466 10  0.960691337583
+    3.0 5.0 2.0   20   0.001023647824 20  0.990637883942
+    1.0 10.0 5.0  0.5  0.092929175169 0.5 0.061377192704
+    1.0 10.0 5.0  1    0.095556881152 1   0.108334208577
+    1.0 10.0 5.0  2    0.099172816782 2   0.206363879018
+    1.0 10.0 5.0  5    0.077958962955 5   0.478890464179
+    1.0 10.0 5.0  10   0.036389788937 10  0.755426066631
+    1.0 10.0 5.0  20   0.007700257160 20  0.937222483692
+    5.0 20.0 0.0  0    0.000000000000 0   0.000000000000
+    5.0 20.0 0.0  0.5  0.718990267178 0.5 0.227395614209
+    5.0 20.0 0.0  1    0.544878125182 1   0.556974815315
+    5.0 20.0 0.0  2    0.157789751008 2   0.877492755318
+    5.0 20.0 0.0  5    0.003925075958 5   0.996069580076
+    5.0 20.0 0.0  10   0.000044342889 10  0.999934478169
+    2.0 8.0 10.0  0    0.006737946999 0   0.000000000000
+    2.0 8.0 10.0  0.5  0.027803804656 0.5 0.008339016296
+    2.0 8.0 10.0  1    0.052264530299 1   0.028357493084
+    2.0 8.0 10.0  2    0.091174725736 2   0.101813065751
+    2.0 8.0 10.0  5    0.097776334101 5   0.414514982035
+    2.0 8.0 10.0  10   0.041384947150 10  0.751135577845
+    10.0 15.0 3.0 0    0.000000000000 0   0.000000000000
+    10.0 15.0 3.0 0.5  0.377148023147 0.5 0.062209324523
+    10.0 15.0 3.0 1    0.616860389219 1   0.338816177006
+    10.0 15.0 3.0 2    0.257424311786 2   0.782741442022
+    10.0 15.0 3.0 5    0.008159776484 5   0.991004988066
+    10.0 15.0 3.0 10   0.000141802314 10  0.999754510194))
+
+(t/deftest f-noncentral-icdf
+  (t/are [df1 df2 ncp p vq]
+      (let [dist (sut/distribution :f-noncentral {:df1 df1 :df2 df2 :ncp ncp})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    3.0 5.0 2.0   0.05 0.209560327500
+    3.0 5.0 2.0   0.25 0.747184884000
+    3.0 5.0 2.0   0.50 1.573603203000
+    3.0 5.0 2.0   0.75 3.166403204000
+    3.0 5.0 2.0   0.95 8.812091486000
+    1.0 10.0 5.0  0.05 0.378059265200
+    1.0 10.0 5.0  0.25 2.441450528000
+    1.0 10.0 5.0  0.50 5.275645834000
+    1.0 10.0 5.0  0.75 9.852668498000
+    1.0 10.0 5.0  0.95 21.892046830000
+    5.0 20.0 0.0  0.05 0.219388142000
+    5.0 20.0 0.0  0.25 0.531356426300
+    5.0 20.0 0.0  0.50 0.900376483300
+    5.0 20.0 0.0  0.75 1.449952290000
+    5.0 20.0 0.0  0.95 2.710889837000
+    2.0 8.0 10.0  0.05 1.357415885000
+    2.0 8.0 10.0  0.25 3.432295562000
+    2.0 8.0 10.0  0.50 5.929307819000
+    2.0 8.0 10.0  0.75 9.972631607000
+    2.0 8.0 10.0  0.95 21.238083830000
+    10.0 15.0 3.0 0.05 0.465815679900
+    10.0 15.0 3.0 0.25 0.856630186000
+    10.0 15.0 3.0 0.50 1.276270549000
+    10.0 15.0 3.0 0.75 1.881429336000
+    10.0 15.0 3.0 0.95 3.278755496000))
+
+(t/deftest f-noncentral-mv
+  (t/are [df1 df2 ncp mean-v var-v]
+      (let [dist (sut/distribution :f-noncentral {:df1 df1 :df2 df2 :ncp ncp})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    3.0 5.0 2.0   2.777777778000 28.395061730000
+    1.0 10.0 5.0  7.500000000000 64.583333330000
+    5.0 20.0 0.0  1.111111111000  0.709876543200
+    2.0 8.0 10.0  8.000000000000 61.333333330000
+    10.0 15.0 3.0 1.500000000000  0.912587412600)
+  (t/testing "mean/variance are +Inf outside their validity ranges (df2<=2 / df2<=4)"
+    (t/is (Double/isInfinite (sut/mean (sut/distribution :f-noncentral {:df1 3.0 :df2 2.0 :ncp 1.0}))))
+    (t/is (Double/isInfinite (sut/variance (sut/distribution :f-noncentral {:df1 3.0 :df2 4.0 :ncp 1.0}))))
+    (t/is (m/delta-eq 3.0 (sut/mean (sut/distribution :f-noncentral {:df1 1.0 :df2 3.0 :ncp 0.0}))))))
+
+;; reference values from R's base `stats` package: dt/pt/qt(x, df, ncp).
+;; mean/variance closed-form formulas (mean = ncp*sqrt(df/2)*Gamma((df-1)/2)/Gamma(df/2),
+;; variance = df*(1+ncp^2)/(df-2) - ncp^2*df/2*(Gamma((df-1)/2)/Gamma(df/2))^2)
+;; cross-checked against R's own high-precision `integrate()` (rel.tol=1e-10)
+;; of x*dt(...) / x^2*dt(...) over (-Inf, Inf).
+
+(t/deftest t-noncentral
+  (t/testing "defaults are df=1, ncp=1"
+    (let [dist (sut/distribution :t-noncentral nil)]
+      (t/is (m/delta-eq 0.193064705260 (sut/pdf dist 0.0) 1.0e-6))))
+  (t/testing "support is the whole real line"
+    (let [dist (sut/distribution :t-noncentral {:df 5.0 :ncp -3.0})]
+      (t/is (Double/isInfinite (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (neg? (sut/lower-bound dist)))
+      (t/is (pos? (sut/upper-bound dist)))))
+  (t/testing "ncp=0 reduces exactly to the central t distribution with the same df"
+    (let [tnc (sut/distribution :t-noncentral {:df 7.0 :ncp 0.0})
+          tc (sut/distribution :t {:degrees-of-freedom 7.0})]
+      (doseq [x [-3.0 -1.0 -0.1 0.0 0.1 1.0 3.0]]
+        (t/is (m/delta-eq (sut/pdf tnc x) (sut/pdf tc x)))
+        (t/is (m/delta-eq (sut/cdf tnc x) (sut/cdf tc x))))
+      (t/is (m/delta-eq (sut/mean tnc) (sut/mean tc)))
+      (t/is (m/delta-eq (sut/variance tnc) (sut/variance tc)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme/infinite/negative-zero inputs"
+    (doseq [df [0.5 1.0 2.0 5.0 30.0]
+            ncp [-20.0 -1.0 0.0 1.0 20.0]]
+      (let [dist (sut/distribution :t-noncentral {:df df :ncp ncp})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf df=" df " ncp=" ncp " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf df=" df " ncp=" ncp " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf df=" df " ncp=" ncp " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [df ncp vd d vp p]
+      (let [dist (sut/distribution :t-noncentral {:df df :ncp ncp})]
+        (and (m/delta-eq d (sut/pdf dist vd) 1.0e-8)
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-8)))
+    3.0 2.0    -2   0.000845332062 -2  0.000687152986
+    3.0 2.0    -1   0.005278237809 -1  0.003005247595
+    3.0 2.0    0    0.049742834812 0   0.022750131948
+    3.0 2.0    0.5  0.129665387995 0.5 0.065478985565
+    3.0 2.0    1    0.236548732514 1   0.157349433970
+    3.0 2.0    2    0.287783357806 2   0.443075782218
+    3.0 2.0    5    0.053038652175 5   0.889052067438
+    1.0 1.5    -2   0.005306351608 -2  0.011315052843
+    1.0 1.5    -1   0.016849979226 -1  0.020857766993
+    1.0 1.5    0    0.103340089934 0   0.066807201269
+    1.0 1.5    0.5  0.213035559311 0.5 0.145889613765
+    1.0 1.5    1    0.257949130174 1   0.267986599354
+    1.0 1.5    2    0.176264596771 2   0.491019901518
+    1.0 1.5    5    0.044146571506 5   0.763973691912
+    10.0 0.0   -2   0.061145766321 -2  0.036694017385
+    10.0 0.0   -1   0.230361989229 -1  0.170446566151
+    10.0 0.0   0    0.389108383966 0   0.500000000000
+    10.0 0.0   0.5  0.339695136352 0.5 0.686053197129
+    10.0 0.0   1    0.230361989229 1   0.829553433849
+    10.0 0.0   2    0.061145766321 2   0.963305982615
+    10.0 0.0   5    0.000396001056 5   0.999731333199
+    5.0 -3.0   -2   0.237736447074 -2  0.825197284442
+    5.0 -3.0   -1   0.064128630253 -1  0.974632761821
+    5.0 -3.0   0    0.004217049403 0   0.998650101968
+    5.0 -3.0   0.5  0.000862309322 0.5 0.999706554724
+    5.0 -3.0   1    0.000190326894 1   0.999926631614
+    5.0 -3.0   2    0.000014965160 2   0.999992200364
+    5.0 -3.0   5    0.000000134561 5   0.999999857991
+    20.0 4.0   -1   0.000001824240 -1  0.000000412176
+    20.0 4.0   0    0.000132168446 0   0.000031671242
+    20.0 4.0   0.5  0.000912178865 0.5 0.000236768793
+    20.0 4.0   1    0.005007705315 1   0.001464367582
+    20.0 4.0   2    0.063767650558 2   0.026819856758
+    20.0 4.0   5    0.221154356653 5   0.768687208932))
+
+(t/deftest t-noncentral-icdf
+  (t/are [df ncp p vq]
+      (let [dist (sut/distribution :t-noncentral {:df df :ncp ncp})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    3.0 2.0  0.05 0.366968979429
+    3.0 2.0  0.25 1.349720333326
+    3.0 2.0  0.50 2.203826658048
+    3.0 2.0  0.75 3.437835721256
+    3.0 2.0  0.95 6.852347517156
+    1.0 1.5  0.05 -0.195195157360
+    1.0 1.5  0.25 0.930288396007
+    1.0 1.5  0.50 2.051650979949
+    1.0 1.5  0.75 4.700539855855
+    1.0 1.5  0.95 24.368899333029
+    10.0 0.0 0.05 -1.812461122812
+    10.0 0.0 0.25 -0.699812061312
+    10.0 0.0 0.50 0.000000000000
+    10.0 0.0 0.75 0.699812061312
+    10.0 0.0 0.95 1.812461122812
+    5.0 -3.0 0.05 -7.099888375581
+    5.0 -3.0 0.25 -4.373411292391
+    5.0 -3.0 0.50 -3.183251821560
+    5.0 -3.0 0.75 -2.293281791745
+    5.0 -3.0 0.95 -1.287820536981
+    20.0 4.0 0.05 2.279291596400
+    20.0 4.0 0.25 3.283428062499
+    20.0 4.0 0.50 4.055370185591
+    20.0 4.0 0.75 4.917795541343
+    20.0 4.0 0.95 6.385579639500))
+
+(t/deftest t-noncentral-mv
+  (t/are [df ncp mean-v var-v]
+      (let [dist (sut/distribution :t-noncentral {:df df :ncp ncp})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    3.0 2.0   2.763953195771 7.360562731589
+    10.0 0.0  0.000000000000 1.250000000000
+    5.0 -3.0 -3.568248232306 3.934271219315
+    20.0 4.0  4.158243910847 1.597896466793)
+  (t/testing "mean is NaN for df<=1 and variance is NaN for df<=2 (moments genuinely do not exist)"
+    (t/is (Double/isNaN (sut/mean (sut/distribution :t-noncentral {:df 1.0 :ncp 1.5}))))
+    (t/is (Double/isNaN (sut/variance (sut/distribution :t-noncentral {:df 2.0 :ncp 1.5}))))
+    (t/is (m/delta-eq 2.658680776358 (sut/mean (sut/distribution :t-noncentral {:df 2.0 :ncp 1.5})) 1.0e-6))))
+
+;; reference values from R's base `stats` package: dbeta/pbeta/qbeta(x, shape1, shape2, ncp).
+;; mean/variance cross-checked against R's own high-precision `integrate()`
+;; (default tolerance) of x*dbeta(...) / x^2*dbeta(...) over [0,1].
+
+(t/deftest beta-noncentral
+  (t/testing "defaults are alpha=2, beta=2, ncp=1"
+    (let [dist (sut/distribution :beta-noncentral nil)]
+      (t/is (m/delta-eq 1.472420230494 (sut/pdf dist 0.5)))))
+  (t/testing "support is [0, 1]; pdf/cdf are exactly 0 below 0 and 1 above 1"
+    (let [dist (sut/distribution :beta-noncentral {:alpha 2.0 :beta 3.0 :ncp 4.0})]
+      (t/is (m/delta-eq 0.0 (sut/lower-bound dist)))
+      (t/is (m/delta-eq 1.0 (sut/upper-bound dist)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist 2.0)))
+      (t/is (m/delta-eq 1.0 (sut/cdf dist 2.0)))))
+  (t/testing "pdf(0)/pdf(1) follow a boundary convention based on alpha/beta: 0 (shape>1), the finite k=0-term limit (shape=1), +Inf (shape<1)"
+    (t/is (m/delta-eq 0.0 (sut/pdf (sut/distribution :beta-noncentral {:alpha 2.0 :beta 3.0 :ncp 4.0}) 0.0)))
+    (t/is (m/delta-eq 1.103638323514 (sut/pdf (sut/distribution :beta-noncentral {:alpha 1.0 :beta 3.0 :ncp 2.0}) 0.0)))
+    (t/is (Double/isInfinite (sut/pdf (sut/distribution :beta-noncentral {:alpha 0.5 :beta 3.0 :ncp 2.0}) 0.0)))
+    (t/is (m/delta-eq 0.0 (sut/pdf (sut/distribution :beta-noncentral {:alpha 2.0 :beta 3.0 :ncp 4.0}) 1.0)))
+    (t/is (m/delta-eq 4.0 (sut/pdf (sut/distribution :beta-noncentral {:alpha 3.0 :beta 1.0 :ncp 2.0}) 1.0)))
+    (t/is (Double/isInfinite (sut/pdf (sut/distribution :beta-noncentral {:alpha 3.0 :beta 0.5 :ncp 2.0}) 1.0))))
+  (t/testing "ncp=0 reduces exactly to the central beta distribution with the same alpha/beta"
+    (let [bnc (sut/distribution :beta-noncentral {:alpha 2.0 :beta 5.0 :ncp 0.0})
+          bc (sut/distribution :beta {:alpha 2.0 :beta 5.0})]
+      (doseq [x [0.0 0.1 0.3 0.5 0.7 0.9 1.0]]
+        (t/is (m/delta-eq (sut/pdf bnc x) (sut/pdf bc x)))
+        (t/is (m/delta-eq (sut/cdf bnc x) (sut/cdf bc x))))
+      (t/is (m/delta-eq (sut/mean bnc) (sut/mean bc)))
+      (t/is (m/delta-eq (sut/variance bnc) (sut/variance bc)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme shape/ncp and boundary/extreme x/p inputs"
+    (doseq [alpha [0.1 0.5 1.0 2.0 50.0]
+            beta [0.1 0.5 1.0 2.0 50.0]
+            ncp [0.0 1.0 50.0 1000.0]]
+      (let [dist (sut/distribution :beta-noncentral {:alpha alpha :beta beta :ncp ncp})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0 1.0 0.5]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf alpha=" alpha " beta=" beta " ncp=" ncp " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf alpha=" alpha " beta=" beta " ncp=" ncp " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf alpha=" alpha " beta=" beta " ncp=" ncp " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [alpha beta ncp vd d vp p]
+      (let [dist (sut/distribution :beta-noncentral {:alpha alpha :beta beta :ncp ncp})]
+        (and (m/delta-eq d (sut/pdf dist vd) 1.0e-8)
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-8)))
+    2.0 3.0 4.0   0.1  0.212138642384 0.1  0.009772800708
+    2.0 3.0 4.0   0.25 0.707958877268 0.25 0.076374141601
+    2.0 3.0 4.0   0.5  1.678449950345 0.5  0.379375673481
+    2.0 3.0 4.0   0.75 1.540611568274 0.75 0.823614142480
+    2.0 3.0 4.0   0.9  0.491896711372 0.9  0.981627060849
+    0.5 3.0 2.0   0.1  1.601682094812 0.1  0.253190173894
+    0.5 3.0 2.0   0.25 1.374199180289 0.25 0.472827848131
+    0.5 3.0 2.0   0.5  1.018594613391 0.5  0.777348520663
+    0.5 3.0 2.0   0.75 0.420220981988 0.75 0.960316914740
+    0.5 3.0 2.0   0.9  0.089674619779 0.9  0.996864733995
+    3.0 0.5 2.0   0.1  0.004084317671 0.1  0.000130527469
+    3.0 0.5 2.0   0.25 0.033270832372 0.25 0.002488852093
+    3.0 0.5 2.0   0.5  0.217292952493 0.5  0.028683471946
+    3.0 0.5 2.0   0.75 0.919587280009 0.75 0.151148834227
+    3.0 0.5 2.0   0.9  2.481935662004 0.9  0.380342361878
+    1.0 3.0 2.0   0.1  1.299337679930 0.1  0.120590593900
+    1.0 3.0 2.0   0.25 1.471763170430 0.25 0.330518198241
+    1.0 3.0 2.0   0.5  1.317308776563 0.5  0.691824033672
+    1.0 3.0 2.0   0.75 0.608057837955 0.75 0.941177703958
+    1.0 3.0 2.0   0.9  0.136716409678 0.9  0.995180909363
+    5.0 2.0 10.0  0.1  0.000036243101 0.1  0.000000660793
+    5.0 2.0 10.0  0.25 0.003208139770 0.25 0.000130622011
+    5.0 2.0 10.0  0.5  0.169941598714 0.5  0.012184491666
+    5.0 2.0 10.0  0.75 2.018421397558 0.75 0.216714718152
+    5.0 2.0 10.0  0.9  4.148574183856 0.9  0.698393063281))
+
+(t/deftest beta-noncentral-icdf
+  (t/are [alpha beta ncp p vq]
+      (let [dist (sut/distribution :beta-noncentral {:alpha alpha :beta beta :ncp ncp})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    2.0 3.0 4.0   0.05 0.208015681566
+    2.0 3.0 4.0   0.25 0.415956394387
+    2.0 3.0 4.0   0.50 0.568448264639
+    2.0 3.0 4.0   0.75 0.705084938124
+    2.0 3.0 4.0   0.95 0.853154799732
+    0.5 3.0 2.0   0.05 0.005165264200
+    0.5 3.0 2.0   0.25 0.098012371829
+    0.5 3.0 2.0   0.50 0.269918817515
+    0.5 3.0 2.0   0.75 0.473805150890
+    0.5 3.0 2.0   0.95 0.727049134606
+    3.0 0.5 2.0   0.05 0.577131450158
+    3.0 0.5 2.0   0.25 0.832998260427
+    3.0 0.5 2.0   0.50 0.939908079371
+    3.0 0.5 2.0   0.75 0.986341615162
+    3.0 0.5 2.0   0.95 0.999468372706
+    1.0 3.0 2.0   0.05 0.043472035627
+    1.0 3.0 2.0   0.25 0.194542695754
+    1.0 3.0 2.0   0.50 0.364180939423
+    1.0 3.0 2.0   0.75 0.545746826024
+    1.0 3.0 2.0   0.95 0.765160934244
+    5.0 2.0 10.0  0.05 0.610441529101
+    5.0 2.0 10.0  0.25 0.765571094091
+    5.0 2.0 10.0  0.50 0.849890853766
+    5.0 2.0 10.0  0.75 0.912440716430
+    5.0 2.0 10.0  0.95 0.967144512924))
+
+(t/deftest beta-noncentral-mv
+  (t/are [alpha beta ncp mean-v var-v]
+      (let [dist (sut/distribution :beta-noncentral {:alpha alpha :beta beta :ncp ncp})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    2.0 3.0 4.0   0.554504387282 0.038472237096
+    0.5 3.0 2.0   0.303394525742 0.053640516453
+    3.0 0.5 2.0   0.883899074534 0.020201816126
+    1.0 3.0 2.0   0.378170058914 0.049926346088
+    5.0 2.0 10.0  0.827452193839 0.012571458948))
+
+;; reference values from R's `circular` package / direct numerical integration
+;; of the closed-form pdf `f(x) = e^(kappa*cos(x-mu))/(2*pi*I_0(kappa))`
+;; (dvonmises/pvonmises match `integrate()` of that pdf from `mu-pi` to `x`
+;; exactly, confirming both give the same [mu-pi,mu+pi] principal-branch
+;; convention used here). icdf reference values via R's `uniroot` on that same
+;; integral; variance reference values via R's `integrate()` (rel.tol=1e-12)
+;; of `(x-mu)^2 * pdf(x)` over `[mu-pi, mu+pi]` - an independent numerical
+;; method from fastmath's own gk-quadrature-based variance.
+;;
+;; Both R's plain `besselI(kappa, 0)` and a naive port of fastmath's own first
+;; implementation overflow/lose all precision once kappa gets into the
+;; hundreds: `besselI(1000, 0)` is `Inf` in R (needs `expon.scaled=TRUE`), and
+;; a fixed-resolution numerical scheme (fixed quadrature step count / fixed
+;; integration window) silently loses virtually all the probability mass once
+;; kappa grows enough that the density's peak (width ~1/sqrt(kappa)) becomes
+;; narrower than the scheme's resolution - both were hit and fixed during
+;; development (see `von-mises-log-I0` and the kappa-scaled `steps`/
+;; `half-width` in `distr/von-mises`); the kappa=100/1000 rows below and the
+;; huge-kappa stress sweep exercise exactly that fix.
+
+(t/deftest von-mises
+  (t/testing "defaults are mu=0, kappa=1"
+    (let [dist (sut/distribution :von-mises nil)]
+      (t/is (m/delta-eq 0.3417104886234632 (sut/pdf dist 0.0)))))
+  (t/testing "support is [mu-pi, mu+pi]; pdf/cdf are exactly 0/0/1 outside it"
+    (let [dist (sut/distribution :von-mises {:mu 0.5 :kappa 3.0})]
+      (t/is (m/delta-eq (- 0.5 m/PI) (sut/lower-bound dist)))
+      (t/is (m/delta-eq (+ 0.5 m/PI) (sut/upper-bound dist)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist (+ 0.5 m/PI 0.1))))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist (- 0.5 m/PI 0.1))))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist (- 0.5 m/PI 0.1))))
+      (t/is (m/delta-eq 1.0 (sut/cdf dist (+ 0.5 m/PI 0.1))))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist (- 0.5 m/PI))))
+      (t/is (m/delta-eq 1.0 (sut/cdf dist (+ 0.5 m/PI))))))
+  (t/testing "kappa=0 reduces exactly to the uniform distribution on the circle [mu-pi, mu+pi]"
+    (let [dist (sut/distribution :von-mises {:mu 0.5 :kappa 0.0})]
+      (doseq [x [-2.0 -0.5 0.5 1.0 3.0]]
+        (t/is (m/delta-eq (/ 1.0 m/TWO_PI) (sut/pdf dist x))))
+      (t/is (m/delta-eq 0.5 (sut/mean dist)))
+      (t/is (m/delta-eq (/ (m/sq m/TWO_PI) 12.0) (sut/variance dist)))))
+  (t/testing "pdf/cdf/icdf/mean/variance are never NaN or throw, across extreme mu/kappa (including a very narrow, huge-kappa peak) and extreme x/p inputs"
+    (doseq [mu [-1000.0 -3.0 0.0 3.0 1000.0]
+            kappa [0.0 0.001 1.0 100.0 1.0e6 1.0e10 1.0e15]]
+      (let [dist (sut/distribution :von-mises {:mu mu :kappa kappa})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0 mu (+ mu m/PI) (- mu m/PI)]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf mu=" mu " kappa=" kappa " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf mu=" mu " kappa=" kappa " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf mu=" mu " kappa=" kappa " p=" p)))
+        (t/is (not (Double/isNaN (sut/mean dist))) (str "mean mu=" mu " kappa=" kappa))
+        (t/is (not (Double/isNaN (sut/variance dist))) (str "variance mu=" mu " kappa=" kappa))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [mu kappa vx d vp p]
+      (let [dist (sut/distribution :von-mises {:mu mu :kappa kappa})]
+        (and (m/delta-eq d (sut/pdf dist vx) 1.0e-6)
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-6)))
+    0.0 2.0    -3   0.009639793410 -3   0.001346862289
+    0.0 2.0    -1.5 0.080427734601 -1.5 0.042833151659
+    0.0 2.0    0    0.515885412019 0    0.500000000000
+    0.0 2.0    0.5  0.403852533352 0.5  0.738192214419
+    0.0 2.0    1.5  0.080427734601 1.5  0.957166848341
+    0.0 2.0    3    0.009639793410 3    0.998653137711
+    1.5 5.0    -1.5 0.000041387928 -1.5 0.000005668660
+    1.5 5.0    0    0.008321832185 0    0.001725673014
+    1.5 5.0    1.5  0.867136528542 1.5  0.500000000000
+    1.5 5.0    2    0.470177012529 2    0.858662481809
+    1.5 5.0    3    0.008321832185 3    0.998274326986
+    1.5 5.0    4.5  0.000041387928 4.5  0.999994331340
+    -1.0 0.5   -4   0.091225297646 -4   0.012873844040
+    -1.0 0.5   -2.5 0.155042162215 -2.5 0.183858039433
+    -1.0 0.5   -1   0.246738357394 -1   0.500000000000
+    -1.0 0.5   -0.5 0.232088734384 -0.5 0.620877026816
+    -1.0 0.5   0.5  0.155042162215 0.5  0.816141960567
+    -1.0 0.5   2    0.091225297646 2    0.987126155960
+    0.5 20.0   -1   0.000000015037 -1   0.000000000753
+    0.5 20.0   0.5  1.772715417786 0.5  0.500000000000
+    0.5 20.0   1    0.153226776312 1    0.986033746281
+    0.5 20.0   2    0.000000015037 2    0.999999999247
+    2.0 0.1    -1   0.143793828005 -1   0.020346576035
+    2.0 0.1    0.5  0.159884790023 0.5  0.245385905267
+    2.0 0.1    2    0.175454504089 2    0.500000000000
+    2.0 0.1    2.5  0.173319728348 2.5  0.587367590508
+    2.0 0.1    3.5  0.159884790023 3.5  0.754614094733
+    2.0 0.1    5    0.143793828005 5    0.979653423965))
+
+(t/deftest von-mises-icdf
+  (t/are [mu kappa p vq]
+      (let [dist (sut/distribution :von-mises {:mu mu :kappa kappa})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    0.0 2.0    0.05 -1.4179661935
+    0.0 2.0    0.25 -0.5296631837
+    0.0 2.0    0.50 0.0000000000
+    0.0 2.0    0.75 0.5296631837
+    0.0 2.0    0.95 1.4179661935
+    1.5 5.0    0.05 0.7216414421
+    1.5 5.0    0.25 1.1882983440
+    1.5 5.0    0.50 1.5000000000
+    1.5 5.0    0.75 1.8117016560
+    1.5 5.0    0.95 2.2783585579
+    -1.0 0.5   0.05 -3.6038014382
+    -1.0 0.5   0.25 -2.1124469363
+    -1.0 0.5   0.50 -1.0000000000
+    -1.0 0.5   0.75 0.1124469363
+    -1.0 0.5   0.95 1.6038014382
+    0.5 20.0   0.05 0.1276420628
+    0.5 20.0   0.25 0.3480598525
+    0.5 20.0   0.50 0.5000000000
+    0.5 20.0   0.75 0.6519401475
+    0.5 20.0   0.95 0.8723579372
+    2.0 0.1    0.05 -0.7942200842
+    2.0 0.1    0.25 0.5288174455
+    2.0 0.1    0.50 2.0000000000
+    2.0 0.1    0.75 3.4711825545
+    2.0 0.1    0.95 4.7942200842
+    0.0 100.0  0.05 -0.1648795459
+    0.0 100.0  0.25 -0.0675466545
+    0.0 100.0  0.50 0.0000000000
+    0.0 100.0  0.75 0.0675466545
+    0.0 100.0  0.95 0.1648795459
+    0.0 1000.0 0.05 -0.0520272142
+    0.0 1000.0 0.25 -0.0213323110
+    0.0 1000.0 0.50 0.0000000000
+    0.0 1000.0 0.75 0.0213323110
+    0.0 1000.0 0.95 0.0520272142))
+
+(t/deftest von-mises-mv
+  (t/testing "mean is always exactly mu, by symmetry"
+    (doseq [mu [-2.0 0.0 3.0] kappa [0.0 0.5 5.0 100.0]]
+      (t/is (m/delta-eq mu (sut/mean (sut/distribution :von-mises {:mu mu :kappa kappa}))))))
+  (t/are [mu kappa var-v]
+      (m/delta-eq var-v (sut/variance (sut/distribution :von-mises {:mu mu :kappa kappa})) 1.0e-6)
+    0.0 2.0   0.764461879811
+    1.5 5.0   0.227230162815
+    -1.0 0.5  2.348803343669
+    0.5 20.0  0.051323846750
+    2.0 0.1   3.091356460618
+    0.0 100.0 0.010050550607
+    0.0 1000.0 0.001000500543)
+  (t/testing "variance approaches the wrapped-normal limit 1/kappa as kappa grows"
+    (t/is (m/delta-eq (/ 1.0 1.0e6) (sut/variance (sut/distribution :von-mises {:mu 0.0 :kappa 1.0e6})) 1.0e-9))))
+
+;; reference values for the generalized (exponentiated) half-logistic
+;; distribution: F(x) = ((1-e^(-lambda*x))/(1+e^(-lambda*x)))^alpha, x>=0.
+;; No R package implements this distribution directly, so references were
+;; computed independently in R from the closed-form pdf/cdf/icdf formulas
+;; (cross-checked live in nREPL), and mean/variance from R's own
+;; high-precision `integrate()` over the same pdf (rel.tol=1e-12) - an
+;; independent numeric method from fastmath's own gk-quadrature-based
+;; mean/variance, so agreement is a genuine cross-check, not circular.
+
+(t/deftest ghl
+  (t/testing "registered under both :generalized-half-logistic and :ghl keys"
+    (let [d1 (sut/distribution :generalized-half-logistic {:alpha 2.0 :lambda 1.5})
+          d2 (sut/distribution :ghl {:alpha 2.0 :lambda 1.5})]
+      (t/is (m/delta-eq (sut/pdf d1 1.0) (sut/pdf d2 1.0)))
+      (t/is (m/delta-eq (sut/cdf d1 1.0) (sut/cdf d2 1.0)))))
+  (t/testing "defaults are alpha=1, lambda=1"
+    (let [dist (sut/distribution :ghl nil)]
+      (t/is (m/delta-eq 0.470007424403 (sut/pdf dist 0.5)))))
+  (t/testing "support is [0, +Inf); pdf/cdf are exactly 0 below 0"
+    (let [dist (sut/distribution :ghl {:alpha 2.0 :lambda 1.5})]
+      (t/is (m/delta-eq 0.0 (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (m/delta-eq 0.0 (sut/pdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist -1.0)))
+      (t/is (m/delta-eq 0.0 (sut/cdf dist 0.0)))))
+  (t/testing "alpha=1 reduces exactly to the ordinary half-logistic distribution"
+    (let [dist (sut/distribution :ghl {:alpha 1.0 :lambda 1.3})]
+      (doseq [x [0.0 0.3 1.0 2.5 5.0]]
+        (t/is (m/delta-eq (sut/pdf dist x) (* 1.3 0.5 (m/sech (* 0.5 1.3 x)) (m/sech (* 0.5 1.3 x)))))
+        (t/is (m/delta-eq (sut/cdf dist x) (Math/tanh (* 0.5 1.3 x)))))))
+  (t/testing "pdf(0) follows the 0^(alpha-1) convention: 0 (alpha>1), lambda/2 (alpha=1), +Inf (alpha<1)"
+    (t/is (m/delta-eq 0.0 (sut/pdf (sut/distribution :ghl {:alpha 2.0 :lambda 1.0}) 0.0)))
+    (t/is (m/delta-eq 0.5 (sut/pdf (sut/distribution :ghl {:alpha 1.0 :lambda 1.0}) 0.0)))
+    (t/is (Double/isInfinite (sut/pdf (sut/distribution :ghl {:alpha 0.5 :lambda 1.0}) 0.0))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme/infinite/negative-zero inputs"
+    (doseq [alpha [0.1 0.5 1.0 2.0 5.0 20.0]
+            lambda [0.1 1.0 5.0]]
+      (let [dist (sut/distribution :ghl {:alpha alpha :lambda lambda})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf alpha=" alpha " lambda=" lambda " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf alpha=" alpha " lambda=" lambda " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf alpha=" alpha " lambda=" lambda " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [alpha lambda vd d vp p]
+      (let [dist (sut/distribution :ghl {:alpha alpha :lambda lambda})]
+        (and (m/delta-eq d (sut/pdf dist vd))
+             (m/delta-eq p (sut/cdf dist vp))))
+    1.0 1.0 0    0.500000000000 0   0.000000000000
+    1.0 1.0 0.2  0.495033145424 0.2 0.099667994625
+    1.0 1.0 0.5  0.470007424403 0.5 0.244918662404
+    1.0 1.0 1    0.393223866483 1   0.462117157260
+    1.0 1.0 2    0.209987170807 2   0.761594155956
+    1.0 1.0 5    0.013296113342 5   0.986614298151
+    1.0 1.0 10   0.000090791615 10  0.999909204263
+    2.0 1.0 0    0.000000000000 0   0.000000000000
+    2.0 1.0 0.2  0.098677921755 0.2 0.009933709153
+    2.0 1.0 0.5  0.230227179409 0.5 0.059985151194
+    2.0 1.0 1    0.363430990692 1   0.213552267034
+    2.0 1.0 2    0.319850004225 2   0.580025658386
+    2.0 1.0 5    0.026236271065 5   0.973407773317
+    2.0 1.0 10   0.000181566744 10  0.999818416769
+    0.5 2.0 0.2  1.081599287710 0.2 0.444269423014
+    0.5 2.0 0.5  0.578447332474 0.5 0.679791995584
+    0.5 2.0 1    0.240619578027 1   0.872693620898
+    0.5 2.0 2    0.035978455144 2   0.981849061758
+    0.5 2.0 5    0.000090795737 5   0.999954601101
+    3.0 0.5 0    0.000000000000 0   0.000000000000
+    3.0 0.5 0.2  0.001867207511 0.2 0.000124688072
+    3.0 0.5 0.5  0.011418407992 0.5 0.001922953665
+    3.0 0.5 1    0.042290199622 1   0.014691482994
+    3.0 0.5 2    0.125960772209 2   0.098686166568
+    3.0 0.5 5    0.151336776754 5   0.610412296576
+    3.0 0.5 10   0.019413810122 10  0.960378027086
+    1.5 1.5 0.2  0.424465936273 0.2 0.057448218432
+    1.5 1.5 0.5  0.586972768600 0.5 0.214523346138
+    1.5 1.5 1    0.534888466504 1   0.506189787776
+    1.5 1.5 2    0.193413368915 2   0.861151528479
+    1.5 1.5 5    0.002484754168 5   0.998342122520
+    1.5 1.5 10   0.000001376559 10  0.999999082293))
+
+(t/deftest ghl-icdf
+  (t/are [alpha lambda p vq]
+      (let [dist (sut/distribution :ghl {:alpha alpha :lambda lambda})]
+        (m/delta-eq vq (sut/icdf dist p)))
+    1.0 1.0 0.05 0.100083458557
+    1.0 1.0 0.25 0.510825623766
+    1.0 1.0 0.50 1.098612288668
+    1.0 1.0 0.75 1.945910149055
+    1.0 1.0 0.95 3.663561646130
+    2.0 1.0 0.05 0.454899072012
+    2.0 1.0 0.25 1.098612288668
+    2.0 1.0 0.50 1.762747174039
+    2.0 1.0 0.75 2.633915793850
+    2.0 1.0 0.95 4.356544420602
+    0.5 2.0 0.05 0.002500005208
+    0.5 2.0 0.25 0.062581571477
+    0.5 2.0 0.50 0.255412811883
+    0.5 2.0 0.75 0.636482837906
+    0.5 2.0 0.95 1.485535855866
+    3.0 0.5 0.05 1.546296919419
+    3.0 0.5 0.25 2.965402772811
+    3.0 0.5 0.50 4.325414454657
+    3.0 0.5 0.75 6.076849374933
+    3.0 0.5 0.95 9.523958157970
+    1.5 1.5 0.05 0.182084729578
+    1.5 1.5 0.25 0.559873121896
+    1.5 1.5 0.50 0.988467590937
+    1.5 1.5 0.75 1.565046849143
+    1.5 1.5 0.95 2.712603317056))
+
+(t/deftest ghl-mv
+  (t/are [alpha lambda mean-v var-v]
+      (let [dist (sut/distribution :ghl {:alpha alpha :lambda lambda})]
+        (and (m/delta-eq mean-v (sut/mean dist) 1.0e-6)
+             (m/delta-eq var-v (sut/variance dist) 1.0e-6)))
+    1.0 1.0 1.386294361120 1.368056078024
+    2.0 1.0 2.000000000000 1.545177444480
+    0.5 2.0 0.438824586260 0.266326000185
+    3.0 0.5 4.772588722240 6.381869423136
+    1.5 1.5 1.157370995080 0.661200406444))
+
 ;; reference values from R's gamlss.dist package: dZINBI/pZINBI/qZINBI
 
 (t/deftest zinbi
@@ -2324,6 +3182,130 @@
     1.0 10.0  3.908650337129  6.220029396270
     0.5 5.0   1.954325168565  1.555007349068
     2.0 200.0 42.995153708422 2493.927282139787))
+
+;; reference values from R's `gamlss.dist` package: dexGAUS/pexGAUS/qexGAUS(x, mu, sigma, nu),
+;; using fastmath's (mu, sigma, tau) parameter names for `nu`. pdf/cdf are exact closed-form
+;; expressions (erf/erfc-based), so agreement is essentially to full double precision;
+;; mean = mu+tau, variance = sigma^2+tau^2.
+
+(t/deftest ex-gaussian
+  (t/testing "defaults are mu=0, sigma=1, tau=1"
+    (let [dist (sut/distribution :ex-gaussian nil)]
+      (t/is (m/delta-eq 0.261578291865 (sut/pdf dist 0.0)))))
+  (t/testing "support is the whole real line"
+    (let [dist (sut/distribution :ex-gaussian {:mu 0.0 :sigma 1.0 :tau 1.0})]
+      (t/is (Double/isInfinite (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (neg? (sut/lower-bound dist)))
+      (t/is (pos? (sut/upper-bound dist)))))
+  (t/testing "exgaus is the same distribution under a renamed (nu instead of tau) parameter"
+    (let [d1 (sut/distribution :ex-gaussian {:mu 1.0 :sigma 2.0 :tau 3.0})
+          d2 (sut/distribution :exgaus {:mu 1.0 :sigma 2.0 :nu 3.0})]
+      (doseq [x [-3.0 0.0 1.5 5.0]]
+        (t/is (m/delta-eq (sut/pdf d1 x) (sut/pdf d2 x)))
+        (t/is (m/delta-eq (sut/cdf d1 x) (sut/cdf d2 x))))
+      (t/is (m/delta-eq (sut/mean d1) (sut/mean d2)))
+      (t/is (m/delta-eq (sut/variance d1) (sut/variance d2)))))
+  (t/testing "as tau -> 0 the exponential component vanishes and it approaches normal(mu, sigma)"
+    (let [eg (sut/distribution :ex-gaussian {:mu 1.0 :sigma 2.0 :tau 1.0e-6})
+          nd (sut/distribution :normal {:mu 1.0 :sd 2.0})]
+      (doseq [x [-3.0 0.0 1.0 3.0 5.0]]
+        (t/is (m/delta-eq (sut/pdf eg x) (sut/pdf nd x) 1.0e-4))
+        (t/is (m/delta-eq (sut/cdf eg x) (sut/cdf nd x) 1.0e-4)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, across extreme/infinite/negative-zero inputs"
+    (doseq [mu [-100.0 0.0 100.0]
+            sigma [0.1 1.0 50.0]
+            tau [0.1 1.0 50.0]]
+      (let [dist (sut/distribution :ex-gaussian {:mu mu :sigma sigma :tau tau})]
+        (doseq [x [##-Inf ##Inf -1e300 1e300 1e-300 0.0 -0.0]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf mu=" mu " sigma=" sigma " tau=" tau " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf mu=" mu " sigma=" sigma " tau=" tau " x=" x)))
+        (doseq [p [0.0 1e-10 0.5 (- 1.0 1e-10) 1.0]]
+          (t/is (not (Double/isNaN (sut/icdf dist p))) (str "icdf mu=" mu " sigma=" sigma " tau=" tau " p=" p)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf))))))
+  (t/are [mu sigma tau vd d vp p]
+      (let [dist (sut/distribution :ex-gaussian {:mu mu :sigma sigma :tau tau})]
+        (and (m/delta-eq d (sut/pdf dist vd) 1.0e-8)
+             (m/delta-eq p (sut/cdf dist vp) 1.0e-8)))
+    0.0 1.0 1.0    -5 0.000000241410 -5 0.000000045242
+    0.0 1.0 1.0    -1 0.101959017701 -1 0.056696236231
+    0.0 1.0 1.0    0  0.261578291865 0  0.238421708135
+    0.0 1.0 1.0    1  0.303265329856 1  0.538079416212
+    0.0 1.0 1.0    2  0.187729387930 2  0.789520480122
+    0.0 1.0 1.0    5  0.011108644703 5  0.988891068646
+    0.0 1.0 1.0    10 0.000074851830 10 0.999925148170
+    2.0 1.5 3.0    -5 0.000000464113 -5 0.000000138288
+    2.0 1.5 3.0    -1 0.006375705254 -1 0.003623016186
+    2.0 1.5 3.0    0  0.024554783065 0  0.017546870532
+    2.0 1.5 3.0    1  0.064139095438 1  0.060075251233
+    2.0 1.5 3.0    2  0.116539611573 2  0.150381165280
+    2.0 1.5 3.0    5  0.129670878276 5  0.588237233223
+    2.0 1.5 3.0    10 0.026245004137 10 0.921264939377
+    -1.0 0.5 2.0   -5 0.000000000000 -5 0.000000000000
+    -1.0 0.5 2.0   -1 0.207016051474 -1 0.085967897052
+    -1.0 0.5 2.0   0  0.300357814900 0  0.376534238251
+    -1.0 0.5 2.0   1  0.189761814383 1  0.620444699991
+    -1.0 0.5 2.0   2  0.115106535360 2  0.769786928293
+    -1.0 0.5 2.0   5  0.025683739784 5  0.948632520433
+    -1.0 0.5 2.0   10 0.002108249745 10 0.995783500510
+    0.0 2.0 0.5    -5 0.005273809488 -5 0.003572760582
+    0.0 2.0 0.5    -1 0.149677461728 -1 0.233698807862
+    0.0 2.0 0.5    0  0.188821282604 0  0.405589358698
+    0.0 2.0 0.5    1  0.187698537373 1  0.597613192587
+    0.0 2.0 0.5    2  0.147403870521 2  0.767642810808
+    0.0 2.0 0.5    5  0.018082743012 5  0.984748963168
+    0.0 2.0 0.5    10 0.000010338802 10 0.999994543948
+    5.0 1.0 10.0   -5 0.000000000000 -5 0.000000000000
+    5.0 1.0 10.0   -1 0.000000000097 -1 0.000000000015
+    5.0 1.0 10.0   0  0.000000028140 0  0.000000005251
+    5.0 1.0 10.0   1  0.000003097185 1  0.000000699390
+    5.0 1.0 10.0   2  0.000131267471 2  0.000037223320
+    5.0 1.0 10.0   5  0.046247878529 5  0.037521214712
+    5.0 1.0 10.0   10 0.060957061520 10 0.390429098148))
+
+(t/deftest ex-gaussian-icdf
+  (t/are [mu sigma tau p vq]
+      (let [dist (sut/distribution :ex-gaussian {:mu mu :sigma sigma :tau tau})]
+        (m/delta-eq vq (sut/icdf dist p) 1.0e-4))
+    0.0 1.0 1.0  0.05 -1.068877781234
+    0.0 1.0 1.0  0.25 0.043767710283
+    0.0 1.0 1.0  0.50 0.875798343698
+    0.0 1.0 1.0  0.75 1.803377906257
+    0.0 1.0 1.0  0.95 3.494166385603
+    2.0 1.5 3.0  0.05 0.832225187865
+    2.0 1.5 3.0  0.25 2.748544759117
+    2.0 1.5 3.0  0.50 4.365199740911
+    2.0 1.5 3.0  0.75 6.531432946076
+    2.0 1.5 3.0  0.95 11.362196819588
+    -1.0 0.5 2.0 0.05 -1.203882363153
+    -1.0 0.5 2.0 0.25 -0.404231151309
+    -1.0 0.5 2.0 0.50 0.448206117510
+    -1.0 0.5 2.0 0.75 1.835088719744
+    -1.0 0.5 2.0 0.95 5.053964547108
+    0.0 2.0 0.5  0.05 -2.874692992742
+    0.0 2.0 0.5  0.25 -0.893079333408
+    0.0 2.0 0.5  0.50 0.491001789388
+    0.0 2.0 0.5  0.75 1.882744322136
+    0.0 2.0 0.5  0.95 3.904850418096
+    5.0 1.0 10.0 0.05 5.246901474998
+    5.0 1.0 10.0 0.25 7.926142579730
+    5.0 1.0 10.0 0.50 11.981471805599
+    5.0 1.0 10.0 0.75 18.912943611199
+    5.0 1.0 10.0 0.95 35.007322735523))
+
+(t/deftest ex-gaussian-mv
+  (t/are [mu sigma tau mean-v var-v]
+      (let [dist (sut/distribution :ex-gaussian {:mu mu :sigma sigma :tau tau})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    0.0 1.0 1.0   1.0  2.0
+    2.0 1.5 3.0   5.0  11.25
+    -1.0 0.5 2.0  1.0  4.25
+    0.0 2.0 0.5   0.5  4.25
+    5.0 1.0 10.0  15.0 101.0))
 
 ;; reference values from R's extraDistr package: dbbinom/pbbinom (qbbinom is absent from
 ;; extraDistr, so icdf reference values were derived by manual search over the pbbinom cdf table);

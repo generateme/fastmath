@@ -2,6 +2,7 @@
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.special :as special]
+            [fastmath.polynomials :as poly]
             [fastmath.kernel.density :as k]
             [fastmath.solver :as solver]
             
@@ -754,16 +755,27 @@
   ^double [cdf ^double p ^double init ^double step]
   (let [h1 (fn ^double [^double q] (m/- (double (cdf q)) p))]
     (if (m/< (double (cdf init)) p)
-      (loop [interval (m/+ init step) 
-             j (long 2)]
-        (if (m/< (double (cdf interval)) p)
-          (recur (m/+ init (m/* j step)) (m/inc j))
-          (solver/find-root h1 init interval {:absolute-accuracy 1.0e-10})))
+      ;; bracket offset grows geometrically (step, 2*step, 4*step, ...)
+      ;; rather than linearly, so heavy-tailed cdfs whose true root is many
+      ;; orders of magnitude past `init` (e.g. f-noncentral with small df2)
+      ;; are bracketed in a few dozen iterations instead of needing a
+      ;; number of iterations proportional to the root's own magnitude.
+      (loop [interval (m/+ init step)
+             mult 2.0]
+        (cond
+          (m/pos-inf? interval) ##Inf ;; bracket grew past double range (or cdf
+          ;; can never numerically reach p below Infinity, e.g. a quadrature-based
+          ;; cdf that plateaus short of 1.0 for all finite x): find-root can't take
+          ;; an infinite bound, and the true root is unresolvable anyway, so return
+          ;; the boundary directly instead of throwing.
+          (m/< (double (cdf interval)) p) (recur (m/+ init (m/* mult step)) (m/* mult 2.0))
+          :else (solver/find-root h1 init interval {:absolute-accuracy 1.0e-10})))
       (loop [interval (m/- init step)
-             j 2]
-        (if (m/> (double (cdf interval)) p)
-          (recur (m/- init (m/* j step)) (m/inc j))
-          (solver/find-root h1 interval init {:absolute-accuracy 1.0e-10}))))))
+             mult 2.0]
+        (cond
+          (m/neg-inf? interval) ##-Inf
+          (m/> (double (cdf interval)) p) (recur (m/- init (m/* mult step)) (m/* mult 2.0))
+          :else (solver/find-root h1 interval init {:absolute-accuracy 1.0e-10}))))))
 
 ;;
 
@@ -984,6 +996,17 @@
                      :lower-bound a
                      :upper-bound b})))
 
+(defn- log-erfcx-asymptotic
+  "log(erfcx(b)) = b^2 + log(erfc(b)) for large positive b, via the standard
+  asymptotic expansion of erfc, avoiding the overflow (`exp(b^2)`) / underflow
+  (`erfc(b) -> 0`) that plain `b^2 + log(erfc(b))` would hit directly. Valid
+  (and needed) for `b >= 6.0` or so; relative error there is already < 3e-8
+  and keeps shrinking as `b` grows."
+  ^double [^double b]
+  (let [u (m// 1.0 (m/* 2.0 b b))
+        S (m/+ 1.0 (m/* u (m/+ -1.0 (m/* u (m/+ 3.0 (m/* u (m/+ -15.0 (m/* u (m/+ 105.0 (m/* u -945.0))))))))))]
+    (m/- (m/log S) (m/log b) (m/* 0.5 m/LOG_PI))))
+
 (defn ex-gaussian
   [{:keys [^double mu ^double sigma ^double tau rng normal exponential]}]
   (let [rng (or rng (JDKRandomGenerator.))
@@ -994,11 +1017,28 @@
         s1 (m// (m/+ mu (m/* 0.5 sigma2tau)) tau)
         denom (m/* m/SQRT2 sigma)
         s2 (m// (m/+ mu sigma2tau) denom)
-        f (fn ^double [^double x] (m/* 0.5 (m/exp (m/- s1 (m// x tau)))
-                                      (special/erfc (m/- s2 (m// x denom)))))
-        cdf (fn ^double [^double x] (m/- (double (prot/cdf N x))
-                                        (double (f x))))]
-    (->distribution {:pdf (fn ^double [^double x] (m// (double (f x)) tau))
+        log-half (m/log 0.5)
+        ;; f(x) = 0.5 * exp(a) * erfc(b), a = s1 - x/tau, b = s2 - x/denom;
+        ;; computed via log-space when b is large so that erfc(b)'s underflow
+        ;; towards 0 doesn't collide with exp(a)'s overflow towards Infinity
+        ;; and produce Infinity * 0 -> NaN (hit for x deep in the left tail,
+        ;; or any x when mu is large relative to sigma/tau).
+        f (fn ^double [^double x]
+            (let [a (m/- s1 (m// x tau))
+                  b (m/- s2 (m// x denom))
+                  log-f (if (m/>= b 6.0)
+                          (m/+ log-half a (m/- (m/* b b)) (log-erfcx-asymptotic b))
+                          (m/+ log-half a (m/log (special/erfc b))))]
+              (m/exp log-f)))
+        cdf (fn ^double [^double x]
+              (cond
+                (m/neg-inf? x) 0.0
+                (m/pos-inf? x) 1.0
+                :else (m/constrain (m/- (double (prot/cdf N x)) (double (f x))) 0.0 1.0)))]
+    (->distribution {:pdf (fn ^double [^double x]
+                            (if (or (m/neg-inf? x) (m/pos-inf? x))
+                              0.0
+                              (m// (double (f x)) tau)))
                      :cdf cdf
                      :icdf (fn ^double [^double p] (icdf-solver cdf p mu sigma))
                      :sampler (fn ^double [] (m/+ (double (prot/sample N))
@@ -1564,48 +1604,42 @@
             mean-fn (fn ^double []
                       (m/* mu (m/pow theta (m/- r-nu))
                            (m/exp (m/- (special/log-gamma (m/+ theta r-nu)) log-gamma-theta))))]
-        (->distribution
-         {;; computed fully in log-space (log-u = log(theta) + nu*(log(y) - log(mu)))
-          ;; rather than via z=(y/mu)^nu, u=theta*z, log(u) - this avoids the
-          ;; underflow that raw z/u computation suffers for extreme y (e.g.
-          ;; y=1e-300 with nu>=2 underflows z to exactly 0.0, losing the actual
-          ;; divergence rate and producing NaN via -Inf + Inf cancellation).
-          :lpdf (fn ^double [^double y]
-                  (if (m/pos? y)
-                    (let [log-y (m/log y)
-                          log-u (m/+ log-theta (m/* nu (m/- log-y log-mu)))]
-                      (if (m/pos-inf? log-u)
-                        ##-Inf
-                        (m/- (m/+ log-abs-nu (m/* theta log-u)) (m/exp log-u) log-gamma-theta log-y)))
-                    ##-Inf))
-          :cdf (fn ^double [^double y]
-                 (if (m/not-pos? y)
-                   0.0
-                   (let [u (m/* theta (m/pow (m// y mu) nu))]
-                     (if (m/pos-inf? u)
-                       (if pos-nu? 1.0 0.0)
-                       (let [c (double (prot/cdf dist u))]
-                         (if pos-nu? c (m/- 1.0 c)))))))
-          :icdf (fn ^double [^double p]
-                  (let [u (double (prot/icdf dist (if pos-nu? p (m/- 1.0 p))))]
-                    (m/* mu (m/pow (m// u theta) r-nu))))
-          :rng rng
-          :mean (delay (if (m/> nu (m/- (m// 1.0 (m/* sigma sigma))))
-                         (double (mean-fn))
-                         ##Inf))
-          :variance (delay (if (m/> nu (m/- (m// 1.0 (m/* 2.0 sigma sigma))))
-                             (let [m1 (double (mean-fn))
-                                   m2 (m/* mu mu (m/pow theta (m/* -2.0 r-nu))
-                                           (m/exp (m/- (special/log-gamma (m/+ theta (m/* 2.0 r-nu)))
-                                                       (special/log-gamma theta))))]
-                               (m/- m2 (m/* m1 m1)))
-                             ##Inf))
-          :dimensions 1
-          :continuous? true
-          :name :generalized-gamma
-          :parameters [:mu :sigma :nu :rng]
-          :lower-bound 0
-          :upper-bound ##Inf})))))
+        (->distribution {:lpdf (fn ^double [^double y]
+                                 (if (m/pos? y)
+                                   (let [log-y (m/log y)
+                                         log-u (m/+ log-theta (m/* nu (m/- log-y log-mu)))]
+                                     (if (m/pos-inf? log-u)
+                                       ##-Inf
+                                       (m/- (m/+ log-abs-nu (m/* theta log-u)) (m/exp log-u) log-gamma-theta log-y)))
+                                   ##-Inf))
+                         :cdf (fn ^double [^double y]
+                                (if (m/not-pos? y)
+                                  0.0
+                                  (let [u (m/* theta (m/pow (m// y mu) nu))]
+                                    (if (m/pos-inf? u)
+                                      (if pos-nu? 1.0 0.0)
+                                      (let [c (double (prot/cdf dist u))]
+                                        (if pos-nu? c (m/- 1.0 c)))))))
+                         :icdf (fn ^double [^double p]
+                                 (let [u (double (prot/icdf dist (if pos-nu? p (m/- 1.0 p))))]
+                                   (m/* mu (m/pow (m// u theta) r-nu))))
+                         :rng rng
+                         :mean (delay (if (m/> nu (m/- (m// 1.0 (m/* sigma sigma))))
+                                        (double (mean-fn))
+                                        ##Inf))
+                         :variance (delay (if (m/> nu (m/- (m// 1.0 (m/* 2.0 sigma sigma))))
+                                            (let [m1 (double (mean-fn))
+                                                  m2 (m/* mu mu (m/pow theta (m/* -2.0 r-nu))
+                                                          (m/exp (m/- (special/log-gamma (m/+ theta (m/* 2.0 r-nu)))
+                                                                      (special/log-gamma theta))))]
+                                              (m/- m2 (m/* m1 m1)))
+                                            ##Inf))
+                         :dimensions 1
+                         :continuous? true
+                         :name :generalized-gamma
+                         :parameters [:mu :sigma :nu :rng]
+                         :lower-bound 0
+                         :upper-bound ##Inf})))))
 
 (defn generalized-normal
   [{:keys [^double mu ^double alpha ^double beta rng gamma]}]
@@ -1665,27 +1699,6 @@
         variance-v (m/- (m/* scale-est scale-est (m// (special/bessel-K (m/+ lambda 2.0) omega)
                                                       (special/bessel-K lambda omega)))
                         (m/* mean-v mean-v))
-        ;; there's no closed-form cdf/icdf. Calling gk-quadrature/find-root
-        ;; directly on every cdf/icdf call is both slow (single-digit
-        ;; microseconds per call) and numerically fragile (gk-quadrature's
-        ;; uniform initial segmentation silently returns wrong, too-small
-        ;; results when integrated over [0, x] for x far beyond where the
-        ;; density's mass actually lives). Instead, following the same
-        ;; pattern as [[continuous-distribution]], integrate the pdf once up
-        ;; front over [0, mx] via `integrate-pdf` (mx chosen generously past
-        ;; the mean in units of standard deviation - GIG's tails decay at
-        ;; least exponentially, so 25 sigma is far beyond where any remaining
-        ;; mass could matter in double precision) and reuse the resulting
-        ;; cdf/icdf interpolators for every call - reducing per-call cost from
-        ;; ~microseconds to ~100ns, at the cost of a one-off construction cost.
-        ;; Uses :monotone (monotonicity-preserving Hermite) rather than the
-        ;; default :linear interpolation: at equal step count it is roughly
-        ;; 1-2 orders of magnitude more accurate (~3e-6 vs ~1.5e-4 absolute
-        ;; error at steps=2000, empirically), since it captures curvature
-        ;; between the piecewise-integrated grid points instead of connecting
-        ;; them with straight lines. Plain :cubic interpolation was also tried
-        ;; but rejected: cubic splines are not guaranteed monotonic, and can
-        ;; produce NaN when inverted for icdf.
         mx (m/+ mean-v (m/* 25.0 (m/sqrt variance-v)))
         [cdf-fn icdf-fn] (integrate-pdf pdf {:mn 0.0 :mx mx :steps 2000}) ;; monotone is default
         cdf (fn ^double [^double x]
@@ -1711,6 +1724,423 @@
       :parameters [:chi :psi :lambda :rng]
       :lower-bound 0
       :upper-bound ##Inf})))
+
+(defn generalized-hyperbolic
+  [{:keys [^double mu ^double delta ^double alpha ^double beta ^double lambda rng]}]
+  (let [rng (or rng (JDKRandomGenerator.))
+        gam (m/sqrt (m/- (m/* alpha alpha) (m/* beta beta)))
+        chi (m/* delta delta)
+        psi (m/* gam gam)
+        omega (m/* delta gam)
+        log-alpha (m/log alpha)
+        log-const (m/- (m/* lambda (m/- (m/log gam) (m/log delta)))
+                       (m/* 0.5 m/LOG_TWO_PI)
+                       (m/log (special/bessel-K lambda omega)))
+        nu (m/- lambda 0.5)
+        W (generalized-inverse-gaussian {:chi chi :psi psi :lambda lambda :rng rng})
+        scale-est (m// delta gam)
+        kv0 (special/bessel-K lambda omega)
+        kv1 (special/bessel-K (m/inc lambda) omega)
+        kv2 (special/bessel-K (m/+ lambda 2.0) omega)
+        Ew (m/* scale-est (m// kv1 kv0))
+        Varw (m/- (m/* scale-est scale-est (m// kv2 kv0)) (m/* Ew Ew))
+        mean-v (m/+ mu (m/* beta Ew))
+        variance-v (m/+ Ew (m/* beta beta Varw))
+        lpdf (fn ^double [^double x]
+               (let [d (m/- x mu)
+                     s2 (m/+ chi (m/* d d))
+                     s (m/sqrt s2)]
+                 (if (m/pos-inf? s) ;; x = +-Infinity (or squaring d overflowed)
+                   ##-Inf
+                   (m/+ log-const (m/log (special/bessel-K nu (m/* alpha s)))
+                        (m/* nu (m/- (m/log s) log-alpha))
+                        (m/* beta d)))))
+        pdf (fn ^double [^double x] (m/exp (lpdf x)))
+        sd (m/sqrt variance-v)
+        mn-bound (m/- mean-v (m/* 25.0 sd))
+        mx-bound (m/+ mean-v (m/* 25.0 sd))
+        [cdf-fn icdf-fn] (integrate-pdf pdf {:mn mn-bound :mx mx-bound :steps 2000}) ;; monotone is default
+        cdf (fn ^double [^double x]
+              (cond
+                (m/<= x mn-bound) 0.0
+                (m/>= x mx-bound) 1.0
+                :else (m/constrain (double (cdf-fn x)) 0.0 1.0)))
+        icdf (fn ^double [^double p]
+               (cond
+                 (m/<= p 0.0) ##-Inf
+                 (m/>= p 1.0) ##Inf
+                 :else (double (icdf-fn (m/constrain p 0.0 1.0)))))]
+    (->distribution {:lpdf lpdf
+                     :cdf cdf
+                     :icdf icdf
+                     :sampler (fn ^double [] (let [w (double (prot/sample W))
+                                                  z (double (prot/grandom rng))]
+                                              (m/+ mu (m/* beta w) (m/* (m/sqrt w) z))))
+                     :rng rng
+                     :mean mean-v
+                     :variance variance-v
+                     :dimensions 1
+                     :continuous? true
+                     :name :generalized-hyperbolic
+                     :parameters [:mu :delta :alpha :beta :lambda :rng]
+                     :lower-bound ##-Inf
+                     :upper-bound ##Inf})))
+
+(defn half-logistic
+  [^double scale rng]
+  (let [log-2-scale (m/- (m/log 2.0) (m/log scale))
+        r-scale (m// 1.0 scale)
+        mean-v (m/* 2.0 m/LN2 scale)
+        variance-v (m/* (m/- (m/* m/PI2 m/THIRD) (m/* 4.0 m/LN2 m/LN2)) scale scale)]
+    (->distribution {:lpdf (fn ^double [^double x]
+                             (if (m/neg? x)
+                               ##-Inf
+                               (let [e (m/exp (m/- (m/* x r-scale)))]
+                                 (m/- log-2-scale (m/* x r-scale) (m/* 2.0 (m/log1p e))))))
+                     :cdf (fn ^double [^double x]
+                            (if (m/neg? x)
+                              0.0
+                              (let [e (m/exp (m/- (m/* x r-scale)))]
+                                (m// (m/- 1.0 e) (m/+ 1.0 e)))))
+                     :icdf (fn ^double [^double p] (m/* 2.0 scale (m/atanh p)))
+                     :rng rng
+                     :mean mean-v
+                     :variance variance-v
+                     :dimensions 1
+                     :continuous? true
+                     :name :half-logistic
+                     :parameters [:scale :rng]
+                     :lower-bound 0
+                     :upper-bound ##Inf})))
+
+(defn generalized-half-logistic
+  [^double alpha ^double lambda rng]
+  (let [alpha-1 (m/dec alpha)
+        r-alpha (m// 1.0 alpha)
+        log-lambda2 (m/+ (m/log lambda) (m/log 2.0))
+        log-alpha-lambda2 (m/+ (m/log alpha) log-lambda2)
+        lpdf (if (m/one? alpha)
+               (fn ^double [^double x]
+                 (if (m/neg? x)
+                   ##-Inf
+                   (let [e (m/exp (m/- (m/* lambda x)))]
+                     (m/- log-lambda2 (m/* lambda x) (m/* 2.0 (m/log1p e))))))
+               (fn ^double [^double x]
+                 (if (m/neg? x)
+                   ##-Inf
+                   (let [e (m/exp (m/- (m/* lambda x)))
+                         log-u (m/- (m/log1p (m/- e)) (m/log1p e))]
+                     (m/- (m/+ log-alpha-lambda2 (m/* alpha-1 log-u))
+                          (m/* lambda x) (m/* 2.0 (m/log1p e)))))))
+        cdf (fn ^double [^double x]
+              (if (m/neg? x)
+                0.0
+                (let [e (m/exp (m/- (m/* lambda x)))
+                      u (m// (m/- 1.0 e) (m/+ 1.0 e))]
+                  (m/pow u alpha))))
+        icdf (fn ^double [^double p] (m// (m/* 2.0 (m/atanh (m/pow p r-alpha))) lambda))
+        pdf (fn ^double [^double x] (m/exp (lpdf x)))
+        mean (delay (double (quad/gk-quadrature (fn ^double [^double x] (m/* x (double (pdf x)))) 0.0 ##Inf)))
+        variance (delay (m/- (double (quad/gk-quadrature (fn ^double [^double x] (m/* x x (double (pdf x)))) 0.0 ##Inf))
+                             (m/sq (double @mean))))]
+    (->distribution {:lpdf lpdf
+                     :cdf cdf
+                     :icdf icdf
+                     :rng rng
+                     :mean mean
+                     :variance variance
+                     :dimensions 1
+                     :continuous? true
+                     :name :generalized-half-logistic
+                     :parameters [:alpha :lambda :rng]
+                     :lower-bound 0
+                     :upper-bound ##Inf})))
+
+(defn f-noncentral
+  [^double df1 ^double df2 ^double ncp rng]
+  (let [half-ncp (m/* 0.5 ncp)
+        eps 1.0e-15
+        max-terms 100000
+        [ks probs] (loop [k (long 0) pk (m/exp (m/- half-ncp)) cum pk ks [0] probs [pk]]
+                     (if (or (m/>= cum (m/- 1.0 eps)) (m/>= k max-terms))
+                       [ks probs]
+                       (let [k' (m/inc k)
+                             pk' (m/* pk (m// half-ncp (double k')))
+                             cum' (m/+ cum pk')]
+                         (recur k' pk' cum' (conj ks k') (conj probs pk')))))
+        ;; [probability, scale=df1/(df1+2k), central-F(df1+2k, df2) dist]
+        terms (mapv (fn [^long k ^double p]
+                      (let [df1k (m/+ df1 (m/* 2.0 k))]
+                        [p (m// df1 df1k) (FDistribution. df1k df2)]))
+                    ks probs)
+        pdf-at-0 (cond (m/< df1 2.0) ##Inf
+                       (m/== df1 2.0) (m/exp (m/- half-ncp))
+                       :else 0.0)
+        pdf (fn ^double [^double x]
+              (cond
+                (m/neg? x) 0.0
+                (m/zero? x) pdf-at-0
+                (m/pos-inf? x) 0.0
+                :else (double (reduce (fn [^double acc [^double p ^double scale ^FDistribution d]]
+                                        (m/+ acc (m/* p scale (.density d (m/* x scale)))))
+                                      0.0 terms))))
+        cdf (fn ^double [^double x]
+              (cond
+                (m/not-pos? x) 0.0
+                (m/pos-inf? x) 1.0
+                :else (double (reduce (fn [^double acc [^double p ^double scale ^FDistribution d]]
+                                        (m/+ acc (m/* p (.cumulativeProbability d (m/* x scale)))))
+                                      0.0 terms))))
+        init-guess (m/max 1.0 (m/+ 1.0 (m// ncp df1)))
+        icdf (fn ^double [^double p]
+               (cond
+                 (m/not-pos? p) 0.0
+                 (m/>= p 1.0) ##Inf
+                 :else (icdf-solver cdf p init-guess init-guess)))]
+    (->distribution
+     {:pdf pdf
+      :cdf cdf
+      :icdf icdf
+      :rng rng
+      :mean (delay (if (m/> df2 2.0)
+                     (m// (m/* df2 (m/+ df1 ncp)) (m/* df1 (m/- df2 2.0)))
+                     ##Inf))
+      :variance (delay (if (m/> df2 4.0)
+                         (let [d1nc (m/+ df1 ncp)
+                               ratio (m// df2 df1)]
+                           (m// (m/* 2.0 (m/+ (m/* d1nc d1nc) (m/* (m/+ df1 (m/* 2.0 ncp)) (m/- df2 2.0)))
+                                     (m/* ratio ratio))
+                                (m/* (m/* (m/- df2 2.0) (m/- df2 2.0)) (m/- df2 4.0))))
+                         ##Inf))
+      :dimensions 1
+      :continuous? true
+      :name :f-noncentral
+      :parameters [:df1 :df2 :ncp :rng]
+      :lower-bound 0
+      :upper-bound ##Inf})))
+
+(defn t-noncentral
+  [^double df ^double ncp rng]
+  (let [delta ncp
+        half-df (m/* 0.5 df)
+        df-1 (m/dec df)
+        scale (m// 1.0 (m/sqrt df))
+        log-c (m/- (m/* (m/- 1.0 half-df) m/LN2) (special/log-gamma half-df))
+        ;; log-density of W = sqrt(chi-squared(df)), i.e. the chi(df) distribution,
+        ;; used as the mixing variable: T = (Z+delta) / (W/sqrt(df)), Z ~ N(0,1)
+        chi-lpdf (fn ^double [^double w]
+                   (cond
+                     (m/neg? w) ##-Inf
+                     (m/zero? w) (cond (m/> df 1.0) ##-Inf
+                                       (m/== df 1.0) log-c ;; avoids 0 * (-Infinity) -> NaN
+                                       :else ##Inf)
+                     :else (m/+ (m/* df-1 (m/log w)) (m/* -0.5 w w) log-c)))
+        chi-pdf (fn ^double [^double w] (m/exp (chi-lpdf w)))
+        normal-pdf (fn ^double [^double x] (m/* m/INV_SQRT2PI (m/exp (m/* -0.5 x x))))
+        normal-cdf (fn ^double [^double x] (m/* 0.5 (m/inc (special/erf (m/* x m/INV_SQRT_2)))))
+        pdf (fn ^double [^double x]
+              (if (or (m/neg-inf? x) (m/pos-inf? x))
+                0.0
+                (double (quad/gk-quadrature
+                         (fn ^double [^double w]
+                           (let [z (m/- (m/* x w scale) delta)]
+                             (m/* (double (chi-pdf w)) w scale (double (normal-pdf z)))))
+                         0.0 ##Inf))))
+        cdf (fn ^double [^double x]
+              (cond
+                (m/neg-inf? x) 0.0
+                (m/pos-inf? x) 1.0
+                :else (m/constrain
+                       (double (quad/gk-quadrature
+                                (fn ^double [^double w]
+                                  (let [z (m/- (m/* x w scale) delta)]
+                                    (m/* (double (chi-pdf w)) (double (normal-cdf z)))))
+                                0.0 ##Inf))
+                       0.0 1.0)))
+        init-guess (m/max 1.0 (m/abs delta))
+        icdf (fn ^double [^double p]
+               (cond
+                 (m/not-pos? p) ##-Inf
+                 (m/>= p 1.0) ##Inf
+                 :else (icdf-solver cdf p delta init-guess)))
+        gamma-ratio (delay (m/exp (m/- (special/log-gamma (m/* 0.5 df-1)) (special/log-gamma half-df))))]
+    (->distribution
+     {:pdf pdf
+      :cdf cdf
+      :icdf icdf
+      :rng rng
+      :mean (delay (if (m/> df 1.0)
+                     (m/* delta (m/sqrt (m/* 0.5 df)) (double @gamma-ratio))
+                     ##NaN))
+      :variance (delay (if (m/> df 2.0)
+                          (m/- (m// (m/* df (m/inc (m/* delta delta))) (m/- df 2.0))
+                               (m/* delta delta half-df (m/sq (double @gamma-ratio))))
+                          ##NaN))
+      :dimensions 1
+      :continuous? true
+      :name :t-noncentral
+      :parameters [:df :ncp :rng]
+      :lower-bound ##-Inf
+      :upper-bound ##Inf})))
+
+(defn beta-noncentral
+  [^double alpha ^double beta ^double ncp rng]
+  (let [half-ncp (m/* 0.5 ncp)
+        eps 1.0e-15
+        max-terms 100000
+        [ks probs] (loop [k (long 0) pk (m/exp (m/- half-ncp)) cum pk ks [0] probs [pk]]
+                     (if (or (m/>= cum (m/- 1.0 eps)) (m/>= k max-terms))
+                       [ks probs]
+                       (let [k' (m/inc k)
+                             pk' (m/* pk (m// half-ncp (double k')))
+                             cum' (m/+ cum pk')]
+                         (recur k' pk' cum' (conj ks k') (conj probs pk')))))
+        ;; [probability, shifted alpha1=alpha+k, central Beta(alpha+k, beta) dist]
+        terms (mapv (fn [^long k ^double p]
+                      (let [alphak (m/+ alpha (double k))]
+                        [p alphak (BetaDistribution. alphak beta)]))
+                    ks probs)
+        ;; Apache Commons' BetaDistribution.density throws at x=0 when its
+        ;; alpha<1 (and at x=1 when its beta<1), and silently returns the
+        ;; wrong value (0.0 instead of the true finite limit) at x=0/x=1
+        ;; when alpha/beta is exactly 1 - so both boundaries are handled
+        ;; here directly from the known analytic limits instead of ever
+        ;; calling .density there. Only the k=0 term can have alpha<=1 at
+        ;; x=0 (every other term's shape is alpha+k>1 since alpha>0); every
+        ;; term shares the same `beta` at x=1, so all of them matter there.
+        pdf-at-0 (cond (m/> alpha 1.0) 0.0
+                       (m/== alpha 1.0) (m/* (double (first probs)) beta) ;; B(1,beta)=1/beta
+                       :else ##Inf)
+        pdf-at-1 (cond (m/> beta 1.0) 0.0
+                       (m/== beta 1.0) (double (reduce (fn [^double acc [^double p ^double alphak _]]
+                                                         (m/+ acc (m/* p alphak))) ;; B(alphak,1)=1/alphak
+                                                       0.0 terms))
+                       :else ##Inf)
+        pdf (fn ^double [^double x]
+              (cond
+                (m/neg? x) 0.0
+                (m/> x 1.0) 0.0
+                (m/zero? x) pdf-at-0
+                (m/== x 1.0) pdf-at-1
+                :else (double (reduce (fn [^double acc [^double p _ ^BetaDistribution d]]
+                                        (m/+ acc (m/* p (.density d x))))
+                                      0.0 terms))))
+        cdf (fn ^double [^double x]
+              (cond
+                (m/not-pos? x) 0.0
+                (m/>= x 1.0) 1.0
+                :else (double (reduce (fn [^double acc [^double p _ ^BetaDistribution d]]
+                                        (m/+ acc (m/* p (.cumulativeProbability d x))))
+                                      0.0 terms))))
+        icdf (fn ^double [^double p]
+               (cond
+                 (m/not-pos? p) 0.0
+                 (m/>= p 1.0) 1.0
+                 ;; the domain is already known to be exactly [0,1] (cdf(0)=0, cdf(1)=1),
+                 ;; so root-finding can bracket directly on it, unlike icdf-solver's
+                 ;; geometric bracket search (built for unbounded domains).
+                 :else (m/constrain (solver/find-root (fn ^double [^double q] (m/- (double (cdf q)) p))
+                                                       0.0 1.0 {:absolute-accuracy 1.0e-10})
+                                    0.0 1.0)))
+        ;; mean/variance are exact weighted sums of the mixture's own central-Beta
+        ;; component moments (mean_k=alphak/(alphak+beta), var_k=alphak*beta/((alphak+beta)^2*(alphak+beta+1))),
+        ;; not an approximation - just as exact as the truncated pdf/cdf mixture itself.
+        mean (delay (double (reduce (fn [^double acc [^double p ^double alphak _]]
+                                      (m/+ acc (m/* p (m// alphak (m/+ alphak beta)))))
+                                    0.0 terms)))
+        ex2 (delay (double (reduce (fn [^double acc [^double p ^double alphak _]]
+                                     (let [s (m/+ alphak beta)
+                                           mk (m// alphak s)
+                                           vk (m// (m/* alphak beta) (m/* s s (m/inc s)))]
+                                       (m/+ acc (m/* p (m/+ vk (m/* mk mk))))))
+                                   0.0 terms)))]
+    (->distribution
+     {:pdf pdf
+      :cdf cdf
+      :icdf icdf
+      :rng rng
+      :mean mean
+      :variance (delay (m/- (double @ex2) (m/sq (double @mean))))
+      :dimensions 1
+      :continuous? true
+      :name :beta-noncentral
+      :parameters [:alpha :beta :ncp :rng]
+      :lower-bound 0
+      :upper-bound 1})))
+
+(defn- von-mises-log-I0
+  "log(I_0(kappa)), safe for any kappa: `special/bessel-I0` itself computes
+  `exp(kappa)` directly for large kappa and overflows to `##Inf` above ~709
+  (I_0(kappa) is then genuinely too large to represent as a plain double, but
+  its log is not). Above that threshold, use the standard large-argument
+  asymptotic expansion of I_0 directly in log-space instead."
+  ^double [^double kappa]
+  (if (m/< kappa 700.0)
+    (m/log (special/bessel-I0 kappa))
+    (let [u (m// 1.0 (m/* 8.0 kappa))
+          S (poly/mevalpoly u 1.0 1.0 4.5 37.5 459.375)]
+      (m/- (m/+ kappa (m/log S)) (m/* 0.5 (m/log (m/* m/TWO_PI kappa)))))))
+
+(defn von-mises
+  [^double mu ^double kappa rng]
+  (let [mn (m/- mu m/PI)
+        mx (m/+ mu m/PI)
+        log-const (m/- 0.0 (von-mises-log-I0 kappa) m/LOG_TWO_PI)
+        lpdf (fn ^double [^double x]
+               (if (m/<= mn x mx)
+                 (m/+ (m/* kappa (m/cos (m/- x mu))) log-const)
+                 ##-Inf))
+        pdf (fn ^double [^double x] (m/exp (lpdf x)))
+        ;; the density concentrates into an ever-narrower peak around mu as kappa
+        ;; grows (characteristic width ~1/sqrt(kappa)); a fixed step count spread
+        ;; uniformly over the whole [mn,mx] range would under-resolve that peak
+        ;; for large kappa (each panel ends up wider than the peak itself, so the
+        ;; integrated table silently loses almost all of the probability mass -
+        ;; verified concretely: 2000 fixed steps gives cdf(mu)=0.5 fine at
+        ;; kappa=1, but a visibly wrong ~0.50004 at kappa=1e6). Scale the step
+        ;; count with sqrt(kappa) so panel width stays comparable to the peak.
+        steps (long (m/constrain (m/ceil (m/* 100.0 (m/sqrt (m/inc kappa)))) 2000.0 100000.0))
+        [cdf-fn icdf-fn] (integrate-pdf pdf {:mn mn :mx mx :steps steps}) ;; monotone is default
+        cdf (fn ^double [^double x]
+              (cond
+                (m/<= x mn) 0.0
+                (m/>= x mx) 1.0
+                :else (m/constrain (double (cdf-fn x)) 0.0 1.0)))
+        icdf (fn ^double [^double p]
+               (cond
+                 (m/<= p 0.0) mn
+                 (m/>= p 1.0) mx
+                 :else (double (icdf-fn (m/constrain p 0.0 1.0)))))
+        ;; same peak-narrowing issue affects a naive quadrature over the full
+        ;; [mn,mx] range for the variance integral - blind adaptive quadrature's
+        ;; first coarse pass can miss the peak (and its own error estimate along
+        ;; with it) entirely, silently returning ~0 instead of ~1/kappa for large
+        ;; kappa. Fixed by integrating only a window sized to the peak's own
+        ;; characteristic width (40 standard-deviations-equivalent, i.e. entirely
+        ;; negligible truncation error) around mu instead of the whole range, and
+        ;; exploiting the pdf's exact symmetry around mu to halve the work.
+        half-width (m/min m/PI (m// 40.0 (m/sqrt (m/inc kappa))))
+        variance (delay (m/* 2.0 (double (quad/gk-quadrature
+                                          (fn ^double [^double t] (m/* t t (double (pdf (m/+ mu t)))))
+                                          0.0 half-width))))]
+    (->distribution {:lpdf lpdf
+                     :pdf pdf
+                     :cdf cdf
+                     :icdf icdf
+                     :rng rng
+                     :mean mu ;; exact, by symmetry of pdf around mu
+                     ;; no simple closed form for the (linear) variance restricted to
+                     ;; [mu-pi,mu+pi]; the usual circular-statistics analogue is the
+                     ;; circular variance 1 - I1(kappa)/I0(kappa), which is NOT what's
+                     ;; returned here (this follows the rest of the library's ordinary
+                     ;; E[(X-mean)^2] convention for `variance`).
+                     :variance variance
+                     :dimensions 1
+                     :continuous? true
+                     :name :von-mises
+                     :parameters [:mu :kappa :rng]
+                     :lower-bound mn
+                     :upper-bound mx})))
 
 ;; ---- truncated and mixture
 

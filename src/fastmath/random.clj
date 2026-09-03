@@ -965,7 +965,154 @@ Returns true or false with equal probability. You can set `p` probability for `t
 * First parameter is distribution as a `:key`.
 * Second parameter is a map with configuration.
 
-All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`)."}
+All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and some of them accept `inverse-cumm-accuracy` (default set to `1e-9`).
+
+Below is the full list of supported `:key`s, grouped by kind. For each: its accepted configuration-map parameters (`rng` included; every entry also has its own dedicated function of the same name, e.g. [[beta]], with a complete docstring covering formulas, defaults and cross-references) and a one-line description of what it models.
+
+**Common continuous**
+
+* `:beta` ([[beta]]) - `alpha`, `beta`, `inverse-abs-accuracy`, `rng` - proportions/probabilities on `[0,1]`, shaped by two parameters.
+* `:cauchy` ([[cauchy]]) - `median`, `scale`, `inverse-abs-accuracy`, `rng` - symmetric, heavy-tailed, undefined mean/variance.
+* `:chi-squared` ([[chi-squared]]) - `degrees-of-freedom`, `inverse-abs-accuracy`, `rng` - sum of squares of independent standard normals.
+* `:exponential` ([[exponential]]) - `mean`, `inverse-abs-accuracy`, `rng` - memoryless waiting time between events.
+* `:f` ([[f]]) - `numerator-degrees-of-freedom`, `denominator-degrees-of-freedom`, `inverse-abs-accuracy`, `rng` - ratio of two independent chi-squared variables.
+* `:gamma` ([[gamma]]) - `shape`, `scale`, `inverse-abs-accuracy`, `rng` - waiting times, sums of exponentials.
+* `:gumbel` ([[gumbel]]) - `mu`, `beta`, `rng` - type-I extreme value distribution for maxima/minima.
+* `:laplace` ([[laplace]]) - `mu`, `beta`, `rng` - double exponential, sharper peak/heavier tails than normal.
+* `:levy` ([[levy]]) - `mu`, `c`, `rng` - heavy-tailed, closed-form pdf/cdf but undefined moments.
+* `:logistic` ([[logistic]]) - `mu`, `s`, `rng` - symmetric, sigmoid cdf, underlies logistic regression.
+* `:log-normal` ([[log-normal]]) - `scale`, `shape`, `inverse-abs-accuracy`, `rng` - variable whose logarithm is normal.
+* `:nakagami` ([[nakagami]]) - `mu`, `omega`, `inverse-abs-accuracy`, `rng` - amplitude of fading wireless signals.
+* `:normal` ([[normal]]) - `mu`, `sd`, `inverse-abs-accuracy`, `rng` - the Gaussian bell curve.
+* `:pareto` ([[pareto]]) - `scale`, `shape`, `inverse-abs-accuracy`, `rng` - heavy-tailed wealth/file-size type quantities.
+* `:t` ([[t]]) - `degrees-of-freedom`, `inverse-abs-accuracy`, `rng` - Student's t, heavier tails than normal.
+* `:triangular` ([[triangular]]) - `a`, `c`, `b`, `rng` - triangular density from lower bound, mode, upper bound.
+* `:uniform-real` ([[uniform-real]]) - `lower`, `upper`, `rng` - continuous uniform over an interval.
+* `:weibull` ([[weibull]]) - `alpha`, `beta`, `inverse-abs-accuracy`, `rng` - time-to-failure, reliability/survival analysis.
+* `:constant` ([[constant]]) - `value` - degenerate (Dirac) distribution always returning the same value.
+
+**Empirical / enumerated**
+
+* `:empirical` ([[empirical]]) - `data`, `bin-count`, `rng` - histogram-estimated distribution from a data sample.
+* `:enumerated-real` ([[enumerated-real]]) - `data`, `probabilities`, `rng` - explicit finite set of real values with probabilities.
+* `:enumerated-int` ([[enumerated-int]]) - `data`, `probabilities`, `rng` - explicit finite set of integer values with probabilities.
+
+**Common discrete**
+
+* `:bernoulli` ([[bernoulli]]) - `p`, `rng` - single yes/no trial, `1` with probability `p`.
+* `:binomial` ([[binomial]]) - `trials`, `p`, `rng` - number of successes across independent trials.
+* `:geometric` ([[geometric]]) - `p`, `rng` - number of failures before the first success.
+* `:hypergeometric` ([[hypergeometric]]) - `population-size`, `number-of-successes`, `sample-size`, `rng` - successes drawn without replacement.
+* `:pascal` ([[pascal]]) - `r`, `p`, `rng` - failures observed before accumulating `r` successes.
+* `:poisson` ([[poisson]]) - `p`, `epsilon`, `max-iterations`, `rng` - event count at a constant average rate (`p` is the rate/mean, traditionally lambda).
+* `:uniform-int` ([[uniform-int]]) - `lower`, `upper`, `rng` - discrete uniform over an integer range.
+* `:zipf` ([[zipf]]) - `number-of-elements`, `exponent`, `rng` - power-law rank/frequency distribution.
+
+**Multivariate**
+
+* `:multi-normal` ([[multi-normal]]) - `means`, `covariances`, `rng` - multivariate Gaussian over correlated vector components.
+
+**Goodness-of-fit test statistics**
+
+* `:anderson-darling` ([[anderson-darling]]) - `n`, `rng` - sampling distribution of the Anderson-Darling statistic.
+* `:anderson-darling-quick` ([[anderson-darling-quick]]) - `n`, `rng` - same statistic, faster algorithm.
+* `:cramer-von-mises` ([[cramer-von-mises]]) - `n`, `rng` - sampling distribution of the Cramer-von Mises statistic.
+* `:kolmogorov-smirnov` ([[kolmogorov-smirnov]]) - `n`, `rng` - sampling distribution of the two-sided KS statistic.
+* `:kolmogorov-smirnov+` ([[kolmogorov-smirnov+]]) - `n`, `rng` - one-sided (D+) KS statistic.
+* `:kolmogorov-smirnov-quick` ([[kolmogorov-smirnov-quick]]) - `n`, `rng` - two-sided KS statistic, faster algorithm.
+* `:kolmogorov` ([[kolmogorov]]) - `rng` - parameter-free limiting distribution of the scaled KS statistic.
+* `:watson-g` ([[watson-g]]) - `n`, `rng` - Watson G statistic for circular (directional) goodness-of-fit.
+* `:watson-u` ([[watson-u]]) - `n`, `rng` - Watson U-squared statistic for circular goodness-of-fit.
+
+**Less-common continuous**
+
+* `:beta-symmetrical` ([[beta-symmetrical]]) - `alpha`, `d`, `rng` - symmetric special case of beta (equal shape parameters).
+* `:chi` ([[chi]]) - `nu`, `rng` - square root of a sum of squares of `nu` standard normals.
+* `:erlang` ([[erlang]]) - `k`, `lambda`, `rng` - sum of `k` independent, identically-rated exponential stages.
+* `:fatigue-life` ([[fatigue-life]]) - `alpha`, `beta`, `gamma`, `rng` - Birnbaum-Saunders model, time to failure under cyclic stress.
+* `:folded-normal` ([[folded-normal]]) - `mu`, `sigma`, `rng` - absolute value of a normal random variable.
+* `:frechet` ([[frechet]]) - `alpha`, `beta`, `delta`, `rng` - heavy-tailed type-II extreme value distribution.
+* `:half-normal` ([[half-normal]]) - `mu`, `sigma`, `rng` - one-sided fold of a normal distribution.
+* `:hyperbolic-secant` ([[hyperbolic-secant]]) - `mu`, `sigma`, `rng` - symmetric shape between normal and Cauchy.
+* `:hypoexponential-equal` ([[hypoexponential-equal]]) - `n`, `k`, `h`, `rng` - sum of `k` phases with equally-spaced exponential rates.
+* `:hypoexponential` ([[hypoexponential]]) - `lambdas`, `rng` - sum of independent exponentials with arbitrary, distinct rates.
+* `:inverse-gamma` ([[inverse-gamma]]) - `alpha`, `beta`, `rng` - reciprocal of a gamma-distributed variable.
+* `:inverse-gaussian` ([[inverse-gaussian]]) - `mu`, `lambda`, `rng` - Wald distribution, first-passage time of a drifting Brownian motion.
+* `:johnson-sb` ([[johnson-sb]]) - `gamma`, `delta`, `xi`, `lambda`, `rng` - bounded member of the Johnson system.
+* `:johnson-sl` ([[johnson-sl]]) - `gamma`, `delta`, `xi`, `lambda`, `rng` - semi-bounded, log-normal-like member of the Johnson system.
+* `:johnson-su` ([[johnson-su]]) - `gamma`, `delta`, `xi`, `lambda`, `rng` - unbounded member of the Johnson system.
+* `:log-logistic` ([[log-logistic]]) - `alpha`, `beta`, `rng` - Fisk distribution, logarithm of the variable is logistic.
+* `:normal-inverse-gaussian` ([[normal-inverse-gaussian]]) - `alpha`, `beta`, `mu`, `delta`, `rng` - heavy-tailed normal-variance mixture, asset returns.
+* `:pearson-6` ([[pearson-6]]) - `alpha1`, `alpha2`, `beta`, `rng` - scaled beta distribution of the second kind.
+* `:power` ([[power]]) - `a`, `b`, `c`, `rng` - power-function distribution generalizing the uniform on `[a,b]`.
+* `:rayleigh` ([[rayleigh]]) - `a`, `beta`, `rng` - magnitude of a 2D vector with independent zero-mean normal components.
+* `:half-cauchy` ([[half-cauchy]]) - `mu`, `scale`, `rng` - right half of a Cauchy distribution folded at its center.
+* `:reciprocal` ([[reciprocal]]) - `a`, `b`, `rng` - log-uniform distribution for scale-invariant quantities.
+* `:ex-gaussian` ([[ex-gaussian]]) - `mu`, `sigma`, `tau`, `rng` - sum of a normal and an exponential variable, models reaction times.
+* `:exgaus` ([[exgaus]]) - `mu`, `sigma`, `nu`, `rng` - `ex-gaussian` with gamlss-style parameter naming (`nu` for `tau`).
+* `:von-mises` ([[von-mises]]) - `mu`, `kappa`, `rng` - circular analogue of the normal distribution, for angular data.
+
+**Noncentral family**
+
+* `:chi-squared-noncentral` ([[chi-squared-noncentral]]) - `nu`, `lambda`, `rng` - chi-squared generalized to noncentered normal components.
+* `:f-noncentral` ([[f-noncentral]]) - `df1`, `df2`, `ncp`, `rng` - F-distribution generalized to a noncentral numerator.
+* `:t-noncentral` ([[t-noncentral]]) - `df`, `ncp`, `rng` - Student's t generalized to a noncentral numerator.
+* `:beta-noncentral` ([[beta-noncentral]]) - `alpha`, `beta`, `ncp`, `rng` - beta distribution generalized via a noncentral chi-squared numerator.
+* `:fishers-noncentral-hypergeometric` ([[fishers-noncentral-hypergeometric]]) - `ns`, `nf`, `n`, `omega`, `rng` - biased hypergeometric, conditioned on a 2x2-table odds ratio.
+* `:wallenius-noncentral-hypergeometric` ([[wallenius-noncentral-hypergeometric]]) - `ns`, `nf`, `n`, `omega`, `rng` - biased sequential (urn) hypergeometric sampling.
+
+**Multivariate discrete**
+
+* `:multinomial` ([[multinomial]]) - `n`, `ps`, `rng` - category counts from `n` trials with per-category probabilities.
+* `:dirichlet` ([[dirichlet]]) - `alpha`, `rng` - distribution over the probability simplex, conjugate prior for multinomial.
+* `:categorical-distribution`/`:categorical` ([[categorical-distribution]]/[[categorical]]) - `data`, `probabilities`, `rng` - discrete distribution over an arbitrary, non-numeric set of values.
+
+**Data-driven**
+
+* `:continuous-distribution`/`:kde` ([[continuous-distribution]]/[[kde]]) - `data`, `kde`, `bandwidth`, `steps`, `interpolator`, `rng` - nonparametric continuous distribution via kernel density estimation.
+
+**Other discrete**
+
+* `:negative-binomial` ([[negative-binomial]]) - `r`, `p`, `rng` - generalized (Polya) negative binomial, failures before `r` (possibly non-integer) successes.
+* `:nbi` ([[nbi]]) - `mu`, `sigma`, `rng` - negative binomial (type I), gamlss mean/dispersion reparametrization.
+* `:nbii` ([[nbii]]) - `mu`, `sigma`, `rng` - negative binomial (type II), gamlss mean/dispersion reparametrization.
+* `:logarithmic` ([[logarithmic]]) - `p`, `rng` - log-series distribution over positive integers, species-abundance data.
+* `:integer-discrete-distribution`/`:integer-discrete` ([[integer-discrete-distribution]]/[[integer-discrete]]) - `data`, `probabilities`, `rng` - arbitrary discrete distribution over a finite integer support.
+* `:real-discrete-distribution`/`:real-discrete` ([[real-discrete-distribution]]/[[real-discrete]]) - `data`, `probabilities`, `rng` - arbitrary discrete distribution over a finite real-valued support.
+* `:beta-binomial` ([[beta-binomial]]) - `alpha`, `beta`, `n`, `rng` - binomial with a beta-distributed success probability, overdispersed counts.
+* `:bb` ([[bb]]) - `mu`, `sigma`, `bd`, `rng` - beta-binomial, gamlss mean/dispersion reparametrization.
+
+**Zero-inflated / zero-adjusted (gamlss) family**
+
+* `:zero-inflated-binomial`/`:zibi` ([[zero-inflated-binomial]]) - `mu`, `sigma`, `bd`, `rng` - binomial with an extra point mass at zero.
+* `:zero-adjusted-binomial`/`:zabi` ([[zero-adjusted-binomial]]) - `mu`, `sigma`, `bd`, `rng` - hurdle model: exact zero w.p. `sigma`, else zero-truncated binomial.
+* `:zero-inflated-beta-binomial`/`:zibb` ([[zero-inflated-beta-binomial]]) - `mu`, `sigma`, `bd`, `nu`, `rng` - beta-binomial with an extra point mass at zero.
+* `:zero-adjusted-beta-binomial`/`:zabb` ([[zero-adjusted-beta-binomial]]) - `mu`, `sigma`, `bd`, `nu`, `rng` - hurdle model over beta-binomial.
+* `:zero-inflated-negative-binomial`/`:zinbi` ([[zero-inflated-negative-binomial]]) - `mu`, `sigma`, `nu`, `rng` - negative binomial (`nbi`) with an extra point mass at zero.
+* `:zero-adjusted-negative-binomial`/`:zanbi` ([[zero-adjusted-negative-binomial]]) - `mu`, `sigma`, `nu`, `rng` - hurdle model over `nbi`.
+* `:zero-inflated-poisson`/`:zip` ([[zero-inflated-poisson]]) - `mu`, `sigma`, `rng` - Poisson with an extra point mass at zero.
+* `:zero-inflated-poisson2`/`:zip2` ([[zero-inflated-poisson2]]) - `mu`, `sigma`, `rng` - mean-parameterized reparametrization of zero-inflated Poisson.
+* `:zero-adjusted-poisson`/`:zap` ([[zero-adjusted-poisson]]) - `mu`, `sigma`, `rng` - hurdle model over Poisson.
+* `:zero-adjusted-gamma`/`:zaga` ([[zero-adjusted-gamma]]) - `mu`, `sigma`, `nu`, `rng` - hurdle model mixing a point mass at zero with a gamma distribution.
+* `:zero-adjusted-inverse-gaussian`/`:zaig` ([[zero-adjusted-inverse-gaussian]]) - `mu`, `sigma`, `nu`, `rng` - hurdle model mixing a point mass at zero with an inverse Gaussian.
+
+**Generalized family**
+
+* `:generalized-extreme-value`/`:gev` ([[generalized-extreme-value]]) - `mu`, `sigma`, `xi`, `rng` - unifies Gumbel/Frechet/Weibull as limits of normalized maxima.
+* `:generalized-logistic` ([[generalized-logistic]]) - `mu`, `sigma`, `alpha`, `rng` - skewed generalization of the logistic distribution.
+* `:generalized-pareto`/`:gpd` ([[generalized-pareto]]) - `mu`, `sigma`, `xi`, `rng` - limiting distribution of excesses over a threshold.
+* `:generalized-exponential`/`:ge` ([[generalized-exponential]]) - `alpha`, `lambda`, `rng` - exponentiated exponential distribution.
+* `:generalized-gamma`/`:gg` ([[generalized-gamma]]) - `mu`, `sigma`, `nu`, `rng` - Stacy distribution generalizing gamma, Weibull, log-normal.
+* `:generalized-normal`/`:gnd` ([[generalized-normal]]) - `mu`, `alpha`, `beta`, `rng` - exponential power (Subbotin) distribution.
+* `:generalized-inverse-gaussian`/`:gig` ([[generalized-inverse-gaussian]]) - `chi`, `psi`, `lambda`, `rng` - generalizes gamma, inverse-gamma, inverse Gaussian.
+* `:generalized-hyperbolic`/`:gh` ([[generalized-hyperbolic]]) - `mu`, `delta`, `alpha`, `beta`, `lambda`, `rng` - flexible skew/kurtosis distribution, financial returns.
+* `:half-logistic` ([[half-logistic]]) - `scale`, `rng` - absolute value of a logistic random variable.
+* `:generalized-half-logistic`/`:ghl` ([[generalized-half-logistic]]) - `alpha`, `lambda`, `rng` - exponentiated half-logistic distribution.
+
+**Meta / combinator distributions**
+
+* `:truncated` ([[truncated]]) - `distr`, `left`, `right`, `rng` - restricts an existing distribution's support to `[left, right]`.
+* `:mixture` ([[mixture]]) - `distrs`, `weights`, `rng` - finite weighted mixture combining several component distributions."}
   distribution (fn ([k _] k) ([k] k)))
 
 (defmacro ^:private add-distr-method
@@ -1001,6 +1148,38 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (BetaDistribution. (or rng (JDKRandomGenerator.)) alpha beta inverse-abs-accuracy)))
 
 (add-distr-method beta)
+
+(defn beta-noncentral
+  "Creates a noncentral beta distribution object.
+
+  The noncentral beta distribution is a continuous distribution over `[0, 1]`, generalizing the [[beta]] distribution to the case where the underlying chi-squared random variable in the numerator has a nonzero, shared mean (encoded through the noncentrality parameter `ncp`): if `X1` follows a [[chi-squared-noncentral]] distribution with `2*alpha` degrees of freedom and noncentrality `ncp`, and `X2` follows an independent central [[chi-squared]] distribution with `2*beta` degrees of freedom, then `X1/(X1+X2)` follows this distribution. It is used, among others, in power calculations for tests on proportions and correlation coefficients under a non-null alternative hypothesis.
+
+  Internally it is computed as a Poisson(`ncp/2`)-weighted mixture of central [[beta]] distributions with first shape parameter `alpha + k`, truncated once the cumulative Poisson mass is within `1e-15` of 1 (the same mixture representation used by [[f-noncentral]] and [[chi-squared-noncentral]]).
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): first shape parameter, strictly positive. Default: `2.0`.
+  - `beta` (double): second shape parameter, strictly positive. Default: `2.0`.
+  - `ncp` (double): noncentrality parameter, non-negative; `ncp = 0.0` reduces the distribution exactly to a central [[beta]] distribution with the same `alpha`/`beta`. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `pdf(0)` follows a boundary convention based on `alpha` (`0` for `alpha > 1`, the finite value of the `k=0` mixture term for `alpha = 1`, `##Inf` for `alpha < 1`), and `pdf(1)` follows the mirrored convention based on `beta`. These are computed directly from the known analytic limits rather than the underlying Apache Commons `BetaDistribution` implementation, which throws an exception at `x=0`/`x=1` when the corresponding shape parameter is below `1`, and silently returns the wrong value (`0.0` instead of the true finite limit) when it is exactly `1`.
+
+  `mean`/`variance` are exact weighted sums of the mixture's own central-beta component means/variances (not an approximation, and not restricted to any parameter range, unlike [[f-noncentral]]'s). There is no closed-form `cdf`/`icdf`; `cdf` sums the Poisson-weighted mixture terms directly (each a call into the well-tested Apache Commons `BetaDistribution` implementation away from the `0`/`1` boundaries), and `icdf` root-finds on that `cdf` over its known `[0, 1]` domain.
+
+  Matches the `(shape1, shape2, ncp)` parameterization used by R's base `stats` package (`beta`/`pbeta`/`qbeta`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[beta]], [[f-noncentral]], [[chi-squared-noncentral]]."
+  ([] (beta-noncentral nil))
+  ([{:keys [^double alpha ^double beta ^double ncp rng]
+     :or {alpha 2.0 beta 2.0 ncp 1.0}}]
+   (distr/beta-noncentral alpha beta ncp rng)))
+
+(add-distr-method beta-noncentral)
 
 (defn cauchy
   "Creates a Cauchy distribution object.
@@ -1836,6 +2015,67 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (add-distr-method chi-squared-noncentral)
 
+(defn f-noncentral
+  "Creates a noncentral F-distribution object.
+
+  The noncentral F-distribution is a continuous distribution over non-negative reals, generalizing the [[f]] (Fisher-Snedecor) distribution to the case where the numerator's underlying normal random variables have a nonzero, shared mean (encoded through the noncentrality parameter `ncp`): if `X1` follows a [[chi-squared-noncentral]] distribution with `df1` degrees of freedom and noncentrality `ncp`, and `X2` follows an independent central [[chi-squared]] distribution with `df2` degrees of freedom, then `(X1/df1)/(X2/df2)` follows this distribution. It is used, among others, in power calculations for F-tests (ANOVA, regression) under a non-null alternative hypothesis.
+
+  Internally it is computed as a Poisson(`ncp/2`)-weighted mixture of central F-distributions with numerator degrees of freedom `df1 + 2*k` (the same mixture representation that makes [[chi-squared-noncentral]] a Poisson mixture of central [[chi-squared]] distributions), truncated once the cumulative Poisson mass is within `1e-15` of 1.
+
+  Parameters (single, optional map):
+
+  - `df1` (double): numerator degrees of freedom, strictly positive. Default: `1.0`.
+  - `df2` (double): denominator degrees of freedom, strictly positive. Default: `1.0`.
+  - `ncp` (double): noncentrality parameter, non-negative; `ncp = 0.0` reduces the distribution exactly to a central [[f]] distribution with the same `df1`/`df2`. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `pdf(0)` follows the same boundary convention as the central F-distribution based on `df1`: it is `0` for `df1 > 2`, `e^(-ncp/2)` for `df1 = 2`, and `##Inf` for `df1 < 2`.
+
+  `mean` is finite only for `df2 > 2` (`mean = df2*(df1+ncp) / (df1*(df2-2))`), and `variance` only for `df2 > 4`; outside those ranges they are `##Inf`. There is no closed-form `cdf`/`icdf`; `cdf` sums the Poisson-weighted mixture terms directly (each a call into the well-tested Apache Commons `FDistribution` implementation), and `icdf` root-finds on that `cdf`.
+
+  Matches the `(df1, df2, ncp)` parameterization used by R's base `stats` package (`df`/`pf`/`qf`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[f]], [[chi-squared-noncentral]], [[chi-squared]]."
+  ([] (f-noncentral nil))
+  ([{:keys [^double df1 ^double df2 ^double ncp rng]
+     :or {df1 1.0 df2 1.0 ncp 1.0}}]
+   (distr/f-noncentral df1 df2 ncp rng)))
+
+(add-distr-method f-noncentral)
+
+(defn t-noncentral
+  "Creates a noncentral Student's t-distribution object.
+
+  The noncentral t-distribution is a continuous distribution over the whole real line, generalizing the central [[t]] distribution to the case where the underlying normal numerator has a nonzero mean: if `Z` is a standard normal random variable, `V` an independent chi-squared random variable with `df` degrees of freedom, and `ncp` the noncentrality parameter, then `(Z + ncp) / sqrt(V/df)` follows this distribution. It arises, among others, in power calculations for one- and two-sample t-tests under a non-null alternative hypothesis.
+
+  Internally it is computed by rewriting the defining ratio in terms of `W = sqrt(V)`, which follows a chi distribution with `df` degrees of freedom, and numerically integrating (Gauss-Kronrod quadrature) over `W`: `pdf(x) = integral of chi-pdf(w) * (w/sqrt(df)) * phi(x*w/sqrt(df) - ncp) dw` and `cdf(x) = integral of chi-pdf(w) * Phi(x*w/sqrt(df) - ncp) dw` (`phi`/`Phi` the standard normal density/cdf), both over `w` in `[0, Infinity)`.
+
+  Parameters (single, optional map):
+
+  - `df` (double): degrees of freedom, strictly positive. Default: `1.0`.
+  - `ncp` (double): noncentrality parameter; `ncp = 0.0` reduces the distribution exactly to a central [[t]] distribution with the same `df`. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `mean` is finite only for `df > 1` (`mean = ncp*sqrt(df/2)*Gamma((df-1)/2)/Gamma(df/2)`), and `variance` only for `df > 2`; outside those ranges they are `##NaN` (as with the central [[t]] distribution, the moments genuinely do not exist there rather than diverging to infinity). There is no closed-form `cdf`/`icdf`; `cdf` is computed by the quadrature above, and `icdf` root-finds on that `cdf`.
+
+  Matches the `(df, ncp)` parameterization used by R's base `stats` package (`dt`/`pt`/`qt`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[t]], [[f-noncentral]], [[chi-squared-noncentral]]."
+  ([] (t-noncentral nil))
+  ([{:keys [^double df ^double ncp rng]
+     :or {df 1.0 ncp 1.0}}]
+   (distr/t-noncentral df ncp rng)))
+
+(add-distr-method t-noncentral)
+
 (defn cramer-von-mises
   "Creates a distribution object for the Cramer-von Mises goodness-of-fit test statistic.
 
@@ -2418,6 +2658,35 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
    (distr/ssj-continuous :watson-u (WatsonUDist. n) rng [:n :rng])))
 
 (add-distr-method watson-u)
+
+(defn von-mises
+  "Creates a von Mises distribution object.
+
+  The von Mises distribution is the circular (directional) analogue of the [[normal]] distribution: a continuous distribution over angles, symmetric and unimodal around a mean direction `mu`, with concentration controlled by `kappa` (the higher `kappa`, the tighter the distribution clusters around `mu`; `kappa = 0` gives the uniform distribution on the circle, and for large `kappa` it approaches a normal distribution with standard deviation `1/sqrt(kappa)`). It is widely used to model angular data such as wind directions, compass bearings, or times of day.
+
+  Its density is `f(x) = e^(kappa*cos(x-mu)) / (2*pi*I_0(kappa))`, where `I_0` is the modified Bessel function of the first kind of order 0.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): mean direction, in radians. Default: `0.0`.
+  - `kappa` (double): concentration parameter, non-negative. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: since the underlying quantity is angular (periodic with period `2*pi`), the distribution is represented here on the principal branch `[mu-pi, mu+pi]`: `pdf`/`cdf` are `0`/`0`/`1` outside that range (the usual convention for every other bounded distribution in this library), rather than wrapping `x` back into range as e.g. R's `circular` package's `dvonmises`/`pvonmises` do. `mean` is exactly `mu` (by symmetry); `variance` is the ordinary linear `E[(X-mu)^2]` restricted to `[mu-pi, mu+pi]` (computed numerically, no closed form) - this is *not* the same as the circular-statistics notion of circular variance (`1 - I_1(kappa)/I_0(kappa)`), which is a different, bounded-in-`[0,1]` quantity.
+
+  For large `kappa` the density concentrates into an increasingly narrow peak around `mu` (characteristic width `~1/sqrt(kappa)`); `pdf`'s normalizing constant, and the internal numerics behind `cdf`/`icdf`/`variance`, are all scaled with `kappa` so that they stay accurate (verified against direct numerical integration) even for very large `kappa`, rather than silently losing precision (or overflowing) once the peak becomes narrower than a fixed-resolution scheme would resolve.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[normal]], [[cramer-von-mises]], [[watson-g]], [[watson-u]]."
+  ([] (von-mises nil))
+  ([{:keys [^double mu ^double kappa rng]
+     :or {mu 0.0 kappa 1.0}}]
+   (distr/von-mises mu kappa rng)))
+
+(add-distr-method von-mises)
 
 (defn multinomial
   "Creates a multinomial distribution object.
@@ -3397,6 +3666,99 @@ All distributions accept `rng` under `:rng` key (default: [[default-rng]]) and s
 
 (add-distr-method generalized-inverse-gaussian)
 (add-distr-method generalized-inverse-gaussian :gig)
+
+(defn generalized-hyperbolic
+  "Creates a generalized hyperbolic distribution object (GH).
+
+  The generalized hyperbolic distribution is a flexible five-parameter continuous distribution over the whole real line that can model both skewness and (leptokurtic or platykurtic) excess kurtosis. It arises as a normal variance-mean mixture: `X = mu + beta*W + sqrt(W)*Z`, where `Z` is standard normal and `W` follows a [[generalized-inverse-gaussian]] distribution with `chi = delta^2`, `psi = alpha^2 - beta^2`, and the same `lambda`. Its density is `f(x) = c * K_(lambda-1/2)(alpha*s) * (s/alpha)^(lambda-1/2) * exp(beta*(x-mu))`, where `s = sqrt(delta^2 + (x-mu)^2)`, `K_v` is the modified Bessel function of the second kind, and `c` is a normalizing constant depending on `alpha`, `beta`, `delta` and `lambda`.
+
+  It includes several well-known distributions as special or limiting cases: the [[normal-inverse-gaussian]] distribution (`lambda = -1/2`), the hyperbolic distribution (`lambda = 1`), the variance-gamma distribution (`delta = 0`, `lambda > 0`, not supported directly by this implementation — see the note below), and approaches the [[normal]] distribution as `delta -> Infinity` with `delta/alpha^2` held fixed. It is widely used in finance to model asset returns.
+
+  Parameters (single, optional map):
+
+  - `mu` (double): location parameter. Default: `0.0`.
+  - `delta` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `alpha` (double): tail heaviness parameter, strictly positive. Default: `1.0`.
+  - `beta` (double): asymmetry/skewness parameter; must satisfy `(< (m/abs beta) alpha)`. Default: `0.0`.
+  - `lambda` (double): shape parameter, any real number; controls which named sub-family the distribution resembles. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: this implementation requires `delta > 0` and `(< (m/abs beta) alpha)` strictly (the general, non-degenerate GH, mirroring the same restriction as its [[generalized-inverse-gaussian]] mixing distribution); boundary/degenerate cases such as the variance-gamma distribution (`delta = 0`) or the skewed Student's t-like boundary case (`(== (m/abs beta) alpha)`, `lambda < 0`) are not supported directly.
+
+  `mean` and `variance` are always finite, computed from the mixture representation as `mean = mu + beta * E[W]` and `variance = E[W] + beta^2 * Var[W]`, where `E[W]`/`Var[W]` are the mean/variance of the mixing [[generalized-inverse-gaussian]] distribution (themselves ratios of modified Bessel functions of the second kind). There is no closed-form `cdf`/`icdf`, so — following the same approach as [[generalized-inverse-gaussian]] — the density is numerically integrated once at construction time (over a generous range of 25 standard deviations either side of the mean) into a monotone-interpolated table which `cdf` and `icdf` then look up. `sample` bypasses this table and instead draws directly from the mixture representation (sampling `W` from the mixing [[generalized-inverse-gaussian]] distribution and `Z` from a standard normal), which is both exact and independent of the table's interpolation error.
+
+  Matches the `(mu, delta, alpha, beta, lambda)` parameterization used by R's `GeneralizedHyperbolic` package (`dghyp`/`pghyp`/`qghyp`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[generalized-inverse-gaussian]], [[normal-inverse-gaussian]], [[normal]]."
+  ([] (generalized-hyperbolic nil))
+  ([{:keys [^double mu ^double delta ^double alpha ^double beta ^double lambda rng]
+     :or {mu 0.0 delta 1.0 alpha 1.0 beta 0.0 lambda 1.0}}]
+   (distr/generalized-hyperbolic {:mu mu :delta delta :alpha alpha :beta beta :lambda lambda :rng rng})))
+
+(add-distr-method generalized-hyperbolic)
+(add-distr-method generalized-hyperbolic :gh)
+
+(defn half-logistic
+  "Creates a half-logistic distribution object.
+
+  The half-logistic distribution is the distribution of `|X|` for `X` a [[logistic]] random variable scaled by `scale`: a continuous distribution over non-negative reals with density `f(x) = (2/scale) * e^(-x/scale) / (1+e^(-x/scale))^2`, cdf `F(x) = (1-e^(-x/scale))/(1+e^(-x/scale))`, and quantile function `icdf(p) = 2*scale*atanh(p)`, all closed-form, for `x >= 0`.
+
+  It is exactly the `alpha = 1` special case of [[generalized-half-logistic]] (with `lambda = 1/scale`); unlike the generalized version, `mean` and `variance` here have simple closed forms: `mean = 2*ln(2)*scale` and `variance = (pi^2/3 - 4*ln(2)^2) * scale^2`.
+
+  Parameters (single, optional map):
+
+  - `scale` (double): scale parameter, strictly positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Matches the `scale` parameterization used by R's `bayesmeta` package (`dhalflogistic`/`phalflogistic`/`qhalflogistic`).
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[generalized-half-logistic]], [[logistic]], [[half-normal]], [[half-cauchy]]."
+  ([] (half-logistic nil))
+  ([{:keys [^double scale rng]
+     :or {scale 1.0}}]
+   (distr/half-logistic scale rng)))
+
+(add-distr-method half-logistic)
+
+(defn generalized-half-logistic
+  "Creates a generalized half-logistic distribution object (exponentiated half-logistic distribution).
+
+  The generalized half-logistic distribution is a two-parameter continuous distribution over non-negative reals, obtained by exponentiating the cdf of the half-logistic distribution (the distribution of `|Z|` for `Z` standard logistic): `F(x) = ((1 - e^(-lambda*x)) / (1 + e^(-lambda*x)))^alpha`, for `x >= 0`. It is the exact structural analogue, within the half-logistic family, of [[generalized-exponential]] within the exponential family (Gupta-Kundu exponentiated exponential): both exponentiate a base cdf by a shape parameter `alpha` while `lambda` controls the underlying rate.
+
+  Its density is `f(x) = alpha * lambda * ((1-e^(-lambda*x))/(1+e^(-lambda*x)))^(alpha-1) * 2*e^(-lambda*x) / (1+e^(-lambda*x))^2`, and its quantile function is `icdf(p) = (2/lambda) * atanh(p^(1/alpha))`, both closed-form.
+
+  When `alpha = 1`, it reduces exactly to the ordinary [[half-logistic]] distribution with rate `lambda` (i.e. `scale = 1/lambda`).
+
+  Parameters (single, optional map):
+
+  - `alpha` (double): shape parameter, strictly positive. Default: `1.0`.
+  - `lambda` (double): rate parameter, strictly positive. Default: `1.0`.
+  - `rng`: random number generator used for sampling. Default: a freshly created generator.
+
+  Called with no arguments or with `nil`, creates the distribution with default parameter values.
+
+  Note: `pdf(0)` follows the usual `0^(alpha-1)` convention for exponentiated families: it is `0` for `alpha > 1`, `lambda/2` for `alpha = 1` (matching the ordinary half-logistic), and `##Inf` for `alpha < 1`.
+
+  There is no elementary closed form for `mean`/`variance` (unlike [[generalized-exponential]]'s digamma-based moments); they are computed once, lazily, via numerical integration of `x * pdf(x)` (and `x^2 * pdf(x)`) over `x` in `[0, Infinity)`.
+
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[half-logistic]], [[generalized-exponential]], [[generalized-logistic]]."
+  ([] (generalized-half-logistic nil))
+  ([{:keys [^double alpha ^double lambda rng]
+     :or {alpha 1.0 lambda 1.0}}]
+   (distr/generalized-half-logistic alpha lambda rng)))
+
+(add-distr-method generalized-half-logistic)
+(add-distr-method generalized-half-logistic :ghl)
 
 ;;
 

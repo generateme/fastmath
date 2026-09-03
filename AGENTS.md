@@ -73,7 +73,15 @@ Every source file starts with:
 - Type-hint aggressively: `^double`, `^long`, `^doubles`, `^Vec2`, etc. on params and return types.
 - 2-space indentation; no trailing commas.
 
-### Skills
+### Writing tests
+
+- For a reference values in tests you can use (with caution):
+  - `Rscript` - for any R package
+  - `/home/ts/.juliaup/bin/julia` - for any Julia package
+  - `uv` Python package manager run in `/home/ts/penv` environment - for any Python package 
+- Use `m/delta-eq` with the default tolerance for anything closed-form; use an explicit looser tolerance (with a one-line comment stating why and the empirically observed error) when needed
+
+## Skills
 
 Available skill for this project
 
