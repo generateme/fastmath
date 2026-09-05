@@ -431,14 +431,17 @@
   (m/- (double (cdf v2)) (double (cdf v1))))
 
 (defn ->distribution
-  [{:keys [pdf lpdf cdf icdf rng ^long dimensions continuous? name parameters mean variance lower-bound upper-bound sampler]
+  [{:keys [pdf lpdf cdf icdf rng ^long dimensions continuous? name parameters mean variance lower-bound upper-bound sampler seeder]
     :or {dimensions 1}}]
   (let [rng (or rng (JDKRandomGenerator.))
         pdf (or pdf (fn ^double [^double v] (m/exp (double (lpdf v)))))
         lpdf (or lpdf (fn ^double [^double v] (m/log (double (pdf v)))))
         sampler (if (= sampler :long)
                   (fn ^long [] (icdf (prot/drandom rng)))
-                  (or sampler (fn ^double [] (icdf (prot/drandom rng)))))]
+                  (or sampler (fn ^double [] (icdf (prot/drandom rng)))))
+        seeder (if seeder
+                 (fn [^long seed] (seeder seed))
+                 (fn [^long seed] (prot/set-seed! rng seed)))]
     (reify
       prot/DistributionProto
       (pdf [_ v] (pdf v))
@@ -467,7 +470,7 @@
       (irandom [_] (unchecked-int (m/round-even (sampler))))
       (->seq [_] (repeatedly sampler))
       (->seq [_ n] (repeatedly n sampler))
-      (set-seed! [d seed] (prot/set-seed! rng seed) d)
+      (set-seed! [d seed] (seeder seed) d)
       (grandom [_] (throw (java.lang.UnsupportedOperationException. "Gaussian random is not supported.")))
       (brandom [_] (throw (java.lang.UnsupportedOperationException. "Boolean random is not supported.")))
       (set-seed [_ _] (throw (java.lang.UnsupportedOperationException. "Immutable seeding is not supported, use `set-seed!` instead."))))))
@@ -1725,7 +1728,20 @@
       :lower-bound 0
       :upper-bound ##Inf})))
 
-(defn generalized-hyperbolic
+(defn- generalized-hyperbolic-core
+  "Shared machinery for the generalized hyperbolic family: pdf, cdf/icdf (via
+  numerical integration of the pdf with `integrate-pdf`), closed-form
+  mean/variance, and a sampler (normal-variance mixture: `W` a
+  generalized-inverse-gaussian mixing variable, `Z` standard normal). Returns
+  a plain map meant to be merged into a `->distribution` options map by the
+  caller, which supplies its own `:name`/`:parameters` (and, implicitly,
+  `lambda`) - used both by [[generalized-hyperbolic]] itself and by
+  [[normal-inverse-gaussian]], its `lambda = -0.5` special case.
+
+  Takes a single map argument (rather than positional primitive args) since
+  Clojure functions taking primitives support at most 4 such arguments, and
+  this one logically has 5 (`mu`, `delta`, `alpha`, `beta`, `lambda`) plus
+  `rng`."
   [{:keys [^double mu ^double delta ^double alpha ^double beta ^double lambda rng]}]
   (let [rng (or rng (JDKRandomGenerator.))
         gam (m/sqrt (m/- (m/* alpha alpha) (m/* beta beta)))
@@ -1770,21 +1786,42 @@
                  (m/<= p 0.0) ##-Inf
                  (m/>= p 1.0) ##Inf
                  :else (double (icdf-fn (m/constrain p 0.0 1.0)))))]
-    (->distribution {:lpdf lpdf
-                     :cdf cdf
-                     :icdf icdf
-                     :sampler (fn ^double [] (let [w (double (prot/sample W))
-                                                  z (double (prot/grandom rng))]
-                                              (m/+ mu (m/* beta w) (m/* (m/sqrt w) z))))
-                     :rng rng
-                     :mean mean-v
-                     :variance variance-v
-                     :dimensions 1
-                     :continuous? true
-                     :name :generalized-hyperbolic
-                     :parameters [:mu :delta :alpha :beta :lambda :rng]
-                     :lower-bound ##-Inf
-                     :upper-bound ##Inf})))
+    {:lpdf lpdf
+     :cdf cdf
+     :icdf icdf
+     :sampler (fn ^double [] (let [w (double (prot/sample W))
+                                  z (double (prot/grandom rng))]
+                              (m/+ mu (m/* beta w) (m/* (m/sqrt w) z))))
+     :rng rng
+     :mean mean-v
+     :variance variance-v}))
+
+(defn generalized-hyperbolic
+  [opts]
+  (->distribution (assoc (generalized-hyperbolic-core opts)
+                         :dimensions 1
+                         :continuous? true
+                         :name :generalized-hyperbolic
+                         :parameters [:mu :delta :alpha :beta :lambda :rng]
+                         :lower-bound ##-Inf
+                         :upper-bound ##Inf)))
+
+(defn normal-inverse-gaussian
+  "Normal-inverse Gaussian distribution, in its own `(alpha, beta, mu, delta)`
+  parameterization: exactly the `lambda = -0.5` special case of
+  [[generalized-hyperbolic]], reusing its fully numerically-integrated
+  pdf/cdf/icdf/mean/variance/sampler machinery ([[generalized-hyperbolic-core]])
+  rather than the backing SSJ `NormalInverseGaussianDist` class, whose `cdf`
+  is not implemented (and whose `sample`, going through `inverseF`/`icdf`,
+  therefore always threw regardless of RNG/seeding)."
+  [{:keys [alpha beta mu delta rng]}]
+  (->distribution (assoc (generalized-hyperbolic-core {:mu mu :delta delta :alpha alpha :beta beta :lambda -0.5 :rng rng})
+                         :dimensions 1
+                         :continuous? true
+                         :name :normal-inverse-gaussian
+                         :parameters [:alpha :beta :mu :delta :rng]
+                         :lower-bound ##-Inf
+                         :upper-bound ##Inf)))
 
 (defn half-logistic
   [^double scale rng]
@@ -2091,15 +2128,11 @@
                  (m/+ (m/* kappa (m/cos (m/- x mu))) log-const)
                  ##-Inf))
         pdf (fn ^double [^double x] (m/exp (lpdf x)))
-        ;; the density concentrates into an ever-narrower peak around mu as kappa
-        ;; grows (characteristic width ~1/sqrt(kappa)); a fixed step count spread
-        ;; uniformly over the whole [mn,mx] range would under-resolve that peak
-        ;; for large kappa (each panel ends up wider than the peak itself, so the
-        ;; integrated table silently loses almost all of the probability mass -
-        ;; verified concretely: 2000 fixed steps gives cdf(mu)=0.5 fine at
-        ;; kappa=1, but a visibly wrong ~0.50004 at kappa=1e6). Scale the step
-        ;; count with sqrt(kappa) so panel width stays comparable to the peak.
-        steps (long (m/constrain (m/ceil (m/* 100.0 (m/sqrt (m/inc kappa)))) 2000.0 100000.0))
+        ;; the density concentrates into an ever-narrower peak (width ~1/sqrt(kappa))
+        ;; around `mu` as `kappa` grows; a fixed step count eventually becomes wider
+        ;; than the peak itself, silently missing it entirely, so scale resolution
+        ;; with kappa (steps -> 100*sqrt(kappa+1), clamped to a sane range).
+        steps (long (m/constrain (m/ceil (m/* 100.0 (m/sqrt (m/inc kappa)))) 2000 100000))
         [cdf-fn icdf-fn] (integrate-pdf pdf {:mn mn :mx mx :steps steps}) ;; monotone is default
         cdf (fn ^double [^double x]
               (cond
@@ -2111,18 +2144,14 @@
                  (m/<= p 0.0) mn
                  (m/>= p 1.0) mx
                  :else (double (icdf-fn (m/constrain p 0.0 1.0)))))
-        ;; same peak-narrowing issue affects a naive quadrature over the full
-        ;; [mn,mx] range for the variance integral - blind adaptive quadrature's
-        ;; first coarse pass can miss the peak (and its own error estimate along
-        ;; with it) entirely, silently returning ~0 instead of ~1/kappa for large
-        ;; kappa. Fixed by integrating only a window sized to the peak's own
-        ;; characteristic width (40 standard-deviations-equivalent, i.e. entirely
-        ;; negligible truncation error) around mu instead of the whole range, and
-        ;; exploiting the pdf's exact symmetry around mu to halve the work.
-        half-width (m/min m/PI (m// 40.0 (m/sqrt (m/inc kappa))))
-        variance (delay (m/* 2.0 (double (quad/gk-quadrature
-                                          (fn ^double [^double t] (m/* t t (double (pdf (m/+ mu t)))))
-                                          0.0 half-width))))]
+        ;; variance: don't blindly integrate the whole [mu-pi,mu+pi] domain - once the
+        ;; peak is much narrower than that range, the adaptive quadrature's own coarse
+        ;; initial sampling can miss it entirely and confidently report a near-zero
+        ;; (wrong) result instead of erroring. Integrate only a symmetric window sized
+        ;; to the peak's own characteristic scale (~40 standard deviations, negligible
+        ;; truncation error) and exploit the pdf's exact symmetry around `mu` to halve
+        ;; the work.
+        half-width (m/min m/PI (m// 40.0 (m/sqrt (m/inc kappa))))]
     (->distribution {:lpdf lpdf
                      :pdf pdf
                      :cdf cdf
@@ -2134,7 +2163,9 @@
                      ;; circular variance 1 - I1(kappa)/I0(kappa), which is NOT what's
                      ;; returned here (this follows the rest of the library's ordinary
                      ;; E[(X-mean)^2] convention for `variance`).
-                     :variance variance
+                     :variance (delay (m/* 2.0 (double (quad/gk-quadrature
+                                                        (fn ^double [^double t] (m/* t t (double (pdf (m/+ mu t)))))
+                                                        0.0 half-width))))
                      :dimensions 1
                      :continuous? true
                      :name :von-mises
@@ -2195,6 +2226,10 @@
                                    target-fn (fn ^double [^double v] (m/- (double (cdf v)) p))]
                                (solver/find-root target-fn mn mx)))
                      :sampler (fn ^double [] (prot/sample (prot/sample enum)))
+                     :seeder (fn [^long seed]
+                               (prot/set-seed! rng seed)
+                               (doseq [d distrs]
+                                 (prot/set-seed! d seed)))
                      :dimensions 1
                      :rng rng
                      :continuous? (some identity (map prot/continuous? distrs))

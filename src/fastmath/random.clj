@@ -116,7 +116,7 @@
             EmpiricalDistribution SynchronizedRandomGenerator]
            [fastmath.java R2]
            [umontreal.ssj.probdist AndersonDarlingDist AndersonDarlingDistQuick BetaSymmetricalDist
-            InverseGammaDist  ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HalfNormalDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LoglogisticDist NormalInverseGaussianDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
+            InverseGammaDist  ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HalfNormalDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LoglogisticDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [org.apache.commons.math3.distribution BetaDistribution CauchyDistribution ChiSquaredDistribution ConstantRealDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
@@ -2530,14 +2530,15 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   Called with no arguments or with `nil`, creates the distribution with default parameter values.
 
-  Returns a distribution object (backed by the SSJ `NormalInverseGaussianDist` class) which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+  `pdf` is closed-form; `cdf`/`icdf` are obtained by numerically integrating `pdf` (this is exactly the `lambda = -0.5` special case of [[generalized-hyperbolic]], and reuses its machinery internally), and `mean`/`variance` have closed forms.
 
-  See also [[distribution]], [[inverse-gaussian]], [[normal]]."
+  Returns a distribution object which can be used with [[pdf]], [[cdf]], [[icdf]], [[sample]], [[mean]], [[variance]] and other distribution protocol functions.
+
+  See also [[distribution]], [[inverse-gaussian]], [[normal]], [[generalized-hyperbolic]]."
   ([] (normal-inverse-gaussian nil))
   ([{:keys [^double alpha ^double beta ^double mu ^double delta rng]
      :or {alpha 1.0 beta 0.0 mu 0.0 delta 1.0}}]
-   (distr/ssj-continuous :normal-inverse-gaussian (NormalInverseGaussianDist. alpha beta mu delta) rng
-                         [:alpha :beta :mu :delta :rng])))
+   (distr/normal-inverse-gaussian {:alpha alpha :beta beta :mu mu :delta delta :rng rng})))
 
 (add-distr-method normal-inverse-gaussian)
 
@@ -2622,7 +2623,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   Parameters (single, optional map):
 
-  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `n` (long): sample size the statistic is computed for; must be at least `2` (the backing SSJ class requires it). Default: `2`.
   - `rng`: random number generator used for sampling. Default: a freshly created generator.
 
   Called with no arguments or with `nil`, creates the distribution with default parameter values.
@@ -2632,7 +2633,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[watson-u]], [[kolmogorov-smirnov]]."
   ([] (watson-g nil))
   ([{:keys [^long n rng]
-     :or {n 1}}]
+     :or {n 2}}]
    (distr/ssj-continuous :watson-g (WatsonGDist. n) rng [:n :rng])))
 
 (add-distr-method watson-g)
@@ -2644,7 +2645,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   Parameters (single, optional map):
 
-  - `n` (long): sample size the statistic is computed for. Default: `1`.
+  - `n` (long): sample size the statistic is computed for; must be at least `2` (the backing SSJ class requires it). Default: `2`.
   - `rng`: random number generator used for sampling. Default: a freshly created generator.
 
   Called with no arguments or with `nil`, creates the distribution with default parameter values.
@@ -2654,7 +2655,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[watson-g]], [[cramer-von-mises]]."
   ([] (watson-u nil))
   ([{:keys [^long n rng]
-     :or {n 1}}]
+     :or {n 2}}]
    (distr/ssj-continuous :watson-u (WatsonUDist. n) rng [:n :rng])))
 
 (add-distr-method watson-u)
@@ -2695,8 +2696,8 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
   Parameters (single, optional map):
 
-  - `n` (long): number of independent trials distributed among the categories. Default: `1`.
-  - `ps` (sequence of doubles): relative probability of each category; does not need to sum to `1.0`, since values are normalized internally. Default: `[1]`, a single, certain category.
+  - `n` (long): number of independent trials distributed among the categories. Default: `10`.
+  - `ps` (sequence of doubles): relative probability of each category; does not need to sum to `1.0`, since values are normalized internally. Default: `[1 1]`, two equally likely categories (paired with [[dirichlet]]'s own default).
   - `rng`: random number generator used for sampling. Default: a freshly created generator.
 
   Called with no arguments or with `nil`, creates the distribution with default parameter values.
@@ -2706,7 +2707,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[binomial]], [[multi-normal]]."
   ([] (multinomial nil))
   ([{:keys [^long n ps rng]
-     :or {n 1 ps [1]}}]
+     :or {n 10 ps [1 1]}}]
    (distr/multinomial n ps binomial rng)))
 
 (add-distr-method multinomial)
@@ -3783,7 +3784,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[normal]]."
   ([] (truncated nil))
   ([{:keys [distr left right rng]}]
-   (let [distr (or distr (normal rng))]
+   (let [distr (or distr (normal {:rng rng}))]
      (distr/truncated distr left right))))
 
 (add-distr-method truncated)
@@ -3808,7 +3809,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
   See also [[distribution]], [[categorical]], [[truncated]]."
   ([] (mixture nil))
   ([{:keys [distrs weights rng]}]
-   (let [distrs (or distrs [(normal rng)])
+   (let [distrs (or distrs [(normal {:rng rng})])
          weights (or weights (repeat (count distrs) 1.0))]
      (distr/mixture distrs weights rng))))
 

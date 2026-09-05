@@ -1076,9 +1076,18 @@
     (let [gh (sut/distribution :gh {:mu 1.0 :delta 2.0 :alpha 1.5 :beta -0.5 :lambda -0.5})
           nig (sut/distribution :normal-inverse-gaussian {:alpha 1.5 :beta -0.5 :mu 1.0 :delta 2.0})]
       (doseq [x [-3.0 -1.0 0.0 2.0 4.0]]
-        (t/is (m/delta-eq (sut/pdf gh x) (sut/pdf nig x))))
+        (t/is (m/delta-eq (sut/pdf gh x) (sut/pdf nig x)))
+        (t/is (m/delta-eq (sut/cdf gh x) (sut/cdf nig x))))
+      (doseq [p [1.0e-6 0.1 0.5 0.9 (- 1.0 1.0e-6)]]
+        (t/is (m/delta-eq (sut/icdf gh p) (sut/icdf nig p) 1.0e-4)))
       (t/is (m/delta-eq (sut/mean gh) (sut/mean nig)))
-      (t/is (m/delta-eq (sut/variance gh) (sut/variance nig)))))
+      (t/is (m/delta-eq (sut/variance gh) (sut/variance nig)))
+      ;; :normal-inverse-gaussian used to be backed directly by the SSJ
+      ;; NormalInverseGaussianDist class, whose cdf is not implemented; sample
+      ;; (going through inverseF/icdf) therefore always threw. It is now
+      ;; reimplemented as the lambda=-0.5 special case of generalized-hyperbolic
+      ;; (numerically-integrated cdf/icdf), so sampling works.
+      (t/is (number? (sut/sample nig)))))
   (t/testing "pdf/cdf are never NaN or throw, at extreme/infinite inputs across a range of lambda"
     (doseq [lambda [-3.0 -1.0 -0.5 0.0 0.5 1.0 2.5 5.0]]
       (let [dist (sut/distribution :gh {:mu 0.5 :delta 1.2 :alpha 2.0 :beta 0.7 :lambda lambda})]
@@ -1169,6 +1178,122 @@
     1.0 2.0 1.5 -0.5 0.5   0.042893218810  2.215990258000
     -1.0 0.5 3.0 1.0 -0.5 -0.823223304700  0.198873782200
     2.0 1.5 1.2 0.8 2.0    6.598150838000 13.993602450000))
+
+;; reference values from R's `GeneralizedHyperbolic` package: dnig/pnig/qnig
+;; (x/q/p, mu, delta, alpha, beta) - the same (mu, delta, alpha, beta)
+;; parameterization used here. mean/variance reference values from the
+;; closed-form gamma=sqrt(alpha^2-beta^2); mean=mu+delta*beta/gamma;
+;; variance=delta*alpha^2/gamma^3.
+;;
+;; pdf is closed-form (no numerical integration involved) and matches R very
+;; tightly; cdf/icdf go through fastmath's own numerical integration
+;; (`integrate-pdf`, via the shared generalized-hyperbolic-core machinery) and
+;; so carry a looser, but still small, tolerance - especially for the
+;; alpha=5/beta=4.9 combo below, deliberately chosen close to the alpha=beta
+;; boundary (heaviest skew) to stress that numerical path.
+
+(t/deftest normal-inverse-gaussian
+  (t/testing "defaults are alpha=1, beta=0, mu=0, delta=1 (standard/symmetric NIG)"
+    (let [dist (sut/distribution :normal-inverse-gaussian nil)]
+      (t/is (m/delta-eq 0.5208038299916704 (sut/pdf dist 0.0)))))
+  (t/testing "support is the whole real line"
+    (let [dist (sut/distribution :normal-inverse-gaussian {:mu 1.0 :delta 2.0 :alpha 1.5 :beta -0.5})]
+      (t/is (Double/isInfinite (sut/lower-bound dist)))
+      (t/is (neg? (sut/lower-bound dist)))
+      (t/is (Double/isInfinite (sut/upper-bound dist)))
+      (t/is (pos? (sut/upper-bound dist)))))
+  (t/testing "pdf/cdf/icdf are never NaN or throw, at extreme/infinite inputs across a range of alpha/beta"
+    (doseq [[alpha beta] [[1.0 0.0] [1.5 -0.5] [3.0 1.0] [5.0 4.9] [0.2 0.15] [50.0 -49.5]]]
+      (let [dist (sut/distribution :normal-inverse-gaussian {:alpha alpha :beta beta})]
+        (doseq [x [##-Inf ##Inf 1e-300 1e300 -1e300 1e150 -1e150 1e10]]
+          (t/is (not (Double/isNaN (sut/pdf dist x))) (str "pdf alpha=" alpha " beta=" beta " x=" x))
+          (t/is (not (Double/isNaN (sut/cdf dist x))) (str "cdf alpha=" alpha " beta=" beta " x=" x)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/pdf dist ##-Inf)))
+        (t/is (m/delta-eq 1.0 (sut/cdf dist ##Inf)))
+        (t/is (m/delta-eq 0.0 (sut/cdf dist ##-Inf))))))
+  (t/are [mu delta alpha beta x vd vp]
+      (let [dist (sut/distribution :normal-inverse-gaussian {:mu mu :delta delta :alpha alpha :beta beta})]
+        (and (m/delta-eq vd (sut/pdf dist x) 1.0e-9)
+             (m/delta-eq vp (sut/cdf dist x) 1.0e-4)))
+    0.0 1.0 1.0 0.0 -5     0.000614810161509777 0.000492467344744954
+    0.0 1.0 1.0 0.0 -2     0.0398684291217511    0.0272228569059907
+    0.0 1.0 1.0 0.0 -1     0.192235012744407     0.124034777509506
+    0.0 1.0 1.0 0.0  0     0.52080382999167      0.499999999984612
+    0.0 1.0 1.0 0.0  0.5   0.383145915640741     0.735169095857493
+    0.0 1.0 1.0 0.0  1     0.192235012744407     0.875965222490494
+    0.0 1.0 1.0 0.0  2     0.0398684291217511    0.972777143094009
+    0.0 1.0 1.0 0.0  5     0.000614810161509777  0.999507532655255
+    1.0 2.0 1.5 -0.5 -5    0.00164418727983464   0.001435230081675
+    1.0 2.0 1.5 -0.5 -2    0.0516691035686478    0.0453911360227543
+    1.0 2.0 1.5 -0.5 -1    0.147017410121953     0.137731165281906
+    1.0 2.0 1.5 -0.5  0    0.314285019535692     0.366554083220295
+    1.0 2.0 1.5 -0.5  0.5  0.361872442613151     0.538425873179007
+    1.0 2.0 1.5 -0.5  1    0.324389499299296     0.713825618030112
+    1.0 2.0 1.5 -0.5  2    0.115618997355346     0.93373440051395
+    1.0 2.0 1.5 -0.5  5    0.000304317260197264  0.999858816563824
+    -2.0 0.5 3.0 1.0 -5    1.5119056517774e-06   3.41243551818395e-07
+    -2.0 0.5 3.0 1.0 -2    1.08954177174606      0.349179970606016
+    -2.0 0.5 3.0 1.0 -1    0.125975408509954     0.955614305046348
+    -2.0 0.5 3.0 1.0  0    0.00773420988794332   0.996981433359096
+    -2.0 0.5 3.0 1.0  0.5  0.00212325089400032   0.999142358843805
+    -2.0 0.5 3.0 1.0  1    0.000609946272971403  0.999747056249221
+    -2.0 0.5 3.0 1.0  2    5.52737986202059e-05  0.999976208054767
+    -2.0 0.5 3.0 1.0  5    6.1308584355612e-08   0.999999972085304
+    0.0 1.0 5.0 4.9 -5     4.12054200199846e-23  4.08280463315396e-24
+    0.0 1.0 5.0 4.9 -2     5.76236025241476e-10  5.75875450676322e-11
+    0.0 1.0 5.0 4.9 -1     9.53556958076887e-6   1.01846159623679e-06
+    0.0 1.0 5.0 4.9  0     0.0174106388248045    0.00297961443641972
+    0.0 1.0 5.0 4.9  0.5   0.0939581892941343    0.0284544189868986
+    0.0 1.0 5.0 4.9  1     0.171962029561146     0.0969236465084977
+    0.0 1.0 5.0 4.9  2     0.187401149900837     0.287800733735118
+    0.0 1.0 5.0 4.9  5     0.0785930166433385    0.670432529348062))
+
+(t/deftest normal-inverse-gaussian-icdf
+  (t/are [mu delta alpha beta p vq]
+      (let [dist (sut/distribution :normal-inverse-gaussian {:mu mu :delta delta :alpha alpha :beta beta})]
+        ;; the alpha=5/beta=4.9 combo's far-left tail (p=0.001) is the one row
+        ;; needing the full tolerance below; every other row matches much more
+        ;; tightly (~1e-5 or better).
+        (m/delta-eq vq (sut/icdf dist p) 2.0e-3))
+    0.0 1.0 1.0 0.0  0.001  -4.43810263029802
+    0.0 1.0 1.0 0.0  0.05   -1.59135402609246
+    0.0 1.0 1.0 0.0  0.25   -0.539591454418318
+    0.0 1.0 1.0 0.0  0.5     0
+    0.0 1.0 1.0 0.0  0.75    0.539591454418318
+    0.0 1.0 1.0 0.0  0.95    1.59135402609246
+    0.0 1.0 1.0 0.0  0.999   4.43810263029804
+    1.0 2.0 1.5 -0.5 0.001  -5.3158077717406
+    1.0 2.0 1.5 -0.5 0.05   -1.91491843937776
+    1.0 2.0 1.5 -0.5 0.25   -0.417440482954573
+    1.0 2.0 1.5 -0.5 0.5     0.393298744917891
+    1.0 2.0 1.5 -0.5 0.75    1.11504331133029
+    1.0 2.0 1.5 -0.5 0.95    2.15835367302664
+    1.0 2.0 1.5 -0.5 0.999   4.08839851952259
+    -2.0 0.5 3.0 1.0 0.001  -3.25802450264978
+    -2.0 0.5 3.0 1.0 0.05   -2.45974433253412
+    -2.0 0.5 3.0 1.0 0.25   -2.09738180379992
+    -2.0 0.5 3.0 1.0 0.5    -1.86565374422419
+    -2.0 0.5 3.0 1.0 0.75   -1.59794944503895
+    -2.0 0.5 3.0 1.0 0.95   -1.04185634102317
+    -2.0 0.5 3.0 1.0 0.999   0.438092163214403
+    0.0 1.0 5.0 4.9  0.001  -0.172918689201281
+    0.0 1.0 5.0 4.9  0.05    0.6923425449097
+    0.0 1.0 5.0 4.9  0.25    1.80158384370533
+    0.0 1.0 5.0 4.9  0.5     3.33217890755459
+    0.0 1.0 5.0 4.9  0.75    6.19652646142522
+    0.0 1.0 5.0 4.9  0.95   14.5916871332332
+    0.0 1.0 5.0 4.9  0.999  41.7451002030271))
+
+(t/deftest normal-inverse-gaussian-mv
+  (t/are [mu delta alpha beta mean-v var-v]
+      (let [dist (sut/distribution :normal-inverse-gaussian {:mu mu :delta delta :alpha alpha :beta beta})]
+        (and (m/delta-eq mean-v (sut/mean dist))
+             (m/delta-eq var-v (sut/variance dist))))
+    0.0 1.0 1.0 0.0    0                1
+    1.0 2.0 1.5 -0.5   0.292893218813453 1.59099025766973
+    -2.0 0.5 3.0 1.0  -1.82322330470336  0.198873782208716
+    0.0 1.0 5.0 4.9    4.92468529477015 25.3797428095763))
 
 ;; reference values from R's bayesmeta package: dhalflogistic/phalflogistic/
 ;; qhalflogistic/ehalflogistic/vhalflogistic (scale parameterization).
@@ -3413,3 +3538,698 @@
       (t/is (m/delta-eq 1.0 (reduce + s) 1.0e-9))
       (t/is (every? #(and (>= % 0.0) (<= % 1.0)) s)))))
 
+;; ---------------------------------------------------------------------------
+;; Custom RNG / `set-seed!` reproducibility, exercised generically across
+;; *every* distribution registered under the `distribution` multimethod
+;; (i.e. every key in `(methods sut/distribution)`, canonical names and
+;; gamlss-style aliases alike).
+;;
+;; Two independent ways of controlling a distribution's randomness are
+;; supported throughout `fastmath.random`/`fastmath.random.distributions`:
+;;
+;; 1. "external rng"  - an `rng` object is created explicitly (via [[sut/rng]])
+;;    and passed in under the `:rng` key when constructing the distribution.
+;;    Reseeding *that rng object itself* (via [[sut/set-seed!]]) must make
+;;    the distribution reproduce its earlier sample sequence, since sampling
+;;    ultimately draws from that same, shared, mutable generator.
+;; 2. "internal rng" - no `:rng` is supplied; the distribution creates its own,
+;;    private generator under the hood. Reseeding *the distribution itself*
+;;    (`(sut/set-seed! dist seed)`, dispatching to `prot/set-seed!`, which every
+;;    distribution implements - directly, or via the shared `->distribution`/
+;;    `ssj-continuous`/`multinomial`/`dirichlet` helpers in `distributions.clj`)
+;;    must likewise reproduce the earlier sequence.
+;;
+;; A few `:data`-driven distributions have no sensible parameter-free default
+;; (they'd otherwise default to a single point/category, making sampling
+;; trivially seed-invariant); `distribution-overrides` supplies just enough of
+;; a non-degenerate parameter map for those so that the "different seeds give
+;; different samples" sanity check below is meaningful, without otherwise
+;; duplicating the per-distribution parameter tables already exercised by the
+;; tests above.
+
+(def ^:private distribution-overrides
+  "Per-`:key` parameter overrides (merged with the caller-supplied `:rng`) used
+  only by the generic reproducibility tests below, for `:data`-driven
+  distributions whose parameter-free defaults are a single point/category."
+  {:empirical {:data (vec (map double (range 1 101))) :bin-count 20}
+   :enumerated-real {:data [0.0 5.0 10.0] :probabilities [0.5 0.3 0.2]}
+   :enumerated-int {:data [1 2 3] :probabilities [0.2 0.3 0.5]}
+   :real-discrete-distribution {:data [0.0 5.0 10.0] :probabilities [0.5 0.3 0.2]}
+   :real-discrete {:data [0.0 5.0 10.0] :probabilities [0.5 0.3 0.2]}
+   :integer-discrete-distribution {:data [1 2 2 3 3 3]}
+   :integer-discrete {:data [1 2 2 3 3 3]}
+   :categorical-distribution {:data [:a :b :c] :probabilities [0.2 0.3 0.5]}
+   :categorical {:data [:a :b :c] :probabilities [0.2 0.3 0.5]}})
+
+(def ^:private all-distribution-keys
+  (keys (methods sut/distribution)))
+
+(t/deftest custom-rng-reseed-external
+  (t/testing "every distribution, constructed with an externally-supplied, non-default RNG (:isaac): reseeding that same rng object reproduces the sample sequence"
+    (doseq [k all-distribution-keys]
+      (let [params (get distribution-overrides k)
+            seed 424242
+            rng (sut/rng :isaac seed)
+            dist (sut/distribution k (assoc params :rng rng))
+            xs1 (vec (sut/->seq dist 20))]
+        (sut/set-seed! rng seed)
+        (t/is (= xs1 (vec (sut/->seq dist 20)))
+              (str "reseeding the external rng did not reproduce samples for " k))))))
+
+(t/deftest custom-rng-reseed-internal
+  (t/testing "every distribution, constructed with no :rng (its own private generator): reseeding the distribution itself reproduces the sample sequence"
+    (doseq [k all-distribution-keys]
+      (let [params (get distribution-overrides k)
+            seed 13579
+            dist (sut/distribution k params)]
+        (sut/set-seed! dist seed)
+        (let [xs1 (vec (sut/->seq dist 20))]
+          (sut/set-seed! dist seed)
+          (t/is (= xs1 (vec (sut/->seq dist 20)))
+                (str "reseeding the distribution's own rng did not reproduce samples for " k)))))))
+
+(t/deftest custom-rng-different-seeds-differ
+  (t/testing "sanity check: two distributions (same params) seeded differently do NOT produce the same sample sequence - guards against a reseed test that trivially 'passes' because sampling secretly ignores the rng"
+    (doseq [k (remove #{:constant} all-distribution-keys)]
+      (let [params (get distribution-overrides k)
+            d1 (sut/distribution k (assoc params :rng (sut/rng :isaac 1)))
+            d2 (sut/distribution k (assoc params :rng (sut/rng :isaac 2)))]
+        (t/is (not= (vec (sut/->seq d1 20)) (vec (sut/->seq d2 20)))
+              (str "different seeds produced identical samples for " k)))))
+  (t/testing ":constant is legitimately seed-invariant by design (degenerate/Dirac distribution)"
+    (let [d1 (sut/distribution :constant {:value 5.0 :rng (sut/rng :isaac 1)})
+          d2 (sut/distribution :constant {:value 5.0 :rng (sut/rng :isaac 2)})]
+      (t/is (= (vec (sut/->seq d1 5)) (vec (sut/->seq d2 5)) [5.0 5.0 5.0 5.0 5.0])))))
+
+(t/deftest custom-rng-multiple-algorithms
+  (t/testing "reseed-reproducibility holds across different RNG algorithms, not just :isaac, for a representative sample of distribution kinds (scalar continuous, scalar discrete, multivariate, data-driven, meta/combinator)"
+    (doseq [rng-name [:jdk :mersenne :well19937c :well44497b]
+            k [:normal :poisson :multi-normal :dirichlet :continuous-distribution :truncated :mixture]]
+      (let [seed 777
+            rng (sut/rng rng-name seed)
+            dist (sut/distribution k {:rng rng})
+            xs1 (vec (sut/->seq dist 15))]
+        (sut/set-seed! rng seed)
+        (t/is (= xs1 (vec (sut/->seq dist 15)))
+              (str rng-name " reseed did not reproduce samples for " k))))))
+
+;; ---------------------------------------------------------------------------
+;; Golden-value regression tests: unlike the reseed tests above (which only
+;; check that the *same* rng/seed reproduces *itself* - a tautology w.r.t.
+;; whatever the current implementation happens to do, so it would still
+;; "pass" even if some future refactor silently changed how many draws a
+;; `sample` call consumes, their order, etc., as long as it changed
+;; consistently both times), these pin the *exact* sample sequence produced
+;; by a fixed rng algorithm + seed against a literal, hardcoded expected
+;; value, captured once from the current implementation. A change to any of
+;; these numbers is not necessarily a bug, but it does mean the RNG
+;; consumption pattern for that distribution changed, and is worth a second
+;; look.
+;;
+;; Covers *every* distribution key registered under `distribution` (all of
+;; `all-distribution-keys`, canonical names and aliases alike - an alias
+;; necessarily gets the same golden values as its canonical name, since it
+;; dispatches to the exact same underlying function), not just a selection.
+;; Values were captured directly via `(vec (sut/->seq dist 5))` with an
+;; `:isaac`-seeded rng (seed `42`; merged with `distribution-overrides` for
+;; the handful of `:data`-driven distributions that need it - same overrides
+;; used by the reseed tests above), and are compared with plain `=` (exact,
+;; bit-for-bit equality of primitive doubles/longs/vectors - safe here since
+;; Clojure's double literal reader round-trips the shortest-representation
+;; decimal strings printed by `->seq` exactly).
+
+(def ^:private golden-values-isaac-seed-42
+  "Exact `(vec (sut/->seq dist 5))` output, for every distribution key
+  registered under `distribution` (`all-distribution-keys`), constructed
+  with `(sut/rng :isaac 42)` under `:rng` (merged with `distribution-overrides`
+  for the handful of :data-driven distributions that need it). Captured once
+  from the current implementation; see `custom-rng-golden-values` below."
+  {:anderson-darling
+   [0.5059259287441009
+    1.062802526792838
+    1.4240409420706273
+    0.564601413510125
+    0.4550188823911598]
+   :anderson-darling-quick
+   [0.5059259287441009
+    1.062802526792838
+    1.4240409420706273
+    0.564601413510125
+    0.4550188823911598]
+   :bb [2 8 9 3 1]
+   :bernoulli [0 1 1 0 0]
+   :beta
+   [0.3817005118702333
+    0.7303121967085704
+    0.3212486429861899
+    0.8944112669509152
+    0.5490390312564815]
+   :beta-binomial [2 8 9 3 1]
+   :beta-noncentral
+   [0.4454898824073701
+    0.6880047901609451
+    0.7590337119179655
+    0.49344896619352496
+    0.3864108560723533]
+   :beta-symmetrical
+   [0.3886854365418788
+    0.6375713394242244
+    0.7157867999774323
+    0.43572726379469356
+    0.3321728921161551]
+   :binomial [9 11 12 9 9]
+   :categorical [:b :c :c :b :b]
+   :categorical-distribution [:b :c :c :b :b]
+   :cauchy
+   [-0.5671188023683934
+    0.7320755164354125
+    1.409490103729508
+    -0.3106624066718934
+    -0.9526731380984537]
+   :chi
+   [0.43410352920398315
+    1.0389020210141662
+    1.2918313137226247
+    0.5303373067991106
+    0.3288267458897465]
+   :chi-squared
+   [0.1884458736135823
+    1.0793174092684488
+    1.6688281430965568
+    0.28125765898294713
+    0.10812702864649432]
+   :chi-squared-noncentral
+   [0.4849011797716233
+    2.382648677786544
+    3.46748114606517
+    0.7076347914229134
+    0.284313678064495]
+   :constant [0.0 0.0 0.0 0.0 0.0]
+   :continuous-distribution
+   [-0.5652642775322254
+    0.5469059942799166
+    0.812824344124532
+    -0.4013080493841728
+    -0.7643898871122008]
+   :cramer-von-mises
+   [0.11152151655219623
+    0.20623605654953592
+    0.24477031794585336
+    0.12416196389156708
+    0.09993737654754145]
+   :dirichlet
+   [[0.20441252563844983 0.7955874743615502]
+    [0.23841041387096973 0.7615895861290303]
+    [0.14648471154904386 0.8535152884509561]
+    [0.5357933214156829 0.4642066785843172]
+    [0.7534637912934224 0.24653620870657755]]
+   :empirical
+   [33.84240172746576
+    70.594195545867
+    80.98267480926177
+    41.272110724817814
+    26.740954989960905]
+   :enumerated-int [2 3 3 2 2]
+   :enumerated-real [0.0 5.0 10.0 0.0 0.0]
+   :erlang
+   [1.1956135155793854
+    2.4446285559739276
+    3.018408560257909
+    1.3883017273476357
+    0.9822547591945716]
+   :ex-gaussian
+   [0.1746423776720124
+    2.0328143366077898
+    0.3420685194177471
+    1.8572703020061199
+    2.912234346435775]
+   :exgaus
+   [0.1746423776720124
+    2.0328143366077898
+    0.3420685194177471
+    1.8572703020061199
+    2.912234346435775]
+   :exponential
+   [1.036294129336298
+    0.4022993872419831
+    0.60716886287668
+    1.3096348408057512
+    0.7240005967687287]
+   :f
+   [0.3393064249228097
+    3.886432890717298
+    9.845075789006323
+    0.5424055412007495
+    0.1835957672227515]
+   :f-noncentral
+   [0.8258953766419942
+    8.513653885357316
+    21.26712060211158
+    1.2856234278464367
+    0.4619340458850594]
+   :fatigue-life
+   [0.6564713358972849
+    1.6850093586439723
+    2.294297294417468
+    0.7849772550022391
+    0.5275771207005328]
+   :fishers-noncentral-hypergeometric [2 3 3 2 2]
+   :folded-normal
+   [0.43410352920397494
+    1.0389020210141566
+    1.2918313137226245
+    0.5303373067991218
+    0.3288267458897569]
+   :frechet
+   [0.9163559193846709
+    2.8166326638009735
+    4.573037867872715
+    1.103705642857667
+    0.7375135222313798]
+   :gamma
+   [2.336631390950336
+    5.570934838902748
+    3.199803738098394
+    6.975203012896114
+    0.7998836569119738]
+   :ge
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :generalized-exponential
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :generalized-extreme-value
+   [-0.08735043149701814
+    1.0355420806047824
+    1.5201777253922815
+    0.09867328445706379
+    -0.3044708557072609]
+   :generalized-gamma
+   [0.731044980701355
+    1.1924281892500581
+    1.3867818740419124
+    0.8074659145799746
+    0.642761706427969]
+   :generalized-half-logistic
+   [0.6986724366718834
+    1.7391167913653134
+    2.217298652131714
+    0.8571313242364567
+    0.5273150689722524]
+   :generalized-hyperbolic
+   [-0.24272025759956362
+    -0.8282255176557877
+    -0.317679539345054
+    -0.20575065178854876
+    -0.3902434520482083]
+   :generalized-inverse-gaussian
+   [1.475617600429787
+    3.219031336335554
+    4.093338584000922
+    1.7260194513542255
+    1.2084640629391679]
+   :generalized-logistic
+   [-0.6821270291168965
+    0.852778606743133
+    1.4088495967909693
+    -0.3883194882769483
+    -1.057887547396456]
+   :generalized-normal
+   [-0.3981318507046895
+    0.5146652979584333
+    0.9343754359812362
+    -0.2128914960312695
+    -0.6627601619575108]
+   :generalized-pareto
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :geometric [0 1 2 0 0]
+   :gev
+   [-0.08735043149701814
+    1.0355420806047824
+    1.5201777253922815
+    0.09867328445706379
+    -0.3044708557072609]
+   :gg
+   [0.731044980701355
+    1.1924281892500581
+    1.3867818740419124
+    0.8074659145799746
+    0.642761706427969]
+   :gh
+   [-0.24272025759956362
+    -0.8282255176557877
+    -0.317679539345054
+    -0.20575065178854876
+    -0.3902434520482083]
+   :ghl
+   [0.6986724366718834
+    1.7391167913653134
+    2.217298652131714
+    0.8571313242364567
+    0.5273150689722524]
+   :gig
+   [1.475617600429787
+    3.219031336335554
+    4.093338584000922
+    1.7260194513542255
+    1.2084640629391679]
+   :gnd
+   [-0.3981318507046895
+    0.5146652979584333
+    0.9343754359812362
+    -0.2128914960312695
+    -0.6627601619575108]
+   :gpd
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :gumbel
+   [0.8252991370059637
+    3.0710841612095647
+    4.040355450784563
+    1.1973465689141276
+    0.3910582885854782]
+   :half-cauchy
+   [0.5825001501544679
+    1.9714037868158543
+    3.1376863751383484
+    0.7364818674943616
+    0.42848076645177974]
+   :half-logistic
+   [0.6986724366718834
+    1.7391167913653134
+    2.217298652131714
+    0.8571313242364567
+    0.5273150689722524]
+   :half-normal
+   [0.43410352920398304
+    1.0389020210141664
+    1.2918313137226247
+    0.5303373067991105
+    0.32882674588974625]
+   :hyperbolic-secant
+   [-0.3440457725471681
+    0.43210304197028
+    0.727965609304286
+    -0.194723311989008
+    -0.5395412589492902]
+   :hypergeometric [12 14 14 12 11]
+   :hypoexponential
+   [0.40915200214740227
+    1.2078124785181783
+    1.6275226165402286
+    0.5177191883123478
+    0.29801979512081445]
+   :hypoexponential-equal
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :integer-discrete [2 3 3 2 2]
+   :integer-discrete-distribution [2 3 3 2 2]
+   :inverse-gamma
+   [0.9163559193846706
+    2.816632663800974
+    4.573037867872715
+    1.103705642857667
+    0.7375135222313798]
+   :inverse-gaussian
+   [0.46757348548088035
+    1.0883959603858404
+    1.4648492596701388
+    0.546133292430545
+    0.38725988930610317]
+   :johnson-sb
+   [0.39556249420070944
+    0.6289488539312967
+    0.7015090848507907
+    0.43962300097622964
+    0.3428969024719658]
+   :johnson-sl
+   [0.65443075653889
+    1.6950462506180797
+    2.3501857150329712
+    0.7845129292281703
+    0.5218312069474558]
+   :johnson-su
+   [-0.4368073926717723
+    0.5525459234670957
+    0.9623437131396185
+    -0.2450816612112171
+    -0.6972486330517929]
+   :kde
+   [-0.5652642775322254
+    0.5469059942799166
+    0.812824344124532
+    -0.4013080493841728
+    -0.7643898871122008]
+   :kolmogorov
+   [0.7280269575530616
+    0.9740595251495796
+    1.0769678404433802
+    0.7686521693539642
+    0.681184313756874]
+   :kolmogorov-smirnov
+   [0.6678933685970441
+    0.8505748468104958
+    0.90179221571917
+    0.7020609575307257
+    0.6288566770260979]
+   :kolmogorov-smirnov+
+   [0.33578673719408814
+    0.7011496936209916
+    0.80358443143834
+    0.40412191506145145
+    0.25771335405219586]
+   :kolmogorov-smirnov-quick
+   [0.6678933685970441
+    0.8505748468104958
+    0.90179221571917
+    0.7020609575307257
+    0.6288566770260979]
+   :laplace
+   [-0.39813185070499796
+    0.514665297959185
+    0.93437543598128
+    -0.21289149603034835
+    -0.6627601619582715]
+   :levy
+   [1.0793874784394621
+    6.789851910498397
+    16.166292345314098
+    1.436725912774866
+    0.7806406794730248]
+   :log-logistic
+   [0.5055405484912872
+    2.3461568506199835
+    4.091246113141351
+    0.678195633093517
+    0.3471884553751189]
+   :log-normal
+   [1.7638051896776283
+    5.602312706564407
+    4.240595699592065
+    0.7629541600690262
+    2.5794542874870054]
+   :logarithmic [1 1 2 1 1]
+   :logistic
+   [-0.6821270291168965
+    0.8527786067431333
+    1.408849596790969
+    -0.38831948827694823
+    -1.057887547396456]
+   :mixture
+   [-0.1998108701214906
+    -0.6304138764984518
+    -0.2889830525969167
+    -0.10785633972323627
+    -0.24976602353894722]
+   :multi-normal
+   [[-0.43252648520466763 0.7231794958020387]
+    [0.44470375456214967 -1.2705573280489608]
+    [-0.05242213991714392 1.080815091524896]
+    [0.7171157560619612 -0.2154858707394434]
+    [-1.466248077438233 -0.6801959988403614]]
+   :multinomial [[4 6] [6 4] [4 6] [8 2] [5 5]]
+   :nakagami
+   [0.6396499059235821
+    1.0990052225868794
+    1.2757439459975797
+    0.7195270587777487
+    0.545911893163992]
+   :nbi [0 1 2 0 0]
+   :nbii [0 1 2 0 0]
+   :negative-binomial [17 23 25 18 16]
+   :normal
+   [-0.43252648520466763
+    0.7231794958020387
+    0.44470375456214967
+    -1.2705573280489608
+    -0.05242213991714392]
+   :normal-inverse-gaussian
+   [-0.13662934418594996
+    -0.4658810569572944
+    -0.17983473202192113
+    -0.12126086153080746
+    -0.22196819750629498]
+   :pareto
+   [2.9780806959686137
+    1.4262289623712692
+    1.244424307984781
+    2.47450079476125
+    3.8802801029762137]
+   :pascal [17 23 25 18 16]
+   :pearson-6
+   [0.5055405484912872
+    2.3461568506199835
+    4.091246113141351
+    0.678195633093517
+    0.3471884553751189]
+   :poisson [0 1 0 0 0]
+   :power
+   [0.5794710840016852
+    0.8373468180037419
+    0.8964287096241061
+    0.6357058400403849
+    0.5076547587211173]
+   :rayleigh
+   [0.9046015721278035
+    1.5542280904160306
+    1.8041743909839898
+    1.017564925017903
+    0.772036003204204]
+   :real-discrete [0.0 5.0 10.0 0.0 0.0]
+   :real-discrete-distribution [0.0 5.0 10.0 0.0 0.0]
+   :reciprocal
+   [2.166639902550565
+    5.025157679656955
+    6.361864741914581
+    2.5358403912059075
+    1.8101449542753494]
+   :t
+   [-0.5671188023675264
+    0.7320755164353214
+    1.4094901037295366
+    -0.310662406672404
+    -0.952673138273561]
+   :t-noncentral
+   [0.6894996659378079
+    2.6663962730648274
+    4.255383102902819
+    0.9330290683997322
+    0.415047791194716]
+   :triangular
+   [-0.18050413400177778
+    0.22688900359779074
+    0.3732375752142444
+    -0.10097617933510628
+    -0.2820677552133546]
+   :truncated
+   [-0.43252648520466763
+    0.7231794958020387
+    0.44470375456214967
+    -1.2705573280489608
+    -0.05242213991714392]
+   :uniform-int [1442193049 2058843292 1859088621 1382605351 1735690423]
+   :uniform-real
+   [0.33578673719408814
+    0.7011496936209916
+    0.80358443143834
+    0.40412191506145145
+    0.25771335405219586]
+   :von-mises
+   [-0.5004524794387464
+    0.6266695622324583
+    1.043566719881831
+    -0.28435373978310785
+    -0.7793157246280061]
+   :wallenius-noncentral-hypergeometric [2 3 3 2 2]
+   :watson-g
+   [0.455004946833131
+    0.5673901837747928
+    0.6109047354469331
+    0.4745544739829435
+    0.43202630695806465]
+   :watson-u
+   [0.05576075827609812
+    0.10311802827476796
+    0.12238515897292668
+    0.06208098194578354
+    0.049968688273770726]
+   :weibull
+   [0.40915200214804676
+    1.2078124785191304
+    1.6275226165412253
+    0.5177191883133454
+    0.2980197951217608]
+   :zabb [1.0 1.0 1.0 1.0 1.0]
+   :zabi [1.0 1.0 1.0 1.0 1.0]
+   :zaga
+   [0.5164680434699724
+    0.2730450462344595
+    0.697200678970517
+    0.12139884042455018
+    3.6523833357778965]
+   :zaig
+   [1.0883959603858404
+    0.546133292430545
+    0.767968506909367
+    1.2640084543381096
+    0.40021219275560665]
+   :zanbi [1.0 2.0 2.0 1.0 0.0]
+   :zap [4.0 6.0 7.0 4.0 3.0]
+   :zero-adjusted-beta-binomial [1.0 1.0 1.0 1.0 1.0]
+   :zero-adjusted-binomial [1.0 1.0 1.0 1.0 1.0]
+   :zero-adjusted-gamma
+   [0.5164680434699724
+    0.2730450462344595
+    0.697200678970517
+    0.12139884042455018
+    3.6523833357778965]
+   :zero-adjusted-inverse-gaussian
+   [1.0883959603858404
+    0.546133292430545
+    0.767968506909367
+    1.2640084543381096
+    0.40021219275560665]
+   :zero-adjusted-negative-binomial [1.0 2.0 2.0 1.0 0.0]
+   :zero-adjusted-poisson [4.0 6.0 7.0 4.0 3.0]
+   :zero-inflated-beta-binomial [1 0 1 1 0]
+   :zero-inflated-binomial [1 0 1 1 0]
+   :zero-inflated-negative-binomial [1 0 0 4 1]
+   :zero-inflated-poisson [8 2 6 2 6]
+   :zero-inflated-poisson2 [8 2 6 2 6]
+   :zibb [1 0 1 1 0]
+   :zibi [1 0 1 1 0]
+   :zinbi [1 0 0 4 1]
+   :zip [8 2 6 2 6]
+   :zip2 [8 2 6 2 6]
+   :zipf [1 1 1 1 1]})
+
+(t/deftest custom-rng-golden-values
+  (t/testing "every distribution key registered under `distribution` matches its pinned golden sample sequence (:isaac, seed=42)"
+    (doseq [[k expected] golden-values-isaac-seed-42]
+      (let [params (get distribution-overrides k)
+            dist (sut/distribution k (assoc params :rng (sut/rng :isaac 42)))]
+        (t/is (= expected (vec (sut/->seq dist (count expected))))
+              (str "golden value mismatch for " k)))))
+  (t/testing "every registered distribution key has a golden-value entry (and vice versa) - keeps this table honest as new distributions are added"
+    (t/is (= (set all-distribution-keys) (set (keys golden-values-isaac-seed-42)))))
+  (t/testing "other RNG algorithms (not :isaac), to make sure the pinning isn't an :isaac-only artifact"
+    (t/is (= [4.704771863704436 3.5741221790904723 1.9613231073484556 1.2166069925080893 0.7683138172400454]
+             (vec (sut/->seq (sut/distribution :gamma {:shape 2.0 :scale 1.5 :rng (sut/rng :mersenne 100)}) 5))))
+    (t/is (= [1 4 2 3 5]
+             (vec (sut/->seq (sut/distribution :poisson {:p 4.0 :rng (sut/rng :well19937c 7)}) 5))))))
