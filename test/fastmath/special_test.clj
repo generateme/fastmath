@@ -1,26 +1,42 @@
 (ns fastmath.special-test
   (:require [fastmath.special :as sut]
             [clojure.test :as t]
-            [clojisr.v1.r :as rr]
+            [clojure.java.io :as io]
+            [clojure.edn :as edn]
             [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.random :as r]))
 
-(defn init-r []
-  (rr/discard-all-sessions)
-  (rr/require-r '[Bessel] '[base]))
+;; Reference values for the Bessel/Airy comparisons below were computed once
+;; from R (`base` and `Bessel` packages) and are stored in
+;; `test/resources/special/reference.edn`. See
+;; `utils/fastmath/dev/special_ref_gen.clj` for the generator (requires the
+;; `:dev` profile and a working R + `Bessel` package installation) if the
+;; reference data ever needs to be regenerated or extended.
+;;
+;; Reference source per input: R `base::bessel*` (vectorised, x >= 0) or
+;; `Bessel::Bessel*` (per element, handles negative arguments/orders).
 
-(init-r)
+(def ^:private reference
+  (delay (edn/read-string (slurp (io/resource "special/reference.edn")))))
 
-(defn with-r-session [f]
-  (init-r)
-  (f)
-  (rr/discard-all-sessions))
+(defn- blk
+  "Fetch a precomputed comparison block `{:order? :arg :ref}` from the reference data."
+  [test-key block-key]
+  (get-in @reference [test-key block-key]))
 
-(t/use-fixtures :once with-r-session)
+(def ^:private ABS 1.0e-9)
 
-(def x (range 1.0e-6 100.0 0.01))
-(def -x (map - x))
+(defn- check1
+  "Compare `(f arg)` against a single-argument reference block."
+  ([f b] (check1 f b 1.0e-11))
+  ([f b rel] (let [{:keys [arg ref]} b] (v/edelta-eq (mapv f arg) ref ABS rel))))
+
+(defn- check2
+  "Compare `(f order arg)` against a two-argument reference block."
+  ([f b] (check2 f b 1.0e-10))
+  ([f b rel] (let [{:keys [order arg ref]} b] (v/edelta-eq (mapv f order arg) ref ABS rel))))
+
 (def xl [1e12, 5e12, 1e13, 5e13, 1e14, 5e14, 1e15, 5e15, 1e16, 5e16, 1e17, 5e17, 1e18, 5e18, 1e19, 5e19, 1e20, 1e22, 1e25, 1e30, 1e40])
 
 (t/deftest bessel-J0
@@ -28,11 +44,9 @@
   (t/is (m/one? (sut/bessel-J0 0.0)))
   (t/is (m/zero? (sut/bessel-J0 ##Inf)))
   (t/is (m/zero? (sut/bessel-J0 ##-Inf)))
-  ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-J0 x) (rr/r->clj (base/besselJ x 0.0)) 1.0e-15))
-  (t/is (v/edelta-eq (map sut/bessel-J0 x) (rr/r->clj (Bessel/BesselJ x 0.0)) 1.0e-14))
-  ;; negative
-  (t/is (v/edelta-eq (map sut/bessel-J0 -x) (rr/r->clj (Bessel/BesselJ -x 0.0)) 1.0e-14))
+  ;; positive & negative
+  (t/is (check1 sut/bessel-J0 (blk :bessel-J0 :pos)))
+  (t/is (check1 sut/bessel-J0 (blk :bessel-J0 :neg)))
   ;; large
   (t/is (v/edelta-eq (map sut/bessel-J0 xl) [1.016712505004068e-7
                                              -2.1276975389854557e-7
@@ -61,11 +75,9 @@
   (t/is (m/zero? (sut/bessel-J1 0.0)))
   (t/is (m/zero? (sut/bessel-J0 ##Inf)))
   (t/is (m/zero? (sut/bessel-J0 ##-Inf)))
-  ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-J1 x) (rr/r->clj (base/besselJ x 1.0)) 1.0e-15))
-  (t/is (v/edelta-eq (map sut/bessel-J1 x) (rr/r->clj (Bessel/BesselJ x 1.0)) 1.0e-15))
-  ;; negative
-  (t/is (v/edelta-eq (map sut/bessel-J1 -x) (rr/r->clj (Bessel/BesselJ -x 1.0)) 1.0e-15))
+  ;; positive & negative
+  (t/is (check1 sut/bessel-J1 (blk :bessel-J1 :pos)))
+  (t/is (check1 sut/bessel-J1 (blk :bessel-J1 :neg)))
   ;; large
   (t/is (v/edelta-eq (map sut/bessel-J1 xl) [-7.913802683850442e-7
                                              2.8644892441665137e-7
@@ -94,53 +106,29 @@
   (t/is (m/nan? (sut/bessel-J -0.5 ##NaN)))
   (t/is (every? m/zero? (map #(sut/bessel-J % 0.0) (range 0.2 100.1 0.1))))
   (t/is (every? m/zero? (map #(sut/bessel-J % 0.0) (range -100 0))))
-  (doseq [x [0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05]
-          nu [2, 4, 6, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (base/besselJ xx nu))) 1.0e-14))
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (Bessel/BesselJ xx nu))) 1.0e-14))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (base/besselJ x nu))) 1.0e-14))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (Bessel/BesselJ x nu))) 1.0e-14)))
-  (doseq [x [0.05, 0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0]
-          nu [0.1, 0.4567, 0.8123, 1.5, 2.5, 4.1234, 6.8, 12.3, 18.9, 28.2345, 38.1235, 51.23, 72.23435, 80.5, 98.5, 104.2]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (base/besselJ xx nu))) 1.0e-14))
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (Bessel/BesselJ xx nu))) 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (base/besselJ x nu))) 1.0e-14))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (Bessel/BesselJ x nu))) 1.0e-13)))
-  (doseq [nu [150, 165.2, 200.0, 300.0, 500.0, 1000.0, 5000.2, 10000.0, 50000.0]
-          x [0.2, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.92,0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99,0.995, 0.999, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (base/besselJ xx nu))) 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (Bessel/BesselJ xx nu))) 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (base/besselJ x nu))) 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-J nu x) (first (rr/r->clj (Bessel/BesselJ x nu))) 1.0e-12)))
-  (let [vs (range 0.0 250.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 0.15) vs) (rr/r->clj (base/besselJ 0.15 vs)) 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 2.1) vs) (rr/r->clj (base/besselJ 2.1 vs)) 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 42.1) vs) (rr/r->clj (base/besselJ 42.1 vs)) 1.0e-14))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 142.1) vs) (rr/r->clj (base/besselJ 142.1 vs)) 1.0e-14)))
-  (let [vs (range -100.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 0.15) vs) (rr/r->clj (base/besselJ 0.15 vs)) 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 2.1) vs) (rr/r->clj (base/besselJ 2.1 vs)) 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 42.1) vs) (rr/r->clj (base/besselJ 42.1 vs)) 1.0e-14))
-    (t/is (v/edelta-eq (map #(sut/bessel-J % 142.1) vs) (rr/r->clj (base/besselJ 142.1 vs)) 1.0e-14)))
-  (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu (range -100 0 5)
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-J nu xx) (first (rr/r->clj (Bessel/BesselJ xx nu))) 1.0e-14 1.0e-14)))
-  (t/are [v x] (m/delta-eq (sut/bessel-J v x) (first (rr/r->clj (Bessel/BesselJ x v))) 1.0e-15)
-    -5.0 -5.1
-    -7.3 19.1
-    -14.0 21.3
-    -13.0 21.3
-    -14.0 -21.3
-    -13.0 -21.3
-    7.3 19.1
-    14.0 21.3
-    13.0 21.3
-    14.0 -21.3
-    13.0 -21.3))
+  ;; integer orders
+  (t/is (check2 sut/bessel-J (blk :bessel-J :int-xx)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :int-x)))
+  ;; fractional orders
+  (t/is (check2 sut/bessel-J (blk :bessel-J :frac-xx)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :frac-x)))
+  ;; large orders
+  (t/is (check2 sut/bessel-J (blk :bessel-J :large-xx) 1.0e-9))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :large-x) 1.0e-9))
+  ;; order sweeps, fixed arg
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-pos-015)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-pos-21)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-pos-421)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-pos-1421)))
+  ;; negative order sweeps, fixed arg
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-neg-015)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-neg-21)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-neg-421)))
+  (t/is (check2 sut/bessel-J (blk :bessel-J :vs-neg-1421)))
+  ;; negative order, negative arg
+  (t/is (check2 sut/bessel-J (blk :bessel-J :neg-ord)))
+  ;; explicit (order, arg) pairs
+  (t/is (check2 sut/bessel-J (blk :bessel-J :are))))
 
 ;;;;
 
@@ -150,8 +138,7 @@
   (t/is (m/zero? (sut/bessel-Y0 ##Inf)))
   (t/is (m/nan? (sut/bessel-Y0 ##-Inf)))
   ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-Y0 x) (rr/r->clj (base/besselY x 0.0)) 1.0e-14 1.0e-14))
-  (t/is (v/edelta-eq (map sut/bessel-Y0 x) (rr/r->clj (Bessel/BesselY x 0.0)) 1.0e-14 1.0e-14))
+  (t/is (check1 sut/bessel-Y0 (blk :bessel-Y0 :pos)))
   ;; large
   (t/is (v/edelta-eq (map sut/bessel-Y0 xl) [ -7.91380268385095e-7
                                              2.8644892441667265e-7
@@ -181,8 +168,7 @@
   (t/is (m/zero? (sut/bessel-Y1 ##Inf)))
   (t/is (m/nan? (sut/bessel-Y1 ##-Inf)))
   ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-Y1 x) (rr/r->clj (base/besselY x 1.0)) 1.0e-15 1.0e-15))
-  (t/is (v/edelta-eq (map sut/bessel-Y1 x) (rr/r->clj (Bessel/BesselY x 1.0)) 1.0e-14 1.0e-14))
+  (t/is (check1 sut/bessel-Y1 (blk :bessel-Y1 :pos)))
   ;; large
   (t/is (v/edelta-eq (map sut/bessel-Y1 xl) [-1.0167125050080249e-7
                                              2.127697538985742e-7
@@ -209,38 +195,25 @@
 (t/deftest bessel-Y
   (t/is (m/nan? (sut/bessel-Y 0.5 ##NaN)))
   (t/is (m/nan? (sut/bessel-Y -0.5 ##NaN)))
-  (doseq [x [0.05, 0.1, 0.2, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995, 0.999, 1.0, 1.001, 1.01, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 1.9, 2.5, 3.0, 3.5, 5.0, 10.0]
-          nu [0, 1, 2, 4, 6, 10, 15, 20, 25, 30, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 125, 150, 175, 200]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-Y nu xx) (first (rr/r->clj (base/besselY xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-Y nu xx) (first (rr/r->clj (Bessel/BesselY xx nu))) 1.0e-12 1.0e-12)))
-  (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu [0.1, 0.4567, 0.8123, 1.5, 2.5, 4.1234, 6.8, 12.3, 18.9, 28.2345, 38.1235, 51.23, 72.23435, 80.5]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-Y nu xx) (first (rr/r->clj (base/besselY xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-Y nu xx) (first (rr/r->clj (Bessel/BesselY xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-Y nu x) (first (rr/r->clj (base/besselY x nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-Y nu x) (first (rr/r->clj (Bessel/BesselY x nu))) 1.0e-13 1.0e-13)))
-  (doseq [nu [150, 165.2, 200.0, 300.0, 500.0, 1000.0, 5000.2, 10000.0 20000.0]
-          x [0.2, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.92,0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99,0.995, 0.999, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-Y nu xx) (first (rr/r->clj (base/besselY xx nu))) 1.0e-10 1.0e-10)))
-  (let [vs (range 0.0 100.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-Y % 0.15) vs) (rr/r->clj (base/besselY 0.15 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-Y % 2.1) vs) (rr/r->clj (base/besselY 2.1 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-Y % 42.1) vs) (rr/r->clj (base/besselY 42.1 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-Y % 142.1) vs) (rr/r->clj (base/besselY 142.1 vs)) 1.0e-14 1.0e-14)))
-  (doseq [v (range -100.01 0.0 0.25)]
-    (t/is (m/delta-eq (sut/bessel-Y v 0.15) (first (rr/r->clj (Bessel/BesselY 0.15 v))) 1.0e-6 1.0e-6))
-    (t/is (m/delta-eq (sut/bessel-Y v 2.1) (first (rr/r->clj (Bessel/BesselY 2.1 v))) 1.0e-8 1.0e-8))
-    (t/is (m/delta-eq (sut/bessel-Y v 42.1) (first (rr/r->clj (Bessel/BesselY 42.1 v))) 1.0e-9 1.0e-9))
-    (t/is (m/delta-eq (sut/bessel-Y v 142.1) (first (rr/r->clj (Bessel/BesselY 142.1 v))) 1.0e-12 1.0e-12)))
-  (t/are [v x] (m/delta-eq (sut/bessel-Y v x) (first (rr/r->clj (Bessel/BesselY x v))) 1.0e-14 1.0e-14)
-    -6.2 18.6
-    -8.0 23.2
-    -7.0 23.2
-    -6.0 23.2
-    -0.1 2.2))
+  ;; integer orders
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :int-xx)))
+  ;; fractional orders
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :frac-xx)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :frac-x)))
+  ;; large orders
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :large-xx) 1.0e-9))
+  ;; order sweeps, fixed arg
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-pos-015)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-pos-21)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-pos-421)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-pos-1421)))
+  ;; negative order sweeps, fixed arg
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-neg-015)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-neg-21)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-neg-421)))
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :vs-neg-1421)))
+  ;; explicit (order, arg) pairs
+  (t/is (check2 sut/bessel-Y (blk :bessel-Y :are))))
 
 ;;
 
@@ -249,65 +222,45 @@
   (t/is (m/one? (sut/bessel-I0 0.0)))
   (t/is (m/nan? (sut/bessel-I0 ##Inf)))
   (t/is (m/nan? (sut/bessel-I0 ##-Inf)))
-  ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-I0 x) (rr/r->clj (base/besselI x 0.0)) 1.0e-14 1.0e-14))
-  (t/is (v/edelta-eq (map sut/bessel-I0 x) (rr/r->clj (Bessel/BesselI x 0.0)) 1.0e-14 1.0e-14))
-  ;; negative
-  (t/is (v/edelta-eq (map sut/bessel-I0 -x) (rr/r->clj (Bessel/BesselI -x 0.0)) 1.0e-14 1.0e-14)))
+  ;; positive & negative
+  (t/is (check1 sut/bessel-I0 (blk :bessel-I0 :pos)))
+  (t/is (check1 sut/bessel-I0 (blk :bessel-I0 :neg))))
 
 (t/deftest bessel-I1
   (t/is (m/nan? (sut/bessel-I1 ##NaN)))
   (t/is (m/zero? (sut/bessel-I1 0.0)))
   (t/is (m/nan? (sut/bessel-I1 ##Inf)))
   (t/is (m/nan? (sut/bessel-I1 ##-Inf)))
-  ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-I1 x) (rr/r->clj (base/besselI x 1.0)) 1.0e-14 1.0e-14))
-  (t/is (v/edelta-eq (map sut/bessel-I1 x) (rr/r->clj (Bessel/BesselI x 1.0)) 1.0e-14 1.0e-14))
-  ;; negative
-  (t/is (v/edelta-eq (map sut/bessel-I1 -x) (rr/r->clj (Bessel/BesselI -x 1.0)) 1.0e-14 1.0e-14)))
+  ;; positive & negative
+  (t/is (check1 sut/bessel-I1 (blk :bessel-I1 :pos)))
+  (t/is (check1 sut/bessel-I1 (blk :bessel-I1 :neg))))
 
 ;;
 
 (t/deftest bessel-I
   (t/is (m/nan? (sut/bessel-I 0.5 ##NaN)))
   (t/is (m/nan? (sut/bessel-I -0.5 ##NaN)))
-  (doseq [x [0.01, 0.05, 0.1, 0.2, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995, 0.999, 1.0, 1.001, 1.01, 1.05, 1.1, 1.2, 1.4, 1.6, 1.8, 1.9, 2.5, 3.0, 3.5, 4.0]
-          nu [0.01,0.1, 0.5, 0.8, 1, 1.23, 2,2.56, 4,5.23, 6,9.2, 10,12.89, 15, 19.1, 20, 25, 30, 33.123, 40, 45, 50, 51.5, 55, 60, 65, 70, 72.34, 75, 80, 82.1, 85, 88.76, 90, 92.334, 95, 99.87,100, 110, 125, 145.123, 150, 160.789]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-I nu xx) (first (rr/r->clj (base/besselI xx nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-I nu xx) (first (rr/r->clj (Bessel/BesselI xx nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-I nu x) (first (rr/r->clj (base/besselI x nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-I nu x) (first (rr/r->clj (Bessel/BesselI x nu))) 1.0e-13 1.0e-13)))
-  (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu [0.1, 0.4567, 0.8123, 1.5, 2.5, 4.1234, 6.8, 12.3, 18.9, 28.2345, 38.1235, 51.23, 72.23435, 80.5]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-I nu xx) (first (rr/r->clj (base/besselI xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-I nu xx) (first (rr/r->clj (Bessel/BesselI xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-I nu x) (first (rr/r->clj (base/besselI x nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-I nu x) (first (rr/r->clj (Bessel/BesselI x nu))) 1.0e-13 1.0e-13)))
-  (let [vs (range 0.0 250.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 0.15) vs) (rr/r->clj (base/besselI 0.15 vs)) 1.0e-15 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 2.1) vs) (rr/r->clj (base/besselI 2.1 vs)) 1.0e-15 1.0e-15))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 42.1) vs) (rr/r->clj (base/besselI 42.1 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 142.1) vs) (rr/r->clj (base/besselI 142.1 vs)) 1.0e-12 1.0e-12)))
-  (let [vs (range -100.0 0.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 0.15) vs) (rr/r->clj (base/besselI 0.15 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 2.1) vs) (rr/r->clj (base/besselI 2.1 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 42.1) vs) (rr/r->clj (base/besselI 42.1 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-I % 142.1) vs) (rr/r->clj (base/besselI 142.1 vs)) 1.0e-13 1.0e-13)))
-  (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu (range -100 0 5)
-          :let [xx (m/* x nu)
-                axx (m/abs xx)]]
-    (t/is (m/delta-eq (sut/bessel-I nu xx) (first (rr/r->clj (Bessel/BesselI xx nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-I nu axx) (first (rr/r->clj (Bessel/BesselI axx nu))) 1.0e-12 1.0e-12)))
-  (t/are [v x] (m/delta-eq (sut/bessel-I v x) (first (rr/r->clj (Bessel/BesselI x v))) 1.0e-14 1.0e-14)
-    12.0 3.2
-    13.0 -1.0
-    -8.0 4.2
-    12.3 8.2
-    -12.3 8.2
-    -14.0 -9.9))
+  ;; general orders
+  (t/is (check2 sut/bessel-I (blk :bessel-I :gen-xx)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :gen-x)))
+  ;; fractional orders
+  (t/is (check2 sut/bessel-I (blk :bessel-I :frac-xx)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :frac-x)))
+  ;; order sweeps, fixed arg
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-pos-015)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-pos-21)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-pos-421)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-pos-1421)))
+  ;; negative order sweeps, fixed arg
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-neg-015)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-neg-21)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-neg-421)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :vs-neg-1421)))
+  ;; negative order, negative & positive arg
+  (t/is (check2 sut/bessel-I (blk :bessel-I :negord-xx)))
+  (t/is (check2 sut/bessel-I (blk :bessel-I :negord-axx)))
+  ;; explicit (order, arg) pairs
+  (t/is (check2 sut/bessel-I (blk :bessel-I :are))))
 
 ;;
 
@@ -317,8 +270,7 @@
   (t/is (m/zero? (sut/bessel-K0 ##Inf)))
   (t/is (m/nan? (sut/bessel-K0 ##-Inf)))
   ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-K0 x) (rr/r->clj (base/besselK x 0.0)) 1.0e-14))
-  (t/is (v/edelta-eq (map sut/bessel-K0 x) (rr/r->clj (Bessel/BesselK x 0.0)) 1.0e-14)))
+  (t/is (check1 sut/bessel-K0 (blk :bessel-K0 :pos))))
 
 (t/deftest bessel-K1
   (t/is (m/nan? (sut/bessel-K1 ##NaN)))
@@ -326,42 +278,30 @@
   (t/is (m/zero? (sut/bessel-K1 ##Inf)))
   (t/is (m/nan? (sut/bessel-K1 ##-Inf)))
   ;; positive
-  (t/is (v/edelta-eq (map sut/bessel-K1 x) (rr/r->clj (base/besselK x 1.0)) 1.0e-14))
-  (t/is (v/edelta-eq (map sut/bessel-K1 x) (rr/r->clj (Bessel/BesselK x 1.0)) 1.0e-14)))
+  (t/is (check1 sut/bessel-K1 (blk :bessel-K1 :pos))))
 
 (t/deftest bessel-K
   (t/is (m/nan? (sut/bessel-K 0.5 ##NaN)))
   (t/is (m/nan? (sut/bessel-K -0.5 ##NaN)))
-  (doseq [nu (range -36.0 82.0 0.87654)
-          x (rest (m/slice-range 0 30 31))]
-    (t/is (m/delta-eq (sut/bessel-K nu x) (first (rr/r->clj (base/besselK x nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-K nu x) (first (rr/r->clj (Bessel/BesselK x nu))) 1.0e-12 1.0e-12)))
-  (doseq [x [0.01, 0.02, 0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu [0.1, 0.4567, 0.8123, 1.5, 2.5, 4.1234, 6.8, 12.3, 18.9, 28.2345, 38.1235, 51.23, 72.23435]
-          :let [xx (m/* x nu)]]
-    (t/is (m/delta-eq (sut/bessel-K nu xx) (first (rr/r->clj (base/besselK xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-K nu xx) (first (rr/r->clj (Bessel/BesselK xx nu))) 1.0e-13 1.0e-13))
-    (t/is (m/delta-eq (sut/bessel-K nu x) (first (rr/r->clj (base/besselK x nu))) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (sut/bessel-K nu x) (first (rr/r->clj (Bessel/BesselK x nu))) 1.0e-13 1.0e-13)))
-  (let [vs (range 0.0 100.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 0.15) vs) (rr/r->clj (base/besselK 0.15 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 2.1) vs) (rr/r->clj (base/besselK 2.1 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 42.1) vs) (rr/r->clj (base/besselK 42.1 vs)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 142.1) vs) (rr/r->clj (base/besselK 142.1 vs)) 1.0e-15 1.0e-15)))
-  (let [vs (range -100.0 0.0 0.25)]
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 0.15) vs) (rr/r->clj (base/besselK 0.15 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 2.1) vs) (rr/r->clj (base/besselK 2.1 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 42.1) vs) (rr/r->clj (base/besselK 42.1 vs)) 1.0e-12 1.0e-12))
-    (t/is (v/edelta-eq (map #(sut/bessel-K % 142.1) vs) (rr/r->clj (base/besselK 142.1 vs)) 1.0e-13 1.0e-13)))
-  (doseq [x [0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5,0.55,  0.6,0.65,  0.7, 0.75, 0.8, 0.85, 0.9, 0.92, 0.95, 0.97, 0.99, 1.0, 1.01, 1.05, 1.08, 1.1, 1.2, 1.4, 1.5, 1.6, 1.8, 2.0, 2.5, 3.0, 4.0, 4.5, 4.99, 5.1]
-          nu (range -50 0 0.25)
-          :let [xx (m/abs (* nu x))]]
-    (t/is (m/delta-eq (sut/bessel-K nu xx) (first (rr/r->clj (Bessel/BesselK xx nu))) 1.0e-13 1.0e-13)))
-  (t/are [v x] (m/delta-eq (sut/bessel-K v x) (first (rr/r->clj (Bessel/BesselK x v))) 1.0e-14 1.0e-14)
-    12.0 3.2
-    -8.0 4.2
-    12.3 8.2
-    -12.3 8.2))
+  ;; order/arg sweep
+  (t/is (check2 sut/bessel-K (blk :bessel-K :nu-sweep)))
+  ;; fractional orders
+  (t/is (check2 sut/bessel-K (blk :bessel-K :frac-xx)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :frac-x)))
+  ;; order sweeps, fixed arg
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-pos-015)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-pos-21)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-pos-421)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-pos-1421)))
+  ;; negative order sweeps, fixed arg
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-neg-015)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-neg-21)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-neg-421)))
+  (t/is (check2 sut/bessel-K (blk :bessel-K :vs-neg-1421)))
+  ;; negative order, positive arg
+  (t/is (check2 sut/bessel-K (blk :bessel-K :negord-axx)))
+  ;; explicit (order, arg) pairs
+  (t/is (check2 sut/bessel-K (blk :bessel-K :are))))
 
 (t/deftest bessel-K-half
   (doseq [o (range 1 100 2)
@@ -369,6 +309,196 @@
           :let [xx (* o x)
                 oh (* o 0.5)]]
     (t/is (m/delta-eq (sut/bessel-K oh xx) (sut/bessel-K-half-odd o xx) 1.0e-13 1.0e-13))))
+
+;;
+
+;; `digamma`/`trigamma` reference values below were computed independently
+;; with Python `scipy.special.digamma`/`polygamma(1, x)` and are stored in
+;; `test/resources/special/digamma_trigamma_reference.edn`. See
+;; `utils/fastmath/dev/generate_digamma_trigamma_reference.py` for the
+;; generator. In addition to that external check, both functions are also
+;; validated against their recurrence and reflection identities over dense
+;; grids (input grids are offset by a fractional amount to avoid landing on
+;; the non-positive-integer poles).
+
+(def ^:private gamma-reference
+  (delay (edn/read-string (slurp (io/resource "special/digamma_trigamma_reference.edn")))))
+
+(def ^:private gamma-recurrence-xs
+  (concat (range 0.05 10.0 0.1) (range -9.95 -0.05 0.1) [1.0e3 1.0e6 -1000.37 -1000000.37]))
+
+(def ^:private gamma-reflection-xs
+  (concat (range 0.05 5.0 0.1) (range -4.95 -0.05 0.1)))
+
+(t/deftest digamma
+  (t/is (m/nan? (sut/digamma ##NaN)))
+  (t/is (m/nan? (sut/digamma ##-Inf)))
+  (t/is (m/pos-inf? (sut/digamma ##Inf)))
+  (t/is (m/neg-inf? (sut/digamma 0.0)))
+  (t/is (m/neg-inf? (sut/digamma -0.0)))
+  (t/testing "closed-form special values"
+    (t/is (m/delta-eq (m/- m/GAMMA) (sut/digamma 1.0) 1.0e-14))
+    (t/is (m/delta-eq (m/- 1.0 m/GAMMA) (sut/digamma 2.0) 1.0e-14))
+    (t/is (m/delta-eq (m/- (m/- m/GAMMA) (m/* 2.0 m/LN2)) (sut/digamma 0.5) 1.0e-14))
+    (t/is (m/delta-eq (m/+ 2.0 (m/- (m/- m/GAMMA) (m/* 2.0 m/LN2))) (sut/digamma 1.5) 1.0e-13)))
+  (t/testing "recurrence: digamma(x+1) = digamma(x) + 1/x"
+    (doseq [x gamma-recurrence-xs]
+      (t/is (m/delta-eq (m/+ (sut/digamma x) (m// x)) (sut/digamma (m/inc x)) 1.0e-7))))
+  (t/testing "reflection: digamma(1-x) - digamma(x) = PI*cot(PI*x)"
+    (doseq [x gamma-reflection-xs]
+      (t/is (m/delta-eq (m/* m/PI (m/cot (m/* m/PI x)))
+                        (m/- (sut/digamma (m/- 1.0 x)) (sut/digamma x)) 1.0e-8))))
+  (t/testing "vs scipy"
+    (t/is (check1 sut/digamma {:arg (:arg @gamma-reference) :ref (:digamma @gamma-reference)} 1.0e-8))))
+
+(t/deftest trigamma
+  (t/is (m/nan? (sut/trigamma ##NaN)))
+  (t/is (m/nan? (sut/trigamma ##-Inf)))
+  (t/is (m/zero? (sut/trigamma ##Inf)))
+  (t/is (m/pos-inf? (sut/trigamma 0.0)))
+  (t/is (m/pos-inf? (sut/trigamma -0.0)))
+  (t/testing "closed-form special values"
+    (t/is (m/delta-eq (m// (m/sq m/PI) 6.0) (sut/trigamma 1.0) 1.0e-14))
+    (t/is (m/delta-eq (m/- (m// (m/sq m/PI) 6.0) 1.0) (sut/trigamma 2.0) 1.0e-14))
+    (t/is (m/delta-eq (m// (m/sq m/PI) 2.0) (sut/trigamma 0.5) 1.0e-13))
+    (t/is (m/delta-eq (m/- (m// (m/sq m/PI) 2.0) 4.0) (sut/trigamma 1.5) 1.0e-13)))
+  (t/testing "recurrence: trigamma(x+1) = trigamma(x) - 1/x^2"
+    (doseq [x gamma-recurrence-xs]
+      (t/is (m/delta-eq (m/- (sut/trigamma x) (m// (m/sq x))) (sut/trigamma (m/inc x)) 1.0e-6))))
+  (t/testing "reflection: trigamma(x) + trigamma(1-x) = (PI/sin(PI*x))^2"
+    (doseq [x gamma-reflection-xs]
+      (t/is (m/delta-eq (m/sq (m// m/PI (m/sin (m/* m/PI x))))
+                        (m/+ (sut/trigamma x) (sut/trigamma (m/- 1.0 x))) 1.0e-9))))
+  (t/testing "vs scipy"
+    (t/is (check1 sut/trigamma {:arg (:arg @gamma-reference) :ref (:trigamma @gamma-reference)} 1.0e-7))))
+
+;;
+
+;; `beta`/`regularized-beta`/`incomplete-beta` reference values below were
+;; computed independently with Python `mpmath` (`mpmath.beta`,
+;; `mpmath.betainc`, which support analytic continuation for negative
+;; parameters) and are stored in `test/resources/special/beta_reference.edn`.
+;; See `utils/fastmath/dev/generate_beta_reference.py` for the generator.
+;;
+;; Domain notes for negative arguments (see also `beta`'s docstring):
+;;  - `beta`: a genuine (non-removable) pole occurs when `p` or `q` itself is
+;;    a non-positive integer. When only `p+q` is a non-positive integer, the
+;;    singularity is removable and the correct value is `0.0`.
+;;  - `regularized-beta`: a genuine pole occurs whenever `a+b` is a
+;;    non-positive integer (even if `a`,`b` individually are not) - unlike
+;;    `beta`, this is *not* removable, since it corresponds to dividing a
+;;    finite incomplete-beta value by a vanishing `beta(a,b)`.
+;;  - `incomplete-beta` (unnormalized) has no such issue: its negative-domain
+;;    formula never divides by `beta(a,b)`, so it stays finite even where
+;;    `regularized-beta` is singular.
+;; Reference grids avoid true poles (`p`, `q`, `p+q` / `a`, `b`, `a+b` being
+;; non-positive integers) accordingly.
+
+(def ^:private beta-reference
+  (delay (edn/read-string (slurp (io/resource "special/beta_reference.edn")))))
+
+(t/deftest beta
+  (t/is (m/nan? (sut/beta ##NaN 1.0)))
+  (t/is (m/nan? (sut/beta 1.0 ##NaN)))
+  (t/testing "positive domain"
+    (t/is (m/delta-eq 1.0 (sut/beta 1.0 1.0)))
+    (t/is (m/delta-eq m/PI (sut/beta 0.5 0.5) 1.0e-14))
+    (t/is (m/delta-eq (m// 1.0 12.0) (sut/beta 2.0 3.0) 1.0e-14)))
+  (t/testing "negative arguments: removable singularity (p+q non-positive integer,
+              p and q themselves finite) evaluates to 0.0"
+    (t/is (m/zero? (sut/beta -0.5 -0.5)))
+    (t/is (m/zero? (sut/beta -1.5 -2.5)))
+    (t/is (m/zero? (sut/beta -0.25 -3.75)))
+    (t/is (m/zero? (sut/beta -10.5 9.5))))
+  (t/testing "negative arguments: true pole (p or q itself a non-positive integer) is NaN"
+    (t/is (m/nan? (sut/beta -1.0 2.0)))
+    (t/is (m/nan? (sut/beta 2.0 -1.0)))
+    (t/is (m/nan? (sut/beta -2.0 -3.0)))
+    (t/is (m/nan? (sut/beta -1.0 1.0))))
+  (t/testing "symmetry: beta(p,q) = beta(q,p)"
+    (let [ps (get-in @beta-reference [:beta :p])
+          qs (get-in @beta-reference [:beta :q])]
+      (t/is (v/edelta-eq (mapv sut/beta ps qs) (mapv sut/beta qs ps) 1.0e-9 1.0e-10))))
+  (t/testing "recurrence: beta(p+1,q) = beta(p,q) * p/(p+q)"
+    (doseq [[p q] (map vector (get-in @beta-reference [:beta :p]) (get-in @beta-reference [:beta :q]))]
+      (t/is (m/delta-eq (sut/beta (m/inc p) q) (m/* (sut/beta p q) (m// p (m/+ p q))) 1.0e-9 1.0e-9))))
+  (t/testing "vs mpmath (negative/mixed arguments)"
+    (t/is (check2 sut/beta {:order (get-in @beta-reference [:beta :p])
+                            :arg (get-in @beta-reference [:beta :q])
+                            :ref (get-in @beta-reference [:beta :ref])} 1.0e-10))))
+
+;; `log-beta` extends over the same domain as `beta` (see its docstring): it
+;; is `(log (beta p q))`, so it reuses the same `beta` reference grid, split
+;; by the sign of the reference `beta` value (log undefined for negative
+;; beta -> NaN).
+(t/deftest log-beta
+  (t/is (m/nan? (sut/log-beta ##NaN 1.0)))
+  (t/is (m/nan? (sut/log-beta 1.0 ##NaN)))
+  (t/testing "positive domain"
+    (t/is (m/delta-eq (m/log (m// 1.0 12.0)) (sut/log-beta 2.0 3.0) 1.0e-14))
+    (t/testing "independent identity: log-beta(p,q) = log-gamma(p)+log-gamma(q)-log-gamma(p+q)"
+      (doseq [[p q] [[2.0 3.0] [0.5 7.3] [100.0 50.0] [1.0 1.0] [0.1 0.2]]]
+        (t/is (m/delta-eq (sut/log-beta p q)
+                          (m/- (m/+ (sut/log-gamma p) (sut/log-gamma q)) (sut/log-gamma (m/+ p q)))
+                          1.0e-12 1.0e-12)))))
+  (t/testing "negative arguments: removable singularity (p+q non-positive integer,
+              p and q themselves finite) evaluates to -Infinity (log of beta's 0.0)"
+    (t/is (m/neg-inf? (sut/log-beta -0.5 -0.5)))
+    (t/is (m/neg-inf? (sut/log-beta -1.5 -2.5)))
+    (t/is (m/neg-inf? (sut/log-beta -0.25 -3.75)))
+    (t/is (m/neg-inf? (sut/log-beta -10.5 9.5))))
+  (t/testing "negative arguments: true pole (p or q itself a non-positive integer) is NaN"
+    (t/is (m/nan? (sut/log-beta -1.0 2.0)))
+    (t/is (m/nan? (sut/log-beta 2.0 -1.0)))
+    (t/is (m/nan? (sut/log-beta -2.0 -3.0)))
+    (t/is (m/nan? (sut/log-beta -1.0 1.0))))
+  (t/testing "negative arguments: beta(p,q) < 0 has no real logarithm -> NaN"
+    (t/is (m/nan? (sut/log-beta -0.5 2.0))) ;; beta(-0.5,2.0) = -4.0
+    (t/is (m/nan? (sut/log-beta 3.2 -3.7)))) ;; negative beta value, see beta-reference
+  (t/testing "matches beta over the same reference grid"
+    (let [ps (get-in @beta-reference [:beta :p])
+          qs (get-in @beta-reference [:beta :q])
+          refs (get-in @beta-reference [:beta :ref])]
+      (doseq [[p q r] (map vector ps qs refs)]
+        (if (m/pos? r)
+          (t/is (m/delta-eq (m/log r) (sut/log-beta p q) 1.0e-9 1.0e-10))
+          (t/is (m/nan? (sut/log-beta p q))))))))
+
+(t/deftest regularized-beta
+  (t/is (m/nan? (sut/regularized-beta ##NaN 1.0 2.0)))
+  (t/is (m/nan? (sut/regularized-beta 0.5 ##NaN 2.0)))
+  (t/testing "positive domain"
+    (t/is (m/zero? (sut/regularized-beta 0.0 2.0 3.0)))
+    (t/is (m/one? (sut/regularized-beta 1.0 2.0 3.0)))
+    (t/is (m/delta-eq 0.4 (sut/regularized-beta 0.4 1.0 1.0) 1.0e-14)))
+  (t/testing "negative arguments: true (non-removable) pole when a+b is a non-positive integer"
+    (t/is (m/nan? (sut/regularized-beta 0.3 -0.5 -1.5))))
+  (t/testing "reflection: I_x(a,b) = 1 - I_1-x(b,a)"
+    (let [xs (get-in @beta-reference [:incbeta :x])
+          as (get-in @beta-reference [:incbeta :a])
+          bs (get-in @beta-reference [:incbeta :b])]
+      (doseq [[x a b] (map vector xs as bs)]
+        (t/is (m/delta-eq (sut/regularized-beta x a b)
+                          (m/- 1.0 (sut/regularized-beta (m/- 1.0 x) b a)) 1.0e-6 1.0e-6)))))
+  (t/testing "vs mpmath (negative/mixed arguments)"
+    (let [{:keys [x a b reg]} (:incbeta @beta-reference)]
+      (t/is (v/edelta-eq (mapv sut/regularized-beta x a b) reg 1.0e-9 1.0e-8)))))
+
+(t/deftest incomplete-beta
+  (t/is (m/nan? (sut/incomplete-beta ##NaN 1.0 2.0)))
+  (t/is (m/nan? (sut/incomplete-beta 0.5 ##NaN 2.0)))
+  (t/testing "relation to regularized-beta and beta: incomplete-beta = regularized-beta * beta(a,b)"
+    (let [xs (get-in @beta-reference [:incbeta :x])
+          as (get-in @beta-reference [:incbeta :a])
+          bs (get-in @beta-reference [:incbeta :b])]
+      (t/is (v/edelta-eq (mapv sut/incomplete-beta xs as bs)
+                         (map (fn [x a b] (m/* (sut/regularized-beta x a b) (sut/beta a b))) xs as bs)
+                         1.0e-6 1.0e-6))))
+  (t/testing "negative arguments: stays finite where regularized-beta is singular (a+b non-positive integer)"
+    (t/is (m/delta-eq -0.24939187455541445 (sut/incomplete-beta 0.3 -0.5 -1.5) 1.0e-9)))
+  (t/testing "vs mpmath (negative/mixed arguments)"
+    (let [{ib-ref :inc :keys [x a b]} (:incbeta @beta-reference)]
+      (t/is (v/edelta-eq (mapv sut/incomplete-beta x a b) ib-ref 1.0e-9 1.0e-8)))))
 
 ;;
 
@@ -415,18 +545,14 @@
 ;;
 
 (t/deftest airy
-  (let [rsmall (range -20.00001 21.00001 0.01)
-        rlargea (range -12345.5 5678.5 9.123)
-        rlargeb (range -12345.5 101.5 9.123)
-        rlargea' (range -3234.5 5678.5 9.123)]
-    (t/is (v/edelta-eq (map sut/airy-Ai rsmall) (rr/r->clj (Bessel/AiryA rsmall)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map sut/airy-Bi rsmall) (rr/r->clj (Bessel/AiryB rsmall)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map sut/airy-Ai' rsmall) (rr/r->clj (Bessel/AiryA rsmall :deriv 1)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map sut/airy-Bi' rsmall) (rr/r->clj (Bessel/AiryB rsmall :deriv 1)) 1.0e-13 1.0e-13))
-    (t/is (v/edelta-eq (map sut/airy-Ai rlargea) (rr/r->clj (Bessel/AiryA rlargea)) 1.0e-11 1.0e-11))
-    (t/is (v/edelta-eq (map sut/airy-Bi rlargeb) (rr/r->clj (Bessel/AiryB rlargeb)) 1.0e-11 1.0e-11))
-    (t/is (v/edelta-eq (map sut/airy-Ai' rlargea') (rr/r->clj (Bessel/AiryA rlargea' :deriv 1)) 1.0e-10 1.0e-10))
-    (t/is (v/edelta-eq (map sut/airy-Bi' rlargeb) (rr/r->clj (Bessel/AiryB rlargeb :deriv 1)) 1.0e-9 1.0e-9))))
+  (t/is (check1 sut/airy-Ai (blk :airy :ai-small) 1.0e-9))
+  (t/is (check1 sut/airy-Bi (blk :airy :bi-small) 1.0e-9))
+  (t/is (check1 sut/airy-Ai' (blk :airy :ai'-small) 1.0e-9))
+  (t/is (check1 sut/airy-Bi' (blk :airy :bi'-small) 1.0e-9))
+  (t/is (check1 sut/airy-Ai (blk :airy :ai-large) 1.0e-9))
+  (t/is (check1 sut/airy-Bi (blk :airy :bi-large) 1.0e-9))
+  (t/is (check1 sut/airy-Ai' (blk :airy :ai'-large) 1.0e-9))
+  (t/is (check1 sut/airy-Bi' (blk :airy :bi'-large) 1.0e-9)))
 
 ;;
 

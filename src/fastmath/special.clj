@@ -130,18 +130,36 @@
 
 ;; Beta
 
-(defn log-beta
-  "Logarithm of Beta function."
-  {:inline (fn ([p q] `(. Beta (logBeta (double ~p) (double ~q)))))
-   :inline-arities #{2}}
-  ^double [^double p ^double q] (. Beta (logBeta p q)))
+(defn- nonpos-int?
+  ^Boolean [^double x] (and (m/not-pos? x) (m/integer? x)))
 
 (defn beta
-  "Beta function"
+  "Beta function.
+
+  Analytic continuation for negative `p` and/or `q`: $\\Gamma(p)\\Gamma(q)/\\Gamma(p+q)$.
+  When `p+q` is a non-positive integer but neither `p` nor `q` is, `Gamma(p+q)`
+  has a pole while `1/Gamma` has a (removable) zero there, so the limit of the
+  ratio is `0.0` (returned directly, since evaluating `Gamma` at its own pole
+  would otherwise yield `NaN`)."
+  ^double [^double p ^double q]
+  (let [s (m/+ p q)]
+    (cond
+      (and (m/pos? p) (m/pos? q)) (m/exp (. Beta (logBeta p q)))
+      (and (nonpos-int? s) (not (nonpos-int? p)) (not (nonpos-int? q))) 0.0
+      :else (m// (m/* (gamma p) (gamma q)) (gamma s)))))
+
+(defn log-beta
+  "Logarithm of Beta function, $\\ln|\\mathrm{B}(p,q)|$ conceptually, covering the
+  same domain as [[beta]] (including negative `p`/`q`).
+
+  For `p,q>0` this is always real and delegates directly to the accurate
+  Commons-Math `logBeta`. Outside that domain it's `(log (beta p q))`: since
+  [[beta]] can be negative there (no real logarithm), the result is `NaN` in
+  that case, `##-Inf` at [[beta]]'s removable zero, and `NaN` at its poles."
   ^double [^double p ^double q]
   (if (and (m/pos? p) (m/pos? q))
-    (m/exp (. Beta (logBeta p q)))
-    (m// (m/* (gamma p) (gamma q)) (gamma (m/+ p q)))))
+    (. Beta (logBeta p q))
+    (m/log (beta p q))))
 
 (defn regularized-beta
   "Regularized Beta I_x(a,b)"

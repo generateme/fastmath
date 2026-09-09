@@ -30,7 +30,7 @@
   :javac-options ["--release" "8"  "-Xlint:unchecked"]
   :jvm-opts ["-Djdk.attach.allowAttachSelf=true"]
   :scm {:name "git"
-        :url "https://github.com/generateme/fastmath/"}  
+        :url "https://github.com/generateme/fastmath/"}
   :profiles {:1.10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :1.11 {:dependencies [[org.clojure/clojure "1.11.4"]]}
              :1.12 {:dependencies [[org.clojure/clojure "1.12.5"]]}
@@ -53,7 +53,9 @@
                                   [clojure2d/clojure2d "1.5.0-alpha2-SNAPSHOT"]
                                   [org.scicloj/plotje "0.8.1" :exclusions [clojure2d/clojure2d
                                                                            generateme/fastmath]]]
-                   :source-paths ["notebooks" "utils"]}
+                   :source-paths ["notebooks" "utils"]
+                   ;; test-only reference data (e.g. precomputed R values for special-test)
+                   :resource-paths ["test/resources"]}
              :dev-codox {:codox {:source-uri "https://github.com/generateme/fastmath/blob/master/{filepath}#L{line}"
                                  :namespaces [#"^fastmath\.(?!fields\.[a-z])"]}}}
   :aliases {"tests-with-md" ["with-profile" "dev" "do"

@@ -199,22 +199,24 @@
 
 (defn H
   ^double [^double x ^double eps]
-  (let [zm0p5 (m/- x 0.5)
-        zpgm0p5 (m/+ zm0p5 4.7421875)]
-    (if (m/>= x 0.5 )
-      (if (m/zero? eps)
-        (m/- (m/dec (m/+ (m// zm0p5 zpgm0p5) (m/log zpgm0p5))) (lanczos-ratio x eps))
-        (m// (m/expm1 (m/- (m/+ (m/* zm0p5 (m/log1p (m// eps zpgm0p5)))
-                                (m/* eps (m/log (m/+ zpgm0p5 eps)))
-                                (m/log1p (m/* -1.0 eps (lanczos-ratio x eps)))) eps)) eps))
-      (let [tpz (m/tanpi x)]
+  (if (m/nan? x)
+    ##NaN
+    (let [zm0p5 (m/- x 0.5)
+          zpgm0p5 (m/+ zm0p5 4.7421875)]
+      (if (m/>= x 0.5)
         (if (m/zero? eps)
-          (m/- (H (m/- 1.0 x) eps) (m// m/PI tpz))
-          (let [heps (m/* 0.5 eps)
-                temp (m/- (m/+ (m/* (m/+ (m/cospi eps) (m// (m/sinpi eps) tpz)) (H (m/- 1.0 x) (m/- eps)))
-                               (m/* heps (m/sq (m/* m/PI (m/sinc heps)))))
-                          (m// (m/* m/PI (m/sinc eps)) tpz))]
-            (m// temp (m/- 1.0 (m/* eps temp)))))))))
+          (m/- (m/dec (m/+ (m// zm0p5 zpgm0p5) (m/log zpgm0p5))) (lanczos-ratio x eps))
+          (m// (m/expm1 (m/- (m/+ (m/* zm0p5 (m/log1p (m// eps zpgm0p5)))
+                                  (m/* eps (m/log (m/+ zpgm0p5 eps)))
+                                  (m/log1p (m/* -1.0 eps (lanczos-ratio x eps)))) eps)) eps))
+        (let [tpz (m/tanpi x)]
+          (if (m/zero? eps)
+            (m/- (H (m/- 1.0 x) eps) (m// m/PI tpz))
+            (let [heps (m/* 0.5 eps)
+                  temp (m/- (m/+ (m/* (m/+ (m/cospi eps) (m// (m/sinpi eps) tpz)) (H (m/- 1.0 x) (m/- eps)))
+                                 (m/* heps (m/sq (m/* m/PI (m/sinc heps)))))
+                            (m// (m/* m/PI (m/sinc eps)) tpz))]
+              (m// temp (m/- 1.0 (m/* eps temp))))))))))
 
 (defn G
   ^double [^double x ^double eps]
