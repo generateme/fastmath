@@ -134,13 +134,23 @@
   ^Boolean [^double x] (and (m/not-pos? x) (m/integer? x)))
 
 (defn beta
-  "Beta function.
+  "Computes the Beta function of `p` and `q`.
 
-  Analytic continuation for negative `p` and/or `q`: $\\Gamma(p)\\Gamma(q)/\\Gamma(p+q)$.
-  When `p+q` is a non-positive integer but neither `p` nor `q` is, `Gamma(p+q)`
-  has a pole while `1/Gamma` has a (removable) zero there, so the limit of the
-  ratio is `0.0` (returned directly, since evaluating `Gamma` at its own pole
-  would otherwise yield `NaN`)."
+  The Beta function is defined as `Gamma(p)*Gamma(q)/Gamma(p+q)`, and is
+  closely related to the Gamma function and to binomial coefficients.
+
+  Parameters:
+
+  - `p`, `q` (double): real arguments.
+
+  Returns a double. Defined via analytic continuation for negative `p`
+  and/or `q` as well. Returns `##NaN` where `p` or `q` is a nonpositive
+  integer (a true pole), except that if `p+q` is also a nonpositive integer
+  while neither `p` nor `q` individually is, the two singularities cancel
+  and `0.0` is returned instead.
+
+  See also [[log-beta]], [[regularized-beta]], [[incomplete-beta]],
+  [[gamma]]."
   ^double [^double p ^double q]
   (let [s (m/+ p q)]
     (cond
@@ -149,13 +159,19 @@
       :else (m// (m/* (gamma p) (gamma q)) (gamma s)))))
 
 (defn log-beta
-  "Logarithm of Beta function, $\\ln|\\mathrm{B}(p,q)|$ conceptually, covering the
-  same domain as [[beta]] (including negative `p`/`q`).
+  "Computes the natural logarithm of the absolute value of the Beta
+  function of `p` and `q`.
 
-  For `p,q>0` this is always real and delegates directly to the accurate
-  Commons-Math `logBeta`. Outside that domain it's `(log (beta p q))`: since
-  [[beta]] can be negative there (no real logarithm), the result is `NaN` in
-  that case, `##-Inf` at [[beta]]'s removable zero, and `NaN` at its poles."
+  Parameters:
+
+  - `p`, `q` (double): real arguments, same domain as [[beta]].
+
+  Returns a double. Equal to the logarithm of [[beta]] wherever [[beta]] is
+  positive (always the case for `p,q>0`). Elsewhere, since [[beta]] can be
+  negative, zero, or undefined there, the result is `##NaN` where [[beta]]
+  is negative or at its poles, and `##-Inf` at its removable zero.
+
+  See also [[beta]]."
   ^double [^double p ^double q]
   (if (and (m/pos? p) (m/pos? q))
     (. Beta (logBeta p q))
@@ -235,20 +251,90 @@
                    zt (recur (m/dec v) nzt)))))
            (m/+ z n))))
 
+(defn- zeta-neg-s
+  ^double [^double s ^double z]
+  (let [s (m/- 1.0 s)
+        z (if (m/neg? z) (m/- 1.0 (m/frac z)) (m/frac z))
+        f (m/exp (m/- (m/+ m/M_LN2 (log-gamma s)) (m/* s m/LOG_TWO_PI)))
+        f1 (m/* m/HALF_PI s)
+        f2 (m/* m/TWO_PI z)
+        -s (m/- s)]
+    (loop [n (long 1)
+           sum 0.0
+           np 1.0]
+      (if (m/< np m/MACHINE-EPSILON)
+        (do (println n )(m/* f sum))
+        (let [nn (m/inc n)]
+          (recur nn (m/+ sum (m/* np (m/cos (m/- f1 (m/* f2 n))))) (m/pow nn -s)))))))
+
+(defn- zeta-shift-z
+  ^double [^double s ^double z]
+  (cond
+    (m/> z 1.0) (let [m (long z)
+                      a (m/frac z)
+                      -s (m/- s)]
+                  (m/- (v/sum (map (fn [^long n] (m/pow (m/+ a n) -s)) (range m)))))
+    (m/neg? z) (let [m (m/inc (m/abs (long z)))
+                     -s (m/- s)]
+                 (v/sum (map (fn [^long n] (m/pow (m/+ z n) -s)) (range m))))
+    :else 0.0))
+
 (defn zeta
-  "Riemann and Hurwitz zeta functions for real arguments"
+  "Computes the Riemann zeta function of `s`, or the Hurwitz (generalized)
+  zeta function of `s` and `z`.
+
+  The Riemann zeta function is `sum(n^-s)` for `n` from `1` to infinity,
+  analytically continued to the whole real line except for its pole at
+  `s=1`. The Hurwitz zeta function generalizes it with an additional real
+  offset `z`, as `sum((z+n)^-s)` for `n` from `0` to infinity; it reduces
+  to the Riemann zeta function when `z` is `0` or `1`.
+
+  Parameters:
+
+  - `s` (double): the order.
+  - `z` (double, two-argument arity only): the offset.
+
+  Returns a double. `##NaN` at the pole `s=1` (single-argument arity), or
+  where `z<0` together with a non-integer `s` (two-argument arity, a domain
+  where no real result exists). Values that legitimately exceed double
+  precision saturate to `##Inf` or `##-Inf`.
+
+  Accuracy of the two-argument (Hurwitz) form degrades for very negative
+  `s` (roughly below `-5`), particularly combined with `z` close to `0`;
+  the single-argument (Riemann) form is accurate across its whole domain.
+
+  See also [[eta]], [[dirichlet-beta]], [[xi]], [[polygamma]]."
   (^double [^double s]
    (cond
      (m/zero? s) -0.5
      (or (m/one? s) (m/nan? s) (m/neg-inf? s)) ##NaN
      (m/pos-inf? s) 1.0
+     ;; trivial zeros at negative even integers, returned exactly: detecting
+     ;; them via `(sin (* HALF_PI s))` in the reflection branch below loses
+     ;; all precision for large |s| (HALF_PI*s is an imprecise multiple of
+     ;; pi long before s gets large), corrupting the result instead of
+     ;; giving (approximately) zero
+     (and (nonpos-int? s) (m/even? (long s))) 0.0
      (m/< (m/abs s) 1.0e-3) (poly/mevalpoly s -0.5,
                                             -0.918938533204672741780329736405617639861,
                                             -1.0031782279542924256050500133649802190,
                                             -1.00078519447704240796017680222772921424,
                                             -0.9998792995005711649578008136558752359121)
-     (m/< s 0.5) (let [oms (m/- 1.0 s)]
-                   (m/* (zeta oms) (gamma oms) (m/sin (m/* m/HALF_PI s)) (m/pow m/TWO_PI s) m/INV_PI))
+     (m/< s 0.5) (let [oms (m/- 1.0 s)
+                       zoms (zeta oms)
+                       sinv (m/sin (m/* m/HALF_PI s))]
+                   ;; computed in log-space (using log-gamma instead of gamma) to
+                   ;; avoid premature intermediate overflow of `(gamma oms)` for
+                   ;; very negative `s` (i.e. very large `oms`), which would
+                   ;; otherwise poison an otherwise representable finite result
+                   (if (or (m/zero? zoms) (m/zero? sinv))
+                     0.0
+                     (m/* (m/sgn zoms) (m/sgn sinv)
+                          (m/exp (m/+ (m/log (m/abs zoms))
+                                      (log-gamma oms)
+                                      (m/log (m/abs sinv))
+                                      (m/* s (m/log m/TWO_PI))
+                                      (m/log m/INV_PI))))))
      :else (let [m (m/dec s)
                  zt (m/inc (m/+ (m/pow 0.5 s)
                                 (m/pow m/THIRD s)
@@ -262,11 +348,26 @@
   (^double [^double s ^double z]
    (cond
      (or (m/zero? z) (m/one? z)) (zeta s)
+     ;; zeta(s,-1) = zeta(s,0) + (-1)^-s; for s<>0 that's zeta(s) + (-1)^-s
+     ;; (only real when s is a nonpositive integer, otherwise (-1)^-s is
+     ;; complex, or, for s>0, the recursion's 0^-s term diverges/is a pole);
+     ;; s=0 is a special case since 0^-s=0^0=1 by convention rather than 0,
+     ;; handled directly via the closed form zeta(0,a)=0.5-a
+     (m/== z -1.0) (cond
+                     (m/zero? s) 1.5
+                     (nonpos-int? s) (m/+ (zeta s) (m/pow -1.0 (m/- s)))
+                     :else ##NaN)
      (m/== s 2.0) (trigamma z)
      (or (m/nan? s) (m/nan? z) (m/neg-inf? s)
          (and (m/inf? s) (m/neg? z))) ##NaN
      (and (m/inf? s) (m/> z 1.0)) 0.0
      (m/inf? s) ##Inf
+     ;; for s<=-2, z<0 and non-integer s: zeta(s,z) is genuinely complex
+     ;; (analytic continuation of z^-s for negative real z and non-integer
+     ;; exponent leaves the reals), so no real value exists
+     (and (m/<= s -2.0) (m/neg? z) (not (m/integer? s))) ##NaN
+     (m/<= s -2.0) (let [shift (zeta-shift-z s z)]
+                     (m/+ shift (zeta-neg-s s z)))
      :else (let [m (m/dec s)
                  cutoff (m/+ 7.0 m)
                  ^Vec2 ztz (if (m/< z cutoff) (zeta-sz-inner s z cutoff) (Vec2. 0.0 z))
@@ -294,8 +395,23 @@
 (defn dirichlet-beta
   "Dirichlet Beta function"
   ^double [^double x]
-  (m/* (m/exp (m/* -1.38629436111989061883 x))
-       (m/- (zeta x 0.25) (zeta x 0.75))))
+  (cond
+    ;; removable singularity: both zeta(x,0.25) and zeta(x,0.75) individually
+    ;; have a pole at x=1 (with equal residues, so they cancel); the closed
+    ;; form pi/4 is used directly instead of relying on the (Inf - Inf)
+    ;; cancellation
+    (m/one? x) (m/* 0.25 m/PI)
+    ;; the alternating L-series converges to 1 extremely quickly as x grows
+    ;; (already indistinguishable from 1.0 at double precision by x~40); the
+    ;; general formula below is a (0 * (Inf - Inf)) indeterminate form both
+    ;; at x=Inf and, for large enough finite x, numerically too: `4^-x`
+    ;; underflows to exactly 0.0 around x>745, while `zeta(x,0.25)` (whose
+    ;; leading term is `4^x`) overflows around x>=512, i.e. for x in
+    ;; [512, 745) the product of an exact-0.0 and an Inf-Inf NaN yields NaN
+    ;; instead of the correct ~1.0
+    (m/>= x 100.0) 1.0
+    :else (m/* (m/exp (m/* -1.38629436111989061883 x))
+               (m/- (zeta x 0.25) (zeta x 0.75)))))
 
 (defn xi
   "Riemann (Landau's) Xi function"
@@ -304,8 +420,26 @@
     (m/neg? s) (xi (m/- 1.0 s))
     (m/one? s) 0.5
     (m/zero? s) 0.5
-    :else (let [hs (m/* 0.5 s)]
-            (m/* hs (m/dec s) (m/pow m/INV_PI hs) (gamma hs) (zeta s)))))
+    ;; xi grows without bound (monotonically, staying positive) as s -> +Inf;
+    ;; -Inf is handled by the reflection above, recursing into this branch
+    (m/pos-inf? s) ##Inf
+    :else (let [hs (m/* 0.5 s)
+                sm1 (m/dec s)
+                z (zeta s)]
+            ;; computed in log-space (using log-gamma instead of gamma) to
+            ;; avoid premature intermediate overflow of `(gamma hs)` for
+            ;; large `s`, which would otherwise poison an otherwise
+            ;; representable finite result (`hs`, `Gamma(hs)` and
+            ;; `INV_PI^hs` are always positive for `s>0`; only `(s-1)` and
+            ;; `zeta(s)` can be negative)
+            (if (or (m/zero? sm1) (m/zero? z))
+              0.0
+              (m/* (m/sgn sm1) (m/sgn z)
+                   (m/exp (m/+ (m/log hs)
+                               (m/log (m/abs sm1))
+                               (m/* hs (m/log m/INV_PI))
+                               (log-gamma hs)
+                               (m/log (m/abs z)))))))))
 
 (def ^:private cotderiv-q-memo
   (memoize
@@ -365,20 +499,50 @@
                 (if (m/== s news) s (recur (m/inc n) news)))))))
 
 (defn polygamma
-  "Polygamma function of order `m` and real argument."
+  "Computes the polygamma function of order `m` at a real argument `x`.
+
+  The polygamma function is the `m`-th derivative of the digamma function,
+  generalizing [[digamma]] (order `0`) and [[trigamma]] (order `1`) to
+  arbitrary nonnegative integer order.
+
+  Parameters:
+
+  - `m` (long): the order, must be nonnegative.
+  - `x` (double): real argument.
+
+  Returns a double. `##NaN` for negative `m`. Has poles at `x` equal to `0`
+  or any negative integer: at `x=0` this is `##Inf` or `##-Inf` (sign
+  depending on the parity of `m`), while at negative-integer poles a very
+  large finite value approximating the pole is returned instead. For
+  `x>0`, results are positive for odd `m` and negative for even `m`, and
+  decay towards `0` as `x` grows.
+
+  Accuracy degrades for large even `m` combined with nonpositive `x`,
+  particularly near half-integer `x`.
+
+  See also [[digamma]], [[trigamma]], [[zeta]]."
   ^double [^long m ^double x]
   (if (m/neg? m)
     ##NaN
     (case (int m)
       0 (digamma x)
       1 (trigamma x)
-      (let [s (m/inc m)]
+      (let [s (m/inc m)
+            lgs (log-gamma s)]
         (if (m/not-pos? x)
-          (let [v (cotderiv m x)]
-            (m/* (m/+ (zeta s (m/- 1.0 x)) (if (m/even? m) v (m/- v)))
-                 (m/- (gamma s))))
-          (let [v (m/* (zeta s x) (m/- (gamma s)))]
-            (if (m/even? m) v (m/- v))))))))
+          ;; parity already folded into `inner` (added to zeta before
+          ;; multiplying by -Gamma(s)); no further sign flip needed
+          (let [v (cotderiv m x)
+                inner (m/+ (zeta s (m/- 1.0 x)) (if (m/even? m) v (m/- v)))]
+            (if (m/zero? inner)
+              0.0
+              (m/* (m/- (m/sgn inner)) (m/exp (m/+ (m/log (m/abs inner)) lgs)))))
+          ;; zeta(s,x) is always positive here (s>1, x>0); parity applied
+          ;; as a separate sign flip on the zeta*Gamma(s) product
+          (let [zs (zeta s x)]
+            (if (m/zero? zs)
+              0.0
+              (m/* (if (m/even? m) -1.0 1.0) (m/exp (m/+ (m/log zs) lgs))))))))))
 
 ;; https://github.com/JuliaMath/Bessels.jl/blob/master/src/BesselFunctions/besselk.jl
 

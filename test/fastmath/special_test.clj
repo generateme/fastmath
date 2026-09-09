@@ -502,6 +502,178 @@
 
 ;;
 
+;; `zeta`/`eta`/`dirichlet-beta`/`xi` reference values below were computed
+;; independently with Python `mpmath` (`mpmath.zeta`, `mpmath.altzeta`;
+;; `dirichlet-beta`/`xi` via their standard defining formulas using mpmath's
+;; own gamma/zeta) and are stored in `test/resources/special/zeta_reference.edn`.
+;; See `utils/fastmath/dev/generate_zeta_reference.py` for the generator.
+;;
+;; KNOWN LIMITATION (see also `zeta`'s docstring): the 2-arity Hurwitz
+;; `(zeta s z)` becomes unreliable for sufficiently negative `s` (roughly
+;; `s < -5` for `z ≲ 2`, more for larger `z`) - its `:zeta2` reference grid
+;; below is restricted to a domain verified to be accurate. The 1-arity
+;; Riemann `(zeta s)` has no such restriction (`:zeta1` covers a wide range).
+
+(def ^:private zeta-reference
+  (delay (edn/read-string (slurp (io/resource "special/zeta_reference.edn")))))
+
+(t/deftest zeta
+  (t/testing "1-arity (Riemann): edge cases"
+    (t/is (m/nan? (sut/zeta ##NaN)))
+    (t/is (m/nan? (sut/zeta ##-Inf)))
+    (t/is (m/nan? (sut/zeta 1.0))) ;; pole
+    (t/is (m/one? (sut/zeta ##Inf))))
+  (t/testing "1-arity: closed-form special values"
+    (t/is (m/delta-eq -0.5 (sut/zeta 0.0)))
+    (t/is (m/delta-eq (m// (m/pow m/PI 2.0) 6.0) (sut/zeta 2.0) 1.0e-14))
+    (t/is (m/delta-eq (m// (m/pow m/PI 4.0) 90.0) (sut/zeta 4.0) 1.0e-13))
+    (t/is (m/delta-eq (m// -1.0 12.0) (sut/zeta -1.0) 1.0e-14))
+    (t/is (m/delta-eq (m// 1.0 120.0) (sut/zeta -3.0) 1.0e-14))
+    (t/is (m/delta-eq (m// -1.0 252.0) (sut/zeta -5.0) 1.0e-14)))
+  (t/testing "1-arity: trivial zeros at negative even integers, exact"
+    (doseq [n [2 4 20 50 100 200 1000 10000]]
+      (t/is (m/zero? (sut/zeta (m/- (double n)))))))
+  (t/testing "vs mpmath, wide domain (positive and negative, both fixed via
+              the log-space reflection rewrite)"
+    (t/is (check1 sut/zeta {:arg (get-in @zeta-reference [:zeta1 :arg])
+                            :ref (get-in @zeta-reference [:zeta1 :ref])} 1.0e-10)))
+  (t/testing "2-arity (Hurwitz): shortcuts and edge cases"
+    (t/is (m/delta-eq (sut/zeta 3.3) (sut/zeta 3.3 0.0) 1.0e-14))
+    (t/is (m/delta-eq (sut/zeta 3.3) (sut/zeta 3.3 1.0) 1.0e-14))
+    (t/is (m/delta-eq (sut/trigamma 2.5) (sut/zeta 2.0 2.5) 1.0e-14))
+    (t/is (m/nan? (sut/zeta ##NaN 1.5)))
+    (t/is (m/nan? (sut/zeta 2.0 ##NaN)))
+    (t/is (m/nan? (sut/zeta ##-Inf 1.5)))
+    (t/is (m/nan? (sut/zeta ##Inf -0.5)))
+    (t/is (m/zero? (sut/zeta ##Inf 2.0)))
+    (t/is (m/pos-inf? (sut/zeta ##Inf 0.5))))
+  (t/testing "2-arity: closed forms via Bernoulli polynomials"
+    (doseq [z [0.3 1.7 5.2]]
+      (t/is (m/delta-eq (m/- 0.5 z) (sut/zeta 0.0 z) 1.0e-13))
+      (t/is (m/delta-eq (m/* -0.5 (m/+ (m/* z z) (m/- z) (m// 1.0 6.0))) (sut/zeta -1.0 z) 1.0e-12))))
+  (t/testing "2-arity: recurrence zeta(s,z+1) = zeta(s,z) - z^-s (safe domain)"
+    (doseq [s [0.3 2.0 3.0 10.5] z [0.3 1.5 3.7]]
+      (t/is (m/delta-eq (sut/zeta s (m/inc z)) (m/- (sut/zeta s z) (m/pow z (m/- s))) 1.0e-9 1.0e-9))))
+  (t/testing "vs mpmath, restricted safe domain"
+    (t/is (check2 sut/zeta {:order (get-in @zeta-reference [:zeta2 :s])
+                            :arg (get-in @zeta-reference [:zeta2 :z])
+                            :ref (get-in @zeta-reference [:zeta2 :ref])} 1.0e-9))))
+
+(t/deftest eta
+  (t/is (m/nan? (sut/eta ##NaN)))
+  (t/is (m/nan? (sut/eta ##-Inf)))
+  (t/is (m/one? (sut/eta ##Inf)))
+  (t/testing "closed-form special values"
+    (t/is (m/delta-eq 0.5 (sut/eta 0.0)))
+    (t/is (m/delta-eq m/LN2 (sut/eta 1.0) 1.0e-14))
+    (t/is (m/delta-eq (m// (m/pow m/PI 2.0) 12.0) (sut/eta 2.0) 1.0e-14))
+    (t/is (m/delta-eq 0.25 (sut/eta -1.0) 1.0e-14)))
+  (t/testing "relation to zeta: eta(s) = (1 - 2^(1-s)) * zeta(s)"
+    (doseq [s (get-in @zeta-reference [:zeta1 :arg])
+            :when (not (m/one? s))]
+      (t/is (m/delta-eq (sut/eta s) (m/* (m/- 1.0 (m/pow 2.0 (m/- 1.0 s))) (sut/zeta s)) 1.0e-9 1.0e-9))))
+  (t/testing "vs mpmath (altzeta), wide domain"
+    (t/is (check1 sut/eta {:arg (get-in @zeta-reference [:zeta1 :arg])
+                           :ref (get-in @zeta-reference [:eta :ref])} 1.0e-10))))
+
+(t/deftest dirichlet-beta
+  (t/is (m/nan? (sut/dirichlet-beta ##NaN)))
+  (t/testing "closed-form special values"
+    (t/is (m/delta-eq (m// m/PI 4.0) (sut/dirichlet-beta 1.0) 1.0e-14))
+    (t/is (m/delta-eq 0.5 (sut/dirichlet-beta 0.0)))
+    (t/is (m/near-zero? (sut/dirichlet-beta -1.0) 1.0e-9))
+    (t/is (m/delta-eq -0.5 (sut/dirichlet-beta -2.0) 1.0e-9))
+    (t/is (m/near-zero? (sut/dirichlet-beta -3.0) 1.0e-9))
+    (t/is (m/delta-eq 2.5 (sut/dirichlet-beta -4.0) 1.0e-9)))
+  (t/testing "converges to 1.0 as x -> +Inf, including for large finite x where
+              the general formula would otherwise hit a 0 * (Inf - Inf) failure
+              mode (`4^-x` underflows to 0.0 before `4^x` in zeta(x,0.25) overflows)"
+    (t/is (m/one? (sut/dirichlet-beta 100.0)))
+    (t/is (m/one? (sut/dirichlet-beta 600.0)))
+    (t/is (m/one? (sut/dirichlet-beta 1000.0)))
+    (t/is (m/one? (sut/dirichlet-beta ##Inf))))
+  (t/testing "-Inf has no well-defined limit (oscillating growth), stays NaN"
+    (t/is (m/nan? (sut/dirichlet-beta ##-Inf))))
+  (t/testing "vs mpmath, wide positive / restricted negative domain"
+    (t/is (check1 sut/dirichlet-beta {:arg (get-in @zeta-reference [:dbeta :arg])
+                                      :ref (get-in @zeta-reference [:dbeta :ref])} 1.0e-9))))
+
+(t/deftest xi
+  (t/is (m/nan? (sut/xi ##NaN)))
+  (t/is (m/pos-inf? (sut/xi ##Inf)))
+  (t/is (m/pos-inf? (sut/xi ##-Inf)))
+  (t/testing "closed-form special values"
+    (t/is (m/delta-eq 0.5 (sut/xi 0.0)))
+    (t/is (m/delta-eq 0.5 (sut/xi 1.0))))
+  (t/testing "functional equation: xi(s) = xi(1-s), wide domain (fixed via the
+              log-space rewrite)"
+    (doseq [s (get-in @zeta-reference [:xi :arg])]
+      (t/is (m/delta-eq (sut/xi s) (sut/xi (m/- 1.0 s)) 1.0e-9 1.0e-9))))
+  (t/testing "vs mpmath, wide domain"
+    (t/is (check1 sut/xi {:arg (get-in @zeta-reference [:xi :arg])
+                          :ref (get-in @zeta-reference [:xi :ref])} 1.0e-10))))
+
+;; Reference values for `polygamma` were computed independently with
+;; `mpmath.polygamma` and are stored in
+;; `test/resources/special/polygamma_reference.edn`. See
+;; `utils/fastmath/dev/generate_polygamma_reference.py` for the generator,
+;; and for why `x<=0` is restricted to small orders/moderate `|x|` there
+;; (a known limitation of the internal `cotderiv` helper, see also
+;; `polygamma`'s own docstring).
+
+(def ^:private polygamma-reference
+  (delay (edn/read-string (slurp (io/resource "special/polygamma_reference.edn")))))
+
+(t/deftest polygamma
+  (t/testing "negative order -> NaN"
+    (t/is (m/nan? (sut/polygamma -1 1.0)))
+    (t/is (m/nan? (sut/polygamma -5 2.0))))
+  (t/testing "order 0/1 delegate to digamma/trigamma"
+    (doseq [x [0.5 1.5 2.5 10.0 -0.5 -2.5]]
+      (t/is (m/delta-eq (sut/polygamma 0 x) (sut/digamma x) 1.0e-12))
+      (t/is (m/delta-eq (sut/polygamma 1 x) (sut/trigamma x) 1.0e-12))))
+  (t/testing "NaN/Inf x"
+    (t/is (m/nan? (sut/polygamma 3 ##NaN)))
+    (t/is (m/zero? (sut/polygamma 3 ##Inf)))
+    (t/is (m/nan? (sut/polygamma 3 ##-Inf))))
+  (t/testing "pole at x=0 (and -0.0): +-Inf, sign depending on order parity"
+    (t/is (m/neg-inf? (sut/polygamma 2 0.0)))
+    (t/is (m/pos-inf? (sut/polygamma 3 0.0)))
+    (t/is (m/neg-inf? (sut/polygamma 2 -0.0)))
+    (t/is (m/pos-inf? (sut/polygamma 3 -0.0))))
+  (t/testing "poles at negative integers: large magnitude (a floating-point
+              approximation of a true pole via `cotderiv`'s cot(pi*z),
+              not exactly +-Inf)"
+    (t/is (> (Math/abs (sut/polygamma 2 -1.0)) 1.0e40))
+    (t/is (> (Math/abs (sut/polygamma 3 -2.0)) 1.0e40)))
+  (t/testing "closed form at x=1: psi^(m)(1) = (-1)^(m+1) * m! * zeta(m+1)"
+    (doseq [m [2 3 4 5 10 50 100 150]]
+      (let [expected (* (if (odd? m) 1.0 -1.0)
+                         (Math/exp (sut/log-gamma (inc m)))
+                         (sut/zeta (inc m)))]
+        (t/is (m/delta-eq (sut/polygamma m 1.0) expected 1.0e-9 1.0e-9)))))
+  (t/testing "recurrence: psi^(m)(x+1) = psi^(m)(x) + (-1)^m * m!/x^(m+1)"
+    (doseq [m (range 2 11) x [0.7 1.3 2.5 5.5]]
+      (let [rhs (+ (sut/polygamma m x)
+                   (* (if (even? m) 1.0 -1.0) (Math/exp (sut/log-gamma (inc m)))
+                      (Math/pow x (- (inc m)))))]
+        (t/is (m/delta-eq (sut/polygamma m (inc x)) rhs 1.0e-8 1.0e-8)))))
+  (t/testing "sign pattern for x>0: negative for even order, positive for odd"
+    (doseq [m (range 2 11) x [0.5 1.0 2.5 10.0]]
+      (let [v (sut/polygamma m x)]
+        (t/is (if (even? m) (neg? v) (pos? v))))))
+  (t/testing "decays to 0 for large x"
+    (t/is (m/delta-eq 0.0 (sut/polygamma 2 1e12) 1.0e-9))
+    (t/is (m/delta-eq 0.0 (sut/polygamma 3 1e12) 1.0e-9)))
+  (t/testing "vs mpmath, x>0, wide order range (up to m=300, after the
+              log-space Gamma-overflow fix)"
+    (t/is (check2 sut/polygamma (:pos @polygamma-reference) 1.0e-8)))
+  (t/testing "vs mpmath, x<=0, small orders (see namespace comment above for
+              why larger orders/|x| are excluded here)"
+    (t/is (check2 sut/polygamma (:neg @polygamma-reference) 1.0e-5))))
+
+;;
+
 ;; Abramowitz and Stegun p.511
 (t/deftest kummers-m
   (t/are [a b x res] (m/delta-eq res (sut/kummers-M a b x))
