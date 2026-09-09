@@ -272,7 +272,7 @@
 (defn- b-spline-beta
   [^long n ^double x]
   (let [n!inv (m/inv-factorial n)
-        n+ (m/inc n)
+        n+ (m/long-inc n)
         nx (m/+ x (m/* 0.5 n+))]
     (loop [k (long 0)
            neg 1.0
@@ -290,7 +290,7 @@
   ([] (b-spline nil))
   ([{:keys [^long n]
      :or {n 2.0}}]
-   (let [nn (m/inc (m/* 2 n))]
+   (let [nn (m/long-inc (m/long-mult 2 n))]
      (fn ^double [x y]
        (-> (v/sub x y)
            (v/abs)

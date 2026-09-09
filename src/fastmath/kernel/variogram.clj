@@ -1000,7 +1000,7 @@
         s (m// (stats/median-absolute-deviation ys m) 0.6745)]
     (filter (fn [v] (m/<= (m/abs (m// (m/- (double (v 2)) m) s)) 3.0)) combined)))
 
-(defn- maybe-remove-outliers
+(defn maybe-remove-outliers
   [combined ys remove-outliers?]
   (cond
     (= :mad remove-outliers?) (remove-outliers-mad combined ys)

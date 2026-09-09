@@ -285,7 +285,7 @@
   ([] (singla-singh 256))
   ([^long N] (singla-singh N nil))
   ([^long N {:keys [normalize? ^double order] :or {normalize? true order 1.0}}]
-   (sample-window (->singla-singh order) N normalize?)))
+   (sample-window (->singla-singh (long order)) N normalize?)))
 
 
 ;;
@@ -788,9 +788,9 @@
   (let [e (eta level)
         ace (m/acosh e)]
     (fn [^long N]
-      (let [N- (m/dec N)
+      (let [N- (m/long-dec N)
             x0 (m/cosh (m// ace N-))
-            f (m// N (double (poly/eval-chebyshev-T N- x0)))
+            f (m// N (poly/eval-chebyshev-T N- x0))
             dN (double N)]
         (->> (range N)
              (map (fn [^long n] (m/* f (poly/eval-chebyshev-T N- (m/* x0 (m/cospi (m// n dN)))))))
@@ -964,9 +964,9 @@
   (let [e (eta level)
         ace (m/acosh e)]
     (fn [^long N]
-      (let [N- (m/dec N)
+      (let [N- (m/long-dec N)
             x0 (m/cosh (m// ace N-))
-            f (m// N (double (poly/eval-gegenbauer-C N- alpha x0)))
+            f (m// N (poly/eval-gegenbauer-C N- alpha x0))
             dN (double N)]
         (->> (range N)
              (mapv (fn [^long n] (m/* f (poly/eval-gegenbauer-C N- alpha (m/* x0 (m/cospi (m// n dN)))))))
@@ -991,9 +991,9 @@
   [^double level]
   (let [ace (m/acosh (m/exp10 (m// (m/+ (m/* 1.0754 (m/abs level)) 1.7388) 20.0)))]
     (fn [^long N]
-      (let [N- (m/dec N)
+      (let [N- (m/long-dec N)
             x0 (m/cosh (m// ace N-))
-            f (m// N (double (poly/eval-legendre-P N- x0)))
+            f (m// N (poly/eval-legendre-P N- x0))
             dN (double N)]
         (->> (range N)
              (map (fn [^long n] (m/* f (poly/eval-legendre-P N- (m/* x0 (m/cospi (m// n dN)))))))
@@ -1039,7 +1039,7 @@
 
 (defn shayesteh-kashtiban-discrete
   [^long N]
-  (let [N- (m/dec N)
+  (let [N- (m/long-dec N)
         endpoint (m/+ 0.02 (m/* 0.001 N-) (m// (m/+ 50.0 N- N-)))
         vs (mapv (fn [^long n]
                    (if (or (m/zero? n) (m/== n N-))
@@ -1060,7 +1060,7 @@
 (defn ->kaiser-bessel-derived
   [^double alpha]
   (fn [^long N]
-    (let [kb (kaiser-bessel (m/inc (m/ceil (m// N 2.0))) {:alpha alpha :normalize? false})
+    (let [kb (kaiser-bessel (long (m/inc (m/ceil (m// N 2.0)))) {:alpha alpha :normalize? false})
           v (v/sqrt (v/div (butlast (reductions m/+ kb)) (v/sum kb)))]
       (vec (concat v (if (m/odd? N) (rest (reverse v)) (reverse v)))))))
 

@@ -9,12 +9,12 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(def ^{:const true :private true :tag 'double} gaussian-factor (/ (m/sqrt m/TWO_PI)))
-
 (defn uniform
   "Uniform kernel"
   ^double [^double x]
   (if (m/<= (m/abs x) 1.0) 0.5 0.0))
+
+(def ^{:const true :private true :tag 'double} gaussian-factor (m// (m/sqrt m/TWO_PI)))
 
 (defn gaussian
   "Gaussian kernel"
@@ -103,7 +103,7 @@
            :nrd-scale (m/* delta0 GAUSS-FACT)
            :efficiency (m/* k2 (m/sqrt x2k)))))
 
-(def  kde-data
+(def kde-data
   "Collection of KDE data.
 
   Keys - kernel keyword, vals - kernel data
@@ -163,11 +163,11 @@
   (if-not binned?
     [data]
     (let [width (m// h (if (number? binned?) (double binned?) 5.0))]
-      (loop [id (int 0)
+      (loop [id (long 0)
              mx (m/+ width (Array/get data 0))
              arr []
              ws []
-             curr-sum (double 0.0)
+             curr-sum 0.0
              curr-cnt (int 0)]
         (if (m/== id len)
           (if (zero? curr-cnt)
@@ -203,11 +203,11 @@
                         (if (m/neg? id) (m/- (m/- id) 2) id)
                         (m/constrain (long id) 0 last-idx))
                    ^double k+ (loop [i id
-                                     s (double 0.0)]
+                                     s 0.0]
                                 (if (m/== i len)
                                   s
                                   (let [diff (m/- x (Array/get data i))
-                                        ^double kv (kf i diff)]
+                                        kv (double (kf i diff))]
                                     (if (m/<= -span diff span)
                                       (recur (m/inc i) (m/+ s kv))
                                       (m/+ s kv)))))
@@ -220,16 +220,7 @@
                                        (if (m/<= -span diff span)
                                          (recur (m/dec i) (m/+ s kv))
                                          (m/+ s kv)))))]
-               (m/* factor k-all))
-             #_(let [start (java.util.Arrays/binarySearch data (m/- x span))
-                     start (m/max 0 (long (if (m/neg? start) (m/- (m/- start) 2) start)))
-                     end (java.util.Arrays/binarySearch data (m/+ x span))
-                     end (m/min last-idx (long (if (m/neg? end) (m/dec (m/- end)) end)))]
-                 (loop [i start
-                        sum (double 0.0)]
-                   (if (m/<= i end)
-                     (recur (m/inc i) (m/+ sum ^double (kf i x)))
-                     (m/* factor sum)))))
+               (m/* factor k-all)))
       :factor factor
       :h h
       :mn (m/- mn span)
@@ -358,71 +349,93 @@
       (or h (nrd kdata 1.06)))))
 
 (defn bandwidth
-  "Returns infered bandwidth (h).
+  "Estimates the kernel density bandwidth (`h`) for `data`, without building the full density estimator.
 
-  h can be one of:
+  The bandwidth controls how much each data point is spread out by the kernel; smaller values follow the data more closely (risking overfitting/noise), larger values produce a smoother, more biased estimate.
 
-  * `:nrd` - rule-of-thumb (scale=1.06)
-  * `:nrd0` - rule-of-thumb (scake=0.9)
-  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
-  * `:rlcv` - robust likelihood cross-validation
-  * `:lcv` - likelihood cross-validation
-  * `:lscv` - least squares cross-validation"
+  Parameters:
+
+  - `kernel` - a keyword naming one of the predefined kernels from [[kde-data]], used by the `:nrd-adjust` method and by the cross-validation targets (`:rlcv`, `:lcv`, `:lscv`), which rely on evaluating the kernel itself.
+  - `data` - a sequence of numbers to estimate the bandwidth from.
+  - `h` - selects the estimation method, a keyword, one of:
+      - `:nrd` - rule-of-thumb, scaled by `1.06` (Silverman's rule).
+      - `:nrd0` - rule-of-thumb, scaled by `0.9`.
+      - `:nrd-adjust` - `:nrd` further adjusted by a kernel-specific canonical bandwidth factor; not supported for `silverman` and `cauchy` kernels.
+      - `:rlcv` - robust likelihood cross-validation.
+      - `:lcv` - likelihood cross-validation.
+      - `:lscv` - least squares cross-validation.
+
+  Returns the estimated bandwidth as a `double`.
+
+  See also [[kernel-density]], [[kernel-density+]] which accept the same set of keywords (or a plain number) as their `:bandwidth` parameter."
   [kernel data h]
   (-> data
       (preprocess-data kernel nil)
       (infer-h h)))
 
 (defn kernel-density+
-  "Returns kernel density estimation function with additional information, 1d.
+  "Builds a 1d kernel density estimator (KDE) for `data` and returns it together with the fitting details.
+
+  A kernel density estimate is a smoothed histogram: it places a scaled copy of `kernel` at every data point and sums the contributions, weighted by a bandwidth `h` that controls how much each point spreads out.
+
+  Parameters:
+
+  - `kernel` - a keyword naming one of the predefined kernels from [[kde-data]] (`:uniform`, `:triangular`, `:epanechnikov`, `:quartic`, `:triweight`, `:tricube`, `:gaussian`, `:cosine`, `:logistic`, `:sigmoid`, `:silverman`, `:wigner`, `:cauchy`, `:laplace`), or a custom kernel function accepting and returning a `double` (same shape as [[gaussian]], [[epanechnikov]], etc.).
+  - `data` - a sequence of numbers to estimate the density from.
+  - `params` (optional map):
+      - `:bandwidth` - the bandwidth `h`, either a number or a keyword accepted by [[bandwidth]] (`:nrd`, `:nrd0`, `:nrd-adjust`, `:rlcv`, `:lcv`, `:lscv`). When omitted, defaults to the `:nrd` rule-of-thumb (scale `1.06`).
+      - `:binned?` - whether `data` should be pre-binned before evaluation to speed up estimation on large datasets. When `true`, bin width is `h` divided by `5`; when a number, that number is used as the divisor instead. Default: `false`.
 
   Returns a map:
 
-  * `:kde` - density function
-  * `:factor` - 1/nh
-  * `:h` - provided or infered bandwidth
-  * `:mn` and `:mx` - infered extent of the kde`
+  - `:kde` - the density function, a function of a single `double` returning the estimated density as a `double`.
+  - `:factor` - the normalizing factor, equal to `1/(n*h)` where `n` is the (possibly binned) sample count.
+  - `:h` - the bandwidth actually used, either the provided value or the one inferred from `:bandwidth`.
+  - `:mn` and `:mx` - the inferred support extent of the estimator, i.e. the data range expanded by the kernel radius; useful as integration bounds.
 
-  For arguments see [[kernel-density]]"
+  See also [[kernel-density]] (returns only the `:kde` function), [[kernel-density-ci]] (adds confidence intervals), [[bandwidth]], [[kde-data]]."
   ([kernel data] (kernel-density+ kernel data nil))
   ([kernel data {:keys [^double bandwidth binned?]}] (let [kdata (preprocess-data data kernel binned?)
                                                            h (infer-h kdata bandwidth)]
                                                        (kde- kdata h))))
 
 (defn kernel-density
-  "Returns kernel density estimation function, 1d
-  
-  Arguments:
-  * `kernel` - kernel name or kernel function  
-  * `data` - data
-  * `params` - a map containing:
-      * `:bandwidth` - bandwidth h
-      * `:binned?` - if data should be binned, if `true` the width of the bin is `bandwidth` divided by 5, if is a number then it will be used as denominator. Default: `false`.
+  "Returns a 1d kernel density estimation (KDE) function for `data`.
 
-  `:bandwidth` can be a number or one of:
+  A kernel density estimate is a smoothed histogram: it places a scaled copy of `kernel` at every data point and sums the contributions, weighted by a bandwidth that controls how much each point spreads out.
 
-  * `:nrd` - rule-of-thumb (scale=1.06)
-  * `:nrd0` - rule-of-thumb (scake=0.9)
-  * `:nrd-adjust` - kernel specific adjustment of `:nrd`, doesn't work for `silverman` and `cauchy` 
-  * `:rlcv` - robust likelihood cross-validation
-  * `:lcv` - likelihood cross-validation
-  * `:lscv` - least squares cross-validation"
+  Parameters:
+
+  - `kernel` - a keyword naming one of the predefined kernels from [[kde-data]] (`:uniform`, `:triangular`, `:epanechnikov`, `:quartic`, `:triweight`, `:tricube`, `:gaussian`, `:cosine`, `:logistic`, `:sigmoid`, `:silverman`, `:wigner`, `:cauchy`, `:laplace`), or a custom kernel function accepting and returning a `double`.
+  - `data` - a sequence of numbers to estimate the density from.
+  - `params` (optional map):
+      - `:bandwidth` - the bandwidth `h`, either a number or a keyword accepted by [[bandwidth]] (`:nrd`, `:nrd0`, `:nrd-adjust`, `:rlcv`, `:lcv`, `:lscv`). When omitted, defaults to the `:nrd` rule-of-thumb (scale `1.06`).
+      - `:binned?` - whether `data` should be pre-binned before evaluation to speed up estimation on large datasets. When `true`, bin width is `h` divided by `5`; when a number, that number is used as the divisor instead. Default: `false`.
+
+  Returns a function of a single `double` returning the estimated density at that point as a `double`.
+
+  See also [[kernel-density+]] (returns the same function plus bandwidth, factor and support extent), [[kernel-density-ci]] (density with confidence intervals), [[bandwidth]], [[kde-data]]."
   ([kernel data] (kernel-density kernel data nil))
   ([kernel data params] (:kde (kernel-density+ kernel data params))))
 
 (defn kernel-density-ci
-  "Create function which returns confidence intervals for given kde method.
+  "Returns a 1d KDE function that also reports pointwise asymptotic confidence intervals.
 
-  Check 6.1.5 http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html
+  Uses the standard asymptotic normal approximation of the kde variance (see section 6.1.5 of http://sfb649.wiwi.hu-berlin.de/fedc_homepage/xplore/tutorials/xlghtmlnode33.html): for a density estimate `f(x)` obtained with normalizing factor `1/(n*h)`, the variance is approximated as `k2 * f(x) / (n*h)`, where `k2` is the kernel roughness (integral of the squared kernel), and confidence bounds are derived from the normal quantile at the requested `alpha`.
 
-  Arguments:
+  Parameters:
 
-  * `data` - sequence of data values
-  * `kernel` - kernel name  
-  * `bandwidth` - as in `kde`
-  * `alpha` - confidence level parameter
+  - `kernel` - a keyword naming one of the predefined kernels from [[kde-data]] (a custom kernel function is not accepted, since its roughness constant `k2` must be looked up).
+  - `data` - a sequence of numbers to estimate the density from.
+  - `params` (optional map), forwarded to [[kernel-density+]] plus:
+      - `:alpha` - the confidence level parameter, the resulting interval has coverage `1 - alpha`. Default: `0.05`.
+      - `:bandwidth`, `:binned?` - same meaning as in [[kernel-density+]].
 
-  Returns three values: density, lower confidence value and upper confidence value"
+  Returns a function of a single `double` `x` returning a 3-element vector `[fx lower upper]`, where `fx` is the estimated density at `x`, and `lower`/`upper` are the corresponding confidence bounds.
+
+  Throws an assertion error when `kernel` is not one of the kernels known to [[kde-data]].
+
+  See also [[kernel-density]], [[kernel-density+]], [[kde-data]]."
   ([kernel data] (kernel-density-ci kernel data nil))
   ([kernel data {:keys [^double alpha]
                  :or {alpha 0.05}

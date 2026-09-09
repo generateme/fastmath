@@ -24,13 +24,13 @@
   "Linear kernel"
   ([] (linear nil))
   ([{:keys [^double scale]
-     :or {scale 1.0}}] (fn [^double x] (m/abs (/ x scale)))))
+     :or {scale 1.0}}] (fn ^double [^double x] (m/abs (/ x scale)))))
 
 (defn gaussian
   "Gaussian kernel"
   ([] (gaussian nil))
   ([{:keys [^double scale]
-     :or {scale 1.0}}] (fn [^double x] (m/exp (- (m/sq (/ x scale)))))))
+     :or {scale 1.0}}] (fn ^double [^double x] (m/exp (- (m/sq (/ x scale)))))))
 
 ;; RBF kernels
 ;; [1] https://www.math.unipd.it/~demarchi/RBF/LectureNotes.pdf

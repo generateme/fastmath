@@ -1794,17 +1794,17 @@
                               (m/+ mu (m/* beta w) (m/* (m/sqrt w) z))))
      :rng rng
      :mean mean-v
-     :variance variance-v}))
+     :variance variance-v
+     :dimensions 1
+     :continuous? true
+     :lower-bound ##-Inf
+     :upper-bound ##Inf}))
 
 (defn generalized-hyperbolic
   [opts]
   (->distribution (assoc (generalized-hyperbolic-core opts)
-                         :dimensions 1
-                         :continuous? true
                          :name :generalized-hyperbolic
-                         :parameters [:mu :delta :alpha :beta :lambda :rng]
-                         :lower-bound ##-Inf
-                         :upper-bound ##Inf)))
+                         :parameters [:mu :delta :alpha :beta :lambda :rng])))
 
 (defn normal-inverse-gaussian
   "Normal-inverse Gaussian distribution, in its own `(alpha, beta, mu, delta)`
@@ -1816,12 +1816,8 @@
   therefore always threw regardless of RNG/seeding)."
   [{:keys [alpha beta mu delta rng]}]
   (->distribution (assoc (generalized-hyperbolic-core {:mu mu :delta delta :alpha alpha :beta beta :lambda -0.5 :rng rng})
-                         :dimensions 1
-                         :continuous? true
                          :name :normal-inverse-gaussian
-                         :parameters [:alpha :beta :mu :delta :rng]
-                         :lower-bound ##-Inf
-                         :upper-bound ##Inf)))
+                         :parameters [:alpha :beta :mu :delta :rng])))
 
 (defn half-logistic
   [^double scale rng]

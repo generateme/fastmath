@@ -4233,3 +4233,4 @@
              (vec (sut/->seq (sut/distribution :gamma {:shape 2.0 :scale 1.5 :rng (sut/rng :mersenne 100)}) 5))))
     (t/is (= [1 4 2 3 5]
              (vec (sut/->seq (sut/distribution :poisson {:p 4.0 :rng (sut/rng :well19937c 7)}) 5))))))
+
