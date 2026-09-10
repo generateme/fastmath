@@ -2794,7 +2794,7 @@
   - `ps` (sequence of double): the `p` numerator parameters.
   - `qs` (sequence of double): the `q` denominator parameters.
   - `x` (double): the argument.
-  - `max-iters` (long, optional): maximum series/acceleration iterations, `10000` by default.
+  - `max-iters` (long, optional): maximum series/acceleration iterations, `1048576` by default.
 
   Whenever a numerator parameter exactly equals a denominator parameter, that pair cancels identically, reducing to a lower `(p-1)F(q-1)`; this is applied before anything else below. If that shared value is also a non-positive integer, the pair does not simply cancel (both Pochhammer symbols vanish together at the same term instead); the series is then evaluated as a truncated sum of the further-reduced coefficients.
 
@@ -2806,10 +2806,10 @@
 
   Returns `1.0` for `x = 0.0`.
 
-  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies on Weniger-acceleration resummation and can occasionally return `##NaN` or `##Inf` for specific parameter combinations instead of the true finite value, due to numerical instability in that acceleration; this is a known limitation, not corrected here.
+  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies on Weniger-acceleration resummation. A missing finite-value fallback at that acceleration's own loop exit (present in this project's other single-arity Weniger ports, and in the Julia `HypergeometricFunctions.jl` reference implementation this was ported from, but dropped from this general port) used to turn many cases of an already-converged intermediate value overflowing into `##NaN`; fixed. A minority of `p > q + 1` points remain genuinely unreliable regardless -- confirmed, by comparison against Julia's own raw Weniger kernel and its production `pFq` dispatcher (neither of which offers an alternative method for this regime either), to be an inherent limitation of the resummation itself, not specific to this port; not corrected here.
 
   See also [[hypergeometric-0F0]], [[hypergeometric-1F0]], [[hypergeometric-0F1]], [[hypergeometric-1F1]], [[hypergeometric-0F2]], [[hypergeometric-2F0]], [[hypergeometric-2F1]], [[kummers-M]], [[tricomis-U]]."
-  (^double [ps qs ^double x] (hypergeometric-pFq ps qs x 10000))
+  (^double [ps qs ^double x] (hypergeometric-pFq ps qs x 1048576))
   (^double [ps qs ^double x ^long max-iters]
    (let [[ps qs] (pfq-cancel-equal-pairs ps qs)
          p (count ps) q (count qs)
@@ -3003,6 +3003,72 @@
               term (cplx/mult term (cplx/div num den))]
           (recur (m/inc k) term (cplx/add s term)))))))
 
+(defn- pfq-complex-route
+  "Classifies a pFq-complex call before any numeric acceleration method is
+  attempted -- the exact pre-dispatch checks [[hypergeometric-pFq-complex]]
+  itself performs (equal-pair cancellation, exact termination, poles, the
+  degenerate `p=0,q=0` case, `z=0`), factored out so a second caller can
+  reuse them without going through the public dispatcher.
+
+  Returns either a directly-known final value (`{:done? true :value v}`),
+  or a residual call still needing numeric evaluation (`{:done? false
+  :method (:maclaurin|:weniger) :ps :qs}`, with `:ps`/`:qs` already
+  reduced by any equal-pair cancellation).
+
+  Precondition: `ps`/`qs` are sequences of real or [[Vec2]] numbers, `z`
+  is already a [[Vec2]] (via [[fastmath.complex/ensure-complex]]).
+  Postcondition: exactly one of `:done?`'s two shapes above, never both.
+
+  Shared by [[hypergeometric-pFq-complex]] (the public dispatcher) and
+  `tricomis-U-complex-asymptotic` (which calls Weniger acceleration
+  directly, bypassing the dispatcher, but still needs these same checks
+  -- see [[tricomis-U-complex-asymptotic]]'s own docstring)."
+  [ps qs ^Vec2 z ^long max-iters]
+  (let [ps (mapv cplx/ensure-complex ps)
+        qs (mapv cplx/ensure-complex qs)
+        [ps qs] (pfq-cancel-equal-pairs-complex ps qs)
+        p (count ps) q (count qs)
+        n (pfq-terminating-n-complex ps)
+        m (pfq-pole-m-complex qs)]
+    (cond
+      ;; z=0 always wins, even over an otherwise-genuine pole
+      (m/< (cplx/abs z) m/MACHINE-EPSILON10) {:done? true :value cplx/ONE}
+
+      ;; the degenerate p=0, q=0 case is identically exp(z); the general
+      ;; Weniger acceleration below isn't scaled for it and loses all
+      ;; precision once exp(z) gets very small
+      (and (m/zero? p) (m/zero? q)) {:done? true :value (cplx/exp z)}
+
+      ;; a numerator parameter still equals a denominator parameter and
+      ;; that shared value is a non-positive real integer -n: a removable
+      ;; coincidence resolved as a truncated sum, see
+      ;; [[pfq-truncated-sum-complex]] and [[hypergeometric-pFq]]'s own
+      ;; docstring for the real-valued derivation this mirrors
+      (and m n (m/== (long m) (long n)))
+      (let [[^long i ^long j] (pfq-integer-coincidence-pair-complex ps qs)]
+        {:done? true
+         :value (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
+                                           (into (subvec qs 0 j) (subvec qs (inc j)))
+                                           z n)})
+
+      ;; a denominator parameter is a genuine, unavoidable pole only if
+      ;; reached before any numerator termination
+      (and m (or (nil? n) (m/< (long m) (long n)))) {:done? true :value (Vec2. ##NaN ##NaN)}
+
+      ;; series terminates to an exact finite polynomial for any z
+      n {:done? true :value (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)}
+
+      ;; entire function (p<=q, converges for any z): MacLaurin is
+      ;; accurate for a non-negative real part, Weniger acceleration is
+      ;; needed otherwise (catastrophic cancellation)
+      (m/<= p q) {:done? false :ps ps :qs qs
+                  :method (if (m/pos? (cplx/re z)) :maclaurin :weniger)}
+
+      (m/== p (m/inc q)) {:done? false :ps ps :qs qs
+                          :method (if (m/< (cplx/abs z) 0.72) :maclaurin :weniger)}
+
+      :else {:done? false :ps ps :qs qs :method :weniger})))
+
 (defn hypergeometric-pFq-complex
   "Generalized hypergeometric function pFq with p numerator and q denominator complex parameters.
 
@@ -3013,7 +3079,7 @@
   - `ps` (sequence of double or [[Vec2]]): the `p` numerator parameters, real or complex (promoted via `ensure-complex`).
   - `qs` (sequence of double or [[Vec2]]): the `q` denominator parameters.
   - `z` (double or [[Vec2]]): the argument, real or complex.
-  - `max-iters` (long, optional): maximum series/acceleration iterations, `10000` by default.
+  - `max-iters` (long, optional): maximum series/acceleration iterations, `1048576` by default.
 
   Whenever a numerator parameter exactly equals a denominator parameter, that pair cancels identically, reducing to a lower `(p-1)F(q-1)`; this is applied before anything else below. If that shared value is also a non-positive real integer (zero imaginary part), the pair does not simply cancel (both Pochhammer symbols vanish together at the same term instead); the series is then evaluated as a truncated sum of the further-reduced coefficients.
 
@@ -3023,55 +3089,18 @@
 
   Returns `1.0+0.0i` for `z = 0.0+0.0i`.
 
-  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies entirely on Weniger-acceleration resummation (no MacLaurin fallback exists there, since the underlying series is genuinely divergent), and this is markedly unreliable whenever `z` has a positive real part -- confirmed to fail (returning a non-finite value) there even for small `|z|`, while a negative real part stays accurate up to `|z|` of about 5-10. For `p = q + 1` beyond the MacLaurin radius (`|z| >= 0.72`), Weniger acceleration is markedly more reliable on both sides of the real axis, though (as for the real-valued [[hypergeometric-pFq]]) precision still degrades gradually as `|z|` grows very large. Neither of these is corrected here; they are known limitations of the underlying resummation.
+  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies entirely on Weniger-acceleration resummation (no MacLaurin fallback exists there, since the underlying series is genuinely divergent). A missing finite-value fallback at that acceleration's own loop exit used to turn many cases of an already-converged intermediate value overflowing into `##NaN` regardless of the sign of `z`; fixed (see [[fastmath.special.hypergeometric/hypergeometric-pFq-weniger-complex-with-reason]] for the underlying mechanism). A minority of `p > q + 1` points remain genuinely unreliable regardless -- confirmed to be an inherent limitation of the resummation itself, not specific to this port (see [[hypergeometric-pFq]]'s own docstring). For `p = q + 1` beyond the MacLaurin radius (`|z| >= 0.72`), Weniger acceleration is markedly more reliable on both sides of the real axis, though (as for the real-valued [[hypergeometric-pFq]]) precision still degrades gradually as `|z|` grows very large; not corrected here.
 
   See also [[hypergeometric-pFq]]."
-  (^Vec2 [ps qs z] (hypergeometric-pFq-complex ps qs z 10000))
+  (^Vec2 [ps qs z] (hypergeometric-pFq-complex ps qs z 1048576))
   (^Vec2 [ps qs z ^long max-iters]
-   (let [ps (mapv cplx/ensure-complex ps)
-         qs (mapv cplx/ensure-complex qs)
-         z (cplx/ensure-complex z)
-         [ps qs] (pfq-cancel-equal-pairs-complex ps qs)
-         p (count ps) q (count qs)
-         n (pfq-terminating-n-complex ps)
-         m (pfq-pole-m-complex qs)]
-     (cond
-       ;; z=0 always wins, even over an otherwise-genuine pole
-       (m/< (cplx/abs z) m/MACHINE-EPSILON10) cplx/ONE
-
-       ;; the degenerate p=0, q=0 case is identically exp(z); the general
-       ;; Weniger acceleration below isn't scaled for it and loses all
-       ;; precision once exp(z) gets very small
-       (and (m/zero? p) (m/zero? q)) (cplx/exp z)
-
-       ;; a numerator parameter still equals a denominator parameter and
-       ;; that shared value is a non-positive real integer -n: a removable
-       ;; coincidence resolved as a truncated sum, see
-       ;; [[pfq-truncated-sum-complex]] and [[hypergeometric-pFq]]'s own
-       ;; docstring for the real-valued derivation this mirrors
-       (and m n (m/== (long m) (long n)))
-       (let [[^long i ^long j] (pfq-integer-coincidence-pair-complex ps qs)]
-         (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
-                                    (into (subvec qs 0 j) (subvec qs (inc j)))
-                                    z n))
-
-       ;; a denominator parameter is a genuine, unavoidable pole only if
-       ;; reached before any numerator termination
-       (and m (or (nil? n) (m/< (long m) (long n)))) (Vec2. ##NaN ##NaN)
-
-       ;; series terminates to an exact finite polynomial for any z
-       n (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
-
-       ;; entire function (p<=q, converges for any z): MacLaurin is
-       ;; accurate for a non-negative real part, Weniger acceleration is
-       ;; needed otherwise (catastrophic cancellation)
-       (m/<= p q) (if (m/pos? (cplx/re z))
-                    (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
-                    (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
-       (m/== p (m/inc q)) (if (m/< (cplx/abs z) 0.72)
-                            (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
-                            (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
-       :else (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters)))))
+   (let [z (cplx/ensure-complex z)
+         {:keys [done? value method ps qs]} (pfq-complex-route ps qs z max-iters)]
+     (if done?
+       value
+       (case method
+         :maclaurin (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
+         :weniger (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))))))
 
 (defn- complex-log-gamma-asymptotic
   ^Vec2 [^Vec2 z]
@@ -3230,14 +3259,36 @@
   pure-imaginary `z`, integer `b`), UNLIKE [[tricomis-U-complex-raw]],
   which instead computes a difference of two individually exp(z)-scaled
   terms and loses essentially all precision for `|z|` beyond about 20-30.
-  Only reliable itself when `Re(z) >= 0` (equivalently, `Re(-1/z) <= 0`):
-  otherwise the pFq argument `-1/z` has a positive real part, entering the
-  documented unreliable region of the underlying `p > q + 1` pFq
-  evaluation; not used outside that half-plane."
-  ^Vec2 [^Vec2 a ^Vec2 b ^Vec2 z]
-  (let [p1 (cplx/sub (cplx/add cplx/ONE a) b)]
-    (cplx/mult (cplx/pow z (cplx/neg a))
-               (hypergeometric-pFq-complex [a p1] [] (cplx/neg (cplx/reciprocal z))))))
+
+  Attempted for ANY `z`, no `Re(z)` restriction -- mirroring mpmath's own
+  `hyperu`, which tries this same asymptotic formula unconditionally and
+  only falls back to a reflection formula on failure (confirmed by
+  reading mpmath's source: two of three previously-documented `Re(z) < 0`
+  failures of [[tricomis-U-complex]] turned out to be exactly this --
+  the asymptotic formula itself works fine there, it was just never
+  tried). Calls the underlying `p > q + 1` pFq's Weniger acceleration
+  DIRECTLY (`hypergeometric.hypergeometric-pFq-weniger-complex-with-
+  reason`), bypassing the public [[hypergeometric-pFq-complex]]
+  dispatcher, so the caller can see whether it actually converged --
+  still runs the exact same [[pfq-complex-route]] pre-checks that
+  dispatcher would (terminating/pole/degenerate/`z=0`), so no coverage is
+  lost by bypassing it. `[a, 1+a-b]`/`[]` always has `p=2 > q+1=1`, so
+  `pfq-complex-route` never selects `:maclaurin` here.
+
+  Returns `{:value :reason}`; `:reason` is `:converged` whenever a
+  `pfq-complex-route` short-circuit fired (always trustworthy) or the
+  Weniger acceleration itself converged, and something else otherwise.
+  [[tricomis-U-complex]] falls back to [[tricomis-U-complex-raw-limit]]
+  whenever `:reason` isn't `:converged`."
+  [^Vec2 a ^Vec2 b ^Vec2 z]
+  (let [p1 (cplx/sub (cplx/add cplx/ONE a) b)
+        zpow (cplx/pow z (cplx/neg a))
+        arg (cplx/neg (cplx/reciprocal z))
+        {:keys [done? value ps qs]} (pfq-complex-route [a p1] [] arg 1048576)]
+    (if done?
+      {:value (cplx/mult zpow value) :reason :converged}
+      (let [{:keys [value reason]} (hg/hypergeometric-pFq-weniger-complex-with-reason ps qs arg 1048576)]
+        {:value (cplx/mult zpow value) :reason reason}))))
 
 (defn tricomis-U-complex
   "Complex version of Tricomi's confluent hypergeometric function U(a,b,z) of the second kind.
@@ -3250,7 +3301,7 @@
 
   At `z = 0.0+0.0i` with `a` and `b` both real: mirrors the real-valued [[tricomis-U]]'s own `x = 0` limit exactly (finite for `a` a non-positive integer or `b < 1.0`, a signed `##Inf`-valued complex number otherwise). At `z = 0.0+0.0i` with `a` or `b` genuinely complex, the limit is path-dependent (branch-cut sensitive) and not resolved here; `(Vec2. ##NaN ##NaN)` is returned instead.
 
-  For `z != 0.0+0.0i`: uses the asymptotic-series formula when `Re(z) >= 0.0`, confirmed reliable there across a very wide range of `|z|` (from a fraction of a unit up to several hundred). Uses a Kummer-`M`-function reflection formula for `Re(z) < 0.0` instead (the asymptotic formula is unusable in that half-plane); this remains accurate for small to moderate `|z|`, but its accuracy becomes unpredictable for larger `|z|` there -- confirmed to occasionally lose several or more digits, or return a non-finite value, for specific parameter combinations even at moderate `|z|` (around 5-10), with no clean magnitude threshold separating safe from unsafe cases; this is a known, uncorrected limitation, inherited from the same underlying resummation instability documented for [[hypergeometric-pFq-complex]]. The reflection formula also has its own removable singularity whenever `b` is an integer, resolved via a small Richardson-extrapolated numerical limit.
+  For `z != 0.0+0.0i`: tries the asymptotic-series formula first, for ANY `z` (see [[tricomis-U-complex-asymptotic]] -- this mirrors mpmath's own `hyperu`, which does the same). This alone resolves every case checked so far except `Re(z) < 0.0` at moderate-to-large `|z|` with `b` also an integer, where it falls back to a Kummer-`M`-function reflection formula instead. That reflection formula remains accurate for small to moderate `|z|`, but its accuracy becomes unpredictable for larger `|z|` there -- confirmed to occasionally lose several or more digits, or return a non-finite value, for specific parameter combinations even at moderate `|z|` (around 5-10), with no clean magnitude threshold separating safe from unsafe cases; this is a known, uncorrected limitation, inherited from the same underlying resummation instability documented for [[hypergeometric-pFq-complex]], and confirmed present in mpmath's own `hyperu` at at least one such point too (it recovers there only by raising its working precision arbitrarily, an option not available at fixed double precision). The reflection formula also has its own removable singularity whenever `b` is an integer, resolved via a small Richardson-extrapolated numerical limit.
 
   See also the real-valued [[tricomis-U]], [[hypergeometric-pFq-complex]]."
   [a b z]
@@ -3264,9 +3315,9 @@
 
       (and (m/zero? (cplx/re z)) (m/zero? (cplx/im z))) (Vec2. ##NaN ##NaN)
 
-      (m/>= (cplx/re z) 0.0) (tricomis-U-complex-asymptotic a b z)
-
-      :else (tricomis-U-complex-raw-limit a b z))))
+      :else
+      (let [{:keys [value reason]} (tricomis-U-complex-asymptotic a b z)]
+        (if (= reason :converged) value (tricomis-U-complex-raw-limit a b z))))))
 
 (def ^:private CPLX_HALF_PI (cplx/complex m/HALF_PI 0.0))
 

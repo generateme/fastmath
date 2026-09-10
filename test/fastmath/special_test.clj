@@ -2028,8 +2028,23 @@
               divergent p>q+1 case relies solely on Weniger resummation and
               can occasionally miss (not fixed, documented above)"
     (t/is (m/delta-eq 18.7148240242339485175916480136
-                      (sut/hypergeometric-pFq [1.55 1.16 -2.2] [-2.83] -2.0) 1.0e-9 1.0e-9))
-    (t/is (m/nan? (sut/hypergeometric-pFq [1.46 -0.96 -2.15] [-3.34] -3.41))))
+                      (sut/hypergeometric-pFq [1.55 1.16 -2.2] [-2.83] -2.0) 1.0e-9 1.0e-9)))
+  (t/testing "a later session found the previous case's ##NaN traced to a
+              missing finite-value fallback at the Weniger loop's exit
+              (fixed this session, see hypergeometric-pFq-weniger* /
+              -with-reason in fastmath.special.hypergeometric) -- this
+              specific point now converges cleanly"
+    (t/is (m/delta-eq 3.86727706223577286454051318705
+                      (sut/hypergeometric-pFq [1.46 -0.96 -2.15] [-3.34] -3.41) 1.0e-9 1.0e-9)))
+  (t/testing "a genuinely inherent Weniger instability remains for a
+              minority of p>q+1 points -- confirmed (via Julia's own
+              raw pFqweniger kernel and its production pFq dispatcher,
+              both giving the same wrong answer) to be shared with the
+              reference implementation, not a fastmath defect; not fixed"
+    (t/is (not (m/delta-eq 0.63609571767806375918930511592
+                           (sut/hypergeometric-pFq [-0.7102842809607797 2.9767282814405807 0.17468607059482189]
+                                                    [2.826470265681709] 2.886)
+                           1.0e-3 1.0e-3))))
   (t/testing "vs mpmath, entire (p<=q), positive x up to ~100"
     (t/is (check-pfq (@pfq-reference :entire-positive) 1.0e-8)))
   (t/testing "vs mpmath, entire (p<=q), negative x up to ~50"
@@ -2144,16 +2159,17 @@
     (t/is (let [got (sut/hypergeometric-pFq-complex [1.5 2.5] [2.0 3.0] (cplx/complex 40.0 0.0))
                 exp (cplx/complex 9802134478442031.24299485208628 0.0)]
             (< (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 1.0e-9))))
-  (t/testing "known limitation: generic (non-terminating), formally
-              divergent p>q+1 case relies solely on Weniger resummation
-              and is unreliable whenever Re(z)>0, even for small |z| (not
-              fixed, documented above)"
-    (t/is (cplx/nan? (sut/hypergeometric-pFq-complex [(cplx/complex 2.99 2.97) (cplx/complex 2.04 1.25)] []
-                                                      (cplx/complex 0.0965 -0.0263))))
+  (t/testing "a later session traced the previous ##NaN/wrong-value
+              failures here to the same missing finite-value fallback
+              fixed in hypergeometric-pFq-weniger-complex* / -with-reason
+              -- both points now converge cleanly"
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [(cplx/complex 2.99 2.97) (cplx/complex 2.04 1.25)] []
+                                                          (cplx/complex 0.0965 -0.0263))
+                         (cplx/complex -2.4455520966445886 6.1586477020032095) 1.0e-4))
     (t/is (let [got (sut/hypergeometric-pFq-complex [(cplx/complex -2.91 0.17) (cplx/complex -2.64 -1.86)] []
                                                      (cplx/complex -26.76 13.53))
                 exp (cplx/complex -132966.47070563934 -146164.8171611995)]
-            (> (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 0.01)))) ;; confirmed wrong, not merely imprecise
+            (< (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 1.0e-6))))
   (t/testing "vs mpmath, entire (p<=q), Re(z)>0, wide magnitude"
     (t/is (check-pfq-complex (@pfq-complex-reference :entire-positive) 1.0e-6)))
   (t/testing "vs mpmath, entire (p<=q), Re(z)<0, wide magnitude"
@@ -2296,14 +2312,31 @@
               there (fixed this session)"
     (t/is (cplx/delta-eq (sut/tricomis-U-complex 2.3 2.7 50.0) (cplx/complex 1.204536636713596e-4 0.0) 1.0e-9))
     (t/is (cplx/delta-eq (sut/tricomis-U-complex 3.0 3.0 1000.0) (cplx/complex 9.970119403575002e-10 0.0) 1.0e-9)))
-  (t/testing "known limitation: Re(z)<0, large |z| can lose precision or
-              fail unpredictably (not fixed, documented above); true
-              values confirmed finite via mpmath, none reproduced here"
-    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex -3.82 -0.8) (cplx/complex 3.0 0.0) (cplx/complex -86.6 172.9))))
-    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex 3.4 -1.69) (cplx/complex -0.85 -1.19) (cplx/complex -35.6 218.0))))
+  (t/testing "a later session found the asymptotic formula (used
+              unconditionally now, mirroring mpmath's own hyperu, see
+              tricomis-U-complex-asymptotic) already resolves 2 of the 3
+              points previously recorded here as ##NaN -- the raw
+              reflection formula was never actually needed for these"
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex (cplx/complex -3.82 -0.8) (cplx/complex 3.0 0.0) (cplx/complex -86.6 172.9))
+                         (cplx/complex 96771825.9288878195793672414634 -48412621.0794843220979493309537) 1.0e-6))
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex (cplx/complex 3.4 -1.69) (cplx/complex -0.85 -1.19) (cplx/complex -35.6 218.0))
+                         (cplx/complex -5.9984492548975584602466220707e-10 -9.64522363135643924678301113969e-11) 1.0e-6)))
+  (t/testing "known limitation: a genuinely fixed-precision-unsolvable
+              case remains -- confirmed (by direct computation) that the
+              reflection formula's two bracketed terms cancel to ~10
+              significant digits before a further ~1e5 amplification by
+              a near-integer-b prefactor, compounded again by the
+              Richardson extrapolation's own differencing; mpmath itself
+              only recovers here by raising its working precision
+              arbitrarily, unavailable at fixed double precision (not
+              fixed, documented above). This point now routes through the
+              fixed Weniger fallback too (see hypergeometric-pFq-weniger*),
+              which changed its specific wrong value from ##NaN to a
+              different finite-but-wrong number -- still confirmed wrong,
+              not merely imprecise, against the true value"
     (t/is (let [got (sut/tricomis-U-complex (cplx/complex -3.89 -1.88) (cplx/complex 5.0 0.0) (cplx/complex -5.5 0.2))
                 exp (cplx/complex 1.7621289522653452 -44.8942294755623)]
-            (> (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 100)))) ;; confirmed wrong, not merely imprecise
+            (> (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 100))))
   (t/testing "vs mpmath, generic (Re(z)>=0, wide |z|)"
     (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :generic) 1.0e-6)))
   (t/testing "vs mpmath, Re(z)<0, small |z|"

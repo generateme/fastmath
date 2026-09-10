@@ -791,19 +791,51 @@
 
 (def ^{:private true :const true :tag 'long} GAMMA-CONST 2)
 
-(defn hypergeometric-pFq-weniger
-  "Hypergeometric-pFq using Weniger acceleration on real numbers
+(defn- pfq-weniger-newest-finite
+  "Scans `R` backward from index `limit` to `0` for the newest finite
+  value; returns `##NaN` if none is finite."
+  ^double [^doubles R ^long limit]
+  (loop [i limit]
+    (if (m/neg? i)
+      ##NaN
+      (let [v (Array/aget R i)]
+        (if (m/valid-double? v) v (recur (m/dec i)))))))
 
-  `max-iters` is set to 10000 by default."
-  (^double [ps qs ^double z] (hypergeometric-pFq-weniger ps qs z 10000))
-  (^double [ps qs ^double z ^long max-iters]
-   (let [a (vec ps) b (vec qs)
+(defn- pfq-weniger-exit-result
+  "Builds `{:value :reason}` for [[hypergeometric-pFq-weniger*]] at the
+  point its loop has just decided to stop, given the freshest two ratios
+  `Ra`/`Rb` it compared. `:reason` is one of `:converged` (the ordinary,
+  expected case), `:max-iters` (stopped without reaching the convergence
+  tolerance), `:non-finite-recovered` (`Ra` or `Rb` was non-finite, but an
+  older iterate in `R` still was -- that one is returned instead), or
+  `:failed` (no iterate in `R` is finite; `Rb` -- itself non-finite -- is
+  returned)."
+  [^doubles R ^long r+2 ^double Ra ^double Rb]
+  (cond
+    (not (and (m/valid-double? Ra) (m/valid-double? Rb)))
+    (let [v (pfq-weniger-newest-finite R r+2)]
+      (if (m/valid-double? v)
+        {:value v :reason :non-finite-recovered}
+        {:value Rb :reason :failed}))
+
+    (m/<= (m/abs (m/- Ra Rb))
+          (m/* m/MACHINE-EPSILON10 (m/max (m/abs Ra) (m/abs Rb))))
+    {:value Rb :reason :converged}
+
+    :else {:value Rb :reason :max-iters}))
+
+(defn- hypergeometric-pFq-weniger*
+  "Shared core for [[hypergeometric-pFq-weniger]] and
+  [[hypergeometric-pFq-weniger-with-reason]] -- see
+  [[pfq-weniger-exit-result]] for the `:reason`s this can return."
+  [ps qs ^double z ^long max-iters]
+  (let [a (vec ps) b (vec qs)
          absa (mapv m/abs a)
          proda (v/prod a)
          prodb (v/prod b)]
      (if (or (m/< (m/abs z) m/MACHINE-EPSILON10)
              (m/< (m/abs proda) (m/ulp (v/prod absa))))
-       1.0
+       {:value 1.0 :reason :converged}
        (let [gamma- (m/dec GAMMA-CONST)
              zeta (m// z)
              p (count ps)
@@ -837,7 +869,7 @@
                                        (m/* m/MACHINE-EPSILON10
                                             (m/max (m/abs Ra)
                                                    (m/abs Rb))))))
-                   Rb
+                   (pfq-weniger-exit-result R r+2 Ra Rb)
                    (do (dotimes [j r+2]
                          (let [j+ (m/inc j)]
                            (Array/aset N j (Array/aget N j+))
@@ -1002,7 +1034,33 @@
                                                          (m// j))]
                                                (Array/aset Q (m/- j 2) t2)
                                                (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err))))))))))))))))))))
+                                         (recur k PdR QR err)))))))))))))))))))
+
+(defn hypergeometric-pFq-weniger
+  "Hypergeometric-pFq using Weniger acceleration on real numbers.
+
+  `max-iters` is set to 1048576 by default, matching the Julia
+  `HypergeometricFunctions.jl` reference implementation's own `KMAX` and
+  this file's other single-arity Weniger ports (`weniger-1F1`,
+  `weniger-2F0`, `weniger-0F2`).
+
+  See [[hypergeometric-pFq-weniger-with-reason]] for a variant that also
+  reports whether the returned value actually converged."
+  (^double [ps qs ^double z] (hypergeometric-pFq-weniger ps qs z 1048576))
+  (^double [ps qs ^double z ^long max-iters]
+   (:value (hypergeometric-pFq-weniger* ps qs z max-iters))))
+
+(defn hypergeometric-pFq-weniger-with-reason
+  "[[hypergeometric-pFq-weniger]], but returns `{:value :reason}` instead
+  of a bare double -- see [[pfq-weniger-exit-result]] for the possible
+  `:reason`s. Lets a caller judge whether `:value` is trustworthy (only
+  `:reason :converged` is), rather than only ever seeing a number.
+
+  `max-iters` is set to 1048576 by default, matching
+  [[hypergeometric-pFq-weniger]]."
+  ([ps qs ^double z] (hypergeometric-pFq-weniger-with-reason ps qs z 1048576))
+  ([ps qs ^double z ^long max-iters]
+   (hypergeometric-pFq-weniger* ps qs z max-iters)))
 
 (defn- make-cplx-zero-array
   [^long cnt]
@@ -1019,13 +1077,39 @@
              (cplx/mult v (cplx/adds aa i))) (cplx/complex init) arr)))
 
 
-(defn hypergeometric-pFq-weniger-complex
-  "Hypergeometric-pFq using Weniger acceleration on complex numbers
+(defn- pfq-weniger-newest-finite-complex
+  "Scans `R` backward from index `limit` to `0` for the newest finite
+  value; returns `(Vec2. ##NaN ##NaN)` if none is finite."
+  ^Vec2 [^"[Lfastmath.vector.Vec2;" R ^long limit]
+  (loop [i limit]
+    (if (m/neg? i)
+      (Vec2. ##NaN ##NaN)
+      (let [v (aget R i)]
+        (if (cplx/valid? v) v (recur (m/dec i)))))))
 
-  `max-iters` is set to 10000 by default."
-  (^Vec2 [ps qs z] (hypergeometric-pFq-weniger-complex ps qs z 10000))
-  (^Vec2 [ps qs z ^long max-iters]
-   (let [a (mapv cplx/ensure-complex ps)
+(defn- pfq-weniger-exit-result-complex
+  "Complex analogue of [[pfq-weniger-exit-result]]; see its docstring for
+  the `:reason`s."
+  [^"[Lfastmath.vector.Vec2;" R ^long r+2 ^Vec2 Ra ^Vec2 Rb]
+  (cond
+    (not (and (cplx/valid? Ra) (cplx/valid? Rb)))
+    (let [v (pfq-weniger-newest-finite-complex R r+2)]
+      (if (cplx/valid? v)
+        {:value v :reason :non-finite-recovered}
+        {:value Rb :reason :failed}))
+
+    (m/<= (cplx/abs (cplx/sub Ra Rb))
+          (m/* m/MACHINE-EPSILON10 (m/max (cplx/abs Ra) (cplx/abs Rb))))
+    {:value Rb :reason :converged}
+
+    :else {:value Rb :reason :max-iters}))
+
+(defn- hypergeometric-pFq-weniger-complex*
+  "Shared core for [[hypergeometric-pFq-weniger-complex]] and
+  [[hypergeometric-pFq-weniger-complex-with-reason]] -- see
+  [[pfq-weniger-exit-result-complex]] for the `:reason`s this can return."
+  [ps qs z ^long max-iters]
+  (let [a (mapv cplx/ensure-complex ps)
          absa (mapv cplx/abs a)
          b (mapv cplx/ensure-complex qs)
          proda (reduce cplx/mult cplx/ONE a)
@@ -1033,7 +1117,7 @@
          z (cplx/ensure-complex z)]
      (if (or (m/< (cplx/abs z) m/MACHINE-EPSILON10)
              (m/< (cplx/abs proda) (m/ulp (v/prod absa))))
-       cplx/ONE
+       {:value cplx/ONE :reason :converged}
        (let [gamma- (m/dec GAMMA-CONST)
              zeta (cplx/reciprocal z)
              p (count ps)
@@ -1067,7 +1151,7 @@
                                        (m/* m/MACHINE-EPSILON10
                                             (m/max (cplx/abs Ra)
                                                    (cplx/abs Rb))))))
-                   Rb
+                   (pfq-weniger-exit-result-complex R r+2 Ra Rb)
                    (do (dotimes [j r+2]
                          (let [j+ (m/inc j)]
                            (aset N j (aget N j+))
@@ -1238,9 +1322,33 @@
                                                          (cplx/scale (m// 1.0 j)))]
                                                (aset Q (m/- j 2) t2)
                                                (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err))))))))))))))))))))
+                                         (recur k PdR QR err)))))))))))))))))))
 
+(defn hypergeometric-pFq-weniger-complex
+  "Hypergeometric-pFq using Weniger acceleration on complex numbers.
 
+  `max-iters` is set to 1048576 by default, matching the Julia
+  `HypergeometricFunctions.jl` reference implementation's own `KMAX` and
+  this file's other single-arity Weniger ports.
+
+  See [[hypergeometric-pFq-weniger-complex-with-reason]] for a variant
+  that also reports whether the returned value actually converged."
+  (^Vec2 [ps qs z] (hypergeometric-pFq-weniger-complex ps qs z 1048576))
+  (^Vec2 [ps qs z ^long max-iters]
+   (:value (hypergeometric-pFq-weniger-complex* ps qs z max-iters))))
+
+(defn hypergeometric-pFq-weniger-complex-with-reason
+  "[[hypergeometric-pFq-weniger-complex]], but returns `{:value :reason}`
+  instead of a bare [[Vec2]] -- see [[pfq-weniger-exit-result-complex]]
+  for the possible `:reason`s. Lets a caller judge whether `:value` is
+  trustworthy (only `:reason :converged` is), rather than only ever
+  seeing a number.
+
+  `max-iters` is set to 1048576 by default, matching
+  [[hypergeometric-pFq-weniger-complex]]."
+  ([ps qs z] (hypergeometric-pFq-weniger-complex-with-reason ps qs z 1048576))
+  ([ps qs z ^long max-iters]
+   (hypergeometric-pFq-weniger-complex* ps qs z max-iters)))
 
 (defn hypergeometric-pFq-maclaurin-complex
   "Hypergeometric-pFq using MacLaurin series on complex numbers
