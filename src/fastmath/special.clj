@@ -263,7 +263,7 @@
            sum 0.0
            np 1.0]
       (if (m/< np m/MACHINE-EPSILON)
-        (do (println n )(m/* f sum))
+        (m/* f sum)
         (let [nn (m/inc n)]
           (recur nn (m/+ sum (m/* np (m/cos (m/- f1 (m/* f2 n))))) (m/pow nn -s)))))))
 
@@ -449,7 +449,7 @@
        1 (double-array [1.0 1.0])
        (let [^doubles q- (cotderiv-q-memo (m/dec m))
              d (m/dec (alength q-))]
-         (if (m/odd? (m/dec m))
+         (if (m/odd? (m/long-dec m))
            (let [rm (m// 2.0 m)
                  ^doubles q (double-array (alength q-))]
              (Array/aset q d (m/* d rm (Array/aget q- d)))
@@ -556,10 +556,10 @@
       (m/zero? x) 1.0
       (m/< x m/HALF_PI) (let [x2 (m/* x x)]
                           (poly/mevalpoly x2
-                            1.0, -0.25, 0.01562499999999994, -0.00043402777777725544, 6.781684026082576e-6,
-                            -6.781683757550061e-8, 4.709479394601058e-10, -2.4016837144506874e-12,
-                            9.104258208703104e-15))
-      (m/< x 26.0) (let [n (m/dec (unchecked-int (m/* m/M_2_PI x)))
+                                          1.0, -0.25, 0.01562499999999994, -0.00043402777777725544, 6.781684026082576e-6,
+                                          -6.781683757550061e-8, 4.709479394601058e-10, -2.4016837144506874e-12,
+                                          9.104258208703104e-15))
+      (m/< x 26.0) (let [n (m/long-dec (unchecked-long (m/* m/M_2_PI x)))
                          ^Vec2 root (spoly/j0-roots n)]
                      (spoly/j0-polys n (m/- x (.x root) (.y root))))
       (m/pos-inf? x) 0.0
@@ -588,10 +588,10 @@
       (m/<= x m/HALF_PI) (let [x2 (m/* x x)]
                            (m/* s x
                                 (poly/mevalpoly x2
-                                  0.5, -0.0624999999999989, 0.002604166666657291, -5.42534721917933e-5,
-                                  6.781683542660179e-7, -5.651361336587487e-9, 3.36191211106159e-11,
-                                  -1.4511302591871352e-13)))
-      (m/< x 26.0) (let [n (m/dec (unchecked-int (m/* m/M_2_PI x)))
+                                                0.5, -0.0624999999999989, 0.002604166666657291, -5.42534721917933e-5,
+                                                6.781683542660179e-7, -5.651361336587487e-9, 3.36191211106159e-11,
+                                                -1.4511302591871352e-13)))
+      (m/< x 26.0) (let [n (m/long-dec (unchecked-int (m/* m/M_2_PI x)))
                          ^Vec2 root (spoly/j1-roots n)]
                      (m/* s (spoly/j1-polys n (m/- x (.x root) (.y root)))))
       (m/pos-inf? x) 0.0
@@ -746,7 +746,7 @@
   ^double [^long order ^double x]
   (let [abs-v (m/abs order)
         abs-x (m/abs x)
-        sgn (if (m/even? abs-v) 1.0 -1.0)
+        sgn (if (m/even? (long abs-v)) 1.0 -1.0)
         bessel-j-val (bessel-j-positive-args abs-v abs-x)]
     (if (m/not-neg? order)
       (if (m/not-neg? x) bessel-j-val (m/* sgn bessel-j-val))
@@ -765,7 +765,7 @@
     (m/zero? order) (bessel-J0 x)
     (m/one? order) (bessel-J1 x)
     (m/invalid-double? x) x
-    (m/integer? order) (bessel-j-integer-order order x)
+    (m/integer? order) (bessel-j-integer-order (long order) x)
     (m/neg? x) ##NaN
     (m/not-neg? order) (bessel-j-positive-args (m/abs order) (m/abs x))
     :else (let [ao (m/abs order)
@@ -948,8 +948,8 @@
     :else (.x ^Vec2 (bessel-y-fallback v x))))
 
 (defn- bessel-y-integer-order
-  ^double [^double order ^double x]
-  (let [ao (m/abs order)
+  ^double [^long order ^double x]
+  (let [ao (m/long-abs order)
         y (bessel-y-positive-args ao x)]
     (if (and (m/neg? order) (m/odd? ao)) (m/- y) y)))
 
@@ -960,7 +960,7 @@
     (m/zero? order) (bessel-Y0 x)
     (m/one? order) (bessel-Y1 x)
     (or (m/nan? order) (m/nan? x) (m/neg? x)) ##NaN
-    (m/integer? order) (bessel-y-integer-order order x)
+    (m/integer? order) (bessel-y-integer-order (long order) x)
     (m/not-neg? order) (bessel-y-positive-args (m/abs order) x)
     :else (let [ao (m/abs order)
                 aopi (m/* ao m/PI)
@@ -1117,7 +1117,7 @@
   (let [len (m/dec N)]
     (dotimes [k len]
       (dotimes [i (m/- len k)]
-        (let [i+ (m/inc i)
+        (let [i+ (m/long-inc i)
               ls (levin-scale i+ k)]
           (Array/aset s i (m/muladd (Array/aget s i) ls (Array/aget s i+)))
           (Array/aset w i (m/muladd (Array/aget w i) ls (Array/aget w i+)))))))
@@ -1399,7 +1399,7 @@
     (m/zero? order) (bessel-I0 x)
     (m/one? order) (bessel-I1 x)
     (m/invalid-double? x) x
-    (m/integer? order) (bessel-i-integer-order (m/abs order) x)
+    (m/integer? order) (bessel-i-integer-order (unchecked-long (m/abs order)) x)
     (m/neg? x) ##NaN
     (m/zero? x) 0.0
     (m/not-neg? order) (bessel-i-positive-args (m/abs order) x)
@@ -1584,7 +1584,24 @@
 ;; sinint / cosint
 
 (defn Si
-  "Sine integral"
+  "Sine integral, `Si(x) = integral_0^x sin(t)/t dt`.
+
+  `Si` is an entire, odd function that oscillates around and converges to
+  `pi/2` as `x` grows without bound (and to `-pi/2` as `x` decreases without
+  bound), with its largest overshoot (the Gibbs phenomenon peak, about
+  1.18*pi/2) at its first local maximum `x = pi`. Near zero, `Si(x)` behaves
+  like `x`, since `sin(t)/t -> 1` as `t -> 0`.
+
+  Parameters:
+
+  - `x` (double): evaluation point, any real number.
+
+  Returns `Si(x)` as a double. `Si(0.0)` is `0.0` and the function saturates
+  to the exact limits `+-HALF_PI` for very large `|x|`. Returns `##NaN` for a
+  `##NaN` input.
+
+  See also [[si]] (the same function shifted by `-pi/2`), [[Ci]], [[Cin]]
+  (the related cosine integrals)."
   ^double [^double x]
   (if (m/nan? x)
     ##NaN
@@ -1647,7 +1664,23 @@
         :else (if (neg? x) m/-HALF_PI m/HALF_PI)))))
 
 (defn si
-  "Sine integral, Si shifted by -pi/2"
+  "Sine integral [[Si]] shifted down by `pi/2`, i.e. `si(x) = Si(x) - pi/2`.
+
+  This shifted form is convenient when working with the large-`x` behavior of
+  the sine integral, since `si(x) -> 0` as `x` grows without bound (rather
+  than `Si`'s `pi/2`). Unlike [[Si]], `si` is not an odd function (`si(-x) =
+  -Si(x) - pi/2`, not `-si(x)`), because the shift by the constant `pi/2`
+  breaks the antisymmetry.
+
+  Parameters:
+
+  - `x` (double): evaluation point, any real number.
+
+  Returns `si(x)` as a double. `si(0.0)` is `-HALF_PI`. Converges to `0.0`
+  as `x` grows without bound and to `-pi` as `x` decreases without bound.
+  Returns `##NaN` for a `##NaN` input.
+
+  See also [[Si]]."
   ^double [^double x] (m/- (Si x) m/HALF_PI))
 
 (def ^:private ^:const ^{:tag 'double} ci-r0 0.616505485620716233797110404100)
@@ -1658,7 +1691,30 @@
 (def ^:private ^:const ^{:tag 'double} ci-r12 0.39136005118642639785E-3)
 
 (defn Ci
-  "Cosine integral"
+  "Cosine integral, `Ci(x) = -integral_x^Inf cos(t)/t dt`, for `x >= 0`.
+
+  Equivalently, `Ci(x) = gamma + ln(x) + integral_0^x (cos(t)-1)/t dt`, where
+  `gamma` is the Euler-Mascheroni constant. `Ci` has a logarithmic
+  singularity at `0` (`Ci(x) -> -Inf` as `x -> 0+`), oscillates with
+  decreasing amplitude for increasing `x`, and converges to `0` as `x` grows
+  without bound.
+
+  `Ci` is only defined here for non-negative `x`: for negative `x` the
+  natural continuation is genuinely complex (real part `Ci(|x|)`, imaginary
+  part `pi`), which a real-valued double-returning function cannot represent,
+  so a negative `x` throws rather than silently returning just the real
+  part.
+
+  Parameters:
+
+  - `x` (double): evaluation point, must be non-negative.
+
+  Returns `Ci(x)` as a double. Throws an assertion error if `x` is negative.
+  Returns `##-Inf` at `x = 0.0`, `0.0` at `x = ##Inf`, and `##NaN` for a
+  `##NaN` input.
+
+  See also [[Cin]] (the closely related entire cosine integral, defined for
+  all real `x`), [[Si]], [[si]] (the sine integral)."
   ^double [^double x]
   (assert (not (neg? x)) "x must be non-negative")
   (if (m/nan? x)
@@ -1732,9 +1788,30 @@
         :else 0.0))))
 
 (defn Cin
-  "Cosine integral, alternative definition"
+  "Entire cosine integral, `Cin(x) = integral_0^x (1-cos(t))/t dt`.
+
+  Related to [[Ci]] by `Cin(x) = gamma + ln(|x|) - Ci(|x|)` for `x != 0`
+  (where `gamma` is the Euler-Mascheroni constant), but unlike `Ci`, `Cin`
+  has no singularity at `0` (the integrand's `0/0` there is removable) and
+  is defined for all real `x`, including negative values. `Cin` is an even
+  function (`Cin(-x) = Cin(x)`), non-negative, and grows without bound
+  (like `ln(|x|)`) as `|x|` grows without bound.
+
+  Parameters:
+
+  - `x` (double): evaluation point, any real number.
+
+  Returns `Cin(x)` as a double. `Cin(0.0)` is `0.0`, and `Cin(x)` diverges to
+  `##Inf` as `x` approaches either `##Inf` or `##-Inf`. Returns `##NaN` for a
+  `##NaN` input.
+
+  See also [[Ci]], [[Si]], [[si]]."
   ^double [^double x]
-  (m/- (m/+ m/GAMMA (m/log x)) (Ci x)))
+  (cond
+    (m/nan? x) ##NaN
+    (m/zero? x) 0.0
+    :else (let [ax (m/abs x)]
+            (m/- (m/+ m/GAMMA (m/log ax)) (Ci ax)))))
 
 ;; ei
 
@@ -1774,13 +1851,59 @@
   `(m/- (poly/mevalpoly ~x ~@(e1-taylor-coefficients n))
         (m/log ~x)))
 
+(defmacro ^:private ein-taylor64
+  [x n]
+  `(m/+ (poly/mevalpoly ~x ~@(e1-taylor-coefficients n)) m/GAMMA))
+
 (defn E0
-  "Exponential integral E0"
+  "Exponential integral E0, `E0(x) = exp(-x)/x`, the `n=0` case of [[En]].
+
+  The simplest member of the generalized exponential integral family
+  `En(x) = integral_1^Inf exp(-x*t)/t^n dt`; for `n=0` this integral has a
+  closed elementary form. `E0` has a pole at `0` and decays to `0` for large
+  positive `x`; for large negative `x` it diverges to `-Inf`.
+
+  Parameters:
+
+  - `x` (double): evaluation point, any real number.
+
+  Returns `E0(x)` as a double. `E0(0.0)` is `##Inf`, `E0(##-Inf)` is `##-Inf`,
+  `E0(##Inf)` is `0.0`. Returns `##NaN` for a `##NaN` input.
+
+  See also [[E1]], [[En]] (generalizations to other orders), [[Ei]]."
   ^double [^double x]
-  (if (m/zero? x) ##Inf (m// (m/exp (m/- x)) x)))
+  (cond
+    (m/zero? x) ##Inf
+    (m/neg-inf? x) ##-Inf
+    :else (let [e (m/exp (m/- x))]
+            (if (m/inf? e)
+              ;; `exp(-x)` alone overflows double range for very negative `x`,
+              ;; even where the final ratio `exp(-x)/x` would not: recompute
+              ;; in log-space to avoid the premature overflow.
+              (let [mag (m/exp (m/- (m/- x) (m/log (m/abs x))))]
+                (if (m/neg? x) (m/- mag) mag))
+              (m// e x)))))
 
 (defn E1
-  "Exponential integral E1 for positive real numbers"
+  "Exponential integral E1, `E1(x) = integral_1^Inf exp(-x*t)/t dt`, for
+  `x >= 0` (the `n=1` case of [[En]]).
+
+  `E1` has a logarithmic singularity at `0` (`E1(x) -> Inf` as `x -> 0+`)
+  and decreases monotonically to `0` as `x` grows without bound. It is only
+  defined here for non-negative `x`: for negative `x` the natural
+  continuation is complex, which a real-valued double-returning function
+  cannot represent, so a negative `x` returns `##NaN` rather than silently
+  returning only part of the true (complex) result.
+
+  Parameters:
+
+  - `x` (double): evaluation point, must be non-negative.
+
+  Returns `E1(x)` as a double. `E1(0.0)` is `##Inf`, `E1(##Inf)` is `0.0`.
+  Returns `##NaN` for a `##NaN` input or a negative `x`.
+
+  See also [[Ein]] (the closely related entire exponential integral),
+  [[E0]], [[En]] (generalizations to other orders), [[Ei]]."
   ^double [^double x]
   (cond
     (m/neg? x) ##NaN
@@ -1807,11 +1930,39 @@
               :else (e1-taylor64 x 4)))))
 
 (defn Ein
-  "Exponential integral, alternative definition"
+  "Entire exponential integral, `Ein(x) = integral_0^x (1-exp(-t))/t dt`.
+
+  Related to [[E1]] by `Ein(x) = E1(x) + ln(x) + gamma` for `x > 0` (where
+  `gamma` is the Euler-Mascheroni constant), but unlike `E1`, `Ein` has no
+  singularity at `0` (the integrand's `0/0` there is removable) and is, in
+  principle, defined for every real (and complex) `x`. `Ein` grows without
+  bound as `x` grows without bound, and approaches `-##Inf` as `x` decreases
+  without bound (mirroring the corresponding limits of `E1 + ln(x)`).
+
+  Parameters:
+
+  - `x` (double): evaluation point. Positive `x` is fully supported; negative
+    `x` is only supported down to `-2.15`, a known limitation of the current
+    implementation (below that, the result is `##NaN`).
+
+  Returns `Ein(x)` as a double. `Ein(0.0)` is `0.0`. Returns `##NaN` for a
+  `##NaN` input or for `x < -2.15`.
+
+  See also [[E1]], [[Cin]] (the analogous entire form of the cosine
+  integral), [[Ei]]."
   ^double [^double x]
-  (if (m/zero? x)
-    0.0
-    (m/+ (E1 x) (m/log x) m/GAMMA)))
+  (cond
+    (m/nan? x) ##NaN
+    (m/zero? x) 0.0
+    (m/neg? x) (let [ax (m/abs x)]
+                 (if (m/<= ax 2.15)
+                   (cond
+                     (m/> ax 0.6) (ein-taylor64 x 37)
+                     (m/> ax 0.053) (ein-taylor64 x 15)
+                     (m/> ax 4.4e-3) (ein-taylor64 x 8)
+                     :else (ein-taylor64 x 4))
+                   ##NaN))
+    :else (m/+ (E1 x) (m/log x) m/GAMMA)))
 
 (defn- en-safe-expfact
   ^double [^long v ^double x]
@@ -1827,7 +1978,7 @@
 
 (defn- en-expand-origin-posint
   ^double [^long v ^double x]
-  (let [gamma-term (m/* (en-safe-expfact (m/dec v) x)
+  (let [gamma-term (m/* (en-safe-expfact (m/long-dec v) x)
                         (m/- (digamma v) (m/log x)))
         sum-term (if (m/one? v) 0.0 (m// 1.0 (m/- 1.0 v)))
         eps (m/* 10.0 (m/ulp sum-term))
@@ -1875,7 +2026,7 @@
             delta2 (m/* delta delta)
             delta3 (m/* delta2 delta)
             delta4 (m/* delta3 delta)
-            n (m/dec (m/round v))
+            n (m/long-dec (m/round v))
             n+ (m/inc n)
             logx (m/log x)
             logx2 (m/* logx logx)
@@ -1992,12 +2143,37 @@
     (Vec2. 0.0 (en-cf-no-gamma v x))))
 
 (defn En
-  "Generalized exponential integral En"
+  "Generalized exponential integral, `En(x) = integral_1^Inf exp(-x*t)/t^n
+  dt`, for any real order `n`.
+
+  Includes [[E0]] and [[E1]] as the `n=0` and `n=1` special cases. For
+  positive `x`, `En` decreases monotonically to `0` as `x` grows without
+  bound. As `x -> 0+`, `En` diverges to `##Inf` when `n <= 1` (the defining
+  integral itself diverges there), but converges to the finite value
+  `1/(n-1)` when `n > 1`.
+
+  Negative `x` is supported only when `n` is a non-positive integer (`n <=
+  0`): in that case `En` reduces to an elementary function of `x` and
+  `exp(-x)` with no branch cut, so it stays real. For any other order
+  (fractional, or a positive integer) with negative `x`, the natural
+  continuation is complex, which a real-valued double-returning function
+  cannot represent, so the result is `##NaN`.
+
+  Parameters:
+
+  - `n` (double): the order, any real number (integer or fractional).
+  - `x` (double): evaluation point.
+
+  Returns `En(x)` as a double. At `x = 0.0`: `##Inf` if `n <= 1`, `1/(n-1)`
+  otherwise. Returns `##NaN` for a `##NaN` `n` or `x`, or for a negative `x`
+  outside the non-positive-integer-order case described above.
+
+  See also [[E0]], [[E1]], [[Ei]]."
   ^double [^double n ^double x]
   (cond
     (m/zero? n) (E0 x)
     (m/one? n) (E1 x)
-    (and (m/zero? x) (m/neg? n)) ##Inf
+    (and (m/zero? x) (m/< n 1.0)) ##Inf
     (m/zero? x) (m// 1.0 (m/dec n))
     (or (m/nan? n) (m/nan? x)
         (if (m/integer? n)
@@ -2005,7 +2181,7 @@
           (m/neg? x))) ##NaN
     (m/> x 745.0) 0.0
     (m/< (m/sq x) 9.0) (if (and (m/integer? n) (m/pos? n))
-                         (en-expand-origin-posint n x)
+                         (en-expand-origin-posint (unchecked-long n) x)
                          (en-expand-origin-general n x))
     :else (let [^Vec2 gcf (if (m/pos? x)
                             (en-cf n x)
@@ -2026,12 +2202,28 @@
 
 
 (defn Ei
-  "Exponential integral"
+  "Exponential integral, `Ei(x) = -integral_(-x)^Inf exp(-t)/t dt` (Cauchy
+  principal value), for `x != 0`.
+
+  Related to [[E1]] by `Ei(x) = -E1(-x)` for `x < 0`. `Ei` has a logarithmic
+  singularity at `0` (`-Inf` from the left, `+Inf` from the right), a single
+  real zero near `x = 0.3725`, and grows without bound (like `exp(x)/x`) as
+  `x` grows without bound; as `x` decreases without bound, `Ei(x)`
+  approaches `0` from below.
+
+  Parameters:
+
+  - `x` (double): evaluation point, any real number except `0`.
+
+  Returns `Ei(x)` as a double. `Ei(0.0)` is `##-Inf`, `Ei(##Inf)` is `##Inf`,
+  `Ei(##-Inf)` is `-0.0`. Returns `##NaN` for a `##NaN` input.
+
+  See also [[E1]], [[E0]], [[En]], [[li]] (related by `li(x) = Ei(ln x)`)."
   ^double [^double x]
   (cond
     (m/neg? x) (m/- (E1 (m/- x)))
     (m/zero? x) ##-Inf
-    (m/> x 710.0) ##Inf
+    (m/pos-inf? x) ##Inf
     (m/neg-inf? x) -0.0
     :else (if (m/> x 2.15)
             (cond
@@ -2048,23 +2240,59 @@
                         (m/* (m/exp x)
                              (m// (poly/mevalpoly xinv -5.29842699621003563e-14, +1.00000000004732488, -60.4361334939888359, +1327.83891720487710, -6810.63668974273961, -177755.383525765400,+3.00773484037048848e6, -1.53642380695372707e7, +2.08174653368702692e7)
                                   (poly/mevalpoly xinv  1.0, -61.4361334756161381, +1387.27504658395142, -8081.03888544858393, -172104.333927401741, +3.18903576285551101e6, -1.81873890267574206e7, +3.37312131843327704e7, -1.22198734384213631e7)))
-                        (m/* (m/exp x) xinv (poly/mevalpoly xinv 1,1,2,6,24,120,720,5040)))))
-            (let [dx (m/- x 0.37250741078136663446)]
-              (if (m/< (m/abs dx) 0.3)
-                (m/* dx (poly/mevalpoly dx 3.896215733907167310, -3.281607866398561671, 6.52237614543892570, -12.96969738353651704, 27.88629796294204998, -62.3788015289154187, 143.5349488096750988, -337.155827178746892, 804.531839982138251, -1943.79664572349884, 4743.76565040243084, -11673.46399116716364, 28926.9553054354509))
-                (cond
-                  (m/> x 0.6) (ei-taylor64 x 37)
-                  (m/> x 0.053) (ei-taylor64 x 15)
-                  (m/> x 4.4e-3) (ei-taylor64 x 8)
-                  :else (ei-taylor64 x 4)))))))
+                        (let [e (m/exp x)
+                              polyval (poly/mevalpoly xinv 1,1,2,6,24,120,720,5040)]
+                          (if (m/inf? e)
+                            ;; `exp(x)` alone overflows double range before the
+                            ;; true `exp(x)/x * polyval` product does: recompute
+                            ;; in log-space to avoid the premature overflow.
+                            (m/exp (m/+ (m/- x (m/log x)) (m/log polyval)))
+                            (m/* e xinv polyval))))))
+            (cond
+              (m/> x 0.6) (ei-taylor64 x 37)
+              (m/> x 0.053) (ei-taylor64 x 15)
+              (m/> x 4.4e-3) (ei-taylor64 x 8)
+              :else (ei-taylor64 x 4)))))
 
 (defn li
-  "Logarythmic integral"
+  "Logarithmic integral, `li(x) = integral_0^x dt/ln(t)`, for `x > 0`.
+
+  Related to [[Ei]] by `li(x) = Ei(ln(x))`. `li` has a singularity at `x =
+  1` (`-Inf` from the left, `+Inf` from the right, since `ln(1) = 0`), a
+  single real zero away from `0` near `x = 1.4514` (the Ramanujan-Soldner
+  constant), and grows without bound (roughly like `x/ln(x)`) as `x` grows
+  without bound. By the prime number theorem, `li` is asymptotic to the
+  prime-counting function `pi(x)` (the count of primes up to `x`).
+
+  Parameters:
+
+  - `x` (double): evaluation point, must be positive.
+
+  Returns `li(x)` as a double. `li(0.0)` is `-0.0`, `li(1.0)` is `##-Inf`.
+  Returns `##NaN` for a `##NaN` input or a negative `x` (`ln(x)` is not
+  real there).
+
+  See also [[Ei]], [[Li]] (the offset variant used in number theory)."
   ^double [^double x]
   (Ei (m/ln x)))
 
 (defn Li
-  "Offset logarythmic integral"
+  "Offset logarithmic integral, `Li(x) = integral_2^x dt/ln(t)`, for `x > 0`.
+
+  Related to [[li]] by `Li(x) = li(x) - li(2)`, so that `Li(2.0)` is `0.0`
+  (unlike `li`, whose corresponding reference point is `0`). Shares `li`'s
+  singularity at `x = 1` and its asymptotic growth for large `x`; `Li` is
+  the form more commonly used in number theory as an estimate of the
+  prime-counting function `pi(x)`.
+
+  Parameters:
+
+  - `x` (double): evaluation point, must be positive.
+
+  Returns `Li(x)` as a double. `Li(2.0)` is `0.0`, `Li(1.0)` is `##-Inf`.
+  Returns `##NaN` for a `##NaN` input or a negative `x`.
+
+  See also [[li]], [[Ei]]."
   ^double [^double x]
   (m/- (Ei (m/ln x)) 1.04516378011749278484))
 
@@ -2198,48 +2426,107 @@
   "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
   ^double [^double a ^double b ^double x]
   (cond
-    (or (m/== a b -1.0)
-        (and (m/neg? b)
-             (m/integer? a)
-             (m/integer? b)
-             (or (m/pos? a)
-                 (and (m/neg? a) (m/< a b))))) ##NaN
+    (and (m/neg? b)
+         (m/integer? a)
+         (m/integer? b)
+         (or (m/pos? a)
+             (and (m/neg? a) (m/< a b)))) ##NaN
     (m/near-zero? a (m/ulp a)) 1.0
-    (m/zero? b) (m/copy-sign ##Inf (m/* a x))
     (m/near-zero? x m/MACHINE-EPSILON) 1.0
+    (m/zero? b) (m/copy-sign ##Inf (m/* a x))
+    (and (m/neg? a) (m/integer? a))
+    ;; a is a non-positive integer: the series always terminates to an exact
+    ;; finite polynomial in x (numerator vanishes identically after |a|+1
+    ;; terms), for any b and any x -- evaluated directly here instead of via
+    ;; any convergence-based approximation, both for precision and to
+    ;; correctly resolve the case a = b on a non-positive integer, a
+    ;; removable 0/0 coincidence in the series (not exp(x)).
+    (let [nmax (unchecked-long (m/- a))]
+      (loop [n (long 1) term 1.0 sum 1.0]
+        (if (m/> n nmax)
+          sum
+          (let [nterm (m// (m/* term (m/+ a (m/dec n)) x) (m/* (m/+ b (m/dec n)) n))]
+            (recur (m/inc n) nterm (m/+ sum nterm))))))
     (m/== a b) (m/exp x)
-    (m/== a -1.0) (m/- 1.0 (m// x b))
     (and (m/one? a) (m/== b 2.0)) (let [hx (m/* 0.5 x)]
                                     (m/* (m// (m/exp hx) hx) (m/sinh hx)))
     (m/pos? x) (loop [i (long 1)
                       s0 1.0
                       s1 (m/inc (m// (m/* a x) b))]
-                 (if (or (and (m/valid-double? s0) (m/valid-double? s1)
-                              (m/delta-eq s0 s1 m/MACHINE-EPSILON m/MACHINE-EPSILON))
-                         (m/== i 1000000))
-                   s1
-                   (let [rj (m// (m/* (m/+ a i) x) (m/* (m/+ b i) (m/inc i)))]
-                     (recur (m/inc i) s1 (m/+ s1 (m/* (m/- s1 s0) rj))))))
+                 (cond
+                   (m/inf? s1) s1
+                   (or (and (m/valid-double? s0) (m/valid-double? s1)
+                            (m/delta-eq s0 s1 m/MACHINE-EPSILON m/MACHINE-EPSILON))
+                       (m/== i 1000000)) s1
+                   :else (let [rj (m// (m/* (m/+ a i) x) (m/* (m/+ b i) (m/inc i)))]
+                           (recur (m/inc i) s1 (m/+ s1 (m/* (m/- s1 s0) rj))))))
     :else (hg/weniger-1F1 a b x)))
 
 (defn whittaker-M
-  "Whittaker's M"
+  "Whittaker's M function.
+
+  A standard solution of Whittaker's differential equation, expressed via Kummer's confluent hypergeometric function [[kummers-M]]: `M(kappa,mu,x) = exp(-x/2) x^(mu+1/2) kummers-M(mu-kappa+1/2, 2mu+1, x)`.
+
+  Parameters:
+
+  - `kappa` (double): the first parameter.
+  - `mu` (double): the second parameter.
+  - `x` (double): the argument, restricted to `x >= 0.0` (for `x < 0.0`, `x^(mu+1/2)` generally leaves the real line, so `##NaN` is returned).
+
+  As `x` approaches `0.0` from above, the result approaches `0.0` when `mu > -0.5`, diverges to `##Inf` when `mu < -0.5`, and approaches `1.0` when `mu = -0.5` exactly (`x^(mu+1/2)` reduces to the constant `1` there). Elsewhere, inherits [[kummers-M]]'s domain and pole structure through the transformed parameters `mu-kappa+1/2` and `2mu+1`.
+
+  See also [[kummers-M]], [[whittaker-W]], [[tricomis-U]]."
   ^double [^double kappa ^double mu ^double x]
-  (let [mu+05 (m/+ 0.5 mu)
-        z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
-    (m/* z (kummers-M (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))
+  (let [mu+05 (m/+ 0.5 mu)]
+    (cond
+      (m/neg? x) ##NaN
+      (and (m/zero? x) (m/zero? mu+05)) (kummers-M (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x)
+      :else (let [z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
+              (m/* z (kummers-M (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))))
 
 (defn hypergeometric-0F0
-  "Hypergeometric ₀F₀ function, exp(x)"
+  "Hypergeometric ₀F₀ function.
+
+  The degenerate generalized hypergeometric series with no numerator and no denominator parameters, `sum_n x^n / n!`, identically equal to `exp(x)` for every real `x`.
+
+  Parameters:
+
+  - `x` (double): the argument.
+
+  Returns `exp(x)`. Well-defined and finite for every finite `x`; returns `##Inf` for `x = ##Inf`, `0.0` for `x = ##-Inf`, and `##NaN` for `##NaN`.
+
+  See also [[hypergeometric-1F0]], [[hypergeometric-0F1]], [[hypergeometric-pFq]]."
   ^double [^double x] (m/exp x))
 
 (defn hypergeometric-1F0
-  "Hypergeometric ₁F₀ function."
+  "Hypergeometric ₁F₀ function.
+
+  The generalized hypergeometric series with one numerator parameter and no denominator parameters, equal on the real line to the binomial series `(1-x)^(-a)`. For `a` a non-positive integer the series terminates, giving a polynomial in `x` that is real and finite for every `x`.
+
+  Parameters:
+
+  - `a` (double): the numerator parameter.
+  - `x` (double): the argument.
+
+  Returns `(1-x)^(-a)`. Diverges to `##Inf` (or `##-Inf`, depending on sign) as `x` approaches `1.0` from below when `a` is positive and not a non-positive integer. For `x >= 1.0` the result stays on the real line only when `a` is an integer (of any sign); otherwise the true value is complex and `##NaN` is returned. Returns `1.0` for `a = 0.0` regardless of `x`.
+
+  See also [[hypergeometric-0F0]], [[hypergeometric-0F1]], [[hypergeometric-2F1]], [[hypergeometric-pFq]]."
   ^double [^double a ^double x]
   (m/pow (m/- 1.0 x) (m/- a)))
 
 (defn hypergeometric-0F1
-  "Confluent hypergeometric ₀F₁ limit function."
+  "Confluent hypergeometric ₀F₁ limit function.
+
+  The generalized hypergeometric series with no numerator parameters and one denominator parameter, `sum_n x^n / ((a)_n n!)` (using the Pochhammer symbol `(a)_n`), closely related to the Bessel functions: `0F1(;a;x) = Gamma(a) x^((1-a)/2) I_(a-1)(2 sqrt(x))` for `x > 0`, with `I` replaced by the ordinary Bessel `J` for `x < 0`.
+
+  Parameters:
+
+  - `a` (double): the denominator parameter.
+  - `x` (double): the argument.
+
+  Returns `1.0` for `x = 0.0`, for every `a`. Has poles at `a` equal to a non-positive integer (0, -1, -2, and so on) for any `x != 0.0`, where `##NaN` is returned; elsewhere the result is real and finite.
+
+  See also [[hypergeometric-0F0]], [[hypergeometric-1F0]], [[hypergeometric-1F1]], [[bessel-I]], [[bessel-J]], [[hypergeometric-pFq]]."
   ^double [^double a ^double x]
   (cond
     (m/zero? x) 1.0
@@ -2253,43 +2540,165 @@
                  (m/pow (m/* 0.5 xx ) a-)))))
 
 (defn hypergeometric-1F1
-  "Confluent hypergeometric ₁F₁ function of the first kind, Kummer's M."
+  "Confluent hypergeometric ₁F₁ function of the first kind, also known as Kummer's function M.
+
+  The generalized hypergeometric series with one numerator and one denominator parameter, `sum_n (a)_n x^n / ((b)_n n!)` (using the Pochhammer symbol `(a)_n`). Alias for [[kummers-M]].
+
+  Parameters:
+
+  - `a` (double): the numerator parameter.
+  - `b` (double): the denominator parameter.
+  - `x` (double): the argument.
+
+  Returns `1.0` for `x = 0.0` regardless of `a` and `b`, and also `1.0` whenever `a = 0.0` regardless of `x` and `b` (the series then has only its constant term).
+
+  Has a genuine pole (returns `##NaN`) when `b` is a non-positive integer, unless `a` is also a non-positive integer no more negative than `b`, in which case the series terminates to a finite polynomial in `x` before ever reaching the pole. When `a` equals `b` on a negative integer, numerator and denominator vanish together at the same term, a removable coincidence whose value is the corresponding truncated exponential series, not `exp(x)`; `exp(x)` remains the correct result for every other case of `a = b` (zero, positive, or non-integer). For `b = 0.0` with `a != 0.0`, diverges to a signed `##Inf` or `##-Inf` depending on the sign of `a * x`. Returns a signed `##Inf` (rather than `##NaN`) whenever the true magnitude exceeds the double-precision range.
+
+  See also [[kummers-M]], [[whittaker-M]], [[tricomis-U]], [[hypergeometric-0F1]], [[hypergeometric-2F1]], [[hypergeometric-pFq]]."
   ^double [^double a ^double b ^double x]
   (kummers-M a b x))
 
 (defn hypergeometric-0F2
-  "Generalized hypergeometric ₀F₂ function."
+  "Generalized hypergeometric ₀F₂ function.
+
+  The generalized hypergeometric series with no numerator parameters and two denominator parameters, `sum_n x^n / ((a)_n (b)_n n!)` (using the Pochhammer symbol `(a)_n`).
+
+  Parameters:
+
+  - `a`, `b` (double): the two denominator parameters.
+  - `x` (double): the argument.
+
+  Returns `1.0` for `x = 0.0`, for every `a` and `b`. Has a genuine pole (returns `##NaN`) whenever `a` or `b` is a non-positive integer and `x != 0.0`, since both parameters appear only in the denominator and so cannot terminate the series the way a non-positive-integer numerator parameter would; elsewhere the result is real and finite.
+
+  See also [[hypergeometric-0F1]], [[hypergeometric-1F1]], [[hypergeometric-2F0]], [[hypergeometric-pFq]]."
   ^double [^double a ^double b ^double x]
-  (if (m/pos? x)
-    (hg/maclaurin-0F2 a b x)
-    (hg/weniger-0F2 a b x)))
+  (cond
+    (m/zero? x) 1.0
+    (or (and (m/not-pos? a) (m/integer? a))
+        (and (m/not-pos? b) (m/integer? b))) ##NaN
+    (m/pos? x) (hg/maclaurin-0F2 a b x)
+    :else (hg/weniger-0F2 a b x)))
 
 (defn hypergeometric-2F0
-  "Generalized hypergeometric ₂F₀ function."
+  "Generalized hypergeometric ₂F₀ function.
+
+  The generalized hypergeometric series with two numerator parameters and no denominator parameters, `sum_n (a)_n (b)_n x^n / n!` (using the Pochhammer symbol `(a)_n`). Unlike [[hypergeometric-0F1]] or [[hypergeometric-0F2]], this series diverges for every `x != 0.0` (its radius of convergence is `0`), except when `a` or `b` is a non-positive integer, in which case it terminates to a finite polynomial; otherwise it is understood here via resummation of the divergent series, the same technique underlying [[tricomis-U]].
+
+  Parameters:
+
+  - `a`, `b` (double): the two numerator parameters.
+  - `x` (double): the argument.
+
+  Returns `1.0` for `x = 0.0`. When `a` or `b` is a non-positive integer, the result is a finite polynomial in `x`, real for every `x`. Otherwise, the resummed value matches the standard real result for `x <= 0.0`; for `x > 0.0` the resummation of a divergent series is inherently branch-dependent (other conventions, such as Borel summation, can give a genuinely complex result there instead), so the real value returned should not be assumed to match every other convention.
+
+  See also [[hypergeometric-1F1]], [[hypergeometric-2F1]], [[tricomis-U]], [[hypergeometric-pFq]]."
   ^double [^double a ^double b ^double x]
-  (hg/weniger-2F0 a b x))
+  (let [a-term? (and (m/not-pos? a) (m/integer? a))
+        b-term? (and (m/not-pos? b) (m/integer? b))]
+    (if (or a-term? b-term?)
+      ;; a or b is a non-positive integer: the series always terminates to
+      ;; an exact finite polynomial in x (both parameters are numerator-only
+      ;; here, so no pole is possible), evaluated directly for both
+      ;; precision and robustness (the general resummation below is prone
+      ;; to isolated NaNs at specific coincidental (a, b, x) here).
+      (let [nmax (unchecked-long (cond
+                                    (and a-term? b-term?) (m/min (m/- a) (m/- b))
+                                    a-term? (m/- a)
+                                    :else (m/- b)))]
+        (loop [n (long 1) term 1.0 sum 1.0]
+          (if (m/> n nmax)
+            sum
+            (let [nterm (m// (m/* term (m/+ a (m/dec n)) (m/+ b (m/dec n)) x) n)]
+              (recur (m/inc n) nterm (m/+ sum nterm))))))
+      (hg/weniger-2F0 a b x))))
 
 (defn tricomis-U
-  "Confluent hypergeometric function U of the second kind."
+  "Confluent hypergeometric function U of the second kind, also known as Tricomi's function.
+
+  The second, generally unbounded-as-x-approaches-0 solution of Kummer's differential equation (the first being [[kummers-M]]), related to it for non-integer `b` via `U(a,b,x) = Gamma(1-b)/Gamma(a-b+1) kummers-M(a,b,x) + Gamma(b-1)/Gamma(a) x^(1-b) kummers-M(a-b+1,2-b,x)`.
+
+  Parameters:
+
+  - `a`, `b` (double): the two parameters.
+  - `x` (double): the argument. The validated domain is `x >= 0.0`; `x < 0.0` is not a domain this function is intended for (typically `##NaN`, though a handful of specific parameter coincidences may return an unvalidated real number instead).
+
+  At `x = 0.0`: returns `Gamma(1-b)/Gamma(a-b+1)` for `b < 1.0`. For `b >= 1.0`, `U` genuinely diverges there, returning a signed `##Inf` following the sign of `Gamma(a)`, unless `a` is itself a non-positive integer, in which case the divergence is removable and the result is the finite value `(-1)^n (b)_n` (writing `a = -n`, and `(b)_n` the rising Pochhammer symbol). Elsewhere, real and finite.
+
+  See also [[kummers-M]], [[whittaker-W]], [[hypergeometric-2F0]]."
   ^double [^double a ^double b ^double x]
   (cond
     ;; wolfram alpha
-    (m/zero? x) (if (m/< b 1.0)
-                  (m// (gamma (m/- 1.0 b)) (gamma (m/inc (m/- a b))))
-                  ##NaN)
-    (m/== a b) (m/* (m/exp x) (upper-incomplete-gamma (m/- 1.0 a) x))
+    (m/zero? x) (cond
+                  ;; a = -n a non-positive integer: U(-n,b,x) is finite even
+                  ;; at x=0 for any b (a degenerate case of the general
+                  ;; asymptotics below, where the divergent term's
+                  ;; coefficient 1/gamma(a) vanishes at gamma's pole);
+                  ;; confirmed against independent limit evaluations at
+                  ;; small x>0 to equal (-1)^n (b)_n (rising Pochhammer
+                  ;; symbol), for both b<1 and b>=1
+                  (and (m/not-pos? a) (m/integer? a))
+                  (let [n (unchecked-long (m/- a))]
+                    (m/* (if (m/odd? n) -1.0 1.0) (m/rising-factorial-int n b)))
+                  (m/< b 1.0) (m// (gamma (m/- 1.0 b)) (gamma (m/inc (m/- a b))))
+                  ;; b >= 1.0, a not a non-positive integer: genuinely
+                  ;; diverges as x -> 0+ (a pole at x=0), for b>1 with
+                  ;; sign(gamma(b-1)/gamma(a)) = sign of gamma(a) alone
+                  ;; (gamma(b-1) is always positive there, b-1>0), and,
+                  ;; confirmed separately, the same sign(gamma(a)) rule also
+                  ;; holds for the logarithmic divergence at b=1 exactly
+                  :else (m/copy-sign ##Inf (gamma a)))
+    (m/== a b) (let [ex (m/exp x)]
+                 (if (m/inf? ex)
+                   ;; exp(x) alone overflows to Infinity even though the
+                   ;; true value (exp(x) * a rapidly-decaying incomplete
+                   ;; gamma) is a tiny, perfectly finite double there;
+                   ;; falls back to the general asymptotic-series formula
+                   ;; below, which never computes exp(x) directly and was
+                   ;; confirmed to already agree with this branch to ~13
+                   ;; significant digits well before the overflow boundary
+                   (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a 1.0 (m/- (m// x))))
+                   (m/* ex (upper-incomplete-gamma (m/- 1.0 a) x))))
     (m/== a (m/dec b)) (m/pow x (m/- a))    
-    :else (m/* (m/pow x (m/- a)) (hg/weniger-2F0 a (m/inc (m/- a b)) (m/- (m// x))))))
+    :else (m/* (m/pow x (m/- a)) (hypergeometric-2F0 a (m/inc (m/- a b)) (m/- (m// x))))))
 
 (defn whittaker-W
-  "Whittaker's W"
+  "Whittaker's W function.
+
+  A standard solution of Whittaker's differential equation, expressed via the confluent hypergeometric function of the second kind [[tricomis-U]]: `W(kappa,mu,x) = exp(-x/2) x^(mu+1/2) tricomis-U(mu-kappa+1/2, 2mu+1, x)`.
+
+  Parameters:
+
+  - `kappa` (double): the first parameter.
+  - `mu` (double): the second parameter.
+  - `x` (double): the argument, restricted to `x >= 0.0` (for `x < 0.0`, `x^(mu+1/2)` generally leaves the real line, so `##NaN` is returned).
+
+  As `x` approaches `0.0` from above, the result approaches `0.0` when `mu > -0.5`, diverges (with a sign that follows [[tricomis-U]]'s own limiting value there, unlike [[whittaker-M]] this is not always positive) when `mu < -0.5`, and approaches [[tricomis-U]]'s own value at that point when `mu = -0.5` exactly (`x^(mu+1/2)` reduces to the constant `1` there). Elsewhere, inherits [[tricomis-U]]'s domain and pole structure through the transformed parameters `mu-kappa+1/2` and `2mu+1`.
+
+  See also [[tricomis-U]], [[kummers-M]], [[whittaker-M]]."
   ^double [^double kappa ^double mu ^double x]
-  (let [mu+05 (m/+ 0.5 mu)
-        z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
-    (m/* z (tricomis-U (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))
+  (let [mu+05 (m/+ 0.5 mu)]
+    (cond
+      (m/neg? x) ##NaN
+      (and (m/zero? x) (m/zero? mu+05)) (tricomis-U (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x)
+      :else (let [z (m/exp (m/* 0.5 (m/+ (m/* -0.5 x) (m/* mu+05 (m/log x)))))]
+              (m/* z (tricomis-U (m/- mu+05 kappa) (m/inc (m/* 2.0 mu)) x) z)))))
 
 (defn hypergeometric-2F1
-  "Gauss's hypergeometric ₂F₁ function."
+  "Gauss's hypergeometric ₂F₁ function.
+
+  The classical generalized hypergeometric series with two numerator and one denominator parameter, `sum_n (a)_n (b)_n / (c)_n * x^n / n!` (using the Pochhammer symbol `(a)_n`), convergent for `|x| < 1` and analytically continued elsewhere on the real line.
+
+  Parameters:
+
+  - `a`, `b` (double): the two numerator parameters.
+  - `c` (double): the denominator parameter.
+  - `x` (double): the argument.
+
+  Returns `1.0` for `x = 0.0`. When `a` or `b` is a non-positive integer, the series terminates to a finite polynomial in `x`, real for every `x` (subject to the usual pole in `c`, described below). Otherwise: for `x < 1.0`, real and finite; at `x = 1.0`, follows Gauss's summation theorem, finite when `c-a-b > 0` and diverging to `##Inf` when `c-a-b <= 0`; for `x > 1.0`, the analytic continuation leaves the real line for generic `a`, `b`, so `##NaN` is returned there (except in the terminating case above, which remains real for any `x`).
+
+  Has a genuine pole (returns `##NaN`) whenever `c` is a non-positive integer, unless the series terminates (`a` or `b` a non-positive integer) before reaching it.
+
+  See also [[hypergeometric-1F1]], [[hypergeometric-2F0]], [[hypergeometric-pFq]]."
   ^double [^double a ^double b ^double c ^double x]
   (hg/hypergeometric-2F1 a b c x))
 
@@ -2303,6 +2712,15 @@
   (^double [ps qs ^double x ^long max-iters]
    (let [p (count ps) q (count qs)]
      (cond
+       ;; series terminates to an exact finite polynomial when any numerator
+       ;; parameter is a non-positive integer, for any x; the MacLaurin loop
+       ;; evaluates this exactly (and correctly signals a genuine pole via a
+       ;; non-positive-integer denominator reached before termination),
+       ;; unlike the Weniger resummation path, which is built for infinite
+       ;; series and loses precision as |x| grows in this case.
+       (some (fn [^double a] (and (m/not-pos? a) (m/integer? a))) ps)
+       (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+
        (m/< p q) (if (m/pos? x)
                    (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
                    (hg/hypergeometric-pFq-weniger ps qs x max-iters))

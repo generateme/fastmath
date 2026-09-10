@@ -437,14 +437,25 @@
 
 (defn inf-2F1
   ^double [^double a ^double b ^double c ^double x]
-  (let [b-a (m/- b a)
-        m (m/round b-a)
-        eps (m/- b-a m)
-        w (m// x)
-        abcw (Vec4. a b c w)
-        res (m/* (m// (m/pow (m/- w) a) (m/sinc eps))
-                 (m/+ (ainf abcw m eps) (binf abcw m eps)))]
-    (if (m/even? m) res (m/- res))))
+  ;; requires b >= a (m = round(b-a) >= 0): the a/b-Norlund-Rice series
+  ;; construction below assumes this ordering; without it, P's internal
+  ;; loop (bounded by `(== n m)`, n only ever increasing from 0) can never
+  ;; terminate for negative m, an infinite loop confirmed this session.
+  ;; 2F1(a,b,c,x) is symmetric in a,b, so swapping is exact, not an
+  ;; approximation -- general-2F1's own c-a-b<0 transformation can produce
+  ;; a recursive call with b < a even when the top-level hypergeometric-2F1
+  ;; wrapper already normalized a <= b once, so this local guard is needed
+  ;; here too.
+  (if (m/< b a)
+    (inf-2F1 b a c x)
+    (let [b-a (m/- b a)
+          m (m/round b-a)
+          eps (m/- b-a m)
+          w (m// x)
+          abcw (Vec4. a b c w)
+          res (m/* (m// (m/pow (m/- w) a) (m/sinc eps))
+                   (m/+ (ainf abcw m eps) (binf abcw m eps)))]
+      (if (m/even? m) res (m/- res)))))
 
 (defn one-2F1
   ^double [^double a ^double b ^double c ^double x]
@@ -557,6 +568,28 @@
       (or (m/< (m/abs x) m/MACHINE-EPSILON)
           (m/< (m/abs (m/* a b)) (m/ulp (m/* absa absb)))) 1.0
       (m/< b a) (hypergeometric-2F1 b a c x)
+      (or (and (m/not-pos? a) (m/integer? a))
+          (and (m/not-pos? b) (m/integer? b)))
+      ;; a or b a non-positive integer: the series always terminates to an
+      ;; exact finite polynomial in x, valid for ANY x (no radius-of-
+      ;; convergence restriction); evaluated directly here, ahead of every
+      ;; other branch below (some of which only handled the narrower case
+      ;; of BOTH a and b non-positive integers with |x|<0.72, giving ##NaN
+      ;; elsewhere even though the true value is perfectly finite and
+      ;; real -- fixed this session).
+      (let [a-term? (and (m/not-pos? a) (m/integer? a))
+            n (unchecked-long (if (and a-term? (m/not-pos? b) (m/integer? b))
+                                 (m/min (m/- a) (m/- b))
+                                 (if a-term? (m/- a) (m/- b))))
+            p (m/- n)]
+        (if (and (m/neg? c) (m/integer? c) (m/neg? p) (m/< p c))
+          ##NaN
+          (loop [k (long 1) term 1.0 sum 1.0]
+            (if (m/> k n)
+              sum
+              (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
+                               (m/* (m/+ c (m/dec k)) k))]
+                (recur (m/inc k) nterm (m/+ sum nterm)))))))
       (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
       (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
       (m/== c 0.5) (let [a+b (m/+ a b)]
@@ -754,7 +787,7 @@
          proda (v/prod a)
          prodb (v/prod b)]
      (if (or (m/< (m/abs z) m/MACHINE-EPSILON10)
-             (m/< proda (m/ulp (v/prod absa))))
+             (m/< (m/abs proda) (m/ulp (v/prod absa))))
        1.0
        (let [gamma- (m/dec GAMMA-CONST)
              zeta (m// z)
