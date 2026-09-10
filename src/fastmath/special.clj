@@ -131,7 +131,7 @@
 ;; Beta
 
 (defn- nonpos-int?
-  ^Boolean [^double x] (and (m/not-pos? x) (m/integer? x)))
+  [^double x] (and (m/not-pos? x) (m/integer? x)))
 
 (defn beta
   "Computes the Beta function of `p` and `q`.
@@ -2426,13 +2426,17 @@
   "Kummer's (confluent hypergeometric, 1F1) function for real arguments."
   ^double [^double a ^double b ^double x]
   (cond
-    (and (m/neg? b)
-         (m/integer? a)
-         (m/integer? b)
-         (or (m/pos? a)
-             (and (m/neg? a) (m/< a b)))) ##NaN
-    (m/near-zero? a (m/ulp a)) 1.0
+    ;; x=0 and a=0 always win, even over an otherwise-genuine pole, matching
+    ;; this function's own documented behavior
     (m/near-zero? x m/MACHINE-EPSILON) 1.0
+    (m/near-zero? a (m/ulp a)) 1.0
+    ;; a genuine, unavoidable pole: b a negative integer, and a is not a
+    ;; non-positive integer capable of terminating the series at or before
+    ;; reaching it (a need not itself be an integer for this to apply --
+    ;; only a non-positive INTEGER a can ever terminate the series)
+    (and (m/neg? b)
+         (m/integer? b)
+         (not (and (m/not-pos? a) (m/integer? a) (m/>= a b)))) ##NaN
     (m/zero? b) (m/copy-sign ##Inf (m/* a x))
     (and (m/neg? a) (m/integer? a))
     ;; a is a non-positive integer: the series always terminates to an exact
@@ -2696,7 +2700,7 @@
 
   Returns `1.0` for `x = 0.0`. When `a` or `b` is a non-positive integer, the series terminates to a finite polynomial in `x`, real for every `x` (subject to the usual pole in `c`, described below). Otherwise: for `x < 1.0`, real and finite; at `x = 1.0`, follows Gauss's summation theorem, finite when `c-a-b > 0` and diverging to `##Inf` when `c-a-b <= 0`; for `x > 1.0`, the analytic continuation leaves the real line for generic `a`, `b`, so `##NaN` is returned there (except in the terminating case above, which remains real for any `x`).
 
-  Has a genuine pole (returns `##NaN`) whenever `c` is a non-positive integer, unless the series terminates (`a` or `b` a non-positive integer) before reaching it.
+  Has a genuine pole (returns a plain `##Inf`, matching mpmath's own `hyp2f1` convention there) whenever `c` is a non-positive integer, unless the series terminates (`a` or `b` a non-positive integer, reaching that same magnitude no later than `c` does) before reaching it.
 
   See also [[hypergeometric-1F1]], [[hypergeometric-2F0]], [[hypergeometric-pFq]]."
   ^double [^double a ^double b ^double c ^double x]
@@ -2704,26 +2708,154 @@
 
 ;;
 
-(defn hypergeometric-pFq
-  "Hypergeometric-pFq using MacLaurin series or Weniger acceleration.
+(defn- pfq-cancel-equal-pairs
+  "Cancels any numerator parameter that exactly equals a denominator
+  parameter, PROVIDED the shared value is not a non-positive integer:
+  `(a_i)_k / (b_j)_k = 1` identically for every k when `a_i = b_j` and
+  neither Pochhammer symbol ever hits zero, so such a pair cancels in the
+  pFq definition, reducing `pFq` to `(p-1)F(q-1)`. When the shared value IS
+  a non-positive integer, this simple cancellation does NOT hold (both
+  Pochhammer symbols vanish together at the same term, a distinct
+  removable coincidence handled separately by
+  `pfq-integer-coincidence-pair`/`pfq-truncated-sum`); such pairs are left
+  untouched here. Returns `[ps' qs']` with every safe pair removed
+  (repeated until none remain)."
+  [ps qs]
+  (loop [ps (vec ps) qs (vec qs)]
+    (let [match (first (for [i (range (count ps))
+                              j (range (count qs))
+                              :let [a (double (ps i))]
+                              :when (and (== a (double (qs j)))
+                                         (not (nonpos-int? a)))]
+                          [i j]))]
+      (if match
+        (let [[^long i ^long j] match]
+          (recur (into (subvec ps 0 i) (subvec ps (inc i)))
+                 (into (subvec qs 0 j) (subvec qs (inc j)))))
+        [ps qs]))))
 
-  `max-iters` is set to 10000 by default."
+(defn- pfq-terminating-n
+  "Minimum `n` such that some numerator parameter equals `-n` (a
+  non-positive integer): the series terminates to a finite polynomial at
+  term index `n`. Returns `nil` if no numerator parameter terminates it."
+  [ps]
+  (let [ns (keep (fn [^double a] (when (nonpos-int? a) (long (m/- a)))) ps)]
+    (when (seq ns) (long (apply min ns)))))
+
+(defn- pfq-pole-m
+  "Minimum `m` such that some denominator parameter equals `-m` (a
+  non-positive integer): a genuine pole at term index `m`, unless
+  preempted by numerator termination at or before it. Returns `nil` if no
+  denominator parameter is a non-positive integer."
+  [qs]
+  (let [ms (keep (fn [^double b] (when (nonpos-int? b) (long (m/- b)))) qs)]
+    (when (seq ms) (long (apply min ms)))))
+
+(defn- pfq-integer-coincidence-pair
+  "Finds a numerator/denominator index pair `[i j]` where `ps[i] = qs[j]`
+  and that shared value is a non-positive integer (the case
+  `pfq-cancel-equal-pairs` deliberately leaves untouched). Returns `nil`
+  if there is none."
+  [ps qs]
+  (first (for [i (range (count ps))
+               j (range (count qs))
+               :let [a (double (nth ps i))]
+               :when (and (== a (double (nth qs j))) (nonpos-int? a))]
+           [i j])))
+
+(defn- pfq-truncated-sum
+  "Evaluates `sum_{k=0}^{n} prod(ps)_k / prod(qs)_k * x^k / k!` directly,
+  term by term, bounded to `k <= n` (never computing a term beyond that
+  bound). Used to resolve the removable `a_i = b_j` non-positive-integer
+  coincidence: with that pair excluded from `ps`/`qs` here, this is safe
+  even though `ps`/`qs` may still contain other non-positive integers
+  themselves, since none of their own Pochhammer symbols can reach zero
+  within `k <= n`, as confirmed against mpmath."
+  ^double [ps qs ^double x ^long n]
+  (let [^doubles ps (m/seq->double-array ps)
+        ^doubles qs (m/seq->double-array qs)
+        lp (alength ps)
+        lq (alength qs)]
+    (loop [k (long 0) term 1.0 s 1.0]
+      (if (m/== k n)
+        s
+        (let [num (double (loop [i (long 0) v x]
+                            (if (m/== i lp) v (recur (m/inc i) (m/* v (m/+ (Array/aget ps i) k))))))
+              den (double (loop [i (long 0) v (double (m/inc k))]
+                            (if (m/== i lq) v (recur (m/inc i) (m/* v (m/+ (Array/aget qs i) k))))))
+              term (m/* term (m// num den))]
+          (recur (m/inc k) term (m/+ s term)))))))
+
+(defn hypergeometric-pFq
+  "Generalized hypergeometric function pFq with p numerator and q denominator parameters.
+
+  Parameters:
+
+  - `ps` (sequence of double): the `p` numerator parameters.
+  - `qs` (sequence of double): the `q` denominator parameters.
+  - `x` (double): the argument.
+  - `max-iters` (long, optional): maximum series/acceleration iterations, `10000` by default.
+
+  Whenever a numerator parameter exactly equals a denominator parameter, that pair cancels identically, reducing to a lower `(p-1)F(q-1)`; this is applied before anything else below. If that shared value is also a non-positive integer, the pair does not simply cancel (both Pochhammer symbols vanish together at the same term instead); the series is then evaluated as a truncated sum of the further-reduced coefficients.
+
+  Convergence and evaluation strategy depend on `p` compared to `q`: for `p <= q` the series converges for every `x`; for `p = q + 1` it converges for `x < 1` (and follows the usual boundary/continuation behavior at and beyond `x = 1`); for `p > q + 1` the series formally diverges for any nonzero `x` unless it terminates (see below), in which case only an asymptotic resummation is used.
+
+  Whenever a numerator parameter is a non-positive integer, the series terminates to an exact finite polynomial in `x`, valid for any `x`, regardless of the general convergence class above.
+
+  Has a genuine pole (returns `##NaN`) whenever a denominator parameter is a non-positive integer that is reached before the series would otherwise terminate.
+
+  Returns `1.0` for `x = 0.0`.
+
+  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies on Weniger-acceleration resummation and can occasionally return `##NaN` or `##Inf` for specific parameter combinations instead of the true finite value, due to numerical instability in that acceleration; this is a known limitation, not corrected here.
+
+  See also [[hypergeometric-0F0]], [[hypergeometric-1F0]], [[hypergeometric-0F1]], [[hypergeometric-1F1]], [[hypergeometric-0F2]], [[hypergeometric-2F0]], [[hypergeometric-2F1]], [[kummers-M]], [[tricomis-U]]."
   (^double [ps qs ^double x] (hypergeometric-pFq ps qs x 10000))
   (^double [ps qs ^double x ^long max-iters]
-   (let [p (count ps) q (count qs)]
+   (let [[ps qs] (pfq-cancel-equal-pairs ps qs)
+         p (count ps) q (count qs)
+         n (pfq-terminating-n ps)
+         m (pfq-pole-m qs)]
      (cond
-       ;; series terminates to an exact finite polynomial when any numerator
-       ;; parameter is a non-positive integer, for any x; the MacLaurin loop
-       ;; evaluates this exactly (and correctly signals a genuine pole via a
-       ;; non-positive-integer denominator reached before termination),
-       ;; unlike the Weniger resummation path, which is built for infinite
-       ;; series and loses precision as |x| grows in this case.
-       (some (fn [^double a] (and (m/not-pos? a) (m/integer? a))) ps)
-       (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+       ;; x=0 always wins, even over an otherwise-genuine pole or a NaN
+       ;; parameter, matching the convention used throughout this namespace
+       ;; (e.g. hypergeometric-2F1)
+       (m/< (m/abs x) m/MACHINE-EPSILON10) 1.0
 
-       (m/< p q) (if (m/pos? x)
-                   (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
-                   (hg/hypergeometric-pFq-weniger ps qs x max-iters))
+       ;; the degenerate p=0, q=0 case is identically exp(x); the general
+       ;; Weniger acceleration below isn't scaled for it and loses all
+       ;; precision once exp(x) gets very small for negative x
+       (and (m/zero? p) (m/zero? q)) (m/exp x)
+
+       ;; a numerator parameter still equals a denominator parameter and
+       ;; that shared value is a non-positive integer -n: both Pochhammer
+       ;; symbols vanish together at term n+1, a removable coincidence
+       ;; whose value is the truncated (that pair removed) series up to
+       ;; k=n, confirmed against mpmath; NOT a plain cancellation (which
+       ;; would wrongly give the full, non-truncated reduced series), and
+       ;; NOT safe to evaluate via hypergeometric-pFq-maclaurin either
+       ;; (its ratio recursion hits the same 0/0 exactly at k=n)
+       (and m n (m/== (long m) (long n)))
+       (let [[^long i ^long j] (pfq-integer-coincidence-pair ps qs)]
+         (pfq-truncated-sum (into (subvec ps 0 i) (subvec ps (inc i)))
+                            (into (subvec qs 0 j) (subvec qs (inc j)))
+                            x n))
+
+       ;; a denominator parameter is a genuine, unavoidable pole only if
+       ;; reached before any numerator termination
+       (and m (or (nil? n) (m/< (long m) (long n)))) ##NaN
+
+       ;; series terminates to an exact finite polynomial for any x; the
+       ;; MacLaurin loop evaluates this exactly, unlike the Weniger
+       ;; resummation path, which is built for infinite series and loses
+       ;; precision as |x| grows in this case
+       n (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+
+       ;; entire function (p<=q, converges for any x): MacLaurin is accurate
+       ;; for x>=0, but suffers catastrophic cancellation for x<0, where
+       ;; Weniger acceleration is needed instead
+       (m/<= p q) (if (m/pos? x)
+                    (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
+                    (hg/hypergeometric-pFq-weniger ps qs x max-iters))
        (m/== p (m/inc q)) (if (m/< (m/abs x) 0.72)
                             (hg/hypergeometric-pFq-maclaurin ps qs x max-iters)
                             (hg/hypergeometric-pFq-weniger ps qs x max-iters))
@@ -2732,6 +2864,9 @@
 (set! *unchecked-math* true)
 
 (defn- local-abs [a] (if (pos? a) a (- a)))
+
+(def ^:private RMEPS (rationalize m/MACHINE-EPSILON10))
+(def ^:pribate RATIO-1 (rationalize 1))
 
 (defn hypergeometric-pFq-ratio
   "Hypergeometric-pFq using MacLaurin series on ratios. Can be very slow.
@@ -2742,10 +2877,10 @@
    (let [a (map rationalize ps)
          b (map rationalize qs)
          z (rationalize z)
-         eps (rationalize m/MACHINE-EPSILON10)]
+         eps RMEPS]
      (loop [k (long 1)
-            s0 (rationalize 1)
-            s1 (+ 1 (/ (* z (reduce * (rationalize 1) a)) (reduce * (rationalize 1) b)))]
+            s0 RATIO-1
+            s1 (+ 1 (/ (* z (reduce * RATIO-1 a)) (reduce * RATIO-1 b)))]
        (if (and (m/< k max-iters)
                 (> (local-abs (- s1 s0)) (max eps (* eps (max s1 s0)))))
          (let [rk (/ z (+ k 1))
@@ -2809,18 +2944,130 @@
 ;; complex
 ;;;;;
 
-(defn hypergeometric-pFq-complex
-  "Hypergeometric-pFq using MacLaurin series or Weniger acceleration on complex numbers.
+(defn- cplx-nonpos-int?
+  "Is `z` a non-positive real integer (zero imaginary part)?"
+  [^Vec2 z]
+  (and (m/zero? (cplx/im z)) (nonpos-int? (cplx/re z))))
 
-  `max-iters` is set to 10000 by default."
+(defn- pfq-cancel-equal-pairs-complex
+  "Complex analogue of [[pfq-cancel-equal-pairs]]: cancels any numerator
+  parameter that exactly equals a denominator parameter, provided the
+  shared value is not a non-positive real integer."
+  [ps qs]
+  (loop [ps ps qs qs]
+    (let [match (first (for [i (range (count ps))
+                             j (range (count qs))
+                             :when (and (= (ps i) (qs j))
+                                        (not (cplx-nonpos-int? (ps i))))]
+                         [i j]))]
+      (if match
+        (let [[^long i ^long j] match]
+          (recur (into (subvec ps 0 i) (subvec ps (inc i)))
+                 (into (subvec qs 0 j) (subvec qs (inc j)))))
+        [ps qs]))))
+
+(defn- pfq-terminating-n-complex
+  "Complex analogue of [[pfq-terminating-n]]."
+  [ps]
+  (let [ns (keep (fn [z] (when (cplx-nonpos-int? z) (long (m/- (cplx/re z))))) ps)]
+    (when (seq ns) (long (apply m/min ns)))))
+
+(defn- pfq-pole-m-complex
+  "Complex analogue of [[pfq-pole-m]]."
+  [qs]
+  (let [ms (keep (fn [z] (when (cplx-nonpos-int? z) (long (m/- (cplx/re z))))) qs)]
+    (when (seq ms) (long (apply m/min ms)))))
+
+(defn- pfq-integer-coincidence-pair-complex
+  "Complex analogue of [[pfq-integer-coincidence-pair]]."
+  [ps qs]
+  (first (for [i (range (count ps))
+               j (range (count qs))
+               :when (and (= (ps i) (qs j)) (cplx-nonpos-int? (ps i)))]
+           [i j])))
+
+(defn- pfq-truncated-sum-complex
+  "Complex analogue of [[pfq-truncated-sum]]."
+  ^Vec2 [ps qs z ^long n]
+  (let [ps (mapv cplx/ensure-complex ps)
+        qs (mapv cplx/ensure-complex qs)
+        lp (count ps)
+        lq (count qs)]
+    (loop [k (long 0) term cplx/ONE s cplx/ONE]
+      (if (m/== k n)
+        s
+        (let [num (loop [i (long 0) v z]
+                    (if (m/== i lp) v (recur (m/inc i) (cplx/mult v (cplx/adds (ps i) k)))))
+              den (loop [i (long 0) v (cplx/complex (double (m/inc k)) 0.0)]
+                    (if (m/== i lq) v (recur (m/inc i) (cplx/mult v (cplx/adds (qs i) k)))))
+              term (cplx/mult term (cplx/div num den))]
+          (recur (m/inc k) term (cplx/add s term)))))))
+
+(defn hypergeometric-pFq-complex
+  "Generalized hypergeometric function pFq with p numerator and q denominator complex parameters.
+
+  Complex counterpart of [[hypergeometric-pFq]]; see that docstring for the general shape and dispatch logic (entire for `p <= q`, radius-1 for `p = q+1`, formally divergent unless terminating for `p > q+1`), which carries over here with `x` replaced by the complex argument `z` and the `p <= q`/`p = q+1` MacLaurin-vs-Weniger split now made on the sign of `z`'s real part / `|z|` respectively.
+
+  Parameters:
+
+  - `ps` (sequence of double or [[Vec2]]): the `p` numerator parameters, real or complex (promoted via `ensure-complex`).
+  - `qs` (sequence of double or [[Vec2]]): the `q` denominator parameters.
+  - `z` (double or [[Vec2]]): the argument, real or complex.
+  - `max-iters` (long, optional): maximum series/acceleration iterations, `10000` by default.
+
+  Whenever a numerator parameter exactly equals a denominator parameter, that pair cancels identically, reducing to a lower `(p-1)F(q-1)`; this is applied before anything else below. If that shared value is also a non-positive real integer (zero imaginary part), the pair does not simply cancel (both Pochhammer symbols vanish together at the same term instead); the series is then evaluated as a truncated sum of the further-reduced coefficients.
+
+  Whenever a numerator parameter is a non-positive real integer, the series terminates to an exact finite polynomial in `z`, valid for any `z`.
+
+  Has a genuine pole (returns `(Vec2. ##NaN ##NaN)`) whenever a denominator parameter is a non-positive real integer that is reached before the series would otherwise terminate.
+
+  Returns `1.0+0.0i` for `z = 0.0+0.0i`.
+
+  For the generic (non-terminating), formally divergent `p > q + 1` case, the result relies entirely on Weniger-acceleration resummation (no MacLaurin fallback exists there, since the underlying series is genuinely divergent), and this is markedly unreliable whenever `z` has a positive real part -- confirmed to fail (returning a non-finite value) there even for small `|z|`, while a negative real part stays accurate up to `|z|` of about 5-10. For `p = q + 1` beyond the MacLaurin radius (`|z| >= 0.72`), Weniger acceleration is markedly more reliable on both sides of the real axis, though (as for the real-valued [[hypergeometric-pFq]]) precision still degrades gradually as `|z|` grows very large. Neither of these is corrected here; they are known limitations of the underlying resummation.
+
+  See also [[hypergeometric-pFq]]."
   (^Vec2 [ps qs z] (hypergeometric-pFq-complex ps qs z 10000))
   (^Vec2 [ps qs z ^long max-iters]
-   (let [p (count ps) q (count qs)
-         z (cplx/ensure-complex z)]
+   (let [ps (mapv cplx/ensure-complex ps)
+         qs (mapv cplx/ensure-complex qs)
+         z (cplx/ensure-complex z)
+         [ps qs] (pfq-cancel-equal-pairs-complex ps qs)
+         p (count ps) q (count qs)
+         n (pfq-terminating-n-complex ps)
+         m (pfq-pole-m-complex qs)]
      (cond
-       (m/< p q) (if (m/pos? (cplx/re z))
-                   (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
-                   (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
+       ;; z=0 always wins, even over an otherwise-genuine pole
+       (m/< (cplx/abs z) m/MACHINE-EPSILON10) cplx/ONE
+
+       ;; the degenerate p=0, q=0 case is identically exp(z); the general
+       ;; Weniger acceleration below isn't scaled for it and loses all
+       ;; precision once exp(z) gets very small
+       (and (m/zero? p) (m/zero? q)) (cplx/exp z)
+
+       ;; a numerator parameter still equals a denominator parameter and
+       ;; that shared value is a non-positive real integer -n: a removable
+       ;; coincidence resolved as a truncated sum, see
+       ;; [[pfq-truncated-sum-complex]] and [[hypergeometric-pFq]]'s own
+       ;; docstring for the real-valued derivation this mirrors
+       (and m n (m/== (long m) (long n)))
+       (let [[^long i ^long j] (pfq-integer-coincidence-pair-complex ps qs)]
+         (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
+                                    (into (subvec qs 0 j) (subvec qs (inc j)))
+                                    z n))
+
+       ;; a denominator parameter is a genuine, unavoidable pole only if
+       ;; reached before any numerator termination
+       (and m (or (nil? n) (m/< (long m) (long n)))) (Vec2. ##NaN ##NaN)
+
+       ;; series terminates to an exact finite polynomial for any z
+       n (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
+
+       ;; entire function (p<=q, converges for any z): MacLaurin is
+       ;; accurate for a non-negative real part, Weniger acceleration is
+       ;; needed otherwise (catastrophic cancellation)
+       (m/<= p q) (if (m/pos? (cplx/re z))
+                    (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
+                    (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
        (m/== p (m/inc q)) (if (m/< (cplx/abs z) 0.72)
                             (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
                             (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))
@@ -2841,7 +3088,15 @@
                                 6.4102564102564102564102561e-03,-2.9550653594771241830065352e-02)))))
 
 (defn log-gamma-complex
-  "Logarithm of complex gamma function."
+  "Logarithm of the complex gamma function (principal branch).
+
+  Parameters:
+
+  - `z` ([[Vec2]]): the argument.
+
+  Returns `log(Gamma(z))`. At the poles of Gamma (`z` a non-positive real integer, zero included), Gamma genuinely diverges there without a single well-defined direction-independent limit in the complex plane; this returns `(Vec2. ##Inf ##Inf)` for every such `z` except `z = 0.0+0.0i` exactly, which instead returns a finite imaginary part (`##Inf` real part only) following the standard convention for the principal branch approaching along the positive real axis. `##NaN`/`##Inf` real or imaginary input parts propagate following the usual IEEE conventions.
+
+  See also [[gamma-complex]], [[gamma]]."
   ^Vec2 [^Vec2 z]
   (let [x (.x z)
         y (.y z)
@@ -2900,8 +3155,89 @@
                   (cplx/sub (complex-log-gamma-asymptotic (Vec2. x y)) shift)))))))
 
 (defn gamma-complex
-  "Complex version of gamma function."
+  "Complex version of the gamma function (principal branch), `exp(log-gamma-complex z)`.
+
+  Parameters:
+
+  - `z` ([[Vec2]]): the argument.
+
+  Returns `Gamma(z)`. At most poles of Gamma (`z` a negative real integer), returns `##NaN`, matching the real-valued [[gamma]]'s own convention at its poles (unlike [[log-gamma-complex]], which encodes those same poles as an infinite log value with an equally infinite imaginary part; exponentiating that back does not recover any single well-defined complex infinity, since Gamma has no direction-independent limit there). At `z = 0.0+0.0i` specifically, [[log-gamma-complex]] instead encodes the pole with a finite imaginary part (approaching along the positive real axis), so this returns a genuine signed infinity there (`##Inf` real part) instead of `##NaN`, unlike [[gamma]]'s own `x = 0.0` convention.
+
+  See also [[log-gamma-complex]], [[gamma]]."
   ^Vec2 [^Vec2 z] (cplx/exp (log-gamma-complex z)))
+
+(defn- reciprocal-gamma-complex
+  "1/Gamma(z), entire (no poles): identically 0 whenever z is a
+  non-positive real integer (Gamma's own poles), computed elsewhere as
+  `exp(-log-gamma-complex z)` rather than `1/gamma-complex z`, since the
+  latter propagates ##NaN even away from a pole's exact real-integer
+  coordinates (an intermediate 0*Inf artifact whenever exp is applied to
+  log-gamma-complex's own pole encoding)."
+  ^Vec2 [^Vec2 z]
+  (if (cplx-nonpos-int? z)
+    cplx/ZERO
+    (cplx/exp (cplx/neg (log-gamma-complex z)))))
+
+(defn- cplx-int?
+  "Is `z` a real integer of any sign, including zero (zero imaginary part)?"
+  ^Boolean [^Vec2 z]
+  (and (m/zero? (cplx/im z)) (m/integer? (cplx/re z))))
+
+(defn- tricomis-U-complex-raw
+  "Tricomi's `U(a,b,z)` reflection formula in terms of two Kummer `M`
+  functions, valid only for `b` not an integer: its `pi/sin(pi b)`
+  prefactor, and both bracketed terms individually via
+  [[reciprocal-gamma-complex]], vanish identically at integer `b` (a
+  removable singularity of this particular formula, not of `U` itself),
+  resolved by [[tricomis-U-complex]] instead of here."
+  ^Vec2 [^Vec2 a ^Vec2 b ^Vec2 z]
+  (let [p1 (cplx/sub (cplx/add cplx/ONE a) b)
+        p2 (cplx/sub cplx/TWO b)]
+    (-> (cplx/sub (-> (hypergeometric-pFq-complex [a] [b] z)
+                      (cplx/mult (reciprocal-gamma-complex p1))
+                      (cplx/mult (reciprocal-gamma-complex b)))
+                  (-> (hypergeometric-pFq-complex [p1] [p2] z)
+                      (cplx/mult (reciprocal-gamma-complex a))
+                      (cplx/mult (reciprocal-gamma-complex p2))
+                      (cplx/mult (cplx/pow z (cplx/sub cplx/ONE b)))))
+        (cplx/mult (cplx/div cplx/PI (cplx/sin (cplx/scale b m/PI)))))))
+
+(defn- tricomis-U-complex-raw-limit
+  "[[tricomis-U-complex-raw]], but safe for integer `b` (its removable
+  singularity there, see that function's docstring): evaluated via a
+  Richardson-extrapolated numerical limit instead -- evaluating the
+  (elsewhere correct) formula at `b +/- ` a small offset and extrapolating
+  to the `b = integer` limit, since `U` is itself continuous there (just
+  this one formula for it isn't) -- verified against mpmath to about
+  1e-7..1e-12 relative accuracy across several integer `b`, safer than
+  transcribing the multi-term classical closed form (the \"logarithmic
+  case\", involving `log(z)` and digamma terms) from the literature."
+  ^Vec2 [^Vec2 a ^Vec2 b ^Vec2 z]
+  (if (cplx-int? b)
+    (let [h 1.0e-5
+          bh (cplx/adds b h)
+          bh2 (cplx/adds b (m/* 0.5 h))
+          f-h (tricomis-U-complex-raw a bh z)
+          f-h2 (tricomis-U-complex-raw a bh2 z)]
+      (cplx/sub (cplx/scale f-h2 2.0) f-h))
+    (tricomis-U-complex-raw a b z)))
+
+(defn- tricomis-U-complex-asymptotic
+  "Tricomi's `U(a,b,z)` via the standard asymptotic-series formula
+  `z^(-a) pFq([a, 1+a-b], [], -1/z)`, mirroring the real-valued
+  [[tricomis-U]]'s own general-case formula. Confirmed against mpmath to
+  be reliable across a very wide magnitude range of `z` (0.1 to 300+,
+  pure-imaginary `z`, integer `b`), UNLIKE [[tricomis-U-complex-raw]],
+  which instead computes a difference of two individually exp(z)-scaled
+  terms and loses essentially all precision for `|z|` beyond about 20-30.
+  Only reliable itself when `Re(z) >= 0` (equivalently, `Re(-1/z) <= 0`):
+  otherwise the pFq argument `-1/z` has a positive real part, entering the
+  documented unreliable region of the underlying `p > q + 1` pFq
+  evaluation; not used outside that half-plane."
+  ^Vec2 [^Vec2 a ^Vec2 b ^Vec2 z]
+  (let [p1 (cplx/sub (cplx/add cplx/ONE a) b)]
+    (cplx/mult (cplx/pow z (cplx/neg a))
+               (hypergeometric-pFq-complex [a p1] [] (cplx/neg (cplx/reciprocal z))))))
 
 (defn tricomis-U-complex
   "Complex version of Tricomi's confluent hypergeometric function U(a,b,z) of the second kind.
@@ -2912,21 +3248,25 @@
   - Input: `a`, `b`, `z` — real or complex numbers (scalars or [[Vec2]] complex pairs)
   - Returns: [[Vec2]] complex number
 
-  See also the real-valued [[tricomis-U]]."
+  At `z = 0.0+0.0i` with `a` and `b` both real: mirrors the real-valued [[tricomis-U]]'s own `x = 0` limit exactly (finite for `a` a non-positive integer or `b < 1.0`, a signed `##Inf`-valued complex number otherwise). At `z = 0.0+0.0i` with `a` or `b` genuinely complex, the limit is path-dependent (branch-cut sensitive) and not resolved here; `(Vec2. ##NaN ##NaN)` is returned instead.
+
+  For `z != 0.0+0.0i`: uses the asymptotic-series formula when `Re(z) >= 0.0`, confirmed reliable there across a very wide range of `|z|` (from a fraction of a unit up to several hundred). Uses a Kummer-`M`-function reflection formula for `Re(z) < 0.0` instead (the asymptotic formula is unusable in that half-plane); this remains accurate for small to moderate `|z|`, but its accuracy becomes unpredictable for larger `|z|` there -- confirmed to occasionally lose several or more digits, or return a non-finite value, for specific parameter combinations even at moderate `|z|` (around 5-10), with no clean magnitude threshold separating safe from unsafe cases; this is a known, uncorrected limitation, inherited from the same underlying resummation instability documented for [[hypergeometric-pFq-complex]]. The reflection formula also has its own removable singularity whenever `b` is an integer, resolved via a small Richardson-extrapolated numerical limit.
+
+  See also the real-valued [[tricomis-U]], [[hypergeometric-pFq-complex]]."
   [a b z]
   (let [a (cplx/ensure-complex a)
         b (cplx/ensure-complex b)
-        z (cplx/ensure-complex z)
-        p1 (cplx/sub (cplx/add cplx/ONE a) b)
-        p2 (cplx/sub cplx/TWO b)]
-    (-> (cplx/sub (cplx/div (hypergeometric-pFq-complex [a] [b] z)
-                            (cplx/mult (gamma-complex p1)
-                                       (gamma-complex b)))
-                  (cplx/mult (cplx/pow z (cplx/sub cplx/ONE b))
-                             (cplx/div (hypergeometric-pFq-complex [p1] [p2] z)
-                                       (cplx/mult (gamma-complex a)
-                                                  (gamma-complex p2)))))
-        (cplx/mult (cplx/div cplx/PI (cplx/sin (cplx/scale b m/PI)))))))
+        z (cplx/ensure-complex z)]
+    (cond
+      (and (m/zero? (cplx/re z)) (m/zero? (cplx/im z))
+           (m/zero? (cplx/im a)) (m/zero? (cplx/im b)))
+      (cplx/complex (tricomis-U (cplx/re a) (cplx/re b) 0.0) 0.0)
+
+      (and (m/zero? (cplx/re z)) (m/zero? (cplx/im z))) (Vec2. ##NaN ##NaN)
+
+      (m/>= (cplx/re z) 0.0) (tricomis-U-complex-asymptotic a b z)
+
+      :else (tricomis-U-complex-raw-limit a b z))))
 
 (def ^:private CPLX_HALF_PI (cplx/complex m/HALF_PI 0.0))
 

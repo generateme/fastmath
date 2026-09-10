@@ -568,6 +568,23 @@
       (or (m/< (m/abs x) m/MACHINE-EPSILON)
           (m/< (m/abs (m/* a b)) (m/ulp (m/* absa absb)))) 1.0
       (m/< b a) (hypergeometric-2F1 b a c x)
+      ;; a genuine, unavoidable pole: c a negative integer, and neither a
+      ;; nor b is a non-positive integer capable of terminating the series
+      ;; at or before reaching it. This is checked here, ahead of every
+      ;; other branch below, since none of the c-specific closed forms nor
+      ;; general-2F1 reliably detect it on their own (confirmed: some
+      ;; parameter combinations fell through to a silently wrong, even
+      ;; wrong-signed, finite/infinite value instead -- fixed this
+      ;; session). Returns a plain ##Inf here, matching mpmath's own
+      ;; hyp2f1 convention at this pole (confirmed always +Inf, regardless
+      ;; of the sign of a, b or x -- NOT ##NaN, this function's convention
+      ;; before this session's fix, which was established by analogy with
+      ;; other functions' pole conventions rather than checked against
+      ;; mpmath's own specific behavior here).
+      (and (m/neg? c) (m/integer? c)
+           (not (or (and (m/not-pos? a) (m/integer? a) (m/>= a c))
+                    (and (m/not-pos? b) (m/integer? b) (m/>= b c)))))
+      ##Inf
       (or (and (m/not-pos? a) (m/integer? a))
           (and (m/not-pos? b) (m/integer? b)))
       ;; a or b a non-positive integer: the series always terminates to an
@@ -576,20 +593,18 @@
       ;; other branch below (some of which only handled the narrower case
       ;; of BOTH a and b non-positive integers with |x|<0.72, giving ##NaN
       ;; elsewhere even though the true value is perfectly finite and
-      ;; real -- fixed this session).
+      ;; real -- fixed this session). The pole check above already
+      ;; guarantees c cannot be an unreachable-in-time pole by this point.
       (let [a-term? (and (m/not-pos? a) (m/integer? a))
             n (unchecked-long (if (and a-term? (m/not-pos? b) (m/integer? b))
                                  (m/min (m/- a) (m/- b))
-                                 (if a-term? (m/- a) (m/- b))))
-            p (m/- n)]
-        (if (and (m/neg? c) (m/integer? c) (m/neg? p) (m/< p c))
-          ##NaN
-          (loop [k (long 1) term 1.0 sum 1.0]
-            (if (m/> k n)
-              sum
-              (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
-                               (m/* (m/+ c (m/dec k)) k))]
-                (recur (m/inc k) nterm (m/+ sum nterm)))))))
+                                 (if a-term? (m/- a) (m/- b))))]
+        (loop [k (long 1) term 1.0 sum 1.0]
+          (if (m/> k n)
+            sum
+            (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
+                             (m/* (m/+ c (m/dec k)) k))]
+              (recur (m/inc k) nterm (m/+ sum nterm))))))
       (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
       (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
       (m/== c 0.5) (let [a+b (m/+ a b)]

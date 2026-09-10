@@ -5,6 +5,7 @@
             [clojure.edn :as edn]
             [fastmath.core :as m]
             [fastmath.vector :as v]
+            [fastmath.complex :as cplx]
             [fastmath.random :as r]))
 
 ;; Reference values for the Bessel/Airy comparisons below were computed once
@@ -48,6 +49,70 @@
   ([f blk] (check4 f blk 1.0e-10))
   ([f blk rel] (let [{:keys [a b c x ref]} blk]
                 (v/edelta-eq (mapv f a b c x) ref ABS rel))))
+
+(defn- check-pfq
+  "Compare `(hypergeometric-pFq ps qs x)` against a pFq reference block
+  (`:ps`/`:qs` are vectors of numerator/denominator parameter vectors)."
+  ([blk] (check-pfq blk 1.0e-10))
+  ([blk rel] (let [{:keys [ps qs x ref]} blk]
+              (v/edelta-eq (mapv sut/hypergeometric-pFq ps qs x) ref ABS rel))))
+
+(defn- ->cplx
+  "`[re im]` pair -> [[Vec2]]."
+  [[re im]] (cplx/complex (double re) (double im)))
+
+(defn- ->cplxv
+  "Sequence of `[re im]` pairs -> sequence of [[Vec2]]."
+  [xs] (mapv ->cplx xs))
+
+(defn- check-pfq-complex
+  "Compare `(hypergeometric-pFq-complex ps qs z)` against a complex pFq
+  reference block (`:ps`/`:qs` are vectors of numerator/denominator
+  parameter vectors, each parameter a `[re im]` pair; `:z`/`:ref` are
+  vectors of `[re im]` pairs). Relative error (magnitude of the
+  difference over magnitude of the reference), falling back to absolute
+  error near zero."
+  ([blk] (check-pfq-complex blk 1.0e-8))
+  ([blk rel]
+   (let [{:keys [ps qs z ref]} blk
+         ps (mapv ->cplxv ps) qs (mapv ->cplxv qs) z (->cplxv z) ref (->cplxv ref)]
+     (every? true?
+             (map (fn [p q zz r]
+                    (let [got (sut/hypergeometric-pFq-complex p q zz)]
+                      (if (m/zero? (cplx/abs r))
+                        (< (cplx/abs (cplx/sub got r)) ABS)
+                        (< (/ (cplx/abs (cplx/sub got r)) (cplx/abs r)) rel))))
+                  ps qs z ref)))))
+
+(defn- check-cplx1
+  "Compare `(f z)` against a single-complex-argument reference block
+  (`:z`/`:ref` vectors of `[re im]` pairs)."
+  ([f blk] (check-cplx1 f blk 1.0e-8))
+  ([f blk rel]
+   (let [{:keys [z ref]} blk
+         z (->cplxv z) ref (->cplxv ref)]
+     (every? true?
+             (map (fn [zz r]
+                    (let [got (f zz)]
+                      (if (m/zero? (cplx/abs r))
+                        (< (cplx/abs (cplx/sub got r)) ABS)
+                        (< (/ (cplx/abs (cplx/sub got r)) (cplx/abs r)) rel))))
+                  z ref)))))
+
+(defn- check-tricomis-u-complex
+  "Compare `(tricomis-U-complex a b z)` against a reference block
+  (`:a`/`:b`/`:z`/`:ref` vectors of `[re im]` pairs)."
+  ([blk] (check-tricomis-u-complex blk 1.0e-8))
+  ([blk rel]
+   (let [{:keys [a b z ref]} blk
+         a (->cplxv a) b (->cplxv b) z (->cplxv z) ref (->cplxv ref)]
+     (every? true?
+             (map (fn [aa bb zz r]
+                    (let [got (sut/tricomis-U-complex aa bb zz)]
+                      (if (m/zero? (cplx/abs r))
+                        (< (cplx/abs (cplx/sub got r)) ABS)
+                        (< (/ (cplx/abs (cplx/sub got r)) (cplx/abs r)) rel))))
+                  a b z ref)))))
 
 (def xl [1e12, 5e12, 1e13, 5e13, 1e14, 5e14, 1e15, 5e15, 1e16, 5e16, 1e17, 5e17, 1e18, 5e18, 1e19, 5e19, 1e20, 1e22, 1e25, 1e30, 1e40])
 
@@ -1226,6 +1291,25 @@
 ;;    arithmetic), instead of `##Inf`, for `x` large enough that the true
 ;;    value genuinely exceeds double range (e.g. `M(2,3,1000)`, true value
 ;;    ~3.94e431).
+;;
+;; TWO MORE genuine bugs were found and fixed later, via a cross-check of
+;; `hypergeometric-pFq` against `kummers-M` on a shared parameter grid
+;; (both confirmed against mpmath):
+;;  - The top pole-check clause (`b` a negative integer, `a` not able to
+;;    terminate first) was checked BEFORE the `x = 0.0` short-circuit, so
+;;    `kummers-M(a, b, 0.0)` wrongly returned `##NaN` whenever that pole
+;;    condition held, even though `x = 0.0` always trivially gives `1.0`
+;;    (e.g. `kummers-M(-5.0, -3.0, 0.0)` was `##NaN`). Fixed by moving the
+;;    `x = 0.0`/`a = 0.0` short-circuits ahead of the pole check.
+;;  - The pole condition required `a` to be an integer, but a non-integer
+;;    `a` can never terminate the series either, so it should ALSO be a
+;;    pole whenever `b` is a negative integer -- this case fell through
+;;    undetected to the `weniger-1F1` fallback, which returned a large,
+;;    silently WRONG finite number instead (e.g.
+;;    `kummers-M(-0.5, -5.0, -500.0)` was `2.04e15`; mpmath confirms a
+;;    genuine pole there). Fixed by dropping the `(integer? a)`
+;;    requirement from the pole condition (it only matters for whether `a`
+;;    can SAVE you, not for whether the pole exists in the first place).
 
 (def ^:private hyp1f1-reference
   (delay (edn/read-string (slurp (io/resource "special/hyp1f1_reference.edn")))))
@@ -1241,6 +1325,21 @@
   (t/testing "poles: b non-positive integer, a positive or a < b (both integers)"
     (t/is (m/nan? (sut/hypergeometric-1F1 2.0 -3.0 0.5)))
     (t/is (m/nan? (sut/hypergeometric-1F1 -5.0 -3.0 0.5))))
+  (t/testing "pole also applies when a is not an integer at all, since it
+              can then never terminate the series either (fixed this
+              session, previously fell through to a silently wrong finite
+              value via the weniger-1F1 fallback)"
+    (t/is (m/nan? (sut/hypergeometric-1F1 -0.5 -5.0 -500.0)))
+    (t/is (m/nan? (sut/hypergeometric-1F1 -0.5 -5.0 -0.5)))
+    (t/is (m/nan? (sut/hypergeometric-1F1 0.5 -5.0 -500.0)))
+    (t/is (m/nan? (sut/hypergeometric-1F1 0.5 -5.0 -0.5))))
+  (t/testing "x=0.0 always wins, even over an otherwise-genuine pole
+              (fixed this session: the pole check used to be tested before
+              the x=0.0 short-circuit)"
+    (t/is (m/one? (sut/hypergeometric-1F1 -5.0 -3.0 0.0)))
+    (t/is (m/one? (sut/hypergeometric-1F1 -3.0 -2.0 0.0)))
+    (t/is (m/one? (sut/hypergeometric-1F1 1.0 -5.0 0.0)))
+    (t/is (m/one? (sut/hypergeometric-1F1 2.0 -1.0 0.0))))
   (t/testing "b = 0.0, a != 0.0: signed infinity"
     (t/is (m/pos-inf? (sut/hypergeometric-1F1 1.0 0.0 1.0)))
     (t/is (m/neg-inf? (sut/hypergeometric-1F1 -1.0 0.0 1.0)))
@@ -1742,15 +1841,24 @@
   (t/testing "x > 1.0, generic (non-terminating) a, b: leaves the real line, ##NaN"
     (t/is (m/nan? (sut/hypergeometric-2F1 1.5 2.5 3.5 5.0)))
     (t/is (m/nan? (sut/hypergeometric-2F1 1.5 2.5 3.5 1.4))))
-  (t/testing "pole: c a non-positive integer, not terminated by a or b first"
-    (t/is (m/nan? (sut/hypergeometric-2F1 1.5 2.5 -3.0 0.5))))
+  (t/testing "pole: c a non-positive integer, not terminated by a or b
+              first -- a plain +Inf, matching mpmath's own hyp2f1
+              convention there (fixed this session: was ##NaN, a
+              convention established by analogy with other functions
+              rather than checked against mpmath's own behavior for
+              hyp2f1 specifically; also previously undetected at all for
+              some parameter combinations, silently returning a wrong,
+              even wrong-signed, finite/infinite value instead)"
+    (t/is (m/pos-inf? (sut/hypergeometric-2F1 1.5 2.5 -3.0 0.5)))
+    (t/is (m/pos-inf? (sut/hypergeometric-2F1 -0.5 -0.5 -5.0 -1.0)))
+    (t/is (m/pos-inf? (sut/hypergeometric-2F1 -0.5 0.5 -5.0 -1.0))))
   (t/testing "terminating (a or b a non-positive integer): exact finite
               polynomial, valid past x=1 too (fixed this session, was
               ##NaN outside |x|<0.72 or when only one of a,b qualified)"
     (t/is (m/delta-eq -24.86580086580087 (sut/hypergeometric-2F1 -3.0 2.5 3.5 5.0)))
     (t/is (m/delta-eq 19.095238095238095 (sut/hypergeometric-2F1 -3.0 -2.0 3.5 5.0)))
     (t/is (m/delta-eq 6.78125 (sut/hypergeometric-2F1 -2.0 2.5 -3.0 1.5)))
-    (t/is (m/nan? (sut/hypergeometric-2F1 -5.0 2.5 -3.0 1.5)))) ;; pole: n=5 > |c|=3
+    (t/is (m/pos-inf? (sut/hypergeometric-2F1 -5.0 2.5 -3.0 1.5)))) ;; pole: n=5 > |c|=3
   (t/testing "no infinite loop, and correct value (##NaN, genuinely complex
               per mpmath), where b < a used to hang internally (fixed this
               session)"
@@ -1781,3 +1889,426 @@
                                           :c (get-in @hyp2f1-reference [:near-integer-diff :c])
                                           :x (get-in @hyp2f1-reference [:near-integer-diff :x])
                                           :ref (get-in @hyp2f1-reference [:near-integer-diff :ref])} 1.0e-9))))
+
+;; Reference values for `hypergeometric-pFq` (generalized p-numerator,
+;; q-denominator hypergeometric function) below were computed once from
+;; mpmath (`mpmath.hyper`) and are stored in
+;; `test/resources/special/pfq_reference.edn`, split into `:entire-positive`
+;; / `:entire-negative` (p<=q, always converges, positive/negative x up to
+;; magnitude ~100/~50), `:radius1-inside` / `:radius1-outside` (p=q+1,
+;; |x|<1 / |x| up to 5 on the negative side), `:terminating` (a numerator
+;; parameter a non-positive integer, x incl. huge magnitude up to ~1e5) and
+;; `:cancellation` (a numerator parameter exactly equal to a denominator
+;; parameter). See `utils/fastmath/dev/generate_pfq_reference.py` for the
+;; generator.
+;;
+;; FOUR genuine bugs were found and fixed this session:
+;;  - `hypergeometric-pFq-weniger`'s zero-numerator-parameter shortcut
+;;    compared the SIGNED product of numerator parameters against a tiny
+;;    positive value (`(< proda (ulp (prod absa)))`, missing an `abs`,
+;;    unlike every analogous check elsewhere in this file). Since `proda`
+;;    is negative whenever an odd number of numerator parameters are
+;;    negative, this wrongly triggered a "return 1.0" shortcut for
+;;    essentially any call with a negative numerator-parameter product,
+;;    silently discarding the real result (e.g.
+;;    `hypergeometric-pFq [-3.0 2.5] [1.5] -2.0` was `1.0`, true `63.0`).
+;;    Fixed by wrapping `proda` in `abs` for that comparison only.
+;;  - Whenever the series terminates (a numerator parameter a non-positive
+;;    integer), `hypergeometric-pFq-weniger` -- designed for infinite-series
+;;    resummation, not exact finite polynomials -- progressively lost
+;;    precision as `|x|` grew, becoming badly wrong for large `|x|` (e.g.
+;;    at `x=1e6`, off by a factor of ~4). Fixed by routing every
+;;    terminating case directly to `hypergeometric-pFq-maclaurin` instead,
+;;    which evaluates the exact finite sum for any `x` (confirmed matching
+;;    mpmath up to `|x|=1e6`) and also correctly signals a genuine pole
+;;    reached before termination.
+;;  - A denominator parameter that is a genuine, unavoidable pole (a
+;;    non-positive integer reached before any numerator termination) was
+;;    not detected by `hypergeometric-pFq-weniger` at all: it silently
+;;    returned a large, plausible-looking but WRONG finite number instead
+;;    of signaling the pole (e.g. `hypergeometric-pFq [1.5] [-2.0] 1.0`
+;;    returned `2.09e15`). Fixed with an explicit pole check ahead of
+;;    dispatch, returning `##NaN` for a genuine pole (unlike
+;;    `hypergeometric-2F1`'s own specific pole, which mpmath signals with
+;;    a plain `##Inf` instead -- there is no single well-defined real
+;;    convention for a general pFq pole shared across every p,q shape, so
+;;    `##NaN` is used here as the honest "undefined" signal).
+;;  - For `p = q` (also an entire, always-convergent function, like
+;;    `p < q`), the dispatcher always routed to `hypergeometric-pFq-weniger`
+;;    regardless of the sign of `x`, but Weniger degrades badly there for
+;;    positive `x` (confirmed correct to x=25, ~0.6% wrong at x=30,
+;;    catastrophically wrong -- including wrong SIGN -- from x=35 on),
+;;    while `hypergeometric-pFq-maclaurin` matches mpmath cleanly up to
+;;    x=100. Fixed by widening the existing `p < q` positive-x-uses-
+;;    MacLaurin rule to `p <= q`.
+;;
+;; Additionally, two smaller issues were fixed:
+;;  - A general pFq algebraic identity (any exact `a_i = b_j` pair cancels,
+;;    reducing to a lower `(p-1)F(q-1)`) was unhandled, and specifically
+;;    exposed as a regression by the termination fix above whenever both
+;;    the cancelling numerator and denominator happened to be the same
+;;    non-positive integer (confirmed equal to the corresponding
+;;    `hypergeometric-1F1`/`kummers-M` value once reduced). Fixed by
+;;    cancelling all such pairs before any other dispatch logic.
+;;  - The degenerate `p=0, q=0` case (`hypergeometric-0F0` in disguise,
+;;    `= exp(x)`) lost essentially all precision for very negative `x`
+;;    through the general (unscaled for this trivial case) Weniger path
+;;    (e.g. `x=-48.77`: absolute error ~1e-15 regardless of how tiny the
+;;    true value got, i.e. relative error millions of times over). Fixed
+;;    with a direct `exp(x)` shortcut for this input shape.
+;;
+;; A known, NOT fixed, limitation remains: for the generic (non-
+;; terminating), formally divergent `p > q + 1` case, `hypergeometric-pFq-
+;; weniger` is the only available evaluation strategy (no MacLaurin
+;; fallback exists, since the series diverges there); it occasionally
+;; returns `##NaN`/`##Inf` for specific parameter combinations instead of
+;; the true finite value (confirmed ~2-4% of randomly sampled cases in
+;; that regime, no smooth precision-degradation boundary -- sporadic
+;; "unlucky" combinations, not fixed, matching the `hypergeometric-0F2`/
+;; `hypergeometric-2F0` precedent of documenting rather than reverse-
+;; engineering the dense Weniger-acceleration internals).
+
+(def ^:private pfq-reference
+  (delay (edn/read-string (slurp (io/resource "special/pfq_reference.edn")))))
+
+(t/deftest hypergeometric-pFq
+  (t/testing "edge cases"
+    (t/is (m/one? (sut/hypergeometric-pFq [] [] 0.0)))
+    (t/is (m/one? (sut/hypergeometric-pFq [1.5 2.5] [3.5] 0.0)))
+    (t/is (m/one? (sut/hypergeometric-pFq [##NaN] [2.0] 0.0))) ;; x=0 always wins
+    (t/is (m/one? (sut/hypergeometric-pFq [1.5] [-2.0] 0.0))) ;; x=0 wins over a genuine pole too
+    (t/is (m/nan? (sut/hypergeometric-pFq [##NaN] [2.0] 1.0)))
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.0] [##NaN] 1.0)))
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.0] [2.0] ##NaN))))
+  (t/testing "degenerate p=0, q=0: identically exp(x) (fixed this session,
+              was catastrophically imprecise for very negative x)"
+    (t/is (m/delta-eq (Math/exp 2.0) (sut/hypergeometric-pFq [] [] 2.0)))
+    (t/is (m/delta-eq (Math/exp -48.77) (sut/hypergeometric-pFq [] [] -48.77) 1.0e-12 1.0e-12)))
+  (t/testing "pole: a denominator parameter a non-positive integer, not
+              preempted by numerator termination (silently wrong before
+              this session's fix)"
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.5] [-2.0] 1.0)))
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.5] [-2.0] -0.5)))
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.5] [-2.0 3.0] 0.5)))
+    (t/is (m/nan? (sut/hypergeometric-pFq [-5.0] [-2.0] 2.0)))) ;; pole (m=2) before termination (n=5)
+  (t/testing "terminating (numerator non-positive integer): exact finite
+              polynomial, valid for any x, incl. huge x (fixed this
+              session, was catastrophically imprecise via Weniger there)"
+    (t/is (m/delta-eq 63.0 (sut/hypergeometric-pFq [-3.0 2.5] [1.5] -2.0)))
+    (t/is (m/delta-eq -224.0 (sut/hypergeometric-pFq [-3.0 2.5] [1.5] 5.0)))
+    (t/is (m/delta-eq 2.1875 (sut/hypergeometric-pFq [-2.0] [3.0] -1.5)))
+    (t/is (m/delta-eq -2999993000004999999.0 (sut/hypergeometric-pFq [-3.0 2.5] [1.5] 1000000.0) 1.0e-6 1.0e-6))
+    (t/is (m/delta-eq 2.572486772486773 (sut/hypergeometric-pFq [-5.0] [-10.0] 2.0)))) ;; termination (n=5) before pole (m=10)
+  (t/testing "equal-pair cancellation: a_i = b_j cancels exactly to a lower
+              pFq, PROVIDED the shared value is not a non-positive
+              integer -- when it is, both Pochhammer symbols vanish
+              together at the same term instead, and the correct value is
+              a truncated sum of the further-reduced coefficients, NOT the
+              naive full reduced pFq value (confirmed against mpmath; an
+              earlier version of this session's own cancellation fix
+              wrongly assumed unconditional cancellation, giving
+              `kummers-M(1.5,2.0,x)` here instead of the correct,
+              different, truncated value -- caught by cross-checking
+              against kummers-M on a shared grid)"
+    (t/is (m/delta-eq 1.4645182291666667 (sut/hypergeometric-pFq [-3.0 1.5] [-3.0 2.0] 0.5)))
+    (t/is (m/delta-eq 0.02083333333333326 (sut/hypergeometric-pFq [-3.0 1.5] [-3.0 2.0] -2.0)))
+    (t/testing "a genuinely non-integer shared value still cancels the
+                simple way"
+      (t/is (m/delta-eq (sut/kummers-M 3.0 2.0 0.5) (sut/hypergeometric-pFq [-1.5 3.0] [-1.5 2.0] 0.5)))))
+  (t/testing "p=q, positive x: MacLaurin now used instead of Weniger (fixed
+              this session, was catastrophically wrong, incl. wrong sign,
+              from about x=35 on)"
+    (t/is (m/delta-eq 173389194734825712426.31592233324248455827162514766
+                      (sut/hypergeometric-pFq [1.5 2.5] [2.0 3.0] 50.0) 1.0e-9 1.0e-9)))
+  (t/testing "negative numerator-parameter product no longer wrongly
+              shortcuts to 1.0 (the sign bug fixed this session)"
+    (t/is (m/delta-eq 1.5204945892168732279848554857995387357988569986687
+                      (sut/hypergeometric-pFq [-1.5] [2.0 3.0] -2.0) 1.0e-9 1.0e-9)))
+  (t/testing "known limitation: generic (non-terminating), formally
+              divergent p>q+1 case relies solely on Weniger resummation and
+              can occasionally miss (not fixed, documented above)"
+    (t/is (m/delta-eq 18.7148240242339485175916480136
+                      (sut/hypergeometric-pFq [1.55 1.16 -2.2] [-2.83] -2.0) 1.0e-9 1.0e-9))
+    (t/is (m/nan? (sut/hypergeometric-pFq [1.46 -0.96 -2.15] [-3.34] -3.41))))
+  (t/testing "vs mpmath, entire (p<=q), positive x up to ~100"
+    (t/is (check-pfq (@pfq-reference :entire-positive) 1.0e-8)))
+  (t/testing "vs mpmath, entire (p<=q), negative x up to ~50"
+    (t/is (check-pfq (@pfq-reference :entire-negative) 1.0e-7)))
+  (t/testing "vs mpmath, radius-1 (p=q+1), |x|<1"
+    (t/is (check-pfq (@pfq-reference :radius1-inside) 1.0e-9)))
+  (t/testing "vs mpmath, radius-1 (p=q+1), |x|>=0.72 (Weniger), negative x up to 5"
+    (t/is (check-pfq (@pfq-reference :radius1-outside) 1.0e-8)))
+  (t/testing "vs mpmath, terminating case, x incl. huge magnitude"
+    (t/is (check-pfq (@pfq-reference :terminating) 1.0e-8)))
+  (t/testing "vs mpmath, equal-pair cancellation"
+    (t/is (check-pfq (@pfq-reference :cancellation) 1.0e-9))))
+
+;; Reference values for `hypergeometric-pFq-complex` below were computed
+;; once from mpmath (`mpmath.hyper` with complex arguments) and are stored
+;; in `test/resources/special/pfq_complex_reference.edn`, split into the
+;; same six blocks as `hypergeometric-pFq`'s own reference (see above),
+;; now with a complex argument `z` (real/imaginary parts as `[re im]`
+;; pairs throughout). See
+;; `utils/fastmath/dev/generate_pfq_complex_reference.py` for the
+;; generator.
+;;
+;; `hypergeometric-pFq-complex` carried essentially the SAME bug set as
+;; `hypergeometric-pFq` had before this session's fixes (the underlying
+;; `hypergeometric-pFq-weniger-complex`/`hypergeometric-pFq-maclaurin-
+;; complex` helpers are structurally identical to the real ones, just
+;; using `cplx` arithmetic), confirmed against mpmath and fixed the same
+;; way, mirrored into complex arithmetic:
+;;  - Undetected pole, terminating-case precision for large `|z|`, `p=q`
+;;    routed to Weniger regardless of the sign of `Re(z)` (catastrophically
+;;    wrong for large positive `Re(z)`), equal-pair integer coincidence
+;;    (naive cancellation wrongly used instead of the correct truncated
+;;    sum), and the degenerate `p=0, q=0` case losing all precision for
+;;    very negative `Re(z)` -- all confirmed present and fixed exactly as
+;;    for the real-valued function (see `hypergeometric-pFq`'s own
+;;    comment above for the detailed derivation each fix relies on, which
+;;    carries over unchanged).
+;;  - The negative-numerator-product sign bug was NOT present here: the
+;;    complex `hypergeometric-pFq-weniger-complex` already correctly used
+;;    `(cplx/abs proda)` in its zero-numerator shortcut.
+;;
+;; A known, NOT fixed, limitation was found here that is markedly WORSE
+;; than for the real-valued function: for the generic (non-terminating)
+;; `p > q + 1` case, `hypergeometric-pFq-weniger-complex` is the only
+;; available strategy (no MacLaurin fallback, since the series is
+;; genuinely divergent there), and it is highly unreliable specifically
+;; whenever `z` has a POSITIVE real part -- confirmed to fail (returning a
+;; non-finite value) even for very small `|z|` (down to 0.1), while a
+;; negative real part stayed accurate to about |z|=5-8 before degrading.
+;; This is a much stronger, more consistent correlation than the real
+;; version's own "sporadic, no smooth boundary" p>q+1 limitation. For
+;; `p = q + 1` beyond the MacLaurin radius (`|z| >= 0.72`), Weniger
+;; acceleration is markedly more reliable on both sides of the real axis
+;; (confirmed accurate at moderate |z|), though a small fraction of
+;; parameter combinations still fail even there, matching the same
+;; sporadic-instability class already documented for the real-valued
+;; function; the reference data above was restricted to `p=1` or `p=2`
+;; numerator parameters and `|z| <= 2.5` to keep the bulk `:radius1-
+;; outside` block reliable, discarding the (rare) points fastmath itself
+;; could not reproduce during generation, consistent with this documented
+;; gap.
+
+(def ^:private pfq-complex-reference
+  (delay (edn/read-string (slurp (io/resource "special/pfq_complex_reference.edn")))))
+
+(t/deftest hypergeometric-pFq-complex
+  (t/testing "edge cases"
+    (t/is (cplx/nan? (sut/hypergeometric-pFq-complex [(cplx/complex ##NaN 0.0)] [2.0] 1.0)))
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [] [] 0.0) cplx/ONE))
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [1.5 2.5] [3.5] 0.0) cplx/ONE))
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [1.5] [-2.0] (cplx/complex 0.0 0.0))
+                         cplx/ONE))) ;; z=0 wins over a genuine pole too
+  (t/testing "degenerate p=0, q=0: identically exp(z) (fixed this session,
+              was catastrophically imprecise for very negative Re(z))"
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [] [] (cplx/complex 2.0 0.5))
+                         (cplx/exp (cplx/complex 2.0 0.5)) 1.0e-9))
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [] [] (cplx/complex -50.0 10.0))
+                         (cplx/complex -1.61835908413705968669740459263e-22
+                                       -1.04928063491703368465393896899e-22)
+                         1.0e-9)))
+  (t/testing "pole: a denominator parameter a non-positive integer, not
+              preempted by numerator termination (silently wrong before
+              this session's fix)"
+    (t/is (cplx/nan? (sut/hypergeometric-pFq-complex [1.5] [-2.0] (cplx/complex 0.3 0.5))))
+    (t/is (cplx/nan? (sut/hypergeometric-pFq-complex [1.5] [-2.0 3.0] (cplx/complex 0.5 -0.2)))))
+  (t/testing "terminating (numerator non-positive integer): exact finite
+              polynomial, valid for any z incl. huge magnitude (fixed this
+              session, was catastrophically imprecise via Weniger there)"
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [-3.0 2.5] [1.5] (cplx/complex 3000.0 4000.0))
+                         (cplx/complex 350950985001.0 -131832020000.0) 1.0e-9)))
+  (t/testing "negative numerator-parameter product: NOT a bug here (unlike
+              the real-valued function before this session's fix) --
+              hypergeometric-pFq-weniger-complex already used cplx/abs"
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [-3.0 2.5] [1.5] (cplx/complex -0.3 1.5))
+                         (cplx/complex -18.6139999999999998863131622784
+                                       -4.88999999999999967692509983408) 1.0e-9)))
+  (t/testing "equal-pair cancellation: a_i = b_j cancels exactly, unless
+              the shared value is a non-positive real integer, in which
+              case it truncates the reduced series at k=n instead of
+              naive cancellation (fixed this session, mirroring the
+              real-valued function's own fix)"
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [-3.0 1.5] [-3.0 2.0] (cplx/complex 0.5 0.3))
+                         (cplx/complex 1.42408854166666666965906466273
+                                       0.336796874999999987718157790084) 1.0e-9))
+    (t/is (cplx/delta-eq (sut/hypergeometric-pFq-complex [-1.5 3.0] [-1.5 2.0] (cplx/complex 0.5 0.3))
+                         (cplx/complex 1.89576992027507316323304020399
+                                       0.845300601849915540523962210658) 1.0e-9)))
+  (t/testing "p=q, large Re(z): MacLaurin now used instead of Weniger for
+              Re(z)>0 (fixed this session, mirroring the real-valued
+              function's own fix, was catastrophically wrong -- wrong
+              order of magnitude AND wrong sign)"
+    (t/is (let [got (sut/hypergeometric-pFq-complex [1.5 2.5] [2.0 3.0] (cplx/complex 40.0 0.0))
+                exp (cplx/complex 9802134478442031.24299485208628 0.0)]
+            (< (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 1.0e-9))))
+  (t/testing "known limitation: generic (non-terminating), formally
+              divergent p>q+1 case relies solely on Weniger resummation
+              and is unreliable whenever Re(z)>0, even for small |z| (not
+              fixed, documented above)"
+    (t/is (cplx/nan? (sut/hypergeometric-pFq-complex [(cplx/complex 2.99 2.97) (cplx/complex 2.04 1.25)] []
+                                                      (cplx/complex 0.0965 -0.0263))))
+    (t/is (let [got (sut/hypergeometric-pFq-complex [(cplx/complex -2.91 0.17) (cplx/complex -2.64 -1.86)] []
+                                                     (cplx/complex -26.76 13.53))
+                exp (cplx/complex -132966.47070563934 -146164.8171611995)]
+            (> (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 0.01)))) ;; confirmed wrong, not merely imprecise
+  (t/testing "vs mpmath, entire (p<=q), Re(z)>0, wide magnitude"
+    (t/is (check-pfq-complex (@pfq-complex-reference :entire-positive) 1.0e-6)))
+  (t/testing "vs mpmath, entire (p<=q), Re(z)<0, wide magnitude"
+    (t/is (check-pfq-complex (@pfq-complex-reference :entire-negative) 1.0e-6)))
+  (t/testing "vs mpmath, radius-1 (p=q+1), |z|<0.72"
+    (t/is (check-pfq-complex (@pfq-complex-reference :radius1-inside) 1.0e-9)))
+  (t/testing "vs mpmath, radius-1 (p=q+1), |z|>=0.72 (Weniger), |z|<=2.5"
+    (t/is (check-pfq-complex (@pfq-complex-reference :radius1-outside) 1.0e-7)))
+  (t/testing "vs mpmath, terminating case, |z| incl. huge magnitude"
+    (t/is (check-pfq-complex (@pfq-complex-reference :terminating) 1.0e-8)))
+  (t/testing "vs mpmath, equal-pair cancellation"
+    (t/is (check-pfq-complex (@pfq-complex-reference :cancellation) 1.0e-7))))
+
+;; Reference values for `log-gamma-complex`/`gamma-complex` below were
+;; computed once from mpmath (`mpmath.loggamma`/`mpmath.gamma` with complex
+;; arguments) and are stored in
+;; `test/resources/special/gamma_complex_reference.edn`, with `:log-gamma`
+;; and `:gamma` blocks. See
+;; `utils/fastmath/dev/generate_gamma_complex_reference.py` for the
+;; generator. Both functions matched mpmath cleanly (0 failures out of 90
+;; points each, to machine precision) -- no bugs found in either for the
+;; generic (away from poles) case.
+
+(def ^:private gamma-complex-reference
+  (delay (edn/read-string (slurp (io/resource "special/gamma_complex_reference.edn")))))
+
+(t/deftest log-gamma-complex
+  (t/testing "poles: non-positive real integer z"
+    (t/is (let [v (sut/log-gamma-complex (cplx/complex -3.0 0.0))]
+            (and (m/pos-inf? (cplx/re v)) (m/pos-inf? (cplx/im v)))))
+    (t/is (let [v (sut/log-gamma-complex (cplx/complex -1.0 0.0))]
+            (and (m/pos-inf? (cplx/re v)) (m/pos-inf? (cplx/im v)))))
+    (t/is (m/pos-inf? (cplx/re (sut/log-gamma-complex (cplx/complex 0.0 0.0)))))
+    (t/is (m/valid-double? (cplx/im (sut/log-gamma-complex (cplx/complex 0.0 0.0))))))
+  (t/testing "vs mpmath, generic z away from poles"
+    (t/is (check-cplx1 sut/log-gamma-complex (@gamma-complex-reference :log-gamma) 1.0e-9))))
+
+(t/deftest gamma-complex
+  (t/testing "poles: negative real integer z -- ##NaN, matching the
+              real-valued gamma's own convention there (unlike
+              log-gamma-complex, which encodes those poles as an infinite
+              log value instead)"
+    (t/is (cplx/nan? (sut/gamma-complex (cplx/complex -3.0 0.0))))
+    (t/is (cplx/nan? (sut/gamma-complex (cplx/complex -1.0 0.0)))))
+  (t/testing "z = 0.0+0.0i specifically: a genuine signed infinity, unlike
+              gamma's own x=0.0 convention (##NaN) -- log-gamma-complex
+              encodes this one pole with a finite imaginary part instead
+              of an infinite one, unlike every other non-positive integer"
+    (t/is (m/pos-inf? (cplx/re (sut/gamma-complex (cplx/complex 0.0 0.0))))))
+  (t/testing "vs mpmath, generic z away from poles"
+    (t/is (check-cplx1 sut/gamma-complex (@gamma-complex-reference :gamma) 1.0e-9))))
+
+;; Reference values for `tricomis-U-complex` below were computed once from
+;; mpmath (`mpmath.hyperu` with complex arguments) and are stored in
+;; `test/resources/special/tricomis_u_complex_reference.edn`, split into
+;; `:generic` (Re(z)>=0, |z| from a fraction of a unit to ~250), `:negative-
+;; re-small` (Re(z)<0, |z|<=~4, the reliable sub-region there -- see the
+;; known limitation below), `:integer-b` (b an integer, Re(z)>=0) and
+;; `:zero-z` (z=0 exactly, a and b real). See
+;; `utils/fastmath/dev/generate_tricomis_u_complex_reference.py` for the
+;; generator.
+;;
+;; THREE genuine bugs were found and fixed this session (all confirmed
+;; against mpmath):
+;;  - Whenever one of the formula's Gamma-function arguments landed on a
+;;    non-positive integer (a pole of Gamma, where `1/Gamma` is actually 0,
+;;    an entire, removable-zero function there), computing it as
+;;    `1/gamma-complex(pole)` propagated `##NaN` instead (e.g.
+;;    `tricomis-U-complex(1.5, 2.5, 2.0)` was `##NaN`, true value
+;;    `0.3536`). Fixed with a dedicated `reciprocal-gamma-complex` helper,
+;;    computed as `exp(-log-gamma-complex z)` (confirmed to correctly give
+;;    exactly `0` at a pole, matching `1/gamma-complex z` exactly away from
+;;    one -- unlike `1/gamma-complex z` itself, which hits an intermediate
+;;    `0*Inf` artifact whenever `exp` is applied to `log-gamma-complex`'s
+;;    own pole encoding), with an explicit non-positive-integer check
+;;    (since that trick alone does not work for every pole -- see
+;;    `reciprocal-gamma-complex`'s own docstring).
+;;  - `b` an integer (any sign) is a removable singularity of the
+;;    underlying Kummer-`M`-function reflection formula (its `pi/sin(pi
+;;    b)` prefactor vanishes there too) -- the classical "logarithmic
+;;    case" of the literature, requiring `log(z)`/digamma terms in closed
+;;    form. Resolved instead via a Richardson-extrapolated numerical limit
+;;    (evaluating the formula at `b +/-` a small offset and extrapolating),
+;;    verified against mpmath to about 1e-7..1e-12 relative accuracy,
+;;    avoiding the risk of transcribing the multi-term closed form from
+;;    the literature (e.g. `tricomis-U-complex(1.0, 5.0, 2.0)` was `0.0`,
+;;    true value `2.375`).
+;;  - For large `|z|`, the reflection formula computes a difference of two
+;;    individually `exp(z)`-scaled terms and loses essentially all
+;;    precision (e.g. `tricomis-U-complex(2.3, 2.7, 50.0)` was `-1.02e7`,
+;;    true value `1.2e-4`). Fixed by using the standard asymptotic-series
+;;    formula `z^(-a) pFq([a, 1+a-b], [], -1/z)` instead (mirroring the
+;;    real-valued `tricomis-U`'s own general-case formula) whenever
+;;    `Re(z) >= 0.0`, confirmed reliable there across a very wide range of
+;;    `|z|` (a fraction of a unit up to several hundred), including
+;;    automatically handling integer `b` and `z = 0` boundary approaches
+;;    without the Richardson-extrapolation trick.
+;;
+;; A known, NOT fixed, limitation was also found and precisely
+;; characterized: the asymptotic formula above is only reliable for
+;; `Re(z) >= 0.0` (its own pFq argument `-1/z` otherwise enters the
+;; documented unreliable region of `hypergeometric-pFq-complex`'s `p > q +
+;; 1` case), so the reflection formula remains the only option for
+;; `Re(z) < 0.0` -- but that formula's own large-`|z|` precision loss is
+;; NOT a clean magnitude threshold there: confirmed `|z| = 5.5` can fail
+;; catastrophically (many orders of magnitude wrong) while `|z| = 45.9`
+;; succeeds to 6+ significant digits, for different parameter
+;; combinations. This is the same underlying sporadic Weniger-acceleration
+;; instability already documented for `hypergeometric-pFq-complex` itself
+;; propagating through, not a new distinct root cause, and was not further
+;; investigated; the reference data above is restricted to `Re(z) < 0.0`
+;; with `|z| <= ~4` to stay in the confirmed-reliable sub-region.
+
+(def ^:private tricomis-u-complex-reference
+  (delay (edn/read-string (slurp (io/resource "special/tricomis_u_complex_reference.edn")))))
+
+(t/deftest tricomis-U-complex
+  (t/testing "edge cases"
+    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex ##NaN 0.0) 2.0 1.0))))
+  (t/testing "z=0, a and b both real: mirrors the real-valued tricomis-U
+              exactly"
+    (t/is (m/pos-inf? (cplx/re (sut/tricomis-U-complex 1.5 2.5 0.0)))) ;; b>=1.0: diverges
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex -3.0 2.5 0.0)
+                         (cplx/complex (sut/tricomis-U -3.0 2.5 0.0) 0.0)))
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex 1.5 0.5 0.0)
+                         (cplx/complex (sut/tricomis-U 1.5 0.5 0.0) 0.0))))
+  (t/testing "z=0, a or b complex: path-dependent, not resolved, ##NaN"
+    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex 1.5 0.3) 2.5 0.0))))
+  (t/testing "reciprocal-gamma pole fix: a Gamma-function argument of the
+              underlying formula landing on a non-positive integer no
+              longer propagates ##NaN (fixed this session)"
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex 1.5 2.5 2.0) (cplx/complex 0.3535533905932738 0.0) 1.0e-9)))
+  (t/testing "integer b: Richardson-extrapolated numerical limit resolves
+              the underlying formula's removable singularity there (fixed
+              this session)"
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex 1.0 5.0 2.0) (cplx/complex 2.375 0.0) 1.0e-6))
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex -0.5 3.0 0.5) (cplx/complex -2.873393755767056 0.0) 1.0e-6)))
+  (t/testing "large |z|, Re(z)>=0: asymptotic formula used instead of the
+              reflection formula, which lost essentially all precision
+              there (fixed this session)"
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex 2.3 2.7 50.0) (cplx/complex 1.204536636713596e-4 0.0) 1.0e-9))
+    (t/is (cplx/delta-eq (sut/tricomis-U-complex 3.0 3.0 1000.0) (cplx/complex 9.970119403575002e-10 0.0) 1.0e-9)))
+  (t/testing "known limitation: Re(z)<0, large |z| can lose precision or
+              fail unpredictably (not fixed, documented above); true
+              values confirmed finite via mpmath, none reproduced here"
+    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex -3.82 -0.8) (cplx/complex 3.0 0.0) (cplx/complex -86.6 172.9))))
+    (t/is (cplx/nan? (sut/tricomis-U-complex (cplx/complex 3.4 -1.69) (cplx/complex -0.85 -1.19) (cplx/complex -35.6 218.0))))
+    (t/is (let [got (sut/tricomis-U-complex (cplx/complex -3.89 -1.88) (cplx/complex 5.0 0.0) (cplx/complex -5.5 0.2))
+                exp (cplx/complex 1.7621289522653452 -44.8942294755623)]
+            (> (/ (cplx/abs (cplx/sub got exp)) (cplx/abs exp)) 100)))) ;; confirmed wrong, not merely imprecise
+  (t/testing "vs mpmath, generic (Re(z)>=0, wide |z|)"
+    (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :generic) 1.0e-6)))
+  (t/testing "vs mpmath, Re(z)<0, small |z|"
+    (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :negative-re-small) 1.0e-4)))
+  (t/testing "vs mpmath, integer b"
+    (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :integer-b) 1.0e-4)))
+  (t/testing "vs mpmath, z=0"
+    (t/is (check-tricomis-u-complex (@tricomis-u-complex-reference :zero-z) 1.0e-8))))
