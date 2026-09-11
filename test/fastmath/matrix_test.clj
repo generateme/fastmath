@@ -108,7 +108,7 @@
                                     (-1.0 2.0 5.0 1.0) (5.0 4.0 3.0 -1.0))))))
 
 (t/deftest row
-  (t/are [m r res] (= (sut/row m r) res)
+  (t/are [m r res] (v/delta-eq (sut/row m r) res)
     m22 0 (v/vec2 2 3) m22 1 (v/vec2 5 -10)
     m33 0 (v/vec3 -3 2 -6) m33 1 (v/vec3 5 7 -5) m33 2 (v/vec3 1 4 -2)
     m44 0 (v/vec4 4 1 2 -3) m44 1 (v/vec4 -3 3 -1 4) m44 2 (v/vec4 -1 2 5 1) m44 3 (v/vec4 5 4 3 -1))
@@ -370,7 +370,5 @@
       m33 [[-4.687435 0.000000] [3.343718 2.677027]  [3.343718 -2.677027]]))
   (t/testing "Eigenvectors"
     (t/are [m res] (every? identity (map v/delta-eq (sut/eigenvectors m true) res))
-      m22 [[0.9346357 0.3556066] [-0.222560  0.974919]]
-      m33 [[] [] []])))
+      m22 [[0.9346357 0.3556066] [-0.222560  0.974919]])))
 
-(sut/eigenvectors m33 true)

@@ -568,6 +568,7 @@
       (or (m/< (m/abs x) m/MACHINE-EPSILON)
           (m/< (m/abs (m/* a b)) (m/ulp (m/* absa absb)))) 1.0
       (m/< b a) (hypergeometric-2F1 b a c x)
+
       ;; a genuine, unavoidable pole: c a negative integer, and neither a
       ;; nor b is a non-positive integer capable of terminating the series
       ;; at or before reaching it. This is checked here, ahead of every
@@ -583,8 +584,8 @@
       ;; mpmath's own specific behavior here).
       (and (m/neg? c) (m/integer? c)
            (not (or (and (m/not-pos? a) (m/integer? a) (m/>= a c))
-                    (and (m/not-pos? b) (m/integer? b) (m/>= b c)))))
-      ##Inf
+                    (and (m/not-pos? b) (m/integer? b) (m/>= b c))))) ##Inf
+      
       (or (and (m/not-pos? a) (m/integer? a))
           (and (m/not-pos? b) (m/integer? b)))
       ;; a or b a non-positive integer: the series always terminates to an
@@ -596,17 +597,19 @@
       ;; real -- fixed this session). The pole check above already
       ;; guarantees c cannot be an unreachable-in-time pole by this point.
       (let [a-term? (and (m/not-pos? a) (m/integer? a))
-            n (unchecked-long (if (and a-term? (m/not-pos? b) (m/integer? b))
-                                 (m/min (m/- a) (m/- b))
-                                 (if a-term? (m/- a) (m/- b))))]
+            n (if (and a-term? (m/not-pos? b) (m/integer? b))
+                (m/min (m/- a) (m/- b))
+                (if a-term? (m/- a) (m/- b)))]
         (loop [k (long 1) term 1.0 sum 1.0]
           (if (m/> k n)
             sum
             (let [nterm (m// (m/* term (m/+ a (m/dec k)) (m/+ b (m/dec k)) x)
                              (m/* (m/+ c (m/dec k)) k))]
               (recur (m/inc k) nterm (m/+ sum nterm))))))
+
       (m/== a c) (m/exp (m/* -1.0 b (m/log1p (m/- x))))
       (m/== b c) (m/exp (m/* -1.0 a (m/log1p (m/- x))))
+
       (m/== c 0.5) (let [a+b (m/+ a b)]
                      (cond
                        (m/zero? a+b) (cosnasinsqrt (m/* 2.0 b) x)
@@ -614,6 +617,7 @@
                                          (m/exp (m/* -0.5 (m/log1p (m/- x)))))
                        (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/* -2.0 a) x)
                        :else (general-2F1 a b c x)))
+
       (m/== c 1.5) (cond
                      (m/== a b 0.5) (sqrtasinsqrt x)
                      (m/== a b 1.0) (m/* (sqrtasinsqrt x)
@@ -625,16 +629,19 @@
                                                (m/exp (m/* -0.5 (m/log1p (m/- x)))))
                      (m/== (m/- b a) 0.5) (expnlog1pcoshatanhsqrt (m/- 1.0 (m/* -2.0 a)) x)
                      :else (general-2F1 a b c x))
+
       (m/== c 2.0) (cond
                      (m/== a b 1.0) (log1pover (m/- x))
                      (and (m/one? b) (m/== (m/rint a) a)) (expm1nlog1p (m/- 1.0 a) (m/- x))
                      (and (m/one? a) (m/== (m/rint b) b)) (expm1nlog1p (m/- 1.0 b) (m/- x))
                      :else (general-2F1 a b c x))
+
       (and (m/== c 4.0)
            (m/== a b 2.0)) (if (m/> (m/abs x) 0.2)
                              (m// (m/* 6.0 (m/+ (m/* -2.0 x)
                                                 (m/* (m/- x 2.0) (m/log1p (m/- x))))) (m/* x x x))
                              (poly/mevalpoly x 1.0, 1.0, 0.9, 0.8, 0.7142857142857143, 0.6428571428571429, 0.5833333333333334, 0.5333333333333333, 0.4909090909090909, 0.45454545454545453, 0.4230769230769231, 0.3956043956043956, 0.37142857142857144, 0.35, 0.33088235294117646, 0.3137254901960784, 0.2982456140350877, 0.28421052631578947, 0.2714285714285714, 0.2597402597402597))
+
       (and (m/== c 2.5)
            (m/one? a)
            (m/== b 1.5)) (cond
@@ -645,6 +652,7 @@
                                           (m// (m/* 3.0 (m/- s (m/atan s)))
                                                (m/* s s s)))
                            :else (spoly/clenshaw-chebyshev (m/* 5.0 x) spoly/hg-2F1-poly))
+
       :else (general-2F1 a b c x))))
 
 ;;
@@ -801,6 +809,8 @@
       (let [v (Array/aget R i)]
         (if (m/valid-double? v) v (recur (m/dec i)))))))
 
+(defrecord PfQWenigerResult [^double value reason])
+
 (defn- pfq-weniger-exit-result
   "Builds `{:value :reason}` for [[hypergeometric-pFq-weniger*]] at the
   point its loop has just decided to stop, given the freshest two ratios
@@ -810,231 +820,231 @@
   older iterate in `R` still was -- that one is returned instead), or
   `:failed` (no iterate in `R` is finite; `Rb` -- itself non-finite -- is
   returned)."
-  [^doubles R ^long r+2 ^double Ra ^double Rb]
+  ^PfQWenigerResult [^doubles R ^long r+2 ^double Ra ^double Rb]
   (cond
     (not (and (m/valid-double? Ra) (m/valid-double? Rb)))
     (let [v (pfq-weniger-newest-finite R r+2)]
       (if (m/valid-double? v)
-        {:value v :reason :non-finite-recovered}
-        {:value Rb :reason :failed}))
+        (PfQWenigerResult. v :non-finite-recovered)        
+        (PfQWenigerResult. Rb :failed)))
 
     (m/<= (m/abs (m/- Ra Rb))
           (m/* m/MACHINE-EPSILON10 (m/max (m/abs Ra) (m/abs Rb))))
-    {:value Rb :reason :converged}
+    (PfQWenigerResult. Rb :converged)
 
-    :else {:value Rb :reason :max-iters}))
+    :else (PfQWenigerResult. Rb :max-iters)))
 
 (defn- hypergeometric-pFq-weniger*
   "Shared core for [[hypergeometric-pFq-weniger]] and
   [[hypergeometric-pFq-weniger-with-reason]] -- see
   [[pfq-weniger-exit-result]] for the `:reason`s this can return."
-  [ps qs ^double z ^long max-iters]
+  ^PfQWenigerResult [ps qs ^double z ^long max-iters]
   (let [a (vec ps) b (vec qs)
-         absa (mapv m/abs a)
-         proda (v/prod a)
-         prodb (v/prod b)]
-     (if (or (m/< (m/abs z) m/MACHINE-EPSILON10)
-             (m/< (m/abs proda) (m/ulp (v/prod absa))))
-       {:value 1.0 :reason :converged}
-       (let [gamma- (m/dec GAMMA-CONST)
-             zeta (m// z)
-             p (count ps)
-             q (count qs)
-             r (m/max p (m/inc q))
-             r+3 (m/+ r 3)
-             r+2 (m/dec r+3)
-             r+1 (m/dec r+2)
-             ^doubles N (double-array r+3)
-             ^doubles D (double-array r+3)
-             ^doubles R (double-array r+3)
-             lv (m// (m// (m/* prodb zeta) proda) gamma-)]
-         (Array/aset N r+2 lv)
-         (Array/aset D r+2 lv)
-         (Array/aset R r+2 1.0)
-         (let [err (prod-inc absa)
-               Pd (double-array r+2)]
-           (Array/aset Pd 0 (prod-inc a))
-           (let [^doubles Q (double-array (m/inc r))]
-             (Array/aset Q 0 (prod-inc b 2.0))
-             (loop [k (long 0)
-                    PdR (long (m/+ GAMMA-CONST 2))
-                    QR (long 1)
-                    err err]
-               (let [Ra (Array/aget R r+1)
-                     Rb (Array/aget R r+2)]
-                 (if-not (or (m/<= k r+2)
-                             (and (m/< k max-iters)
-                                  (m/valid-double? Ra) (m/valid-double? Rb)
-                                  (m/> (m/abs (m/- Ra Rb))
-                                       (m/* m/MACHINE-EPSILON10
-                                            (m/max (m/abs Ra)
-                                                   (m/abs Rb))))))
-                   (pfq-weniger-exit-result R r+2 Ra Rb)
-                   (do (dotimes [j r+2]
-                         (let [j+ (m/inc j)]
-                           (Array/aset N j (Array/aget N j+))
-                           (Array/aset D j (Array/aget D j+))
-                           (Array/aset R j (Array/aget R j+))))
-                       (let [t1 (double (reduce (fn [^double t1 ^long j]
-                                                  (->> (m/* (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
-                                                            (Array/aget N (m/- r j -1))
-                                                            (Array/aget Q j))
-                                                       (m/+ t1)))
-                                                0.0 (range r+1)))
-                             t1 (double (if (m/> k r) t1
-                                            (loop [j (long 0)
-                                                   t1 t1]
-                                              (if (m/> j k) t1
-                                                  (let [j+ (m/inc j)
-                                                        t2 (double (reduce (fn [^double v ^double bi]
-                                                                             (m/* v (m/+ bi j+))) 1.0 b))]
-                                                    (recur (m/inc j)
-                                                           (->> (m/* (m/inc j+)
-                                                                     (m/combinations k j)
-                                                                     (if (m/even? (m/- k j)) 1.0 -1.0)
-                                                                     t2)
-                                                                (m/+ t1))))))))
+        absa (mapv m/abs a)
+        proda (v/prod a)
+        prodb (v/prod b)]
+    (if (or (m/< (m/abs z) m/MACHINE-EPSILON10)
+            (m/< (m/abs proda) (m/ulp (v/prod absa))))
+      (PfQWenigerResult. 1.0 :converged)
+      (let [gamma- (m/dec GAMMA-CONST)
+            zeta (m// z)
+            p (count ps)
+            q (count qs)
+            r (m/long-max p (m/long-inc q))
+            r+3 (m/long-add r 3)
+            r+2 (m/long-dec r+3)
+            r+1 (m/long-dec r+2)
+            ^doubles N (double-array r+3)
+            ^doubles D (double-array r+3)
+            ^doubles R (double-array r+3)
+            lv (m// (m// (m/* prodb zeta) proda) gamma-)]
+        (Array/aset N r+2 lv)
+        (Array/aset D r+2 lv)
+        (Array/aset R r+2 1.0)
+        (let [err (prod-inc absa)
+              Pd (double-array r+2)]
+          (Array/aset Pd 0 (prod-inc a))
+          (let [^doubles Q (double-array (m/inc r))]
+            (Array/aset Q 0 (prod-inc b 2.0))
+            (loop [k (long 0)
+                   PdR (long (m/+ GAMMA-CONST 2))
+                   QR (long 1)
+                   err err]
+              (let [Ra (Array/aget R r+1)
+                    Rb (Array/aget R r+2)]
+                (if-not (or (m/<= k r+2)
+                            (and (m/< k max-iters)
+                                 (m/valid-double? Ra) (m/valid-double? Rb)
+                                 (m/> (m/abs (m/- Ra Rb))
+                                      (m/* m/MACHINE-EPSILON10
+                                           (m/max (m/abs Ra)
+                                                  (m/abs Rb))))))
+                  (pfq-weniger-exit-result R r+2 Ra Rb)
+                  (do (dotimes [j r+2]
+                        (let [j+ (m/inc j)]
+                          (Array/aset N j (Array/aget N j+))
+                          (Array/aset D j (Array/aget D j+))
+                          (Array/aset R j (Array/aget R j+))))
+                      (let [t1 (double (reduce (fn [^double t1 ^long j]
+                                                 (->> (m/* (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
+                                                           (Array/aget N (m/- r j -1))
+                                                           (Array/aget Q j))
+                                                      (m/+ t1)))
+                                               0.0 (range r+1)))
+                            t1 (double (if (m/> k r) t1
+                                           (loop [j (long 0)
+                                                  t1 t1]
+                                             (if (m/> j k) t1
+                                                 (let [j+ (m/inc j)
+                                                       t2 (double (reduce (fn [^double v ^double bi]
+                                                                            (m/* v (m/+ bi j+))) 1.0 b))]
+                                                   (recur (m/inc j)
+                                                          (->> (m/* (m/inc j+)
+                                                                    (m/combinations k j)
+                                                                    (if (m/even? (m/long-sub k j)) 1.0 -1.0)
+                                                                    t2)
+                                                               (m/+ t1))))))))
 
-                             t2 (double (loop [j (long 1)
-                                               t2 (m/* (m/+ GAMMA-CONST (m/dec k))
-                                                       (Array/aget N r+1)
-                                                       (Array/aget Pd 0))]
-                                          (if (m/> j r+1) t2
-                                              (let [r-j (m/- r j)]
-                                                (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
-                                                                      (m/* (Array/aget N (m/inc r-j)))
-                                                                      (m/+ (Array/aget N (m/+ r-j 2)))
-                                                                      (m/* (Array/aget Pd j))
-                                                                      (m/+ t2)))))))]
-                         (Array/aset N r+2 (m/- (m/* zeta t1) t2))
-                         (let [t1 (double (loop [j (long 0)
-                                                 t1 0.0]
-                                            (if (m/> j r) t1
-                                                (recur (m/inc j)
-                                                       (->> (m/* (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
-                                                                 (Array/aget D (m/- r j -1))
-                                                                 (Array/aget Q j))
-                                                            (m/+ t1))))))
-                               t2 (double (loop [j (long 1)
-                                                 t2 (m/* (m/+ GAMMA-CONST (m/dec k))
-                                                         (Array/aget D r+1)
-                                                         (Array/aget Pd 0))]
-                                            (if (m/> j r+1) t2
-                                                (let [r-j (m/- r j)]
-                                                  (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
-                                                                        (m/* (Array/aget D (m/inc r-j)))
-                                                                        (m/+ (Array/aget D (m/+ r-j 2)))
-                                                                        (m/* (Array/aget Pd j))
-                                                                        (m/+ t2)))))))]
-                           (Array/aset D r+2 (m/- (m/* zeta t1) t2))
-                           (Array/aset R r+2 (m// (Array/aget N r+2) (Array/aget D r+2)))
-                           
-                           (if (m/< (m/abs (Array/aget Pd 0)) (m/ulp err))
-                             (Array/aget R r+2)
-                             (do (Array/aset N r+2 (m// (Array/aget N r+2) (Array/aget Pd 0)))
-                                 (Array/aset D r+2 (m// (Array/aget D r+2) (Array/aget Pd 0)))
-                                 (let [k (m/inc k)
-                                       k+ (m/inc k)
-                                       k2 (m/* 2 k)
-                                       k2+1 (m/inc k2)
-                                       err (prod-inc absa 1.0 k+)]
+                            t2 (double (loop [j (long 1)
+                                              t2 (m/* (m/+ GAMMA-CONST (m/dec k))
+                                                      (Array/aget N r+1)
+                                                      (Array/aget Pd 0))]
+                                         (if (m/> j r+1) t2
+                                             (let [r-j (m/- r j)]
+                                               (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
+                                                                     (m/* (Array/aget N (m/inc r-j)))
+                                                                     (m/+ (Array/aget N (m/+ r-j 2)))
+                                                                     (m/* (Array/aget Pd j))
+                                                                     (m/+ t2)))))))]
+                        (Array/aset N r+2 (m/- (m/* zeta t1) t2))
+                        (let [t1 (double (loop [j (long 0)
+                                                t1 0.0]
+                                           (if (m/> j r) t1
+                                               (recur (m/inc j)
+                                                      (->> (m/* (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
+                                                                (Array/aget D (m/- r j -1))
+                                                                (Array/aget Q j))
+                                                           (m/+ t1))))))
+                              t2 (double (loop [j (long 1)
+                                                t2 (m/* (m/+ GAMMA-CONST (m/dec k))
+                                                        (Array/aget D r+1)
+                                                        (Array/aget Pd 0))]
+                                           (if (m/> j r+1) t2
+                                               (let [r-j (m/- r j)]
+                                                 (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
+                                                                       (m/* (Array/aget D (m/inc r-j)))
+                                                                       (m/+ (Array/aget D (m/+ r-j 2)))
+                                                                       (m/* (Array/aget Pd j))
+                                                                       (m/+ t2)))))))]
+                          (Array/aset D r+2 (m/- (m/* zeta t1) t2))
+                          (Array/aset R r+2 (m// (Array/aget N r+2) (Array/aget D r+2)))
+                          
+                          (if (m/< (m/abs (Array/aget Pd 0)) (m/ulp err))
+                            (Array/aget R r+2)
+                            (do (Array/aset N r+2 (m// (Array/aget N r+2) (Array/aget Pd 0)))
+                                (Array/aset D r+2 (m// (Array/aget D r+2) (Array/aget Pd 0)))
+                                (let [k (m/long-inc k)
+                                      k+ (m/long-inc k)
+                                      k2 (m/* 2 k)
+                                      k2+1 (m/inc k2)
+                                      err (prod-inc absa 1.0 k+)]
 
-                                   (if (m/<= k r+1)
+                                  (if (m/<= k r+1)
 
-                                     (let [t2 (m// (prod-inc a 1.0 k+) PdR)
-                                           PdR (-> (m/+ GAMMA-CONST k2+1)
-                                                   (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
-                                                   (m// (m/+ GAMMA-CONST k+)))]
-                                       (loop [j (long 2)
-                                              t1 (-> (m/* t2 (m/+ GAMMA-CONST k2))
-                                                     (m/- (Array/aget Pd 0))
-                                                     (m/* k))
-                                              t2 t2]
-                                         (if (m/> j k)
-                                           (do (Array/aset Pd (m/dec k) t2)
-                                               (Array/aset Pd k t1))
-                                           (let [s (-> (m/* t1 (m/+ GAMMA-CONST (m/- k2+1 j)))
-                                                       (m/+ (m/* (Array/aget Pd (m/- j 2)) k))
-                                                       (m/* (m/inc (m/- k j)))
-                                                       (m/- (m/* (Array/aget Pd (m/dec j)) k))
-                                                       (m// j))]
-                                             (Array/aset Pd (m/- j 2) t2)
-                                             (recur (m/inc j) s t1))))
-                                       (let [QR (-> (m/+ GAMMA-CONST k2 -2)
-                                                    (m/* QR (m/+ GAMMA-CONST k2 -1))
-                                                    (m// (m/+ GAMMA-CONST k -1)))
-                                             t2 (m// (prod-inc b (m/inc k+) k+) QR)
-                                             stop (m/min k r)]
-                                         (loop [j (long 2)
-                                                t1 (-> (m/* t2 (m/+ GAMMA-CONST (m/dec k2)))
-                                                       (m/- (Array/aget Q 0))
-                                                       (m/* k))
-                                                t2 t2]
-                                           (if (m/> j stop)
-                                             (do (Array/aset Q (m/dec stop) t2)
-                                                 (Array/aset Q stop t1))
-                                             (let [s (-> (m/* t1 (m/+ GAMMA-CONST (m/- k2 j)))
-                                                         (m/+ (m/* (Array/aget Q (m/- j 2)) k))
-                                                         (m/* (m/inc (m/- k j)))
-                                                         (m/- (m/* (Array/aget Q (m/dec j)) k))
-                                                         (m// j))]
-                                               (Array/aset Q (m/- j 2) t2)
-                                               (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err)))
-                                     
-                                     (let [t2 (m// (prod-inc a (m/+ GAMMA-CONST k) k+) PdR)
-                                           PdR (-> (m/+ GAMMA-CONST k2+1)
-                                                   (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
-                                                   (m// (let [v (m/- (m/+ GAMMA-CONST k2) r)]
-                                                          (m/* (m/dec v) v))))
-                                           gamma+2k (m/+ GAMMA-CONST k2)]
-                                       (loop [j (long 2)
-                                              ;; k*((γ+2k)*t2 - (γ+2k-1-r-2)*P̂[1])
-                                              t1 (-> (m/* t2 gamma+2k)
-                                                     (m/- (m/* (Array/aget Pd 0) (m/- gamma+2k r 3)))
-                                                     (m/* k))
-                                              t2 t2]                                         
-                                         (if (m/> j r+1)
-                                           (do (Array/aset Pd r t2)
-                                               (Array/aset Pd r+1 t1))
-                                           ;; ((k-j+1)*((γ+2k-j+1)*t1-(r-j+3)*k*P̂[j-1])-(γ+2k-j-r-2)*k*P̂[j])
-                                           ;; /j
-                                           (let [s (-> (m/* t1 (m/- gamma+2k j -1))
-                                                       (m/- (m/* (Array/aget Pd (m/- j 2))
-                                                                 (m/* k (m/- r j -3))))
-                                                       (m/* (m/- k j -1))
-                                                       (m/- (m/* (Array/aget Pd (m/dec j))
-                                                                 (m/* k (m/- gamma+2k j r 2))))
-                                                       (m// j))]
-                                             (Array/aset Pd (m/- j 2) t2)
-                                             (recur (m/inc j) s t1))))
-                                       (let [ ;; QR *= ((γ+2k-2)*(γ+2k-1))/((γ+2k-r-3)*(γ+2k-r-2))
-                                             QR (-> (m/* QR (m/dec gamma+2k) (m/- gamma+2k 2))
-                                                    (m// (m/* (m/- gamma+2k r 3)
-                                                              (m/- gamma+2k r 2))))
-                                             t2 (m// (prod-inc b (m/inc k+) k+) QR)]
-                                         (loop [j (long 2)
-                                                ;; k*((γ+2k-1)*t2 - (γ+2k-1-r-2)*Q[1])
-                                                t1 (-> (m/* t2 (m/dec gamma+2k))
-                                                       (m/- (m/* (Array/aget Q 0)
-                                                                 (m/- gamma+2k r 3)))
-                                                       (m/* k))
-                                                t2 t2]
-                                           (if (m/> j r)
-                                             (do (Array/aset Q (m/dec r) t2)
-                                                 (Array/aset Q r t1))
-                                             ;; ((k-j+1)*((γ+2k-j)*t1-(r-j+2)*k*Q[j-1]) - (γ+2k-j-r-2)*k*Q[j]
-                                             ;; )/j
-                                             (let [s (-> (m/* t1 (m/- gamma+2k j))
-                                                         (m/- (m/* (Array/aget Q (m/- j 2))
-                                                                   (m/* k (m/- r j -2))))
-                                                         (m/* (m/inc (m/- k j)))
-                                                         (m/- (m/* (Array/aget Q (m/dec j))
-                                                                   (m/* k (m/- gamma+2k j r 2))))
-                                                         (m// j))]
-                                               (Array/aset Q (m/- j 2) t2)
-                                               (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err)))))))))))))))))))
+                                    (let [t2 (m// (prod-inc a 1.0 k+) PdR)
+                                          PdR (-> (m/+ GAMMA-CONST k2+1)
+                                                  (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
+                                                  (m// (m/+ GAMMA-CONST k+)))]
+                                      (loop [j (long 2)
+                                             t1 (-> (m/* t2 (m/+ GAMMA-CONST k2))
+                                                    (m/- (Array/aget Pd 0))
+                                                    (m/* k))
+                                             t2 t2]
+                                        (if (m/> j k)
+                                          (do (Array/aset Pd (m/dec k) t2)
+                                              (Array/aset Pd k t1))
+                                          (let [s (-> (m/* t1 (m/+ GAMMA-CONST (m/- k2+1 j)))
+                                                      (m/+ (m/* (Array/aget Pd (m/- j 2)) k))
+                                                      (m/* (m/inc (m/- k j)))
+                                                      (m/- (m/* (Array/aget Pd (m/dec j)) k))
+                                                      (m// j))]
+                                            (Array/aset Pd (m/- j 2) t2)
+                                            (recur (m/inc j) s t1))))
+                                      (let [QR (-> (m/+ GAMMA-CONST k2 -2)
+                                                   (m/* QR (m/+ GAMMA-CONST k2 -1))
+                                                   (m// (m/+ GAMMA-CONST k -1)))
+                                            t2 (m// (prod-inc b (m/inc k+) k+) QR)
+                                            stop (m/min k r)]
+                                        (loop [j (long 2)
+                                               t1 (-> (m/* t2 (m/+ GAMMA-CONST (m/dec k2)))
+                                                      (m/- (Array/aget Q 0))
+                                                      (m/* k))
+                                               t2 t2]
+                                          (if (m/> j stop)
+                                            (do (Array/aset Q (m/dec stop) t2)
+                                                (Array/aset Q stop t1))
+                                            (let [s (-> (m/* t1 (m/+ GAMMA-CONST (m/- k2 j)))
+                                                        (m/+ (m/* (Array/aget Q (m/- j 2)) k))
+                                                        (m/* (m/inc (m/- k j)))
+                                                        (m/- (m/* (Array/aget Q (m/dec j)) k))
+                                                        (m// j))]
+                                              (Array/aset Q (m/- j 2) t2)
+                                              (recur (m/inc j) s t1))))
+                                        (recur k PdR QR err)))
+                                    
+                                    (let [t2 (m// (prod-inc a (m/+ GAMMA-CONST k) k+) PdR)
+                                          PdR (-> (m/+ GAMMA-CONST k2+1)
+                                                  (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
+                                                  (m// (let [v (m/- (m/+ GAMMA-CONST k2) r)]
+                                                         (m/* (m/dec v) v))))
+                                          gamma+2k (m/+ GAMMA-CONST k2)]
+                                      (loop [j (long 2)
+                                             ;; k*((γ+2k)*t2 - (γ+2k-1-r-2)*P̂[1])
+                                             t1 (-> (m/* t2 gamma+2k)
+                                                    (m/- (m/* (Array/aget Pd 0) (m/- gamma+2k r 3)))
+                                                    (m/* k))
+                                             t2 t2]                                         
+                                        (if (m/> j r+1)
+                                          (do (Array/aset Pd r t2)
+                                              (Array/aset Pd r+1 t1))
+                                          ;; ((k-j+1)*((γ+2k-j+1)*t1-(r-j+3)*k*P̂[j-1])-(γ+2k-j-r-2)*k*P̂[j])
+                                          ;; /j
+                                          (let [s (-> (m/* t1 (m/- gamma+2k j -1))
+                                                      (m/- (m/* (Array/aget Pd (m/- j 2))
+                                                                (m/* k (m/- r j -3))))
+                                                      (m/* (m/- k j -1))
+                                                      (m/- (m/* (Array/aget Pd (m/dec j))
+                                                                (m/* k (m/- gamma+2k j r 2))))
+                                                      (m// j))]
+                                            (Array/aset Pd (m/- j 2) t2)
+                                            (recur (m/inc j) s t1))))
+                                      (let [ ;; QR *= ((γ+2k-2)*(γ+2k-1))/((γ+2k-r-3)*(γ+2k-r-2))
+                                            QR (-> (m/* QR (m/dec gamma+2k) (m/- gamma+2k 2))
+                                                   (m// (m/* (m/- gamma+2k r 3)
+                                                             (m/- gamma+2k r 2))))
+                                            t2 (m// (prod-inc b (m/inc k+) k+) QR)]
+                                        (loop [j (long 2)
+                                               ;; k*((γ+2k-1)*t2 - (γ+2k-1-r-2)*Q[1])
+                                               t1 (-> (m/* t2 (m/dec gamma+2k))
+                                                      (m/- (m/* (Array/aget Q 0)
+                                                                (m/- gamma+2k r 3)))
+                                                      (m/* k))
+                                               t2 t2]
+                                          (if (m/> j r)
+                                            (do (Array/aset Q (m/dec r) t2)
+                                                (Array/aset Q r t1))
+                                            ;; ((k-j+1)*((γ+2k-j)*t1-(r-j+2)*k*Q[j-1]) - (γ+2k-j-r-2)*k*Q[j]
+                                            ;; )/j
+                                            (let [s (-> (m/* t1 (m/- gamma+2k j))
+                                                        (m/- (m/* (Array/aget Q (m/- j 2))
+                                                                  (m/* k (m/- r j -2))))
+                                                        (m/* (m/inc (m/- k j)))
+                                                        (m/- (m/* (Array/aget Q (m/dec j))
+                                                                  (m/* k (m/- gamma+2k j r 2))))
+                                                        (m// j))]
+                                              (Array/aset Q (m/- j 2) t2)
+                                              (recur (m/inc j) s t1))))
+                                        (recur k PdR QR err)))))))))))))))))))
 
 (defn hypergeometric-pFq-weniger
   "Hypergeometric-pFq using Weniger acceleration on real numbers.
@@ -1048,10 +1058,10 @@
   reports whether the returned value actually converged."
   (^double [ps qs ^double z] (hypergeometric-pFq-weniger ps qs z 1048576))
   (^double [ps qs ^double z ^long max-iters]
-   (:value (hypergeometric-pFq-weniger* ps qs z max-iters))))
+   (.value ^PfQWenigerResult (hypergeometric-pFq-weniger* ps qs z max-iters))))
 
 (defn hypergeometric-pFq-weniger-with-reason
-  "[[hypergeometric-pFq-weniger]], but returns `{:value :reason}` instead
+  "[[hypergeometric-pFq-weniger]], but returns a map with `:value` and `:reason` instead
   of a bare double -- see [[pfq-weniger-exit-result]] for the possible
   `:reason`s. Lets a caller judge whether `:value` is trustworthy (only
   `:reason :converged` is), rather than only ever seeing a number.
@@ -1087,6 +1097,8 @@
       (let [v (aget R i)]
         (if (cplx/valid? v) v (recur (m/dec i)))))))
 
+(defrecord PfQWenigerResultCplx [^Vec2 value reason])
+
 (defn- pfq-weniger-exit-result-complex
   "Complex analogue of [[pfq-weniger-exit-result]]; see its docstring for
   the `:reason`s."
@@ -1095,14 +1107,14 @@
     (not (and (cplx/valid? Ra) (cplx/valid? Rb)))
     (let [v (pfq-weniger-newest-finite-complex R r+2)]
       (if (cplx/valid? v)
-        {:value v :reason :non-finite-recovered}
-        {:value Rb :reason :failed}))
+        (PfQWenigerResultCplx. v :non-finite-recovered)
+        (PfQWenigerResultCplx. Rb :failed)))
 
     (m/<= (cplx/abs (cplx/sub Ra Rb))
           (m/* m/MACHINE-EPSILON10 (m/max (cplx/abs Ra) (cplx/abs Rb))))
-    {:value Rb :reason :converged}
+    (PfQWenigerResultCplx. Rb :converged)
 
-    :else {:value Rb :reason :max-iters}))
+    :else (PfQWenigerResultCplx. Rb :max-iters)))
 
 (defn- hypergeometric-pFq-weniger-complex*
   "Shared core for [[hypergeometric-pFq-weniger-complex]] and
@@ -1110,219 +1122,219 @@
   [[pfq-weniger-exit-result-complex]] for the `:reason`s this can return."
   [ps qs z ^long max-iters]
   (let [a (mapv cplx/ensure-complex ps)
-         absa (mapv cplx/abs a)
-         b (mapv cplx/ensure-complex qs)
-         proda (reduce cplx/mult cplx/ONE a)
-         prodb (reduce cplx/mult cplx/ONE b)
-         z (cplx/ensure-complex z)]
-     (if (or (m/< (cplx/abs z) m/MACHINE-EPSILON10)
-             (m/< (cplx/abs proda) (m/ulp (v/prod absa))))
-       {:value cplx/ONE :reason :converged}
-       (let [gamma- (m/dec GAMMA-CONST)
-             zeta (cplx/reciprocal z)
-             p (count ps)
-             q (count qs)
-             r (m/max p (m/inc q))
-             r+3 (m/+ r 3)
-             r+2 (m/dec r+3)
-             r+1 (m/dec r+2)
-             ^"[Lfastmath.vector.Vec2;" N (make-cplx-zero-array r+3)
-             ^"[Lfastmath.vector.Vec2;" D (make-cplx-zero-array r+3)
-             ^"[Lfastmath.vector.Vec2;" R (make-cplx-zero-array r+3)
-             lv (cplx/scale (cplx/div (cplx/mult prodb zeta) proda) (m// gamma-))]
-         (aset N r+2 lv)
-         (aset D r+2 lv)
-         (aset R r+2 cplx/ONE)
-         (let [err (prod-inc absa)
-               ^"[Lfastmath.vector.Vec2;" Pd (make-cplx-zero-array r+2)]
-           (aset Pd 0 (prod-inc-cplx a))
-           (let [^"[Lfastmath.vector.Vec2;" Q (make-cplx-zero-array (m/inc r))]
-             (aset Q 0 (prod-inc-cplx b 2.0))
-             (loop [k (long 0)
-                    PdR (long (m/+ GAMMA-CONST 2))
-                    QR (long 1)
-                    err err]
-               (let [Ra (aget R r+1)
-                     Rb (aget R r+2)]
-                 (if-not (or (m/<= k r+2)
-                             (and (m/< k max-iters)
-                                  (cplx/valid? Ra) (cplx/valid? Rb)
-                                  (m/> (cplx/abs (cplx/sub Ra Rb))
-                                       (m/* m/MACHINE-EPSILON10
-                                            (m/max (cplx/abs Ra)
-                                                   (cplx/abs Rb))))))
-                   (pfq-weniger-exit-result-complex R r+2 Ra Rb)
-                   (do (dotimes [j r+2]
-                         (let [j+ (m/inc j)]
-                           (aset N j (aget N j+))
-                           (aset D j (aget D j+))
-                           (aset R j (aget R j+))))
-                       (let [t1 (reduce (fn [t1 ^long j]
-                                          (->> (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
-                                               (cplx/scale (aget N (m/- r j -1)))
-                                               (cplx/mult (aget Q j))
-                                               (cplx/add t1)))
-                                        cplx/ZERO (range r+1))
-                             
-                             t1 (if (m/> k r) t1
-                                    (loop [j (long 0)
-                                           t1 t1]
-                                      (if (m/> j k) t1
-                                          (let [j+ (m/inc j)
-                                                t2 (reduce (fn [v bi]
-                                                             (cplx/mult v (cplx/adds bi j+))) cplx/ONE b)]
-                                            (recur (m/inc j)
-                                                   (->> (m/inc j+)
-                                                        (m/* (m/combinations k j)
-                                                             (if (m/even? (m/- k j)) 1.0 -1.0))
-                                                        (cplx/scale t2)
-                                                        (cplx/add t1)))))))
+        absa (mapv cplx/abs a)
+        b (mapv cplx/ensure-complex qs)
+        proda (reduce cplx/mult cplx/ONE a)
+        prodb (reduce cplx/mult cplx/ONE b)
+        z (cplx/ensure-complex z)]
+    (if (or (m/< (cplx/abs z) m/MACHINE-EPSILON10)
+            (m/< (cplx/abs proda) (m/ulp (v/prod absa))))
+      (PfQWenigerResultCplx. cplx/ONE :converged)
+      (let [gamma- (m/dec GAMMA-CONST)
+            zeta (cplx/reciprocal z)
+            p (count ps)
+            q (count qs)
+            r (m/long-max p (m/long-inc q))
+            r+3 (m/long-add r 3)
+            r+2 (m/long-dec r+3)
+            r+1 (m/long-dec r+2)
+            ^"[Lfastmath.vector.Vec2;" N (make-cplx-zero-array r+3)
+            ^"[Lfastmath.vector.Vec2;" D (make-cplx-zero-array r+3)
+            ^"[Lfastmath.vector.Vec2;" R (make-cplx-zero-array r+3)
+            lv (cplx/scale (cplx/div (cplx/mult prodb zeta) proda) (m// gamma-))]
+        (aset N r+2 lv)
+        (aset D r+2 lv)
+        (aset R r+2 cplx/ONE)
+        (let [err (prod-inc absa)
+              ^"[Lfastmath.vector.Vec2;" Pd (make-cplx-zero-array r+2)]
+          (aset Pd 0 (prod-inc-cplx a))
+          (let [^"[Lfastmath.vector.Vec2;" Q (make-cplx-zero-array (m/long-inc r))]
+            (aset Q 0 (prod-inc-cplx b 2.0))
+            (loop [k (long 0)
+                   PdR (long (m/+ GAMMA-CONST 2))
+                   QR (long 1)
+                   err err]
+              (let [Ra (aget R r+1)
+                    Rb (aget R r+2)]
+                (if-not (or (m/<= k r+2)
+                            (and (m/< k max-iters)
+                                 (cplx/valid? Ra) (cplx/valid? Rb)
+                                 (m/> (cplx/abs (cplx/sub Ra Rb))
+                                      (m/* m/MACHINE-EPSILON10
+                                           (m/max (cplx/abs Ra)
+                                                  (cplx/abs Rb))))))
+                  (pfq-weniger-exit-result-complex R r+2 Ra Rb)
+                  (do (dotimes [j r+2]
+                        (let [j+ (m/inc j)]
+                          (aset N j (aget N j+))
+                          (aset D j (aget D j+))
+                          (aset R j (aget R j+))))
+                      (let [t1 (reduce (fn [t1 ^long j]
+                                         (->> (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
+                                              (cplx/scale (aget N (m/- r j -1)))
+                                              (cplx/mult (aget Q j))
+                                              (cplx/add t1)))
+                                       cplx/ZERO (range r+1))
+                            
+                            t1 (if (m/> k r) t1
+                                   (loop [j (long 0)
+                                          t1 t1]
+                                     (if (m/> j k) t1
+                                         (let [j+ (m/inc j)
+                                               t2 (reduce (fn [v bi]
+                                                            (cplx/mult v (cplx/adds bi j+))) cplx/ONE b)]
+                                           (recur (m/inc j)
+                                                  (->> (m/inc j+)
+                                                       (m/* (m/combinations k j)
+                                                            (if (m/even? (m/long-sub k j)) 1.0 -1.0))
+                                                       (cplx/scale t2)
+                                                       (cplx/add t1)))))))
 
-                             t2 (loop [j (long 1)
-                                       t2 (->> (m/+ GAMMA-CONST (m/dec k))
-                                               (cplx/scale (aget N r+1))
-                                               (cplx/mult (aget Pd 0)))]
-                                  (if (m/> j r+1) t2
-                                      (let [r-j (m/- r j)]
-                                        (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
-                                                              (cplx/scale (aget N (m/inc r-j)))
-                                                              (cplx/add (aget N (m/+ r-j 2)))
-                                                              (cplx/mult (aget Pd j))
-                                                              (cplx/add t2))))))]
-                         (aset N r+2 (cplx/sub (cplx/mult zeta t1) t2))
-                         (let [t1 (loop [j (long 0)
-                                         t1 cplx/ZERO]
-                                    (if (m/> j r) t1
-                                        (recur (m/inc j)
-                                               (->> (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
-                                                    (cplx/scale (aget D (m/- r j -1)))
-                                                    (cplx/mult (aget Q j))
-                                                    (cplx/add t1)))))
-                               t2 (loop [j (long 1)
-                                         t2 (->> (m/+ GAMMA-CONST (m/dec k))
-                                                 (cplx/scale (aget D r+1))
-                                                 (cplx/mult (aget Pd 0)))]
-                                    (if (m/> j r+1) t2
-                                        (let [r-j (m/- r j)]
-                                          (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
-                                                                (cplx/scale (aget D (m/inc r-j)))
-                                                                (cplx/add (aget D (m/+ r-j 2)))
-                                                                (cplx/mult (aget Pd j))
-                                                                (cplx/add t2))))))]
-                           (aset D r+2 (cplx/sub (cplx/mult zeta t1) t2))
-                           (aset R r+2 (cplx/div (aget N r+2) (aget D r+2)))
-                           
-                           (if (m/< (cplx/abs (aget Pd 0)) (m/ulp err))
-                             (aget R r+2)
-                             (do (aset N r+2 (cplx/div (aget N r+2) (aget Pd 0)))
-                                 (aset D r+2 (cplx/div (aget D r+2) (aget Pd 0)))
-                                 (let [k (m/inc k)
-                                       k+ (m/inc k)
-                                       k2 (m/* 2 k)
-                                       k2+1 (m/inc k2)
-                                       err (prod-inc absa 1.0 k+)]
+                            t2 (loop [j (long 1)
+                                      t2 (->> (m/+ GAMMA-CONST (m/dec k))
+                                              (cplx/scale (aget N r+1))
+                                              (cplx/mult (aget Pd 0)))]
+                                 (if (m/> j r+1) t2
+                                     (let [r-j (m/- r j)]
+                                       (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
+                                                             (cplx/scale (aget N (m/inc r-j)))
+                                                             (cplx/add (aget N (m/+ r-j 2)))
+                                                             (cplx/mult (aget Pd j))
+                                                             (cplx/add t2))))))]
+                        (aset N r+2 (cplx/sub (cplx/mult zeta t1) t2))
+                        (let [t1 (loop [j (long 0)
+                                        t1 cplx/ZERO]
+                                   (if (m/> j r) t1
+                                       (recur (m/inc j)
+                                              (->> (m/+ GAMMA-CONST (m/- (m/* 2 k) (m/* 2 j) 1))
+                                                   (cplx/scale (aget D (m/- r j -1)))
+                                                   (cplx/mult (aget Q j))
+                                                   (cplx/add t1)))))
+                              t2 (loop [j (long 1)
+                                        t2 (->> (m/+ GAMMA-CONST (m/dec k))
+                                                (cplx/scale (aget D r+1))
+                                                (cplx/mult (aget Pd 0)))]
+                                   (if (m/> j r+1) t2
+                                       (let [r-j (m/- r j)]
+                                         (recur (m/inc j) (->> (m/+ GAMMA-CONST (m/- k j 1))
+                                                               (cplx/scale (aget D (m/inc r-j)))
+                                                               (cplx/add (aget D (m/+ r-j 2)))
+                                                               (cplx/mult (aget Pd j))
+                                                               (cplx/add t2))))))]
+                          (aset D r+2 (cplx/sub (cplx/mult zeta t1) t2))
+                          (aset R r+2 (cplx/div (aget N r+2) (aget D r+2)))
+                          
+                          (if (m/< (cplx/abs (aget Pd 0)) (m/ulp err))
+                            (aget R r+2)
+                            (do (aset N r+2 (cplx/div (aget N r+2) (aget Pd 0)))
+                                (aset D r+2 (cplx/div (aget D r+2) (aget Pd 0)))
+                                (let [k (m/long-inc k)
+                                      k+ (m/long-inc k)
+                                      k2 (m/* 2 k)
+                                      k2+1 (m/inc k2)
+                                      err (prod-inc absa 1.0 k+)]
 
-                                   (if (m/<= k r+1)
+                                  (if (m/<= k r+1)
 
-                                     (let [t2 (-> (prod-inc-cplx a 1.0 k+)
-                                                  (cplx/scale (m// PdR)))
-                                           PdR (-> (m/+ GAMMA-CONST k2+1)
-                                                   (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
-                                                   (m// (m/+ GAMMA-CONST k+)))]
-                                       (loop [j (long 2)
-                                              t1 (-> (cplx/scale t2 (m/+ GAMMA-CONST k2))
-                                                     (cplx/sub (aget Pd 0))
-                                                     (cplx/scale k))
-                                              t2 t2]
-                                         (if (m/> j k)
-                                           (do (aset Pd (m/dec k) t2)
-                                               (aset Pd k t1))
-                                           (let [s (-> (cplx/scale t1 (m/+ GAMMA-CONST (m/- k2+1 j)))
-                                                       (cplx/add (cplx/scale (aget Pd (m/- j 2)) k))
-                                                       (cplx/scale (m/inc (m/- k j)))
-                                                       (cplx/sub (cplx/scale (aget Pd (m/dec j)) k))
-                                                       (cplx/scale (m// 1.0 j)))]
-                                             (aset Pd (m/- j 2) t2)
-                                             (recur (m/inc j) s t1))))
-                                       (let [QR (-> (m/+ GAMMA-CONST k2 -2)
-                                                    (m/* QR (m/+ GAMMA-CONST k2 -1))
-                                                    (m// (m/+ GAMMA-CONST k -1)))
-                                             t2 (-> (prod-inc-cplx b (m/inc k+) k+)
-                                                    (cplx/scale (m// QR)))
-                                             stop (m/min k r)]
-                                         (loop [j (long 2)
-                                                t1 (-> (cplx/scale t2 (m/+ GAMMA-CONST (m/dec k2)))
-                                                       (cplx/sub (aget Q 0))
-                                                       (cplx/scale k))
-                                                t2 t2]
-                                           (if (m/> j stop)
-                                             (do (aset Q (m/dec stop) t2)
-                                                 (aset Q stop t1))
-                                             (let [s (-> (cplx/scale t1 (m/+ GAMMA-CONST (m/- k2 j)))
-                                                         (cplx/add (cplx/scale (aget Q (m/- j 2)) k))
-                                                         (cplx/scale (m/inc (m/- k j)))
-                                                         (cplx/sub (cplx/scale (aget Q (m/dec j)) k))
-                                                         (cplx/scale (m// 1.0 j)))]
-                                               (aset Q (m/- j 2) t2)
-                                               (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err)))
-                                     
-                                     (let [t2 (-> (prod-inc-cplx a (m/+ GAMMA-CONST k) k+)
-                                                  (cplx/scale (m// 1.0 PdR)))
-                                           PdR (-> (m/+ GAMMA-CONST k2+1)
-                                                   (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
-                                                   (m// (let [v (m/- (m/+ GAMMA-CONST k2) r)]
-                                                          (m/* (m/dec v) v))))
-                                           gamma+2k (m/+ GAMMA-CONST k2)]
-                                       (loop [j (long 2)
-                                              ;; k*((γ+2k)*t2 - (γ+2k-1-r-2)*P̂[1])
-                                              t1 (-> (cplx/scale t2 gamma+2k)
-                                                     (cplx/sub (cplx/scale (aget Pd 0)
-                                                                           (m/- gamma+2k r 3)))
-                                                     (cplx/scale k))
-                                              t2 t2]                                         
-                                         (if (m/> j r+1)
-                                           (do (aset Pd r t2)
-                                               (aset Pd r+1 t1))
-                                           ;; ((k-j+1)*((γ+2k-j+1)*t1-(r-j+3)*k*P̂[j-1])-(γ+2k-j-r-2)*k*P̂[j])
-                                           ;; /j
-                                           (let [s (-> (cplx/scale t1 (m/- gamma+2k j -1))
-                                                       (cplx/sub (cplx/scale (aget Pd (m/- j 2))
-                                                                             (m/* k (m/- r j -3))))
-                                                       (cplx/scale (m/- k j -1))
-                                                       (cplx/sub (cplx/scale (aget Pd (m/dec j))
-                                                                             (m/* k (m/- gamma+2k j r 2))))
-                                                       (cplx/scale (m// 1.0 j)))]
-                                             (aset Pd (m/- j 2) t2)
-                                             (recur (m/inc j) s t1))))
-                                       (let [ ;; QR *= ((γ+2k-2)*(γ+2k-1))/((γ+2k-r-3)*(γ+2k-r-2))
-                                             QR (-> (m/* QR (m/dec gamma+2k) (m/- gamma+2k 2))
-                                                    (m// (m/* (m/- gamma+2k r 3)
-                                                              (m/- gamma+2k r 2))))
-                                             t2 (-> (prod-inc-cplx b (m/inc k+) k+)
-                                                    (cplx/scale (m// QR)))]
-                                         (loop [j (long 2)
-                                                ;; k*((γ+2k-1)*t2 - (γ+2k-1-r-2)*Q[1])
-                                                t1 (-> (cplx/scale t2 (m/dec gamma+2k))
-                                                       (cplx/sub (cplx/scale (aget Q 0)
-                                                                             (m/- gamma+2k r 3)))
-                                                       (cplx/scale k))
-                                                t2 t2]
-                                           (if (m/> j r)
-                                             (do (aset Q (m/dec r) t2)
-                                                 (aset Q r t1))
-                                             ;; ((k-j+1)*((γ+2k-j)*t1-(r-j+2)*k*Q[j-1]) - (γ+2k-j-r-2)*k*Q[j]
-                                             ;; )/j
-                                             (let [s (-> (cplx/scale t1 (m/- gamma+2k j))
-                                                         (cplx/sub (cplx/scale (aget Q (m/- j 2))
-                                                                               (m/* k (m/- r j -2))))
-                                                         (cplx/scale (m/inc (m/- k j)))
-                                                         (cplx/sub (cplx/scale (aget Q (m/dec j))
-                                                                               (m/* k (m/- gamma+2k j r 2))))
-                                                         (cplx/scale (m// 1.0 j)))]
-                                               (aset Q (m/- j 2) t2)
-                                               (recur (m/inc j) s t1))))
-                                         (recur k PdR QR err)))))))))))))))))))
+                                    (let [t2 (-> (prod-inc-cplx a 1.0 k+)
+                                                 (cplx/scale (m// PdR)))
+                                          PdR (-> (m/+ GAMMA-CONST k2+1)
+                                                  (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
+                                                  (m// (m/+ GAMMA-CONST k+)))]
+                                      (loop [j (long 2)
+                                             t1 (-> (cplx/scale t2 (m/+ GAMMA-CONST k2))
+                                                    (cplx/sub (aget Pd 0))
+                                                    (cplx/scale k))
+                                             t2 t2]
+                                        (if (m/> j k)
+                                          (do (aset Pd (m/dec k) t2)
+                                              (aset Pd k t1))
+                                          (let [s (-> (cplx/scale t1 (m/+ GAMMA-CONST (m/- k2+1 j)))
+                                                      (cplx/add (cplx/scale (aget Pd (m/- j 2)) k))
+                                                      (cplx/scale (m/inc (m/- k j)))
+                                                      (cplx/sub (cplx/scale (aget Pd (m/dec j)) k))
+                                                      (cplx/scale (m// 1.0 j)))]
+                                            (aset Pd (m/- j 2) t2)
+                                            (recur (m/inc j) s t1))))
+                                      (let [QR (-> (m/+ GAMMA-CONST k2 -2)
+                                                   (m/* QR (m/+ GAMMA-CONST k2 -1))
+                                                   (m// (m/+ GAMMA-CONST k -1)))
+                                            t2 (-> (prod-inc-cplx b (m/inc k+) k+)
+                                                   (cplx/scale (m// QR)))
+                                            stop (m/min k r)]
+                                        (loop [j (long 2)
+                                               t1 (-> (cplx/scale t2 (m/+ GAMMA-CONST (m/dec k2)))
+                                                      (cplx/sub (aget Q 0))
+                                                      (cplx/scale k))
+                                               t2 t2]
+                                          (if (m/> j stop)
+                                            (do (aset Q (m/dec stop) t2)
+                                                (aset Q stop t1))
+                                            (let [s (-> (cplx/scale t1 (m/+ GAMMA-CONST (m/- k2 j)))
+                                                        (cplx/add (cplx/scale (aget Q (m/- j 2)) k))
+                                                        (cplx/scale (m/inc (m/- k j)))
+                                                        (cplx/sub (cplx/scale (aget Q (m/dec j)) k))
+                                                        (cplx/scale (m// 1.0 j)))]
+                                              (aset Q (m/- j 2) t2)
+                                              (recur (m/inc j) s t1))))
+                                        (recur k PdR QR err)))
+                                    
+                                    (let [t2 (-> (prod-inc-cplx a (m/+ GAMMA-CONST k) k+)
+                                                 (cplx/scale (m// 1.0 PdR)))
+                                          PdR (-> (m/+ GAMMA-CONST k2+1)
+                                                  (m/* PdR (m/+ GAMMA-CONST (m/inc k2+1)))
+                                                  (m// (let [v (m/- (m/+ GAMMA-CONST k2) r)]
+                                                         (m/* (m/dec v) v))))
+                                          gamma+2k (m/+ GAMMA-CONST k2)]
+                                      (loop [j (long 2)
+                                             ;; k*((γ+2k)*t2 - (γ+2k-1-r-2)*P̂[1])
+                                             t1 (-> (cplx/scale t2 gamma+2k)
+                                                    (cplx/sub (cplx/scale (aget Pd 0)
+                                                                          (m/- gamma+2k r 3)))
+                                                    (cplx/scale k))
+                                             t2 t2]                                         
+                                        (if (m/> j r+1)
+                                          (do (aset Pd r t2)
+                                              (aset Pd r+1 t1))
+                                          ;; ((k-j+1)*((γ+2k-j+1)*t1-(r-j+3)*k*P̂[j-1])-(γ+2k-j-r-2)*k*P̂[j])
+                                          ;; /j
+                                          (let [s (-> (cplx/scale t1 (m/- gamma+2k j -1))
+                                                      (cplx/sub (cplx/scale (aget Pd (m/- j 2))
+                                                                            (m/* k (m/- r j -3))))
+                                                      (cplx/scale (m/- k j -1))
+                                                      (cplx/sub (cplx/scale (aget Pd (m/dec j))
+                                                                            (m/* k (m/- gamma+2k j r 2))))
+                                                      (cplx/scale (m// 1.0 j)))]
+                                            (aset Pd (m/- j 2) t2)
+                                            (recur (m/inc j) s t1))))
+                                      (let [ ;; QR *= ((γ+2k-2)*(γ+2k-1))/((γ+2k-r-3)*(γ+2k-r-2))
+                                            QR (-> (m/* QR (m/dec gamma+2k) (m/- gamma+2k 2))
+                                                   (m// (m/* (m/- gamma+2k r 3)
+                                                             (m/- gamma+2k r 2))))
+                                            t2 (-> (prod-inc-cplx b (m/inc k+) k+)
+                                                   (cplx/scale (m// QR)))]
+                                        (loop [j (long 2)
+                                               ;; k*((γ+2k-1)*t2 - (γ+2k-1-r-2)*Q[1])
+                                               t1 (-> (cplx/scale t2 (m/dec gamma+2k))
+                                                      (cplx/sub (cplx/scale (aget Q 0)
+                                                                            (m/- gamma+2k r 3)))
+                                                      (cplx/scale k))
+                                               t2 t2]
+                                          (if (m/> j r)
+                                            (do (aset Q (m/dec r) t2)
+                                                (aset Q r t1))
+                                            ;; ((k-j+1)*((γ+2k-j)*t1-(r-j+2)*k*Q[j-1]) - (γ+2k-j-r-2)*k*Q[j]
+                                            ;; )/j
+                                            (let [s (-> (cplx/scale t1 (m/- gamma+2k j))
+                                                        (cplx/sub (cplx/scale (aget Q (m/- j 2))
+                                                                              (m/* k (m/- r j -2))))
+                                                        (cplx/scale (m/inc (m/- k j)))
+                                                        (cplx/sub (cplx/scale (aget Q (m/dec j))
+                                                                              (m/* k (m/- gamma+2k j r 2))))
+                                                        (cplx/scale (m// 1.0 j)))]
+                                              (aset Q (m/- j 2) t2)
+                                              (recur (m/inc j) s t1))))
+                                        (recur k PdR QR err)))))))))))))))))))
 
 (defn hypergeometric-pFq-weniger-complex
   "Hypergeometric-pFq using Weniger acceleration on complex numbers.
@@ -1335,7 +1347,7 @@
   that also reports whether the returned value actually converged."
   (^Vec2 [ps qs z] (hypergeometric-pFq-weniger-complex ps qs z 1048576))
   (^Vec2 [ps qs z ^long max-iters]
-   (:value (hypergeometric-pFq-weniger-complex* ps qs z max-iters))))
+   (.value ^PfQWenigerResultCplx (hypergeometric-pFq-weniger-complex* ps qs z max-iters))))
 
 (defn hypergeometric-pFq-weniger-complex-with-reason
   "[[hypergeometric-pFq-weniger-complex]], but returns `{:value :reason}`
@@ -1392,9 +1404,9 @@
   `max-iters` is set to 10000 by default."
   (^double [ps qs ^double z] (hypergeometric-pFq-maclaurin ps qs z 10000))
   (^double [ps qs ^double z ^long max-iters]
-   (let [a (double-array ps)
+   (let [a (m/seq->double-array ps)
          la (alength a)
-         b (double-array qs)
+         b (m/seq->double-array qs)
          lb (alength b)]
      (loop [k (long 1)
             s0 1.0

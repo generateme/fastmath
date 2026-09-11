@@ -65,7 +65,7 @@
                              (when offset? "and offset ") "as input (after transformation).") {:offset? offset? :expected (count beta) :received (count xs)})))
       (if stderr?
         (let [arr (double-array (if intercept? (conj xs 1.0) xs))
-              fit (double (m/+ off intercept (v/dot beta xs)))
+              fit (m/+ off intercept (v/dot beta xs))
               stderr (m/sqrt (m/* sigma2 (v/dot arr (mat/mulv xtxinv arr))))
               scale (m/* stderr qt)]
           {:fit fit
@@ -93,8 +93,8 @@
         diag (vec (concat zeros (conj zeros (m/sqrt lambda))))
         icval (if intercept? -1 0)
         aug (map (fn [^long i]
-                   (let [id (m/+ icval (m/- s i))]
-                     (subvec diag id (m/+ s id)))) (range (m/+ icval s)))]
+                   (let [id (m/long-add icval (m/long-sub s i))]
+                     (subvec diag id (m/long-add s id)))) (range (m/+ icval s)))]
     (vec (concat xss (if intercept? [zeros] '()) aug))))
 
 (defn- add-one-penalty
@@ -216,7 +216,7 @@
                 (sequential? namesv) (into namesv))
         curr-count (count step1)]
     (if (m/< curr-count term-count)
-      (into step1 (take (m/- term-count curr-count) (map #(str "X_" %) (range))))
+      (into step1 (take (m/long-sub term-count curr-count) (map #(str "X_" %) (range))))
       (subvec step1 0 term-count))))
 
 ;; new version
@@ -330,7 +330,7 @@
         
         df- (m/dec df)
 
-        sigmas (sigmas wresiduals hat rss df-)        
+        sigmas (sigmas wresiduals hat rss (long df-))        
         
         ^RealMatrix leverage-coeffs (leverage-coeffs xtxinv xss rresiduals weights hat p observations)
 
@@ -939,7 +939,7 @@
         p (mat/ncol xss)
 
         df- (m/dec df)
-        sigmas (sigmas dresiduals hat rss df-)
+        sigmas (sigmas dresiduals hat rss (long df-))
         ^RealMatrix leverage-coeffs (leverage-coeffs xtxinv xss dresiduals
                                                      (map m/sqrt weights)
                                                      hat p observations)
@@ -1203,7 +1203,7 @@
          distr (if estimated-dispersion?
                  (r/distribution :t {:degrees-of-freedom df})
                  (r/distribution :normal))
-         q (double (r/icdf distr (m/- 1.0 (m/* (double alpha) 0.5))))
+         q (double (r/icdf distr (m/- 1.0 (m/* alpha 0.5))))
 
          stderrs (standard-errors xtx-1 dispersion-value)
          namev (coefficients-names names intercept? (count beta))
@@ -1317,7 +1317,7 @@
                   ys mus weights)))))
 
 (defn- nbinomial-theta-score' [ys mus weights]
-  (fn [^double theta]
+  (fn ^double [^double theta]
     (let [tg (special/trigamma theta)
           rt (m// theta)]
       (v/sum (map (fn [^double y ^double mu ^double w]
@@ -1327,7 +1327,8 @@
                                   (special/trigamma y+th) rt (m// y+th (m/sq mu+th))))))
                   ys mus weights)))))
 
-(defn- nbinomial-theta-init [ys mus weights ^long n]
+(defn- nbinomial-theta-init
+  ^double [ys mus weights ^long n]
   (m// n (v/sum (map (fn [^double y ^double mu ^double w]
                        (m/* w (m/sq (m/dec (m// y mu))))) ys mus weights))))
 
@@ -1335,11 +1336,11 @@
   ^double [{:keys [ys fitted weights]} ^long max-iters ^double epsilon]
   (let [w (:initial weights)
         n (v/sum w)
-        init (nbinomial-theta-init ys fitted w n)
+        init (nbinomial-theta-init ys fitted w (long n))
         f    (nbinomial-theta-score ys fitted w)
         f'   (nbinomial-theta-score' ys fitted w)]
     (loop [i (long 0)
-           theta (double init)
+           theta init
            delta 1.0]
       (if (or (m/< delta epsilon) (m/== i max-iters))
         theta
@@ -1399,11 +1400,17 @@
   "Predict Lethal/Effective dose for given `p` (default: p=0.5, median).
 
   * intercept-id - id of intercept, default: 0
-  * coeff-id is the coefficient used for calculating dose, default: 1"
+  * coeff-id is the coefficient used for calculating dose, default: 1
+
+  `:stderr` is scaled by the model's `:dispersion` (1.0 for fixed-dispersion
+  families such as binomial/poisson, so a no-op there; the estimated value
+  for gaussian/gamma/inverse-gaussian/quasi-* families, where the parameter
+  covariance is `dispersion * xtxinv`, not `xtxinv` alone)."
   ([glm-model] (dose glm-model 0.5))
   ([glm-model ^double p] (dose glm-model p 1))
   ([glm-model ^double p ^long coeff-id] (dose glm-model p 0 coeff-id))
-  ([{:keys [link-fun ^RealMatrix xtxinv coefficients]} ^double p ^long intercept-id ^long coeff-id]
+  ([{:keys [link-fun ^RealMatrix xtxinv coefficients ^double dispersion]}
+    ^double p ^long intercept-id ^long coeff-id]
    (if (m/> (count coefficients) 1)
      (let [e (double (link-fun p))
            submatrix-idxs (int-array [intercept-id coeff-id])
@@ -1412,9 +1419,10 @@
            b1 (double (nth coeffs coeff-id))
            xp (m// (m/- e b0) b1)
            pd (mat/rows->RealMatrix [[(m// -1.0 b1) (m/- (m// xp b1))]])
-           err (m/sqrt (mat/entry (->> (.getSubMatrix xtxinv submatrix-idxs submatrix-idxs)
-                                       (mat/mulm pd)
-                                       (mat/mulmt pd)) 0 0))]
+           var-entry (mat/entry (->> (.getSubMatrix xtxinv submatrix-idxs submatrix-idxs)
+                                     (mat/mulm pd)
+                                     (mat/mulmt pd)) 0 0)
+           err (m/sqrt (m/* dispersion var-entry))]
        {:dose xp
         :p p
         :stderr err})
@@ -1540,7 +1548,7 @@
    (let [[xl xr] (stats/extent xs)]
      (b-spline-transformer xl xr nseg degree)))
   ([^double xl ^double xr ^long nseg ^long degree]
-   (let [degree+ (m/inc degree)
+   (let [degree+ (m/long-inc degree)
          dx (m// (m/- xr xl) nseg)
          degdx (m/* dx degree)
          knots (double-array (range (m/- xl degdx) (m/+ xr degdx (m/* 0.1 dx)) dx))
@@ -1548,7 +1556,7 @@
          b1 (if (m/even? degree+) 1 -1)
          denom (m// (m/* b1 (special/gamma degree+) (m/pow dx degree)))
          D (mapv v/vec->array (mat/rows (mat/muls (mat/differences (mat/eye n true) degree+) denom)))
-         nb (m/- n degree+)
+         nb (m/long-sub n degree+)
          sk (double-array (take nb (drop degree+ knots)))]
      (fn [[^double x]]
        ;; unrolled tpow, 25% speedup when compared with simple `map`
@@ -1827,7 +1835,7 @@
       :non-increasing 3)
     0))
 
-  (defn pava
+(defn pava
   "Isotonic regression, pool-adjacent-violators algorithm with up-and-down-blocks variant.
 
   Isotonic regression minimizes the (weighted) L2 loss function with a constraint that result should be monotonic (ascending or descending).
@@ -1850,9 +1858,9 @@
           (Monotone/pava_step2 y r))
      (seq y))))
 
-  ;; https://arxiv.org/abs/1701.05964
+;; https://arxiv.org/abs/1701.05964
 
-  (defn cir
+(defn cir
   "Centered Isotonic Regression.
 
   Returns shrinked [`xs`,`ys`] pair.

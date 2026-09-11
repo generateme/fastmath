@@ -908,20 +908,28 @@
   ([v d] (prot/approx v d)))
 
 (defn delta-eq
-  "Equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance."
+  "Equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance.
+
+  Vectors of different lengths are never equal: `sub`'s elementwise subtraction silently
+  truncates to the shorter length (e.g. via `map`), so without this check a vector would
+  compare equal to any prefix of itself, and any vector would compare equal to an empty one."
   ([v1 v2] (delta-eq v1 v2 1.0e-6))
-  ([v1 v2 ^double abs-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol))
-  ([v1 v2 ^double abs-tol ^double rel-tol] (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol)))
+  ([v1 v2 ^double abs-tol]
+   (and (m/== (size v1) (size v2))
+        (m/near-zero? (mag (prot/sub v1 v2)) abs-tol)))
+  ([v1 v2 ^double abs-tol ^double rel-tol]
+   (and (m/== (size v1) (size v2))
+        (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol))))
 
 (defn edelta-eq
   "Element-wise equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance."
   ([v1 v2] (edelta-eq v1 v2 1.0e-6))
   ([v1 v2 ^double abs-tol]
-   (and (m/== (count v1) (count v2))
+   (and (m/== (size v1) (size v2))
         (every? identity (map (fn [^double a ^double b]
                                 (m/delta-eq a b abs-tol)) v1 v2))))
   ([v1 v2 ^double abs-tol ^double rel-tol]
-   (and (m/== (count v1) (count v2))
+   (and (m/== (size v1) (size v2))
         (every? identity (map (fn [^double a ^double b]
                                 (m/delta-eq a b abs-tol rel-tol)) v1 v2)))))
 

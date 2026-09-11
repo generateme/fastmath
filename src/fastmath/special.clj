@@ -29,6 +29,7 @@
             [fastmath.complex :as cplx])
   (:import [fastmath.java Array]
            [fastmath.vector Vec2]
+           [fastmath.special.hypergeometric PfQWenigerResultCplx]
            [org.apache.commons.math3.special Gamma Erf Beta]))
 
 (set! *warn-on-reflection* true)
@@ -3003,6 +3004,11 @@
               term (cplx/mult term (cplx/div num den))]
           (recur (m/inc k) term (cplx/add s term)))))))
 
+(defrecord PfQComplexData [done? value ps qs method])
+
+(defn- pfq-complex-data-true [value] (PfQComplexData. true value nil nil nil))
+(defn- pfq-complex-data-false [ps qs method] (PfQComplexData. false nil ps qs method))
+
 (defn- pfq-complex-route
   "Classifies a pFq-complex call before any numeric acceleration method is
   attempted -- the exact pre-dispatch checks [[hypergeometric-pFq-complex]]
@@ -3032,12 +3038,12 @@
         m (pfq-pole-m-complex qs)]
     (cond
       ;; z=0 always wins, even over an otherwise-genuine pole
-      (m/< (cplx/abs z) m/MACHINE-EPSILON10) {:done? true :value cplx/ONE}
+      (m/< (cplx/abs z) m/MACHINE-EPSILON10) (pfq-complex-data-true cplx/ONE)
 
       ;; the degenerate p=0, q=0 case is identically exp(z); the general
       ;; Weniger acceleration below isn't scaled for it and loses all
       ;; precision once exp(z) gets very small
-      (and (m/zero? p) (m/zero? q)) {:done? true :value (cplx/exp z)}
+      (and (m/zero? p) (m/zero? q)) (pfq-complex-data-true (cplx/exp z))
 
       ;; a numerator parameter still equals a denominator parameter and
       ;; that shared value is a non-positive real integer -n: a removable
@@ -3046,28 +3052,25 @@
       ;; docstring for the real-valued derivation this mirrors
       (and m n (m/== (long m) (long n)))
       (let [[^long i ^long j] (pfq-integer-coincidence-pair-complex ps qs)]
-        {:done? true
-         :value (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
-                                           (into (subvec qs 0 j) (subvec qs (inc j)))
-                                           z n)})
+        (pfq-complex-data-true (pfq-truncated-sum-complex (into (subvec ps 0 i) (subvec ps (inc i)))
+                                                          (into (subvec qs 0 j) (subvec qs (inc j)))
+                                                          z n)))
 
       ;; a denominator parameter is a genuine, unavoidable pole only if
       ;; reached before any numerator termination
-      (and m (or (nil? n) (m/< (long m) (long n)))) {:done? true :value (Vec2. ##NaN ##NaN)}
+      (and m (or (nil? n) (m/< (long m) (long n)))) (pfq-complex-data-true (Vec2. ##NaN ##NaN))
 
       ;; series terminates to an exact finite polynomial for any z
-      n {:done? true :value (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)}
+      n (pfq-complex-data-true (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters))
 
       ;; entire function (p<=q, converges for any z): MacLaurin is
       ;; accurate for a non-negative real part, Weniger acceleration is
       ;; needed otherwise (catastrophic cancellation)
-      (m/<= p q) {:done? false :ps ps :qs qs
-                  :method (if (m/pos? (cplx/re z)) :maclaurin :weniger)}
+      (m/<= p q) (pfq-complex-data-false ps qs (if (m/pos? (cplx/re z)) :maclaurin :weniger))
 
-      (m/== p (m/inc q)) {:done? false :ps ps :qs qs
-                          :method (if (m/< (cplx/abs z) 0.72) :maclaurin :weniger)}
+      (m/== p (m/inc q)) (pfq-complex-data-false ps qs (if (m/< (cplx/abs z) 0.72) :maclaurin :weniger))
 
-      :else {:done? false :ps ps :qs qs :method :weniger})))
+      :else (pfq-complex-data-false ps qs :weniger))))
 
 (defn hypergeometric-pFq-complex
   "Generalized hypergeometric function pFq with p numerator and q denominator complex parameters.
@@ -3095,12 +3098,12 @@
   (^Vec2 [ps qs z] (hypergeometric-pFq-complex ps qs z 1048576))
   (^Vec2 [ps qs z ^long max-iters]
    (let [z (cplx/ensure-complex z)
-         {:keys [done? value method ps qs]} (pfq-complex-route ps qs z max-iters)]
-     (if done?
-       value
-       (case method
-         :maclaurin (hg/hypergeometric-pFq-maclaurin-complex ps qs z max-iters)
-         :weniger (hg/hypergeometric-pFq-weniger-complex ps qs z max-iters))))))
+         ^PfQComplexData result (pfq-complex-route ps qs z max-iters)]
+     (if (.done? result)
+       (.value result)
+       (case (.method result)
+         :maclaurin (hg/hypergeometric-pFq-maclaurin-complex (.ps result) (.qs result) z max-iters)
+         :weniger (hg/hypergeometric-pFq-weniger-complex (.ps result) (.qs result) z max-iters))))))
 
 (defn- complex-log-gamma-asymptotic
   ^Vec2 [^Vec2 z]
@@ -3280,15 +3283,15 @@
   Weniger acceleration itself converged, and something else otherwise.
   [[tricomis-U-complex]] falls back to [[tricomis-U-complex-raw-limit]]
   whenever `:reason` isn't `:converged`."
-  [^Vec2 a ^Vec2 b ^Vec2 z]
+  ^PfQWenigerResultCplx [^Vec2 a ^Vec2 b ^Vec2 z]
   (let [p1 (cplx/sub (cplx/add cplx/ONE a) b)
         zpow (cplx/pow z (cplx/neg a))
         arg (cplx/neg (cplx/reciprocal z))
-        {:keys [done? value ps qs]} (pfq-complex-route [a p1] [] arg 1048576)]
-    (if done?
-      {:value (cplx/mult zpow value) :reason :converged}
-      (let [{:keys [value reason]} (hg/hypergeometric-pFq-weniger-complex-with-reason ps qs arg 1048576)]
-        {:value (cplx/mult zpow value) :reason reason}))))
+        ^PfQComplexData res (pfq-complex-route [a p1] [] arg 1048576)]
+    (if (.done? res)
+      (PfQWenigerResultCplx. (cplx/mult zpow (.value res)) :converged)
+      (let [^PfQWenigerResultCplx res2 (hg/hypergeometric-pFq-weniger-complex-with-reason (.ps res) (.qs res) arg 1048576)]
+        (PfQWenigerResultCplx. (cplx/mult zpow (.value res2)) (.reason res2))))))
 
 (defn tricomis-U-complex
   "Complex version of Tricomi's confluent hypergeometric function U(a,b,z) of the second kind.
@@ -3316,8 +3319,8 @@
       (and (m/zero? (cplx/re z)) (m/zero? (cplx/im z))) (Vec2. ##NaN ##NaN)
 
       :else
-      (let [{:keys [value reason]} (tricomis-U-complex-asymptotic a b z)]
-        (if (= reason :converged) value (tricomis-U-complex-raw-limit a b z))))))
+      (let [^PfQWenigerResultCplx res (tricomis-U-complex-asymptotic a b z)]
+        (if (= (.reason res) :converged) (.value res) (tricomis-U-complex-raw-limit a b z))))))
 
 (def ^:private CPLX_HALF_PI (cplx/complex m/HALF_PI 0.0))
 

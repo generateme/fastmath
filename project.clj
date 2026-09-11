@@ -47,7 +47,7 @@
                                   [org.scicloj/clay "2.0.13"]
                                   [zprint "1.3.0"]
                                   [scicloj/clojisr "1.0.0"]
-                                  ;; [scicloj/tablecloth "7.059"]
+                                  [scicloj/tablecloth "7.059"]
                                   [virgil "0.5.0"]
                                   [org.ow2.asm/asm "9.9"]
                                   [clojure2d/clojure2d "1.5.0-alpha2-SNAPSHOT"]
