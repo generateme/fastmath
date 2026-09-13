@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. This change
 * refactored distributions to allow standalone functions
 * added `generalized-*` distributions.
 * full test suite for distributions
+* `eigenvectors` various scaling
 
 ### Fixed
 
@@ -17,10 +18,12 @@ All notable changes to this project will be documented in this file. This change
 * Clojure 1.13 bug with destructuring
 * All distributions are accessible as regular function (additionally to a `distribution` multimethod).
 * `normal-inverse-gaussian` implements CDF/iCDF and sampling.
+* `eigenvectors` - improper (encoded complex) raw values normalizaton
 
 ### Changed
 
 * Removed `reciprocal-sqrt` distiribution, use `power` instead.
+* `eigenvectors` are now complex by default (`:raw` normalization - to get previous behaviour)
 
 ## [3.0.0 alpha7]
 

@@ -3,6 +3,7 @@
             [clojure.test :as t]
             [fastmath.vector :as v]
             [fastmath.core :as m]
+            [fastmath.complex :as cplx]
             [fastmath.random :as r]))
 
 (t/deftest create-matrix
@@ -31,15 +32,16 @@
         5.0  7.0 -5.0
         1.0  4.0 -2.0])
 (def d44 [4.0  1.0  2.0 -3.0
-        -3.0 3.0 -1.0  4.0
-        -1.0 2.0  5.0  1.0
-        5.0  4.0  3.0 -1.0])
+          -3.0 3.0 -1.0  4.0
+          -1.0 2.0  5.0  1.0
+          5.0  4.0  3.0 -1.0])
 
 (def m22 (apply sut/mat2x2 d22))
 (def m33 (apply sut/mat3x3 d33))
 (def m44 (apply sut/mat4x4 d44))
 (def m44a (sut/mat->array2d m44))
 (def m44ra (sut/mat->RealMatrix m44))
+(def m33s (sut/mat3x3 1 2 3 2 -3 -2 3 -2 5))
 
 (defn- creator
   [m]
@@ -128,7 +130,7 @@
 
 (t/deftest symmetry
   (t/are [m s] (= s (boolean (sut/symmetric? m)))
-    m22 false m33 false m44 false m44a false m44ra false
+    m22 false m33 false m44 false m44a false m44ra false m33s true
     (sut/add m22 (sut/transpose m22)) true
     (sut/add m33 (sut/transpose m33)) true
     (sut/add m44 (sut/transpose m44)) true
@@ -363,12 +365,93 @@
 
 ;;
 
-(t/deftest eigen
-  (t/testing "Eigenvalues"
-    (t/are [m res] (every? identity (map v/delta-eq (map vec (sut/eigenvalues m)) res))
-      m22 [[3.141428,0] [-11.141428,0]]
-      m33 [[-4.687435 0.000000] [3.343718 2.677027]  [3.343718 -2.677027]]))
-  (t/testing "Eigenvectors"
-    (t/are [m res] (every? identity (map v/delta-eq (sut/eigenvectors m true) res))
-      m22 [[0.9346357 0.3556066] [-0.222560  0.974919]])))
+;; `sut/eigenvectors`'s non-`:raw` scalings return genuine (possibly complex)
+;; eigenvectors, i.e. sequences of `fastmath.complex` numbers (`Vec2`). These
+;; helpers let the `eigen` test below verify them via the defining relation
+;; `A v = lambda v` using complex arithmetic, instead of pinning brittle,
+;; sign/phase-ambiguous numeric literals.
 
+(defn- cplx-mulv
+  "`m` (a real matrix) times `v` (a seq of complex numbers), via complex arithmetic."
+  [m v]
+  (mapv (fn [row] (reduce cplx/add (map cplx/scale v (seq row)))) (sut/rows m)))
+
+(defn- flatten-cplx
+  "Flattens a seq of complex numbers into a flat real vector `[re im re im ...]`,
+  so `v/delta-eq` (real-vector equality) can compare them."
+  [v]
+  (vec (mapcat (juxt cplx/re cplx/im) v)))
+
+(defn- eigen-relation-ok?
+  "True when `A v_i = lambda_i v_i` holds for every eigenvalue/eigenvector pair
+  of `m`, with eigenvectors scaled per `scaling`."
+  [m scaling]
+  (every? true?
+          (map (fn [lambda v]
+                 (v/delta-eq (flatten-cplx (cplx-mulv m v))
+                             (flatten-cplx (mapv #(cplx/mult lambda %) v))))
+               (sut/eigenvalues m) (sut/eigenvectors m scaling))))
+
+(defn- unit-norm?
+  "True when complex vector `v` has unit Euclidean length (`cplx/norm` is the
+  squared magnitude of one component)."
+  [v]
+  (m/delta-eq (v/sum (map cplx/norm v)) 1.0 1.0e-9))
+
+(t/deftest eigen
+  (t/testing "eigenvalues, against R's `eigen(m)$values` (`stats::eigen`), reordered to fastmath's own eigenvalue order"
+    (t/are [m res] (every? identity (map v/delta-eq (map vec (sut/eigenvalues m)) res))
+      m22  [[3.1414284285428486 0.0] [-11.14142842854285 0.0]]
+      m33  [[-4.6874352745829464 0.0] [3.3437176372914754 2.6770267769740972] [3.3437176372914754 -2.6770267769740972]]
+      m33s [[-4.8042356853662502 0.0] [1.1212661599174663 0.0] [6.6829695254487973 0.0]]
+      m44  [[0.5078448033470897 2.1995609029900725] [0.5078448033470897 -2.1995609029900725] [3.5229553075271176 0.0] [6.4613550857787017 0.0]]))
+
+  (t/testing ":lapack, against R's `eigen(m)$vectors` (`stats::eigen`), reordered to fastmath's own eigenvalue order and flattened per eigenvector. A real eigenvector may differ from R's by an overall sign -- R/LAPACK's `DTREVC` normalizes only a real eigenvector's magnitude, not its sign; a complex eigenvector is compared exactly, since both conventions force its largest-magnitude component to be real, which collapses the remaining ambiguity to the same real ±1 already tolerated below"
+    (letfn [(matches-up-to-sign? [a b] (or (v/delta-eq a b) (v/delta-eq a (mapv - b))))]
+      (t/are [m r-vectors] (every? true? (map matches-up-to-sign?
+                                              (map flatten-cplx (sut/eigenvectors m :lapack))
+                                              r-vectors))
+        m22  [[0.93463573000423483 0.0 0.35560659751957779 0.0]
+              [-0.22256004869781562 0.0 0.97491898367178487 0.0]]
+        m33  [[-0.93057911761573098 0.0 0.33373876078968029 0.0 -0.15046908454594965 0.0]
+              [-0.10605071047019334 0.2339615258207475 0.81061772319998115 0.0 0.48671874637681295 -0.20004754435847763]
+              [-0.10605071047019334 -0.2339615258207475 0.81061772319998115 0.0 0.48671874637681295 0.20004754435847763]]
+        m33s [[0.44845463039893491 0.0 -0.83892980769391001 0.0 -0.3083589178804701 0.0]
+              [0.7787333900938993 0.0 0.53606412633984912 0.0 -0.32589808162116735 0.0]
+              [-0.43870576885495544 0.0 0.093978881745602205 0.0 -0.89370309284416627 0.0]]
+        m44  [[-0.49902050637769313 -0.25591965989483245 0.43640885181942368 0.030142639626960701 -0.095249142437944828 -0.11702873250912969 -0.68655245528362796 0.0]
+              [-0.49902050637769313 0.25591965989483245 0.43640885181942368 -0.030142639626960701 -0.095249142437944828 0.11702873250912969 -0.68655245528362796 0.0]
+              [0.31408833643093526 0.0 -0.53513564844473704 0.0 0.70568896868117836 0.0 0.34202548759321061 0.0]
+              [0.090664901976302267 0.0 0.33110377697542054 0.0 0.76448126145445472 0.0 0.54563592743444245 0.0]])))
+  
+  (t/testing ":raw is exactly the (unscaled) columns of the V matrix, for both backends"
+    (doseq [m [m22 m33 m33s m44]
+            backend [:acm :colt]]
+      (let [ed (sut/eigen-decomposition m {:backend backend :eigenvectors-scaling :raw})
+            v-cols (mapv seq (sut/cols (sut/decomposition-component ed :V)))]
+        (t/is (= (mapv vec (sut/decomposition-component ed :eigenvectors))
+                 (mapv vec v-cols))))))
+
+  (t/testing "false, true/:normalized and :lapack all satisfy A v = lambda v"
+    (doseq [m [m22 m33 m33s m44]
+            scaling [false true :normalized :lapack]]
+      (t/is (eigen-relation-ok? m scaling))))
+
+  (t/testing "true and :normalized are equivalent scaling requests"
+    (doseq [m [m22 m33 m33s m44]]
+      (t/is (= (sut/eigenvectors m true) (sut/eigenvectors m :normalized)))))
+
+  (t/testing "true/:normalized and :lapack eigenvectors have unit length"
+    (doseq [m [m22 m33 m33s m44]
+            scaling [true :lapack]]
+      (t/is (every? unit-norm? (sut/eigenvectors m scaling)))))
+
+  (t/testing ":lapack leaves real eigenvalues' eigenvectors unchanged (identical to :normalized)"
+    (doseq [m [m22 m33s]]
+      (t/is (= (sut/eigenvectors m :normalized) (sut/eigenvectors m :lapack)))))
+
+  (t/testing ":lapack rotates each complex eigenvector so its largest-magnitude component is real"
+    (doseq [m [m33 m44]
+            [lambda v] (map vector (sut/eigenvalues m) (sut/eigenvectors m :lapack))
+            :when (not (m/zero? (cplx/im lambda)))]
+      (t/is (m/near-zero? (cplx/im (v (v/maxdim (mapv cplx/norm v)))) 1.0e-9)))))

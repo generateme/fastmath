@@ -79,7 +79,8 @@ Every source file starts with:
   - `Rscript` - for any R package
   - `/home/ts/.juliaup/bin/julia` - for any Julia package
   - `uv` Python package manager run in `/home/ts/penv` environment - for any Python package 
-- Use `m/delta-eq` with the default tolerance for anything closed-form; use an explicit looser tolerance (with a one-line comment stating why and the empirically observed error) when needed
+- Use `m/delta-eq` or `v/delta-eq`  with the default tolerance for anything closed-form; use an explicit looser tolerance (with a one-line comment stating why and the empirically observed error) when needed
+- more in `fastmath-testing` skill
 
 ## Skills
 
@@ -87,6 +88,10 @@ Available skill for this project
 
 - `docstring` - load this skill for function or var documentation.
 - `obsidian` - for general topic memory store and retrieve in Obsidian
-- `codebase-memory` - knowledge-graph tools (search_graph, trace_path, get_architecture, ...) for structural code exploration; project indexed as `home-ts-clojure-fastmath`
 - `clojure-eval` - evaluate Clojure against a running nREPL via `clj-nrepl-eval`, to verify edits compile and behave as expected
-- `lemmalog` - externalize working memory to store facts and logical state via `lemmalog` MCP
+- `fastmath-testing` - instructions about writing tests and fixing bugs
+
+## Gotchas
+
+- never commit to the fastmath repo, it requires signing
+- add to the CHANGELOG.md only the most important changes or additions, concise as much as possible (one liners)

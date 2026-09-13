@@ -16,6 +16,7 @@
   Geometric transformations are provided by `rotation-matrix-2d`, the 3d rotation family `rotation-matrix-3d`, `rotation-matrix-3d-x`, `rotation-matrix-3d-y`, `rotation-matrix-3d-z` and `rotation-matrix-axis-3d`, and `block-diagonal` for combining smaller matrices into a larger one."
   (:require [fastmath.vector :as v]
             [fastmath.core :as m]
+            [fastmath.complex :as cplx]
             [fastmath.protocols.matrix :as prot])
   (:import [clojure.lang Counted IFn Seqable Reversible ILookup]
            [org.apache.commons.math3.linear Array2DRowRealMatrix RealVector ArrayRealVector RealMatrix MatrixUtils
@@ -1671,33 +1672,72 @@
 
 (defn- complex-ev [real imag]  (mapv v/vec2 real imag))
 
+(defn- ->complex-eigenvectors
+  [imag-eigenvalues eigenvectors]
+  (loop [[im & rie] imag-eigenvalues
+         [ev & rev] eigenvectors
+         cplx-eigenvalues []]
+    (if-not im
+      cplx-eigenvalues
+      (if (m/zero? (double im))
+        (recur rie rev (conj cplx-eigenvalues (mapv cplx/complex ev)))
+        (let [c1 (mapv cplx/complex ev (first rev))
+              c2 (mapv cplx/conjugate c1)]
+          (recur (next rie) (next rev) (conj cplx-eigenvalues c1 c2)))))))
+
+(defn- scale-eigenvectors
+  [imag-eigenvalues eigenvectors scaling]
+  (let [scaling (if (keyword? scaling)
+                  scaling
+                  (if-not scaling :cplx :normalized))]
+    (if (= scaling :raw)
+      (mapv vec eigenvectors)
+      (let [cplx (->complex-eigenvectors imag-eigenvalues eigenvectors)]
+        (case scaling
+          :cplx cplx
+          :normalized (map (fn [ev] (let [rnorm (m// (m/sqrt (v/sum (map cplx/norm ev))))]
+                                     (mapv #(cplx/scale % rnorm) ev))) cplx)
+          :lapack (map (fn [^double iev ev] (let [norms (mapv cplx/norm ev)
+                                                 rnorm (m// (m/sqrt (v/sum norms)))
+                                                 nev (mapv #(cplx/scale % rnorm) ev)]
+                                             (if (m/zero? iev)
+                                               nev
+                                               (let [k (v/maxdim norms)
+                                                     scaler (cplx/scale (cplx/conjugate (ev k))
+                                                                        (m// (m/sqrt (double (norms k)))))]
+                                                 (mapv #(cplx/mult % scaler) nev))))) imag-eigenvalues cplx))))))
+
 (defn- eigen-decomposition-acm
-  [mat]
-  (let [s (->mat-size mat)
-        ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
-        complex? (.hasComplexEigenvalues eigen)
-        ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
-        det (delay (.getDeterminant eigen))]
-    (->MatrixDecomposition eigen
-                           {:D (delay (->mat s (.getD eigen)))
-                            :V (delay (->mat s (.getV eigen)))
-                            :VT (delay (->mat s (.getVT eigen)))
-                            :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
-                            :imag-eigenvalues (delay (->vec s (.getImagEigenvalues eigen)))
-                            :eigenvalues (delay (complex-ev (->vec s (.getRealEigenvalues eigen))
-                                                            (->vec s (.getImagEigenvalues eigen))))
-                            :sqrt (delay (->mat s (.getSquareRoot eigen)))
-                            :det det
-                            :complex? complex?
-                            :eigenvectors (delay (mapv #(->vec s (.getEigenvector eigen %)) (range s)))}
-                           solver
-                           (if solver
-                             (not (.isNonSingular solver))
-                             (m/zero? (double @det)))
-                           s)))
+  ([mat eigenvectors-scaling]
+   (let [s (->mat-size mat)
+         ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
+         complex? (.hasComplexEigenvalues eigen)
+         ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
+         det (delay (.getDeterminant eigen))
+         ievs (delay (->vec s (.getImagEigenvalues eigen)))]
+     (->MatrixDecomposition eigen
+                            {:D (delay (->mat s (.getD eigen)))
+                             :V (delay (->mat s (.getV eigen)))
+                             :VT (delay (->mat s (.getVT eigen)))
+                             :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
+                             :imag-eigenvalues ievs
+                             :eigenvalues (delay (complex-ev (->vec s (.getRealEigenvalues eigen))
+                                                             (->vec s (.getImagEigenvalues eigen))))
+                             :sqrt (delay (->mat s (.getSquareRoot eigen)))
+                             :det det
+                             :complex? complex?
+                             :eigenvectors (delay (scale-eigenvectors
+                                                   @ievs
+                                                   (map #(->vec s (.getEigenvector eigen %)) (range s))
+                                                   eigenvectors-scaling))}
+                            solver
+                            (if solver
+                              (not (.isNonSingular solver))
+                              (m/zero? (double @det)))
+                            s))))
 
 (defn- eigen-decomposition-colt
-  [mat]
+  [mat eigenvectors-scaling]
   (let [s (->mat-size mat)
         mat-array (mat->array2d mat)
         ^cern.colt.matrix.DoubleMatrix2D cmat (.make cern.colt.matrix.DoubleFactory2D/dense mat-array)
@@ -1714,7 +1754,10 @@
                             :imag-eigenvalues ie
                             :eigenvalues (delay (complex-ev @re @ie))
                             :complex? (some m/not-zero? @ie)
-                            :eigenvectors (delay (mapv #(.toArray (.viewColumn ^cern.colt.matrix.DoubleMatrix2D @preV %)) (range s)))}
+                            :eigenvectors (delay (scale-eigenvectors
+                                                  @ie
+                                                  (map #(.toArray (.viewColumn ^cern.colt.matrix.DoubleMatrix2D @preV %)) (range s))
+                                                  eigenvectors-scaling))}
                            nil
                            (m/zero? (double @det))
                            s)))
@@ -1729,6 +1772,13 @@
   - `mat` - a square matrix to decompose.
   - `options` (map, optional):
     - `:backend` - `:acm` (default) or `:colt`, selects the underlying implementation.
+    - `:eigenvectors-scaling` - how the `:eigenvectors` component is derived from the raw columns of `V`, one of:
+      - `:raw` - the raw columns of `V`, unmodified. For a complex-conjugate eigenvalue pair, `V` holds the real and imaginary part of the (shared) eigenvector as two separate real columns, not a genuine complex eigenvector.
+      - `false` - genuine eigenvectors: real columns are returned as-is, complex-conjugate pairs are recombined into true complex eigenvectors (see `fastmath.complex`). Not normalized.
+      - `true` (default) or `:normalized` - as `false`, with every eigenvector additionally normalized to unit (Euclidean) length.
+      - `:lapack` - as `:normalized`, with every eigenvector belonging to a complex eigenvalue additionally phase-rotated so that its largest-magnitude component becomes a (positive) real number; eigenvectors belonging to real eigenvalues are unaffected (identical to `:normalized`). Intended to resemble, but not guaranteed to exactly reproduce, the convention used by LAPACK-based tools such as R's `eigen`.
+
+    A real eigenvector's sign (under `:normalized`/`true` or `:lapack`) is an arbitrary artifact of the underlying algorithm, not a meaningful convention; it may differ between backends, or from other tools such as R.
 
   With the `:acm` backend (Apache Commons Math), a solver is created only when eigenvalues are real; when eigenvalues are complex, singularity is determined from the determinant instead. This backend also exposes a `:sqrt` component (matrix square root).
 
@@ -1740,17 +1790,19 @@
   - `:det` - determinant.
   - `:real-eigenvalues`, `:imag-eigenvalues` - real and imaginary parts of the eigenvalues.
   - `:eigenvalues` - eigenvalues as a sequence of 2d vectors, real and imaginary part each.
-  - `:eigenvectors` - sequence of eigenvectors.
+  - `:eigenvectors` - sequence of eigenvectors, scaled per `:eigenvectors-scaling`.
   - `:complex?` - true when eigenvalues are complex.
 
   The result can be used as input for `solve`, `inverse` and `singular?`, subject to the backend limitations noted above.
 
   See also [[eigenvalues]], [[eigenvalues-matrix]], [[eigenvectors]], [[singular-values]]."
   ([mat] (eigen-decomposition mat nil))
-  ([mat {:keys [backend] :or {backend :acm}}]
+  ([mat {:keys [backend eigenvectors-scaling]
+         :or {backend :acm
+              eigenvectors-scaling true}}]
    (case backend
-     :acm (eigen-decomposition-acm mat)
-     :colt (eigen-decomposition-colt mat))))
+     :acm (eigen-decomposition-acm mat eigenvectors-scaling)
+     :colt (eigen-decomposition-colt mat eigenvectors-scaling))))
 
 (defn singular?
   "Checks whether a matrix, or a matrix decomposition, is singular.
@@ -1812,7 +1864,7 @@
 
   See also [[eigen-decomposition]], [[eigenvalues-matrix]], [[eigenvectors]], [[singular-values]]."
   [A]
-  (let [eig (eigen-decomposition-colt A)
+  (let [eig (eigen-decomposition-colt A :raw)
         re (decomposition-component eig :real-eigenvalues)
         im (decomposition-component eig :imag-eigenvalues)]
     (mapv v/vec2 re im)))
@@ -1848,27 +1900,33 @@
 
   See also [[eigenvalues]], [[eigen-decomposition]], [[decomposition-component]]."
   [A]
-  (-> (eigen-decomposition-colt A)
+  (-> (eigen-decomposition-colt A :raw)
       (decomposition-component :D)
       (->> (apply rows->mat))))
 
 (defn eigenvectors
   "Returns the eigenvectors of a matrix.
 
+  Internally uses the `:colt` backend of `eigen-decomposition`, so no exception is raised for complex eigenvalues.
+
   Parameters:
 
   - `A` - a square matrix.
-  - `normalize?` (optional, default: `false`) - when true, each eigenvector is normalized to unit length.
+  - `scaling` (optional, default: `false`) - how eigenvectors are derived from the raw columns of `V`, one of:
+    - `:raw` - the raw columns of `V`, unmodified. For a complex-conjugate eigenvalue pair, `V` holds the real and imaginary part of the (shared) eigenvector as two separate real columns, not a genuine complex eigenvector.
+    - `false` (default) - genuine eigenvectors: real columns are returned as-is, complex-conjugate pairs are recombined into true complex eigenvectors (see `fastmath.complex`). Not normalized.
+    - `true` or `:normalized` - as `false`, with every eigenvector additionally normalized to unit (Euclidean) length.
+    - `:lapack` - as `:normalized`, with every eigenvector belonging to a complex eigenvalue additionally phase-rotated so that its largest-magnitude component becomes a (positive) real number; eigenvectors belonging to real eigenvalues are unaffected (identical to `:normalized`). Intended to resemble, but not guaranteed to exactly reproduce, the convention used by LAPACK-based tools such as R's `eigen`.
 
-  Returns a sequence of vectors, one eigenvector per column of `A`, in the same order as the corresponding eigenvalues returned by [[eigenvalues]].
+  A real eigenvector's sign (under `:normalized`/`true` or `:lapack`) is an arbitrary artifact of the underlying algorithm, not a meaningful convention; it may differ between backends, or from other tools such as R.
+
+  Returns a sequence of eigenvectors, in the same order as the corresponding eigenvalues returned by [[eigenvalues]]. Each eigenvector is itself a sequence of components: plain real numbers under `:raw`, complex numbers (`Vec2`, see `fastmath.complex`) otherwise.
 
   See also [[eigenvalues]], [[eigen-decomposition]], [[decomposition-component]]."
   ([A] (eigenvectors A false))
-  ([A normalize?]
-   (let [evs (-> (eigen-decomposition-colt A)
-                 (decomposition-component :eigenvectors)
-                 (->> (mapv vec)))]
-     (if normalize? (map v/normalize evs) evs))))
+  ([A scaling]
+   (-> (eigen-decomposition-colt A scaling)
+       (decomposition-component :eigenvectors))))
 
 (defn norm
   "Calculates a norm of the matrix.
