@@ -1473,6 +1473,20 @@
     v))
 
 (defn- ->mat-size
+  "Size hint consumed by `->mat`/`->vec` to decide whether a decomposition
+  component should be wrapped as a fixed `Mat2x2`/`Mat3x3`/`Mat4x4`/`Vec2`/etc.
+  (only ever valid for an actually-square 2x2/3x3/4x4 piece) or returned as a
+  generic matrix/vector. A rectangular input can never satisfy the former, so
+  it maps to `-1` (any value other than 2/3/4 falls through to the generic
+  branch in `->mat`/`->vec`) rather than throwing: `qr-decomposition`,
+  `rrqr-decomposition` and `sv-decomposition` are explicitly documented as
+  least-squares solvers, i.e. they are meant to accept rectangular (m != n)
+  matrices -- Apache Commons Math's own `QRDecomposition`/`RRQRDecomposition`/
+  `SingularValueDecomposition` constructors impose no squareness restriction
+  at all. `cholesky-decomposition`/`lu-decomposition`/`eigen-decomposition`
+  DO require a square matrix, but that precondition is already enforced by
+  their own underlying Commons Math constructors (`NonSquareMatrixException`),
+  so this helper does not need to duplicate it."
   ^long [m]
   (condp instance? m
     Mat2x2 2
@@ -1480,7 +1494,7 @@
     Mat4x4 4
     (let [r (nrow m)
           c (ncol m)]
-      (if (m/== r c) r (throw (ex-info "Matrix should be square." {:nrow r :ncol c}))))))
+      (if (m/== r c) r -1))))
 
 (defrecord MatrixDecomposition [source components ^DecompositionSolver solver singular? ^int s]
   prot/MatrixDecompositionProto

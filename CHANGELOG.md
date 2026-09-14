@@ -19,6 +19,8 @@ All notable changes to this project will be documented in this file. This change
 * All distributions are accessible as regular function (additionally to a `distribution` multimethod).
 * `normal-inverse-gaussian` implements CDF/iCDF and sampling.
 * `eigenvectors` - improper (encoded complex) raw values normalizaton
+* `fastmath.ml.regression/predict` (`lm`/`glm` with `stderr?`) put the intercept in the wrong position of the coefficient vector used for the standard error/confidence-interval quadratic form, silently corrupting `:stderr`/`:confidence-interval` (`:fit` was unaffected) whenever the model had an intercept
+* `fastmath.matrix/qr-decomposition`, `rrqr-decomposition` and `sv-decomposition` rejected any non-square matrix, even though all three are documented least-squares solvers meant for rectangular input (e.g. `fastmath.ml.regression/polynomial-transformer`'s Vandermonde matrix); `cholesky-decomposition`/`lu-decomposition`/`eigen-decomposition` still correctly reject non-square input, now via the underlying Apache Commons Math constructors' own check
 
 ### Changed
 
@@ -89,7 +91,7 @@ All notable changes to this project will be documented in this file. This change
 ### Added
 
 * Polynomials can be build from points which are fitted.
-* compensated summation algorithm for `sum` 
+* compensated summation algorithm for `sum`
 * `matrix` demean/standardize cols/rows
 * `hypergeometric-pFq-complex`, `gamma-complex` - complex versions of functions
 * `hypergeometric-pFq` - added weniger acceleration branch
@@ -104,7 +106,7 @@ All notable changes to this project will be documented in this file. This change
 * `cohens-u1-normal`, `cohens-u2-normal`, `cohens-u3-normal` - original (parametric) version of Cohen's U statistics
 * `cohens-u1` - based on Cohen's formula and `cohens-u2` value.
 * `cir`, `pava` - isotonic regression + related interpolators.
-* `ks-test-two-samples` - added jittering the data, ties solving and sides calculation for `:exact` method 
+* `ks-test-two-samples` - added jittering the data, ties solving and sides calculation for `:exact` method
 * `bernstein` polynomial
 * `owens-t` special function
 * `softmax` and `logsoftmax` accept `t` (temperature) parameter.
@@ -454,7 +456,7 @@ Removed all functions based on SMILE library, most of them are replaced/rewritte
 
 ## [2.1.0]
 
-### Added 
+### Added
 
 * `l-bfgs-b` optimizer as `:bfgs`
 
@@ -554,7 +556,7 @@ Breaking change: due to significant change of SMILE API I decided to remove thre
 
 ### Changed
 
-* removed slf4j deps 
+* removed slf4j deps
 
 ## [1.5.0-alpha4]
 
@@ -628,7 +630,7 @@ Cleaned documentation with more usage examples.
 
 ### Added
 
-* `make-vector` returns vector for given number of dimensions and optional sequence. 
+* `make-vector` returns vector for given number of dimensions and optional sequence.
 * vectors implements now `IPersistentVector` to work with `vector?`
 * core.matrix protocols for vectors
 * math functions can operate on vectors now (like [[sin]] etc.)

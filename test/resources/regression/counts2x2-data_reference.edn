@@ -126,7 +126,15 @@
    :dffits [0.0 ##NaN ##NaN 0.0],
    :covratio [##Inf ##NaN ##NaN ##Inf],
    :dfbetas [0.0 nil nil -0.0 -0.0 nil nil 0.0 -0.0 nil nil 0.0]}},
- :extra {:dose {:dose 18.490670697763306, :stderr 3.671263997175718}}}
+ :extra
+ {:predict
+  {:fit [241.26845637583898 200.26845637583892],
+   :stderr [0.0567122253229494 0.060379882809792076],
+   :confidence-interval
+   [[215.88725877155028 269.6336429171943]
+    [177.91685824736035 225.42807361964162]]},
+  :newdata-xss [[0.0 0.0] [1.0 1.0]],
+  :dose {:dose 18.490670697763306, :stderr 3.671263997175718}}}
 
  ;; :r-formula "glm(Counts ~ Att*Inc, family=poisson, data=counts2x2)"
  ;; :r-packages ["stats" "MASS"]
@@ -251,7 +259,15 @@
    :dffits [##NaN ##NaN ##NaN ##NaN],
    :covratio [##NaN ##NaN ##NaN ##NaN],
    :dfbetas [nil nil nil nil nil nil nil nil nil nil nil nil]}},
- :extra {:dose {:dose 11.291390490128558, :stderr 2.0125541801811466}}}
+ :extra
+ {:predict
+  {:fit [262.99999999999983 221.99999999999957],
+   :stderr [0.06166264159782069 0.0671156055214024],
+   :confidence-interval
+   [[233.06035991700733 296.78577697481865]
+    [194.63640187431972 253.21059948397215]]},
+  :newdata-xss [[0.0 0.0 0.0] [1.0 1.0 1.0]],
+  :dose {:dose 11.291390490128558, :stderr 2.0125541801811466}}}
 
  ;; :r-formula "glm(ifelse(Att==\"Against\",1,0) ~ Inc, family=binomial, weight=Counts, data=counts2x2)"
  ;; :r-packages ["stats" "MASS"]
@@ -370,5 +386,13 @@
     -0.8359619392398696
     -0.45832317007766393
     0.6551909141915004]}},
- :extra {:dose {:dose 1.371441367858043, :stderr 0.3241574787060767}}}
+ :extra
+ {:predict
+  {:fit [0.3647342995169083 0.46249999999999997],
+   :stderr [0.10210189971347787 0.09154492611145942],
+   :confidence-interval
+   [[0.3197349258034834 0.4122290598250785]
+    [0.41831192572123826 0.5072851231838014]]},
+  :newdata-xss (0.0 1.0),
+  :dose {:dose 1.371441367858043, :stderr 0.3241574787060767}}}
 }

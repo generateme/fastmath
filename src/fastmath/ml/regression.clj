@@ -64,7 +64,7 @@
         (throw (ex-info (str "Prediction expects " (count beta) " number of entries "
                              (when offset? "and offset ") "as input (after transformation).") {:offset? offset? :expected (count beta) :received (count xs)})))
       (if stderr?
-        (let [arr (double-array (if intercept? (conj xs 1.0) xs))
+        (let [arr (m/seq->double-array (if intercept? (cons 1.0 xs) xs))
               fit (m/+ off intercept (v/dot beta xs))
               stderr (m/sqrt (m/* sigma2 (v/dot arr (mat/mulv xtxinv arr))))
               scale (m/* stderr qt)]
@@ -976,7 +976,7 @@
     (let [[^double off xs] (with-offset xs offset?)
           xs (if transformer (transformer xs) xs)]
       (if stderr?
-        (let [arr (double-array (if intercept? (conj xs 1.0) xs))
+        (let [arr (double-array (if intercept? (cons 1.0 xs) xs))
               linear (m/+ off intercept (v/dot beta xs))
               fit (double (mean-fun linear))
               stderr (m/sqrt (m/* dispersion (v/dot arr (mat/mulv xtxinv arr))))
@@ -1286,7 +1286,7 @@
                                          ##Inf
                                          (stats/p-value (r/distribution :chi-squared {:degrees-of-freedom df})
                                                         chi2 :right))
-                              :effective-dimenstion ed
+                              :effective-dimension ed
                               :ll {:log-likelihood log-likelihood
                                    :aic aic
                                    :bic bic
