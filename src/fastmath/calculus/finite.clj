@@ -5,7 +5,8 @@
            [fastmath.java Array]
            [org.apache.commons.math3.linear Array2DRowRealMatrix LUDecomposition ArrayRealVector]))
 
-
+(set! *unchecked-math* :warn-on-boxed)
+(set! *warn-on-reflection* true)
 
 ;; https://github.com/JuliaMath/Richardson.jl/blob/master/src/Richardson.jl
 (defn extrapolate

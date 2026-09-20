@@ -80,41 +80,40 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
-(m/use-primitive-operators)
 
 (def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :bfgs :lbfgsb})
+(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :lbfgsb})
 (def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
 
-(defn- brent
+(defn- ->brent
   [{:keys [^double rel ^double abs]
     :or {rel 1.0e-6  abs 1.0e-10}}]
   (BrentOptimizer. rel abs))
 
-(defn- bobyqa
+(defn- ->bobyqa
   [{:keys [number-of-points ^int dim initial-radius stopping-radius]
     :or {initial-radius BOBYQAOptimizer/DEFAULT_INITIAL_RADIUS
          stopping-radius BOBYQAOptimizer/DEFAULT_STOPPING_RADIUS}}]
-  (let [number-of-points (or number-of-points (/ (+ 3 (* 3 dim)) 2))]
+  (let [number-of-points (or number-of-points (m// (m/+ 3 (m/* 3 dim)) 2))]
     (BOBYQAOptimizer. number-of-points initial-radius stopping-radius)))
 
-(defn- powell
+(defn- ->powell
   [{:keys [^double rel ^double abs]
     :or {rel 1.0e-6  abs 1.0e-10}}]
   (PowellOptimizer. rel abs))
 
-(defn- nelder-mead
+(defn- ->nelder-mead
   [{:keys [^int dim ^double rho ^double khi ^double gamma ^double sigma ^double side-length]
     :or {rho 1.0 khi 2.0 gamma 0.5 sigma 0.5 side-length 1.0}}]
   (NelderMeadSimplex. dim side-length rho khi gamma sigma))
 
-(defn- multidirectional-simplex
+(defn- ->multidirectional-simplex
   [{:keys [^int dim ^double khi ^double gamma ^double side-length]
     :or {khi 2.0 gamma 0.5 side-length 1.0}}]
   (MultiDirectionalSimplex. dim side-length khi gamma))
 
-(defn- cmaes
-  [{:keys [^double rel ^double abs active-cma?
+(defn- ->cmaes
+  [{:keys [^double rel ^double abs active-cma? rng
            ^int max-iters ^int check-feasable-count ^int diagonal-only
            ^double stop-fitness]
     :or {rel 1.0e-6
@@ -123,17 +122,18 @@
          max-iters Integer/MAX_VALUE
          check-feasable-count 0
          diagonal-only 0
-         stop-fitness 1.0e-6}}]
+         stop-fitness 1.0e-6
+         rng (r/rng :jdk)}}]
   (let [checker (SimpleValueChecker. rel abs)]
     (CMAESOptimizer. max-iters stop-fitness (boolean active-cma?) diagonal-only
-                     check-feasable-count r/default-rng false checker)))
+                     check-feasable-count rng false checker)))
 
-(defn- simplex
+(defn- ->simplex
   [{:keys [^double rel ^double abs]
     :or {rel 1.0e-6  abs 1.0e-10}}]
   (SimplexOptimizer. rel abs))
 
-(defn- non-linear-gradient
+(defn- ->non-linear-gradient
   [{:keys [^double rel ^double abs ^double bracketing-range formula]
     :or {rel 1.0e-8 abs 1.0e-8 bracketing-range 1.0e-8 formula :polak-ribiere}}]
   (let [checker (SimpleValueChecker. rel abs)]
@@ -143,13 +143,13 @@
                                           checker, rel abs bracketing-range)))
 
 (def ^:private optimizers
-  {:brent brent
-   :bobyqa bobyqa
-   :powell powell
-   :nelder-mead simplex
-   :multidirectional-simplex simplex
-   :cmaes cmaes
-   :gradient non-linear-gradient})
+  {:brent ->brent
+   :bobyqa ->bobyqa
+   :powell ->powell
+   :nelder-mead ->simplex
+   :multidirectional-simplex ->simplex
+   :cmaes ->cmaes
+   :gradient ->non-linear-gradient})
 
 (defn- wrap-univariate-function ^UnivariateFunction [f] (reify UnivariateFunction (value [_ x] (f x))))
 (defn- wrap-univariate-objective-function [f] (UnivariateObjectiveFunction. (wrap-univariate-function f)))
@@ -165,14 +165,14 @@
 
 (defn- finite-differences
   [^MultivariateFunction f ^doubles xs ^double step]
-  (let [step2 (* 2.0 step)]
+  (let [step2 (m/* 2.0 step)]
     (double-array (map-indexed (fn [^long id ^double x]
                                  (let [a (aclone ^doubles xs)
-                                       v1 (do (aset a id (+ x step))
+                                       v1 (do (aset a id (m/+ x step))
                                               (.value f a))
-                                       v2 (do (aset a id (- x step))
+                                       v2 (do (aset a id (m/- x step))
                                               (.value f a))]
-                                   (/ (- v1 v2) step2))) xs))))
+                                   (m// (m/- v1 v2) step2))) xs))))
 
 (defn- multivariate-gradient
   "Calculate gradient numerically."
@@ -190,7 +190,7 @@
 (defn- infer-lo-high
   [lo high]
   [(or lo m/EPSILON)
-   (or high (- 1.0 m/EPSILON))])
+   (or high (m/- 1.0 m/EPSILON))])
 
 (defn- search-interval
   [[lo high] init]
@@ -211,7 +211,7 @@
 
 (defn- mid-point
   [bounds]
-  (map (fn [[^double l ^double h]] (* 0.5 (+ l h))) bounds))
+  (map (fn [[^double l ^double h]] (m/* 0.5 (m/+ l h))) bounds))
 
 (defn- initial-guess
   [bounds initial ^MultivariateFunctionMappingAdapter mfma]
@@ -294,14 +294,15 @@
 
             ;; simplex methods should have also specific siumplex algorithms, also for cmaes we add additional stuff
             base-opt-data (case method
-                            :nelder-mead (conj base-opt-data (nelder-mead config))
-                            :multidirectional-simplex (conj base-opt-data (multidirectional-simplex config))
+                            :nelder-mead (conj base-opt-data (->nelder-mead config))
+                            :multidirectional-simplex (conj base-opt-data (->multidirectional-simplex config))
                             ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
                             :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
                                                                                             gradient-h))
                             :cmaes (conj base-opt-data
-                                         (CMAESOptimizer$PopulationSize. (or population-size (int (+ 4.5 (* 3.0 (m/ln dim))))))
-                                         (CMAESOptimizer$Sigma. (double-array (map #(* 0.75 (- ^double %2 ^double %1)) (.getLower b) (.getUpper b)))))
+                                         (CMAESOptimizer$PopulationSize. (or population-size (long (m/+ 4.5 (m/* 3.0 (m/log dim))))))
+                                         (CMAESOptimizer$Sigma. (double-array (map (fn [^double l ^double u]
+                                                                                     (m/* 0.75 (m/- u l))) (.getLower b) (.getUpper b)))))
                             base-opt-data)
             
             builder (optimizers method)        
@@ -351,9 +352,8 @@
         [lo high inter genf] (if (= method :brent)
                                [(first bounds) (second bounds) m/lerp f]
                                [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
-        N (int N)
-        N (max (m/fpow 3 dim) N)
-        gen (r/jittered-sequence-generator (if (< dim 15) :r2 :sobol) dim jitter)]
+        N (long (m/max (m/fpow 3.0 dim) (long N)))
+        gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter)]
     (->> (if (and (not= method :brent)
                   (m/one? dim)) (map vector gen) gen)
          (map #(let [p (inter lo high %)]
@@ -376,9 +376,9 @@
   (when (nil? bounds) (throw (ex-info "Provide search bounds." nil)))
   (let [goal (or goal (get config :goal :minimize))
         samples (generate-points method f bounds goal N jitter)
-        nbest (max 1 (long (if (> n 1.0) n (m/floor (* n N)))))
+        nbest (max 1 (long (if (m/> n 1.0) n (m/floor (m/* n N)))))
         tk (long (get config :take 1))
-        taker (if (> tk 1) (partial take tk) first)
+        taker (if (m/> tk 1) (partial take tk) first)
         mapper (if parallel? pmap map)]
     (->> (mapper (fn [s] ((optimizer-fn method f config) s)) samples)
          (filter (comp (partial every? m/valid-double?) first))
@@ -401,30 +401,30 @@
   [_ ^double kappa]
   (fn [gp x _]
     (let [[^double mean ^double stddev] (gp/predict gp x true)]
-      (+ mean (* kappa stddev)))))
+      (m/+ mean (m/* kappa stddev)))))
 
 (defmethod utility-function :ei
   [_ ^double xi]
   (fn [gp x ^double y-max]
     (let [[^double mean ^double stddev] (gp/predict gp x true)
-          diff (- mean y-max xi)
-          z (/ diff stddev)]
-      (+ (* diff ^double (r/cdf r/default-normal z))
-         (* stddev ^double (r/pdf r/default-normal z))))))
+          diff (m/- mean y-max xi)
+          z (m// diff stddev)]
+      (m/+ (m/* diff (r/cdf r/default-normal z))
+           (m/* stddev (r/pdf r/default-normal z))))))
 
 (defmethod utility-function :poi
   [_ ^double xi]
   (fn [gp x ^double y-max]
     (let [[^double mean ^double stddev] (gp/predict gp x true)]
-      (r/cdf r/default-normal (/ (- mean y-max xi) stddev)))))
+      (r/cdf r/default-normal (m// (m/- mean y-max xi) stddev)))))
 
 (defn- gen-sequence
   [init-points bounds jitter]
   (let [dims (count bounds)
-        int-fn (if (== dims 1)
+        int-fn (if (m/one? dims)
                  #(vector (m/lerp (ffirst bounds) (second (first bounds)) %))
                  #(v/einterpolate (mapv first bounds) (mapv second bounds) %))]
-    (->> (r/jittered-sequence-generator (if (< dims 15) :r2 :sobol) dims jitter)
+    (->> (r/jittered-sequence-generator (if (m/< dims 15) :r2 :sobol) dims jitter)
          (take init-points)
          (map int-fn))))
 
@@ -443,11 +443,11 @@
       (let [curr-gp (gp xs ys)
             curr-util (fn [& r] (util-fn curr-gp r y))
             bx (first (scan-and-maximize optimizer curr-util params))
-            ^double by (f bx)
+            by (double (f bx))
             nxs (conj xs bx)
             nys (conj ys by)]
-        {:x (if (> by y) bx x)
-         :y (if (> by y) by y)
+        {:x (if (m/> by y) bx x)
+         :y (if (m/> by y) by y)
          :util-fn curr-util
          :gp curr-gp
          :xs nxs
@@ -489,13 +489,13 @@
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [warm-up (or warm-up (* (count bounds) 1000))
+  (let [warm-up (or warm-up (m/* (count bounds) 1000))
         utility-param (double (or utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)))
         kernel (if (keyword? kernel) (k/kernel kernel) kernel)
         optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
         f (partial apply f)
         [xs ys] (initial-values f init-points bounds jitter)
-        [maxx maxy] (first (sort-by second clojure.core/> (map vector xs ys)))
+        [maxx maxy] (first (sort-by second m/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
         gp #(gp/gaussian-process %1 %2 {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
         step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer optimizer-params)]
@@ -525,29 +525,30 @@
                          (double (last right))))))
 
 (defn linear-optimization
-  "Solves a linear problem.
+  "Solves a linear programming problem using the simplex method.
 
-   Target is defined as a vector of coefficients and constant as the last value:
-   `[a1 a2 a3 ... c]` means `f(x1,x2,x3) = a1*x1 + a2*x2 + a3*x3 + ... +  c`
+  The objective is a linear function of any number of variables subject to a set of linear equality or inequality constraints. This is a distinct, specialized solver and does not go through [[minimize]]/[[maximize]]/[[minimizer]]/[[maximizer]]; use [[bayesian-optimization]] or the general optimizers for nonlinear problems.
 
-   Constraints are defined as a sequence of one of the following triplets:
+  Parameters:
 
-   * `[a1 a2 a3 ...] R n` - which means `a1*x1+a2*x2+a3*x3+... R n` 
-   * `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` - which means `a1*x1+a2*x2+a3*x3+...+ca R b1*x1+b2*x2+b3*x3+...+cb`
+  - `target` (vector of numbers): coefficients of the objective function with the constant term as the last value. `[a1 a2 a3 ... c]` represents `f(x1,x2,x3,...) = a1*x1 + a2*x2 + a3*x3 + ... + c`.
+  - `constraints` (flat sequence): a concatenation of triplets `left R right`, each of one of the following forms:
+      - `[a1 a2 a3 ...] R n` — means `a1*x1 + a2*x2 + a3*x3 + ... R n`, where `n` is a number.
+      - `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` — means `a1*x1 + a2*x2 + a3*x3 + ... + ca R b1*x1 + b2*x2 + b3*x3 + ... + cb`.
+      - `R` is the relationship, one of `<=`, `>=`, `=` (as symbol or keyword) or `:leq`, `:geq`, `:eq`.
+  - `options` (optional map):
+      - `:goal` — `:minimize` (default) or `:maximize`.
+      - `:rule` — pivot selection rule, `:dantzig` (default) or `:bland`.
+      - `:max-iter` — maximum number of iterations, defaults to the maximum integer value.
+      - `:non-negative?` — when `true`, restrict all variables to non-negative values, default `false`.
+      - `:epsilon` — convergence tolerance, default `1.0e-6`.
+      - `:max-ulps` — allowed floating point comparison tolerance expressed in ulps, default `10`.
+      - `:cut-off` — pivot elements smaller than this value are treated as zero, default `1.0e-10`.
+      - `:stats?` — when `true`, return evaluation and iteration counts alongside the result, default `false`.
 
-   `R` is a relationship and can be one of `<=`, `>=` or `=` as symbol or keyword. Also `:leq`, `:geq` and `:eq` are valid.
+  Returns a pair `[point value]`, where `point` is a sequence of optimal variable values and `value` is the optimal objective function value. When `:stats?` is set to `true`, returns instead a map with `:result` (the `[point value]` pair), `:evaluations` and `:iterations`.
 
-  Function returns pair of optimal point and function value. If `stat?` option is set to true, returns also information about number of iterations.  
-
-  Possible options:
-  
-  * `:goal` - `:minimize` (default) or `:maximize`
-  * `:rule` - pivot selection rule, `:dantzig` (default) or `:bland`
-  * `:max-iter` - maximum number of iterations, maximum integer by default
-  * `:non-negative?` - allow non-negative variables only, default: `false` 
-  * `:epsilon` - convergence value, default: `1.0e-6`:
-  * `:max-ulps` - floating point comparisons, default: `10` ulp
-  * `:cut-off` - pivot elements smaller than cut-off are treated as zero, default: `1.0e-10`
+  Every three consecutive values of `constraints` are treated as one triplet, so the collection must contain a multiple of three elements matching the pattern above.
 
   ```clojure
   (linear-optimization [-1 4 0] [[-3 1] :<= 6
@@ -577,7 +578,6 @@
           (parse-result nil)
           (maybe-stats? stats? solver)))))
 
-(m/unuse-primitive-operators)
 
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
