@@ -1,7 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 alpha8]
+## [3.0.0 alpha10 - unreleased]
+
+### Added
+
+* `fastmath.stats/anova-eta-sq`, `anova-omega-sq`, `anova-epsilon-sq`, `anova-cohens-f2`, `anova-cohens-f` - correlation ratio effect sizes for one-way ANOVA (genuine multi-group design, as opposed to the pairwise-regression-based `eta-sq`/`omega-sq`/`epsilon-sq`)
+* `fastmath.stats/entropy`, `joint-entropy`, `mutual-information`, `theils-u` - Shannon entropy and Theil's U (uncertainty coefficient) for categorical association
+
+## [3.0.0 alpha9]
 
 ### Added
 
@@ -26,6 +33,10 @@ All notable changes to this project will be documented in this file. This change
 
 * Removed `reciprocal-sqrt` distiribution, use `power` instead.
 * `eigenvectors` are now complex by default (`:raw` normalization - to get previous behaviour)
+
+## [3.0.0 alpha8]
+
+Unreleased due to problems with Clojars.
 
 ## [3.0.0 alpha7]
 

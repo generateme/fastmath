@@ -3647,6 +3647,22 @@
     (.regress lm)
     lm))
 
+(defn- anova
+  [xss]
+  (let [Ni (map count xss)
+        Zi (map mean xss)
+        Z (m// (sum (mapcat identity xss)) (sum Ni))
+        SSt (sum (map (fn [^double n ^double z]
+                        (m/* n (m/sq (m/- z Z)))) Ni Zi))
+        SSe (sum (map (fn [xs ^double zi]
+                        (v/magsq (map (fn [^double v]
+                                        (m/- v zi)) xs))) xss Zi))
+        k (count Ni)
+        DFt (m/dec k)
+        DFe (m/- (sum Ni) k)
+        MSe (m// SSe DFe)]
+    {:n Ni :SSt SSt :SSe SSe :DFt DFt :DFe (long DFe) :MSt (m// SSt DFt) :MSe MSe}))
+
 (defn eta-sq
   "Calculates a measure of association between two sequences, named `eta-sq` (Eta-squared).
 
@@ -3816,6 +3832,126 @@
   (^double [[group1 group2]] (cohens-f group1 group2))
   (^double [group1 group2] (cohens-f group1 group2 :eta))
   (^double [group1 group2 type] (m/sqrt (cohens-f2 group1 group2 type))))
+
+(defn anova-eta-sq
+  "Calculates Eta-squared (η²), the correlation ratio effect size for a one-way ANOVA design.
+
+  Eta-squared is the classical correlation ratio: the proportion of the total variance in the (numeric) dependent variable that is accounted for by group membership (the categorical independent variable). Unlike [[eta-sq]] (which fits a straight-line regression between two numeric sequences), this function treats `xss` as a genuine grouping of observations, exactly as used by [[one-way-anova-test]] and [[kruskal-test]], so it correctly captures non-linear (arbitrary group-mean) relationships between the grouping variable and the outcome.
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations.
+
+  Returns the calculated Eta-squared value as a double, always within `[0.0, 1.0]`.
+
+  Interpretation:
+
+  - `0.0` indicates that group membership explains none of the variance in the outcome.
+  - `1.0` indicates that group membership explains all of the variance in the outcome (all within-group variance is zero).
+
+  Eta-squared is a sample-based estimate and tends to overestimate the population effect size, especially with small samples or many groups; [[anova-omega-sq]] and [[anova-epsilon-sq]] provide less biased alternatives.
+
+  See also [[anova-omega-sq]], [[anova-epsilon-sq]], [[anova-cohens-f2]], [[anova-cohens-f]], [[one-way-anova-test]], [[rank-eta-sq]] (rank-based analogue), [[eta-sq]] (pairwise regression-based measure with a similar name but different design)."
+  ^double [xss]
+  (let [{:keys [^double SSt ^double SSe]} (anova xss)]
+    (m// SSt (m/+ SSt SSe))))
+
+(defn anova-omega-sq
+  "Calculates Omega-squared (ω²), a less biased effect size for a one-way ANOVA design.
+
+  Omega-squared estimates the proportion of variance in the (numeric) dependent variable that is accounted for by group membership (the categorical independent variable) in the population, correcting for the upward bias of [[anova-eta-sq]]. It plays the same role for genuinely grouped (categorical) data as [[omega-sq]] does for a pair of numeric sequences related by simple linear regression.
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations, as used in [[one-way-anova-test]].
+
+  Returns the calculated Omega-squared value as a double, within `[0.0, 1.0]`. Following common convention (e.g. R's `effectsize` package), a theoretically-possible negative estimate (which can occur when the true effect is close to zero) is clamped to `0.0`.
+
+  See also [[anova-eta-sq]], [[anova-epsilon-sq]], [[anova-cohens-f2]], [[anova-cohens-f]], [[one-way-anova-test]], [[omega-sq]] (pairwise regression-based measure with a similar name but different design)."
+  ^double [xss]
+  (let [{:keys [^double SSt ^double SSe ^long DFt ^double MSe]} (anova xss)]
+    (m/max 0.0 (m// (m/- SSt (m/* DFt MSe))
+                    (m/+ SSt SSe MSe)))))
+
+(defn anova-epsilon-sq
+  "Calculates Epsilon-squared (ε²), a less biased effect size for a one-way ANOVA design.
+
+  Epsilon-squared estimates the proportion of variance in the (numeric) dependent variable that is accounted for by group membership (the categorical independent variable) in the population, correcting for the upward bias of [[anova-eta-sq]]. It plays the same role for genuinely grouped (categorical) data as [[epsilon-sq]] does for a pair of numeric sequences related by simple linear regression.
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations, as used in [[one-way-anova-test]].
+
+  Returns the calculated Epsilon-squared value as a double, within `[0.0, 1.0]`. Following common convention (e.g. R's `effectsize` package), a theoretically-possible negative estimate (which can occur when the true effect is close to zero) is clamped to `0.0`.
+
+  See also [[anova-eta-sq]], [[anova-omega-sq]], [[anova-cohens-f2]], [[anova-cohens-f]], [[one-way-anova-test]], [[epsilon-sq]] (pairwise regression-based measure with a similar name but different design), [[rank-epsilon-sq]] (rank-based analogue)."
+  ^double [xss]
+  (let [{:keys [^double SSt ^double SSe ^long DFt ^double MSe]} (anova xss)]
+    (m/max 0.0 (m// (m/- SSt (m/* DFt MSe))
+                    (m/+ SSt SSe)))))
+
+(defn anova-cohens-f2
+  "Calculates Cohen's f², a measure of effect size for a one-way ANOVA design.
+
+  Cohen's f² quantifies the magnitude of the effect of group membership on the (numeric) dependent variable, expressed as the ratio of the variance explained by the effect to the unexplained variance. It is the multi-group, categorical-predictor counterpart of [[cohens-f2]].
+
+  This function allows calculating f² using different measures for the 'Proportion of Variance Explained', specified by the `type` parameter:
+
+  - `:eta` (default): Uses [[anova-eta-sq]] (Eta-squared / correlation ratio), a measure of the proportion of variance explained in the sample.
+  - `:omega`: Uses [[anova-omega-sq]] (Omega-squared), a less biased estimate of the proportion of variance explained in the population.
+  - `:epsilon`: Uses [[anova-epsilon-sq]] (Epsilon-squared), another less biased estimate of the proportion of variance explained in the population.
+  - Any function: A function accepting `xss` and returning a double representing the proportion of variance explained.
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations, as used in [[one-way-anova-test]].
+  - `type` (keyword or function, optional): Specifies the measure of 'Proportion of Variance Explained' to use (`:eta`, `:omega`, `:epsilon` or any function). Defaults to `:eta`.
+
+  Returns the calculated Cohen's f² effect size as a double. Values range from `0.0` upwards.
+
+  Interpretation Guidelines (approximate, often used for F-tests in ANOVA):
+  - $f^2 = 0.02$: small effect
+  - $f^2 = 0.15$: medium effect
+  - $f^2 = 0.35$: large effect
+
+  See also [[anova-cohens-f]], [[anova-eta-sq]], [[anova-omega-sq]], [[anova-epsilon-sq]], [[cohens-f2]]."
+  (^double [xss] (anova-cohens-f2 xss :eta))
+  (^double [xss type]
+   (let [f (if (keyword? type) (case type
+                                 :omega anova-omega-sq
+                                 :epsilon anova-epsilon-sq
+                                 anova-eta-sq)
+               type)
+         v (double (f xss))]
+     (m// v (m/- 1.0 v)))))
+
+(defn anova-cohens-f
+  "Calculates Cohen's f, a measure of effect size derived as the square root of Cohen's f² ([[anova-cohens-f2]]) for a one-way ANOVA design.
+
+  Cohen's f is a standardized measure quantifying the magnitude of the effect of group membership on the (numeric) dependent variable. It is the multi-group, categorical-predictor counterpart of [[cohens-f]].
+
+  Parameters:
+
+  - `xss` (sequence of sequences): A collection where each element is a sequence representing a group of observations, as used in [[one-way-anova-test]].
+  - `type` (keyword or function, optional): Specifies the measure of 'Proportion of Variance Explained' used in the underlying [[anova-cohens-f2]] calculation. Defaults to `:eta`.
+    - `:eta` (default): Uses Eta-squared (correlation ratio), a measure of variance explained in the sample.
+    - `:omega`: Uses Omega-squared, a less biased estimate of variance explained in the population.
+    - `:epsilon`: Uses Epsilon-squared, another less biased estimate of variance explained in the population.
+    - Any function: A function accepting `xss` and returning a double representing the proportion of variance explained.
+
+  Returns the calculated Cohen's f effect size as a double. Values range from `0.0` upwards.
+
+  Interpretation:
+
+  - Cohen's guidelines for interpreting the magnitude of f² (and by extension, f) are:
+    - $f = 0.10$ (approx. $f^2 = 0.01$): small effect
+    - $f = 0.25$ (approx. $f^2 = 0.0625$): medium effect
+    - $f = 0.40$ (approx. $f^2 = 0.16$): large effect
+    (Note: Guidelines are often quoted for f², interpret f as $\\sqrt{f^2}$)
+
+  See also [[anova-cohens-f2]], [[anova-eta-sq]], [[anova-omega-sq]], [[anova-epsilon-sq]], [[cohens-f]]."
+  (^double [xss] (anova-cohens-f xss :eta))
+  (^double [xss type] (m/sqrt (anova-cohens-f2 xss type))))
 
 (defn cohens-q
   "Compares two correlation coefficients by calculating the difference between their Fisher z-transformations.
@@ -4269,6 +4405,106 @@
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))]
      (m/sqrt (m// (m// chi2 n)
                 (m/sqrt (m/* (m/dec k) (m/dec r))))))))
+
+(defn- entropy-log-fn
+  [^double base]
+  (cond
+    (m/== base m/E) m/log
+    (m/== base 2.0) m/log2
+    (m/== base 10.0) m/log10
+    :else (partial m/logb base)))
+
+(defn entropy
+  "Calculates the Shannon entropy H(X) of the empirical distribution of a sequence of values.
+
+  Entropy quantifies the average amount of information, surprise, or uncertainty inherent in the possible outcomes of `xs`. It is maximal when all observed categories are equally frequent, and `0.0` when only a single category occurs.
+
+  Parameters:
+
+  - `xs` (sequence, or map): A sequence of (typically categorical, but any hashable) observations, or a pre-computed frequency/probability map from value to count or probability (such as the output of [[contingency-table]] applied to a single sequence).
+  - `log-base` (double, optional): The logarithm base used. Defaults to `e` (Euler's number), giving entropy in nats. Use `2.0` for entropy in bits, or `10.0` for hartleys/dits.
+
+  Returns the calculated Shannon entropy as a double, always `>= 0.0`.
+
+  See also [[joint-entropy]], [[mutual-information]], [[theils-u]], [[contingency-table]]."
+  (^double [xs] (entropy xs m/E))
+  (^double [xs log-base]
+   (let [freqs (vals (if (map? xs) xs (frequencies xs)))
+         log-fn (entropy-log-fn log-base)
+         n (sum freqs)]
+     (m/- (sum (map (fn [^double c]
+                      (let [p (m// c n)]
+                        (m/* p (double (log-fn p)))))
+                    freqs))))))
+
+(defn joint-entropy
+  "Calculates the joint Shannon entropy H(X,Y) of the empirical joint distribution of two sequences.
+
+  The joint entropy quantifies the total uncertainty contained in the pair of variables `(group1, group2)` considered together.
+
+  Parameters:
+
+  - `group1`, `group2` (sequences): Two sequences of (typically categorical) observations of the same length, paired by index.
+  - `log-base` (double, optional): The logarithm base used, see [[entropy]]. Defaults to `e`.
+
+  Returns the calculated joint Shannon entropy as a double, always `>= 0.0`. Always `>= max(H(group1), H(group2))` and `<= H(group1) + H(group2)`.
+
+  See also [[entropy]], [[mutual-information]], [[theils-u]], [[contingency-table]]."
+  (^double [group1 group2] (joint-entropy group1 group2 m/E))
+  (^double [group1 group2 log-base]
+   (entropy (contingency-table group1 group2) log-base)))
+
+(defn mutual-information
+  "Calculates the mutual information I(X;Y) between two sequences.
+
+  Mutual information quantifies the amount of information (in nats, by default) obtained about one variable through observing the other. It is `0.0` when the two variables are (empirically) independent, and is defined as `H(group1) + H(group2) - H(group1, group2)`.
+
+  Parameters:
+
+  - `group1`, `group2` (sequences): Two sequences of (typically categorical) observations of the same length, paired by index.
+  - `log-base` (double, optional): The logarithm base used, see [[entropy]]. Defaults to `e`.
+
+  Returns the calculated mutual information as a double. Always `>= 0.0`, and `<= min(H(group1), H(group2))`.
+
+  See also [[entropy]], [[joint-entropy]], [[theils-u]] (a normalized version of mutual information)."
+  (^double [group1 group2] (mutual-information group1 group2 m/E))
+  (^double [group1 group2 log-base]
+   (m/- (m/+ (entropy group1 log-base) (entropy group2 log-base))
+        (joint-entropy group1 group2 log-base))))
+
+(defn theils-u
+  "Calculates Theil's U, the uncertainty coefficient, an entropy-based measure of association between two categorical sequences.
+
+  Theil's U normalizes the mutual information ([[mutual-information]]) between `group1` and `group2` by an entropy term, so that (unlike raw mutual information) it always lies within `[0.0, 1.0]`, making it comparable across different pairs of variables. It answers the question: what proportion of one variable's uncertainty is resolved by knowing the other?
+
+  Parameters:
+
+  - `group1`, `group2` (sequences): Two sequences of categorical observations of the same length, paired by index.
+  - `direction` (keyword, optional): Which entropy to normalize by. Defaults to `:symmetric`.
+    - `:symmetric` (default): `2 * I(group1;group2) / (H(group1) + H(group2))`. A symmetric coefficient, `U(group1,group2) = U(group2,group1)`.
+    - `:group1`: `I(group1;group2) / H(group1)`. The proportion of `group1`'s uncertainty explained by `group2` (asymmetric).
+    - `:group2`: `I(group1;group2) / H(group2)`. The proportion of `group2`'s uncertainty explained by `group1` (asymmetric).
+
+  Returns the calculated coefficient as a double, within `[0.0, 1.0]`.
+
+  Interpretation:
+
+  - `0.0` indicates no association: the variables are (empirically) independent.
+  - `1.0` indicates perfect association: the normalizing variable(s) fully determine (or are fully determined by) the other.
+
+  Corner case: if the entropy used for normalization (`H(group1)` for `:group1`, `H(group2)` for `:group2`, or both for `:symmetric`) is `0.0` (i.e. the corresponding sequence has only a single distinct value), the result is `NaN` (division by zero), matching common implementations (e.g. R's `DescTools::UncertCoef`).
+
+  See also [[mutual-information]], [[entropy]], [[cramers-v]], [[tschuprows-t]], [[cohens-w]] (chi-squared-based association measures for comparison)."
+  (^double [group1 group2] (theils-u group1 group2 :symmetric))
+  (^double [group1 group2 direction]
+   (let [hx (entropy group1)
+         hy (entropy group2)
+         hxy (joint-entropy group1 group2)
+         mi (m/- (m/+ hx hy) hxy)]
+     (case direction
+       :group1 (if (m/zero? hx) ##NaN (m// mi hx))
+       :group2 (if (m/zero? hy) ##NaN (m// mi hy))
+       (if (m/zero? (m/+ hx hy)) ##NaN (m// (m/* 2.0 mi) (m/+ hx hy)))))))
 
 (defn cohens-kappa
   "Calculates Cohen's Kappa coefficient (κ), a statistic that measures inter-rater
@@ -6301,22 +6537,6 @@
   (alter-meta! v update :doc str "\n\n" (:doc (meta #'power-divergence-test))))
 
 ;;
-
-(defn- anova
-  [xss]
-  (let [Ni (map count xss)
-        Zi (map mean xss)
-        Z (m// (sum (mapcat identity xss)) (sum Ni))
-        SSt (sum (map (fn [^double n ^double z]
-                        (m/* n (m/sq (m/- z Z)))) Ni Zi))
-        SSe (sum (map (fn [xs ^double zi]
-                        (v/magsq (map (fn [^double v]
-                                        (m/- v zi)) xs))) xss Zi))
-        k (count Ni)
-        DFt (m/dec k)
-        DFe (m/- (sum Ni) k)
-        MSe (m// SSe DFe)]
-    {:n Ni :SSt SSt :SSe SSe :DFt DFt :DFe (int DFe) :MSt (m// SSt DFt) :MSe MSe}))
 
 (defn- update-f-p-value
   [{:keys [DFt DFe ^double MSt ^double MSe] :as aov} sides]

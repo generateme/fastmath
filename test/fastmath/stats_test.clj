@@ -150,6 +150,58 @@
   (t/is (m/delta= 0.8305211 (sut/rank-epsilon-sq (by mtcars :cyl :mpg))))
   (t/is (m/delta= 0.818833 (sut/rank-eta-sq (by mtcars :cyl :mpg)))))
 
+;; one-way ANOVA (correlation ratio) effect size
+;; reference values from R: aov(mpg ~ factor(cyl), data = mtcars); effectsize::{eta,omega,epsilon}_squared, cohens_f
+
+(t/deftest effect-size-anova
+  (let [xss (by mtcars :cyl :mpg)]
+    (t/is (m/delta= 0.7324600596 (sut/anova-eta-sq xss)))
+    (t/is (m/delta= 0.7074821420 (sut/anova-omega-sq xss)))
+    (t/is (m/delta= 0.7140090293 (sut/anova-epsilon-sq xss)))
+    (t/are [type f2 f] (and (m/delta= f2 (sut/anova-cohens-f2 xss type))
+                           (m/delta= f (sut/anova-cohens-f xss type)))
+      :eta     2.7377596728 1.6546176818
+      :omega   2.4185947035 1.5551831736
+      :epsilon 2.4966138875 1.5800676845))
+  (let [xss [[45 70 29 15 21] [40 20 30 42] [65 95 80 70 85 73]]]
+    (t/is (m/delta= 0.7033195021 (sut/anova-eta-sq xss)))
+    (t/is (m/delta= 0.6380968449 (sut/anova-omega-sq xss)))
+    (t/is (m/delta= 0.6538727524 (sut/anova-epsilon-sq xss)))
+    (t/is (m/delta= 2.3706293706 (sut/anova-cohens-f2 xss)))
+    (t/is (m/delta= 1.5396848283 (sut/anova-cohens-f xss))))
+  (t/testing "omega/epsilon are clamped at zero for a near-null effect"
+    (let [xss [[5 5 5 6] [5 4 5 5] [6 5 5 4]]]
+      (t/is (m/delta= 0.125 (sut/anova-eta-sq xss)))
+      (t/is (m/delta= 0.0 (sut/anova-omega-sq xss)))
+      (t/is (m/delta= 0.0 (sut/anova-epsilon-sq xss))))))
+
+;; entropy, mutual information and Theil's U (uncertainty coefficient)
+;; reference values from R: DescTools::UncertCoef(mtcars$cyl, mtcars$am) (fully populated 3x2 table);
+;; for the sparse cyl x gear table (which has empty cells) reference values were computed by summing
+;; -sum(p*log(p)) over the observed (non-zero) cells only, matching this implementation, since
+;; DescTools's own zero-cell correction perturbs the result by a tiny, cell-count-dependent amount.
+
+(t/deftest entropy-and-theils-u-test
+  (t/is (m/delta= 1.0612039760 (sut/entropy (mtcars :cyl))))
+  (t/is (m/delta= 0.6754645825 (sut/entropy (mtcars :am))))
+  (t/is (m/delta= 1.5914372257 (sut/joint-entropy (mtcars :cyl) (mtcars :am))))
+  (t/is (m/delta= 0.1452313328 (sut/mutual-information (mtcars :cyl) (mtcars :am))))
+  (t/is (m/delta= 1.5309937135 (sut/entropy (mtcars :cyl) 2.0)) "entropy in bits")
+  (t/is (m/delta= 0.6931471806 (sut/entropy {:a 0.5 :b 0.5})) "accepts a probability/frequency map")
+  (t/is (m/delta= 0.1672527922 (sut/theils-u (mtcars :cyl) (mtcars :am))) "defaults to :symmetric")
+  (t/are [dir res] (m/delta= res (sut/theils-u (mtcars :cyl) (mtcars :am) dir))
+    :symmetric 0.1672527922
+    :group1    0.1368552475
+    :group2    0.2150095453)
+  (t/testing "sparse contingency table (some cyl x gear combinations do not occur)"
+    (t/are [dir res] (m/delta= res (sut/theils-u (mtcars :cyl) (mtcars :gear) dir))
+      :symmetric 0.3504371541
+      :group1    0.3424817995
+      :group2    0.3587708805))
+  (t/testing "a constant sequence has zero entropy, and normalizing by it gives NaN"
+    (t/is (m/delta= 0.0 (sut/entropy (repeat 10 :a))))
+    (t/is (m/nan? (sut/theils-u (repeat 10 :a) (mtcars :am) :group1)))))
+
 ;; 2x2 contingency
 
 (def c2x2 (sut/contingency-2x2-measures-all 70 2 4 40))
