@@ -158,6 +158,27 @@
     sut/tschuprows-t        0.4394823497
     sut/cohens-w            0.5226355372))
 
+;; power divergence tests, incl. Yates' continuity correction for 2x2 tables
+;; reference values from R: chisq.test(matrix(c(70,4,2,40), nrow=2, byrow=TRUE), correct=TRUE/FALSE)
+;; and Python: scipy.stats.chi2_contingency(tab, correction=TRUE/FALSE, lambda_='log-likelihood')
+
+(def t2x2 [[70 2] [4 40]])
+
+(t/deftest power-divergence-test-yates
+  (let [res (sut/chisq-test t2x2)]
+    (t/is (m/delta= 91.8380458380 (:stat res)))
+    (t/is (= 1 (:df res)))
+    (t/is (m/delta= 88.0620571871 (:yates res)) "Yates-corrected statistic, matches R's chisq.test(correct=TRUE)")
+    (t/is (contains? res :yates-p-value)))
+  (let [res (sut/multinomial-likelihood-ratio-test t2x2)]
+    (t/is (m/delta= 106.7810675108 (:stat res)))
+    (t/is (m/delta= 101.1087556019 (:yates res)) "Yates correction generalizes to other lambda values (here: G-test)"))
+  (t/testing "Yates' correction only applies to 2x2 tables (df = 1)"
+    (let [res (sut/chisq-test [[3 8] [4 3] [12 2]])]
+      (t/is (= 2 (:df res)))
+      (t/is (not (contains? res :yates)))
+      (t/is (not (contains? res :yates-p-value))))))
+
 ;; kruskal effect size
 
 (t/deftest effect-size-kruskal

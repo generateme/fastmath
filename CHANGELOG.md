@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization.problems` - derivatives (`dproblemXX`) for all univariate test functions, plus previously missing `problem08`, `problem10`-`problem15`, `problem18`, `problem20`-`problem22`
 * `fastmath.stats/anova-eta-sq`, `anova-omega-sq`, `anova-epsilon-sq`, `anova-cohens-f2`, `anova-cohens-f` - correlation ratio effect sizes for one-way ANOVA (genuine multi-group design, as opposed to the pairwise-regression-based `eta-sq`/`omega-sq`/`epsilon-sq`)
 * `fastmath.stats/entropy`, `joint-entropy`, `mutual-information`, `theils-u` - Shannon entropy and Theil's U (uncertainty coefficient) for categorical association
+* `fastmath.stats/power-divergence-test` (and `chisq-test`/`multinomial-likelihood-ratio-test`/etc.) now report `:yates`/`:yates-p-value`, the Yates continuity-corrected statistic, for independence tests on 2x2 contingency tables (`:df` 1), matching R's `chisq.test(correct=TRUE)` and SciPy's `chi2_contingency(correction=True)`
 
 ### Fixed
 

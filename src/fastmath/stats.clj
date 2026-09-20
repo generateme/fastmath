@@ -6402,6 +6402,28 @@
                          (map #(vector 0.0 (m// (quantile % q) n)) rands)))]
     (if (map? estimate) (zipmap (keys estimate) vs) vs)))
 
+(defn- pdt-yates-stat
+  "Continuity-corrected (Yates) power divergence statistic for a 2x2 contingency table.
+
+  Shifts each cell's observed count towards its expected count by `min(0.5, |observed-expected|)`
+  (the standard continuity correction, matching R's `chisq.test` and SciPy's `chi2_contingency`),
+  then recomputes the same `lambda`-family statistic on the adjusted counts. Correctly handles
+  cells absent from `xs` (i.e. with a true observed count of `0.0`)."
+  ^double [xhat xs ^double lambda]
+  (let [adj (for [[k ^double e] xhat
+                  :let [^double o (get xs k 0.0)
+                        diff (m/- e o)
+                        mag (m/min 0.5 (m/abs diff))]]
+              [(m/+ o (m/* mag (m/signum diff))) e])]
+    (condp = lambda
+      0.0 (m/* 2.0 (sum (map (fn [[^double o ^double e]]
+                               (if (m/zero? o) 0.0 (m/* o (m/- (m/log o) (m/log e))))) adj)))
+      -1.0 (m/* 2.0 (sum (map (fn [[^double o ^double e]]
+                                (m/* e (m/- (m/log e) (m/log o)))) adj)))
+      (m/* (m// 2.0 (m/* lambda (m/inc lambda)))
+           (sum (map (fn [[^double o ^double e]]
+                       (if (m/zero? o) 0.0 (m/* o (m/dec (m/pow (m// o e) lambda))))) adj))))))
+
 (defn- pdt-multi
   [ct ^double lambda]
   (let [xs (infer-ct ct)
@@ -6422,10 +6444,13 @@
                                                  (m/+ sum (m/* xhv (m/- (m/log xhv) (m/log cnt) ))))) 0.0 xhat)))
                (m/* (m// 2.0 (m/* lambda (m/inc lambda)))
                     (double (reduce (fn [^double sum [k ^long cnt]]
-                                      (m/+ sum (m/* cnt (m/dec (m/pow (m// cnt ^double (xhat k)) lambda))))) 0.0 xs))))]
-    {:stat stat :df df :n n :k n1 :r n2
-     :expected xhat
-     :estimate (into {} (map (fn [[k ^long v]] [k (m// v n)]) xs))}))
+                                      (m/+ sum (m/* cnt (m/dec (m/pow (m// cnt ^double (xhat k)) lambda))))) 0.0 xs))))
+        res {:stat stat :df df :n n :k n1 :r n2
+             :expected xhat
+             :estimate (into {} (map (fn [[k ^long v]] [k (m// v n)]) xs))}]
+    (if (m/== df 1)
+      (assoc res :yates (pdt-yates-stat xhat xs lambda))
+      res)))
 
 (defn power-divergence-test
   "Performs a power divergence test, which encompasses several common statistical tests
@@ -6475,25 +6500,33 @@
   - `:estimate`: Observed proportions.
   - `:expected`: Expected counts or proportions under the null hypothesis.
   - `:confidence-interval`: Bootstrap confidence intervals for the observed proportions.
-  - `:lambda`, `:alpha`, `:sides`, `:ci-sides`: Input options used."
+  - `:lambda`, `:alpha`, `:sides`, `:ci-sides`: Input options used.
+  - `:yates`, `:yates-p-value`: Present only for a test for independence on a 2x2 contingency table
+    (i.e. `:df` is `1`). `:yates` is the same `:lambda`-family statistic recomputed after applying
+    Yates' continuity correction (each cell's observed count is shifted towards its expected count
+    by `min(0.5, |observed-expected|)`), matching R's `chisq.test(correct=TRUE)` and SciPy's
+    `chi2_contingency(correction=True)`. `:yates-p-value` is the corresponding p-value. The
+    correction is not applied (and these keys are absent) for larger tables or for goodness-of-fit
+    tests, matching the reference implementations above."
   ([contingency-table-or-xs] (power-divergence-test contingency-table-or-xs {}))
   ([contingency-table-or-xs {:keys [^double lambda ci-sides sides p ^double alpha ^long bootstrap-samples
                                     ^long ddof bins]
                              :or {lambda m/TWO_THIRD sides :one-sided-greater ci-sides :two-sided
                                   alpha 0.05 bootstrap-samples 1000 ddof 0}}]
-   (let [{:keys [df stat] :as res} (-> (cond
-                                         (and p (r/distribution? p))
-                                         (pdt-distribution contingency-table-or-xs p bins lambda)
+   (let [{:keys [df stat yates] :as res} (-> (cond
+                                                (and p (r/distribution? p))
+                                                (pdt-distribution contingency-table-or-xs p bins lambda)
 
-                                         (and (sequential? contingency-table-or-xs)
-                                              (every? number? contingency-table-or-xs))
-                                         (pdt-gof contingency-table-or-xs p lambda)
+                                                (and (sequential? contingency-table-or-xs)
+                                                     (every? number? contingency-table-or-xs))
+                                                (pdt-gof contingency-table-or-xs p lambda)
 
-                                         :else (pdt-multi contingency-table-or-xs lambda))
-                                       (update :df (fn [^long df] (m/- df ddof))))
+                                                :else (pdt-multi contingency-table-or-xs lambda))
+                                              (update :df (fn [^long df] (m/- df ddof))))
          distr (r/distribution :chi-squared {:degrees-of-freedom df})
-         res (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (m/- 1.0 alpha)
-                    :p-value (p-value distr stat sides))]
+         res (cond-> (assoc res :lambda lambda :sides sides :test-type sides :ci-sides ci-sides :chi2 stat :alpha alpha :level (m/- 1.0 alpha)
+                            :p-value (p-value distr stat sides))
+               yates (assoc :yates-p-value (p-value distr yates sides)))]
      (assoc res :confidence-interval (pdt-bootstrap-ci res bootstrap-samples)))))
 
 (defn chisq-test
