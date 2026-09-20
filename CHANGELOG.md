@@ -5,8 +5,13 @@ All notable changes to this project will be documented in this file. This change
 
 ### Added
 
+* `fastmath.optimization.problems` - derivatives (`dproblemXX`) for all univariate test functions, plus previously missing `problem08`, `problem10`-`problem15`, `problem18`, `problem20`-`problem22`
 * `fastmath.stats/anova-eta-sq`, `anova-omega-sq`, `anova-epsilon-sq`, `anova-cohens-f2`, `anova-cohens-f` - correlation ratio effect sizes for one-way ANOVA (genuine multi-group design, as opposed to the pairwise-regression-based `eta-sq`/`omega-sq`/`epsilon-sq`)
 * `fastmath.stats/entropy`, `joint-entropy`, `mutual-information`, `theils-u` - Shannon entropy and Theil's U (uncertainty coefficient) for categorical association
+
+### Fixed
+
+* `fastmath.stats/cramers-v-corrected` silently ignored the Bergsma bias-correction term (returning the same value as uncorrected `cramers-v`) whenever the correction was less than 1, due to an integer-truncating division bug
 
 ## [3.0.0 alpha9]
 

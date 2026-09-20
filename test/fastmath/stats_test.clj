@@ -144,6 +144,20 @@
   (t/is (m/delta= -1.9568811 (sut/cohens-q (mtcars :mpg)
                                            (mtcars :cyl) (mtcars :am)))))
 
+;; nominal association (chi-squared based)
+;; reference values from R: DescTools::{CramerV,ContCoef,TschuprowT}(mtcars$cyl, mtcars$am),
+;; cross-checked against Python's dython.nominal.cramers_v(bias_correction=False) (dython's default
+;; bias_correction=True additionally applies scipy's Yates continuity correction for 2x2 tables,
+;; which is not applicable here since cyl has 3 levels)
+
+(t/deftest nominal-association-test
+  (t/are [f res] (m/delta= res (f (mtcars :cyl) (mtcars :am)))
+    sut/cramers-v           0.5226355372
+    sut/cramers-v-corrected 0.4643125760
+    sut/cramers-c           0.4631903544
+    sut/tschuprows-t        0.4394823497
+    sut/cohens-w            0.5226355372))
+
 ;; kruskal effect size
 
 (t/deftest effect-size-kruskal

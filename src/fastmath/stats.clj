@@ -4316,12 +4316,13 @@
   (^double [group1 group2] (cramers-v-corrected (contingency-table group1 group2)))
   (^double [contingency-table]
    (let [{:keys [^double chi2 ^long k ^long r ^long n]} (chisq-test (infer-ct contingency-table))
-         k1 (m/dec k)
-         r1 (m/dec r)
-         n1 (m/dec n)
-         phi2_ (m/max 0.0 (m/- (m// chi2 n) (m// (m/* k1 r1) n1)))
-         k_ (m/- k (m// (m/* k1 k1) n1))
-         r_ (m/- r (m// (m/* r1 r1) n1))]
+         dk (double k) dr (double r) dn (double n)
+         k1 (m/dec dk)
+         r1 (m/dec dr)
+         n1 (m/dec dn)
+         phi2_ (m/max 0.0 (m/- (m// chi2 dn) (m// (m/* k1 r1) n1)))
+         k_ (m/- dk (m// (m/* k1 k1) n1))
+         r_ (m/- dr (m// (m/* r1 r1) n1))]
      (m/sqrt (m// phi2_
                   (m/min (m/dec k_) (m/dec r_)))))))
 
@@ -7261,4 +7262,3 @@
    (box-cox-transformation xs lambda {:negative? true}))
   ([xs ^double lambda ^double alpha]
    (box-cox-transformation xs lambda {:negative? true :alpha alpha})))
-
