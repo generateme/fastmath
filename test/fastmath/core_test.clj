@@ -361,6 +361,40 @@
     (t/is (m/delta-eq avercos-ref (m/avercos x) 1.0e-9 1.0e-9) (str "avercos " x))
     (t/is (m/delta-eq acovercos-ref (m/acovercos x) 1.0e-9 1.0e-9) (str "acovercos " x))))
 
+;; Reference: Python math ((1-cos(x))/2, (1-sin(x))/2, (1+cos(x))/2,
+;; (1+sin(x))/2 and their arc-function compositions), same relative-tolerance
+;; discipline. haversin4/haversine-dist cross-checked against an
+;; independently-reimplemented (sin(dlat/2)^2 + cos.cos.sin(dlon/2)^2) form of
+;; the haversine great-circle formula, and against the real-world
+;; London-to-Paris distance (~343.6km, a known value, not derived from this code).
+(t/deftest historical-trig-haversine-family
+  (doseq [[x hv-ref hcv-ref hvc-ref hcvc-ref]
+          [[0.5 0.06120871905481362 0.2602872306978985 0.9387912809451864 0.7397127693021015]
+           [1.0 0.22984884706593012 0.07926450759605175 0.7701511529340699 0.9207354924039483]
+           [-0.7 0.11757890635775575 0.8221088436188455 0.8824210936422443 0.1778911563811545]
+           [2.0 0.7080734182735712 0.045351286587159145 0.2919265817264288 0.9546487134128409]]]
+    (t/is (m/delta-eq hv-ref (m/haversin x) 1.0e-9 1.0e-9) (str "haversin " x))
+    (t/is (m/delta-eq hcv-ref (m/hacoversin x) 1.0e-9 1.0e-9) (str "hacoversin " x))
+    (t/is (m/delta-eq hvc-ref (m/havercos x) 1.0e-9 1.0e-9) (str "havercos " x))
+    (t/is (m/delta-eq hcvc-ref (m/hacovercos x) 1.0e-9 1.0e-9) (str "hacovercos " x)))
+  (doseq [[x ahv-ref ahcv-ref ahvc-ref ahcvc-ref]
+          [[0.1 0.6435011087932843 0.9272952180016123 2.498091544796509 -0.9272952180016123]
+           [0.4 1.369438406004566 0.20135792079033074 1.7721542475852274 -0.20135792079033074]
+           [0.9 2.498091544796509 -0.9272952180016123 0.6435011087932843 0.9272952180016123]]]
+    (t/is (m/delta-eq ahv-ref (m/ahaversin x) 1.0e-9 1.0e-9) (str "ahaversin " x))
+    (t/is (m/delta-eq ahcv-ref (m/ahacoversin x) 1.0e-9 1.0e-9) (str "ahacoversin " x))
+    (t/is (m/delta-eq ahvc-ref (m/ahavercos x) 1.0e-9 1.0e-9) (str "ahavercos " x))
+    (t/is (m/delta-eq ahcvc-ref (m/ahacovercos x) 1.0e-9 1.0e-9) (str "ahacovercos " x)))
+  (t/is (= m/haversine m/haversin) "haversine is an alias of haversin")
+  (let [lat1 (m/radians 51.5074), lon1 (m/radians -0.1278)
+        lat2 (m/radians 48.8566), lon2 (m/radians 2.3522)]
+    (t/is (m/delta-eq 7.267997734171929e-4 (m/haversin lat1 lon1 lat2 lon2) 1.0e-9 1.0e-9))
+    (t/is (m/== (m/haversin lat1 lon1 lat2 lon2) (m/haversin [lat1 lon1] [lat2 lon2])))
+    (t/is (m/delta-eq 0.053924982002988786 (m/haversine-dist lat1 lon1 lat2 lon2) 1.0e-9 1.0e-9))
+    (t/is (m/== (m/haversine-dist lat1 lon1 lat2 lon2) (m/haversine-dist [lat1 lon1] [lat2 lon2])))
+    (t/is (m/delta-eq 343.55606034104153 (* (m/haversine-dist lat1 lon1 lat2 lon2) 6371.0) 1.0e-6)
+          "London-Paris great-circle distance, known real-world value ~343.6km")))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

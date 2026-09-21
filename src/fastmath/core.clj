@@ -1493,7 +1493,17 @@
   ^double [^double x] (FastMath/asin (dec x)))
 
 (defn haversin
-  "Haversine formula for value or lattitude and longitude pairs."
+  "Computes the haversine of `x`, `haversin(x) = (1 - cos(x))/2`, or the haversine-formula central angle between two latitude/longitude points (in radians).
+
+  Parameters:
+
+  - `x` (double): angle in radians, for the 1-arity form.
+  - `[lat1 lon1]`, `[lat2 lon2]` (pairs of doubles): coordinates in radians, for the 2-arity form.
+  - `lat1`, `lon1`, `lat2`, `lon2` (doubles): coordinates in radians, for the 4-arity form.
+
+  Returns the haversine value as a double, always in `[0, 1]`. For the 2- and 4-arity forms, returns the haversine of the central angle between the two points, via `hav(dlat) + cos(lat1)*cos(lat2)*hav(dlon)`.
+
+  See also [[haversine]] (alias), [[haversine-dist]], [[versin]]."
   {:inline (fn [x] `(* 0.5 (- 1.0 (cos (double ~x)))))
    :inline-arities #{1}}
   (^double [^double x] (* 0.5 (- 1.0 (FastMath/cos x))))
@@ -1508,43 +1518,99 @@
 (def ^{:doc "Haversine ([[haversin]] alias)"} haversine haversin)
 
 (defn hacoversin
-  "Hacoversine"
+  "Computes the hacoversine of `x`, `hacoversin(x) = (1 - sin(x))/2`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the hacoversine as a double, always in `[0, 1]`.
+
+  See also [[ahacoversin]], [[coversin]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (- 1.0 (sin (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (* 0.5 (- 1.0 (FastMath/sin x))))
 
 (defn havercos
-  "Havercosine"
+  "Computes the havercosine of `x`, `havercos(x) = (1 + cos(x))/2`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the havercosine as a double, always in `[0, 1]`.
+
+  See also [[ahavercos]], [[vercos]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (inc (cos (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (* 0.5 (inc (FastMath/cos x))))
 
 (defn hacovercos
-  "Hacovercosine"
+  "Computes the hacovercosine of `x`, `hacovercos(x) = (1 + sin(x))/2`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the hacovercosine as a double, always in `[0, 1]`.
+
+  See also [[ahacovercos]], [[covercos]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (inc (sin (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (* 0.5 (inc (FastMath/sin x))))
 
 (defn ahaversin
-  "Arc haversine"
+  "Computes the arc (inverse) haversine of `x`, `ahaversin(x) = acos(1 - 2x)`.
+
+  Parameters:
+
+  - `x` (double): haversine value; must satisfy `0 <= x <= 1` for a real result.
+
+  Returns the angle in radians as a double, in `[0, π]`. Returns `##NaN` outside the domain.
+
+  See also [[haversin]], [[ahacoversin]], [[ahavercos]]."
   {:inline (fn [x] `(acos (- 1.0 (* 2.0 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acos (- 1.0 (* 2.0 x))))
 
 (defn ahacoversin
-  "Arc hacoversine"
+  "Computes the arc (inverse) hacoversine of `x`, `ahacoversin(x) = asin(1 - 2x)`.
+
+  Parameters:
+
+  - `x` (double): hacoversine value; must satisfy `0 <= x <= 1` for a real result.
+
+  Returns the angle in radians as a double, in `[-π/2, π/2]`. Returns `##NaN` outside the domain.
+
+  See also [[hacoversin]], [[ahaversin]], [[ahacovercos]]."
   {:inline (fn [x] `(asin (- 1.0 (* 2.0 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/asin (- 1.0 (* 2.0 x))))
 
 (defn ahavercos
-  "Arc havecosine"
+  "Computes the arc (inverse) havercosine of `x`, `ahavercos(x) = acos(2x - 1)`.
+
+  Parameters:
+
+  - `x` (double): havercosine value; must satisfy `0 <= x <= 1` for a real result.
+
+  Returns the angle in radians as a double, in `[0, π]`. Returns `##NaN` outside the domain.
+
+  See also [[havercos]], [[ahaversin]], [[ahacovercos]]."
   {:inline (fn [x] `(acos (dec (* 2.0 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acos (dec (* 2.0 x))))
 
 (defn ahacovercos
-  "Arc hacovercosine"
+  "Computes the arc (inverse) hacovercosine of `x`, `ahacovercos(x) = asin(2x - 1)`.
+
+  Parameters:
+
+  - `x` (double): hacovercosine value; must satisfy `0 <= x <= 1` for a real result.
+
+  Returns the angle in radians as a double, in `[-π/2, π/2]`. Returns `##NaN` outside the domain.
+
+  See also [[hacovercos]], [[ahacoversin]], [[ahavercos]]."
   {:inline (fn [x] `(asin (dec (* 2.0 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/asin (dec (* 2.0 x))))
@@ -1574,7 +1640,16 @@
   ^double [^double x] (acsc (inc x)))
 
 (defn haversine-dist
-  "Haversine distance `d` for `r=1`"
+  "Computes the great-circle distance between two latitude/longitude points on a unit sphere (`r=1`), using the haversine formula.
+
+  Parameters:
+
+  - `[lat1 lon1]`, `[lat2 lon2]` (pairs of doubles): coordinates in radians, for the 2-arity form.
+  - `lat1`, `lon1`, `lat2`, `lon2` (doubles): coordinates in radians, for the 4-arity form.
+
+  Returns the great-circle distance in radians as a double (the central angle between the two points). Multiply by a sphere's radius to get the distance in that radius's units (e.g. multiply by Earth's mean radius, ~6371 km, for a distance in kilometers).
+
+  See also [[haversin]]."
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
    (haversine-dist lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
