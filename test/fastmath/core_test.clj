@@ -411,6 +411,29 @@
     (t/is (m/delta-eq aexsec-ref (m/aexsec x) 1.0e-9 1.0e-9) (str "aexsec " x))
     (t/is (m/delta-eq aexcsc-ref (m/aexcsc x) 1.0e-9 1.0e-9) (str "aexcsc " x))))
 
+;; Reference: Python math.log (1-arg and change-of-base), and an
+;; expm1-based (accurate, not naive exp(x)-1) reimplementation of exprel for
+;; the near-zero and large-x branches. Constants cross-checked against
+;; Python math.log applied to the same arguments.
+(t/deftest exp-log-core
+  (doseq [[x ref] [[0.5 -0.6931471805599453] [1.0 0.0] [2.718281828459045 1.0]
+                   [10.0 2.302585092994046] [100.0 4.605170185988092]]]
+    (t/is (m/delta-eq ref (m/log x) 1.0e-9 1.0e-9) (str "log " x)))
+  (doseq [[base x ref] [[2 8 3.0] [10 1000 2.9999999999999996] [3 27 3.0] [5 0.2 -1.0]]]
+    (t/is (m/delta-eq ref (m/log base x) 1.0e-9 1.0e-9) (str "log " base " " x)))
+  (doseq [[x ref] [[0.0 1.0] [1.0e-20 1.0] [1.0 1.718281828459045] [-1.0 0.6321205588285577]
+                   [10.0 2202.546579480672] [-10.0 0.09999546000702375]
+                   [700.0 1.4489029353357207e+301] [720.0 ##Inf] [1.0e-8 1.0000000050000002]]]
+    (t/is (m/delta-eq ref (m/exprel x) 1.0e-9 1.0e-9) (str "exprel " x)))
+  (t/is (m/delta-eq 0.6931471805599453 m/LN2 1.0e-9))
+  (t/is (m/delta-eq 1.4426950408889634 m/INV_LN2 1.0e-9))
+  (t/is (m/delta-eq 0.34657359027997264 m/LN2_2 1.0e-9))
+  (t/is (m/delta-eq 2.302585092994046 m/LN10 1.0e-9))
+  (t/is (m/delta-eq -1.4426950408889634 m/INV_LOG_HALF 1.0e-9))
+  (t/is (m/delta-eq -0.6931471805599453 m/LOG_HALF 1.0e-9))
+  (t/is (m/delta-eq 1.1447298858494002 m/LOG_PI 1.0e-9))
+  (t/is (m/delta-eq 1.8378770664093453 m/LOG_TWO_PI 1.0e-9)))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

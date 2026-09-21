@@ -1708,7 +1708,16 @@
   ^double [^double x] (. Math (pow 10.0 x)))
 
 (defn log
-  "log(x)=ln(x) or logarithm with given `base`."
+  "Computes the natural logarithm of `x`, or the logarithm of `x` with a given `base`.
+
+  Parameters:
+
+  - `x` (double): value to take the logarithm of; must be positive for a real result.
+  - `base`, `x` (doubles), 2-arity: computes `log(x)/log(base)` (change of base).
+
+  Returns the logarithm as a double. Returns `##NaN` for `x < 0`, and `##-Inf` for `x = 0`, matching `FastMath/log`'s IEEE 754 behavior.
+
+  See also [[ln]] (alias, 1-arity only), [[log10]], [[log2]], [[logb]], [[log1p]]."
   {:inline (fn ([x] `(. FastMath (log (double ~x))))
              ([base x] `(/ (. FastMath (log (double ~x))) (. FastMath (log (double ~base))))))
    :inline-arities #{1 2}}
@@ -1740,12 +1749,20 @@
   ^double [^double x] (. FastMath (expm1 x)))
 
 (defn exprel
-  "(exp(x)-1)/x"
+  "Computes `(exp(x) - 1) / x`, the relative rate of change of `exp` -- numerically stable near `x=0`, where the naive formula suffers catastrophic cancellation.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double. Returns exactly `1.0` for `|x|` below `10` times machine epsilon (the correct limiting value as `x -> 0`), and `##Inf` for `x > 717.0` (avoiding `exp` overflow before it would occur), otherwise computes `expm1(x)/x` directly.
+
+  See also [[expm1]], [[exp]]."
   {:inline (fn [x] `(let [x# (double ~x)]
                      (cond
                        (< (. FastMath abs x#) MACHINE-EPSILON10) 1.0
                        (> x# 717.0) ##Inf
-                       :else (. FastMath (expm1 x#)))))
+                       :else (/ (. FastMath (expm1 x#)) x#))))
    :inline-arities #{1}}
   ^double [^double x]
   (cond

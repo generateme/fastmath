@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.core/long-mult`'s non-inlined 3-arity body computed `(a*b)+c` instead of `(a*b)*c`; masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use
 * `fastmath.core/==`, `eq`, `<`, `>`, `<=`, `>=`'s non-inlined 3+-arity bodies never compared the 2nd argument against the 3rd (e.g. `(apply m/< [1 2 0])` returned `true`); masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use; `not==` was unaffected
 * `fastmath.core/-THIRD_PI` computed `(/ -PI -3.0)` (double negative cancelling out to `+π/3`) instead of `-π/3`, unlike its correctly-negative siblings `-HALF_PI`/`-QUARTER_PI`
+* `fastmath.core/exprel`'s `:inline` template computed `expm1(x)` instead of `expm1(x)/x` for its general-case branch (the division was missing), so any direct (inlined) call with a non-trivial `x` silently returned the wrong value; the non-inlined function body was correct, so the bug was only visible on ordinary direct calls, not via `apply`/`reduce`/higher-order use — the opposite masking pattern from the earlier `long-mult`/`==`/`<`-family bugs
 
 ## [3.0.0 alpha9]
 
