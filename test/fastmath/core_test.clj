@@ -556,11 +556,17 @@
   (t/is (m/delta-eq 180.0 (m/degrees m/PI)))
   (t/is (m/delta-eq m/PI (m/radians 180.0))))
 
+;; Reference: hand-computed (magnitude-of-remainder-after-truncation-towards-zero).
 (t/deftest frac
   (t/is (m/== 0.342225 (m/frac 3.342225)))
   (t/is (m/== 0.342225 (m/frac -3.342225)))
+  (t/is (m/== 0.0 (m/frac 0.0)))
+  (t/is (m/== 0.0 (m/frac 5.0)))
   (t/is (m/== 0.342225 (m/sfrac 3.342225)))
-  (t/is (m/== -0.342225 (m/sfrac -3.342225))))
+  (t/is (m/== -0.342225 (m/sfrac -3.342225)))
+  (t/is (m/== 0.0 (m/sfrac 0.0)))
+  (t/is (m/== (m/frac -3.342225) (apply m/frac [-3.342225])))
+  (t/is (m/== (m/sfrac -3.342225) (apply m/sfrac [-3.342225]))))
 
 (t/deftest round-up-down
   (t/is (m/> (m/next-double 4.44) 4.44))
@@ -737,3 +743,31 @@
   ;; cases are the ones the bug corrupted
   (doseq [[v ref] [[3.7 3] [-3.7 -3] [0.0 0] [-0.5 0] [0.5 0] [-2.0 -2] [2.0 2] [-1.0 -1] [1.0 1]]]
     (t/is (m/== ref (m/itrunc v)) (str "itrunc " v))))
+
+;; Reference: hand-computed. `approx` cross-checked against Python's
+;; decimal.ROUND_HALF_UP on the double's canonical (repr) string, matching
+;; Apache Commons Precision.round's string-based rounding (avoids binary
+;; floating-point representation artifacts, e.g. approx(-2.005, 2) => -2.01,
+;; not -2.0, because commons-math parses the canonical decimal string rather
+;; than the raw binary value of -2.005).
+(t/deftest approx-eq-delta-eq-near-zero
+  (doseq [[v digits ref] [[3.14159 nil 3.14] [3.14159 4 3.1416] [-2.005 2 -2.01] [2.5 0 3.0]]]
+    (t/is (m/== ref (if digits (m/approx v digits) (m/approx v))) (str "approx " v " " digits)))
+  (t/is (m/== 1200.0 (m/approx 1234.5 -2)) "negative digits round to a power-of-ten multiple")
+  (t/is (m/approx-eq 1.001 1.002))
+  (t/is (not (m/approx-eq 1.001 1.002 3)))
+  (t/is (m/approx-eq 1.0 1.0))
+  (t/is (m/approx= 1.001 1.002) "approx= is an alias for approx-eq")
+  (t/is (not (m/approx-eq 1.004999 1.005001)) "boundary straddle: extremely close values can round to different buckets")
+  (t/is (m/delta-eq 1.0 1.0000001))
+  (t/is (not (m/delta-eq 1.0 1.001)))
+  (t/is (m/delta-eq 1.0 1.1 0.2))
+  (t/is (m/delta-eq 1000.0 1000.5 1.0e-6 1.0e-3))
+  (t/is (not (m/delta-eq 1000.0 1002.0 1.0e-6 1.0e-3)))
+  (t/is (m/delta= 1.0 1.0000001) "delta= is an alias for delta-eq")
+  (t/is (m/near-zero? 1.0e-7))
+  (t/is (not (m/near-zero? 1.0e-5)))
+  (t/is (m/near-zero? 100.0 200.0) "abs-tol alone can widen the threshold")
+  (t/is (not (m/near-zero? 100.0 1.0e-6 1.0e-2))
+        "rel-tol scaled by |x| itself can only ever widen the threshold when rel-tol >= 1.0 -- a documented no-op for realistic (< 1.0) values")
+  (t/is (m/near-zero? 100.0 1.0e-6 1.5) "rel-tol >= 1.0 is the only case where the relative term has any effect"))

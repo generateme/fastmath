@@ -2914,16 +2914,32 @@
 
 ;; return approximate value
 (defn approx
-  "Round `v` to specified (default: 2) decimal places. Be aware of floating point number accuracy."
+  "Rounds `v` to a given number of decimal places, half-up.
+
+  Parameters:
+
+  - `v` (double): the number to round.
+  - `digits` (long, optional, default `2`): number of decimal places to keep. `0` rounds to the nearest integer; negative values round to the nearest multiple of a power of ten (e.g. `-1` rounds to the nearest 10).
+
+  Returns the rounded value as a double.
+
+  See also [[approx-eq]], [[delta-eq]]."
   (^double [^double v] (Precision/round v (int 2)))
   (^double [^double v ^long digits] (Precision/round v (int digits))))
 
 (defn approx-eq
-  "Checks equality approximately up to selected number of digits (2 by default).
+  "Checks whether `a` and `b` round to the same value at a given number of decimal places.
 
-  It can be innacurate due to the algorithm used. Use [[delta-eq]] instead.  
+  Parameters:
 
-  See [[approx]]."
+  - `a`, `b` (doubles): the two numbers to compare.
+  - `digits` (long, optional, default `2`): number of decimal places used for rounding (see [[approx]]).
+
+  Returns `true` if `(== a b)`, or if [[approx]] of `a` and `b` are equal at the given number of digits. Returns `false` otherwise.
+
+  This equality check can be inaccurate near a rounding boundary: `1.004999` and `1.005001` differ by only `0.000002` but round to `1.0` and `1.01` respectively at 2 digits, so `approx-eq` reports them as unequal -- prefer [[delta-eq]] for a tolerance-based comparison.
+
+  See also [[approx]], [[delta-eq]]."
   ([^double a ^double b] (or (== (approx a) (approx b)) (== a b)))
   ([^double a ^double b ^long digits] (or (== (approx a digits)
                                               (approx b digits))
@@ -2949,18 +2965,46 @@
 (def ^{:doc "Alias for [[delta-eq]]"} delta= delta-eq)
 
 (defn near-zero?
-  "Checks if given value is near zero with absolute (default: `1.0e-6`) and/or relative (default `0.0`) tolerance."
+  "Checks whether `x` is close enough to zero to be treated as zero.
+
+  Parameters:
+
+  - `x` (double): the value to check.
+  - `abs-tol` (double, optional, default `1.0e-6`): absolute tolerance.
+  - `rel-tol` (double, optional, default `0.0`): relative tolerance, scaled by `(abs x)` itself.
+
+  Returns `true` if `(abs x)` is less than `(max abs-tol (* rel-tol (abs x)))`, `false` otherwise.
+
+  Since the relative-tolerance term is scaled by `x`'s own magnitude, it can only widen the threshold beyond `abs-tol` when `rel-tol` is `1.0` or greater -- for any smaller (i.e. any realistic) `rel-tol`, the 3-arity form behaves identically to the 2-arity form and `rel-tol` has no effect. This mirrors the standard convention that a relative tolerance compared against a target of zero contributes nothing.
+
+  See also [[delta-eq]]."
   ([^double x] (near-zero? x 1.0e-6))
   ([^double x ^double abs-tol] (< (Math/abs x) abs-tol))
   ([^double x ^double abs-tol ^double rel-tol]
    (let [ax (Math/abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
 
 (defn frac
-  "Fractional part, always returns values from 0.0 to 1.0 (exclusive). See [[sfrac]] for signed version."
+  "Unsigned fractional part of `v`.
+
+  Parameters:
+
+  - `v` (double): the input value.
+
+  Returns `(abs (- v (long v)))`, i.e. the magnitude of the part of `v` remaining after truncation towards zero. Always in the range `[0.0, 1.0)`.
+
+  See also [[sfrac]] for the signed version."
   ^double [^double v] (Math/abs (- v (unchecked-long v))))
 
 (defn sfrac
-  "Fractional part, always returns values from -1.0 to 1.0 (exclusive). See [[frac]] for unsigned version."
+  "Signed fractional part of `v`.
+
+  Parameters:
+
+  - `v` (double): the input value.
+
+  Returns `(- v (trunc v))`, i.e. the part of `v` remaining after truncation towards zero, keeping `v`'s sign. Always in the range `(-1.0, 1.0)`.
+
+  See also [[frac]] for the unsigned version."
   ^double [^double v] (- v (trunc v)))
 
 ;; Find power of 2 exponent for double number where  

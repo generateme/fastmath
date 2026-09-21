@@ -85,6 +85,10 @@
 (def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :lbfgsb})
 (def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
 
+#_(defn brent
+    [target {:keys [^double rel ^double abs checker bounds init goal scalar?]}])
+
+
 (defn- ->brent
   [{:keys [^double rel ^double abs]
     :or {rel 1.0e-6  abs 1.0e-10}}]
