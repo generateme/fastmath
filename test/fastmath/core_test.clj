@@ -607,4 +607,14 @@
     18 43867/798
     20 -174611/330)
   (t/are [n] (m/zero? (m/bernoulli n))
-    3 5 7 9 11 13 15 17 19 21))
+    3 5 7 9 11 13 15 17 19 21)
+  ;; Reference: Python mpmath.bernoulli(n) (50-digit precision), extending
+  ;; coverage well beyond n=21 above. mpmath uses the B_1=-1/2 convention
+  ;; (fastmath documents B_1=+1/2); all n!=1 agree between conventions, so
+  ;; n=1 is intentionally excluded from this cross-check.
+  (t/are [n ref] (m/delta-eq ref (m/bernoulli n) 1.0e-6 1.0e-9)
+    22 6192.123188405797
+    24 -86580.25311355312
+    30 6.015808739006424e8
+    40 -1.929657934194007e16
+    50 7.500866746076964e24))
