@@ -2614,31 +2614,71 @@
 
 ;; Square and cubic
 (defn sq
-  "x^2, x*x"
+  "Computes `x^2` (`x*x`).
+
+  Parameters:
+
+  - `x` (double): value to square.
+
+  Returns the result as a double.
+
+  See also [[pow2]] (identical implementation), [[cb]], [[pow]]."
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x))
 
 (defn pow2
-  "x^2, x*x"
+  "Computes `x^2` (`x*x`). Identical implementation to [[sq]].
+
+  Parameters:
+
+  - `x` (double): value to square.
+
+  Returns the result as a double.
+
+  See also [[sq]], [[pow3]], [[pow]]."
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x))
 
 (defn cb
-  "x^3"
+  "Computes `x^3` (`x*x*x`).
+
+  Parameters:
+
+  - `x` (double): value to cube.
+
+  Returns the result as a double.
+
+  See also [[pow3]] (identical implementation), [[sq]], [[pow]]."
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x x))
 
 (defn pow3
-  "x^3"
+  "Computes `x^3` (`x*x*x`). Identical implementation to [[cb]].
+
+  Parameters:
+
+  - `x` (double): value to cube.
+
+  Returns the result as a double.
+
+  See also [[cb]], [[pow2]], [[pow]]."
   {:inline (fn [x] `(let [x# (double ~x)] (* x# x# x#)))
    :inline-arities #{1}}
   ^double [^double x] (* x x x))
 
 (defn pow10
-  "x^10"
+  "Computes `x^10`.
+
+  Parameters:
+
+  - `x` (double): value to raise to the 10th power.
+
+  Returns the result as a double, computed as `((x^3)^3)*x` to minimize the number of multiplications.
+
+  See also [[pow]], [[pow3]]."
   {:inline (fn [x] `(let [x# (double ~x)
                          v# (* x# x# x#)]
                      (* v# v# v# x#)))
@@ -2646,7 +2686,15 @@
   ^double [^double x] (let [v (* x x x)] (* v v v x)))
 
 (defn safe-sqrt
-  "Safe sqrt, for value <= 0 result is 0."
+  "Computes `sqrt(x)`, returning `0.0` instead of `##NaN` for negative `x`.
+
+  Parameters:
+
+  - `value` (double): value to take the square root of.
+
+  Returns the result as a double, `0.0` when `value` is negative.
+
+  See also [[sqrt]], [[qsqrt]]."
   ^double [^double value]
   (if (neg? value) 0.0 (FastMath/sqrt value)))
 
@@ -2690,7 +2738,16 @@
 
 ;; distance
 (defn dist
-  "Euclidean distance between points `(x1,y1)` and `(x2,y2)`."
+  "Computes the Euclidean distance between two 2D points `(x1,y1)` and `(x2,y2)`.
+
+  Parameters:
+
+  - `[x1 y1]`, `[x2 y2]` (pairs of doubles): the two points, for the 2-arity form.
+  - `x1`, `y1`, `x2`, `y2` (doubles): the two points' coordinates directly, for the 4-arity form.
+
+  Returns the distance as a double.
+
+  See also [[qdist]] (fast, less accurate version), [[hypot-sqrt]]."
   {:inline (fn [x1 y1 x2 y2] `(hypot-sqrt (- ~x2 ~x1) (- ~y2 ~y1)))
    :inline-arities #{4}}
   (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (dist x1 y1 x2 y2))
@@ -2698,7 +2755,16 @@
    (FastMath/sqrt (+ (sq (- x2 x1)) (sq (- y2 y1))))))
 
 (defn qdist
-  "Quick version of Euclidean distance between points. [[qsqrt]] is used instead of [[sqrt]]."
+  "Computes the Euclidean distance between two 2D points, using [[qsqrt]] instead of `sqrt` for a faster, less accurate result.
+
+  Parameters:
+
+  - `[x1 y1]`, `[x2 y2]` (pairs of doubles): the two points, for the 2-arity form.
+  - `x1`, `y1`, `x2`, `y2` (doubles): the two points' coordinates directly, for the 4-arity form.
+
+  Returns the approximate distance as a double.
+
+  See also [[dist]], [[qsqrt]]."
   {:inline (fn [x1 y1 x2 y2] `(. FastMath (sqrtQuick (+ (sq (- ~x2 ~x1)) (sq (- ~y2 ~y1))))))
    :inline-arities #{4}}
   (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (qdist x1 y1 x2 y2))

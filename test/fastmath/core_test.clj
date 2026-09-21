@@ -667,3 +667,34 @@
   (t/is (m/== ##-Inf (m/log-combinations 5 10)))
   (t/is (m/== 0.0 (m/log-combinations 5 0)))
   (t/is (m/== 0.0 (m/log-combinations 5 5))))
+
+;; Reference: hand-computed powers; Python math.hypot/math.dist (authoritative
+;; library implementations); direct sqrt-of-sum-of-squares for hypot-sqrt.
+;; All checks below use direct calls (exercising :inline where present); the
+;; apply-based non-inlined path was separately confirmed identical at the
+;; REPL for every function with an :inline template before writing this
+;; deftest, per the Group 10a/12 lesson.
+(t/deftest squares-cubes-hypot-distance
+  (doseq [[x sq-ref cb-ref pow10-ref] [[3.0 9.0 27.0 59049.0] [-2.5 6.25 -15.625 9536.7431640625]
+                                       [0.0 0.0 0.0 0.0] [1.5 2.25 3.375 57.6650390625]]]
+    (t/is (m/== sq-ref (m/sq x)))
+    (t/is (m/== sq-ref (m/pow2 x)))
+    (t/is (m/== cb-ref (m/cb x)))
+    (t/is (m/== cb-ref (m/pow3 x)))
+    (t/is (m/delta-eq pow10-ref (m/pow10 x) 1.0e-9))
+    (t/is (m/== (m/sq x) (apply m/sq [x])) "inline path matches non-inlined path"))
+  (t/is (m/== 2.0 (m/safe-sqrt 4.0)))
+  (t/is (m/== 0.0 (m/safe-sqrt -4.0)))
+  (t/is (m/== 0.0 (m/safe-sqrt 0.0)))
+  (doseq [[x y ref] [[3.0 4.0 5.0] [1.0 1.0 1.4142135623730951] [1.0e200 1.0e200 1.414213562373095e200]]]
+    (t/is (m/delta-eq ref (m/hypot x y) 1.0e-9 1.0e-9) (str "hypot " x " " y)))
+  (doseq [[x y ref] [[3.0 4.0 5.0] [1.0 1.0 1.4142135623730951]]]
+    (t/is (m/delta-eq ref (m/hypot-sqrt x y) 1.0e-9 1.0e-9) (str "hypot-sqrt " x " " y)))
+  (t/is (m/== ##Inf (m/hypot-sqrt 1.0e200 1.0e200))
+        "naive sum-of-squares overflows at extreme magnitudes, unlike the stable hypot -- documented limitation, not a bug")
+  (t/is (m/delta-eq 13.0 (m/hypot 3.0 4.0 12.0) 1.0e-9))
+  (t/is (m/delta-eq 1.7320508075688772 (m/hypot 1.0 1.0 1.0) 1.0e-9))
+  (doseq [[x1 y1 x2 y2 ref] [[0.0 0.0 3.0 4.0 5.0] [1.0 1.0 4.0 5.0 5.0]]]
+    (t/is (m/delta-eq ref (m/dist x1 y1 x2 y2) 1.0e-9))
+    (t/is (m/== (m/dist x1 y1 x2 y2) (m/dist [x1 y1] [x2 y2])))
+    (t/is (m/delta-eq ref (m/qdist x1 y1 x2 y2) 1.0e-6 1.0e-2) "qdist has ~1% relative approximation error")))
