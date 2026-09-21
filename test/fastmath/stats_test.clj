@@ -529,6 +529,36 @@
   (t/is (m/delta= -1.9568811 (sut/cohens-q (mtcars :mpg)
                                            (mtcars :cyl) (mtcars :am)))))
 
+;; contingency-table builders and marginals
+;; reference values are manually-counted expected frequencies/sums (pure data-munging functions,
+;; independently hand-counted from the fixtures rather than via an external statistics package)
+
+(t/deftest contingency-table-builders-test
+  (t/is (= {:a 3 :b 2 :c 1} (sut/contingency-table [:a :b :a :c :a :b])))
+  (t/is (= {[:x 1] 3, [:y 2] 2, [:y 1] 1, [:x 2] 1}
+           (sut/contingency-table [:x :x :y :y :x :y :x] [1 1 2 1 2 2 1])))
+  (let [rows [[10 5 0] [3 12 7]]]
+    (t/is (= {[0 0] 10 [0 1] 5 [1 0] 3 [1 1] 12 [1 2] 7}
+             (sut/rows->contingency-table rows)))
+    (let [{:keys [rows cols n diag]} (sut/contingency-table->marginals rows)]
+      (t/is (= [[0 15.0] [1 22.0]] rows))
+      (t/is (= [[0 13.0] [1 17.0] [2 7.0]] cols))
+      (t/is (m/delta= 37.0 n))
+      (t/is (= [[[0 0] 10] [[1 1] 12]] diag)))))
+
+;; mcc (Matthews Correlation Coefficient)
+;; reference: 2x2 classic formula (a*d-b*c)/sqrt((a+b)(a+c)(b+d)(c+d)); RxC multiclass generalization
+;; cross-checked against Python sklearn.metrics.matthews_corrcoef on a 3-class confusion matrix,
+;; verified both via a pre-built confusion matrix and via the raw-label 2-sequence arity
+
+(t/deftest mcc-test
+  (t/is (m/delta= 0.6847367880 (sut/mcc [[30 10] [5 55]])))
+  (let [cm [[3 2 0] [0 2 2] [1 0 4]]
+        y-true [0 0 0 1 1 1 2 2 2 2 0 1 2 0]
+        y-pred [0 0 1 1 1 2 2 2 0 2 0 2 2 1]]
+    (t/is (m/delta= 0.4651302547 (sut/mcc cm)))
+    (t/is (m/delta= 0.4651302547 (sut/mcc y-true y-pred)))))
+
 ;; nominal association (chi-squared based)
 ;; reference values from R: DescTools::{CramerV,ContCoef,TschuprowT}(mtcars$cyl, mtcars$am),
 ;; cross-checked against Python's dython.nominal.cramers_v(bias_correction=False) (dython's default
@@ -564,11 +594,116 @@
       (t/is (not (contains? res :yates)))
       (t/is (not (contains? res :yates-p-value))))))
 
+;; remaining power-divergence lambda variants (lambda=-2,-1,-0.5,2/3), incl. the base
+;; power-divergence-test fn called directly (goodness-of-fit and independence dispatch branches)
+;; reference: independent Cressie-Read formula reimplementation in R:
+;;   lambda=0:  2*sum(obs*log(obs/exp))
+;;   lambda=-1: 2*sum(exp*log(exp/obs))
+;;   else:      (2/(lambda*(lambda+1))) * sum(obs*((obs/exp)^lambda - 1))
+;; applied manually to both a goodness-of-fit fixture (observed counts vs custom :p probabilities)
+;; and an independence (3x3 contingency table) fixture; also spot-checks Yates' correction
+;; generalizes correctly to lambda=-1 on a 2x2 table.
+
+(t/deftest power-divergence-remaining-lambdas-test
+  (let [obs [10 20 30 25 15]
+        p [0.15 0.25 0.30 0.20 0.10]]
+    (t/are [f stat] (let [res (f obs {:p p})]
+                      (and (m/delta= stat (:stat res)) (= 4 (:df res))))
+      sut/minimum-discrimination-information-test 6.2860865942
+      sut/neyman-modified-chisq-test              6.4166666667
+      sut/freeman-tukey-test                      6.2699441774
+      sut/cressie-read-test                       6.3583136471)
+    (t/is (m/delta= 6.2860865942 (:stat (sut/power-divergence-test obs {:p p :lambda -1.0}))))
+    (t/is (= 4 (:df (sut/power-divergence-test obs {:p p :lambda -1.0})))
+          "power-divergence-test's own goodness-of-fit dispatch branch"))
+  (let [tab [[20 15 30] [10 25 5] [8 12 22]]]
+    (t/are [f stat] (let [res (f tab)]
+                      (and (m/delta= stat (:stat res)) (= 4 (:df res)) (m/delta= 147.0 (:n res))))
+      sut/minimum-discrimination-information-test 27.8910368298
+      sut/neyman-modified-chisq-test              35.5357903623
+      sut/freeman-tukey-test                      25.7249037347
+      sut/cressie-read-test                       23.2659726491)
+    (t/is (m/delta= 27.8910368298 (:stat (sut/power-divergence-test tab {:lambda -1.0})))
+          "power-divergence-test's own independence dispatch branch"))
+  (t/testing "Yates' correction generalizes to lambda=-1 (minimum-discrimination-information-test)"
+    (let [res (sut/minimum-discrimination-information-test [[18 7] [5 20]])]
+      (t/is (m/delta= 15.9732388129 (:stat res)))
+      (t/is (m/delta= 13.2498081331 (:yates res))))))
+
+;; power-divergence-test's third dispatch branch: raw data + a distribution object + :bins
+;; (goodness-of-fit against a distribution's binned probability mass, via the private
+;; quantize-distribution helper). No independent R replication of the binning/RNG state is
+;; feasible here, so this is a composition check: the same expected counts are recomputed from
+;; scratch using fastmath's own already-independently-verified `histogram` (group 16) and
+;; `fastmath.random/cdf` (distribution namespace's own test suite), fed through the same
+;; Cressie-Read formula verified above, and compared against power-divergence-test's own result.
+
+(t/deftest power-divergence-distribution-gof-test
+  (let [distr (r/distribution :normal {:mu 0.0 :sd 1.0})
+        data (vec (r/->seq distr 200))
+        res (sut/power-divergence-test data {:p distr :bins 5 :lambda -1.0})
+        {:keys [step bins]} (sut/histogram data 5)
+        last-idx (dec (count bins))
+        counts (map second bins)
+        n (double (reduce + counts))
+        probs (map-indexed (fn [id [^double s]]
+                             (cond
+                               (= id 0) (r/cdf distr (+ s step))
+                               (= id last-idx) (- 1.0 (r/cdf distr s))
+                               :else (- (r/cdf distr (+ s step)) (r/cdf distr s))))
+                           bins)
+        expected (map #(* n %) probs)
+        manual-stat (* 2.0 (reduce + (map (fn [^double e ^double o] (* e (- (Math/log e) (Math/log o))))
+                                          expected counts)))]
+    (t/is (m/delta= manual-stat (:stat res)))
+    (t/is (= 4 (:df res)))
+    (t/is (m/delta= 200.0 (:n res)))))
+
+;; pairwise-regression correlation-based effect sizes
+;; reference values from R: lm(g1 ~ g2); manual SSreg/SStot/MSE formulas for omega2/epsilon2;
+;; cor(g1,g2) for pearson-r/r2-determination
+
+(t/deftest effect-size-pairwise-regression-test
+  (let [g1 [2.3 4.5 3.1 5.6 6.2 4.8 3.9 5.1 4.4 6.0]
+        g2 [1.1 2.5 1.8 3.2 3.9 2.7 2.1 3.0 2.4 3.5]]
+    (t/is (m/delta= 0.9914320117 (sut/pearson-r g1 g2)))
+    (t/is (m/delta= 0.9829374338 (sut/r2-determination g1 g2)))
+    (t/is (m/delta= 0.9829374338 (sut/eta-sq g1 g2)) "eta-sq equals r2-determination by construction")
+    (t/is (m/delta= 0.9787171847 (sut/omega-sq g1 g2)))
+    (t/is (m/delta= 0.9808046130 (sut/epsilon-sq g1 g2)))
+    (t/are [type f2 f] (and (m/delta= f2 (sut/cohens-f2 g1 g2 type))
+                           (m/delta= f (sut/cohens-f g1 g2 type)))
+      :eta     57.6078312108 7.5899822932
+      :omega   45.9862649686 6.7813173476
+      :epsilon 51.0958499652 7.1481361183)))
+
+;; cohens-q: difference of Fisher z-transformed correlations
+;; reference: R atanh(r1)-atanh(r2); 3-/4-arity checked structurally against fastmath's own
+;; already-verified pearson-correlation composed with atanh (R's RNG can't be reproduced in Clojure,
+;; so the composition itself, not a specific dataset, is the thing under test)
+
+(t/deftest cohens-q-test
+  (t/is (m/delta= 0.2397865401 (sut/cohens-q 0.5 0.3)))
+  (let [gg1 [1.2 3.4 2.1 5.6 4.4 3.3 6.1 2.8 4.9 3.7 5.2 1.9 4.1 3.0 5.8]
+        gg2a [2.1 4.0 1.8 5.2 4.9 2.7 6.5 3.1 4.2 3.9 5.5 2.2 3.8 2.9 6.0]
+        gg2b [6.0 1.1 5.5 2.0 1.9 4.8 0.9 5.1 2.5 3.6 1.2 5.9 3.0 4.5 0.8]
+        gg1b [3.1 2.2 4.5 1.8 5.0 2.9 3.6 4.1 2.0 5.3 1.5 3.8 2.6 4.9 3.3]
+        gg2bb [1.9 4.2 2.1 5.5 1.2 4.8 2.7 3.0 5.1 1.6 4.4 2.3 5.0 1.8 3.5]
+        ra (sut/pearson-correlation gg1 gg2a)
+        rb (sut/pearson-correlation gg1 gg2b)
+        rd (sut/pearson-correlation gg1b gg2bb)]
+    (t/is (m/delta= (m/- (m/atanh ra) (m/atanh rb)) (sut/cohens-q gg1 gg2a gg2b)))
+    (t/is (m/delta= (m/- (m/atanh ra) (m/atanh rd)) (sut/cohens-q gg1 gg2a gg1b gg2bb)))))
+
 ;; kruskal effect size
 
 (t/deftest effect-size-kruskal
   (t/is (m/delta= 0.8305211 (sut/rank-epsilon-sq (by mtcars :cyl :mpg))))
-  (t/is (m/delta= 0.818833 (sut/rank-eta-sq (by mtcars :cyl :mpg)))))
+  (t/is (m/delta= 0.818833 (sut/rank-eta-sq (by mtcars :cyl :mpg))))
+  (t/testing "manual small fixture cross-checked against R kruskal.test(H) formulas"
+    (let [xss [[1 2 3 4 5] [6 7 8 9] [2.5 10 11 12]]]
+      (t/is (m/delta= 0.4398901099 (sut/rank-eta-sq xss)))
+      (t/is (m/delta= 0.5332417582 (sut/rank-epsilon-sq xss))))))
 
 ;; one-way ANOVA (correlation ratio) effect size
 ;; reference values from R: aov(mpg ~ factor(cyl), data = mtcars); effectsize::{eta,omega,epsilon}_squared, cohens_f
