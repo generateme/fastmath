@@ -1353,61 +1353,141 @@
 ;; historical
 
 (defn crd
-  "Chord"
+  "Computes the chord length of an arc, `crd(x) = 2*sin(x/2)`, for a unit circle.
+
+  Parameters:
+
+  - `x` (double): central angle in radians.
+
+  Returns the chord length as a double.
+
+  See also [[acrd]], [[sin]]."
   {:inline (fn [x] `(* 2.0 (sin (* 0.5 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (* 2.0 (FastMath/sin (* 0.5 x))))
 
 (defn acrd
-  "Inverse chord"
+  "Computes the inverse chord function, `acrd(x) = 2*asin(x/2)`.
+
+  Parameters:
+
+  - `x` (double): chord length; must satisfy `|x| <= 2` for a real result.
+
+  Returns the central angle in radians as a double. Returns `##NaN` outside the domain.
+
+  See also [[crd]], [[asin]]."
   {:inline (fn [x] `(* 2.0 (asin (* 0.5 ~x))))
    :inline-arities #{1}}
   ^double [^double x] (* 2.0 (FastMath/asin (* 0.5 x))))
 
 (defn versin
-  "Versine"
+  "Computes the versine (versed sine) of `x`, `versin(x) = 1 - cos(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the versine as a double, always in `[0, 2]`.
+
+  See also [[aversin]], [[coversin]], [[vercos]], [[haversin]]."
   {:inline (fn [x] `(- 1.0 (cos (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (- 1.0 (FastMath/cos x)))
 
 (defn coversin
-  "Coversine"
+  "Computes the coversine (coversed sine) of `x`, `coversin(x) = 1 - sin(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the coversine as a double, always in `[0, 2]`.
+
+  See also [[acoversin]], [[versin]], [[covercos]]."
   {:inline (fn [x] `(- 1.0 (sin (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (- 1.0 (FastMath/sin x)))
 
 (defn vercos
-  "Vercosine"
+  "Computes the vercosine (versed cosine) of `x`, `vercos(x) = 1 + cos(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the vercosine as a double, always in `[0, 2]`.
+
+  See also [[avercos]], [[versin]], [[covercos]]."
   {:inline (fn [x] `(inc (cos (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (inc (FastMath/cos x)))
 
 (defn covercos
-  "Covercosine"
+  "Computes the covercosine (coversed cosine) of `x`, `covercos(x) = 1 + sin(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the covercosine as a double, always in `[0, 2]`.
+
+  See also [[acovercos]], [[coversin]], [[vercos]]."
   {:inline (fn [x] `(inc (sin (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (inc (FastMath/sin x)))
 
 (defn aversin
-  "Arc versine"
+  "Computes the arc (inverse) versine of `x`, `aversin(x) = acos(1 - x)`.
+
+  Parameters:
+
+  - `x` (double): versine value; must satisfy `0 <= x <= 2` for a real result.
+
+  Returns the angle in radians as a double, in `[0, π]`. Returns `##NaN` outside the domain.
+
+  See also [[versin]], [[acoversin]], [[avercos]]."
   {:inline (fn [x] `(acos (- 1.0 ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acos (- 1.0 x)))
 
 (defn acoversin
-  "Arc coversine"
+  "Computes the arc (inverse) coversine of `x`, `acoversin(x) = asin(1 - x)`.
+
+  Parameters:
+
+  - `x` (double): coversine value; must satisfy `0 <= x <= 2` for a real result.
+
+  Returns the angle in radians as a double, in `[-π/2, π/2]`. Returns `##NaN` outside the domain.
+
+  See also [[coversin]], [[aversin]], [[acovercos]]."
   {:inline (fn [x] `(asin (- 1.0 ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/asin (- 1.0 x)))
 
 (defn avercos
-  "Arc vecosine"
+  "Computes the arc (inverse) vercosine of `x`, `avercos(x) = acos(x - 1)`.
+
+  Parameters:
+
+  - `x` (double): vercosine value; must satisfy `0 <= x <= 2` for a real result.
+
+  Returns the angle in radians as a double, in `[0, π]`. Returns `##NaN` outside the domain.
+
+  See also [[vercos]], [[aversin]], [[acovercos]]."
   {:inline (fn [x] `(acos (dec ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acos (dec x)))
 
 (defn acovercos
-  "Arc covercosine"
+  "Computes the arc (inverse) covercosine of `x`, `acovercos(x) = asin(x - 1)`.
+
+  Parameters:
+
+  - `x` (double): covercosine value; must satisfy `0 <= x <= 2` for a real result.
+
+  Returns the angle in radians as a double, in `[-π/2, π/2]`. Returns `##NaN` outside the domain.
+
+  See also [[covercos]], [[acoversin]], [[avercos]]."
   {:inline (fn [x] `(asin (dec ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/asin (dec x)))

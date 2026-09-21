@@ -336,6 +336,31 @@
   (doseq [[x acsch-ref] [[0.5 1.4436354751788103] [-3.0 -0.32745015023725843] [5.0 0.19869011034924142]]]
     (t/is (m/delta-eq acsch-ref (m/acsch x) 1.0e-9 1.0e-9) (str "acsch " x))))
 
+;; Reference: Python math (2*sin(x/2), 1-cos(x), 1-sin(x), 1+cos(x), 1+sin(x)
+;; and their arc-function compositions), same relative-tolerance discipline.
+(t/deftest historical-trig-versine-family
+  (doseq [[x crd-ref] [[0.5 0.4948079185090459] [1.0 0.958851077208406] [-0.7 -0.6857956149109027] [2.0 1.682941969615793]]]
+    (t/is (m/delta-eq crd-ref (m/crd x) 1.0e-9 1.0e-9) (str "crd " x)))
+  (doseq [[x acrd-ref] [[0.3 0.30113654555337205] [-0.5 -0.5053605102841573] [1.5 1.696124157962962]]]
+    (t/is (m/delta-eq acrd-ref (m/acrd x) 1.0e-9 1.0e-9) (str "acrd " x)))
+  (doseq [[x versin-ref coversin-ref vercos-ref covercos-ref]
+          [[0.5 0.12241743810962724 0.520574461395797 1.8775825618903728 1.479425538604203]
+           [1.0 0.45969769413186023 0.1585290151921035 1.5403023058681398 1.8414709848078965]
+           [-0.7 0.2351578127155115 1.644217687237691 1.7648421872844886 0.355782312762309]
+           [2.0 1.4161468365471424 0.09070257317431829 0.5838531634528576 1.9092974268256817]]]
+    (t/is (m/delta-eq versin-ref (m/versin x) 1.0e-9 1.0e-9) (str "versin " x))
+    (t/is (m/delta-eq coversin-ref (m/coversin x) 1.0e-9 1.0e-9) (str "coversin " x))
+    (t/is (m/delta-eq vercos-ref (m/vercos x) 1.0e-9 1.0e-9) (str "vercos " x))
+    (t/is (m/delta-eq covercos-ref (m/covercos x) 1.0e-9 1.0e-9) (str "covercos " x)))
+  (doseq [[x aversin-ref acoversin-ref avercos-ref acovercos-ref]
+          [[0.5 1.0471975511965979 0.5235987755982989 2.0943951023931957 -0.5235987755982989]
+           [1.0 1.5707963267948966 0.0 1.5707963267948966 0.0]
+           [1.5 2.0943951023931957 -0.5235987755982989 1.0471975511965979 0.5235987755982989]]]
+    (t/is (m/delta-eq aversin-ref (m/aversin x) 1.0e-9 1.0e-9) (str "aversin " x))
+    (t/is (m/delta-eq acoversin-ref (m/acoversin x) 1.0e-9 1.0e-9) (str "acoversin " x))
+    (t/is (m/delta-eq avercos-ref (m/avercos x) 1.0e-9 1.0e-9) (str "avercos " x))
+    (t/is (m/delta-eq acovercos-ref (m/acovercos x) 1.0e-9 1.0e-9) (str "acovercos " x))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 
