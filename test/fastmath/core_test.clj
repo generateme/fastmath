@@ -272,6 +272,25 @@
   (t/is (= 1.0 (m/sgn -0.0)))
   (t/is (= -1.0 (m/sgn -3.0))))
 
+;; Reference: Python math.sin/cos/tan(math.pi*x). FastMath's trig
+;; implementation differs from libm at the ULP level (more near tan's poles,
+;; where the intermediate magnitude blows up), so a relative tolerance is
+;; used rather than exact equality; empirically observed agreement is better
+;; than 1e-9 relative even at the poles.
+(t/deftest trig-pi-variants
+  (doseq [[x sin-ref cos-ref tan-ref]
+          [[0.5    1.0                  6.123233995736766e-17  1.633123935319537e+16]
+           [1.0    1.2246467991473532e-16 -1.0                 -1.2246467991473532e-16]
+           [2.0    -2.4492935982947064e-16 1.0                 -2.4492935982947064e-16]
+           [0.25   0.7071067811865475  0.7071067811865476     0.9999999999999999]
+           [1.5    -1.0                 -1.8369701987210297e-16 5443746451065123.0]
+           [-0.5   -1.0                 6.123233995736766e-17  -1.633123935319537e+16]
+           [0.1    0.3090169943749474  0.9510565162951535     0.3249196962329063]
+           [3.7    -0.8090169943749477 0.5877852522924728     -1.376381920471175]]]
+    (t/is (m/delta-eq sin-ref (m/sinpi x) 1.0e-9 1.0e-9) (str "sinpi " x))
+    (t/is (m/delta-eq cos-ref (m/cospi x) 1.0e-9 1.0e-9) (str "cospi " x))
+    (t/is (m/delta-eq tan-ref (m/tanpi x) 1.0e-9 1.0e-9) (str "tanpi " x))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

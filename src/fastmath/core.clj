@@ -1009,7 +1009,15 @@
   ^double [^double x] (. FastMath (sin x)))
 
 (defn sinpi
-  "sin(pi*x)"
+  "Computes `sin(π·x)` -- the sine of `x` expressed in half-turns (units of π) rather than radians.
+
+  Parameters:
+
+  - `x` (double): value in half-turns to take the sine of.
+
+  Returns `sin(π·x)` as a double, equivalent to `(sin (* PI x))`. Near-exact identity values (e.g. `x=0.5` giving `1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
+
+  See also [[sin]], [[cospi]], [[tanpi]]."
   {:inline (fn [x] `(. FastMath (sin (* PI (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (sin (* PI x))))
@@ -1021,7 +1029,15 @@
   ^double [^double x] (. FastMath (cos x)))
 
 (defn cospi
-  "cos(pi*x)"
+  "Computes `cos(π·x)` -- the cosine of `x` expressed in half-turns (units of π) rather than radians.
+
+  Parameters:
+
+  - `x` (double): value in half-turns to take the cosine of.
+
+  Returns `cos(π·x)` as a double, equivalent to `(cos (* PI x))`. Near-exact identity values (e.g. `x=1.0` giving `-1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
+
+  See also [[cos]], [[sinpi]], [[tanpi]]."
   {:inline (fn [x] `(. FastMath (cos (* PI (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (cos (* PI x))))
@@ -1033,7 +1049,15 @@
   ^double [^double x] (. FastMath (tan x)))
 
 (defn tanpi
-  "tan(pi*x)"
+  "Computes `tan(π·x)` -- the tangent of `x` expressed in half-turns (units of π) rather than radians.
+
+  Parameters:
+
+  - `x` (double): value in half-turns to take the tangent of.
+
+  Returns `tan(π·x)` as a double, equivalent to `(tan (* PI x))`. Diverges to very large magnitudes near `x = k+0.5` for integer `k` (where `cos(π·x)` is near zero), matching plain [[tan]]'s behavior at its own poles.
+
+  See also [[tan]], [[sinpi]], [[cospi]]."
   {:inline (fn [x] `(. FastMath (tan (* PI (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (tan (* PI x))))
