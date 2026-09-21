@@ -2276,11 +2276,20 @@
   ^double [^double x ^double exponent] (. Math (pow x exponent)))
 
 (defn spow
-  "Symmetric power of a number (keeps a sign of the `x` argument)."
+  "Computes the symmetric power of `x`, `spow(x,e) = sign(x) * |x|^e`, preserving the sign of `x` (e.g. allows fractional or even exponents on negative bases without producing `##NaN`).
+
+  Parameters:
+
+  - `x` (double): base.
+  - `exponent` (double): power to raise `|x|` to.
+
+  Returns the result as a double, with the sign of `x` (or `0.0` when `x` is `0.0`).
+
+  See also [[pow]], [[qpow]]."
   {:inline (fn [x exponent] `(let [v# (double ~x)]
                               (* (sgn v#) (. Math (pow (abs v#) (double ~exponent))))))
    :inline-arities #{2}}
-  ^double [^double x ^double exponent] (* (sgn x) (. Math (pow x exponent))))
+  ^double [^double x ^double exponent] (* (sgn x) (. Math (pow (Math/abs x) exponent))))
 
 (defn qpow
   "Fast and less accurate version of [[pow]]."

@@ -531,6 +531,24 @@
   (t/is (m/delta-eq 1.4426950408889634 m/LOG2E 1.0e-9))
   (t/is (m/delta-eq 0.4342944819032518 m/LOG10E 1.0e-9)))
 
+;; Reference: hand-computed sign*|x|^e (spow); Python's built-in exact
+;; three-argument pow(x,e,m) modular exponentiation (mpow); hand-computed
+;; truncated power basis (tpow).
+(t/deftest powers
+  (doseq [[x e ref] [[-8.0 (/ 1.0 3.0) -2.0] [-4.0 0.5 -2.0] [8.0 (/ 1.0 3.0) 2.0]
+                     [2.0 10.0 1024.0] [-2.0 3.0 -8.0] [0.0 5.0 0.0]]]
+    (t/is (m/delta-eq ref (m/spow x e) 1.0e-9 1.0e-9) (str "spow " x " " e))
+    (t/is (m/== (m/spow x e) (apply m/spow [x e])) "inline path matches non-inlined path"))
+  (doseq [[x e m ref] [[2 10 1000 24] [7 128 13 3] [123456789 987654321 1000000007 652541198]
+                       [5 0 7 1] [3 4 1 0]]]
+    (t/is (== ref (m/mpow x e m)) (str "mpow " x " " e " " m)))
+  (t/is (m/== 9.0 (m/tpow 3.0 2.0 0.0)))
+  (t/is (m/== 27.0 (m/tpow 5.0 3.0 2.0)))
+  (t/is (m/== 0.0 (m/tpow 1.0 2.0 2.0)) "x < shift")
+  (t/is (m/== 0.0 (m/tpow 2.0 2.0 2.0)) "x == shift")
+  (t/is (m/== 0.0 (m/tpow -1.0 2.0 0.0)))
+  (t/is (m/== 9.0 (m/tpow 3.0 2.0)) "2-arity form defaults shift to 0.0"))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 
