@@ -90,7 +90,15 @@
 (defn +
   {:inline (primitivemath-nary-inline 'add nil 0.0)
    :inline-arities >=0?
-   :doc "Primitive and inlined `+`."}
+   :doc "Adds numbers together. Primitive and inlined replacement for `clojure.core/+`.
+
+  Parameters:
+
+  - zero or more `double` values to sum.
+
+  Returns the sum as a double. With no arguments returns `0.0` (the additive identity). With one argument returns it unchanged.
+
+  See also [[use-primitive-operators]] (enables this replacement), [[long-add]] (long-coerced version), [[-]], [[*]], [[/]]."}
   (^double [] 0.0)
   (^double [^double a] a)
   (^double [^double a ^double b] (. PrimitiveMath (add a b)))
@@ -102,7 +110,15 @@
 (defn long-add
   {:inline (primitivemath-nary-inline-long 'add nil 0)
    :inline-arities >=0?
-   :doc "Primitive and inlined `+`. Coerces arguments and returned value to a long."}
+   :doc "Adds numbers together, coercing arguments and the result to `long`. Primitive and inlined replacement for `clojure.core/+`.
+
+  Parameters:
+
+  - zero or more values coercible to `long`.
+
+  Returns the sum as a long, following standard JVM two's complement overflow wraparound (no overflow checking). With no arguments returns `0`. With one argument returns it unchanged.
+
+  See also [[+]] (double version), [[long-sub]], [[long-mult]], [[long-div]]."}
   (^long [] 0)
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (add a b)))
@@ -114,7 +130,15 @@
 (defn -
   {:inline (primitivemath-nary-inline 'subtract 'negate)
    :inline-arities >=1?
-   :doc "Primitive and inlined `-`."}
+   :doc "Subtracts numbers, or negates a single value. Primitive and inlined replacement for `clojure.core/-`.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns the negation of the sole argument when called with one value, otherwise the left-to-right cumulative subtraction of all arguments, as a double.
+
+  See also [[long-sub]] (long-coerced version), [[+]], [[*]], [[/]]."}
   (^double [^double a] (. PrimitiveMath (negate a)))
   (^double [^double a ^double b] (. PrimitiveMath (subtract a b)))
   (^double [^double a ^double b ^double c] (. PrimitiveMath (subtract (. PrimitiveMath (subtract a b)) c)))
@@ -125,7 +149,15 @@
 (defn long-sub
   {:inline (primitivemath-nary-inline-long 'subtract 'negate)
    :inline-arities >=1?
-   :doc "Primitive and inlined `-`. Coerces arguments and returned value to a long."}
+   :doc "Subtracts numbers, or negates a single value, coercing arguments and the result to `long`. Primitive and inlined replacement for `clojure.core/-`.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the negation of the sole argument when called with one value, otherwise the left-to-right cumulative subtraction of all arguments, as a long, following standard JVM two's complement overflow wraparound.
+
+  See also [[-]] (double version), [[long-add]], [[long-mult]], [[long-div]]."}
   (^long [^long a] (. PrimitiveMath (negate a)))
   (^long [^long a ^long b] (. PrimitiveMath (subtract a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (subtract (. PrimitiveMath (subtract a b)) c)))
@@ -136,7 +168,15 @@
 (defn *
   {:inline (primitivemath-nary-inline 'multiply nil 1.0)
    :inline-arities >=0?
-   :doc "Primitive and inlined `*`."}
+   :doc "Multiplies numbers together. Primitive and inlined replacement for `clojure.core/*`.
+
+  Parameters:
+
+  - zero or more `double` values to multiply.
+
+  Returns the product as a double. With no arguments returns `1.0` (the multiplicative identity). With one argument returns it unchanged.
+
+  See also [[long-mult]] (long-coerced version), [[+]], [[-]], [[/]]."}
   (^double [] 1.0)
   (^double [^double a] a)
   (^double [^double a ^double b] (. PrimitiveMath (multiply a b)))
@@ -148,11 +188,19 @@
 (defn long-mult
   {:inline (primitivemath-nary-inline-long 'multiply nil 1)
    :inline-arities >=0?
-   :doc "Primitive and inlined `*`. Coerces arguments and returned value to a long."}
+   :doc "Multiplies numbers together, coercing arguments and the result to `long`. Primitive and inlined replacement for `clojure.core/*`.
+
+  Parameters:
+
+  - zero or more values coercible to `long`.
+
+  Returns the product as a long, following standard JVM two's complement overflow wraparound. With no arguments returns `1`. With one argument returns it unchanged.
+
+  See also [[*]] (double version), [[long-add]], [[long-sub]], [[long-div]]."}
   (^long [] 1)
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (multiply a b)))
-  (^long [^long a ^long b ^long c] (. PrimitiveMath (add (. PrimitiveMath (multiply a b)) c)))
+  (^long [^long a ^long b ^long c] (. PrimitiveMath (multiply (. PrimitiveMath (multiply a b)) c)))
   (^long [^long a ^long b ^long c ^long d]
    (. PrimitiveMath (multiply (. PrimitiveMath (multiply (. PrimitiveMath (multiply a b)) c)) d)))
   ([a b c d & r] (reduce long-mult (long-mult a b c d) r)))
@@ -160,7 +208,15 @@
 (defn /
   {:inline (primitivemath-nary-inline 'divide 'reciprocal)
    :inline-arities >=1?
-   :doc "Primitive and inlined `/`."}
+   :doc "Divides numbers, or returns the reciprocal of a single value. Primitive and inlined replacement for `clojure.core//`.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns the reciprocal of the sole argument when called with one value, otherwise the left-to-right cumulative division of all arguments, as a double. Division by zero follows IEEE 754 semantics (returns `##Inf`, `##-Inf` or `##NaN`, no exception thrown).
+
+  See also [[long-div]] (long-coerced version), [[+]], [[-]], [[*]]."}
   (^double [^double a] (. PrimitiveMath (reciprocal a)))
   (^double [^double a ^double b] (. PrimitiveMath (divide a b)))
   (^double [^double a ^double b ^double c] (. PrimitiveMath (divide (. PrimitiveMath (divide a b)) c)))
@@ -171,7 +227,15 @@
 (defn long-div
   {:inline (primitivemath-nary-inline-long 'divide 'reciprocal)
    :inline-arities >=1?
-   :doc "Primitive and inlined `/`. Coerces to arguments and returned value to a long."}
+   :doc "Divides numbers, or returns the reciprocal of a single value, coercing arguments to `long`. Primitive and inlined replacement for `clojure.core//`.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the reciprocal of the sole argument as a double when called with one value (a long's reciprocal is generally not representable as a long, so this arity does not coerce its result). With two or more arguments, returns the left-to-right cumulative integer division of all arguments as a long. Throws an arithmetic exception on division by zero when two or more arguments are given.
+
+  See also [[/]] (double version), [[long-add]], [[long-sub]], [[long-mult]]."}
   (^double [^long a] (. PrimitiveMath (reciprocal a)))
   (^long [^long a ^long b] (. PrimitiveMath (divide a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (divide (. PrimitiveMath (divide a b)) c)))
@@ -242,7 +306,15 @@
 (defn min
   {:inline (primitivemath-nary-inline 'min)
    :inline-arities >=1?
-   :doc "Primitive and inlined `min`."}
+   :doc "Returns the smallest of one or more values. Primitive and inlined replacement for `clojure.core/min`.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns the minimum value as a double.
+
+  See also [[long-min]] (long-coerced version), [[max]]."}
   (^double [^double a] a)
   (^double [^double a ^double b] (. PrimitiveMath (min a b)))
   (^double [^double a ^double b ^double c] (. PrimitiveMath (min (. PrimitiveMath (min a b)) c)))
@@ -253,7 +325,15 @@
 (defn long-min
   {:inline (primitivemath-nary-inline-long 'min)
    :inline-arities >=1?
-   :doc "Primitive and inlined `min`. Coerces arguments and returned values to longs."}
+   :doc "Returns the smallest of one or more values, coercing arguments and the result to `long`. Primitive and inlined replacement for `clojure.core/min`.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the minimum value as a long.
+
+  See also [[min]] (double version), [[long-max]]."}
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (min a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (min (. PrimitiveMath (min a b)) c)))
@@ -264,7 +344,15 @@
 (defn max
   {:inline (primitivemath-nary-inline 'max)
    :inline-arities >=1?
-   :doc "Primitive and inlined `max`."}
+   :doc "Returns the largest of one or more values. Primitive and inlined replacement for `clojure.core/max`.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns the maximum value as a double.
+
+  See also [[long-max]] (long-coerced version), [[min]]."}
   (^double [^double a] a)
   (^double [^double a ^double b] (. PrimitiveMath (max a b)))
   (^double [^double a ^double b ^double c] (. PrimitiveMath (max (. PrimitiveMath (max a b)) c)))
@@ -275,7 +363,15 @@
 (defn long-max
   {:inline (primitivemath-nary-inline-long 'max)
    :inline-arities >=1?
-   :doc "Primitive and inlined `max`. Coerces arguments and returned values to longs."}
+   :doc "Returns the largest of one or more values, coercing arguments and the result to `long`. Primitive and inlined replacement for `clojure.core/max`.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the maximum value as a long.
+
+  See also [[max]] (double version), [[long-min]]."}
   (^long [^long a] a)
   (^long [^long a ^long b] (. PrimitiveMath (max a b)))
   (^long [^long a ^long b ^long c] (. PrimitiveMath (max (. PrimitiveMath (max a b)) c)))
@@ -348,7 +444,15 @@
                             (partition 2 1 (conj r b)))))))
 
 (defn ==
-  "Primitive math equality function."
+  "Primitive math equality function.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if all arguments are equal (chained pairwise: `a=b`, `b=c`, `c=d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[eq]] (alias), [[not==]], [[approx-eq]], [[delta-eq]]."
   {:inline (primitivemath-nary-inline-predicate 'eq)
    :inline-arities >=1?}
   ([_] true)
@@ -356,9 +460,17 @@
   ([a b & r]
    (boolean (and (== (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (eq x y)) (reduced false) y)) r)))))
-(defn eq 
-  "Primitive math equality function."
+                           (if-not (. PrimitiveMath (eq x y)) (reduced false) y)) b r)))))
+(defn eq
+  "Primitive math equality function. Alias for [[==]].
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if all arguments are equal (chained pairwise: `a=b`, `b=c`, `c=d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[==]], [[not==]], [[approx-eq]], [[delta-eq]]."
   {:inline (primitivemath-nary-inline-predicate 'eq)
    :inline-arities >=1?}
   ([_] true)
@@ -366,10 +478,18 @@
   ([a b & r]
    (boolean (and (eq (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (eq x y)) (reduced false) y)) r)))))
+                           (if-not (. PrimitiveMath (eq x y)) (reduced false) y)) b r)))))
 
-(defn < 
-  "Primitive math less-then function."
+(defn <
+  "Primitive math less-than function.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if arguments are in strictly increasing order (chained pairwise: `a<b`, `b<c`, `c<d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[>]], [[<=]], [[>=]]."
   {:inline (primitivemath-nary-inline-predicate 'lt)
    :inline-arities >=1?}
   ([_] true)
@@ -377,10 +497,18 @@
   ([a b & r]
    (boolean (and (< (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (lt x y)) (reduced false) y)) r)))))
+                           (if-not (. PrimitiveMath (lt x y)) (reduced false) y)) b r)))))
 
-(defn > 
-  "Primitive math greater-than function."
+(defn >
+  "Primitive math greater-than function.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if arguments are in strictly decreasing order (chained pairwise: `a>b`, `b>c`, `c>d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[<]], [[<=]], [[>=]]."
   {:inline (primitivemath-nary-inline-predicate 'gt)
    :inline-arities >=1?}
   ([_] true)
@@ -388,10 +516,18 @@
   ([a b & r]
    (boolean (and (> (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (gt x y)) (reduced false) y)) r)))))
+                           (if-not (. PrimitiveMath (gt x y)) (reduced false) y)) b r)))))
 
-(defn <= 
-  "Primitive math less-and-equal function."
+(defn <=
+  "Primitive math less-than-or-equal function.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if arguments are in non-decreasing order (chained pairwise: `a<=b`, `b<=c`, `c<=d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[<]], [[>]], [[>=]]."
   {:inline (primitivemath-nary-inline-predicate 'lte)
    :inline-arities >=1?}
   ([_] true)
@@ -399,10 +535,18 @@
   ([a b & r]
    (boolean (and (<= (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (lte x y)) (reduced false) y)) r)))))
+                           (if-not (. PrimitiveMath (lte x y)) (reduced false) y)) b r)))))
 
-(defn >= 
-  "Primitive math greater-and-equal function."
+(defn >=
+  "Primitive math greater-than-or-equal function.
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` if arguments are in non-increasing order (chained pairwise: `a>=b`, `b>=c`, `c>=d`, ...), `false` otherwise, as a Boolean. With one argument returns `true`.
+
+  See also [[<]], [[>]], [[<=]]."
   {:inline (primitivemath-nary-inline-predicate 'gte)
    :inline-arities >=1?}
   ([_] true)
@@ -410,12 +554,20 @@
   ([a b & r]
    (boolean (and (>= (double a) (double b))
                  (reduce (fn [^double x ^double y]
-                           (if-not (. PrimitiveMath (gte x y)) (reduced false) y)) r)))))
+                           (if-not (. PrimitiveMath (gte x y)) (reduced false) y)) b r)))))
 
 (defn not==
   "Not equality. For more than two arguments, returns `true` when all values are unique.
 
-  `(not== 1 2 1)` === `(and (not= 1 1) (not= 1 2))`"
+  `(not== 1 2 1)` === `(and (not= 1 1) (not= 1 2))`
+
+  Parameters:
+
+  - one or more `double` values.
+
+  Returns `true` when all arguments are pairwise distinct, `false` when any two arguments are equal, as a Boolean. With one argument returns `false`.
+
+  See also [[==]], [[eq]]."
   {:inline (fn ([_] false)
              ([a b] `(. PrimitiveMath (neq ~a ~b)))
              ([a b & r] `(and ~@(map (fn [[x y]] `(. PrimitiveMath (neq ~x ~y)))
@@ -430,7 +582,15 @@
 ;;;;;;;;;;;;;;
 
 (defn bit-and
-  "x ∧ y - bitwise AND"
+  "Bitwise AND (`x ∧ y`) of two or more integer values.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise AND of all arguments as a long, computed by folding pairwise from left to right. With one argument returns it unchanged.
+
+  See also [[bit-or]], [[bit-xor]], [[bit-and-not]], [[bit-nand]]."
   {:inline (primitivemath-nary-inline-long 'bitAnd)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -438,7 +598,15 @@
   ([x y & r] (reduce bit-and (. PrimitiveMath (bitAnd x y)) r)))
 
 (defn bit-nand
-  "~(x ∧ y) - bitwise NAND"
+  "Bitwise NAND (`~(x ∧ y)`) of two values, or a left-to-right pairwise fold of NAND over more than two.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise NAND as a long. For three or more arguments, computes `(x nand y) nand z ...` -- a repeated pairwise fold, not the hardware-style `~(x ∧ y ∧ z ...)` multi-input NAND. With one argument returns it unchanged.
+
+  See also [[bit-and]], [[bit-nor]], [[bit-xnor]]."
   {:inline (primitivemath-nary-inline-long 'bitNand)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -446,7 +614,15 @@
   ([x y & r] (reduce bit-nand (. PrimitiveMath (bitNand x y)) r)))
 
 (defn bit-and-not
-  "x ∧ ~y - bitwise AND (with complement second argument)"
+  "Bitwise AND with complemented subsequent arguments (`x ∧ ~y`), folded left to right for more than two arguments.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns `x` with all bits set in any of `y, z, ...` cleared, as a long, computed by folding pairwise from left to right (`(x and-not y) and-not z ...`). With one argument returns it unchanged.
+
+  See also [[bit-and]], [[bit-clear]]."
   {:inline (primitivemath-nary-inline-long 'bitAndNot)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -454,7 +630,15 @@
   ([x y & r] (reduce bit-and-not (. PrimitiveMath (bitAndNot x y)) r)))
 
 (defn bit-or
-  "x ∨ y - bitwise OR"
+  "Bitwise OR (`x ∨ y`) of two or more integer values.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise OR of all arguments as a long, computed by folding pairwise from left to right. With one argument returns it unchanged.
+
+  See also [[bit-and]], [[bit-xor]], [[bit-nor]]."
   {:inline (primitivemath-nary-inline-long 'bitOr)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -462,7 +646,15 @@
   ([x y & r] (reduce bit-or (. PrimitiveMath (bitOr x y)) r)))
 
 (defn bit-nor
-  "~(x ∨ y) - bitwise NOR"
+  "Bitwise NOR (`~(x ∨ y)`) of two values, or a left-to-right pairwise fold of NOR over more than two.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise NOR as a long. For three or more arguments, computes `(x nor y) nor z ...` -- a repeated pairwise fold, not the hardware-style `~(x ∨ y ∨ z ...)` multi-input NOR. With one argument returns it unchanged.
+
+  See also [[bit-or]], [[bit-nand]], [[bit-xnor]]."
   {:inline (primitivemath-nary-inline-long 'bitNor)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -470,7 +662,15 @@
   ([x y & r] (reduce bit-nor (. PrimitiveMath (bitNor x y)) r)))
 
 (defn bit-xor
-  "x⊕y - bitwise XOR"
+  "Bitwise XOR (`x⊕y`) of two or more integer values.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise XOR of all arguments as a long, computed by folding pairwise from left to right (associative, so fold order does not affect the result). With one argument returns it unchanged.
+
+  See also [[bit-xnor]], [[bit-and]], [[bit-or]]."
   {:inline (primitivemath-nary-inline-long 'bitXor)
    :inline-arities >=1?}
   (^long [^long x] x)
@@ -478,7 +678,15 @@
   ([x y & r] (reduce bit-xor (. PrimitiveMath (bitXor x y)) r)))
 
 (defn bit-xnor
-  "~(x⊕y) - bitwise XNOR"
+  "Bitwise XNOR (`~(x⊕y)`) of two values, or a left-to-right pairwise fold of XNOR over more than two.
+
+  Parameters:
+
+  - one or more values coercible to `long`.
+
+  Returns the bitwise XNOR as a long. For three or more arguments, computes `(x xnor y) xnor z ...` -- a repeated pairwise fold, not the hardware-style `~(x⊕y⊕z...)` multi-input XNOR. With one argument returns it unchanged.
+
+  See also [[bit-xor]], [[bit-nand]], [[bit-nor]]."
   {:inline (primitivemath-nary-inline-long 'bitXNor)
    :inline-arities >=1?}
   (^long [^long x] x)

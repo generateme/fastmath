@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [3.0.0 alpha10 - unreleased]
+## [3.0.0 alpha10 SNAPSHOT]
 
 ### Added
 
@@ -23,6 +23,8 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.stats/contingency-2x2-measures-all`/`contingency-2x2-measures`'s documented single-argument nested-rows input form (`(f [[a b] [c d]])`) threw an `ArityException`; only the separate-arguments 2-arity form (`(f [a b] [c d])`) actually worked
 * `fastmath.stats/binomial-test`'s `:confidence-interval` passed a confidence *level* (`1 - alpha`) into `binomial-ci`'s `alpha` parameter, which expects a significance level directly, producing a drastically too-narrow interval (e.g. the default 95% CI came out as an effective ~5% CI)
 * `fastmath.stats/box-cox-transformation` with `{:scaled? true :inverse? true}` threw a raw `ClassCastException` ("Boolean cannot be cast to Number") instead of an informative error; now throws a clear `ex-info` explaining that the actual numeric geometric mean used by the forward transformation must be supplied (it can't be recovered from already-transformed data)
+* `fastmath.core/long-mult`'s non-inlined 3-arity body computed `(a*b)+c` instead of `(a*b)*c`; masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use
+* `fastmath.core/==`, `eq`, `<`, `>`, `<=`, `>=`'s non-inlined 3+-arity bodies never compared the 2nd argument against the 3rd (e.g. `(apply m/< [1 2 0])` returned `true`); masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use; `not==` was unaffected
 
 ## [3.0.0 alpha9]
 
