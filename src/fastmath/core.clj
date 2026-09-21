@@ -2773,11 +2773,16 @@
 
 ;; Rounding functions
 (defn floor
-  "Calculates the floor of a number.
+  "Rounds `x` towards negative infinity.
 
-  With a `scale` argument, rounds to the nearest multiple of `scale` towards negative infinity.
+  Parameters:
 
-  See also: [[qfloor]]."
+  - `x` (double): the number to round.
+  - `scale` (double, optional): if given, `x` is divided by `scale`, floored, then multiplied back by `scale` -- i.e. rounds to the nearest multiple of `scale` towards negative infinity.
+
+  Returns the rounded value as a double.
+
+  See also [[ceil]], [[round]], [[qfloor]]."
   {:inline (fn ([x] `(. FastMath (floor (double ~x))))
              ([x scale] `(* (. FastMath (floor (double (/ ~x ~scale)))) ~scale)))
    :inline-arities #{1 2}}
@@ -2785,11 +2790,16 @@
   (^double [^double x ^double scale] (* (FastMath/floor (/ x scale)) scale)))
 
 (defn ceil
-  "Calculates the ceiling of a number.
+  "Rounds `x` towards positive infinity.
 
-  With a `scale` argument, rounds to the nearest multiple of `scale` towards positive infinity.
+  Parameters:
 
-  See also: [[qceil]]."
+  - `x` (double): the number to round.
+  - `scale` (double, optional): if given, `x` is divided by `scale`, ceiled, then multiplied back by `scale` -- i.e. rounds to the nearest multiple of `scale` towards positive infinity.
+
+  Returns the rounded value as a double.
+
+  See also [[floor]], [[round]], [[qceil]]."
   {:inline (fn ([x] `(. FastMath (ceil (double ~x))))
              ([x scale] `(* (. FastMath (ceil (double (/ ~x ~scale)))) ~scale)))
    :inline-arities #{1 2}}
@@ -2803,9 +2813,16 @@
   ^long [^double x] (FastMath/round x))
 
 (defn rint
-  "Round to a `double` value. See [[round]], [[qround]].
+  "Rounds `x` to the nearest integer, returned as a double, using round-half-to-even.
 
-  Rounding is done to a multiply of scale value (when provided)."
+  Parameters:
+
+  - `x` (double): the number to round.
+  - `scale` (double, optional): if given, `x` is divided by `scale`, rounded, then multiplied back by `scale` -- i.e. rounds to the nearest multiple of `scale`, ties rounding to even.
+
+  Returns the rounded value as a double.
+
+  See also [[round]], [[round-even]], [[qround]]."
   {:inline (fn ([x] `(. FastMath (rint (double ~x))))
              ([x scale] `(* (. FastMath (rint (double (/ ~x ~scale)))) ~scale)))
    :inline-arities #{1 2}}
@@ -2858,17 +2875,41 @@
   ^long [^long x] (let [m (>> x 63)] (bit-xor (long-add m x) m)))
 
 (defn long-abs
-  "Absolut value, `long` version. See [[abs]]."
+  "Absolute value of a `long`, computed with a branch-free bitwise trick.
+
+  Parameters:
+
+  - `x` (long): the input value.
+
+  Returns `x` if non-negative, `-x` otherwise, as a `long`. For `x` equal to `Long/MIN_VALUE`, returns `x` unchanged (its true absolute value overflows the `long` range), matching `Math/abs`'s behavior for `long`.
+
+  See also [[abs]]."
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
    :inline-arities #{1}}
   ^long [^long x] (let [m (>> x 63)] (bit-xor (long-add m x) m)))
 
 (defn trunc
-  "Truncate fractional part, keep sign. Returns `double`."
+  "Truncates the fractional part of `v`, rounding towards zero.
+
+  Parameters:
+
+  - `v` (double): the number to truncate.
+
+  Returns the integer part of `v` as a double, preserving sign: [[ceil]] for negative `v`, [[floor]] otherwise.
+
+  See also [[itrunc]]."
   ^double [^double v] (if (neg? v) (ceil v) (floor v)))
 
 (defn itrunc
-  "Truncate fractional part, keep sign. Returns `long`."
+  "Truncates the fractional part of `v`, rounding towards zero.
+
+  Parameters:
+
+  - `v` (double): the number to truncate.
+
+  Returns the integer part of `v` as a `long`, preserving sign: [[qceil]] for negative `v`, [[qfloor]] otherwise.
+
+  See also [[trunc]]."
   ^long [^double v] (if (neg? v) (qceil v) (qfloor v)))
 
 ;; return approximate value

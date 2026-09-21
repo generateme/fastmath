@@ -698,3 +698,42 @@
     (t/is (m/delta-eq ref (m/dist x1 y1 x2 y2) 1.0e-9))
     (t/is (m/== (m/dist x1 y1 x2 y2) (m/dist [x1 y1] [x2 y2])))
     (t/is (m/delta-eq ref (m/qdist x1 y1 x2 y2) 1.0e-6 1.0e-2) "qdist has ~1% relative approximation error")))
+
+;; Reference: hand-computed rounding to negative/positive infinity and
+;; round-half-to-even; Java's `Math/floor`/`Math/ceil`/`Long` bit-width for
+;; long-abs edge cases. All direct calls exercise :inline; the apply-based
+;; non-inlined path is separately asserted for every function with an
+;; :inline template, per the Group 10a/12 lesson. NOTE: this deftest also
+;; regression-guards the fastFloor/fastCeil off-by-one bug found and fixed
+;; in PrimitiveMath.java during this group's verification (qfloor/qceil/
+;; itrunc were wrong for every non-positive/non-negative exact integer,
+;; e.g. qfloor(0.0) returned -1 instead of 0) -- see CHANGELOG.md.
+(t/deftest rounding-truncation
+  (doseq [[x ref] [[3.7 3.0] [-3.7 -4.0] [0.0 0.0] [-0.0 -0.0] [2.0 2.0] [-2.0 -2.0]]]
+    (t/is (m/== ref (m/floor x)) (str "floor " x))
+    (t/is (m/== (m/floor x) (apply m/floor [x])) "inline path matches non-inlined path"))
+  (t/is (m/== 5.0 (m/floor 7.3 2.5)))
+  (t/is (m/== -7.5 (m/floor -7.3 2.5)))
+  (t/is (m/== 5.0 (apply m/floor [7.3 2.5])) "inline path matches non-inlined path")
+  (doseq [[x ref] [[3.2 4.0] [-3.2 -3.0] [0.0 0.0] [-0.0 -0.0] [2.0 2.0] [-2.0 -2.0]]]
+    (t/is (m/== ref (m/ceil x)) (str "ceil " x))
+    (t/is (m/== (m/ceil x) (apply m/ceil [x])) "inline path matches non-inlined path"))
+  (t/is (m/== 7.5 (m/ceil 7.3 2.5)))
+  (t/is (m/== -5.0 (m/ceil -7.3 2.5)))
+  (t/is (m/== 7.5 (apply m/ceil [7.3 2.5])) "inline path matches non-inlined path")
+  ;; round-half-to-even: ties round towards the nearest even integer
+  (doseq [[x ref] [[0.5 0.0] [1.5 2.0] [2.5 2.0] [-0.5 -0.0] [-1.5 -2.0] [-2.5 -2.0] [3.2 3.0]]]
+    (t/is (m/== ref (m/rint x)) (str "rint " x))
+    (t/is (m/== (m/rint x) (apply m/rint [x])) "inline path matches non-inlined path"))
+  (t/is (m/== 7.5 (m/rint 7.3 2.5)))
+  (t/is (m/== 7.5 (apply m/rint [7.3 2.5])) "inline path matches non-inlined path")
+  (doseq [[x ref] [[5 5] [-5 5] [0 0] [Long/MAX_VALUE Long/MAX_VALUE] [Long/MIN_VALUE Long/MIN_VALUE]]]
+    (t/is (m/== ref (m/long-abs x)) (str "long-abs " x " -- Long/MIN_VALUE overflows and is returned unchanged"))
+    (t/is (m/== (m/long-abs x) (apply m/long-abs [x])) "inline path matches non-inlined path"))
+  (doseq [[v ref] [[3.7 3.0] [-3.7 -3.0] [0.0 0.0] [-0.5 -0.0] [0.5 0.0]]]
+    (t/is (m/== ref (m/trunc v)) (str "trunc " v)))
+  ;; regression: qfloor(0.0)/qceil(2.0) etc. used to be off by one before the
+  ;; fastFloor/fastCeil fix; these non-positive/non-negative exact-integer
+  ;; cases are the ones the bug corrupted
+  (doseq [[v ref] [[3.7 3] [-3.7 -3] [0.0 0] [-0.5 0] [0.5 0] [-2.0 -2] [2.0 2] [-1.0 -1] [1.0 1]]]
+    (t/is (m/== ref (m/itrunc v)) (str "itrunc " v))))

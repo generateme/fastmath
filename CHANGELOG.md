@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.core/-THIRD_PI` computed `(/ -PI -3.0)` (double negative cancelling out to `+π/3`) instead of `-π/3`, unlike its correctly-negative siblings `-HALF_PI`/`-QUARTER_PI`
 * `fastmath.core/exprel`'s `:inline` template computed `expm1(x)` instead of `expm1(x)/x` for its general-case branch (the division was missing), so any direct (inlined) call with a non-trivial `x` silently returned the wrong value; the non-inlined function body was correct, so the bug was only visible on ordinary direct calls, not via `apply`/`reduce`/higher-order use — the opposite masking pattern from the earlier `long-mult`/`==`/`<`-family bugs
 * `fastmath.core/spow`'s non-inlined body computed `sign(x) * pow(x, exponent)` instead of `sign(x) * pow(abs(x), exponent)` (the `abs` was missing), producing `##NaN` for negative `x` with a fractional exponent and the wrong sign for negative `x` with an integer exponent; masked whenever the compiler could inline the call (the `:inline` template was correct), only visible via `apply`/`reduce`/higher-order use — same masking pattern as `long-mult`/`==`/`<`-family
+* `PrimitiveMath.fastFloor` (backing `fastmath.core/qfloor`, `qceil`, and `itrunc`) was off by one for every non-positive exact-integer input (e.g. `qfloor(0.0)` returned `-1`, `qfloor(-3.0)` returned `-4`), and by extension `fastCeil` was off by one for every non-negative exact-integer input (e.g. `qceil(2.0)` returned `3`)
 
 ## [3.0.0 alpha9]
 
