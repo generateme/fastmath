@@ -2382,26 +2382,58 @@
                                   2432902008176640000])
 
 (defn factorial20
-  "Factorial table up to 20!"
+  "Looks up `n!` from a precomputed table for `n` in `[0, 20]`.
+
+  Parameters:
+
+  - `n` (long): index into the factorial table; must be in `[0, 20]` (`20!` is the largest factorial exactly representable as a `long`).
+
+  Returns `n!` as a long.
+
+  See also [[factorial]]."
   ^long [^long n]
   (factorial20-table n))
 
 (defn factorial
-  "Factorial"
+  "Computes `x!`, using an exact table lookup for non-negative integers below `21`, and the gamma function (`exp(logGamma(x+1))`) otherwise.
+
+  Parameters:
+
+  - `x` (double): value to compute the factorial of.
+
+  Returns the result as a double.
+
+  See also [[factorial20]], [[inv-factorial]], [[log-factorial]], [[falling-factorial]], [[rising-factorial]]."
   ^double [^double x]
   (if (and (integer? x) (< x 21))
     (factorial20-table (long x))
     (exp (Gamma/logGamma (inc x)))))
 
 (defn inv-factorial
-  "Inverse of factorial, 1/x!"
+  "Computes `1/x!`, the reciprocal of [[factorial]].
+
+  Parameters:
+
+  - `x` (double): value to compute the inverse factorial of.
+
+  Returns the result as a double.
+
+  See also [[factorial]]."
   ^double [^double x]
   (if (and (integer? x) (< x 21))
     (/ 1.0 (long (factorial20-table (long x))))
     (exp (- (Gamma/logGamma (inc x))))))
 
 (defn stirling-factorial
-  "Factorial using Stirling's approximation with correction (6 terms)."
+  "Approximates `x!` using Stirling's asymptotic series with a 6-term correction, without relying on the gamma function.
+
+  Parameters:
+
+  - `x` (double): value to approximate the factorial of; accuracy improves for larger `x` (already near double-precision-level accuracy for `x >= 5`).
+
+  Returns the approximate result as a double.
+
+  See also [[factorial]], [[log-stirling-factorial]]."
   ^double [^double x]
   (let [x2 (* x x)
         x3 (* x x2)
@@ -2418,7 +2450,15 @@
                (/ -0.0019175269175269176 (* x2 x9)))))))
 
 (defn log-stirling-factorial
-  "Log factorial using Stirling's approximation with correction (6 terms)."
+  "Approximates `log(x!)` using Stirling's asymptotic series with a 6-term correction, without relying on the gamma function.
+
+  Parameters:
+
+  - `x` (double): value to approximate the log-factorial of; accuracy improves for larger `x`.
+
+  Returns the approximate result as a double.
+
+  See also [[log-factorial]], [[stirling-factorial]]."
   ^double [^double x]
   (let [lx (log x)
         x2 (* x x)
@@ -2436,13 +2476,30 @@
           (/ -0.0019175269175269176 (* x2 x9))))))
 
 (defn log-factorial
-  "Log factorial, alias to log-gamma"
+  "Computes `log(x!)`, equivalent to `log-gamma(x+1)`.
+
+  Parameters:
+
+  - `x` (double): value to compute the log-factorial of.
+
+  Returns the result as a double.
+
+  See also [[factorial]], [[log-stirling-factorial]], [[log-combinations]]."
   {:inline (fn [x] `(Gamma/logGamma (inc (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (Gamma/logGamma (inc x)))
 
 (defn falling-factorial-int
-  "Falling (descending) factorial for integer n."
+  "Computes the falling (descending) factorial of `x` to the power of an integer `n`, `x*(x-1)*...*(x-n+1)`.
+
+  Parameters:
+
+  - `n` (long): number of descending terms; may be negative, in which case the result is the reciprocal of the falling factorial with `n` negated and `x` shifted by `n`.
+  - `x` (double): starting value.
+
+  Returns the falling factorial as a double.
+
+  See also [[falling-factorial]], [[rising-factorial-int]]."
   ^double [^long n ^double x]
   (if (not-neg? n)
     (loop [i (long 0)
@@ -2472,7 +2529,16 @@
          (Gamma/gamma (- x+ n))))))
 
 (defn rising-factorial-int
-  "Rising (Pochhammer) factorial for integer n."
+  "Computes the rising (ascending, Pochhammer) factorial of `x` to the power of an integer `n`, `x*(x+1)*...*(x+n-1)`.
+
+  Parameters:
+
+  - `n` (long): number of ascending terms; may be negative, in which case the result is the reciprocal of the rising factorial with `n` negated and `x` shifted by `n`.
+  - `x` (double): starting value.
+
+  Returns the rising factorial as a double.
+
+  See also [[rising-factorial]], [[falling-factorial-int]]."
   ^double [^long n ^double x]
   (if (not-neg? n)
     (loop [i (long 0)
@@ -2501,7 +2567,16 @@
        (Gamma/gamma x))))
 
 (defn combinations
-  "Binomial coefficient (n choose k)"
+  "Computes the binomial coefficient, `n choose k`.
+
+  Parameters:
+
+  - `n` (long): total number of items.
+  - `k` (long): number of items to choose.
+
+  Returns the binomial coefficient as a double, `0.0` when `k` is negative or greater than `n`. Uses a direct iterative product for `k < 30`, and a log-beta-based formula for larger `k` to avoid overflow.
+
+  See also [[log-combinations]], [[falling-factorial]]."
   ^double [^long n ^long k]
   (let [k (min k (- n k))]
     (cond
@@ -2516,7 +2591,16 @@
                     (Beta/logBeta (inc (- n k)) (inc k)))))))
 
 (defn log-combinations
-  "Log of binomial coefficient (n choose k)"
+  "Computes the logarithm of the binomial coefficient, `log(n choose k)`.
+
+  Parameters:
+
+  - `n` (long): total number of items.
+  - `k` (long): number of items to choose.
+
+  Returns the result as a double, `##-Inf` when `k` is negative or greater than `n`, `0.0` when `k` is `0` or `k` equals `n`.
+
+  See also [[combinations]], [[log-factorial]]."
   ^double [^long n ^long k]
   (let [k (min k (- n k))]
     (cond

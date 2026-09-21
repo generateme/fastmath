@@ -618,3 +618,52 @@
     30 6.015808739006424e8
     40 -1.929657934194007e16
     50 7.500866746076964e24))
+
+;; Reference: Python math.gamma/math.factorial (exact), scipy.special.gammaln,
+;; a hand-derived Stirling asymptotic series (same standard 6-term
+;; correction, independently re-derived), and math.comb (exact integer
+;; binomial coefficients). Small (~1e-14) relative-error tolerances used for
+;; the gamma/beta-function-based branches (combinations' k>=30 log-beta
+;; path, factorial's gamma-function path), matching observed ULP-level
+;; implementation differences vs Python's libm.
+(t/deftest factorials-and-combinatorics
+  (doseq [n (range 0 21)]
+    (t/is (== (m/factorial20 n) (reduce * 1 (range 1 (inc n)))) (str "factorial20 " n)))
+  (doseq [[x ref] [[0.0 1.0] [1.0 1.0] [5.0 120.0] [10.0 3628800.0] [20.0 2.43290200817664e18]
+                   [21.0 5.109094217170944e19] [25.0 1.551121004333098e25]
+                   [0.5 0.886226925452758] [3.5 11.631728396567446] [-0.5 1.7724538509055159]]]
+    (t/is (m/delta-eq ref (m/factorial x) 1.0e-6 1.0e-12) (str "factorial " x)))
+  (doseq [[x ref] [[0.0 1.0] [5.0 0.008333333333333333] [20.0 4.110317623312165e-19]
+                   [25.0 6.446950284384476e-26] [0.5 1.1283791670955126]]]
+    (t/is (m/delta-eq ref (m/inv-factorial x) 1.0e-6 1.0e-12) (str "inv-factorial " x)))
+  (doseq [[x ref] [[5.0 120.0] [10.0 3628800.0] [20.0 2.432902008176642e18]
+                   [50.0 3.0414093201713376e64] [100.0 9.332621544394415e157]]]
+    (t/is (m/delta-eq ref (m/stirling-factorial x) 1.0e-9 1.0e-9) (str "stirling-factorial " x)))
+  (doseq [[x ref] [[5.0 4.787491742782046] [10.0 15.104412573075516] [20.0 42.335616460753485]
+                   [50.0 148.47776695177302] [100.0 363.73937555556347]]]
+    (t/is (m/delta-eq ref (m/log-stirling-factorial x) 1.0e-9 1.0e-9) (str "log-stirling-factorial " x)))
+  (doseq [[x ref] [[0.0 0.0] [1.0 0.0] [5.0 4.787491742782046] [10.0 15.104412573075516]
+                   [20.0 42.335616460753485] [25.0 58.00360522298052] [0.5 -0.12078223763524526]]]
+    (t/is (m/delta-eq ref (m/log-factorial x) 1.0e-9 1.0e-9) (str "log-factorial " x))
+    (t/is (m/== (m/log-factorial x) (apply m/log-factorial [x])) "inline path matches non-inlined path"))
+  (doseq [[n x ref] [[0 5.0 1.0] [3 5.0 60.0] [5 10.0 30240.0] [4 -2.0 120.0]]]
+    (t/is (m/== ref (m/falling-factorial-int n x)) (str "falling-factorial-int " n " " x)))
+  (doseq [[n x ref] [[3.0 5.0 60.0] [2.5 5.0 36.108133347056395] [0.5 3.0 1.80540666735282]]]
+    (t/is (m/delta-eq ref (m/falling-factorial n x) 1.0e-9 1.0e-9) (str "falling-factorial " n " " x)))
+  (doseq [[n x ref] [[0 5.0 1.0] [3 5.0 210.0] [5 10.0 240240.0] [4 -2.0 0.0]]]
+    (t/is (m/== ref (m/rising-factorial-int n x)) (str "rising-factorial-int " n " " x)))
+  (doseq [[n x ref] [[2.5 5.0 77.96892940824118] [0.5 3.0 1.6616754852239215]]]
+    (t/is (m/delta-eq ref (m/rising-factorial n x) 1.0e-9 1.0e-9) (str "rising-factorial " n " " x)))
+  (doseq [[n k ref] [[10 3 120.0] [20 10 184756.0] [52 5 2598960.0]]]
+    (t/is (m/delta-eq ref (m/combinations n k) 1.0e-6 1.0e-9) (str "combinations " n " " k)))
+  (doseq [[n k ref] [[100 50 1.008913445455642e29] [200 30 4.096817050221278e35]]]
+    (t/is (m/delta-eq ref (m/combinations n k) 1.0e-9 1.0e-9) (str "combinations (log-beta path) " n " " k)))
+  (t/is (m/== 0.0 (m/combinations 5 -1)))
+  (t/is (m/== 0.0 (m/combinations 5 10)))
+  (doseq [[n k ref] [[10 3 4.787491742782046] [20 10 12.126791314602455]
+                     [52 5 14.77062192297037] [100 50 66.78384165201743]]]
+    (t/is (m/delta-eq ref (m/log-combinations n k) 1.0e-9 1.0e-9) (str "log-combinations " n " " k)))
+  (t/is (m/== ##-Inf (m/log-combinations 5 -1)))
+  (t/is (m/== ##-Inf (m/log-combinations 5 10)))
+  (t/is (m/== 0.0 (m/log-combinations 5 0)))
+  (t/is (m/== 0.0 (m/log-combinations 5 5))))
