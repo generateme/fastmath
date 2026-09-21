@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.stats/box-cox-transformation` with `{:scaled? true :inverse? true}` threw a raw `ClassCastException` ("Boolean cannot be cast to Number") instead of an informative error; now throws a clear `ex-info` explaining that the actual numeric geometric mean used by the forward transformation must be supplied (it can't be recovered from already-transformed data)
 * `fastmath.core/long-mult`'s non-inlined 3-arity body computed `(a*b)+c` instead of `(a*b)*c`; masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use
 * `fastmath.core/==`, `eq`, `<`, `>`, `<=`, `>=`'s non-inlined 3+-arity bodies never compared the 2nd argument against the 3rd (e.g. `(apply m/< [1 2 0])` returned `true`); masked whenever the compiler could inline the call, only visible via `apply`/`reduce`/higher-order use; `not==` was unaffected
+* `fastmath.core/-THIRD_PI` computed `(/ -PI -3.0)` (double negative cancelling out to `+π/3`) instead of `-π/3`, unlike its correctly-negative siblings `-HALF_PI`/`-QUARTER_PI`
 
 ## [3.0.0 alpha9]
 

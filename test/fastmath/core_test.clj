@@ -166,6 +166,112 @@
   ;; single-argument identity
   (t/is (= 12 (m/bit-and 12) (m/bit-or 12) (m/bit-xor 12) (m/bit-nand 12) (m/bit-nor 12) (m/bit-xnor 12) (m/bit-and-not 12))))
 
+;; Reference: hand-computed. xor/bool-xor are identical implementations
+;; (associative, so pairwise-fold n-ary is correct); negative-zero?/integer?
+;; verified against IEEE 754 bit-pattern facts; identity-double/identity-long
+;; are trivially correct by inspection (single-line, no PrimitiveMath call).
+(t/deftest boolean-and-identity-utilities
+  (t/is (true? (m/xor true false)))
+  (t/is (false? (m/xor true true)))
+  (t/is (false? (apply m/xor [true false true])) "chained: t^f=t, t^t=f")
+  (t/is (false? (apply m/xor [true true true true])))
+  (t/is (true? (apply m/bool-xor [true false false])) "chained: t^f=t, t^f=t")
+  (t/is (= (apply m/xor [true false true]) (apply m/bool-xor [true false true])) "identical implementations")
+  (t/is (true? (m/negative-zero? -0.0)))
+  (t/is (false? (m/negative-zero? 0.0)))
+  (t/is (false? (m/negative-zero? 1.0)))
+  (t/is (false? (m/negative-zero? -1.0)))
+  (t/is (m/== 0.0 -0.0) "sanity: normal equality treats -0.0 and 0.0 as equal, unlike negative-zero?")
+  (t/is (= 5.5 (m/identity-double 5.5)))
+  (t/is (= 7 (m/identity-long 7)))
+  (t/is (true? (m/integer? 5.0)))
+  (t/is (true? (m/integer? -3.0)))
+  (t/is (true? (m/integer? 0.0)))
+  (t/is (false? (m/integer? 5.5)))
+  (t/is (false? (m/integer? -0.1))))
+
+;; Reference: fractions.Fraction (Python, exact rational arithmetic on the
+;; IEEE 754 double bit patterns) for the catastrophic-cancellation case;
+;; hand-computed for the basic cases. Fixture is the classic Kahan
+;; two-product test case (a*b and c*d agree to ~8 significant digits).
+(t/deftest fma-kahan-products
+  (t/is (m/== 10.0 (m/muladd 2.0 3.0 4.0)))
+  (t/is (m/== 10.0 (m/fma 2.0 3.0 4.0)))
+  (t/is (m/== -2.0 (m/negmuladd 2.0 3.0 4.0)))
+  (t/is (m/== 5.0 (m/difference-of-products 2.0 3.0 1.0 1.0)))
+  (t/is (m/== 7.0 (m/sum-of-products 2.0 3.0 1.0 1.0)))
+  (let [a 33962.035, b -30438.8, c 41563.4, d -24871.3
+        exact -27800.538000075645
+        naive (- (* a b) (* c d))
+        dop (m/difference-of-products a b c d)]
+    (t/is (m/delta-eq naive -27800.53800010681 1.0e-9) "naive computation loses precision to cancellation")
+    (t/is (m/== exact dop) "Kahan algorithm recovers full precision")
+    (t/is (< (Math/abs (- dop exact)) (Math/abs (- naive exact))) "strictly more accurate than naive"))
+  (let [a 33962.035, b -30438.8, c 41563.4, d2 24871.3
+        exact -27800.538000075645
+        naive (+ (* a b) (* c d2))
+        sop (m/sum-of-products a b c d2)]
+    (t/is (m/delta-eq naive -27800.53800010681 1.0e-9) "naive computation loses precision to cancellation")
+    (t/is (m/== exact sop) "Kahan algorithm recovers full precision")
+    (t/is (< (Math/abs (- sop exact)) (Math/abs (- naive exact))) "strictly more accurate than naive")))
+
+;; Reference: Python mpmath (50 digits precision) for pi/e/euler-gamma/catalan;
+;; Apache Commons Math's own Gamma/GAMMA and Gamma/LANCZOS_G cross-checked
+;; against mpmath.euler and the standard Lanczos g=607/128 parameter
+;; respectively (fastmath.core's GAMMA/LANCZOS_G are direct aliases of these,
+;; so verifying the upstream constants verifies fastmath's).
+(t/deftest math-constants-block-1
+  (let [pi 3.141592653589793
+        e 2.718281828459045
+        euler 0.5772156649015329
+        catalan 0.915965594177219
+        pi2 9.869604401089358
+        macheps 1.1102230246251565e-16]
+    (t/is (m/== m/PI pi))
+    (t/is (m/== m/HALF_PI (/ pi 2.0)))
+    (t/is (m/== m/THIRD_PI (/ pi 3.0)))
+    (t/is (m/== m/QUARTER_PI (/ pi 4.0)))
+    (t/is (m/== m/TWO_PI (* 2.0 pi)))
+    (t/is (m/== m/TAU (* 2.0 pi)))
+    (t/is (m/== m/E e))
+    (t/is (m/== m/-PI (- pi)))
+    (t/is (m/== m/-HALF_PI (- (/ pi 2.0))))
+    (t/is (m/== m/-THIRD_PI (- (/ pi 3.0))) "regression: was +pi/3 before fix (double-negative sign bug)")
+    (t/is (m/== m/-QUARTER_PI (- (/ pi 4.0))))
+    (t/is (m/== m/-TWO_PI (- (* 2.0 pi))))
+    (t/is (m/== m/-TAU (- (* 2.0 pi))))
+    (t/is (m/== m/-E (- e)))
+    (t/is (m/== m/INV_PI (/ 1.0 pi)))
+    (t/is (m/== m/TWO_INV_PI (/ 2.0 pi)))
+    (t/is (m/== m/FOUR_INV_PI (/ 4.0 pi)))
+    (t/is (m/== m/INV_TWO_PI (/ 1.0 (* 2.0 pi))))
+    (t/is (m/== m/INV_FOUR_PI (/ 1.0 (* 4.0 pi))))
+    (t/is (m/== m/EPSILON 1.0e-10))
+    (t/is (m/== m/GAMMA euler))
+    (t/is (m/== m/LANCZOS_G (/ 607.0 128.0)))
+    (t/is (m/== m/CATALAN_G catalan))
+    (t/is (m/== m/PI2 pi2))
+    (t/is (m/== m/MACHINE-EPSILON macheps))
+    (t/is (m/== m/MACHINE-EPSILON10 (* 10.0 macheps)))
+    (t/is (m/== m/THIRD (/ 1.0 3.0)))
+    (t/is (m/== m/ONE_THIRD (/ 1.0 3.0)))
+    (t/is (m/== m/TWO_THIRD (/ 2.0 3.0)))
+    (t/is (m/== m/TWO_THIRDS (/ 2.0 3.0)))
+    (t/is (m/== m/SIXTH (/ 1.0 6.0)))
+    (t/is (m/== m/ONE_SIXTH (/ 1.0 6.0)))))
+
+;; Reference: hand-computed sign semantics, incl. -0.0 edge case (neither
+;; signum nor sgn treat -0.0 as negative, matching IEEE 754 numeric equality).
+(t/deftest signum-sgn
+  (t/is (= 1.0 (m/signum 5.0)))
+  (t/is (= 0.0 (m/signum 0.0)))
+  (t/is (= 0.0 (m/signum -0.0)))
+  (t/is (= -1.0 (m/signum -3.0)))
+  (t/is (= 1.0 (m/sgn 5.0)))
+  (t/is (= 1.0 (m/sgn 0.0)))
+  (t/is (= 1.0 (m/sgn -0.0)))
+  (t/is (= -1.0 (m/sgn -3.0))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

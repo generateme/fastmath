@@ -772,14 +772,30 @@
   [x] (. PrimitiveMath (not (boolean x))))
 
 (defn bool-xor
-  "Primitive boolean xor"
+  "Primitive boolean XOR of two or more values.
+
+  Parameters:
+
+  - two or more values (coerced to boolean).
+
+  Returns the exclusive-or of all arguments as a Boolean, computed by folding pairwise from left to right (associative, so fold order does not affect the result).
+
+  See also [[xor]] (identical implementation), [[bool-not]]."
   {:inline (primitivemath-nary-inline 'xor)
    :inline-arities >=2?}
   ([x y] (. PrimitiveMath (xor (boolean x) (boolean y))))
   ([x y & r] (reduce bool-xor (. PrimitiveMath (xor (boolean x) (boolean y))) r)))
 
 (defn xor
-  "Primitive boolean xor"
+  "Primitive boolean XOR of two or more values. Identical implementation to [[bool-xor]].
+
+  Parameters:
+
+  - two or more values (coerced to boolean).
+
+  Returns the exclusive-or of all arguments as a Boolean, computed by folding pairwise from left to right (associative, so fold order does not affect the result).
+
+  See also [[bool-xor]], [[bool-not]]."
   {:inline (primitivemath-nary-inline 'xor)
    :inline-arities >=2?}
   ([x y] (. PrimitiveMath (xor (boolean x) (boolean y))))
@@ -788,7 +804,15 @@
 ;;;;
 
 (defn negative-zero?
-  "Check if zero is negative, ie. -0.0"
+  "Checks whether a double is negative zero (`-0.0`), as distinct from positive zero (`0.0`).
+
+  Parameters:
+
+  - `x` (double): value to check.
+
+  Returns `true` when `x` is bitwise equal to `-0.0`, `false` otherwise (including for `0.0`, despite `(== -0.0 0.0)` being `true` under normal floating-point equality).
+
+  See also [[zero?]]."
   {:inline (fn [x] `(. PrimitiveMath (eq -9223372036854775808
                                         (Double/doubleToLongBits (double ~x)))))
    :inline-arities #{1}}
@@ -806,7 +830,15 @@
   ^long [^long a] a)
 
 (defn integer?
-  "Check if given real number is an integer."
+  "Checks if a given real number is a mathematical integer (has zero fractional part).
+
+  Parameters:
+
+  - `v` (double): value to check.
+
+  Returns `true` when `v` equals its own rounded value (`v == rint(v)`), `false` otherwise. Shadows `clojure.core/integer?`, which instead checks the value's Java type; this predicate checks the numeric value, so `(integer? 5.0)` returns `true`.
+
+  See also [[frac]], [[sfrac]]."
   {:inline (fn [v] `(== ~v (FastMath/rint (double ~v)))) :inline-arities #{1}}
   [^double v]
   (== v (FastMath/rint v)))
@@ -831,21 +863,45 @@
     `(Math/fma ~x ~y ~z)))
 
 (defn muladd
-  "`(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+"
+  "Computes `x*y + z` using fused multiply-add when available.
+
+  Parameters:
+
+  - `x`, `y`, `z` (doubles): multiplicands and addend.
+
+  Returns `x*y + z` as a double. On Java 9+, uses `Math/fma` for a single correctly-rounded fused multiply-add (more accurate than a separate multiply and add). On earlier JVMs, falls back to a plain `(+ z (* x y))` with intermediate rounding.
+
+  See also [[fma]] (identical implementation), [[negmuladd]], [[difference-of-products]], [[sum-of-products]]."
   {:inline (->fma)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
   (fma-macro x y z))
 
 (defn fma
-  "`(x y z)` -> `(+ z (* x y))` or `Math/fma` for java 9+"
+  "Computes `x*y + z` using fused multiply-add when available. Identical implementation to [[muladd]].
+
+  Parameters:
+
+  - `x`, `y`, `z` (doubles): multiplicands and addend.
+
+  Returns `x*y + z` as a double. On Java 9+, uses `Math/fma` for a single correctly-rounded fused multiply-add (more accurate than a separate multiply and add). On earlier JVMs, falls back to a plain `(+ z (* x y))` with intermediate rounding.
+
+  See also [[muladd]], [[negmuladd]], [[difference-of-products]], [[sum-of-products]]."
   {:inline (->fma)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
   (fma-macro x y z))
 
 (defn negmuladd
-  "`(x y z)` -> `(+ z (* -x y))` or `Math/fma` for java 9+"
+  "Computes `-x*y + z` (negated fused multiply-add) using fused multiply-add when available.
+
+  Parameters:
+
+  - `x`, `y`, `z` (doubles): multiplicands (negated) and addend.
+
+  Returns `-x*y + z` as a double. On Java 9+, uses `Math/fma` for a single correctly-rounded fused multiply-add. On earlier JVMs, falls back to a plain `(+ z (* (- x) y))` with intermediate rounding.
+
+  See also [[muladd]], [[fma]]."
   {:inline (->fma true)
    :inline-arities #{3}}
   ^double [^double x ^double y ^double z]
@@ -853,13 +909,29 @@
 
 ;; some stuff from pbrt
 (defn difference-of-products
-  "Kahan's algorithm for (a*b)-(c*d) to avoid catastrophic cancellation."
+  "Computes `a*b - c*d` using Kahan's two-product algorithm to avoid catastrophic cancellation when `a*b` and `c*d` are close in magnitude.
+
+  Parameters:
+
+  - `a`, `b`, `c`, `d` (doubles): factors of the two products.
+
+  Returns `a*b - c*d` as a double, computed via two fused multiply-adds plus a correction term rather than a direct subtraction of two separately-rounded products. This achieves near full double precision even when the naive `(- (* a b) (* c d))` loses many significant digits to cancellation. Requires a true hardware/JVM fused multiply-add (Java 9+) to realize the accuracy benefit; on earlier JVMs it is numerically equivalent to the naive computation.
+
+  See also [[sum-of-products]], [[fma]]."
   ^double [^double a ^double b ^double c ^double d]
   (let [cd (* c d)]
     (+ (fma a b (- cd)) (fma (- c) d cd))))
 
 (defn sum-of-products
-  "Kahan's algorithm for (a*b)+(c*d) to avoid catastrophic cancellation."
+  "Computes `a*b + c*d` using Kahan's two-product algorithm to avoid catastrophic cancellation when `a*b` and `c*d` have opposite signs and are close in magnitude.
+
+  Parameters:
+
+  - `a`, `b`, `c`, `d` (doubles): factors of the two products.
+
+  Returns `a*b + c*d` as a double, computed via two fused multiply-adds rather than a direct sum of two separately-rounded products. This achieves near full double precision even when the naive `(+ (* a b) (* c d))` loses many significant digits to cancellation. Requires a true hardware/JVM fused multiply-add (Java 9+) to realize the accuracy benefit; on earlier JVMs it is numerically equivalent to the naive computation.
+
+  See also [[difference-of-products]], [[fma]]."
   ^double [^double a ^double b ^double c ^double d]
   (let [cd (* c d)]
     (+ (fma a b cd) (fma c d (- cd)))))
@@ -874,7 +946,7 @@
 (def ^{:const true :tag 'double :doc "Value of $\\mathrm{e}$"} E Math/E)
 (def ^{:const true :tag 'double :doc "Value of $-\\pi$"} -PI (- Math/PI))
 (def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{2}$"} -HALF_PI (* PI -0.5))
-(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{3}$"} -THIRD_PI (/ -PI -3.0))
+(def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{3}$"} -THIRD_PI (/ -PI 3.0))
 (def ^{:const true :tag 'double :doc "Value of $\\frac{\\pi}{4}$"} -QUARTER_PI (* PI -0.25))
 (def ^{:const true :tag 'double :doc "Value of $-2\\pi$"} -TWO_PI (- TWO_PI))
 (def ^{:const true :tag 'double :doc "Value of $-2\\pi$"} -TAU -TWO_PI)
