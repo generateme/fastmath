@@ -2126,20 +2126,44 @@
 (def ^{:const true :tag 'double :doc "$\\frac{\\pi}{180}$"} deg-in-rad (/ PI 180.0))
 
 (defn radians
-  "Convert degrees into radians."
+  "Converts an angle from degrees to radians.
+
+  Parameters:
+
+  - `deg` (double): angle in degrees.
+
+  Returns the angle in radians as a double.
+
+  See also [[degrees]]."
   {:inline (fn [deg] `(* deg-in-rad ~deg))
    :inline-arities #{1}}
   ^double [^double deg] (* deg-in-rad deg))
 
 (defn degrees
-  "Convert radians into degrees."
+  "Converts an angle from radians to degrees.
+
+  Parameters:
+
+  - `rad` (double): angle in radians.
+
+  Returns the angle in degrees as a double.
+
+  See also [[radians]]."
   {:inline (fn [rad] `(* rad-in-deg ~rad))
    :inline-arities #{1}}
   ^double [^double rad] (* rad-in-deg rad))
 
 ;; Sinc
 (defn sinc
-  "Sinc function."
+  "Computes the normalized sinc function, `sinc(x) = sin(pi*x)/(pi*x)`, with the removable singularity at `x=0` handled explicitly.
+
+  Parameters:
+
+  - `v` (double): value to evaluate.
+
+  Returns the result as a double, in `[-1, 1]`. Returns exactly `1.0` for `|pi*v|` below `1.0e-8` (avoiding division by a near-zero denominator).
+
+  See also [[sin]]."
   ^double [^double v]
   (let [x (* PI (Math/abs v))]
     (if (< x 1.0e-8) 1.0
@@ -2147,7 +2171,15 @@
 
 ;;
 (defn sigmoid
-  "Sigmoid function"
+  "Computes the sigmoid (standard logistic) function, `sigmoid(x) = 1/(1+exp(-x))`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double, always in `(0, 1)`.
+
+  See also [[logistic]] (alias), [[logit]] (inverse)."
   {:inline (fn [x] `(/ (inc (FastMath/exp (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
@@ -2156,7 +2188,15 @@
 (def ^{:doc "Alias for [[sigmoid]]"} logistic sigmoid)
 
 (defn logit
-  "Logit function"
+  "Computes the logit function (log-odds), `logit(x) = log(x/(1-x))`, the inverse of [[sigmoid]]. Uses a numerically stable, `log1p`-based reformulation near `x=0.5` to avoid catastrophic cancellation.
+
+  Parameters:
+
+  - `x` (double): probability-like value; must satisfy `0 < x < 1` for a finite result.
+
+  Returns the result as a double.
+
+  See also [[sigmoid]] (inverse)."
   {:inline (fn [x] `(let [x# (double ~x)]
                      (if (< 0.3 x# 0.65)
                        (let [s# (* 2.0 (- x# 0.5))]
@@ -2171,7 +2211,15 @@
     (FastMath/log (/ x (- 1.0 x)))))
 
 (defn log2
-  "Logarithm with base 2, log_10(x)."
+  "Computes the base-2 logarithm of `x`.
+
+  Parameters:
+
+  - `x` (double): value to take the logarithm of; must be positive for a real result.
+
+  Returns the result as a double.
+
+  See also [[log]], [[logb]], [[LOG2E]]."
   {:inline (fn [x] `(* (FastMath/log (double ~x)) INV_LN2))
    :inline-arities #{1}}
   ^double [^double x]
@@ -2179,14 +2227,31 @@
 
 ;; \\(\log_b x\\)
 (defn logb
-  "Logarithm with base `b`. log_b(x)"
+  "Computes the logarithm of `x` with an explicit base `b`, `logb(b,x) = log(x)/log(b)`.
+
+  Parameters:
+
+  - `b` (double): logarithm base; must be positive and not equal to `1.0`.
+  - `x` (double): value to take the logarithm of; must be positive for a real result.
+
+  Returns the result as a double.
+
+  See also [[log]] (2-arity form), [[log2]]."
   {:inline (fn [b x] `(/ (FastMath/log (double ~x)) (FastMath/log (double ~b))))
    :inline-arities #{2}}
   ^double [^double b ^double x]
   (/ (FastMath/log x) (FastMath/log b)))
 
 (defn logcosh
-  "log(cosh(x))"
+  "Computes `log(cosh(x))`, using a numerically stable form (`|x| + log1pexp(-2|x|) - ln(2)`) to avoid overflow in `cosh(x)` for large `|x|`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double, always non-negative.
+
+  See also [[cosh]], [[log1pexp]]."
   {:inline (fn [x] `(let [absx# (Math/abs (double ~x))]
                      (- (+ absx# (log1pexp (* -2.0 absx#))) LN2)))
    :inline-arities #{1}}

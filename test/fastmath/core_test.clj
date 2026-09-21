@@ -498,6 +498,39 @@
   (doseq [[x ref] [[0.5 0.545239211892605] [-1.0 0.06598803584531254] [2.0 0.8734230184931167]]]
     (t/is (m/delta-eq ref (m/expexp x) 1.0e-9 1.0e-9) (str "expexp " x))))
 
+;; Reference: Julia LogExpFunctions.jl v0.3.29 (sigmoid/logistic, logit --
+;; both exported by that package, same formulas confirmed via its docs);
+;; Python math (radians/degrees, log2, log(x)/log(b) for logb); hand-computed
+;; sinc and the logcosh large-x stable-branch identity (|x|-ln2).
+(t/deftest roots-sigmoid-logit-misc-logs
+  (t/is (m/delta-eq 57.29577951308232 m/rad-in-deg 1.0e-9))
+  (t/is (m/delta-eq 0.017453292519943295 m/deg-in-rad 1.0e-9))
+  (doseq [[d ref] [[0.0 0.0] [90.0 1.5707963267948966] [180.0 3.141592653589793]
+                   [-45.0 -0.7853981633974483] [360.0 6.283185307179586]]]
+    (t/is (m/delta-eq ref (m/radians d) 1.0e-9 1.0e-9) (str "radians " d)))
+  (doseq [[r ref] [[0.0 0.0] [1.5707963267948966 90.0] [3.141592653589793 180.0] [-1.0 -57.29577951308232]]]
+    (t/is (m/delta-eq ref (m/degrees r) 1.0e-9 1.0e-9) (str "degrees " r)))
+  (doseq [[x ref] [[0.0 1.0] [1.0 3.8981718325193755e-17] [0.5 0.6366197723675814]
+                   [2.0 -3.8981718325193755e-17] [-1.5 -0.2122065907891938] [1.0e-10 1.0]]]
+    (t/is (m/delta-eq ref (m/sinc x) 1.0e-9 1.0e-9) (str "sinc " x)))
+  (doseq [[x ref] [[-10.0 4.5397868702434395e-05] [-1.0 0.2689414213699951] [0.0 0.5]
+                   [1.0 0.7310585786300049] [10.0 0.9999546021312976] [0.42 0.6034832498647263]]]
+    (t/is (m/delta-eq ref (m/sigmoid x) 1.0e-9 1.0e-9) (str "sigmoid " x))
+    (t/is (m/== (m/sigmoid x) (m/logistic x)) "logistic is an alias"))
+  (doseq [[x ref] [[0.1 -2.197224577336219] [0.3 -0.8472978603872037] [0.5 0.0]
+                   [0.65 0.6190392084062235] [0.9 2.1972245773362196] [0.42 -0.32277339226305113]]]
+    (t/is (m/delta-eq ref (m/logit x) 1.0e-9 1.0e-9) (str "logit " x)))
+  (doseq [[x ref] [[1.0 0.0] [2.0 1.0] [8.0 3.0] [100.0 6.643856189774724] [0.5 -1.0]]]
+    (t/is (m/delta-eq ref (m/log2 x) 1.0e-9 1.0e-9) (str "log2 " x)))
+  (doseq [[b x ref] [[2 8 3.0] [10 1000 2.9999999999999996] [3 27 3.0] [7 49 2.0]]]
+    (t/is (m/delta-eq ref (m/logb b x) 1.0e-9 1.0e-9) (str "logb " b " " x)))
+  (doseq [[x ref] [[0.0 0.0] [1.0 0.4337808304830271] [-1.0 0.4337808304830271] [5.0 4.3068982183392714]]]
+    (t/is (m/delta-eq ref (m/logcosh x) 1.0e-9 1.0e-9) (str "logcosh " x)))
+  (t/is (m/delta-eq (- 50.0 m/LN2) (m/logcosh 50.0) 1.0e-9) "large-x stable branch")
+  (t/is (m/delta-eq (- 500.0 m/LN2) (m/logcosh 500.0) 1.0e-9) "large-x stable branch, no overflow")
+  (t/is (m/delta-eq 1.4426950408889634 m/LOG2E 1.0e-9))
+  (t/is (m/delta-eq 0.4342944819032518 m/LOG10E 1.0e-9)))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 
