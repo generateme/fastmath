@@ -291,6 +291,51 @@
     (t/is (m/delta-eq cos-ref (m/cospi x) 1.0e-9 1.0e-9) (str "cospi " x))
     (t/is (m/delta-eq tan-ref (m/tanpi x) 1.0e-9 1.0e-9) (str "tanpi " x))))
 
+;; Reference: Python math (1/tan, 1/cos, 1/sin and their arc-function
+;; compositions), same reference discipline as trig-pi-variants: relative
+;; tolerance to absorb FastMath-vs-libm ULP differences, amplified near poles.
+(t/deftest reciprocal-and-inverse-trig-hyperbolic
+  (doseq [[x cot-ref sec-ref csc-ref]
+          [[0.3 3.2327281437658275 1.0467516015380856 3.383863361824123]
+           [1.0 0.6420926159343306 1.8508157176809255 1.1883951057781212]
+           [2.5 -1.3386481283041514 -1.2482156514688179 1.6709215455586797]
+           [-0.7 -1.1872418321266793 1.3074592597335937 -1.552270326957104]
+           [0.1 9.966644423259238 1.0050209184004553 10.016686131634776]]]
+    (t/is (m/delta-eq cot-ref (m/cot x) 1.0e-9 1.0e-9) (str "cot " x))
+    (t/is (m/delta-eq sec-ref (m/sec x) 1.0e-9 1.0e-9) (str "sec " x))
+    (t/is (m/delta-eq csc-ref (m/csc x) 1.0e-9 1.0e-9) (str "csc " x)))
+  (doseq [[x cot-ref sec-ref csc-ref]
+          [[0.3 0.726542528005361 1.7013016167040798 1.2360679774997896]
+           [2.5 3.061616997868383e-16 3266247870639073.5 1.0]
+           [-0.7 0.7265425280053608 -1.7013016167040802 -1.2360679774997896]
+           [0.1 3.077683537175254 1.0514622242382672 3.23606797749979]]]
+    (t/is (m/delta-eq cot-ref (m/cotpi x) 1.0e-9 1.0e-9) (str "cotpi " x))
+    (t/is (m/delta-eq sec-ref (m/secpi x) 1.0e-9 1.0e-9) (str "secpi " x))
+    (t/is (m/delta-eq csc-ref (m/cscpi x) 1.0e-9 1.0e-9) (str "cscpi " x)))
+  (doseq [[x acot-ref] [[0.5 1.1071487177940904] [2.0 0.46364760900080615] [-1.5 2.5535900500422257] [3.0 0.32175055439664213]]]
+    (t/is (m/delta-eq acot-ref (m/acot x) 1.0e-9 1.0e-9) (str "acot " x)))
+  (doseq [[x asec-ref acsc-ref]
+          [[2.0 1.0471975511965979 0.5235987755982989]
+           [-1.5 2.300523983021863 -0.7297276562269663]
+           [3.0 1.2309594173407747 0.3398369094541219]]]
+    (t/is (m/delta-eq asec-ref (m/asec x) 1.0e-9 1.0e-9) (str "asec " x))
+    (t/is (m/delta-eq acsc-ref (m/acsc x) 1.0e-9 1.0e-9) (str "acsc " x)))
+  (doseq [[x coth-ref sech-ref csch-ref]
+          [[0.3 3.4327384303217414 0.9566279119002483 3.283853396698424]
+           [1.0 1.3130352854993315 0.6480542736638855 0.8509181282393216]
+           [2.5 1.0135673098126083 0.16307123192997783 0.16528366985509557]
+           [-0.7 -1.654621635802629 0.796705459992875 -1.3182460914662975]
+           [0.1 10.03331113225399 0.9950207489532266 9.98335275729611]]]
+    (t/is (m/delta-eq coth-ref (m/coth x) 1.0e-9 1.0e-9) (str "coth " x))
+    (t/is (m/delta-eq sech-ref (m/sech x) 1.0e-9 1.0e-9) (str "sech " x))
+    (t/is (m/delta-eq csch-ref (m/csch x) 1.0e-9 1.0e-9) (str "csch " x)))
+  (doseq [[x acoth-ref] [[2.0 0.5493061443340549] [-3.0 -0.34657359027997264] [5.0 0.2027325540540822]]]
+    (t/is (m/delta-eq acoth-ref (m/acoth x) 1.0e-9 1.0e-9) (str "acoth " x)))
+  (doseq [[x asech-ref] [[0.2 2.2924316695611777] [0.5 1.3169578969248168] [1.0 0.0]]]
+    (t/is (m/delta-eq asech-ref (m/asech x) 1.0e-9 1.0e-9) (str "asech " x)))
+  (doseq [[x acsch-ref] [[0.5 1.4436354751788103] [-3.0 -0.32745015023725843] [5.0 0.19869011034924142]]]
+    (t/is (m/delta-eq acsch-ref (m/acsch x) 1.0e-9 1.0e-9) (str "acsch " x))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

@@ -1131,37 +1131,85 @@
 ;; Additional trigonometry functions
 
 (defn cot
-  "cot(x)"
+  "Computes the cotangent of `x`, `cot(x) = 1/tan(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `cot(x)` as a double. Diverges where `tan(x)` is zero, i.e. at integer multiples of π.
+
+  See also [[tan]], [[cotpi]], [[sec]], [[csc]]."
   {:inline (fn [x] `(/ (tan (double ~x))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/tan x))))
 
 (defn cotpi
-  "cot(pi*x)"
+  "Computes the cotangent of `x` expressed in half-turns (units of π), `cot(π·x) = 1/tan(π·x)`.
+
+  Parameters:
+
+  - `x` (double): value in half-turns.
+
+  Returns `cot(π·x)` as a double. Diverges near integer `x` (where `tan(π·x)` is near zero).
+
+  See also [[cot]], [[tanpi]], [[secpi]], [[cscpi]]."
   {:inline (fn [x] `(/ (tan (* PI (double ~x)))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/tan (* PI x)))))
 
 (defn sec
-  "sec(x)"
+  "Computes the secant of `x`, `sec(x) = 1/cos(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `sec(x)` as a double. Diverges where `cos(x)` is zero, i.e. at odd multiples of π/2.
+
+  See also [[cos]], [[secpi]], [[cot]], [[csc]]."
   {:inline (fn [x] `(/ (cos (double ~x))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/cos x))))
 
 (defn secpi
-  "sec(pi*x)"
+  "Computes the secant of `x` expressed in half-turns (units of π), `sec(π·x) = 1/cos(π·x)`.
+
+  Parameters:
+
+  - `x` (double): value in half-turns.
+
+  Returns `sec(π·x)` as a double. Diverges near half-integer `x` (where `cos(π·x)` is near zero).
+
+  See also [[sec]], [[cospi]], [[cotpi]], [[cscpi]]."
   {:inline (fn [x] `(/ (cos (* PI (double ~x)))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/cos (* PI x)))))
 
 (defn csc
-  "csc(x)"
+  "Computes the cosecant of `x`, `csc(x) = 1/sin(x)`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `csc(x)` as a double. Diverges where `sin(x)` is zero, i.e. at integer multiples of π.
+
+  See also [[sin]], [[cscpi]], [[cot]], [[sec]]."
   {:inline (fn [x] `(/ (sin (double ~x))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/sin x))))
 
 (defn cscpi
-  "csc(pi*x)"
+  "Computes the cosecant of `x` expressed in half-turns (units of π), `csc(π·x) = 1/sin(π·x)`.
+
+  Parameters:
+
+  - `x` (double): value in half-turns.
+
+  Returns `csc(π·x)` as a double. Diverges near integer `x` (where `sin(π·x)` is near zero).
+
+  See also [[csc]], [[sinpi]], [[cotpi]], [[secpi]]."
   {:inline (fn [x] `(/ (sin (* PI (double ~x)))))
    :inline-arities #{1}}
   (^double [^double x] (/ (FastMath/sin (* PI x)))))
@@ -1169,19 +1217,43 @@
 ;; Additional cyclometric functions
 
 (defn acot
-  "acot(x)"
+  "Computes the inverse cotangent of `x`, `acot(x) = π/2 - atan(x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse cotangent of.
+
+  Returns `acot(x)` as a double, in the range `(0, π)`.
+
+  See also [[atan]], [[asec]], [[acsc]]."
   {:inline (fn [x] `(- HALF_PI (atan (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (- HALF_PI (FastMath/atan x)))
 
 (defn asec
-  "asec(x)"
+  "Computes the inverse secant of `x`, `asec(x) = acos(1/x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse secant of; must satisfy `|x| >= 1`.
+
+  Returns `asec(x)` as a double, in the range `[0, π]`. Returns `##NaN` for `|x| < 1` (outside the domain).
+
+  See also [[acos]], [[acot]], [[acsc]]."
   {:inline (fn [x] `(acos (/ ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acos (/ 1.0 x)))
 
 (defn acsc
-  "acsc(x)"
+  "Computes the inverse cosecant of `x`, `acsc(x) = asin(1/x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse cosecant of; must satisfy `|x| >= 1`.
+
+  Returns `acsc(x)` as a double, in the range `[-π/2, π/2]`. Returns `##NaN` for `|x| < 1` (outside the domain).
+
+  See also [[asin]], [[acot]], [[asec]]."
   {:inline (fn [x] `(asin (/ ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/asin (/ 1.0 x)))
@@ -1194,38 +1266,86 @@
 
 ;; Additional hyperbolic functions
 (defn coth
-  "Hyperbolic cotangent"
+  "Computes the hyperbolic cotangent of `x`, `coth(x) = 1/tanh(x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the hyperbolic cotangent of.
+
+  Returns `coth(x)` as a double. Diverges at `x=0` (where `tanh(x)` is zero).
+
+  See also [[tanh]], [[sech]], [[csch]]."
   {:inline (fn [x] `(/ (tanh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (/ (FastMath/tanh x)))
 
 (defn sech
-  "Hyperbolic secant"
+  "Computes the hyperbolic secant of `x`, `sech(x) = 1/cosh(x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the hyperbolic secant of.
+
+  Returns `sech(x)` as a double, always in `(0, 1]`.
+
+  See also [[cosh]], [[coth]], [[csch]]."
   {:inline (fn [x] `(/ (cosh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (/ (FastMath/cosh x)))
 
 (defn csch
-  "Hyperbolic cosecant"
+  "Computes the hyperbolic cosecant of `x`, `csch(x) = 1/sinh(x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the hyperbolic cosecant of.
+
+  Returns `csch(x)` as a double. Diverges at `x=0` (where `sinh(x)` is zero).
+
+  See also [[sinh]], [[coth]], [[sech]]."
   {:inline (fn [x] `(/ (sinh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (/ (FastMath/sinh x)))
 
 ;; Additional inverse hyperbolic functions
 (defn acoth
-  "Area hyperbolic cotangent"
+  "Computes the area (inverse) hyperbolic cotangent of `x`, `acoth(x) = atanh(1/x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the area hyperbolic cotangent of; must satisfy `|x| > 1`.
+
+  Returns `acoth(x)` as a double. Returns `##NaN` for `|x| <= 1` (outside the domain).
+
+  See also [[atanh]], [[asech]], [[acsch]]."
   {:inline (fn [x] `(atanh (/ ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/atanh (/ x)))
 
 (defn asech
-  "Area hyperbolic secant"
+  "Computes the area (inverse) hyperbolic secant of `x`, `asech(x) = acosh(1/x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the area hyperbolic secant of; must satisfy `0 < x <= 1`.
+
+  Returns `asech(x)` as a double, always non-negative. Returns `##NaN` outside the domain.
+
+  See also [[acosh]], [[acoth]], [[acsch]]."
   {:inline (fn [x] `(acosh (/ ~x)))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/acosh (/ x)))
 
 (defn acsch
-  "Area hyperbolic cosecant"
+  "Computes the area (inverse) hyperbolic cosecant of `x`, `acsch(x) = asinh(1/x)`.
+
+  Parameters:
+
+  - `x` (double): value to take the area hyperbolic cosecant of; must be nonzero.
+
+  Returns `acsch(x)` as a double. Returns `##Inf`/`##-Inf` at `x=0` per IEEE 754 division semantics (`1/0 = ##Inf`).
+
+  See also [[asinh]], [[acoth]], [[asech]]."
   {:inline (fn [x] `(asinh (/ ~x)))
    :inline-arities #{1}}
   ^double [^double v] (FastMath/asinh (/ v)))
