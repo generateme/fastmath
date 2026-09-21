@@ -395,6 +395,22 @@
     (t/is (m/delta-eq 343.55606034104153 (* (m/haversine-dist lat1 lon1 lat2 lon2) 6371.0) 1.0e-6)
           "London-Paris great-circle distance, known real-world value ~343.6km")))
 
+;; Reference: Python math (sec(x)-1, csc(x)-1, asec(x+1), acsc(x+1)), same
+;; relative-tolerance discipline.
+(t/deftest historical-trig-exsecant-family
+  (doseq [[x exsec-ref excsc-ref] [[0.3 0.04675160153808555 2.383863361824123]
+                                    [1.0 0.8508157176809255 0.18839510577812124]
+                                    [-0.7 0.30745925973359367 -2.552270326957104]
+                                    [2.5 -2.2482156514688176 0.6709215455586797]]]
+    (t/is (m/delta-eq exsec-ref (m/exsec x) 1.0e-9 1.0e-9) (str "exsec " x))
+    (t/is (m/delta-eq excsc-ref (m/excsc x) 1.0e-9 1.0e-9) (str "excsc " x)))
+  (doseq [[x aexsec-ref aexcsc-ref] [[1.0 1.0471975511965979 0.5235987755982989]
+                                      [2.0 1.2309594173407747 0.3398369094541219]
+                                      [0.5 0.8410686705679303 0.7297276562269663]
+                                      [5.0 1.4033482475752073 0.16744807921968932]]]
+    (t/is (m/delta-eq aexsec-ref (m/aexsec x) 1.0e-9 1.0e-9) (str "aexsec " x))
+    (t/is (m/delta-eq aexcsc-ref (m/aexcsc x) 1.0e-9 1.0e-9) (str "aexcsc " x))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

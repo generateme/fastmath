@@ -1616,25 +1616,57 @@
   ^double [^double x] (FastMath/asin (dec (* 2.0 x))))
 
 (defn exsec
-  "Exsecant"
+  "Computes the exsecant of `x`, `exsec(x) = sec(x) - 1`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the exsecant as a double.
+
+  See also [[aexsec]], [[sec]], [[excsc]]."
   {:inline (fn [x] `(dec (sec ~x)))
    :inline-arities #{1}}
   ^double [^double x] (dec (sec x)))
 
 (defn excsc
-  "Excosecant"
+  "Computes the excosecant of `x`, `excsc(x) = csc(x) - 1`.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns the excosecant as a double.
+
+  See also [[aexcsc]], [[csc]], [[exsec]]."
   {:inline (fn [x] `(dec (csc ~x)))
    :inline-arities #{1}}
   ^double [^double x] (dec (csc x)))
 
 (defn aexsec
-  "Arc exsecant"
+  "Computes the arc (inverse) exsecant of `x`, `aexsec(x) = asec(x + 1)`.
+
+  Parameters:
+
+  - `x` (double): exsecant value; must satisfy `x >= 0` or `x <= -2` for a real result.
+
+  Returns the angle in radians as a double, in `[0, π]`. Returns `##NaN` outside the domain.
+
+  See also [[exsec]], [[asec]], [[aexcsc]]."
   {:inline (fn [x] `(asec (inc ~x)))
    :inline-arities #{1}}
   ^double [^double x] (asec (inc x)))
 
 (defn aexcsc
-  "Arc excosecant"
+  "Computes the arc (inverse) excosecant of `x`, `aexcsc(x) = acsc(x + 1)`.
+
+  Parameters:
+
+  - `x` (double): excosecant value; must satisfy `x >= 0` or `x <= -2` for a real result.
+
+  Returns the angle in radians as a double, in `[-π/2, π/2]`. Returns `##NaN` outside the domain.
+
+  See also [[excsc]], [[acsc]], [[aexsec]]."
   {:inline (fn [x] `(acsc (inc ~x)))
    :inline-arities #{1}}
   ^double [^double x] (acsc (inc x)))
