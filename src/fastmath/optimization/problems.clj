@@ -1,6 +1,7 @@
 (ns fastmath.optimization.problems
   "A collection of test functions"
-  (:require [fastmath.core :as m]))
+  (:require [fastmath.core :as m]
+            [fastmath.vector :as v]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -290,4 +291,18 @@
   (let [sx (m/sin x)]
     (m/- (m/* -3.0 (m/exp (m/* -3.0 x)))
          (m/* 3.0 sx sx (m/cos x)))))
+
+;; https://www.sfu.ca/~ssurjano/optimization.html
+
+(defn auckley-bounds [^long N] (repeat N [-32768.0 32768.0]))
+
+(defn ->auckley
+  ([] (->auckley {:a 20.0 :b 0.2 :c m/TWO_PI}))
+  ([{:keys [^double a ^double b ^double c]}]
+   (let [ae (m/+ a m/E)
+         -b (m/- b)]
+     (fn [vs]
+       (m/- ae
+            (m/* a (m/exp (m/* -b (v/average (v/magsq vs)))))
+            (m/exp (v/average (v/cos (v/mult vs c)))))))))
 
