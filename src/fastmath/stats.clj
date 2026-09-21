@@ -52,7 +52,6 @@
             [fastmath.interpolation.step :as step-interp]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
-            [fastmath.optimization :as opt]
             [fastmath.kernel.density :as kd]
             [fastmath.special :as special]
             [fastmath.solver :as solver]
@@ -1367,7 +1366,7 @@
    (let [in (m/seq->double-array vs)
          cin (alength in)
          out (double-array cin)
-         nf (if normalize? (m/pow (variance in) (m/* 0.5 order)) 1.0)
+         nf (if normalize? (m/pow (population-variance in) (m/* 0.5 order)) 1.0)
          center (double (or center (mean in)))
          f (cond
              (m/one? order) m/identity-double
@@ -1599,7 +1598,7 @@
   ([vs] (trim-upper vs 0.2))
   ([vs quantile] (trim-upper vs quantile :legacy))
   ([vs ^double quantile estimation-strategy]
-   (let [[q qmid] (quantiles (remove m/nan? vs) [quantile 0.5] estimation-strategy)]
+   (let [[q qmid] (quantiles (remove m/nan? vs) [(m/- 1.0 quantile) 0.5] estimation-strategy)]
      (trim vs ##-Inf q qmid))))
 
 ;; On More Robust Estimation of Skewness and Kurtosis: Simulation and Application to the S&P500 Index
@@ -1618,7 +1617,7 @@
   ^double [vs]
   (let [m25 (mean (trim vs 0.25))
         u005 (mean (trim-lower vs 0.95))
-        l005 (mean (trim-upper vs 0.05))]
+        l005 (mean (trim-upper vs 0.95))]
     (m// (m/- u005 m25) (m/- m25 l005))))
 
 (defn skewness
@@ -1698,8 +1697,8 @@
   (^double [vs ^double alpha ^double beta]
    (let [ua (mean (trim-lower vs (m/- 1.0 alpha)))
          ub (mean (trim-lower vs (m/- 1.0 beta)))
-         la (mean (trim-upper vs alpha))
-         lb (mean (trim-upper vs beta))]
+         la (mean (trim-upper vs (m/- 1.0 alpha)))
+         lb (mean (trim-upper vs (m/- 1.0 beta)))]
      (m/- (m// (m/- ua la) (m/- ub lb)) 2.585))))
 
 
@@ -2103,10 +2102,13 @@
   "Kullback-Leibler divergence of two sequences."
   (^double [[vs1 vs2]] (kullback-leibler-divergence vs1 vs2))
   (^double [vs1 vs2]
-   (let [res (->> (map vector vs1 vs2)
-                  (remove #(m/zero? (v/prod %)))
-                  (map (fn [[^double p ^double q]] (m/* p (m/log (m// p q))))))]
-     (if (seq res) (sum res) ##Inf))))
+   (let [pairs (map vector vs1 vs2)]
+     (if (some (fn [[^double p ^double q]] (and (not (m/zero? p)) (m/zero? q))) pairs)
+       ##Inf
+       (let [res (->> pairs
+                      (remove (fn [[^double p _]] (m/zero? p)))
+                      (map (fn [[^double p ^double q]] (m/* p (m/log (m// p q))))))]
+         (if (seq res) (sum res) 0.0))))))
 
 (defn ^{:deprecated "Use [[dissimilarity]]."} jensen-shannon-divergence
   "Jensen-Shannon divergence of two sequences."
@@ -2434,7 +2436,7 @@
   (^double [vs1 vs2-or-val weights]
    (let [[v1 v2] (maybe-number->seq vs1 vs2-or-val)]
      (m// (sum (map (fn [^double a ^double b ^double w] (m/* w (m/sq (m/- a b)))) v1 v2 weights))
-          (sum (weights))))))
+          (sum weights)))))
 
 (defn rmse
   "Calculates the Root Mean Squared Error (RMSE) between two sequences or a sequence and a constant value.
@@ -3507,6 +3509,18 @@
   (^double [group1 group2 method] (cohens-u3-normal (cohens-d group1 group2 method)))
   (^double [^double d] (r/cdf r/default-normal d)))
 
+(defn- empirical-cumulative-breakpoints
+  "Ascending cumulative-probability breakpoints of `data`'s empirical distribution:
+  the p-values at which a `:real-discrete-distribution` step-function icdf built
+  from `data` jumps to its next value. Used by [[cohens-u2]] to search its
+  piecewise-constant objective exactly."
+  [data]
+  (let [n (count data)
+        freqs (frequencies data)]
+    (->> (sort (keys freqs))
+         (reductions (fn [^double acc v] (m/+ acc (m// (double (freqs v)) n))) 0.0)
+         (rest))))
+
 (defn cohens-u2
   "Calculates a measure of overlap between two samples, referred to as Cohen's U2.
 
@@ -3520,7 +3534,14 @@
 
   - `group1`, `group2` (sequences): The two samples directly as arguments.
 
-  Returns the calculated Cohen's U2 value as a double. The value typically ranges from 0 to 1. A value closer to 0.5 indicates substantial overlap between the distributions (e.g., the median of one group is near the median of the other); values closer to 0 or 1 indicate less overlap (greater separation between the distributions)."
+  Returns the calculated Cohen's U2 value as a double. The value typically ranges from 0 to 1. A value closer to 0.5 indicates substantial overlap between the distributions (e.g., the median of one group is near the median of the other); values closer to 0 or 1 indicate less overlap (greater separation between the distributions).
+
+  Implementation note: the underlying objective (a function of the two samples'
+  empirical, step-function quantiles) is piecewise-constant with jumps only at
+  each sample's empirical cumulative-probability breakpoints, so it is generally
+  non-unimodal. The true global minimum is found by an exact search over that
+  finite breakpoint set, rather than by a continuous bracketing optimizer (which
+  can converge to a non-global local minimum on this kind of objective)."
   (^double [[group1 group2]] (cohens-u2 group1 group2))
   (^double [group1 group2]
    (let [g1 (r/distribution :real-discrete-distribution {:data group1})
@@ -3530,8 +3551,63 @@
                            p- (m/- 1.0 p)
                            q1 (Vec2. (r/icdf g1 p) (r/icdf g1 p-))
                            q2 (Vec2. (r/icdf g2 p-) (r/icdf g2 p))]
-                       (-> (v/sub q1 q2) v/abs v/mn)))]
-     (-> (opt/minimize :brent target-fn {:bounds [[0.5 1.0]]}) ffirst double))))
+                       (-> (v/sub q1 q2) v/abs v/mn)))
+         bp1 (empirical-cumulative-breakpoints group1)
+         bp2 (empirical-cumulative-breakpoints group2)
+         interior (->> (concat bp1 bp2
+                                (map (fn [^double p] (m/- 1.0 p)) bp1)
+                                (map (fn [^double p] (m/- 1.0 p)) bp2))
+                       (filter (fn [^double p] (m/< 0.5 p 1.0)))
+                       (sort)
+                       ;; merge near-duplicate breakpoints (the same rational
+                       ;; value computed via different arithmetic paths, e.g.
+                       ;; k/n directly vs 1-((n-k)/n), can differ by 1 ULP):
+                       ;; two breakpoints closer than this are the same jump.
+                       (reduce (fn [acc ^double p]
+                                 (if (and (seq acc) (m/< (m/- p ^double (peek acc)) 1.0e-9))
+                                   acc
+                                   (conj acc p)))
+                               []))
+         ;; `edges` are the p-values where the objective's value can change;
+         ;; each consecutive pair delimits a shelf [edges[i], edges[i+1]) on
+         ;; which the objective is constant.
+         edges (vec (concat [0.5] interior [1.0]))
+         ;; [left-edge, value-at-shelf] for every shelf: the value is sampled
+         ;; at the shelf's *midpoint* (never exactly on a jump boundary,
+         ;; avoiding floating-point ambiguity about which side of a jump a
+         ;; boundary value itself falls on) but the *left edge* is what gets
+         ;; reported, so that e.g. two identical/fully-overlapping samples
+         ;; -- whose minimal shelf always starts exactly at p=0.5 -- report
+         ;; the canonical `u2 = 0.5`.
+         shelf-values (map (fn [[^double a ^double b]]
+                              [a (target-fn (m/* 0.5 (m/+ a b)))])
+                            (partition 2 1 edges))
+         ;; Two of the objective's four icdf lookups are taken at `p` directly
+         ;; (non-decreasing in p: each of their own breakpoints starts a new,
+         ;; genuinely constant right-open shelf), but the other two are taken
+         ;; at `1-p` (non-*increasing* in p: each of *their* breakpoints, once
+         ;; reflected into p-space, only holds its value up to and including
+         ;; that point, not after). Whenever a direct breakpoint coincides
+         ;; with a reflected one at the same p (always true at p=0.5, since
+         ;; that is where p and 1-p coincide; also possible at any interior
+         ;; edge where one sample's breakpoint exactly equals 1 minus
+         ;; another's), the objective has an isolated single point whose
+         ;; value differs from *both* neighboring shelves -- invisible to
+         ;; shelf-midpoint sampling. Evaluating `target-fn` directly at every
+         ;; edge (exact, since each edge is one of the underlying cumulative
+         ;; probabilities themselves -- no separate rounding is introduced by
+         ;; evaluating it) finds these.
+         shelf-values (concat shelf-values (map (fn [^double p] [p (target-fn p)]) edges))]
+     ;; Ties are broken toward the smallest p (shelf-midpoint and direct-edge
+     ;; candidates are each ascending on their own, but their concatenation
+     ;; is not, so tie-breaking is done explicitly rather than by encounter
+     ;; order).
+     (first (reduce (fn [[^double best-p ^double best-v :as best] [^double p ^double v :as cur]]
+                       (cond
+                         (m/< v best-v) cur
+                         (and (m/== v best-v) (m/< p best-p)) cur
+                         :else best))
+                     shelf-values)))))
 
 (defn cohens-u1
   "Calculates a non-parametric measure of difference or separation between two samples.
@@ -3545,14 +3621,14 @@
   - `group1` (seq of numbers): The first sample.
   - `group2` (seq of numbers): The second sample.
 
-  Returns the calculated measure as a double.
+  Returns the calculated measure as a double, in the range [0, 1] (since
+  [[cohens-u2]] itself is restricted to [0.5, 1]).
 
   Interpretation:
 
-  - Values close to -1 indicate high similarity or maximum overlap between the
-    distributions (as the minimal difference between quantiles approaches zero).
-  - Increasing values indicate greater difference or separation between the
-    distributions (as the minimal difference between quantiles is larger).
+  - A value of 0 indicates maximum overlap (the two distributions are identical).
+  - A value of 1 indicates complete separation (no overlap between the distributions).
+  - Values in between indicate intermediate degrees of separation.
 
   This measure is symmetric, meaning the order of `group1` and `group2` does not
   affect the result. It is a non-parametric measure applicable to any data samples.
@@ -4561,7 +4637,7 @@
 
 (defn- weighted-kappa-equal-spacing
   ^double [^long R ^long id1 ^long id2]
-  (m/- 1.0 (m// (m/abs (m/- id1 id2)) R)))
+  (m/- 1.0 (m// (double (m/abs (m/- id1 id2))) R)))
 
 (defn- weighted-kappa-fleiss-cohen
   ^double [^long R ^long id1 ^long id2]
@@ -5194,10 +5270,13 @@
   for metrics derived from a confusion matrix (often a 2x2 table in binary classification)."
   ([^long a ^long b ^long c ^long d] (contingency-2x2-measures-calc a b c d))
   ([map-or-seq]
-   (if (map? map-or-seq)
+   (cond
+     (map? map-or-seq)
      (let [{:keys [a b c d] :or {a 0 b 0 c 0 d 0}} map-or-seq]
        (contingency-2x2-measures-all a b c d))
-     (apply contingency-2x2-measures-calc map-or-seq)))
+     (and (m/== 2 (count map-or-seq)) (every? sequential? map-or-seq))
+     (apply contingency-2x2-measures-calc (apply concat map-or-seq))
+     :else (apply contingency-2x2-measures-calc map-or-seq)))
   ([[^long a ^long b] [^long c ^long d]] (contingency-2x2-measures-all a b c d)))
 
 (defn contingency-2x2-measures
@@ -5992,9 +6071,9 @@
       :ci-method ci-method
       :confidence-interval (let [bci (partial binomial-ci number-of-successes number-of-trials ci-method)]
                              (sides-case sides
-                                         (vec (butlast (bci (m/- 1.0 alpha))))
-                                         [(first (bci (m/- 1.0 (m/* alpha 2.0)))) 1.0]
-                                         [0.0 (second (bci (m/- 1.0 (m/* alpha 2.0))))]))})))
+                                         (vec (butlast (bci alpha)))
+                                         [(first (bci (m/* alpha 2.0))) 1.0]
+                                         [0.0 (second (bci (m/* alpha 2.0)))]))})))
 
 ;; t/z
 
@@ -7085,6 +7164,9 @@
 
 (defn- box-cox-scaled-inv
   [xs ^double lambda {:keys [^double alpha negative? scaled?] :or {alpha 0.0}}]
+  (when-not (number? scaled?)
+    (throw (ex-info "Inverse of a scaled Box-Cox transformation requires the actual numeric geometric mean (`:scaled?`) used by the forward transformation; the auto-compute sentinel `true` can't be inverted, since it can't be recovered from the already-transformed data."
+                     {:scaled? scaled?})))
   (-> (let [gm (double scaled?)]
         (if negative?
           (if (m/zero? lambda)

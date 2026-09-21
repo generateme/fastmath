@@ -13,6 +13,16 @@ All notable changes to this project will be documented in this file. This change
 ### Fixed
 
 * `fastmath.stats/cramers-v-corrected` silently ignored the Bergsma bias-correction term (returning the same value as uncorrected `cramers-v`) whenever the correction was less than 1, due to an integer-truncating division bug
+* `fastmath.stats/moment` with `:normalize? true` divided by the sample (n-1) variance instead of the population variance used by the rest of the function, silently biasing every normalized result (e.g. skewness/kurtosis-like moments) by a hidden `(n-1)/n` factor
+* `fastmath.stats/trim-upper` used the `quantile`-th percentile as its cutoff instead of the documented `(1.0-quantile)`-th, so it discarded the bottom N% and kept the top `(1-N)%` — the exact opposite of its documented behavior
+* `fastmath.stats/skewness`/`kurtosis`'s `:hogg` estimator called the (now-fixed) `trim-upper` with the wrong quantile parameter (`alpha`/`beta` instead of `1.0-alpha`/`1.0-beta`); this had been silently masked by the `trim-upper` bug above (the two cancelled out) and broke as a direct side effect of that fix
+* `fastmath.stats/kullback-leibler-divergence` (deprecated) silently dropped any term where `q=0` but `p>0` instead of returning `##Inf`, so it could return a mathematically impossible negative divergence (KL divergence is always ≥ 0)
+* `fastmath.stats/mse`'s weighted (3-arity) form called `weights` as a 0-argument function instead of summing it, throwing an `ArityException` on every call; also broke `rmse`'s weighted arity, which is built on `mse`
+* `fastmath.stats/cohens-u2` (and its dependent `cohens-u1`) searched its non-unimodal, piecewise-constant objective with a continuous bracketing optimizer (`opt/minimize :brent`), which could converge to a non-global local minimum; replaced with an exact search over the finite set of empirical-quantile breakpoints (including isolated single-point minima created when one sample's breakpoint exactly equals 1 minus another's)
+* `fastmath.stats/weighted-kappa`'s default `:equal-spacing` weighting scheme (`1 - |id1-id2|/R`) used integer division on its all-`long` arguments, truncating every fractional weight to 0 and leaving every off-diagonal weight at 1.0 — silently degenerating toward unweighted behavior (or producing `##NaN` outright when that made the chance-agreement term reach exactly 1.0)
+* `fastmath.stats/contingency-2x2-measures-all`/`contingency-2x2-measures`'s documented single-argument nested-rows input form (`(f [[a b] [c d]])`) threw an `ArityException`; only the separate-arguments 2-arity form (`(f [a b] [c d])`) actually worked
+* `fastmath.stats/binomial-test`'s `:confidence-interval` passed a confidence *level* (`1 - alpha`) into `binomial-ci`'s `alpha` parameter, which expects a significance level directly, producing a drastically too-narrow interval (e.g. the default 95% CI came out as an effective ~5% CI)
+* `fastmath.stats/box-cox-transformation` with `{:scaled? true :inverse? true}` threw a raw `ClassCastException` ("Boolean cannot be cast to Number") instead of an informative error; now throws a clear `ex-info` explaining that the actual numeric geometric mean used by the forward transformation must be supplied (it can't be recovered from already-transformed data)
 
 ## [3.0.0 alpha9]
 
