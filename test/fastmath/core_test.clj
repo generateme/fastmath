@@ -434,6 +434,70 @@
   (t/is (m/delta-eq 1.1447298858494002 m/LOG_PI 1.0e-9))
   (t/is (m/delta-eq 1.8378770664093453 m/LOG_TWO_PI 1.0e-9)))
 
+;; Reference: Julia LogExpFunctions.jl v0.3.29 (log1pexp, log1mexp,
+;; log2mexp, log1psq, logexpm1, log1pmx, logmxp1, logaddexp, logsubexp,
+;; logsumexp, xlogx, xlogy, xlog1py, cloglog, xexpx, xexpy, cexpexp -- a
+;; package purpose-built and independently tested for exactly this function
+;; family). loglog/expexp aren't exported by that package; kept on the
+;; original Python mpmath (50-digit precision) hand-reimplementation
+;; reference. Julia's values cross-validated exactly against the prior
+;; Python mpmath/scipy.special reference for all 17 covered functions (no
+;; discrepancies). All calls below are direct (not via apply/mapv),
+;; exercising the :inline path for functions that have one -- per the Group
+;; 10a lesson, both paths must be checked; both were separately confirmed
+;; identical at the REPL before writing this deftest.
+(t/deftest exp-log-stable-compositions
+  (doseq [[x ref] [[-1000.0 0.0] [-800.0 0.0] [-100.0 3.720075976020836E-44]
+                   [-40.0 4.248354255291589E-18] [-10.0 4.539889921686465E-5]
+                   [0.0 0.6931471805599453] [10.0 10.000045398899218]
+                   [18.0 18.000000015229983] [20.0 20.000000002061153]
+                   [30.0 30.000000000000092] [33.0 33.00000000000001]
+                   [34.0 34.0] [40.0 40.0] [100.0 100.0]]]
+    (t/is (m/delta-eq ref (m/log1pexp x) 1.0e-9 1.0e-9) (str "log1pexp " x)))
+  (doseq [[x ref] [[-2.0 -0.14541345786885906] [-0.7 -0.6863410028083852]
+                   [-0.001 -6.908255237315471] [-50.0 -1.9287498479639178e-22]]]
+    (t/is (m/delta-eq ref (m/log1mexp x) 1.0e-9 1.0e-9) (str "log1mexp " x)))
+  (doseq [[x ref] [[-2.0 0.6230812603996639] [0.0 0.0] [0.5 -1.0461752700778735]]]
+    (t/is (m/delta-eq ref (m/log2mexp x) 1.0e-9 1.0e-9) (str "log2mexp " x)))
+  (doseq [[x ref] [[0.5 0.22314355131420976] [-1.0 0.6931471805599453]
+                   [3.0 2.302585092994046] [1.0e10 46.051701859880914]]]
+    (t/is (m/delta-eq ref (m/log1psq x) 1.0e-9 1.0e-9) (str "log1psq " x)))
+  (doseq [[x ref] [[0.5 -0.43275212956718856] [1.0 0.5413248546129181] [5.0 4.993239250550512]]]
+    (t/is (m/delta-eq ref (m/logexpm1 x) 1.0e-9 1.0e-9) (str "logexpm1 " x)))
+  (doseq [[x ref] [[-0.9 -1.402585092994046] [-0.5 -0.19314718055994531]
+                   [-0.35 -0.08078291609245425] [-0.1 -0.005360515657826302]
+                   [0.0 0.0] [0.5 -0.09453489189183562] [0.8 -0.212213335097881]]]
+    (t/is (m/delta-eq ref (m/log1pmx x) 1.0e-9 1.0e-9) (str "log1pmx " x)))
+  (doseq [[x ref] [[0.2 -0.8094379124341003] [0.35 -0.3998221244986777]
+                   [0.5 -0.19314718055994531] [1.0 0.0] [2.0 -0.3068528194400547]]]
+    (t/is (m/delta-eq ref (m/logmxp1 x) 1.0e-9 1.0e-9) (str "logmxp1 " x)))
+  (doseq [[x y ref] [[1.0 2.0 2.313261687518223] [-5.0 3.0 3.000335406372896]
+                     [10.0 10.0 10.693147180559945] [-1000.0 5.0 5.0]]]
+    (t/is (m/delta-eq ref (m/logaddexp x y) 1.0e-9 1.0e-9) (str "logaddexp " x " " y)))
+  (doseq [[x y ref] [[5.0 1.0 4.981514553174113] [1.0 5.0 4.981514553174113]]]
+    (t/is (m/delta-eq ref (m/logsubexp x y) 1.0e-9 1.0e-9) (str "logsubexp " x " " y)))
+  (t/is (m/== ##-Inf (m/logsubexp 3.0 3.0)))
+  (t/is (m/delta-eq 3.40760596444438 (m/logsumexp [1.0 2.0 3.0]) 1.0e-9 1.0e-9))
+  (t/is (m/delta-eq 5.693147180559945 (m/logsumexp [-1000.0 5.0 5.0]) 1.0e-9 1.0e-9))
+  (t/is (m/== 0.0 (m/logsumexp [0.0])))
+  (t/is (m/== 0.0 (m/xlogx 0.0)))
+  (t/is (m/delta-eq 1.3862943611198906 (m/xlogx 2.0) 1.0e-9))
+  (t/is (m/== 0.0 (m/xlogy 0.0 5.0)))
+  (t/is (m/delta-eq 2.1972245773362196 (m/xlogy 2.0 3.0) 1.0e-9))
+  (t/is (m/== 0.0 (m/xlogy 0.0 0.0)) "0*log(0) convention, y not NaN")
+  (t/is (m/== 0.0 (m/xlog1py 0.0 5.0)))
+  (t/is (m/delta-eq 2.772588722239781 (m/xlog1py 2.0 3.0) 1.0e-9))
+  (doseq [[x ref] [[0.5 -0.36651292058166435] [0.1 -2.2503673273124454] [0.9 0.834032445247956]]]
+    (t/is (m/delta-eq ref (m/cloglog x) 1.0e-9 1.0e-9) (str "cloglog " x)))
+  (doseq [[x ref] [[0.5 0.36651292058166435] [0.1 -0.8340324452479557] [0.9 2.2503673273124454]]]
+    (t/is (m/delta-eq ref (m/loglog x) 1.0e-9 1.0e-9) (str "loglog " x)))
+  (t/is (m/delta-eq 14.7781121978613 (m/xexpx 2.0) 1.0e-9))
+  (t/is (m/== 0.0 (m/xexpx -1000.0)) "exp underflow convention")
+  (doseq [[x ref] [[0.5 0.807704354452035] [-1.0 0.30779937244465366] [2.0 0.9993820210106689]]]
+    (t/is (m/delta-eq ref (m/cexpexp x) 1.0e-9 1.0e-9) (str "cexpexp " x)))
+  (doseq [[x ref] [[0.5 0.545239211892605] [-1.0 0.06598803584531254] [2.0 0.8734230184931167]]]
+    (t/is (m/delta-eq ref (m/expexp x) 1.0e-9 1.0e-9) (str "expexp " x))))
+
 (t/deftest agm
   (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
 

@@ -1780,7 +1780,15 @@
 (def ^{:const true :tag 'double :doc "Value of $\\ln{2\\pi}$"} LOG_TWO_PI (log TWO_PI))
 
 (defn log1pexp
-  "log(1+exp(x))"
+  "Computes `log(1+exp(x))` (the softplus function), using a numerically stable piecewise approximation to avoid overflow for large `x` and underflow for very negative `x`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double. Returns `0.0` for very negative `x`, and `x` itself for very large `x` (where `exp(x)` would overflow but the correction term becomes negligible), with a stable computation in between.
+
+  See also [[log1mexp]], [[logaddexp]], [[expm1]]."
   ^double [^double x]
   (cond
     (< x -745.1332191019412) 0.0
@@ -1790,28 +1798,60 @@
     :else x))
 
 (defn log1mexp
-  "log(1-exp(x)), x<0"
+  "Computes `log(1-exp(x))` for `x < 0`, using a numerically stable form to avoid catastrophic cancellation near `x=0`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate; must be negative.
+
+  Returns the result as a double, always non-positive.
+
+  See also [[log1pexp]], [[log2mexp]]."
   ^double [^double x]
   (if (< x LOG_HALF)
     (FastMath/log1p (- (FastMath/exp x)))
     (FastMath/log (- (FastMath/expm1 x)))))
 
 (defn log2mexp
-  "log(2-exp(x))"
+  "Computes `log(2-exp(x))`, equivalent to `log1p(-expm1(x))`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double.
+
+  See also [[log1mexp]], [[expm1]]."
   {:inline (fn [x] `(FastMath/log1p (- (FastMath/expm1 (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x]
   (FastMath/log1p (- (FastMath/expm1 x))))
 
 (defn log1psq
-  "log(1+x^2))"
+  "Computes `log(1+x^2)`, switching to a direct formula for very large `x` to avoid unnecessary precision loss in `x*x`.
+
+  Parameters:
+
+  - `x` (double): value to evaluate.
+
+  Returns the result as a double, always non-negative.
+
+  See also [[log1p]]."
   ^double [^double x]
   (if (< x 9007199254740992)
     (FastMath/log1p (* x x))
     (* 2.0 (log x))))
 
 (defn logexpm1
-  "log(exp(x)-1))"
+  "Computes `log(exp(x)-1)`, the inverse of [[log1pexp]] (softplus).
+
+  Parameters:
+
+  - `x` (double): value to evaluate; must be positive for a real result (`exp(x)-1` must be positive).
+
+  Returns the result as a double. Returns `##NaN` (via `log` of a non-positive value) for `x <= 0`.
+
+  See also [[log1pexp]], [[expm1]]."
   {:inline (fn [x] `(log (expm1 (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (FastMath/log (FastMath/expm1 x)))
@@ -1826,7 +1866,15 @@
     (- (* r (+ hxsq (* w t))) hxsq)))
 
 (defn log1pmx
-  "log(1+x)-x"
+  "Computes `log(1+x) - x`, using a stable kernel-based polynomial approximation near `x=0` to avoid catastrophic cancellation (ported from Julia's `Base.Math`).
+
+  Parameters:
+
+  - `x` (double): value to evaluate; must satisfy `x > -1` for a real result.
+
+  Returns the result as a double, always non-positive.
+
+  See also [[logmxp1]], [[log1p]]."
   ^double [^double x]
   (cond
     (not (< -0.7 x 0.9)) (- (FastMath/log1p x) x)
@@ -1841,7 +1889,15 @@
             (+ (log1pmx-ker u) -3.55829253011726237e-1 (* 0.625 u)))))
 
 (defn logmxp1
-  "log(x)-x+1"
+  "Computes `log(x) - x + 1`, using a stable formulation for `x` near `1` (reusing [[log1pmx]]'s kernel).
+
+  Parameters:
+
+  - `x` (double): value to evaluate; must be positive for a real result.
+
+  Returns the result as a double, always non-positive.
+
+  See also [[log1pmx]]."
   ^double [^double x]
   (cond
     (<= x 0.3) (- (inc (FastMath/log x)) x)
@@ -1852,7 +1908,15 @@
     :else (log1pmx (dec x))))
 
 (defn logaddexp
-  "log(exp(x)+exp(y))"
+  "Computes `log(exp(x)+exp(y))`, the numerically stable 2-argument log-sum-exp.
+
+  Parameters:
+
+  - `x`, `y` (doubles): values to combine.
+
+  Returns the result as a double, computed without overflowing `exp(x)`/`exp(y)` for large arguments.
+
+  See also [[logsumexp]] (n-ary version), [[logsubexp]], [[log1pexp]]."
   ^double [^double x ^double y]
   (if (< x y)
     (+ y (log1pexp (- x y)))
@@ -1860,14 +1924,30 @@
        (log1pexp (- y x)))))
 
 (defn logsubexp
-  "log(abs(exp(x)-exp(y)))"
+  "Computes `log(abs(exp(x)-exp(y)))`, the numerically stable log-difference-of-exponentials.
+
+  Parameters:
+
+  - `x`, `y` (doubles): values to combine.
+
+  Returns the result as a double. Returns `##-Inf` when `x` equals `y` (since the difference is zero).
+
+  See also [[logaddexp]], [[log1mexp]]."
   ^double [^double x ^double y]
   (+ (PrimitiveMath/max x y)
      (log1mexp (- (if (and (== x y)
                            (or (Double/isFinite x) (neg? x))) 0.0 (Math/abs (- x y)))))))
 
 (defn logsumexp
-  "log(exp(x1)+...+exp(xn))"
+  "Computes `log(exp(x1)+...+exp(xn))`, the numerically stable n-ary log-sum-exp, using an online (single-pass) running-maximum algorithm.
+
+  Parameters:
+
+  - `xs` (sequence of doubles): values to combine.
+
+  Returns the result as a double, computed without overflowing any individual `exp(xi)` for large arguments.
+
+  See also [[logaddexp]] (2-arity version)."
   ^double [xs]
   (loop [xs xs
          r 0.0
@@ -1885,58 +1965,130 @@
             (recur rst nr x)))))))
 
 (defn xlogx
-  "x * log(x)"
+  "Computes `x * log(x)`, with the convention `0 * log(0) = 0` (the limiting value, rather than `##NaN`).
+
+  Parameters:
+
+  - `x` (double): value; must be non-negative for a real result.
+
+  Returns the result as a double.
+
+  See also [[xlogy]]."
   ^double [^double x]
   (if (zero? x) 0.0 (* x (FastMath/log x))))
 
 (defn xlogy
-  "x * log(y)"
+  "Computes `x * log(y)`, with the convention `0 * log(y) = 0` (rather than `##NaN`) whenever `x` is zero and `y` is not `##NaN`.
+
+  Parameters:
+
+  - `x`, `y` (doubles): values; `y` must be non-negative for a real result.
+
+  Returns the result as a double.
+
+  See also [[xlogx]], [[xlog1py]]."
   ^double [^double x ^double y]
   (if (and (zero? x)
            (not (Double/isNaN y))) 0.0 (* x (log y))))
 
 (defn xlog1py
-  "x * log(1+y)"
+  "Computes `x * log(1+y)`, with the convention `0 * log1p(y) = 0` (rather than `##NaN`) whenever `x` is zero and `y` is not `##NaN`.
+
+  Parameters:
+
+  - `x`, `y` (doubles): values; `y` must be greater than `-1` for a real result.
+
+  Returns the result as a double.
+
+  See also [[xlogy]], [[log1p]]."
   ^double [^double x ^double y]
   (if (and (zero? x)
            (not (Double/isNaN y))) 0.0 (* x (log1p y))))
 
 (defn cloglog
-  "log(-log(1-x))"
+  "Computes the complementary log-log function, `cloglog(x) = log(-log(1-x))`, used as a link function for binary/count models.
+
+  Parameters:
+
+  - `x` (double): probability-like value; must satisfy `0 < x < 1` for a real result.
+
+  Returns the result as a double.
+
+  See also [[loglog]]."
   {:inline (fn [x] `(FastMath/log (- (FastMath/log1p (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
   (FastMath/log (- (FastMath/log1p (- x)))))
 
 (defn loglog
-  "-log(-log(x))"
+  "Computes the log-log function, `loglog(x) = -log(-log(x))`, used as a link function for binary/count models.
+
+  Parameters:
+
+  - `x` (double): probability-like value; must satisfy `0 < x < 1` for a real result.
+
+  Returns the result as a double.
+
+  See also [[cloglog]]."
   {:inline (fn [x] `(- (FastMath/log (- (FastMath/log ~x)))))
    :inline-arities #{1}}
   ^double [^double x]
   (- (FastMath/log (- (FastMath/log x)))))
 
 (defn xexpx
-  "x * exp(x)"
+  "Computes `x * exp(x)`, with the convention that the result is `0.0` whenever `exp(x)` underflows to zero (rather than propagating a spurious `0.0 * x`).
+
+  Parameters:
+
+  - `x` (double): value.
+
+  Returns the result as a double.
+
+  See also [[xexpy]]."
   ^double [^double x]
   (let [expx (exp x)]
     (if (zero? expx) 0.0 (* x expx))))
 
 (defn xexpy
-  "x * exp(x)"
+  "Computes `x * exp(y)`, with the convention that the result is `0.0` whenever `exp(y)` underflows to zero and `x` is not `##NaN`.
+
+  Parameters:
+
+  - `x`, `y` (doubles): values.
+
+  Returns the result as a double.
+
+  See also [[xexpx]]."
   ^double [^double x ^double y]
   (let [expy (exp y)]
     (if (and (zero? expy)
              (not (Double/isNaN x))) 0.0 (* x expy))))
 
 (defn cexpexp
-  "1-exp(-exp(x))"
+  "Computes `1 - exp(-exp(x))`, the complementary Gumbel CDF form.
+
+  Parameters:
+
+  - `x` (double): value.
+
+  Returns the result as a double, always in `[0, 1]`.
+
+  See also [[expexp]]."
   {:inline (fn [x] `(- (FastMath/expm1 (- (FastMath/exp (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
   (- (FastMath/expm1 (- (FastMath/exp x)))))
 
 (defn expexp
-  "exp(-exp(-x))"
+  "Computes `exp(-exp(-x))`, the Gumbel CDF form.
+
+  Parameters:
+
+  - `x` (double): value.
+
+  Returns the result as a double, always in `[0, 1]`.
+
+  See also [[cexpexp]]."
   {:inline (fn [x] `(FastMath/exp (- (FastMath/exp (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
