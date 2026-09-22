@@ -568,12 +568,23 @@
   (t/is (m/== (m/frac -3.342225) (apply m/frac [-3.342225])))
   (t/is (m/== (m/sfrac -3.342225) (apply m/sfrac [-3.342225]))))
 
+;; Reference: hand-computed / bit-doubling identity for round-up-pow2.
 (t/deftest round-up-down
   (t/is (m/> (m/next-double 4.44) 4.44))
   (t/is (m/< (m/prev-double 4.44) 4.44))
+  (t/is (m/== 4.44 (m/prev-double (m/next-double 4.44))) "next-double/prev-double are inverse single steps")
+  (t/is (m/== (m/next-double 4.44) (apply m/next-double [4.44])) "inline path matches non-inlined path")
+  (t/is (m/== (m/prev-double 4.44) (apply m/prev-double [4.44])) "inline path matches non-inlined path")
+  (t/is (m/== (m/next-double 4.44 3) (nth (iterate m/next-double 4.44) 3)) "delta arity repeats the single step")
+  (t/is (m/== (m/round-up-pow2 1) 1))
+  (t/is (m/== (m/round-up-pow2 2) 2))
+  (t/is (m/== (m/round-up-pow2 3) 4))
   (t/is (m/== (m/round-up-pow2 1023) 1024))
   (t/is (m/== (m/round-up-pow2 1024) 1024))
-  (t/is (m/== (m/round-up-pow2 1025) 2048)))
+  (t/is (m/== (m/round-up-pow2 1025) 2048))
+  (t/is (m/== (m/round-up-pow2 (bit-shift-left 1 62)) (bit-shift-left 1 62)) "already a power of two at 2^62")
+  (t/is (m/== Long/MIN_VALUE (m/round-up-pow2 (inc (bit-shift-left 1 62))))
+        "documented overflow: the true result 2^63 doesn't fit in a signed long"))
 
 (t/deftest sgn
   (t/is (m/== -1.0 (m/signum -2)))
@@ -590,11 +601,32 @@
   (t/is (m/== (m/norm 2 0 10) 0.2))
   (t/is (m/== (m/norm 2 0 10 0 100) 20.0)))
 
+;; Reference: hand-computed IEEE 754 bit layout for doubles.
 (t/deftest floating-points
   (t/is (m/== (m/double-exponent 2.0) 1))
   (t/is (m/== (m/double-exponent 0.5) -1))
   (t/is (m/== (m/double-significand 3.0) (Long/parseLong "1000000000000000000000000000000000000000000000000000" 2)))
-  (t/is (m/== (m/double-significand 7.0) (Long/parseLong "1100000000000000000000000000000000000000000000000000" 2))))
+  (t/is (m/== (m/double-significand 7.0) (Long/parseLong "1100000000000000000000000000000000000000000000000000" 2)))
+  (t/is (m/== 0 (m/double-significand 1.0)) "exact powers of two have a zero significand")
+  (t/is (m/== 0 (m/double-significand 8.0)))
+  (doseq [v [2.0 -2.0 3.14159 -1.0e100 0.0]]
+    (t/is (m/== (m/double-bits v)
+                (bit-or (bit-shift-left (m/double-high-bits v) 32) (m/double-low-bits v)))
+          (str "double-high-bits/double-low-bits reconstruct double-bits for " v))
+    (t/is (m/== (m/double-bits v) (apply m/double-bits [v])) "inline path matches non-inlined path")
+    (t/is (m/== (m/double-high-bits v) (apply m/double-high-bits [v])) "inline path matches non-inlined path")
+    (t/is (m/== (m/double-low-bits v) (apply m/double-low-bits [v])) "inline path matches non-inlined path"))
+  (doseq [[v ref] [[1234.5 10] [1023.0 10] [1024.0 10] [1025.0 10] [1.0 0] [0.1 -3] [3.0 2]]]
+    (t/is (m/== ref (m/log2int v)) (str "log2int " v))
+    (t/is (m/== (m/log2int v) (apply m/log2int [v])) "inline path matches non-inlined path"))
+  (doseq [p (range -20 20)]
+    (t/is (m/== p (m/log2int (Math/pow 2.0 p))) (str "log2int exact at 2^" p " -- bit-exact, unaffected by log2's floating-point rounding")))
+  (doseq [[v ref] [[0 -1] [1 0] [2 1] [3 1] [4 2] [1023 9] [1024 10] [-1 63]]]
+    (t/is (m/== ref (m/most-significant-bit v)) (str "most-significant-bit " v)))
+  (doseq [[v ref] [[0 -1] [1 0] [2 1] [3 0] [4 2] [8 3] [1024 10] [-1 0]]]
+    (t/is (m/== ref (m/least-significant-bit v)) (str "least-significant-bit " v)))
+  (doseq [[v ref] [[0 false] [1 true] [2 true] [3 false] [4 true] [1024 true] [1023 false] [-2 false]]]
+    (t/is (= ref (m/power-of-two? v)) (str "power-of-two? " v))))
 ;;
 
 
@@ -771,3 +803,44 @@
   (t/is (not (m/near-zero? 100.0 1.0e-6 1.0e-2))
         "rel-tol scaled by |x| itself can only ever widen the threshold when rel-tol >= 1.0 -- a documented no-op for realistic (< 1.0) values")
   (t/is (m/near-zero? 100.0 1.0e-6 1.5) "rel-tol >= 1.0 is the only case where the relative term has any effect"))
+
+;; Reference: hand-computed power-of-two/power-of-b brackets. This deftest
+;; also regression-guards two off-by-one bugs found and fixed during this
+;; group's verification, both caused by flooring/ceiling a noisy
+;; floating-point logarithm at an exact power of the base:
+;; - low-2-exp/high-2-exp (base 2): fixed to read the IEEE 754 exponent
+;;   field directly (bit-exact) instead of going through log2 at all.
+;; - low-exp/high-exp (arbitrary base, no bit-exact shortcut available):
+;;   fixed to round the logarithm to the nearest integer, then verify/
+;;   correct that candidate against a direct b^n comparison, rather than
+;;   trusting floor/ceil of the raw (possibly off-by-a-few-ULPs) logarithm.
+;; See CHANGELOG.md.
+(t/deftest low-high-exp-brackets
+  ;; every exact power of two from 2^-20 to 2^29, including the ones that
+  ;; exposed the low-2-exp/high-2-exp bug (2^3, 2^6, 2^7, 2^12-14, 2^24,
+  ;; 2^26, 2^28)
+  (doseq [p (range -20 30)]
+    (let [x (Math/pow 2.0 p)]
+      (t/is (m/== p (m/low-2-exp x)) (str "low-2-exp exact at 2^" p))
+      (t/is (m/== p (m/high-2-exp x)) (str "high-2-exp exact at 2^" p))))
+  (t/is (m/== 2 (m/low-2-exp 6.28)))
+  (t/is (m/== 3 (m/high-2-exp 6.28)))
+  (t/is (m/== -2 (m/low-2-exp 0.3)))
+  (t/is (m/== -1 (m/high-2-exp 0.3)))
+  (t/is (m/== 3 (m/low-2-exp -8.0)) "sign-agnostic, brackets |x|")
+  (t/is (m/== 3 (m/high-2-exp -8.0)))
+  ;; exact powers of an arbitrary base, including the case that exposed the
+  ;; low-exp/high-exp bug (10^3 = 1000.0)
+  (doseq [[b p] [[3.0 0] [3.0 1] [3.0 2] [3.0 3] [3.0 4] [10.0 0] [10.0 1] [10.0 2] [10.0 3]
+                 [10.0 4] [10.0 5] [1000.0 4] [2.5 10] [2.5 20]]]
+    (let [x (Math/pow b p)]
+      (t/is (m/== p (m/low-exp b x)) (str "low-exp exact at " b "^" p))
+      (t/is (m/== p (m/high-exp b x)) (str "high-exp exact at " b "^" p))))
+  (doseq [[b x ref] [[3.0 1.0 0] [3.0 9.0 2] [3.0 27.0 3] [10.0 100.0 2] [10.0 999.0 2] [2.0 6.28 2]]]
+    (t/is (m/== ref (m/low-exp b x)) (str "low-exp " b " " x)))
+  (doseq [[b x ref] [[3.0 1.0 0] [3.0 9.0 2] [10.0 100.0 2] [10.0 999.0 3] [2.0 6.28 3]]]
+    (t/is (m/== ref (m/high-exp b x)) (str "high-exp " b " " x)))
+  (t/is (m/== 3 (m/low-exp 10.0 1000.0)) "regression: previously returned 2")
+  (t/is (m/== 3 (m/high-exp 10.0 1000.0)))
+  (t/is (m/== (m/low-exp 10.0 1000.0) (apply m/low-exp [10.0 1000.0])) "inline path N/A, non-inlined body only -- sanity check")
+  (t/is (m/== (m/high-exp 10.0 1000.0) (apply m/high-exp [10.0 1000.0]))))

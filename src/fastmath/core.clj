@@ -3017,28 +3017,35 @@
 
   Equivalent to the floor of the base-2 logarithm of `|x|`. Together with [[high-2-exp]] it brackets `|x|` between two consecutive powers of two.
 
+  Computed bit-exactly from `x`'s IEEE 754 exponent field (not via a floating-point logarithm), so it is exact for every finite, normal double, including exact powers of two. Contrast with [[low-exp]] (arbitrary base), which has no such bit-exact shortcut and can be off by one at exact powers of `b` due to floating-point logarithm error.
+
   Parameters:
 
   - `x` (double): Input value.
 
-  Returns the exponent `n` as a long.
+  Returns the exponent `n` as a long. Returns `-1023` for `x` equal to `0.0` or subnormal (matches the underlying `getExponent` convention; not a meaningful power-of-two bracket in that case).
 
   See also [[high-2-exp]], [[low-exp]]."
-  ^long [^double x] (-> x Math/abs log2 floor unchecked-long))
+  ^long [^double x] (FastMath/getExponent (Math/abs x)))
 
 (defn high-2-exp
   "Finds the smallest integer `n` such that `2^n` is not smaller than the absolute value of `x`.
 
   Equivalent to the ceiling of the base-2 logarithm of `|x|`. Together with [[low-2-exp]] it brackets `|x|` between two consecutive powers of two.
 
+  Computed bit-exactly (via [[low-2-exp]] plus a check of whether `|x|`'s mantissa is exactly zero, i.e. whether `|x|` is itself an exact power of two), not via a floating-point logarithm, so it is exact for every finite, normal double.
+
   Parameters:
 
   - `x` (double): Input value.
 
-  Returns the exponent `n` as a long.
+  Returns the exponent `n` as a long. Returns `-1023` for `x` equal to `0.0` or subnormal (matches [[low-2-exp]]'s convention for the same inputs).
 
   See also [[low-2-exp]], [[high-exp]]."
-  ^long [^double x] (-> x Math/abs log2 ceil unchecked-long))
+  ^long [^double x]
+  (let [ax (Math/abs x)
+        low (FastMath/getExponent ax)]
+    (if (zero? (bit-and (Double/doubleToRawLongBits ax) 4503599627370495)) low (inc low))))
 
 (defn low-exp
   "Finds the greatest integer `n` such that `b^n` does not exceed the absolute value of `x`.
@@ -3052,8 +3059,13 @@
 
   Returns the exponent `n` as a long.
 
+  Computed by rounding the (floating-point, therefore imprecise) base-`b` logarithm to the nearest integer, then verifying that candidate against `b^n` directly and correcting by one if needed -- this avoids the systematic off-by-one a plain `floor(logb x)` has at an exact power of `b` (there is no bit-exact shortcut for an arbitrary base, unlike [[low-2-exp]] for base 2).
+
   See also [[high-exp]], [[low-2-exp]]."
-  ^long [^double b ^double x] (->> x Math/abs (logb b) floor unchecked-long))
+  ^long [^double b ^double x]
+  (let [ax (Math/abs x)
+        n (round (logb b ax))]
+    (if (<= (Math/pow b n) ax) n (dec n))))
 
 (defn high-exp
   "Finds the smallest integer `n` such that `b^n` is not smaller than the absolute value of `x`.
@@ -3067,16 +3079,37 @@
 
   Returns the exponent `n` as a long.
 
+  Computed by rounding the (floating-point, therefore imprecise) base-`b` logarithm to the nearest integer, then verifying that candidate against `b^n` directly and correcting by one if needed -- this avoids the systematic off-by-one a plain `ceil(logb x)` has at an exact power of `b` (there is no bit-exact shortcut for an arbitrary base, unlike [[high-2-exp]] for base 2).
+
   See also [[low-exp]], [[high-2-exp]]."
-  ^long [^double b ^double x] (->> x Math/abs (logb b) ceil unchecked-long))
+  ^long [^double b ^double x]
+  (let [ax (Math/abs x)
+        n (round (logb b ax))]
+    (if (>= (Math/pow b n) ax) n (inc n))))
 
 (defn power-of-two?
-  "Checks if `v` is a power of two, v=2^p for some p. Only for positive values."
+  "Checks whether `v` is an exact power of two, i.e. `v = 2^p` for some non-negative integer `p`.
+
+  Parameters:
+
+  - `v` (long): the value to check.
+
+  Returns `true` if `v` is positive and has exactly one bit set, `false` otherwise (including for `v<=0`).
+
+  See also [[round-up-pow2]]."
   [^long v]
   (and (pos? v) (zero? (bit-and v (long-dec v)))))
 
 (defn round-up-pow2
-  "Rounds a positive `long` integer up to the smallest power of 2 greater than or equal to the input value."
+  "Rounds `v` up to the smallest power of two greater than or equal to it.
+
+  Parameters:
+
+  - `v` (long): a positive value.
+
+  Returns the smallest `2^p >= v` as a `long`. Undefined for `v<=0` (not documented/guarded). Overflows silently to `Long/MIN_VALUE` for any `v` greater than `2^62` (`4611686018427387904`), since the true result `2^63` cannot be represented in a signed 64-bit `long`.
+
+  See also [[power-of-two?]]."
   ^long [^long v]
   (as-> (dec v) v
     (bit-or v (>> v 1))
@@ -3132,14 +3165,30 @@
    (nth (iterate prev-double v) delta)))
 
 (defn double-high-bits
-  "Returns high word from double as bits"
+  "Returns the high 32 bits of `v`'s IEEE 754 bit representation, as an unsigned value held in a `long`.
+
+  Parameters:
+
+  - `v` (double): the input value.
+
+  Returns the top 32 bits of `(double-bits v)`, right-shifted into the low 32 bits of the result. Combine with [[double-low-bits]] to reconstruct the full 64-bit pattern (e.g. `(bit-or (bit-shift-left (double-high-bits v) 32) (double-low-bits v))` equals `(double-bits v)`).
+
+  See also [[double-low-bits]], [[double-bits]], [[bits->double]]."
   {:inline (fn [v] `(bit-and (>>> (Double/doubleToRawLongBits (double ~v)) 32) 0xffffffff))
    :inline-arities #{1}}
   ^long [^double v]
   (bit-and (>>> (Double/doubleToRawLongBits v) 32) 0xffffffff))
 
 (defn double-low-bits
-  "Returns low word from double as bits"
+  "Returns the low 32 bits of `v`'s IEEE 754 bit representation, as an unsigned value held in a `long`.
+
+  Parameters:
+
+  - `v` (double): the input value.
+
+  Returns the bottom 32 bits of `(double-bits v)`. See [[double-high-bits]] for how to reconstruct the full 64-bit pattern from both halves.
+
+  See also [[double-high-bits]], [[double-bits]], [[bits->double]]."
   {:inline (fn [v] `(bit-and (Double/doubleToRawLongBits (double ~v)) 0xffffffff))
    :inline-arities #{1}}
   ^long [^double v]
@@ -3167,14 +3216,30 @@
   (FastMath/getExponent v))
 
 (defn double-significand
-  "Extract significand from double"
+  "Extracts the 52-bit mantissa (significand) field of `v`'s IEEE 754 bit representation.
+
+  Parameters:
+
+  - `v` (double): the input value.
+
+  Returns the low 52 bits of `(double-bits v)` as a `long`, i.e. the fractional part of the normalized `1.xxx * 2^e` representation, without the implicit leading `1` bit. For a normal, finite `v`, this is `0` exactly when `v` is an exact power of two (or zero).
+
+  See also [[double-exponent]], [[double-bits]]."
   {:inline (fn [v] `(bit-and (Double/doubleToRawLongBits (double ~v)) 4503599627370495))
    :inline-arities #{1}}
   ^long [^double v]
   (bit-and (Double/doubleToRawLongBits v) 4503599627370495))
 
 (defn log2int
-  "Fast and integer version of log2, returns long"
+  "Fast, exact computation of `log2(v)` rounded to the nearest integer, using only bit-level exponent/significand extraction (no floating-point logarithm, so no log-based rounding error).
+
+  Parameters:
+
+  - `v` (double): input value, must be positive and finite. Behavior for `v<=0.0`, `NaN`, or infinite `v` is undefined (bit-level artifacts of the underlying exponent extraction, not a meaningful log2 value).
+
+  Returns `round(log2(v))` as a `long`: the closest integer power-of-two exponent to `v`, with exact ties (`v` exactly halfway between two powers of two, e.g. `2^1.5`) rounding down to the lower exponent.
+
+  See also [[log2]], [[low-2-exp]], [[high-2-exp]]."
   ^long [^double v]
   (if (< v 1.0)
     (- (log2int (/ v)))
