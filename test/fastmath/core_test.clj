@@ -1028,3 +1028,36 @@
   (t/is (not= (m/relative-error 10.0 9.5) (m/relative-error 9.5 10.0)) "not symmetric -- divisor is always v, the first argument")
   (t/is (m/== ##Inf (m/relative-error 0.0 1.0)))
   (t/is (m/nan? (m/relative-error 0.0 0.0))))
+
+;; Reference: hand-computed slice-range/cut identities; co-intervals cross-
+;; checked against R's co.intervals(1:20), co.intervals(1:20, number=4),
+;; co.intervals(1:20, number=4, overlap=0.2) -- all three match exactly.
+(t/deftest interval-binning-utilities
+  (t/is (= '(0.0 0.25 0.5 0.75 1.0) (m/slice-range 5)) "1-arity defaults to [0,1]")
+  (t/is (= '(0.0 2.5 5.0 7.5 10.0) (m/slice-range 0.0 10.0 5)))
+  (t/is (= '(5.0) (m/slice-range 0.0 10.0 1)) "cnt=1 returns the midpoint")
+  (t/is (= '() (m/slice-range 0.0 10.0 0)) "cnt=0 returns empty")
+  (t/is (= '(1.0 3.0 5.0 7.0 9.0) (m/slice-range [3.0 1.0 ##NaN 9.0 5.0] 5))
+        "data arity: range from min/max, NaN removed")
+  (t/is (= '((-4.9E-324 2.5) (2.5 5.0) (5.0 7.5) (7.5 10.0)) (m/cut 0.0 10.0 4)))
+  (t/is (= (m/cut 0.0 10.0 4) (m/cut [0.0 3.0 10.0] 4)) "data arity matches explicit min/max")
+  (let [ivs (m/cut 0.0 10.0 4)]
+    (t/is (m/between-? (ffirst ivs) (second (first ivs)) 0.0) "exact range minimum is included via the prev-double nudge")
+    (doseq [x (m/slice-range 0.0 10.0 101)]
+      (t/is (some (fn [[lo hi]] (m/between-? lo hi x)) ivs) (str "every value in range falls into exactly one interval: " x))))
+  (let [data (vec (map double (range 1 21)))]
+    (t/is (= [[0.5 6.5] [3.5 9.5] [6.5 11.5] [9.5 14.5] [11.5 17.5] [14.5 20.5]]
+             (m/co-intervals data)) "matches R co.intervals(1:20)")
+    (t/is (= [[0.5 8.5] [4.5 12.5] [8.5 16.5] [12.5 20.5]]
+             (m/co-intervals data 4)) "matches R co.intervals(1:20, number=4)")
+    (t/is (= [[0.5 6.5] [5.5 11.5] [9.5 15.5] [14.5 20.5]]
+             (m/co-intervals data 4 0.2)) "matches R co.intervals(1:20, number=4, overlap=0.2)"))
+  (let [ivs (m/cut 0.0 10.0 4)
+        coll [0.0 1.0 2.5 3.0 6.0 9.0 10.0]
+        grouped (m/group-by-intervals ivs coll)]
+    (t/is (= (set ivs) (set (keys grouped))))
+    (t/is (= coll (sort (mapcat val grouped)))
+          "explicit non-overlapping intervals: every value grouped exactly once, none lost")
+    (t/is (= '(0.0 1.0 2.5) (get grouped (first ivs))))
+    (t/is (map? (m/group-by-intervals (vec (map double (range 1 21)))))
+          "1-arity derives intervals via co-intervals")))
