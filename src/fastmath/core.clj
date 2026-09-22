@@ -3437,7 +3437,16 @@
 
 ;; Linear interpolation between `start` and `stop`.
 (defn lerp
-  "Linear interpolation between `start` and `stop` for amount `t`. See also [[mlerp]], [[cos-interpolation]], [[quad-interpolation]] or [[smooth-interpolation]]."
+  "Linearly interpolates between `start` and `stop` by amount `t`.
+
+  Parameters:
+
+  - `start`, `stop` (doubles): the two endpoints.
+  - `t` (double): interpolation amount, typically in `[0,1]`.
+
+  Returns `start` when `t=0`, `stop` when `t=1`, and extrapolates linearly outside `[0,1]`.
+
+  See also [[mlerp]] (macro version), [[cos-interpolation]], [[quad-interpolation]], [[smooth-interpolation]] (other, non-linear easing curves)."
   {:inline (fn [start stop t] `(let [s# (double ~start)]
                                 (+ s# (* (double ~t) (- (double ~stop) s#)))))
    :inline-arities #{3}}
@@ -3451,17 +3460,44 @@
 
 ;; Cosine interpolation between `start` and `stop`
 (defn cos-interpolation
-  "oF interpolateCosine interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[smooth-interpolation]]."
+  "Interpolates between `start` and `stop` following a cosine ease curve, for amount `t`.
+
+  Parameters:
+
+  - `start`, `stop` (doubles): the two endpoints.
+  - `t` (double): interpolation amount, typically in `[0,1]`.
+
+  Returns `start` when `t=0`, `stop` when `t=1`, easing smoothly (zero slope at both ends) rather than linearly in between, via `0.5*(1-cos(t*PI))` as the effective interpolation amount.
+
+  See also [[lerp]]/[[mlerp]] (linear), [[quad-interpolation]], [[smooth-interpolation]] (other easing curves)."
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (* 0.5 (- 1.0 (cos (* t PI))))))
 
 (defn smooth-interpolation
-  "Smoothstep based interpolation. See also [[lerp]]/[[mlerp]], [[quad-interpolation]] or [[cos-interpolation]]."
+  "Interpolates between `start` and `stop` following the classic smoothstep (Hermite) ease curve, for amount `t`.
+
+  Parameters:
+
+  - `start`, `stop` (doubles): the two endpoints.
+  - `t` (double): interpolation amount, typically in `[0,1]`.
+
+  Returns `start` when `t=0`, `stop` when `t=1`, easing smoothly (zero slope at both ends) rather than linearly in between, via `t*t*(3-2*t)` as the effective interpolation amount. See also [[smoothstep]], which applies this same curve but also normalizes and clamps its input to `[0,1]` first.
+
+  See also [[lerp]]/[[mlerp]] (linear), [[cos-interpolation]], [[quad-interpolation]] (other easing curves)."
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (* t t (- 3.0 (* 2.0 t)))))
 
 (defn quad-interpolation
-  "Quad interpolation. See also [[lerp]]/[[mlerp]], [[cos-interpolation]] or [[smooth-interpolation]]."
+  "Interpolates between `start` and `stop` following a piecewise quadratic ease-in-ease-out curve, for amount `t`.
+
+  Parameters:
+
+  - `start`, `stop` (doubles): the two endpoints.
+  - `t` (double): interpolation amount, typically in `[0,1]`.
+
+  Returns `start` when `t=0`, `stop` when `t=1`, easing quadratically in over the first half (`t<0.5`) and quadratically out over the second half, meeting continuously at `t=0.5`.
+
+  See also [[lerp]]/[[mlerp]] (linear), [[cos-interpolation]], [[smooth-interpolation]] (other easing curves)."
   ^double [^double start ^double stop ^double t]
   (mlerp start stop (let [t' (* 2.0 t)]
                       (if (< t' 1.0)
@@ -3469,14 +3505,24 @@
                         (* -0.5 (dec (* (dec t') (- t' 3.0))))))))
 
 (defn smoothstep
-  "GL [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml)."
+  "GL-style [smoothstep](https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/smoothstep.xhtml): smoothly interpolates from `0.0` to `1.0` as `x` moves from `edge0` to `edge1`.
+
+  Parameters:
+
+  - `edge0`, `edge1` (doubles): the two threshold edges.
+  - `x` (double): the value being thresholded/eased.
+
+  Returns `0.0` for `x<=edge0`, `1.0` for `x>=edge1`, and the classic smoothstep (Hermite) ease curve `t*t*(3-2*t)` (with `t` the clamped normalized position of `x` between the edges) in between -- unlike [[smooth-interpolation]], the input is clamped, never extrapolated.
+
+  See also [[smooth-interpolation]] (same curve, unclamped, arbitrary output range), [[cnorm]]."
   ^double [^double edge0 ^double edge1 ^double x]
   (let [t (cnorm x edge0 edge1)]
     (* t t (- 3.0 (* 2.0 t)))))
 
-;;`(wrap 0 -1 1) => 0.0`  
-;;`(wrap -1.1 -1 1) => 0.8999999999999999`  
-;;`(wrap 1.1 -1 1) => -0.8999999999999999`
+;; arguments are `[start stop value]`:
+;;`(wrap -1 1 0) => 0.0`
+;;`(wrap -1 1 -1.1) => 0.8999999999999999`
+;;`(wrap -1 1 1.1) => -0.8999999999999999`
 (defn wrap
   "Wraps `value` cyclically into the range `[start,stop)`, similar to `openFrameworks`' `ofWrap`.
 

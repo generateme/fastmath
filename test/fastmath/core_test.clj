@@ -906,3 +906,40 @@
                                       ["M_SQRT3" m/M_SQRT3 m/SQRT3] ["M_SQRT2" m/M_SQRT2 m/SQRT2]
                                       ["M_LOG2_E" m/M_LOG2_E m/LN2] ["INV_SQRT_2" m/INV_SQRT_2 m/M_SQRT1_2]]]
     (t/is (m/== alias source) (str alias-name " aliases its source constant exactly"))))
+
+;; Reference: hand-computed interpolation-curve identities (endpoints,
+;; midpoint symmetry). Also regression-guards a stale doc-comment found
+;; during this group's verification: the three worked examples above `wrap`
+;; assumed an old (value, start, stop) argument order that no longer
+;; matches the current [start stop value] signature -- the code itself was
+;; correct throughout, only the comment was stale, so no CHANGELOG entry
+;; (documentation-only, mirrors the Group 11 log2 docstring typo).
+(t/deftest interpolation
+  (doseq [[start stop t ref] [[0.0 10.0 0.0 0.0] [0.0 10.0 1.0 10.0] [0.0 10.0 0.5 5.0]
+                              [0.0 10.0 1.5 15.0] [0.0 10.0 -0.5 -5.0]]]
+    (t/is (m/== ref (m/lerp start stop t)) (str "lerp " start " " stop " " t))
+    (t/is (m/== (m/lerp start stop t) (apply m/lerp [start stop t])) "inline path matches non-inlined path")
+    (t/is (m/== (m/lerp start stop t) (m/mlerp start stop t)) "mlerp matches lerp"))
+  (doseq [[start stop t ref] [[0.0 10.0 0.0 0.0] [0.0 10.0 1.0 10.0]]]
+    (t/is (m/delta-eq ref (m/cos-interpolation start stop t) 1.0e-9))
+    (t/is (m/delta-eq ref (m/smooth-interpolation start stop t) 1.0e-9))
+    (t/is (m/delta-eq ref (m/quad-interpolation start stop t) 1.0e-9)))
+  (t/is (m/delta-eq 5.0 (m/cos-interpolation 0.0 10.0 0.5) 1.0e-9) "cosine ease, midpoint matches linear midpoint by symmetry")
+  (t/is (m/delta-eq 5.0 (m/smooth-interpolation 0.0 10.0 0.5) 1.0e-9))
+  (t/is (m/delta-eq 5.0 (m/quad-interpolation 0.0 10.0 0.5) 1.0e-9) "quad ease, two quadratic halves meet continuously at t=0.5")
+  (t/is (m/delta-eq 1.25 (m/quad-interpolation 0.0 10.0 0.25) 1.0e-9) "ease-in quadratic half: 10*0.5*(2*0.25)^2 = 1.25")
+  (t/is (m/delta-eq 8.75 (m/quad-interpolation 0.0 10.0 0.75) 1.0e-9) "ease-out half, symmetric to the ease-in half")
+  (doseq [[edge0 edge1 x ref] [[0.0 10.0 -5.0 0.0] [0.0 10.0 0.0 0.0] [0.0 10.0 5.0 0.5]
+                               [0.0 10.0 10.0 1.0] [0.0 10.0 15.0 1.0]]]
+    (t/is (m/delta-eq ref (m/smoothstep edge0 edge1 x) 1.0e-9) (str "smoothstep " edge0 " " edge1 " " x))
+    (t/is (m/== (m/smoothstep edge0 edge1 x) (apply m/smoothstep [edge0 edge1 x]))))
+  ;; wrap: [start stop value] -- corrected argument order regression-guarded
+  ;; against the stale doc-comment examples (semantically the same scenario,
+  ;; corrected call syntax)
+  (t/is (m/== 0.0 (m/wrap -1.0 1.0 0.0)))
+  (t/is (m/delta-eq 0.8999999999999999 (m/wrap -1.0 1.0 -1.1) 1.0e-9))
+  (t/is (m/delta-eq -0.8999999999999999 (m/wrap -1.0 1.0 1.1) 1.0e-9))
+  (t/is (m/== 0.0 (m/wrap [-1.0 1.0] 0.0)) "2-arity, range as a pair")
+  (t/is (m/== (m/wrap -1.0 1.0 0.0) (apply m/wrap [-1.0 1.0 0.0])))
+  (t/is (m/== 5.0 (m/wrap 5.0 5.0 3.0)) "degenerate range start==stop returns stop")
+  (t/is (m/== 0.5 (m/wrap 1.0 -1.0 0.5)) "unordered bounds are normalized internally"))
