@@ -3672,13 +3672,29 @@
   (Double/isInfinite v))
 
 (defn pos-inf?
-  "Check if a number is positively infinite."
+  "Checks whether `v` is positive infinity.
+
+  Parameters:
+
+  - `v` (double): the value to check.
+
+  Returns `true` only for `##Inf`; `false` for `##-Inf`, `NaN`, and every finite value.
+
+  See also [[neg-inf?]], [[inf?]]."
   {:inline (fn [v] `(== (double ~v) ##Inf)) :inline-arities #{1}}
   [^double v]
   (== v ##Inf))
 
 (defn neg-inf?
-  "Check if a number is negatively infinite."
+  "Checks whether `v` is negative infinity.
+
+  Parameters:
+
+  - `v` (double): the value to check.
+
+  Returns `true` only for `##-Inf`; `false` for `##Inf`, `NaN`, and every finite value.
+
+  See also [[pos-inf?]], [[inf?]]."
   {:inline (fn [v] `(== (double ~v) ##-Inf)) :inline-arities #{1}}
   [^double v]
   (== v ##-Inf))
@@ -3696,14 +3712,32 @@
   (Double/isFinite v))
 
 (defn between?
-  "Check if given number is within the range [x,y]."
+  "Checks whether `v` lies within the closed range `[x,y]`.
+
+  Parameters:
+
+  - `[x y]` (sequence of two doubles), `v` (double): range as a pair, plus the value to check.
+  - `x`, `y`, `v` (doubles): range bounds and the value to check, given directly.
+
+  Returns `true` if `x<=v<=y`, `false` otherwise -- including when `x>y` (an inverted range is never satisfiable, not auto-swapped) or when `v` is `NaN` (every comparison with `NaN` is `false`).
+
+  See also [[between-?]] (half-open range), [[constrain]]."
   {:inline (fn [x y v] `(<= (double ~x) (double ~v) (double ~y)))
    :inline-arities #{3}}
   ([[^double x ^double y] ^double v] (<= x v y))
   ([^double x ^double y ^double v] (<= x v y)))
 
 (defn between-?
-  "Check if given number is within the range (x,y]."
+  "Checks whether `v` lies within the half-open range `(x,y]`.
+
+  Parameters:
+
+  - `[x y]` (sequence of two doubles), `v` (double): range as a pair, plus the value to check.
+  - `x`, `y`, `v` (doubles): range bounds and the value to check, given directly.
+
+  Returns `true` if `x<v<=y` (`x` itself excluded, `y` included), `false` otherwise.
+
+  See also [[between?]] (closed range), [[constrain]]."
   {:inline (fn [x y v] `(let [v# (double ~v)]
                          (and (< (double ~x) v#) (<= v# (double ~y)))))
    :inline-arities #{3}}

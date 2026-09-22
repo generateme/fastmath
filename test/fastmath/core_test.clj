@@ -989,3 +989,28 @@
     (t/is (m/delta-eq 3.0 (m/smooth-max neg-xs 50.0 :p-norm) 1.0e-6) ":p-norm tracks magnitude, not signed value")
     (t/is (m/delta-eq 1.0 (m/smooth-max neg-xs -50.0 :p-norm) 1.0e-6)
           ":p-norm at negative alpha converges to the smallest magnitude (1.0), not the true signed min (-3.0) -- always non-negative")))
+
+;; Reference: hand-computed / IEEE 754 semantics (NaN comparisons always
+;; false, no range auto-swap or auto-ordering).
+(t/deftest double-predicates-range-checks
+  (t/is (m/pos-inf? ##Inf))
+  (t/is (not (m/pos-inf? ##-Inf)))
+  (t/is (not (m/pos-inf? 1.0)))
+  (t/is (not (m/pos-inf? Double/NaN)))
+  (t/is (= (m/pos-inf? ##Inf) (apply m/pos-inf? [##Inf])) "inline path matches non-inlined path")
+  (t/is (m/neg-inf? ##-Inf))
+  (t/is (not (m/neg-inf? ##Inf)))
+  (t/is (not (m/neg-inf? 1.0)))
+  (t/is (not (m/neg-inf? Double/NaN)))
+  (t/is (= (m/neg-inf? ##-Inf) (apply m/neg-inf? [##-Inf])) "inline path matches non-inlined path")
+  (doseq [[x y v ref] [[0.0 10.0 5.0 true] [0.0 10.0 0.0 true] [0.0 10.0 10.0 true]
+                       [0.0 10.0 -1.0 false] [0.0 10.0 10.1 false]]]
+    (t/is (= ref (m/between? x y v)) (str "between? " x " " y " " v)))
+  (t/is (m/between? [0.0 10.0] 5.0) "2-arity, range as a pair")
+  (t/is (not (m/between? 10.0 0.0 5.0)) "inverted range x>y is never satisfiable, not auto-swapped")
+  (t/is (not (m/between? 0.0 10.0 Double/NaN)) "NaN never compares true")
+  (t/is (= (m/between? 0.0 10.0 5.0) (apply m/between? [0.0 10.0 5.0])) "inline path matches non-inlined path")
+  (doseq [[x y v ref] [[0.0 10.0 0.0 false] [0.0 10.0 10.0 true] [0.0 10.0 5.0 true] [0.0 10.0 -1.0 false]]]
+    (t/is (= ref (m/between-? x y v)) (str "between-? " x " " y " " v " -- (x,y], x excluded, y included")))
+  (t/is (m/between-? [0.0 10.0] 5.0) "2-arity, range as a pair")
+  (t/is (= (m/between-? 0.0 10.0 5.0) (apply m/between-? [0.0 10.0 5.0])) "inline path matches non-inlined path"))
