@@ -17,7 +17,15 @@
     (t/is (m/== (apply + numbers)
                 (apply m/+ numbers)))
     (t/is (m/== (reduce + (map long numbers))
-                (reduce m/long-add numbers)))))
+                (reduce m/long-add numbers)))
+    ;; documented, benign type-only divergence (not a value bug, confirmed
+    ;; via a systematic inline-vs-non-inlined sweep across Groups 1-10b):
+    ;; direct calls with integer args are inline-compiled to a long; the
+    ;; non-inlined path always follows the declared double signature
+    (t/is (int? (m/+ 1 2 3)) "direct call, integer args -> long via :inline")
+    (t/is (double? (apply m/+ [1 2 3])) "non-inlined path always double, same value")
+    (t/is (int? (m/inc 3)))
+    (t/is (double? (apply m/inc [3])) "non-inlined path always double, same value")))
 
 (let [numbers (repeatedly 10000 #(m/* 100.0 (m/- (double (rand)) 0.5)))]
   (t/deftest sub
@@ -36,7 +44,11 @@
     (t/is (m/== (apply - numbers)
                 (apply m/- numbers)))
     (t/is (m/== (reduce - (map long numbers))
-                (reduce m/long-sub numbers)))))
+                (reduce m/long-sub numbers)))
+    (t/is (int? (m/- 1 2 3)) "direct call, integer args -> long via :inline")
+    (t/is (double? (apply m/- [1 2 3])) "non-inlined path always double, same value")
+    (t/is (int? (m/dec 3)))
+    (t/is (double? (apply m/dec [3])) "non-inlined path always double, same value")))
 
 ;; Reference: * and / are the independent reference
 ;; implementation for the double-typed n-ary arithmetic ops (exact arithmetic,
@@ -51,7 +63,8 @@
     (t/is (m/== (reduce * numbers)
                 (reduce m/* numbers)))
     (t/is (m/== (apply * numbers)
-                (apply m/* numbers)))))
+                (apply m/* numbers)))
+    (t/is (double? (apply m/* [1 2 3])) "non-inlined path always double, same value as the int? direct call above")))
 
 ;; Reference: hand-computed. Regression test for a confirmed bug where the
 ;; non-inlined 3-arity body computed (a*b)+c instead of (a*b)*c; only visible
@@ -72,7 +85,9 @@
     (t/is (m/== 5 (apply m// [100 5 4])))
     (t/is (m/== ##Inf (m// 1.0 0.0)) "IEEE 754 semantics, no exception")
     (t/is (m/== (reduce / numbers)
-                (reduce m// numbers)))))
+                (reduce m// numbers)))
+    (t/is (int? (m// 100 5 4)) "direct call, exact integer division -> long via :inline")
+    (t/is (double? (apply m// [100 5 4])) "non-inlined path always double, same value")))
 
 ;; Reference: hand-computed, per the 1-arg-returns-double exception documented
 ;; in long-div's docstring (PrimitiveMath has no long-returning reciprocal).
@@ -92,7 +107,11 @@
     (t/is (m/== 1 (m/min 5 3 1 4)))
     (t/is (m/== 5 (m/max 5 3 1 4)))
     (t/is (m/== 1 (apply m/long-min [5 3 1 4])))
-    (t/is (m/== 5 (apply m/long-max [5 3 1 4])))))
+    (t/is (m/== 5 (apply m/long-max [5 3 1 4])))
+    (t/is (int? (m/min 5 3 1 4)) "direct call, integer args -> long via :inline")
+    (t/is (double? (apply m/min [5 3 1 4])) "non-inlined path always double, same value")
+    (t/is (int? (m/max 5 3 1 4)))
+    (t/is (double? (apply m/max [5 3 1 4])))))
 
 ;; Reference: ==, </>/<=/>=, hand-computed. Regression tests for a
 ;; confirmed bug where the non-inlined 3+-arity body of ==, <, >, <=, >= never
@@ -165,6 +184,16 @@
             (clojure.core/bit-and-not (clojure.core/bit-and-not 12 10) 9)))
   ;; single-argument identity
   (t/is (= 12 (m/bit-and 12) (m/bit-or 12) (m/bit-xor 12) (m/bit-nand 12) (m/bit-nor 12) (m/bit-xnor 12) (m/bit-and-not 12))))
+
+;; Reference: hand-computed. Added after a systematic sweep (2025, follow-up
+;; to Group 10a's exprel bug) tested every :inline function in Groups 1-10b
+;; for inline-vs-non-inlined VALUE divergence (none found) and incidentally
+;; found this benign TYPE-only divergence (bit-count is a simple-wrapper
+;; excluded item, so it never got its own deftest before this).
+(t/deftest bit-count-type
+  (t/is (= 8 (m/bit-count 255) (apply m/bit-count [255])) "value identical either way")
+  (t/is (int? (m/bit-count 255)) "direct call -> boxed Integer (Long/bitCount's native int result)")
+  (t/is (instance? Long (apply m/bit-count [255])) "non-inlined -> boxed Long, per the declared ^long signature"))
 
 ;; Reference: hand-computed. xor/bool-xor are identical implementations
 ;; (associative, so pairwise-fold n-ary is correct); negative-zero?/integer?

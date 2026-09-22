@@ -98,6 +98,8 @@
 
   Returns the sum as a double. With no arguments returns `0.0` (the additive identity). With one argument returns it unchanged.
 
+  Note: a direct call with all-integer arguments (e.g. `(+ 1 2 3)`) is compiled via `:inline` and can return a `long` instead. Called indirectly (`apply`, `reduce`, higher-order use), inlining does not apply and the result always follows this function's declared `double` signature, even for all-integer arguments. The numeric value is identical either way, only the type differs.
+
   See also [[use-primitive-operators]] (enables this replacement), [[long-add]] (long-coerced version), [[-]], [[*]], [[/]]."}
   (^double [] 0.0)
   (^double [^double a] a)
@@ -138,6 +140,8 @@
 
   Returns the negation of the sole argument when called with one value, otherwise the left-to-right cumulative subtraction of all arguments, as a double.
 
+  Note: a direct call with all-integer arguments is compiled via `:inline` and can return a `long` instead; called indirectly (`apply`, `reduce`, higher-order use), the result always follows this function's declared `double` signature. Value identical either way, only the type differs.
+
   See also [[long-sub]] (long-coerced version), [[+]], [[*]], [[/]]."}
   (^double [^double a] (. PrimitiveMath (negate a)))
   (^double [^double a ^double b] (. PrimitiveMath (subtract a b)))
@@ -175,6 +179,8 @@
   - zero or more `double` values to multiply.
 
   Returns the product as a double. With no arguments returns `1.0` (the multiplicative identity). With one argument returns it unchanged.
+
+  Note: a direct call with all-integer arguments is compiled via `:inline` and can return a `long` instead; called indirectly (`apply`, `reduce`, higher-order use), the result always follows this function's declared `double` signature. Value identical either way, only the type differs.
 
   See also [[long-mult]] (long-coerced version), [[+]], [[-]], [[/]]."}
   (^double [] 1.0)
@@ -216,6 +222,8 @@
 
   Returns the reciprocal of the sole argument when called with one value, otherwise the left-to-right cumulative division of all arguments, as a double. Division by zero follows IEEE 754 semantics (returns `##Inf`, `##-Inf` or `##NaN`, no exception thrown).
 
+  Note: a direct call with all-integer arguments is compiled via `:inline` and can return a `long` instead when the division is exact; called indirectly (`apply`, `reduce`, higher-order use), the result always follows this function's declared `double` signature. Value identical either way, only the type differs.
+
   See also [[long-div]] (long-coerced version), [[+]], [[-]], [[*]]."}
   (^double [^double a] (. PrimitiveMath (reciprocal a)))
   (^double [^double a ^double b] (. PrimitiveMath (divide a b)))
@@ -246,7 +254,7 @@
 (defn inc
   {:inline (fn [x] `(. PrimitiveMath (inc ~x)))
    :inline-arities #{1}
-   :doc "Primitive and inlined `inc`"}
+   :doc "Primitive and inlined `inc`. A direct call with an integer argument can return a `long` via `:inline`; called indirectly (`apply`, higher-order use), always returns a `double` (same value, see [[+]])."}
   ^double [^double x] (. PrimitiveMath (inc x)))
 
 (defn long-inc
@@ -258,7 +266,7 @@
 (defn dec
   {:inline (fn [x] `(. PrimitiveMath (dec ~x)))
    :inline-arities #{1}
-   :doc "Primitive and inlined `dec`"}
+   :doc "Primitive and inlined `dec`. A direct call with an integer argument can return a `long` via `:inline`; called indirectly (`apply`, higher-order use), always returns a `double` (same value, see [[+]])."}
   ^double [^double x] (. PrimitiveMath (dec x)))
 
 (defn long-dec
@@ -314,6 +322,8 @@
 
   Returns the minimum value as a double.
 
+  Note: a direct call with all-integer arguments is compiled via `:inline` and can return a `long` instead; called indirectly (`apply`, `reduce`, higher-order use), the result always follows this function's declared `double` signature. Value identical either way, only the type differs.
+
   See also [[long-min]] (long-coerced version), [[max]]."}
   (^double [^double a] a)
   (^double [^double a ^double b] (. PrimitiveMath (min a b)))
@@ -351,6 +361,8 @@
   - one or more `double` values.
 
   Returns the maximum value as a double.
+
+  Note: a direct call with all-integer arguments is compiled via `:inline` and can return a `long` instead; called indirectly (`apply`, `reduce`, higher-order use), the result always follows this function's declared `double` signature. Value identical either way, only the type differs.
 
   See also [[long-max]] (long-coerced version), [[min]]."}
   (^double [^double a] a)
@@ -724,7 +736,13 @@
   [^long x ^long bit] (. PrimitiveMath (bitTest x bit)))
 
 (defn bit-count
-  "Count set bits"
+  "Counts the number of set (1) bits in `x`.
+
+  Parameters:
+
+  - `x` (long): the value to inspect.
+
+  Returns the population count as a `long`. Note: a direct call is compiled via `:inline` and returns a boxed `Integer` (from `Long/bitCount`'s native `int` result); called indirectly (`apply`, higher-order use), returns a boxed `Long`. Value identical either way, only the box type differs."
   {:inline (fn [x] `(Long/bitCount (long ~x)))
    :inline-arities #{1}}
   ^long [^long x] (Long/bitCount x))
