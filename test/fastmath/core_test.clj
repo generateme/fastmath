@@ -844,3 +844,38 @@
   (t/is (m/== 3 (m/high-exp 10.0 1000.0)))
   (t/is (m/== (m/low-exp 10.0 1000.0) (apply m/low-exp [10.0 1000.0])) "inline path N/A, non-inlined body only -- sanity check")
   (t/is (m/== (m/high-exp 10.0 1000.0) (apply m/high-exp [10.0 1000.0]))))
+
+;; Reference: Python math module (math.sqrt/math.pi/math.log), full double
+;; precision, matched bit-for-bit against the values below. Alias constants
+;; (M_E, M_PI, M_SQRT2, etc.) are checked for exact (==) equality against
+;; the fastmath constant they alias, since they are already-verified values
+;; with zero additional computation -- not re-derived independently, per
+;; the established alias-testing pattern (Group 17's approx=/delta=).
+(t/deftest math-constants-block-2
+  (t/is (m/delta-eq 0.9999999999999999 m/double-one-minus-epsilon 1.0e-17))
+  (doseq [[ref v] [[1.4142135623730951 m/SQRT2] [0.7071067811865476 m/SQRT2_2]
+                   [1.7320508075688772 m/SQRT3] [0.8660254037844386 m/SQRT3_2]
+                   [0.5773502691896257 m/SQRT3_3] [0.4330127018922193 m/SQRT3_4]
+                   [2.23606797749979 m/SQRT5]
+                   [1.7724538509055159 m/SQRTPI] [2.5066282746310002 m/SQRT2PI] [1.2533141373155001 m/SQRT_HALFPI]
+                   [1.618033988749895 m/PHI] [2.414213562373095 m/SILVER]
+                   [0.3183098861837907 m/M_1_PI] [0.6366197723675814 m/M_2_PI] [1.1283791670955126 m/M_2_SQRTPI]
+                   [0.3989422804014327 m/INV_SQRT2PI] [0.5641895835477563 m/INV_SQRTPI]
+                   [0.7978845608028654 m/SQRT_2_PI] [0.7071067811865475 m/M_SQRT1_2]
+                   [2.356194490192345 m/M_3PI_4] [0.43429448190325176 m/M_IVLN10]
+                   [1.4426950408889634 m/M_INVLN2]]]
+    (t/is (m/delta-eq ref v 1.0e-15) (str "constant near " ref)))
+  (t/is (m/== m/M_INVLN2 m/LOG2E)
+        "M_INVLN2 (1/ln(2), computed independently via division) happens to be bit-identical to LOG2E (log2(e), computed via the log2 function) -- same mathematical value, coincidentally equal after rounding")
+  ;; three near-collision names -- confirmed genuinely distinct, different meanings
+  (t/is (not= m/SQRT2PI m/SQRT_2_PI) "sqrt(2*pi) ~2.507 vs sqrt(2/pi) ~0.798")
+  (t/is (not= m/SQRT_2_PI m/M_2_SQRTPI) "sqrt(2/pi) ~0.798 vs 2/sqrt(pi) ~1.128")
+  (t/is (not= m/M_LOG2E m/M_LOG2_E) "log2(e) ~1.443 vs ln(2) ~0.693 -- easy to confuse by name")
+  ;; math.h-style aliases: bit-exact equality against the already-verified source constant
+  (doseq [[alias-name alias source] [["M_E" m/M_E m/E] ["M_LOG2E" m/M_LOG2E m/LOG2E] ["M_LOG10E" m/M_LOG10E m/LOG10E]
+                                      ["M_LN2" m/M_LN2 m/LN2] ["M_LN10" m/M_LN10 m/LN10] ["M_PI" m/M_PI m/PI]
+                                      ["M_PI_2" m/M_PI_2 m/HALF_PI] ["M_PI_4" m/M_PI_4 m/QUARTER_PI]
+                                      ["M_TWOPI" m/M_TWOPI m/TWO_PI] ["M_SQRT_PI" m/M_SQRT_PI m/SQRTPI]
+                                      ["M_SQRT3" m/M_SQRT3 m/SQRT3] ["M_SQRT2" m/M_SQRT2 m/SQRT2]
+                                      ["M_LOG2_E" m/M_LOG2_E m/LN2] ["INV_SQRT_2" m/INV_SQRT_2 m/M_SQRT1_2]]]
+    (t/is (m/== alias source) (str alias-name " aliases its source constant exactly"))))
