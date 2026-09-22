@@ -4041,7 +4041,7 @@
                  m)]
          (map (into {} m) vs))))))
 
-(def rank1 ^{:doc "[[rank]] with indexing statring from 1"}
+(def rank1 ^{:doc "[[rank]] with indexing starting from 1"}
   (comp (partial map inc) rank))
 
 (defn order

@@ -1143,3 +1143,34 @@
   (t/is (= '(5.0) (m/sample identity 0.0 10.0 1)) "n=1 returns the midpoint, as documented")
   (t/is (= '([5.0 5.0]) (m/sample identity 0.0 10.0 1 true)))
   (t/is (= '(0.5) (m/sample identity 1)) "n=1 with default [0,1] range"))
+
+;; Reference: R's rank() (ties.method average/min/max/first) and
+;; data.table::frank(ties.method="dense"), both 1-indexed -- compared
+;; against rank1 (fastmath's rank is 0-indexed by design). order() cross-
+;; checked against R's order() (1-indexed, via -vs for descending).
+(t/deftest ranking-ordering
+  (let [vs [10 20 20 30 10 40]]
+    (t/is (= [1.5 3.5 3.5 5.0 1.5 6.0] (m/rank1 vs)) "default :average, matches R rank(ties.method='average')")
+    (t/is (= [1 3 3 5 1 6] (map inc (m/rank vs :min))) "matches R rank(ties.method='min')")
+    (t/is (= [2 4 4 5 2 6] (map inc (m/rank vs :max))) "matches R rank(ties.method='max')")
+    (t/is (= [1 3 4 5 2 6] (map inc (m/rank vs :first))) "matches R rank(ties.method='first')")
+    (t/is (= [1 2 2 3 1 4] (map inc (m/rank vs :dense))) "matches R data.table::frank(ties.method='dense')")
+    (t/is (= [5.5 3.5 3.5 2.0 5.5 1.0] (map inc (m/rank vs :average true))) "descending, matches R rank(-vs)")
+    (t/is (= (m/rank vs) (m/rank vs :average false)) "desc? defaults to false")
+    ;; :first/:last are complementary: within a tied group, :first assigns
+    ;; the lower rank to the earlier occurrence, :last to the later one
+    (t/is (= [0 2 3 4 1 5] (m/rank vs :first)))
+    (t/is (= [1 3 2 4 0 5] (m/rank vs :last)))
+    (t/is (= [1 5 2 3 4 6] (map inc (m/order vs))) "matches R order(vs)")
+    (t/is (= [6 4 2 3 1 5] (map inc (m/order vs true))) "matches R order(-vs)")
+    (t/is (= (sort vs) (map #(nth vs %) (m/order vs))) "applying the order permutation sorts the collection"))
+  (t/is (= '() (m/rank [])) "empty collection")
+  (t/is (= '() (m/order [])))
+  (t/is (= '(0.0) (m/rank [5])) "single element")
+  (t/is (= '(0) (m/order [5])))
+  (t/is (= [1.0 1.0 1.0] (m/rank [7 7 7])) "all tied, :average")
+  (t/is (= [0 0 0] (m/rank [7 7 7] :min)))
+  (t/is (let [r (m/rank [1 2 2 3] :random)] (or (= r [0 1 2 3]) (= r [0 2 1 3])))
+        ":random still ranks distinct values correctly, only shuffles within the tied group")
+  (t/is (= (sort [3 1 5 2 4]) (map #(nth [3 1 5 2 4] %) (m/order [3 1 5 2 4])))
+        "order permutation sorts a distinct-valued collection"))
