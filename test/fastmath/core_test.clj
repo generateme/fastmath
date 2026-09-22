@@ -1061,3 +1061,20 @@
     (t/is (= '(0.0 1.0 2.5) (get grouped (first ivs))))
     (t/is (map? (m/group-by-intervals (vec (map double (range 1 21)))))
           "1-arity derives intervals via co-intervals")))
+
+;; Reference: Python's math.gcd/math.lcm (both always non-negative, matching
+;; the standard mathematical convention). Regression-guards the lcm sign
+;; bug found and fixed during this group's verification -- see
+;; CHANGELOG.md.
+(t/deftest gcd-lcm
+  (doseq [[a b ref] [[12 18 6] [17 5 1] [0 5 5] [5 0 5] [0 0 0] [123456789 987654321 9]]]
+    (t/is (m/== ref (m/gcd a b)) (str "gcd " a " " b)))
+  (doseq [[a b ref] [[-12 18 6] [12 -18 6] [-12 -18 6]]]
+    (t/is (m/== ref (m/gcd a b)) (str "gcd sign-agnostic " a " " b)))
+  (doseq [[a b ref] [[4 6 12] [3 5 15] [0 5 0] [5 5 5]]]
+    (t/is (m/== ref (m/lcm a b)) (str "lcm " a " " b)))
+  ;; regression: lcm used to return a negative result whenever exactly one
+  ;; argument was negative (e.g. (lcm -4 6) used to return -12)
+  (doseq [[a b ref] [[-4 6 12] [4 -6 12] [-4 -6 12]]]
+    (t/is (m/== ref (m/lcm a b)) (str "lcm sign-agnostic, always non-negative " a " " b)))
+  (t/is (m/== (m/lcm 6 4) (m/lcm 4 6)) "order-independent"))

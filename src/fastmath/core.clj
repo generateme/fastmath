@@ -3891,16 +3891,35 @@
                               (recur (>> (long-sub b a) 1) a))))
 
 (defn gcd
-  "Fast binary greatest common divisor (Stein's algorithm)"
+  "Calculates the greatest common divisor of two integers, using Stein's binary GCD algorithm.
+
+  Parameters:
+
+  - `a`, `b` (longs): the two integers. May be negative; sign is ignored.
+
+  Returns the largest non-negative `n` that divides both `(abs a)` and `(abs b)`, as a `long`. Returns `(abs a)` when `b` is `0`, `(abs b)` when `a` is `0`, and `0` when both are `0`.
+
+  See also [[lcm]]."
   ^long [^long a ^long b]
   (gcd- (long-abs a) (long-abs b)))
 
 (defn lcm
-  "Fast binary least common multiplier."
+  "Calculates the least common multiple of two integers, using Stein's binary GCD algorithm internally.
+
+  Parameters:
+
+  - `a`, `b` (longs): the two integers. May be negative; sign is ignored.
+
+  Returns the smallest non-negative `n` such that `n` is a multiple of both `(abs a)` and `(abs b)`, as a `long`. Returns `0` if either argument is `0`.
+
+  See also [[gcd]]."
   ^long [^long a ^long b]
-  (if (> a b)
-    (* b (/ a (gcd- (long-abs a) (long-abs b))))
-    (* a (/ b (gcd- (long-abs a) (long-abs b))))))
+  (let [aa (long-abs a)
+        ab (long-abs b)
+        g (gcd- aa ab)]
+    (if (> aa ab)
+      (* ab (/ aa g))
+      (* aa (/ ab g)))))
 
 ;; arithmetic-geometric-mean
 
