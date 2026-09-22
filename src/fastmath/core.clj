@@ -3985,11 +3985,13 @@
   ([f domain-min domain-max number-of-values]
    (sample f domain-min domain-max number-of-values false))
   ([f domain-min domain-max number-of-values domain?]
-   (let [n- (dec ^long number-of-values)
-         f (if domain? #(vector % (f %)) f)]
-     (->> (range number-of-values)
-          (map #(norm % 0.0 n- domain-min domain-max))
-          (map f)))))
+   (let [f (if domain? #(vector % (f %)) f)]
+     (if (= ^long number-of-values 1)
+       (list (f (+ ^double domain-min (* 0.5 (- ^double domain-max ^double domain-min)))))
+       (let [n- (dec ^long number-of-values)]
+         (->> (range number-of-values)
+              (map #(norm % 0.0 n- domain-min domain-max))
+              (map f)))))))
 
 ;; rank/order
 

@@ -1126,3 +1126,20 @@
   ;; now correct via sqrt(x)*sqrt(y)
   (t/is (m/delta-eq 2.269406194157821E297 (m/agm 1.0 1.0e300) 1.0e-6 1.0e-6)
         "extreme-magnitude geometric-mean step no longer overflows"))
+
+;; Reference: hand-computed. Regression-guards the number-of-values=1 bug
+;; found and fixed during this group's verification -- see CHANGELOG.md.
+(t/deftest function-sampling
+  (t/is (= '(0.0 0.25 0.5 0.75 1.0) (m/sample identity 5)) "2-arity defaults to [0,1]")
+  (t/is (= '([0.0 0.0] [0.25 0.25] [0.5 0.5] [0.75 0.75] [1.0 1.0]) (m/sample identity 5 true)))
+  (t/is (= '(0.0 6.25 25.0 56.25 100.0) (m/sample (fn [^double x] (* x x)) 0.0 10.0 5)))
+  (t/is (= '([0.0 0.0] [2.5 6.25] [5.0 25.0] [7.5 56.25] [10.0 100.0])
+           (m/sample (fn [^double x] (* x x)) 0.0 10.0 5 true)))
+  (t/is (= '(0.0 10.0) (m/sample identity 0.0 10.0 2)))
+  (t/is (= '() (m/sample identity 0.0 10.0 0)))
+  ;; regression: number-of-values=1 used to return domain-min (0.0) instead
+  ;; of the documented midpoint, inheriting norm's degenerate-range
+  ;; fallback via an unintended n-=0 call
+  (t/is (= '(5.0) (m/sample identity 0.0 10.0 1)) "n=1 returns the midpoint, as documented")
+  (t/is (= '([5.0 5.0]) (m/sample identity 0.0 10.0 1 true)))
+  (t/is (= '(0.5) (m/sample identity 1)) "n=1 with default [0,1] range"))
