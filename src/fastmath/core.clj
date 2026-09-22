@@ -5,13 +5,13 @@
 
   Functions and macros defined in this namespace cover:
 
-  - Primitive-typed arithmetic, comparison, predicate and bitwise operators (`+`, `-`, `*`, `/`, `==`, `<`, `zero?`, `pos?`, `bit-and`, `bit-shift-left`, etc.), including `long`-specific variants and fused multiply-add operations (`fma`, `muladd`).
-  - Trigonometric, hyperbolic, and their inverse and reciprocal functions, plus less common variants (versine, haversine, exsecant family).
-  - Exponentials, logarithms (including numerically stable variants such as `log1p`, `logsumexp`, `log1pexp`), and power functions (`pow`, `sq`, `cb`, `fpow`, `mpow`, `tpow`).
-  - Combinatorics: factorials, falling/rising factorials, binomial coefficients.
-  - Rounding, truncation, and floating-point precision helpers: `floor`/`ceil`/`round` variants, approximate equality, ulp stepping (`next-double`, `prev-double`), and raw bit manipulation of doubles.
+  - Primitive-typed arithmetic, comparison, predicate and bitwise operators (`+`, `-`, `*`, `/`, `==`, `<`, `zero?`, `pos?`, `bit-and`, `bit-shift-left`, etc.), including `long`-specific variants, fused multiply-add operations (`fma`, `muladd`, `difference-of-products`, `sum-of-products`), boolean operators (`bool-xor`, `xor`), and identity/type utilities (`identity-double`, `identity-long`, `integer?`).
+  - Trigonometric, hyperbolic, and their inverse and reciprocal functions, plus less common variants (versine, coversine, haversine, exsecant family), `signum`/`sgn`, and `copy-sign`.
+  - Exponentials, logarithms (including numerically stable variants such as `log1p`, `logsumexp`, `log1pexp`), link functions (`sigmoid`, `logit`, `logcosh`, `cloglog`, `loglog`), and power functions (`pow`, `sq`, `cb`, `fpow`, `mpow`, `tpow`).
+  - Combinatorics: factorials, falling/rising factorials, binomial coefficients, and Bernoulli numbers.
+  - Rounding, truncation, and floating-point precision helpers: `floor`/`ceil`/`round` variants, approximate equality, fractional part (`frac`, `sfrac`), ulp stepping (`next-double`, `prev-double`), and raw bit manipulation of doubles.
   - Distance and hypotenuse calculations.
-  - Interpolation and range mapping: `lerp`, `norm`, `make-norm`, `wrap`, `smoothstep`, `smooth-max`.
+  - Interpolation, clamping, and range mapping: `lerp`, `constrain`, `norm`, `make-norm`, `wrap`, `smoothstep`, `smooth-max`.
   - Range and interval utilities: `slice-range`, `cut`, `co-intervals`, `group-by-intervals`.
   - Predicates for special double values (`nan?`, `inf?`, `valid-double?`) and range checks (`between?`).
   - Other utilities: `gcd`, `lcm`, `agm` (arithmetic-geometric mean), `sample`, `rank`, `order`, error calculation, and `double`-array conversions.
@@ -30,7 +30,7 @@
   - `zero? neg? pos? even? odd?`
   - `min max`
   - `abs`
-  - Additionally: `<< >> >>> not==`
+  - Additionally: `<< >> >>> not== bool-not`
 
   To enable these primitive operators in your namespace, call [[use-primitive-operators]].
   To revert to the original `clojure.core` functions, call [[unuse-primitive-operators]].
