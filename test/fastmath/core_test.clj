@@ -943,3 +943,49 @@
   (t/is (m/== (m/wrap -1.0 1.0 0.0) (apply m/wrap [-1.0 1.0 0.0])))
   (t/is (m/== 5.0 (m/wrap 5.0 5.0 3.0)) "degenerate range start==stop returns stop")
   (t/is (m/== 0.5 (m/wrap 1.0 -1.0 0.5)) "unordered bounds are normalized internally"))
+
+;; Reference: every family's formula independently re-derived and
+;; cross-checked in Python against xs=[1.0 2.0 3.0 0.5], alpha=2.0 (all 11
+;; families match to full double precision, up to ~1e-15 relative
+;; differences on :exponential/:sigmoid explained by log2/exp2 using a
+;; different, but equally valid, implementation than Python's native
+;; math.log2/2**x). The :sigmoid/:circular/:quadratic/:cubic/:quartic
+;; kernel functions and their k-scaling constants (log(2), 1/(1-sqrt(0.5)),
+;; 4.0, 6.0, 16/3) were verified against the authoritative source
+;; (iquilezles.org/articles/smin/ "Kernel: g(x)" formulas), all matching
+;; exactly. Convergence to true max (large positive alpha) / true min
+;; (large negative alpha, except :p-norm by design) verified for all
+;; families.
+(t/deftest smooth-max
+  (let [xs [1.0 2.0 3.0 0.5]]
+    (doseq [[family ref] [[:lse 3.0743775904722006] [:boltzmann 2.8372860740604464]
+                          [:mellowmax 2.381230409912255] [:p-norm 3.774917217635375]
+                          [:smu 3.170419932159818] [:sigmoid 3.203987980715898]
+                          [:circular 3.1395430723893667] [:quadratic 3.158203125]
+                          [:cubic 3.184155562887981] [:quartic 3.1714924427952393]
+                          [:exponential 3.2131323773510494]]]
+      (t/is (m/delta-eq ref (m/smooth-max xs 2.0 family) 1.0e-9) (str "smooth-max " family)))
+    (t/is (m/== (m/smooth-max xs) (m/smooth-max xs 2.0)) "1-arity defaults alpha to 2.0")
+    (t/is (m/== (m/smooth-max xs 2.0) (m/smooth-max xs 2.0 :lse)) "2-arity defaults family to :lse")
+    (t/is (m/== (m/smooth-max xs) (apply m/smooth-max [xs])) "non-macro, plain function -- sanity check")
+    ;; convergence: large positive alpha -> true max (3.0); large negative
+    ;; alpha -> true min (0.5), except :p-norm which stays non-negative and
+    ;; does not act as a smooth minimum for negative alpha (per docstring)
+    (doseq [family [:lse :boltzmann :sigmoid :circular :quadratic :cubic :quartic :exponential]]
+      (t/is (m/delta-eq 3.0 (m/smooth-max xs 50.0 family) 1.0e-6) (str family " converges to true max at large alpha"))
+      (t/is (m/delta-eq 0.5 (m/smooth-max xs -50.0 family) 1.0e-2) (str family " converges to true min at large negative alpha")))
+    ;; :smu converges more slowly (its epsilon=|1/alpha| term decays only as
+    ;; a square root, not exponentially like the others), so it needs a
+    ;; looser tolerance at the same alpha -- not a bug, matches the
+    ;; independent Python re-implementation exactly (3.006994297026522)
+    (t/is (m/delta-eq 3.0 (m/smooth-max xs 50.0 :smu) 0.01) ":smu converges to true max at large alpha, more slowly than other families")
+    (t/is (m/delta-eq 0.5 (m/smooth-max xs -50.0 :smu) 0.01) ":smu converges to true min at large negative alpha, more slowly")
+    (t/is (m/delta-eq 3.0 (m/smooth-max xs 50.0 :p-norm) 1.0e-6) ":p-norm converges to true max too, when all inputs are non-negative"))
+  ;; :p-norm's documented exception is clearest with negative inputs: since
+  ;; it operates on |x_i|, it can never reach a *negative* true min/max --
+  ;; unlike every other family, which correctly tracks the signed value
+  (let [neg-xs [-3.0 -2.0 -1.0]]
+    (t/is (m/delta-eq -3.0 (m/smooth-max neg-xs -50.0 :lse) 1.0e-6) "lse correctly converges to the signed true min")
+    (t/is (m/delta-eq 3.0 (m/smooth-max neg-xs 50.0 :p-norm) 1.0e-6) ":p-norm tracks magnitude, not signed value")
+    (t/is (m/delta-eq 1.0 (m/smooth-max neg-xs -50.0 :p-norm) 1.0e-6)
+          ":p-norm at negative alpha converges to the smallest magnitude (1.0), not the true signed min (-3.0) -- always non-negative")))

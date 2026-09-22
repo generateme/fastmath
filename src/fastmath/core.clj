@@ -3620,7 +3620,7 @@
 
   Returns the smooth maximum as a double.
 
-  See also [[smooth-max-kernel]]."
+  See also [[logsumexp]] (used internally by the `:lse` and `:mellowmax` families)."
   (^double [xs] (smooth-max xs 2.0))
   (^double [xs ^double alpha] (smooth-max xs alpha :lse))
   (^double [xs ^double alpha family]
