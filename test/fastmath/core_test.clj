@@ -594,12 +594,39 @@
   (t/is (m/== 1.0 (m/sgn 0)))
   (t/is (m/== 1.0 (m/sgn 2))))
 
+;; Reference: hand-computed linear-interpolation identities; PrimitiveMath.java
+;; read directly to confirm the degenerate-source-range (start==stop) defensive
+;; behavior (avoids NaN/Infinity by returning 0.0/1.0 based on v<=start).
 (t/deftest norm
   (t/is (m/== (m/constrain -2 -1 1) -1))
   (t/is (m/== (m/constrain 0 -1 1) 0))
   (t/is (m/== (m/constrain 2 -1 1) 1))
+  (t/is (m/== 10.0 (m/constrain -100.0 10.0 0.0)) "inverted range mn>mx always returns mn")
+  (t/is (m/== 10.0 (m/constrain 100.0 10.0 0.0)))
+  (t/is (m/== 10.0 (m/constrain 5.0 10.0 0.0)))
   (t/is (m/== (m/norm 2 0 10) 0.2))
-  (t/is (m/== (m/norm 2 0 10 0 100) 20.0)))
+  (t/is (m/== (m/norm 2 0 10 0 100) 20.0))
+  (t/is (m/== 1.5 (m/norm 15.0 0.0 10.0)) "norm extrapolates past the source range")
+  (t/is (m/== -0.5 (m/norm -5.0 0.0 10.0)))
+  (t/is (m/== 150.0 (m/norm 15.0 0.0 10.0 0.0 100.0)))
+  (t/is (m/== 0.0 (m/norm 3.0 3.0 3.0)) "degenerate source range, v<=start -> 0.0")
+  (t/is (m/== 0.0 (m/norm 2.0 3.0 3.0)))
+  (t/is (m/== 1.0 (m/norm 5.0 3.0 3.0)) "degenerate source range, v>start -> 1.0")
+  (t/is (m/== 100.0 (m/norm 5.0 3.0 3.0 0.0 100.0)) "degenerate source, 5-arity, maps to target's upper endpoint")
+  (t/is (m/== (m/norm 2 0 10) (apply m/norm [2 0 10])) "inline path matches non-inlined path")
+  (t/is (m/== (m/norm 2 0 10 0 100) (apply m/norm [2 0 10 0 100])) "inline path matches non-inlined path")
+  (t/is (m/== (m/norm 2 0 10) (m/mnorm 2 0 10)) "mnorm matches norm")
+  (t/is (m/== (m/norm 2 0 10 0 100) (m/mnorm 2 0 10 0 100)))
+  (t/is (m/== 20.0 ((m/make-norm 0.0 10.0) 2.0 0.0 100.0)) "make-norm, fixed source range only")
+  (t/is (m/== 20.0 ((m/make-norm 0.0 10.0 0.0 100.0) 2.0)) "make-norm, fixed source and target range")
+  (t/is (m/== 0.2 (m/cnorm 2 0 10)))
+  (t/is (m/== 1.0 (m/cnorm 15.0 0.0 10.0)) "cnorm clamps, unlike norm, which extrapolates")
+  (t/is (m/== 0.0 (m/cnorm -5.0 0.0 10.0)))
+  (t/is (m/== 20.0 (m/cnorm 2 0 10 0 100)))
+  (t/is (m/== 100.0 (m/cnorm 15.0 0.0 10.0 0.0 100.0)))
+  (t/is (m/== 0.0 (m/cnorm -5.0 0.0 10.0 0.0 100.0)))
+  (t/is (m/== (m/cnorm 2 0 10) (apply m/cnorm [2 0 10])) "inline path matches non-inlined path")
+  (t/is (m/== (m/cnorm 2 0 10 0 100) (apply m/cnorm [2 0 10 0 100])) "inline path matches non-inlined path"))
 
 ;; Reference: hand-computed IEEE 754 bit layout for doubles.
 (t/deftest floating-points

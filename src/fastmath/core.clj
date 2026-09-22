@@ -3340,7 +3340,16 @@
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{2}}$"} M_INVLN2 (/ LN2))
 
 (defmacro constrain
-  "Clamp `value` to the range `[mn,mx]`."
+  "Clamps `value` to the closed range `[mn,mx]`.
+
+  Parameters:
+
+  - `value`: the value to clamp.
+  - `mn`, `mx`: the lower and upper bounds.
+
+  Returns `value` if it already lies within `[mn,mx]`, otherwise the nearer of the two bounds. If `mn>mx` (an inverted range), always returns `mn` regardless of `value` -- the bounds are not validated or auto-swapped.
+
+  See also [[cnorm]] (constrains the result of [[norm]])."
   [value mn mx]
   `(max (min ~value ~mx) ~mn))
 
@@ -3358,6 +3367,8 @@
 
   Returns the mapped value as a double.
 
+  When the source range is degenerate (`start` equal to `stop`), avoids dividing by zero by returning `0.0` for `v<=start` and `1.0` for `v>start` (and, for the 5-arity form, the corresponding endpoint of the target range) instead of `NaN`/`##Inf`.
+
   See also [[mnorm]] (macro version), [[make-norm]] (returns a reusable mapping function), [[constrain]] (clamps a value to a range)."
   {:inline (fn
              ([v start stop] `(PrimitiveMath/norm (double ~v) (double ~start) (double ~stop)))
@@ -3371,7 +3382,9 @@
    (PrimitiveMath/norm (double v) (double start1) (double stop1) (double start2) (double stop2))))
 
 (defmacro mnorm
-  "Macro version of [[norm]]."
+  "[[norm]] as a macro, for inline code -- same semantics and arities (3-arity normalizes to `[0,1]`, 5-arity maps between two arbitrary ranges), including the degenerate-source-range corner case.
+
+  See also [[norm]]."
   ([v start stop]
    `(PrimitiveMath/norm (double ~v) (double ~start) (double ~stop)))
   ([v start1 stop1 start2 stop2]
@@ -3398,7 +3411,13 @@
      (PrimitiveMath/norm v start stop dstart dstop))))
 
 (defn cnorm
-  "Constrained version of norm. Result of [[norm]] is applied to [[constrain]] to `[0,1]` or `[start2,stop2]` ranges."
+  "Constrained (clamped) version of [[norm]].
+
+  Parameters: same as [[norm]] -- `v`, `start`, `stop` for the 3-arity form (maps and clamps to `[0,1]`); `v`, `start1`, `stop1`, `start2`, `stop2` for the 5-arity form (maps and clamps to `[start2,stop2]`).
+
+  Returns the result of [[norm]] clamped ([[constrain]]) to the target range, so it never extrapolates outside it even when `v` lies outside the source range.
+
+  See also [[norm]], [[constrain]]."
   {:inline (fn
              ([v start stop]
               `(constrain (PrimitiveMath/norm (double ~v) (double ~start) (double ~stop)) 0.0 1.0))
