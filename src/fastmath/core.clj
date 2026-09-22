@@ -3747,12 +3747,30 @@
 ;;
 
 (defn absolute-error
-  "Absolute error between two values"
+  "Calculates the absolute error between a true value and an approximation.
+
+  Parameters:
+
+  - `v` (double): the true (reference) value.
+  - `v-approx` (double): the approximate value.
+
+  Returns `(abs (- v v-approx))`, i.e. the unsigned magnitude of the difference. Symmetric in its two arguments.
+
+  See also [[relative-error]]."
   (^double [^double v ^double v-approx]
    (abs (- v v-approx))))
 
 (defn relative-error
-  "Relative error between two values"
+  "Calculates the relative error between a true value and an approximation.
+
+  Parameters:
+
+  - `v` (double): the true (reference) value. Used as the divisor.
+  - `v-approx` (double): the approximate value.
+
+  Returns `(abs (/ (- v v-approx) v))`, i.e. the absolute error scaled by `(abs v)`. Not symmetric: swapping `v` and `v-approx` changes the divisor. Returns `##Inf` when `v` is `0.0` and `v-approx` is not, and `##NaN` when both are `0.0`.
+
+  See also [[absolute-error]]."
   (^double [^double v ^double v-approx]
    (abs (/ (- v v-approx) v))))
 

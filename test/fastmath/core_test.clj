@@ -1014,3 +1014,17 @@
     (t/is (= ref (m/between-? x y v)) (str "between-? " x " " y " " v " -- (x,y], x excluded, y included")))
   (t/is (m/between-? [0.0 10.0] 5.0) "2-arity, range as a pair")
   (t/is (= (m/between-? 0.0 10.0 5.0) (apply m/between-? [0.0 10.0 5.0])) "inline path matches non-inlined path"))
+
+;; Reference: hand-computed; IEEE 754 division-by-zero semantics for the
+;; relative-error corner cases.
+(t/deftest error-metrics
+  (t/is (m/== 0.5 (m/absolute-error 10.0 9.5)))
+  (t/is (m/== 0.5 (m/absolute-error 9.5 10.0)) "symmetric in its two arguments")
+  (t/is (m/delta-eq 0.2 (m/absolute-error -5.0 -5.2) 1.0e-9))
+  (t/is (m/== 0.0 (m/absolute-error 3.0 3.0)))
+  (t/is (m/== 0.05 (m/relative-error 10.0 9.5)))
+  (t/is (m/== 0.05 (m/relative-error 10.0 10.5)))
+  (t/is (m/== 0.05 (m/relative-error -10.0 -9.5)))
+  (t/is (not= (m/relative-error 10.0 9.5) (m/relative-error 9.5 10.0)) "not symmetric -- divisor is always v, the first argument")
+  (t/is (m/== ##Inf (m/relative-error 0.0 1.0)))
+  (t/is (m/nan? (m/relative-error 0.0 0.0))))
