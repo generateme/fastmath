@@ -549,8 +549,18 @@
   (t/is (m/== 0.0 (m/tpow -1.0 2.0 0.0)))
   (t/is (m/== 9.0 (m/tpow 3.0 2.0)) "2-arity form defaults shift to 0.0"))
 
+;; Note: previously called (agm 24 6 1.0e-16) under the old 3-arity
+;; positional (abs-tol) contract. Under the new opts-map contract, a bare
+;; double no longer meaningfully destructures as :abs-tol (silently falls
+;; back to defaults, no error) -- updated to the current map syntax. Also
+;; loosened the tolerance from 1.0e-16 (below 1 ULP at this magnitude,
+;; ~1.78e-15, and only ever passed before via delta-eq's bit-exact (== a b)
+;; fallback once x/y happened to converge to identical doubles -- not
+;; reliably reachable, as confirmed by this exact case now failing to
+;; converge within the same 1.0e-16 request under the new geometric-mean
+;; formula) to a realistic, robust value.
 (t/deftest agm
-  (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 1.0e-16) 1.0e-16)))
+  (t/is (m/delta-eq 13.4581714817256154207668 (m/agm 24 6 {:abs-tol 1.0e-12}) 1.0e-9)))
 
 (t/deftest angles
   (t/is (m/delta-eq 180.0 (m/degrees m/PI)))
@@ -1078,3 +1088,41 @@
   (doseq [[a b ref] [[-4 6 12] [4 -6 12] [-4 -6 12]]]
     (t/is (m/== ref (m/lcm a b)) (str "lcm sign-agnostic, always non-negative " a " " b)))
   (t/is (m/== (m/lcm 6 4) (m/lcm 4 6)) "order-independent"))
+
+;; Reference: Python mpmath.agm (50-digit precision).
+;; Reference: Python mpmath.agm (50-60 digit precision). Contract changed
+;; mid-audit: abs-tol/max-iters positional args replaced by a single opts
+;; map with :abs-tol/:rel-tol/:max-iters keys, and the convergence check
+;; now uses delta-eq's combined absolute+relative tolerance. This
+;; regression-guards two things found during re-verification after the
+;; contract change:
+;; - the old "default abs-tol too small at large magnitude" limitation
+;;   (documented in an earlier pass of this group) is RESOLVED by the new
+;;   default :rel-tol=1.0e-12, which scales with input magnitude and so
+;;   always stays well above 1 ULP (unlike a fixed absolute tolerance);
+;; - a newly-found, unrelated overflow bug: the geometric-mean step used
+;;   (sqrt (* x y)), which overflowed to ##Inf at extreme-magnitude inputs
+;;   even when the true result was representable (e.g. agm(1.0, 1.0e300)
+;;   returned ##Inf instead of ~2.269e297); fixed to (* (sqrt x) (sqrt y))
+;;   -- see CHANGELOG.md for both.
+(t/deftest arithmetic-geometric-mean
+  (doseq [[x y ref] [[1.0 1.0 1.0] [1.0 2.0 1.4567910310469068] [24.0 6.0 13.458171481725616]
+                     [0.0 0.0 0.0] [5.0 5.0 5.0]]]
+    (t/is (m/delta-eq ref (m/agm x y) 1.0e-6) (str "agm " x " " y)))
+  (t/is (m/delta-eq 0.0 (m/agm 1.0 0.0) 1.0e-9)
+        "converges to near-zero, not exactly 0.0 -- stops once tolerance is met, not at the mathematical limit")
+  (t/is (m/delta-eq (m/agm 1.0 2.0) (m/agm 1.0 2.0 {}) 1.0e-9) "empty opts map matches the 2-arity defaults")
+  (t/is (m/delta-eq (m/agm 1.0 2.0) (m/agm 1.0 2.0 {:abs-tol 1.0e-6}) 1.0e-6) "explicit :abs-tol matches the default at looser precision")
+  (t/is (m/delta-eq (m/agm 1.0 2.0) (m/agm 1.0 2.0 {:max-iters 50}) 1.0e-9) "explicit :max-iters matches the default when sufficient")
+  (t/is (thrown? Exception (m/agm 1.0 2.0 {:abs-tol 1.0e-30 :rel-tol 0.0 :max-iters 3}))
+        "throws when convergence isn't reached within :max-iters")
+  ;; regression: previously threw here (default abs-tol=1e-12 alone is
+  ;; smaller than 1 ULP at this magnitude); now converges because the
+  ;; default :rel-tol=1e-12 scales with magnitude
+  (doseq [[x y ref] [[1.0 1.0e10 643448704.7601333] [1.0 1.0e100 6.781055745575451E97]
+                     [1.0e-300 1.0 0.0022694061941578216]]]
+    (t/is (m/delta-eq ref (m/agm x y) 1.0e-6 1.0e-6) (str "agm converges at large/small magnitude with default opts " x " " y)))
+  ;; regression: previously overflowed to ##Inf here (sqrt(x*y) overflow);
+  ;; now correct via sqrt(x)*sqrt(y)
+  (t/is (m/delta-eq 2.269406194157821E297 (m/agm 1.0 1.0e300) 1.0e-6 1.0e-6)
+        "extreme-magnitude geometric-mean step no longer overflows"))

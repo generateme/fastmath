@@ -3931,25 +3931,27 @@
   Parameters:
 
   - `x`, `y` (doubles): The two numbers to average.
-  - `abs-tol` (double): Absolute tolerance used to detect convergence, i.e. `x` and `y` are considered equal. Defaults to `1.0e-12`.
-  - `max-iters` (long): Maximum number of iterations allowed before giving up. Defaults to `100`.
+  - `opts` (map, optional): convergence options --
+    - `:abs-tol` (double): Absolute tolerance used to detect convergence, i.e. `x` and `y` are considered equal (see [[delta-eq]]). Defaults to `1.0e-12`.
+    - `:rel-tol` (double): Relative tolerance, scaled by `(max (abs x) (abs y))` (see [[delta-eq]]). Defaults to `1.0e-12`. Combined with `:abs-tol`, this keeps convergence reachable at any input magnitude, since a purely absolute tolerance can fall below a single floating-point ULP for large `x`/`y`.
+    - `:max-iters` (long): Maximum number of iterations allowed before giving up. Defaults to `100`.
 
   Both `x` and `y` should be non-negative, since the geometric mean step involves a square root.
 
   Returns the arithmetic-geometric mean as a double.
 
-  Throws an exception if convergence is not reached within `max-iters` iterations."
-  (^double [^double x ^double y] (agm x y 1.0e-12))
-  (^double [^double x ^double y ^double abs-tol] (agm x y abs-tol 100))
-  (^double [^double x ^double y ^double abs-tol ^long max-iters ]
-   (if (zero? max-iters)
-     (throw (ex-info "agM Convergence failed." {:x x :y y :diff (abs (- x y))}))
-     (if (delta-eq x y abs-tol)
-       (* 0.5 (+ x y))
-       (recur (* 0.5 (+ x y))
-              (sqrt (* x y))
-              abs-tol
-              (dec max-iters))))))
+  Throws an exception if convergence is not reached within `:max-iters` iterations."
+  (^double [^double x ^double y] (agm x y nil))
+  (^double [^double x ^double y {:keys [^double abs-tol ^double rel-tol ^long max-iters]
+                                 :or {abs-tol 1.0e-12 rel-tol 1.0e-12 max-iters 100}}]
+   (loop [x x y y iters max-iters]
+     (if (zero? iters)
+       (throw (ex-info "agM Convergence failed." {:x x :y y :diff (abs (- x y))}))
+       (if (delta-eq x y abs-tol rel-tol)
+         (* 0.5 (+ x y))
+         (recur (* 0.5 (+ x y))
+                (* (sqrt x) (sqrt y))
+                (dec iters)))))))
 
 ;;
 
