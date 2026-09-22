@@ -4066,15 +4066,34 @@
 
 ;;
 
-(def double-array-type (Class/forName "[D"))
-(def double-double-array-type (Class/forName "[[D"))
+(def ^{:doc "The `Class` object for a primitive `double[]` array, i.e. `(class (double-array 0))`.
+
+  Used internally (and available for public use) to check whether a value is already a `double[]` array, e.g. in [[seq->double-array]].
+
+  See also [[double-double-array-type]]."}
+  double-array-type (Class/forName "[D"))
+
+(def ^{:doc "The `Class` object for a primitive `double[][]` array-of-arrays, i.e. `(class (into-array [(double-array 0)]))`.
+
+  Used internally (and available for public use) to check whether a value is already a `double[][]` array, e.g. in [[seq->double-double-array]].
+
+  See also [[double-array-type]]."}
+  double-double-array-type (Class/forName "[[D"))
 
 (def ^{:doc "Convert double array into sequence.
 
   Alias for `seq`."} double-array->seq seq)
 
 (defn seq->double-array
-  "Convert sequence to double array. Returns input if `vs` is double array already."
+  "Converts `vs` to a primitive `double[]` array.
+
+  Parameters:
+
+  - `vs`: a sequence of numbers, a single number, `nil`, or an already-a-`double[]` array.
+
+  Returns `vs` unchanged (no copy) if it is already a `double[]` array. Returns `nil` if `vs` is `nil`. Wraps a bare (non-seqable) number into a 1-element array. Otherwise returns `(double-array vs)`.
+
+  See also [[double-array->seq]], [[double-array-type]]."
   ^doubles [vs]
   (cond
     (= (type vs) double-array-type) vs
@@ -4085,14 +4104,28 @@
             arr)))
 
 (defn double-double-array->seq
-  "Convert double array of double arrays into sequence of sequences. "
+  "Converts a `double[][]` array-of-arrays into a sequence of sequences.
+
+  Parameters:
+
+  - `res`: a `double[][]` array (or any seqable collection of seqable rows).
+
+  Returns a lazy sequence of lazy sequences, one per row, via `seq`.
+
+  See also [[seq->double-double-array]], [[double-array->seq]]."
   [res]
   (seq (map seq res)))
 
 (defn seq->double-double-array
-  "Convert sequence to double-array of double-arrays.
-  
-  If sequence is double-array of double-arrays returns `vss`"
+  "Converts `vss` to a primitive `double[][]` array-of-arrays.
+
+  Parameters:
+
+  - `vss`: a sequence of rows (each row a sequence of numbers), `nil`, or an already-a-`double[][]` array.
+
+  Returns `vss` unchanged (no copy) if it is already a `double[][]` array. Returns `nil` if `vss` is `nil`. Otherwise converts each row via [[seq->double-array]] and collects them into a `double[][]` array.
+
+  See also [[double-double-array->seq]], [[double-double-array-type]]."
   #^"[[D" [vss]
   (cond 
     (= (type vss) double-double-array-type) vss

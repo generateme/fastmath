@@ -1174,3 +1174,22 @@
         ":random still ranks distinct values correctly, only shuffles within the tied group")
   (t/is (= (sort [3 1 5 2 4]) (map #(nth [3 1 5 2 4] %) (m/order [3 1 5 2 4])))
         "order permutation sorts a distinct-valued collection"))
+
+;; Reference: hand-computed / direct Java array introspection (class,
+;; alength, identical?).
+(t/deftest array-sequence-conversions
+  (t/is (= (class (double-array 0)) m/double-array-type))
+  (t/is (= (class (into-array [(double-array 0)])) m/double-double-array-type))
+  (t/is (= '(1.0 2.0 3.0) (m/double-array->seq (double-array [1.0 2.0 3.0]))))
+  (let [da (double-array [1.0 2.0 3.0])]
+    (t/is (identical? da (m/seq->double-array da)) "already a double[], returned unchanged (no copy)"))
+  (t/is (= '(1.0 2.0 3.0) (seq (m/seq->double-array [1.0 2.0 3.0]))) "sequence input")
+  (t/is (nil? (m/seq->double-array nil)))
+  (t/is (= '(5.0) (seq (m/seq->double-array 5.0))) "bare scalar wrapped into a 1-element array")
+  (t/is (= 0 (alength (m/seq->double-array []))) "empty sequence input produces a real, non-nil, zero-length array")
+  (let [dda (into-array [(double-array [1.0 2.0]) (double-array [3.0 4.0])])]
+    (t/is (= '((1.0 2.0) (3.0 4.0)) (m/double-double-array->seq dda)))
+    (t/is (identical? dda (m/seq->double-double-array dda)) "already a double[][], returned unchanged (no copy)"))
+  (t/is (= '((1.0 2.0) (3.0 4.0)) (m/double-double-array->seq (m/seq->double-double-array [[1.0 2.0] [3.0 4.0]])))
+        "round-trip through seq->double-double-array and back")
+  (t/is (nil? (m/seq->double-double-array nil))))
