@@ -1073,7 +1073,9 @@
   ([^double a11 ^double a22 ^double a33 ^double a44] (mat4x4 a11 a22 a33 a44)))
 
 (defn outer
-  "Outer project for two vectors."
+  "Outer product of two vectors.
+
+  `Vec2`/`Vec3`/`Vec4` build the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`; any other vector type builds a `RealMatrix`."
   [v1 v2]
   (let [i1 (class v1)
         i2 (class v2)]
@@ -1281,7 +1283,9 @@
   (m/== (nrow m) (ncol m)))
 
 (defn block-diagonal
-  "Creates block diagonal matrix (RealMatrix) from a sequence of square matrices."
+  "Creates a block diagonal `RealMatrix` from a sequence of square matrices, placed along the diagonal in order, zero elsewhere.
+
+  Throws when any input matrix is not square."
   ([m & r] (block-diagonal (conj r m)))
   ([mats]
    (if (every? square? mats)
@@ -1294,7 +1298,9 @@
      (throw (ex-info "Only squared matrices can be used" {:shapes (map shape mats)})))))
 
 (defn bind-cols
-  "Creates matrix from columns of given matrices."
+  "Creates a `RealMatrix` by placing the given matrices side by side as column blocks, in order.
+
+  A matrix shorter than the tallest one is zero-padded at the bottom."
   ([m & r] (bind-cols (conj r m)))
   ([mats]
    (let [max-rows (int (reduce m/max (map prot/nrow mats)))
@@ -1306,7 +1312,9 @@
      target)))
 
 (defn bind-rows
-  "Creates matrix from rows of given matrices."
+  "Creates a `RealMatrix` by stacking the given matrices on top of each other as row blocks, in order.
+
+  A matrix narrower than the widest one is zero-padded on the right."
   ([m & r] (bind-rows (conj r m)))
   ([mats]
    (let [max-cols (int (reduce m/max (map prot/ncol mats)))
@@ -1318,7 +1326,9 @@
      target)))
 
 (defn map-cols
-  "Operate on columns, f should return a column"
+  "Applies `f` to each column vector of `A`; `f` must return a same-length column vector.
+
+  Returns a `RealMatrix` when `A` is a `RealMatrix`, otherwise the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`."
   [f A]
   (let [nA (map f (cols A))]
     (if (instance? RealMatrix A)
@@ -1326,7 +1336,9 @@
       (apply cols->mat nA))))
 
 (defn map-rows
-  "Operate on rows, f should return a row"
+  "Applies `f` to each row vector of `A`; `f` must return a same-length row vector.
+
+  Returns a `RealMatrix` when `A` is a `RealMatrix`, otherwise the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`."
   [f A]
   (let [nA (map f (rows A))]
     (if (instance? RealMatrix A)

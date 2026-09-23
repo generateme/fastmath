@@ -165,6 +165,47 @@
                       (v/vec->RealVector [-3 4]))
            (sut/mat->RealMatrix (sut/mat2x2 -3.0 4.0 -6.0 8.0)))))
 
+;; independent reference: R's `kronecker()`, Rscript, 2026-09-23
+(t/deftest kronecker
+  (t/is (= [0.0 5.0 0.0 10.0 6.0 7.0 12.0 14.0 0.0 15.0 0.0 20.0 18.0 21.0 24.0 28.0]
+           (seq (sut/mat->array (sut/kronecker (sut/mat2x2 1.0 2.0 3.0 4.0)
+                                               (sut/mat2x2 0.0 5.0 6.0 7.0))))))
+  (t/is (= [6 6] (sut/shape (sut/kronecker m22 m33)))))
+
+;; independent reference: R's `Matrix::bdiag()`, `rbind()`, `cbind()`, Rscript, 2026-09-23
+(t/deftest block-diagonal-and-bind
+  (t/is (= [2.0 3.0 0.0 0.0 0.0
+            5.0 -10.0 0.0 0.0 0.0
+            0.0 0.0 -3.0 2.0 -6.0
+            0.0 0.0 5.0 7.0 -5.0
+            0.0 0.0 1.0 4.0 -2.0]
+           (seq (sut/mat->array (sut/block-diagonal m22 m33)))))
+  (t/is (= [5 5] (sut/shape (sut/block-diagonal m22 m33))))
+  (t/is (= [6 6] (sut/shape (sut/block-diagonal m22 m22 m22))))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/block-diagonal m22 (sut/mat [[1.0 2.0 3.0]]))))
+
+  (let [ones (sut/mat [[1.0 1.0] [1.0 1.0]])]
+    (t/is (= [2.0 3.0 5.0 -10.0 1.0 1.0 1.0 1.0]
+             (seq (sut/mat->array (sut/bind-rows m22 ones)))))
+    (t/is (= [2.0 3.0 1.0 1.0 5.0 -10.0 1.0 1.0]
+             (seq (sut/mat->array (sut/bind-cols m22 ones)))))
+    (t/is (= [6 2] (sut/shape (sut/bind-rows m22 m22 m22))))
+    (t/is (= [2 6] (sut/shape (sut/bind-cols m22 m22 m22)))))
+  ;; zero-padding on mismatched dimensions
+  (t/is (= [2.0 3.0 0.0 5.0 -10.0 0.0 1.0 2.0 3.0]
+           (seq (sut/mat->array (sut/bind-rows m22 (sut/mat [[1.0 2.0 3.0]])))))))
+
+;; `map-rows`/`map-cols`: applying a uniform scale-by-2 to every row/col is
+;; equivalent to scaling the whole matrix by 2, for both `RealMatrix` and
+;; fixed representations.
+(t/deftest map-rows-and-cols
+  (t/is (= (sut/muls m22 2.0) (sut/map-rows #(v/mult % 2.0) m22)))
+  (t/is (= (sut/muls m22 2.0) (sut/map-cols #(v/mult % 2.0) m22)))
+  (t/is (= fastmath.matrix.Mat2x2 (class (sut/map-rows #(v/mult % 2.0) m22))))
+  (t/is (= (v/mult d44 2.0) (seq (sut/mat->array (sut/map-rows #(v/mult % 2.0) m44ra)))
+           (seq (sut/mat->array (sut/map-cols #(v/mult % 2.0) m44ra)))))
+  (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/map-rows #(v/mult % 2.0) m44ra))))
+
 (t/deftest cols
   (t/are [m r] (= (sut/cols m) r)
     m22 [(v/vec2 2 5) (v/vec2 3 -10)]
