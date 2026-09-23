@@ -360,7 +360,16 @@
   (is-zero? [v] (m/zero? (double v))))
 
 (defn dhash-code
-  "double hashcode"
+  "Computes a hash code for a `double` value, based on its IEEE 754 bit pattern.
+
+  Parameters:
+
+  - `[a]`: hash of a single value, combined with a fixed seed.
+  - `[state a]`: folds `a` into a running `state`, for combining the hashes of multiple values in sequence (e.g. all components of a vector).
+
+  Since the hash is derived from the raw bit pattern, `0.0` and `-0.0` (which are `==` to each other) hash to different values, matching `java.lang.Double/hashCode`'s own convention.
+
+  Backs the `hashCode`/`hasheq` implementations of `Vec2`, `Vec3`, `Vec4` and `ArrayVec`."
   (^long [^long state ^double a]
    (let [abits (Double/doubleToLongBits a)
          elt (m/bit-xor abits (m/>>> abits 32))]
@@ -404,7 +413,7 @@
   (valAt [_ id] (when (vec-id-check 4 id) (case (unchecked-int id) 0 x 1 y 2 z 3 w)))
   (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z 3 w not-found) not-found))
   Associative
-  (containsKey [_ id] (boolean (m/<= 0 (unchecked-long id) 3)))
+  (containsKey [_ id] (m/<= 0 (unchecked-long id) 3))
   (assoc [_ k vl]
     (assert-number k)
     (case (unchecked-int k)
@@ -526,7 +535,7 @@
   (valAt [_ id] (when (vec-id-check 3 id) (case (unchecked-int id) 0 x 1 y 2 z)))
   (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y 2 z not-found) not-found))
   Associative
-  (containsKey [_ id] (boolean (m/<= 0 (unchecked-long id) 2)))
+  (containsKey [_ id] (m/<= 0 (unchecked-long id) 2))
   (assoc [_ k vl]
     (assert-number k)
     (case (unchecked-int k)
@@ -733,7 +742,7 @@
   (valAt [_ id] (when (vec-id-check 2 id) (case (unchecked-int id) 0 x 1 y)))
   (valAt [_ id not-found] (if (number? id) (case (unchecked-int id) 0 x 1 y not-found) not-found))
   Associative
-  (containsKey [_ id] (boolean (m/<= 0 (unchecked-long id) 1)))
+  (containsKey [_ id] (m/<= 0 (unchecked-long id) 1))
   (assoc [_ k vl]
     (assert-number k)
     (case (unchecked-int k)
@@ -921,18 +930,20 @@
   ([v d] (prot/approx v d)))
 
 (defn delta-eq
-  "Equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance.
+  "Equality with given absolute (and/or relative) tolerance. Default 1.0e-6 absolute tolerance.
 
   Vectors of different lengths are never equal: `sub`'s elementwise subtraction silently
   truncates to the shorter length (e.g. via `map`), so without this check a vector would
-  compare equal to any prefix of itself, and any vector would compare equal to an empty one."
+  compare equal to any prefix of itself, and any vector would compare equal to an empty one.
+
+  With a relative tolerance (`rel-tol`), the combined tolerance is `max(abs-tol, rel-tol * max(mag(v1), mag(v2)))`, mirroring [[fastmath.core/delta-eq]]'s scalar convention."
   ([v1 v2] (delta-eq v1 v2 1.0e-6))
   ([v1 v2 ^double abs-tol]
    (and (m/== (size v1) (size v2))
         (m/near-zero? (mag (prot/sub v1 v2)) abs-tol)))
   ([v1 v2 ^double abs-tol ^double rel-tol]
    (and (m/== (size v1) (size v2))
-        (m/near-zero? (mag (prot/sub v1 v2)) abs-tol rel-tol))))
+        (m/< (mag (prot/sub v1 v2)) (m/max abs-tol (m/* rel-tol (m/max (mag v1) (mag v2))))))))
 
 (defn edelta-eq
   "Element-wise equality with given absolute (and/or relative) toleance. Default 1.0e-6 absolute tolerance."

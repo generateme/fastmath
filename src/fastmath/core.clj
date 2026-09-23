@@ -473,6 +473,7 @@
    (boolean (and (== (double a) (double b))
                  (reduce (fn [^double x ^double y]
                            (if-not (. PrimitiveMath (eq x y)) (reduced false) y)) b r)))))
+
 (defn eq
   "Primitive math equality function. Alias for [[==]].
 

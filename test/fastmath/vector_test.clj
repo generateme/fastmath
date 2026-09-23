@@ -793,3 +793,31 @@
       (t/is (sut/delta-eq [0.5345224838 -0.2672612419 -0.5345224838 -0.2672612419 0.5345224838] (nth onp 1)))
       (t/is (sut/delta-eq [-0.3162277660 0.6324555320 0.0 -0.6324555320 0.3162277660] (nth onp 2)))
       (t/is (sut/delta-eq [0.1195228609 -0.4780914437 0.7171371656 -0.4780914437 0.1195228609] (nth onp 3))))))
+
+;; ==== Fastmath Vector Audit — Group 2.11: Equality & hashing utilities ====
+;; Reference: structural checks, confirmed via REPL against the running source, 2026-09-23.
+;; `delta-eq`'s 4-arity (rel-tol) form is a regression test for the bug fixed this group:
+;; rel-tol was scaled by the difference vector's own magnitude (a near-total no-op for any
+;; realistic rel-tol), now scaled by max(mag(v1), mag(v2)), matching `edelta-eq`.
+
+(t/deftest delta-eq-gaps-test
+  (t/testing "different-length vectors are never equal (documented rationale, previously untested)"
+    (t/is (not (sut/delta-eq [1.0 2.0 3.0] [1.0 2.0])))
+    (t/is (not (sut/delta-eq [1.0 2.0] [1.0 2.0 3.0]))))
+  (t/testing "4-arity rel-tol (regression: was a near-total no-op before the fix)"
+    (t/is (sut/delta-eq [100.0] [100.5] 0.1 0.01))
+    (t/is (not (sut/delta-eq [100.0] [100.5] 0.1 0.001)))))
+
+(t/deftest edelta-eq-gaps-test
+  (t/is (sut/edelta-eq [100.0] [100.5] 0.1 0.01))
+  (t/is (not (sut/edelta-eq [100.0] [100.5] 0.1 0.001))))
+
+(t/deftest dhash-code-test
+  (t/testing "1-arity: deterministic, differs for different inputs"
+    (t/is (== (sut/dhash-code 5.0) (sut/dhash-code 5.0)))
+    (t/is (not (== (sut/dhash-code 5.0) (sut/dhash-code 7.0)))))
+  (t/testing "2-arity: accumulator folds a running state in, differs from the 1-arity (fixed-seed) form"
+    (t/is (== (sut/dhash-code 100 5.0) (sut/dhash-code 100 5.0)))
+    (t/is (not (== (sut/dhash-code 5.0) (sut/dhash-code 100 5.0)))))
+  (t/testing "backs Vec2/Vec3/Vec4's hashCode: equal vectors hash equal, consistently"
+    (t/is (== (.hashCode (sut/vec2 1.0 2.0)) (.hashCode (sut/vec2 1.0 2.0))))))
