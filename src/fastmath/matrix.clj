@@ -1763,6 +1763,13 @@
 
 (defn- complex-ev [real imag]  (mapv v/vec2 real imag))
 
+(defn- det-from-eigenvalues
+  "Determinant as the product of the eigenvalues (including complex-conjugate
+  pairs, multiplied via complex arithmetic); a real matrix's determinant is
+  always real, so only the real part of the product is kept."
+  ^double [eigenvalues]
+  (cplx/re (reduce cplx/mult (cplx/complex 1.0 0.0) eigenvalues)))
+
 (defn- ->complex-eigenvectors
   [imag-eigenvalues eigenvectors]
   (loop [[im & rie] imag-eigenvalues
@@ -1804,16 +1811,22 @@
          ^EigenDecomposition eigen (EigenDecomposition. (mat->RealMatrix mat))
          complex? (.hasComplexEigenvalues eigen)
          ^DecompositionSolver solver (when-not complex? (.getSolver eigen))
-         det (delay (.getDeterminant eigen))
-         ievs (delay (->vec s (.getImagEigenvalues eigen)))]
+         revs (delay (->vec s (.getRealEigenvalues eigen)))
+         ievs (delay (->vec s (.getImagEigenvalues eigen)))
+         evs (delay (complex-ev @revs @ievs))
+         ;; Apache Commons Math's `EigenDecomposition.getDeterminant()` is the
+         ;; product of the diagonal of `D` only, which holds real parts for a
+         ;; complex-conjugate eigenvalue pair -- silently wrong for a matrix
+         ;; with complex eigenvalues. The determinant is the product of the
+         ;; eigenvalues (via complex arithmetic) instead, always correct.
+         det (delay (det-from-eigenvalues @evs))]
      (->MatrixDecomposition eigen
                             {:D (delay (->mat s (.getD eigen)))
                              :V (delay (->mat s (.getV eigen)))
                              :VT (delay (->mat s (.getVT eigen)))
-                             :real-eigenvalues (delay (->vec s (.getRealEigenvalues eigen)))
+                             :real-eigenvalues revs
                              :imag-eigenvalues ievs
-                             :eigenvalues (delay (complex-ev (->vec s (.getRealEigenvalues eigen))
-                                                             (->vec s (.getImagEigenvalues eigen))))
+                             :eigenvalues evs
                              :sqrt (delay (->mat s (.getSquareRoot eigen)))
                              :det det
                              :complex? complex?
@@ -1836,14 +1849,16 @@
         preV (delay (.getV eigen))
         re (delay (.toArray (.getRealEigenvalues eigen)))
         ie (delay (.toArray (.getImagEigenvalues eigen)))
-        det (delay (det mat))]
+        evs (delay (complex-ev @re @ie))
+        det (delay (det-from-eigenvalues @evs))]
     (->MatrixDecomposition eigen
                            {:D (delay (.toArray (.getD eigen)))
                             :V (delay (.toArray ^cern.colt.matrix.DoubleMatrix2D @preV))
                             :VT (delay (.toArray (.viewDice ^cern.colt.matrix.DoubleMatrix2D @preV)))
                             :real-eigenvalues re
                             :imag-eigenvalues ie
-                            :eigenvalues (delay (complex-ev @re @ie))
+                            :eigenvalues evs
+                            :det det
                             :complex? (some m/not-zero? @ie)
                             :eigenvectors (delay (scale-eigenvectors
                                                   @ie
@@ -1871,14 +1886,14 @@
 
     A real eigenvector's sign (under `:normalized`/`true` or `:lapack`) is an arbitrary artifact of the underlying algorithm, not a meaningful convention; it may differ between backends, or from other tools such as R.
 
-  With the `:acm` backend (Apache Commons Math), a solver is created only when eigenvalues are real; when eigenvalues are complex, singularity is determined from the determinant instead. This backend also exposes a `:sqrt` component (matrix square root).
+  With the `:acm` backend (Apache Commons Math), a solver is created only when eigenvalues are real; when eigenvalues are complex, singularity is determined from the determinant instead. This backend also exposes a `:sqrt` component (matrix square root); computing it throws `MathUnsupportedOperationException` for matrices Apache Commons Math does not support (e.g. most matrices with complex eigenvalues).
 
   With the `:colt` backend (Colt library), no solver is created, so `solve` and `inverse` can not be used on the resulting decomposition; singularity is always determined from the determinant, and the `:sqrt` component is not available. This backend should be used to decompose matrices when `:acm` fails.
 
   Returns a decomposition value. Access individual parts with `decomposition-component` using one of the following keys:
 
   - `:D`, `:V`, `:VT` - matrices, and `:sqrt` (`:acm` backend only) - matrix square root.
-  - `:det` - determinant.
+  - `:det` - determinant, computed as the product of the eigenvalues (via complex arithmetic, keeping the real part); correct for real or complex eigenvalues alike, for both backends.
   - `:real-eigenvalues`, `:imag-eigenvalues` - real and imaginary parts of the eigenvalues.
   - `:eigenvalues` - eigenvalues as a sequence of 2d vectors, real and imaginary part each.
   - `:eigenvectors` - sequence of eigenvectors, scaled per `:eigenvectors-scaling`.

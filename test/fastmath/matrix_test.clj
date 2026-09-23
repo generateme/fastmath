@@ -980,3 +980,62 @@
             [lambda v] (map vector (sut/eigenvalues m) (sut/eigenvectors m :lapack))
             :when (not (m/zero? (cplx/im lambda)))]
       (t/is (m/near-zero? (cplx/im (v (v/maxdim (mapv cplx/norm v)))) 1.0e-9)))))
+
+;; Regression test: the `:acm` backend's `:det` component delegated to Apache
+;; Commons Math's `EigenDecomposition.getDeterminant()`, which is the product
+;; of `D`'s diagonal only -- the *real parts* of a complex-conjugate
+;; eigenvalue pair, not the true determinant -- silently wrong for `m33`
+;; (complex eigenvalues). Independent reference: R's `det()` (already
+;; R-verified in Group 2.4).
+(t/deftest eigen-det
+  (t/are [m] (m/delta-eq (sut/decomposition-component (sut/eigen-decomposition m {:backend :acm}) :det) (sut/det m))
+    m22 m33 m33s m44)
+  ;; `:colt` backend now exposes `:det` too (previously absent), computed the
+  ;; same way (product of eigenvalues via complex arithmetic).
+  (t/are [m] (m/delta-eq (sut/decomposition-component (sut/eigen-decomposition m {:backend :colt}) :det) (sut/det m))
+    m22 m33 m33s m44)
+  (t/is (false? (sut/singular? (sut/eigen-decomposition m33)))))
+
+;; `:sqrt`: only supported by Apache Commons Math for certain matrices
+;; (broadly, symmetric positive-(semi)definite ones); throws for `m33s`
+;; (symmetric, but indefinite -- has a negative eigenvalue) and `m33`
+;; (non-symmetric, complex eigenvalues), a pre-existing, expected Apache
+;; Commons Math limitation, not a fastmath bug.
+(t/deftest eigen-sqrt
+  (let [pd (sut/mat3x3 4.0 2.0 1.0 2.0 5.0 3.0 1.0 3.0 6.0) ;; symmetric positive-definite
+        sq (sut/decomposition-component (sut/eigen-decomposition pd) :sqrt)]
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm sq sq))) (seq (sut/mat->array pd)) 1.0e-9)))
+  (t/is (thrown? org.apache.commons.math3.exception.MathUnsupportedOperationException
+                 (sut/decomposition-component (sut/eigen-decomposition m33s) :sqrt)))
+  (t/is (thrown? org.apache.commons.math3.exception.MathUnsupportedOperationException
+                 (sut/decomposition-component (sut/eigen-decomposition m33) :sqrt))))
+
+;; `eigenvalues-matrix`: real eigenvalues on the diagonal; each complex-
+;; conjugate pair as a 2x2 `[[re im][-im re]]` block.
+(t/deftest eigenvalues-matrix
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/eigenvalues-matrix m33s)))
+                    [-4.804235685366262 0.0 0.0 0.0 1.1212661599174614 0.0 0.0 0.0 6.682969525448801]))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/eigenvalues-matrix m33)))
+                    [-4.68743527458295 0.0 0.0
+                     0.0 3.3437176372914714 2.6770267769741034
+                     0.0 -2.6770267769741034 3.3437176372914714])))
+
+;; independent reference: R's `sqrt(eigen(t(A)%*%A)$values)` and `svd()$d`,
+;; Rscript, 2026-09-23. `eigenvalues` (used internally by `singular-values`)
+;; always uses the `:colt` backend.
+(t/deftest singular-values
+  (t/is (= (set (map #(m/approx % 6) (sut/singular-values m33)))
+           (set (map #(m/approx % 6) [1.252109588798566 5.987731837997172 11.470801585498444])))))
+
+;; `:acm` and `:colt` backends must agree on the eigenvalues themselves, as an
+;; unordered set (each backend's own solver may order them differently).
+(t/deftest eigen-backend-consistency
+  (doseq [m [m22 m33 m33s m44]]
+    (let [acm (sut/eigen-decomposition m {:backend :acm})
+          colt (sut/eigen-decomposition m {:backend :colt})
+          pairs (fn [d] (set (map (fn [re im] [(m/approx re 6) (m/approx im 6)])
+                                  (v/vec->Vec (sut/decomposition-component d :real-eigenvalues))
+                                  (v/vec->Vec (sut/decomposition-component d :imag-eigenvalues)))))]
+      (t/is (= (pairs acm) (pairs colt)))
+      (t/is (= (sut/decomposition-component acm :complex?)
+               (boolean (some m/not-zero? (sut/decomposition-component colt :imag-eigenvalues))))))))
