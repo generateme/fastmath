@@ -109,6 +109,8 @@
 
   For an input sequence `vs` of size `n`, this method creates `n` samples. Each sample is formed by duplicating a single observation from the original sequence and adding it back to the original sequence. Thus, each sample has size `n+1`.
 
+  Note: this is unrelated to the predictive-inference \"jackknife+\" method of Barber, Candès, Ramdas & Tibshirani (2019); it is fastmath's own add-one-duplicate resampling scheme.
+
   Parameters:
 
   * `vs` (sequence): The input data sequence.
@@ -176,8 +178,9 @@
           (for integer data) and `:categorical-distribution` (for any data type).
       *   `:dimensions` (keyword, optional): If set to `:multi`, treats the input
           `:data` as a sequence of sequences (multidimensional data). Models are
-          built or used separately for each dimension, and samples are generated
-          as sequences of vectors.
+          built or used separately for each dimension, and each generated sample
+          is a vector whose i-th element is the resampled sequence for the i-th
+          dimension.
       *   `:antithetic?` (boolean, default: `false`): If `true`, uses antithetic sampling
           for variance reduction (paired samples are generated as `x` and `1-x` from a uniform
           distribution, then transformed by the inverse CDF of the model). Requires sampling
@@ -208,7 +211,8 @@
   *   If `statistic` is `nil`: A map containing the original input map augmented
       with the generated bootstrap samples in the `:samples` key. The `:samples`
       value is a collection of sequences, where each inner sequence is one
-      bootstrap sample. If `:dimensions` is `:multi`, samples are sequences of vectors.
+      bootstrap sample. If `:dimensions` is `:multi`, each sample is instead a
+      vector whose i-th element is the resampled sequence for the i-th dimension.
 
   See also [[jackknife]], [[jackknife+]], [[bootstrap-stats]],
   [[ci-normal]], [[ci-basic]], [[ci-percentile]], [[ci-bc]], [[ci-bca]],
@@ -442,6 +446,13 @@
 
 (defn- acceleration [ts] (/ (stats/skewness ts :skew) -6.0))
 
+(defn- multi-dim-data?
+  "True if `data` looks like the sequence-of-per-dimension-sequences shape produced
+  by [[bootstrap]] under `:dimensions :multi` (each element of `data` is itself
+  sequential), as opposed to a flat sequence of observations."
+  [data]
+  (boolean (and (seq data) (sequential? (first data)))))
+
 (defn ci-bca
   "Calculates the Bias-Corrected and Accelerated (BCa) bootstrap confidence interval.
 
@@ -459,12 +470,17 @@
   The function uses one of two methods to calculate the acceleration factor:
 
   *   **Jackknife method**: If the input `boot-data` map contains the original
-      `:data` and the `:statistic` function used to compute `:t0` and `:ts`,
-      the acceleration factor is estimated using the jackknife method (by computing
-      the statistic on leave-one-out jackknife samples).
+      `:data` (a flat sequence of observations) and the `:statistic` function
+      used to compute `:t0` and `:ts`, the acceleration factor is estimated
+      using the jackknife method (by computing the statistic on leave-one-out
+      jackknife samples).
   *   **Empirical method**: If `:data` or `:statistic` are missing from `boot-data`,
       the acceleration factor is estimated empirically from the distribution of
-      the bootstrap replicates (`:ts`) using its skewness.
+      the bootstrap replicates (`:ts`) using its skewness. This method is also
+      used automatically when `:data` is multi-dimensional (a sequence of
+      per-dimension sequences, as produced by [[bootstrap]] with
+      `:dimensions :multi`), since leave-one-*observation*-out jackknifing isn't
+      well-defined across dimensions of unequal length.
 
   Parameters:
 
@@ -497,7 +513,7 @@
   ([{:keys [^double t0 ts data statistic]} ^double alpha estimation-strategy]
    (let [ats (m/seq->double-array ts)
          a (/ alpha 2.0)
-         acc (if-not (and data statistic)
+         acc (if (or (not (and data statistic)) (multi-dim-data? data))
                (acceleration ats)
                (acceleration (->> data
                                   (jackknife)
