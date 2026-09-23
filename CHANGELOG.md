@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
+* `fastmath.matrix/shift-cols` wrapped its shift value in an extra negation not present in `shift-rows`, so it shifted every column by the *negative* of the intended value: the default (documented as, and `shift-rows`'s actual behavior for, "subtract the mean") instead **added** the mean, doubling each column's deviation from zero instead of demeaning it; an explicit constant/function shift was silently negated too
 * `fastmath.matrix/solve` on a singular `Mat2x2`/`Mat3x3`/`Mat4x4` (where `inverse` documentedly returns `nil`) crashed with an opaque `IllegalArgumentException: No implementation of method: :mulv ... for class: nil` instead of propagating `nil`; now returns `nil`, matching `inverse`'s own contract
 * `fastmath.matrix/condition` on a singular matrix crashed the same way (via `norm`/`singular-values`/`mulm` chaining off a `nil` `inverse`); now checks `singular?` first and returns `##Inf`, the conventional condition number of a singular matrix
 * A plain `Number`'s (degenerate 1x1 matrix) `norm` implementation returned the raw value unchanged instead of its absolute value, so e.g. `(norm -7.0)` returned `-7.0` instead of `7.0`, for every norm type

@@ -1353,37 +1353,37 @@
    (map-cols (fn [col] (v/differences col diffs lag)) (mat->RealMatrix m))))
 
 (defn normalize
-  "Normalizes columns (or rows)"
+  "Normalizes columns (or rows, when `rows?` is true) to unit (Euclidean) length."
   ([A] (normalize A false))
   ([A rows?]
    ((if rows? map-rows map-cols) v/normalize A)))
 
 (defn demean
-  "Subracts mean from columns (or rows)"
+  "Subtracts the mean from columns (or rows, when `rows?` is true)."
   ([A] (demean A false))
   ([A rows?]
    ((if rows? map-rows map-cols)
     (fn [v] (v/shift v (m/- (v/average v)))) A)))
 
 (defn standardize
-  "Normalizes columns (or rows) to have mean = 0 and stddev = 1"
+  "Normalizes columns (or rows, when `rows?` is true) to have mean = 0 and stddev = 1"
   ([A] (standardize A false))
   ([A rows?]
    ((if rows? map-rows map-cols)
     (fn [v] (StatUtils/normalize (m/seq->double-array v))) A)))
 
 (defn shift-rows
-  "Shifts rows by a value or a result of the function (nagetive of mean by default)"
+  "Shifts rows by a value or a result of the function (negative of mean by default)"
   ([A] (shift-rows A (comp m/- v/average)))
   ([A shift]
    (let [sf (if (fn? shift) shift (constantly (double shift)))]
      (map-rows (fn [v] (v/shift v (sf (v/vec->seq v)))) A))))
 
 (defn shift-cols
-  "Shifts columns by a value or a result of the function (negative of  mean by default)"
+  "Shifts columns by a value or a result of the function (negative of mean by default)"
   ([A] (shift-cols A (comp m/- v/average)))
   ([A shift]
-   (let [sf (comp - (if (fn? shift) shift (constantly (double shift))))]
+   (let [sf (if (fn? shift) shift (constantly (double shift)))]
      (map-cols (fn [v] (v/shift v (sf (v/vec->seq v)))) A))))
 
 (defn- default-scaler [v] (m// (m/sqrt (m// (v/dot v v) (m/dec (v/size v))))))

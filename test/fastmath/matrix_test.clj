@@ -206,6 +206,55 @@
            (seq (sut/mat->array (sut/map-cols #(v/mult % 2.0) m44ra)))))
   (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/map-rows #(v/mult % 2.0) m44ra))))
 
+;; independent reference: R's `diff()` applied column-wise, Rscript, 2026-09-23
+(t/deftest differences
+  (t/is (= [2 3] (sut/shape (sut/differences m33))))
+  (t/is (= [8.0 5.0 1.0 -4.0 -3.0 3.0] (seq (sut/mat->array (sut/differences m33)))))
+  (t/is (= [1 3] (sut/shape (sut/differences m33 2))))
+  (t/is (= [-12.0 -8.0 2.0] (seq (sut/mat->array (sut/differences m33 2)))))
+  (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/differences m22))))
+
+;; independent reference: R's `scale()`/`sweep()`, Rscript, 2026-09-23
+(t/deftest normalize-demean-standardize
+  (t/is (every? true? (map v/delta-eq (sut/cols (sut/demean m33))
+                          (mapv v/vec3 [[-4.0 4.0 0.0] [-2.333333333333333 2.666666666666667 -0.33333333333333304]
+                                        [-1.666666666666667 -0.666666666666667 2.333333333333333]]))))
+  (t/is (every? true? (map v/delta-eq (sut/rows (sut/demean m33 true))
+                          (sut/cols (sut/demean (sut/transpose m33))))))
+  (t/is (every? true? (map v/delta-eq (sut/cols (sut/normalize m33))
+                          (mapv v/vec3 [[-0.50709255283711 0.8451542547285165 0.1690308509457033]
+                                        [0.2407717061715384 0.8427009716003844 0.4815434123430768]
+                                        [-0.7442084075352509 -0.6201736729460423 -0.24806946917841693]]))))
+  (t/is (every? #(m/delta-eq 1.0 (v/mag %)) (sut/cols (sut/normalize m33))))
+  (t/is (every? true? (map v/delta-eq (sut/cols (sut/standardize m33))
+                          (mapv v/vec3 [[-1.0 1.0 0.0] [-0.9271726499455306 1.0596258856520353 -0.13245323570650427]
+                                        [-0.8006407690254359 -0.32025630761017443 1.12089707663561]])))))
+
+;; independent reference: R's `scale(center=FALSE, scale=TRUE)`, row- and
+;; column-wise, Rscript, 2026-09-23
+(t/deftest scale-rows-and-cols
+  (t/is (every? true? (map v/delta-eq (sut/cols (sut/scale-cols m33))
+                          (mapv v/vec3 [[-0.7171371656006362 1.1952286093343936 0.23904572186687872]
+                                        [0.34050261230349943 1.191759143062248 0.6810052246069989]
+                                        [-1.0524696231684352 -0.8770580193070293 -0.3508232077228117]]))))
+  (t/is (every? true? (map v/delta-eq (sut/rows (sut/scale-rows m33))
+                          (mapv v/vec3 [[-0.6060915267313264 0.40406101782088427 -1.2121830534626528]
+                                        [0.7106690545187015 0.9949366763261821 -0.7106690545187015]
+                                        [0.3086066999241838 1.2344267996967353 -0.6172133998483676]]))))
+  (t/is (= (sut/scale-rows m33 3.0) (sut/map-rows #(v/mult % 3.0) m33))))
+
+;; Regression test: `shift-cols` had an extra sign inversion not present in
+;; `shift-rows`, silently negating both the default (demean) and any
+;; explicit constant/function shift.
+(t/deftest shift-rows-and-cols
+  (t/is (every? #(m/delta-eq 0.0 (v/average %) 1.0e-9) (sut/rows (sut/shift-rows m22))))
+  (t/is (every? #(m/delta-eq 0.0 (v/average %) 1.0e-9) (sut/cols (sut/shift-cols m22))))
+  (t/is (= [7.0 8.0 10.0 -5.0] (seq (sut/mat->array (sut/shift-rows m22 5.0)))))
+  (t/is (= [7.0 8.0 10.0 -5.0] (seq (sut/mat->array (sut/shift-cols m22 5.0)))))
+  ;; a positive constant shift must move every element up, for both rows and cols
+  (t/is (every? #(>= % 0.0) (seq (sut/mat->array (sut/shift-rows (sut/mat2x2 -5.0 -5.0 -5.0 -5.0) 5.0)))))
+  (t/is (every? #(>= % 0.0) (seq (sut/mat->array (sut/shift-cols (sut/mat2x2 -5.0 -5.0 -5.0 -5.0) 5.0))))))
+
 (t/deftest cols
   (t/are [m r] (= (sut/cols m) r)
     m22 [(v/vec2 2 5) (v/vec2 3 -10)]
