@@ -753,6 +753,32 @@
     (t/is (false? (sut/singular? (sut/qr-decomposition near-singular))))
     (t/is (true? (sut/singular? (sut/qr-decomposition near-singular 1.0e-3))))))
 
+;; RRQR shares QR's sign ambiguity (see `qr-decomposition`); additionally
+;; carries a permutation `P`, so `A = Q x R x inv(P)`, and `inv(P) = P^T`
+;; since `P` is a permutation (hence orthogonal) matrix.
+(t/deftest rrqr-decomposition
+  (doseq [[A rows cols] [[m22 2 2] [m33 3 3] [m44 4 4]
+                         [(sut/mat [[1.0 1.0] [1.0 2.0] [1.0 3.0]]) 3 2]]]
+    (let [rrqrd (sut/rrqr-decomposition A)
+          Q (sut/decomposition-component rrqrd :Q)
+          R (sut/decomposition-component rrqrd :R)
+          P (sut/decomposition-component rrqrd :P)]
+      (t/is (= [rows rows] (sut/shape Q)))
+      (t/is (= [rows cols] (sut/shape R)))
+      (t/is (= [cols cols] (sut/shape P)))
+      (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm (sut/mulm Q R) (sut/transpose P))))
+                        (seq (sut/mat->array A)) 1.0e-9))
+      (t/is (v/delta-eq (seq (sut/mat->array (sut/mulmt Q Q))) (seq (sut/mat->array (sut/eye rows))) 1.0e-9))))
+  ;; `:rank-fn`: 0-arity uses a drop-threshold of 0.0; 1-arity takes an
+  ;; explicit drop-threshold, treating small directions as rank-deficient.
+  (let [rank-fn (sut/decomposition-component (sut/rrqr-decomposition m22) :rank-fn)]
+    (t/is (= 2 (rank-fn) (rank-fn 0.0)))
+    (t/is (= 1 (rank-fn 100.0))))
+  ;; `threshold`: a diagonal element within threshold of zero is treated as singular
+  (let [near-singular (sut/mat2x2 1.0 2.0 2.0 4.0000001)]
+    (t/is (false? (sut/singular? (sut/rrqr-decomposition near-singular))))
+    (t/is (true? (sut/singular? (sut/rrqr-decomposition near-singular 1.0e-3))))))
+
 ;; `singular?`: zero determinant, for every representation.
 (t/deftest singular
   (t/are [m s] (= s (boolean (sut/singular? m)))
