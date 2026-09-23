@@ -1310,7 +1310,7 @@
   (sum (prot/abs (prot/sub v1 v2))))
 
 (defn dist-cheb
-  "Chebyshev distance between 2d vectors"
+  "Chebyshev distance between vectors: the maximum absolute elementwise difference."
   ^double [v1 v2]
   (mx (prot/abs (prot/sub v1 v2))))
 
@@ -1327,43 +1327,51 @@
    (sum (prot/fmap (prot/abs (prot/sub v1 v2)) (fn [^double v] (if (m/<= v eps) 0.0 1.0))))))
 
 (defn dist-canberra
-  "Canberra distance"
+  "Canberra distance: the sum, over each element pair, of `|x1-x2| / (|x1|+|x2|)`.
+
+  A pair where both elements are `0.0` contributes `0.0` to the sum rather than `0.0/0.0` (`##NaN`)."
   ^double [v1 v2]
   (let [num (prot/abs (prot/sub v1 v2))
         denom (prot/fmap (prot/add (prot/abs v1) (prot/abs v2)) (fn [^double v] (if (m/zero? v) 0.0 (m// v))))]
     (sum (prot/emult num denom))))
 
 (defn dist-emd
-  "Earth Mover's Distance"
+  "Earth Mover's Distance (1d, exact): the minimal total amount of pairwise-index-wise value that must be moved between corresponding elements of `v1` and `v2` to turn one into the other.
+
+  Assumes `v1` and `v2` are sequences of the same length representing values over the same ordered set of positions (e.g. histogram bins)."
   ^double [v1 v2]
   (first (reduce (fn [[^double s ^double l] [^double a ^double b]]
                    [(m/+ s (m/abs l)) (m/- (m/+ a l) b)]) [0.0 0.0] (map vector v1 v2))))
 
 (defn dist-ang
-  "Angular distance"
+  "Angular distance: the angle between `v1` and `v2` (see [[angle-between]]), scaled to `[0,1]` by dividing by π."
   ^double [v1 v2]
   (m/* (m/acos (m// (dot v1 v2) (m/* (mag v1) (mag v2)))) m/M_1_PI))
 
 (defn sim-cos
-  "Cosine similarity"
+  "Cosine similarity: the cosine of the angle between `v1` and `v2`, ranging from `-1` (opposite direction) to `1` (same direction), `0` when perpendicular.
+
+  Returns `##NaN` if either vector is zero (undefined direction)."
   ^double [v1 v2]
   (m// (dot v1 v2) (m/* (mag v1) (mag v2))))
 
-;; List of distance fn
-(def distances {:euclide dist
-                :euclid-sq dist-sq
-                :euclidean dist
-                :euclidean-sq dist-sq
-                :abs dist-abs
-                :cheb dist-cheb
-                :chebyshev dist-cheb
-                :canberra dist-canberra
-                :emd dist-emd
-                :angular dist-ang
-                :discrete dist-discrete})
+(def ^{:doc "Map of available named distance functions, keyed by the keyword accepted by [[distance]]: `:euclidean`/`:euclide` and `:euclidean-sq`/`:euclid-sq` (aliases for [[dist]]/[[dist-sq]]), `:abs` ([[dist-abs]]), `:cheb`/`:chebyshev` ([[dist-cheb]]), `:canberra` ([[dist-canberra]]), `:emd` ([[dist-emd]]), `:angular` ([[dist-ang]]), `:discrete` ([[dist-discrete]])."}
+  distances {:euclide dist
+             :euclid-sq dist-sq
+             :euclidean dist
+             :euclidean-sq dist-sq
+             :abs dist-abs
+             :cheb dist-cheb
+             :chebyshev dist-cheb
+             :canberra dist-canberra
+             :emd dist-emd
+             :angular dist-ang
+             :discrete dist-discrete})
 
 (defn distance
-  "Distance between two vectors for given type (default: `:euclidean`)."
+  "Distance between two vectors, dispatched by a named method (default: `:euclidean`).
+
+  See [[distances]] for the full list of available `distance-method` keywords."
   (^double [v1 v2] (distance :euclidean v1 v2))
   (^double [distance-method v1 v2] ((distances distance-method) v1 v2)))
 

@@ -545,3 +545,44 @@
   (t/is (sut/delta-eq (sut/vec3 1.0 0.0 0.0) (sut/to-polar (sut/vec3 0.0 0.0 1.0))))
   (t/is (sut/delta-eq (sut/vec3 1.0 m/PI 0.0) (sut/to-polar (sut/vec3 0.0 0.0 -1.0))))
   (t/is (sut/delta-eq (sut/vec3 1.0 m/HALF_PI 0.0) (sut/to-polar (sut/vec3 1.0 0.0 0.0)))))
+
+;; ==== Fastmath Vector Audit — Group 2.4: Distance & similarity ====
+;; Reference: hand-computed formulas, cross-checked via REPL against the running source,
+;; 2026-09-23. `dist`/`dist-sq`/`dist-abs`/`dist-cheb`/`dist-discrete`(2-arity)/`dist-emd`/
+;; `dist-canberra`/`dist-ang` already had single-case coverage in `global-fns-test`; this
+;; block adds `sim-cos`, the `distance` dispatch table (all 11 `distances` keys), the
+;; `dist-discrete` 3-arity (eps tolerance), and an n>2-dimensional `dist-cheb` case
+;; (its docstring incorrectly claimed "2d vectors only" — fixed).
+
+(def v3c (sut/vec3 -1.0 4.0 2.0))
+(def v3d (sut/vec3 3.0 2.0 -5.0))
+
+(t/deftest sim-cos-test
+  (t/is (m/approx-eq (/ (sut/dot v2-in1 v2-in2) (* (sut/mag v2-in1) (sut/mag v2-in2)))
+                     (sut/sim-cos v2-in1 v2-in2))))
+
+(t/deftest dist-cheb-ndim-test
+  (t/is (m/approx-eq 7.0 (sut/dist-cheb v3c v3d))))
+
+(t/deftest dist-discrete-eps-test
+  (t/is (== 1.0 (sut/dist-discrete (sut/vec2 1.0 2.0) (sut/vec2 1.05 2.2) 0.1)))
+  (t/is (== 2.0 (sut/dist-discrete (sut/vec2 1.0 2.0) (sut/vec2 1.05 2.2)))))
+
+(t/deftest dist-canberra-zero-handling-test
+  (t/testing "matching-zero elements contribute 0, not NaN"
+    (t/is (m/approx-eq 0.5 (sut/dist-canberra (sut/vec2 0.0 3.0) (sut/vec2 0.0 1.0))))))
+
+(t/deftest distance-dispatch-test
+  (t/is (== (sut/distance v2-in1 v2-in2) (sut/distance :euclidean v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist v2-in1 v2-in2) (sut/distance :euclidean v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist v2-in1 v2-in2) (sut/distance :euclide v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-sq v2-in1 v2-in2) (sut/distance :euclid-sq v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-sq v2-in1 v2-in2) (sut/distance :euclidean-sq v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-abs v2-in1 v2-in2) (sut/distance :abs v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-cheb v2-in1 v2-in2) (sut/distance :cheb v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-cheb v2-in1 v2-in2) (sut/distance :chebyshev v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-canberra v2-in1 v2-in2) (sut/distance :canberra v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-emd v2-in1 v2-in2) (sut/distance :emd v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-ang v2-in1 v2-in2) (sut/distance :angular v2-in1 v2-in2)))
+  (t/is (m/approx-eq (sut/dist-discrete v2-in1 v2-in2) (sut/distance :discrete v2-in1 v2-in2)))
+  (t/is (== 11 (count sut/distances))))
