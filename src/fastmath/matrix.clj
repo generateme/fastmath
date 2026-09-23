@@ -1193,7 +1193,7 @@
 (defn inverse
   "Matrix inversion.
 
-  On a singular `Mat2x2`/`Mat3x3`/`Mat4x4`, returns `nil`. On a singular `RealMatrix`/`double[][]`, throws `SingularMatrixException`. On `0.0` (`Number`, a degenerate 1x1 matrix), returns `##Inf`."
+  On a singular `Mat2x2`/`Mat3x3`/`Mat4x4`, returns `nil`. On a singular `RealMatrix`/`double[][]`, throws `SingularMatrixException`. On `0.0` (`Number`, a degenerate 1x1 matrix), returns `##Inf`. On a decomposition (returned by one of the `*-decomposition` functions) of a singular matrix, throws `SingularMatrixException` (check `singular?` first)."
   [m]  (prot/inverse m))
 
 (defn diag
@@ -1934,7 +1934,7 @@
   - `A` - a square matrix, or a decomposition value returned by one of the `*-decomposition` functions.
   - `b` - a vector, the right-hand side of the equation.
 
-  When `A` is a plain matrix, it is solved via `inverse`, which requires `A` to be square; on a singular `A`, the result follows `inverse`'s own per-representation behavior (`nil` for `Mat2x2`/`Mat3x3`/`Mat4x4`, an exception for `RealMatrix`/`double[][]`). When `A` is a decomposition, its associated solver is used directly; `qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition` and `sv-decomposition` solve using the least squares method, while `lu-decomposition` and `eigen-decomposition` (with real eigenvalues) solve exactly. A decomposition produced by the `:colt` backend of `eigen-decomposition` has no solver and can not be used here.
+  When `A` is a plain matrix, it is solved via `inverse`, which requires `A` to be square; on a singular `A`, the result follows `inverse`'s own per-representation behavior (`nil` for `Mat2x2`/`Mat3x3`/`Mat4x4`, an exception for `RealMatrix`/`double[][]`). When `A` is a decomposition, its associated solver is used directly; `qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition` and `sv-decomposition` solve using the least squares method, while `lu-decomposition` and `eigen-decomposition` (with real eigenvalues) solve exactly. On a decomposition of a singular matrix, throws `SingularMatrixException` regardless of the source matrix's own representation (check `singular?` first). A decomposition produced by the `:colt` backend of `eigen-decomposition` has no solver and can not be used here.
 
   Returns a vector `x` satisfying the equation, or its least squares approximation.
 

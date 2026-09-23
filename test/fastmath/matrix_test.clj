@@ -684,6 +684,48 @@
   (t/is (= 1.0 (sut/condition 7.0)))
   (t/is (= ##Inf (sut/condition 0.0))))
 
+;; Shared `MatrixDecompositionProto`/`MatrixProto` dispatch on a
+;; `MatrixDecomposition` record, exercised via `lu-decomposition` (square,
+;; fixed-type dispatch) and `qr-decomposition` (rectangular, generic
+;; `RealMatrix` dispatch) as vehicles -- their own decomposition semantics
+;; are Groups 2.9/2.11's concern. Independent reference: R's `qr.solve()`
+;; and the explicit pseudo-inverse `solve(t(X)%*%X)%*%t(X)`, Rscript,
+;; 2026-09-23.
+(t/deftest decomposition-dispatch
+  (let [lud (sut/lu-decomposition m22)]
+    ;; consistent across repeated access to the same (lazily-materialized) component
+    (t/is (= (sut/decomposition-component lud :L) (sut/decomposition-component lud :L)
+             (sut/mat2x2 1.0 0.0 0.4 1.0)))
+    (t/is (= (sut/mat2x2 5.0 -10.0 0.0 7.0) (sut/decomposition-component lud :U)))
+    (t/is (m/delta-eq -35.0 (sut/decomposition-component lud :det)))
+    (t/is (nil? (sut/decomposition-component lud :nonexistent-key)))
+    (t/is (false? (sut/singular? lud)))
+    (t/is (v/delta-eq (sut/mat->array (sut/inverse lud)) (sut/mat->array (sut/inverse m22))))
+    (t/is (v/delta-eq (sut/solve lud (v/vec2 -16 30)) (v/vec2 -2.0 -4.0))))
+
+  (let [rect (sut/mat [[1.0 1.0] [1.0 2.0] [1.0 3.0]])
+        qrd (sut/qr-decomposition rect)]
+    (t/is (= [3 2] (sut/shape rect)))
+    (t/is (= [3 3] (sut/shape (sut/decomposition-component qrd :Q))))
+    (t/is (= [3 2] (sut/shape (sut/decomposition-component qrd :R))))
+    (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/decomposition-component qrd :Q)))
+    (t/is (false? (sut/singular? qrd)))
+    ;; independent reference: R's qr.solve(X, y) = [8, -3]
+    (t/is (v/delta-eq (v/vec->Vec (sut/solve qrd (v/vec->RealVector [6.0 0.0 0.0]))) [8.0 -3.0]))
+    ;; independent reference: R's solve(t(X)%*%X)%*%t(X)
+    (t/is (every? true? (map v/delta-eq
+                            (map v/vec->Vec (sut/rows (sut/inverse qrd)))
+                            [[1.3333333333333333 0.3333333333333333 -0.6666666666666666]
+                             [-0.5 0.0 0.5]]))))
+
+  ;; regression: `solve`/`inverse` on a decomposition of a singular matrix
+  ;; throw, matching the RealMatrix/double[][] convention, regardless of the
+  ;; source matrix's own (fixed-type) representation.
+  (let [sud (sut/lu-decomposition (sut/mat2x2 0.0))]
+    (t/is (true? (sut/singular? sud)))
+    (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException (sut/inverse sud)))
+    (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException (sut/solve sud (v/vec2 1 2))))))
+
 ;; `singular?`: zero determinant, for every representation.
 (t/deftest singular
   (t/are [m s] (= s (boolean (sut/singular? m)))
