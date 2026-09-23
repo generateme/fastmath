@@ -815,6 +815,40 @@
     (t/is (false? (sut/singular? (sut/lu-decomposition near-singular))))
     (t/is (true? (sut/singular? (sut/lu-decomposition near-singular 1.0e-3))))))
 
+;; independent reference: R's `svd()`, `d`/`d[1]/d[n]`/`v %*% diag(1/d^2) %*% t(v)`,
+;; Rscript, 2026-09-23.
+(t/deftest sv-decomposition
+  (let [svd (sut/sv-decomposition m22)
+        U (sut/decomposition-component svd :U)
+        S (sut/decomposition-component svd :S)
+        VT (sut/decomposition-component svd :VT)]
+    (t/is (v/delta-eq (v/vec->Vec (sut/decomposition-component svd :singular-values))
+                      [11.334208176545639 3.0879969253103177]))
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm U (sut/mulm S VT))))
+                      (seq (sut/mat->array m22)) 1.0e-9))
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulmt U U))) (seq (sut/mat->array (sut/eye 2))) 1.0e-9))
+    (let [info (sut/decomposition-component svd :info)]
+      (t/is (m/delta-eq 3.670407856836401 (:condition-number info)))
+      (t/is (m/delta-eq (/ 1.0 3.670407856836401) (:inv-condition-number info)))
+      (t/is (m/delta-eq 11.334208176545639 (:norm info)))
+      (t/is (= 2 (:rank info))))
+    (let [covfn (sut/decomposition-component svd :covariance-fn)]
+      (t/is (v/delta-eq (seq (sut/mat->array (covfn)))
+                        [0.0889795918367347 0.03591836734693877 0.03591836734693877 0.023673469387755098]))
+      (t/is (= (seq (sut/mat->array (covfn))) (seq (sut/mat->array (covfn 0.0)))))
+      ;; a min-sv threshold above the smaller singular value drops it, changing the result
+      (t/is (not= (seq (sut/mat->array (covfn))) (seq (sut/mat->array (covfn 3.5)))))))
+  ;; rectangular (economy-size U), and a rank-deficient matrix
+  (let [rect (sut/mat [[1.0 1.0] [1.0 2.0] [1.0 3.0]])
+        svd (sut/sv-decomposition rect)]
+    (t/is (= [3 2] (sut/shape (sut/decomposition-component svd :U))))
+    (t/is (= [2 2] (sut/shape (sut/decomposition-component svd :S))))
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm (sut/decomposition-component svd :U)
+                                                     (sut/mulm (sut/decomposition-component svd :S)
+                                                               (sut/decomposition-component svd :VT)))))
+                      (seq (sut/mat->array rect)) 1.0e-9)))
+  (t/is (= 1 (:rank (sut/decomposition-component (sut/sv-decomposition (sut/mat2x2 1.0 2.0 2.0 4.0)) :info)))))
+
 ;; `singular?`: zero determinant, for every representation.
 (t/deftest singular
   (t/are [m s] (= s (boolean (sut/singular? m)))
