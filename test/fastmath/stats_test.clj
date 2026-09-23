@@ -1430,7 +1430,11 @@ matches auc-roc"
 ;; deliberately differ from R's own nclass.Sturges-family rounding/IQR-type conventions (the
 ;; same ceiling-rounding and :legacy/type-6-percentile patterns already established elsewhere
 ;; in this file, e.g. Percentiles & Quantiles, Mode groups), not bugs; doane verified against
-;; R's e1071::skewness(type=1)-based formula
+;; R's e1071::skewness(type=1)-based formula: raw value ceil(7.390837)=8 (Fastmath Stats Bins
+;; Audit, 2026-09-23 -- corrected from a previously-recorded 7, which reflected a real
+;; fastmath.stats.bins/doane bug (truncating instead of ceiling the raw formula value,
+;; unlike its sibling bin-count estimators), independently confirmed via numpy's
+;; histogram_bin_edges(bins='doane'); now fixed in fastmath.stats.bins/doane, see CHANGELOG)
 
 (t/deftest estimate-bins-and-full-histogram-test
   (let [mpg (mtcars :mpg)]
@@ -1440,7 +1444,7 @@ matches auc-roc"
       :rice 7
       :scott 4
       :freedman-diaconis 5
-      :doane 7)
+      :doane 8)
     (t/is (= 5 (sut/estimate-bins mpg 5)) "explicit long bypasses estimation")
     (t/is (= (sut/estimate-bins mpg) (sut/estimate-bins mpg :freedman-diaconis)) "default method")
     (t/testing "full histogram (:sturges, 6 bins) against manual R binning"
