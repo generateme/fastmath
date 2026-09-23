@@ -159,7 +159,7 @@
   (trace [_] (m/+ a00 a11))
   (det [_] (gen-det2 a00 a01 a10 a11))
   (singular? [m] (m/zero? (double (prot/det m))))
-  (solve [m b] (prot/mulv (prot/inverse m) b))
+  (solve [m b] (when-let [inv (prot/inverse m)] (prot/mulv inv b)))
   (add [_ m] (let [^Mat2x2 m m]
                (Mat2x2. (m/+ a00 (.a00 m))
                         (m/+ a01 (.a01 m))
@@ -302,7 +302,7 @@
   (trace [_] (m/+ a00 a11 a22))
   (det [_] (gen-det3 a00 a01 a02 a10 a11 a12 a20 a21 a22))
   (singular? [m] (m/zero? (double (prot/det m))))
-  (solve [m b] (prot/mulv (prot/inverse m) b))
+  (solve [m b] (when-let [inv (prot/inverse m)] (prot/mulv inv b)))
   (add [_ m] (let [^Mat3x3 m m]
                (Mat3x3. (m/+ a00 (.a00 m)) (m/+ a01 (.a01 m)) (m/+ a02 (.a02 m))
                         (m/+ a10 (.a10 m)) (m/+ a11 (.a11 m)) (m/+ a12 (.a12 m))
@@ -489,7 +489,7 @@
                 (m/* a20 (gen-det3 a01 a02 a03 a11 a12 a13 a31 a32 a33))
                 (m/* (m/- a30) (gen-det3 a01 a02 a03 a11 a12 a13 a21 a22 a23))))
   (singular? [m] (m/zero? (double (prot/det m))))
-  (solve [m b] (prot/mulv (prot/inverse m) b))
+  (solve [m b] (when-let [inv (prot/inverse m)] (prot/mulv inv b)))
   (add [_ m] (let [^Mat4x4 m m]
                (Mat4x4. (m/+ a00 (.a00 m)) (m/+ a01 (.a01 m)) (m/+ a02 (.a02 m)) (m/+ a03 (.a03 m))
                         (m/+ a10 (.a10 m)) (m/+ a11 (.a11 m)) (m/+ a12 (.a12 m)) (m/+ a13 (.a13 m))
@@ -755,13 +755,14 @@
    :adds m/+
    :sub m/-
    :emulm m/*
-   :mulm m/*
+   :mulm (fn (^double [^double m1 ^double m2] (m/* m1 m2))
+           (^double [^double m1 _t1? ^double m2 _t2?] (m/* m1 m2)))
    :mulv m/*
    :vtmul m/*
    :muls m/*
    :trace identity
    :cholesky m/sqrt
-   :norm (fn [n _] n)})
+   :norm (fn ^double [^double n _] (m/abs n))})
 
 (defn mat2x2
   "Creates 2x2 matrix.
@@ -776,19 +777,24 @@
   (^Mat2x2 [^double a00 ^double a01 ^double a10 ^double a11] (Mat2x2. a00 a01 a10 a11)))
 
 (defn rows->mat2x2
-  "Creates 2x2 matrix from 2d vectors (rows)."
+  "Creates 2x2 matrix from two 2d row vectors, given as two separate arguments."
   ^Mat2x2 [[^double a00 ^double a01]
            [^double a10 ^double a11]]
   (Mat2x2. a00 a01 a10 a11))
 
 (defn cols->mat2x2
-  "Create 2x2 matrix from 2d vectors (columns)."
+  "Creates 2x2 matrix from two 2d column vectors, given as two separate arguments."
   ^Mat2x2 [[^double a00 ^double a10]
            [^double a01 ^double a11]]
   (Mat2x2. a00 a01 a10 a11))
 
 (defn diag->mat2x2
-  "Creates 2x2 diagonal matrix."
+  "Creates 2x2 diagonal matrix.
+
+  Arity:
+
+  * 1 - fills the diagonal with the given value
+  * 2 - one value per diagonal element"
   (^Mat2x2 [^double d] (Mat2x2. d 0.0 0.0 d))
   (^Mat2x2 [^double d1 ^double d2] (Mat2x2. d1 0.0 0.0 d2)))
 
@@ -807,21 +813,26 @@
   (^Mat3x3 [a00 a01 a02 a10 a11 a12 a20 a21 a22] (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22)))
 
 (defn rows->mat3x3
-  "Creates 3x3 matrix from 3d vectors (rows)."
+  "Creates 3x3 matrix from three 3d row vectors, given as three separate arguments."
   ^Mat3x3 [[^double a00 ^double a01 ^double a02]
            [^double a10 ^double a11 ^double a12]
            [^double a20 ^double a21 ^double a22]]
   (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
 
 (defn cols->mat3x3
-  "Creates 3x3 matrix from 3d vectors (columns)."
+  "Creates 3x3 matrix from three 3d column vectors, given as three separate arguments."
   ^Mat3x3 [[^double a00 ^double a10 ^double a20]
            [^double a01 ^double a11 ^double a21]
            [^double a02 ^double a12 ^double a22]]
   (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
 
 (defn diag->mat3x3
-  "Creates 3x3 diagonal matrix."
+  "Creates 3x3 diagonal matrix.
+
+  Arity:
+
+  * 1 - fills the diagonal with the given value
+  * 3 - one value per diagonal element"
   (^Mat3x3 [^double d] (Mat3x3. d 0.0 0.0 0.0 d 0.0 0.0 0.0 d))
   (^Mat3x3 [^double d1 ^double d2 ^double d3] (Mat3x3. d1 0.0 0.0 0.0 d2 0.0 0.0 0.0 d3)))
 
@@ -842,7 +853,7 @@
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
 
 (defn rows->mat4x4
-  "Creates 4x4 matrix from 4d vectors (rows)."
+  "Creates 4x4 matrix from four 4d row vectors, given as four separate arguments."
   ^Mat4x4 [[^double a00 ^double a01 ^double a02 ^double a03]
            [^double a10 ^double a11 ^double a12 ^double a13]
            [^double a20 ^double a21 ^double a22 ^double a23]
@@ -850,7 +861,7 @@
   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
 
 (defn cols->mat4x4
-  "Creates 4x4 matrix from 4d vectors (columns)."
+  "Creates 4x4 matrix from four 4d column vectors, given as four separate arguments."
   ^Mat4x4 [[^double a00 ^double a10 ^double a20 ^double a30]
            [^double a01 ^double a11 ^double a21 ^double a31]
            [^double a02 ^double a12 ^double a22 ^double a32]
@@ -858,7 +869,12 @@
   (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33))
 
 (defn diag->mat4x4
-  "Creates 4x4 diagonal matrix."
+  "Creates 4x4 diagonal matrix.
+
+  Arity:
+
+  * 1 - fills the diagonal with the given value
+  * 4 - one value per diagonal element"
   (^Mat4x4 [^double d] (Mat4x4. d 0.0 0.0 0.0
                                 0.0 d 0.0 0.0
                                 0.0 0.0 d 0.0
@@ -868,26 +884,45 @@
                                                                   0.0 0.0 d3 0.0
                                                                   0.0 0.0 0.0 d4)))
 (defn real-matrix
-  "Creates Apache Commons Math Array2DRowMatrix from sequence of rows"
+  "Creates an Apache Commons Math `RealMatrix` from a sequence of row vectors, or from an already-`double[][]`-typed array directly.
+
+  Identical to [[rows->RealMatrix]].
+
+  See also [[cols->RealMatrix]]."
   [rows]
   (if (= (type rows) m/double-double-array-type)
     (Array2DRowRealMatrix. ^"[[D" rows)
     (Array2DRowRealMatrix. ^"[[D" (m/seq->double-double-array (map v/vec->array rows)))))
 
 (defn rows->RealMatrix
-  "Returns Apache Commons Math Array2DRowMatrix from sequence of rows"
+  "Creates an Apache Commons Math `RealMatrix` from a sequence of row vectors, or from an already-`double[][]`-typed array directly.
+
+  Identical to [[real-matrix]].
+
+  See also [[cols->RealMatrix]]."
   [rows]
   (if (= (type rows) m/double-double-array-type)
     (Array2DRowRealMatrix. ^"[[D" rows)
     (Array2DRowRealMatrix. ^"[[D" (m/seq->double-double-array (map v/vec->array rows)))))
 
 (defn cols->RealMatrix
-  "Returns Apache Commons Math Array2DRowMatrix from sequence of columns"
+  "Creates an Apache Commons Math `RealMatrix` from a sequence of column vectors.
+
+  Equivalent to transposing the result of [[rows->RealMatrix]] applied to `cols`.
+
+  See also [[real-matrix]]."
   [cols]
   (prot/transpose (rows->RealMatrix cols)))
 
 (defn mat
-  "Creates mat2x2, mat3x3 or mat4x4 or RealMatrix from rows"
+  "Creates a matrix, dispatching on argument count.
+
+  Arity:
+
+  * 1 - a sequence of row vectors, builds a `RealMatrix` (see [[rows->RealMatrix]])
+  * 4 - row-ordered entries, builds a `Mat2x2`
+  * 9 - row-ordered entries, builds a `Mat3x3`
+  * 16 - row-ordered entries, builds a `Mat4x4`"
   ([real-matrix-rows] (rows->RealMatrix real-matrix-rows))
   ([^double a00 ^double a01 ^double a10 ^double a11] (Mat2x2. a00 a01 a10 a11))
   ([a00 a01 a02 a10 a11 a12 a20 a21 a22] (Mat3x3. a00 a01 a02 a10 a11 a12 a20 a21 a22))
@@ -895,7 +930,14 @@
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
 
 (defn rows->mat
-  "Creates nxn matrix from nd vectors (rows)."
+  "Creates a matrix from row vectors, dispatching on argument count.
+
+  Arity:
+
+  * 1 - a single sequence of row vectors, builds a `RealMatrix` (see [[rows->RealMatrix]])
+  * 2 - two separate 2d row vectors, builds a `Mat2x2`
+  * 3 - three separate 3d row vectors, builds a `Mat3x3`
+  * 4 - four separate 4d row vectors, builds a `Mat4x4`"
   ([real-matrix-rows] (rows->RealMatrix real-matrix-rows))
   ([[^double a00 ^double a01]
     [^double a10 ^double a11]]
@@ -911,7 +953,14 @@
    (Mat4x4. a00 a01 a02 a03 a10 a11 a12 a13 a20 a21 a22 a23 a30 a31 a32 a33)))
 
 (defn cols->mat
-  "Creates nxn matrix from nd vectors (columns)."
+  "Creates a matrix from column vectors, dispatching on argument count.
+
+  Arity:
+
+  * 1 - a single sequence of column vectors, builds a `RealMatrix` (see [[cols->RealMatrix]])
+  * 2 - two separate 2d column vectors, builds a `Mat2x2`
+  * 3 - three separate 3d column vectors, builds a `Mat3x3`
+  * 4 - four separate 4d column vectors, builds a `Mat4x4`"
   ([real-matrix-cols] (cols->RealMatrix real-matrix-cols))
   ([[^double a00 ^double a10]
     [^double a01 ^double a11]]
@@ -973,7 +1022,10 @@
   (Array2DRowRealMatrix. arrs))
 
 (defn eye
-  "Creates identity matrix for given size."
+  "Creates an identity matrix of the given size.
+
+  Sizes 2, 3 or 4 build the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`; any other size builds a `RealMatrix`.
+  A truthy `real-matrix?` (2-arity) forces a `RealMatrix` regardless of size."
   ([^long size real-matrix?]
    (if real-matrix? (MatrixUtils/createRealIdentityMatrix size) (eye size)))
   ([^long size]
@@ -989,7 +1041,9 @@
      (MatrixUtils/createRealIdentityMatrix size))))
 
 (defn zero
-  "Creates zero matrix for given size."
+  "Creates a zero matrix of the given size.
+
+  A square size of 2, 3 or 4 (1-arity, or 2/3-arity with a falsy `real-matrix?`) builds the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`; any other size, a non-square `rows`/`cols` pair, or a truthy `real-matrix?` builds a `RealMatrix`."
   ([^long rows ^long cols real-matrix?]
    (if (and (not real-matrix?)
             (m/== rows cols)
@@ -1007,7 +1061,12 @@
      (Array2DRowRealMatrix. size size))))
 
 (defn diagonal
-  "Creates diagonal matrix."
+  "Creates a diagonal matrix.
+
+  Arity:
+
+  * 1 (`v`, a sequence of diagonal values) - always builds a `RealMatrix`, regardless of `v`'s length, even 2, 3 or 4
+  * 2, 3, 4 (direct scalar arguments) - builds the corresponding fixed `Mat2x2`/`Mat3x3`/`Mat4x4`"
   ([v] (MatrixUtils/createRealDiagonalMatrix (m/seq->double-array v)))
   ([^double a11 ^double a22] (mat2x2 a11 a22))
   ([^double a11 ^double a22 ^double a33] (mat3x3 a11 a22 a33))
@@ -1057,7 +1116,9 @@
 ;;
 
 (defn entry
-  "Returns entry at given row and column"
+  "Returns the entry at given 0-based row and column.
+
+  Throws an exception when `row`/`col` are out of bounds."
   ^double [A row col]
   (prot/entry A row col))
 
@@ -1082,7 +1143,7 @@
   [A] (prot/to-double-array2d A))
 
 (defn mat->float-array2d
-  "Returns doubles of doubles"
+  "Returns floats of floats"
   [A] (prot/to-float-array2d A))
 
 (defn mat->array
@@ -1094,7 +1155,7 @@
   [A] (prot/to-float-array A))
 
 (defn mat->RealMatrix
-  "Returns Apache Commons Math Array2DRowMatrix from a 2x2, 3x3 or 4x4 matrix"
+  "Returns an Apache Commons Math `RealMatrix` built from `A`, whichever supported matrix representation it is."
   [A]
   (prot/to-real-matrix A))
 
@@ -1103,7 +1164,7 @@
   ^long [A] (prot/nrow A))
 
 (defn ncol
-  "Returns number of rows"
+  "Returns number of columns"
   ^long [A] (prot/ncol A))
 
 (defn shape
@@ -1130,7 +1191,7 @@
 (defn inverse
   "Matrix inversion.
 
-  Returns `nil` if inversion doesn't exist."
+  On a singular `Mat2x2`/`Mat3x3`/`Mat4x4`, returns `nil`. On a singular `RealMatrix`/`double[][]`, throws `SingularMatrixException`. On `0.0` (`Number`, a degenerate 1x1 matrix), returns `##Inf`."
   [m]  (prot/inverse m))
 
 (defn diag
@@ -1151,12 +1212,16 @@
   [A s] (prot/adds A s))
 
 (defn sub
-  "Subracts matrices, C=A-B."
+  "Subtracts matrices, C=A-B.
+
+  1-arity negates all elements, C=-A; identical to [[negate]]."
   ([A] (prot/sub A))
   ([A B] (prot/sub A B)))
 
 (defn negate
-  "Negates all matrix elements, C=-A"
+  "Negates all matrix elements, C=-A.
+
+  Identical to 1-arity [[sub]]."
   [A] (prot/sub A))
 
 (defn mulm
@@ -1184,11 +1249,11 @@
   [A B] (prot/emulm A B))
 
 (defn mulv
-  "Multplies matrix by a vector, x=Av"
+  "Multiplies matrix by a vector, x=Av"
   [A v] (prot/mulv A v))
 
 (defn muls
-  "Multplies matrix by a scalar, C=sA"
+  "Multiplies matrix by a scalar, C=sA"
   [A s] (prot/muls A s))
 
 (defn vtmul
@@ -1857,7 +1922,7 @@
   - `A` - a square matrix, or a decomposition value returned by one of the `*-decomposition` functions.
   - `b` - a vector, the right-hand side of the equation.
 
-  When `A` is a plain matrix, it is solved via `inverse`, which requires `A` to be square and non-singular. When `A` is a decomposition, its associated solver is used directly; `qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition` and `sv-decomposition` solve using the least squares method, while `lu-decomposition` and `eigen-decomposition` (with real eigenvalues) solve exactly. A decomposition produced by the `:colt` backend of `eigen-decomposition` has no solver and can not be used here.
+  When `A` is a plain matrix, it is solved via `inverse`, which requires `A` to be square; on a singular `A`, the result follows `inverse`'s own per-representation behavior (`nil` for `Mat2x2`/`Mat3x3`/`Mat4x4`, an exception for `RealMatrix`/`double[][]`). When `A` is a decomposition, its associated solver is used directly; `qr-decomposition`, `rrqr-decomposition`, `cholesky-decomposition` and `sv-decomposition` solve using the least squares method, while `lu-decomposition` and `eigen-decomposition` (with real eigenvalues) solve exactly. A decomposition produced by the `:colt` backend of `eigen-decomposition` has no solver and can not be used here.
 
   Returns a vector `x` satisfying the equation, or its least squares approximation.
 
@@ -1982,11 +2047,14 @@
   - `A` - a matrix.
   - `norm-type` (optional, default: `2`) - the norm used in the computation, see [[norm]] for all supported types.
 
-  Returns the condition number as a double.
+  Returns the condition number as a double, or `##Inf` when `A` is singular.
 
   See also [[norm]], [[singular?]], [[inverse]]."
   (^double [A] (condition A 2))
-  (^double [A norm-type] (m/* (norm A norm-type) (norm (inverse A) norm-type))))
+  (^double [A norm-type]
+   (if (singular? A)
+     ##Inf
+     (m/* (norm A norm-type) (norm (inverse A) norm-type)))))
 
 (defmacro ^:private primitive-ops
   "Generate primitive functions operating on vectors"

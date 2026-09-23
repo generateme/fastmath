@@ -50,6 +50,95 @@
     fastmath.matrix.Mat3x3 sut/mat3x3
     fastmath.matrix.Mat4x4 sut/mat4x4))
 
+;; `rows->matNxN`/`cols->matNxN` take N separate row/column vectors as
+;; N distinct arguments (not one collection of rows/columns).
+(t/deftest rows-cols-diag-constructors
+  (t/is (= m22 (apply sut/rows->mat2x2 (partition 2 d22))))
+  (t/is (= m22 (apply sut/cols->mat2x2 (sut/cols m22))))
+  (t/is (= m33 (apply sut/rows->mat3x3 (partition 3 d33))))
+  (t/is (= m33 (apply sut/cols->mat3x3 (sut/cols m33))))
+  (t/is (= m44 (apply sut/rows->mat4x4 (partition 4 d44))))
+  (t/is (= m44 (apply sut/cols->mat4x4 (sut/cols m44))))
+  (t/are [c r] (= c r)
+    (sut/diag->mat2x2 5.0) (sut/mat2x2 5.0 0.0 0.0 5.0)
+    (sut/diag->mat2x2 3.0 4.0) (sut/mat2x2 3.0 0.0 0.0 4.0)
+    (sut/diag->mat3x3 5.0) (sut/mat3x3 5.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 5.0)
+    (sut/diag->mat3x3 3.0 4.0 5.0) (sut/mat3x3 3.0 0.0 0.0 0.0 4.0 0.0 0.0 0.0 5.0)
+    (sut/diag->mat4x4 5.0) (sut/mat4x4 5.0 0.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 0.0 5.0)
+    (sut/diag->mat4x4 3.0 4.0 5.0 6.0) (sut/diagonal 3.0 4.0 5.0 6.0)))
+
+;; `real-matrix` and `rows->RealMatrix` are the same implementation under two
+;; names; `cols->RealMatrix` transposes the `rows->RealMatrix` result.
+(t/deftest real-matrix-constructors
+  (let [rows [[1.0 2.0 3.0] [4.0 5.0 6.0]]
+        cols [[1.0 4.0] [2.0 5.0] [3.0 6.0]]
+        flat [1.0 2.0 3.0 4.0 5.0 6.0]]
+    (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/real-matrix rows)))
+    (t/is (= flat (seq (sut/mat->array (sut/real-matrix rows)))
+             (seq (sut/mat->array (sut/rows->RealMatrix rows)))))
+    (t/is (= flat (seq (sut/mat->array (sut/cols->RealMatrix cols)))))
+    ;; already-typed double[][] input path
+    (t/is (= flat (seq (sut/mat->array (sut/real-matrix (m/seq->double-double-array rows))))))))
+
+;; `mat`/`rows->mat`/`cols->mat`: 1-arg collection form always builds a
+;; `RealMatrix`; 4/9/16-arg forms build the corresponding fixed type.
+(t/deftest generic-mat-constructors
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/mat [[1 2 3] [4 5 6]]))))
+  (t/is (= [1.0 2.0 3.0 4.0 5.0 6.0] (seq (sut/mat->array (sut/mat [[1 2 3] [4 5 6]])))))
+  (t/is (= m22 (apply sut/mat d22)))
+  (t/is (= m33 (apply sut/mat d33)))
+  (t/is (= m44 (apply sut/mat d44)))
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/rows->mat [[1 2 3] [4 5 6]]))))
+  (t/is (= m22 (apply sut/rows->mat (partition 2 d22))))
+  (t/is (= m33 (apply sut/rows->mat (partition 3 d33))))
+  (t/is (= m44 (apply sut/rows->mat (partition 4 d44))))
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/cols->mat [[1 2 3] [4 5 6]]))))
+  (t/is (= m22 (apply sut/cols->mat (sut/cols m22))))
+  (t/is (= m33 (apply sut/cols->mat (sut/cols m33))))
+  (t/is (= m44 (apply sut/cols->mat (sut/cols m44)))))
+
+(t/deftest array2d-constructors
+  (t/is (= m22 (sut/array2d->mat2x2 (m/seq->double-double-array (partition 2 d22)))))
+  (t/is (= m33 (sut/array2d->mat3x3 (m/seq->double-double-array (partition 3 d33)))))
+  (t/is (= m44 (sut/array2d->mat4x4 (m/seq->double-double-array (partition 4 d44)))))
+  (t/is (instance? org.apache.commons.math3.linear.RealMatrix
+                   (sut/array2d->RealMatrix (m/seq->double-double-array (partition 2 d22)))))
+  (t/is (= d22 (seq (sut/mat->array (sut/array2d->RealMatrix (m/seq->double-double-array (partition 2 d22))))))))
+
+;; `eye`/`zero`: size 2/3/4 (1-arg, or 2-arg with `real-matrix?` false) builds
+;; the fixed type, any other size (or `real-matrix?` true) builds a `RealMatrix`.
+;; `diagonal`: direct scalar args build the fixed type; a vector arg always
+;; builds a `RealMatrix`, regardless of its length (documented breaking change,
+;; see CHANGELOG).
+(t/deftest eye-zero-diagonal-dispatch
+  (t/are [s c] (= c (class (sut/eye s)))
+    2 fastmath.matrix.Mat2x2
+    3 fastmath.matrix.Mat3x3
+    4 fastmath.matrix.Mat4x4
+    1 org.apache.commons.math3.linear.Array2DRowRealMatrix
+    5 org.apache.commons.math3.linear.Array2DRowRealMatrix)
+  (t/is (= fastmath.matrix.Mat2x2 (class (sut/eye 2 false))))
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/eye 2 true))))
+  (t/is (= (seq (sut/mat->array (sut/eye 5))) (seq (sut/mat->array (sut/eye 5 true)))))
+
+  (t/are [s c] (= c (class (sut/zero s)))
+    2 fastmath.matrix.Mat2x2
+    3 fastmath.matrix.Mat3x3
+    4 fastmath.matrix.Mat4x4
+    1 org.apache.commons.math3.linear.Array2DRowRealMatrix
+    5 org.apache.commons.math3.linear.Array2DRowRealMatrix)
+  (t/is (= fastmath.matrix.Mat2x2 (class (sut/zero 2 false))))
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/zero 2 true))))
+  (t/is (= [3 5] (sut/shape (sut/zero 3 5 false))))
+  (t/is (every? zero? (seq (sut/mat->array (sut/zero 3 5 false)))))
+
+  (t/are [c r] (= c r)
+    (sut/diagonal 3.0 4.0) (sut/mat2x2 3.0 0.0 0.0 4.0)
+    (sut/diagonal 3.0 4.0 5.0) (sut/mat3x3 3.0 0.0 0.0 0.0 4.0 0.0 0.0 0.0 5.0)
+    (sut/diagonal 3.0 4.0 5.0 6.0) (sut/mat4x4 3.0 0.0 0.0 0.0 0.0 4.0 0.0 0.0 0.0 0.0 5.0 0.0 0.0 0.0 0.0 6.0))
+  (t/is (= org.apache.commons.math3.linear.Array2DRowRealMatrix (class (sut/diagonal [3.0 4.0]))))
+  (t/is (= [3.0 4.0 5.0] (v/vec->Vec (sut/diag (sut/diagonal [3.0 4.0 5.0])))))
+  (t/is (m/zero? (sut/entry (sut/diagonal [3.0 4.0 5.0]) 0 1))))
 
 (t/deftest solving
   (t/are [A b x] (= (v/approx (sut/solve A b)) x)
@@ -124,9 +213,59 @@
   (t/are [m d s] (= (m/double-double-array->seq (sut/mat->array2d m)) (partition s s d))
     m22 d22 2 m33 d33 3 m44 d44 4 m44a d44 4 m44ra d44 4))
 
+(t/deftest entry
+  (t/are [m r c v] (= v (sut/entry m r c))
+    m22 0 1 3.0 m22 1 0 5.0
+    m33 2 1 4.0
+    m44a 1 2 -1.0
+    m44ra 3 3 -1.0)
+  (t/is (= 7.0 (sut/entry 7.0 0 0)))
+  (t/is (thrown? Exception (sut/entry 7.0 0 1)))
+  (t/is (thrown? IndexOutOfBoundsException (sut/entry m22 5 5))))
+
+(t/deftest fmap
+  (t/is (= (sut/mat2x2 4.0 6.0 10.0 -20.0) (sut/fmap m22 (partial * 2.0))))
+  (t/is (= (v/mult d44 2.0) (seq (sut/mat->array (sut/fmap m44a (partial * 2.0))))))
+  (t/is (= (v/mult d44 2.0) (seq (sut/mat->array (sut/fmap m44ra (partial * 2.0))))))
+  (t/is (= 14.0 (sut/fmap 7.0 (partial * 2.0)))))
+
+;; `mat->seq`/`mat->array`/`mat->float-array`/`mat->float-array2d`/`mat->RealMatrix`:
+;; flat/2d, double/float conversions, row order preserved across representations.
+(t/deftest array-conversions
+  (t/are [m d] (= d (seq (sut/mat->seq m)))
+    m22 d22 m33 d33 m44 d44 m44a d44 m44ra d44)
+  (t/are [m d] (= d (seq (sut/mat->array m)) (seq (sut/mat->float-array m)))
+    m22 d22 m33 d33 m44 d44 m44a d44 m44ra d44)
+  (t/is (= (m/double-double-array->seq (sut/mat->array2d m22))
+           (m/double-double-array->seq (sut/mat->float-array2d m22))))
+  (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/mat->RealMatrix m22)))
+  (t/is (= d44 (seq (sut/mat->array (sut/mat->RealMatrix m44)))))
+  (t/is (= [7.0] (seq (sut/mat->seq 7.0)) (seq (sut/mat->array 7.0)) (seq (sut/mat->float-array 7.0))))
+  (t/is (instance? org.apache.commons.math3.linear.RealMatrix (sut/mat->RealMatrix 7.0)))
+  (t/is (= [7.0] (seq (sut/mat->array (sut/mat->RealMatrix 7.0))))))
+
 (t/deftest sizes
   (t/are [m s] (= s (sut/nrow m) (sut/ncol m))
-    m22 2 m33 3 m44 4 m44a 4 m44ra 4))
+    m22 2 m33 3 m44 4 m44a 4 m44ra 4)
+  (t/is (= 1 (sut/nrow 7.0) (sut/ncol 7.0))))
+
+(t/deftest shape-and-square
+  (t/are [m s] (= s (sut/shape m))
+    m22 [2 2] m33 [3 3] m44 [4 4] m44a [4 4] m44ra [4 4] 7.0 [1 1])
+  (t/are [m s] (= s (boolean (sut/square? m)))
+    m22 true m33 true m44 true m44a true m44ra true 7.0 true
+    (sut/zero 3 5 false) false))
+
+;; A plain `Number` implements `MatrixProto` as a degenerate 1x1 matrix.
+;; `entry`/`fmap`/`mat->seq`/array conversions/`nrow`/`ncol`/`shape` for this
+;; representation are exercised above; the remaining structural ops follow here.
+(t/deftest number-as-1x1-matrix
+  (t/is (= [[7.0]] (sut/cols 7.0) (sut/rows 7.0)))
+  (t/is (= [7.0] (sut/row 7.0 0) (sut/col 7.0 0)))
+  (t/is (thrown? Exception (sut/row 7.0 1)))
+  (t/is (thrown? Exception (sut/col 7.0 1)))
+  (t/is (true? (sut/symmetric? 7.0)))
+  (t/is (= [7.0] (sut/diag 7.0))))
 
 (t/deftest symmetry
   (t/are [m s] (= s (boolean (sut/symmetric? m)))
@@ -164,7 +303,19 @@
     (sut/transpose m44a) (sut/transpose m44ra))
   (t/are [s m] (= (seq (sut/eye s))
                   (seq (sut/mat->array (sut/fmap (sut/mulm m (sut/inverse m)) m/approx))))
-    2 m22 3 m33 4 m44 4 m44a 4 m44ra))
+    2 m22 3 m33 4 m44 4 m44a 4 m44ra)
+  ;; independent reference: R's `solve()`, Rscript, 2026-09-23
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/inverse m22)))
+                    [0.2857143 0.08571429 0.1428571 -0.05714286] 1.0e-6))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/inverse m33)))
+                    [-0.06976744 0.2325581 -0.3720930
+                     -0.05813953 -0.1395349 0.5232558
+                     -0.15116279 -0.1627907 0.3604651] 1.0e-6))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/inverse m44)))
+                    [-0.7413793 -0.3965517 -0.10344828 0.5344828
+                     0.7931034 0.5172414 -0.01724138 -0.3275862
+                     -0.2241379 -0.1896552 0.18965517 0.1034483
+                     -1.2068966 -0.4827586 -0.01724138 0.6724138] 1.0e-6)))
 
 (t/deftest diag-and-trace
   (t/are [m v s] (and (= (v/vec->Vec (sut/diag m)) v)
@@ -180,7 +331,10 @@
               (sut/det m)
               (.getDeterminant (org.apache.commons.math3.linear.LUDecomposition. (sut/mat->RealMatrix m)))
               8)
-    m22 m33 m44 m44a m44ra))
+    m22 m33 m44 m44a m44ra)
+  ;; independent reference: R's `det()`, Rscript, 2026-09-23
+  (t/are [m d] (m/delta-eq (sut/det m) d)
+    m22 -35.0 m33 -86.0 m44 116.0))
 
 (t/deftest add-a-scalar
   (t/are [m res s] (= res (sut/adds m s))
@@ -197,6 +351,8 @@
     m22 (apply sut/mat2x2 (v/add d22 d22))
     m33 (apply sut/mat3x3 (v/add d33 d33))
     m44 (apply sut/mat4x4 (v/add d44 d44)))
+  ;; independent reference: R's `m + m`, Rscript, 2026-09-23
+  (t/is (= [4.0 6.0 10.0 -20.0] (seq (sut/mat->array (sut/add m22 m22)))))
   (t/are [m s] (and (= s (seq (sut/mat->array (sut/add m m))))
                     (= (repeat 16 0.0) (seq (sut/mat->array (sut/sub m m)))))
     m44a (v/add d44 d44)
@@ -252,6 +408,12 @@
     m44ra [-4.0 0.0 -10.0 0.0 -1.0 20.0 19.0 19.0 8.0 -2.0 24.0 18.0 -3.0 16.0 15.0 5.0])
   (t/are [m] (= (seq (sut/mat->array (sut/emulm m m))) (seq (sut/mat->array (sut/sq m))))
     m22 m33 m44 m44a m44ra)
+  ;; independent reference: R's `m * m` (Hadamard), Rscript, 2026-09-23
+  (t/is (= [4.0 9.0 25.0 100.0] (seq (sut/mat->array (sut/emulm m22 m22)))))
+  ;; independent reference: R's `m %*% m` and `m %*% t(m)`/`t(m) %*% m`, Rscript, 2026-09-23
+  (t/is (= [19.0 -24.0 -40.0 115.0] (seq (sut/mat->array (sut/mulm m22 m22)))))
+  (t/is (= [13.0 -20.0 -20.0 125.0] (seq (sut/mat->array (sut/mulmt m22 m22)))))
+  (t/is (= [29.0 -44.0 -44.0 109.0] (seq (sut/mat->array (sut/tmulm m22 m22)))))
   (t/are [m d] (let [r (r/drand)]
                  (= (seq (sut/mat->array (sut/muls m r)))
                     (v/mult d r)))
@@ -300,6 +462,27 @@
             (v/sum (sut/col m44ra 2))
             (v/sum (sut/col m44ra 3))]
            (v/vec->Vec (sut/vtmul m44ra (v/vec->RealVector [1 1 1 1]))))))
+
+;; A plain `Number`, as a degenerate 1x1 matrix: every arithmetic op reduces
+;; to the corresponding scalar op, and transposition is a no-op, so `mulmt`/
+;; `tmulm`/`tmulmt` must equal plain `mulm`. `negate` and 1-arity `sub` are
+;; the same operation under two names (both delegate to `prot/sub`); this
+;; holds for the `Number` representation too.
+(t/deftest arithmetic-number-representation
+  (t/is (= 10.0 (sut/add 7.0 3.0) (sut/adds 7.0 3.0)))
+  (t/is (= 4.0 (sut/sub 7.0 3.0)))
+  (t/is (= -7.0 (sut/sub 7.0) (sut/negate 7.0)))
+  (t/is (= 21.0 (sut/emulm 7.0 3.0) (sut/muls 7.0 3.0) (sut/mulv 7.0 3.0) (sut/vtmul 7.0 3.0)))
+  (t/is (= 21.0 (sut/mulm 7.0 3.0) (sut/mulmt 7.0 3.0) (sut/tmulm 7.0 3.0) (sut/tmulmt 7.0 3.0)))
+  (t/is (= 7.0 (sut/transpose 7.0) (sut/trace 7.0))))
+
+;; `negate` and 1-arity `sub` are the same operation under two names, for
+;; every representation (both delegate to `prot/sub`).
+(t/deftest negate-is-sub-alias
+  (t/are [m] (= (sut/negate m) (sut/sub m))
+    m22 m33 m44)
+  (t/are [m] (= (seq (sut/mat->array (sut/negate m))) (seq (sut/mat->array (sut/sub m))))
+    m44a m44ra))
 
 ;;
 
@@ -362,6 +545,59 @@
     :frobenius m44ra 12.12436
     :max m44ra 5
     [1] m44ra 20.32997715038671))
+
+;; `condition A 2` (default) is `norm(A,2) x norm(inverse(A),2)`, i.e. the
+;; ratio of `A`'s largest to smallest singular value -- cross-checked both
+;; against `singular-values` directly, and independently against R's
+;; `kappa(m, exact=TRUE, norm="2")`, Rscript, 2026-09-23.
+(t/deftest condition-number
+  (t/are [m] (m/delta-eq (sut/condition m)
+                         (let [svs (sut/singular-values m)]
+                           (/ (apply max svs) (apply min svs))))
+    m22 m33 m44)
+  (t/are [m k] (m/delta-eq (sut/condition m) k 1.0e-5)
+    m22 3.670408 m33 9.16118 m44 19.11566)
+  (t/is (= 1.0 (sut/condition 7.0)))
+  (t/is (= ##Inf (sut/condition 0.0))))
+
+;; `singular?`: zero determinant, for every representation.
+(t/deftest singular
+  (t/are [m s] (= s (boolean (sut/singular? m)))
+    m22 false (sut/mat2x2 0.0) true
+    m33 false (sut/mat3x3 0.0) true
+    m44 false (sut/mat4x4 0.0) true
+    m44a false (sut/mat->array2d (sut/mat4x4 0.0)) true
+    m44ra false (sut/mat->RealMatrix (sut/mat4x4 0.0)) true
+    7.0 false 0.0 true))
+
+;; Regression test: `inverse` on a singular `Mat2x2`/`Mat3x3`/`Mat4x4`
+;; documentedly returns `nil`; `solve` must propagate that `nil` instead of
+;; crashing on a `nil` intermediate result. `RealMatrix`/`double[][]` instead
+;; throw `SingularMatrixException`, a pre-existing, unchanged convention for
+;; those representations.
+(t/deftest singular-matrix-inverse-and-solve
+  (t/are [m] (nil? (sut/inverse m))
+    (sut/mat2x2 0.0) (sut/mat3x3 0.0) (sut/mat4x4 0.0))
+  (t/are [m b] (nil? (sut/solve m b))
+    (sut/mat2x2 0.0) (v/vec2 1 2)
+    (sut/mat3x3 0.0) (v/vec3 1 2 3)
+    (sut/mat4x4 0.0) (v/vec4 1 2 3 4))
+  (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException
+                 (sut/inverse (sut/mat->RealMatrix (sut/mat2x2 0.0)))))
+  (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException
+                 (sut/solve (sut/mat->RealMatrix (sut/mat2x2 0.0)) (v/vec->RealVector [1 2])))))
+
+;; A plain `Number`, as a degenerate 1x1 matrix.
+(t/deftest linalg-number-representation
+  (t/is (= 7.0 (sut/det 7.0)))
+  (t/is (m/delta-eq (/ 1.0 7.0) (sut/inverse 7.0)))
+  (t/is (= ##Inf (sut/inverse 0.0)))
+  (t/is (false? (sut/singular? 7.0)))
+  (t/is (true? (sut/singular? 0.0)))
+  (t/is (= 3.0 (sut/solve 7.0 21.0)))
+  (t/is (= 7.0 (sut/norm 7.0) (sut/norm -7.0)))
+  (t/are [t] (= 7.0 (sut/norm -7.0 t))
+    1 2 :inf :max :frobenius [2 2] [1]))
 
 ;;
 
