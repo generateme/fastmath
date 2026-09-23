@@ -193,14 +193,14 @@
 ;;
 
 (defn informedness
-  "Bookmarker informedness, BM"
+  "Bookmaker informedness, BM"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (informedness tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn]
    (m/dec (m/+ (tpr tp fp fn tn)
                (tnr tp fp fn tn)))))
 
 (defn bm
-  "Bookmarker informedness, BM"
+  "Bookmaker informedness, BM"
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (informedness tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (informedness tp fp fn tn)))
 
@@ -224,7 +224,12 @@
 ;;
 
 (defn mcc
-  "Matthews correlcation coefficient, MCC, phi "
+  "Matthews correlation coefficient, MCC, phi
+
+  Returns `##NaN` when any of `tp+fp`, `tp+fn`, `tn+fp`, `tn+fn` is zero (the
+  denominator is undefined), matching R's `metrica::mcc` convention. Note this
+  differs from scikit-learn's `matthews_corrcoef`, which returns `0.0` (with a
+  warning) in that case."
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (mcc tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] 
    (m// (m/- (m/* tp tn)
@@ -235,7 +240,8 @@
                      (m/+ tn fn))))))
 
 (defn phi
-  "Matthews correlcation coefficient, MCC, phi "
+  "Matthews correlation coefficient, MCC, phi. Alias of [[mcc]] -- see its
+  docstring for the `##NaN`-on-degenerate-input behavior."
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (mcc tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double tn] (mcc tp fp fn tn)))
 
@@ -249,14 +255,20 @@
      (m// v4 (m/+ v4 (m/* (m/+ tp tn) (m/+ fp fn)))))))
 
 (defn f1-score
-  "Matthews correlcation coefficient, MCC, phi "
+  "F1 score, the harmonic mean of precision and recall: `2*tp/(2*tp+fp+fn)`.
+
+  Equivalent to [[->f-beta]] with `beta=1`. See also [[->f-inv-beta]]."
   (^double [{:keys [^double tp ^double fp ^double fn ^double tn]}] (f1-score tp fp fn tn))
   (^double [^double tp ^double fp ^double fn ^double _tn]
    (let [tp2 (m/* 2.0 tp)]
      (m// tp2 (m/+ tp2 fp fn)))))
 
 (defn ->f-beta
-  "f-beta score creator, returns f-beta measure function for given `beta`"
+  "f-beta score creator, returns f-beta measure function for given `beta`.
+
+  `beta` only appears squared in the formula, so its sign doesn't matter --
+  `beta` and `-beta` produce the same measure function. See also [[f1-score]]
+  (the `beta=1` case) and [[->f-inv-beta]] (the reciprocal)."
   [^double beta]
   (let [beta2 (m/* beta beta)]
     (clojure.core/fn f-beta-score
@@ -347,7 +359,16 @@
              (m/* (m/+ tp fn)
                   (m/+ fn tn))))))
 
-(def measures
+(def ^{:doc "Map from measure keyword to its corresponding function.
+
+  Every value is a function accepting either a confusion-matrix map (`:tp`/`:fp`/`:fn`/`:tn`
+  keys) or the four counts as separate arguments (`tp fp fn tn`), returning a `double`.
+
+  Useful for looking up a measure function by name, e.g. `((measures :mcc) confusion-matrix)`.
+
+  See also [[binary-measures-all-calc]] (computes every measure in one pass) and
+  [[infer-confusion-matrix]] (builds the confusion-matrix map this expects)."}
+  measures
   {:p p :n n :pp pp :pn pn :total total
    :tp tp :fp fp :fn fn :tn tn
    :precision precision :ppv ppv
@@ -389,7 +410,7 @@
 
   Optional `true-value` when is:
 
-  * `nil` - if labels are numbers, all non-zero values are treated as true. Otherwise returns labels unchanged.
+  * `nil` - if labels are numbers, all non-zero values are treated as true. Otherwise each label is coerced with `boolean` (`nil`/`false` become `false`, anything else becomes `true`).
   * a sequence - all values in the sequence are treated as true.
   * a function - function is used to map true values, function should return true value (any value) and `false`/`nil` for false.
   * a value - just a single value."
@@ -440,6 +461,27 @@
     :else (throw (ex-info "Can't infer confusion matrix from the input." {:input confusion-matrix}))))
 
 (defn binary-measures-all-calc
+  "Calculates the full battery of binary classification measures from a confusion matrix in a single pass.
+
+  This is a bulk, self-contained calculation of nearly every measure also available
+  individually (`accuracy`, `precision`, `mcc`, `kappa`, etc., see [[measures]]) plus
+  a few convenience keys not exposed as standalone functions (`:cp`/`:cn`/`:pcp`/`:pcn`
+  as aliases of `:p`/`:n`/`:pp`/`:pn`, `:f-measure` as an alias of `:f1-score`, and
+  `:f-beta`, an f-beta score function of one argument `beta`).
+
+  Parameters:
+
+  - `confusion-matrix` (map): A map with `:tp`, `:fp`, `:fn`, `:tn` keys (numbers,
+    missing keys default to `0.0`), such as one returned by [[infer-confusion-matrix]].
+
+  Returns a map containing every key in [[measures]] plus `:cp`, `:cn`, `:pcp`, `:pcn`,
+  `:f-measure`, `:f-beta`.
+
+  Individual measures follow their own function's corner-case behavior, e.g. `:mcc`/`:phi`
+  are `##NaN` when their denominator is zero (see [[mcc]]).
+
+  See also [[measures]] (individual measure functions), [[binary-measures-thr]]
+  (the same set of measures swept across score thresholds)."
   [{:keys [^double tp ^double fp ^double fn ^double tn]
     :or {tp 0.0 fp 0.0 fn 0.0 tn 0.0}}]
   (let [cp (m/+ tp fn)
@@ -509,7 +551,37 @@
      :adj-f-score agf :agf agf}))
 
 (defn binary-measures-thr
-  "Calculate binary metrics at various score thresholds for given labels (true/false)."
+  "Calculates binary classification measures at every distinct score threshold, for building ROC/PR-style curves.
+
+  For each distinct value in `scores`, treats it as a decision threshold (predict
+  positive when score >= threshold) and computes the resulting confusion matrix and
+  derived measures. Observations that share the same score are treated as tied and
+  distributed evenly within that threshold's step (fractional `:tp`/`:fp`/`:fn`/`:tn`
+  counts can occur as a result).
+
+  Parameters:
+
+  - `labels` (sequence): The true class labels, converted via [[binary-process-list]]
+    (see `true-value` below).
+  - `scores` (sequence of numbers): A score per label; higher scores are predicted
+    positive at lower thresholds. Must be the same length as `labels`.
+  - `true-value` (optional): Passed through to [[binary-process-list]] to determine
+    which label values count as `true`.
+
+  Returns a map with `:p`, `:n`, `:total`, `:prevalence` (scalars) and per-threshold
+  sequences (one entry per distinct score, from highest to lowest threshold) for
+  `:thr`, `:tp`, `:fp`, `:fn`, `:tn`, and every rate/score measure (`:accuracy`,
+  `:error`, `:tpr`/`:recall`/`:sensitivity`, `:fnr`/`:miss-rate`, `:fpr`/`:fall-out`,
+  `:tnr`/`:specificity`, `:ppv`/`:precision`, `:fdr`, `:for`, `:npv`, `:mcc`,
+  `:f1-score`, `:kappa`, `:fm`, `:ts`/`:jaccard`).
+
+  At the two ends of the threshold sweep, some of these sequences hit a `0/0`
+  division; those boundary values are guarded to the nearest well-defined value
+  (e.g. `:ppv`/`:fdr` at the highest threshold, `:for`/`:npv` at the lowest) rather
+  than left as `##NaN`, matching R `precrec`'s convention for the same case.
+
+  See also [[binary-measures-all-calc]] (the same measures at a single, fixed
+  confusion matrix rather than swept across thresholds)."
   ([labels scores] (binary-measures-thr labels scores nil))
   ([labels scores true-value]
    (let [labels (binary-process-list labels true-value)
@@ -532,8 +604,8 @@
                                                      [(conj tp (m/+ tp-last tp-step))
                                                       (conj fp (m/+ fp-last fp-step))
                                                       (conj thr score)]) curr)))) ['(0.0) '(0.0) '(##Inf)]))
-         p (double (first tp))
-         n (double (first fp))
+         ^double p (first tp)
+         ^double n (first fp)
          total (m/+ p n)
          -tp (reverse tp)
          -fp (reverse fp)
