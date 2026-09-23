@@ -726,6 +726,33 @@
     (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException (sut/inverse sud)))
     (t/is (thrown? org.apache.commons.math3.linear.SingularMatrixException (sut/solve sud (v/vec2 1 2))))))
 
+;; QR decomposition is unique only up to a diagonal sign matrix (Q'=QD,
+;; R'=DR for any sign-diagonal D), so different implementations (here:
+;; Apache Commons Math's Householder-based QR vs. R's LAPACK-based `qr()`)
+;; may disagree on individual `Q`/`R` entry signs while both correctly
+;; satisfy `A = Q x R` and `Q` orthogonal -- verified via these two
+;; sign-independent invariants instead of literal component values.
+(t/deftest qr-decomposition
+  (doseq [[A rows cols] [[m22 2 2] [m33 3 3] [m44 4 4]
+                         [(sut/mat [[1.0 1.0] [1.0 2.0] [1.0 3.0]]) 3 2]]]
+    (let [qrd (sut/qr-decomposition A)
+          Q (sut/decomposition-component qrd :Q)
+          R (sut/decomposition-component qrd :R)
+          QT (sut/decomposition-component qrd :QT)]
+      (t/is (= [rows rows] (sut/shape Q)))
+      (t/is (= [rows cols] (sut/shape R)))
+      (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm Q R))) (seq (sut/mat->array A)) 1.0e-9))
+      (t/is (v/delta-eq (seq (sut/mat->array (sut/mulmt Q Q))) (seq (sut/mat->array (sut/eye rows))) 1.0e-9))
+      (t/is (= QT (sut/transpose Q)))
+      ;; R is upper triangular: every entry below the diagonal is zero
+      (t/is (every? true? (for [r (range rows) c (range (min r cols))] (m/zero? (sut/entry R r c)))))))
+  ;; `:H` component exists with the expected shape
+  (t/is (= [2 2] (sut/shape (sut/decomposition-component (sut/qr-decomposition m22) :H))))
+  ;; `threshold`: a diagonal element within threshold of zero is treated as singular
+  (let [near-singular (sut/mat2x2 1.0 2.0 2.0 4.0000001)]
+    (t/is (false? (sut/singular? (sut/qr-decomposition near-singular))))
+    (t/is (true? (sut/singular? (sut/qr-decomposition near-singular 1.0e-3))))))
+
 ;; `singular?`: zero determinant, for every representation.
 (t/deftest singular
   (t/are [m s] (= s (boolean (sut/singular? m)))
