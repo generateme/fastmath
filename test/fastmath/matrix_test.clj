@@ -4,6 +4,7 @@
             [fastmath.vector :as v]
             [fastmath.core :as m]
             [fastmath.complex :as cplx]
+            [fastmath.quaternion :as quat]
             [fastmath.random :as r]))
 
 (t/deftest create-matrix
@@ -254,6 +255,39 @@
   ;; a positive constant shift must move every element up, for both rows and cols
   (t/is (every? #(>= % 0.0) (seq (sut/mat->array (sut/shift-rows (sut/mat2x2 -5.0 -5.0 -5.0 -5.0) 5.0)))))
   (t/is (every? #(>= % 0.0) (seq (sut/mat->array (sut/shift-cols (sut/mat2x2 -5.0 -5.0 -5.0 -5.0) 5.0))))))
+
+;; independent reference: hand-written R formulas (standard Rx/Ry/Rz and
+;; Rodrigues' rotation formula), Rscript, 2026-09-23
+(t/deftest rotation-matrices
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-2d 0.7)))
+                    [0.7648421872844885 -0.644217687237691 0.644217687237691 0.7648421872844885]))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-3d-x 0.5)))
+                    [1.0 0.0 0.0 0.0 0.8775825618903728 -0.47942553860420295 0.0 0.47942553860420295 0.8775825618903728]))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-3d-y 0.6)))
+                    [0.8253356149096783 0.0 0.5646424733950354 0.0 1.0 0.0 -0.5646424733950354 0.0 0.8253356149096783]))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-3d-z 0.4)))
+                    [0.921060994002885 -0.3894183423086505 0.0 0.3894183423086505 0.921060994002885 0.0 0.0 0.0 1.0]))
+  ;; independent reference: fastmath.quaternion/from-angles implements the
+  ;; identical documented intrinsic z-y'-x'' convention with the same [x y z]
+  ;; argument order; its rotation matrix must agree exactly.
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-3d 0.3 0.4 0.5)))
+                    (seq (sut/mat->array (quat/to-rotation-matrix (quat/from-angles 0.3 0.4 0.5))))))
+  (t/is (= (sut/rotation-matrix-3d [0.3 0.4 0.5]) (sut/rotation-matrix-3d 0.3 0.4 0.5)))
+  ;; equivalent to the explicit product Rx(x) x Ry(y) x Rz(z)
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-3d 0.3 0.4 0.5)))
+                    (seq (sut/mat->array (sut/mulm (sut/rotation-matrix-3d-x 0.3)
+                                                   (sut/mulm (sut/rotation-matrix-3d-y 0.4)
+                                                             (sut/rotation-matrix-3d-z 0.5)))))))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/rotation-matrix-axis-3d 0.8 (v/vec3 1 2 3))))
+                    [0.7183705158223678 -0.5318368262913404 0.44843437892010435
+                     0.6184920521921504 0.7833619352479753 -0.061738640896033564
+                     -0.3184515400688895 0.3217043185984634 0.8916809676239876]))
+  ;; every rotation matrix is orthogonal: R x R^T = I
+  (t/are [R] (v/delta-eq (seq (sut/mat->array (sut/mulmt R R))) (seq (sut/mat->array (sut/eye 3))) 1.0e-9)
+    (sut/rotation-matrix-3d-x 0.5) (sut/rotation-matrix-3d-y 0.6) (sut/rotation-matrix-3d-z 0.4)
+    (sut/rotation-matrix-3d 0.3 0.4 0.5) (sut/rotation-matrix-axis-3d 0.8 (v/vec3 1 2 3)))
+  (t/is (v/delta-eq (seq (sut/mat->array (sut/mulmt (sut/rotation-matrix-2d 0.7) (sut/rotation-matrix-2d 0.7))))
+                    (seq (sut/mat->array (sut/eye 2))) 1.0e-9)))
 
 (t/deftest cols
   (t/are [m r] (= (sut/cols m) r)

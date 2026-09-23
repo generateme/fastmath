@@ -1424,7 +1424,7 @@
 (defn rotation-matrix-3d
   "Creates a 3d rotation matrix from Tait-Bryan angles.
 
-  Combines rotations around all three axes using the intrinsic z-y'-x'' convention: yaw around z, then pitch around the rotated y', then roll around the twice-rotated x''. This is equivalent to the matrix product Rz(z) times Ry(y) times Rx(x).
+  Combines rotations around all three axes using the intrinsic z-y'-x'' convention: yaw around z, then pitch around the rotated y', then roll around the twice-rotated x''. This is equivalent to the matrix product Rx(x) times Ry(y) times Rz(z) (matches `fastmath.quaternion/from-angles`'s identical convention: `(quaternion/to-rotation-matrix (quaternion/from-angles x y z))` equals this function's result).
 
   Parameters:
 
