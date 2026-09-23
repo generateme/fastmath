@@ -46,13 +46,13 @@
                                   [org.clojure/data.json "2.5.2"]
                                   [org.scicloj/clay "2.0.13"]
                                   [zprint "1.3.0"]
-                                  [scicloj/clojisr "1.0.0"]
-                                  [scicloj/tablecloth "7.059"]
+                                  [scicloj/clojisr "1.1.0"]
+                                  #_[scicloj/tablecloth "7.059"]
                                   [virgil "0.5.0"]
                                   [org.ow2.asm/asm "9.9"]
-                                  [clojure2d/clojure2d "1.5.0-alpha2-SNAPSHOT"]
-                                  [org.scicloj/plotje "0.8.1" :exclusions [clojure2d/clojure2d
-                                                                           generateme/fastmath]]]
+                                  [clojure2d/clojure2d "1.5.0-alpha2"]
+                                  [org.scicloj/plotje "0.14.0" :exclusions [clojure2d/clojure2d
+                                                                            generateme/fastmath]]]
                    :source-paths ["notebooks" "utils"]
                    ;; test-only reference data (e.g. precomputed R values for special-test)
                    :resource-paths ["test/resources"]}

@@ -223,7 +223,7 @@
                                                                  (.getDataRef v2)
                                                                  (.getDataRef t) f)))
    :econstrain (fn [^ArrayRealVector v ^double v1 ^double v2]
-                 (ArrayRealVector. v ^doubles (prot/econstrain (.getDataRef v) v1 v2)))
+                 (ArrayRealVector. ^doubles (prot/econstrain (.getDataRef v) v1 v2)))
    :is-zero? (fn [^ArrayRealVector v] (prot/is-zero? (.getDataRef v)))})
 
 (defn- vec-id-check
@@ -866,12 +866,12 @@
   (prot/to-vector v))
 
 (defn vec->RealVector
-  "Converts to Apache Commons Math RealVector"
+  "Converts to an Apache Commons Math `RealVector` (`ArrayRealVector`). Same as [[real-vector]]."
   ^RealVector [v]
   (prot/to-acm-vec v))
 
 (defn real-vector
-  "Converts to Apache Commons Math RealVector"
+  "Converts to an Apache Commons Math `RealVector` (`ArrayRealVector`). Same as [[vec->RealVector]]."
   ^RealVector [v]
   (prot/to-acm-vec v))
 
@@ -881,7 +881,14 @@
   (prot/to-vec v))
 
 (defn as-vec
-  "Creates vector from sequence as given type. If there is no sequence fill with `0.0`."
+  "Creates a vector of the same type and dimension as `v`, filled from a sequence `xs`.
+
+  Parameters:
+
+  - `v`: a vector whose type and size determine the shape of the result.
+  - `xs` (optional): values to fill in, taken in order; missing values default to `0.0`, extra values are ignored. When omitted, returns the zero vector of `v`'s type and size.
+
+  Used internally by [[normalize]] and its variants to produce a zero vector when the input vector's magnitude is zero."
   ([v] (prot/as-vec v))
   ([v xs] (prot/as-vec v xs)))
 
@@ -890,12 +897,18 @@
   ^long [v] (prot/size v))
 
 (defn fmap
-  "Applies function to all vector values (like map but returns the same type)."
+  "Applies a function `f` to every element of `v`, returning a new vector of the same type and dimension.
+
+  For a scalar (`Number`), `f` is applied once to the value itself. Unlike `map`, the result is never a lazy sequence.
+
+  See also [[approx]] (a common special case, rounding every element)."
   [v f]
   (prot/fmap v f))
 
 (defn magsq
-  "Returns length of the vector squared."
+  "Returns length of the vector squared.
+
+  Cheaper than [[mag]] since it avoids the square root; prefer it when only comparing magnitudes."
   ^double [v] (prot/magsq v))
 
 (defn mag
@@ -903,7 +916,7 @@
   ^double [v] (prot/mag v))
 
 (defn approx
-  "Rounds to `d` (default: 2) decimal places"
+  "Rounds every element of `v` to `d` (default: 2) decimal places, returning a vector of the same type and dimension."
   ([v] (prot/approx v 2))
   ([v d] (prot/approx v d)))
 
@@ -934,31 +947,43 @@
                                 (m/delta-eq a b abs-tol rel-tol)) v1 v2)))))
 
 (defn dot
-  "Dot product of two vectors."
+  "Dot product of two vectors: the sum of the elementwise products.
+
+  Equal to [[magsq]] when both arguments are the same vector."
   ^double [v1 v2] (prot/dot v1 v2))
 
 (defn add
-  "Sum of two vectors."
+  "Sum of two vectors, elementwise.
+
+  With one argument, returns `v` unchanged. When `v1` and `v2` are variable-length sequences of different lengths, the result is truncated to the shorter length."
   ([v] v)
   ([v1 v2] (prot/add v1 v2)))
 
 (defn sub
-  "Subtraction of two vectors."
+  "Subtraction of two vectors, elementwise.
+
+  With one argument, returns the negation of `v` (`v` multiplied by `-1.0`). When `v1` and `v2` are variable-length sequences of different lengths, the result is truncated to the shorter length."
   ([v] (prot/mult v -1.0))
   ([v1 v2] (prot/sub v1 v2)))
 
 (defn shift
-  "Adds a value to every vector element."
+  "Adds a value `x` to every element of `v`.
+
+  With one argument, returns `v` unchanged."
   ([v] v)
   ([v x] (prot/shift v x)))
 
 (defn mult
-  "Multiplies vector by number `x`."
+  "Multiplies every element of `v` by number `x`.
+
+  With one argument, returns `v` unchanged."
   ([v] v)
   ([v x] (prot/mult v x)))
 
 (defn emult
-  "Element-wise vector multiplication (Hadamard product)."
+  "Element-wise vector multiplication (Hadamard product).
+
+  With one argument, returns `v1` unchanged. When `v1` and `v2` are variable-length sequences of different lengths, the result is truncated to the shorter length."
   ([v1] v1)
   ([v1 v2] (prot/emult v1 v2)))
 
@@ -975,101 +1000,166 @@
   ^double [v] (prot/mn v))
 
 (defn emx
-  "Element-wise max from two vectors."
+  "Element-wise max from two vectors. When `v1` and `v2` are variable-length sequences of different lengths, the result is truncated to the shorter length."
   [v1 v2] (prot/emx v1 v2))
 
 (defn emn
-  "Element-wise min from two vectors."
+  "Element-wise min from two vectors. When `v1` and `v2` are variable-length sequences of different lengths, the result is truncated to the shorter length."
   [v1 v2] (prot/emn v1 v2))
 
 (defn maxdim
-  "Index of maximum value."
+  "Index of the maximum value. On ties, returns the index of the first occurrence."
   ^long [v] (prot/maxdim v))
 
 (defn mindim
-  "Index of minimum value."
+  "Index of the minimum value. On ties, returns the index of the first occurrence."
   ^long [v] (prot/mindim v))
 
 (defn base-from
-  "List of perpendicular vectors (basis). Works only for `Vec2` and `Vec3` types."
+  "Returns a list of mutually perpendicular vectors derived from `v`, forming an orthogonal basis.
+
+  The first element is `v` itself, unchanged (not normalized). The remaining elements are unit vectors: for `Vec2`, a single unit vector perpendicular to `v` (see [[perpendicular]]); for `Vec3`, a unit vector perpendicular to `v`, followed by their [[cross]] product (which has the same magnitude as `v`, since the second element is a unit vector).
+
+  Only implemented for `Vec2` and `Vec3`."
   [v] (prot/base-from v))
 
 (defn sum
-  "Sum of elements"
+  "Sum of elements. With no arguments, returns `0.0` (the identity for addition)."
   (^double [] 0.0)
   (^double [v] (prot/sum v)))
 
 (defn prod
-  "Product of elements"
+  "Product of elements. With no arguments, returns `1.0` (the identity for multiplication)."
   (^double [] 1.0)
   (^double [v] (prot/prod v)))
 
 (defn permute
-  "Permutes vector elements with given indices."
+  "Permutes vector elements with given indices `idxs`, i.e. returns a vector where element `i` is `(v (idxs i))`.
+
+  Indices may repeat or be omitted (the result has the same dimension as `idxs`, not `v`).
+
+  Not implemented for `Number`, `double` arrays, `RealVector` or `ArrayVec` (no reordering applies to a scalar, and those representations don't support it)."
   [v idxs] (prot/permute v idxs))
 
 (defn reciprocal
-  "Reciprocal of elements."
+  "Reciprocal (`1/x`) of every element. An element equal to `0.0` produces `##Inf` (or `##-Inf` for `-0.0`), not an exception."
   [v] (prot/reciprocal v))
 
 (defn interpolate 
-  "Interpolates vectors, optionally set interpolation fn (default: lerp)"
+  "Interpolates between two vectors, elementwise.
+
+  Parameters:
+
+  - `v1`, `v2`: the vectors to interpolate between.
+  - `t`: interpolation parameter, typically in `[0,1]` (`0` returns `v1`, `1` returns `v2`), though values outside this range are not rejected.
+  - `f` (optional, default [[fastmath.core/lerp]]): a function of `(x1 x2 t)` applied to each pair of corresponding elements.
+
+  See also [[lerp]], [[einterpolate]] (per-element `t`)."
   ([v1 v2 t] (prot/interpolate v1 v2 t m/lerp))
   ([v1 v2 t f] (prot/interpolate v1 v2 t f)))
 
 (defn lerp
-  "Linear interpolation of vectors"
+  "Linear interpolation of vectors. Same as [[interpolate]] with the default (`lerp`) interpolation function."
   [v1 v2 t] (prot/interpolate v1 v2 t m/lerp))
 
 (defn einterpolate 
-  "Interpolates vector selement-wise, optionally set interpolation fn (default: lerp)"
+  "Interpolates between two vectors, elementwise, with a separate interpolation parameter per element.
+
+  Parameters:
+
+  - `v1`, `v2`: the vectors to interpolate between.
+  - `v`: a vector of per-element interpolation parameters, same dimension as `v1`/`v2`.
+  - `f` (optional, default [[fastmath.core/lerp]]): a function of `(x1 x2 t)` applied to each triple of corresponding elements.
+
+  See also [[interpolate]] (single shared `t`)."
   ([v1 v2 v] (prot/einterpolate v1 v2 v m/lerp))
   ([v1 v2 v f] (prot/einterpolate v1 v2 v f)))
 
 (defn econstrain
-  "Element-wise constrain"
+  "Clamps every element of `v` to the closed interval `[mn, mx]`, returning a vector of the same type and dimension."
   [v mn mx] (prot/econstrain v mn mx))
 
 (defn is-zero?
-  "Is vector zero?"
+  "Checks if every element of `v` is exactly `0.0`. Same as [[zero?]]."
   [v] (prot/is-zero? v))
 
 (defn zero?
-  "Is vector zero?"
+  "Checks if every element of `v` is exactly `0.0`. Same as [[is-zero?]].
+
+  See also [[near-zero?]] for a tolerance-based check."
   [v] (prot/is-zero? v))
 
 (defn is-near-zero?
-  "Equality to zero `0` with given absolute (and/or relative) toleance."
+  "Checks if [[mag]] of `v` is within the given absolute (and/or relative) tolerance of zero. Default 1.0e-6 absolute tolerance. Same as [[near-zero?]]."
   ([v] (is-near-zero? v 1.0e-6))
   ([v ^double abs-tol] (m/near-zero? (mag v) abs-tol))
   ([v ^double abs-tol ^double rel-tol] (m/near-zero? (mag v) abs-tol rel-tol)))
 
 (defn near-zero?
-  "Equality to zero `0` with given absolute (and/or relative) toleance."
+  "Checks if [[mag]] of `v` is within the given absolute (and/or relative) tolerance of zero. Default 1.0e-6 absolute tolerance. Same as [[is-near-zero?]]."
   ([v] (near-zero? v 1.0e-6))
   ([v ^double abs-tol] (m/near-zero? (mag v) abs-tol))
   ([v ^double abs-tol ^double rel-tol] (m/near-zero? (mag v) abs-tol rel-tol)))
 
 (defn heading
-  "Angle between vector and unit vector `[1,0,...]`"
+  "Angle, in radians, between `v` and the primary axis unit vector `[1,0,...]`.
+
+  For `Vec2`, this is the signed polar angle `atan2(y, x)`, ranging over the full circle from `-π` to `π`.
+
+  For every other representation (`Vec3`, `Vec4`, plain sequences, `double` arrays, `RealVector`), this is the unsigned angle computed via [[angle-between]] against `[1,0,...,0]`, ranging from `0` to `π`. Because that angle depends only on the dot product with the primary axis, it captures the vector's tilt away from that axis but not its full direction: for 3 or more dimensions it is degenerate, e.g. `(heading [-1 4 0])` and `(heading [-1 -4 0])` return the same value, since both vectors share the same `x` component and magnitude.
+
+  See also [[angle-between]]."
   ^double [v] (prot/heading v))
 
 (defn cross
-  "Cross product"
+  "Cross product of two vectors.
+
+  For `Vec2`, returns a scalar: the signed magnitude of the cross product (equivalently, the z-component if both vectors were embedded in the xy-plane of 3d space), positive when `v2` is counter-clockwise from `v1`.
+
+  For `Vec3`, returns a `Vec3` perpendicular to both `v1` and `v2`, following the right-hand rule, with magnitude equal to `mag(v1) * mag(v2) * sin(angle-between v1 v2)`.
+
+  Not implemented for `Vec4` or other representations.
+
+  See also [[triple-product]]."
   [v1 v2] (prot/cross v1 v2))
 
 (defn rotate
-  "Rotates vector. Only for `Vec2` and `Vec3` types."
+  "Rotates `v` by the given angle(s), in radians.
+
+  Parameters:
+
+  - `[v angle]`: rotates a `Vec2` counter-clockwise by `angle` around the origin.
+  - `[v angle-x angle-y angle-z]`: rotates a `Vec3` by successive Euler rotations around the x, y and z axes (in that order), by `angle-x`, `angle-y` and `angle-z` respectively.
+
+  Only implemented for `Vec2` (2-arity) and `Vec3` (4-arity).
+
+  See also [[axis-rotate]] (rotation around an arbitrary axis)."
   ([v angle] (prot/rotate v angle))
   ([v angle-x angle-y angle-z] (prot/rotate v angle-x angle-y angle-z)))
 
 (defn axis-rotate
-  "Rotates vector. Only for `Vec3` types"
+  "Rotates a `Vec3` by `angle` radians around an arbitrary `axis`, following the right-hand rule (`axis` need not be normalized).
+
+  Parameters:
+
+  - `[v angle axis]`: rotates `v` around `axis` through the origin.
+  - `[v angle axis pivot]`: rotates `v` around an axis parallel to `axis` passing through `pivot`; equivalent to translating `v` by `-pivot`, rotating, then translating back.
+
+  Only implemented for `Vec3`.
+
+  See also [[rotate]] (fixed-axis Euler rotation)."
   ([v angle axis] (prot/axis-rotate v angle axis))
   ([v angle axis pivot] (prot/axis-rotate v angle axis pivot)))
 
 (defn perpendicular
-  "Perpendicular vector. Only for `Vec2` and `Vec3` types."
+  "Returns a unit vector perpendicular to the input.
+
+  Parameters:
+
+  - `[v]`: for `Vec2`, the unique (up to sign) unit vector perpendicular to `v`.
+  - `[v1 v2]`: for `Vec3`, the unit vector perpendicular to both `v1` and `v2` (normalized [[cross]] product).
+
+  Only implemented for `Vec2` (1-arity) and `Vec3` (2-arity)."
   ([v] (prot/perpendicular v))
   ([v1 v2] (prot/perpendicular v1 v2)))
 
@@ -1083,11 +1173,21 @@
   ([v o vx vy vz] (prot/transform v o vx vy vz)))
 
 (defn to-polar
-  "To polar coordinates (2d, 3d only), first element is length, the rest angle."
+  "Converts `v` to polar (2d) or spherical (3d) coordinates, returned as a vector of the same type.
+
+  For `Vec2`: `[r theta]`, where `r` is the magnitude ([[mag]]) and `theta` is the polar angle ([[heading]]).
+
+  For `Vec3`: `[r theta phi]`, where `r` is the magnitude, `theta` is the angle from the positive z axis (`0` at the north pole, `π` at the south pole), and `phi` is the azimuthal angle in the xy-plane (`atan2(y, x)`).
+
+  Only implemented for `Vec2` and `Vec3`.
+
+  See also [[from-polar]] (inverse)."
   [v] (prot/to-polar v))
 
 (defn from-polar
-  "From polar coordinates (2d, 3d only)"
+  "Converts `v` from polar (2d) or spherical (3d) coordinates back to Cartesian coordinates, using the same `[r theta]`/`[r theta phi]` convention as [[to-polar]], which it inverts.
+
+  Only implemented for `Vec2` and `Vec3`."
   [v] (prot/from-polar v))
 
 (defn triple-product
@@ -1098,20 +1198,32 @@
 ;; creators
 
 (defn vec2
-  "Creates 2d vector."
+  "Creates a 2d vector (`Vec2`).
+
+  Accepts `x` and `y` components directly, a two-element sequence `[x y]`, or no arguments for the zero vector `[0.0 0.0]`.
+
+  See also [[vec3]], [[vec4]], [[array-vec]]."
   ([x y] (Vec2. x y))
   ([[x y]] (Vec2. x y))
   ([] (Vec2. 0.0 0.0)))
 
 (defn vec3
-  "Creates Vec2 vector"
+  "Creates a 3d vector (`Vec3`).
+
+  Accepts `x`, `y` and `z` components directly, an existing `Vec2` plus a `z` component, a three-element sequence `[x y z]`, or no arguments for the zero vector `[0.0 0.0 0.0]`.
+
+  See also [[vec2]], [[vec4]], [[array-vec]]."
   ([x y z] (Vec3. x y z))
   ([^Vec2 v z] (Vec3. (.x v) (.y v) z))
   ([[x y z]] (Vec3. x y z))
   ([] (Vec3. 0.0 0.0 0.0)))
 
 (defn vec4
-  "Creates Vec4 vector"
+  "Creates a 4d vector (`Vec4`).
+
+  Accepts `x`, `y`, `z` and `w` components directly, an existing `Vec3` plus a `w` component, an existing `Vec2` plus `z` and `w` components, a four-element sequence `[x y z w]`, or no arguments for the zero vector `[0.0 0.0 0.0 0.0]`.
+
+  See also [[vec2]], [[vec3]], [[array-vec]]."
   ([x y z w] (Vec4. x y z w))
   ([^Vec3 v w] (Vec4. (.x v) (.y v) (.z v) w))
   ([^Vec2 v z w] (Vec4. (.x v) (.y v) z w))
@@ -1124,9 +1236,12 @@
   (ArrayVec. (double-array xs)))
 
 (defn make-vector
-  "Returns fixed size vector for given number of dimensions.
+  "Creates a zero vector of the given number of dimensions, using the most specific available type.
 
-  Proper type is used."
+  Parameters:
+
+  - `dims`: target dimension count. Returns `0.0` for `1`, [[vec2]], [[vec3]] or [[vec4]] for `2`, `3` or `4`, and a `double` array of zeros for `5` or more. Returns `nil` for `dims` less than `1`.
+  - `xs` (optional): initial values, filled into the created vector via [[as-vec]] (extra values are dropped, missing values default to `0.0`)."
   ([dims xs] (prot/as-vec (make-vector dims) xs))
   ([^long dims]
    (when (pos? dims)
@@ -1354,53 +1469,98 @@
   (mult v2 (m// (dot v1 v2) (magsq v2))))
 
 (defn generate-vec2
-  "Generates Vec2 with fn(s)"
+  "Creates a `Vec2` by evaluating no-argument functions for each component.
+
+  Parameters:
+
+  - `[f1 f2]`: `f1` is called for `x`, then `f2` for `y`.
+  - `[f]`: `f` is called independently once per component (twice total); the two calls may return different values when `f` is not constant, e.g. a random number generator.
+
+  See also [[generate-vec3]], [[generate-vec4]]."
   ([f1 f2]
    (Vec2. (f1) (f2)))
   ([f]
    (Vec2. (f) (f))))
 
 (defn generate-vec3
-  "Generates Vec3 with fn(s)"
+  "Creates a `Vec3` by evaluating no-argument functions for each component.
+
+  Parameters:
+
+  - `[f1 f2 f3]`: `f1` is called for `x`, then `f2` for `y`, then `f3` for `z`.
+  - `[f]`: `f` is called independently once per component (three times total); the calls may return different values when `f` is not constant, e.g. a random number generator.
+
+  See also [[generate-vec2]], [[generate-vec4]]."
   ([f1 f2 f3]
    (Vec3. (f1) (f2) (f3)))
   ([f]
    (Vec3. (f) (f) (f))))
 
 (defn generate-vec4
-  "Generates Vec4 with fn(s)"
+  "Creates a `Vec4` by evaluating no-argument functions for each component.
+
+  Parameters:
+
+  - `[f1 f2 f3 f4]`: `f1` is called for `x`, then `f2` for `y`, then `f3` for `z`, then `f4` for `w`.
+  - `[f]`: `f` is called independently once per component (four times total); the calls may return different values when `f` is not constant, e.g. a random number generator.
+
+  See also [[generate-vec2]], [[generate-vec3]]."
   ([f1 f2 f3 f4]
    (Vec4. (f1) (f2) (f3) (f4)))
   ([f]
    (Vec4. (f) (f) (f) (f))))
 
 (defn array->vec2
-  "Converts doubles array to Vec2"
+  "Converts a `double` array to a `Vec2`, reading its first two elements as `x` and `y`.
+
+  Throws `ArrayIndexOutOfBoundsException` if `arr` has fewer than 2 elements; extra elements are ignored.
+
+  See also [[array->vec3]], [[array->vec4]], [[seq->vec2]]."
   [^doubles arr]
   (Vec2. (Array/aget arr 0) (Array/aget arr 1)))
 
 (defn array->vec3
-  "Converts doubles array to Vec3"
+  "Converts a `double` array to a `Vec3`, reading its first three elements as `x`, `y` and `z`.
+
+  Throws `ArrayIndexOutOfBoundsException` if `arr` has fewer than 3 elements; extra elements are ignored.
+
+  See also [[array->vec2]], [[array->vec4]], [[seq->vec3]]."
   [^doubles arr]
   (Vec3. (Array/aget arr 0) (Array/aget arr 1) (Array/aget arr 2)))
 
 (defn array->vec4
-  "Converts doubles array to Vec4"
+  "Converts a `double` array to a `Vec4`, reading its first four elements as `x`, `y`, `z` and `w`.
+
+  Throws `ArrayIndexOutOfBoundsException` if `arr` has fewer than 4 elements; extra elements are ignored.
+
+  See also [[array->vec2]], [[array->vec3]], [[seq->vec4]]."
   [^doubles arr]
   (Vec4. (Array/aget arr 0) (Array/aget arr 1) (Array/aget arr 2) (Array/aget arr 3)))
 
 (defn seq->vec2
-  "Converts any seq to Vec2"
+  "Converts any sequence to a `Vec2`, reading its first two elements as `x` and `y`.
+
+  Missing elements default to `0.0`; extra elements are ignored.
+
+  See also [[seq->vec3]], [[seq->vec4]], [[array->vec2]]."
   [xs]
   (Vec2. (nth xs 0 0.0) (nth xs 1 0.0)))
 
 (defn seq->vec3
-  "Converts any seq to Vec3"
+  "Converts any sequence to a `Vec3`, reading its first three elements as `x`, `y` and `z`.
+
+  Missing elements default to `0.0`; extra elements are ignored.
+
+  See also [[seq->vec2]], [[seq->vec4]], [[array->vec3]]."
   [xs]
   (Vec3. (nth xs 0 0.0) (nth xs 1 0.0) (nth xs 2 0.0)))
 
 (defn seq->vec4
-  "Converts any seq to Vec4"
+  "Converts any sequence to a `Vec4`, reading its first four elements as `x`, `y`, `z` and `w`.
+
+  Missing elements default to `0.0`; extra elements are ignored.
+
+  See also [[seq->vec2]], [[seq->vec3]], [[array->vec4]]."
   [xs]
   (Vec4. (nth xs 0 0.0) (nth xs 1 0.0) (nth xs 2 0.0) (nth xs 3 0.0)))
 

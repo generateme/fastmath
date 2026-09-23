@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Fixed
 
+* `fastmath.vector/econstrain` on an `ArrayRealVector` called the Apache Commons Math concatenating constructor `ArrayRealVector(RealVector, double[])` instead of the plain `ArrayRealVector(double[])`, silently doubling the result's dimension (original values followed by the correctly-clamped values) instead of clamping in place
 * `fastmath.stats/cramers-v-corrected` silently ignored the Bergsma bias-correction term (returning the same value as uncorrected `cramers-v`) whenever the correction was less than 1, due to an integer-truncating division bug
 * `fastmath.stats/moment` with `:normalize? true` divided by the sample (n-1) variance instead of the population variance used by the rest of the function, silently biasing every normalized result (e.g. skewness/kurtosis-like moments) by a hidden `(n-1)/n` factor
 * `fastmath.stats/trim-upper` used the `quantile`-th percentile as its cutoff instead of the documented `(1.0-quantile)`-th, so it discarded the bottom N% and kept the top `(1-N)%` — the exact opposite of its documented behavior
