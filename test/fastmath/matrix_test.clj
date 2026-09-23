@@ -779,6 +779,42 @@
     (t/is (false? (sut/singular? (sut/rrqr-decomposition near-singular))))
     (t/is (true? (sut/singular? (sut/rrqr-decomposition near-singular 1.0e-3))))))
 
+;; independent reference: R's `t(chol(A))` and `det()`, Rscript, 2026-09-23
+(t/deftest cholesky-decomposition
+  (let [A (sut/mat3x3 4.0 2.0 1.0 2.0 5.0 3.0 1.0 3.0 6.0)
+        chd (sut/cholesky-decomposition A)
+        L (sut/decomposition-component chd :L)]
+    (t/is (v/delta-eq (seq (sut/mat->array L))
+                      [2.0 0.0 0.0 1.0 2.0 0.0 0.5 1.25 2.0463381929681126]))
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulmt L L))) (seq (sut/mat->array A)) 1.0e-9))
+    (t/is (= (sut/decomposition-component chd :LT) (sut/transpose L)))
+    (t/is (m/delta-eq 67.0 (sut/decomposition-component chd :det)))
+    (t/is (m/delta-eq (sut/decomposition-component chd :det) (sut/det A))))
+  ;; throws on non-symmetric or non-square input
+  (t/is (thrown? org.apache.commons.math3.linear.NonSymmetricMatrixException (sut/cholesky-decomposition m22)))
+  (t/is (thrown? org.apache.commons.math3.linear.NonSquareMatrixException
+                 (sut/cholesky-decomposition (sut/mat [[1.0 2.0 3.0] [4.0 5.0 6.0]])))))
+
+;; independent reference: pivoted reconstruction `A = inv(P) x L x U = P^T x L x U`
+;; (`P` is a permutation, hence orthogonal, matrix), cross-checked against `det`
+;; (itself R-verified in Group 2.4).
+(t/deftest lu-decomposition
+  (let [lud (sut/lu-decomposition m33)
+        L (sut/decomposition-component lud :L)
+        U (sut/decomposition-component lud :U)
+        P (sut/decomposition-component lud :P)]
+    (t/is (v/delta-eq (seq (sut/mat->array (sut/mulm (sut/transpose P) (sut/mulm L U))))
+                      (seq (sut/mat->array m33)) 1.0e-9))
+    (t/is (m/delta-eq (sut/decomposition-component lud :det) (sut/det m33)))
+    (t/is (= 3 (v/size (sut/decomposition-component lud :pivot)))))
+  ;; throws on rectangular input
+  (t/is (thrown? org.apache.commons.math3.linear.NonSquareMatrixException
+                 (sut/lu-decomposition (sut/mat [[1.0 2.0 3.0] [4.0 5.0 6.0]]))))
+  ;; `threshold`: a pivot within threshold of zero is treated as singular
+  (let [near-singular (sut/mat2x2 1.0 2.0 2.0 4.0000001)]
+    (t/is (false? (sut/singular? (sut/lu-decomposition near-singular))))
+    (t/is (true? (sut/singular? (sut/lu-decomposition near-singular 1.0e-3))))))
+
 ;; `singular?`: zero determinant, for every representation.
 (t/deftest singular
   (t/are [m s] (= s (boolean (sut/singular? m)))
