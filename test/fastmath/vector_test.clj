@@ -766,3 +766,30 @@
 
 (t/deftest logmeanexp-test
   (t/is (m/approx-eq (m/- (sut/logsumexp v3s) (m/log (sut/size v3s))) (sut/logmeanexp v3s))))
+
+;; ==== Fastmath Vector Audit — Group 2.10: Orthogonal polynomials ====
+;; Reference: R `poly(1:5, degree=4)` (base R's discrete orthogonal polynomial basis via
+;; the same three-term-recurrence construction), 2026-09-23:
+;;   Rscript -e 'options(digits=10); print(poly(1:5, degree=4))'
+;; Orthonormal-polynomials output matches R's poly() columns exactly, including sign.
+
+(def op-xs [1.0 2.0 3.0 4.0 5.0])
+
+(t/deftest orthogonal-polynomials-test
+  (let [op (sut/orthogonal-polynomials op-xs)]
+    (t/is (== 4 (count op))) ;; degree 1..(count xs - 1)
+    (t/testing "pairwise orthogonality (discrete inner product over xs)"
+      (doseq [i (range (count op)) j (range (count op)) :when (< i j)]
+        (t/is (m/approx-eq 0.0 (sut/dot (nth op i) (nth op j)))
+              (str "not orthogonal: degrees " i " " j))))))
+
+(t/deftest orthonormal-polynomials-test
+  (let [onp (sut/orthonormal-polynomials op-xs)]
+    (t/is (== 4 (count onp)))
+    (t/testing "unit L2 norm"
+      (doseq [v onp] (t/is (m/approx-eq 1.0 (sut/mag v)))))
+    (t/testing "matches R poly(1:5, degree=4) exactly, including sign"
+      (t/is (sut/delta-eq [-0.6324555320 -0.3162277660 0.0 0.3162277660 0.6324555320] (nth onp 0)))
+      (t/is (sut/delta-eq [0.5345224838 -0.2672612419 -0.5345224838 -0.2672612419 0.5345224838] (nth onp 1)))
+      (t/is (sut/delta-eq [-0.3162277660 0.6324555320 0.0 -0.6324555320 0.3162277660] (nth onp 2)))
+      (t/is (sut/delta-eq [0.1195228609 -0.4780914437 0.7171371656 -0.4780914437 0.1195228609] (nth onp 3))))))
