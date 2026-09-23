@@ -1707,12 +1707,12 @@
 (defn logsoftmax
   "Calculates the element-wise natural logarithm of the softmax function for the given vector `v`.
 
-  The standard log-softmax of an element $v_i$ is $\\log(\\operatorname{softmax}(v)_i)$, which is mathematically equivalent to $v_i - \\log(\\sum_j \\exp(v_j))$.
+  The standard log-softmax of an element `v_i` is `log(softmax(v)_i)`, which is mathematically equivalent to `v_i - log(sum_j(exp(v_j)))`.
   This function provides a numerically stable implementation of this calculation, particularly useful for avoiding overflow and underflow issues when dealing with large or small exponential values.
 
   It supports two arities:
   - `[v]`: Computes the standard log-softmax using the numerically stable form.
-  - `[v t]`: Computes the temperature-scaled log-softmax. Elements are divided by the temperature `t` *before* applying the log-softmax formula, i.e., $\\frac{v_i}{t} - \\log(\\sum_j \\wxp(\\fac{v_j}{t}))$. The temperature influences the shape of the corresponding softmax output distribution: $t > 1$ softens it, $t < 1$ sharpens it.
+  - `[v t]`: Computes the temperature-scaled log-softmax. Elements are divided by the temperature `t` *before* applying the log-softmax formula, i.e., `v_i/t - log(sum_j(exp(v_j/t)))`. The temperature influences the shape of the corresponding softmax output distribution: `t > 1` softens it, `t < 1` sharpens it.
 
   Log-softmax is frequently used in numerical computations, especially in machine learning (e.g., as part of the cross-entropy loss function) for its superior numerical properties.
 

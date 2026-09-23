@@ -740,3 +740,29 @@
 
 (t/deftest pow-test
   (t/is (= (sut/vec2 (m/pow 2.0 3.0) (m/pow 3.0 3.0)) (sut/pow (sut/vec2 2.0 3.0) 3.0))))
+
+;; ==== Fastmath Vector Audit — Group 2.9: Softmax family ====
+;; Reference: cross-checked identities (softmax sums to 1 and matches the naive
+;; exp(vi)/sum(exp) formula for safe-magnitude inputs; logsoftmax == log(softmax);
+;; logsumexp == log(sum(exp(v))); logmeanexp == logsumexp - log(size(v))), confirmed
+;; via REPL against the running source, 2026-09-23.
+
+(def v3s (sut/vec3 1.0 2.0 3.0))
+
+(t/deftest softmax-test
+  (t/is (m/approx-eq 1.0 (sut/sum (sut/softmax v3s))))
+  (t/is (sut/delta-eq (sut/fmap v3s (fn [^double x] (m// (m/exp x) (sut/sum (sut/fmap v3s m/exp)))))
+                      (sut/softmax v3s)))
+  (t/testing "temperature: low t sharpens toward one-hot, high t softens toward uniform"
+    (t/is (m/> (sut/mx (sut/softmax v3s 0.1)) 0.99))
+    (t/is (m/< (m/- (sut/mx (sut/softmax v3s 10.0)) (sut/mn (sut/softmax v3s 10.0))) 0.1))))
+
+(t/deftest logsoftmax-test
+  (t/is (sut/delta-eq (sut/fmap (sut/softmax v3s) m/log) (sut/logsoftmax v3s)))
+  (t/is (sut/delta-eq (sut/fmap (sut/softmax v3s 2.0) m/log) (sut/logsoftmax v3s 2.0))))
+
+(t/deftest logsumexp-test
+  (t/is (m/approx-eq (m/log (sut/sum (sut/fmap v3s m/exp))) (sut/logsumexp v3s))))
+
+(t/deftest logmeanexp-test
+  (t/is (m/approx-eq (m/- (sut/logsumexp v3s) (m/log (sut/size v3s))) (sut/logmeanexp v3s))))
