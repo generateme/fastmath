@@ -1191,7 +1191,9 @@
   [v] (prot/from-polar v))
 
 (defn triple-product
-  "a o (b x c)"
+  "Scalar triple product of three 3d vectors: `a . (b x c)`.
+
+  Equal to the signed volume of the parallelepiped spanned by `a`, `b` and `c`; zero when the three are coplanar. Antisymmetric under swapping any two arguments (the sign flips)."
   ^double [a b c]
   (dot a (cross b c)))
 
@@ -1458,7 +1460,7 @@
   The heading is the angle relative to the positive primary axis ([1,0,...]).
   For 2D vectors, this is the difference between their polar angles.
 
-  Returns value from $-2\\pi$ to $2\\pi$.
+  Returns a value from -2π to 2π.
 
   See also [[angle-between]] (absolute angle between vectors) and [[heading]]."
   ^double [v1 v2]

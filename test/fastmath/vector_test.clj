@@ -626,3 +626,37 @@
     (t/testing "over limit: scaled down to the given length"
       (t/is (m/approx-eq 3.0 (sut/mag (sut/limit v 3.0))))
       (t/is (sut/delta-eq (sut/vec2 1.8 2.4) (sut/limit v 3.0))))))
+
+;; ==== Fastmath Vector Audit — Group 2.6: Angle/alignment ====
+;; Reference: hand-computed formulas (acos(dot/(|v1||v2|)) for angle-between; mult(v2,
+;; dot(v1,v2)/magsq(v2)) for project; dot(a,(cross b c)) for triple-product), confirmed
+;; via REPL against the running source, 2026-09-23. Note: the pre-existing test asserting
+;; `angle-between v1 v2 == -(relative-angle-between v1 v2)` is a coincidental identity for
+;; that specific fixture pair (holds only when v2's heading trails v1's within a half-turn),
+;; not a general mathematical law — angle-between is independently hand-verified below.
+
+(t/deftest angle-between-test
+  (t/is (m/approx-eq (m/acos (/ (sut/dot v2-in1 v2-in2) (* (sut/mag v2-in1) (sut/mag v2-in2))))
+                     (sut/angle-between v2-in1 v2-in2)))
+  (t/is (m/approx-eq 0.0 (sut/angle-between v2-in1 v2-in1)))
+  (t/is (m/approx-eq m/PI (sut/angle-between v2-in1 (sut/mult v2-in1 -1.0))))
+  (t/testing "zero vector: defined as 0, not NaN/exception"
+    (t/is (m/approx-eq 0.0 (sut/angle-between v2-in1 (sut/vec2 0.0 0.0))))))
+
+(t/deftest faceforward-flip-test
+  (t/testing "dot(n,v) negative: n is flipped"
+    (t/is (= (sut/sub v2-in1) (sut/faceforward v2-in1 (sut/mult v2-in1 -1.0))))))
+
+(t/deftest project-test
+  (t/is (sut/delta-eq (sut/mult v2-in2 (/ (sut/dot v2-in1 v2-in2) (sut/magsq v2-in2)))
+                      (sut/project v2-in1 v2-in2)))
+  (t/testing "result is parallel to the vector projected onto (2d cross product is 0)"
+    (t/is (m/approx-eq 0.0 (sut/cross (sut/project v2-in1 v2-in2) v2-in2)))))
+
+(t/deftest triple-product-test
+  (let [x (sut/vec3 1.0 0.0 0.0) y (sut/vec3 0.0 1.0 0.0) z (sut/vec3 0.0 0.0 1.0)]
+    (t/is (m/approx-eq 1.0 (sut/triple-product x y z)))
+    (t/testing "antisymmetric under swapping two arguments"
+      (t/is (m/approx-eq -1.0 (sut/triple-product y x z)))))
+  (t/is (m/approx-eq (sut/dot v3-in1 (sut/cross v3-in2 (sut/vec3 0.0 1.0 1.0)))
+                     (sut/triple-product v3-in1 v3-in2 (sut/vec3 0.0 1.0 1.0)))))
