@@ -697,3 +697,46 @@
     (t/is (= [5.0 7.0] (seq (sut/differences [1.0 3.0 6.0 10.0] 1 2)))))
   (t/testing "diffs = 0: returns the input unchanged"
     (t/is (= [1.0 2.0 4.0 7.0 11.0] (seq (sut/differences [1.0 2.0 4.0 7.0 11.0] 0))))))
+
+;; ==== Fastmath Vector Audit — Group 2.8: Elementwise math wrappers ====
+;; Reference: the underlying scalar functions (fastmath.core) and `fmap` (fastmath.vector,
+;; Group 2.2) are both already independently audited/verified elsewhere. What this group
+;; specifically verifies is that each `primitive-ops`-generated wrapper is wired to the
+;; CORRECT underlying scalar function (a plausible bug shape given ~58 near-identical
+;; generated defns: a copy-paste/symbol-list error would silently produce a working
+;; function computing the wrong thing). Data-driven: for each [vector-fn core-fn x] triple,
+;; asserts (vector-fn [x, 0.7x]) == [core-fn(x), core-fn(0.7x)]; `x` chosen within the
+;; mathematical domain of each `core-fn` (confirmed via REPL, 2026-09-23).
+
+(def elementwise-fn-cases
+  [[sut/sin m/sin 0.5] [sut/cos m/cos 0.5] [sut/tan m/tan 0.5]
+   [sut/asin m/asin 0.5] [sut/acos m/acos 0.5] [sut/atan m/atan 0.5]
+   [sut/sinh m/sinh 0.5] [sut/cosh m/cosh 0.5] [sut/tanh m/tanh 0.5]
+   [sut/asinh m/asinh 0.5] [sut/acosh m/acosh 1.5] [sut/atanh m/atanh 0.5]
+   [sut/cot m/cot 0.5] [sut/sec m/sec 0.5] [sut/csc m/csc 0.5]
+   [sut/acot m/acot 0.5] [sut/asec m/asec 1.5] [sut/acsc m/acsc 1.5]
+   [sut/coth m/coth 0.5] [sut/sech m/sech 0.5] [sut/csch m/csch 0.5]
+   [sut/acoth m/acoth 1.5] [sut/asech m/asech 0.5] [sut/acsch m/acsch 0.5]
+   [sut/sq m/sq 0.5] [sut/cb m/cb 0.5] [sut/safe-sqrt m/safe-sqrt -0.5]
+   [sut/sqrt m/sqrt 0.5] [sut/cbrt m/cbrt 0.5] [sut/exp m/exp 0.5]
+   [sut/log m/log 0.5] [sut/log10 m/log10 0.5] [sut/log2 m/log2 0.5]
+   [sut/ln m/ln 0.5] [sut/log1p m/log1p 0.5] [sut/expm1 m/expm1 0.5]
+   [sut/log1pexp m/log1pexp 0.5] [sut/log1mexp m/log1mexp -0.5] [sut/log1psq m/log1psq 0.5]
+   [sut/log1pmx m/log1pmx 0.5] [sut/logmxp1 m/logmxp1 0.5] [sut/logexpm1 m/logexpm1 0.5]
+   [sut/pow10 m/pow10 0.5]
+   [sut/radians m/radians 0.5] [sut/degrees m/degrees 0.5] [sut/sinc m/sinc 0.5]
+   [sut/sigmoid m/sigmoid 0.5] [sut/logit m/logit 0.5] [sut/xlogx m/xlogx 0.5]
+   [sut/floor m/floor 0.5] [sut/ceil m/ceil 0.5] [sut/round m/round 0.5]
+   [sut/rint m/rint 0.5] [sut/trunc m/trunc 0.5] [sut/frac m/frac 0.5]
+   [sut/sfrac m/sfrac 0.5] [sut/signum m/signum 0.5] [sut/sgn m/sgn 0.5]])
+
+(t/deftest elementwise-primitive-ops-test
+  (t/is (== 58 (count elementwise-fn-cases)))
+  (doseq [[vfn cfn ^double x] elementwise-fn-cases]
+    (let [y (* 0.7 x)
+          expected (sut/vec2 (double (cfn x)) (double (cfn y)))
+          actual (vfn (sut/vec2 x y))]
+      (t/is (sut/delta-eq expected actual) (str "mismatch for " vfn)))))
+
+(t/deftest pow-test
+  (t/is (= (sut/vec2 (m/pow 2.0 3.0) (m/pow 3.0 3.0)) (sut/pow (sut/vec2 2.0 3.0) 3.0))))

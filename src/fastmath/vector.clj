@@ -1663,7 +1663,7 @@
   (let [v (symbol "vector")]
     `(do ~@(for [f fns
                  :let [nm (symbol (name f))
-                       doc (str "Applies " nm " to vector elements.")]]
+                       doc (str "Applies [[fastmath.core/" nm "]] to every element of `v`, elementwise, returning a vector of the same type.")]]
              `(defn ~nm ~doc
                 [~v]
                 (prot/fmap ~v ~f))))))
@@ -1677,7 +1677,9 @@
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
 (defn pow
-  "Applies power to a vector elements."
+  "Raises every element of `v` to `exponent`, elementwise, returning a vector of the same type.
+
+  See also [[fastmath.core/pow]]."
   [v ^double exponent]
   (fmap v (fn [^double x] (m/pow x exponent))))
 
