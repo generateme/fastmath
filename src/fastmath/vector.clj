@@ -1267,7 +1267,9 @@
   (prot/emult v1 (prot/reciprocal v2)))
 
 (defn zero-count
-  "Counts zeros in vector"
+  "Counts the number of elements of `v` equal to `0.0`.
+
+  See also [[nonzero-count]]."
   [v]
   (reduce (fn [^long cnt ^double x]
             (if (m/zero? x) (m/inc cnt) cnt)) 0 v))
@@ -1280,19 +1282,35 @@
   ([v] (prot/econstrain v 0.0 Double/MAX_VALUE)))
 
 (defn nonzero-count
-  "Counts non zero velues in vector"
+  "Counts the number of elements of `v` not equal to `0.0`.
+
+  See also [[zero-count]]."
   [v]
   (reduce (fn [^long cnt ^double x]
             (if (m/zero? x) cnt (m/inc cnt))) 0 v))
 
 (defn average-vectors
-  "Average / centroid of vectors. Input: initial vector (optional), list of vectors"
+  "Computes the average (centroid) of a collection of vectors.
+
+  Parameters:
+
+  - `[vs]`: averages all vectors in `vs`.
+  - `[init vs]`: averages `init` together with all vectors in `vs` (`init` counts as one additional vector, not a separate running accumulator); the result is divided by `(inc (count vs))`, the total number of vectors including `init`.
+
+  See also [[average]] (mean of a single vector's own elements, not across multiple vectors)."
   ([init vs]
    (div (reduce prot/add init vs) (m/inc (size vs))))
   ([vs] (average-vectors (first vs) (rest vs))))
 
 (defn average
-  "Mean or weighted average of the vector"
+  "Computes the mean, or weighted mean, of the elements of `v`.
+
+  Parameters:
+
+  - `[v]`: unweighted arithmetic mean, `sum(v) / size(v)`.
+  - `[v weights]`: weighted mean, `dot(v, weights) / sum(weights)`.
+
+  See also [[average-vectors]] (average across multiple vectors, not within one)."
   (^double [v] (m// (sum v) (size v)))
   (^double [v weights] (m// (dot v weights) (sum weights))))
 

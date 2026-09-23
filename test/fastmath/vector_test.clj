@@ -660,3 +660,40 @@
       (t/is (m/approx-eq -1.0 (sut/triple-product y x z)))))
   (t/is (m/approx-eq (sut/dot v3-in1 (sut/cross v3-in2 (sut/vec3 0.0 1.0 1.0)))
                      (sut/triple-product v3-in1 v3-in2 (sut/vec3 0.0 1.0 1.0)))))
+
+;; ==== Fastmath Vector Audit — Group 2.7: Aggregate/statistical helpers ====
+;; Reference: hand-computed formulas, confirmed via REPL against the running source,
+;; 2026-09-23. `average-vectors`' 1-arity was already tested (single case); its 2-arity
+;; (explicit init) is cross-checked here against direct add/div, confirming no off-by-one
+;; in the denominator (init + N additional vectors -> divide by N+1).
+
+(def v2e (sut/vec2 0.0 -6.0))
+
+(t/deftest average-test
+  (t/is (m/approx-eq 1.5 (sut/average v2-in1)))
+  (t/is (m/approx-eq 2.75 (sut/average v2-in1 (sut/vec2 1.0 3.0)))))
+
+(t/deftest average-vectors-explicit-init-test
+  (t/is (sut/delta-eq (sut/div (sut/add (sut/add v2-in1 v2-in2) v2e) 3.0)
+                      (sut/average-vectors v2-in1 [v2-in2 v2e])))
+  (t/is (= (sut/average-vectors [v2-in1 v2-in2 v2e])
+           (sut/average-vectors v2-in1 [v2-in2 v2e]))))
+
+(t/deftest zero-nonzero-count-test
+  (let [v (sut/vec3 0.0 4.0 0.0)]
+    (t/is (== 2 (sut/zero-count v)))
+    (t/is (== 1 (sut/nonzero-count v)))))
+
+(t/deftest clamp-test
+  (t/is (= (sut/vec2 0.0 2.0) (sut/clamp (sut/vec2 -3.0 5.0) 0.0 2.0)))
+  (t/testing "1-arity: default range [0.0, Double/MAX_VALUE] (clips negatives to 0)"
+    (t/is (= (sut/vec2 0.0 5.0) (sut/clamp (sut/vec2 -3.0 5.0))))))
+
+(t/deftest differences-test
+  (t/is (= [2.0 3.0 4.0] (seq (sut/differences [1.0 3.0 6.0 10.0]))))
+  (t/testing "2-arity: diffs > 1 applies the operation repeatedly"
+    (t/is (= [1.0 1.0] (seq (sut/differences [1.0 3.0 6.0 10.0] 2)))))
+  (t/testing "3-arity: lag controls the spacing between differenced elements"
+    (t/is (= [5.0 7.0] (seq (sut/differences [1.0 3.0 6.0 10.0] 1 2)))))
+  (t/testing "diffs = 0: returns the input unchanged"
+    (t/is (= [1.0 2.0 4.0 7.0 11.0] (seq (sut/differences [1.0 2.0 4.0 7.0 11.0] 0))))))
