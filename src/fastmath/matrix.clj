@@ -2084,12 +2084,12 @@
      (m/* (norm A norm-type) (norm (inverse A) norm-type)))))
 
 (defmacro ^:private primitive-ops
-  "Generate primitive functions operating on vectors"
+  "Generate primitive functions operating on matrices"
   [fns]
   (let [v (symbol "vector")]
     `(do ~@(for [f fns
                  :let [nm (symbol (name f))
-                       doc (str "Applies " nm " to matrix elements.")]]
+                       doc (str "Applies [[fastmath.core/" nm "]] to every element of a matrix, elementwise, returning a matrix of the same type.")]]
              `(defn ~nm ~doc [~v]
                 (prot/fmap ~v ~f))))))
 
@@ -2102,7 +2102,7 @@
                 m/floor m/ceil m/round m/rint m/trunc m/frac m/sfrac m/signum m/sgn])
 
 (defn pow
-  "Applies power to a vector elements."
+  "Applies [[fastmath.core/pow]] to every element of a matrix, raising each to `exponent`."
   [m ^double exponent]
   (fmap m (fn [^double x] (m/pow x exponent))))
 
