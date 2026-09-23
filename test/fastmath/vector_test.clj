@@ -586,3 +586,43 @@
   (t/is (m/approx-eq (sut/dist-ang v2-in1 v2-in2) (sut/distance :angular v2-in1 v2-in2)))
   (t/is (m/approx-eq (sut/dist-discrete v2-in1 v2-in2) (sut/distance :discrete v2-in1 v2-in2)))
   (t/is (== 11 (count sut/distances))))
+
+;; ==== Fastmath Vector Audit — Group 2.5: Normalization & magnitude-limiting ====
+;; Reference: structural checks (resulting norm under each metric; zero-vector and
+;; boundary behavior), confirmed via REPL against fastmath.vector source, 2026-09-23.
+;; Finding: normalize-L2sq does NOT produce a unit-L2-norm vector (mag 1/mag(v) instead
+;; of 1.0), unlike its normalize/-L1/-LInf siblings — a naming/semantics gap, documented
+;; below and in the docstring rather than changed (structurally correct per its own
+;; "divide by squared L2 norm" definition, e.g. useful in reflection formulas).
+
+(def zero-v2 (sut/vec2 0.0 0.0))
+
+(t/deftest normalize-family-test
+  (t/is (m/approx-eq 1.0 (sut/mag (sut/normalize v2-in1))))
+  (t/is (sut/delta-eq (sut/normalize v2-in1) (sut/normalize-L2 v2-in1)))
+  (t/is (m/approx-eq (/ 1.0 (sut/mag v2-in1)) (sut/mag (sut/normalize-L2sq v2-in1))))
+  (t/is (m/approx-eq 1.0 (sut/sum (sut/abs (sut/normalize-L1 v2-in1)))))
+  (t/is (m/approx-eq 1.0 (sut/mx (sut/abs (sut/normalize-LInf v2-in1)))))
+  (t/testing "zero vector: returns a zero vector of the same type, not NaN/exception"
+    (t/is (= zero-v2 (sut/normalize zero-v2)))
+    (t/is (= zero-v2 (sut/normalize-L2 zero-v2)))
+    (t/is (= zero-v2 (sut/normalize-L2sq zero-v2)))
+    (t/is (= zero-v2 (sut/normalize-L1 zero-v2)))
+    (t/is (= zero-v2 (sut/normalize-LInf zero-v2)))))
+
+(t/deftest set-mag-test
+  (t/is (sut/delta-eq (sut/vec2 -0.48507125007266594 1.9402850002906638) (sut/set-mag v2-in1 2.0)))
+  (t/is (m/approx-eq 2.0 (sut/mag (sut/set-mag v2-in1 2.0))))
+  (t/testing "negative length flips direction; reported magnitude is still non-negative"
+    (t/is (sut/delta-eq (sut/mult (sut/normalize v2-in1) -2.0) (sut/set-mag v2-in1 -2.0)))
+    (t/is (m/approx-eq 2.0 (sut/mag (sut/set-mag v2-in1 -2.0))))))
+
+(t/deftest limit-test
+  (let [v (sut/vec2 3.0 4.0)] ;; mag 5.0
+    (t/testing "under limit: unchanged (identical)"
+      (t/is (identical? v (sut/limit v 10.0))))
+    (t/testing "exactly at limit: unchanged (identical), not a recomputed equal copy"
+      (t/is (identical? v (sut/limit v 5.0))))
+    (t/testing "over limit: scaled down to the given length"
+      (t/is (m/approx-eq 3.0 (sut/mag (sut/limit v 3.0))))
+      (t/is (sut/delta-eq (sut/vec2 1.8 2.4) (sut/limit v 3.0))))))

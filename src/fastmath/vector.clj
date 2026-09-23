@@ -1391,7 +1391,11 @@
   (normalize v))
 
 (defn normalize-L2sq
-  "Returns a new vector normalized by squared L2 norm"
+  "Divides `v` by its squared L2 norm ([[magsq]]).
+
+  Unlike [[normalize]]/[[normalize-L1]]/[[normalize-LInf]], the result does not have unit length: its magnitude is `1 / mag(v)`, not `1`. Useful in formulas that call for dividing by the squared norm directly (e.g. vector reflection/inversion), rather than for producing a direction vector.
+
+  If `v` is a zero vector (magnitude is zero), returns a zero vector of the same type."
   [v]
   (let [m (magsq v)]
     (if (m/zero? m)
@@ -1399,7 +1403,9 @@
       (div v m))))
 
 (defn normalize-L1
-  "Returns a new vector normalized by L1/abs norm."
+  "Returns a new vector of the same direction as `v`, scaled so its L1 (sum-of-absolute-values) norm is 1.
+
+  If `v` is a zero vector (L1 norm is zero), returns a zero vector of the same type."
   [v]
   (let [s (sum (abs v))]
     (if (m/zero? s)
@@ -1407,7 +1413,9 @@
       (div v s))))
 
 (defn normalize-LInf
-  "Returns a new vector normalized by Linf/max norm."
+  "Returns a new vector of the same direction as `v`, scaled so its L-infinity (maximum absolute element) norm is 1.
+
+  If `v` is a zero vector (L-infinity norm is zero), returns a zero vector of the same type."
   [v]
   (let [m (mx (abs v))]
     (if (m/zero? m)
@@ -1415,12 +1423,16 @@
       (div v m))))
 
 (defn set-mag
-  "Sets length of the vector."
+  "Returns a new vector in the direction of `v`, with magnitude ([[mag]]) equal to `len`.
+
+  A negative `len` flips the direction instead (the resulting magnitude is `abs(len)`, since [[mag]] is never negative)."
   [v ^double len]
   (prot/mult (normalize v) len))
 
 (defn limit
-  "Limits length of the vector by given value"
+  "Caps the magnitude of `v` at `len`.
+
+  Returns `v` unchanged (the same value) if its magnitude is already `<= len`; otherwise returns [[set-mag]] applied with `len`."
   [v ^double len]
   (if (m/> (magsq v) (m/* len len))
     (set-mag v len)
