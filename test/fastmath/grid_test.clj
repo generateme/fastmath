@@ -55,21 +55,21 @@
     (t/testing (str type)
       (t/is (some? (sut/grid type)))
       (t/is (some? (sut/grid type 20.0)))
-      (t/is (some? (sut/grid type 20.0 5.0 7.0)))
+      (t/is (some? (sut/grid type 20.0 [5.0 7.0])))
       (t/is (= type (sut/grid-type (sut/grid type)))))))
 
 (t/deftest grid-invalid-type-throws-test
   (doseq [call [#(sut/grid :bogus)
                 #(sut/grid :bogus 20.0)
-                #(sut/grid :bogus 20.0 5.0 7.0)]]
+                #(sut/grid :bogus 20.0 [5.0 7.0])]]
     (t/is (thrown? clojure.lang.ExceptionInfo (call)))))
 
 (t/deftest grid-defaults-test
   (t/is (= :square (sut/grid-type (sut/grid))))
   (t/is (= "square, size=10.0" (str (sut/grid))))
   (t/is (= "square, size=10.0" (str (sut/grid :square))))
-  (t/is (= (str (sut/grid :square 10.0 0.0 0.0)) (str (sut/grid :square 10.0))))
-  (t/is (= (sut/coords->cell (sut/grid :square 10.0 0.0 0.0) [5 5])
+  (t/is (= (str (sut/grid :square 10.0 [0.0 0.0])) (str (sut/grid :square 10.0))))
+  (t/is (= (sut/coords->cell (sut/grid :square 10.0 [0.0 0.0]) [5 5])
            (sut/coords->cell (sut/grid :square 10.0) [5 5]))))
 
 (t/deftest grid-hex-size-scaled-test
@@ -89,9 +89,9 @@
 
 (t/deftest square-family-roundtrip-and-containment-test
   (doseq [type [:square :shifted-square]
-          [sx sy] [[0.0 0.0] [7.0 -3.0]]]
-    (t/testing (str type " sv=[" sx " " sy "]")
-      (let [gr (sut/grid type 10.0 sx sy)]
+          sv [[0.0 0.0] [7.0 -3.0]]]
+    (t/testing (str type " sv=" sv)
+      (let [gr (sut/grid type 10.0 sv)]
         (doseq [c sample-coords]
           (t/is (roundtrip-ok? gr c))
           (t/is (contains-point? gr c)))))))
@@ -135,9 +135,9 @@
 
 (t/deftest hex-family-roundtrip-and-containment-test
   (doseq [type [:pointy-hex :flat-hex]
-          [sx sy] [[0.0 0.0] [7.0 -3.0]]]
-    (t/testing (str type " sv=[" sx " " sy "]")
-      (let [gr (sut/grid type 10.0 sx sy)]
+          sv [[0.0 0.0] [7.0 -3.0]]]
+    (t/testing (str type " sv=" sv)
+      (let [gr (sut/grid type 10.0 sv)]
         (doseq [c sample-coords]
           (t/is (roundtrip-ok? gr c))
           (t/is (contains-point? gr c)))))))
@@ -175,9 +175,9 @@
 ;; Group 4 - Rhombus family
 
 (t/deftest rhombus-roundtrip-and-containment-test
-  (doseq [[sx sy] [[0.0 0.0] [7.0 -3.0]]]
-    (t/testing (str "sv=[" sx " " sy "]")
-      (let [gr (sut/grid :rhombus 10.0 sx sy)]
+  (doseq [sv [[0.0 0.0] [7.0 -3.0]]]
+    (t/testing (str "sv=" sv)
+      (let [gr (sut/grid :rhombus 10.0 sv)]
         (doseq [c sample-coords]
           (t/is (roundtrip-ok? gr c))
           (t/is (contains-point? gr c)))))))
@@ -211,9 +211,9 @@
 ;; exact grid vertices.
 
 (t/deftest triangle-roundtrip-and-containment-test
-  (doseq [[sx sy] [[0.0 0.0] [7.0 -3.0]]]
-    (t/testing (str "sv=[" sx " " sy "]")
-      (let [gr (sut/grid :triangle 10.0 sx sy)]
+  (doseq [sv [[0.0 0.0] [7.0 -3.0]]]
+    (t/testing (str "sv=" sv)
+      (let [gr (sut/grid :triangle 10.0 sv)]
         (doseq [c sample-coords]
           (t/is (roundtrip-ok? gr c))
           (t/is (contains-point? gr c)))))))
@@ -265,3 +265,46 @@
     (t/is (v/delta-eq (sut/cell->anchor gr [1 0]) (v/vec3 0.0 0.0 1.0)))
     (t/is (v/delta-eq (sut/cell->anchor gr [2 0]) (v/vec3 10.0 0.0 0.0)))
     (t/is (v/delta-eq (sut/cell->anchor gr [3 0]) (v/vec3 10.0 0.0 1.0)))))
+
+;; area / area->size
+
+(t/deftest area-per-type-exact-test
+  ;; hand-derived and cross-checked via shoelace formula on live `corners` output (Research F7)
+  (doseq [[size expected] [[10.0 {:square 100.0 :shifted-square 100.0
+                                  :triangle 43.301270189221924 :rhombus 86.60254037844385
+                                  :flat-hex 86.60254037844388 :pointy-hex 86.60254037844388}]
+                           [7.0 {:square 49.0 :shifted-square 49.0
+                                 :triangle (* m/SQRT3_4 49.0) :rhombus (* m/SQRT3_2 49.0)
+                                 :flat-hex (* m/SQRT3_2 49.0) :pointy-hex (* m/SQRT3_2 49.0)}]]]
+    (doseq [type sut/cell-names]
+      (t/is (m/delta-eq (sut/area (sut/grid type size)) (type expected))
+            (str type " size=" size)))))
+
+(t/deftest area-matches-shoelace-test
+  ;; independent cross-check: shoelace area of the actual corners polygon must equal `area`
+  (letfn [(shoelace [pts]
+            (let [pts (mapv xy pts) n (count pts)]
+              (/ (m/abs (reduce + (for [i (range n)]
+                                     (let [[x1 y1] (nth pts i)
+                                           [x2 y2] (nth pts (mod (inc i) n))]
+                                       (- (* x1 y2) (* x2 y1))))))
+                 2.0)))]
+    (doseq [type sut/cell-names]
+      (let [gr (sut/grid type 12.5)
+            pts (sut/corners gr [5.0 5.0])]
+        (t/is (m/delta-eq (sut/area gr) (shoelace pts)) (str type))))))
+
+(t/deftest area-size-roundtrip-test
+  (doseq [type sut/cell-names
+          size [1.0 10.0 37.5]]
+    (let [a (sut/area (sut/grid type size))
+          size2 (sut/area->size type a)]
+      (t/is (m/delta-eq size size2) (str type " size=" size)))))
+
+(t/deftest area-size-invalid-type-throws-test
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/area->size :bogus 100.0))))
+
+(t/deftest area-size-zero-boundary-test
+  (doseq [type sut/cell-names]
+    (t/is (= 0.0 (sut/area (sut/grid type 0.0))) (str type))
+    (t/is (= 0.0 (sut/area->size type 0.0)) (str type))))

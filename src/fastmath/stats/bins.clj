@@ -197,3 +197,37 @@
                                (StatUtils/percentile avs 25)))
                  (m/cbrt n))]
       (scott-fd-helper avs h))))
+
+(defn scott-2d
+  "Estimates a 2d histogram bin area for `xs`/`ys` using the multivariate
+  normal-reference rule (Scott, D.W. *Multivariate Density Estimation:
+  Theory, Practice, and Visualization*, 1992, p.82), the 2-dimensional
+  generalization of [[scott]]'s `3.5 * stddev / cbrt(n)`.
+
+  Computed per axis: `b_x = 3.5 * stddev(xs) * n^(-1/4)`, `b_y = 3.5 *
+  stddev(ys) * n^(-1/4)` (exponent `-1/(2+d)` with `d=2`), then combined into
+  a target bin area `b_x * b_y`. Unlike [[scott]], no bin-count/width
+  conversion happens here -- callers (e.g. `fastmath.stats/estimate-grid-size`)
+  convert the returned area into a concrete cell size for their chosen grid
+  shape (e.g. via `fastmath.grid/area->size`).
+
+  This is the histogram-bin-width form of Scott's rule; it is unrelated to
+  the differently-exponented (`-1/(d+4)`) Scott's/Silverman's rule used for
+  kernel density estimation bandwidth.
+
+  Parameters:
+
+  - `xs`, `ys` (`double` arrays): the two coordinate axes of the data, same length.
+
+  Returns the estimated bin area as a `double`. No special-casing for
+  degenerate input (`n<2`, zero-variance axes): the underlying `stddev`/`pow`
+  computations propagate `0.0`/`##NaN` gracefully rather than throwing;
+  interpreting that result (e.g. falling back to a usable default) is left
+  to the caller.
+
+  See also [[scott]]."
+  ^double [^doubles xs ^doubles ys]
+  (let [factor (m/pow (double (alength xs)) -0.25)
+        bx (m/* 3.5 (m/sqrt (StatUtils/variance xs)) factor)
+        by (m/* 3.5 (m/sqrt (StatUtils/variance ys)) factor)]
+    (m/* bx by)))

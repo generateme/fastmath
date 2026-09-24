@@ -6,6 +6,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [fastmath.vector :as v]
+            [fastmath.grid :as grid]
             [fastmath.random :as r]))
 
 (defn transform [spec data]
@@ -1460,6 +1461,132 @@ matches auc-roc"
         (t/is (= [4 10 9 4 1 4] (mapv second (:bins h))))
         (t/is (v/delta-eq [12.1 16.1 20.344444444 24.0 27.3 31.775] (mapv :avg (:bins-maps h))))
         (t/is (= 32 (reduce + (map second (:bins h)))) "counts partition all samples")))))
+
+;; estimate-grid-size: multivariate Scott's normal-reference rule (Scott 1992, p.82),
+;; b_x=3.5*stddev(xs)*n^-1/4, b_y=3.5*stddev(ys)*n^-1/4, area=b_x*b_y, size=area->size(type,area).
+;; Hand-computed independently against the same formula (not against fastmath's own output)
+;; for a fixed synthetic dataset; cross-type consistency checked via fastmath.grid/area
+;; (same target area recoverable from every cell type's estimated size, since that's the
+;; whole point of routing the estimate through fastmath.grid/area->size).
+
+(def ^:private grid-2d-points
+  [[1.0 2.0] [2.0 3.0] [3.0 1.0] [4.0 5.0] [5.0 2.0] [1.5 4.0] [2.5 0.5] [3.5 3.5]])
+
+(t/deftest estimate-grid-size-scott-formula-test
+  (let [xs (map first grid-2d-points)
+        ys (map second grid-2d-points)
+        n (double (count grid-2d-points))
+        bx (* 3.5 (sut/stddev xs) (m/pow n -0.25))
+        by (* 3.5 (sut/stddev ys) (m/pow n -0.25))
+        expected-area (* bx by)
+        expected-size (grid/area->size :square expected-area)]
+    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :square)))
+    (t/is (m/delta-eq expected-size (sut/estimate-grid-size grid-2d-points :square :scott))
+          "explicit :scott matches the 2-arity default")))
+
+(t/deftest estimate-grid-size-cross-type-consistency-test
+  ;; the estimator targets one area; size differs by type, but that area must be recoverable
+  ;; from every type's (grid type size) via fastmath.grid/area — confirming the area-based
+  ;; unification (added specifically for this estimator) holds end-to-end
+  (let [areas (into #{} (for [type grid/cell-names
+                              :let [size (sut/estimate-grid-size grid-2d-points type)]]
+                          (m/approx (grid/area (grid/grid type size)) 10)))]
+    (t/is (= 1 (count areas)) (str "expected one shared target area, got " areas))))
+
+(t/deftest estimate-grid-size-degenerate-inputs-test
+  ;; MUST NOT crash for n<2 or zero-variance axes; falls back to a usable 1.0
+  (t/is (= 1.0 (sut/estimate-grid-size [] :square)))
+  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 2.0]] :square)))
+  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 1.0] [1.0 2.0] [1.0 3.0] [1.0 4.0]] :square))
+        "zero variance on x axis only")
+  (t/is (= 1.0 (sut/estimate-grid-size [[1.0 1.0] [1.0 1.0] [1.0 1.0]] :square))
+        "fully constant data")
+  (doseq [type grid/cell-names]
+    (t/is (pos? (sut/estimate-grid-size [] type)) (str type " never returns non-positive"))))
+
+;; histogram2d: hand-verified against a small, manually-binned point set for :square
+;; (size=10, no translation): (0,0)/(1,1)/(5,5) -> cell [0 0]; (12,3) -> cell [1 0];
+;; (-1,-1) -> cell [-1 -1] (floor-based cell boundary convention, per fastmath.grid).
+
+(def ^:private histogram2d-points
+  [[0.0 0.0] [1.0 1.0] [5.0 5.0] [12.0 3.0] [-1.0 -1.0]])
+
+(t/deftest histogram2d-hand-verified-test
+  (let [h (sut/histogram2d histogram2d-points :square 10.0)]
+    (t/is (= 3 (:size h)))
+    (t/is (= 10.0 (:step h)))
+    (t/is (= 5 (:samples h)))
+    (t/is (= [-1.0 -1.0] (:min h)))
+    (t/is (= [12.0 5.0] (:max h)))
+    (t/is (= {[0.0 0.0] 3 [1.0 0.0] 1 [-1.0 -1.0] 1}
+             (into {} (map (fn [[cell cnt]] [[(nth cell 0) (nth cell 1)] cnt]) (:bins h)))))
+    (t/is (= (:bins h) (map (juxt :cell :count) (:bins-maps h))) "bins derived from bins-maps")
+    (t/is (= (into {} (:bins h)) (:frequencies h)) "frequencies == bins as a map")
+    (let [origin-bin (first (filter #(= [0.0 0.0] [(nth (:cell %) 0) (nth (:cell %) 1)]) (:bins-maps h)))]
+      (t/is (v/delta-eq (v/vec2 2.0 2.0) (:avg origin-bin)) "avg = centroid of actual points (0,0)(1,1)(5,5)")
+      (t/is (v/delta-eq (v/vec2 5.0 5.0) (:mid origin-bin)) "mid = geometric cell->mid, distinct from avg")
+      (t/is (m/delta-eq 0.6 (:probability origin-bin))))))
+
+(t/deftest histogram2d-grid-usable-test
+  (let [h (sut/histogram2d histogram2d-points :square 10.0)
+        cell (:cell (first (:bins-maps h)))]
+    (t/is (= 4 (count (grid/corners (:grid h) (grid/cell->anchor (:grid h) cell)))))
+    (t/is (= :square (grid/grid-type (:grid h))))))
+
+(t/deftest histogram2d-defaults-test
+  (let [h (sut/histogram2d histogram2d-points)]
+    (t/is (= :square (grid/grid-type (:grid h))) "default type is :square")
+    (t/is (= (:step h) (sut/estimate-grid-size histogram2d-points :square :scott)) "default size-or-method is :scott")))
+
+(t/deftest histogram2d-translating-vector-test
+  ;; sv shifts the whole grid; cell assignment/binning must shift with it accordingly
+  (let [pts [[0.0 0.0] [1.0 1.0]]
+        h0 (sut/histogram2d pts :square 10.0)
+        hs (sut/histogram2d pts :square 10.0 [5.0 5.0])]
+    (t/is (v/delta-eq (v/vec2 5.0 5.0) (grid/cell->anchor (:grid hs) 0 0)))
+    (t/is (= (:size h0) (:size hs)) "same point set, one bin regardless of translation")
+    (t/is (not= (map first (:bins h0)) (map first (:bins hs))) "cell coords differ once translated")))
+
+(t/deftest histogram2d-cross-type-self-consistency-test
+  (let [pts (vec (for [x (range -20 21 3) y (range -20 21 3)] [(double x) (double y)]))]
+    (doseq [type grid/cell-names]
+      (let [h (sut/histogram2d pts type 5.0)]
+        (t/is (= (:size h) (count (:frequencies h)) (count (:bins-maps h))) (str type))
+        (t/is (= (count pts) (reduce + (map second (:bins h))) (reduce + (vals (:frequencies h))))
+              (str type " counts partition all samples"))))))
+
+(t/deftest histogram2d-sparse-test
+  ;; a single, isolated point in an otherwise-large bounding region must not pull in empty cells
+  (let [h (sut/histogram2d [[0.0 0.0] [1000.0 1000.0]] :square 10.0)]
+    (t/is (= 2 (:size h)) "only occupied cells, not every cell spanning the bbox")))
+
+(t/deftest histogram2d-boundary-test
+  (t/testing "empty input: well-formed, no crash"
+    (let [h (sut/histogram2d [] :square)]
+      (t/is (= 0 (:size h)))
+      (t/is (= 0 (:samples h)))
+      (t/is (nil? (:min h)))
+      (t/is (nil? (:max h)))
+      (t/is (= () (:bins h)))
+      (t/is (= () (:bins-maps h)))
+      (t/is (= {} (:frequencies h)))))
+  (t/testing "single point"
+    (let [h (sut/histogram2d [[1.0 2.0]] :square 5.0)]
+      (t/is (= 1 (:size h)))
+      (t/is (= 1 (:count (first (:bins-maps h)))))))
+  (t/testing "two points, same cell"
+    (let [h (sut/histogram2d [[1.0 1.0] [2.0 2.0]] :square 10.0)]
+      (t/is (= 1 (:size h)))
+      (t/is (= [2] (map second (:bins h))))))
+  (t/testing "all-identical points"
+    (let [h (sut/histogram2d (repeat 5 [3.0 3.0]) :square 10.0)]
+      (t/is (= 1 (:size h)))
+      (t/is (= [5] (map second (:bins h))))))
+  (t/testing "large n"
+    (let [pts (vec (for [i (range 5000)] [(double (mod i 37)) (double (mod (* i 7) 41))]))
+          h (sut/histogram2d pts :pointy-hex 3.0)]
+      (t/is (= 5000 (:samples h)))
+      (t/is (= 5000 (reduce + (map second (:bins h))))))))
 
 ;; dissimilarity (40 methods) / similarity (12 methods)
 ;; reference values: independent from-scratch Python re-implementation of every formula listed

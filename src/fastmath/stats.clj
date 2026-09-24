@@ -41,7 +41,7 @@
       -   Autocorrelation tests (Durbin-Watson).
   *   **Time Series Analysis**: Functions for analyzing the dependence structure of
       time series data, such as Autocorrelation (ACF) and Partial Autocorrelation (PACF).
-  *   **Histograms**: Functions for computing histograms and estimating optimal binning strategies.
+  *   **Histograms**: Functions for computing 1d and 2d (grid-based) histograms and estimating optimal binning strategies.
 
   This namespace aims to provide a robust set of statistical tools for data analysis
   and modeling within the Clojure ecosystem."
@@ -49,6 +49,7 @@
             [fastmath.random :as r]
             [fastmath.distance :as d]
             [fastmath.vector :as v]
+            [fastmath.grid :as grid]
             [fastmath.interpolation.step :as step-interp]
             [fastmath.interpolation.linear :as linear-interp]
             [fastmath.optimization.lbfgsb :as lbfgsb]
@@ -2653,6 +2654,30 @@
                        :scott (bins/scott (m/seq->double-array vs) n)
                        :freedman-diaconis (bins/freedman-diaconis (m/seq->double-array vs) n))))))))
 
+(defn estimate-grid-size
+  "Estimates a suitable [[fastmath.grid]] `size` for a 2d histogram ([[histogram2d]]) of 2d points `vs`.
+
+  Delegates the actual bin-area estimation to `fastmath.stats.bins` (mirroring how [[estimate-bins]] delegates to it for the 1d case), then converts the returned area into the `size` for the given cell `type` via [[fastmath.grid/area->size]] — so the estimated bin *area* is consistent across cell types, even though `:pointy-hex`/`:flat-hex`/`:rhombus`/`:triangle` cells have a different area-to-`size` ratio than `:square`/`:shifted-square` (see [[fastmath.grid/area]]).
+
+  Parameters:
+
+  - `vs` (sequence of 2d points): Input data, each point a `[x y]` pair (or any 2-element indexable, e.g. `Vec2`).
+  - `type` (keyword): one of [[fastmath.grid/cell-names]].
+  - `estimate-method` (keyword, optional, default `:scott`): estimation method, dispatched via `case`, open to future additions alongside `:scott`:
+    - `:scott`: `fastmath.stats.bins/scott-2d`, the multivariate normal-reference rule (Scott, D.W. *Multivariate Density Estimation*, 1992, p.82) — see its docstring for the exact formula and how it differs from the KDE-bandwidth Scott's/Silverman's rule.
+
+  Returns the estimated `size` as a `double`. Falls back to `1.0` when the target area is non-positive or non-finite (e.g. `vs` has fewer than 2 points, or is constant along an axis) — this is a degenerate input for any density-based estimate, and `1.0` is a safe, usable default rather than propagating `0.0`/`NaN`/`Infinity` into [[fastmath.grid/grid]].
+
+  See also [[histogram2d]], [[estimate-bins]], [[fastmath.grid/area->size]]."
+  (^double [vs type] (estimate-grid-size vs type :scott))
+  (^double [vs type estimate-method]
+   (let [target-area (case estimate-method
+                       :scott (bins/scott-2d (m/seq->double-array (map first vs))
+                                              (m/seq->double-array (map second vs))))]
+     (if (and (Double/isFinite target-area) (m/pos? target-area))
+       (grid/area->size type target-area)
+       1.0))))
+
 (defn- constrain-data
   [vs ^double mn ^double mx]
   (filter (fn [^double v] (m/<= mn v mx)) vs))
@@ -2749,6 +2774,61 @@
                               (m/slice-range nmn nmx))))]
        (map (fn [vs] (histogram-internal [vs nmn nmx intervals])) nvs))
      (histogram-internal (process-vs-and-bins vs bins-or-estimate-method mn mx)))))
+
+(defn histogram2d
+  "Builds a 2d histogram of 2d points `vs`, binning them onto a [[fastmath.grid]] tessellation.
+
+  Unlike [[histogram]], only occupied cells are returned (sparse) — a non-square, non-rectangular tessellation of a bounding box can otherwise include far more empty edge cells than a square binning would. Only a single sequence of points is supported (no [[histogram]]-style sequence-of-sequences overload).
+
+  Parameters:
+
+  - `vs` (sequence of 2d points): each point a `[x y]` pair (or any 2-element indexable, e.g. `Vec2`).
+  - `type` (keyword, default `:square`): grid cell type, one of [[fastmath.grid/cell-names]].
+  - `size-or-estimate-method` (double or keyword, default `:scott`): explicit [[fastmath.grid/grid]] `size` (bin width, i.e. anchor-to-anchor spacing), or a bin-size estimation method keyword, see [[estimate-grid-size]].
+  - `sv` (2-element vector/sequence, e.g. `[sx sy]`, default `[0.0 0.0]`): grid translating vector, see [[fastmath.grid/grid]].
+
+  Returns a map, adapted key-by-key from [[histogram]]'s 1d result (some 1d keys have no 2d equivalent and are replaced or dropped — see each key below):
+
+  - `:size`: number of *occupied* bins (not all cells in the bounding region).
+  - `:step`: the grid's resolved `size`.
+  - `:samples`: number of input points (`(count vs)`).
+  - `:min`, `:max`: the 2d bounding box of `vs`, as `[x y]` pairs. `nil` when `vs` is empty.
+  - `:bins`: sequence of `[cell-coords count]` pairs (cell-coords is a `[q r]` `Vec2`, from [[fastmath.grid/coords->cell]]) — the 2d analogue of 1d `[bin-lower-bound count]`.
+  - `:bins-maps`: sequence of maps, one per occupied cell, with keys `:cell` (`[q r]`), `:mid` (the cell's geometric center, [[fastmath.grid/cell->mid]]), `:avg` (centroid of the *actual points* landing in that cell — distinct from `:mid`), `:count`, `:probability` (fraction of samples in the bin). No `:min`/`:max`/`:step` (no per-bin interval bounds in 2d) and no `:corners` (derivable from `:grid` + `:cell` via [[fastmath.grid/corners]]).
+  - `:grid`: the constructed grid object (satisfies [[fastmath.protocols/GridProto]]) — lets callers call [[fastmath.grid/corners]]/[[fastmath.grid/cell->anchor]]/etc. on any returned cell without reconstructing the grid. Replaces 1d `:intervals`, which has no 2d equivalent.
+  - `:frequencies`: a map from each occupied cell's coords to its count (repurposed from 1d's avg-value-keyed map, which would have duplicated `:bins` in 2d).
+
+  Empty `vs` returns a well-formed, empty result (`:size` `0`, `:samples` `0`, `:min`/`:max` `nil`, `:bins`/`:bins-maps` `()`, `:frequencies` `{}`) rather than throwing.
+
+  See also [[histogram]], [[estimate-grid-size]], [[fastmath.grid/grid]]."
+  ([vs] (histogram2d vs :square))
+  ([vs type] (histogram2d vs type :scott))
+  ([vs type size-or-estimate-method] (histogram2d vs type size-or-estimate-method [0.0 0.0]))
+  ([vs type size-or-estimate-method sv]
+   (let [size (double (if (number? size-or-estimate-method)
+                        size-or-estimate-method
+                        (estimate-grid-size vs type size-or-estimate-method)))
+         gr (grid/grid type size sv)
+         by-cell (group-by (fn [[x y]] (grid/coords->cell gr x y)) vs)
+         samples (count vs)
+         dsamples (double samples)
+         bins-maps (map (fn [[cell pts]]
+                          {:cell cell
+                           :mid (grid/cell->mid gr cell)
+                           :avg (v/vec2 (v/average-vectors pts))
+                           :count (count pts)
+                           :probability (m// (double (count pts)) dsamples)})
+                        by-cell)
+         bins (map (juxt :cell :count) bins-maps)]
+     {:size (count bins-maps)
+      :step size
+      :samples samples
+      :min (when (seq vs) (reduce v/emn vs))
+      :max (when (seq vs) (reduce v/emx vs))
+      :bins bins
+      :bins-maps bins-maps
+      :grid gr
+      :frequencies (into {} bins)})))
 
 ;; distances
 

@@ -5,7 +5,7 @@
 (add-examples grid
   (example-session "Usage"
     (grid :pointy-hex 20)
-    (grid :triangle 10 5.0 5.0)
+    (grid :triangle 10 [5.0 5.0])
     (name (grid :square))
     (str (grid :rhombus))
     (grid))
@@ -18,8 +18,8 @@
 
 (add-examples coords->cell
   (example "Usage"
-    (coords->cell (grid :pointy-hex 20 10 10) [50 50]))
-  (let [g (grid :pointy-hex 20 10 10)]
+    (coords->cell (grid :pointy-hex 20 [10 10]) [50 50]))
+  (let [g (grid :pointy-hex 20 [10 10])]
     (example-session "More examples (grid `g` same as above)"
       (coords->cell g [0 0])
       (coords->cell g [100 100])
@@ -27,8 +27,8 @@
 
 (add-examples coords->mid
   (example "Usage"
-    (coords->mid (grid :pointy-hex 20 10 10) [50 50]))
-  (let [g (grid :pointy-hex 20 10 10)]
+    (coords->mid (grid :pointy-hex 20 [10 10]) [50 50]))
+  (let [g (grid :pointy-hex 20 [10 10])]
     (example-session "More examples (grid `g` same as above)"
       (coords->mid g [0 0])
       (coords->mid g [100 100])
@@ -36,25 +36,25 @@
 
 (add-examples cell->anchor
   (example "Usage"
-    (cell->anchor (grid :triangle 20 10 10) [5 5]))
-  (let [g (grid :triangle 20 10 10)]
+    (cell->anchor (grid :triangle 20 [10 10]) [5 5]))
+  (let [g (grid :triangle 20 [10 10])]
     (example-session "More examples (grid `g` same as above). For triangle grid pair of cells share the same anchor, third coordinate indicates if it's up (`0`) or down (`1`) triangle."
       (cell->anchor g [0 0])
       (cell->anchor g [1 0])
       (cell->anchor g [2 0])
       (cell->anchor g [3 0])
-      (cell->anchor (grid :shifted-square 20 10 10) [5 5]))))
+      (cell->anchor (grid :shifted-square 20 [10 10]) [5 5]))))
 
 (add-examples cell->mid
   (example "Usage"
-    (cell->mid (grid :triangle 20 10 10) [4 5]))
-  (let [g (grid :triangle 20 10 10)]
+    (cell->mid (grid :triangle 20 [10 10]) [4 5]))
+  (let [g (grid :triangle 20 [10 10])]
     (example-session "More examples (grid `g` same as above)."
       (cell->mid g [0 0])
       (cell->mid g [1 0])
       (cell->mid g [2 0])
       (cell->mid g [3 0])
-      (cell->mid (grid :shifted-square 20 10 10) [5 5]))))
+      (cell->mid (grid :shifted-square 20 [10 10]) [5 5]))))
 
 (add-examples grid-type
   (example (grid-type (grid :flat-hex 10))))
@@ -62,7 +62,7 @@
 (add-examples corners
   (example-session "Usage"
     (corners (grid :flat-hex 20) [100 100])
-    (corners (grid :triangle 10 10 10) [100 100])))
+    (corners (grid :triangle 10 [10 10]) [100 100])))
 
 (add-examples coords->anchor
   (example-session "Usage"

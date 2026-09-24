@@ -89,6 +89,18 @@
   Returns one of [[cell-names]]."
   [g] (prot/grid-type g))
 
+(defn area
+  "Returns the area of a single cell of grid `g`.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+
+  Returns a `double`. Every cell of a given grid is congruent (same type and `size`), so this is a grid-level constant, not dependent on `coords`/`cell`, unlike [[corners]].
+
+  See also [[area->size]]."
+  ^double [g] (prot/area g))
+
 (defn corners
   "Returns the vertices of the cell containing given 2d space coordinates.
 
@@ -129,7 +141,7 @@
 
 (defn- grid-obj
   "Create grid object."
-  ([typ {:keys [from-cell to-cell to-mid vertices anchor]} ^double size ^Vec2 sv]
+  ([typ {:keys [from-cell to-cell to-mid vertices anchor] area-fn :area} ^double size ^Vec2 sv]
    (let [nm (name typ)
          tostr (str nm ", size=" size)
          anchor (or anchor coords->anchor)
@@ -155,6 +167,7 @@
        (corners [g coords scale] (vertices (* ^double scale size) (anchor g coords)))
        (corners [g x y scale] (vertices (* ^double scale size) (anchor g x y)))
        (grid-type [_] typ)
+       (area [_] (area-fn size))
        Named
        (getName [_] nm)
        Object
@@ -188,6 +201,10 @@
       (v/vec2 x+ y+)
       (v/vec2 x y+)]))
   ([size [x y]] (square-corners size x y)))
+
+(defn- square-area
+  "Area of a square cell (side `size`)."
+  ^double [^double size] (* size size))
 
 ;; hex
 
@@ -257,6 +274,12 @@
 
 (defn- hex->mid [_ v] v)
 
+(defn- hex-area
+  "Area of a regular hexagon cell with circumradius `size` (the internal, already
+  `/sqrt(3)`-scaled size stored for `:pointy-hex`/`:flat-hex`, see [[grid]]):
+  `(3*sqrt(3)/2)*size^2`."
+  ^double [^double size] (* 1.5 m/SQRT3 size size))
+
 ;; shifted square
 
 (defn- shifted-square->pixel
@@ -306,6 +329,10 @@
       (v/vec2 (- x hs) y+)]))
   ([size [x y]] (rhombus-corners size x y)))
 
+(defn- rhombus-area
+  "Area of a rhombus cell (side `size`, 60°/120° angles): `(sqrt(3)/2)*size^2`."
+  ^double [^double size] (* m/SQRT3_2 size size))
+
 
 ;; triangle
 
@@ -354,6 +381,10 @@
         (v/vec2 (+ x hsize) y+)])))
   ([size [x y down?]] (triangle-corners size x y down?)))
 
+(defn- triangle-area
+  "Area of an equilateral triangle cell (side `size`)."
+  ^double [^double size] (* m/SQRT3_4 size size))
+
 (defn- triangle-pixel->mid
   [^double size [^double x ^double y ^long down?]]
   (let [h (* m/SQRT3_2 size)]
@@ -373,12 +404,12 @@
 ;;
 
 (def ^:private grid-type-fns
-  {:square {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners}
-   :pointy-hex {:from-cell pointy-hex->pixel :to-cell pixel->pointy-hex :to-mid hex->mid :vertices pointy-hex-corners}
-   :flat-hex {:from-cell flat-hex->pixel :to-cell pixel->flat-hex :to-mid hex->mid :vertices flat-hex-corners}
-   :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :to-mid square-pixel->mid :vertices square-corners}
-   :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :to-mid rhombus-pixel->mid :vertices rhombus-corners}
-   :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :to-mid triangle-pixel->mid :vertices triangle-corners :anchor coords->triangle-anchor}})
+  {:square {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners :area square-area}
+   :pointy-hex {:from-cell pointy-hex->pixel :to-cell pixel->pointy-hex :to-mid hex->mid :vertices pointy-hex-corners :area hex-area}
+   :flat-hex {:from-cell flat-hex->pixel :to-cell pixel->flat-hex :to-mid hex->mid :vertices flat-hex-corners :area hex-area}
+   :shifted-square {:from-cell shifted-square->pixel :to-cell pixel->shifted-square :to-mid square-pixel->mid :vertices square-corners :area square-area}
+   :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :to-mid rhombus-pixel->mid :vertices rhombus-corners :area rhombus-area}
+   :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :to-mid triangle-pixel->mid :vertices triangle-corners :anchor coords->triangle-anchor :area triangle-area}})
 
 (def cell-names
   "List of valid grid cell types accepted by [[grid]].
@@ -388,6 +419,34 @@
 
 (def ^:private cell-names-set (set cell-names))
 
+(def ^:private area->size-fns
+  "Inverse of each type's area formula: `size` such that `(area (grid type size)) == area`."
+  {:square (fn ^double [^double area] (m/sqrt area))
+   :shifted-square (fn ^double [^double area] (m/sqrt area))
+   :pointy-hex (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
+   :flat-hex (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
+   :rhombus (fn ^double [^double area] (m/sqrt (/ (* 2.0 area) m/SQRT3)))
+   :triangle (fn ^double [^double area] (* 2.0 (m/sqrt (/ area m/SQRT3))))})
+
+(defn area->size
+  "Returns the `size` for which a `type` cell has the given `area`.
+
+  Parameters:
+
+  - `type` (keyword): one of [[cell-names]].
+  - `area` (double): target cell area.
+
+  Returns a `double`: the `size` to pass to [[grid]] so that `(area (grid type size))` equals the given `area` (inverse of [[area]]).
+
+  Throws `ExceptionInfo` when `type` is not one of [[cell-names]].
+
+  See also [[area]], [[grid]]."
+  ^double [type ^double area]
+  (when-not (cell-names-set type)
+    (throw (ex-info (str "Unknown grid type: " type ". Valid types are: " cell-names)
+                     {:type type :valid-types cell-names})))
+  ((area->size-fns type) area))
+
 (defn grid
   "Create a grid object for a given cell `type`, `size` and optional translating vector.
 
@@ -395,22 +454,25 @@
 
   - `type` (keyword): one of [[cell-names]] (`:square`, `:shifted-square`, `:triangle`, `:rhombus`, `:flat-hex`, `:pointy-hex`).
   - `size` (double, optional, default `10.0`): distance between neighboring cell anchors (for `:square`/`:rhombus`/`:triangle` this equals the cell's own side length; `:shifted-square` keeps its own q-direction/side-length convention). For `:pointy-hex`/`:flat-hex` the value actually stored and used internally is the circumradius `size/√3` (so adjacent hex centers end up `size` apart, matching the other cell types), not `size` itself.
-  - `sx`, `sy` (double, optional, default `0.0`): translation vector applied to every anchor/mid/corner coordinate.
+  - `sv` (2-element vector/sequence, e.g. `[sx sy]`, or a `Vec2`, optional, default `[0.0 0.0]`) or separate `svx`, `svy`: translation vector applied to every anchor/mid/corner coordinate.
 
   Returns an object satisfying [[fastmath.protocols/GridProto]] (and `Named`/`Object`), usable with [[coords->cell]], [[cell->anchor]], [[coords->mid]], [[cell->mid]], [[corners]], [[coords->anchor]] and [[grid-type]].
 
   Throws `ExceptionInfo` when `type` is not one of [[cell-names]].
 
   Defaults: `(grid type size)` translates by `[0.0 0.0]`; `(grid type)` also sets `size` to `10.0`; `(grid)` creates `(grid :square)`."
-  ([type ^double size ^double sx ^double sy]
+  ([type ^double size ^double svx ^double svy] (grid type size [svx svy]))
+  ([type ^double size sv]
    (when-not (cell-names-set type)
      (throw (ex-info (str "Unknown grid type: " type ". Valid types are: " cell-names)
-                      {:type type :valid-types cell-names})))
-   (let [sv (Vec2. sx sy)
+                     {:type type :valid-types cell-names})))
+   (let [sv (v/vec2 sv)
          size (if (or (= type :pointy-hex)
                       (= type :flat-hex)) (/ size m/SQRT3) size)
          fp (grid-type-fns type)]
      (grid-obj type fp size sv)))
-  ([type ^double size] (grid type size 0.0 0.0))
+  ([type ^double size] (grid type size [0.0 0.0]))
   ([type] (grid type 10.0))
   ([] (grid :square)))
+
+(m/unuse-primitive-operators)

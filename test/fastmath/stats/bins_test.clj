@@ -1,5 +1,6 @@
 (ns fastmath.stats.bins-test
   (:require [fastmath.stats.bins :as sut]
+            [fastmath.core :as m]
             [clojure.test :as t]))
 
 ;; Group 1: counting estimators (sturges, rice, doane)
@@ -70,6 +71,23 @@
   (t/are [avs n bins] (= bins (sut/scott avs n))
     n100 100 5
     mpg  32  4))
+
+;; scott-2d: multivariate normal-reference rule (Scott 1992, p.82), b_x=3.5*stddev(xs)*n^-1/4,
+;; b_y=3.5*stddev(ys)*n^-1/4, area=b_x*b_y. Hand-computed independently against the same
+;; formula for a fixed synthetic dataset (not against fastmath's own output).
+(t/deftest scott-2d-test
+  (let [xs (double-array [1.0 2.0 3.0 4.0 5.0 1.5 2.5 3.5])
+        ys (double-array [2.0 3.0 1.0 5.0 2.0 4.0 0.5 3.5])
+        n (alength xs)
+        sx (Math/sqrt (org.apache.commons.math3.stat.StatUtils/variance xs))
+        sy (Math/sqrt (org.apache.commons.math3.stat.StatUtils/variance ys))
+        factor (Math/pow n -0.25)
+        expected (* 3.5 sx factor 3.5 sy factor)]
+    (t/is (m/delta-eq expected (sut/scott-2d xs ys))))
+  (t/testing "degenerate input: no crash, propagates non-positive/non-finite gracefully"
+    (t/is (not (pos? (sut/scott-2d (double-array []) (double-array [])))))
+    (t/is (zero? (sut/scott-2d (double-array [1.0]) (double-array [2.0]))))
+    (t/is (zero? (sut/scott-2d (double-array [1.0 1.0 1.0]) (double-array [1.0 2.0 3.0]))))))
 
 (t/deftest freedman-diaconis-test
   (t/are [avs n bins] (= bins (sut/freedman-diaconis avs n))

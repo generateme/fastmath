@@ -127,7 +127,8 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (coords->mid [g coords] [g x y] "Converts 2d space into cell midpoint.")
   (cell->mid [g cell] [g q r] "Converts cell coordinates to cell midpoint")
   (grid-type [g] "Returns type of the cell.")
-  (corners [g coords] [g coords scale] [g x y scale] "Returns list of cell vertices for given 2d space coordinates."))
+  (corners [g coords] [g coords scale] [g x y scale] "Returns list of cell vertices for given 2d space coordinates.")
+  (area [g] "Returns the area of a single cell."))
 
 (defprotocol PredictProto
   "Prediction API"
