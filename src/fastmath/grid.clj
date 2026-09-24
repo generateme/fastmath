@@ -18,7 +18,7 @@
 
   Each cell has it's own coordinates, mostly axial based (only square has offset).
 
-  For hexagonal cell size is a radius from midpoint to corner. For the rest it is the size of the side.
+  `size` means the distance between neighboring cell anchors (equivalently, for `:square`/`:rhombus`/`:triangle`, the cell's own side length; `:shifted-square` keeps its own q-direction/side-length convention, see below). For hexagonal cells, [[grid]]'s `size` argument is scaled internally to a circumradius of `size/√3` (so that adjacent hex centers are `size` apart); for the rest of the cell types `size` is the length of the side, used as passed.
 
   Cell types are:
 
@@ -44,37 +44,86 @@
 (m/use-primitive-operators)
 
 (defn coords->cell
-  "Converts 2d space coordinates (x,y) to cell coordinates (q,r)."
+  "Converts 2d space coordinates `(x,y)` to cell coordinates `(q,r)`.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `coords`: `[x y]` pair, or pass `x`/`y` separately.
+
+  Returns a 2d vector `(q,r)` identifying the cell containing `(x,y)`. Points on a cell boundary are attributed to exactly one adjoining cell; the inclusive/exclusive convention is specific to each cell type."
   ([g coords] (prot/coords->cell g coords))
   ([g x y] (prot/coords->cell g x y)))
 
 (defn cell->anchor
-  "Converts cell coordinates (q,r) to anchor coordinates (x,y)."
+  "Converts cell coordinates `(q,r)` to anchor coordinates `(x,y)`.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `cell`: `[q r]` pair, or pass `q`/`r` separately.
+
+  Returns the cell's anchor point. For `:pointy-hex`/`:flat-hex` the anchor is the cell's center; for all other types it is the top left vertex (see the namespace docstring). For `:triangle`, the returned anchor is a 3d vector whose third coordinate is `0` for an up-pointing cell and `1` for a down-pointing one; up/down pairs sharing the same `(q,r)` base share the same first two coordinates."
   ([g cell] (prot/cell->anchor g cell))
   ([g q r] (prot/cell->anchor g q r)))
 
 (defn coords->mid
-  "Converts 2d space coordinates (x,y) into cell midpoint (x,y)."
+  "Converts 2d space coordinates `(x,y)` into the midpoint of the cell containing them.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `coords`: `[x y]` pair, or pass `x`/`y` separately.
+
+  Returns the centroid of the cell containing `(x,y)`, always strictly inside the cell's [[corners]]. Equivalent to `(cell->mid g (coords->cell g coords))`."
   ([g coords] (prot/coords->mid g coords))
   ([g x y] (prot/coords->mid g x y)))
 
 (defn grid-type
-  "Returns type of the cell."
+  "Returns the cell type of grid `g`.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+
+  Returns one of [[cell-names]]."
   [g] (prot/grid-type g))
 
 (defn corners
-  "Returns list of cell vertices for given 2d space coordinates."
+  "Returns the vertices of the cell containing given 2d space coordinates.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `coords`: `[x y]` pair, or pass `x`/`y` separately.
+  - `scale` (double, optional, default `1.0`): scales the cell size used to compute vertices, without moving the cell's anchor. Values `<1.0` shrink the polygon toward the anchor, `>1.0` grow it.
+
+  Returns a sequence of 2d vertices, in a fixed winding order: 4 for `:square`/`:shifted-square`/`:rhombus`, 3 for `:triangle`, 6 for `:flat-hex`/`:pointy-hex`."
   ([g coords] (prot/corners g coords))
   ([g coords scale] (prot/corners g coords scale))
   ([g x y scale] (prot/corners g x y scale)))
 
 (defn coords->anchor
-  "Converts 2d coordinates (x,y) to cell anchor (x,y)."
+  "Converts 2d coordinates `(x,y)` to the anchor of the cell containing them.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `coords`: `[x y]` pair, or pass `x`/`y` separately.
+
+  Equivalent to `(cell->anchor g (coords->cell g coords))` — routes through the containing cell, unlike [[cell->anchor]] which takes cell coordinates `(q,r)` directly."
   ([g coords] (prot/cell->anchor g (prot/coords->cell g coords)))
   ([g x y] (prot/cell->anchor g (prot/coords->cell g x y))))
 
 (defn cell->mid
-  "Converts cell coordinates (q,r) to mid point (x,y)."
+  "Converts cell coordinates `(q,r)` to the cell's midpoint `(x,y)`.
+
+  Parameters:
+
+  - `g`: a grid object created by [[grid]].
+  - `cell`: `[q r]` pair, or pass `q`/`r` separately.
+
+  Returns the centroid of the given cell. For `:pointy-hex`/`:flat-hex` this equals [[cell->anchor]] (the anchor is already the center)."
   ([g cell] (prot/cell->mid g cell))
   ([g x y] (prot/cell->mid g x y)))
 
@@ -266,17 +315,27 @@
   (v/vec3 (rhombus->pixel size (m/>> q 1) r) (bit-and q 0x1)))
 
 (defn- pixel->triangle
-  "2d coords to triangle cell."
+  "2d coords to triangle cell.
+
+  Each up/down triangle pair (an even `q` and its odd `q+1` sibling) shares one anchor
+  point in 2d space (see [[triangle->pixel]]); at that exact point this function
+  deterministically resolves to the even (`down?` false) member, both for positive and
+  negative coordinates. That ambiguity is structural (2 cells map to 1 anchor point,
+  distinguished only by the out-of-band `down?` flag `coords->cell` never receives) and
+  can't be removed by this function alone; what changed vs. the previous formula is that
+  the resolution is now sign-symmetric (same convention for negative and positive
+  coordinates), where it previously favored different cells depending on coordinate sign."
   [^double size ^double x ^double y]
   (let [h (* size m/SQRT3_2)
         ys (/ y h)
         yy (m/floor ys)
-        fy (if (neg? ys) (- 1.0 (m/frac ys)) (m/frac ys))
+        fy (- ys yy) ;; floor-based fractional part; sign-symmetric and exact at integer boundaries
         hs (* 0.5 size)
         xs (/ (+ (* fy hs)
                  (- x (* yy hs))) size)
-        xx (* 2.0 (m/floor xs))
-        fx (if (neg? xs) (- 1.0 (m/frac xs)) (m/frac xs))]
+        xsf (m/floor xs)
+        xx (* 2.0 xsf)
+        fx (- xs xsf)]
     (if (< fy fx)
       (Vec2. (inc xx) yy)
       (Vec2. xx yy))))
@@ -321,18 +380,37 @@
    :rhombus {:from-cell rhombus->pixel :to-cell pixel->rhombus :to-mid rhombus-pixel->mid :vertices rhombus-corners}
    :triangle {:from-cell triangle->pixel :to-cell pixel->triangle :to-mid triangle-pixel->mid :vertices triangle-corners :anchor coords->triangle-anchor}})
 
-(def ^:private grid-type-fns-default {:from-cell square->pixel :to-cell pixel->square :to-mid square-pixel->mid :vertices square-corners})
+(def cell-names
+  "List of valid grid cell types accepted by [[grid]].
+
+  Returns a vector of 6 keywords: `:square`, `:shifted-square`, `:triangle`, `:rhombus`, `:flat-hex`, `:pointy-hex`."
+  [:square :shifted-square :triangle :rhombus :flat-hex :pointy-hex])
+
+(def ^:private cell-names-set (set cell-names))
 
 (defn grid
-  "Create grid for given type, size and optional translating vector."
+  "Create a grid object for a given cell `type`, `size` and optional translating vector.
+
+  Parameters:
+
+  - `type` (keyword): one of [[cell-names]] (`:square`, `:shifted-square`, `:triangle`, `:rhombus`, `:flat-hex`, `:pointy-hex`).
+  - `size` (double, optional, default `10.0`): distance between neighboring cell anchors (for `:square`/`:rhombus`/`:triangle` this equals the cell's own side length; `:shifted-square` keeps its own q-direction/side-length convention). For `:pointy-hex`/`:flat-hex` the value actually stored and used internally is the circumradius `size/√3` (so adjacent hex centers end up `size` apart, matching the other cell types), not `size` itself.
+  - `sx`, `sy` (double, optional, default `0.0`): translation vector applied to every anchor/mid/corner coordinate.
+
+  Returns an object satisfying [[fastmath.protocols/GridProto]] (and `Named`/`Object`), usable with [[coords->cell]], [[cell->anchor]], [[coords->mid]], [[cell->mid]], [[corners]], [[coords->anchor]] and [[grid-type]].
+
+  Throws `ExceptionInfo` when `type` is not one of [[cell-names]].
+
+  Defaults: `(grid type size)` translates by `[0.0 0.0]`; `(grid type)` also sets `size` to `10.0`; `(grid)` creates `(grid :square)`."
   ([type ^double size ^double sx ^double sy]
+   (when-not (cell-names-set type)
+     (throw (ex-info (str "Unknown grid type: " type ". Valid types are: " cell-names)
+                      {:type type :valid-types cell-names})))
    (let [sv (Vec2. sx sy)
          size (if (or (= type :pointy-hex)
-                      (= type :flat-hex)) (/ size 2.0) size)
-         fp (get grid-type-fns type grid-type-fns-default)]
+                      (= type :flat-hex)) (/ size m/SQRT3) size)
+         fp (grid-type-fns type)]
      (grid-obj type fp size sv)))
   ([type ^double size] (grid type size 0.0 0.0))
   ([type] (grid type 10.0))
   ([] (grid :square)))
-
-(def cell-names ^{:doc "List of cell types"} [:square :shifted-square :triangle :rhombus :flat-hex :pointy-hex])

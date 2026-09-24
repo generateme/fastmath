@@ -2627,9 +2627,10 @@
 
   - `vs` (sequence of numbers): Input data.
   - `bins-or-estimate-method` (keyword or long): Estimation method to use, or an explicit bin count. Defaults to `:freedman-diaconis`. One of:
-    - `:sqrt`: square root of the sample size, `sqrt(n)`.
-    - `:sturges`: `1 + log2(n)`, assumes roughly normal data, tends to undersmooth for large or non-normal samples.
-    - `:rice`: `2 * cbrt(n)`, depends only on sample size.
+    - `:sqrt`: `ceil(sqrt(n))`, depends only on sample size, the simplest of the estimators.
+    - `:sturges`: `ceil(log2(n)) + 1`, assumes roughly normal data, tends to undersmooth for large or non-normal samples.
+    - `:rice`: `ceil(2 * cbrt(n))`, depends only on sample size.
+    - `:terrell-scott`: `ceil(cbrt(2 * n))`, depends only on sample size, an asymptotically minimal-risk rule related to `:rice`.
     - `:doane`: a refinement of Sturges' rule that accounts for the sample skewness (see [[skewness]]), better suited for non-normal data.
     - `:scott`: bin width `3.5 * stddev / cbrt(n)`, assumes roughly normal data.
     - `:freedman-diaconis` (default): bin width `2 * IQR / cbrt(n)` (see [[iqr]]), robust to outliers.
@@ -2644,9 +2645,10 @@
      (or bins-or-estimate-method (estimate-bins vs))
      (let [n (count vs)]
        (m/min n (int (case bins-or-estimate-method
-                       :sqrt (m/max 1 (m/sqrt n))
+                       :sqrt (bins/sqrt n)
                        :sturges (bins/sturges n)
                        :rice (bins/rice n)
+                       :terrell-scott (bins/terrell-scott n)
                        :doane (bins/doane (m/seq->double-array vs) n)
                        :scott (bins/scott (m/seq->double-array vs) n)
                        :freedman-diaconis (bins/freedman-diaconis (m/seq->double-array vs) n))))))))

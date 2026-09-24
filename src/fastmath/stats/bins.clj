@@ -63,9 +63,53 @@
 
   Returns the estimated number of bins as a positive `long` (at least `1`).
 
-  See also [[sturges]], [[doane]], [[scott]], [[freedman-diaconis]]."
+  See also [[sturges]], [[doane]], [[scott]], [[freedman-diaconis]], [[sqrt]],
+  [[terrell-scott]]."
   ^long [^long n]
   (m/max 1 (long (m/ceil (m/* 2.0 (m/cbrt n))))))
+
+(defn sqrt
+  "Estimates the number of histogram bins for a sample of size `n` using the square-root choice.
+
+  Formula: `ceil(sqrt(n))`. Depends only on sample size; the simplest of the
+  bin-count estimators, used as the default by several spreadsheet and
+  plotting tools.
+
+  Parameters:
+
+  - `n` (`long`): The sample size.
+
+  Returns the estimated number of bins as a positive `long` (at least `1`,
+  including when `n < 1`).
+
+  See also [[sturges]], [[rice]], [[terrell-scott]], [[doane]], [[scott]],
+  [[freedman-diaconis]]."
+  ^long [^long n]
+  (if (m/< n 1)
+    1
+    (m/max 1 (long (m/ceil (m/sqrt n))))))
+
+(defn terrell-scott
+  "Estimates the number of histogram bins for a sample of size `n` using the Terrell-Scott rule.
+
+  Formula: `ceil(cbrt(2 * n))`. Depends only on sample size; an
+  asymptotically minimal-risk rule (Terrell & Scott, 1985) related to
+  [[rice]]'s formula but with the factor of `2` inside, rather than outside,
+  the cube root.
+
+  Parameters:
+
+  - `n` (`long`): The sample size.
+
+  Returns the estimated number of bins as a positive `long` (at least `1`,
+  including when `n < 1`).
+
+  See also [[sturges]], [[rice]], [[sqrt]], [[doane]], [[scott]],
+  [[freedman-diaconis]]."
+  ^long [^long n]
+  (if (m/< n 1)
+    1
+    (m/max 1 (long (m/ceil (m/cbrt (m/* 2.0 n)))))))
 
 (defn doane
   "Estimates the number of histogram bins for `avs` using Doane's rule.

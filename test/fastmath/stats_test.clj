@@ -1416,15 +1416,15 @@ matches auc-roc"
                     :frequencies {1.0 2} :intervals '(1.0 1.0)}
     [1] :rice one
     [1] :doane one
-    [1 2] :sqrt one2
+    [1 2] :sqrt two ;; ceil(sqrt(2))=2 (fixed post-Bins-Audit: was truncating, gave 1)
     [1 2] :sturges two
     [1 2] :rice two
     [1 2] :doane one2
     [1 2] :scott one2
     [1 2] :freedman-diaconis one2))
 
-;; estimate-bins (all 6 methods) and a full histogram on real data (mtcars$mpg)
-;; reference values from R: nclass.Sturges/nclass.scott (sqrt/sturges/scott match R's exact
+;; estimate-bins (all 6 original methods) and a full histogram on real data (mtcars$mpg)
+;; reference values from R: nclass.Sturges/nclass.scott (sturges/scott match R's exact
 ;; convention); rice/freedman-diaconis instead verified against fastmath's own documented
 ;; formula (ceil(2*cbrt(n)) resp. ceil(range/(2*IQR(type=6)/cbrt(n)))) computed in R -- these
 ;; deliberately differ from R's own nclass.Sturges-family rounding/IQR-type conventions (the
@@ -1434,14 +1434,19 @@ matches auc-roc"
 ;; Audit, 2026-09-23 -- corrected from a previously-recorded 7, which reflected a real
 ;; fastmath.stats.bins/doane bug (truncating instead of ceiling the raw formula value,
 ;; unlike its sibling bin-count estimators), independently confirmed via numpy's
-;; histogram_bin_edges(bins='doane'); now fixed in fastmath.stats.bins/doane, see CHANGELOG)
+;; histogram_bin_edges(bins='doane'); now fixed in fastmath.stats.bins/doane, see CHANGELOG).
+;; :sqrt corrected the same way post-audit (was 5, truncating; ceil(sqrt(32))=6, matching
+;; numpy's histogram_bin_edges(bins='sqrt')), once estimate-bins started delegating to the
+;; new fastmath.stats.bins/sqrt instead of its own inline (non-ceiling) computation.
+;; :terrell-scott added post-audit, verified against its closed form ceil(cbrt(2n)).
 
 (t/deftest estimate-bins-and-full-histogram-test
   (let [mpg (mtcars :mpg)]
     (t/are [method n] (= n (sut/estimate-bins mpg method))
-      :sqrt 5
+      :sqrt 6
       :sturges 6
       :rice 7
+      :terrell-scott 4
       :scott 4
       :freedman-diaconis 5
       :doane 8)

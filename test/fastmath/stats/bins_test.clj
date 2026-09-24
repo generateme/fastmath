@@ -32,6 +32,28 @@
     1   2
     0   1))
 
+;; sqrt / terrell-scott: added post-audit at user request (both known, simple,
+;; data-independent bin-count rules, per the same numpy.histogram_bin_edges oracle
+;; used throughout this audit for sturges/rice; terrell-scott has no numpy/R builtin,
+;; verified against its well-known closed form ceil(cbrt(2n)) directly).
+;; numpy: sqrt(n100)=10, sqrt(mpg)=6
+
+(t/deftest sqrt-test
+  (t/are [n bins] (= bins (sut/sqrt n))
+    100 10
+    32  6
+    1   1
+    0   1
+    -5  1))
+
+(t/deftest terrell-scott-test
+  (t/are [n bins] (= bins (sut/terrell-scott n))
+    100 6
+    32  4
+    1   2
+    0   1
+    -5  1))
+
 (t/deftest doane-test
   (t/testing "n < 3: skewness undefined, always 1"
     (t/is (= 1 (sut/doane (double-array [1.0]) 1)))

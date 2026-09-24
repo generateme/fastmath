@@ -5,7 +5,7 @@
 (add-examples grid
   (example-session "Usage"
     (grid :pointy-hex 20)
-    (grid :triangular 10 5.0 5.0)
+    (grid :triangle 10 5.0 5.0)
     (name (grid :square))
     (str (grid :rhombus))
     (grid))
