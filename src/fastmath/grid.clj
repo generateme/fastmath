@@ -262,20 +262,20 @@
 (defn- shifted-square->pixel
   "Shifted square to anchor."
   [^double size ^long q ^long r]
-  (v/vec2 (+ (* r (* 0.5 size)) (* q size)) (* r size)))
+  (v/vec2 (+ (* 0.5 r size) (* q size)) (* r size)))
 
 (defn- pixel->shifted-square
   "2d coords to shifted square cell."
   ([^double size ^double x ^double y]
    (let [yy (m/floor (/ y size))]
-     (v/vec2 (m/floor (/ (- x (* yy (* 0.5 size))) size)) yy))))
+     (v/vec2 (m/floor (/ (- x (* 0.5 yy size)) size)) yy))))
 
 ;; rhombus
 
 (defn- rhombus->pixel
   "Shifted square to anchor."
   [^double size ^long q ^long r]
-  (v/vec2 (+ (* r (* 0.5 size)) (* q size)) (* r size m/SQRT3_2)))
+  (v/vec2 (+ (* 0.5 r size) (* q size)) (* r size m/SQRT3_2)))
 
 (defn- pixel->rhombus
   "2d coords to rhombus cell."
