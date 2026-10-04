@@ -1,152 +1,183 @@
 (ns fastmath.optimization
-  "Optimization.
+  "Minimization and maximization of functions with various optimization methods, Bayesian optimization and linear programming.
 
-  Namespace provides various optimization methods.
+  Functions are optimized by name of a method: call [[minimize]] or [[maximize]] with the method, the function and an options map. [[minimizer]] and [[maximizer]] create a function which runs the optimization for a given initial point, [[scan-and-minimize]] and [[scan-and-maximize]] scan the search domain first and then run many optimizations in parallel from the best points. [[bayesian-optimization]] optimizes expensive functions and [[linear-optimization]] solves linear programs.
 
-  * Brent (1d functions)
-  * Bobyqa (2d+ functions)
-  * Powell
-  * Nelder-Mead
-  * Multidirectional simplex
-  * CMAES
-  * Gradient
-  * L-BFGS-B
-  * Bayesian Optimization (see below)
-  * Linear optimization
+  ## Methods
 
-  All optimizers require bounds.
+  - `:brent` - one dimension, local, derivative free (Apache Commons Math).
+  - `:bobyqa` - box constrained, derivative free, two or more dimensions (Apache Commons Math).
+  - `:cmaes` - box constrained evolution strategy, derivative free, stochastic (Apache Commons Math).
+  - `:nelder-mead`, `:multidirectional-simplex`, `:powell` - unconstrained, derivative free (Apache Commons Math).
+  - `:gradient` (also `:non-linear-gradient`) - unconstrained conjugate gradient, numerical or given gradient (Apache Commons Math).
+  - `:lbfgsb` - box constrained quasi-Newton L-BFGS-B, numerical or given gradient (see [[fastmath.optimization.lbfgsb]]).
 
-  ## Optimizers
+  The functions of the methods are documented in [[fastmath.optimization.acm]] and [[fastmath.optimization.lbfgsb]], where all their options are described.
 
-  To optimize functions call one of the following functions:
+  ## Options common to all methods
 
-  * [[minimize]] or [[maximize]] - to perform actual optimization
-  * [[scan-and-minimize]] or [[scan-and-maximize]] - functions find initial point using brute force and then perform optimization paralelly for best initialization points. Brute force scan is done using jitter low discrepancy sequence generator.
+  - `:bounds` - sequence of `[lo hi]` pairs, one for each dimension (`[lo hi]` for one dimension). Required by `:brent`, `:bobyqa`, `:cmaes` and `:lbfgsb`, optional for the other methods where they only set the size of the initial simplex or the initial point. Bounds are validated: no NaN, `lo <= hi`, their number matches the initial point. `:brent` needs exactly one finite interval with `lo < hi`, `:bobyqa` and `:cmaes` finite bounds, the simplex methods finite bounds with `lo < hi`. Infinite bounds are allowed by `:lbfgsb` when `:initial` is given.
+  - `:initial` - the initial point, default: the middle of the bounds.
+  - `:goal` - `:minimize` (default) or `:maximize`. [[minimize]] and [[maximize]] set it.
+  - `:vector-arg?` - `true`: the function receives the point as one sequence, `false`: as separate arguments. Default: `true`, but `false` for `:brent`, which receives a number. Whichever the form, the point is treated as a sequence of numbers (it can be an array, a vector or a lazy sequence depending on the method).
+  - `:gradient` - function of the point, always one sequence, returning the gradient of the function as a sequence of numbers. It is the gradient of the function itself, also when maximizing. Used by `:lbfgsb` and `:gradient` only and ignored by the other methods. Default: finite differences with step `:gradient-h`.
+  - `:max-evals`, `:max-iters` - limits of the numbers of evaluations and iterations. Exceeding a limit throws an exception, except for `:lbfgsb` (maximum of iterations is not an error, no limit of evaluations) and `:cmaes`.
+  - `:stats?` - return a map with additional information instead of `[point value]`. The map depends on the method: `:point`, `:value`, `:evaluations` and `:iterations` for the Apache Commons Math methods and for linear optimization, `:point`, `:value`, `:iterations`, `:gradient` and `:status` for `:lbfgsb`.
 
-  You can also create optimizer (function which performs optimization) by calling [[minimizer]] or [[maximizer]]. Optimizer accepts initial point.
+  The result is always `[point value]`, where `value` is the value of the function, also when maximizing.
 
-  All above accept:
+  Unknown methods, goals and option values (for example formulas or line searches) throw `ex-info` with the allowed values in the exception data.
 
-  * one of the optimization method, ie: `:brent`, `:bobyqa`, `:nelder-mead`, `:multidirectional-simplex`, `:cmaes`, `:gradient`, `:bfgs` and `:lbfgsb`
-  * function to optimize
-  * parameters as a map
+  ## Scan and optimize
 
-  For parameters meaning refer [Optim package](https://commons.apache.org/proper/commons-math/javadocs/api-3.6.1/index.html?org/apache/commons/math3/optim/package-summary.html)
-  
-  ### Common parameters
+  `scan-and-...` functions evaluate the function at `:N` points of a jittered low discrepancy sequence, start the optimization from the best `:n` fraction of them in parallel, and return the best result. Optimization runs which fail with an exception are skipped.
 
-  * `:bounds` (obligatory) - search ranges for each dimensions as a seqence of [low high] pairs
-  * `:initial` - initial point other then mid of the bounds as vector
-  * `:max-evals` - maximum number of function evaluations
-  * `:max-iters` - maximum number of algorithm interations
-  * `:bounded?` - should optimizer force to keep search within bounds (some algorithms go outside desired ranges)
-  * `:stats?` - return number of iterations and evaluations along with result
-  * `:rel` and `:abs` - relative and absolute accepted errors
+  ## Bayesian optimization
 
-  For `scan-and-...` functions additionally you can provide:
+  [[bayesian-optimization]] can be used for optimizing expensive to evaluate black box functions. Refer to this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
 
-  * `:N` - number of brute force iterations
-  * `:n` - fraction of N which are used as initial points to parallel optimization
-  * `:jitter` - jitter factor for sequence generator (for scanning domain)
-  
-  ### Specific parameters
+  ## Linear optimization
 
-  * BOBYQA - `:number-of-points`, `:initial-radius`, `:stopping-radius`
-  * Nelder-Mead - `:rho`, `:khi`, `:gamma`, `:sigma`, `:side-length`
-  * Multidirectional simples - `:khi`, `:gamma`, `:side-length`
-  * CMAES - `:check-feasable-count`, `:diagonal-only`, `:stop-fitness`, `:active-cma?`, `:population-size`
-  * Gradient - `:bracketing-range`, `:formula` (`:polak-ribiere` or `:fletcher-reeves`), `:gradient-h` (finite differentiation step, default: `0.01`) 
-
-  ## Bayesian Optimization
-
-  Bayesian optimizer can be used for optimizing expensive to evaluate black box functions. Refer this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
-
-  ## Linear optimization "
+  [[linear-optimization]] solves linear programs with the simplex method."
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
             [fastmath.interpolation.gp :as gp]
+            [fastmath.optimization.common :as common]
             [fastmath.optimization.lbfgsb :as lbfgsb]
             [fastmath.optimization.acm :as acm])
-  (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType]
-           [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxIter]
+  (:import [org.apache.commons.math3.optim BaseOptimizer]
            [org.apache.commons.math3.optim.linear LinearObjectiveFunction LinearConstraint
             Relationship LinearConstraintSet SimplexSolver NonNegativeConstraint PivotSelectionRule]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(defn- optimizers
-  [nm]
-  (case nm
-    :lbfgsb [lbfgsb/lbfgsb lbfgsb/lbfgsb-data]
-    :brent [acm/brent acm/brent-data]
-    :bobyqa [acm/bobyqa acm/bobyqa-data]
-    :cmaes [acm/cmaes acm/cmaes-data]
-    :nelder-mead [acm/nelder-mead acm/nelder-mead-data]
-    :multidirectional-simplex [acm/multidirectional-simplex acm/multidirectional-simplex-data]
-    :powell [acm/powell acm/powell-data]
-    (:non-linear-gradient :gradient) [acm/non-linear-gradient acm/non-linear-gradient-data]))
+(def ^:private optimizers
+  {:lbfgsb lbfgsb/lbfgsb
+   :brent acm/brent
+   :bobyqa acm/bobyqa
+   :cmaes acm/cmaes
+   :nelder-mead acm/nelder-mead
+   :multidirectional-simplex acm/multidirectional-simplex
+   :powell acm/powell
+   :gradient acm/non-linear-gradient
+   :non-linear-gradient acm/non-linear-gradient})
 
-(defn- initial-updater
-  [nm]
-  (case nm
-    :lbfgsb lbfgsb/update-initial
-    :brent acm/update-univariate-initial
-    acm/update-multivariate-initial))
+(defn- optimizer
+  "Returns the optimizer function of the method or throws `ex-info`."
+  [method]
+  (or (optimizers method)
+      (common/throw-unknown :method method (set (keys optimizers)))))
+
+(defn- initial-point-optimizer
+  [method f options goal]
+  (let [optimize-fn (optimizer method)
+        options (assoc options :goal goal)]
+    (fn [initial] (optimize-fn f (assoc options :initial initial)))))
 
 (defn minimizer
-  "Create optimizer which minimizes function.
+  "Creates a function which minimizes the function `f` from a given initial point.
 
-  Returns function which performs optimization for optionally given initial point."
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to minimize.
+  - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
+
+  Returns a function of one argument, the initial point (a sequence of numbers, a number for `:brent`) or `nil` for the default one. The initial point replaces `:initial` of `options`. The function returns the result of [[minimize]]. The function has no zero-arity.
+
+  Throws `ex-info` for an unknown method. The other options are validated when the returned function is called.
+
+  See also [[maximizer]], [[minimize]], [[scan-and-minimize]]."
   [method f options]
-  (let [[opt opt-data] (optimizers method)
-        updater (initial-updater method)
-        data (opt-data f (assoc options :goal :minimize))]
-    (fn [initial] (opt (updater data initial)))))
+  (initial-point-optimizer method f options :minimize))
 
 (defn maximizer
-  "Create optimizer which minimizes function.
+  "Creates a function which maximizes the function `f` from a given initial point.
 
-  Returns function which performs optimization for optionally given initial point."
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to maximize.
+  - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
+
+  Returns a function of one argument, the initial point (a sequence of numbers, a number for `:brent`) or `nil` for the default one. The initial point replaces `:initial` of `options`. The function returns the result of [[maximize]]. The function has no zero-arity.
+
+  Throws `ex-info` for an unknown method. The other options are validated when the returned function is called.
+
+  See also [[minimizer]], [[maximize]], [[scan-and-maximize]]."
   [method f options]
-  (let [[opt opt-data] (optimizers method)
-        updater (initial-updater method)
-        data (opt-data f (assoc options :goal :maximize))]
-    (fn [initial] (opt (updater data initial)))))
+  (initial-point-optimizer method f options :maximize))
 
 ;;
 
 (defn optimize
+  "Optimizes the function `f` with the given method. The goal is taken from the options.
+
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to optimize.
+  - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is `:minimize` (default) or `:maximize`.
+
+  Returns `[point value]`, or a map when `:stats?` is `true`.
+
+  Throws `ex-info` for an unknown method, goal or option value, and for invalid bounds.
+
+  See also [[minimize]], [[maximize]]."
   [method f options]
-  (let [[opt] (optimizers method)]
-    (opt f options)))
+  ((optimizer method) f options))
 
 (defn minimize
+  "Minimizes the function `f` with the given method.
+
+  Parameters:
+
+  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:gradient` and `:lbfgsb`.
+  - `f` (function): the function to minimize.
+  - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
+
+  Returns `[point value]`, or a map when `:stats?` is `true`. `point` is a vector (a number for `:brent`) and `value` is the value of `f` at the point.
+
+  Throws `ex-info` for an unknown method or option value, and for invalid bounds. Exceeding `:max-evals` or `:max-iters` throws an exception.
+
+  See also [[maximize]], [[minimizer]], [[scan-and-minimize]]."
   [method f options]
-  (let [[opt] (optimizers method)]
-    (opt f (assoc options :goal :minimize))))
+  (optimize method f (assoc options :goal :minimize)))
 
 (defn maximize
+  "Maximizes the function `f` with the given method.
+
+  Parameters:
+
+  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:gradient` and `:lbfgsb`.
+  - `f` (function): the function to maximize.
+  - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
+
+  Returns `[point value]`, or a map when `:stats?` is `true`. `point` is a vector (a number for `:brent`) and `value` is the value of `f` at the point.
+
+  Throws `ex-info` for an unknown method or option value, and for invalid bounds. Exceeding `:max-evals` or `:max-iters` throws an exception.
+
+  See also [[minimize]], [[maximizer]], [[scan-and-maximize]]."
   [method f options]
-  (let [[opt] (optimizers method)]
-    (opt f (assoc options :goal :maximize))))
+  (optimize method f (assoc options :goal :maximize)))
 
 ;;
 
 (defn- goal-comparator [goal] (if (= goal :minimize) m/< m/>))
 
 (defn- generate-points
-  [f bounds goal N jitter vector-arg?]
+  "Evaluates `f` (a function of a sequence) at `N` (at least `4.5 + d log2 d` for `d` dimensions) points of the bounds and returns the points sorted from the best one."
+  [f bounds goal N jitter]
   (let [dim (count bounds)
         lo (map first bounds)
         hi (map second bounds)
-        genf (if vector-arg? f (partial apply f))
         N (long (m/max (m/+ 4.5 (m/* dim (m/log2 dim))) (long N)))
         gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter)]
     (->> (if (m/one? dim) (map vector gen) gen)
-         (map (fn [v] (let [p (v/einterpolate lo hi v)] [(genf p) p])))
+         (map (fn [v] (let [p (v/einterpolate lo hi v)] [(f p) p])))
          (filter (comp m/valid-double? first))
          (take N)
          (sort-by first (goal-comparator goal))
@@ -160,44 +191,91 @@
       (catch Exception _ nil))))
 
 (defn scan-and-optimize
-  "For cheap functions, scan domain and bruteforcely search for set of minimal values, then use part of this values as initial points for parallel optimization.
+  "Scans the search domain with a low discrepancy sequence and optimizes the function in parallel from the best scanned points.
 
-  Additional parameters in config:
+  The function is evaluated at `:N` points of a jittered low discrepancy sequence (see [[fastmath.random/jittered-sequence-generator]]). The best of them are the initial points of the optimization with the given method. Use it for cheap functions with many local extrema.
 
-  * N - number of total grid points
-  * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
-  [method f {:keys [bounds ^int N ^double n ^double jitter parallel? vector-arg? goal ^long take-last-n stats?]
-             :or {N 100 n 0.05 jitter 0.25 parallel? true goal :minimize take-last-n 0}
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to optimize.
+  - `opts` (map): all options of the method, see [[fastmath.optimization]] (`:initial` is replaced by the scanned points) and:
+    - `:bounds` (required) - the domain to scan, validated for the method. Infinite bounds are not allowed.
+    - `:goal` - `:minimize` (default) or `:maximize`.
+    - `:N` - number of scanned points, default: `100`. At least `4.5 + d log2 d` points are used for `d` dimensions.
+    - `:n` - number of optimization runs: a fraction of `:N` when not greater than `1.0` (default: `0.05`), otherwise the number itself. At least one run is made.
+    - `:jitter` - jitter of the sequence generator, default: `0.25`.
+    - `:parallel?` - run the optimizations in parallel, default: `true`. The function has to be thread safe.
+    - `:vector-arg?` - how the function receives the point, see [[fastmath.optimization]].
+    - `:take-last-n` - when greater than `1`, return the best `:take-last-n` results as a sequence, default: `0`.
+    - `:stats?` - return maps with additional information instead of `[point value]`.
+
+  Returns the best result of the form of [[minimize]] (`[point value]` or a map). With `:take-last-n` returns a sequence of results sorted from the best one. Returns `nil` (an empty sequence) when all optimization runs failed.
+
+  Runs which throw an exception, for example when a limit is exceeded, are skipped. Exceptions of the evaluation of the scanned points, an unknown method and invalid bounds or options throw.
+
+  See also [[scan-and-minimize]], [[scan-and-maximize]], [[minimize]]."
+  [method f {:keys [bounds N n jitter parallel? vector-arg? goal take-last-n stats?]
+             :or {parallel? true}
              :as opts}]
-  (when-not bounds (throw (ex-info "Provide search bounds." {:bounds bounds})))
-  (let [vector-arg? (or vector-arg? (not= method :brent))
-        optimizer (wrap-optimizer ((if (= goal :minimize) minimizer maximizer) method f opts))
-        samples (generate-points f bounds goal N jitter vector-arg?)
-        nbest (long (m/max 1 (if (m/> n 1.0) n (m/floor (m/* n N)))))        
+  (let [N (long (or N 100))
+        n (double (or n 0.05))
+        jitter (double (or jitter 0.25))
+        take-last-n (long (or take-last-n 0))
+        optimize-fn (optimizer method)
+        goal (common/parse-goal goal)
+        bounds (or (common/normalize-bounds method bounds nil)
+                   (throw (ex-info "Provide search bounds." {:method method :bounds bounds})))
+        vector-arg? (common/resolve-vector-arg? method vector-arg?)
+        opts (assoc opts :bounds bounds :goal goal :vector-arg? vector-arg?)
+        run (wrap-optimizer (fn [initial] (optimize-fn f (assoc opts :initial initial))))
+        samples (generate-points (common/->vector-fn f vector-arg?) bounds goal N jitter)
+        nbest (long (m/max 1 (if (m/> n 1.0) n (m/floor (m/* n N)))))
         taker (if (m/> take-last-n 1) (partial take take-last-n) first)
         mapper (if parallel? pmap map)
         sort-selector (if stats? :value second)]
-    (->> (mapper optimizer samples)
+    (->> (mapper run samples)
          (filter identity)
          (take nbest)
          (sort-by sort-selector (goal-comparator goal))
          (taker))))
 
 (defn scan-and-minimize
+  "Scans the search domain and minimizes the function in parallel from the best scanned points.
+
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to minimize.
+  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
+
+  Returns the best result of the form of [[minimize]], or `nil` when all runs failed.
+
+  See also [[scan-and-maximize]], [[scan-and-optimize]]."
   [method f opts]
   (scan-and-optimize method f (assoc opts :goal :minimize)))
 
 (defn scan-and-maximize
+  "Scans the search domain and maximizes the function in parallel from the best scanned points.
+
+  Parameters:
+
+  - `method` (keyword): optimization method, see [[fastmath.optimization]].
+  - `f` (function): the function to maximize.
+  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
+
+  Returns the best result of the form of [[maximize]], or `nil` when all runs failed.
+
+  See also [[scan-and-minimize]], [[scan-and-optimize]]."
   [method f opts]
   (scan-and-optimize method f (assoc opts :goal :maximize)))
-
 
 ;; bo
 
 (defmulti ^:private utility-function (fn [t & _] t))
 
-(defmethod utility-function :default [_ p]
-  (utility-function :ucb p))
+(defmethod utility-function :default [t _]
+  (common/throw-unknown :utility-function-type t #{:ucb :ei :poi}))
 
 (defmethod utility-function :ucb
   [_ ^double kappa]
@@ -239,12 +317,18 @@
 
 (defn- bayesian-step-fn
   [f util-fn warm-up bounds gp jitter optimizer optimizer-params]
+  ;; the utility function is a function of one sequence and the result has to be a single point
   (let [params (merge optimizer-params {:N warm-up :n 0.02
-                                        :bounds bounds :jitter jitter :parallel? false})]
+                                        :bounds bounds :jitter jitter :parallel? false
+                                        :vector-arg? true :stats? false :take-last-n 0})]
     (fn [{:keys [x ^double y xs ys]}]
       (let [curr-gp (gp xs ys)
             curr-util (fn [r] (util-fn curr-gp (vec r) y))
-            bx (first (scan-and-maximize optimizer curr-util params))
+            ;; unconstrained optimizers (powell, nelder-mead, ...) can leave the bounds: the point is moved back
+            bx (mapv (fn [^double x [^double lo ^double hi]] (m/constrain x lo hi))
+                     (or (first (scan-and-maximize optimizer curr-util params))
+                         (throw (ex-info "No maximum of the utility function found" {:optimizer optimizer :bounds bounds})))
+                     bounds)
             by (double (f bx))
             nxs (conj xs bx)
             nys (conj ys by)]
@@ -257,34 +341,41 @@
          :util-best bx}))))
 
 (defn bayesian-optimization
-  "Bayesian optimizer
+  "Maximizes an expensive to evaluate black box function with Bayesian optimization.
 
-  Parameters are:
+  A Gaussian process is fitted to the visited points. In every step the point which maximizes the utility function of the process is evaluated.
 
-  * `:warm-up` - number of brute force iterations to find maximum of utility function
-  * `:init-points` - number of initial evaluation before bayesian optimization starts. Points are selected using jittered low discrepancy sequence generator (see: [[jittered-sequence-generator]]
-  * `:bounds` - bounds for each dimension
-  * `:utility-function-type` - one of `:ei`, `:poi` or `:ucb`
-  * `:utility-param` - parameter for utility function (kappa for `ucb` and xi for `ei` and `poi`)
-  * `:kernel` - kernel, default `:matern-52`, see [[fastmath.kernel]]
-  * `:kscale` - scaling factor for kernel
-  * `:jitter` - jitter factor for sequence generator (used to find initial points)
-  * `:noise` - noise (lambda) factor for gaussian process
-  * `:optimizer` - name of optimizer (used to optimized utility function)
-  * `:optimizer-params` - optional parameters for optimizer
-  * `:normalize?` - normalize data in gaussian process?
+  Parameters:
 
-  Returns lazy sequence with consecutive executions. Each step consist:
+  - `f` (function): the function to maximize. It receives the point as one sequence, or as separate arguments when `:vector-arg?` is `false`.
+  - `opts` (map):
+    - `:bounds` (required) - sequence of `[lo hi]` pairs, one for each dimension, validated for the `:optimizer`. Infinite bounds are not allowed.
+    - `:vector-arg?` - how `f` receives the point, default: `true`. The utility function is always optimized with sequences, so any `:optimizer` works, including `:brent`.
+    - `:warm-up` - number of scanned points used to find the maximum of the utility function, default: `1000` for every dimension.
+    - `:init-points` - number of initial evaluations before the optimization starts, default: `3`. The points are selected with a jittered low discrepancy sequence generator (see [[fastmath.random/jittered-sequence-generator]]). A sequence of points can be given instead.
+    - `:utility-function-type` - `:ucb` (default), `:ei` or `:poi`.
+    - `:utility-param` - parameter of the utility function: `kappa` for `:ucb` (default: `2.576`), `xi` for `:ei` and `:poi` (default: `0.001`).
+    - `:kernel` - kernel of the Gaussian process, a keyword or a kernel, default: `:matern-52`, see [[fastmath.kernel]].
+    - `:kscale` - scaling factor of the kernel, default: `1.0`.
+    - `:jitter` - jitter of the sequence generators, default: `0.25`.
+    - `:noise` - noise (lambda) of the Gaussian process, default: `1.0e-8`.
+    - `:normalize?` - normalize data in the Gaussian process, default: `true`.
+    - `:optimizer` - method used to optimize the utility function, default: `:cmaes` for one dimension and `:lbfgsb` otherwise. A point found outside of the bounds by a method without constraints is moved to the bounds.
+    - `:optimizer-params` - options of the optimizer. The scan options and `:vector-arg?`, `:stats?` and `:take-last-n` are set by the function.
 
-  * `:x` - maximum `x`
-  * `:y` - value
-  * `:xs` - list of all visited x's
-  * `:ys` - list of values for every visited x
-  * `:gp` - current gaussian process regression instance
-  * `:util-fn` - current utility function
-  * `:util-best` - best x in utility function"
+  Returns a lazy sequence of consecutive steps. Every step is a map with:
+
+  - `:x` - the best visited point, `:y` - its value,
+  - `:xs` - all visited points, `:ys` - their values,
+  - `:gp` - the current Gaussian process regression,
+  - `:util-fn` - the current utility function,
+  - `:util-best` - the maximum of the utility function, the point evaluated in the step.
+
+  Throws `ex-info` for invalid bounds and an unknown `:utility-function-type` or `:optimizer`, and when the maximum of the utility function cannot be found (all runs of the optimizer failed).
+
+  See also [[scan-and-maximize]], [[maximize]]."
   [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale
-             jitter noise optimizer optimizer-params normalize?]
+             jitter noise optimizer optimizer-params normalize? vector-arg?]
       :or {kscale 1.0
            kernel :matern-52
            init-points 3
@@ -292,10 +383,14 @@
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [warm-up (or warm-up (m/* (count bounds) 1000))
+  (let [;; the default optimizer depends on the number of dimensions, which any structural check of the bounds gives
+        optimizer (or optimizer (if (m/one? (count (common/normalize-bounds :powell bounds nil))) :cmaes :lbfgsb))
+        bounds (or (common/normalize-bounds optimizer bounds nil)
+                   (throw (ex-info "Provide search bounds." {:optimizer optimizer :bounds bounds})))
+        f (common/->vector-fn f (common/resolve-vector-arg? :bayesian-optimization vector-arg?))
+        warm-up (or warm-up (m/* (count bounds) 1000))
         utility-param (double (or utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)))
         kernel (if (keyword? kernel) (k/kernel kernel) kernel)
-        optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))        
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second m/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
@@ -308,16 +403,19 @@
 
 ;; linear optimization
 
-(defn- constraint-relations
+(def ^:private relations
+  {:<= Relationship/LEQ '<= Relationship/LEQ :leq Relationship/LEQ
+   :>= Relationship/GEQ '>= Relationship/GEQ :geq Relationship/GEQ
+   := Relationship/EQ '= Relationship/EQ :eq Relationship/EQ})
+
+(defn- constraint-relation
   ^Relationship [relation]
-  (cond
-    (#{:>= '>= :geq} relation) Relationship/GEQ
-    (#{:<= '<= :leq} relation) Relationship/LEQ
-    :else Relationship/EQ))
+  (or (relations relation)
+      (common/throw-unknown :relation relation (vec (keys relations)))))
 
 (defn- build-constraint
   ^LinearConstraint [[left relation right]]
-  (let [relationship (constraint-relations relation)]
+  (let [relationship (constraint-relation relation)]
     (if (number? right)
       (LinearConstraint. (m/seq->double-array left) relationship (double right))
       (LinearConstraint. (m/seq->double-array (butlast left))
@@ -325,6 +423,13 @@
                          relationship
                          (m/seq->double-array (butlast right))
                          (double (last right))))))
+
+(defn- pivot-rule
+  ^PivotSelectionRule [rule]
+  (case rule
+    :dantzig PivotSelectionRule/DANTZIG
+    :bland PivotSelectionRule/BLAND
+    (common/throw-unknown :rule rule #{:dantzig :bland})))
 
 (defn linear-optimization
   "Solves a linear programming problem using the simplex method.
@@ -337,35 +442,37 @@
   - `constraints` (flat sequence): a concatenation of triplets `left R right`, each of one of the following forms:
       - `[a1 a2 a3 ...] R n` — means `a1*x1 + a2*x2 + a3*x3 + ... R n`, where `n` is a number.
       - `[a1 a2 a3 ... ca] R [b1 b2 b3 ... cb]` — means `a1*x1 + a2*x2 + a3*x3 + ... + ca R b1*x1 + b2*x2 + b3*x3 + ... + cb`.
-      - `R` is the relationship, one of `<=`, `>=`, `=` (as symbol or keyword) or `:leq`, `:geq`, `:eq`.
+      - `R` is the relationship: `<=`, `>=` or `=` (as symbols or keywords), or `:leq`, `:geq` or `:eq`. Nothing else is accepted.
   - `options` (optional map):
       - `:goal` — `:minimize` (default) or `:maximize`.
       - `:rule` — pivot selection rule, `:dantzig` (default) or `:bland`.
-      - `:max-iter` — maximum number of iterations, defaults to the maximum integer value.
+      - `:max-iters` — maximum number of iterations, default `10000`. Exceeding it throws an exception.
       - `:non-negative?` — when `true`, restrict all variables to non-negative values, default `false`.
       - `:epsilon` — convergence tolerance, default `1.0e-6`.
       - `:max-ulps` — allowed floating point comparison tolerance expressed in ulps, default `10`.
       - `:cut-off` — pivot elements smaller than this value are treated as zero, default `1.0e-10`.
-      - `:stats?` — when `true`, return evaluation and iteration counts alongside the result, default `false`.
+      - `:stats?` — when `true`, return a map with the iteration count, default `false`.
 
-  Returns a pair `[point value]`, where `point` is a sequence of optimal variable values and `value` is the optimal objective function value. When `:stats?` is set to `true`, returns instead a map with `:result` (the `[point value]` pair), `:evaluations` and `:iterations`.
+  Returns a pair `[point value]`, where `point` is a vector of optimal variable values and `value` is the optimal objective function value. When `:stats?` is set to `true`, returns instead a map with `:point`, `:value`, `:evaluations` (always `0`) and `:iterations`.
 
-  Every three consecutive values of `constraints` are treated as one triplet, so the collection must contain a multiple of three elements matching the pattern above.
+  Every three consecutive values of `constraints` are treated as one triplet, so the collection must contain a multiple of three elements matching the pattern above. Throws `ex-info` otherwise, and for an unknown relationship, `:goal` or `:rule`. Infeasible and unbounded problems throw the exceptions of Apache Commons Math.
 
   ```clojure
   (linear-optimization [-1 4 0] [[-3 1] :<= 6
                                  [-1 -2] :>= -4
                                  [0 1] :>= -3])
-  ;; => [(9.999999999999995 -3.0) -21.999999999999993]
+  ;; => [[9.999999999999995 -3.0] -21.999999999999993]
   ```"
   ([target constraints] (linear-optimization target constraints {}))
   ([target constraints {:keys [goal ^double epsilon ^int max-ulps ^double cut-off
                                rule non-negative? max-iters stats?]
                         :or {goal :minimize epsilon 1.0e-6 max-ulps 10 cut-off 1.0e-10
                              rule :dantzig non-negative? false}}]
-   (let [goal (acm/goal-type goal)
-         rule (if (= rule :dantzig) PivotSelectionRule/DANTZIG PivotSelectionRule/BLAND)
-         max-iter (acm/max-iter max-iters)
+   (when-not (zero? (rem (count constraints) 3))
+     (throw (ex-info "Constraints should be a sequence of triplets: left, relation, right" {:count (count constraints)})))
+   (let [goal (common/goal-type goal)
+         rule (pivot-rule rule)
+         max-iter (common/max-iter max-iters)
          non-negative? (NonNegativeConstraint. non-negative?)
          target (LinearObjectiveFunction. (m/seq->double-array (butlast target))
                                           (double (last target)))
@@ -374,7 +481,7 @@
                           ^java.util.Collection (map build-constraint)
                           (LinearConstraintSet.))
          ^BaseOptimizer solver (SimplexSolver. epsilon max-ulps cut-off)]
-     (acm/multivariate-optimize solver [goal rule max-iter non-negative? target constraints] stats?))))
+     (common/multivariate-optimize solver [goal rule max-iter non-negative? target constraints] stats?))))
 
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
