@@ -1244,25 +1244,25 @@
 
                         target (condp = weights
                                  ;; cressie
-                                 :ngg (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
-                                                     svh (map sv hs)
-                                                     weights-seq (weights-n-v2 ns svh)]
-                                                 (-> (map (fn [^double gamma- ^double gamma]
-                                                            (est-fn gamma- gamma)) svh gammas)
-                                                     (v/dot weights-seq))))
+                                 :ngg (fn [r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
+                                                   svh (map sv hs)
+                                                   weights-seq (weights-n-v2 ns svh)]
+                                               (-> (map (fn [^double gamma- ^double gamma]
+                                                          (est-fn gamma- gamma)) svh gammas)
+                                                   (v/dot weights-seq))))
                                  
 
-                                 :ngg2 (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
-                                                      svh (map sv hs)
-                                                      weights-seq (weights-n-v3 ng svh)]
-                                                  (-> (map (fn [^double gamma- ^double gamma]
-                                                             (est-fn gamma- gamma)) svh gammas)
-                                                      (v/dot weights-seq))))
+                                 :ngg2 (fn [r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))
+                                                    svh (map sv hs)
+                                                    weights-seq (weights-n-v3 ng svh)]
+                                                (-> (map (fn [^double gamma- ^double gamma]
+                                                           (est-fn gamma- gamma)) svh gammas)
+                                                    (v/dot weights-seq))))
 
-                                 (fn [& r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))]
-                                            (-> (map (fn [^double h ^double gamma]
-                                                       (est-fn (sv h) gamma)) hs gammas)
-                                                (v/dot weights-seq)))))
+                                 (fn [r] (let [sv (semivariogram-fn (merge (zipmap target-args r) defaults))]
+                                          (-> (map (fn [^double h ^double gamma]
+                                                     (est-fn (sv h) gamma)) hs gammas)
+                                              (v/dot weights-seq)))))
                         
                         m (optim/scan-and-minimize :lbfgsb target {:bounds bounds :jitter 0.05})]
                     (->> m

@@ -17,9 +17,9 @@
        (m/sin (m/* 3.333333333333333 x))))
 
 (defn dproblem02
-  ^double [^double x]
-  (m/+ (m/cos x)
-       (m/* 3.333333333333333 (m/cos (m/* 3.333333333333333 x)))))
+  [[^double x]]
+  [(m/+ (m/cos x)
+        (m/* 3.333333333333333 (m/cos (m/* 3.333333333333333 x))))])
 
 ;;
 
@@ -35,13 +35,13 @@
             (m/* 6.0 (m/sin (m/+ (m/* 7.0 x) 6.0))))))
 
 (defn dproblem03
-  ^double [^double x]
-  (m/- (m/+ (m/* 2.0 (m/cos (m/+ (m/* 2.0 x) 1.0)))
-            (m/* 6.0 (m/cos (m/+ (m/* 3.0 x) 2.0)))
-            (m/* 12.0 (m/cos (m/+ (m/* 4.0 x) 3.0)))
-            (m/* 20.0 (m/cos (m/+ (m/* 5.0 x) 4.0)))
-            (m/* 30.0 (m/cos (m/+ (m/* 6.0 x) 5.0)))
-            (m/* 42.0 (m/cos (m/+ (m/* 7.0 x) 6.0))))))
+  [[^double x]]
+  [(m/- (m/+ (m/* 2.0 (m/cos (m/+ (m/* 2.0 x) 1.0)))
+             (m/* 6.0 (m/cos (m/+ (m/* 3.0 x) 2.0)))
+             (m/* 12.0 (m/cos (m/+ (m/* 4.0 x) 3.0)))
+             (m/* 20.0 (m/cos (m/+ (m/* 5.0 x) 4.0)))
+             (m/* 30.0 (m/cos (m/+ (m/* 6.0 x) 5.0)))
+             (m/* 42.0 (m/cos (m/+ (m/* 7.0 x) 6.0)))))])
 
 ;;
 
@@ -54,10 +54,10 @@
             (m/exp (m/- x)))))
 
 (defn dproblem04
-  ^double [^double x]
-  (m/* (m/+ (m/* 16.0 x x)
-            (m/* -56.0 x) 29.0)
-       (m/exp (m/- x))))
+  [[^double x]]
+  [(m/* (m/+ (m/* 16.0 x x)
+             (m/* -56.0 x) 29.0)
+        (m/exp (m/- x)))])
 
 ;;
 
@@ -69,10 +69,10 @@
             (m/sin (m/* 18.0 x)))))
 
 (defn dproblem05
-  ^double [^double x]
-  (let [x18 (m/* 18.0 x)]
-    (m/- (m/* 3.0 (m/sin x18))
-         (m/* 18.0 (m/- 1.4 (m/* 3.0 x)) (m/cos x18)))))
+  [[^double x]]
+  [(let [x18 (m/* 18.0 x)]
+     (m/- (m/* 3.0 (m/sin x18))
+          (m/* 18.0 (m/- 1.4 (m/* 3.0 x)) (m/cos x18))))])
 
 ;;
 
@@ -84,9 +84,9 @@
             (m/exp (m/- (m/* x x))))))
 
 (defn dproblem06
-  ^double [^double x]
-  (m/* (m/- (m/+ (m/* 2.0 x x) (m/* 2.0 x (m/sin x))) 1.0 (m/cos x))
-       (m/exp (m/- (m/* x x)))))
+  [[^double x]]
+  [(m/* (m/- (m/+ (m/* 2.0 x x) (m/* 2.0 x (m/sin x))) 1.0 (m/cos x))
+        (m/exp (m/- (m/* x x))))])
 
 ;;
 
@@ -101,11 +101,11 @@
        3.0))
 
 (defn dproblem07
-  ^double [^double x]
-  (m/+ (m/cos x)
-       (m/* 3.333333333333333 (m/cos (m/* 3.333333333333333 x)))
-       (m// x)
-       -0.84))
+  [[^double x]]
+  [(m/+ (m/cos x)
+        (m/* 3.333333333333333 (m/cos (m/* 3.333333333333333 x)))
+        (m// x)
+        -0.84)])
 
 ;;
 
@@ -121,13 +121,13 @@
             (m/* 6.0 (m/cos (m/+ (m/* 7.0 x) 6.0))))))
 
 (defn dproblem08
-  ^double [^double x]
-  (m/+ (m/* 2.0 (m/sin (m/+ (m/* 2.0 x) 1.0)))
-       (m/* 6.0 (m/sin (m/+ (m/* 3.0 x) 2.0)))
-       (m/* 12.0 (m/sin (m/+ (m/* 4.0 x) 3.0)))
-       (m/* 20.0 (m/sin (m/+ (m/* 5.0 x) 4.0)))
-       (m/* 30.0 (m/sin (m/+ (m/* 6.0 x) 5.0)))
-       (m/* 42.0 (m/sin (m/+ (m/* 7.0 x) 6.0)))))
+  [[^double x]]
+  [(m/+ (m/* 2.0 (m/sin (m/+ (m/* 2.0 x) 1.0)))
+        (m/* 6.0 (m/sin (m/+ (m/* 3.0 x) 2.0)))
+        (m/* 12.0 (m/sin (m/+ (m/* 4.0 x) 3.0)))
+        (m/* 20.0 (m/sin (m/+ (m/* 5.0 x) 4.0)))
+        (m/* 30.0 (m/sin (m/+ (m/* 6.0 x) 5.0)))
+        (m/* 42.0 (m/sin (m/+ (m/* 7.0 x) 6.0))))])
 
 ;; 
 
@@ -139,9 +139,9 @@
        (m/sin (m/* m/TWO_THIRDS x))))
 
 (defn dproblem09
-  ^double [^double x]
-  (m/+ (m/cos x)
-       (m/* m/TWO_THIRDS (m/cos (m/* m/TWO_THIRDS x)))))
+  [[^double x]]
+  [(m/+ (m/cos x)
+        (m/* m/TWO_THIRDS (m/cos (m/* m/TWO_THIRDS x))))])
 
 ;;
 
@@ -152,8 +152,8 @@
   (m/- (m/* x (m/sin x))))
 
 (defn dproblem10
-  ^double [^double x]
-  (m/- (m/+ (m/sin x) (m/* x (m/cos x)))))
+  [[^double x]]
+  [(m/- (m/+ (m/sin x) (m/* x (m/cos x))))])
 
 ;;
 
@@ -165,9 +165,9 @@
        (m/cos (m/* 2.0 x))))
 
 (defn dproblem11
-  ^double [^double x]
-  (m/- (m/+ (m/* 2.0 (m/sin x))
-            (m/* 2.0 (m/sin (m/* 2.0 x))))))
+  [[^double x]]
+  [(m/- (m/+ (m/* 2.0 (m/sin x))
+             (m/* 2.0 (m/sin (m/* 2.0 x)))))])
 
 ;;
 
@@ -180,10 +180,10 @@
     (m/+ (m/* sx sx sx) (m/* cx cx cx))))
 
 (defn dproblem12
-  ^double [^double x]
-  (let [sx (m/sin x)
-        cx (m/cos x)]
-    (m/- (m/* 3.0 sx sx cx) (m/* 3.0 cx cx sx))))
+  [[^double x]]
+  [(let [sx (m/sin x)
+         cx (m/cos x)]
+     (m/- (m/* 3.0 sx sx cx) (m/* 3.0 cx cx sx)))])
 
 ;;
 
@@ -195,9 +195,9 @@
             (m/pow (m/- 1.0 (m/* x x)) m/THIRD))))
 
 (defn dproblem13
-  ^double [^double x]
-  (m/+ (m/* (m/- m/TWO_THIRDS) (m/pow x (m/- m/THIRD)))
-       (m/* m/TWO_THIRDS x (m/pow (m/- 1.0 (m/* x x)) (m/- m/TWO_THIRDS)))))
+  [[^double x]]
+  [(m/+ (m/* (m/- m/TWO_THIRDS) (m/pow x (m/- m/THIRD)))
+        (m/* m/TWO_THIRDS x (m/pow (m/- 1.0 (m/* x x)) (m/- m/TWO_THIRDS))))])
 
 ;;
 
@@ -208,10 +208,10 @@
   (m/- (m/* (m/exp (m/- x)) (m/sin (m/* m/TWO_PI x)))))
 
 (defn dproblem14
-  ^double [^double x]
-  (let [px (m/* m/TWO_PI x)]
-    (m/* (m/exp (m/- x))
-         (m/- (m/sin px) (m/* m/TWO_PI (m/cos px))))))
+  [[^double x]]
+  [(let [px (m/* m/TWO_PI x)]
+     (m/* (m/exp (m/- x))
+          (m/- (m/sin px) (m/* m/TWO_PI (m/cos px)))))])
 
 ;;
 
@@ -224,10 +224,10 @@
          (m/inc x2))))
 
 (defn dproblem15
-  ^double [^double x]
-  (let [x2 (m/* x x)]
-    (m// (m/+ (m/* 5.0 x2) (m/* -10.0 x) -5.0)
-         (m/sq (m/inc x2)))))
+  [[^double x]]
+  [(let [x2 (m/* x x)]
+     (m// (m/+ (m/* 5.0 x2) (m/* -10.0 x) -5.0)
+          (m/sq (m/inc x2))))])
 
 ;;
 
@@ -240,10 +240,10 @@
     (m/+ (m/* 2.0 (m/log (m/- x 2.0))) 1.0)))
 
 (defn dproblem18
-  ^double [^double x]
-  (if (m/<= x 3.0)
-    (m/* 2.0 (m/- x 2.0))
-    (m// 2.0 (m/- x 2.0))))
+  [[^double x]]
+  [(if (m/<= x 3.0)
+     (m/* 2.0 (m/- x 2.0))
+     (m// 2.0 (m/- x 2.0)))])
 
 ;;
 
@@ -255,10 +255,10 @@
             (m/exp (m/- (m/* x x))))))
 
 (defn dproblem20
-  ^double [^double x]
+  [[^double x]]
   (let [x2 (m/* x x)]
-    (m/* (m/+ (m/- (m/* 2.0 x2) (m/* 2.0 x (m/sin x))) -1.0 (m/cos x))
-         (m/exp (m/- x2)))))
+    [(m/* (m/+ (m/- (m/* 2.0 x2) (m/* 2.0 x (m/sin x))) -1.0 (m/cos x))
+          (m/exp (m/- x2)))]))
 
 ;;
 
@@ -270,12 +270,12 @@
        (m/* x (m/cos (m/* 2.0 x)))))
 
 (defn dproblem21
-  ^double [^double x]
+  [[^double x]]
   (let [x2 (m/* 2.0 x)]
-    (m/+ (m/sin x)
-         (m/* x (m/cos x))
-         (m/cos x2)
-         (m/* -2.0 x (m/sin x2)))))
+    [(m/+ (m/sin x)
+          (m/* x (m/cos x))
+          (m/cos x2)
+          (m/* -2.0 x (m/sin x2)))]))
 
 ;;
 
@@ -287,10 +287,10 @@
        (m/fpow (m/sin x) 3)))
 
 (defn dproblem22
-  ^double [^double x]
+  [[^double x]]
   (let [sx (m/sin x)]
-    (m/- (m/* -3.0 (m/exp (m/* -3.0 x)))
-         (m/* 3.0 sx sx (m/cos x)))))
+    [(m/- (m/* -3.0 (m/exp (m/* -3.0 x)))
+          (m/* 3.0 sx sx (m/cos x)))]))
 
 ;; https://www.sfu.ca/~ssurjano/optimization.html
 
@@ -301,8 +301,93 @@
   ([{:keys [^double a ^double b ^double c]}]
    (let [ae (m/+ a m/E)
          -b (m/- b)]
-     (fn [vs]
+     (fn ^double [vs]
        (m/- ae
             (m/* a (m/exp (m/* -b (v/average (v/magsq vs)))))
             (m/exp (v/average (v/cos (v/mult vs c)))))))))
+
+;;
+
+(defn bukin-no-6-bounds [] [[-15.0 -5.0] [-3.0 3.0]])
+
+(defn bukin-no-6
+  ^double [[^double x1 ^double x2]]
+  (m/+ (m/* 100.0 (m/sqrt (m/abs (m/- x2 (m/* 0.01 x1 x1)))))
+       (m/* 0.01 (m/abs (m/+ x1 10.0)))))
+
+;;
+
+(defn cross-in-tray-bounds [] [[-10.0 10.0] [-10.0 10.0]])
+
+(defn cross-in-tray
+  ^double [[^double x1 ^double x2 :as v]]
+  (m/* -0.0001 (m/pow (m/inc (m/abs (m/* (m/sin x1)
+                                         (m/sin x2)
+                                         (m/exp (m/abs (m/- 100.0 (m// (v/mag v) m/PI))))))) 0.1)))
+
+;;
+
+(defn drop-wave-bounds [] [[-5.12 5.12] [-5.12 5.12]])
+
+(defn drop-wave
+  ^double [v]
+  (let [ms (v/magsq v)]
+    (m/- (m// (m/inc (m/cos (m/* 12.0 (m/sqrt ms))))
+              (m/+ (m/* 0.5 ms) 2.0)))))
+
+;;
+
+(defn egg-holder-bounds [] [[-512.0 512.0] [-512.0 512.0]])
+
+(defn egg-holder
+  ^double [[^double x1 ^double x2]]
+  (let [x47 (m/+ x2 47.0)]
+    (m/- (m/* -1.0 x47 (m/sin (m/sqrt (m/abs (m/+ x47 (m/* 0.5 x1))))))
+         (m/* x1 (m/sin (m/sqrt (m/abs (m/- x1 x47))))))))
+
+;;
+
+;;
+
+(defn rosenbrock-bounds [^long N] (repeat N [-5.0 10.0]))
+
+(defn rosenbrock
+  ^double [v]
+  (->> (partition 2 1 v)
+       (map (fn [[^double x1 ^double x2]]
+              (m/+ (m/* 100.0 (m/sq (m/- x2 (m/* x1 x1))))
+                   (m/sq (m/dec x1)))))
+       (v/sum)))
+
+;;
+
+;;
+
+(defn himmelblau-bounds [] [[-5.0 5.0] [-5.0 5.0]])
+
+(defn himmelblau
+  ^double [[^double x1 ^double x2]]
+  (m/+ (m/sq (m/+ (m/* x1 x1) x2 -11.0))
+       (m/sq (m/+ x1 (m/* x2 x2) -7.0))))
+
+;;
+
+(defn beale-bounds [] [[-4.5 4.5] [4.5 4.5]])
+
+(defn beale
+  ^double [[^double x1 ^double x2]]
+  (let [x1x2 (m/* x1 x2)
+        x1x22 (m/* x1x2 x2)]
+    (m/+ (m/sq (m/+ (m/- 1.5 x1) x1x2))
+         (m/sq (m/+ (m/- 2.25 x1) x1x22))
+         (m/sq (m/+ (m/- 2.625 x1) (m/* x1x22 x2))))))
+
+;;
+
+(defn sphere-bounds [^long N] (repeat N [-5.0 6.0]))
+
+(defn sphere ^double [v] (v/magsq v))
+
+(defn sphere-gradient [v] (v/mult v 2.0))
+
 

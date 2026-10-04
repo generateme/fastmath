@@ -7302,13 +7302,14 @@
   (let [[^double lambda-min ^double lambda-max :as lr] (or lambda-range [-3.0 3.0])
         lxs (v/sum (map m/log nxs))
         n- (m/- (m/* 0.5 (count nxs)))
-        target (fn ^double [^double l]
+        target (fn ^double [[^double l]]
                  (let [res (box-cox-not-scaled nxs sgn l)
                        v (variance res)]
                    (m/+ (m/* n- (m/log v))
                         (m/* (m/dec l) lxs))))]
-    (-> (lbfgsb/maximize target {:bounds [lr]
-                                 :initial [(m/lerp lambda-min lambda-max 0.51)]})
+    (-> (lbfgsb/lbfgsb target {:bounds [lr]
+                               :goal :maximize
+                               :initial [(m/lerp lambda-min lambda-max 0.51)]})
         (ffirst))))
 
 (defn box-cox-infer-lambda
@@ -7395,13 +7396,14 @@
   (let [[^double lambda-min ^double lambda-max :as lr] (or lambda-range [-3.0 3.0])
         lxs (v/sum (map (fn [^double x] (m/* (m/signum x) (m/log (m/inc (m/abs x))))) nxs))
         n- (m/- (m/* 0.5 (count nxs)))
-        target (fn ^double [^double l]
+        target (fn ^double [[^double l]]
                  (let [res (yeo-johnson nxs l)
                        v (variance res)]
                    (m/+ (m/* n- (m/log v))
                         (m/* (m/dec l) lxs))))]
-    (-> (lbfgsb/maximize target {:bounds [lr]
-                                 :initial [(m/lerp lambda-min lambda-max 0.51)]})
+    (-> (lbfgsb/lbfgsb target {:bounds [lr]
+                               :goal :maximize
+                               :initial [(m/lerp lambda-min lambda-max 0.51)]})
         (ffirst))))
 
 (defn yeo-johnson-infer-lambda

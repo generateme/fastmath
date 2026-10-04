@@ -67,328 +67,130 @@
             [fastmath.vector :as v]
             [fastmath.kernel :as k]
             [fastmath.interpolation.gp :as gp]
-            [fastmath.optimization.lbfgsb :as lbfgsb])
-  (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType ObjectiveFunction ObjectiveFunctionGradient]
-           [org.apache.commons.math3.optim.univariate SearchInterval BrentOptimizer UnivariateObjectiveFunction UnivariatePointValuePair]
-           [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxEval MaxIter SimpleBounds SimpleValueChecker InitialGuess PointValuePair]
+            [fastmath.optimization.lbfgsb :as lbfgsb]
+            [fastmath.optimization.acm :as acm])
+  (:import [org.apache.commons.math3.optim.nonlinear.scalar GoalType]
+           [org.apache.commons.math3.optim BaseOptimizer OptimizationData MaxIter]
            [org.apache.commons.math3.optim.linear LinearObjectiveFunction LinearConstraint
-            Relationship LinearConstraintSet SimplexSolver NonNegativeConstraint PivotSelectionRule]
-           [org.apache.commons.math3.analysis UnivariateFunction MultivariateFunction MultivariateVectorFunction]
-           [org.apache.commons.math3.optim.nonlinear.scalar MultivariateFunctionMappingAdapter]
-           [org.apache.commons.math3.optim.nonlinear.scalar.noderiv BOBYQAOptimizer PowellOptimizer NelderMeadSimplex SimplexOptimizer MultiDirectionalSimplex CMAESOptimizer CMAESOptimizer$PopulationSize CMAESOptimizer$Sigma]
-           [org.apache.commons.math3.optim.nonlinear.scalar.gradient NonLinearConjugateGradientOptimizer NonLinearConjugateGradientOptimizer$Formula]))
+            Relationship LinearConstraintSet SimplexSolver NonNegativeConstraint PivotSelectionRule]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-(def ^:private univariate-set #{:brent})
-(def ^:private multivariate-set #{:bobyqa :powell :nelder-mead :multidirectional-simplex :cmaes :gradient :lbfgsb})
-(def ^:private unbounded-set #{:powell :nelder-mead :multidirectional-simplex :gradient})
+(defn- optimizers
+  [nm]
+  (case nm
+    :lbfgsb [lbfgsb/lbfgsb lbfgsb/lbfgsb-data]
+    :brent [acm/brent acm/brent-data]
+    :bobyqa [acm/bobyqa acm/bobyqa-data]
+    :cmaes [acm/cmaes acm/cmaes-data]
+    :nelder-mead [acm/nelder-mead acm/nelder-mead-data]
+    :multidirectional-simplex [acm/multidirectional-simplex acm/multidirectional-simplex-data]
+    :powell [acm/powell acm/powell-data]
+    (:non-linear-gradient :gradient) [acm/non-linear-gradient acm/non-linear-gradient-data]))
 
-(defn- ->brent
-  [{:keys [^double rel ^double abs]
-    :or {rel 1.0e-6  abs 1.0e-10}}]
-  (BrentOptimizer. rel abs))
-
-(defn- ->bobyqa
-  [{:keys [number-of-points ^int dim initial-radius stopping-radius]
-    :or {initial-radius BOBYQAOptimizer/DEFAULT_INITIAL_RADIUS
-         stopping-radius BOBYQAOptimizer/DEFAULT_STOPPING_RADIUS}}]
-  (let [number-of-points (or number-of-points (m// (m/+ 3 (m/* 3 dim)) 2))]
-    (BOBYQAOptimizer. number-of-points initial-radius stopping-radius)))
-
-(defn- ->powell
-  [{:keys [^double rel ^double abs]
-    :or {rel 1.0e-6  abs 1.0e-10}}]
-  (PowellOptimizer. rel abs))
-
-(defn- ->nelder-mead
-  [{:keys [^int dim ^double rho ^double khi ^double gamma ^double sigma ^double side-length]
-    :or {rho 1.0 khi 2.0 gamma 0.5 sigma 0.5 side-length 1.0}}]
-  (NelderMeadSimplex. dim side-length rho khi gamma sigma))
-
-(defn- ->multidirectional-simplex
-  [{:keys [^int dim ^double khi ^double gamma ^double side-length]
-    :or {khi 2.0 gamma 0.5 side-length 1.0}}]
-  (MultiDirectionalSimplex. dim side-length khi gamma))
-
-(defn- ->cmaes
-  [{:keys [^double rel ^double abs active-cma? rng
-           ^int max-iters ^int check-feasable-count ^int diagonal-only
-           ^double stop-fitness]
-    :or {rel 1.0e-6
-         abs 1.0e-10
-         active-cma? true
-         max-iters Integer/MAX_VALUE
-         check-feasable-count 0
-         diagonal-only 0
-         stop-fitness 1.0e-6
-         rng (r/rng :jdk)}}]
-  (let [checker (SimpleValueChecker. rel abs)]
-    (CMAESOptimizer. max-iters stop-fitness (boolean active-cma?) diagonal-only
-                     check-feasable-count rng false checker)))
-
-(defn- ->simplex
-  [{:keys [^double rel ^double abs]
-    :or {rel 1.0e-6  abs 1.0e-10}}]
-  (SimplexOptimizer. rel abs))
-
-(defn- ->non-linear-gradient
-  [{:keys [^double rel ^double abs ^double bracketing-range formula]
-    :or {rel 1.0e-8 abs 1.0e-8 bracketing-range 1.0e-8 formula :polak-ribiere}}]
-  (let [checker (SimpleValueChecker. rel abs)]
-    (NonLinearConjugateGradientOptimizer. (if (= formula :polak-ribiere)
-                                            NonLinearConjugateGradientOptimizer$Formula/POLAK_RIBIERE
-                                            NonLinearConjugateGradientOptimizer$Formula/FLETCHER_REEVES)
-                                          checker, rel abs bracketing-range)))
-
-(def ^:private optimizers
-  {:brent ->brent
-   :bobyqa ->bobyqa
-   :powell ->powell
-   :nelder-mead ->simplex
-   :multidirectional-simplex ->simplex
-   :cmaes ->cmaes
-   :gradient ->non-linear-gradient})
-
-(defn- wrap-univariate-function ^UnivariateFunction [f] (reify UnivariateFunction (value [_ x] (f x))))
-(defn- wrap-univariate-objective-function [f] (UnivariateObjectiveFunction. (wrap-univariate-function f)))
-
-(defn- multivariate-function [f]
-  (reify
-    MultivariateFunction
-    (value [_ xs] (apply f xs))))
-
-(defn- wrap-multivariate-function [f] (ObjectiveFunction. (multivariate-function f)))
-
-(defn- wrap-objective-function [f] (ObjectiveFunction. f))
-
-(defn- finite-differences
-  [^MultivariateFunction f ^doubles xs ^double step]
-  (let [step2 (m/* 2.0 step)]
-    (double-array (map-indexed (fn [^long id ^double x]
-                                 (let [a (aclone ^doubles xs)
-                                       v1 (do (aset a id (m/+ x step))
-                                              (.value f a))
-                                       v2 (do (aset a id (m/- x step))
-                                              (.value f a))]
-                                   (m// (m/- v1 v2) step2))) xs))))
-
-(defn- multivariate-gradient
-  "Calculate gradient numerically."
-  [^MultivariateFunction f ^double step] 
-  (reify MultivariateVectorFunction
-    (value [_ xs]
-      (finite-differences f xs step))))
-
-(defn- wrap-objective-function-gradient [f ^double step]
-  (ObjectiveFunctionGradient. (multivariate-gradient f step)))
-
-(defn- wrap-evals [evals] (if evals (MaxEval. evals) (MaxEval/unlimited)))
-(defn- wrap-iters [iters] (if iters (MaxIter. iters) (MaxIter/unlimited)))
-
-(defn- infer-lo-high
-  [lo high]
-  [(or lo m/EPSILON)
-   (or high (m/- 1.0 m/EPSILON))])
-
-(defn- search-interval
-  [[lo high] init]
-  (let [[lo high] (infer-lo-high lo high)]
-    (if init
-      (SearchInterval. lo high (if (sequential? init) (first init) init))
-      (SearchInterval. lo high))))
-
-(defn- multi-bounds
-  [bounds]
-  (SimpleBounds. (double-array (map first bounds))
-                 (double-array (map second bounds))))
-
-(defn- wrap-bounds
-  [method bounds]
-  (when (and bounds (multivariate-set method))
-    (multi-bounds bounds)))
-
-(defn- mid-point
-  [bounds]
-  (map (fn [[^double l ^double h]] (m/* 0.5 (m/+ l h))) bounds))
-
-(defn- initial-guess
-  [bounds initial ^MultivariateFunctionMappingAdapter mfma]
-  (let [guess (double-array (if initial
-                              (if (sequential? initial) initial [initial])
-                              (mid-point bounds)))]
-    (InitialGuess. (if mfma (.boundedToUnbounded mfma guess) guess))))
-
-(defn- wrap-initial
-  [method bounds initial mfma]
-  (if (univariate-set method)
-    (search-interval bounds initial)
-    (initial-guess bounds initial mfma)))
-
-(defn- wrap-function
-  [method f]
-  (if (univariate-set method)
-    (wrap-univariate-objective-function f)
-    (wrap-multivariate-function f)))
-
-(defn- parse-result
-  ([res] (parse-result nil res))
-  ([^MultivariateFunctionMappingAdapter mfma res]
-   (condp instance? res
-     UnivariatePointValuePair (let [^UnivariatePointValuePair res res]
-                                [(list (.getPoint res)) (.getValue res)])
-     PointValuePair (let [^PointValuePair res res]
-                      [(seq (if mfma
-                              (.unboundedToBounded mfma (.getPointRef res))
-                              (.getPointRef res))) (.getValue res)])
-     res)))
-
-(defn- find-dimensions
-  ^long [bounds]
-  (if (sequential? (first bounds)) (count bounds) 1))
-
-(defn- fix-brent-bounds
-  [method bounds]
-  (if (and (= method :brent)
-           (sequential? (first bounds)))
-    (first bounds) bounds))
-
-(defn- maybe-stats?
-  [stats? ^BaseOptimizer optimizer res]
-  (if-not stats?
-    res
-    {:result res
-     :evaluations (.getEvaluations optimizer)
-     :iterations (.getIterations optimizer)}))
-
-(defn- optimizer
-  [method f {:keys [max-evals max-iters goal bounds stats? population-size bounded? gradient-h]
-             :or {gradient-h 0.0001}
-             :as config}]
-  (if (= method :lbfgsb)
-    (lbfgsb/lbfgsb-fn f (assoc config :bounded? true))
-    (do
-      (when (nil? bounds) (throw (ex-info "Provide bounds" nil)))
-      (let [bounds (fix-brent-bounds method bounds)
-            dim (find-dimensions bounds)
-            config (assoc config :dim dim :bounds bounds)
-            
-            ^SimpleBounds b (wrap-bounds method bounds)
-
-            bounded? (and bounded? (unbounded-set method))
-
-            mfma (when bounded?
-                   (MultivariateFunctionMappingAdapter. (multivariate-function f) (.getLower b) (.getUpper b)))
-            
-            ;; create initial optimization data
-            base-opt-data [(wrap-evals max-evals)
-                           (wrap-iters max-iters)
-                           (if (= goal :maximize) GoalType/MAXIMIZE GoalType/MINIMIZE)
-                           (if bounded?
-                             (wrap-objective-function mfma)
-                             (wrap-function method f))]
-            
-            ;; powell and simplex methods do not accept bounds
-            base-opt-data (if (and b (not (unbounded-set method))) (conj base-opt-data b) base-opt-data)
-
-            ;; simplex methods should have also specific siumplex algorithms, also for cmaes we add additional stuff
-            base-opt-data (case method
-                            :nelder-mead (conj base-opt-data (->nelder-mead config))
-                            :multidirectional-simplex (conj base-opt-data (->multidirectional-simplex config))
-                            ;; when function is wrapped to bounding adapter, we need to use it to calculate gradient
-                            :gradient (conj base-opt-data (wrap-objective-function-gradient (or mfma (multivariate-function f))
-                                                                                            gradient-h))
-                            :cmaes (conj base-opt-data
-                                         (CMAESOptimizer$PopulationSize. (or population-size (long (m/+ 4.5 (m/* 3.0 (m/log dim))))))
-                                         (CMAESOptimizer$Sigma. (double-array (map (fn [^double l ^double u]
-                                                                                     (m/* 0.75 (m/- u l))) (.getLower b) (.getUpper b)))))
-                            base-opt-data)
-            
-            builder (optimizers method)        
-            ^BaseOptimizer optimizer (builder config)]
-        
-        (fn local-optimizer
-          ([] (local-optimizer nil))
-          ([init] (->> (conj base-opt-data (wrap-initial method bounds init mfma))
-                       (into-array OptimizationData)
-                       (.optimize optimizer)
-                       (parse-result mfma)
-                       (maybe-stats? stats? optimizer))))))))
+(defn- initial-updater
+  [nm]
+  (case nm
+    :lbfgsb lbfgsb/update-initial
+    :brent acm/update-univariate-initial
+    acm/update-multivariate-initial))
 
 (defn minimizer
   "Create optimizer which minimizes function.
 
   Returns function which performs optimization for optionally given initial point."
-  [method f config] (optimizer method f (assoc config :goal :minimize)))
+  [method f options]
+  (let [[opt opt-data] (optimizers method)
+        updater (initial-updater method)
+        data (opt-data f (assoc options :goal :minimize))]
+    (fn [initial] (opt (updater data initial)))))
 
 (defn maximizer
-  "Create optimizer which maximizes function.
+  "Create optimizer which minimizes function.
 
   Returns function which performs optimization for optionally given initial point."
-  [method f config] (optimizer method f (assoc config :goal :maximize)))
+  [method f options]
+  (let [[opt opt-data] (optimizers method)
+        updater (initial-updater method)
+        data (opt-data f (assoc options :goal :maximize))]
+    (fn [initial] (opt (updater data initial)))))
 
-(defmacro ^:private with-optimizer [opt m f c] `((~opt ~m ~f ~c) (:initial ~c)))
+;;
 
-#_(defn optimize [method f config] (with-optimizer optimizer method f config))
+(defn optimize
+  [method f options]
+  (let [[opt] (optimizers method)]
+    (opt f options)))
+
 (defn minimize
-  "Minimize given function.
-
-  Parameters: optimization method, function and configuration."
-  [method f config] (with-optimizer minimizer method f config))
+  [method f options]
+  (let [[opt] (optimizers method)]
+    (opt f (assoc options :goal :minimize))))
 
 (defn maximize
-  "Maximize given function.
+  [method f options]
+  (let [[opt] (optimizers method)]
+    (opt f (assoc options :goal :maximize))))
 
-  Parameters: optimization method, function and configuration."
-  [method f config] (with-optimizer maximizer method f config))
+;;
 
 (defn- goal-comparator [goal] (if (= goal :minimize) m/< m/>))
 
 (defn- generate-points
-  [method f bounds goal N jitter]
-  (let [bounds (fix-brent-bounds method bounds)
-        dim (find-dimensions bounds)
-        [lo high inter genf] (if (= method :brent)
-                               [(first bounds) (second bounds) m/lerp f]
-                               [(mapv first bounds) (mapv second bounds) v/einterpolate (partial apply f)])
-        N (long (m/max (m/fpow 3.0 dim) (long N)))
+  [f bounds goal N jitter vector-arg?]
+  (let [dim (count bounds)
+        lo (map first bounds)
+        hi (map second bounds)
+        genf (if vector-arg? f (partial apply f))
+        N (long (m/max (m/+ 4.5 (m/* dim (m/log2 dim))) (long N)))
         gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter)]
-    (->> (if (and (not= method :brent)
-                  (m/one? dim)) (map vector gen) gen)
-         (map #(let [p (inter lo high %)]
-                 [(genf p) p]))
+    (->> (if (m/one? dim) (map vector gen) gen)
+         (map (fn [v] (let [p (v/einterpolate lo hi v)] [(genf p) p])))
          (filter (comp m/valid-double? first))
          (take N)
          (sort-by first (goal-comparator goal))
          (map second))))
 
-(defn- scan-and-
+(defn- wrap-optimizer
+  [optimizer]
+  (fn [initial]
+    (try
+      (optimizer initial)
+      (catch Exception _ nil))))
+
+(defn scan-and-optimize
   "For cheap functions, scan domain and bruteforcely search for set of minimal values, then use part of this values as initial points for parallel optimization.
 
   Additional parameters in config:
 
   * N - number of total grid points
   * n - fraction of total points N) used for optimization (default: 0.05, minimum 10)"
-  [optimizer-fn goal method f {:keys [bounds ^int N ^double n ^double jitter parallel?]
-                               :or {N 100 n 0.05 jitter 0.25 parallel? true}
-                               :as config}]
-  (when (nil? bounds) (throw (ex-info "Provide search bounds." nil)))
-  (let [goal (or goal (get config :goal :minimize))
-        samples (generate-points method f bounds goal N jitter)
-        nbest (max 1 (long (if (m/> n 1.0) n (m/floor (m/* n N)))))
-        tk (long (get config :take 1))
-        taker (if (m/> tk 1) (partial take tk) first)
-        mapper (if parallel? pmap map)]
-    (->> (mapper (fn [s] ((optimizer-fn method f config) s)) samples)
-         (filter (comp (partial every? m/valid-double?) first))
+  [method f {:keys [bounds ^int N ^double n ^double jitter parallel? vector-arg? goal ^long take-last-n stats?]
+             :or {N 100 n 0.05 jitter 0.25 parallel? true goal :minimize take-last-n 0}
+             :as opts}]
+  (when-not bounds (throw (ex-info "Provide search bounds." {:bounds bounds})))
+  (let [vector-arg? (or vector-arg? (not= method :brent))
+        optimizer (wrap-optimizer ((if (= goal :minimize) minimizer maximizer) method f opts))
+        samples (generate-points f bounds goal N jitter vector-arg?)
+        nbest (long (m/max 1 (if (m/> n 1.0) n (m/floor (m/* n N)))))        
+        taker (if (m/> take-last-n 1) (partial take take-last-n) first)
+        mapper (if parallel? pmap map)
+        sort-selector (if stats? :value second)]
+    (->> (mapper optimizer samples)
+         (filter identity)
          (take nbest)
-         (sort-by second (goal-comparator goal))
+         (sort-by sort-selector (goal-comparator goal))
          (taker))))
 
-#_(def scan-and-optimize (partial scan-and- optimizer))
-(def scan-and-minimize (partial scan-and- minimizer :minimize))
-(def scan-and-maximize (partial scan-and- maximizer :maximize))
+(defn scan-and-minimize
+  [method f opts]
+  (scan-and-optimize method f (assoc opts :goal :minimize)))
+
+(defn scan-and-maximize
+  [method f opts]
+  (scan-and-optimize method f (assoc opts :goal :maximize)))
+
 
 ;; bo
 
@@ -437,11 +239,11 @@
 
 (defn- bayesian-step-fn
   [f util-fn warm-up bounds gp jitter optimizer optimizer-params]
-  (let [params (merge optimizer-params {:N warm-up :n 0.02 :bounded? true
-                                        :bounds bounds :jitter jitter})]
+  (let [params (merge optimizer-params {:N warm-up :n 0.02
+                                        :bounds bounds :jitter jitter :parallel? false})]
     (fn [{:keys [x ^double y xs ys]}]
       (let [curr-gp (gp xs ys)
-            curr-util (fn [& r] (util-fn curr-gp r y))
+            curr-util (fn [r] (util-fn curr-gp (vec r) y))
             bx (first (scan-and-maximize optimizer curr-util params))
             by (double (f bx))
             nxs (conj xs bx)
@@ -481,7 +283,8 @@
   * `:gp` - current gaussian process regression instance
   * `:util-fn` - current utility function
   * `:util-best` - best x in utility function"
-  [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale jitter noise optimizer optimizer-params normalize?]
+  [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale
+             jitter noise optimizer optimizer-params normalize?]
       :or {kscale 1.0
            kernel :matern-52
            init-points 3
@@ -492,8 +295,7 @@
   (let [warm-up (or warm-up (m/* (count bounds) 1000))
         utility-param (double (or utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)))
         kernel (if (keyword? kernel) (k/kernel kernel) kernel)
-        optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))
-        f (partial apply f)
+        optimizer (or optimizer (if (m/one? (count bounds)) :cmaes :lbfgsb))        
         [xs ys] (initial-values f init-points bounds jitter)
         [maxx maxy] (first (sort-by second m/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
@@ -558,12 +360,12 @@
   ```"
   ([target constraints] (linear-optimization target constraints {}))
   ([target constraints {:keys [goal ^double epsilon ^int max-ulps ^double cut-off
-                               rule non-negative? ^int max-iter stats?]
+                               rule non-negative? max-iters stats?]
                         :or {goal :minimize epsilon 1.0e-6 max-ulps 10 cut-off 1.0e-10
-                             rule :dantzig non-negative? false max-iter Integer/MAX_VALUE}}]
-   (let [goal (if (= goal :minimize) GoalType/MINIMIZE GoalType/MAXIMIZE)
+                             rule :dantzig non-negative? false}}]
+   (let [goal (acm/goal-type goal)
          rule (if (= rule :dantzig) PivotSelectionRule/DANTZIG PivotSelectionRule/BLAND)
-         max-iter (MaxIter. max-iter)
+         max-iter (acm/max-iter max-iters)
          non-negative? (NonNegativeConstraint. non-negative?)
          target (LinearObjectiveFunction. (m/seq->double-array (butlast target))
                                           (double (last target)))
@@ -572,12 +374,7 @@
                           ^java.util.Collection (map build-constraint)
                           (LinearConstraintSet.))
          ^BaseOptimizer solver (SimplexSolver. epsilon max-ulps cut-off)]
-     (->> [goal rule max-iter non-negative? target constraints]
-          (into-array OptimizationData)
-          (.optimize solver)
-          (parse-result nil)
-          (maybe-stats? stats? solver)))))
-
+     (acm/multivariate-optimize solver [goal rule max-iter non-negative? target constraints] stats?))))
 
 
 #_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))

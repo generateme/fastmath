@@ -1,6 +1,6 @@
 (ns fastmath.kernel.density
   (:require [fastmath.core :as m]
-            [fastmath.optimization.lbfgsb :as optim]
+            [fastmath.optimization.lbfgsb :as lbfgsb]
             [fastmath.calculus.quadrature :as calc])
   (:import [org.apache.commons.math3.stat StatUtils]
            [org.apache.commons.math3.distribution NormalDistribution]
@@ -295,7 +295,7 @@
   [kdata]
   (let [a (rlcv-a kdata)
         la- (m/dec (m/ln a))]
-    (fn ^double [^double h]
+    (fn ^double [[^double h]]
       (let [k (kde- kdata h)
             b (rlcv-b k a)
             lf (map (->rlcv-log a la-) (kde-loo kdata h))]
@@ -304,9 +304,8 @@
 (defn lcv-target
   "Create target function to estimate bandwidth using Likelihood Cross Validation."
   [kdata]
-  (fn ^double [^double h]
-    (->> (kde-loo kdata h)
-         #_ (filter (fn [^double v] (m/pos? v)))
+  (fn ^double [[^double h]]
+    (->> (kde-loo kdata h)         
          (map (fn [^double v] (m/log (m/max v 1.0e-3))))
          (double-array)
          (StatUtils/mean))))
@@ -314,7 +313,7 @@
 (defn lscv-target
   "Create target function to estimate bandwidth using Least Squares Cross Validation."
   [kdata]
-  (fn ^double [^double h]
+  (fn ^double [[^double h]]
     (let [{:keys [kde ^double mn ^double mx]} (kde- kdata h)
           in (double (calc/gk-quadrature (fn [^double v] (m/sq (kde v))) mn mx))
           lf (kde-loo kdata h)]
@@ -322,15 +321,16 @@
 
 (defn- cv
   "Cross validation method optimizer."
-  [kdata opt target]
+  [kdata goal target]
   (let [sd (m/sqrt (StatUtils/variance (:data kdata)))
         nkdata (update kdata :data (fn [^doubles d] (StatUtils/normalize d)))
         f (target nkdata)
         init-h (nrd kdata sd 1.0) 
         mn (m/* 0.2 init-h)
         mx (m/* 3.0 init-h)]
-    (-> (opt f {:initial [init-h]
-                :bounds [[mn mx]]})
+    (-> (lbfgsb/lbfgsb f {:initial [init-h]
+                          :goal goal
+                          :bounds [[mn mx]]})
         (ffirst)
         (double)
         (m/* sd))))
@@ -343,9 +343,9 @@
         :nrd (nrd kdata 1.06)
         :nrd-adjust (nrd-adjust kdata)
         :nrd0 (nrd kdata 0.9)
-        :rlcv (cv kdata optim/maximize rlcv-target)
-        :lcv (cv kdata optim/maximize lcv-target)
-        :lscv (cv kdata optim/minimize lscv-target))
+        :rlcv (cv kdata :maximize rlcv-target)
+        :lcv (cv kdata :maximize lcv-target)
+        :lscv (cv kdata :minimize lscv-target))
       (or h (nrd kdata 1.06)))))
 
 (defn bandwidth
@@ -395,9 +395,9 @@
 
   See also [[kernel-density]] (returns only the `:kde` function), [[kernel-density-ci]] (adds confidence intervals), [[bandwidth]], [[kde-data]]."
   ([kernel data] (kernel-density+ kernel data nil))
-  ([kernel data {:keys [^double bandwidth binned?]}] (let [kdata (preprocess-data data kernel binned?)
-                                                           h (infer-h kdata bandwidth)]
-                                                       (kde- kdata h))))
+  ([kernel data {:keys [bandwidth binned?]}] (let [kdata (preprocess-data data kernel binned?)
+                                                   h (infer-h kdata bandwidth)]
+                                               (kde- kdata h))))
 
 (defn kernel-density
   "Returns a 1d kernel density estimation (KDE) function for `data`.

@@ -460,7 +460,7 @@
   * `:theta` - shape (default: 1.0)
   * `:distance` - distance function (default: euclidean)
 
-  Order of the Bessel K function is a half of `:order` parameter. For example to get Matern 5/2 kernel, call `(matern 5)`."
+  Order of the Bessel K function is a half of `:order` parameter. For example to get Matern 5/2 kernel, call `(matern {:order 5})`."
   ([] (matern nil))
   ([{:keys [^long order ^double theta distance]
      :or {order 1 theta 1.0 distance v/dist}}]
@@ -468,7 +468,7 @@
          gf (m// (m/* (m/pow 2.0 (m/- 1.0 mu))) (special/gamma mu))
          s (m// (m/* 2.0 (m/sqrt mu)) theta)]
      (fn ^double [x y]
-       (let [v (m/* s ^double (distance x y))]
+       (let [v (m/* s (double (distance x y)))]
          (if (m/< v 1.0e-16)
            1.0
            (m/* gf (m/pow v mu) (special/bessel-K-half-odd order v))))))))

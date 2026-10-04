@@ -235,3 +235,26 @@
                 (Array/set2d buff cv j i val))))
           (partition cv buff)))))))
 
+
+(defn hessian-diagonal
+  "Creates function returning Hessian diagonal only for mulitvariate function `f` and given `:h` step (default: `5.0e-3`)."
+  ([f] (hessian-diagonal f nil))
+  ([f {:keys [^double h]
+       :or {h 5.0e-3}}]
+   (let [h2 (m// (m/* h h))]
+     (fn local-hessian-diagonal
+       ([v] (local-hessian-diagonal v h h2))
+       ([v ^double h] (let [h2 (m// (m/* h h))]
+                        (local-hessian-diagonal v h h2)))
+       ([v ^double h ^double h2]
+        (let [v (vec v)
+              cv (count v)
+              r (range cv)
+              buff (double-array cv)
+              fv-2 (m/* -2.0 ^double (f v))]
+          (doseq [^long i r]
+            (let [^double vi (v i)
+                  ^double x1 (f (assoc v i (m/+ vi h)))
+                  ^double x2 (f (assoc v i (m/- vi h)))]
+              (Array/set buff i (m/* (m/+ x1 fv-2 x2) h2))))
+          buff))))))
