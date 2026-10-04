@@ -142,10 +142,6 @@
         (evaluate [_ xs] (evaluate xs))
         (gradient [_ xs g] (finite-difference-gradient! evaluate xs g l u h))))))
 
-(defn- bounds-midpoint
-  ^doubles [bounds]
-  (double-array (map (fn [[^double lo ^double hi]] (m/+ (m/* 0.5 lo) (m/* 0.5 hi))) bounds)))
-
 (defn- status-keyword
   [^LBFGSB$Status status]
   (condp identical? status
@@ -189,7 +185,7 @@
         bounds (common/normalize-bounds :lbfgsb bounds initial)
         l (double-array (map first bounds))
         u (double-array (map second bounds))
-        initial (if initial (m/seq->double-array initial) (bounds-midpoint bounds))
+        initial (if initial (m/seq->double-array initial) (common/bounds-midpoint bounds))
         sign (if (= goal :maximize) -1.0 1.0)
         gf (grad-function (common/->vector-fn f vector-arg?) gradient sign gradient-h l u)
         ^LBFGSB optimizer (LBFGSB. (parameters opts))

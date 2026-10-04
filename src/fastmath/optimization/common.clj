@@ -5,7 +5,7 @@
 
   Option parsing: [[parse-goal]], [[resolve-vector-arg?]], [[throw-unknown]].
 
-  Input validation: [[normalize-bounds]] checks and normalizes search bounds according to the capabilities of the given method.
+  Input validation: [[normalize-bounds]] checks and normalizes search bounds according to the capabilities of the given method; [[bounds-midpoint]] gives the default initial point.
 
   Function adaptation: [[->vector-fn]] turns a multi-arity function into a function of a single sequence.
 
@@ -151,6 +151,17 @@
               (when (not= dims (count res))
                 (fail (str "number of bounds (" (count res) ") differs from the length of the initial point (" dims ")")))))
           res)))))
+
+(defn bounds-midpoint
+  "Returns the middle of the bounds, the default initial point of the optimizers.
+
+  Parameters:
+
+  - `bounds`: a vector of finite `[lo hi]` pairs, as returned by [[normalize-bounds]].
+
+  Returns a `double[]`. The middle is computed as half of the lower bound plus half of the upper bound, so it does not overflow for huge bounds. Infinite bounds give an infinite or NaN result; [[normalize-bounds]] rejects them when no initial point is given."
+  ^doubles [bounds]
+  (double-array (map (fn [[^double lo ^double hi]] (m/+ (m/* 0.5 lo) (m/* 0.5 hi))) bounds)))
 
 ;; Apache Commons Math
 
