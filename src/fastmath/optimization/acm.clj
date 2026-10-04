@@ -1,7 +1,7 @@
 (ns fastmath.optimization.acm
   "Optimizers from the Apache Commons Math library.
 
-  Every optimizer is a function of the objective and an options map, `(optimizer f opts)`, and creates all its Apache Commons Math objects from scratch on every call. Nothing is shared between calls, so the same function can be called from many threads.
+  Every optimizer is a function of the objective and an options map, `(optimizer f opts)`. Calls are independent: nothing is shared between them, so the same optimizer can be called from many threads.
 
   Optimizers:
 
@@ -65,7 +65,7 @@
 
   - `f` (function): the objective. It receives a number, or a sequence with one number when `:vector-arg?` is `true`.
   - `opts` (map):
-    - `:bounds` (required) - the interval as `[[lo hi]]` or `[lo hi]`, finite with `lo < hi`.
+    - `:bounds` (required) - the interval, a vector with one `[lo hi]` pair or the pair itself, finite with `lo < hi`.
     - `:initial` - the starting point, a number or a sequence with one number, inside of the interval (after `:find-bracket` - inside of the bracket).
     - `:goal` - `:minimize` (default) or `:maximize`.
     - `:vector-arg?` - default: `false`.

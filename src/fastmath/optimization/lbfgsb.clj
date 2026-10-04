@@ -44,7 +44,7 @@
     - `:ftol` - sufficient decrease parameter of the line search, default: `1.0e-4`.
     - `:wolfe` - curvature condition parameter of the line search, default: `0.9`.
     - `:weak-wolfe?` - use the weak Wolfe condition, default: `true`.
-    - `:debug?` - print the progress of the algorithm to the standard output, default: `false`. The flag is global for the Java implementation and is set on every call.
+    - `:debug?` - print the progress of the algorithm to the standard output, default: `false`. The setting is global and is applied on every call.
 
   Returns a `Parameters` object.
 

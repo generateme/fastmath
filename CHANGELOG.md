@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.stats/anova-eta-sq`, `anova-omega-sq`, `anova-epsilon-sq`, `anova-cohens-f2`, `anova-cohens-f` - correlation ratio effect sizes for one-way ANOVA (genuine multi-group design, as opposed to the pairwise-regression-based `eta-sq`/`omega-sq`/`epsilon-sq`)
 * `fastmath.stats/entropy`, `joint-entropy`, `mutual-information`, `theils-u` - Shannon entropy and Theil's U (uncertainty coefficient) for categorical association
 * `fastmath.stats/power-divergence-test` (and `chisq-test`/`multinomial-likelihood-ratio-test`/etc.) now report `:yates`/`:yates-p-value`, the Yates continuity-corrected statistic, for independence tests on 2x2 contingency tables (`:df` 1), matching R's `chisq.test(correct=TRUE)` and SciPy's `chi2_contingency(correction=True)`
+* `fastmath.optimization` `:gradient` option (gradient of the function for `:lbfgsb` and `:gradient`), `:status` in `:lbfgsb` stats (`:converged`, `:stalled`, `:max-iterations`), `:vector-arg?` in `bayesian-optimization`, validation of `:bounds` with `ex-info`; `fastmath.optimization.problems/rosenbrock-gradient`, `himmelblau-gradient`, `beale-gradient`
 
 ### Fixed
 
@@ -54,6 +55,18 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.grid/pixel->triangle` (backing `coords->cell` for `:triangle` grids) resolved the shared anchor point of an up/down triangle pair inconsistently depending on coordinate sign (e.g. positive-side ties always favored one member, some negative-side ties the other), because it converted `fastmath.core/frac`'s truncation-based fractional part into a floor-based one via a sign-branch that mishandled exact integers; now computed directly as a floor-based fractional part, which resolves every such tie the same, sign-symmetric way
 * [breaking] `fastmath.grid/grid` silently built a `:square` grid for any unrecognized `type` keyword instead of failing (e.g. the library's own `:triangular` typo, meant to be `:triangle`, had rendered as a square grid unnoticed since 2020); now throws `ExceptionInfo` listing the valid `fastmath.grid/cell-names`
 * [breaking] `fastmath.grid/grid`'s `size` meant different things for different cell types: for `:square`/`:shifted-square`/`:rhombus`/`:triangle` it was already the distance between neighboring cell anchors, but for `:pointy-hex`/`:flat-hex` it was halved into a circumradius, making neighboring hex anchors only `size·√3/2` apart instead of `size`; now scaled by `1/√3` instead of `1/2`, so `size` means anchor-to-anchor distance uniformly across all 6 cell types (hex grids built with a given `size` are now visually larger than before)
+* `fastmath.optimization/scan-and-minimize` and `scan-and-maximize` crashed with `:nelder-mead` and `:multidirectional-simplex` (one mutable simplex shared by parallel runs), ignored `:vector-arg? false` for all methods but `:brent`, and failed for `:brent` with `:stats?` or flat bounds; the `:gradient` method failed with `:vector-arg? false`
+* `fastmath.optimization` `:powell` with `:maximize` stopped after one iteration with a wrong result (Apache Commons Math bug), now the negated function is minimized
+* `fastmath.optimization` `:lbfgsb` with a numerical gradient evaluated the function outside of the bounds and could end with NaN after 1000 iterations; a non-finite value now throws (LBFGSBJava)
+* `fastmath.optimization/bayesian-optimization` could evaluate the function outside of the bounds with unconstrained optimizers and failed with `:optimizer :brent` and with a function of separate arguments
+* `fastmath.optimization/linear-optimization` treated any unknown relation as equality and silently ignored an incomplete last constraint
+* `fastmath.optimization.problems`: `problem03` and `problem08` had an extra sixth term (published minima -12.03125 and -14.508 were not reproduced), `->auckley` returned a wrong value for more than one non-zero coordinate, wrong bounds of `beale` (degenerate second range), Ackley (`+-32768` instead of `+-32.768`) and `sphere`
+
+### Changed
+
+* [breaking] optimization refactor: `minimizer`/`maximizer` return a function of exactly one argument (initial point or `nil`), `*-data` functions, `:bfgs` and `:bounded?` are removed, functions receive the point as one sequence by default (`:vector-arg?`, `:brent` receives a number), `:stats?` returns a map `{:point :value ...}` which depends on the method, default `:max-evals`/`:max-iters` is `10000`, the simplex size is set by `:length` (a fraction of bounds)
+* [breaking] optimization: unknown methods, goals, relations, rules, line searches, formulas and utility function types throw `ex-info`, `linear-optimization` accepts only the relations `<=`, `>=`, `=` (or `:leq`, `:geq`, `:eq`) and its limit is `:max-iters`
+* [breaking] `fastmath.optimization.problems/->auckley` and `auckley-bounds` renamed to `->ackley` and `ackley-bounds`, `:levis-overton` line search renamed to `:lewis-overton`
 
 ## [3.0.0 alpha9]
 

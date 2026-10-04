@@ -3,7 +3,7 @@
 
   Functions are optimized by name of a method: call [[minimize]] or [[maximize]] with the method, the function and an options map. [[minimizer]] and [[maximizer]] create a function which runs the optimization for a given initial point, [[scan-and-minimize]] and [[scan-and-maximize]] scan the search domain first and then run many optimizations in parallel from the best points. [[bayesian-optimization]] optimizes expensive functions and [[linear-optimization]] solves linear programs.
 
-  ## Methods
+  Methods:
 
   - `:brent` - one dimension, local, derivative free (Apache Commons Math).
   - `:bobyqa` - box constrained, derivative free, two or more dimensions (Apache Commons Math).
@@ -14,7 +14,7 @@
 
   The functions of the methods are documented in [[fastmath.optimization.acm]] and [[fastmath.optimization.lbfgsb]], where all their options are described.
 
-  ## Options common to all methods
+  Options common to all methods:
 
   - `:bounds` - sequence of `[lo hi]` pairs, one for each dimension (`[lo hi]` for one dimension). Required by `:brent`, `:bobyqa`, `:cmaes` and `:lbfgsb`, optional for the other methods where they only set the size of the initial simplex or the initial point. Bounds are validated: no NaN, `lo <= hi`, their number matches the initial point. `:brent` needs exactly one finite interval with `lo < hi`, `:bobyqa` and `:cmaes` finite bounds, the simplex methods finite bounds with `lo < hi`. Infinite bounds are allowed by `:lbfgsb` when `:initial` is given.
   - `:initial` - the initial point, default: the middle of the bounds.
@@ -28,17 +28,11 @@
 
   Unknown methods, goals and option values (for example formulas or line searches) throw `ex-info` with the allowed values in the exception data.
 
-  ## Scan and optimize
+  Scan and optimize: the `scan-and-...` functions evaluate the function at `:N` points of a jittered low discrepancy sequence, start the optimization from the best `:n` fraction of them in parallel, and return the best result. Optimization runs which fail with an exception are skipped.
 
-  `scan-and-...` functions evaluate the function at `:N` points of a jittered low discrepancy sequence, start the optimization from the best `:n` fraction of them in parallel, and return the best result. Optimization runs which fail with an exception are skipped.
+  Bayesian optimization: [[bayesian-optimization]] can be used for optimizing expensive to evaluate black box functions. Refer to this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
 
-  ## Bayesian optimization
-
-  [[bayesian-optimization]] can be used for optimizing expensive to evaluate black box functions. Refer to this [article](http://krasserm.github.io/2018/03/21/bayesian-optimization/) or this [article](https://nextjournal.com/a/LKqpdDdxiggRyHhqDG5FH?token=Ss1Qq3MzHWN8ZyEt9UC1ZZ)
-
-  ## Linear optimization
-
-  [[linear-optimization]] solves linear programs with the simplex method."
+  Linear optimization: [[linear-optimization]] solves linear programs with the simplex method."
   (:require [fastmath.core :as m]
             [fastmath.random :as r]
             [fastmath.vector :as v]
@@ -457,12 +451,7 @@
 
   Every three consecutive values of `constraints` are treated as one triplet, so the collection must contain a multiple of three elements matching the pattern above. Throws `ex-info` otherwise, and for an unknown relationship, `:goal` or `:rule`. Infeasible and unbounded problems throw the exceptions of Apache Commons Math.
 
-  ```clojure
-  (linear-optimization [-1 4 0] [[-3 1] :<= 6
-                                 [-1 -2] :>= -4
-                                 [0 1] :>= -3])
-  ;; => [[9.999999999999995 -3.0] -21.999999999999993]
-  ```"
+  For example `(linear-optimization [-1 4 0] [[-3 1] :<= 6 [-1 -2] :>= -4 [0 1] :>= -3])` returns `[[9.999999999999995 -3.0] -21.999999999999993]`."
   ([target constraints] (linear-optimization target constraints {}))
   ([target constraints {:keys [goal ^double epsilon ^int max-ulps ^double cut-off
                                rule non-negative? max-iters stats?]

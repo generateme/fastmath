@@ -16,7 +16,7 @@
 ;; https://infinity77.net/global_optimization/test_functions_1d.html
 
 (defn problem02-bounds
-  "Returns the search domain of [[problem02]], `[[2.7 7.5]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem02]], the interval `[2.7 7.5]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem02]], [[dproblem02]]."
   [] [[2.7 7.5]])
@@ -54,7 +54,7 @@
 ;;
 
 (defn problem03-bounds
-  "Returns the search domain of [[problem03]], `[[-10.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem03]], the interval `[-10.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem03]], [[dproblem03]]."
   [] [[-10.0 10.0]])
@@ -98,7 +98,7 @@
 ;;
 
 (defn problem04-bounds
-  "Returns the search domain of [[problem04]], `[[1.9 3.9]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem04]], the interval `[1.9 3.9]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem04]], [[dproblem04]]."
   [] [[1.9 3.9]])
@@ -138,7 +138,7 @@
 ;;
 
 (defn problem05-bounds
-  "Returns the search domain of [[problem05]], `[[0.0 1.2]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem05]], the interval `[0.0 1.2]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem05]], [[dproblem05]]."
   [] [[0.0 1.2]])
@@ -177,7 +177,7 @@
 ;;
 
 (defn problem06-bounds
-  "Returns the search domain of [[problem06]], `[[-10.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem06]], the interval `[-10.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem06]], [[dproblem06]]."
   [] [[-10.0 10.0]])
@@ -215,7 +215,7 @@
 ;;
 
 (defn problem07-bounds
-  "Returns the search domain of [[problem07]], `[[2.7 7.5]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem07]], the interval `[2.7 7.5]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem07]], [[dproblem07]]."
   [] [[2.7 7.5]])
@@ -258,7 +258,7 @@
 ;;
 
 (defn problem08-bounds
-  "Returns the search domain of [[problem08]], `[[-10.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem08]], the interval `[-10.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem08]], [[dproblem08]]."
   [] [[-10.0 10.0]])
@@ -302,7 +302,7 @@
 ;; 
 
 (defn problem09-bounds
-  "Returns the search domain of [[problem09]], `[[3.1 20.4]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem09]], the interval `[3.1 20.4]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem09]], [[dproblem09]]."
   [] [[3.1 20.4]])
@@ -340,7 +340,7 @@
 ;;
 
 (defn problem10-bounds
-  "Returns the search domain of [[problem10]], `[[0.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem10]], the interval `[0.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem10]], [[dproblem10]]."
   [] [[0.0 10.0]])
@@ -376,7 +376,7 @@
 ;;
 
 (defn problem11-bounds
-  "Returns the search domain of [[problem11]], `[[-pi/2 2 pi]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem11]], the interval `[-pi/2 2 pi]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem11]], [[dproblem11]]."
   [] [[m/-HALF_PI m/TWO_PI]])
@@ -414,7 +414,7 @@
 ;;
 
 (defn problem12-bounds
-  "Returns the search domain of [[problem12]], `[[0 2 pi]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem12]], the interval `[0 2 pi]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem12]], [[dproblem12]]."
   [] [[0.0 m/TWO_PI]])
@@ -454,7 +454,7 @@
 ;;
 
 (defn problem13-bounds
-  "Returns the search domain of [[problem13]], `[[0.001 0.99]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem13]], the interval `[0.001 0.99]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem13]], [[dproblem13]]."
   [] [[0.001 0.99]])
@@ -492,7 +492,7 @@
 ;;
 
 (defn problem14-bounds
-  "Returns the search domain of [[problem14]], `[[0.0 4.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem14]], the interval `[0.0 4.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem14]], [[dproblem14]]."
   [] [[0.0 4.0]])
@@ -530,7 +530,7 @@
 ;;
 
 (defn problem15-bounds
-  "Returns the search domain of [[problem15]], `[[-5.0 5.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem15]], the interval `[-5.0 5.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem15]], [[dproblem15]]."
   [] [[-5.0 5.0]])
@@ -570,7 +570,7 @@
 ;;
 
 (defn problem18-bounds
-  "Returns the search domain of [[problem18]], `[[0.0 6.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem18]], the interval `[0.0 6.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem18]], [[dproblem18]]."
   [] [[0.0 6.0]])
@@ -610,7 +610,7 @@
 ;;
 
 (defn problem20-bounds
-  "Returns the search domain of [[problem20]], `[[-10.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem20]], the interval `[-10.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem20]], [[dproblem20]]."
   [] [[-10.0 10.0]])
@@ -649,7 +649,7 @@
 ;;
 
 (defn problem21-bounds
-  "Returns the search domain of [[problem21]], `[[0.0 10.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem21]], the interval `[0.0 10.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem21]], [[dproblem21]]."
   [] [[0.0 10.0]])
@@ -690,7 +690,7 @@
 ;;
 
 (defn problem22-bounds
-  "Returns the search domain of [[problem22]], `[[0.0 20.0]]`, as a vector with one `[lo hi]` pair.
+  "Returns the search domain of [[problem22]], the interval `[0.0 20.0]`, as a vector with one `[lo hi]` pair.
 
   See also [[problem22]], [[dproblem22]]."
   [] [[0.0 20.0]])
@@ -761,7 +761,7 @@
 ;;
 
 (defn bukin-no-6-bounds
-  "Returns the usual search domain of [[bukin-no-6]]: `[[-15.0 -5.0] [-3.0 3.0]]`."
+  "Returns the usual search domain of [[bukin-no-6]]: `[-15.0 -5.0]` for x1 and `[-3.0 3.0]` for x2."
   [] [[-15.0 -5.0] [-3.0 3.0]])
 
 (defn bukin-no-6
@@ -781,7 +781,7 @@
 ;;
 
 (defn cross-in-tray-bounds
-  "Returns the usual search domain of [[cross-in-tray]]: `[[-10.0 10.0] [-10.0 10.0]]`."
+  "Returns the usual search domain of [[cross-in-tray]]: `[-10.0 10.0]` for x1 and `[-10.0 10.0]` for x2."
   [] [[-10.0 10.0] [-10.0 10.0]])
 
 (defn cross-in-tray
@@ -802,7 +802,7 @@
 ;;
 
 (defn drop-wave-bounds
-  "Returns the usual search domain of [[drop-wave]]: `[[-5.12 5.12] [-5.12 5.12]]`."
+  "Returns the usual search domain of [[drop-wave]]: `[-5.12 5.12]` for x1 and `[-5.12 5.12]` for x2."
   [] [[-5.12 5.12] [-5.12 5.12]])
 
 (defn drop-wave
@@ -823,7 +823,7 @@
 ;;
 
 (defn egg-holder-bounds
-  "Returns the usual search domain of [[egg-holder]]: `[[-512.0 512.0] [-512.0 512.0]]`."
+  "Returns the usual search domain of [[egg-holder]]: `[-512.0 512.0]` for x1 and `[-512.0 512.0]` for x2."
   [] [[-512.0 512.0] [-512.0 512.0]])
 
 (defn egg-holder
@@ -896,7 +896,7 @@
 ;;
 
 (defn himmelblau-bounds
-  "Returns the usual search domain of [[himmelblau]]: `[[-5.0 5.0] [-5.0 5.0]]`."
+  "Returns the usual search domain of [[himmelblau]]: `[-5.0 5.0]` for x1 and `[-5.0 5.0]` for x2."
   [] [[-5.0 5.0] [-5.0 5.0]])
 
 (defn himmelblau
@@ -932,7 +932,7 @@
 ;;
 
 (defn beale-bounds
-  "Returns the usual search domain of [[beale]]: `[[-4.5 4.5] [-4.5 4.5]]`."
+  "Returns the usual search domain of [[beale]]: `[-4.5 4.5]` for x1 and `[-4.5 4.5]` for x2."
   [] [[-4.5 4.5] [-4.5 4.5]])
 
 (defn beale
