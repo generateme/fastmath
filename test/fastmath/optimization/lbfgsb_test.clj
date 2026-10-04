@@ -357,11 +357,23 @@
       (t/is (point-close? [1.0 -2.0] pt) (pr-str opts))
       (t/is (< val val-tol) (pr-str opts)))))
 
+(defn- system-out-str
+  "Text printed to the Java standard output by `thunk`. `with-out-str` does not see it: the Java code writes to
+  `System.out` directly (in the REPL the two happen to be connected, under `lein test` they are not)."
+  [thunk]
+  (let [old System/out
+        baos (java.io.ByteArrayOutputStream.)]
+    (try
+      (System/setOut (java.io.PrintStream. baos true))
+      (thunk)
+      (finally (System/setOut old)))
+    (.toString baos)))
+
 (t/deftest debug-flag
   ;; the Java flag is global and set on every call
-  (t/is (not (empty? (with-out-str (sut/lbfgsb quad {:bounds quad-bounds :debug? true})))))
-  (t/is (empty? (with-out-str (sut/lbfgsb quad {:bounds quad-bounds :debug? false}))))
-  (t/is (empty? (with-out-str (sut/lbfgsb quad {:bounds quad-bounds})))))
+  (t/is (not (empty? (system-out-str #(sut/lbfgsb quad {:bounds quad-bounds :debug? true})))))
+  (t/is (empty? (system-out-str #(sut/lbfgsb quad {:bounds quad-bounds :debug? false}))))
+  (t/is (empty? (system-out-str #(sut/lbfgsb quad {:bounds quad-bounds})))))
 
 ;; concurrency
 
