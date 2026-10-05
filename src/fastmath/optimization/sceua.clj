@@ -280,14 +280,43 @@
 
 ;; recovery of a collapsed population
 
+(defn- unit-cube-covariance
+  "Returns the sample covariance matrix of the population normalized to the unit cube, as a vector of `double` arrays (rows).
+
+  Coordinate `d` of a point is `(x_d - lo_d) / (hi_d - lo_d)`. The matrix is the same as `stats/covariance-matrix` of the columns, but the means are computed once and the sums run on arrays."
+  [population ^doubles lo ^doubles hi]
+  (let [n (alength lo)
+        size (count population)
+        columns (vec (repeatedly n #(double-array size)))
+        covariance (vec (repeatedly n #(double-array n)))]
+    (dotimes [k size]
+      (let [^doubles x (.x ^Point (population k))]
+        (dotimes [d n]
+          (let [l (Array/get lo d)]
+            (Array/set ^doubles (columns d) k (m// (m/- (Array/get x d) l) (m/- (Array/get hi d) l)))))))
+    (dotimes [d n]
+      (let [^doubles column (columns d)
+            mean (m// (double (loop [k 0 sum 0.0] (if (m/< k size) (recur (m/inc k) (m/+ sum (Array/get column k))) sum))) size)]
+        (dotimes [k size]
+          (Array/set column k (m/- (Array/get column k) mean)))))
+    (dotimes [i n]
+      (let [^doubles ci (columns i)]
+        (loop [j i]
+          (when (m/< j n)
+            (let [^doubles cj (columns j)
+                  c (m// (double (loop [k 0 sum 0.0] (if (m/< k size) (recur (m/inc k) (m/+ sum (m/* (Array/get ci k) (Array/get cj k)))) sum)))
+                         (m/dec size))]
+              (Array/set ^doubles (covariance i) j c)
+              (Array/set ^doubles (covariance j) i c))
+            (recur (m/inc j))))))
+    covariance))
+
 (defn- lost-directions
   "Returns the unit directions, in the population normalized to the unit cube, with almost no variance.
 
-  A direction is lost when its eigenvalue of the covariance matrix is below `pca-ratio` of the largest one. Returns an empty vector when the population has no variance."
+  A direction is lost when its eigenvalue of the covariance matrix is below `pca-ratio` of the largest one. Returns an empty vector when the population has no variance. The directions of one eigenvalue (a multiple one) are any orthonormal basis of their subspace."
   [population {:keys [lo hi]}]
-  (let [extent (v/sub hi lo)
-        rows (map #(mapv m// (v/sub (:x %) lo) extent) population)
-        eigen (mat/eigen-decomposition (mat/rows->mat (stats/covariance-matrix (apply mapv vector rows)))
+  (let [eigen (mat/eigen-decomposition (mat/rows->mat (unit-cube-covariance population lo hi))
                                        {:eigenvectors-scaling :raw})
         values (vec (mat/decomposition-component eigen :real-eigenvalues))
         largest (stats/maximum values)]

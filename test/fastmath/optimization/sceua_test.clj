@@ -4,6 +4,8 @@
             [fastmath.random :as r]
             [fastmath.core :as m]
             [fastmath.vector :as v]
+            [fastmath.stats :as stats]
+            [fastmath.matrix :as mat]
             [clojure.test :as t])
   (:import [java.util Arrays]
            [java.util.concurrent.atomic AtomicLong]))
@@ -695,6 +697,68 @@
     (t/testing "directions are double arrays"
       (let [[pop _] (points-of sphere3 (for [t (range 0.0 1.0 0.05)] [t t t]))]
         (t/is (every? #(instance? (Class/forName "[D") %) (lost pop unit-cube-3)))))))
+
+(defn- lost-directions-reference
+  "The previous implementation of the lost directions: the covariance matrix from `stats/covariance-matrix` of boxed columns."
+  [population {:keys [lo hi]}]
+  (let [extent (v/sub hi lo)
+        rows (map #(mapv m// (v/sub (:x %) lo) extent) population)
+        eigen (mat/eigen-decomposition (mat/rows->mat (stats/covariance-matrix (apply mapv vector rows)))
+                                       {:eigenvectors-scaling :raw})
+        values (vec (mat/decomposition-component eigen :real-eigenvalues))
+        largest (stats/maximum values)]
+    (if (pos? largest)
+      (into []
+            (comp (keep-indexed (fn [i direction] (when (< (values i) (* 1.0e-3 largest)) direction)))
+                  (map v/vec->array))
+            (mat/decomposition-component eigen :eigenvectors))
+      [])))
+
+(defn- projector
+  "The matrix of the orthogonal projection on the span of the directions; it does not depend on the basis chosen in the span."
+  [directions n]
+  (for [i (range n)]
+    (for [j (range n)]
+      (reduce + (map #(* (nth % i) (nth % j)) directions)))))
+
+(defn- max-abs-difference [a b]
+  (apply max 0.0 (map (fn [row-a row-b] (apply max 0.0 (map #(Math/abs (double (- %1 %2))) row-a row-b))) a b)))
+
+(t/deftest lost-directions-equivalence
+  ;; a multiple eigenvalue has no unique eigenvectors, so the lost subspaces are compared (projectors), and the directions
+  ;; themselves when only one is lost
+  (let [rng (r/rng :jdk 2)
+        random-cube (fn [n size] (for [_ (range size)] (vec (repeatedly n #(r/drandom rng)))))
+        populations {"random cube 3D" [3 (random-cube 3 60)]
+                     "random cube 5D" [5 (random-cube 5 55)]
+                     "random cube 20D" [20 (random-cube 20 205)]
+                     "line 3D" [3 (for [t (range 0.0 1.0 0.05)] [t t t])]
+                     "line 6D" [6 (for [t (range 0.0 1.0 0.05)] (vec (repeat 6 t)))]
+                     "plane 3D" [3 (for [s (range 0.0 1.0 0.2) t (range 0.0 1.0 0.2)] [s t (+ s t)])]
+                     "plane in 20D" [20 (for [_ (range 60)] (let [s (r/drandom rng) t (r/drandom rng)] (vec (take 20 (cycle [s t (* 0.5 (+ s t))])))))]
+                     "identical points" [3 (repeat 10 [0.5 0.5 0.5])]
+                     "two points" [3 [[0.1 0.1 0.1] [0.9 0.5 0.2]]]}]
+    (doseq [[label [n coords]] populations
+            :let [[pop _] (points-of (fn [_] 0.0) coords)
+                  bounds {:lo (double-array (repeat n 0.0)) :hi (double-array (repeat n 1.0))}
+                  old (lost-directions-reference pop bounds)
+                  new (#'sut/lost-directions pop bounds)]]
+      (t/is (= (count old) (count new)) label)
+      (t/is (> 1.0e-9 (max-abs-difference (projector (map vec old) n) (projector (map vec new) n))) (str label ": the same lost subspace"))
+      (when (= 1 (count old))
+        (let [d-old (vec (first old)) d-new (vec (first new))]
+          (t/is (or (v/delta-eq d-old d-new 1.0e-9) (v/delta-eq d-old (v/mult d-new -1.0) 1.0e-9)) (str label ": the same direction up to the sign")))))
+    (t/testing "bounds of different scales"
+      (let [[pop _] (points-of (fn [_] 0.0) (for [t (range 0.0 100.0 5.0)] [t (* 2.0 t) 3.0]))
+            bounds {:lo (double-array [0.0 0.0 0.0]) :hi (double-array [100.0 200.0 3.0])}]
+        (t/is (= (count (lost-directions-reference pop bounds)) (count (#'sut/lost-directions pop bounds))))))
+    (t/testing "the covariance matrix equals stats/covariance-matrix"
+      (let [coords (random-cube 4 40)
+            [pop _] (points-of (fn [_] 0.0) coords)
+            lo (double-array (repeat 4 0.0))
+            hi (double-array (repeat 4 1.0))]
+        (t/is (> 1.0e-12 (max-abs-difference (map vec (#'sut/unit-cube-covariance pop lo hi))
+                                              (stats/covariance-matrix (apply mapv vector (map :x pop))))))))))
 
 (t/deftest recover-dimensions
   (let [line (for [t (range 0.0 1.0 0.05)] [t t t])
