@@ -279,7 +279,7 @@
               (opt/minimize method f (cond-> {:bounds bounds :initial initial}
                                        gradient (assoc :gradient gradient))))]
     ;; the gradients are accepted by the optimizers which use them
-    (doseq [method [:lbfgsb :gradient]]
+    (doseq [method [:lbfgsb :conjugate-gradient]]
       (let [[pt val] (run method sut/himmelblau (sut/himmelblau-bounds) [1.0 1.0] sut/himmelblau-gradient)]
         (t/is (m/delta-eq 0.0 val 1.0e-3) (str method))
         (t/is (some #(v/delta-eq (vec pt) % 1.0e-3) [[3.0 2.0] [-2.805118 3.131312] [-3.779310 -3.283186] [3.584428 -1.848126]]) (str method)))

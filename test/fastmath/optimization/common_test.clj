@@ -70,7 +70,7 @@
 
 (t/deftest resolve-vector-arg
   ;; nil -> default per method, only brent differs
-  (doseq [m [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient]]
+  (doseq [m [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :conjugate-gradient :non-linear-conjugate-gradient]]
     (t/is (true? (sut/resolve-vector-arg? m nil)) (str m)))
   (t/is (false? (sut/resolve-vector-arg? :brent nil)))
   ;; explicit values win, for every method including brent
@@ -117,7 +117,7 @@
   (let [r (reason-of method bounds initial)]
     (and (string? r) (or (nil? fragment) (str/includes? r fragment)))))
 
-(def ^:private all-methods [:brent :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :lbfgsb :powell :gradient :non-linear-gradient])
+(def ^:private all-methods [:brent :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :lbfgsb :powell :conjugate-gradient :non-linear-conjugate-gradient])
 
 (t/deftest normalize-bounds-canonical-form
   ;; integers and ratios become doubles; lazy seqs and vectors are accepted
@@ -157,7 +157,7 @@
   (doseq [m (remove #{:brent} all-methods)]
     (t/is (rejected? m [[0 1] [3 2]] [0 0] "greater") (str m " lo>hi in 2nd dimension")))
   ;; lo = hi is a degenerate but legal range where the method accepts it
-  (doseq [m [:bobyqa :cmaes :lbfgsb :powell :gradient :non-linear-gradient]]
+  (doseq [m [:bobyqa :cmaes :lbfgsb :powell :conjugate-gradient :non-linear-conjugate-gradient]]
     (t/is (= [[1.0 1.0] [0.0 2.0]] (sut/normalize-bounds m [[1 1] [0 2]] [1 0])) (str m)))
   (doseq [m [:brent :sceua :nelder-mead :multidirectional-simplex]]
     (t/is (rejected? m [[1 1]] [1] "less than") (str m " lo=hi"))))
@@ -218,7 +218,7 @@
   (t/is (= [[0.0 1.0]] (sut/normalize-bounds :lbfgsb [[0 1]] nil))))
 
 (t/deftest normalize-bounds-unconstrained-methods
-  (doseq [m [:powell :gradient :non-linear-gradient]]
+  (doseq [m [:powell :conjugate-gradient :non-linear-conjugate-gradient]]
     (t/is (nil? (sut/normalize-bounds m nil nil)) (str m))
     (t/is (nil? (sut/normalize-bounds m nil [1 2 3])) (str m))
     ;; bounds are ignored by the algorithm, but when given they are checked
