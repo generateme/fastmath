@@ -103,7 +103,7 @@
      :subcomplex-size subcomplex-size
      :evolution-steps evolution-steps
      :min-complexes min-complexes
-     :stop-loops (integer-option opts :stop-loops 7)
+     :stop-loops (integer-option opts :stop-loops 40)
      :stop-improvement (nonnegative-option opts :stop-improvement 1.0e-5)
      :stop-range (nonnegative-option opts :stop-range 1.0e-3)
      :max-evals (integer-option opts :max-evals 10000)
@@ -453,14 +453,14 @@
     - `:subcomplex-size` - number of points drawn from a complex in an evolution step, from `2` to `:complex-size`, default: `n+1`, but not more than `:complex-size`.
     - `:evolution-steps` - number of evolution steps of a complex in one loop, default: `:complex-size`.
     - `:min-complexes` - the number of complexes drops by one after every loop, with the worst points removed, down to this number. Default: `:complexes`, so the number of complexes stays constant.
-    - `:stop-loops`, `:stop-improvement` - the run ends when the best value, `:stop-loops` loops back, differs from the current one by not more than `:stop-improvement` relative to the current value (absolute near zero), defaults: `7` and `1.0e-5`.
-    - `:stop-range` - the run ends when the range of the population is not greater than this fraction of the range of the bounds in every dimension, default: `1.0e-3`.
+    - `:stop-loops`, `:stop-improvement` - the run ends when the best value, `:stop-loops` loops back, differs from the current one by not more than `:stop-improvement` relative to the current value (absolute near zero), defaults: `40` and `1.0e-5`. A shorter patience stops runs on flat parts of the objective before the minimum is reached.
+    - `:stop-range` - the run ends when the range of the population is not greater than this fraction of the range of the bounds in every dimension, default: `1.0e-3`. Every tenfold decrease makes the result about a hundred times more accurate and needs about 20% more evaluations.
     - `:max-evals` - the maximum number of evaluations of `f`, default: `10000`. Exceeding it throws `ex-info`.
     - `:max-iters` - the maximum number of loops, default: `10000`. The run ends and returns the best point found.
     - `:rng` - random number generator (see [[fastmath.random/rng]]), default: a new `JDKRandomGenerator`. It draws the jitter of the initial population and the random choices of the evolution.
     - `:jitter` - jitter of the sequence which samples the initial population, from `0.0` to `1.0`, default: `0.25`. See [[fastmath.random/jittered-sequence-generator]].
     - `:parallel?` - evolve the complexes in parallel, default: `false`. The function `f` has to be thread safe. Every complex gets its own generator created from `:rng` (see [[fastmath.random/child-rngs]]), so the result can differ from the sequential one, a generator made by [[fastmath.random/synced-rng]] gives children of the default type.
-    - `:pca-recovery?` - repair a population which collapsed into a subspace, default: `false`. When the best value did not improve in a loop, the covariance matrix of the population in the unit cube is decomposed. Some points are moved along the directions with almost no variance (eigenvalue below `1.0e-3` of the largest one) and evaluated.
+    - `:pca-recovery?` - repair a population which collapsed into a subspace, default: `false`. When the best value did not improve in a loop, the covariance matrix of the population in the unit cube is decomposed. Some points are moved along the directions with almost no variance (eigenvalue below `1.0e-3` of the largest one) and evaluated. With the default sizes the population rarely collapses and the option changes little. It helped, with the cost of 4% to 25% more evaluations, when the population is small for the problem (for example `:complexes` 2 or 3 for ten and more dimensions).
     - `:stats?` - return a map with additional information, default: `false`.
 
   Returns `[point value]`, where `point` is a vector and `value` the value of `f` there, also when maximizing. With `:stats?` returns a map with:

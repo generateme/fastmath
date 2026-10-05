@@ -137,10 +137,8 @@
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
 (def ^:private hb (p/himmelblau-bounds))
 (def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient])
-;; :sceua is stochastic. With its defaults it stops after 7 loops without an improvement, which happened in about 10%
-;; of 300 seeded runs on himmelblau (27 runs with values up to 0.63), with :stop-loops 25 in 1 of 300. The tests of the
-;; method matrices test the wiring, so they use a seeded generator and :stop-loops 25 for it.
-(defn- seeded [method opts] (cond-> opts (= :sceua method) (assoc :rng (r/rng :jdk 1) :stop-loops 25)))
+;; :sceua is stochastic: the tests of the method matrices use a seeded generator for it.
+(defn- seeded [method opts] (cond-> opts (= :sceua method) (assoc :rng (r/rng :jdk 1))))
 (def ^:private all-methods (conj multivariate-methods :brent))
 
 (defn- near-minimum? [pt] (boolean (some #(v/delta-eq (vec pt) % 1.0e-3) himmelblau-minima)))
@@ -258,7 +256,7 @@
     (doseq [bounds [[[##-Inf 5] [-5 5]] [[-5 ##Inf] [-5 5]] [[1 1] [-5 5]] [[5 -5] [-5 5]]]]
       (t/is (= :sceua (:method (ex-data-of #(sut/minimize :sceua p/himmelblau {:bounds bounds})))) (pr-str bounds))))
   (t/testing "minimizer: the initial point joins the population, nil and a point outside the bounds"
-    (let [mz (sut/minimizer :sceua p/himmelblau {:bounds hb :rng (r/rng :jdk 2) :stop-loops 25})]
+    (let [mz (sut/minimizer :sceua p/himmelblau {:bounds hb :rng (r/rng :jdk 2)})]
       (t/is (near-minimum? (first (mz [3.0 2.0]))))
       (t/is (<= (second (mz [3.0 2.0])) 1.0e-12) "the best value is not worse than the value at the initial point")
       (t/is (near-minimum? (first (mz nil))))
@@ -266,11 +264,11 @@
       ;; the number of bounds differs from the length of the point
       (t/is (= :sceua (:method (ex-data-of #(mz [1.0])))))))
   (t/testing "one dimension and a flat pair of bounds"
-    (let [[pt val] (sut/minimize :sceua p/problem02 {:bounds [2.7 7.5] :vector-arg? false :rng (r/rng :jdk 3) :stop-loops 25})]
+    (let [[pt val] (sut/minimize :sceua p/problem02 {:bounds [2.7 7.5] :vector-arg? false :rng (r/rng :jdk 3)})]
       (t/is (m/delta-eq 5.145735 (first pt) 1.0e-2))
       (t/is (m/delta-eq -1.899599 val 1.0e-4))))
   (t/testing "scan-and-minimize starts :sceua from scanned points"
-    (let [[pt val] (sut/scan-and-minimize :sceua p/himmelblau {:bounds hb :N 20 :n 2 :rng (r/rng :jdk 4) :stop-loops 25})]
+    (let [[pt val] (sut/scan-and-minimize :sceua p/himmelblau {:bounds hb :N 20 :n 2 :rng (r/rng :jdk 4)})]
       (t/is (near-minimum? pt))
       (t/is (< val val-tol)))))
 

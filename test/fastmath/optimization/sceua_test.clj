@@ -12,10 +12,11 @@
 ;; (minimum 0 at the origin) are described at https://www.sfu.ca/~ssurjano/optimization.html. problem02 (sin x + sin(10x/3)
 ;; on [2.7, 7.5]) has its global minimum -1.899599 at 5.145735 (https://infinity77.net/global_optimization/test_functions_1d.html).
 ;;
-;; The optimizer is stochastic, so all runs use a seeded generator. Tolerances of the values below are the worst
-;; absolute value over 30 seeds with :stop-loops 25 times at least 10, except Ackley (2D) where the worst of 30 seeds,
-;; 1.5e-3, is limited by :stop-range (1e-3 of the range 65.5 is 0.065) and the tolerance is 1e-2. With the default
-;; :stop-loops (7) about 10% of runs on Himmelblau stop before the minimum, so the convergence tests set :stop-loops 25.
+;; The optimizer is stochastic, so all runs use a seeded generator. Tolerances of the values below are the worst error
+;; over 30 seeds with the default options, times at least 10: sphere 2D 8e-8 and 5D 7.5e-7 (tolerance 1e-5), Himmelblau
+;; 3.7e-6, Rosenbrock 2D 3.6e-7 and 3D 9.7e-7 (tolerance 1e-4), problem02 1.5e-10 for the value and 1.6e-6 for the point
+;; (tolerances 1e-8 and 1e-4). The worst of Ackley (2D), 1.5e-3, is limited by :stop-range (1e-3 of the range 65.5 is
+;; 0.065), so its tolerance is 1e-2.
 
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
 (def ^:private hb (p/himmelblau-bounds))
@@ -27,9 +28,9 @@
 (defn- near-minimum? [pt] (boolean (some #(v/delta-eq (vec pt) % 1.0e-3) himmelblau-minima)))
 
 (defn- run
-  "Runs the optimizer with a seeded generator and with 25 loops of patience."
+  "Runs the optimizer with a seeded generator."
   ([f opts] (run f 1 opts))
-  ([f seed opts] (sut/sceua f (merge {:rng (r/rng :jdk seed) :stop-loops 25} opts))))
+  ([f seed opts] (sut/sceua f (merge {:rng (r/rng :jdk seed)} opts))))
 
 (defn- never-stop
   "Options which end a run only by :max-iters."
@@ -66,8 +67,8 @@
   (t/testing "one dimension, separate arguments, a flat pair of bounds"
     (doseq [seed (range 1 6)
             :let [[pt val] (run p/problem02 seed {:bounds [2.7 7.5] :vector-arg? false})]]
-      (t/is (m/delta-eq 5.145735 (first pt) 1.0e-2) (str "seed " seed))
-      (t/is (m/delta-eq -1.899599 val 1.0e-4) (str "seed " seed)))))
+      (t/is (m/delta-eq 5.145735 (first pt) 1.0e-4) (str "seed " seed))
+      (t/is (m/delta-eq -1.899599349 val 1.0e-8) (str "seed " seed)))))
 
 (t/deftest maximize
   (let [[pt val] (run (fn [x] (- (p/sphere x))) {:bounds (p/sphere-bounds 2) :goal :maximize})]
@@ -202,6 +203,12 @@
       (t/is (= :converged-improvement (:status s)))
       (t/is (= 3 (:iterations s)))
       (t/is (= 1.0 (:value s)) "an integer value becomes a double")))
+  (t/testing "the default patience is 40 loops, and it is enough for Himmelblau (7 loops were not: about 10% of runs stopped early)"
+    (let [s (run (fn [_] 1) {:bounds hb :stats? true :stop-range 0.0})]
+      (t/is (= :converged-improvement (:status s)))
+      (t/is (= 40 (:iterations s))))
+    (doseq [seed (range 1 41)]
+      (t/is (< (second (run p/himmelblau seed {:bounds hb})) 1.0e-3) (str "seed " seed))))
   (t/testing "at least one loop is always made"
     (t/is (= 1 (:iterations (run p/himmelblau (merge {:bounds hb :stats? true} (never-stop 1)))))))
   (t/testing "a tighter range gives a more accurate result"
@@ -259,7 +266,7 @@
     (t/testing "other generators, a synchronized one too"
       (doseq [make [#(r/rng :mersenne 3) #(r/rng :isaac 3) #(r/synced-rng :well512a 3)]
               parallel? [false true]]
-        (let [res (fn [] (sut/sceua f (assoc opts :rng (make) :parallel? parallel? :stop-loops 25)))]
+        (let [res (fn [] (sut/sceua f (assoc opts :rng (make) :parallel? parallel?)))]
           (t/is (= (res) (res)) (str (class (make)) parallel?)))))
     (t/testing "repeated parallel runs with a generator which is not thread safe give the same result"
       (let [res (fn [] (sut/sceua f (assoc opts :rng (r/rng :mersenne 9) :parallel? true :complexes 8)))
