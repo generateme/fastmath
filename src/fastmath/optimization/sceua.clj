@@ -412,21 +412,27 @@
 
 ;; optimizer
 
+(defn- reduce-complexes
+  "Removes the worst complex of a sorted population when there are more than `min-complexes` complexes. Returns `[population ngs]`."
+  [^objects population ngs min-complexes complex-size]
+  (if (m/> (long ngs) (long min-complexes))
+    [(Arrays/copyOf population (int (m/- (alength population) (long complex-size)))) (m/dec (long ngs))]
+    [population ngs]))
+
 (defn- result
   "Builds the result of the run from the final sorted population."
   [^objects population settings status ngs bests ^AtomicLong counter]
   (let [{:keys [^double sign stats?]} settings
-        report (fn [^doubles point] [(coordinates point) (m/* sign (value-of point))])
-        [point value] (report (aget population 0))]
+        ^doubles best (aget population 0)
+        point (coordinates best)
+        value (m/* sign (value-of best))]
     (if stats?
       {:point point
        :value value
        :evaluations (.get counter)
        :iterations (m/dec (count bests))
        :status status
-       :complexes ngs
-       :history (mapv #(m/* sign (double %)) (rest bests))
-       :population (mapv report population)}
+       :complexes ngs}
       [point value])))
 
 (defn sceua
@@ -463,9 +469,7 @@
   - `:evaluations` - number of evaluations of `f`,
   - `:iterations` - number of loops,
   - `:status` - why the run ended: `:converged-range`, `:converged-improvement` or `:max-iterations`,
-  - `:complexes` - number of complexes in the last loop,
-  - `:history` - the best value after every loop, a vector of `:iterations` values,
-  - `:population` - the final population, `[point value]` pairs sorted from the best one.
+  - `:complexes` - number of complexes in the last loop.
 
   The population is evaluated and the first loop is always done, so at least `:complexes` times `:complex-size` evaluations are made, and `:max-evals` below that number throws.
 
@@ -498,7 +502,6 @@
                                    (m/> (alength evolved) n)
                                    (stalled? bests))
                             (recover-dimensions! evolved rng evaluate lo hi)
-                            evolved)]
-            (if (m/> ngs min-complexes)
-              (recur (Arrays/copyOf recovered (int (m/- (alength recovered) complex-size))) (m/dec ngs) bests)
-              (recur recovered ngs bests))))))))
+                            evolved)
+                [reduced reduced-ngs] (reduce-complexes recovered ngs min-complexes complex-size)]
+            (recur reduced (long reduced-ngs) bests)))))))
