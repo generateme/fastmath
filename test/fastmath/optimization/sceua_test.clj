@@ -5,7 +5,8 @@
             [fastmath.core :as m]
             [fastmath.vector :as v]
             [clojure.test :as t])
-  (:import [java.util.concurrent.atomic AtomicLong]))
+  (:import [java.util Arrays]
+           [java.util.concurrent.atomic AtomicLong]))
 
 ;; References: Himmelblau's function has four minima with value 0: (3, 2), (-2.805118, 3.131313),
 ;; (-3.779310, -3.283186), (3.584428, -1.848126) (Wikipedia). Sphere, Rosenbrock (minimum 0 at (1, ..., 1)) and Ackley
@@ -450,6 +451,31 @@
 
 (defn- values-of [points] (map :value points))
 
+(defn- select-parents-reference
+  "The previous implementation of parent selection: indices drawn into a sorted set until there are `q` different ones."
+  [m q rng]
+  (vec (loop [chosen (sorted-set)]
+         (if (== (count chosen) q)
+           chosen
+           (recur (conj chosen (#'sut/triangular-index m (r/drandom rng))))))))
+
+(defn- triangular-index-reference
+  "The previous implementation of the triangular index, with `m/floor`."
+  [^long m ^double u]
+  (let [mh (+ m 0.5)
+        root (m/safe-sqrt (- (* mh mh) (* m (inc m) u)))]
+    (m/constrain (long (m/floor (- mh root))) 0 (dec m))))
+
+(defn- centroid-reference
+  "The previous implementation of the centroid of the parents except the last one."
+  [complex parents]
+  (v/average-vectors (map #(:x (complex %)) (butlast parents))))
+
+(defn- random-point-reference
+  "The previous implementation of the random point of a box."
+  [lo hi rng]
+  (v/einterpolate lo hi (double-array (repeatedly (count lo) #(r/drandom rng)))))
+
 (t/deftest parent-selection
   (t/testing "the triangular index: the best index is the most probable one"
     (doseq [m [1 2 7 100]]
@@ -470,13 +496,22 @@
               q (range 1 (inc m))
               _ (range 20)
               :let [idx (#'sut/select-parents m q rng)]]
-        (t/is (vector? idx) (str m " " q))
+        (t/is (instance? (Class/forName "[J") idx) (str m " " q))
         (t/is (= q (count idx)) (str m " " q))
         (t/is (apply < idx) (str m " " q " " idx))
         (t/is (every? #(<= 0 % (dec m)) idx) (str m " " q " " idx)))))
   (t/testing "the whole complex is selected when the sub-complex is the complex"
-    (t/is (= [0 1 2 3 4] (#'sut/select-parents 5 5 (r/rng :jdk 1))))
-    (t/is (= [0] (#'sut/select-parents 1 1 (r/rng :jdk 1))))))
+    (t/is (= [0 1 2 3 4] (vec (#'sut/select-parents 5 5 (r/rng :jdk 1)))))
+    (t/is (= [0] (vec (#'sut/select-parents 1 1 (r/rng :jdk 1))))))
+  (t/testing "the same indices and the same draws as the sorted set of the previous implementation"
+    (doseq [m [2 3 5 11 41]
+            q (range 2 (inc m))
+            seed (range 1 21)
+            :let [rng-a (r/rng :jdk seed)
+                  rng-b (r/rng :jdk seed)
+                  idx (vec (#'sut/select-parents m q rng-a))]]
+      (t/is (= (select-parents-reference m q rng-b) idx) (str m " " q " " seed))
+      (t/is (= (r/drandom rng-a) (r/drandom rng-b)) (str m " " q " " seed ": the same number of draws")))))
 
 (t/deftest complexes-of-population
   (t/testing "a complex takes every ngs-th point starting at k"
@@ -534,6 +569,57 @@
             out (#'sut/evolve-complex same (assoc settings :evaluate sev) (r/rng :jdk 4))]
         (t/is (= 5 (count out)))
         (t/is (every? #(= 2.0 (:value %)) (take 1 out)))))))
+
+;; hot path: the same results as the previous implementations
+
+(t/deftest hot-path-equivalence
+  (t/testing "the triangular index equals the version with floor"
+    (let [rng (r/rng :jdk 7)]
+      (doseq [m [1 2 3 7 41 100 2001]
+              :let [us (concat [0.0 0.5 0.9999999999999999] (repeatedly 150000 #(r/drandom rng)))]]
+        (t/is (every? (fn [u] (= (triangular-index-reference m u) (#'sut/triangular-index m u))) us) (str m)))))
+  (t/testing "the centroid equals v/average-vectors exactly, also with signed zeros"
+    (let [rng (r/rng :jdk 3)
+          ev (#'sut/evaluator (fn [_] 0.0) 1.0 1000000)
+          random-x (fn [n] (double-array (repeatedly n #(* 10.0 (- (r/drandom rng) 0.5)))))]
+      (doseq [size [2 3 5 11]
+              n [1 2 5 20]
+              q (range 2 (inc size))
+              seed (range 1 4)
+              :let [complex (mapv (fn [_] (ev (random-x n))) (range size))
+                    complex (if (= seed 3) (assoc complex 0 (ev (double-array (take n (cycle [-0.0 0.0 1.0]))))) complex)
+                    parents (#'sut/select-parents size q (r/rng :jdk seed))
+                    expected (centroid-reference complex parents)]]
+        (t/is (Arrays/equals ^doubles (#'sut/centroid complex parents q) ^doubles expected) (str size " " n " " q " " seed)))))
+  (t/testing "the random point equals the previous one and draws the same numbers"
+    (doseq [n [1 2 5 20]
+            seed (range 1 101)
+            :let [lo (double-array (take n (cycle [-1.0 0.0 2.5])))
+                  hi (double-array (take n (cycle [1.0 3.0 2.6])))
+                  rng-a (r/rng :jdk seed)
+                  rng-b (r/rng :jdk seed)]]
+      (t/is (Arrays/equals ^doubles (#'sut/random-point lo hi rng-a) ^doubles (random-point-reference lo hi rng-b)) (str n " " seed))
+      (t/is (= (r/drandom rng-a) (r/drandom rng-b)) (str n " " seed ": the same number of draws")))))
+
+;; evaluations skipped for a candidate equal to the worst point
+
+(t/deftest skipped-evaluations
+  (t/testing "in a complex collapsed in one point only the random point is evaluated, one evaluation per step"
+    (doseq [subcomplex-size [2 3 5]
+            :let [[same _] (points-of p/sphere (repeat 5 [1.0 1.0]))
+                  counting (#'sut/evaluator p/sphere 1.0 1000000)
+                  steps 30
+                  out (#'sut/evolve-complex same {:subcomplex-size subcomplex-size :evolution-steps steps :evaluate counting
+                                                  :lo (double-array [-4.0 -4.0]) :hi (double-array [4.0 4.0])}
+                                            (r/rng :jdk 4))]]
+      (t/is (= steps (counting)) (str subcomplex-size))
+      (t/is (= 5 (count out)) (str subcomplex-size))))
+  (t/testing "an optimum in a corner of the bounds needs fewer evaluations"
+    ;; the previous implementation took 16451 evaluations for these seeds
+    (let [runs (for [seed (range 1 11)]
+                 (run p/sphere seed {:bounds (p/sphere-bounds 2) :goal :maximize :stats? true}))]
+      (t/is (<= (reduce + (map :evaluations runs)) 12000))
+      (t/is (every? #(m/delta-eq (* 2 5.12 5.12) (:value %) 1.0e-3) runs)))))
 
 ;; termination helpers
 
@@ -623,7 +709,7 @@
     (t/is (<= (:value (first recovered)) (:value (first pop))) "the best value is not worse")
     (t/is (some #(= best-before (vec (:x %))) recovered) "the best point stays in the population")
     (t/is (apply <= (values-of recovered)) "sorted")
-    (t/is (pos? (count (filter (fn [{[x y] :x}] (> (Math/abs (- x y)) 1.0e-9)) recovered))) "points left the line")
+    (t/is (pos? (count (filter (fn [{[x y] :x}] (> (Math/abs (double (- x y))) 1.0e-9)) recovered))) "points left the line")
     (t/is (= 4 (ev)) "moved points are evaluated and counted: 2 lost directions times 2 points (10% of 20)")
     (t/is (every? (fn [{[x y z] :x}] (and (<= 0.0 x 1.0) (<= 0.0 y 1.0) (<= 0.0 z 1.0))) recovered) "in the bounds")
     (t/is (every? #(= (:value %) (sphere3 (:x %))) recovered) "values are values of the function")

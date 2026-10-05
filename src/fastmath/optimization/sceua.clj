@@ -16,15 +16,23 @@
             [fastmath.matrix :as mat]
             [fastmath.vector :as v]
             [fastmath.optimization.common :as common])
-  (:import [java.util.concurrent ExecutionException]
+  (:import [fastmath.java Array]
+           [java.util Arrays]
+           [java.util.concurrent ExecutionException]
            [org.apache.commons.math3.random RandomDataGenerator RandomGenerator]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-;; A point of the population is a map `{:x coordinates :value value}`: the coordinates are a double array which is
-;; never changed, the value is the value of the minimized objective. A population and a complex are vectors of points
-;; sorted by the value. The settings are the validated options with the key `:evaluate` added (see `evaluator`).
+;; A point of the population is a `Point`: the coordinates `x` are a double array which is never changed, the `value`
+;; is the value of the minimized objective. A population and a complex are vectors of points sorted by the value.
+;; The settings are the validated options with the key `:evaluate` added (see `evaluator`).
+
+(defrecord Point [x ^double value])
+
+;; the record is private to the namespace: only the constructor `(Point. x value)` is used
+(ns-unmap *ns* '->Point)
+(ns-unmap *ns* 'map->Point)
 
 (def ^:private ^:const max-dimensions 1000)
 (def ^:private ^:const pca-ratio 1.0e-3)
@@ -93,13 +101,13 @@
 
 (defn- value-of
   "Value of the objective stored in a point."
-  ^double [point]
-  (:value point))
+  ^double [^Point point]
+  (.value point))
 
 (defn- sorted-by-value
   "Returns the points as a vector sorted by the value, the best first. The order of equal values is kept."
   [points]
-  (vec (sort-by :value points)))
+  (vec (sort-by value-of points)))
 
 (defn- clip
   "Moves the coordinates `x` into the box `[lo, hi]`."
@@ -120,7 +128,7 @@
        (when (m/> (long (swap! calls inc)) max-evals)
          (throw (ex-info "Maximum number of evaluations exceeded" {:max-evals max-evals :evaluations max-evals})))
        (let [value (m/* sign (double (f x)))]
-         {:x x :value (if (m/nan? value) ##Inf value)})))))
+         (Point. x (if (m/nan? value) ##Inf value)))))))
 
 (defn- initial-population
   "Creates the sorted population: the initial point, if given, and points of a jittered low discrepancy sequence scaled to the bounds."
@@ -139,46 +147,83 @@
   ^long [^long m ^double u]
   (let [mh (m/+ m 0.5)
         root (m/safe-sqrt (m/- (m/* mh mh) (m/* m (m/inc m) u)))
-        index (long (m/floor (m/- mh root)))]
+        ;; `m - root` is not negative, so the truncation is the floor
+        index (long (m/- mh root))]
     (m/constrain index 0 (m/dec m))))
 
 (defn- select-parents
-  "Returns a sorted vector of `q` different indices drawn from `m` ones with the triangular probability (the lower the index, the more probable).
+  "Returns a `long` array of `q` different indices in the ascending order, drawn from `m` ones with the triangular probability (the lower the index, the more probable).
 
   An index which is drawn again is skipped, so every next one is drawn from the remaining ones."
   [^long m ^long q rng]
-  (loop [chosen (sorted-set)]
-    (if (m/== (count chosen) q)
-      (vec chosen)
-      (recur (conj chosen (triangular-index m (r/drandom rng)))))))
+  (let [chosen (boolean-array m)
+        parents (long-array q)]
+    (loop [k 0]
+      (when (m/< k q)
+        (let [i (triangular-index m (r/drandom rng))]
+          (if (aget chosen i)
+            (recur k)
+            (do (aset chosen i true)
+                (recur (m/inc k)))))))
+    (loop [i 0
+           j 0]
+      (if (m/< j q)
+        (if (aget chosen i)
+          (do (Array/set parents j i)
+              (recur (m/inc i) (m/inc j)))
+          (recur (m/inc i) j))
+        parents))))
 
 (defn- random-point
-  "Returns a random point of the box `[lo, hi]`."
-  [lo hi rng]
-  (v/einterpolate lo hi (double-array (repeatedly (count lo) #(r/drandom rng)))))
+  "Returns a random point of the box `[lo, hi]`, a coordinate after a coordinate."
+  [^doubles lo ^doubles hi rng]
+  (let [x (double-array (alength lo))]
+    (dotimes [d (alength lo)]
+      (Array/set x d (m/lerp (Array/get lo d) (Array/get hi d) (r/drandom rng))))
+    x))
+
+(defn- centroid
+  "Returns the mean of the coordinates of the parents `parents[0]` to `parents[q-2]` (the last one is the worst point) as a new array.
+
+  The sum starts from a copy of the first parent and goes in the order of the indices, so the result is the same as of `v/average-vectors`."
+  ^doubles [complex ^longs parents ^long q]
+  (let [^doubles first-x (.x ^Point (complex (Array/get parents 0)))
+        c (aclone first-x)
+        n (alength c)
+        scale (m// 1.0 (m/dec q))]
+    (dotimes [j (m/- q 2)]
+      (let [^doubles x (.x ^Point (complex (Array/get parents (m/inc j))))]
+        (dotimes [d n]
+          (Array/add c d (Array/get x d)))))
+    (dotimes [d n]
+      (Array/mult c d scale))
+    c))
 
 (defn- evolve-complex
   "Evolves a complex (a vector of points sorted by value) and returns a new sorted vector of the same size.
 
-  Every step draws a sub-complex of `subcomplex-size` points, and replaces the worst of them with the reflection of that point through the centroid of the others, when it is better. Otherwise with the contraction, when it is better. Otherwise with a random point of the box of the complex. Reflections are kept within the bounds."
+  Every step draws a sub-complex of `subcomplex-size` points, and replaces the worst of them with the reflection of that point through the centroid of the others, when it is better. Otherwise with the contraction, when it is better. Otherwise with a random point of the box of the complex. Reflections are kept within the bounds. A reflection or a contraction equal to the worst point is not evaluated, it could not be better."
   [complex {:keys [^long subcomplex-size evolution-steps evaluate lo hi]} rng]
   (let [size (count complex)
-        xs (map :x complex)
+        xs (map #(.x ^Point %) complex)
         box-lo (reduce v/emn xs)
         box-hi (reduce v/emx xs)
         step (fn [complex]
-               (let [parents (select-parents size subcomplex-size rng)
-                     worst (complex (peek parents))
-                     value-of-worst (value-of worst)
-                     centroid (v/average-vectors (map #(:x (complex %)) (pop parents)))
-                     better-than-worst (fn [x]
-                                         (let [point (evaluate x)]
-                                           (when (m/< (value-of point) value-of-worst)
-                                             point)))
-                     replacement (or (better-than-worst (clip (v/interpolate (:x worst) centroid 2.0) lo hi))
-                                     (better-than-worst (v/interpolate (:x worst) centroid 0.5))
+               (let [^longs parents (select-parents size subcomplex-size rng)
+                     worst-index (Array/get parents (m/dec subcomplex-size))
+                     ^Point worst (complex worst-index)
+                     worst-x (.x worst)
+                     value-of-worst (.value worst)
+                     centroid (centroid complex parents subcomplex-size)
+                     better-than-worst (fn [candidate]
+                                         (when-not (Arrays/equals ^doubles candidate ^doubles worst-x)
+                                           (let [^Point point (evaluate candidate)]
+                                             (when (m/< (.value point) value-of-worst)
+                                               point))))
+                     replacement (or (better-than-worst (clip (v/interpolate worst-x centroid 2.0) lo hi))
+                                     (better-than-worst (v/interpolate worst-x centroid 0.5))
                                      (evaluate (random-point box-lo box-hi rng)))]
-                 (sorted-by-value (assoc complex (peek parents) replacement))))]
+                 (sorted-by-value (assoc complex worst-index replacement))))]
     (nth (iterate step complex) evolution-steps)))
 
 (defn- complex-of
