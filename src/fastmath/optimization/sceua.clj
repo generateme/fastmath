@@ -94,7 +94,7 @@
 (defn- value-of
   "Value of the objective stored in a point."
   ^double [point]
-  (double (:value point)))
+  (:value point))
 
 (defn- sorted-by-value
   "Returns the points as a vector sorted by the value, the best first. The order of equal values is kept."
@@ -124,12 +124,12 @@
 
 (defn- initial-population
   "Creates the sorted population: the initial point, if given, and points of a jittered low discrepancy sequence scaled to the bounds."
-  [{:keys [lo hi initial evaluate jitter rng complexes complex-size]}]
+  [{:keys [lo hi initial evaluate jitter rng ^long complexes ^long complex-size]}]
   (let [n (count lo)
-        generated (long (m/- (m/* (long complexes) (long complex-size)) (if initial 1 0)))
-        scale (fn [u] (clip (v/einterpolate lo hi (v/vec->array u)) lo hi))
-        points (mapv (comp evaluate scale)
-                     (take generated (r/jittered-sequence-generator (if (m/< n 15) :r2 :sobol) n jitter rng)))]
+        generated (long (m/- (m/* complexes complex-size) (if initial 1 0)))
+        scale (fn [u] (v/einterpolate lo hi (v/vec->array u)))
+        points (map (comp evaluate scale)
+                    (take generated (r/jittered-sequence-generator (if (m/< n 15) :r2 :sobol) n jitter rng)))]
     (sorted-by-value (if initial (conj points (evaluate initial)) points))))
 
 ;; competitive complex evolution
@@ -161,25 +161,25 @@
   "Evolves a complex (a vector of points sorted by value) and returns a new sorted vector of the same size.
 
   Every step draws a sub-complex of `subcomplex-size` points, and replaces the worst of them with the reflection of that point through the centroid of the others, when it is better. Otherwise with the contraction, when it is better. Otherwise with a random point of the box of the complex. Reflections are kept within the bounds."
-  [complex {:keys [subcomplex-size evolution-steps evaluate lo hi]} rng]
+  [complex {:keys [^long subcomplex-size evolution-steps evaluate lo hi]} rng]
   (let [size (count complex)
-        q (long subcomplex-size)
         xs (map :x complex)
         box-lo (reduce v/emn xs)
         box-hi (reduce v/emx xs)
-        step (fn [complex _]
-               (let [parents (select-parents size q rng)
+        step (fn [complex]
+               (let [parents (select-parents size subcomplex-size rng)
                      worst (complex (peek parents))
+                     value-of-worst (value-of worst)
                      centroid (v/average-vectors (map #(:x (complex %)) (pop parents)))
                      better-than-worst (fn [x]
                                          (let [point (evaluate x)]
-                                           (when (m/< (value-of point) (value-of worst))
+                                           (when (m/< (value-of point) value-of-worst)
                                              point)))
                      replacement (or (better-than-worst (clip (v/interpolate (:x worst) centroid 2.0) lo hi))
                                      (better-than-worst (v/interpolate (:x worst) centroid 0.5))
                                      (evaluate (random-point box-lo box-hi rng)))]
                  (sorted-by-value (assoc complex (peek parents) replacement))))]
-    (reduce step complex (range (long evolution-steps)))))
+    (nth (iterate step complex) evolution-steps)))
 
 (defn- complex-of
   "The `k`-th complex of `ngs`: every `ngs`-th point of the sorted population starting at `k`."
@@ -198,15 +198,15 @@
   "One shuffling loop: divides the sorted population into complexes, evolves every complex and merges them into a new sorted population.
 
   The complexes are evolved in parallel when `:parallel?`, each with its own generator created by `r/child-rngs`. Otherwise `rng` is used directly."
-  [population {:keys [complex-size parallel?] :as settings} rng]
-  (let [ngs (quot (count population) (long complex-size))
+  [population {:keys [^long complex-size parallel?] :as settings} rng]
+  (let [ngs (m/long-quot (count population) complex-size)
         complexes (mapv #(complex-of population % ngs) (range ngs))
         evolve (fn [complex complex-rng] (evolve-complex complex settings complex-rng))
         evolved (if parallel?
                   (let [rngs (r/child-rngs rng ngs)]
-                    (unwrap-execution #(vec (pmap evolve complexes rngs))))
-                  (mapv #(evolve % rng) complexes))]
-    (sorted-by-value (apply concat evolved))))
+                    (unwrap-execution #(doall (pmap evolve complexes rngs))))
+                  (map #(evolve % rng) complexes))]
+    (sorted-by-value (mapcat identity evolved))))
 
 ;; termination
 
@@ -341,8 +341,8 @@
   See also [[fastmath.optimization/minimize]], [[fastmath.optimization/scan-and-minimize]], [[fastmath.optimization.acm/cmaes]]."
   [f opts]
   (let [options (parse-options opts)
-        {:keys [sign max-evals stop-loops stop-improvement stop-range max-iters rng pca-recovery?]} options
-        n (count (:lo options))
+        {:keys [sign max-evals stop-loops stop-improvement ^double stop-range ^long max-iters rng pca-recovery? lo]} options
+        n (count lo)
         evaluate (evaluator (common/->vector-fn f (common/resolve-vector-arg? :sceua (:vector-arg? opts))) sign max-evals)
         settings (assoc options :evaluate evaluate)]
     (loop [population (initial-population settings)
@@ -352,9 +352,9 @@
             iteration (m/inc iteration)
             bests (conj bests (value-of (first evolved)))
             status (cond
-                     (m/<= (population-range evolved settings) (double stop-range)) :converged-range
+                     (m/<= (population-range evolved settings) stop-range) :converged-range
                      (improvement-converged? bests stop-loops stop-improvement) :converged-improvement
-                     (m/>= iteration (long max-iters)) :max-iterations)]
+                     (m/>= iteration max-iters) :max-iterations)]
         (if status
           (result evolved settings status iteration)
           (recur (-> (if (and pca-recovery? (m/>= n 2) (m/> (count evolved) n) (stalled? bests))
