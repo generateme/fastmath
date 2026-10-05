@@ -114,7 +114,7 @@
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
             RandomVectorGenerator HaltonSequenceGenerator SobolSequenceGenerator UnitSphereRandomVectorGenerator
             EmpiricalDistribution SynchronizedRandomGenerator]
-           [fastmath.java R2]
+           [fastmath.java Array R2]
            [umontreal.ssj.probdist AndersonDarlingDist AndersonDarlingDistQuick BetaSymmetricalDist
             InverseGammaDist  ChiDist ChiSquareNoncentralDist CramerVonMisesDist ErlangDist FatigueLifeDist FoldedNormalDist FrechetDist HalfNormalDist HyperbolicSecantDist InverseGaussianDist HypoExponentialDist HypoExponentialDistEqual JohnsonSBDist JohnsonSLDist JohnsonSUDist KolmogorovSmirnovDist KolmogorovSmirnovDistQuick KolmogorovSmirnovPlusDist LoglogisticDist Pearson6Dist PowerDist RayleighDist WatsonGDist WatsonUDist]
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
@@ -556,8 +556,29 @@ Returns true or false with equal probability. You can set `p` probability for `t
 ;; jittering
 ;; http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/
 
+;; Points of 1 to 4 dimensions are a number, `Vec2`, `Vec3` and `Vec4`. Points of more dimensions are plain vectors,
+;; where the generic vector operations are slow, so the jitter of these points is an array and is added in one loop.
+(def ^:private ^:const plain-vector-dimensions 5)
+
+(defn- jitter-array
+  "Returns `dimensions` numbers drawn from `rng`, each multiplied by `scale`, as a `double` array."
+  ^doubles [^long dimensions ^double scale rng]
+  (let [a (double-array dimensions)]
+    (dotimes [d dimensions]
+      (Array/set a d (m/* (drandom rng) scale)))
+    a))
+
+(defn- add-jitter
+  "Adds the `jitter` array to the point `v` (a vector) coordinate by coordinate, wraps the sums into [0,1] with `frac` and returns a plain vector."
+  [v ^doubles jitter]
+  (let [n (alength jitter)
+        x (double-array n)]
+    (dotimes [d n]
+      (Array/set x d (m/frac (m/+ (double (nth v d)) (Array/get jitter d)))))
+    (vec x)))
+
 (defn- jitter-generator
-  "Generate random jitter drawn from `rng`"
+  "Generate random jitter drawn from `rng`: a lazy sequence of numbers, vectors or, for `plain-vector-dimensions` and more dimensions, `double` arrays. Every element draws its `dimensions` numbers when it is realized, one element at a time."
   [seq-generator ^long dimensions ^double jitter rng]
   (let [[^double d0 ^double i0 ^double f ^double p] (case seq-generator
                                                       :r2 [0.76 0.7 0.25 -0.5]
@@ -565,8 +586,10 @@ Returns true or false with equal probability. You can set `p` probability for `t
                                                       :sobol [0.16 0.58 0.4 -0.2]
                                                       [0.5 0.5 0.25 -0.5])
         c (* jitter m/SQRTPI d0 f)
-        g (random-generators :default dimensions rng)]
-    (map-indexed (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)))
+        scale (fn ^double [^long i] (* c (m/pow (- (inc i) i0) p)))]
+    (if (m/>= dimensions plain-vector-dimensions)
+      (map-indexed (fn [^long i _] (jitter-array dimensions (scale i) rng)) (repeat nil))
+      (map-indexed (fn [^long i v] (v/mult v (scale i))) (random-generators :default dimensions rng)))))
 
 
 ;; Sequence creators
@@ -646,9 +669,10 @@ Returns true or false with equal probability. You can set `p` probability for `t
                              (fn [^double v ^double vj] (+ v (* jitter-low vj)))
                              (fn [v vj] (v/add v (v/mult vj jitter-low))))])
                       (let [j (jitter-generator seq-generator dimensions jitter rng)]
-                        [j (if (m/one? dimensions)
-                             (fn [^double v ^double vj] (m/frac (+ v vj)))
-                             (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
+                        [j (cond
+                             (m/one? dimensions) (fn [^double v ^double vj] (m/frac (+ v vj)))
+                             (m/>= dimensions plain-vector-dimensions) add-jitter
+                             :else (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
      (map mod-fn s j))))
 
 (def ^{:doc "List of random sequence generator. See [[sequence-generator]]."}

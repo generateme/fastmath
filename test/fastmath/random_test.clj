@@ -1,7 +1,8 @@
 (ns fastmath.random-test
   (:require [fastmath.random :as sut]
             [clojure.test :as t]
-            [fastmath.core :as m]))
+            [fastmath.core :as m]
+            [fastmath.vector :as v]))
 
 ;; reference values from R's gamlss.dist package: dZAGA/pZAGA/qZAGA
 
@@ -4330,6 +4331,50 @@
   (t/testing "zero jitter reproduces the base sequence"
     (t/is (= (take 5 (sut/sequence-generator :r2 3))
              (take 5 (sut/jittered-sequence-generator :r2 3 0.0 (sut/rng :jdk 1)))))))
+
+(defn- jittered-reference
+  "The previous implementation of the jitter (generic vector operations on every point) for a given rng, the oracle for the array jitter of points with 5 and more dimensions."
+  [seq-generator dimensions jitter rng]
+  (let [s (sut/sequence-generator seq-generator dimensions rng)
+        [d0 i0 f p] (case seq-generator
+                      :r2 [0.76 0.7 0.25 -0.5]
+                      :halton [0.9 0.7 0.25 -0.5]
+                      :sobol [0.16 0.58 0.4 -0.2]
+                      [0.5 0.5 0.25 -0.5])
+        c (* jitter m/SQRTPI d0 f)
+        g (#'sut/random-generators :default dimensions rng)
+        j (map-indexed (fn [i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)]
+    (map (if (= 1 dimensions)
+           (fn [v vj] (m/frac (+ v vj)))
+           (fn [v vj] (v/fmap (v/add v vj) m/frac)))
+         s j)))
+
+(t/deftest jittered-sequence-generator-oracle
+  (doseq [[g max-dims] {:r2 15 :halton 40 :sobol 1000 :default 1000 :ball 1000}
+          dims [1 2 3 4 5 6 10 15 16 40 100]
+          :when (<= dims max-dims)
+          jitter [0.0 0.25 1.0]
+          seed [1 2 3]
+          :let [label (str g " dims=" dims " jitter=" jitter " seed=" seed)
+                rng-new (sut/rng :jdk seed)
+                rng-old (sut/rng :jdk seed)
+                new-points (doall (take 50 (sut/jittered-sequence-generator g dims jitter rng-new)))
+                old-points (doall (take 50 (jittered-reference g dims jitter rng-old)))]]
+    (t/is (= old-points new-points) label)
+    (t/is (= (map type old-points) (map type new-points)) (str label ": the same types"))
+    (t/is (= (sut/drandom rng-old) (sut/drandom rng-new)) (str label ": the same draws were made")))
+  (t/testing "points of 5 and more dimensions are plain vectors of doubles in [0,1)"
+    (doseq [g [:r2 :sobol :halton :default :ball]
+            :let [points (take 20 (sut/jittered-sequence-generator g 6 1.0 (sut/rng :jdk 4)))]]
+      (t/is (every? vector? points) (str g))
+      (t/is (every? #(= 6 (count %)) points) (str g))
+      (t/is (every? (fn [p] (every? #(and (double? %) (<= 0.0 % 1.0)) p)) points) (str g))))
+  (t/testing "one point is drawn at a time: 6 numbers for the base and 6 for the jitter"
+    (let [rng-a (sut/rng :jdk 7)
+          rng-b (sut/rng :jdk 7)]
+      (doall (take 1 (sut/jittered-sequence-generator :default 6 0.25 rng-a)))
+      (dotimes [_ 12] (sut/drandom rng-b))
+      (t/is (= (sut/drandom rng-a) (sut/drandom rng-b))))))
 
 (t/deftest sequence-generators-global-stream
   ;; the shared default-rng is never used: its stream is the same with and without consuming generators
