@@ -132,32 +132,64 @@
       (t/is (some? (run p/sphere (assoc sphere-opts :initial [5.12 -5.12])))))))
 
 (t/deftest initial-population
-  (let [ev (#'sut/evaluator p/sphere 1.0 (AtomicLong. 0) 100000)
+  (let [ev (#'sut/evaluator p/sphere 1.0 100000)
         lo (double-array [-1.0 -2.0])
         hi (double-array [1.0 2.0])
-        build (fn [initial size jitter] (#'sut/initial-population ev lo hi initial size jitter (r/rng :jdk 1)))]
+        build (fn [initial size jitter seed]
+                (#'sut/initial-population {:lo lo :hi hi :initial initial :evaluate ev :jitter jitter
+                                           :rng (r/rng :jdk seed) :complexes 1 :complex-size size}))]
     (doseq [size [1 2 25 100]
             initial [nil (double-array [0.5 0.5])]
             jitter [0.0 0.25 1.0]
-            :let [pop (build initial size jitter)
+            :let [pop (build initial size jitter 1)
                   label (str size " " (some? initial) " " jitter)]]
-      (t/is (= size (alength pop)) label)
-      (t/is (every? #(= 3 (alength ^doubles %)) pop) label)
-      (t/is (apply <= (map #(aget ^doubles % 2) pop)) (str label ": sorted by value"))
-      (t/is (every? (fn [^doubles pt] (and (<= -1.0 (aget pt 0) 1.0) (<= -2.0 (aget pt 1) 2.0))) pop) (str label ": in the bounds"))
-      (t/is (every? (fn [^doubles pt] (= (aget pt 2) (p/sphere [(aget pt 0) (aget pt 1)]))) pop) (str label ": values"))
+      (t/is (vector? pop) label)
+      (t/is (= size (count pop)) label)
+      (t/is (every? #(= 2 (count (:x %))) pop) label)
+      (t/is (apply <= (map :value pop)) (str label ": sorted by value"))
+      (t/is (every? (fn [{[x y] :x}] (and (<= -1.0 x 1.0) (<= -2.0 y 2.0))) pop) (str label ": in the bounds"))
+      (t/is (every? #(= (:value %) (p/sphere (:x %))) pop) (str label ": values"))
       (when initial
-        (t/is (some (fn [^doubles pt] (and (= 0.5 (aget pt 0)) (= 0.5 (aget pt 1)))) pop) (str label ": the initial point is there"))))
+        (t/is (some #(= [0.5 0.5] (vec (:x %))) pop) (str label ": the initial point is there"))))
     (t/testing "the generator decides the points"
-      (t/is (= (map vec (build nil 10 0.25)) (map vec (build nil 10 0.25))))
-      (t/is (not= (map vec (build nil 10 0.25)) (map vec (#'sut/initial-population ev lo hi nil 10 0.25 (r/rng :jdk 2))))))
+      (t/is (= (map (comp vec :x) (build nil 10 0.25 1)) (map (comp vec :x) (build nil 10 0.25 1))))
+      (t/is (not= (map (comp vec :x) (build nil 10 0.25 1)) (map (comp vec :x) (build nil 10 0.25 2)))))
     (t/testing "more than 14 dimensions use a Sobol sequence"
       (doseq [n [14 15 16]
-              :let [lo (double-array (repeat n 0.0))
-                    hi (double-array (repeat n 1.0))
-                    pop (#'sut/initial-population (#'sut/evaluator (fn [_] 0.0) 1.0 (AtomicLong. 0) 1000) lo hi nil 10 0.25 (r/rng :jdk 1))]]
-        (t/is (= 10 (alength pop)) (str n))
-        (t/is (every? #(= (inc n) (alength ^doubles %)) pop) (str n))))))
+              :let [pop (#'sut/initial-population {:lo (double-array (repeat n 0.0)) :hi (double-array (repeat n 1.0))
+                                                   :evaluate (#'sut/evaluator (fn [_] 0.0) 1.0 1000) :jitter 0.25
+                                                   :rng (r/rng :jdk 1) :complexes 1 :complex-size 10})]]
+        (t/is (= 10 (count pop)) (str n))
+        (t/is (every? #(= n (count (:x %))) pop) (str n))))))
+
+(t/deftest evaluator
+  (let [x (double-array [1.0 2.0])]
+    (t/testing "a point keeps the array and the value, calls are counted"
+      (let [ev (#'sut/evaluator p/sphere 1.0 10)
+            point (ev x)]
+        (t/is (zero? ((#'sut/evaluator p/sphere 1.0 10))) "no calls yet")
+        (t/is (identical? x (:x point)))
+        (t/is (= 5.0 (:value point)))
+        (t/is (= 1 (ev)))
+        (ev x)
+        (t/is (= 2 (ev)))))
+    (t/testing "the sign turns a maximum into a minimum"
+      (t/is (= -5.0 (:value ((#'sut/evaluator p/sphere -1.0 10) x)))))
+    (t/testing "NaN is the worst value, infinities are kept"
+      (t/is (= ##Inf (:value ((#'sut/evaluator (fn [_] ##NaN) 1.0 10) x))))
+      (t/is (= ##Inf (:value ((#'sut/evaluator (fn [_] ##NaN) -1.0 10) x))))
+      (t/is (= ##-Inf (:value ((#'sut/evaluator (fn [_] ##-Inf) 1.0 10) x))))
+      (t/is (= 3.0 (:value ((#'sut/evaluator (fn [_] 3) 1.0 10) x))) "an integer becomes a double"))
+    (t/testing "the call number max-evals plus one throws"
+      (doseq [limit [1 2 10]
+              :let [ev (#'sut/evaluator p/sphere 1.0 limit)]]
+        (dotimes [_ limit] (ev x))
+        (t/is (= limit (ev)))
+        (t/is (= {:max-evals limit :evaluations limit} (ex-data-of #(ev x))) (str limit))))
+    (t/testing "the counter is exact in many threads"
+      (let [ev (#'sut/evaluator p/sphere 1.0 1000000)]
+        (doall (pmap (fn [_] (dotimes [_ 1000] (ev x))) (range 8)))
+        (t/is (= 8000 (ev)))))))
 
 ;; limits
 
@@ -223,13 +255,12 @@
           :let [s (run p/himmelblau (merge {:bounds hb :stats? true :complexes complexes :min-complexes minimum} (never-stop k)))]]
     (t/is (= expected (:complexes s)) (str complexes " " minimum " " k)))
   (t/testing "the private reduction drops the worst complex"
-    (let [pop (object-array (range 15))
-          reduced (fn [ngs minimum] (#'sut/reduce-complexes pop ngs minimum 5))]
-      (t/is (= [10 2] [(alength ^objects (first (reduced 3 2))) (second (reduced 3 2))]))
-      (t/is (= (seq (range 10)) (seq (first (reduced 3 2)))) "the worst points are the last ones")
-      (t/is (= [15 3] [(alength ^objects (first (reduced 3 3))) (second (reduced 3 3))]))
-      (t/is (= [10 1] [(alength ^objects (first (reduced 2 1))) (second (reduced 2 1))]) "one complex of the size is removed")
-      (t/is (= [15 1] [(alength ^objects (first (#'sut/reduce-complexes pop 1 1 15))) (second (#'sut/reduce-complexes pop 1 1 15))]))))
+    (let [pop (vec (range 15))
+          reduced (fn [complex-size minimum] (#'sut/reduce-complexes pop {:complex-size complex-size :min-complexes minimum}))]
+      (t/is (= (vec (range 10)) (reduced 5 2)) "the worst points are the last ones")
+      (t/is (= pop (reduced 5 3)) "at the minimum nothing is removed")
+      (t/is (= (vec (range 10)) (reduced 5 1)) "one complex is removed")
+      (t/is (= pop (reduced 15 1)) "the only complex stays")))
   (t/testing "a run with reduction is valid and cheaper per loop"
     (let [[_ val] (run p/himmelblau {:bounds hb :complexes 6 :min-complexes 2})]
       (t/is (double? val)))))
@@ -320,12 +351,16 @@
     (t/is (<= 25 (:evaluations s)) (str extra ": at least the first population"))))
 
 (t/deftest objective-contract
-  (t/testing "the function gets a new vector for every call"
+  (t/testing "the function gets a new double array of the coordinates for every call"
     (let [seen (atom [])]
       (run (fn [x] (swap! seen conj x) (p/himmelblau x)) {:bounds hb :max-iters 2})
-      (t/is (every? vector? @seen))
+      (t/is (every? #(instance? (Class/forName "[D") %) @seen))
       (t/is (every? #(= 2 (count %)) @seen))
       (t/is (= (count @seen) (count (set (map #(System/identityHashCode %) @seen)))))))
+  (t/testing "the sequence functions and destructuring work on the argument"
+    (t/is (< (second (run (fn [[x y]] (+ (* x x) (* y y))) {:bounds [[-1 1] [-1 1]]})) 1.0e-5))
+    (t/is (< (second (run (fn [x] (reduce + (map #(* % %) x))) {:bounds [[-1 1] [-1 1] [-1 1]]})) 1.0e-5))
+    (t/is (< (second (run (fn [x] (Math/abs ^double (nth x 0))) {:bounds [[-1 1]]})) 1.0e-3)))
   (t/testing "NaN and infinite values on a part of the domain: the optimum of the rest is found"
     (doseq [bad [##NaN ##Inf]
             :let [[pt val] (run (fn [[x y]] (if (< x 0.0) bad (p/himmelblau [x y]))) {:bounds hb})]]
@@ -407,13 +442,13 @@
 
 ;; competitive complex evolution
 
-(defn- make-complex
-  "A sorted complex of points of the 2D sphere function."
-  [coords]
-  (let [ev (#'sut/evaluator p/sphere 1.0 (AtomicLong. 0) 1000000)
-        pop (object-array (map #(#'sut/make-point ev (double-array %)) coords))]
-    (java.util.Arrays/sort pop @#'sut/by-value)
-    [pop ev]))
+(defn- points-of
+  "A population of points of the function `f` at the coordinates, sorted by value, and the evaluator which made it."
+  [f coords]
+  (let [ev (#'sut/evaluator f 1.0 1000000)]
+    [(#'sut/sorted-by-value (map #(ev (double-array %)) coords)) ev]))
+
+(defn- values-of [points] (map :value points))
 
 (t/deftest parent-selection
   (t/testing "the triangular index: the best index is the most probable one"
@@ -426,7 +461,7 @@
     (let [m 7
           n 20000
           rng (r/rng :jdk 11)
-          counts (frequencies (repeatedly n #(aget ^longs (#'sut/select-parents m 1 rng) 0)))]
+          counts (frequencies (repeatedly n #(first (#'sut/select-parents m 1 rng))))]
       (doseq [i (range m)]
         (t/is (m/delta-eq (/ (* 2.0 (- m i)) (* m (inc m))) (/ (get counts i 0) (double n)) 0.02) (str i)))))
   (t/testing "different indices in the ascending order, for any size of the sub-complex"
@@ -434,54 +469,86 @@
       (doseq [m [2 3 7 20]
               q (range 1 (inc m))
               _ (range 20)
-              :let [idx (vec (#'sut/select-parents m q rng))]]
+              :let [idx (#'sut/select-parents m q rng)]]
+        (t/is (vector? idx) (str m " " q))
         (t/is (= q (count idx)) (str m " " q))
         (t/is (apply < idx) (str m " " q " " idx))
         (t/is (every? #(<= 0 % (dec m)) idx) (str m " " q " " idx)))))
   (t/testing "the whole complex is selected when the sub-complex is the complex"
-    (t/is (= [0 1 2 3 4] (vec (#'sut/select-parents 5 5 (r/rng :jdk 1)))))))
+    (t/is (= [0 1 2 3 4] (#'sut/select-parents 5 5 (r/rng :jdk 1))))
+    (t/is (= [0] (#'sut/select-parents 1 1 (r/rng :jdk 1))))))
+
+(t/deftest complexes-of-population
+  (t/testing "a complex takes every ngs-th point starting at k"
+    (let [pop (vec (range 15))]
+      (t/is (= [0 3 6 9 12] (#'sut/complex-of pop 0 3)))
+      (t/is (= [1 4 7 10 13] (#'sut/complex-of pop 1 3)))
+      (t/is (= [2 5 8 11 14] (#'sut/complex-of pop 2 3)))
+      (t/is (= pop (#'sut/complex-of pop 0 1)) "one complex is the population")
+      (t/is (vector? (#'sut/complex-of pop 0 3)))))
+  (t/testing "the complexes are evolved and merged into a sorted population of the same size"
+    (let [[pop ev] (points-of p/sphere (for [x (range -3.0 3.1 1.0) y (range -3.0 3.1 1.0)] [x y]))
+          settings {:complex-size 7 :subcomplex-size 3 :evolution-steps 5 :evaluate ev
+                    :lo (double-array [-4.0 -4.0]) :hi (double-array [4.0 4.0])}]
+      (t/is (= 49 (count pop)))
+      (doseq [parallel? [false true]
+              :let [evolved (#'sut/evolve-population pop (assoc settings :parallel? parallel?) (r/rng :jdk 1))]]
+        (t/is (vector? evolved) (str parallel?))
+        (t/is (= 49 (count evolved)) (str parallel?))
+        (t/is (apply <= (values-of evolved)) (str parallel? ": sorted"))
+        (t/is (<= (:value (first evolved)) (:value (first pop))) (str parallel? ": the best point is not worse"))))))
 
 (t/deftest evolve-complex
-  (let [[complex ev] (make-complex [[1.0 1.0] [2.0 0.0] [-1.0 2.0] [0.0 -3.0] [3.0 3.0]])
-        before (mapv vec complex)
+  (let [[complex ev] (points-of p/sphere [[1.0 1.0] [2.0 0.0] [-1.0 2.0] [0.0 -3.0] [3.0 3.0]])
+        before (mapv (comp vec :x) complex)
         settings {:subcomplex-size 3 :evolution-steps 20 :evaluate ev
                   :lo (double-array [-4.0 -4.0]) :hi (double-array [4.0 4.0])}
         evolved (#'sut/evolve-complex complex settings (r/rng :jdk 1))]
-    (t/is (= before (mapv vec complex)) "the input is not changed")
-    (t/is (not (identical? complex evolved)))
-    (t/is (= 5 (alength evolved)))
-    (t/is (apply <= (map #(aget ^doubles % 2) evolved)) "sorted by value")
-    (t/is (<= (aget ^doubles (aget evolved 0) 2) (aget ^doubles (aget complex 0) 2)) "the best point is not worse")
-    (t/is (every? (fn [^doubles pt] (<= -4.0 (aget pt 0) 4.0)) evolved) "in the bounds")
-    (t/is (every? (fn [^doubles pt] (= (aget pt 2) (p/sphere [(aget pt 0) (aget pt 1)]))) evolved) "values are values of the function")
+    (t/is (= before (mapv (comp vec :x) complex)) "the coordinates of the input are not changed")
+    (t/is (vector? evolved))
+    (t/is (= 5 (count evolved)))
+    (t/is (apply <= (values-of evolved)) "sorted by value")
+    (t/is (<= (:value (first evolved)) (:value (first complex))) "the best point is not worse")
+    (t/is (every? (fn [{[x y] :x}] (and (<= -4.0 x 4.0) (<= -4.0 y 4.0))) evolved) "in the bounds")
+    (t/is (every? #(= (:value %) (p/sphere (:x %))) evolved) "values are values of the function")
     (t/testing "a sub-complex of the size of the complex and one step"
       (let [one-step (#'sut/evolve-complex complex (assoc settings :subcomplex-size 5 :evolution-steps 1) (r/rng :jdk 1))]
-        (t/is (= 5 (alength one-step)))
-        (t/is (apply <= (map #(aget ^doubles % 2) one-step)))))
+        (t/is (= 5 (count one-step)))
+        (t/is (apply <= (values-of one-step)))))
+    (t/testing "a sub-complex of two points, the smallest one"
+      (let [two (#'sut/evolve-complex complex (assoc settings :subcomplex-size 2) (r/rng :jdk 1))]
+        (t/is (= 5 (count two)))
+        (t/is (apply <= (values-of two)))))
     (t/testing "steps use one to three evaluations"
-      (let [counter (AtomicLong. 0)
-            ev (#'sut/evaluator p/sphere 1.0 counter 1000000)
+      (let [counting (#'sut/evaluator p/sphere 1.0 1000000)
             steps 30
-            _ (#'sut/evolve-complex complex (assoc settings :evaluate ev :evolution-steps steps) (r/rng :jdk 2))]
-        (t/is (<= steps (.get counter) (* 3 steps)))))
+            _ (#'sut/evolve-complex complex (assoc settings :evaluate counting :evolution-steps steps) (r/rng :jdk 2))]
+        (t/is (<= steps (counting) (* 3 steps)))))
     (t/testing "the reflection is clipped to the bounds"
-      (let [[cx cev] (make-complex [[0.9 0.9] [1.0 1.0] [-1.0 -1.0] [0.95 -0.9] [0.0 0.0]])
+      (let [[cx cev] (points-of p/sphere [[0.9 0.9] [1.0 1.0] [-1.0 -1.0] [0.95 -0.9] [0.0 0.0]])
             tight {:subcomplex-size 2 :evolution-steps 50 :evaluate cev :lo (double-array [-1.0 -1.0]) :hi (double-array [1.0 1.0])}
             out (#'sut/evolve-complex cx tight (r/rng :jdk 3))]
-        (t/is (every? (fn [^doubles pt] (and (<= -1.0 (aget pt 0) 1.0) (<= -1.0 (aget pt 1) 1.0))) out))))))
+        (t/is (every? (fn [{[x y] :x}] (and (<= -1.0 x 1.0) (<= -1.0 y 1.0))) out))))
+    (t/testing "a complex of equal points stays valid"
+      (let [[same sev] (points-of p/sphere (repeat 5 [1.0 1.0]))
+            out (#'sut/evolve-complex same (assoc settings :evaluate sev) (r/rng :jdk 4))]
+        (t/is (= 5 (count out)))
+        (t/is (every? #(= 2.0 (:value %)) (take 1 out)))))))
 
 ;; termination helpers
 
 (t/deftest termination-helpers
   (t/testing "range of the population"
-    (let [lo (double-array [0.0 0.0])
-          hi (double-array [10.0 100.0])
-          pop (fn [& pts] (object-array (map #(double-array (conj (vec %) 0.0)) pts)))]
-      (t/is (= 0.0 (#'sut/population-range (pop [1 1]) lo hi)))
-      (t/is (= 0.0 (#'sut/population-range (pop [1 1] [1 1] [1 1]) lo hi)))
-      (t/is (m/delta-eq 0.1 (#'sut/population-range (pop [1 1] [2 1]) lo hi)))
-      (t/is (m/delta-eq 0.5 (#'sut/population-range (pop [1 1] [2 1] [1 51]) lo hi)) "the largest of the dimensions")
-      (t/is (m/delta-eq 1.0 (#'sut/population-range (pop [0 0] [10 100]) lo hi)))))
+    (let [settings {:lo (double-array [0.0 0.0]) :hi (double-array [10.0 100.0])}
+          pop (fn [& pts] (mapv (fn [pt] {:x (double-array pt) :value 0.0}) pts))
+          range-of (fn [& pts] (#'sut/population-range (apply pop pts) settings))]
+      (t/is (= 0.0 (range-of [1 1])))
+      (t/is (= 0.0 (range-of [1 1] [1 1] [1 1])))
+      (t/is (m/delta-eq 0.1 (range-of [1 1] [2 1])))
+      (t/is (m/delta-eq 0.5 (range-of [1 1] [2 1] [1 51])) "the largest of the dimensions")
+      (t/is (m/delta-eq 1.0 (range-of [0 0] [10 100])))
+      (t/is (= 0.0 (#'sut/population-range (pop [0.0 Double/MIN_VALUE]) {:lo (double-array [0.0 0.0]) :hi (double-array [Double/MIN_VALUE 1.0])}))
+            "a tiny range of the bounds does not overflow")))
   (t/testing "improvement over the last loops"
     (let [conv? (fn [bests loops tol] (#'sut/improvement-converged? bests loops tol))]
       (t/is (false? (conv? [1.0] 1 0.1)) "no loop yet")
@@ -509,74 +576,76 @@
 
 ;; recovery of a collapsed population
 
-(defn- population-of [coords f]
-  (let [ev (#'sut/evaluator f 1.0 (AtomicLong. 0) 1000000)
-        pop (object-array (map #(#'sut/make-point ev (double-array %)) coords))]
-    (java.util.Arrays/sort pop @#'sut/by-value)
-    [pop ev]))
+(def ^:private sphere3 (fn [x] (reduce + (map #(* % %) x))))
+(def ^:private unit-cube-3 {:lo (double-array [0.0 0.0 0.0]) :hi (double-array [1.0 1.0 1.0])})
 
 (t/deftest lost-directions
-  (let [lo (double-array [0.0 0.0 0.0])
-        hi (double-array [1.0 1.0 1.0])
-        sphere3 (fn [x] (reduce + (map #(* % %) x)))
-        unit-norm (fn [d] (Math/sqrt (reduce + (map #(* % %) d))))]
+  (let [unit-norm (fn [d] (Math/sqrt (reduce + (map #(* % %) d))))
+        lost (fn [pop settings] (#'sut/lost-directions pop settings))]
     (t/testing "points on a line: two directions are lost, both orthogonal to the line"
-      (let [[pop _] (population-of (for [t (range 0.0 1.0 0.05)] [t t t]) sphere3)
-            dirs (#'sut/lost-directions pop lo hi)
+      (let [[pop _] (points-of sphere3 (for [t (range 0.0 1.0 0.05)] [t t t]))
+            dirs (lost pop unit-cube-3)
             along (v/normalize (v/vec3 1 1 1))]
         (t/is (= 2 (count dirs)))
         (t/is (every? #(m/delta-eq 1.0 (unit-norm %) 1.0e-9) dirs))
         (t/is (every? #(m/delta-eq 0.0 (reduce + (map * % (vec along))) 1.0e-9) dirs))))
     (t/testing "points on a plane: one direction"
-      (let [[pop _] (population-of (for [s (range 0.0 1.0 0.2) t (range 0.0 1.0 0.2)] [s t (+ s t)]) sphere3)]
-        (t/is (= 1 (count (#'sut/lost-directions pop lo hi))))))
+      (let [[pop _] (points-of sphere3 (for [s (range 0.0 1.0 0.2) t (range 0.0 1.0 0.2)] [s t (+ s t)]))]
+        (t/is (= 1 (count (lost pop unit-cube-3))))))
     (t/testing "random points of the cube: none"
       (let [rng (r/rng :jdk 1)
-            [pop _] (population-of (repeatedly 60 #(vec (repeatedly 3 (fn [] (r/drandom rng))))) sphere3)]
-        (t/is (empty? (#'sut/lost-directions pop lo hi)))))
+            [pop _] (points-of sphere3 (repeatedly 60 #(vec (repeatedly 3 (fn [] (r/drandom rng))))))]
+        (t/is (empty? (lost pop unit-cube-3)))))
     (t/testing "identical points have no variance: nothing is lost"
-      (let [[pop _] (population-of (repeat 10 [0.5 0.5 0.5]) sphere3)]
-        (t/is (empty? (#'sut/lost-directions pop lo hi)))))
+      (let [[pop _] (points-of sphere3 (repeat 10 [0.5 0.5 0.5]))]
+        (t/is (empty? (lost pop unit-cube-3)))))
     (t/testing "five and more dimensions (the eigenvectors of the decomposition for 5 and more dimensions)"
       (let [n 6
-            [pop _] (population-of (for [t (range 0.0 1.0 0.05)] (vec (repeat n t))) (fn [x] (reduce + x)))]
-        (t/is (= (dec n) (count (#'sut/lost-directions pop (double-array (repeat n 0.0)) (double-array (repeat n 1.0))))))))
+            [pop _] (points-of (fn [x] (reduce + x)) (for [t (range 0.0 1.0 0.05)] (vec (repeat n t))))]
+        (t/is (= (dec n) (count (lost pop {:lo (double-array (repeat n 0.0)) :hi (double-array (repeat n 1.0))}))))))
     (t/testing "the scale of the bounds does not matter"
-      (let [[pop _] (population-of (for [t (range 0.0 100.0 5.0)] [t (* 2.0 t) 3.0]) sphere3)]
-        (t/is (= 2 (count (#'sut/lost-directions pop (double-array [0.0 0.0 0.0]) (double-array [100.0 200.0 3.0])))))))))
+      (let [[pop _] (points-of sphere3 (for [t (range 0.0 100.0 5.0)] [t (* 2.0 t) 3.0]))]
+        (t/is (= 2 (count (lost pop {:lo (double-array [0.0 0.0 0.0]) :hi (double-array [100.0 200.0 3.0])}))))))
+    (t/testing "directions are double arrays"
+      (let [[pop _] (points-of sphere3 (for [t (range 0.0 1.0 0.05)] [t t t]))]
+        (t/is (every? #(instance? (Class/forName "[D") %) (lost pop unit-cube-3)))))))
 
 (t/deftest recover-dimensions
-  (let [lo (double-array [0.0 0.0 0.0])
-        hi (double-array [1.0 1.0 1.0])
-        sphere3 (fn [x] (reduce + (map #(* % %) x)))
-        [pop _] (population-of (for [t (range 0.0 1.0 0.05)] [t t t]) sphere3)
-        before (mapv vec pop)
-        best-before (vec (aget pop 0))
-        counter (AtomicLong. 0)
-        ev (#'sut/evaluator sphere3 1.0 counter 1000000)
-        recovered (#'sut/recover-dimensions! pop (r/rng :jdk 1) ev lo hi)]
-    (t/is (identical? pop recovered) "the population is changed in place")
-    (t/is (= (count before) (alength recovered)))
-    (t/is (<= (aget ^doubles (aget recovered 0) 3) (get best-before 3)) "the best value is not worse")
-    (t/is (some #(= best-before (vec %)) recovered) "the best point stays in the population")
-    (t/is (apply <= (map #(aget ^doubles % 3) recovered)) "sorted")
-    (t/is (pos? (count (filter (fn [^doubles pt] (> (Math/abs (- (aget pt 0) (aget pt 1))) 1.0e-9)) recovered))) "points left the line")
-    (t/is (= 4 (.get counter)) "moved points are evaluated and counted: 2 lost directions times 2 points (10% of 20)")
-    (t/is (every? (fn [^doubles pt] (and (<= 0.0 (aget pt 0) 1.0) (<= 0.0 (aget pt 1) 1.0) (<= 0.0 (aget pt 2) 1.0))) recovered) "in the bounds")
-    (t/is (every? (fn [^doubles pt] (= (aget pt 3) (sphere3 [(aget pt 0) (aget pt 1) (aget pt 2)]))) recovered) "values are values of the function"))
-  (t/testing "nothing is lost: the population stays as it is"
-    (let [rng (r/rng :jdk 1)
-          sphere3 (fn [x] (reduce + (map #(* % %) x)))
-          [pop ev] (population-of (repeatedly 60 #(vec (repeatedly 3 (fn [] (r/drandom rng))))) sphere3)
-          before (mapv vec pop)]
-      (#'sut/recover-dimensions! pop (r/rng :jdk 2) ev (double-array [0.0 0.0 0.0]) (double-array [1.0 1.0 1.0]))
-      (t/is (= before (mapv vec pop)))))
-  (t/testing "sampling of indices"
-    (doseq [[from to k] [[1 2 1] [1 10 9] [1 10 1] [0 5 5] [3 4 1]]
-            :let [idx (vec (#'sut/sample-indices (r/rng :jdk 1) from to k))]]
-      (t/is (= k (count idx)) (str from to k))
-      (t/is (= k (count (set idx))) (str from to k))
-      (t/is (every? #(and (<= from %) (< % to)) idx) (str from to k)))))
+  (let [line (for [t (range 0.0 1.0 0.05)] [t t t])
+        [pop _] (points-of sphere3 line)
+        recover (fn [pop seed]
+                  (let [ev (#'sut/evaluator sphere3 1.0 1000000)]
+                    [(#'sut/recover-dimensions pop (assoc unit-cube-3 :evaluate ev) (r/rng :jdk seed)) ev]))
+        [recovered ev] (recover pop 1)
+        best-before (vec (:x (first pop)))]
+    (t/is (vector? recovered))
+    (t/is (= (count pop) (count recovered)))
+    (t/is (<= (:value (first recovered)) (:value (first pop))) "the best value is not worse")
+    (t/is (some #(= best-before (vec (:x %))) recovered) "the best point stays in the population")
+    (t/is (apply <= (values-of recovered)) "sorted")
+    (t/is (pos? (count (filter (fn [{[x y] :x}] (> (Math/abs (- x y)) 1.0e-9)) recovered))) "points left the line")
+    (t/is (= 4 (ev)) "moved points are evaluated and counted: 2 lost directions times 2 points (10% of 20)")
+    (t/is (every? (fn [{[x y z] :x}] (and (<= 0.0 x 1.0) (<= 0.0 y 1.0) (<= 0.0 z 1.0))) recovered) "in the bounds")
+    (t/is (every? #(= (:value %) (sphere3 (:x %))) recovered) "values are values of the function")
+    (t/testing "the moved points are different ones, the best is never moved"
+      (doseq [seed (range 1 21)
+              :let [[out _] (recover pop seed)
+                    unchanged (count (filter (set pop) out))]]
+        (t/is (<= 16 unchanged 18) (str "seed " seed))
+        (t/is (= best-before (vec (:x (first out)))) (str "seed " seed))))
+    (t/testing "a population of two and three points: only the second and third can move"
+      (doseq [size [2 3]
+              :let [[small _] (points-of sphere3 (for [t (take size [0.1 0.5 0.9])] [t t t]))
+                    [out ev] (recover small 1)]]
+        (t/is (= size (count out)) (str size))
+        (t/is (some #(= (vec (:x (first small))) (vec (:x %))) out) (str size ": the best stays"))
+        (t/is (= 2 (ev)) (str size ": two lost directions, one point each"))))
+    (t/testing "nothing is lost: the population stays as it is"
+      (let [rng (r/rng :jdk 1)
+            [random-pop _] (points-of sphere3 (repeatedly 60 #(vec (repeatedly 3 (fn [] (r/drandom rng))))))
+            [out ev] (recover random-pop 2)]
+        (t/is (= random-pop out))
+        (t/is (zero? (ev)))))))
 
 (t/deftest pca-recovery-runs
   (let [f p/rosenbrock]

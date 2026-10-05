@@ -18,6 +18,41 @@
   ;; nil value and nil allowed are reported, not swallowed
   (t/is (= {:x nil :allowed nil} (ex-data-of #(sut/throw-unknown :x nil nil)))))
 
+(t/deftest throw-invalid-option
+  (t/is (= {:option :jitter :value 2 :reason "too big"} (ex-data-of #(sut/throw-invalid-option :jitter 2 "too big"))))
+  (t/is (thrown-with-msg? clojure.lang.ExceptionInfo #":jitter.*too big" (sut/throw-invalid-option :jitter 2 "too big")))
+  (t/is (= {:option :x :value nil :reason nil} (ex-data-of #(sut/throw-invalid-option :x nil nil)))))
+
+(t/deftest positive-integer-option
+  (t/testing "missing and nil give the default"
+    (t/is (= 5 (sut/positive-integer-option {} :n 5)))
+    (t/is (= 5 (sut/positive-integer-option {:n nil} :n 5)))
+    (t/is (= 5 (sut/positive-integer-option nil :n 5))))
+  (t/testing "integers, also the limit values"
+    (t/are [v] (= (long v) (sut/positive-integer-option {:n v} :n 5))
+      1 2 (int 3) (short 4) (byte 5) Long/MAX_VALUE))
+  (t/testing "everything else throws"
+    (doseq [bad [0 -1 Long/MIN_VALUE 1.5 2.0 1/2 3N "3" ##NaN true :a [1] {} 0.0]
+            :let [d (ex-data-of #(sut/positive-integer-option {:n bad} :n 5))]]
+      (t/is (= :n (:option d)) (pr-str bad))
+      (t/is (= bad (:value d)) (pr-str bad))
+      (t/is (string? (:reason d)) (pr-str bad)))))
+
+(t/deftest nonnegative-number-option
+  (t/testing "missing and nil give the default as a double"
+    (t/is (= 0.5 (sut/nonnegative-number-option {} :x 0.5)))
+    (t/is (= 1.0 (sut/nonnegative-number-option {:x nil} :x 1)))
+    (t/is (= 0.0 (sut/nonnegative-number-option nil :x 0))))
+  (t/testing "finite numbers not less than zero, also the limit values"
+    (t/are [v] (= (double v) (sut/nonnegative-number-option {:x v} :x 5))
+      0 0.0 1 1/2 1.0e300 Double/MAX_VALUE Double/MIN_VALUE 3N (float 0.5)))
+  (t/testing "negative, non-finite and not numbers throw"
+    (doseq [bad [-1 -1.0e-300 -0.5 ##NaN ##Inf ##-Inf "a" :a [1] true {}]
+            :let [d (ex-data-of #(sut/nonnegative-number-option {:x bad} :x 5))]]
+      (t/is (= :x (:option d)) (pr-str bad))
+      (t/is (= (pr-str bad) (pr-str (:value d))) (pr-str bad))
+      (t/is (string? (:reason d)) (pr-str bad)))))
+
 (t/deftest parse-goal
   (t/are [in out] (= out (sut/parse-goal in))
     nil :minimize

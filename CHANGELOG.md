@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.stats/entropy`, `joint-entropy`, `mutual-information`, `theils-u` - Shannon entropy and Theil's U (uncertainty coefficient) for categorical association
 * `fastmath.stats/power-divergence-test` (and `chisq-test`/`multinomial-likelihood-ratio-test`/etc.) now report `:yates`/`:yates-p-value`, the Yates continuity-corrected statistic, for independence tests on 2x2 contingency tables (`:df` 1), matching R's `chisq.test(correct=TRUE)` and SciPy's `chi2_contingency(correction=True)`
 * `fastmath.optimization` `:gradient` option (gradient of the function for `:lbfgsb` and `:gradient`), `:status` in `:lbfgsb` stats (`:converged`, `:stalled`, `:max-iterations`), `:vector-arg?` in `bayesian-optimization`, validation of `:bounds` with `ex-info`; `fastmath.optimization.problems/rosenbrock-gradient`, `himmelblau-gradient`, `beale-gradient`
+* `fastmath.optimization` method `:sceua` (`fastmath.optimization.sceua/sceua`) - Shuffled Complex Evolution global optimizer with parallel evolution of complexes, complex reduction and optional PCA recovery of a collapsed population
+* `fastmath.random/ensure-rng`, `child-rngs`; the `rng` argument of `sequence-generator` and `jittered-sequence-generator`; the `:rng` option of `fastmath.calculus/vegas`, `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` and `bayesian-optimization`
 
 ### Fixed
 
@@ -60,11 +62,14 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization` `:lbfgsb` with a numerical gradient evaluated the function outside of the bounds and could end with NaN after 1000 iterations; a non-finite value now throws (LBFGSBJava)
 * `fastmath.optimization/bayesian-optimization` could evaluate the function outside of the bounds with unconstrained optimizers and failed with `:optimizer :brent` and with a function of separate arguments
 * `fastmath.optimization/linear-optimization` treated any unknown relation as equality and silently ignored an incomplete last constraint
+* `fastmath.matrix` decomposition `solve` returned an `ArrayRealVector` and `eigen-decomposition`'s `:acm` `:eigenvectors` threw for matrices larger than 4x4 (`->vec` did not convert the vector for sizes other than 2, 3 and 4)
 
 ### Changed
 
 * [breaking] optimization refactor: `:bfgs` and `:bounded?` are removed, functions receive the point as one sequence by default (`:vector-arg?`, `:brent` receives a number), `:stats?` returns a map `{:point :value ...}` which depends on the method, default `:max-evals`/`:max-iters` is `10000`, the simplex size is set by `:length` (a fraction of bounds)
 * [breaking] optimization: unknown methods, goals, relations, rules, line searches, formulas and utility function types throw `ex-info`, `linear-optimization` accepts only the relations `<=`, `>=`, `=` (or `:leq`, `:geq`, `:eq`) and its limit is `:max-iters`
+* [breaking] `fastmath.random/sequence-generator` and `jittered-sequence-generator` (so `vegas`, `scan-and-*`, `bayesian-optimization` and `->seq` with `:r2`/`:sobol`/`:halton`) no longer draw from the shared `default-rng`: without an `rng` they use a new `JDKRandomGenerator` for every call, so reproduce a result with `:rng`/the `rng` argument instead of `fastmath.random/set-seed!`
+* `:rng` given to `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` is no longer shared by the optimization runs: every run gets its own generator derived from it
 
 ## [3.0.0 alpha9]
 

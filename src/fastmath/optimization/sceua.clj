@@ -14,100 +14,75 @@
             [fastmath.random :as r]
             [fastmath.stats :as stats]
             [fastmath.matrix :as mat]
+            [fastmath.vector :as v]
             [fastmath.optimization.common :as common])
-  (:import [java.util Arrays Comparator]
-           [java.util.concurrent ExecutionException]
-           [java.util.concurrent.atomic AtomicLong]))
+  (:import [java.util.concurrent ExecutionException]
+           [org.apache.commons.math3.random RandomDataGenerator RandomGenerator]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
-;; A point of the population is a double[] of length n+1: the n coordinates followed by the value of the
-;; (minimized) objective. A population and a complex are arrays of such points sorted by the value.
+;; A point of the population is a map `{:x coordinates :value value}`: the coordinates are a double array which is
+;; never changed, the value is the value of the minimized objective. A population and a complex are vectors of points
+;; sorted by the value. The settings are the validated options with the key `:evaluate` added (see `evaluator`).
 
 (def ^:private ^:const max-dimensions 1000)
 (def ^:private ^:const pca-ratio 1.0e-3)
 (def ^:private ^:const pca-fraction 0.1)
 (def ^:private ^:const pca-step 0.05)
 
-(defn- option-error
-  "Throws `ex-info` about an invalid option."
-  [option value reason]
-  (throw (ex-info (str "Invalid option " option ": " reason) {:option option :value value :reason reason})))
-
-(defn- integer-option
-  "Reads a positive integer option, `nil` gives `default`."
-  ^long [options option default]
-  (let [v (get options option)]
-    (cond
-      (nil? v) (long default)
-      (and (int? v) (m/pos? (long v))) (long v)
-      :else (option-error option v "must be an integer not less than 1"))))
-
-(defn- nonnegative-option
-  "Reads a finite option not less than zero, `nil` gives `default`."
-  ^double [options option default]
-  (let [v (get options option)]
-    (cond
-      (nil? v) (double default)
-      (and (number? v) (m/valid-double? (double v)) (m/not-neg? (double v))) (double v)
-      :else (option-error option v "must be a finite number not less than 0"))))
-
 (defn- parse-initial
   "Validates the initial point and returns it as an array or `nil`."
-  [initial ^doubles lo ^doubles hi]
+  [initial lo hi]
   (when (some? initial)
-    (let [xs (if (number? initial) [initial] (seq initial))]
-      (when-not (every? number? xs) (option-error :initial initial "must be a number or a sequence of numbers"))
-      (let [x (double-array xs)]
-        (dotimes [d (alength x)]
-          (let [v (aget x d)]
-            (when-not (and (m/valid-double? v) (m/<= (aget lo d) v (aget hi d)))
-              (option-error :initial initial "must be finite and lie within the bounds"))))
-        x))))
+    (let [xs (if (number? initial) [initial] (seq initial))
+          inside? (fn [x l h]
+                    (let [x (double x)]
+                      (and (m/valid-double? x) (m/<= (double l) x (double h)))))]
+      (when-not (every? number? xs)
+        (common/throw-invalid-option :initial initial "must be a number or a sequence of numbers"))
+      (when-not (every? true? (map inside? xs lo hi))
+        (common/throw-invalid-option :initial initial "must be finite and lie within the bounds"))
+      (double-array xs))))
 
 (defn- parse-options
   "Validates the options of [[sceua]] and returns them as a map with the defaults applied."
-  [f opts]
+  [opts]
   (let [opts (or opts {})
-        {:keys [bounds initial goal vector-arg? rng parallel? pca-recovery? stats?]} opts
+        {:keys [bounds initial goal rng parallel? pca-recovery? stats?]} opts
         bounds (common/normalize-bounds :sceua bounds initial)
         n (count bounds)
         _ (when (m/> n max-dimensions)
-            (option-error :bounds bounds (str "at most " max-dimensions " dimensions are supported")))
+            (common/throw-invalid-option :bounds bounds (str "at most " max-dimensions " dimensions are supported")))
         lo (double-array (map first bounds))
         hi (double-array (map second bounds))
-        sign (if (= :maximize (common/parse-goal goal)) -1.0 1.0)
-        complexes (integer-option opts :complexes 5)
-        complex-size (integer-option opts :complex-size (m/inc (m/* 2 n)))
-        subcomplex-size (integer-option opts :subcomplex-size (m/min (m/inc n) complex-size))
-        evolution-steps (integer-option opts :evolution-steps complex-size)
-        min-complexes (integer-option opts :min-complexes complexes)
-        jitter (nonnegative-option opts :jitter 0.25)]
+        complexes (common/positive-integer-option opts :complexes 5)
+        complex-size (common/positive-integer-option opts :complex-size (m/inc (m/* 2 n)))
+        subcomplex-size (common/positive-integer-option opts :subcomplex-size (m/min (m/inc n) complex-size))
+        min-complexes (common/positive-integer-option opts :min-complexes complexes)
+        jitter (common/nonnegative-number-option opts :jitter 0.25)]
     (when (m/< complex-size 2)
-      (option-error :complex-size complex-size "must be at least 2"))
+      (common/throw-invalid-option :complex-size complex-size "must be at least 2"))
     (when-not (m/<= 2 subcomplex-size complex-size)
-      (option-error :subcomplex-size subcomplex-size "must be at least 2 and not greater than :complex-size"))
+      (common/throw-invalid-option :subcomplex-size subcomplex-size "must be at least 2 and not greater than :complex-size"))
     (when (m/> min-complexes complexes)
-      (option-error :min-complexes min-complexes "must not be greater than :complexes"))
+      (common/throw-invalid-option :min-complexes min-complexes "must not be greater than :complexes"))
     (when (m/> jitter 1.0)
-      (option-error :jitter jitter "must not be greater than 1"))
-    {:n n
-     :lo lo
+      (common/throw-invalid-option :jitter jitter "must not be greater than 1"))
+    {:lo lo
      :hi hi
      :initial (parse-initial initial lo hi)
-     :sign sign
-     :f (common/->vector-fn f (common/resolve-vector-arg? :sceua vector-arg?))
+     :sign (if (= :maximize (common/parse-goal goal)) -1.0 1.0)
      :complexes complexes
      :complex-size complex-size
      :subcomplex-size subcomplex-size
-     :evolution-steps evolution-steps
+     :evolution-steps (common/positive-integer-option opts :evolution-steps complex-size)
      :min-complexes min-complexes
-     :stop-loops (integer-option opts :stop-loops 40)
-     :stop-improvement (nonnegative-option opts :stop-improvement 1.0e-5)
-     :stop-range (nonnegative-option opts :stop-range 1.0e-3)
-     :max-evals (integer-option opts :max-evals 10000)
-     :max-iters (integer-option opts :max-iters 10000)
+     :stop-loops (common/positive-integer-option opts :stop-loops 40)
+     :stop-improvement (common/nonnegative-number-option opts :stop-improvement 1.0e-5)
+     :stop-range (common/nonnegative-number-option opts :stop-range 1.0e-3)
+     :max-evals (common/positive-integer-option opts :max-evals 10000)
+     :max-iters (common/positive-integer-option opts :max-iters 10000)
      :jitter jitter
      :rng (r/ensure-rng rng)
      :parallel? (boolean parallel?)
@@ -116,68 +91,46 @@
 
 ;; points
 
-(def ^:private ^Comparator by-value
-  (reify Comparator
-    (compare [_ a b]
-      (let [^doubles a a
-            ^doubles b b]
-        (Double/compare (aget a (m/dec (alength a))) (aget b (m/dec (alength b))))))))
-
 (defn- value-of
   "Value of the objective stored in a point."
-  ^double [^doubles point]
-  (aget point (m/dec (alength point))))
+  ^double [point]
+  (double (:value point)))
 
-(defn- coordinates
-  "Coordinates of a point as a vector."
-  [^doubles point]
-  (vec (Arrays/copyOf point (int (m/dec (alength point))))))
+(defn- sorted-by-value
+  "Returns the points as a vector sorted by the value, the best first. The order of equal values is kept."
+  [points]
+  (vec (sort-by :value points)))
+
+(defn- clip
+  "Moves the coordinates `x` into the box `[lo, hi]`."
+  [x lo hi]
+  (v/emn (v/emx x lo) hi))
 
 (defn- evaluator
-  "Creates the function of a coordinates array which returns the value of the minimized objective.
+  "Creates the function which evaluates the objective at a point.
 
-  Every call is counted. The first call beyond `max-evals` throws `ex-info`. `NaN` is replaced by `+Infinity`, the worst value. The objective receives a new vector."
-  [f ^double sign ^AtomicLong counter ^long max-evals]
-  (fn ^double [^doubles x]
-    (when (m/> (.incrementAndGet counter) max-evals)
-      (throw (ex-info "Maximum number of evaluations exceeded" {:max-evals max-evals :evaluations max-evals})))
-    (let [v (m/* sign (double (f (vec x))))]
-      (if (m/nan? v) ##Inf v))))
+  Called with coordinates (a double array) it returns a new point. The value of the point is `sign` times the value of `f`, `NaN` becomes `+Infinity`, the worst value. The call number `max-evals` plus one throws `ex-info`. Called without arguments it returns the number of the calls made so far.
 
-(defn- make-point
-  "Evaluates the objective at the coordinates and returns a new point."
-  ^doubles [evaluate ^doubles x]
-  (let [n (alength x)
-        point (Arrays/copyOf x (int (m/inc n)))]
-    (aset point n (double (evaluate x)))
-    point))
-
-(defn- unit-point->array
-  ^doubles [p ^long n]
-  (if (m/one? n) (double-array [p]) (double-array (seq p))))
+  The counter is atomic, so the function can be called from many threads. `f` receives the array itself and must not change it."
+  [f ^double sign ^long max-evals]
+  (let [calls (atom 0)]
+    (fn
+      ([] @calls)
+      ([x]
+       (when (m/> (long (swap! calls inc)) max-evals)
+         (throw (ex-info "Maximum number of evaluations exceeded" {:max-evals max-evals :evaluations max-evals})))
+       (let [value (m/* sign (double (f x)))]
+         {:x x :value (if (m/nan? value) ##Inf value)})))))
 
 (defn- initial-population
   "Creates the sorted population: the initial point, if given, and points of a jittered low discrepancy sequence scaled to the bounds."
-  ^objects [evaluate ^doubles lo ^doubles hi initial size jitter rng]
-  (let [n (alength lo)
-        size (long size)
-        jitter (double jitter)
-        population (object-array size)
-        start (if (some? initial)
-                (do (aset population 0 (make-point evaluate initial)) 1)
-                0)]
-    (loop [i start
-           points (r/jittered-sequence-generator (if (m/< n 15) :r2 :sobol) n jitter rng)]
-      (when (m/< i size)
-        (let [^doubles u (unit-point->array (first points) n)
-              x (double-array n)]
-          (dotimes [d n]
-            (let [l (aget lo d)]
-              (aset x d (m/constrain (m/+ l (m/* (aget u d) (m/- (aget hi d) l))) l (aget hi d)))))
-          (aset population i (make-point evaluate x))
-          (recur (m/inc i) (rest points)))))
-    (Arrays/sort population by-value)
-    population))
+  [{:keys [lo hi initial evaluate jitter rng complexes complex-size]}]
+  (let [n (count lo)
+        generated (long (m/- (m/* (long complexes) (long complex-size)) (if initial 1 0)))
+        scale (fn [u] (clip (v/einterpolate lo hi (v/vec->array u)) lo hi))
+        points (mapv (comp evaluate scale)
+                     (take generated (r/jittered-sequence-generator (if (m/< n 15) :r2 :sobol) n jitter rng)))]
+    (sorted-by-value (if initial (conj points (evaluate initial)) points))))
 
 ;; competitive complex evolution
 
@@ -185,98 +138,53 @@
   "Zero-based index drawn with the probability proportional to `m - index` from a uniform `u` in [0,1)."
   ^long [^long m ^double u]
   (let [mh (m/+ m 0.5)
-        root (m/sqrt (m/max 0.0 (m/- (m/* mh mh) (m/* m (m/inc m) u))))
+        root (m/safe-sqrt (m/- (m/* mh mh) (m/* m (m/inc m) u)))
         index (long (m/floor (m/- mh root)))]
-    (m/min (m/max index 0) (m/dec m))))
+    (m/constrain index 0 (m/dec m))))
 
 (defn- select-parents
-  "Returns `q` different indices in ascending order, drawn from `m` ones with the triangular probability (the lower the index, the more probable)."
-  ^longs [^long m ^long q rng]
-  (let [chosen (boolean-array m)]
-    (loop [k 0]
-      (when (m/< k q)
-        (let [i (triangular-index m (r/drandom rng))]
-          (if (aget chosen i)
-            (recur k)
-            (do (aset chosen i true)
-                (recur (m/inc k)))))))
-    (let [result (long-array q)]
-      (loop [i 0
-             j 0]
-        (if (m/< j q)
-          (if (aget chosen i)
-            (do (aset result j i)
-                (recur (m/inc i) (m/inc j)))
-            (recur (m/inc i) j))
-          result)))))
+  "Returns a sorted vector of `q` different indices drawn from `m` ones with the triangular probability (the lower the index, the more probable).
 
-(defn- bounding-box
-  "Returns `[lower upper]` arrays of the smallest box which contains the points of the complex."
-  [^objects complex ^long n]
-  (let [lower (double-array n)
-        upper (double-array n)
-        size (alength complex)]
-    (dotimes [d n]
-      (loop [i 0
-             mn ##Inf
-             mx ##-Inf]
-        (if (m/< i size)
-          (let [v (aget ^doubles (aget complex i) d)]
-            (recur (m/inc i) (m/min mn v) (m/max mx v)))
-          (do (aset lower d mn)
-              (aset upper d mx)))))
-    [lower upper]))
+  An index which is drawn again is skipped, so every next one is drawn from the remaining ones."
+  [^long m ^long q rng]
+  (loop [chosen (sorted-set)]
+    (if (m/== (count chosen) q)
+      (vec chosen)
+      (recur (conj chosen (triangular-index m (r/drandom rng)))))))
+
+(defn- random-point
+  "Returns a random point of the box `[lo, hi]`."
+  [lo hi rng]
+  (v/einterpolate lo hi (double-array (repeatedly (count lo) #(r/drandom rng)))))
 
 (defn- evolve-complex
-  "Evolves a complex (an array of points sorted by value) and returns a new sorted array of the same size.
+  "Evolves a complex (a vector of points sorted by value) and returns a new sorted vector of the same size.
 
-  Every step draws a sub-complex of `subcomplex-size` points, and replaces the worst of them with the reflection of that point through the centroid of the others, when it is better. Otherwise with the contraction, when it is better. Otherwise with a random point of the box of the complex. Points are kept within the bounds. The input array is not changed."
-  ^objects [^objects complex {:keys [subcomplex-size evolution-steps evaluate lo hi]} rng]
-  (let [^doubles lo lo
-        ^doubles hi hi
+  Every step draws a sub-complex of `subcomplex-size` points, and replaces the worst of them with the reflection of that point through the centroid of the others, when it is better. Otherwise with the contraction, when it is better. Otherwise with a random point of the box of the complex. Reflections are kept within the bounds."
+  [complex {:keys [subcomplex-size evolution-steps evaluate lo hi]} rng]
+  (let [size (count complex)
         q (long subcomplex-size)
-        n (alength lo)
-        ^objects evolved (aclone complex)
-        size (alength evolved)
-        [^doubles box-lo ^doubles box-hi] (bounding-box complex n)]
-    (dotimes [_ (long evolution-steps)]
-      (let [^longs parents (select-parents size q rng)
-            worst-index (aget parents (m/dec q))
-            ^doubles worst (aget evolved worst-index)
-            worst-value (value-of worst)
-            centroid (double-array n)]
-        (dotimes [j (m/dec q)]
-          (let [^doubles p (aget evolved (aget parents j))]
-            (dotimes [d n]
-              (aset centroid d (m/+ (aget centroid d) (aget p d))))))
-        (dotimes [d n]
-          (aset centroid d (m// (aget centroid d) (m/dec q))))
-        (let [x (double-array n)]
-          (dotimes [d n]
-            (aset x d (m/constrain (m/- (m/* 2.0 (aget centroid d)) (aget worst d)) (aget lo d) (aget hi d))))
-          (let [reflection (make-point evaluate x)]
-            (if (m/< (value-of reflection) worst-value)
-              (aset evolved worst-index reflection)
-              (let [y (double-array n)]
-                (dotimes [d n]
-                  (aset y d (m/* 0.5 (m/+ (aget centroid d) (aget worst d)))))
-                (let [contraction (make-point evaluate y)]
-                  (if (m/< (value-of contraction) worst-value)
-                    (aset evolved worst-index contraction)
-                    (let [z (double-array n)]
-                      (dotimes [d n]
-                        (aset z d (m/+ (aget box-lo d) (m/* (r/drandom rng) (m/- (aget box-hi d) (aget box-lo d))))))
-                      (aset evolved worst-index (make-point evaluate z)))))))))
-        (Arrays/sort evolved by-value)))
-    evolved))
+        xs (map :x complex)
+        box-lo (reduce v/emn xs)
+        box-hi (reduce v/emx xs)
+        step (fn [complex _]
+               (let [parents (select-parents size q rng)
+                     worst (complex (peek parents))
+                     centroid (v/average-vectors (map #(:x (complex %)) (pop parents)))
+                     better-than-worst (fn [x]
+                                         (let [point (evaluate x)]
+                                           (when (m/< (value-of point) (value-of worst))
+                                             point)))
+                     replacement (or (better-than-worst (clip (v/interpolate (:x worst) centroid 2.0) lo hi))
+                                     (better-than-worst (v/interpolate (:x worst) centroid 0.5))
+                                     (evaluate (random-point box-lo box-hi rng)))]
+                 (sorted-by-value (assoc complex (peek parents) replacement))))]
+    (reduce step complex (range (long evolution-steps)))))
 
 (defn- complex-of
   "The `k`-th complex of `ngs`: every `ngs`-th point of the sorted population starting at `k`."
-  ^objects [^objects population ^long k ^long ngs ^long size]
-  (let [complex (object-array size)]
-    (dotimes [i size]
-      (aset complex i (aget population (m/+ k (m/* i ngs)))))
-    complex))
+  [population ^long k ^long ngs]
+  (vec (take-nth ngs (drop k population))))
 
 (defn- unwrap-execution
   "Runs `thunk` and rethrows the exception of a worker thread in place of its `ExecutionException` wrapper."
@@ -289,41 +197,25 @@
 (defn- evolve-population
   "One shuffling loop: divides the sorted population into complexes, evolves every complex and merges them into a new sorted population.
 
-  The complexes are evolved in parallel when `parallel?`, each with its own generator created by `r/child-rngs`. Otherwise `rng` is used directly."
-  ^objects [^objects population ngs settings rng parallel?]
-  (let [ngs (long ngs)
-        size (long (:complex-size settings))
-        complexes (mapv #(complex-of population % ngs size) (range ngs))
+  The complexes are evolved in parallel when `:parallel?`, each with its own generator created by `r/child-rngs`. Otherwise `rng` is used directly."
+  [population {:keys [complex-size parallel?] :as settings} rng]
+  (let [ngs (quot (count population) (long complex-size))
+        complexes (mapv #(complex-of population % ngs) (range ngs))
         evolve (fn [complex complex-rng] (evolve-complex complex settings complex-rng))
         evolved (if parallel?
                   (let [rngs (r/child-rngs rng ngs)]
-                    (unwrap-execution #(vec (doall (pmap evolve complexes rngs)))))
-                  (mapv #(evolve % rng) complexes))
-        merged (object-array (m/* ngs size))]
-    (dotimes [k ngs]
-      (System/arraycopy ^objects (evolved k) 0 merged (int (m/* k size)) (int size)))
-    (Arrays/sort merged by-value)
-    merged))
+                    (unwrap-execution #(vec (pmap evolve complexes rngs))))
+                  (mapv #(evolve % rng) complexes))]
+    (sorted-by-value (apply concat evolved))))
 
 ;; termination
 
 (defn- population-range
   "Largest range of the population over the dimensions, as a fraction of the range of the bounds."
-  ^double [^objects population ^doubles lo ^doubles hi]
-  (let [size (alength population)
-        n (alength lo)]
-    (loop [d 0
-           largest 0.0]
-      (if (m/< d n)
-        (let [spread (double (loop [i 0
-                                    mn ##Inf
-                                    mx ##-Inf]
-                               (if (m/< i size)
-                                 (let [v (aget ^doubles (aget population i) d)]
-                                   (recur (m/inc i) (m/min mn v) (m/max mx v)))
-                                 (m/- mx mn))))]
-          (recur (m/inc d) (m/max largest (m// spread (m/- (aget hi d) (aget lo d))))))
-        largest))))
+  ^double [population {:keys [lo hi]}]
+  (let [xs (map :x population)
+        spread (v/sub (reduce v/emx xs) (reduce v/emn xs))]
+    (double (reduce m/max 0.0 (map m// spread (v/sub hi lo))))))
 
 (defn- improvement-converged?
   "True when the best value, with `stop-loops` loops back, differs from the current one by not more than the tolerance relative to the current one. Non-finite values never converge."
@@ -347,92 +239,63 @@
   "Returns the unit directions, in the population normalized to the unit cube, with almost no variance.
 
   A direction is lost when its eigenvalue of the covariance matrix is below `pca-ratio` of the largest one. Returns an empty vector when the population has no variance."
-  [^objects population ^doubles lo ^doubles hi]
-  (let [size (alength population)
-        n (alength lo)
-        columns (mapv (fn [d]
-                        (let [d (long d)
-                              l (aget lo d)
-                              extent (m/- (aget hi d) l)]
-                          (mapv (fn [i] (m// (m/- (aget ^doubles (aget population (long i)) d) l) extent))
-                                (range size))))
-                      (range n))
-        eigen (mat/eigen-decomposition (mat/rows->mat (stats/covariance-matrix columns))
+  [population {:keys [lo hi]}]
+  (let [extent (v/sub hi lo)
+        rows (map #(mapv m// (v/sub (:x %) lo) extent) population)
+        eigen (mat/eigen-decomposition (mat/rows->mat (stats/covariance-matrix (apply mapv vector rows)))
                                        {:eigenvectors-scaling :raw})
-        values (double-array (seq (mat/decomposition-component eigen :real-eigenvalues)))
-        vectors (mat/decomposition-component eigen :eigenvectors)
-        largest (double (loop [i 0
-                               mx ##-Inf]
-                          (if (m/< i (alength values))
-                            (recur (m/inc i) (m/max mx (aget values i)))
-                            mx)))]
+        values (vec (mat/decomposition-component eigen :real-eigenvalues))
+        largest (stats/maximum values)]
     (if (m/pos? largest)
       (let [limit (m/* pca-ratio largest)]
         (into []
-              (comp (keep-indexed (fn [i v] (when (m/< (aget values (long i)) limit) v)))
-                    (map #(double-array (seq %))))
-              vectors))
+              (comp (keep-indexed (fn [i direction] (when (m/< (double (values i)) limit) direction)))
+                    (map v/vec->array))
+              (mat/decomposition-component eigen :eigenvectors)))
       [])))
 
-(defn- sample-indices
-  "Returns `k` different indices from `from` (inclusive) to `to` (exclusive)."
-  ^longs [rng ^long from ^long to ^long k]
-  (let [pool (long-array (range from to))
-        size (alength pool)]
-    (dotimes [j k]
-      (let [i (m/+ j (r/irandom rng (m/- size j)))
-            tmp (aget pool j)]
-        (aset pool j (aget pool i))
-        (aset pool i tmp)))
-    (Arrays/copyOf pool (int k))))
+(defn- recover-dimensions
+  "Moves some points of a collapsed population along the lost directions, evaluates them and returns the sorted population.
 
-(defn- recover-dimensions!
-  "Moves some points of a collapsed population along the lost directions, evaluates them and sorts the population again.
-
-  For every lost direction, a fraction of the points except the best one is moved by a random step in both senses along the direction, in the population normalized to the unit cube, and then kept within the bounds. The best point is never moved. Changes `population` and returns it."
-  ^objects [^objects population rng evaluate ^doubles lo ^doubles hi]
-  (let [directions (lost-directions population lo hi)
-        size (alength population)
-        n (alength lo)
-        moved (long (m/max 1 (long (m/floor (m/* pca-fraction size)))))]
-    (when (seq directions)
-      (doseq [^doubles direction directions
-              i (sample-indices rng 1 size moved)]
-        (let [^doubles point (aget population i)
-              step (m/* pca-step (m/dec (m/* 2.0 (r/drandom rng))))
-              x (double-array n)]
-          (dotimes [d n]
-            (let [l (aget lo d)
-                  extent (m/- (aget hi d) l)
-                  normalized (m/+ (m// (m/- (aget point d) l) extent) (m/* step (aget direction d)))]
-              (aset x d (m/constrain (m/+ l (m/* normalized extent)) l (aget hi d)))))
-          (aset population (int i) (make-point evaluate x))))
-      (Arrays/sort population by-value))
-    population))
+  For every lost direction, a fraction of the points except the best one is moved by a random step in both senses along the direction, in the population normalized to the unit cube, and then kept within the bounds. The best point is never moved."
+  [population {:keys [lo hi evaluate] :as settings} rng]
+  (let [directions (lost-directions population settings)]
+    (if (empty? directions)
+      population
+      (let [size (count population)
+            moved (m/max 1 (long (m/floor (m/* pca-fraction size))))
+            extent (v/sub hi lo)
+            sampler (RandomDataGenerator. ^RandomGenerator rng)
+            moves (vec (for [direction directions
+                             i (.nextPermutation sampler (int (m/dec size)) (int moved))]
+                         [(v/emult direction extent) (m/inc (long i))]))
+            move (fn [population [direction i]]
+                   (let [step (m/* pca-step (m/dec (m/* 2.0 (r/drandom rng))))]
+                     (assoc population i (evaluate (clip (v/add (:x (population i)) (v/mult direction step)) lo hi)))))]
+        (sorted-by-value (reduce move population moves))))))
 
 ;; optimizer
 
 (defn- reduce-complexes
-  "Removes the worst complex of a sorted population when there are more than `min-complexes` complexes. Returns `[population ngs]`."
-  [^objects population ngs min-complexes complex-size]
-  (if (m/> (long ngs) (long min-complexes))
-    [(Arrays/copyOf population (int (m/- (alength population) (long complex-size)))) (m/dec (long ngs))]
-    [population ngs]))
+  "Removes the worst complex of a sorted population when there are more than `:min-complexes` complexes."
+  [population {:keys [^long complex-size ^long min-complexes]}]
+  (if (m/> (m/quot (count population) complex-size) min-complexes)
+    (subvec population 0 (m/long-sub (count population) complex-size))
+    population))
 
 (defn- result
   "Builds the result of the run from the final sorted population."
-  [^objects population settings status ngs bests ^AtomicLong counter]
-  (let [{:keys [^double sign stats?]} settings
-        ^doubles best (aget population 0)
-        point (coordinates best)
-        value (m/* sign (value-of best))]
+  [population {:keys [sign complex-size stats? evaluate]} status iteration]
+  (let [best (first population)
+        point (vec (:x best))
+        value (m/* (double sign) (value-of best))]
     (if stats?
       {:point point
        :value value
-       :evaluations (.get counter)
-       :iterations (m/dec (count bests))
+       :evaluations (evaluate)
+       :iterations iteration
        :status status
-       :complexes ngs}
+       :complexes (quot (count population) (long complex-size))}
       [point value])))
 
 (defn sceua
@@ -442,7 +305,7 @@
 
   Parameters:
 
-  - `f` (function): the objective. It receives the point as one vector, or as separate arguments when `:vector-arg?` is `false`, and returns a number. `NaN` is treated as the worst value.
+  - `f` (function): the objective. It receives the point as one sequence of numbers (a `double` array which it must not change), or as separate arguments when `:vector-arg?` is `false`, and returns a number. `NaN` is treated as the worst value.
   - `opts` (map):
     - `:bounds` (required) - sequence of `[lo hi]` pairs, one for each dimension (`[lo hi]` for one dimension). The bounds are finite and `lo < hi`, up to 1000 dimensions.
     - `:initial` - a point within the bounds which joins the initial population, default: none.
@@ -477,31 +340,26 @@
 
   See also [[fastmath.optimization/minimize]], [[fastmath.optimization/scan-and-minimize]], [[fastmath.optimization.acm/cmaes]]."
   [f opts]
-  (let [settings (parse-options f opts)
-        {:keys [^long n ^doubles lo ^doubles hi initial ^double sign ^long complexes ^long complex-size
-                ^long min-complexes ^long stop-loops ^double stop-improvement ^double stop-range
-                ^long max-evals ^long max-iters ^double jitter rng parallel? pca-recovery?]} settings
-        counter (AtomicLong. 0)
-        evaluate (evaluator (:f settings) sign counter max-evals)
-        settings (assoc settings :evaluate evaluate)
-        population (initial-population evaluate lo hi initial (m/* complexes complex-size) jitter rng)]
-    (loop [population population
-           ngs complexes
-           bests [(value-of (aget population 0))]]
-      (let [evolved (evolve-population population ngs settings rng parallel?)
-            bests (conj bests (value-of (aget evolved 0)))
-            loops (m/dec (count bests))
+  (let [options (parse-options opts)
+        {:keys [sign max-evals stop-loops stop-improvement stop-range max-iters rng pca-recovery?]} options
+        n (count (:lo options))
+        evaluate (evaluator (common/->vector-fn f (common/resolve-vector-arg? :sceua (:vector-arg? opts))) sign max-evals)
+        settings (assoc options :evaluate evaluate)]
+    (loop [population (initial-population settings)
+           iteration 0
+           bests [(value-of (first population))]]
+      (let [evolved (evolve-population population settings rng)
+            iteration (m/inc iteration)
+            bests (conj bests (value-of (first evolved)))
             status (cond
-                     (m/<= (population-range evolved lo hi) stop-range) :converged-range
+                     (m/<= (population-range evolved settings) (double stop-range)) :converged-range
                      (improvement-converged? bests stop-loops stop-improvement) :converged-improvement
-                     (m/>= loops max-iters) :max-iterations)]
+                     (m/>= iteration (long max-iters)) :max-iterations)]
         (if status
-          (result evolved settings status ngs bests counter)
-          (let [recovered (if (and pca-recovery?
-                                   (m/>= n 2)
-                                   (m/> (alength evolved) n)
-                                   (stalled? bests))
-                            (recover-dimensions! evolved rng evaluate lo hi)
-                            evolved)
-                [reduced reduced-ngs] (reduce-complexes recovered ngs min-complexes complex-size)]
-            (recur reduced (long reduced-ngs) bests)))))))
+          (result evolved settings status iteration)
+          (recur (-> (if (and pca-recovery? (m/>= n 2) (m/> (count evolved) n) (stalled? bests))
+                       (recover-dimensions evolved settings rng)
+                       evolved)
+                     (reduce-complexes settings))
+                 iteration
+                 bests))))))

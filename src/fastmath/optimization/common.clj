@@ -3,7 +3,7 @@
 
   The namespace is not part of the public API and may change without notice. It collects the option handling that every optimizer backend needs, so that each backend validates its input in exactly the same way.
 
-  Option parsing: [[parse-goal]], [[resolve-vector-arg?]], [[throw-unknown]].
+  Option parsing: [[parse-goal]], [[resolve-vector-arg?]], [[throw-unknown]], [[throw-invalid-option]], [[positive-integer-option]], [[nonnegative-number-option]].
 
   Input validation: [[normalize-bounds]] checks and normalizes search bounds according to the capabilities of the given method; [[bounds-midpoint]] gives the default initial point.
 
@@ -32,6 +32,59 @@
   [what value allowed]
   (throw (ex-info (str "Unknown " (pr-str what) " value " (pr-str value) ", allowed: " (pr-str allowed))
                   {what value :allowed allowed})))
+
+(defn throw-invalid-option
+  "Throws `ex-info` reporting an invalid value of an option.
+
+  Parameters:
+
+  - `option` (keyword): name of the option, for example `:complexes`.
+  - `value`: the rejected value.
+  - `reason` (string): what the value has to satisfy.
+
+  The exception data is `{:option option :value value :reason reason}`. Never returns.
+
+  See also [[throw-unknown]], [[positive-integer-option]], [[nonnegative-number-option]]."
+  [option value reason]
+  (throw (ex-info (str "Invalid option " option ": " reason) {:option option :value value :reason reason})))
+
+(defn positive-integer-option
+  "Reads an option which has to be an integer not less than `1`.
+
+  Parameters:
+
+  - `options` (map): the options of an optimizer.
+  - `option` (keyword): the key to read.
+  - `default` (long): the value used when the option is missing or `nil`.
+
+  Returns a `long`. Any fixed-size integer type is accepted (`long`, `int`, `short`, `byte`), a double, a ratio or a big integer is not. Throws `ex-info` (see [[throw-invalid-option]]) for any other value.
+
+  See also [[nonnegative-number-option]]."
+  ^long [options option default]
+  (let [v (get options option)]
+    (cond
+      (nil? v) (long default)
+      (and (int? v) (m/pos? (long v))) (long v)
+      :else (throw-invalid-option option v "must be an integer not less than 1"))))
+
+(defn nonnegative-number-option
+  "Reads an option which has to be a finite number not less than `0`.
+
+  Parameters:
+
+  - `options` (map): the options of an optimizer.
+  - `option` (keyword): the key to read.
+  - `default` (number): the value used when the option is missing or `nil`.
+
+  Returns a `double`. Throws `ex-info` (see [[throw-invalid-option]]) for a negative, infinite or `NaN` value, and for a value which is not a number.
+
+  See also [[positive-integer-option]]."
+  ^double [options option default]
+  (let [v (get options option)]
+    (cond
+      (nil? v) (double default)
+      (and (number? v) (m/valid-double? (double v)) (m/not-neg? (double v))) (double v)
+      :else (throw-invalid-option option v "must be a finite number not less than 0"))))
 
 (defn parse-goal
   "Validates an optimization goal.
