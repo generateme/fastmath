@@ -85,6 +85,7 @@
   {:brent {:required? true :one-pair? true :finite? true :strict? true}
    :bobyqa {:required? true :finite? true}
    :cmaes {:required? true :finite? true}
+   :sceua {:required? true :finite? true :strict? true}
    :nelder-mead {:finite? true :strict? true}
    :multidirectional-simplex {:finite? true :strict? true}
    :lbfgsb {:required? true}
@@ -109,7 +110,7 @@
 
   Parameters:
 
-  - `method` (keyword): `:brent`, `:bobyqa`, `:cmaes`, `:nelder-mead`, `:multidirectional-simplex`, `:lbfgsb`, `:powell`, `:gradient` or `:non-linear-gradient`.
+  - `method` (keyword): `:brent`, `:bobyqa`, `:cmaes`, `:sceua`, `:nelder-mead`, `:multidirectional-simplex`, `:lbfgsb`, `:powell`, `:gradient` or `:non-linear-gradient`.
   - `bounds`: a sequence of `[lo hi]` pairs, one per dimension, or `nil`. A flat `[lo hi]` is accepted for one dimension.
   - `initial`: the initial point (a number for one dimension or a sequence) or `nil`.
 
@@ -119,6 +120,7 @@
 
   - `:brent` - bounds are required, exactly one pair, finite with `lo < hi`.
   - `:bobyqa` and `:cmaes` - bounds are required and finite (`lo = hi` is allowed).
+  - `:sceua` - bounds are required and finite with `lo < hi`, since the whole population is sampled from them.
   - `:nelder-mead` and `:multidirectional-simplex` - bounds are optional (they only size the initial simplex); when given they are finite with `lo < hi`.
   - `:lbfgsb` - bounds are required, infinite values are allowed.
   - `:powell`, `:gradient` and `:non-linear-gradient` - bounds are optional and only checked structurally.

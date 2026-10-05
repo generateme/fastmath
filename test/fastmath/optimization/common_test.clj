@@ -35,7 +35,7 @@
 
 (t/deftest resolve-vector-arg
   ;; nil -> default per method, only brent differs
-  (doseq [m [:lbfgsb :bobyqa :cmaes :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient]]
+  (doseq [m [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient]]
     (t/is (true? (sut/resolve-vector-arg? m nil)) (str m)))
   (t/is (false? (sut/resolve-vector-arg? :brent nil)))
   ;; explicit values win, for every method including brent
@@ -82,7 +82,7 @@
   (let [r (reason-of method bounds initial)]
     (and (string? r) (or (nil? fragment) (str/includes? r fragment)))))
 
-(def ^:private all-methods [:brent :bobyqa :cmaes :nelder-mead :multidirectional-simplex :lbfgsb :powell :gradient :non-linear-gradient])
+(def ^:private all-methods [:brent :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :lbfgsb :powell :gradient :non-linear-gradient])
 
 (t/deftest normalize-bounds-canonical-form
   ;; integers and ratios become doubles; lazy seqs and vectors are accepted
@@ -124,7 +124,7 @@
   ;; lo = hi is a degenerate but legal range where the method accepts it
   (doseq [m [:bobyqa :cmaes :lbfgsb :powell :gradient :non-linear-gradient]]
     (t/is (= [[1.0 1.0] [0.0 2.0]] (sut/normalize-bounds m [[1 1] [0 2]] [1 0])) (str m)))
-  (doseq [m [:brent :nelder-mead :multidirectional-simplex]]
+  (doseq [m [:brent :sceua :nelder-mead :multidirectional-simplex]]
     (t/is (rejected? m [[1 1]] [1] "less than") (str m " lo=hi"))))
 
 (t/deftest normalize-bounds-brent
@@ -141,13 +141,26 @@
   (t/is (rejected? :brent [[0 1]] [0.1 0.2] "differs")))
 
 (t/deftest normalize-bounds-required-and-finite
-  (doseq [m [:bobyqa :cmaes :lbfgsb]]
+  (doseq [m [:bobyqa :cmaes :sceua :lbfgsb]]
     (t/is (rejected? m nil nil "required") (str m))
     (t/is (rejected? m nil [0 0] "required") (str m)))
-  (doseq [m [:bobyqa :cmaes]]
+  (doseq [m [:bobyqa :cmaes :sceua]]
     (t/is (rejected? m [[0 ##Inf]] [0] "finite") (str m))
     (t/is (rejected? m [[##-Inf 0]] [0] "finite") (str m))
     (t/is (rejected? m [[##-Inf ##Inf]] nil "finite") (str m))))
+
+(t/deftest normalize-bounds-sceua
+  (t/is (= [[0.0 1.0] [-2.0 0.5]] (sut/normalize-bounds :sceua [[0 1] [-2 1/2]] nil)))
+  (t/is (= [[0.0 1.0] [-2.0 0.5]] (sut/normalize-bounds :sceua [[0 1] [-2 1/2]] [0.5 0])))
+  ;; one dimension: a flat pair and a bare number as the initial point
+  (t/is (= [[0.0 10.0]] (sut/normalize-bounds :sceua [0 10] nil)))
+  (t/is (= [[0.0 10.0]] (sut/normalize-bounds :sceua [[0 10]] 5)))
+  ;; the range of every dimension has to be positive, not only the first one
+  (t/is (rejected? :sceua [[0 1] [2 2]] nil "less than"))
+  (t/is (rejected? :sceua [[2 2]] nil "less than"))
+  ;; a tiny range is a legal range
+  (t/is (= [[0.0 4.9E-324]] (sut/normalize-bounds :sceua [[0 Double/MIN_VALUE]] nil)))
+  (t/is (rejected? :sceua [[0 1] [0 1]] [0.5] "differs")))
 
 (t/deftest normalize-bounds-simplex
   (doseq [m [:nelder-mead :multidirectional-simplex]]
