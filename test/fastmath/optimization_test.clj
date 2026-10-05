@@ -136,7 +136,7 @@
 (def ^:private val-tol 1.0e-3)
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
 (def ^:private hb (p/himmelblau-bounds))
-(def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient])
+(def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :conjugate-gradient :non-linear-conjugate-gradient])
 ;; :sceua is stochastic: the tests of the method matrices use a seeded generator for it.
 (defn- seeded [method opts] (cond-> opts (= :sceua method) (assoc :rng (r/rng :jdk 1))))
 (def ^:private all-methods (conj multivariate-methods :brent))
@@ -213,8 +213,8 @@
     ;; brent has one dimension only and rejects a second pair earlier
     (when-not (and (= :brent method) (= 2 (count bounds)))
       (let [d (ex-data-of #(sut/minimize method p/himmelblau {:bounds bounds :initial initial}))]
-        ;; :gradient is an alias of :non-linear-gradient
-        (t/is (contains? (set [method :non-linear-gradient]) (:method d)) (str method (pr-str bounds)))
+        ;; :gradient is an alias of :non-linear-conjugate-gradient
+        (t/is (contains? (set [method :non-linear-conjugate-gradient]) (:method d)) (str method (pr-str bounds)))
         (t/is (re-find (re-pattern part) (str (:reason d))) (str method (pr-str bounds)))))))
 
 (t/deftest one-dimension
@@ -323,7 +323,7 @@
                       res (sut/optimize method (fn [x] (swap! c inc) (f x))
                                         (cond-> {:bounds hb :goal goal} g (assoc :gradient g)))]
                   [@c res]))]
-    (doseq [method [:lbfgsb :gradient :non-linear-gradient]]
+    (doseq [method [:lbfgsb :conjugate-gradient :non-linear-conjugate-gradient]]
       (let [[c-num _res-num] (calls method :minimize p/himmelblau nil)
             [c-grad res-grad] (calls method :minimize p/himmelblau himmelblau-gradient)]
         (t/is (near-minimum? (first res-grad)) (str method))
@@ -336,7 +336,7 @@
     ;; through minimizer
     (t/is (near-minimum? (first ((sut/minimizer :lbfgsb p/himmelblau {:bounds hb :gradient himmelblau-gradient}) [1 1]))))
     ;; separate arguments of the function, one sequence for the gradient
-    (doseq [method [:lbfgsb :gradient]]
+    (doseq [method [:lbfgsb :conjugate-gradient]]
       (t/is (near-minimum? (first (sut/minimize method (fn [x y] (p/himmelblau [x y]))
                                                 {:bounds hb :vector-arg? false :gradient himmelblau-gradient}))) (str method)))
     ;; methods which do not use the gradient ignore it
@@ -460,7 +460,7 @@
 (t/deftest scan-bounds
   (t/is (= {:method :lbfgsb :bounds nil :initial nil}
            (select-keys (ex-data-of #(sut/scan-and-minimize :lbfgsb p/himmelblau {})) [:method :bounds :initial])))
-  (doseq [method [:powell :gradient :nelder-mead]]
+  (doseq [method [:powell :conjugate-gradient :nelder-mead]]
     (t/is (some? (ex-data-of #(sut/scan-and-minimize method p/himmelblau {}))) (str method)))
   (doseq [method all-methods]
     (t/is (= method (:method (ex-data-of #(sut/scan-and-minimize method p/himmelblau {:bounds [[5 -5] [0 1]]})))) (str method))

@@ -10,7 +10,7 @@
   - [[cmaes]] - derivative free evolutionary strategy, box constrained.
   - [[nelder-mead]] and [[multidirectional-simplex]] - derivative free simplex methods, unconstrained. Bounds only set the size of the initial simplex.
   - [[powell]] - derivative free direction set method, unconstrained.
-  - [[non-linear-gradient]] - conjugate gradient method, unconstrained, with the gradient given by the user or approximated numerically.
+  - [[non-linear-conjugate-gradient]] - conjugate gradient method, unconstrained, with the gradient given by the user or approximated numerically.
 
   Common options of all optimizers:
 
@@ -383,10 +383,10 @@
     :hessian (hessian-preconditioner f hessian-h)
     (common/throw-unknown :preconditioner preconditioner #{:identity :hessian})))
 
-(defn non-linear-gradient
+(defn non-linear-conjugate-gradient
   "Minimizes or maximizes a function with the non-linear conjugate gradient method, which does not use constraints.
 
-  The gradient is given by the user or approximated with finite differences. The method is also available under the name `:gradient` in [[fastmath.optimization/minimize]].
+  The gradient is given by the user or approximated with finite differences. The method is also available under the name `:conjugate-gradient` in [[fastmath.optimization/minimize]].
 
   Parameters:
 
@@ -418,7 +418,7 @@
       :as opts}]
   (when-not (m/pos? (double gradient-h)) (throw (ex-info "gradient-h must be positive" {:gradient-h gradient-h})))
   (when-not (contains? #{2 4} gradient-acc) (common/throw-unknown :gradient-acc gradient-acc #{2 4}))
-  (let [{:keys [goal data f]} (multivariate-base :non-linear-gradient f opts)
+  (let [{:keys [goal data f]} (multivariate-base :non-linear-conjugate-gradient f opts)
         gradient (or gradient (finite/gradient f {:h gradient-h :acc gradient-acc}))
         formula (gradient-formula formula)
         ^Preconditioner preconditioner (gradient-preconditioner preconditioner f hessian-h)

@@ -33,12 +33,12 @@
    :nelder-mead sut/nelder-mead
    :multidirectional-simplex sut/multidirectional-simplex
    :powell sut/powell
-   :non-linear-gradient sut/non-linear-gradient})
+   :non-linear-conjugate-gradient sut/non-linear-conjugate-gradient})
 
 (defn- himmelblau-min [opt opts] (opt p/himmelblau (merge {:bounds hb} opts)))
 
 (t/deftest public-api
-  (t/is (= #{'brent 'bobyqa 'cmaes 'nelder-mead 'multidirectional-simplex 'powell 'non-linear-gradient}
+  (t/is (= #{'brent 'bobyqa 'cmaes 'nelder-mead 'multidirectional-simplex 'powell 'non-linear-conjugate-gradient}
            (set (keys (ns-publics 'fastmath.optimization.acm))))))
 
 ;; shapes
@@ -104,9 +104,9 @@
       (t/is (near-minimum? (first (himmelblau-min opt {:vector-arg? true}))) (str nm))
       ;; the function receives exactly the declared shape
       (t/is (thrown? clojure.lang.ArityException (opt f2 {:bounds hb})) (str nm))))
-  (t/is (near-minimum? (first (sut/non-linear-gradient (fn [x y] (p/himmelblau [x y]))
+  (t/is (near-minimum? (first (sut/non-linear-conjugate-gradient (fn [x y] (p/himmelblau [x y]))
                                                        {:bounds hb :vector-arg? false :preconditioner :hessian}))))
-  (t/is (near-minimum? (first (sut/non-linear-gradient (fn [x y] (p/himmelblau [x y]))
+  (t/is (near-minimum? (first (sut/non-linear-conjugate-gradient (fn [x y] (p/himmelblau [x y]))
                                                        {:bounds hb :vector-arg? false :gradient-acc 4})))))
 
 ;; initial point
@@ -124,13 +124,13 @@
       (t/is (close? [1.0 2.0] (first-call {:initial '(1 2)})) (str nm))))
   ;; no bounds, a number as the initial point of a one dimensional problem
   (let [f (fn [[x]] (p/problem02 x))]
-    (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-gradient]]
+    (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-conjugate-gradient]]
       (t/is (v/delta-eq [5.1457] (first ((multivariate nm) f {:initial 5.0})) 1.0e-3) (str nm))
       (t/is (v/delta-eq [5.1457] (first ((multivariate nm) f {:initial [5.0]})) 1.0e-3) (str nm)))))
 
 (t/deftest bounds-and-initial-required
   ;; unconstrained methods need the initial point or the bounds, constrained ones the bounds
-  (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-gradient]
+  (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-conjugate-gradient]
           :let [opt (multivariate nm)]]
     (t/is (map? (ex-data-of #(opt p/himmelblau {}))) (str nm))
     (t/is (map? (ex-data-of #(opt p/himmelblau {:bounds nil :initial nil}))) (str nm))
@@ -166,7 +166,7 @@
       (t/is (some? d) (str nm initial))
       (t/is (= nm (:method d)))))
   ;; ... and accepted where the bounds are not used, with the initial point
-  (doseq [nm [:powell :non-linear-gradient]]
+  (doseq [nm [:powell :non-linear-conjugate-gradient]]
     (t/is (near-minimum? (first ((multivariate nm) p/himmelblau {:bounds [[##-Inf ##Inf] [##-Inf ##Inf]] :initial [1 1]}))) (str nm)))
   ;; a flat range is legal where it works: bobyqa, cmaes; it is not for the simplex methods
   (doseq [nm [:bobyqa :cmaes]]
@@ -178,9 +178,9 @@
 ;; limits
 
 (t/deftest limits
-  (doseq [nm [:bobyqa :nelder-mead :multidirectional-simplex :powell :non-linear-gradient]]
+  (doseq [nm [:bobyqa :nelder-mead :multidirectional-simplex :powell :non-linear-conjugate-gradient]]
     (t/is (thrown? TooManyEvaluationsException (himmelblau-min (multivariate nm) {:max-evals 8})) (str nm)))
-  (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-gradient]]
+  (doseq [nm [:nelder-mead :multidirectional-simplex :powell :non-linear-conjugate-gradient]]
     (t/is (thrown? TooManyIterationsException (himmelblau-min (multivariate nm) {:max-iters 1})) (str nm)))
   ;; BOBYQA does not count iterations, CMA-ES stops at the limit and returns the best point
   (t/is (= 0 (:iterations (himmelblau-min sut/bobyqa {:max-iters 1 :stats? true}))))
@@ -264,7 +264,7 @@
                 {:preconditioner :hessian :hessian-h 1.0e-2} {:gradient-h 1.0e-4} {:gradient-acc 2} {:gradient-acc 4}
                 {:bracketing-range 1.0e-3} {:line-rel 1.0e-6 :line-abs 1.0e-6} {:rel 1.0e-8 :abs 1.0e-8} {:initial [1 1]}
                 {:bounds nil :initial [1 1]}]]
-    (let [[pt val] (himmelblau-min sut/non-linear-gradient opts)]
+    (let [[pt val] (himmelblau-min sut/non-linear-conjugate-gradient opts)]
       (t/is (near-minimum? pt) (pr-str opts))
       (t/is (< val val-tol) (pr-str opts)))))
 
@@ -272,40 +272,40 @@
   (doseq [[opts k] [[{:formula :foo} :formula] [{:formula nil} :formula] [{:preconditioner :foo} :preconditioner]
                     [{:gradient-acc 3} :gradient-acc] [{:gradient-acc 0} :gradient-acc] [{:gradient-acc nil} :gradient-acc]
                     [{:gradient-h 0.0} :gradient-h] [{:gradient-h -1.0e-6} :gradient-h]]]
-    (t/is (contains? (ex-data-of #(himmelblau-min sut/non-linear-gradient opts)) k) (pr-str opts)))
-  (t/is (= #{2 4} (:allowed (ex-data-of #(himmelblau-min sut/non-linear-gradient {:gradient-acc 3}))))))
+    (t/is (contains? (ex-data-of #(himmelblau-min sut/non-linear-conjugate-gradient opts)) k) (pr-str opts)))
+  (t/is (= #{2 4} (:allowed (ex-data-of #(himmelblau-min sut/non-linear-conjugate-gradient {:gradient-acc 3}))))))
 
 (t/deftest user-gradient
   (let [counter (atom 0)
         args (atom [])
         g (fn [x] (swap! counter inc) (swap! args conj x) (himmelblau-gradient x))
-        [pt val] (himmelblau-min sut/non-linear-gradient {:gradient g :stats? false})]
+        [pt val] (himmelblau-min sut/non-linear-conjugate-gradient {:gradient g :stats? false})]
     (t/is (near-minimum? pt))
     (t/is (< val val-tol))
     (t/is (pos? @counter) "gradient is used")
     (t/is (every? #(= 2 (count %)) @args)))
   ;; the same gradient as the numerical one
-  (t/is (v/delta-eq (first (himmelblau-min sut/non-linear-gradient {}))
-                    (first (himmelblau-min sut/non-linear-gradient {:gradient himmelblau-gradient})) 1.0e-4))
+  (t/is (v/delta-eq (first (himmelblau-min sut/non-linear-conjugate-gradient {}))
+                    (first (himmelblau-min sut/non-linear-conjugate-gradient {:gradient himmelblau-gradient})) 1.0e-4))
   ;; with fewer calls of f than the numerical gradient (which calls f 2n times per gradient)
   (let [calls (fn [opts] (let [c (atom 0)]
-                           (sut/non-linear-gradient (fn [x] (swap! c inc) (p/himmelblau x)) (merge {:bounds hb} opts))
-                           @c))]
+                          (sut/non-linear-conjugate-gradient (fn [x] (swap! c inc) (p/himmelblau x)) (merge {:bounds hb} opts))
+                          @c))]
     (t/is (< (calls {:gradient himmelblau-gradient}) (calls {}))))
   ;; it is the gradient of f also when maximizing
-  (let [[pt val] (sut/non-linear-gradient (fn [x] (- (p/himmelblau x)))
-                                          {:bounds hb :goal :maximize :gradient (fn [x] (mapv - (himmelblau-gradient x)))})]
+  (let [[pt val] (sut/non-linear-conjugate-gradient (fn [x] (- (p/himmelblau x)))
+                                                    {:bounds hb :goal :maximize :gradient (fn [x] (mapv - (himmelblau-gradient x)))})]
     (t/is (near-minimum? pt))
     (t/is (< (- val) val-tol)))
   ;; any sequence of numbers, separate arguments of f
   (doseq [conv [vec seq double-array #(apply list %)]]
-    (let [[pt] (sut/non-linear-gradient (fn [x y] (p/himmelblau [x y]))
-                                        {:bounds hb :vector-arg? false :gradient (fn [x] (conv (himmelblau-gradient x)))})]
+    (let [[pt] (sut/non-linear-conjugate-gradient (fn [x y] (p/himmelblau [x y]))
+                                                  {:bounds hb :vector-arg? false :gradient (fn [x] (conv (himmelblau-gradient x)))})]
       (t/is (near-minimum? pt))))
   ;; wrong length
   (doseq [bad [[1.0] [1.0 2.0 3.0] [] nil]]
     (t/is (= {:expected 2 :actual (count bad)}
-             (ex-data-of #(himmelblau-min sut/non-linear-gradient {:gradient (fn [_] bad)}))) (pr-str bad)))
+             (ex-data-of #(himmelblau-min sut/non-linear-conjugate-gradient {:gradient (fn [_] bad)}))) (pr-str bad)))
   ;; the gradient is ignored by the methods which do not use it
   (doseq [nm [:bobyqa :cmaes :nelder-mead :multidirectional-simplex :powell]]
     (t/is (near-minimum? (first (himmelblau-min (multivariate nm) {:gradient (fn [_] (throw (RuntimeException. "not used")))}))) (str nm))))
@@ -315,7 +315,7 @@
 (t/deftest one-dimension
   (let [f (fn [[x]] (p/problem02 x))
         bounds (p/problem02-bounds)]
-    (doseq [nm [:cmaes :nelder-mead :multidirectional-simplex :powell :non-linear-gradient]]
+    (doseq [nm [:cmaes :nelder-mead :multidirectional-simplex :powell :non-linear-conjugate-gradient]]
       (let [[pt val] ((multivariate nm) f {:bounds bounds})]
         (t/is (vector? pt) (str nm))
         (t/is (= 1 (count pt)) (str nm))

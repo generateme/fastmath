@@ -10,7 +10,7 @@
   - `:cmaes` - box constrained evolution strategy, derivative free, stochastic (Apache Commons Math).
   - `:sceua` - box constrained global search with shuffled complex evolution, derivative free, stochastic, needs many evaluations of the function (see [[fastmath.optimization.sceua]]).
   - `:nelder-mead`, `:multidirectional-simplex`, `:powell` - unconstrained, derivative free (Apache Commons Math).
-  - `:gradient` (also `:non-linear-gradient`) - unconstrained conjugate gradient, numerical or given gradient (Apache Commons Math).
+  - `:conjugate-gradient` (also `:non-linear-conjugate-gradient`) - unconstrained conjugate gradient, numerical or given gradient (Apache Commons Math).
   - `:lbfgsb` - box constrained quasi-Newton L-BFGS-B, numerical or given gradient (see [[fastmath.optimization.lbfgsb]]).
 
   The functions of the methods are documented in [[fastmath.optimization.acm]], [[fastmath.optimization.lbfgsb]] and [[fastmath.optimization.sceua]], where all their options are described.
@@ -21,7 +21,7 @@
   - `:initial` - the initial point, default: the middle of the bounds. `:sceua` has no default: the point joins the initial population when it is given.
   - `:goal` - `:minimize` (default) or `:maximize`. [[minimize]] and [[maximize]] set it.
   - `:vector-arg?` - `true`: the function receives the point as one sequence, `false`: as separate arguments. Default: `true`, but `false` for `:brent`, which receives a number. Whichever the form, the point is treated as a sequence of numbers (it can be an array, a vector or a lazy sequence depending on the method).
-  - `:gradient` - function of the point, always one sequence, returning the gradient of the function as a sequence of numbers. It is the gradient of the function itself, also when maximizing. Used by `:lbfgsb` and `:gradient` only and ignored by the other methods. Default: finite differences with step `:gradient-h`.
+  - `:gradient` - function of the point, always one sequence, returning the gradient of the function as a sequence of numbers. It is the gradient of the function itself, also when maximizing. Used by `:lbfgsb` and `:conjugate-gradient` only and ignored by the other methods. Default: finite differences with step `:gradient-h`.
   - `:max-evals`, `:max-iters` - limits of the numbers of evaluations and iterations. Exceeding a limit throws an exception, except for `:lbfgsb` (maximum of iterations is not an error, no limit of evaluations), `:cmaes` and `:sceua` (maximum of iterations is not an error, maximum of evaluations throws `ex-info`).
   - `:stats?` - return a map with additional information instead of `[point value]`. The map depends on the method: `:point`, `:value`, `:evaluations` and `:iterations` for the Apache Commons Math methods and for linear optimization, `:point`, `:value`, `:iterations`, `:gradient` and `:status` for `:lbfgsb`, and `:point`, `:value`, `:evaluations`, `:iterations`, `:status` and `:complexes` for `:sceua`.
 
@@ -59,8 +59,8 @@
    :nelder-mead acm/nelder-mead
    :multidirectional-simplex acm/multidirectional-simplex
    :powell acm/powell
-   :gradient acm/non-linear-gradient
-   :non-linear-gradient acm/non-linear-gradient})
+   :conjugate-gradient acm/non-linear-conjugate-gradient
+   :non-linear-conjugate-gradient acm/non-linear-conjugate-gradient})
 
 (defn- optimizer
   "Returns the optimizer function of the method or throws `ex-info`."
@@ -134,7 +134,7 @@
 
   Parameters:
 
-  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:sceua`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:gradient` and `:lbfgsb`.
+  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:sceua`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:conjugate-gradient` and `:lbfgsb`.
   - `f` (function): the function to minimize.
   - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
 
@@ -151,7 +151,7 @@
 
   Parameters:
 
-  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:sceua`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:gradient` and `:lbfgsb`.
+  - `method` (keyword): optimization method, one of `:brent`, `:bobyqa`, `:cmaes`, `:sceua`, `:nelder-mead`, `:multidirectional-simplex`, `:powell`, `:conjugate-gradient` and `:lbfgsb`.
   - `f` (function): the function to maximize.
   - `options` (map): options of the method, see [[fastmath.optimization]]. `:goal` is overridden.
 

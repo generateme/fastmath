@@ -66,6 +66,7 @@ All notable changes to this project will be documented in this file. This change
 
 ### Changed
 
+* faster `fastmath.random/jittered-sequence-generator` for 5 and more dimensions (about 3x) and `fastmath.vector` `add`, `sub`, `emult`, `emx`, `emn`, `dot`, `interpolate`, `einterpolate` on persistent vectors (3-5x on 100 elements)
 * [breaking] optimization refactor: `:bfgs` and `:bounded?` are removed, functions receive the point as one sequence by default (`:vector-arg?`, `:brent` receives a number), `:stats?` returns a map `{:point :value ...}` which depends on the method, default `:max-evals`/`:max-iters` is `10000`, the simplex size is set by `:length` (a fraction of bounds)
 * [breaking] optimization: unknown methods, goals, relations, rules, line searches, formulas and utility function types throw `ex-info`, `linear-optimization` accepts only the relations `<=`, `>=`, `=` (or `:leq`, `:geq`, `:eq`) and its limit is `:max-iters`
 * [breaking] `fastmath.random/sequence-generator` and `jittered-sequence-generator` (so `vegas`, `scan-and-*`, `bayesian-optimization` and `->seq` with `:r2`/`:sobol`/`:halton`) no longer draw from the shared `default-rng`: without an `rng` they use a new `JDKRandomGenerator` for every call, so reproduce a result with `:rng`/the `rng` argument instead of `fastmath.random/set-seed!`
