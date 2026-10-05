@@ -136,7 +136,11 @@
 (def ^:private val-tol 1.0e-3)
 (def ^:private himmelblau-minima [[3.0 2.0] [-2.805118 3.131313] [-3.779310 -3.283186] [3.584428 -1.848126]])
 (def ^:private hb (p/himmelblau-bounds))
-(def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient])
+(def ^:private multivariate-methods [:lbfgsb :bobyqa :cmaes :sceua :nelder-mead :multidirectional-simplex :powell :gradient :non-linear-gradient])
+;; :sceua is stochastic. With its defaults it stops after 7 loops without an improvement, which happened in about 10%
+;; of 300 seeded runs on himmelblau (27 runs with values up to 0.63), with :stop-loops 25 in 1 of 300. The tests of the
+;; method matrices test the wiring, so they use a seeded generator and :stop-loops 25 for it.
+(defn- seeded [method opts] (cond-> opts (= :sceua method) (assoc :rng (r/rng :jdk 1) :stop-loops 25)))
 (def ^:private all-methods (conj multivariate-methods :brent))
 
 (defn- near-minimum? [pt] (boolean (some #(v/delta-eq (vec pt) % 1.0e-3) himmelblau-minima)))
@@ -170,7 +174,7 @@
           vector-arg? [true false nil]
           :let [f (if (false? vector-arg?) (fn [x y] (p/himmelblau [x y])) p/himmelblau)
                 nf (if (false? vector-arg?) (fn [x y] (- (p/himmelblau [x y]))) neg-himmelblau)
-                opts {:bounds hb :vector-arg? vector-arg?}
+                opts (seeded method {:bounds hb :vector-arg? vector-arg?})
                 label (str method " " vector-arg?)]]
     (let [res (sut/minimize method f opts)]
       (t/is (vector? res) label)
@@ -189,8 +193,9 @@
     (t/is (< (- (value-of (sut/maximize method nf (assoc opts :goal :minimize)))) val-tol) label)
     ;; stats
     (let [s (sut/minimize method f (assoc opts :stats? true))]
-      (t/is (= (if (= :lbfgsb method)
-                 #{:point :value :iterations :gradient :status}
+      (t/is (= (case method
+                 :lbfgsb #{:point :value :iterations :gradient :status}
+                 :sceua #{:point :value :evaluations :iterations :status :complexes}
                  #{:point :value :evaluations :iterations})
                (set (keys s))) label)
       (t/is (near-minimum? (:point s)) label)
@@ -220,7 +225,7 @@
     (doseq [method (remove #{:bobyqa} multivariate-methods)
             goal [:minimize :maximize]
             :let [f (if (= goal :minimize) f (fn [v] (- (f v))))]]
-      (let [[pt val] (sut/optimize method f {:bounds bounds :goal goal})]
+      (let [[pt val] (sut/optimize method f (seeded method {:bounds bounds :goal goal}))]
         (t/is (vector? pt) (str method))
         (t/is (= 1 (count pt)) (str method))
         (t/is (m/delta-eq 5.1457 (first pt) 1.0e-1) (str method))
@@ -241,6 +246,33 @@
   ;; lbfgsb and cmaes stop at the iteration limit and return the best point
   (t/is (= :max-iterations (:status (sut/minimize :lbfgsb p/rosenbrock {:bounds (p/rosenbrock-bounds 2) :initial [-1.2 1.0] :max-iters 2 :stats? true}))))
   (t/is (vector? (sut/minimize :cmaes p/himmelblau {:bounds hb :max-iters 2}))))
+
+(t/deftest sceua-method
+  (t/testing "the evaluation limit throws ex-info, the iteration limit stops the run"
+    (t/is (= {:max-evals 5 :evaluations 5} (ex-data-of #(sut/minimize :sceua p/himmelblau {:bounds hb :max-evals 5}))))
+    (let [s (sut/minimize :sceua p/himmelblau {:bounds hb :max-iters 1 :stats? true :rng (r/rng :jdk 1)})]
+      (t/is (= :max-iterations (:status s)))
+      (t/is (= 1 (:iterations s)))))
+  (t/testing "bounds are required, finite and of a positive range"
+    (t/is (= :sceua (:method (ex-data-of #(sut/minimize :sceua p/himmelblau {})))))
+    (doseq [bounds [[[##-Inf 5] [-5 5]] [[-5 ##Inf] [-5 5]] [[1 1] [-5 5]] [[5 -5] [-5 5]]]]
+      (t/is (= :sceua (:method (ex-data-of #(sut/minimize :sceua p/himmelblau {:bounds bounds})))) (pr-str bounds))))
+  (t/testing "minimizer: the initial point joins the population, nil and a point outside the bounds"
+    (let [mz (sut/minimizer :sceua p/himmelblau {:bounds hb :rng (r/rng :jdk 2) :stop-loops 25})]
+      (t/is (near-minimum? (first (mz [3.0 2.0]))))
+      (t/is (<= (second (mz [3.0 2.0])) 1.0e-12) "the best value is not worse than the value at the initial point")
+      (t/is (near-minimum? (first (mz nil))))
+      (t/is (= :initial (:option (ex-data-of #(mz [10.0 0.0])))))
+      ;; the number of bounds differs from the length of the point
+      (t/is (= :sceua (:method (ex-data-of #(mz [1.0])))))))
+  (t/testing "one dimension and a flat pair of bounds"
+    (let [[pt val] (sut/minimize :sceua p/problem02 {:bounds [2.7 7.5] :vector-arg? false :rng (r/rng :jdk 3) :stop-loops 25})]
+      (t/is (m/delta-eq 5.145735 (first pt) 1.0e-2))
+      (t/is (m/delta-eq -1.899599 val 1.0e-4))))
+  (t/testing "scan-and-minimize starts :sceua from scanned points"
+    (let [[pt val] (sut/scan-and-minimize :sceua p/himmelblau {:bounds hb :N 20 :n 2 :rng (r/rng :jdk 4) :stop-loops 25})]
+      (t/is (near-minimum? pt))
+      (t/is (< val val-tol)))))
 
 ;; minimizer and maximizer
 
@@ -276,7 +308,7 @@
   (t/is (= :lbfgsb (:method (ex-data-of #((sut/minimizer :lbfgsb p/himmelblau {:bounds [[5 -5] [0 1]]}) [1 1])))))
   ;; every method, with the initial point and nil
   (doseq [method multivariate-methods]
-    (let [mz (sut/minimizer method p/himmelblau {:bounds hb})]
+    (let [mz (sut/minimizer method p/himmelblau (seeded method {:bounds hb}))]
       (t/is (near-minimum? (first (mz [1 1]))) (str method))
       (t/is (near-minimum? (first (mz nil))) (str method))))
   ;; brent: number, one number sequence or nil
@@ -322,7 +354,7 @@
           vector-arg? [true false nil]
           :let [f (if (false? vector-arg?) (fn [x y] (p/himmelblau [x y])) p/himmelblau)
                 nf (if (false? vector-arg?) (fn [x y] (- (p/himmelblau [x y]))) neg-himmelblau)
-                opts {:bounds hb :vector-arg? vector-arg?}
+                opts (seeded method {:bounds hb :vector-arg? vector-arg?})
                 label (str method " " vector-arg?)]]
     (let [res (sut/scan-and-minimize method f opts)]
       (t/is (vector? res) label)
