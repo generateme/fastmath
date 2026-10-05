@@ -82,6 +82,38 @@
    :econstrain (fn [v ^double val1 ^double val2] (map (fn [^double x] (m/constrain x val1 val2)) v))
    :is-zero? (fn [v] (every? m/zero? v))})
 
+;; `mapv` with more than one collection is a lazy `map` poured into a vector, slow for longer vectors. Persistent vectors
+;; and arrays can be read by an index, so then a counted loop does the same. Any other collection goes to `mapv`.
+
+(defn- indexed-collection?
+  "True for a persistent vector or a Java array, the collections read by an index in a constant time."
+  [c]
+  (or (vector? c) (and (some? c) (.isArray (class c)))))
+
+(defn- mapv2
+  "Same as `(mapv f c1 c2)`: a vector of `f` applied to the elements, as long as the shorter collection."
+  [f c1 c2]
+  (if (and (indexed-collection? c1) (indexed-collection? c2))
+    (let [n (m/min (count c1) (count c2))]
+      (loop [i 0
+             result (transient [])]
+        (if (m/< i n)
+          (recur (m/inc i) (conj! result (f (nth c1 i) (nth c2 i))))
+          (persistent! result))))
+    (mapv f c1 c2)))
+
+(defn- mapv3
+  "Same as `(mapv f c1 c2 c3)`: a vector of `f` applied to the elements, as long as the shortest collection."
+  [f c1 c2 c3]
+  (if (and (indexed-collection? c1) (indexed-collection? c2) (indexed-collection? c3))
+    (let [n (m/min (count c1) (count c2) (count c3))]
+      (loop [i 0
+             result (transient [])]
+        (if (m/< i n)
+          (recur (m/inc i) (conj! result (f (nth c1 i) (nth c2 i) (nth c3 i))))
+          (persistent! result))))
+    (mapv f c1 c2 c3)))
+
 ;; Add `VectorProto` to Clojure vector using mapv/reduce terms.
 (extend IPersistentVector
   prot/VectorProto
@@ -98,17 +130,17 @@
              ([v ^long d] (mapv (fn [^double x] (m/approx x d)) v)))
    :magsq (fn ^double [v] (reduce (fn ^double [^double b ^double x] (m/+ b (m/* x x))) 0.0 v))
    :mag (fn ^double [v] (m/sqrt (prot/magsq v)))
-   :dot (fn ^double [v1 v2] (reduce m/+ (map m/* v1 v2)))
-   :add (fn [v1 v2] (mapv m/+ v1 v2))
-   :sub (fn [v1 v2] (mapv m/- v1 v2))
+   :dot (fn ^double [v1 v2] (reduce m/+ (mapv2 m/* v1 v2)))
+   :add (fn [v1 v2] (mapv2 m/+ v1 v2))
+   :sub (fn [v1 v2] (mapv2 m/- v1 v2))
    :shift (fn [v1 ^double v] (mapv (fn [^double x] (m/+ x v)) v1))
    :mult (fn [v1 ^double v] (mapv (fn [^double x] (m/* x v)) v1))
-   :emult (fn [v1 v2] (mapv m/* v1 v2))
+   :emult (fn [v1 v2] (mapv2 m/* v1 v2))
    :abs (fn [v] (mapv m/abs v))
    :mx (fn ^double [v] (reduce m/max v))
    :mn (fn ^double [v] (reduce m/min v))
-   :emx (fn [v1 v2] (mapv m/max v1 v2))
-   :emn (fn [v1 v2] (mapv m/min v1 v2))
+   :emx (fn [v1 v2] (mapv2 m/max v1 v2))
+   :emn (fn [v1 v2] (mapv2 m/min v1 v2))
    :maxdim (fn ^long [v] (first (reduce (find-idx-reducer-fn m/>) [0 0 (first v)] v)))
    :mindim (fn ^long [v] (first (reduce (find-idx-reducer-fn m/<) [0 0 (first v)] v)))
    :sum (fn ^double [v] (reduce m/+ 0.0 v))
@@ -117,8 +149,8 @@
    :permute (fn [v1 v2] (mapv (fn [^long idx] (v1 idx)) v2))
    :reciprocal (fn [v] (mapv (fn [^double v] (m// v)) v))
    :heading (fn ^double [v] (angle-between v (conj (repeat (m/long-dec (count v)) 0.0) 1.0)))
-   :interpolate (fn [v1 v2 ^double t f] (mapv (fn [^double x1 ^double x2] (f x1 x2 t)) v1 v2))
-   :einterpolate (fn [v1 v2 v f] (mapv (fn [^double x1 ^double x2 ^double t] (f x1 x2 t)) v1 v2 v))
+   :interpolate (fn [v1 v2 ^double t f] (mapv2 (fn [^double x1 ^double x2] (f x1 x2 t)) v1 v2))
+   :einterpolate (fn [v1 v2 v f] (mapv3 (fn [^double x1 ^double x2 ^double t] (f x1 x2 t)) v1 v2 v))
    :econstrain (fn [v ^double val1 ^double val2] (mapv (fn [^double x] (m/constrain x val1 val2)) v))
    :is-zero? (fn [v] (every? m/zero? v))})
 

@@ -105,10 +105,7 @@
             [fastmath.vector :as v]
             [fastmath.matrix :as mat]
             [fastmath.protocols :as prot]
-            [fastmath.special :as special]
             [fastmath.random.distributions :as distr]
-            [fastmath.solver :as solver]
-            [fastmath.interpolation.step :as step-interp]
             [fastmath.stats.bins :as bins])
   (:import [org.apache.commons.math3.random RandomGenerator ISAACRandom JDKRandomGenerator MersenneTwister
             Well512a Well1024a Well19937a Well19937c Well44497a Well44497b
@@ -120,7 +117,6 @@
            [fastmath.java.noise Billow RidgedMulti FBM NoiseConfig Noise Discrete]
            [org.apache.commons.math3.distribution BetaDistribution CauchyDistribution ChiSquaredDistribution ConstantRealDistribution EnumeratedRealDistribution ExponentialDistribution FDistribution GammaDistribution, GumbelDistribution, LaplaceDistribution, LevyDistribution, LogisticDistribution, LogNormalDistribution, NakagamiDistribution, NormalDistribution, ParetoDistribution, TDistribution, TriangularDistribution, UniformRealDistribution WeibullDistribution MultivariateNormalDistribution]
            [org.apache.commons.math3.distribution BinomialDistribution EnumeratedIntegerDistribution, GeometricDistribution, HypergeometricDistribution, PascalDistribution, PoissonDistribution, UniformIntegerDistribution, ZipfDistribution]))
-
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)

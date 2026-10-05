@@ -821,3 +821,73 @@
     (t/is (not (== (sut/dhash-code 5.0) (sut/dhash-code 100 5.0)))))
   (t/testing "backs Vec2/Vec3/Vec4's hashCode: equal vectors hash equal, consistently"
     (t/is (== (.hashCode (sut/vec2 1.0 2.0)) (.hashCode (sut/vec2 1.0 2.0))))))
+
+;; persistent vectors: operations on two or three collections
+
+(def ^:private previous-multi-collection-ops
+  "The previous implementations of the operations on persistent vectors with more than one collection: `mapv` (a lazy `map`
+  poured into a vector) and `reduce` over a lazy `map`, the oracle for the counted loop. [new op, previous op]."
+  {:add [sut/add (fn [a b] (mapv m/+ a b))]
+   :sub [sut/sub (fn [a b] (mapv m/- a b))]
+   :emult [sut/emult (fn [a b] (mapv m/* a b))]
+   :emx [sut/emx (fn [a b] (mapv m/max a b))]
+   :emn [sut/emn (fn [a b] (mapv m/min a b))]
+   :dot [sut/dot (fn [a b] (double (reduce m/+ (map m/* a b))))]
+   :interpolate [#(sut/interpolate %1 %2 0.3) (fn [a b] (mapv (fn [^double x1 ^double x2] (m/lerp x1 x2 0.3)) a b))]
+   :interpolate-with-function [#(sut/interpolate %1 %2 0.3 (fn [^double x1 ^double x2 ^double t] (- x2 (* t x1)))) (fn [a b] (mapv (fn [^double x1 ^double x2] (- x2 (* 0.3 x1))) a b))]})
+
+(defn- outcome
+  "The printed value of `thunk` (it tells `-0.0` from `0.0` and equals `NaN` to `NaN`) and the classes of its elements, or the class of the exception it throws."
+  [thunk]
+  (try (let [r (thunk)] [(pr-str r) (when (sequential? r) (mapv class r)) (class r)])
+       (catch Throwable e [(class e)])))
+
+(defn- second-collections
+  "Collections of the numbers `xs` of the types a second argument can have."
+  [xs]
+  (let [xs (vec xs)]
+    {:vector xs
+     :subvec (subvec (vec (concat [0.5] xs [0.5])) 1 (inc (count xs)))
+     :vector-of-double (apply vector-of :double (map double xs))
+     :double-array (double-array (map double xs))
+     :object-array (object-array xs)
+     :list (apply list xs)
+     :lazy-seq (map identity xs)
+     :seq (seq xs)}))
+
+(t/deftest multi-collection-ops-oracle
+  (let [firsts [[] [1] [1 2 3] [1.5 2.5 3.5] [1/2 2 3.0] [-0.0 0.0 1.0] [1 2 3 4 5 6 7 8 9 10] (vec (range 100))
+                (subvec [9 8 7 6 5] 1) (apply vector-of :double [1.0 2.0 3.0]) (first {1 2.5})]
+        seconds [[] [4] [4.5 5.5 6.5] [1 2] [1 2 3 4 5] [4 5.5 6/7 8] [-0.0 -0.0 0.0] (vec (range 50 150)) [##NaN 1.0 ##Inf]]]
+    (doseq [[op-name [op previous]] previous-multi-collection-ops
+            a firsts
+            b seconds
+            [kind second-arg] (second-collections b)
+            :let [label (str op-name " " (pr-str a) " " kind " " (pr-str (vec b)))]]
+      (t/is (= (outcome #(previous a (vec b))) (outcome #(op a second-arg))) label))
+    (t/testing "nil and non-numbers: the same result or the same kind of exception"
+      (doseq [[op-name [op previous]] previous-multi-collection-ops
+              [a b] [[[1 2] nil] [[1 nil] [1 2]] [[1 2] [1 :a]] [[:a] [1]] [[1 2] "ab"]]]
+        (t/is (= (outcome #(previous a b)) (outcome #(op a b))) (str op-name " " (pr-str a) " " (pr-str b))))))
+  (t/testing "random vectors of 1 to 200 elements, any combination of the second argument types"
+    (let [rng (java.util.Random. 5)
+          random-numbers (fn [n] (vec (repeatedly n #(* 100.0 (- (.nextDouble rng) 0.5)))))]
+      (doseq [n (concat (range 1 20) [50 100 200])
+              [op-name [op previous]] previous-multi-collection-ops
+              :let [a (random-numbers n)
+                    b (random-numbers (max 1 (+ n (- (rand-int 5) 2))))]
+              [kind second-arg] (second-collections b)]
+        (t/is (= (outcome #(previous a b)) (outcome #(op a second-arg))) (str op-name " " n " " kind)))))
+  (t/testing "three collections: einterpolate"
+    (doseq [a [[] [1 2 3] [1.5 2.5 3.5 4.5]]
+            b [[] [4 5 6] [1 2]]
+            t [[] [0.0 0.5 1.0] [0.25]]
+            [kind ts] (second-collections t)
+            :let [previous (mapv (fn [^double x1 ^double x2 ^double t] (m/lerp x1 x2 t)) a b t)]]
+      (t/is (= previous (sut/einterpolate a b ts)) (str (pr-str a) (pr-str b) kind))
+      (t/is (= (mapv class previous) (mapv class (sut/einterpolate a b ts))) (str (pr-str a) (pr-str b) kind))))
+  (t/testing "results are persistent vectors of doubles"
+    (let [r (sut/add [1 2 3] [4 5 6])]
+      (t/is (vector? r))
+      (t/is (= [5.0 7.0 9.0] r))
+      (t/is (every? double? r)))))
