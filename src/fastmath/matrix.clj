@@ -1547,7 +1547,7 @@
     2 (v/array->vec2 (v/vec->array v))
     3 (v/array->vec3 (v/vec->array v))
     4 (v/array->vec4 (v/vec->array v))
-    v))
+    (if (instance? RealVector v) (.toArray ^RealVector v) v)))
 
 (defn- ->mat-size
   "Size hint consumed by `->mat`/`->vec` to decide whether a decomposition

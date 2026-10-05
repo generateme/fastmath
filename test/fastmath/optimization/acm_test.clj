@@ -348,7 +348,7 @@
     ;; stats
     (let [s (sut/brent f {:bounds bounds :stats? true})
           sv (sut/brent (fn [x] (f (first x))) {:bounds bounds :stats? true :vector-arg? true})]
-      (t/is (= #{:point :value :evaluations :iterations} (set (keys s))))
+      (t/is (= #{:point :value :evaluations :iterations :lo :hi} (set (keys s))))
       (t/is (= pt (:point s)))
       (t/is (= val (:value s)))
       (t/is (pos? (:evaluations s)))

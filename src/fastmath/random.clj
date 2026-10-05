@@ -230,6 +230,57 @@
   ([rng] (prot/brandom rng))
   ([rng p] (prot/brandom rng p)))
 
+(defn ensure-rng
+  "Validates a random number generator given as an argument and replaces a missing one with a new generator.
+
+  Functions which accept an optional `rng` use it to avoid the shared [[default-rng]], so a result can be reproduced with a seeded generator and a call never disturbs the stream of the shared one.
+
+  Parameters:
+
+  - `rng`: a random number generator created by [[rng]] or [[synced-rng]] (any Apache Commons Math `RandomGenerator`), or `nil`.
+
+  Returns `rng` itself when it is a generator, or a new unseeded `JDKRandomGenerator` when `rng` is `nil`. A distribution is not accepted.
+
+  Throws `ex-info` with `{:rng value}` for any other value.
+
+  See also [[child-rngs]], [[rng]], [[synced-rng]]."
+  ^RandomGenerator [rng]
+  (cond
+    (nil? rng) (JDKRandomGenerator.)
+    (instance? RandomGenerator rng) rng
+    :else (throw (ex-info (str "Expected a random number generator (RandomGenerator) or nil, got " (pr-str rng))
+                          {:rng rng}))))
+
+(defn- child-rng
+  "Creates a new generator seeded with a number drawn from `rng`."
+  [rng]
+  (prot/set-seed rng (lrandom rng)))
+
+(defn child-rngs
+  "Creates new random number generators seeded from a given generator, for independent runs which must not share one mutable generator.
+
+  Every child draws one seed from `rng` with [[lrandom]] and is created by `set-seed` of the protocol, so children are distinct objects and the same seeded `rng` gives the same children. The seeds are drawn when the children are created, in order, from the thread which creates them. Create the children before handing them to other threads.
+
+  Parameters:
+
+  - `rng`: a random number generator created by [[rng]] or [[synced-rng]] (any Apache Commons Math `RandomGenerator`), checked by [[ensure-rng]]. `nil` stands for a new generator.
+  - `n` (optional, long): the number of children.
+
+  Returns a lazy infinite sequence of children when `n` is not given, where realizing an element draws one seed. With `n` returns a vector of `n` children and draws exactly `n` seeds, none for `n` equal to `0`.
+
+  A child has the class of `rng` for the generators created by [[rng]]. A generator created by [[synced-rng]] gives children of the default type (`JDKRandomGenerator`), which are not synchronized.
+
+  Throws `ex-info` when `rng` is neither a generator nor `nil` (a distribution included), or when `n` is negative.
+
+  See also [[ensure-rng]], [[set-seed]], [[rng]]."
+  ([rng]
+   (let [rng (ensure-rng rng)]
+     (repeatedly #(child-rng rng))))
+  ([rng ^long n]
+   (when (neg? n) (throw (ex-info "The number of children must not be negative" {:n n})))
+   (let [rng (ensure-rng rng)]
+     (vec (repeatedly n #(child-rng rng))))))
+
 ;; Type hinted functions generating random value
 (defn- next-random-value-long
   "Generate next long.
@@ -466,8 +517,8 @@ Returns true or false with equal probability. You can set `p` probability for `t
        (vec (take dims n))))))
 
 (defn- rv-generators
-  "Generators from commons math and custom classes."
-  [seq-generator ^long dimensions]
+  "Generators from commons math and custom classes. `rng` is used only by `:sphere`."
+  [seq-generator ^long dimensions ^RandomGenerator rng]
   (assert (case seq-generator
             :halton (m/<= 1 dimensions 40)
             :sobol (m/<= 1 dimensions 1000)
@@ -477,7 +528,7 @@ Returns true or false with equal probability. You can set `p` probability for `t
   (let [^RandomVectorGenerator g (case seq-generator
                                    :halton (HaltonSequenceGenerator. dimensions)
                                    :sobol (SobolSequenceGenerator. dimensions)
-                                   :sphere (UnitSphereRandomVectorGenerator. dimensions)
+                                   :sphere (UnitSphereRandomVectorGenerator. dimensions rng)
                                    :r2 (R2. dimensions))]
     (repeatedly (case dimensions
                   1 #(aget (.nextVector g) 0)
@@ -490,11 +541,11 @@ Returns true or false with equal probability. You can set `p` probability for `t
 ;; http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
 
 (defn- random-generators
-  "Random generators"
-  [seq-generator ^long dimensions]
+  "Random generators drawing from `rng`."
+  [seq-generator ^long dimensions rng]
   (let [g (if (= seq-generator :gaussian)
-            grand
-            drand)]
+            #(grandom rng)
+            #(drandom rng))]
     (repeatedly (case dimensions
                   1 g
                   2 (partial v/generate-vec2 g)
@@ -506,15 +557,15 @@ Returns true or false with equal probability. You can set `p` probability for `t
 ;; http://extremelearning.com.au/a-simple-method-to-construct-isotropic-quasirandom-blue-noise-point-sequences/
 
 (defn- jitter-generator
-  "Generate random jitter"
-  [seq-generator ^long dimensions ^double jitter]
+  "Generate random jitter drawn from `rng`"
+  [seq-generator ^long dimensions ^double jitter rng]
   (let [[^double d0 ^double i0 ^double f ^double p] (case seq-generator
                                                       :r2 [0.76 0.7 0.25 -0.5]
                                                       :halton [0.9 0.7 0.25 -0.5]
                                                       :sobol [0.16 0.58 0.4 -0.2]
                                                       [0.5 0.5 0.25 -0.5])
         c (* jitter m/SQRTPI d0 f)
-        g (random-generators :default dimensions)]
+        g (random-generators :default dimensions rng)]
     (map-indexed (fn [^long i v] (v/mult v (* c (m/pow (- (inc i) i0) p)))) g)))
 
 
@@ -534,21 +585,30 @@ Returns true or false with equal probability. You can set `p` probability for `t
       - `:sphere` - pseudo-random points on the surface of a unit sphere (euclidean distance from origin equals `1.0`).
       - `:ball` - pseudo-random points uniformly distributed within a unit ball.
   - `dimensions` (long): number of components per point. Limited to `1-15` for `:r2`, `1-40` for `:halton` and `1-1000` for `:sobol`; unrestricted (`1+`) for the other generators.
+  - `rng` (optional): random number generator (see [[ensure-rng]]) which the pseudo-random generators `:default`, `:gaussian`, `:sphere` and `:ball` draw from. The deterministic `:r2`, `:halton` and `:sobol` ignore it. When it is missing or `nil`, a new `JDKRandomGenerator` is created for every call, the shared [[default-rng]] is never used. The returned sequence holds the generator, so it must be consumed from one thread.
 
   Returns a lazy, infinite sequence of points: a double when `dimensions` is `1`, a `Vec2`, `Vec3` or `Vec4` when `dimensions` is `2`, `3` or `4`, or a plain vector of doubles otherwise.
 
-  Throws an assertion error when `dimensions` exceeds the allowed range for `:r2`, `:halton` or `:sobol`.
+  Throws an assertion error when `dimensions` exceeds the allowed range for `:r2`, `:halton` or `:sobol`, and `ex-info` when `rng` is neither a generator nor `nil`.
 
-  See also [[jittered-sequence-generator]]."}
-  sequence-generator (fn [seq-generator _] seq-generator))
-(defmethod sequence-generator :halton [seq-generator dimensions] (rv-generators seq-generator dimensions))
-(defmethod sequence-generator :sobol [seq-generator dimensions] (rv-generators seq-generator dimensions))
-(defmethod sequence-generator :r2 [seq-generator dimensions] (rv-generators seq-generator dimensions))
-(defmethod sequence-generator :sphere [seq-generator dimensions] (rv-generators seq-generator dimensions))
-(defmethod sequence-generator :gaussian [seq-generator dimensions] (random-generators seq-generator dimensions))
+  See also [[jittered-sequence-generator]], [[ensure-rng]]."}
+  sequence-generator (fn [seq-generator _ & _] seq-generator))
+(defmethod sequence-generator :halton [seq-generator dimensions & [rng]]
+  (rv-generators seq-generator dimensions (ensure-rng rng)))
+(defmethod sequence-generator :sobol [seq-generator dimensions & [rng]]
+  (rv-generators seq-generator dimensions (ensure-rng rng)))
+(defmethod sequence-generator :r2 [seq-generator dimensions & [rng]]
+  (rv-generators seq-generator dimensions (ensure-rng rng)))
+(defmethod sequence-generator :sphere [seq-generator dimensions & [rng]]
+  (rv-generators seq-generator dimensions (ensure-rng rng)))
+(defmethod sequence-generator :gaussian [seq-generator dimensions & [rng]]
+  (random-generators seq-generator dimensions (ensure-rng rng)))
 
-(defmethod sequence-generator :default [seq-generator dimensions] (random-generators seq-generator dimensions))
-(defmethod sequence-generator :ball [_ dimensions] (repeatedly (partial ball-random dimensions)))
+(defmethod sequence-generator :default [seq-generator dimensions & [rng]]
+  (random-generators seq-generator dimensions (ensure-rng rng)))
+(defmethod sequence-generator :ball [_ dimensions & [rng]]
+  (let [rng (ensure-rng rng)]
+    (repeatedly #(ball-random rng dimensions))))
 
 (defn jittered-sequence-generator
   "Creates a lazy, infinite sequence of jittered [[sequence-generator]] points.
@@ -563,20 +623,29 @@ Returns true or false with equal probability. You can set `p` probability for `t
   - `seq-generator`: keyword selecting the base generator, same as for [[sequence-generator]]. Intended for `:r2`, `:sobol` and `:halton`, whose evenly spaced points benefit most from jittering, but works with any registered generator.
   - `dimensions` (long): number of components per point, passed through to [[sequence-generator]].
   - `jitter` (double, optional): jitter amount, from `0.0` (no jitter, identical to the unjittered [[sequence-generator]] sequence) to `1.0` (full jitter). Default: `0.25`.
+  - `rng` (optional): random number generator (see [[ensure-rng]]) which draws the jitter noise and, for the pseudo-random generators, the base points. The deterministic `:r2`, `:halton` and `:sobol` base points do not depend on it. When it is missing or `nil`, new `JDKRandomGenerator`s are created for every call, the shared [[default-rng]] is never used, so seed the generator to reproduce a sequence. The returned sequence holds the generator, so it must be consumed from one thread.
 
   Returns a lazy, infinite sequence of points, same shape as [[sequence-generator]] for the given `dimensions` (a double, `Vec2`, `Vec3`, `Vec4` or a plain vector).
 
-  See also [[sequence-generator]]."
-  ([seq-generator ^long dimensions] (jittered-sequence-generator seq-generator dimensions 0.25))
-  ([seq-generator ^long dimensions ^double jitter]
-   (let [s (sequence-generator seq-generator dimensions) 
+  Throws `ex-info` when `rng` is neither a generator nor `nil`.
+
+  See also [[sequence-generator]], [[ensure-rng]]."
+  ([seq-generator ^long dimensions] (jittered-sequence-generator seq-generator dimensions 0.25 nil))
+  ([seq-generator ^long dimensions ^double jitter] (jittered-sequence-generator seq-generator dimensions jitter nil))
+  ([seq-generator ^long dimensions ^double jitter rng]
+   (let [rng-given? (some? rng)
+         rng (ensure-rng rng)
+         ;; without an rng the sequence generator creates its own, which keeps methods defined elsewhere with two arguments working
+         s (if rng-given?
+             (sequence-generator seq-generator dimensions rng)
+             (sequence-generator seq-generator dimensions))
          [j mod-fn] (if (#{:sphere :gaussian} seq-generator)
-                      (let [j (sequence-generator :gaussian dimensions)
+                      (let [j (sequence-generator :gaussian dimensions rng)
                             jitter-low (* m/SQRTPI 0.5 0.25 jitter)]
                         [j (if (m/one? dimensions)
                              (fn [^double v ^double vj] (+ v (* jitter-low vj)))
                              (fn [v vj] (v/add v (v/mult vj jitter-low))))])
-                      (let [j (jitter-generator seq-generator dimensions jitter)]
+                      (let [j (jitter-generator seq-generator dimensions jitter rng)]
                         [j (if (m/one? dimensions)
                              (fn [^double v ^double vj] (m/frac (+ v vj)))
                              (fn [v vj] (v/fmap (v/add v vj) m/frac)))]))]
@@ -3982,8 +4051,8 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
 
 (defn- jittered-sequence-sampling
   ([kind ^long n] (jittered-sequence-sampling kind nil n))
-  ([kind _ ^long n]
-   (take n (jittered-sequence-generator kind 1))))
+  ([kind rng ^long n]
+   (take n (jittered-sequence-generator kind 1 0.25 rng))))
 
 
 (def ^:private spacings
@@ -4009,7 +4078,7 @@ Below is the full list of supported `:key`s, grouped by kind. For each: its acce
     - `:systematic` - low-variance systematic sampling using a single shared random offset.
     - `:stratified` - stratified sampling, one random draw per equal-width stratum.
     - `:antithetic` - antithetic sampling, pairing each draw `r` with its complement `1 - r`.
-    - `:r2`, `:sobol`, `:halton` - jittered low-discrepancy sequences.
+    - `:r2`, `:sobol`, `:halton` - jittered low-discrepancy sequences. The jitter is drawn from `rng` when it is a random number generator, and from a new `JDKRandomGenerator` when it is a distribution.
     When `rng` is a distribution, the resulting uniform values are transformed through its inverse cumulative distribution function; otherwise they are returned as-is.
 
   Returns a lazy sequence of samples.

@@ -23,12 +23,16 @@
              (m/seq->double-array (repeat nintervals (m// (m/- ub lb) nintervals)))) pairs)]))
 
 (defn vegas-random-sequence
-  [^long dims {:keys [random-sequence ^double jitter]
+  [^long dims {:keys [random-sequence ^double jitter rng]
                :or {random-sequence :uniform jitter 0.75}}]
   (if (and (not (= random-sequence :uniform))
            (m/pos? jitter))
-    (r/jittered-sequence-generator random-sequence dims jitter)
-    (r/sequence-generator random-sequence dims)))
+    (if (nil? rng)
+      (r/jittered-sequence-generator random-sequence dims jitter)
+      (r/jittered-sequence-generator random-sequence dims jitter rng))
+    (if (nil? rng)
+      (r/sequence-generator random-sequence dims)
+      (r/sequence-generator random-sequence dims rng))))
 
 (defn Itot-sd
   [integrals rev-sigma-squares]

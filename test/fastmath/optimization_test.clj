@@ -3,6 +3,7 @@
             [fastmath.optimization.problems :as p]
             [clojure.test :as t]
             [fastmath.vector :as v]
+            [fastmath.random :as r]
             [fastmath.core :as m])
   (:import [org.apache.commons.math3.exception TooManyEvaluationsException TooManyIterationsException]
            [org.apache.commons.math3.optim.linear NoFeasibleSolutionException UnboundedSolutionException]))
@@ -251,14 +252,15 @@
     (t/is (fn? mz))
     (t/is (near-minimum? (first (mz [1 1]))))
     (t/is (pos? @calls))
-    ;; no zero arity
-    (t/is (thrown? clojure.lang.ArityException (mz)))
     ;; nil is the default initial point: the middle of the bounds
     (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb}) (mz nil)))
+    (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb}) (mz)))
     ;; the initial point of the call replaces the :initial option, and gives the same result as minimize
     (let [mz2 (sut/minimizer :lbfgsb p/himmelblau {:bounds hb :initial [-3 -3]})]
       (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb :initial [2 2]}) (mz2 [2 2])))
-      (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb}) (mz2 nil)))))
+      (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb}) (mz2 nil)))
+      (t/is (= (sut/minimize :lbfgsb p/himmelblau {:bounds hb}) (mz2)))
+      (t/is (= (mz2) (mz2 nil)))))
   ;; different minima from different initial points
   (let [mz (sut/minimizer :nelder-mead p/himmelblau {:bounds hb})]
     (t/is (v/delta-eq [3.0 2.0] (first (mz [2.5 1.5])) 1.0e-3))
@@ -369,7 +371,7 @@
     (t/is (m/delta-eq -1.899599 val 1.0e-5)))
   ;; stats, regression: brent did not return them and the scan failed on them
   (let [s (sut/scan-and-minimize :brent p/problem02 {:bounds [2.7 7.5] :stats? true})]
-    (t/is (= #{:point :value :evaluations :iterations} (set (keys s))))
+    (t/is (= #{:point :value :evaluations :iterations :lo :hi} (set (keys s))))
     (t/is (m/delta-eq -1.899599 (:value s) 1.0e-5)))
   ;; the global maximum on the interval (a dense grid search gives 6.217309, 0.888315),
   ;; while the local maximum at 4.1966 is found by a plain minimize :brent from its neighbourhood
@@ -435,6 +437,73 @@
     (t/is (= method (:method (ex-data-of #(sut/scan-and-minimize method p/himmelblau {:bounds [[##-Inf ##Inf] [0 1]]})))) (str method))))
 
 ;; bayesian optimization
+
+;; rng option
+
+(defn- scan [method rng-fn opts]
+  (sut/scan-and-minimize method p/himmelblau (merge {:bounds hb :N 40 :n 6 :stats? true :rng (rng-fn)} opts)))
+
+(t/deftest scan-rng
+  (doseq [method [:cmaes :lbfgsb :nelder-mead :bobyqa]
+          rng-fn [#(r/rng :jdk 1) #(r/rng :mersenne 1) #(r/synced-rng :isaac 1)]]
+    (let [label (str method " " (class (rng-fn)))
+          seq-1 (scan method rng-fn {:parallel? false})]
+      (t/is (some? seq-1) label)
+      (t/is (= seq-1 (scan method rng-fn {:parallel? false})) (str label ": equal seeds, sequential"))
+      (t/is (= seq-1 (scan method rng-fn {:parallel? true})) (str label ": parallel equals sequential"))))
+  (t/testing "a not thread safe generator gives the same result in repeated parallel runs"
+    (let [first-run (scan :cmaes #(r/rng :mersenne 5) {:parallel? true :n 12})]
+      (dotimes [_ 5]
+        (t/is (= first-run (scan :cmaes #(r/rng :mersenne 5) {:parallel? true :n 12}))))))
+  (t/testing "the stochastic method depends on the seed"
+    (t/is (not= (scan :cmaes #(r/rng :jdk 1) {}) (scan :cmaes #(r/rng :jdk 2) {}))))
+  (t/testing "results with take-last-n are reproducible"
+    (let [run #(sut/scan-and-minimize :cmaes p/himmelblau {:bounds hb :N 30 :n 5 :take-last-n 3 :rng (r/rng :jdk 3)})]
+      (t/is (= (run) (run)))))
+  (t/testing "a missing and a nil rng create a new generator"
+    (t/is (some? (sut/scan-and-minimize :cmaes p/himmelblau {:bounds hb :N 20})))
+    (t/is (some? (sut/scan-and-minimize :cmaes p/himmelblau {:bounds hb :N 20 :rng nil}))))
+  (t/testing "a value which is not a generator throws ex-info"
+    (doseq [bad [5 :jdk "x" (r/distribution :normal)]
+            f [sut/scan-and-minimize sut/scan-and-maximize sut/scan-and-optimize]]
+      (t/is (= {:rng bad} (ex-data-of #(f :cmaes p/himmelblau {:bounds hb :rng bad}))))))
+  (t/testing "the shared generator is not used"
+    (r/set-seed! 1)
+    (let [expected (r/drand)]
+      (r/set-seed! 1)
+      (sut/scan-and-minimize :cmaes p/himmelblau {:bounds hb :N 20 :rng (r/rng :jdk 1)})
+      (sut/scan-and-minimize :cmaes p/himmelblau {:bounds hb :N 20})
+      (t/is (= expected (r/drand))))))
+
+(defn- bayesian-steps [f opts n]
+  (mapv #(select-keys % [:xs :ys :x :y]) (take n (sut/bayesian-optimization f (merge {:warm-up 50} opts)))))
+
+(t/deftest bayesian-optimization-rng
+  (let [f2 (fn [v] (- (p/himmelblau v)))
+        f1 (fn [[x]] (- (p/problem02 x)))
+        cases [[f2 {:bounds hb :optimizer :lbfgsb}] [f1 {:bounds [[2.7 7.5]] :optimizer :cmaes}] [f2 {:bounds hb}]]]
+    (doseq [[f opts] cases]
+      (let [run (fn [seed extra] (bayesian-steps f (merge opts {:rng (r/rng :jdk seed)} extra) 3))]
+        (t/is (= (run 1 {}) (run 1 {})) (str opts ": equal seeds"))
+        (t/is (not= (run 1 {}) (run 2 {})) (str opts ": different seeds"))
+        (t/is (= (run 1 {}) (run 1 {:optimizer-params {:rng (r/rng :jdk 99)}}))
+              (str opts ": rng of optimizer-params is overridden")))))
+  (t/testing "initial points given as a sequence leave the steps seeded"
+    (let [run #(bayesian-steps (fn [v] (- (p/himmelblau v))) {:bounds hb :init-points [[0.0 0.0] [1.0 1.0]] :rng (r/rng :jdk 4)} 2)]
+      (t/is (= (run) (run)))))
+  (t/testing "a missing and a nil rng create a new generator"
+    (t/is (= 2 (count (bayesian-steps (fn [v] (- (p/himmelblau v))) {:bounds hb} 2))))
+    (t/is (= 2 (count (bayesian-steps (fn [v] (- (p/himmelblau v))) {:bounds hb :rng nil} 2)))))
+  (t/testing "a value which is not a generator throws ex-info"
+    (doseq [bad [5 :jdk "x" (r/distribution :normal)]]
+      (t/is (= {:rng bad} (ex-data-of #(sut/bayesian-optimization (fn [v] (- (p/himmelblau v))) {:bounds hb :rng bad}))))))
+  (t/testing "the shared generator is not used"
+    (r/set-seed! 1)
+    (let [expected (r/drand)]
+      (r/set-seed! 1)
+      (bayesian-steps (fn [v] (- (p/himmelblau v))) {:bounds hb :rng (r/rng :jdk 1)} 2)
+      (bayesian-steps (fn [v] (- (p/himmelblau v))) {:bounds hb} 2)
+      (t/is (= expected (r/drand))))))
 
 (t/deftest bayesian-optimization-steps
   (let [f (fn [v] (- (p/himmelblau v)))

@@ -69,7 +69,9 @@
   [method f options goal]
   (let [optimize-fn (optimizer method)
         options (assoc options :goal goal)]
-    (fn [initial] (optimize-fn f (assoc options :initial initial)))))
+    (fn local-initial-point-optimizer
+      ([] (local-initial-point-optimizer nil))
+      ([initial] (optimize-fn f (assoc options :initial initial))))))
 
 (defn minimizer
   "Creates a function which minimizes the function `f` from a given initial point.
@@ -164,12 +166,12 @@
 
 (defn- generate-points
   "Evaluates `f` (a function of a sequence) at `N` (at least `4.5 + d log2 d` for `d` dimensions) points of the bounds and returns the points sorted from the best one."
-  [f bounds goal N jitter]
+  [f bounds goal N jitter rng]
   (let [dim (count bounds)
         lo (map first bounds)
         hi (map second bounds)
         N (long (m/max (m/+ 4.5 (m/* dim (m/log2 dim))) (long N)))
-        gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter)]
+        gen (r/jittered-sequence-generator (if (m/< dim 15) :r2 :sobol) dim jitter rng)]
     (->> (if (m/one? dim) (map vector gen) gen)
          (map (fn [v] (let [p (v/einterpolate lo hi v)] [(f p) p])))
          (filter (comp m/valid-double? first))
@@ -201,6 +203,7 @@
     - `:jitter` - jitter of the sequence generator, default: `0.25`.
     - `:parallel?` - run the optimizations in parallel, default: `true`. The function has to be thread safe.
     - `:vector-arg?` - how the function receives the point, see [[fastmath.optimization]].
+    - `:rng` - random number generator (see [[fastmath.random/rng]]) which draws the scanned points. Every optimization run gets its own `:rng`, a new generator seeded from this one in the order of the scanned points, so the runs of stochastic methods (`:cmaes`, ...) never share a generator, also in parallel mode. The given generator itself is not passed to the methods. Seed it to reproduce a result, the same seeded generator gives the same result with `:parallel?` `true` and `false`. Default: a new `JDKRandomGenerator` for every call. Throws `ex-info` for a value which is not a generator.
     - `:take-last-n` - when greater than `1`, return the best `:take-last-n` results as a sequence, default: `0`.
     - `:stats?` - return maps with additional information instead of `[point value]`.
 
@@ -209,26 +212,29 @@
   Runs which throw an exception, for example when a limit is exceeded, are skipped. Exceptions of the evaluation of the scanned points, an unknown method and invalid bounds or options throw.
 
   See also [[scan-and-minimize]], [[scan-and-maximize]], [[minimize]]."
-  [method f {:keys [bounds N n jitter parallel? vector-arg? goal take-last-n stats?]
+  [method f {:keys [bounds N n jitter parallel? vector-arg? goal take-last-n stats? rng]
              :or {parallel? true}
              :as opts}]
   (let [N (long (or N 100))
         n (double (or n 0.05))
         jitter (double (or jitter 0.25))
         take-last-n (long (or take-last-n 0))
+        rng (r/ensure-rng rng)
         optimize-fn (optimizer method)
         goal (common/parse-goal goal)
         bounds (or (common/normalize-bounds method bounds nil)
                    (throw (ex-info "Provide search bounds." {:method method :bounds bounds})))
         vector-arg? (common/resolve-vector-arg? method vector-arg?)
         opts (assoc opts :bounds bounds :goal goal :vector-arg? vector-arg?)
-        run (wrap-optimizer (fn [initial] (optimize-fn f (assoc opts :initial initial))))
-        samples (generate-points (common/->vector-fn f vector-arg?) bounds goal N jitter)
+        ;; every run owns a generator seeded from rng in the order of the scanned points, whatever the number of the executed runs
+        run (wrap-optimizer (fn [[initial run-rng]] (optimize-fn f (assoc opts :initial initial :rng run-rng))))
+        samples (generate-points (common/->vector-fn f vector-arg?) bounds goal N jitter rng)
+        runs (map vector samples (r/child-rngs rng))
         nbest (long (m/max 1 (if (m/> n 1.0) n (m/floor (m/* n N)))))
         taker (if (m/> take-last-n 1) (partial take take-last-n) first)
         mapper (if parallel? pmap map)
         sort-selector (if stats? :value second)]
-    (->> (mapper run samples)
+    (->> (mapper run runs)
          (filter identity)
          (take nbest)
          (sort-by sort-selector (goal-comparator goal))
@@ -241,7 +247,7 @@
 
   - `method` (keyword): optimization method, see [[fastmath.optimization]].
   - `f` (function): the function to minimize.
-  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
+  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:rng`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
 
   Returns the best result of the form of [[minimize]], or `nil` when all runs failed.
 
@@ -256,7 +262,7 @@
 
   - `method` (keyword): optimization method, see [[fastmath.optimization]].
   - `f` (function): the function to maximize.
-  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
+  - `opts` (map): `:bounds` (required), the options of the method and the scan options `:N`, `:n`, `:jitter`, `:parallel?`, `:rng`, `:take-last-n`, see [[scan-and-optimize]]. `:goal` is overridden.
 
   Returns the best result of the form of [[maximize]], or `nil` when all runs failed.
 
@@ -293,28 +299,30 @@
       (r/cdf r/default-normal (m// (m/- mean y-max xi) stddev)))))
 
 (defn- gen-sequence
-  [init-points bounds jitter]
+  [init-points bounds jitter rng]
   (let [dims (count bounds)
         int-fn (if (m/one? dims)
                  #(vector (m/lerp (ffirst bounds) (second (first bounds)) %))
                  #(v/einterpolate (mapv first bounds) (mapv second bounds) %))]
-    (->> (r/jittered-sequence-generator (if (m/< dims 15) :r2 :sobol) dims jitter)
+    (->> (r/jittered-sequence-generator (if (m/< dims 15) :r2 :sobol) dims jitter rng)
          (take init-points)
          (map int-fn))))
 
 (defn- initial-values
-  [f init-points bounds jitter]
+  [f init-points bounds jitter rng]
   (let [pts (if (sequential? init-points)
               init-points
-              (gen-sequence init-points bounds jitter))]
+              (gen-sequence init-points bounds jitter rng))]
     [pts (map f pts)]))
 
 (defn- bayesian-step-fn
-  [f util-fn warm-up bounds gp jitter optimizer optimizer-params]
+  [f util-fn warm-up bounds gp jitter optimizer optimizer-params rng]
   ;; the utility function is a function of one sequence and the result has to be a single point
+  ;; the scan is sequential, so one generator serves the scanned points and the seeds of the optimizer runs
   (let [params (merge optimizer-params {:N warm-up :n 0.02
                                         :bounds bounds :jitter jitter :parallel? false
-                                        :vector-arg? true :stats? false :take-last-n 0})]
+                                        :vector-arg? true :stats? false :take-last-n 0
+                                        :rng rng})]
     (fn [{:keys [x ^double y xs ys]}]
       (let [curr-gp (gp xs ys)
             curr-util (fn [r] (util-fn curr-gp (vec r) y))
@@ -355,7 +363,8 @@
     - `:noise` - noise (lambda) of the Gaussian process, default: `1.0e-8`.
     - `:normalize?` - normalize data in the Gaussian process, default: `true`.
     - `:optimizer` - method used to optimize the utility function, default: `:cmaes` for one dimension and `:lbfgsb` otherwise. A point found outside of the bounds by a method without constraints is moved to the bounds.
-    - `:optimizer-params` - options of the optimizer. The scan options and `:vector-arg?`, `:stats?` and `:take-last-n` are set by the function.
+    - `:optimizer-params` - options of the optimizer. The scan options and `:vector-arg?`, `:stats?`, `:take-last-n` and `:rng` are set by the function.
+    - `:rng` - random number generator (see [[fastmath.random/rng]]) which draws the initial points and, through the scan of the utility function, the scanned points and the generators of the optimizer runs (see [[scan-and-optimize]]). Seed it to reproduce a result. Default: a new `JDKRandomGenerator` for every call. The returned lazy sequence uses the generator when its steps are realized, so realize it from one thread. Throws `ex-info` for a value which is not a generator.
 
   Returns a lazy sequence of consecutive steps. Every step is a map with:
 
@@ -369,7 +378,7 @@
 
   See also [[scan-and-maximize]], [[maximize]]."
   [f {:keys [^long warm-up init-points bounds utility-function-type utility-param kernel kscale
-             jitter noise optimizer optimizer-params normalize? vector-arg?]
+             jitter noise optimizer optimizer-params normalize? vector-arg? rng]
       :or {kscale 1.0
            kernel :matern-52
            init-points 3
@@ -377,7 +386,8 @@
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
-  (let [;; the default optimizer depends on the number of dimensions, which any structural check of the bounds gives
+  (let [rng (r/ensure-rng rng)
+        ;; the default optimizer depends on the number of dimensions, which any structural check of the bounds gives
         optimizer (or optimizer (if (m/one? (count (common/normalize-bounds :powell bounds nil))) :cmaes :lbfgsb))
         bounds (or (common/normalize-bounds optimizer bounds nil)
                    (throw (ex-info "Provide search bounds." {:optimizer optimizer :bounds bounds})))
@@ -385,11 +395,11 @@
         warm-up (or warm-up (m/* (count bounds) 1000))
         utility-param (double (or utility-param (if (#{:ei :poi} utility-function-type) 0.001 2.576)))
         kernel (if (keyword? kernel) (k/kernel kernel) kernel)
-        [xs ys] (initial-values f init-points bounds jitter)
+        [xs ys] (initial-values f init-points bounds jitter rng)
         [maxx maxy] (first (sort-by second m/> (map vector xs ys)))
         util-fn (utility-function utility-function-type utility-param)
         gp #(gp/gaussian-process %1 %2 {:normalize? normalize? :kernel kernel :kscale kscale :noise noise})
-        step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer optimizer-params)]
+        step-fn (bayesian-step-fn f util-fn warm-up bounds gp jitter optimizer optimizer-params rng)]
     (rest (iterate step-fn {:x maxx
                             :y maxy
                             :xs xs
@@ -563,7 +573,7 @@
                   (* y y))))
 
            (defn hump-grad
-             [^double x ^double y]
+             [[^double x ^double y]]
              (let [x2 (* x x)
                    x4 (* x2 x2)]
                [(+ (* 4.0 x)
@@ -573,7 +583,8 @@
                 (+ x (* 2.0 y))]))
 
            (minimize :lbfgsb hump {:bounds [[-5 5.1] [-5 5.1]]
-                                   :gradient-f hump-grad :N 1000
-                                   :weak-wolfe? false
+                                   :gradient-f hump-grad
+                                   :weak-wolfe? true
+                                   :vector-arg? false
                                    :stats? true}))
 

@@ -996,6 +996,71 @@
     m22 m33 m33s m44)
   (t/is (false? (sut/singular? (sut/eigen-decomposition m33)))))
 
+;; Regression tests: `->vec` returned its argument unchanged for sizes other than
+;; 2, 3 and 4, so decomposition `solve` returned a raw `ArrayRealVector` and the
+;; `:acm` `:eigenvectors` component threw for matrices larger than 4x4. Sizes 4
+;; (the last one that worked) and 5 (the first one that failed) are the boundary.
+
+(defn- spd-mat
+  "Symmetric, diagonally dominant (so positive definite) `n`x`n` matrix."
+  [^long n]
+  (sut/rows->mat (for [i (range n)]
+                   (for [j (range n)]
+                     (m/+ (m// (m/+ i j 1.0)) (if (m/== i j) n 0.0))))))
+
+(defn- row-seqs [A] (mapv vec (sut/mat->array2d A)))
+
+(defn- acm-eigen-relation-ok?
+  "True when the `:acm` eigenvector components of `A` satisfy `A v = lambda v` for scaling `scaling`."
+  [A scaling]
+  (let [ed (sut/eigen-decomposition A {:backend :acm :eigenvectors-scaling scaling})
+        lambdas (seq (sut/decomposition-component ed :real-eigenvalues))
+        vs (sut/decomposition-component ed :eigenvectors)]
+    (and (= (count lambdas) (count vs) (sut/nrow A))
+         (every? true?
+                 (map (fn [^double lambda v]
+                        (if (= scaling :raw)
+                          (v/delta-eq (mapv (fn [row] (reduce m/+ (map m/* row v))) (row-seqs A))
+                                      (mapv #(m/* lambda %) v))
+                          (v/delta-eq (flatten-cplx (mapv (fn [row] (reduce cplx/add (map cplx/scale v row)))
+                                                          (row-seqs A)))
+                                      (flatten-cplx (mapv #(cplx/scale % lambda) v)))))
+                      lambdas vs)))))
+
+(t/deftest eigen-above-4d
+  (doseq [n [4 5 6 20]
+          :let [A (spd-mat n)]]
+    (t/testing (str n "x" n)
+      (doseq [scaling [:raw false true :lapack]]
+        (t/is (acm-eigen-relation-ok? A scaling) (str scaling)))
+      (let [ed (sut/eigen-decomposition A {:backend :acm :eigenvectors-scaling :raw})]
+        (t/is (= (mapv vec (sut/decomposition-component ed :eigenvectors))
+                 (apply mapv vector (row-seqs (sut/decomposition-component ed :V)))))))))
+
+(t/deftest solve-decomposition-above-4d
+  (doseq [n [4 5 6 20]
+          :let [A (spd-mat n)
+                x0 (mapv m/inc (range n))
+                b (mapv #(reduce m/+ (map m/* % x0)) (row-seqs A))]
+          [nm d] [[:lu (sut/lu-decomposition A)]
+                  [:qr (sut/qr-decomposition A)]
+                  [:cholesky (sut/cholesky-decomposition A)]
+                  [:eigen (sut/eigen-decomposition A)]
+                  [:sv (sut/sv-decomposition A)]]
+          :let [x (sut/solve d b)]]
+    (t/is (v/delta-eq (vec x) x0 1.0e-8) (str n " " nm))
+    (when (m/> n 4)
+      (t/is (instance? (Class/forName "[D") x) (str n " " nm)))))
+
+(t/deftest solve-qr-rectangular-above-4d
+  ;; rectangular QR is a least squares solver (size hint -1): consistent system, exact solution
+  (let [R (sut/rows->mat (for [i (range 7)] (for [j (range 5)] (m/+ (m/sin (m/+ i 1.0 (m/* 2.0 j))) (if (m/== i j) 3.0 0.0)))))
+        x0 [1.0 -2.0 3.0 -4.0 5.0]
+        b (mapv #(reduce m/+ (map m/* % x0)) (row-seqs R))
+        x (sut/solve (sut/qr-decomposition R) b)]
+    (t/is (instance? (Class/forName "[D") x))
+    (t/is (v/delta-eq (vec x) x0 1.0e-8))))
+
 ;; `:sqrt`: only supported by Apache Commons Math for certain matrices
 ;; (broadly, symmetric positive-(semi)definite ones); throws for `m33s`
 ;; (symmetric, but indefinite -- has a negative eigenvalue) and `m33`

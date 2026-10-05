@@ -97,11 +97,11 @@
   [method finite? strict?]
   (fn [[^double lo ^double hi]]
     (cond
-      (or (Double/isNaN lo) (Double/isNaN hi)) "bounds must not be NaN"
+      (or (m/nan? lo) (m/nan? hi)) "bounds must not be NaN"
       (m/> lo hi) "lower bound must not be greater than upper bound"
-      (m/== lo Double/POSITIVE_INFINITY) "lower bound must not be +Inf"
-      (m/== hi Double/NEGATIVE_INFINITY) "upper bound must not be -Inf"
-      (and finite? (or (Double/isInfinite lo) (Double/isInfinite hi))) (str method " requires finite bounds")
+      (m/pos-inf? lo) "lower bound must not be +Inf"
+      (m/neg-inf? hi) "upper bound must not be -Inf"
+      (and finite? (or (m/inf? lo) (m/inf? hi))) (str method " requires finite bounds")
       (and strict? (m/== lo hi)) (str method " requires lower bound less than upper bound"))))
 
 (defn normalize-bounds
@@ -130,7 +130,7 @@
   (let [{:keys [required? one-pair? finite? strict?]} (or (bounds-rules method)
                                                           (throw-unknown :method method (set (keys bounds-rules))))
         fail (fn [reason] (throw (ex-info (str "Invalid bounds for " method ": " reason)
-                                          {:method method :bounds bounds :initial initial :reason reason})))]
+                                         {:method method :bounds bounds :initial initial :reason reason})))]
     (if (nil? bounds)
       (when required? (fail "bounds are required"))
       (let [flat? (and (sequential? bounds) (m/== 2 (count bounds)) (every? number? bounds))
@@ -145,7 +145,7 @@
           (when-let [reason (some (pair-problem method finite? strict?) res)]
             (fail reason))
           (if (nil? initial)
-            (when (some (fn [[^double lo ^double hi]] (or (Double/isInfinite lo) (Double/isInfinite hi))) res)
+            (when (some (fn [[^double lo ^double hi]] (or (m/inf? lo) (m/inf? hi))) res)
               (fail "infinite bounds require an initial point"))
             (let [dims (if (number? initial) 1 (count initial))]
               (when (not= dims (count res))
@@ -161,7 +161,7 @@
 
   Returns a `double[]`. The middle is computed as half of the lower bound plus half of the upper bound, so it does not overflow for huge bounds. Infinite bounds give an infinite or NaN result; [[normalize-bounds]] rejects them when no initial point is given."
   ^doubles [bounds]
-  (double-array (map (fn [[^double lo ^double hi]] (m/+ (m/* 0.5 lo) (m/* 0.5 hi))) bounds)))
+  (double-array (map (fn [[^double lo ^double hi]] (m/* 0.5 (m/+ lo hi))) bounds)))
 
 ;; Apache Commons Math
 

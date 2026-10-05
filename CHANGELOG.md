@@ -60,13 +60,11 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization` `:lbfgsb` with a numerical gradient evaluated the function outside of the bounds and could end with NaN after 1000 iterations; a non-finite value now throws (LBFGSBJava)
 * `fastmath.optimization/bayesian-optimization` could evaluate the function outside of the bounds with unconstrained optimizers and failed with `:optimizer :brent` and with a function of separate arguments
 * `fastmath.optimization/linear-optimization` treated any unknown relation as equality and silently ignored an incomplete last constraint
-* `fastmath.optimization.problems`: `problem03` and `problem08` had an extra sixth term (published minima -12.03125 and -14.508 were not reproduced), `->auckley` returned a wrong value for more than one non-zero coordinate, wrong bounds of `beale` (degenerate second range), Ackley (`+-32768` instead of `+-32.768`) and `sphere`
 
 ### Changed
 
-* [breaking] optimization refactor: `minimizer`/`maximizer` return a function of exactly one argument (initial point or `nil`), `*-data` functions, `:bfgs` and `:bounded?` are removed, functions receive the point as one sequence by default (`:vector-arg?`, `:brent` receives a number), `:stats?` returns a map `{:point :value ...}` which depends on the method, default `:max-evals`/`:max-iters` is `10000`, the simplex size is set by `:length` (a fraction of bounds)
+* [breaking] optimization refactor: `:bfgs` and `:bounded?` are removed, functions receive the point as one sequence by default (`:vector-arg?`, `:brent` receives a number), `:stats?` returns a map `{:point :value ...}` which depends on the method, default `:max-evals`/`:max-iters` is `10000`, the simplex size is set by `:length` (a fraction of bounds)
 * [breaking] optimization: unknown methods, goals, relations, rules, line searches, formulas and utility function types throw `ex-info`, `linear-optimization` accepts only the relations `<=`, `>=`, `=` (or `:leq`, `:geq`, `:eq`) and its limit is `:max-iters`
-* [breaking] `fastmath.optimization.problems/->auckley` and `auckley-bounds` renamed to `->ackley` and `ackley-bounds`, `:levis-overton` line search renamed to `:lewis-overton`
 
 ## [3.0.0 alpha9]
 

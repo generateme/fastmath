@@ -7,8 +7,10 @@
 
   Bounds are always required and are validated before the optimization starts (see [[fastmath.optimization.common/normalize-bounds]]). Infinite bounds are allowed when the initial point is given. The objective function is never evaluated outside of the bounds, also when the gradient is approximated numerically. A non-finite objective value or gradient stops the optimization with an exception."
   (:require [fastmath.core :as m]
+            [fastmath.vector :as v]
             [fastmath.optimization.common :as common])
-  (:import [org.generateme.lbfgsb Parameters Parameters$LINESEARCH LBFGSB LBFGSB$Status IGradFunction]))
+  (:import [org.generateme.lbfgsb Parameters Parameters$LINESEARCH LBFGSB LBFGSB$Status IGradFunction]
+           [fastmath.java Array]))
 
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* :warn-on-boxed)
@@ -98,28 +100,25 @@
         ^doubles l l
         ^doubles u u
         h (double h)
-        f0 (delay (double (evaluate xs)))
-        shifted (fn [i x shift]
-                  (let [i (long i)
-                        x (double x)]
-                    (aset xs i (m/+ x (double shift)))
-                    (let [v (double (evaluate xs))]
-                      (aset xs i x)
-                      v)))]
+        shifted (fn ^double [^long i ^double x ^double shift]
+                  (Array/aset xs i (m/+ x shift))
+                  (let [v (double (evaluate xs))]
+                    (Array/aset xs i x)
+                    v))]
     (dotimes [i (alength xs)]
-      (let [x (aget xs i)
-            dl (m/- x (aget l i))
-            du (m/- (aget u i) x)]
-        (aset g i (double
-                   (cond
-                     (and (m/>= dl h) (m/>= du h)) (m// (m/- (double (shifted i x h)) (double (shifted i x (m/- h)))) (m/* 2.0 h))
-                     (m/>= du h) (m// (m/- (double (shifted i x h)) (double @f0)) h)
-                     (m/>= dl h) (m// (m/- (double @f0) (double (shifted i x (m/- h)))) h)
-                     :else (let [s (m/max dl du)]
-                             (cond
-                               (m/<= s 0.0) 0.0
-                               (m/>= du dl) (m// (m/- (double (shifted i x s)) (double @f0)) s)
-                               :else (m// (m/- (double @f0) (double (shifted i x (m/- s)))) s))))))))))
+      (let [x (Array/aget xs i)
+            dl (m/- x (Array/aget l i))
+            du (m/- (Array/aget u i) x)]
+        (Array/aset g i (double
+                         (cond
+                           (and (m/>= dl h) (m/>= du h)) (m// (m/- (double (shifted i x h)) (double (shifted i x (m/- h)))) (m/* 2.0 h))
+                           (m/>= du h) (m// (m/- (double (shifted i x h)) (double (evaluate xs))) h)
+                           (m/>= dl h) (m// (m/- (double (evaluate xs)) (double (shifted i x (m/- h)))) h)
+                           :else (let [s (m/max dl du)]
+                                   (cond
+                                     (m/not-pos? s) 0.0
+                                     (m/>= du dl) (m// (m/- (double (shifted i x s)) (double (evaluate xs))) s)
+                                     :else (m// (m/- (double (evaluate xs)) (double (shifted i x (m/- s)))) s))))))))))
 
 (defn- grad-function
   "Creates the Java objective with gradient.
@@ -127,17 +126,17 @@
   The objective is minimized: for `sign` equal to `-1.0` the value and the gradient of `f` are negated. `f` receives the point as a sequence. `gradient` (a function of the point returning a sequence of `n` numbers or `nil`) is used when given, otherwise the gradient is approximated with step `h` inside the box `[l, u]`."
   ^IGradFunction [f gradient sign h l u]
   (let [sign (double sign)
-        evaluate (fn ^double [^doubles xs] (m/* sign (double (f xs))))]
+        evaluate (fn ^double [xs] (m/* sign (double (f xs))))]
     (if gradient
       (reify IGradFunction
         (evaluate [_ xs] (evaluate xs))
         (gradient [_ xs g]
           (let [^doubles res (or (m/seq->double-array (gradient xs)) (double-array 0))
                 n (alength ^doubles g)]
-            (when-not (m/== n (alength res))
+            (when (m/not== n (alength res))
               (throw (ex-info "Gradient has wrong length" {:expected n :actual (alength res)})))
             (dotimes [i n]
-              (aset ^doubles g i (m/* sign (aget res i)))))))
+              (Array/aset ^doubles g i (m/* sign (Array/aget res i)))))))
       (reify IGradFunction
         (evaluate [_ xs] (evaluate xs))
         (gradient [_ xs g] (finite-difference-gradient! evaluate xs g l u h))))))
@@ -155,7 +154,7 @@
   Parameters:
 
   - `f` (function): the objective. It receives the point as one sequence (a `double[]` here), or as separate arguments when `:vector-arg?` is `false`, and returns a number. It is never called outside of `:bounds`.
-  - `opts` (map): all keys of [[parameters]] and:
+  - `opts` (map): all keys of [[parameters]] (below) and:
     - `:bounds` (required) - sequence of `[lo hi]` pairs, one for each dimension. Infinite values are allowed when `:initial` is given. A flat `[lo hi]` is accepted for one dimension.
     - `:initial` - initial point, default: the middle of the bounds. A point outside of the bounds is moved to the nearest bound.
     - `:goal` - `:minimize` (default) or `:maximize`.
@@ -163,6 +162,23 @@
     - `:gradient` - function of the point (always one sequence) returning the gradient of `f` as a sequence of numbers. It is the gradient of `f` itself, also when maximizing. Default: the gradient is approximated with finite differences.
     - `:gradient-h` - step of the finite differences, default: `1.0e-6`. Used only when `:gradient` is not given. Near a bound a one-sided difference is used.
     - `:stats?` - return a map with additional information, default: `false`.
+
+  [[parameters]] keys:
+
+    - `:m` - number of stored correction pairs, the memory of the method, default: `6`.
+    - `:abs`, `:rel` - absolute and relative tolerance of the projected gradient norm, default: `1.0e-8` each. The optimization stops when the norm is below `:abs` or below `:rel` times the norm of the point.
+    - `:past` - number of past iterations used by the stall test, default: `3`. `0` disables the test.
+    - `:delta` - the optimization stops when the objective changed by less than this value (scaled by the objective magnitude, at least 1) over the last `:past` iterations, default: `1.0e-10`.
+    - `:max-iters` - maximum number of iterations, default: `1000`. `0` means unlimited.
+    - `:max-submin` - maximum number of iterations of the subspace minimization, default: `10`.
+    - `:max-linesearch` - maximum number of line search iterations, default: `20`.
+    - `:linesearch` - line search method, one of `:more-thuente` (or `:orig`, default), `:more-thuente-lbfgspp` (or `:lbfgsb`) and `:lewis-overton` (experimental).
+    - `:xtol` - relative tolerance of the line search interval, default: `1.0e-8`.
+    - `:min-step`, `:max-step` - bounds on the line search step, default: `1.0e-20` and `1.0e20`.
+    - `:ftol` - sufficient decrease parameter of the line search, default: `1.0e-4`.
+    - `:wolfe` - curvature condition parameter of the line search, default: `0.9`.
+    - `:weak-wolfe?` - use the weak Wolfe condition, default: `true`.
+    - `:debug?` - print the progress of the algorithm to the standard output, default: `false`. The setting is global and is applied on every call.
 
   Returns `[point value]`, where `point` is a vector and `value` is the value of `f`. When `:stats?` is `true`, returns a map with:
 
@@ -195,6 +211,6 @@
       {:point (vec x)
        :value value
        :iterations (.-k optimizer)
-       :gradient (mapv #(m/* sign (double %)) (.-m_grad optimizer))
+       :gradient (seq (v/mult (.-m_grad optimizer) sign))
        :status (status-keyword (.-status optimizer))}
       [(vec x) value])))

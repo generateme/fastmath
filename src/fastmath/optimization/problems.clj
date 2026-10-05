@@ -7,7 +7,8 @@
 
   The docstrings give the global minimum of every function."
   (:require [fastmath.core :as m]
-            [fastmath.vector :as v]))
+            [fastmath.vector :as v])
+  (:import [fastmath.java Array]))
 
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
@@ -887,10 +888,10 @@
         g (double-array n)]
     (dotimes [i (m/dec n)]
       (let [x (aget xs i)
-            x-next (aget xs (m/inc i))
+            x-next (Array/aget xs (m/inc i))
             d (m/- x-next (m/* x x))]
-        (aset g i (m/+ (aget g i) (m/* -400.0 x d) (m/* 2.0 (m/dec x))))
-        (aset g (m/inc i) (m/+ (aget g (m/inc i)) (m/* 200.0 d)))))
+        (Array/aset g i (m/+ (Array/aget g i) (m/* -400.0 x d) (m/* 2.0 (m/dec x))))
+        (Array/aset g (m/inc i) (m/+ (Array/aget g (m/inc i)) (m/* 200.0 d)))))
     (vec g)))
 
 ;;

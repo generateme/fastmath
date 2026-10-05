@@ -21,7 +21,7 @@
   - `:max-evals`, `:max-iters` - limits on the number of evaluations and iterations, default: `10000` each. Exceeding a limit throws an exception. The exceptions are [[cmaes]], which stops after `:max-iters` iterations and returns the best point found, and ignores `:max-evals`, and [[bobyqa]], which does not count iterations.
   - `:stats?` - return a map with additional information, default: `false`.
 
-  The result is `[point value]`, where `point` is a vector (a number for [[brent]] with `:vector-arg?` set to `false`). With `:stats?` it is a map with `:point`, `:value`, `:evaluations` and `:iterations`. The value is always the value of the objective, also when maximizing.
+  The result is `[point value]`, where `point` is a vector (a number for [[brent]] with `:vector-arg?` set to `false`). With `:stats?` it is a map with `:point`, `:value`, `:evaluations` and `:iterations` + `:lo`/`:hi` for [[brent]]. The value is always the value of the objective, also when maximizing.
 
   Invalid options and bounds throw `ex-info`. Errors reported by Apache Commons Math (limits exceeded, convergence failures) are thrown as they are."
   (:require [fastmath.core :as m]
@@ -74,7 +74,7 @@
     - `:max-evals`, `:max-iters` - limits, default: `10000` each.
     - `:stats?` - return a map with additional information, default: `false`.
 
-  Returns `[point value]` where `point` is a number (a vector with one number when `:vector-arg?` is `true`). With `:stats?` returns a map with `:point` (in the same form), `:value`, `:evaluations` and `:iterations`.
+  Returns `[point value]` where `point` is a number (a vector with one number when `:vector-arg?` is `true`). With `:stats?` returns a map with `:point` (in the same form), `:value`, `:evaluations`, `:iterations` and `:lo`/`:hi` bounds (can differ from bounds when `find-bracket` was set).
 
   Throws `ex-info` for invalid bounds (missing, more than one interval, infinite, empty) and an Apache Commons Math exception when a limit is exceeded or `:initial` is outside of the interval.
 
@@ -92,17 +92,18 @@
                    (SearchInterval. (double lo) (double hi)))
         ^BrentOptimizer bo (BrentOptimizer. rel abs)
         ^UnivariatePointValuePair res (.optimize bo (common/optimization-data [goal
-                                                                              (UnivariateObjectiveFunction. uf)
-                                                                              interval
-                                                                              (common/max-eval max-evals)
-                                                                              (common/max-iter max-iters)]))
+                                                                               (UnivariateObjectiveFunction. uf)
+                                                                               interval
+                                                                               (common/max-eval max-evals)
+                                                                               (common/max-iter max-iters)]))
         x (.getPoint res)
         point (if vector-arg? [x] x)]
     (if stats?
       {:point point
        :value (.getValue res)
        :evaluations (.getEvaluations bo)
-       :iterations (.getIterations bo)}
+       :iterations (.getIterations bo)
+       :lo lo :hi hi}
       [point (.getValue res)])))
 
 ;; multivariate
@@ -173,7 +174,7 @@
       :or {initial-radius :inferred
            stopping-radius BOBYQAOptimizer/DEFAULT_STOPPING_RADIUS}
       :as opts}]
-  (let [{:keys [bounds goal data] f :f} (multivariate-base :bobyqa f opts)
+  (let [{:keys [bounds goal data f]} (multivariate-base :bobyqa f opts)
         n (count bounds)
         _ (when (m/< n 2) (throw (ex-info "Number of dimensions should be equal or greater than 2" {:n n :bounds bounds})))
         radius (condp = initial-radius
@@ -216,7 +217,7 @@
       :or {stop-fitness 1.0e-10 active-cma? true diagonal-only 0 check-feasible-count 0
            rel 1.0e-10 abs 1.0e-10 sigma 0.2}
       :as opts}]
-  (let [{:keys [bounds goal data] f :f} (multivariate-base :cmaes f opts)
+  (let [{:keys [bounds goal data f]} (multivariate-base :cmaes f opts)
         population-size (CMAESOptimizer$PopulationSize. (int (or population-size (m/ceil (m/+ 4.0 (m/* 3.0 (m/log (count bounds))))))))
         sigma (CMAESOptimizer$Sigma. (bounds->steps bounds sigma))
         ^CMAESOptimizer co (CMAESOptimizer. (int (or max-iters 10000)) (double stop-fitness) (boolean active-cma?)
@@ -233,7 +234,7 @@
 
 (defn- simplex-optimize
   [method f opts make-simplex]
-  (let [{:keys [bounds goal data] f :f} (multivariate-base method f opts)
+  (let [{:keys [bounds goal data f]} (multivariate-base method f opts)
         ^InitialGuess guess (peek data)
         steps (simplex-steps bounds (.getInitialGuess guess) (:length opts))
         {:keys [rel abs] :or {rel 1.0e-10 abs 1.0e-10}} opts
@@ -333,7 +334,7 @@
   [f {:keys [^double rel ^double abs line-rel line-abs stats?]
       :or {rel 1.0e-10 abs 1.0e-10}
       :as opts}]
-  (let [{:keys [goal data] f :f} (multivariate-base :powell f opts)
+  (let [{:keys [goal data f]} (multivariate-base :powell f opts)
         maximize? (= goal GoalType/MAXIMIZE)
         objective (if maximize? (fn [x] (m/- (double (f x)))) f)
         ^PowellOptimizer po (PowellOptimizer. rel abs (double (or line-rel (m/sqrt rel))) (double (or line-abs (m/sqrt abs))))
@@ -368,6 +369,20 @@
                 (Array/aset nr i (m// (Array/aget r i) d)))))
           nr)))))
 
+(defn- gradient-formula
+  [formula]
+  (case formula
+    :polak-ribiere NonLinearConjugateGradientOptimizer$Formula/POLAK_RIBIERE
+    :fletcher-reeves NonLinearConjugateGradientOptimizer$Formula/FLETCHER_REEVES
+    (common/throw-unknown :formula formula #{:polak-ribiere :fletcher-reeves})))
+
+(defn- gradient-preconditioner
+  [preconditioner f ^double hessian-h]
+  (case preconditioner
+    :identity (NonLinearConjugateGradientOptimizer$IdentityPreconditioner.)
+    :hessian (hessian-preconditioner f hessian-h)
+    (common/throw-unknown :preconditioner preconditioner #{:identity :hessian})))
+
 (defn non-linear-gradient
   "Minimizes or maximizes a function with the non-linear conjugate gradient method, which does not use constraints.
 
@@ -401,18 +416,12 @@
       :or {gradient-h 1.0e-6 gradient-acc 2 rel 1.0e-10 abs 1.0e-10 formula :polak-ribiere bracketing-range 1.0e-10
            preconditioner :identity hessian-h 5.0e-3}
       :as opts}]
-  (let [{:keys [goal data] f :f} (multivariate-base :non-linear-gradient f opts)
-        _ (when-not (m/pos? (double gradient-h)) (throw (ex-info "gradient-h must be positive" {:gradient-h gradient-h})))
-        _ (when-not (contains? #{2 4} gradient-acc) (common/throw-unknown :gradient-acc gradient-acc #{2 4}))
+  (when-not (m/pos? (double gradient-h)) (throw (ex-info "gradient-h must be positive" {:gradient-h gradient-h})))
+  (when-not (contains? #{2 4} gradient-acc) (common/throw-unknown :gradient-acc gradient-acc #{2 4}))
+  (let [{:keys [goal data f]} (multivariate-base :non-linear-gradient f opts)
         gradient (or gradient (finite/gradient f {:h gradient-h :acc gradient-acc}))
-        formula (case formula
-                  :polak-ribiere NonLinearConjugateGradientOptimizer$Formula/POLAK_RIBIERE
-                  :fletcher-reeves NonLinearConjugateGradientOptimizer$Formula/FLETCHER_REEVES
-                  (common/throw-unknown :formula formula #{:polak-ribiere :fletcher-reeves}))
-        ^Preconditioner preconditioner (case preconditioner
-                                         :identity (NonLinearConjugateGradientOptimizer$IdentityPreconditioner.)
-                                         :hessian (hessian-preconditioner f hessian-h)
-                                         (common/throw-unknown :preconditioner preconditioner #{:identity :hessian}))
+        formula (gradient-formula formula)
+        ^Preconditioner preconditioner (gradient-preconditioner preconditioner f hessian-h)
         ^NonLinearConjugateGradientOptimizer nlcgo (NonLinearConjugateGradientOptimizer.
                                                     formula (SimpleValueChecker. rel abs)
                                                     (double (or line-rel (m/sqrt rel))) (double (or line-abs (m/sqrt abs)))

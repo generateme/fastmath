@@ -4234,3 +4234,146 @@
     (t/is (= [1 4 2 3 5]
              (vec (sut/->seq (sut/distribution :poisson {:p 4.0 :rng (sut/rng :well19937c 7)}) 5))))))
 
+;; ensure-rng and child-rngs
+
+(defn- ex-data-of [thunk]
+  (try (thunk) nil (catch clojure.lang.ExceptionInfo e (ex-data e))))
+
+(t/deftest ensure-rng
+  (t/testing "a generator is returned as it is"
+    (doseq [g [(sut/rng :jdk 1) (sut/rng :mersenne 1) (sut/synced-rng :isaac 1) sut/default-rng]]
+      (t/is (identical? g (sut/ensure-rng g)))))
+  (t/testing "nil gives a new JDK generator every time"
+    (let [a (sut/ensure-rng nil) b (sut/ensure-rng nil)]
+      (t/is (instance? org.apache.commons.math3.random.JDKRandomGenerator a))
+      (t/is (not (identical? a b)))
+      (t/is (not (identical? a sut/default-rng)))))
+  (t/testing "anything else throws ex-info with the value"
+    (doseq [v [5 "x" :jdk [1 2] (sut/distribution :normal)]]
+      (t/is (= {:rng v} (ex-data-of #(sut/ensure-rng v))) (pr-str v)))))
+
+(defn- rng-state
+  "Next draws of a copy of the generator state, used to compare generators after use: draws from a twin seeded alike."
+  [g] (vec (repeatedly 3 #(sut/lrandom g))))
+
+(t/deftest child-rngs
+  (t/testing "vector arity: n children, exactly n seeds drawn"
+    (doseq [n [0 1 2 5]]
+      (let [parent (sut/rng :mersenne 7)
+            twin (sut/rng :mersenne 7)
+            children (sut/child-rngs parent n)]
+        (t/is (vector? children))
+        (t/is (= n (count children)))
+        (dotimes [_ n] (sut/lrandom twin))
+        (t/is (= (rng-state twin) (rng-state parent)) (str "n=" n)))))
+  (t/testing "equal seeded parents give equal children, children are distinct objects with distinct streams"
+    (let [a (sut/child-rngs (sut/rng :jdk 3) 4)
+          b (sut/child-rngs (sut/rng :jdk 3) 4)]
+      (t/is (= (map rng-state a) (map rng-state b)))
+      (t/is (= 4 (count (distinct (map rng-state (sut/child-rngs (sut/rng :jdk 3) 4))))))
+      (t/is (= 4 (count (set (map #(System/identityHashCode %) a)))))
+      (t/is (not-any? #(identical? % (first b)) a))))
+  (t/testing "the class of a plain generator is kept, a synced one gives JDK children"
+    (doseq [k sut/rngs-list
+            :let [parent (sut/rng k 1)]]
+      (t/is (every? #(= (class parent) (class %)) (sut/child-rngs parent 2)) (str k)))
+    (t/is (every? #(instance? org.apache.commons.math3.random.JDKRandomGenerator %)
+                  (sut/child-rngs (sut/synced-rng :mersenne 1) 2))))
+  (t/testing "lazy arity draws one seed per realized element only"
+    (let [parent (sut/rng :isaac 11)
+          twin (sut/rng :isaac 11)
+          _unrealized (sut/child-rngs parent)]
+      (t/is (= (rng-state twin) (rng-state parent)) "nothing is drawn before realization"))
+    (let [parent (sut/rng :isaac 11)
+          twin (sut/rng :isaac 11)
+          xs (doall (take 3 (sut/child-rngs parent)))]
+      (dotimes [_ 3] (sut/lrandom twin))
+      (t/is (= 3 (count xs)))
+      (t/is (= (rng-state twin) (rng-state parent)) "three seeds drawn for three elements")))
+  (t/testing "the lazy and the vector arity produce the same children"
+    (t/is (= (map rng-state (sut/child-rngs (sut/rng :jdk 5) 3))
+             (map rng-state (take 3 (sut/child-rngs (sut/rng :jdk 5)))))))
+  (t/testing "nil gives children of a new generator, invalid input throws ex-info"
+    (t/is (= 2 (count (sut/child-rngs nil 2))))
+    (t/is (= {:rng 5} (ex-data-of #(sut/child-rngs 5 2))))
+    (t/is (some? (ex-data-of #(sut/child-rngs (sut/distribution :normal) 2))))
+    (t/is (= {:n -1} (ex-data-of #(sut/child-rngs (sut/rng :jdk 1) -1))))))
+
+;; rng argument of sequence-generator and jittered-sequence-generator
+
+(def ^:private deterministic-generators [:r2 :halton :sobol])
+(def ^:private random-sequence-generators [:default :gaussian :ball :sphere])
+
+(defn- points [n g dims jitter rng]
+  (vec (take n (if jitter
+                 (sut/jittered-sequence-generator g dims jitter rng)
+                 (sut/sequence-generator g dims rng)))))
+
+(t/deftest sequence-generators-rng
+  (doseq [dims [1 2 3 4 5]
+          jitter [nil 0.0 0.25 1.0]
+          g (concat deterministic-generators random-sequence-generators)]
+    (let [label (str g " dims=" dims " jitter=" jitter)
+          same (fn [seed] (points 20 g dims jitter (sut/rng :jdk seed)))]
+      (t/testing label
+        (t/is (= (same 1) (same 1)) "equal seeds give equal points")
+        (t/is (= 20 (count (same 1))))
+        (if (and (nil? jitter) (some #{g} deterministic-generators))
+          (t/is (= (same 1) (same 2)) "deterministic base sequences ignore the rng")
+          (when-not (and (some #{g} deterministic-generators) (= 0.0 jitter))
+            (t/is (not= (same 1) (same 2)) "different seeds give different points")))))))
+
+(t/deftest sequence-generators-rng-kinds
+  (t/testing "any RandomGenerator works, a synced one too"
+    (doseq [rng-fn [#(sut/rng :mersenne 1) #(sut/rng :isaac 1) #(sut/synced-rng :well512a 1)]]
+      (t/is (= (points 5 :default 3 0.25 (rng-fn)) (points 5 :default 3 0.25 (rng-fn))))))
+  (t/testing "zero jitter reproduces the base sequence"
+    (t/is (= (take 5 (sut/sequence-generator :r2 3))
+             (take 5 (sut/jittered-sequence-generator :r2 3 0.0 (sut/rng :jdk 1)))))))
+
+(t/deftest sequence-generators-global-stream
+  ;; the shared default-rng is never used: its stream is the same with and without consuming generators
+  (letfn [(untouched? [consume]
+            (sut/set-seed! 1)
+            (let [expected (sut/drand)]
+              (sut/set-seed! 1)
+              (doall (consume))
+              (= expected (sut/drand))))]
+    (t/is (untouched? #(take 50 (sut/sequence-generator :default 3))))
+    (t/is (untouched? #(take 50 (sut/sequence-generator :gaussian 3))))
+    (t/is (untouched? #(take 50 (sut/sequence-generator :ball 3 nil))))
+    (t/is (untouched? #(take 50 (sut/sequence-generator :sphere 3))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :r2 3))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :sobol 3 0.5))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :gaussian 3 0.5))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :r2 3 0.5 nil))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :r2 3 0.5 (sut/rng :jdk 1)))))
+    (t/is (untouched? #(take 50 (sut/jittered-sequence-generator :sphere 3 0.5 (sut/rng :jdk 1)))))
+    (t/is (untouched? #(sut/->seq (sut/rng :jdk 1) 20 :r2)))
+    (t/is (untouched? #(sut/->seq (sut/distribution :normal) 20 :sobol)))))
+
+(t/deftest sequence-generators-rng-invalid
+  (doseq [bad [5 "x" :jdk [1 2] (sut/distribution :normal)]
+          g (concat deterministic-generators random-sequence-generators)]
+    (t/is (= {:rng bad} (ex-data-of #(sut/sequence-generator g 2 bad))) (str g " " (pr-str bad)))
+    (t/is (= {:rng bad} (ex-data-of #(dorun (sut/jittered-sequence-generator g 2 0.25 bad)))) (str g " " (pr-str bad)))))
+
+(t/deftest sequence-generator-two-argument-method
+  ;; methods defined elsewhere with two arguments keep working when jittered-sequence-generator gets no rng
+  (defmethod sut/sequence-generator ::two-arg [_ dims] (sut/sequence-generator :r2 dims))
+  (try
+    (let [ps (vec (take 3 (sut/jittered-sequence-generator ::two-arg 2 0.25)))]
+      (t/is (= 3 (count ps)))
+      (t/is (every? #(= 2 (count %)) ps)))
+    (t/is (= 3 (count (take 3 (sut/jittered-sequence-generator ::two-arg 2 0.25 nil)))))
+    (finally (remove-method sut/sequence-generator ::two-arg))))
+
+(t/deftest seq-sampling-methods-rng
+  (doseq [method [:r2 :sobol :halton]]
+    (let [s (fn [seed] (vec (sut/->seq (sut/rng :jdk seed) 10 method)))]
+      (t/is (= (s 1) (s 1)) (str method))
+      (t/is (not= (s 1) (s 2)) (str method))
+      (t/is (= 10 (count (s 1))))))
+  (t/testing "a distribution still gets samples of the given length"
+    (t/is (= 10 (count (sut/->seq (sut/distribution :normal) 10 :r2))))))
+

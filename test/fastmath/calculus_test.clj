@@ -96,6 +96,34 @@
                                {:max-iters 20 :warmup 5
                                 :nstrats 20 :nevals 20000}) 1.0e-2)))
 
+(defn- ex-data-of [thunk]
+  (try (thunk) nil (catch clojure.lang.ExceptionInfo e (ex-data e))))
+
+(t/deftest vegas-rng
+  (let [run (fn [rng-fn extra] (sut/vegas fun1 [0 0 0] [1 1 1]
+                                          (merge {:max-iters 3 :nevals 400 :info? true :rng (rng-fn)} extra)))
+        results (fn [rng-fn extra] (select-keys (run rng-fn extra) [:result :sd :evaluations]))]
+    (doseq [extra [{} {:random-sequence :r2} {:random-sequence :sobol} {:random-sequence :halton :jitter 0.5}]]
+      (t/testing (str extra)
+        (t/is (= (results #(r/rng :jdk 1) extra) (results #(r/rng :jdk 1) extra)) "equal seeds give equal results")
+        (t/is (not= (results #(r/rng :jdk 1) extra) (results #(r/rng :jdk 2) extra)) "different seeds differ")))
+    (t/testing "a missing and a nil rng create a new generator"
+      (t/is (number? (:result (sut/vegas fun1 [0 0 0] [1 1 1] {:max-iters 2 :nevals 200 :info? true}))))
+      (t/is (number? (:result (sut/vegas fun1 [0 0 0] [1 1 1] {:max-iters 2 :nevals 200 :info? true :rng nil
+                                                                 :random-sequence :sobol})))))
+    (t/testing "a value which is not a generator throws ex-info"
+      (doseq [bad [5 :jdk "x" (r/distribution :normal)]
+              extra [{} {:random-sequence :r2}]]
+        (t/is (= {:rng bad} (ex-data-of #(sut/vegas fun1 [0 0 0] [1 1 1] (merge {:max-iters 1 :nevals 200 :rng bad} extra)))))))
+    (t/testing "the shared generator is not used"
+      (r/set-seed! 1)
+      (let [expected (r/drand)]
+        (r/set-seed! 1)
+        (sut/vegas fun1 [0 0 0] [1 1 1] {:max-iters 2 :nevals 200 :rng (r/rng :jdk 3)})
+        (sut/vegas fun1 [0 0 0] [1 1 1] {:max-iters 2 :nevals 200 :random-sequence :sobol :rng (r/rng :jdk 3)})
+        (sut/vegas fun1 [0 0 0] [1 1 1] {:max-iters 2 :nevals 200})
+        (t/is (= expected (r/drand)))))))
+
 (t/deftest multivariate-integrals-cubature
   (t/are [f res] (m/delta-eq res (sut/cubature f [0 0 0] [1 1 1]
                                                {:max-iters 1000

@@ -57,6 +57,7 @@
   * `:abs` - absolute accuracy, default: 5.0e-4
   * `:random-sequence` - random sequence used for generating samples: `:uniform` (default), low-discrepancy sequences: `:r2`, `:sobol` and `:halton`.
   * `:jitter` - jittering factor for low-discrepancy random sequence, default: 0.75
+  * `:rng` - random number generator (see [[fastmath.random/rng]]) which draws the samples, or the jitter of the low-discrepancy sequences. Seed it to reproduce a result. Default: a new `JDKRandomGenerator` for every call, the shared default generator is not used. The generator is used from one thread. Throws `ex-info` for a value which is not a generator.
   * `:info?` - return full information about integration, default: false
   * `:record-data?` - stores samples, number of strata, x and dx, default: false (requires, `:info?` to be set to `true`)
 
