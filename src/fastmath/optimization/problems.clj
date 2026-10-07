@@ -844,6 +844,394 @@
 
 ;;
 
+(defn gramacy-lee-2012-bounds [] [[0.5 2.5]])
+
+(defn gramacy-lee-2012
+  ^double [^double x]
+  (m/+ (m// (m/sinpi (m/* 10.0 x)) (m/* 2.0 x))
+       (m/fpow (m/dec x) 4)))
+
+;;
+
+(defn griewank-bounds [^long N] (repeat N [-600.0 600.0]))
+
+(defn griewank
+  ^double [v]
+  (m/inc (m/- (m// (v/magsq v) 4000.0)
+              (v/prod (map-indexed (fn [^long i ^double x] (m/cos (m// x (m/sqrt (m/inc i))))) v)))))
+
+;;
+
+(defn holder-table-bounds [] [[-10.0 10.0] [-10.0 10.0]])
+
+(defn holder-table
+  ^double [[^double x1 ^double x2 :as v]]
+  (m/- (m/abs (m/* (m/sin x1) (m/sin x2) (m/exp (m/abs (m/- 1.0 (m// (v/mag v) m/PI))))))))
+
+;;
+
+(defn ->langerman-general
+  [c A-rows]
+  (when-not (m/== (count c) (count A-rows)) (throw (ex-info "c and A dimensionality do not agree."
+                                                            {:m (count c) :shape-A [(count A-rows)
+                                                                                    (count (first A-rows))]})))
+  (fn ^double [v]
+    (v/dot c (map (fn [row]
+                    (let [d (v/magsq (v/sub row v))]
+                      (m/* (m/exp (m/- (m// d m/PI)))
+                           (m/cospi d)))) A-rows))))
+
+(defn langerman-bounds [^long N] (repeat N [0.0 10.0]))
+
+;;  As defined in Molga/Smutnicki
+(def langerman (->langerman-general [1.0 2.0 5.0 2.0 3.0]
+                                    [[3.0 5.0] [5.0 2.0] [2.0 1.0] [1.0 4.0] [7.0 9.0]]))
+
+;; (sceua/sceua langerman {:bounds (langerman-bounds 2)})
+;; => [[2.7933531577960338 1.5972900206456435] -4.155809123348931]
+
+;;
+
+(def ^:private langerman-A
+  [[9.681 0.667 4.783 9.095 3.517 9.325 6.544 0.211 5.122 2.020]
+   [9.400 2.041 3.788 7.931 2.882 2.672 3.568 1.284 7.033 7.374]
+   [8.025 9.152 5.114 7.621 4.564 4.711 2.996 6.126 0.734 4.982]
+   [2.196 0.415 5.649 6.979 9.510 9.166 6.304 6.054 9.377 1.426]
+   [8.074 8.777 3.467 1.863 6.708 6.349 4.534 0.276 7.633 1.567]
+   [7.650 5.658 0.720 2.764 3.278 5.283 7.474 6.274 1.409 8.208]
+   [1.256 3.605 8.623 6.905 0.584 8.133 6.071 6.888 4.187 5.448]
+   [8.314 2.261 4.224 1.781 4.124 0.932 8.129 8.658 1.208 5.762]
+   [0.226 8.858 1.420 0.945 1.622 4.698 6.228 9.096 0.972 7.637]
+   [0.305 2.228 1.242 5.928 9.133 1.826 4.060 5.204 8.713 8.247]
+   [0.652 7.027 0.508 4.876 8.807 4.632 5.808 6.937 3.291 7.016]
+   [2.699 3.516 5.874 4.119 4.461 7.496 8.817 0.690 6.593 9.789]
+   [8.327 3.897 2.017 9.570 9.825 1.150 1.395 3.885 6.354 0.109]
+   [2.132 7.006 7.136 2.641 1.882 5.943 7.273 7.691 2.880 0.564]
+   [4.707 5.579 4.080 0.581 9.698 8.542 8.077 8.515 9.231 4.670]
+   [8.304 7.559 8.567 0.322 7.128 8.392 1.472 8.524 2.277 7.826]
+   [8.632 4.409 4.832 5.768 7.050 6.715 1.711 4.323 4.405 4.591]
+   [4.887 9.112 0.170 8.967 9.693 9.867 7.508 7.770 8.382 6.740]
+   [2.440 6.686 4.299 1.007 7.008 1.427 9.398 8.480 9.950 1.675]
+   [6.306 8.583 6.084 1.138 4.350 3.134 7.853 6.061 7.457 2.258]
+   [0.652 2.343 1.370 0.821 1.310 1.063 0.689 8.819 8.833 9.070]
+   [5.558 1.272 5.756 9.857 2.279 2.764 1.284 1.677 1.244 1.234]
+   [3.352 7.549 9.817 9.437 8.687 4.167 2.570 6.540 0.228 0.027]
+   [8.798 0.880 2.370 0.168 1.701 3.680 1.231 2.390 2.499 0.064]
+   [1.460 8.057 1.336 7.217 7.914 3.615 9.981 9.198 5.292 1.224]
+   [0.432 8.645 8.774 0.249 8.081 7.461 4.416 0.652 4.002 4.644]
+   [0.679 2.800 5.523 3.049 2.968 7.225 6.730 4.199 9.614 9.229]
+   [4.263 1.074 7.286 5.599 8.291 5.200 9.214 8.272 4.398 4.506]
+   [9.496 4.830 3.150 8.270 5.079 1.231 5.731 9.494 1.883 9.732]
+   [4.138 2.562 2.532 9.661 5.611 5.500 6.886 2.341 9.699 6.500]])
+
+(def ^:private langerman-c [0.806,0.517,1.5,0.908,0.965,0.669,0.524,0.902,0.531,0.876,0.462,
+                            0.491,0.463,0.714,0.352,0.869,0.813,0.811,0.828,0.964,0.789,
+                            0.360,0.369,0.992,0.332,0.817,0.632,0.883,0.608,0.326])
+
+(defn ->langerman
+  "As defined in Adorio, 1<=N<=10; 1<=m<=30"
+  [^long N ^long m]
+  (let [c (subvec langerman-c 0 m)
+        A-rows (take m (map (fn [row] (subvec row 0 N)) langerman-A))]
+    (->langerman-general c A-rows)))
+
+;;
+
+(defn levy-bounds [^long N] (repeat N [-10.0 10.0]))
+
+(defn levy
+  ^double [v]
+  (let [[w1 & r] (v/mult (v/shift v 3.0) 0.25)
+        t1 (m/sq (m/sinpi w1))]
+    (if-not (seq r)
+      t1
+      (let [wd (double (last r))
+            td (m/* (m/sq (m/dec wd)) (m/inc (m/sq (m/sinpi (m/* 2.0 wd)))))]
+        (m/+ t1 td (v/sum (map (fn ^double [^double wi]
+                                 (m/* (m/sq (m/dec wi))
+                                      (m/inc (m/* 10.0 (m/sq (m/sin (m/inc (m/* wi m/PI)))))))) (butlast r))))))))
+
+;;
+
+(defn levy-13-bounds [] [[-10.0 10.0] [-10.0 10.0]])
+
+(defn levy-13
+  ^double [[^double x1 ^double x2]]
+  (m/+ (m/sq (m/sin (m/* 3.0 m/PI x1)))
+       (m/* (m/sq (m/dec x1)) (m/inc (m/sq (m/sin (m/* 3.0 m/PI x2)))))
+       (m/* (m/sq (m/dec x2)) (m/inc (m/sq (m/sin (m/* 2.0 m/PI x2)))))))
+
+;;
+
+(defn rastrigin-bounds [^long N] (repeat N [-5.12 5.12]))
+
+(defn rastrigin
+  ^double [v]
+  (m/+ (m/* 10.0 (count v))
+       (v/sum (map (fn [^double xi]
+                     (m/- (m/* xi xi) (m/* 10.0 (m/cos (m/* m/TWO_PI xi))))) v))))
+
+
+;;
+
+(defn schaffer-2-bounds [] [[-100.0 100.0] [-100.0 100.0]])
+
+(defn schaffer-2
+  ^double [[^double x1 ^double x2]]
+  (m/+ 0.5 (m// (m/- (m/sq (m/sin (m/- (m/* x1 x1) (m/* x2 x2)))) 0.5)
+                (m/sq (m/inc (m/* 0.001 (m/+ (m/* x1 x1) (m/* x2 x2))))))))
+
+;;
+
+(defn schaffer-4-bounds [] [[-100.0 100.0] [-100.0 100.0]])
+
+(defn schaffer-4
+  ^double [[^double x1 ^double x2]]
+  (m/+ 0.5 (m// (m/- (m/sq (m/cos (m/sin (m/abs (m/- (m/* x1 x1) (m/* x2 x2)))))) 0.5)
+                (m/sq (m/inc (m/* 0.001 (m/+ (m/* x1 x1) (m/* x2 x2))))))))
+
+;;
+
+(defn schwefel-bounds [^long N] (repeat N [-500.0 500.0]))
+
+(defn schwefel
+  ^double [v]
+  (m/- (m/* 418.9829 (count v))
+       (v/sum (map (fn [^double xi] (m/* xi (m/sin (m/sqrt (m/abs xi))))) v))))
+
+;;
+
+(defn shubert-bounds [] [[-5.12 5.12] [-5.12 5.12]])
+
+(defn shubert
+  ^double [[^double x1 ^double x2]]
+  (m/* (m/+ (m/cos (m/inc (m/* 2.0 x1)))
+            (m/* 2.0 (m/cos (m/inc (m/* 3.0 x1))))
+            (m/* 3.0 (m/cos (m/inc (m/* 4.0 x1))))
+            (m/* 4.0 (m/cos (m/inc (m/* 5.0 x1))))
+            (m/* 5.0 (m/cos (m/inc (m/* 6.0 x1)))))
+       (m/+ (m/cos (m/inc (m/* 2.0 x2)))
+            (m/* 2.0 (m/cos (m/inc (m/* 3.0 x2))))
+            (m/* 3.0 (m/cos (m/inc (m/* 4.0 x2))))
+            (m/* 4.0 (m/cos (m/inc (m/* 5.0 x2))))
+            (m/* 5.0 (m/cos (m/inc (m/* 6.0 x2)))))))
+
+;;
+
+(defn bohachevsky-bounds [] [[-100.0 100.0] [-100.0 100.0]])
+
+(defn bohachevsky-1
+  ^double [[^double x1 ^double x2]]
+  (m/- (m/+ (m/* x1 x1) (m/* 2.0 x2 x2) 0.7)
+       (m/* 0.3 (m/cos (m/* 3.0 m/PI x1)))
+       (m/* 0.4 (m/cos (m/* 4.0 m/PI x2)))))
+
+(defn bohachevsky-2
+  ^double [[^double x1 ^double x2]]
+  (m/- (m/+ (m/* x1 x1) (m/* 2.0 x2 x2) 0.3)
+       (m/* 0.3 (m/cos (m/* 3.0 m/PI x1)) (m/cos (m/* 4.0 m/PI x2)))))
+
+(defn bohachevsky-3
+  ^double [[^double x1 ^double x2]]
+  (m/- (m/+ (m/* x1 x1) (m/* 2.0 x2 x2) 0.3)
+       (m/* 0.3 (m/cos (m/+ (m/* 3.0 m/PI x1)
+                            (m/* 4.0 m/PI x2))))))
+
+;;
+
+(defn perm-0db-bounds [^long N] (repeat N [(m/- N) N]))
+
+(defn ->perm-0db
+  [^double beta]
+  (fn ^double [v]
+    (v/sum (for [^long i (range (count v))
+                 :let [i+ (m/inc i)]]
+             (m/sq (v/sum (map-indexed (fn [^long j ^double xj]
+                                         (let [j+ (m/inc j)]
+                                           (m/* (m/+ j+ beta)
+                                                (m/- (m/fpow xj i+)
+                                                     (m// 1.0 (m/fpow j+ i+)))))) v)))))))
+
+;;
+
+(defn rotated-hyper-ellipsoid-bounds [^long N] (repeat N [-65.536 65.536]))
+
+(defn rotated-hyper-ellipsoid
+  ^double [v]
+  (let [v (vec v)]
+    (v/sum (for [^long i (range 1 (m/inc (count v)))
+                 ^long j (range i)]
+             (m/sq (v j))))))
+
+;;
+
+(defn sphere-bounds
+  "Returns the usual search domain of [[sphere]] for `N` dimensions: `[-5.12 5.12]` in every dimension.
+
+  Parameters:
+
+  - `N` (long): number of dimensions.
+
+  Returns a sequence of `N` pairs `[lo hi]`."
+  [^long N]
+  (repeat N [-5.12 5.12]))
+
+(defn sphere
+  "Sphere function for any number of dimensions: the sum of squares of the coordinates.
+
+  The function is convex with one global minimum. Domain: `[-5.12, 5.12]^N`, see [[sphere-bounds]]. Global minimum: `f(x*) = 0` at `x* = (0, ..., 0)`.
+
+  Parameters:
+
+  - `v` (sequence of numbers): the point.
+
+  Returns the value as a double.
+
+  See also [[sphere-gradient]]."
+  ^double [v]
+  (v/magsq v))
+
+(defn sphere-gradient
+  "Gradient of the [[sphere]] function: twice the point.
+
+  Parameters:
+
+  - `v` (sequence of numbers): the point.
+
+  Returns the partial derivatives in the form of the argument (a vector for a vector, an array for an array)."
+  [v]
+  (v/mult v 2.0))
+
+;;
+
+(defn sum-of-different-powers-bounds [^long N] (repeat N [-1.0 1.0]))
+
+(defn sum-of-different-powers
+  ^double [v]
+  (v/sum (map-indexed (fn [^long i ^double xi]
+                        (m/fpow (m/abs xi) (m/long-add i 2))) v)))
+
+;;
+
+(defn sum-squares-bounds [^long N] (repeat N [-10.0 10.0]))
+
+(defn sum-squares
+  ^double [v]
+  (v/sum (map-indexed (fn [^long i ^double xi]
+                        (m/* (m/inc i) xi xi)) v)))
+
+
+;;
+
+(defn trid-bounds [^long N] (let [n2 (m/sq N)] (repeat N [(m/- n2) n2])))
+
+(defn trid
+  ^double [v]
+  (m/- (v/sum (map (fn [^double x] (m/sq (m/dec x))) v))
+       (v/sum (map (fn [[^double xp ^double xn]] (m/* xp xn)) (partition 2 1 v)))))
+
+;;
+
+(defn booth-bounds [] [[-10.0 10.0] [-10.0 10.0]])
+
+(defn booth
+  ^double [[^double x1 ^double x2]]
+  (m/+ (m/sq (m/+ x1 (m/* 2.0 x2) -7.0))
+       (m/sq (m/+ (m/* 2.0 x1) x2 -5.0))))
+
+;;
+
+(defn matyas-bounds [] [[-10.0 10.0] [-10.0 10.0]])
+
+(defn matyas
+  ^double [[^double x1 ^double x2]]
+  (m/- (m/* 0.26 (m/+ (m/* x1 x1) (m/* x2 x2)))
+       (m/* 0.48 x1 x2)))
+
+;;
+
+(defn mccormick-bounds [] [[-1.5 4.0] [-3.0 4.0]])
+
+(defn mccormick 
+  ^double [[^double x1 ^double x2]]
+  (m/inc (m/+ (m/sin (m/+ x1 x2))
+              (m/sq (m/- x1 x2))
+              (m/* -1.5 x1)
+              (m/* 2.5 x2))))
+
+
+;;
+
+(defn power-sum-bounds [^long N] (repeat N [0.0 N]))
+
+(defn ->power-sum
+  [b]
+  (fn ^double [v]
+    (v/sum (map-indexed (fn [^long i ^double bi]
+                          (m/sq (m/- (v/sum (v/pow v (m/inc i))) bi))) b))))
+
+
+(defn power-sum-4-bounds [] (power-sum-bounds 4))
+
+(def power-sum-4 (->power-sum [8.0 18.0 44.0 114.0]))
+
+;;
+
+(defn zakharov-bounds [^long N] (repeat N [-5.0 10.0]))
+
+(defn zakharov
+  ^double [v]
+  (let [s (v/sum (map-indexed (fn [^long i ^double xi]
+                                (m/* 0.5 (m/inc i) xi)) v))
+        ss (m/sq s)]
+    (m/+ (v/magsq s) ss (m/sq ss))))
+
+;;
+
+(defn three-hump-camel-bounds [] [[-5.0 5.0] [-5.0 5.0]])
+
+(defn three-hump-camel
+  ^double [[^double x1 ^double x2]]
+  (let [x12 (m/* x1 x1)
+        x14 (m/* x12 x12)
+        x16 (m/* x12 x14)]
+    (m/+ (m/* 2.0 x12)
+         (m/* -1.05 x14)
+         (m/* m/SIXTH x16)
+         (m/* x1 x2)
+         (m/* x2 x2))))
+
+;;
+
+(defn six-hump-camel-bounds [] [[-3.0 3.0] [-2.0 2.0]])
+
+(defn six-hump-camel
+  ^double [[^double x1 ^double x2]]
+  (let [x12 (m/* x1 x1)
+        x14 (m/* x12 x12)
+        x22 (m/* x2 x2)]
+    (m/+ (m/* x12 (m/+ 4.0
+                       (m/* -2.1 x12)
+                       (m/* m/THIRD x14)))
+         (m/* x1 x2)
+         (m/* x22 (m/+ -4.0
+                       (m/* 4.0 x22))))))
+
+;;
+
+(defn dixon-price-bounds [^long N] (repeat N [-10.0 10.0]))
+
+(defn dixon-price
+  ^double [[^double x1 :as v]]
+  (m/+ (m/sq (m/dec x1))
+       (->> (partition 2 1 v)
+            (map-indexed (fn [^long i [^double xp ^double xn]]
+                           (m/* (m/+ i 2)
+                                (m/sq (m/- (m/* 2.0 xn xn) xp)))))
+            (v/sum))))
+
+;;
+
 (defn rosenbrock-bounds
   "Returns the usual search domain of [[rosenbrock]] for `N` dimensions: `[-5 10]` in every dimension.
 
@@ -892,43 +1280,45 @@
             d (m/- x-next (m/* x x))]
         (Array/aset g i (m/+ (Array/aget g i) (m/* -400.0 x d) (m/* 2.0 (m/dec x))))
         (Array/aset g (m/inc i) (m/+ (Array/aget g (m/inc i)) (m/* 200.0 d)))))
-    (vec g)))
+    g))
 
 ;;
 
-(defn himmelblau-bounds
-  "Returns the usual search domain of [[himmelblau]]: `[-5.0 5.0]` for x1 and `[-5.0 5.0]` for x2."
-  [] [[-5.0 5.0] [-5.0 5.0]])
+(defn de-jong-5-bounds [] [[-65.536 65.536] [-65.536 65.536]])
 
-(defn himmelblau
-  "Himmelblau function: `(x1^2 + x2 - 11)^2 + (x1 + x2^2 - 7)^2`.
+(def ^:private de-jong-a [[-32.0 -32.0] [-16.0 -32.0] [0.0 -32.0] [16.0 -32.0] [32.0 -32.0] [-32.0 -16.0] [-16.0 -16.0] [0.0 -16.0] [16.0 -16.0] [32.0 -16.0] [-32.0 0.0] [-16.0 0.0] [0.0 0.0] [16.0 0.0] [32.0 0.0] [-32.0 16.0] [-16.0 16.0] [0.0 16.0] [16.0 16.0] [32.0 16.0] [-32.0 32.0] [-16.0 32.0] [0.0 32.0] [16.0 32.0] [32.0 32.0]])
 
-  The function has four global minima. Domain: `[-5, 5]^2`, see [[himmelblau-bounds]]. Global minimum: `f(x*) = 0` at `x* = (3, 2)`, `(-2.805118, 3.131312)`, `(-3.779310, -3.283186)` and `(3.584428, -1.848126)`.
-
-  Parameters:
-
-  - `[x1 x2]` (sequence of two numbers): the point.
-
-  Returns the value as a double.
-
-  See also [[himmelblau-gradient]]."
+(defn de-jong-5
   ^double [[^double x1 ^double x2]]
-  (m/+ (m/sq (m/+ (m/* x1 x1) x2 -11.0))
-       (m/sq (m/+ x1 (m/* x2 x2) -7.0))))
+  (m// (m/+ 0.002 (->> de-jong-a
+                       (map-indexed (fn [^long i [^double a1 ^double a2]]
+                                      (m// (m/+ 1 i (m/fpow (m/- x1 a1) 6) (m/fpow (m/- x2 a2) 6)))))
+                       (v/sum)))))
 
-(defn himmelblau-gradient
-  "Gradient of the [[himmelblau]] function.
+;;
 
-  Parameters:
+(defn easom-bounds [] [[-100.0 100.0] [-100.0 100.0]])
 
-  - `[x1 x2]` (sequence of two numbers): the point.
+(defn easom
+  ^double [[^double x1 ^double x2]]
+  (m/- (m/* (m/cos x1)
+            (m/cos x2)
+            (m/exp (m/- (m/- (m/sq (m/- x1 m/PI)))
+                        (m/sq (m/- x2 m/PI)))))))
 
-  Returns a vector of two doubles with the partial derivatives."
-  [[^double x1 ^double x2]]
-  (let [a (m/+ (m/* x1 x1) x2 -11.0)
-        b (m/+ x1 (m/* x2 x2) -7.0)]
-    [(m/+ (m/* 4.0 x1 a) (m/* 2.0 b))
-     (m/+ (m/* 2.0 a) (m/* 4.0 x2 b))]))
+;;
+
+(defn michalewicz-bounds [^long N] (repeat N [0.0 m/PI]))
+
+(defn ->michalewicz
+  [^double m]
+  (let [m2 (m/* 2.0 m)]
+    (fn ^double [v]
+      (m/- (v/sum (map-indexed (fn [^long i ^double xi]
+                                 (m/* (m/sin xi)
+                                      (m/pow (m/sin (m// (m/* (m/inc i) xi xi) m/PI)) m2))) v))))))
+
+(def michalewicz (->michalewicz 10.0))
 
 ;;
 
@@ -974,39 +1364,130 @@
 
 ;;
 
-(defn sphere-bounds
-  "Returns the usual search domain of [[sphere]] for `N` dimensions: `[-5.12 5.12]` in every dimension.
+(defn branin-bounds [] [[-5.0 10.0] [0.0 15.0]])
+
+(defn ->branin
+  [[^double a ^double b ^double c ^double r ^double s ^double t]]
+  (let [st (m/* s (m/- 1.0 t))]
+    (fn ^double [[^double x1 ^double x2]]
+      (m/+ (m/* a (m/sq (m/- (m/+ x2 (m/* c x1))
+                             (m/* b x1 x1)
+                             r)))
+           (m/* st (m/cos x1))
+           s))))
+
+(def branin (->branin [1.0 (m// 5.1 (m/* 4.0 m/PI2)) (m// 5.0 m/PI)
+                       6.0 10.0 (m// (m/* 8.0 m/PI))]))
+
+;;
+
+(defn colville-bounds [] (repeat 4 [-10.0 10.0]))
+
+(defn colville
+  ^double [[^double x1 ^double x2 ^double x3 ^double x4]]
+  (let [x1- (m/dec x1)
+        x2- (m/dec x2)
+        x3- (m/dec x3)
+        x4- (m/dec x4)]
+    (m/+ (m/* 100.0 (m/sq (m/- (m/* x1 x1) x2)))
+         (m/* x1- x1-)
+         (m/* x3- x3-)
+         (m/* 90.0 (m/sq (m/- (m/* x3 x3) x4)))
+         (m/* 10.1 (m/+ (m/* x2- x2-)
+                        (m/* x4- x4-)))
+         (m/* 19.8 x2- x4-))))
+
+;;
+
+(defn forrester-2018-bounds [] [[0.0 1.0]])
+
+(defn forrester-2018
+  ^double [[^double x]]
+  (m/* (m/sq (m/- (m/* 6.0 x) 2.0))
+       (m/sin (m/- (m/* 12.0 x) 4.0))))
+
+;;
+
+(defn goldstein-price-bounds [] [[-2.0 2.0] [-2.0 2.0]])
+
+(defn goldstein-price
+  ^double [[^double x1 ^double x2]]
+  (let [x12 (m/* x1 x1)
+        x22 (m/* x2 x2)]
+    (m/* (m/inc (m/* (m/sq (m/+ x1 x2 1.0))
+                     (m/+ 19.0
+                          (m/* -14.0 x1)
+                          (m/* 3.0 x12)
+                          (m/* -14.0 x2)
+                          (m/* 6.0 x1 x2)
+                          (m/* 3.0 x22))))
+         (m/+ 30.0 (m/* (m/sq (m/- (m/* 2.0 x1)
+                                   (m/* 3.0 x2)))
+                        (m/+ 18.0
+                             (m/* -32.0 x1)
+                             (m/* 12.0 x12)
+                             (m/* 48.0 x2)
+                             (m/* -36.0 x1 x2)
+                             (m/* 27.0 x22)))))))
+
+;;
+
+(defn perm-db-bounds [^long N] (repeat N [(m/- N) N]))
+
+(defn ->perm-db
+  [^double beta]
+  (fn ^double [v]
+    (v/sum (for [^long i (range (count v))
+                 :let [i+ (m/inc i)]]
+             (m/sq (v/sum (map-indexed (fn [^long j ^double xj]
+                                         (let [j+ (m/inc j)]
+                                           (m/* (m/+ (m/fpow j+ i+) beta)
+                                                (m/dec (m/fpow (m// xj j+) i+))))) v)))))))
+
+;;
+
+(defn styblinski-tang-bounds [^long N] (repeat N [-5.0 5.0]))
+
+(defn styblinski-tang
+  ^double [v]
+  (m/* 0.5 (v/sum (map (fn [^double xi]
+                         (let [xi2 (m/* xi xi)]
+                           (m/+ (m/* xi2 xi2)
+                                (m/* -16.0 xi2)
+                                (m/* 5.0 xi)))) v))))
+
+;;
+
+(defn himmelblau-bounds
+  "Returns the usual search domain of [[himmelblau]]: `[-5.0 5.0]` for x1 and `[-5.0 5.0]` for x2."
+  [] [[-5.0 5.0] [-5.0 5.0]])
+
+(defn himmelblau
+  "Himmelblau function: `(x1^2 + x2 - 11)^2 + (x1 + x2^2 - 7)^2`.
+
+  The function has four global minima. Domain: `[-5, 5]^2`, see [[himmelblau-bounds]]. Global minimum: `f(x*) = 0` at `x* = (3, 2)`, `(-2.805118, 3.131312)`, `(-3.779310, -3.283186)` and `(3.584428, -1.848126)`.
 
   Parameters:
 
-  - `N` (long): number of dimensions.
-
-  Returns a sequence of `N` pairs `[lo hi]`."
-  [^long N]
-  (repeat N [-5.12 5.12]))
-
-(defn sphere
-  "Sphere function for any number of dimensions: the sum of squares of the coordinates.
-
-  The function is convex with one global minimum. Domain: `[-5.12, 5.12]^N`, see [[sphere-bounds]]. Global minimum: `f(x*) = 0` at `x* = (0, ..., 0)`.
-
-  Parameters:
-
-  - `v` (sequence of numbers): the point.
+  - `[x1 x2]` (sequence of two numbers): the point.
 
   Returns the value as a double.
 
-  See also [[sphere-gradient]]."
-  ^double [v]
-  (v/magsq v))
+  See also [[himmelblau-gradient]]."
+  ^double [[^double x1 ^double x2]]
+  (m/+ (m/sq (m/+ (m/* x1 x1) x2 -11.0))
+       (m/sq (m/+ x1 (m/* x2 x2) -7.0))))
 
-(defn sphere-gradient
-  "Gradient of the [[sphere]] function: twice the point.
+(defn himmelblau-gradient
+  "Gradient of the [[himmelblau]] function.
 
   Parameters:
 
-  - `v` (sequence of numbers): the point.
+  - `[x1 x2]` (sequence of two numbers): the point.
 
-  Returns the partial derivatives in the form of the argument (a vector for a vector, an array for an array)."
-  [v]
-  (v/mult v 2.0))
+  Returns a vector of two doubles with the partial derivatives."
+  [[^double x1 ^double x2]]
+  (let [a (m/+ (m/* x1 x1) x2 -11.0)
+        b (m/+ x1 (m/* x2 x2) -7.0)]
+    [(m/+ (m/* 4.0 x1 a) (m/* 2.0 b))
+     (m/+ (m/* 2.0 a) (m/* 4.0 x2 b))]))

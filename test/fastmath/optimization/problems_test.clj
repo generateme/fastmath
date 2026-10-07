@@ -311,4 +311,7 @@
       (t/is (m/delta-eq -14.508008 val 1.0e-5)))
     (let [[pt val] (opt/minimize :lbfgsb (fn [[x]] (sut/problem02 x)) {:bounds (sut/problem02-bounds) :gradient sut/dproblem02})]
       (t/is (m/delta-eq 5.145735 (first pt) 1.0e-4))
+      (t/is (m/delta-eq -1.899599 val 1.0e-5)))
+    (let [[pt val] (opt/minimize :lbfgsb sut/problem02 {:bounds (sut/problem02-bounds) :gradient sut/dproblem02 :vector-arg? false})]
+      (t/is (m/delta-eq 5.145735 (first pt) 1.0e-4))
       (t/is (m/delta-eq -1.899599 val 1.0e-5)))))

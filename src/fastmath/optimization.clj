@@ -286,6 +286,12 @@
     (let [[^double mean ^double stddev] (gp/predict gp x true)]
       (m/+ mean (m/* kappa stddev)))))
 
+(defmethod utility-function :log-ucb
+  [_ ^double kappa]
+  (let [ei (utility-function :ucb kappa)]
+    (fn [gp x ^double y-max]
+      (m/log (m/+ m/MACHINE-EPSILON (double (ei gp x y-max)))))))
+
 (defmethod utility-function :ei
   [_ ^double xi]
   (fn [gp x ^double y-max]
@@ -295,11 +301,23 @@
       (m/+ (m/* diff (r/cdf r/default-normal z))
            (m/* stddev (r/pdf r/default-normal z))))))
 
+(defmethod utility-function :log-ei
+  [_ ^double xi]
+  (let [ei (utility-function :ei xi)]
+    (fn [gp x ^double y-max]
+      (m/log (m/+ m/MACHINE-EPSILON (double (ei gp x y-max)))))))
+
 (defmethod utility-function :poi
   [_ ^double xi]
   (fn [gp x ^double y-max]
     (let [[^double mean ^double stddev] (gp/predict gp x true)]
       (r/cdf r/default-normal (m// (m/- mean y-max xi) stddev)))))
+
+(defmethod utility-function :log-poi
+  [_ ^double xi]
+  (let [ei (utility-function :poi xi)]
+    (fn [gp x ^double y-max]
+      (m/log (m/+ m/MACHINE-EPSILON (double (ei gp x y-max)))))))
 
 (defn- gen-sequence
   [init-points bounds jitter rng]
@@ -358,7 +376,7 @@
     - `:vector-arg?` - how `f` receives the point, default: `true`. The utility function is always optimized with sequences, so any `:optimizer` works, including `:brent`.
     - `:warm-up` - number of scanned points used to find the maximum of the utility function, default: `1000` for every dimension.
     - `:init-points` - number of initial evaluations before the optimization starts, default: `3`. The points are selected with a jittered low discrepancy sequence generator (see [[fastmath.random/jittered-sequence-generator]]). A sequence of points can be given instead.
-    - `:utility-function-type` - `:ucb` (default), `:ei` or `:poi`.
+    - `:utility-function-type` - `:ei` (default), `:ucb` or `:poi`, and their log versions: `:log-ei`, `:log-ucb` and `:log-poi`
     - `:utility-param` - parameter of the utility function: `kappa` for `:ucb` (default: `2.576`), `xi` for `:ei` and `:poi` (default: `0.001`).
     - `:kernel` - kernel of the Gaussian process, a keyword or a kernel, default: `:matern-52`, see [[fastmath.kernel]].
     - `:kscale` - scaling factor of the kernel, default: `1.0`.
@@ -385,13 +403,13 @@
       :or {kscale 1.0
            kernel :matern-52
            init-points 3
-           utility-function-type :ucb
+           utility-function-type :ei
            jitter 0.25
            normalize? true
            noise 1.0e-8}}]
   (let [rng (r/ensure-rng rng)
         ;; the default optimizer depends on the number of dimensions, which any structural check of the bounds gives
-        optimizer (or optimizer (if (m/one? (count (common/normalize-bounds :powell bounds nil))) :cmaes :lbfgsb))
+        optimizer (or optimizer :lbfgsb)
         bounds (or (common/normalize-bounds optimizer bounds nil)
                    (throw (ex-info "Provide search bounds." {:optimizer optimizer :bounds bounds})))
         f (common/->vector-fn f (common/resolve-vector-arg? :bayesian-optimization vector-arg?))
@@ -484,110 +502,3 @@
                           (LinearConstraintSet.))
          ^BaseOptimizer solver (SimplexSolver. epsilon max-ulps cut-off)]
      (common/multivariate-optimize solver [goal rule max-iter non-negative? target constraints] stats?))))
-
-
-#_(let [f (fn [^double x ^double y] (inc (- (- (* x x)) (m/sq (dec y)))))
-        bounds [[-4 4] [-3 3]]
-        bo (bayesian-optimization f {:bounds bounds
-                                     :utility-function-type :ei
-                                     :utility-param 0.1
-                                     :optimizer :powell})]
-    (println (f 0 1))
-    (last (take 30 (map (juxt :x :y) bo)))    )
-
-#_(let [f (fn [^double x] (- (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4))))
-        bounds [[-0.2 0.2]]
-        bo (bayesian-optimization f {:bounds bounds
-                                     :utility-function-type :ucb
-                                     ;; :utility-param 0
-                                     :optimizer :lbfgsb})]
-    (take 3 (drop 30 (map (juxt :x :y) bo))))
-;; => ([(0.14580050823621077) 2.867142408546129] [(0.14564645826782044) 2.868128502656343] [(0.14550225115172954) 2.868981775657352])
-;; => ([(0.14973586005947528) 2.8164430833342324] [(0.14973586005947528) 2.8164430833342324] [(0.14973586005947528) 2.8164430833342324])
-
-;; tests
-
-#_(defn target-1d ^double [^double x]
-    (+ (/ (m/sin (* 10 m/PI x)) (+ x x)) (m/pow (dec x) 4)))
-
-#_(defn target-2d-schwefel
-    ^double [^double x ^double y]
-    (- 418.9829
-       (+ (* x (m/sin (m/sqrt (m/abs x))))
-          (* y (m/sin (m/sqrt (m/abs y)))))))
-
-#_(defn target-2d-booth
-    ^double [^double x ^double y]
-    (+ (m/sq (+ x y y -7))
-       (m/sq (+ x x y -5))))
-
-#_(time (let [f (minimizer :lbfgsb target-2d-booth {:bounds [[-10 10]
-                                                             [-10 10]]
-                                                    :tolerance 1.0e-10})]
-          (f (v/generate-vec2 #(r/drand -9 9)))))
-
-#_(scan-and-minimize :lbfgsb target-2d-schwefel {:bounds [[-500 500]
-                                                          [-500 500]] :N 1000 :bounded? true})
-
-#_(scan-and-minimize :gradient target-1d {:bounds [[-0.5 2.5]] :gradient-step 0.1})
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-#_(do
-
-    (defn bfn6 ^double [^double x ^double y] (+ (* 100 (m/sqrt (m/abs (- y (* 0.01 x x)))))
-                                             (* 0.01 (m/abs (+ 10.0 x)))))
-
-    (defn h ^double [^double x ^double y] (+ (m/sq (+ (* x x) y -11))
-                                          (m/sq (+ x (* y y) -7))))
-
-    (defn d5 [a b c d e] (reduce #(+ ^double %1 (m/sq %2)) 0.0 [a b c d e]))
-
-    (time (scan-and-maximize :bobyqa bfn6 {:bounds [[-15 -3] [15 3]] :N 100 :n 0.2}))
-
-    (minimize :powell bfn6 {:bounds [[-15 -3] [15 3]] :initial [-13.217532309719662 0.9280007414397415]})
-
-    (time (scan-and-optimize :powell #(m/cos %) {:bounds [-3 3] :initial -2 :N 100 :n 0.2 :goal :maximize})))
-
-
-;; => [1.9210981963566007 -5.751481824637489 0.3304425131054902]
-
-#_(defn rosenbrock
-    [& vs]
-    (reduce (fn [^double fx [^double xi ^double xi+1]]
-              (let [t1 (- 1.0 xi)
-                    t2 (* 10.0 (- xi+1 (* xi xi)))]
-                (+ fx (* t1 t1) (* t2 t2)))) 0.0 (partition 2 1 vs)))
-
-
-#_(minimize :lbfgsb rosenbrock {:bounds (repeat 20 [-5 10])
-                                :init [2 -4 2 4 -2] :m 50 :N 10 :n 1
-                                :max-iters 1000})
-
-
-
-#_(comment (defn hump
-             [^double x ^double y]
-             (let [x2 (* x x)
-                   x4 (* x2 x2)]
-               (+ (* 2.0 x2)
-                  (* -1.05 x4)
-                  (* x4 x2 m/SIXTH)
-                  (* x y)
-                  (* y y))))
-
-           (defn hump-grad
-             [[^double x ^double y]]
-             (let [x2 (* x x)
-                   x4 (* x2 x2)]
-               [(+ (* 4.0 x)
-                   (* -4.2 x2 x)
-                   (* x4 x)
-                   y)
-                (+ x (* 2.0 y))]))
-
-           (minimize :lbfgsb hump {:bounds [[-5 5.1] [-5 5.1]]
-                                   :gradient-f hump-grad
-                                   :weak-wolfe? true
-                                   :vector-arg? false
-                                   :stats? true}))
-

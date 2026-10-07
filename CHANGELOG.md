@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization` `:gradient` option (gradient of the function for `:lbfgsb` and `:conjugate-gradient`), `:status` in `:lbfgsb` stats (`:converged`, `:stalled`, `:max-iterations`), `:vector-arg?` in `bayesian-optimization`, validation of `:bounds` with `ex-info`; `fastmath.optimization.problems/rosenbrock-gradient`, `himmelblau-gradient`, `beale-gradient`
 * `fastmath.optimization` method `:sceua` (`fastmath.optimization.sceua/sceua`) - Shuffled Complex Evolution global optimizer with parallel evolution of complexes, complex reduction and optional PCA recovery of a collapsed population
 * `fastmath.random/ensure-rng`, `child-rngs`; the `rng` argument of `sequence-generator` and `jittered-sequence-generator`; the `:rng` option of `fastmath.calculus/vegas`, `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` and `bayesian-optimization`
+* log version of utility functions for `bayesian-optimization`: `:log-ei`, `:log-poi` and `:log-ucb`
 
 ### Fixed
 

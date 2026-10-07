@@ -555,7 +555,9 @@
   (let [f (fn [v] (- (p/himmelblau v)))
         step (fn [opts] (nth (sut/bayesian-optimization f (merge {:bounds hb :warm-up 50} opts)) 1))]
     (doseq [opts [{:utility-function-type :ucb} {:utility-function-type :ei} {:utility-function-type :poi}
+                  {:utility-function-type :log-ucb} {:utility-function-type :log-ei} {:utility-function-type :log-poi}
                   {:utility-function-type :ucb :utility-param 1.0} {:utility-function-type :ei :utility-param 0.1}
+                  {:utility-function-type :log-ucb :utility-param 1.0} {:utility-function-type :log-ei :utility-param 0.1}
                   {:kernel :gaussian} {:kscale 2.0} {:jitter 0.1} {:noise 1.0e-4} {:normalize? false}
                   {:init-points 1} {:init-points 5} {:init-points [[0 0] [1 1] [2 2]]} {:optimizer-params {:max-iters 100}}]]
       (let [s (step opts)]
