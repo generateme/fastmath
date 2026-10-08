@@ -64,6 +64,15 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization/bayesian-optimization` could evaluate the function outside of the bounds with unconstrained optimizers and failed with `:optimizer :brent` and with a function of separate arguments
 * `fastmath.optimization/linear-optimization` treated any unknown relation as equality and silently ignored an incomplete last constraint
 * `fastmath.matrix` decomposition `solve` returned an `ArrayRealVector` and `eigen-decomposition`'s `:acm` `:eigenvectors` threw for matrices larger than 4x4 (`->vec` did not convert the vector for sizes other than 2, 3 and 4)
+* `fastmath.polynomials/evalpoly-scalar-complex` threw for a single coefficient and returned `NaN` instead of the finite value (or `Inf`) for `|z|` above about 1e154; `makepoly-complex` threw for a single coefficient
+* `fastmath.polynomials/mevalpoly` (and `evalpoly` with explicit coefficients) returned the sign of an exactly zero result differently from the function form, and a single coefficient as given instead of as a double (also `makepoly`); all forms now agree
+* `fastmath.polynomials` `Polynomial` `mult` threw `ArrayIndexOutOfBoundsException` for any product of two non-constant polynomials (result array sized by the first degree only)
+* `fastmath.polynomials/derivative` of an order above the degree (or of a constant) crashed or returned a degree -1 object that could not be evaluated; now the zero polynomial; a negative order throws `IllegalArgumentException`; `PolynomialR` derivative was inexact from order 22 and failed above order 170 (double factorial), now exact
+* `fastmath.polynomials` `PolynomialR`: `hashCode` threw, equal polynomials with `Long`/`BigInt` coefficients compared unequal, `evaluate` threw for NaN and infinities; adding or multiplying a `Polynomial` with a `PolynomialR` threw `ClassCastException`, now `IllegalArgumentException`
+* `fastmath.polynomials/polynomial`, `ratio-polynomial` with no coefficients gave a degree -1 object; now the zero polynomial (degree 0); polynomial objects can be called through `apply`; `str` of a polynomial uses no locale digit grouping and no longer prints `-0`
+* `fastmath.polynomials/eval-chebyshev-V` and `eval-chebyshev-W` returned `NaN` or an infinity for `x <= -1` (and for `V` at `x = -1`), `eval-chebyshev-V` of degree 0 was not exactly 1.0 and both overflowed for huge `x`; now computed from `U` (`V = U(n) - U(n-1)`, `W = U(n) + U(n-1)`) and exact at the endpoints
+* `fastmath.polynomials/eval-chebyshev-U` had a relative error of up to 1e-12 next to `x = ±1` for degrees 5 to 50, returned an infinity above `|x|` of about 1e60 although the value is representable, and `NaN` at `##Inf` for degree 4
+* `fastmath.polynomials` Chebyshev functions of a negative degree returned the value of another polynomial (for example `T(-1) = x`); now `IllegalArgumentException`; `kernel/window` `dolph-chebyshev` of length 0 throws `IllegalArgumentException` (was `ArityException`)
 
 ### Changed
 

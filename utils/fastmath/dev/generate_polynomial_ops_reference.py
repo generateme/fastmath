@@ -1,0 +1,171 @@
+"""One-off generator of independent reference values for the polynomial objects of
+`fastmath.polynomials` (`Polynomial` and `PolynomialR`): `add`, `sub`, `scale`,
+`mult`, `derivative`, `evaluate` and the fitted-points constructors.
+
+Produces `test/resources/polynomials/polynomial_ops_reference.edn`. All values are
+computed in exact rational arithmetic (`fractions.Fraction`) from decimal
+coefficients with at most 3 digits after the decimal point, so every reference is
+exact, with no rounding at all. A ratio is written as `[numerator denominator]`
+(integers; Clojure reads the big ones as `BigInt`); the exact decimal inputs are
+written as doubles, so `rationalize` on the Clojure side gives back exactly the
+same rational numbers.
+
+Blocks (coefficients ascending: `c0 + c1*x + c2*x^2 + ...`; `deg` = nominal degree =
+number of coefficients minus one):
+  - `:pairs`      `{:a [...] :b [...] :sum [...] :diff [...] :product [...]}` per entry;
+                  sum and difference have the nominal degree `max(deg a, deg b)`, the
+                  product `deg a + deg b`
+  - `:scale`      `{:polys [...] :scalars [...] :ref [[...]]}`; `ref[i][j]` = `polys[i] * scalars[j]`
+  - `:derivative` `{:polys [...] :orders [...] :ref [[...]]}`; every polynomial for orders
+                  `0..deg+2`; an order above the degree gives the zero polynomial `[[0 1]]`
+  - `:evaluate`   `{:polys [...] :x [...] :ref [[...]]}`; exact values, `x` as exact decimals
+  - `:fit`        `{:xs [...] :ys [...] :ref [...]}`; the interpolating polynomial of the points
+
+Run with (from repo root, using the `uv`-managed Python env mentioned in AGENTS.md):
+    cd /home/ts/penv && uv run python \
+        /home/ts/clojure/fastmath/utils/fastmath/dev/generate_polynomial_ops_reference.py
+"""
+import random
+from fractions import Fraction
+
+OUT = "/home/ts/clojure/fastmath/test/resources/polynomials/polynomial_ops_reference.edn"
+
+random.seed(20261009)
+
+
+def fr(c):
+    return Fraction(str(c))
+
+
+def random_coeff():
+    return 0.0 if random.random() < 0.15 else round(random.uniform(-5.0, 5.0), 3)
+
+
+def random_poly(n):
+    return [random_coeff() for _ in range(n)]
+
+
+def add(a, b):
+    n = max(len(a), len(b))
+    return [(a[i] if i < len(a) else 0) + (b[i] if i < len(b) else 0) for i in range(n)]
+
+
+def sub(a, b):
+    n = max(len(a), len(b))
+    return [(a[i] if i < len(a) else 0) - (b[i] if i < len(b) else 0) for i in range(n)]
+
+
+def mul(a, b):
+    out = [Fraction(0)] * (len(a) + len(b) - 1)
+    for i, x in enumerate(a):
+        for j, y in enumerate(b):
+            out[i + j] += x * y
+    return out
+
+
+def deriv(a, k):
+    if k > len(a) - 1:
+        return [Fraction(0)]
+    out = []
+    for j in range(len(a) - k):
+        f = Fraction(1)
+        for t in range(1, k + 1):
+            f *= j + t
+        out.append(a[j + k] * f)
+    return out
+
+
+def horner(a, x):
+    acc = Fraction(0)
+    for c in reversed(a):
+        acc = acc * x + c
+    return acc
+
+
+def interpolate(xs, ys):
+    """Coefficients (ascending) of the polynomial through the points: exact Gauss-Jordan on the Vandermonde matrix."""
+    n = len(xs)
+    m = [[xs[i] ** j for j in range(n)] + [ys[i]] for i in range(n)]
+    for col in range(n):
+        piv = next(r for r in range(col, n) if m[r][col] != 0)
+        m[col], m[piv] = m[piv], m[col]
+        pv = m[col][col]
+        m[col] = [v / pv for v in m[col]]
+        for r in range(n):
+            if r != col and m[r][col] != 0:
+                f = m[r][col]
+                m[r] = [v - f * w for v, w in zip(m[r], m[col])]
+    return [m[i][n] for i in range(n)]
+
+
+def fmt_double(c):
+    return repr(float(c))
+
+
+def edn_doubles(cs):
+    return "[" + " ".join(fmt_double(c) for c in cs) + "]"
+
+
+def edn_ratio(q):
+    q = Fraction(q)
+    return "[%d %d]" % (q.numerator, q.denominator)
+
+
+def edn_ratios(qs):
+    return "[" + " ".join(edn_ratio(q) for q in qs) + "]"
+
+
+FIXED = [[0.0], [0.0, 0.0], [1.0], [-2.5], [0.0, 1.0], [1.0, 0.0], [1.0, 2.0, 3.0],
+         [0.0, 0.0, 1.0], [1.0, -1.0, 1.0, -1.0], [2.0, 0.0, 0.0, 0.0, 3.0]]
+
+polys = FIXED + [random_poly(n) for n in range(1, 10) for _ in range(2)]
+
+# pairs: every fixed polynomial with a few random ones, plus random pairs
+pairs = []
+for a in FIXED:
+    for b in [FIXED[2], FIXED[6], random_poly(4)]:
+        pairs.append((a, b))
+for _ in range(25):
+    pairs.append((random_poly(random.randint(1, 8)), random_poly(random.randint(1, 8))))
+
+SCALARS = [-2.5, -1.0, 0.0, 0.1, 1.0, 3.0, 1000.0, 0.001]
+EVAL_X = [-10.0, -3.0, -1.5, -1.0, -0.1, 0.0, 0.001, 0.1, 0.5, 1.0, 2.0, 7.0]
+
+fit_sets = []
+for n in range(2, 9):
+    for _ in range(2):
+        base = [round(-1.0 + 2.0 * i / (n - 1) + random.uniform(-0.05, 0.05), 2) for i in range(n)]
+        xs = sorted(set(base))
+        if len(xs) != n:
+            continue
+        ys = [round(random.uniform(-5.0, 5.0), 2) for _ in xs]
+        fit_sets.append((xs, ys))
+
+with open(OUT, "w") as f:
+    f.write(";; Generated by utils/fastmath/dev/generate_polynomial_ops_reference.py (exact rational arithmetic)\n")
+    f.write("{:pairs [\n")
+    for a, b in pairs:
+        fa, fb = [fr(c) for c in a], [fr(c) for c in b]
+        f.write("  {:a %s :b %s\n   :sum %s\n   :diff %s\n   :product %s}\n" % (
+            edn_doubles(a), edn_doubles(b), edn_ratios(add(fa, fb)), edn_ratios(sub(fa, fb)), edn_ratios(mul(fa, fb))))
+    f.write(" ]\n")
+    f.write(" :scale {:polys [" + " ".join(edn_doubles(p) for p in polys) + "]\n")
+    f.write("  :scalars " + edn_doubles(SCALARS) + "\n")
+    f.write("  :ref [" + " ".join(
+        "[" + " ".join(edn_ratios([c * fr(s) for c in map(fr, p)]) for s in SCALARS) + "]" for p in polys) + "]}\n")
+    f.write(" :derivative {:polys [" + " ".join(edn_doubles(p) for p in polys) + "]\n")
+    f.write("  :max-extra-orders 2\n")
+    f.write("  :ref [" + " ".join(
+        "[" + " ".join(edn_ratios(deriv([fr(c) for c in p], k)) for k in range(0, len(p) + 2)) + "]" for p in polys) + "]}\n")
+    f.write(" :evaluate {:polys [" + " ".join(edn_doubles(p) for p in polys) + "]\n")
+    f.write("  :x " + edn_doubles(EVAL_X) + "\n")
+    f.write("  :ref [" + " ".join(
+        "[" + " ".join(edn_ratio(horner([fr(c) for c in p], fr(x))) for x in EVAL_X) + "]" for p in polys) + "]}\n")
+    f.write(" :fit [\n")
+    for xs, ys in fit_sets:
+        ref = interpolate([fr(x) for x in xs], [fr(y) for y in ys])
+        f.write("  {:xs %s :ys %s\n   :ref %s}\n" % (edn_doubles(xs), edn_doubles(ys), edn_ratios(ref)))
+    f.write(" ]}\n")
+
+print("pairs:", len(pairs), "polys:", len(polys), "fit sets:", len(fit_sets))
+print("wrote", OUT)
