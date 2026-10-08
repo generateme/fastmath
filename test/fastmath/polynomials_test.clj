@@ -785,10 +785,6 @@
 ;; Jacobi 1.1 apart from the pair below.
 (def ^:private lgj-eval-units {:legendre 4.0 :gegenbauer 4.0 :jacobi 4.0})
 
-;; Jacobi (-3, 0.5): the polynomials of degree 3 and more have a triple root at x = 1, so the values next to
-;; it (down to 1e-25 at 1 - 1e-9) are far below the rounding error of the recurrence relative to the size
-;; of the polynomial on the interval (1.5e-11 at degree 30; 4482 units of the bound).
-(def ^:private jacobi-units-by-parameters {[-3.0 0.5] 5000.0})
 
 (defn- grid-failures
   "Rows `[n x value derivative]` for which `(f n x)` is outside the bound of `eval-error-bound`."
@@ -813,8 +809,7 @@
 
 (t/deftest jacobi-eval-reference
   (doseq [{:keys [alpha beta grid]} (:jacobi @lgj-reference)
-          :let [failures (grid-failures (fn [n x] (sut/eval-jacobi-P n alpha beta x)) grid
-                                        (get jacobi-units-by-parameters [alpha beta] (:jacobi lgj-eval-units)))]]
+          :let [failures (grid-failures (fn [n x] (sut/eval-jacobi-P n alpha beta x)) grid (:jacobi lgj-eval-units))]]
     (t/is (empty? failures) (failures-message (str "Jacobi alpha " alpha " beta " beta) failures))))
 
 (defn- exact-coefficients [pairs] (mapv ratio pairs))
@@ -861,8 +856,8 @@
   [n alpha]
   (reduce (fn [cs k]
             (let [m (- n (* 2 k))]
-              (assoc cs m (* (if (even? k) 1 -1) (pochhammer alpha (- n k))
-                             (/ (reduce *' 1 (repeat m 2)) (* (factorial-exact k) (factorial-exact m)))))))
+              (assoc cs m (*' (if (even? k) 1 -1) (pochhammer alpha (- n k))
+                              (/ (reduce *' 1 (repeat m 2)) (*' (factorial-exact k) (factorial-exact m)))))))
           (vec (repeat (inc n) 0))
           (range (inc (quot n 2)))))
 
@@ -1025,6 +1020,164 @@
                        "jacobi-P" #(sut/jacobi-P % 0.5 1.5)}]
       (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))
 
+;; Gegenbauer and Jacobi outside the range of the three term recurrence, and at infinity.
+;;
+;; The recurrence is accurate for a Gegenbauer order above -1 and for Jacobi `alpha > -1`, `beta > -1`,
+;; `alpha + beta > -1.9` (measured: at most 3.9 and 2.5 units on random parameters). Below that it lost up to
+;; 1e14 units (an identically zero polynomial gave noise of 2.7e6); there the evaluators sum the explicit
+;; formula in decimal arithmetic of adaptive precision, so the result is the nearest double up to about 2^-60.
+
+(defn- horner-exact [cs rx] (reduce (fn [acc c] (+ (* acc rx) c)) 0 (reverse cs)))
+
+(defn- exact->double ^double [r] (@#'sut/rational->double r))
+
+(defn- random-x
+  "A random argument: wide, inside [-1, 1], next to ±1 on both sides, or tiny."
+  [^java.util.Random rng]
+  (let [sign (if (.nextBoolean rng) 1.0 -1.0)
+        exponent (fn [lo span] (m/pow 10.0 (- (+ lo (* span (.nextDouble rng))))))]
+    (case (.nextInt rng 5)
+      0 (- (* 6.0 (.nextDouble rng)) 3.0)
+      1 (- (* 2.0 (.nextDouble rng)) 1.0)
+      2 (* sign (- 1.0 (exponent 1.0 14.0)))
+      3 (* sign (exponent 1.0 11.0))
+      4 (* sign (+ 1.0 (exponent 1.0 11.0))))))
+
+(defn- correct-to-rounding?
+  "True when `got` is the nearest double of `exact` up to 4 units of roundoff, relative to `exact` (exactly 0
+  for an exact 0)."
+  [got exact]
+  (<= (m/abs (- got exact)) (* 4.0 EPS (m/abs exact))))
+
+(t/deftest gegenbauer-negative-integer-order-is-identically-zero
+  ;; C_n^(-k) = 0 for n > 2k (the exact coefficients are all zero); the recurrence gave noise for |x| > 1
+  (doseq [[k n x] [[2 16 1.3] [2 23 5.856421080721988] [3 20 2.1586225252597906] [3 36 2.1586225252597906]
+                   [5 28 5.7] [1 12 5.7] [4 40 0.3] [6 60 -7.5]]]
+    (t/is (every? zero? (sut/coeffs (sut/gegenbauer-C-ratio n (double (- k))))))
+    (t/is (== 0.0 (sut/eval-gegenbauer-C n (double (- k)) x)) (str "order " (- k) " degree " n " at " x)))
+  ;; degree 2k is the constant 1 (also in the limit)
+  (doseq [k [1 2 3 5] x [-4.5 0.25 7.0 ##Inf ##-Inf]]
+    (t/is (== 1.0 (sut/eval-gegenbauer-C (* 2 k) (double (- k)) x)) (str "order " (- k) " at " x))))
+
+(t/deftest gegenbauer-order-below-minus-one-is-correct-to-rounding
+  (let [rng (java.util.Random. 20261010)]
+    (dotimes [_ 300]
+      (let [n (+ 2 (.nextInt rng 29))
+            x (random-x rng)
+            alpha (case (.nextInt rng 3)
+                    0 (- (/ (+ 8 (.nextInt rng 24)) 8.0))
+                    1 (- (double (inc (.nextInt rng 6))))
+                    2 (+ (- (double (inc (.nextInt rng 6)))) (m/pow 2.0 (- (+ 5 (.nextInt rng 20))))))
+            exact (exact->double (horner-exact (gegenbauer-explicit-coefficients n (exact-ratio alpha)) (exact-ratio x)))
+            got (sut/eval-gegenbauer-C n alpha x)]
+        (t/is (correct-to-rounding? got exact) (str "degree " n " order " alpha " at " x ": got " got " expected " exact))))))
+
+(t/deftest jacobi-outside-the-recurrence-range-is-correct-to-rounding
+  ;; the pairs of the recurrence range keep the looser bound relative to the largest value of degrees 0 to n
+  (let [rng (java.util.Random. 20261011)
+        recurrence-range? (fn [a b] (and (> a -1.0) (> b -1.0) (> (+ a b) -1.9)))]
+    (dotimes [_ 250]
+      (let [n (+ 2 (.nextInt rng 15))
+            x (random-x rng)
+            alpha (/ (- (.nextInt rng 33) 24) 8.0)
+            ;; a quarter of the pairs have alpha + beta a negative integer of -2 and below (recurrence divides by 0)
+            beta (if (zero? (.nextInt rng 4))
+                   (- (- (double (+ 2 (.nextInt rng 8)))) alpha)
+                   (/ (- (.nextInt rng 33) 24) 8.0))
+            exact (exact->double (horner-exact (sut/coeffs (jacobi-explicit-ratio n (exact-ratio alpha) (exact-ratio beta))) (exact-ratio x)))
+            got (sut/eval-jacobi-P n alpha beta x)]
+        (if (recurrence-range? alpha beta)
+          (let [envelope (reduce max 1.0 (map #(m/abs (sut/eval-jacobi-P % alpha beta x)) (range (inc n))))]
+            (t/is (<= (m/abs (- got exact)) (* 16.0 (inc n) EPS (max 1.0 (m/abs exact) envelope)))
+                  (str "recurrence range, degree " n " (" alpha ", " beta ") at " x)))
+          (t/is (correct-to-rounding? got exact) (str "degree " n " (" alpha ", " beta ") at " x ": got " got " expected " exact)))))))
+
+(t/deftest gegenbauer-small-order-keeps-its-relative-accuracy
+  ;; the factors (a + i - 1) and (i - 2 + 2a) of the recurrence were formed as (a + i) - 1 and (i + 2a) - 2: a
+  ;; relative error of eps / |a| (6e-9 for a = 1e-8) in every value, which is proportional to a
+  (doseq [alpha [1.0e-8 -1.0e-8 1.0e-12 -1.0e-3 0.001 -0.5]
+          [n x] [[2 0.3] [5 0.3] [12 0.3] [20 -2.5] [20 0.99] [30 0.7] [30 -1.0e-3] [8 4.5]]
+          :let [exact (exact->double (horner-exact (gegenbauer-explicit-coefficients n (exact-ratio alpha)) (exact-ratio x)))
+                got (sut/eval-gegenbauer-C n alpha x)]]
+    (t/is (<= (m/abs (- got exact)) (* 16.0 (inc n) EPS (m/abs exact)))
+          (str "degree " n " order " alpha " at " x ": got " got " expected " exact))))
+
+(t/deftest jacobi-and-gegenbauer-below-minus-one-reproducers
+  (doseq [[n a b x] [[25 0.375 -4.25 -1.0508027409467864] [18 -2.75 -1.375 1.087223071601323]
+                     [23 -1.5 -2.625 -0.9999999294905596] [30 -2.75 -1.375 0.99999]]]
+    (t/is (correct-to-rounding? (sut/eval-jacobi-P n a b x)
+                                (exact->double (horner-exact (sut/coeffs (jacobi-explicit-ratio n (exact-ratio a) (exact-ratio b))) (exact-ratio x))))
+          (str n " " a " " b " " x)))
+  (doseq [[n a x] [[37 -9.125 -1.7388703311057259] [33 -5.999999940395355 -2.876693657987249]]]
+    (t/is (correct-to-rounding? (sut/eval-gegenbauer-C n a x)
+                                (exact->double (horner-exact (gegenbauer-explicit-coefficients n (exact-ratio a)) (exact-ratio x))))
+          (str n " " a " " x))))
+
+(t/deftest rational->double-rounds-to-nearest-and-ties-to-even
+  ;; 1 + (2k+1)/2^53 lies exactly between the doubles 1 + k/2^52 and 1 + (k+1)/2^52: the even one wins
+  (doseq [k (range 0 200)
+          :let [tie (+ 1 (/ (+ (* 2 k) 1) 9007199254740992N))
+                lower (+ 1.0 (* k (m/pow 2.0 -52)))
+                upper (+ 1.0 (* (inc k) (m/pow 2.0 -52)))]]
+    (t/is (== (if (even? k) lower upper) (exact->double tie)) (str "tie " k))
+    (t/is (== (- (if (even? k) lower upper)) (exact->double (- tie))) (str "negative tie " k))
+    ;; a hair above or below the tie goes to the nearer double
+    (t/is (== upper (exact->double (+ tie (/ 1 (.pow (BigInteger/valueOf 2) 100))))) (str "above " k))
+    (t/is (== lower (exact->double (- tie (/ 1 (.pow (BigInteger/valueOf 2) 100))))) (str "below " k)))
+  ;; the subnormal range: the unit is 2^-1074 = MIN_VALUE
+  (let [two-1075 (.pow (BigInteger/valueOf 2) 1075)]
+    (t/is (== 0.0 (exact->double (/ 1 two-1075))) "0.5 MIN_VALUE: tie to 0")
+    (t/is (== (* 2 Double/MIN_VALUE) (exact->double (/ 3 two-1075))) "1.5 MIN_VALUE: tie to 2 MIN_VALUE")
+    (t/is (== (* 2 Double/MIN_VALUE) (exact->double (/ 5 two-1075))) "2.5 MIN_VALUE: tie to 2 MIN_VALUE")
+    (t/is (== (* 4 Double/MIN_VALUE) (exact->double (/ 7 two-1075))) "3.5 MIN_VALUE: tie to 4 MIN_VALUE"))
+  ;; range and exact values
+  (t/is (== 0.3333333333333333 (exact->double 1/3)))
+  (t/is (== -0.3333333333333333 (exact->double -1/3)))
+  (t/is (== ##Inf (exact->double (.pow (BigInteger/valueOf 10) 400))))
+  (t/is (== 0.0 (exact->double (/ 1 (.pow (BigInteger/valueOf 10) 400)))))
+  (t/is (== Double/MAX_VALUE (exact->double (* (bigint 9007199254740991) (.pow (BigInteger/valueOf 2) 971))))))
+
+(defmacro ^:private finishes-within
+  "True when the form returns within `ms` milliseconds (a form that does not stop keeps its thread busy)."
+  [ms form]
+  `(not= ::timeout (deref (future ~form) ~ms ::timeout)))
+
+(t/deftest high-precision-paths-do-not-depend-on-the-size-of-the-argument
+  ;; the exact binary value of a tiny x has a denominator of 2^1074; the decimal sum does not care
+  (doseq [x [1.0e-300 Double/MIN_VALUE -1.0e-100 1.0e300 Double/MAX_VALUE]]
+    (t/is (finishes-within 5000 (sut/eval-jacobi-P 100 -1.0 -1.0 x)) (str "Jacobi at " x))
+    (t/is (finishes-within 5000 (sut/eval-gegenbauer-C 100 -3.5 x)) (str "Gegenbauer at " x)))
+  (t/is (finishes-within 5000 (sut/eval-jacobi-P 300 -1.0 -1.0 Double/MIN_VALUE)))
+  (t/is (finishes-within 5000 (sut/eval-jacobi-P 1000 -1.0 -1.0 0.3)))
+  ;; the values themselves at tiny x: P_n(0) and neighbours are finite and equal the exact ones
+  (doseq [x [1.0e-300 Double/MIN_VALUE]]
+    (let [exact (exact->double (horner-exact (sut/coeffs (jacobi-explicit-ratio 12 -1 -1)) (exact-ratio x)))]
+      (t/is (correct-to-rounding? (sut/eval-jacobi-P 12 -1.0 -1.0 x) exact) (str "x = " x)))))
+
+(t/deftest infinite-argument-is-found-from-the-signs
+  (t/is (finishes-within 5000 (sut/eval-gegenbauer-C 100000 2.5 ##Inf)))
+  (t/is (finishes-within 5000 (sut/eval-gegenbauer-C 2000 -2.5 ##-Inf)))
+  (t/is (finishes-within 5000 (sut/eval-jacobi-P 100000 0.5 1.5 ##Inf)))
+  (t/is (finishes-within 5000 (sut/eval-jacobi-P 100000 -3.0 0.5 ##-Inf)))
+  ;; the limit of the leading non-zero term of the exact polynomial, for orders and parameters in steps of 1/4
+  ;; including the negative integers where terms vanish
+  (doseq [x [##Inf ##-Inf]
+          n (range 1 15)]
+    (doseq [k (range -32 49 3)
+            :let [alpha (/ k 4.0)
+                  cs (gegenbauer-explicit-coefficients n (exact-ratio alpha))
+                  expected (value-at-infinity cs x)
+                  got (sut/eval-gegenbauer-C n alpha x)]]
+      (t/is (== expected got) (str "Gegenbauer order " alpha " degree " n " at " x)))
+    (doseq [ka (range -12 9 2) kb (range -12 9 3)
+            :let [alpha (/ ka 2.0) beta (/ kb 2.0) n (min n 10)
+                  cs (sut/coeffs (jacobi-explicit-ratio n (exact-ratio alpha) (exact-ratio beta)))
+                  expected (value-at-infinity cs x)
+                  got (sut/eval-jacobi-P n alpha beta x)]]
+      ;; a finite limit is a constant; `value-at-infinity` converts it with `double` (8 units of roundoff)
+      (t/is (if (m/inf? expected) (== expected got) (<= (m/abs (- got expected)) (* 8.0 EPS (m/abs expected))))
+            (str "Jacobi (" alpha ", " beta ") degree " n " at " x)))))
+
 ;; The evaluators dispatch on `(int degree)`: from 2^32 the degree wrapped around to a small one (degree
 ;; 2^32 gave the value of degree 0). A degree not below `Integer/MAX_VALUE` is rejected.
 (t/deftest degree-must-be-below-int-max-value
@@ -1049,3 +1202,184 @@
   ;; small degrees are unaffected (a degree just below the limit would need billions of steps)
   (t/is (== 1.0 (sut/eval-legendre-P 0 0.3)))
   (t/is (== 26.0 (sut/eval-chebyshev-T 3 2.0))))
+
+;; Generalized Laguerre and Hermite (physicists' H and probabilists' He) polynomials.
+;;
+;; Reference values: `test/resources/polynomials/laguerre_hermite_reference.edn`, exact rational
+;; arithmetic from the explicit sums (`utils/fastmath/dev/generate_laguerre_hermite_reference.py`) at the
+;; exact binary values of the order and of the arguments: 13 orders (including 0, negative integers and
+;; fractions, 0.3 and 1e-9 which are not binary exact, and 1 + 2^-30), 26 or 24 arguments from 1e-9 to 700 of
+;; both signs, degrees up to 100 (Laguerre) and 200 (Hermite); and the exact coefficients.
+;; `scipy.special.eval_genlaguerre/eval_hermite/eval_hermitenorm` against the reference: largest difference
+;; 8.9e-14 (Laguerre, order 7, degree 100), 1.1e-13 (H, degree 200) and 1.4e-14 (He), relative to
+;; max(1, |value|); scipy returns NaN for the 1300 Laguerre rows of orders -1 and below.
+
+(def ^:private lh-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/laguerre_hermite_reference.edn")))))
+
+;; Hermite: largest observed ratio to `eval-error-bound` 0.35 (H) and 0.3 (He); limit 4.
+(def ^:private lh-eval-units {:hermite-h 4.0 :hermite-he 4.0})
+
+(defn- laguerre-grid-failures
+  "Rows `[n x value]` for which `eval-laguerre-L` is outside `units * eps * (n+1)^2 * max(1, max_i |L_i(x)|)`.
+  The forward recurrence loses accuracy like the square of the degree next to x = 0 (about 1e-13 relative at
+  degree 100) and its error is relative to the largest of the intermediate values `L_0 ... L_n`, not to `L_n`."
+  [order rows units]
+  (for [[n x v] rows
+        :let [got (attempt sut/eval-laguerre-L n order x)
+              envelope (reduce max 1.0 (map #(m/abs (sut/eval-laguerre-L % order x)) (range (inc n))))]
+        :when (not (and (not (failed? got))
+                        (<= (m/abs (- got v)) (* units EPS (m/sq (inc n)) envelope))))]
+    [n x v got]))
+
+;; Largest observed ratio to this bound: 0.5 units (a rounding of the degree 1 value); limit 2.
+(t/deftest laguerre-eval-reference
+  (doseq [{:keys [order grid]} (:laguerre @lh-reference)
+          :let [failures (laguerre-grid-failures order grid 2.0)]]
+    (t/is (empty? failures) (failures-message (str "Laguerre order " order) failures))))
+
+(t/deftest hermite-eval-reference
+  (doseq [[label eval-fn key] [["H" sut/eval-hermite-H :hermite-h] ["He" sut/eval-hermite-He :hermite-he]]
+          :let [failures (grid-failures eval-fn (get-in @lh-reference [key :grid]) (get lh-eval-units key))]]
+    (t/is (empty? failures) (failures-message (str "Hermite " label) failures))))
+
+(t/deftest laguerre-exact-coefficients
+  (doseq [{:keys [order decimal-exact? coefficients]} (:laguerre @lh-reference)
+          :when decimal-exact?
+          [n exact] (map-indexed vector coefficients)
+          :let [r (attempt sut/laguerre-L-ratio n order)
+                o (attempt sut/laguerre-L n order)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
+          (str "ratio, order " order " degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str "object, order " order " degree " n))))
+
+(t/deftest hermite-exact-coefficients
+  (doseq [[label ratio-fn object-fn key] [["H" sut/hermite-H-ratio sut/hermite-H :hermite-h]
+                                          ["He" sut/hermite-He-ratio sut/hermite-He :hermite-he]]
+          [n exact] (map-indexed vector (get-in @lh-reference [key :coefficients]))
+          :let [r (attempt ratio-fn n)
+                o (attempt object-fn n)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str label " ratio, degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str label " object, degree " n))))
+
+(defn- generalized-binomial [top k]
+  (/ (reduce *' 1 (map #(- top %) (range k))) (factorial-exact k)))
+
+(defn- laguerre-explicit-coefficients
+  "Coefficients, ascending, of the generalized Laguerre polynomial of a rational order from the explicit sum
+  `sum_k (-1)^k C(n+a, n-k) x^k / k!`."
+  [n alpha]
+  (mapv (fn [k] (/ (* (if (even? k) 1 -1) (generalized-binomial (+ n alpha) (- n k))) (factorial-exact k)))
+        (range (inc n))))
+
+(t/deftest laguerre-ratio-form-is-exact-for-decimal-orders
+  ;; the order is converted with rationalize (0.3 is 3/10): the coefficients are then exact
+  (doseq [alpha [0.1 0.3 1.7 0.123 -0.6 2.5 -3.0 1e-9] n (range 0 13)]
+    (t/is (= (laguerre-explicit-coefficients n (rationalize alpha)) (vec (sut/coeffs (sut/laguerre-L-ratio n alpha))))
+          (str "order " alpha " degree " n))))
+
+(t/deftest laguerre-hermite-three-forms-agree
+  (let [xs [-3.0 -1.5 -0.5 0.0 0.5 1.5 3.0]
+        run (fn [eval-fn ratio-fn object-fn cases]
+              (three-forms-disagreements {:eval-fn eval-fn :ratio-fn ratio-fn :object-fn object-fn
+                                          :cases cases :xs xs}))
+        ns [0 1 2 3 4 5 6 8 10 15]]
+    (let [d (run (fn [[n a] x] (sut/eval-laguerre-L n a x)) (fn [[n a]] (sut/laguerre-L-ratio n a))
+                 (fn [[n a]] (sut/laguerre-L n a))
+                 (for [n ns a [0.0 0.5 1.0 2.5 7.0 0.3 -0.5 -1.0 -2.5]] [n a]))]
+      (t/is (empty? d) (str "Laguerre: " (count d) " disagreements; first: " (pr-str (take 2 d)))))
+    (let [d (run (fn [[n] x] (sut/eval-hermite-H n x)) (fn [[n]] (sut/hermite-H-ratio n)) (fn [[n]] (sut/hermite-H n))
+                 (map vector ns))]
+      (t/is (empty? d) (str "H: " (pr-str (take 2 d)))))
+    (let [d (run (fn [[n] x] (sut/eval-hermite-He n x)) (fn [[n]] (sut/hermite-He-ratio n)) (fn [[n]] (sut/hermite-He n))
+                 (map vector ns))]
+      (t/is (empty? d) (str "He: " (pr-str (take 2 d)))))))
+
+(t/deftest laguerre-order-conventions
+  ;; the order defaults to 0
+  (doseq [n [0 1 2 5 9] x [-2.0 0.0 0.5 3.0]]
+    (t/is (= (bits (sut/eval-laguerre-L n x)) (bits (sut/eval-laguerre-L n 0.0 x))) (str "degree " n " at " x)))
+  (t/is (= (vec (sut/coeffs (sut/laguerre-L 5))) (vec (sut/coeffs (sut/laguerre-L 5 0.0)))))
+  ;; L_1 = 1 - x, L_2 = (x^2 - 4x + 2) / 2
+  (t/is (= [1 -1] (vec (sut/coeffs (sut/laguerre-L-ratio 1 0.0)))))
+  (t/is (= [1 -2 1/2] (vec (sut/coeffs (sut/laguerre-L-ratio 2 0.0)))))
+  ;; a negative integer order -k with n >= k: L_n^(-k)(x) = (n-k)! / n! * (-x)^k * L_(n-k)^(k)(x)
+  (doseq [k [1 2 3] n [3 4 6 9]
+          :let [shifted (sut/laguerre-L-ratio (- n k) (double k))
+                factor (/ (factorial-exact (- n k)) (factorial-exact n))
+                monomial (sut/ratio-polynomial (concat (repeat k 0) [(if (even? k) 1 -1)]))]]
+    (t/is (= (vec (sut/coeffs (sut/scale (sut/mult monomial shifted) factor)))
+             (vec (sut/coeffs (sut/laguerre-L-ratio n (double (- k))))))
+          (str "order " (- k) " degree " n)))
+  ;; a NaN order: degree 0 is 1, the others NaN; no exact form for NaN or an infinite order
+  (t/is (== 1.0 (sut/eval-laguerre-L 0 ##NaN 0.3)))
+  (t/is (m/nan? (sut/eval-laguerre-L 3 ##NaN 0.3)))
+  (t/is (= [1] (vec (sut/coeffs (sut/laguerre-L-ratio 0 ##NaN)))))
+  (doseq [bad [##NaN ##Inf ##-Inf] n [1 3]]
+    (t/is (thrown? IllegalArgumentException (sut/laguerre-L-ratio n bad)) (str "order " bad " degree " n))
+    (t/is (thrown? IllegalArgumentException (sut/laguerre-L n bad)) (str "order " bad " degree " n))))
+
+(t/deftest hermite-special-values
+  ;; H_n(0) = (-1)^(n/2) n! / (n/2)!, He_n(0) = (-1)^(n/2) (n-1)!!, both 0 for an odd degree
+  (doseq [[n h he] [[0 1.0 1.0] [2 -2.0 -1.0] [4 12.0 3.0] [6 -120.0 -15.0] [8 1680.0 105.0] [1 0.0 0.0] [3 0.0 0.0] [7 0.0 0.0]]]
+    (t/is (== h (sut/eval-hermite-H n 0.0)) (str "H " n))
+    (t/is (== he (sut/eval-hermite-He n 0.0)) (str "He " n)))
+  ;; H_n(x) = 2^(n/2) He_n(sqrt(2) x)
+  (doseq [n [2 3 6 9] x [-1.5 0.25 0.9 2.0]]
+    (t/is (m/delta-eq (sut/eval-hermite-H n x) (* (m/pow 2.0 (/ n 2.0)) (sut/eval-hermite-He n (* m/SQRT2 x))) 1.0e-9)
+          (str "degree " n " at " x)))
+  ;; parity
+  (doseq [n [1 2 5 8 13] x [0.3 1.7 4.0]]
+    (let [sign (if (even? n) 1.0 -1.0)]
+      (t/is (== (sut/eval-hermite-H n x) (* sign (sut/eval-hermite-H n (- x)))) (str "H " n))
+      (t/is (== (sut/eval-hermite-He n x) (* sign (sut/eval-hermite-He n (- x)))) (str "He " n)))))
+
+(t/deftest laguerre-hermite-non-finite-and-huge-arguments
+  ;; an infinite argument gives the infinity of the leading term (sign of the coefficient and the parity);
+  ;; the leading coefficients are (-1)^n / n!, 2^n and 1, never zero
+  (doseq [n [0 1 2 3 4 5 6 9 10 15 40]
+          :let [even (even? n)]]
+    (doseq [order [0.0 0.5 2.5 -0.5 -1.0 -2.5 7.0 0.3 1.0e-9]]
+      (t/is (== (cond (zero? n) 1.0 even ##Inf :else ##-Inf) (sut/eval-laguerre-L n order ##Inf)) (str "L " n " order " order " at +Inf"))
+      (t/is (== (if (zero? n) 1.0 ##Inf) (sut/eval-laguerre-L n order ##-Inf)) (str "L " n " order " order " at -Inf")))
+    (t/is (== (if (zero? n) 1.0 (if even ##Inf ##-Inf)) (sut/eval-laguerre-L n ##Inf)) (str "L " n " default order at +Inf"))
+    (doseq [[label f] [["H" sut/eval-hermite-H] ["He" sut/eval-hermite-He]]]
+      (t/is (== (if (zero? n) 1.0 ##Inf) (f n ##Inf)) (str label " " n " at +Inf"))
+      (t/is (== (cond (zero? n) 1.0 even ##Inf :else ##-Inf) (f n ##-Inf)) (str label " " n " at -Inf"))))
+  ;; an infinite argument with a NaN or infinite order is NaN
+  (doseq [order [##NaN ##Inf ##-Inf] x [##Inf ##-Inf]]
+    (t/is (m/nan? (sut/eval-laguerre-L 2 order x)) (str "order " order " at " x)))
+  ;; NaN argument: degree 0 is 1, the others NaN
+  (t/is (== 1.0 (sut/eval-laguerre-L 0 0.5 ##NaN) (sut/eval-hermite-H 0 ##NaN) (sut/eval-hermite-He 0 ##NaN)))
+  (doseq [n [1 2 3 7]]
+    (t/is (m/nan? (sut/eval-laguerre-L n 0.5 ##NaN)))
+    (t/is (m/nan? (sut/eval-hermite-H n ##NaN)))
+    (t/is (m/nan? (sut/eval-hermite-He n ##NaN))))
+  ;; degree 0 and 1
+  (t/is (== 1.0 (sut/eval-laguerre-L 0 2.5 ##Inf)))
+  (t/is (== 1.5 (sut/eval-laguerre-L 1 2.5 2.0)) "1 + a - x")
+  (t/is (== 0.6 (sut/eval-hermite-H 1 0.3)))
+  (t/is (== 0.3 (sut/eval-hermite-He 1 0.3)))
+  ;; huge arguments with a representable value
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-laguerre-L 2 0.0 1.0e100) 5.0e199) 1.0e-14) "x^2 / 2")
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-hermite-H 2 1.0e150) 4.0e300) 1.0e-14) "4 x^2 - 2")
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-hermite-He 2 1.0e150) 1.0e300) 1.0e-14) "x^2 - 1"))
+
+(t/deftest laguerre-hermite-degree-limits
+  (doseq [n [-1 -2 -100 Integer/MAX_VALUE 4294967296 Long/MAX_VALUE]]
+    (doseq [[label f] {"eval-laguerre-L, default order" #(sut/eval-laguerre-L % 0.3)
+                       "eval-laguerre-L" #(sut/eval-laguerre-L % 2.5 0.3)
+                       "laguerre-L-ratio" #(sut/laguerre-L-ratio % 2.5)
+                       "laguerre-L, default order" sut/laguerre-L
+                       "laguerre-L" #(sut/laguerre-L % 2.5)
+                       "eval-hermite-H" #(sut/eval-hermite-H % 0.3)
+                       "hermite-H-ratio" sut/hermite-H-ratio
+                       "hermite-H" sut/hermite-H
+                       "eval-hermite-He" #(sut/eval-hermite-He % 0.3)
+                       "hermite-He-ratio" sut/hermite-He-ratio
+                       "hermite-He" sut/hermite-He}]
+      (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))

@@ -288,9 +288,9 @@
 
 (defmethod utility-function :log-ucb
   [_ ^double kappa]
-  (let [ei (utility-function :ucb kappa)]
+  (let [ucb (utility-function :ucb kappa)]
     (fn [gp x ^double y-max]
-      (m/log (m/+ m/MACHINE-EPSILON (double (ei gp x y-max)))))))
+      (m/log (m/+ m/MACHINE-EPSILON (double (ucb gp x y-max)))))))
 
 (defmethod utility-function :ei
   [_ ^double xi]
@@ -315,9 +315,9 @@
 
 (defmethod utility-function :log-poi
   [_ ^double xi]
-  (let [ei (utility-function :poi xi)]
+  (let [poi (utility-function :poi xi)]
     (fn [gp x ^double y-max]
-      (m/log (m/+ m/MACHINE-EPSILON (double (ei gp x y-max)))))))
+      (m/log (m/+ m/MACHINE-EPSILON (double (poi gp x y-max)))))))
 
 (defn- gen-sequence
   [init-points bounds jitter rng]

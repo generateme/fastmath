@@ -656,37 +656,83 @@
 ;;
 
 (defn eval-laguerre-L
-  "Evaluate generalized Laguerre polynomial"
+  "Evaluates the generalized Laguerre polynomial `L_n^(a)` of order `a` at `x`.
+
+  The polynomials are `L_n^(a)(x) = sum over k of (-1)^k*C(n+a, n-k)*x^k/k!` with generalized binomial coefficients, and satisfy `L_0 = 1`, `L_1 = 1 + a - x` and `n*L_n = (2n-1+a-x)*L_(n-1) - (n-1+a)*L_(n-2)`. For `a > -1` they are orthogonal on `[0, Inf)` with the weight `x^a*exp(-x)`. `L_n(0) = C(n+a, n)`. The order 0 gives the Laguerre polynomials (the default of the two-argument form).
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `order` (double): the order `a`, any real number, default 0.0 (the two-argument form). A negative order is allowed: the polynomials are then defined by the same sum and recurrence, but they are not orthogonal.
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever `order` and `x` are. `##NaN` as `x` or as `order` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term `(-1)^n*x^n/n!`: `##-Inf` for `##Inf` and an odd degree, `##Inf` otherwise, and `##NaN` for a NaN or infinite `order`. The error of the recurrence grows like the square of the degree: relative to the largest value of `L_0 ... L_n` at `x` it is about `(n+1)^2` times the roundoff (roughly 1e-13 at degree 100 close to `x = 0`, much smaller at a low degree), which is larger than for [[eval-chebyshev-T]]. For a negative order of at most -3 and a high degree the intermediate values are far larger than the result and the relative error of the result can be much larger. Unlike evaluating the coefficients from [[laguerre-L]] it does not suffer from the cancellation of the large alternating coefficients.
+
+  See also [[laguerre-L]], [[laguerre-L-ratio]], [[eval-hermite-H]]."
   (^double [^long degree ^double x] (eval-laguerre-L degree 0.0 x))
   (^double [^long degree ^double order ^double x]
-   (case (int degree)
-     0 1.0
-     1 (m/- (m/inc order) x)
-     (loop [i (long 2)
-            pprev 1.0
-            prev (m/- (m/inc order) x)]
-       (if (m/> i degree)
-         prev
-         (recur (m/inc i) prev
-                (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
-                          (m/* (m/+ order (m/dec i)) pprev)) i)))))))
+   (check-degree! degree)
+   (cond
+     (m/zero? degree) 1.0
+     ;; the leading term is (-1)^n x^n / n!
+     (m/inf? x) (if (m/invalid-double? order)
+                  ##NaN
+                  (if (and (m/pos? x) (m/odd? degree)) ##-Inf ##Inf))
+     (m/== degree 1) (m/- (m/inc order) x)
+     :else (loop [i (long 2)
+                  pprev 1.0
+                  prev (m/- (m/inc order) x)]
+             (if (m/> i degree)
+               prev
+               (recur (m/inc i) prev
+                      (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
+                                (m/* (m/+ order (m/dec i)) pprev)) i)))))))
+
+(set! *unchecked-math* true)
 
 (defn laguerre-L-ratio
+  "Creates the generalized Laguerre polynomial `L_n^(a)` with exact rational coefficients.
+
+  `L_0 = 1`, `L_1 = 1 + a - x` and `n*L_n = (2n-1+a-x)*L_(n-1) - (n-1+a)*L_(n-2)`; see [[eval-laguerre-L]] for the definition and the orthogonality.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `order` (double): the order `a`, any real number. It is converted with `rationalize`, so a double becomes the exact decimal number it prints as (`0.3` gives `3/10`) and the coefficients are exact for that number.
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients alternate in sign for an order above -1. A NaN or infinite `order` throws an `IllegalArgumentException` for a positive degree; degree 0 returns the constant 1 for any `order`.
+
+  See also [[laguerre-L]] (double coefficients), [[eval-laguerre-L]] (direct evaluation), [[hermite-H-ratio]]."
   [^long degree ^double order]
-  (case (int degree)
-    0 RONE
-    1 (ratio-polynomial [(m/inc order) -1])
-    (loop [i (long 2)
-           pprev RONE
-           prev (ratio-polynomial [(m/inc order) -1])]
-      (if (m/> i degree)
-        prev
-        (recur (m/inc i) prev
-               (scale (sub (mult prev (ratio-polynomial [(m/+ order (m/* 2 i) -1) -1]))
-                           (scale pprev (m/dec (m/+ order i)))) (/ 1 i)))))))
+  (check-degree! degree)
+  (if (m/zero? degree)
+    RONE
+    (let [alpha (rationalize order)]
+      (loop [i (long 2)
+             pprev RONE
+             prev (ratio-polynomial [(inc' alpha) -1])]
+        (if (m/> i degree)
+          prev
+          (recur (m/inc i) prev
+                 (scale (sub (mult prev (ratio-polynomial [(-' (+' alpha (m/long-mult 2 i)) 1) -1]))
+                             (scale pprev (+' alpha (m/long-dec i))))
+                        (/ 1 i))))))))
+
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn laguerre-L
-  "Generalized Laguerre polynomials"
+  "Creates the generalized Laguerre polynomial `L_n^(a)` as a polynomial object with double coefficients.
+
+  See [[eval-laguerre-L]] for the definition and [[laguerre-L-ratio]] for the exact rational coefficients, which are converted to doubles.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `order` (double): the order `a`, any real number, default 0.0. A NaN or infinite order throws an `IllegalArgumentException` for a positive degree; see [[laguerre-L-ratio]] for the conversion of the order.
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-laguerre-L]] for values at a high degree.
+
+  See also [[laguerre-L-ratio]], [[eval-laguerre-L]], [[hermite-H]]."
   ([^long degree] (laguerre-L degree 0.0))
   ([^long degree ^double order]
    (polynomial (coeffs (laguerre-L-ratio degree order)))))
@@ -700,7 +746,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
   Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree and an infinite `x` gives an infinity (negative for `##-Inf` and an odd degree). The error is a few units of roundoff times `n` inside `[-1, 1]` (absolute, for values of at most 1) and a few units times `n*log(2|x|)` (relative) outside. This form stays accurate for any degree, unlike evaluating the coefficients from [[chebyshev-T]].
@@ -724,7 +770,7 @@
 
   `T_0 = 1`, `T_1 = x` and `T_(n+1) = 2*x*T_n - T_(n-1)`; see [[eval-chebyshev-T]] for the definition and the orthogonality.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients grow like `2^n` and alternate in sign.
 
@@ -747,7 +793,7 @@
 
   See [[eval-chebyshev-T]] for the definition and [[chebyshev-T-ratio]] for the exact integer coefficients, which are converted to doubles.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-chebyshev-T]] for values at a high degree.
 
@@ -785,7 +831,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
   Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree and an infinite `x` gives an infinity (negative for `##-Inf` and an odd degree). The value is finite whenever the polynomial value is representable. The error is a few units of roundoff times `n` inside `[-1, 1]` (absolute, for values of at most `n+1`) and a few units times `n*log(2|x|)` (relative) outside. This form stays accurate for any degree, unlike evaluating the coefficients from [[chebyshev-U]].
@@ -811,7 +857,7 @@
 
   `U_0 = 1`, `U_1 = 2*x` and `U_(n+1) = 2*x*U_n - U_(n-1)`; see [[eval-chebyshev-U]] for the definition and the orthogonality.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients grow like `2^n` and alternate in sign.
 
@@ -834,7 +880,7 @@
 
   See [[eval-chebyshev-U]] for the definition and [[chebyshev-U-ratio]] for the exact integer coefficients, which are converted to doubles.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-chebyshev-U]] for values at a high degree.
 
@@ -849,7 +895,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
   Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree and an infinite `x` gives an infinity (negative for `##-Inf` and an odd degree). The error is a few units of roundoff times `n` inside `[-1, 1]` (absolute, for values of at most `2*n+1`), up to several times that next to `x = 1`, where the result is a difference of two nearly equal values, and a few units times `n*log(2|x|)` (relative) outside. For arguments just above 1 and degrees in the thousands the result can overflow to infinity slightly before the true value does.
@@ -869,7 +915,7 @@
 
   `V_0 = 1`, `V_1 = 2*x - 1` and `V_(n+1) = 2*x*V_n - V_(n-1)`; see [[eval-chebyshev-V]] for the definition and the orthogonality.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument.
 
@@ -892,7 +938,7 @@
 
   See [[eval-chebyshev-V]] for the definition and [[chebyshev-V-ratio]] for the exact integer coefficients, which are converted to doubles.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-chebyshev-V]] for values at a high degree.
 
@@ -907,7 +953,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
   Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree and an infinite `x` gives an infinity (negative for `##-Inf` and an odd degree). The error is a few units of roundoff times `n` inside `[-1, 1]` (absolute, for values of at most `2*n+1`), up to several times that next to `x = -1`, where the result is a difference of two nearly equal values, and a few units times `n*log(2|x|)` (relative) outside. For arguments just below -1 and degrees in the thousands the result can overflow to infinity slightly before the true value does.
@@ -926,7 +972,7 @@
 
   `W_0 = 1`, `W_1 = 2*x + 1` and `W_(n+1) = 2*x*W_n - W_(n-1)`; see [[eval-chebyshev-W]] for the definition and the orthogonality.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument.
 
@@ -949,7 +995,7 @@
 
   See [[eval-chebyshev-W]] for the definition and [[chebyshev-W-ratio]] for the exact integer coefficients, which are converted to doubles.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-chebyshev-W]] for values at a high degree.
 
@@ -959,11 +1005,9 @@
 
 ;;
 
-(declare gegenbauer-C-ratio jacobi-P-ratio)
-
-;; Exact arithmetic helpers. Ratios and big integers are boxed numbers, so `clojure.core` arithmetic is used
-;; on them (the `fastmath.core` functions would convert them to doubles) and the boxed math warning is off;
-;; longs and doubles still use `fastmath.core`.
+;; Exact and high precision arithmetic helpers. Ratios, big integers and big decimals are boxed numbers, so
+;; `clojure.core` arithmetic is used on them (the `fastmath.core` functions would convert them to doubles) and
+;; the boxed math warning is off; longs and doubles still use `fastmath.core`.
 
 (set! *unchecked-math* true)
 
@@ -973,25 +1017,80 @@
   (rationalize (BigDecimal. x)))
 
 (defn- rational->double
-  "Converts a rational number to the nearest double (the quotient is formed with 40 significant digits)."
+  "Converts a rational number to the nearest double, a tie going to the even neighbour (also for subnormal
+  results); an out of range magnitude gives an infinity or zero."
   ^double [r]
   (if (ratio? r)
-    (.doubleValue (.divide (BigDecimal. ^BigInteger (biginteger (numerator r)))
-                           (BigDecimal. ^BigInteger (biginteger (denominator r)))
-                           (MathContext. 40)))
+    (let [^BigInteger n (biginteger (numerator r))
+          ^BigInteger d (biginteger (denominator r))
+          ^BigInteger a (.abs n)
+          ;; scale the dividend so that the integer quotient `q` has 55 or 56 bits
+          shift (- 55 (- (.bitLength a) (.bitLength d)))
+          ^BigInteger scaled-a (if (neg? shift) a (.shiftLeft a (int shift)))
+          ^BigInteger scaled-d (if (neg? shift) (.shiftLeft d (int (- shift))) d)
+          ^"[Ljava.math.BigInteger;" qr (.divideAndRemainder scaled-a scaled-d)
+          ^BigInteger q (aget qr 0)
+          ;; one more low bit, set when the division left a remainder: the value is q+ * 2^(-shift-1), and a
+          ;; set bit keeps the dropped part away from an exact tie
+          ^BigInteger q+ (.or (.shiftLeft q 1) (if (zero? (.signum ^BigInteger (aget qr 1))) BigInteger/ZERO BigInteger/ONE))
+          ;; the result is an integer of at most 53 bits times 2^quantum-exponent (subnormals: 2^-1074)
+          quantum-exponent (max (- (.bitLength q+) shift 2 52) -1074)
+          drop-bits (+ shift 1 quantum-exponent)
+          ^BigInteger kept (.shiftRight q+ (int drop-bits))
+          ^BigInteger dropped (.subtract q+ (.shiftLeft kept (int drop-bits)))
+          order-to-half (.compareTo dropped (.shiftLeft BigInteger/ONE (int (dec drop-bits))))
+          ^BigInteger rounded (if (or (pos? order-to-half) (and (zero? order-to-half) (.testBit kept 0)))
+                                (.add kept BigInteger/ONE)
+                                kept)
+          magnitude (Math/scalb (.doubleValue rounded) (int quantum-exponent))]
+      (if (neg? (.signum n)) (- magnitude) magnitude))
     (double r)))
 
-(defn- value-at-infinity
-  "The value at an infinite `x` of the polynomial with the exact ascending coefficients `cfs`: the limit
-  of its leading non-zero term, which is infinite with the sign of that term. A constant polynomial gives
-  its constant, the zero polynomial gives 0."
-  ^double [cfs ^double x]
-  (loop [k (m/long-dec (count cfs))]
-    (cond
-      (m/neg? k) 0.0
-      (zero? (cfs k)) (recur (m/long-dec k))
-      (m/zero? k) (rational->double (cfs 0))
-      :else (if (= (pos? (cfs k)) (or (m/pos? x) (m/even? k))) ##Inf ##-Inf))))
+(def ^:private ^:const adaptive-start-digits 64)
+(def ^:private ^:const adaptive-max-digits 65536)
+
+(defn- adaptive-decimal-value
+  "Evaluates a sum in decimal arithmetic whose precision is raised until the result is settled.
+
+  `sum-fn` takes a `MathContext` and returns the sum as a `BigDecimal`. The number of significant digits
+  starts at 64 and is doubled until two successive results differ by at most 2^-60 of the later one (or by
+  at most 1e-300), so the digits lost to cancellation are recovered; the result is the nearest double of the
+  last sum. The precision stops growing at 65536 digits."
+  ^double [sum-fn]
+  (let [tolerance (BigDecimal. "8.0E-19")
+        tiny (BigDecimal. "1E-300")]
+    (loop [digits adaptive-start-digits
+           ^BigDecimal previous (sum-fn (MathContext. (int adaptive-start-digits)))]
+      (let [next-digits (* 2 digits)
+            ^BigDecimal current (sum-fn (MathContext. (int next-digits)))
+            ^BigDecimal difference (.abs (.subtract current previous))]
+        (if (or (> next-digits adaptive-max-digits)
+                (<= (.compareTo difference (.multiply (.abs current) tolerance)) 0)
+                (<= (.compareTo difference tiny) 0))
+          (.doubleValue current)
+          (recur next-digits current))))))
+
+(defn- decimal-powers
+  "The vector of `base^k` for `k` from 0 to `n`, each rounded to `mc`."
+  [^BigDecimal base ^long n ^MathContext mc]
+  (loop [k (long 0)
+         power BigDecimal/ONE
+         powers (transient [])]
+    (if (> k n)
+      (persistent! powers)
+      (recur (inc k) (.multiply power base mc) (conj! powers power)))))
+
+(defn- decimal-binomials
+  "The vector of the generalized binomial coefficients `C(top, k)` for `k` from 0 to `n`, rounded to `mc`."
+  [^BigDecimal top ^long n ^MathContext mc]
+  (loop [k (long 0)
+         c BigDecimal/ONE
+         cs (transient [])]
+    (if (> k n)
+      (persistent! cs)
+      (recur (inc k)
+             (.divide (.multiply c (.subtract top (BigDecimal. k) mc) mc) (BigDecimal. (inc k)) mc)
+             (conj! cs c)))))
 
 (set! *unchecked-math* :warn-on-boxed)
 
@@ -1002,7 +1101,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
   Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives `x` for degree 1 and for a higher degree the infinity of the leading term: `##Inf` for an even degree, `x` for an odd one. The error is a few units of roundoff times `n` (absolute, for values of at most `n+1`) inside `[-1, 1]`, and relative outside, so this form stays accurate for any degree, unlike evaluating the coefficients from [[legendre-P]].
@@ -1029,7 +1128,7 @@
 
   `P_0 = 1`, `P_1 = x` and `n*P_n = (2n-1)*x*P_(n-1) - (n-1)*P_(n-2)`; see [[eval-legendre-P]] for the definition and the orthogonality.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients are fractions with a power of two as the denominator, vanish for the powers of the wrong parity and alternate in sign.
 
@@ -1053,7 +1152,7 @@
 
   See [[eval-legendre-P]] for the definition and [[legendre-P-ratio]] for the exact rational coefficients, which are converted to doubles.
 
-  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-legendre-P]] for values at a high degree.
 
@@ -1063,6 +1162,64 @@
 
 ;;
 
+;; Gegenbauer polynomials. The three term recurrence is accurate for an order of -0.9 and above (at most 4
+;; units on random orders, down to -0.9375) and loses digits below it (a negative integer order -k even gives
+;; noise for the polynomials of degree above 2k, which are 0). There the explicit sum
+;;   C_n^(a)(x) = sum_j (-1)^j (a)_(n-j) (2x)^(n-2j) / (j! (n-2j)!),  (a)_m = a (a+1) ... (a+m-1)
+;; is evaluated in decimal arithmetic of adaptive precision.
+
+(def ^:private ^:const gegenbauer-recurrence-min-order -0.9)
+
+(defn- gegenbauer-decimal-sum
+  "The explicit sum of the Gegenbauer polynomial for a finite `order` and `x`, evaluated with the precision `mc`."
+  ^BigDecimal [^long degree ^double order ^double x ^MathContext mc]
+  (let [alpha (BigDecimal. order)
+        two-x (.multiply (BigDecimal. x) (BigDecimal. 2) mc)
+        powers (decimal-powers two-x degree mc)
+        rising (loop [m (long 0)
+                      p BigDecimal/ONE
+                      ps (transient [])]
+                 (if (m/> m degree)
+                   (persistent! ps)
+                   (recur (m/inc m) (.multiply ^BigDecimal p (.add alpha (BigDecimal. m) mc) mc) (conj! ps p))))
+        factorials (loop [k (long 0)
+                          f BigDecimal/ONE
+                          fs (transient [])]
+                     (if (m/> k degree)
+                       (persistent! fs)
+                       (recur (m/inc k) (.multiply ^BigDecimal f (BigDecimal. (m/inc k)) mc) (conj! fs f))))]
+    (loop [j (long 0)
+           total BigDecimal/ZERO]
+      (if (m/> (m/long-mult 2 j) degree)
+        total
+        (let [m (m/long-sub degree (m/long-mult 2 j))
+              term (.divide (.multiply ^BigDecimal (rising (m/long-sub degree j)) ^BigDecimal (powers m) mc)
+                            (.multiply ^BigDecimal (factorials j) ^BigDecimal (factorials m) mc)
+                            mc)]
+          (recur (m/inc j)
+                 (if (m/even? j) (.add ^BigDecimal total ^BigDecimal term mc) (.subtract ^BigDecimal total ^BigDecimal term mc))))))))
+
+(defn- gegenbauer-value-at-infinity
+  "The limit of the Gegenbauer polynomial of a positive degree and a finite `order` at an infinite `x`.
+
+  It is the infinity of the leading non-zero term, found from the signs alone. The term of `x^(n-2j)` has the
+  coefficient `(-1)^j (a)_(n-j) 2^(n-2j) / (j! (n-2j)!)`, which vanishes when the order is a negative integer
+  `-k` and `n-j > k`. Then the polynomial is 0 for `n > 2k` and the constant 1 for `n = 2k`."
+  ^double [^long degree ^double order ^double x]
+  (let [terminating? (and (m/<= order 0.0) (m/== order (m/floor order)))
+        ;; the index j of the first non-vanishing term
+        j (if (and terminating? (m/< (m/- order) degree)) (m/long-sub degree (long (m/- order))) 0)
+        power (m/long-sub degree (m/long-mult 2 j))]
+    (cond
+      (m/neg? power) 0.0
+      (m/zero? power) 1.0
+      :else (let [factors (m/long-sub degree j)
+                  ;; factors of (a)_(n-j) that are negative: those a+i, i < -a
+                  negative-factors (long (m/max 0.0 (m/min (m/ceil (m/- order)) (double factors))))
+                  positive-coefficient? (m/even? (m/long-add j negative-factors))
+                  flipped-by-x? (and (m/neg? x) (m/odd? power))]
+              (if (not= positive-coefficient? flipped-by-x?) ##Inf ##-Inf)))))
+
 (defn eval-gegenbauer-C
   "Evaluates the Gegenbauer (ultraspherical) polynomial `C_n^(a)` of order `a` at `x`.
 
@@ -1070,11 +1227,13 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `order` (double): the order `a`, any real number, default 1.0 (the two-argument form). A negative order is allowed. For the order 0 the recurrence gives `C_0 = 1` and `C_n = 0` for every higher degree (the same values as `scipy` and `mpmath` give); the Chebyshev polynomials of the first kind are the limit of `C_n/a`, not the value.
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever `order` and `x` are. `##NaN` as `x` or as `order` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading non-zero term of the polynomial (so 0 for the order 0, and `##NaN` for an infinite order). That case uses the exact coefficients and is slower for a high degree (about a second for degree 400). The error is a few units of roundoff times `n` (absolute, for values of at most `n+1`) inside `[-1, 1]`, and relative outside; unlike evaluating the coefficients from [[gegenbauer-C]] it stays accurate for any degree. The value is continuous in the order, also at 1 and 0.5.
+  Returns a double. The result for degree 0 is `1.0` whatever `order` and `x` are. `##NaN` as `x` or as `order` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading non-zero term of the polynomial (so 0 for the order 0, and `##NaN` for an infinite order). The leading term is found from the signs alone, so that case is fast for any degree; the limit is 0 for a negative integer order `-k` and a degree above `2k`, and the constant 1 for the degree `2k`.
+
+  For an order of -0.9 and above the three term recurrence is used and the error is a few units of roundoff times `n` (absolute, for values of at most `n+1`) inside `[-1, 1]`, and relative outside; unlike evaluating the coefficients from [[gegenbauer-C]] it stays accurate for any degree. Below -0.9 the recurrence loses digits (the polynomial is small against its intermediate values and a negative integer order gives noise for a polynomial that is 0), so the explicit sum is evaluated in decimal arithmetic whose precision is raised until the result settles: the result is then the nearest double to about 2^-60, and exactly 0 for a negative integer order `-k` and a degree above `2k`. That takes more time for a high degree (about 0.1 s for degree 1000, a second or more for degree 5000). The value is continuous in the order, also at 1 and 0.5.
 
   See also [[gegenbauer-C]], [[gegenbauer-C-ratio]], [[eval-chebyshev-U]], [[eval-legendre-P]], [[eval-jacobi-P]]."
   (^double [^long degree ^double x] (eval-gegenbauer-C degree 1.0 x))
@@ -1086,8 +1245,12 @@
      (m/zero? degree) 1.0
      (m/inf? x) (if (m/invalid-double? order)
                   ##NaN
-                  (value-at-infinity (coeffs (gegenbauer-C-ratio degree order)) x))
+                  (gegenbauer-value-at-infinity degree order x))
      (m/== degree 1) (m/* 2.0 order x)
+     ;; the recurrence is not accurate for an order below -0.9: C_n is O(a + 1) for n >= 3 next to a = -1,
+     ;; small against the intermediate values, and all the more below -1
+     (and (m/< order gegenbauer-recurrence-min-order) (m/valid-double? order) (m/valid-double? x))
+     (adaptive-decimal-value (fn [mc] (gegenbauer-decimal-sum degree order x mc)))
      :else (let [o2 (m/* 2.0 order)]
              (loop [i (long 2)
                     pprev 1.0
@@ -1095,8 +1258,11 @@
                (if (m/> i degree)
                  prev
                  (recur (m/inc i) prev
-                        (m// (m/- (m/* 2.0 (m/dec (m/+ order i)) x prev)
-                                  (m/* (m/+ i o2 -2.0) pprev)) i))))))))
+                        ;; the factors (a + i - 1) and (i - 2 + 2a) are formed from the small part first: adding
+                        ;; i and subtracting afterwards loses the relative accuracy of a small order or of an
+                        ;; order next to -1 (error about eps / |a| or eps / (a + 1))
+                        (m// (m/- (m/* 2.0 (m/+ order (m/long-dec i)) x prev)
+                                  (m/* (m/+ (m/long-sub i 2) o2) pprev)) i))))))))
 
 (set! *unchecked-math* true)
 
@@ -1107,7 +1273,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `order` (double): the order `a`, any real number. It is converted with `rationalize`, so a double becomes the exact decimal number it prints as (`0.3` gives `3/10`) and the coefficients are exact for that number. The orders 1 and 0.5 return [[chebyshev-U-ratio]] and [[legendre-P-ratio]]. For the order 0 every polynomial of a positive degree is the zero polynomial (zero coefficients).
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. A NaN or infinite `order` throws an `IllegalArgumentException` for a positive degree; degree 0 returns the constant 1 for any `order`.
@@ -1140,7 +1306,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `order` (double): the order `a`, any real number, default 1.0 (the Chebyshev polynomials of the second kind). A NaN or infinite order throws an `IllegalArgumentException` for a positive degree; see [[gegenbauer-C-ratio]] for the conversion of the order.
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-gegenbauer-C]] for values at a high degree.
@@ -1152,23 +1318,47 @@
 ;;
 
 (defn eval-hermite-H
-  "Hermite polynomials"
+  "Evaluates the Hermite polynomial `H_n` (physicists' convention) at `x`.
+
+  The polynomials are orthogonal on the whole real line with the weight `exp(-x^2)` and satisfy `H_0 = 1`, `H_1 = 2*x` and `H_n = 2*x*H_(n-1) - 2*(n-1)*H_(n-2)`; the leading coefficient is `2^n`. `H_n(-x) = (-1)^n*H_n(x)`. The probabilists' polynomials `He_n(x) = 2^(-n/2)*H_n(x/sqrt(2))` are given by [[eval-hermite-He]].
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-H]].
+
+  See also [[hermite-H]], [[hermite-H-ratio]], [[eval-hermite-He]], [[eval-laguerre-L]]."
   ^double [^long degree ^double x]
+  (check-degree! degree)
   (case (int degree)
     0 1.0
     1 (m/* 2.0 x)
-    (loop [i (long 2)
-           pprev 1.0
-           prev (m/* 2.0 x)]
-      (if (m/> i degree)
-        prev
-        (recur (m/inc i) prev
-               (m/* 2.0 (m/- (m/* x prev)
-                             (m/* (m/dec i) pprev))))))))
+    (if (m/inf? x)
+      ;; the leading term is 2^n x^n
+      (if (and (m/neg? x) (m/odd? degree)) ##-Inf ##Inf)
+      (loop [i (long 2)
+             pprev 1.0
+             prev (m/* 2.0 x)]
+        (if (m/> i degree)
+          prev
+          (recur (m/inc i) prev
+                 (m/* 2.0 (m/- (m/* x prev)
+                               (m/* (m/dec i) pprev)))))))))
 
 (defn hermite-H-ratio
-  "Hermite polynomials"
+  "Creates the Hermite polynomial `H_n` (physicists' convention) with exact integer coefficients.
+
+  `H_0 = 1`, `H_1 = 2*x` and `H_n = 2*x*H_(n-1) - 2*(n-1)*H_(n-2)`; see [[eval-hermite-H]] for the definition and the orthogonality.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients of the powers of the wrong parity are zero, the signs alternate and the leading coefficient is `2^n`.
+
+  See also [[hermite-H]] (double coefficients), [[eval-hermite-H]] (direct evaluation), [[hermite-He-ratio]]."
   [^long degree]
+  (check-degree! degree)
   (case (int degree)
     0 RONE
     1 (ratio-polynomial [0 2])
@@ -1182,27 +1372,60 @@
                            (scale pprev (m/dec i))) 2))))))
 
 (defn hermite-H
+  "Creates the Hermite polynomial `H_n` (physicists' convention) as a polynomial object with double coefficients.
+
+  See [[eval-hermite-H]] for the definition and [[hermite-H-ratio]] for the exact integer coefficients, which are converted to doubles.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-hermite-H]] for values at a high degree.
+
+  See also [[hermite-H-ratio]], [[eval-hermite-H]], [[hermite-He]]."
   [^long degree]
   (polynomial (coeffs (hermite-H-ratio degree))))
 
 (defn eval-hermite-He
-  "Hermite polynomials"
+  "Evaluates the Hermite polynomial `He_n` (probabilists' convention) at `x`.
+
+  The polynomials are orthogonal on the whole real line with the weight `exp(-x^2/2)` and satisfy `He_0 = 1`, `He_1 = x` and `He_n = x*He_(n-1) - (n-1)*He_(n-2)`; the leading coefficient is 1. `He_n(-x) = (-1)^n*He_n(x)`. The physicists' polynomials `H_n(x) = 2^(n/2)*He_n(sqrt(2)*x)` are given by [[eval-hermite-H]].
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-He]].
+
+  See also [[hermite-He]], [[hermite-He-ratio]], [[eval-hermite-H]]."
   ^double [^long degree ^double x]
+  (check-degree! degree)
   (case (int degree)
     0 1.0
     1 x
-    (loop [i (long 2)
-           pprev 1.0
-           prev x]
-      (if (m/> i degree)
-        prev
-        (recur (m/inc i) prev
-               (m/- (m/* x prev)
-                    (m/* (m/dec i) pprev)))))))
+    (if (m/inf? x)
+      ;; the leading term is x^n
+      (if (and (m/neg? x) (m/odd? degree)) ##-Inf ##Inf)
+      (loop [i (long 2)
+             pprev 1.0
+             prev x]
+        (if (m/> i degree)
+          prev
+          (recur (m/inc i) prev
+                 (m/- (m/* x prev)
+                      (m/* (m/dec i) pprev))))))))
 
 (defn hermite-He-ratio
-  "Hermite polynomials"
+  "Creates the Hermite polynomial `He_n` (probabilists' convention) with exact integer coefficients.
+
+  `He_0 = 1`, `He_1 = x` and `He_n = x*He_(n-1) - (n-1)*He_(n-2)`; see [[eval-hermite-He]] for the definition and the orthogonality.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients of the powers of the wrong parity are zero, the signs alternate and the leading coefficient is 1.
+
+  See also [[hermite-He]] (double coefficients), [[eval-hermite-He]] (direct evaluation), [[hermite-H-ratio]]."
   [^long degree]
+  (check-degree! degree)
   (case (int degree)
     0 RONE
     1 (ratio-polynomial [0 1])
@@ -1216,29 +1439,34 @@
                     (scale pprev (m/dec i))))))))
 
 (defn hermite-He
+  "Creates the Hermite polynomial `He_n` (probabilists' convention) as a polynomial object with double coefficients.
+
+  See [[eval-hermite-He]] for the definition and [[hermite-He-ratio]] for the exact integer coefficients, which are converted to doubles.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-hermite-He]] for values at a high degree.
+
+  See also [[hermite-He-ratio]], [[eval-hermite-He]], [[hermite-H]]."
   [^long degree]
   (polynomial (coeffs (hermite-He-ratio degree))))
 
 
 ;;
 
-;; Jacobi polynomials with the three term recurrence, which divides by
-;; 2 i (i + s) (2 i + s - 2) at step i, s = alpha + beta. For s a negative integer the divisor is zero for
-;; some i <= degree and the recurrence is undefined; close to such an s it loses digits. In both cases the
-;; explicit sum  sum_k C(n+alpha, n-k) C(n+beta, k) ((x-1)/2)^k ((x+1)/2)^(n-k)  in exact arithmetic is used.
+;; Jacobi polynomials. The three term recurrence divides by 2 i (i + s) (2 i + s - 2) at step i, s = alpha + beta,
+;; so it is undefined where s is a negative integer from -degree to -2, and it loses digits next to such an s
+;; and, much more, for a parameter below -1 (thousands of units of roundoff). It is accurate for
+;; alpha > -1, beta > -1 and s > -1.9 (at most 2.5 units on random parameters). Elsewhere the explicit sum
+;;   P_n^(a,b)(x) = sum_k C(n+a, n-k) C(n+b, k) ((x-1)/2)^k ((x+1)/2)^(n-k)
+;; is evaluated in decimal arithmetic of adaptive precision.
 
-(def ^:private ^:const jacobi-recurrence-min-gap 0.1)
+(def ^:private ^:const jacobi-recurrence-min-sum -1.9)
 
-(defn- jacobi-recurrence-gap
-  "The smallest distance to zero of the two factors `i + s` and `2 i + s - 2` of the recurrence divisor,
-  over the steps `i` from 2 to `degree`; infinite when there are no steps."
-  ^double [^long degree ^double s]
-  (loop [i (long 2)
-         gap ##Inf]
-    (if (m/> i degree)
-      gap
-      (recur (m/inc i)
-             (m/min gap (m/abs (m/+ i s)) (m/abs (m/+ (m/* 2.0 i) s -2.0)))))))
+(defn- jacobi-recurrence-accurate?
+  "True when the three term recurrence is accurate for the parameters: both above -1 and their sum above -1.9."
+  [^double alpha ^double beta]
+  (and (m/> alpha -1.0) (m/> beta -1.0) (m/> (m/+ alpha beta) jacobi-recurrence-min-sum)))
 
 (set! *unchecked-math* true)
 
@@ -1257,19 +1485,37 @@
   [base ^long n multiply one]
   (vec (take (m/long-inc n) (iterate #(multiply % base) one))))
 
+(defn- jacobi-decimal-sum
+  "The explicit sum of the Jacobi polynomial for finite parameters and `x`, evaluated with the precision `mc`."
+  ^BigDecimal [degree alpha beta x ^MathContext mc]
+  (let [n (long degree)
+        bx (BigDecimal. (double x))
+        half (BigDecimal. "0.5")
+        lowers (decimal-powers (.multiply (.subtract bx BigDecimal/ONE mc) half mc) n mc)
+        uppers (decimal-powers (.multiply (.add bx BigDecimal/ONE mc) half mc) n mc)
+        from-alpha (decimal-binomials (.add (BigDecimal. n) (BigDecimal. (double alpha)) mc) n mc)
+        from-beta (decimal-binomials (.add (BigDecimal. n) (BigDecimal. (double beta)) mc) n mc)]
+    (loop [k (long 0)
+           total BigDecimal/ZERO]
+      (if (m/> k n)
+        total
+        (let [rest-degree (m/long-sub n k)]
+          (recur (m/inc k)
+                 (.add ^BigDecimal total
+                       (.multiply (.multiply ^BigDecimal (from-alpha rest-degree) ^BigDecimal (from-beta k) mc)
+                                  (.multiply ^BigDecimal (lowers k) ^BigDecimal (uppers rest-degree) mc)
+                                  mc)
+                       mc)))))))
+
 (defn- jacobi-explicit-value
-  "The value of the Jacobi polynomial at the exact binary values of the doubles, as the nearest double."
+  "The value of the Jacobi polynomial for finite parameters and `x` from the explicit sum, to double precision."
   ^double [^long degree ^double alpha ^double beta ^double x]
-  (let [rx (exact-rational x)
-        lowers (powers-up-to (/ (-' rx 1) 2) degree *' 1)
-        uppers (powers-up-to (/ (+' rx 1) 2) degree *' 1)
-        from-alpha (generalized-binomials (+' degree (exact-rational alpha)) degree)
-        from-beta (generalized-binomials (+' degree (exact-rational beta)) degree)]
-    (rational->double
-     (reduce +' (map (fn [^long k]
-                       (let [rest-degree (m/long-sub degree k)]
-                         (*' (from-alpha rest-degree) (from-beta k) (lowers k) (uppers rest-degree))))
-                     (range (m/inc degree)))))))
+  (adaptive-decimal-value (fn [mc] (jacobi-decimal-sum degree alpha beta x mc))))
+
+(defn- jacobi-constant-term
+  "The binomial coefficient `C(n+a, n)`, the value of `P_n^(a,b)` at `x = 1`, as the nearest double."
+  ^double [^long degree ^double alpha]
+  (rational->double (peek (generalized-binomials (+' degree (exact-rational alpha)) degree))))
 
 (defn- jacobi-explicit-ratio
   "The Jacobi polynomial of the rational parameters `alpha`, `beta` as an exact `PolynomialR`."
@@ -1296,6 +1542,40 @@
 
 (set! *unchecked-math* :warn-on-boxed)
 
+(defn- minus-integer-in?
+  "True when `v` is an integer and `-v` is in `[lo, hi]`: the product of the factors `v + t` for `t` from `lo` to
+  `hi` then has a zero factor."
+  [^double v ^long lo ^long hi]
+  (and (m/== v (m/floor v)) (m/>= (m/- v) lo) (m/<= (m/- v) hi)))
+
+(defn- count-negative-factors
+  "The number of integers `t` in `[lo, hi]` for which `v + t` is negative."
+  ^long [^double v ^long lo ^long hi]
+  (long (m/max 0.0 (m/min (m/- (m/ceil (m/- v)) lo) (double (m/long-inc (m/long-sub hi lo)))))))
+
+(defn- jacobi-value-at-infinity
+  "The limit of the Jacobi polynomial of a positive degree and finite parameters at an infinite `x`.
+
+  It is the infinity of the leading non-zero term, found from the signs alone. In powers of `(x-1)/2` the
+  coefficient of the power `j` is `(a+j+1)_(n-j) (n+a+b+1)_j / ((n-j)! j!)`, with the rising factorial
+  `(c)_m = c (c+1) ... (c+m-1)`. The highest power with a non-zero coefficient decides; when it is the power
+  0 the polynomial is the constant `C(n+a, n)`, and when no coefficient is non-zero it is 0."
+  ^double [^long degree ^double alpha ^double beta ^double x]
+  (let [s (m/+ alpha beta)]
+    (loop [j degree]
+      (let [after-j (m/long-inc j)
+            end-of-s (m/long-add degree j)]
+        (cond
+          (m/neg? j) 0.0
+          (or (minus-integer-in? alpha after-j degree)
+              (minus-integer-in? s (m/long-inc degree) end-of-s)) (recur (m/long-dec j))
+          (m/zero? j) (jacobi-constant-term degree alpha)
+          :else (let [negatives (m/long-add (count-negative-factors alpha after-j degree)
+                                            (count-negative-factors s (m/long-inc degree) end-of-s))
+                      positive-coefficient? (m/even? negatives)
+                      flipped-by-x? (and (m/neg? x) (m/odd? j))]
+                  (if (not= positive-coefficient? flipped-by-x?) ##Inf ##-Inf)))))))
+
 (defn eval-jacobi-P
   "Evaluates the Jacobi polynomial `P_n^(a,b)` at `x`.
 
@@ -1303,14 +1583,14 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `alpha` (double): the parameter `a`, any real number.
   - `beta` (double): the parameter `b`, any real number.
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever the other arguments are. `##NaN` as `x`, `alpha` or `beta` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading non-zero term of the polynomial (a finite constant when the polynomial is constant, as for degree 1 and `a + b = -2`); that case uses the exact coefficients and is slower for a high degree.
+  Returns a double. The result for degree 0 is `1.0` whatever the other arguments are. `##NaN` as `x`, `alpha` or `beta` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading non-zero term of the polynomial (a finite constant when the polynomial is constant, as for degree 1 and `a + b = -2`); the leading term is found from the signs alone, so that case is fast for any degree.
 
-  The three term recurrence divides by zero when `a + b` is a negative integer from `-degree` to `-2` (or an even one down to `2 - 2*degree`) and loses digits when `a + b` is within 0.1 of such a value. In both cases the value is computed in exact arithmetic from the sum above, at the exact binary values of the arguments, and rounded once; this takes time growing quickly with the degree (about a second for degree 200). Otherwise the error is a few units of roundoff times `n` (absolute, for values of at most `n+1`) inside `[-1, 1]`, measured at most 1.1 on the reference grid. At a multiple root at 1 or -1 (a negative integer `alpha` or `beta` of at most the degree in absolute value) the error is not relative to the tiny value next to the root but to the size of the polynomial elsewhere.
+  For `a > -1`, `b > -1` and `a + b > -1.9` the three term recurrence is used, and the error is a few units of roundoff times `n` (absolute, for values of at most `n+1`) inside `[-1, 1]`; it was at most 2.5 on random parameters of this range. Otherwise the recurrence is not used: it divides by zero when `a + b` is a negative integer from `-degree` to `-2` (or an even one down to `2 - 2*degree`) and loses digits, up to thousands of units, for a parameter below -1 or for `a + b` next to such a value. Then the sum above is evaluated in decimal arithmetic whose precision is raised until the result settles, so the result is the nearest double to about 2^-60, also next to a multiple root at 1 or -1 (a negative integer `a` or `b`). That takes more time for a high degree (about 0.2 s for degree 1000, a few seconds for degree 5000).
 
   See also [[jacobi-P]], [[jacobi-P-ratio]], [[eval-gegenbauer-C]], [[eval-legendre-P]]."
   ^double [^long degree ^double alpha ^double beta ^double x]
@@ -1319,10 +1599,10 @@
     (m/zero? degree) 1.0
     (m/inf? x) (if (or (m/invalid-double? alpha) (m/invalid-double? beta))
                  ##NaN
-                 (value-at-infinity (coeffs (jacobi-P-ratio degree alpha beta)) x))
+                 (jacobi-value-at-infinity degree alpha beta x))
     (m/== degree 1) (m/+ (m/inc alpha) (m/* 0.5 (m/+ alpha beta 2.0) (m/dec x)))
-    (and (m/valid-double? x)
-         (m/< (jacobi-recurrence-gap degree (m/+ alpha beta)) jacobi-recurrence-min-gap))
+    (and (m/valid-double? x) (m/valid-double? alpha) (m/valid-double? beta)
+         (not (jacobi-recurrence-accurate? alpha beta)))
     (jacobi-explicit-value degree alpha beta x)
     :else (loop [i (long 2)
                  pprev 1.0
@@ -1335,7 +1615,8 @@
                 (recur (m/inc i) prev
                        (m// (m/- (m/* (m/dec c) (m/+ (m/* c (m/- c 2.0) x)
                                                      (m/* (m/- a b) (m/- c (m/* 2.0 i)))) prev)
-                                 (m/* 2.0 (m/dec a) (m/dec b) c pprev))
+                                 ;; (a - 1) = alpha + i - 1 formed from alpha: small next to alpha = -1
+                                 (m/* 2.0 (m/+ alpha (m/long-dec i)) (m/+ beta (m/long-dec i)) c pprev))
                             (m/* 2.0 i (m/- c i) (m/- c 2.0)))))))))
 
 (set! *unchecked-math* true)
@@ -1347,7 +1628,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `alpha`, `beta` (doubles): the parameters `a` and `b`, any real numbers. They are converted with `rationalize`, so a double becomes the exact decimal number it prints as (`0.1` gives `1/10`) and the coefficients are exact for those numbers.
 
   Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. When `a + b` is a negative integer from `-n` to `-2` (or an even one down to `2 - 2*n`), where the three term recurrence is undefined, the explicit sum is used; the time then grows with the cube of the degree. A NaN or infinite parameter throws an `IllegalArgumentException` for a positive degree; degree 0 returns the constant 1 for any parameters.
@@ -1385,7 +1666,7 @@
 
   Parameters:
 
-  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated.
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `alpha`, `beta` (doubles): the parameters `a` and `b`, any real numbers. A NaN or infinite parameter throws an `IllegalArgumentException` for a positive degree; see [[jacobi-P-ratio]] for the conversion.
 
   Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-jacobi-P]] for values at a high degree.
