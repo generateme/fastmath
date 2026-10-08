@@ -1967,6 +1967,48 @@
   (t/is (Double/isNaN (sut/eval-laguerre-L 6 0.0 ##NaN)))
   (t/is (Double/isNaN (sut/eval-meixner-pollaczek-P 6 ##NaN 1.0 1e100))))
 
+;; The references for degrees in the hundreds use 200 digit decimals: the exact ratio recurrence takes minutes
+;; there (denominators of 2^53 to the power of the degree).
+
+(def ^:private reference-digits (java.math.MathContext. 200))
+
+(defn- decimal-recurrence
+  "Value at `n` of `P_0 = 1`, `P_1 = first-term`, `P_i = (step i prev pprev)`, in 200 digit decimals."
+  [^long n first-term step]
+  (cond (zero? n) java.math.BigDecimal/ONE
+        (== n 1) first-term
+        :else (loop [i 2 pprev java.math.BigDecimal/ONE prev first-term]
+                (if (> i n) prev (recur (inc i) prev (step i prev pprev))))))
+
+(defn- decimal-hermite-value [kind ^long n x]
+  (let [bx (java.math.BigDecimal. (double x))
+        mc reference-digits
+        t (fn [i ^java.math.BigDecimal prev ^java.math.BigDecimal pprev]
+            (.subtract (.multiply bx prev mc) (.multiply (java.math.BigDecimal. (long (dec i))) pprev mc) mc))]
+    (if (= kind :H)
+      (decimal-recurrence n (.multiply (java.math.BigDecimal. 2) bx mc) (fn [i prev pprev] (.multiply (java.math.BigDecimal. 2) ^java.math.BigDecimal (t i prev pprev) mc)))
+      (decimal-recurrence n bx t))))
+
+(defn- decimal-laguerre-value [^long n a x]
+  (let [ba (java.math.BigDecimal. (double a))
+        bx (java.math.BigDecimal. (double x))
+        mc reference-digits]
+    (decimal-recurrence n (.subtract (.add java.math.BigDecimal/ONE ba) bx)
+                        (fn [i ^java.math.BigDecimal prev ^java.math.BigDecimal pprev]
+                          (let [factor (.subtract (.add (java.math.BigDecimal. (long (dec (* 2 i)))) ba) bx)
+                                weight (.add (java.math.BigDecimal. (long (dec i))) ba)]
+                            (.divide (.subtract (.multiply factor prev mc) (.multiply weight pprev mc) mc)
+                                     (java.math.BigDecimal. (long i)) mc))))))
+
+(defn- same-as-decimal?
+  "The `same-as-exact?` check for a `BigDecimal` reference."
+  [^java.math.BigDecimal exact ^double got]
+  (let [expected (.doubleValue exact)]
+    (if (Double/isInfinite expected)
+      (== expected got)
+      (and (Double/isFinite got)
+           (<= (m/abs (- got expected)) (+ (* 1e-6 (m/abs expected)) 1e-300))))))
+
 (t/deftest overflow-in-the-oscillatory-region-has-the-sign-of-the-exact-value  ; T-15
   (let [rng (java.util.Random. 11)]
     (dotimes [_ 40]
@@ -1974,9 +2016,15 @@
             x (- (* 6.0 (.nextDouble rng)) 3.0)
             a (- (* 8.0 (.nextDouble rng)) 2.0)
             xl (* 40.0 (.nextDouble rng))]
-        (t/is (same-as-exact? (exact-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
-        (t/is (same-as-exact? (exact-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x))
-        (t/is (same-as-exact? (exact-laguerre-value n a xl) (sut/eval-laguerre-L n a xl)) (str "L " n " " a " " xl))))))
+        (t/is (same-as-decimal? (decimal-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
+        (t/is (same-as-decimal? (decimal-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x))
+        (t/is (same-as-decimal? (decimal-laguerre-value n a xl) (sut/eval-laguerre-L n a xl)) (str "L " n " " a " " xl))))))
+
+(t/deftest decimal-references-agree-with-the-exact-ones
+  (doseq [n [5 17 40] x [0.3 -1.7 2.5]]
+    (t/is (same-as-exact? (exact-hermite-value :H n x) (.doubleValue ^java.math.BigDecimal (decimal-hermite-value :H n x))))
+    (t/is (same-as-exact? (exact-hermite-value :He n x) (.doubleValue ^java.math.BigDecimal (decimal-hermite-value :He n x))))
+    (t/is (same-as-exact? (exact-laguerre-value n 1.5 x) (.doubleValue ^java.math.BigDecimal (decimal-laguerre-value n 1.5 x))))))
 
 (t/deftest recurrences-near-the-end-of-the-double-range                    ; T-16
   ;; (a+1)(a+2)/2 = 1.125e308 is representable; the product in the recurrence is not
