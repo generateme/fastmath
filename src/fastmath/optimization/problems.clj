@@ -1280,7 +1280,7 @@
             d (m/- x-next (m/* x x))]
         (Array/aset g i (m/+ (Array/aget g i) (m/* -400.0 x d) (m/* 2.0 (m/dec x))))
         (Array/aset g (m/inc i) (m/+ (Array/aget g (m/inc i)) (m/* 200.0 d)))))
-    g))
+    (vec g)))
 
 ;;
 

@@ -1383,3 +1383,165 @@
                        "hermite-He-ratio" sut/hermite-He-ratio
                        "hermite-He" sut/hermite-He}]
       (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))
+
+;; Bernstein basis polynomials and Bessel polynomials.
+;;
+;; Reference values: `test/resources/polynomials/bernstein_bessel_reference.edn`, exact rational arithmetic from
+;; the explicit sums (`utils/fastmath/dev/generate_bernstein_bessel_reference.py`) at the exact binary values of
+;; the arguments: Bernstein degrees 0 to 5000, orders from -1 to degree + 3, 19 arguments (including 0, 1 and
+;; values outside [0, 1]) and the exact coefficients; the Bessel polynomials y and theta (degrees up to 100,
+;; arguments of both signs) and their exact coefficients.
+;; One-off checks of the reference: `scipy.stats.binom.pmf` for the 740 Bernstein rows in [0, 1]: largest
+;; relative difference 3.0e-13 (degree 5000, scipy's own error); `mpmath` through the modified Bessel function
+;; `y_n(x) = sqrt(2/(pi x)) exp(1/x) K_(n+1/2)(1/x)` and `theta_n(x) = x^n y_n(1/x)` for the 258 rows with
+;; x > 0: 1.1e-16.
+
+(def ^:private bb-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/bernstein_bessel_reference.edn")))))
+
+(defn- bernstein-failures
+  "Rows `[degree order x value]` for which `eval-bernstein` is outside `units * eps * (n+1) * |value|`
+  (a reference value of 0 must be returned exactly)."
+  [rows units]
+  (for [[n k x v] rows
+        :let [got (attempt sut/eval-bernstein n k x)]
+        :when (not (and (not (failed? got))
+                        (if (zero? v) (zero? got) (<= (m/abs (- got v)) (* units EPS (inc n) (m/abs v))))))]
+    [n k x v got]))
+
+;; The product `C(n, k) x^k (1-x)^(n-k)` loses about (n+1) units of roundoff relative to the value (`m/combinations`
+;; uses a log-beta formula from k = 30); largest observed ratio to this bound: 1.6 (degree 500); limit 4.
+(t/deftest bernstein-eval-reference
+  (let [failures (bernstein-failures (get-in @bb-reference [:bernstein :grid]) 4.0)]
+    (t/is (empty? failures) (failures-message "Bernstein" failures))))
+
+(t/deftest bernstein-exact-coefficients
+  (doseq [[n k exact] (get-in @bb-reference [:bernstein :coefficients])
+          :let [o (attempt sut/bernstein n k)
+                expected (mapv double (exact-coefficients exact))]]
+    (t/is (and (not (failed? o)) (= expected (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str "degree " n " order " k))))
+
+(t/deftest bernstein-basis-properties
+  ;; the basis of one degree sums to 1, also for degrees where the binomial coefficient overflows
+  (doseq [n [0 1 2 3 7 20 100 1000 2000 5000] x [0.0 0.1 0.37 0.5 0.9 1.0]]
+    (t/is (m/delta-eq 1.0 (reduce + (map #(sut/eval-bernstein n % x) (range (inc n)))) 1.0e-9)
+          (str "degree " n " at " x)))
+  (doseq [n [1 2 3] x [-0.5 1.7]]
+    (t/is (m/delta-eq 1.0 (reduce + (map #(sut/eval-bernstein n % x) (range (inc n)))) 1.0e-12) (str "degree " n " at " x)))
+  ;; b(k, n)(x) = b(n-k, n)(1-x)
+  (doseq [n [2 5 13 30] k (range (inc n)) x [0.05 0.3 0.5 0.8]
+          :let [a (sut/eval-bernstein n k x) b (sut/eval-bernstein n (- n k) (- 1.0 x))]]
+    (t/is (<= (m/abs (- a b)) (* 1.0e-12 (max a b))) (str n " " k " " x)))
+  ;; the values at the ends of the interval are exact
+  (doseq [n [1 2 5 40 3000]]
+    (t/is (== 1.0 (sut/eval-bernstein n 0 0.0) (sut/eval-bernstein n n 1.0)))
+    (doseq [k (range 1 (inc n)) :when (< k 4)]
+      (t/is (== 0.0 (sut/eval-bernstein n k 0.0)))
+      (t/is (== 0.0 (sut/eval-bernstein n (- n k) 1.0)))))
+  ;; degrees 0 and 1
+  (t/is (== 1.0 (sut/eval-bernstein 0 0 0.3) (sut/eval-bernstein 0 0 ##NaN) (sut/eval-bernstein 0 0 ##Inf)))
+  (t/is (== 0.7 (sut/eval-bernstein 1 0 0.3)))
+  (t/is (== 0.3 (sut/eval-bernstein 1 1 0.3)))
+  (t/is (== 0.5 (sut/eval-bernstein 2 1 0.5)))
+  ;; infinite and NaN arguments: the leading term; NaN for a positive degree
+  (doseq [n [1 2 3 6] k (range (inc n))]
+    (t/is (== (if (even? (- n k)) ##Inf ##-Inf) (sut/eval-bernstein n k ##Inf)) (str n " " k " at +Inf"))
+    (t/is (== (if (even? k) ##Inf ##-Inf) (sut/eval-bernstein n k ##-Inf)) (str n " " k " at -Inf"))
+    (t/is (m/nan? (sut/eval-bernstein n k ##NaN)) (str n " " k " at NaN"))))
+
+(t/deftest bernstein-order-outside-the-degree-is-the-zero-function
+  ;; b(k, n) = 0 for k < 0 and for k > n: for every argument, also the ends, NaN and the infinities
+  (doseq [[n k] [[0 1] [0 -1] [1 5] [1 -1] [2 3] [5 6] [5 -2] [5 7] [10 -1] [3000 3001]]
+          x [0.0 1.0 0.3 -2.0 1.5 ##NaN ##Inf ##-Inf]]
+    (t/is (== 0.0 (sut/eval-bernstein n k x)) (str "degree " n " order " k " at " x)))
+  (doseq [[n k] [[0 1] [0 -1] [1 5] [1 -1] [3 4] [5 -2] [40 41]]
+          :let [o (sut/bernstein n k)]]
+    (t/is (and (every? #(== 0.0 %) (sut/coeffs o)) (= n (sut/degree o))) (str "object, degree " n " order " k))
+    (t/is (not-any? #(neg? (bits %)) (sut/coeffs o)) "positive zeros")))
+
+;; Bessel y and theta, standard model of `eval-error-bound`: largest observed ratio 0.40 (y) and 0.44 (theta),
+;; for x >= 0 from the recurrences and for x < 0 from the decimal explicit sum; limit 2. (The recurrences at
+;; x < 0 gave relative errors from 1e-8 to total loss, theta_50(-30) with the wrong sign.)
+(def ^:private bb-eval-units {:bessel-y 2.0 :bessel-t 2.0})
+
+(t/deftest bessel-eval-reference
+  (doseq [[label eval-fn key] [["y" sut/eval-bessel-y :bessel-y] ["theta" sut/eval-bessel-t :bessel-t]]
+          :let [failures (grid-failures eval-fn (get-in @bb-reference [key :grid]) (get bb-eval-units key))]]
+    (t/is (empty? failures) (failures-message (str "Bessel " label) failures))))
+
+(t/deftest bessel-exact-coefficients
+  (doseq [[label ratio-fn object-fn key] [["y" sut/bessel-y-ratio sut/bessel-y :bessel-y]
+                                          ["theta" sut/bessel-t-ratio sut/bessel-t :bessel-t]]
+          [n exact] (map-indexed vector (get-in @bb-reference [key :coefficients]))
+          :let [r (attempt ratio-fn n)
+                o (attempt object-fn n)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str label " ratio, degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str label " object, degree " n))))
+
+(t/deftest bessel-three-forms-agree
+  (let [xs [-3.0 -1.5 -0.5 0.0 0.5 1.5 3.0 10.0]
+        ns [0 1 2 3 4 5 6 8 10 15]]
+    (let [d (three-forms-disagreements {:eval-fn (fn [[n] x] (sut/eval-bessel-y n x)) :ratio-fn (fn [[n]] (sut/bessel-y-ratio n))
+                                        :object-fn (fn [[n]] (sut/bessel-y n)) :cases (map vector ns) :xs xs})]
+      (t/is (empty? d) (str "y: " (pr-str (take 2 d)))))
+    (let [d (three-forms-disagreements {:eval-fn (fn [[n] x] (sut/eval-bessel-t n x)) :ratio-fn (fn [[n]] (sut/bessel-t-ratio n))
+                                        :object-fn (fn [[n]] (sut/bessel-t n)) :cases (map vector ns) :xs xs})]
+      (t/is (empty? d) (str "theta: " (pr-str (take 2 d)))))))
+
+(t/deftest bessel-polynomials-satisfy-their-equations
+  ;; independent of the recurrences: the exact residual of the differential equations is the zero polynomial
+  (doseq [n (range 0 21)
+          :let [y (sut/bessel-y-ratio n)
+                theta (sut/bessel-t-ratio n)
+                residual-y (sut/add (sut/add (sut/mult (sut/ratio-polynomial [0 0 1]) (sut/derivative y 2))
+                                              (sut/mult (sut/ratio-polynomial [2 2]) (sut/derivative y 1)))
+                                    (sut/scale y (- (* n (inc n)))))
+                residual-theta (sut/add (sut/add (sut/mult (sut/ratio-polynomial [0 1]) (sut/derivative theta 2))
+                                                 (sut/mult (sut/ratio-polynomial [(* -2 n) -2]) (sut/derivative theta 1)))
+                                        (sut/scale theta (* 2 n)))]]
+    ;; x^2 y'' + (2x + 2) y' - n (n+1) y = 0 and x theta'' - 2 (x + n) theta' + 2 n theta = 0
+    (t/is (every? zero? (sut/coeffs residual-y)) (str "y, degree " n))
+    (t/is (every? zero? (sut/coeffs residual-theta)) (str "theta, degree " n))
+    ;; theta_n(x) = x^n y_n(1/x): the coefficients in the reverse order; y_n(0) = 1, theta_n is monic
+    (t/is (= (vec (reverse (sut/coeffs y))) (vec (sut/coeffs theta))) (str "degree " n))
+    (t/is (= 1 (first (sut/coeffs y)) (last (sut/coeffs theta))) (str "degree " n))
+    ;; theta_n(0) = (2n-1)!!
+    (t/is (= (reduce *' 1 (range 1 (inc (* 2 n)) 2)) (first (sut/coeffs theta))) (str "degree " n)))
+  (t/is (= [1 3 3] (vec (sut/coeffs (sut/bessel-y-ratio 2)))))
+  (t/is (= [1 6 15 15] (vec (sut/coeffs (sut/bessel-y-ratio 3)))))
+  (t/is (= [15 15 6 1] (vec (sut/coeffs (sut/bessel-t-ratio 3)))))
+  ;; the value that the recurrence with the wrong previous term gave: y_3(0.5) = 9.625, not 9.125
+  (t/is (== 9.625 (sut/eval-bessel-y 3 0.5)))
+  (t/is (== 36.9375 (sut/eval-bessel-y 4 0.5))))
+
+(t/deftest bessel-non-finite-and-huge-arguments
+  ;; the leading term is x^n in both: the sign follows the parity of the degree at -Inf
+  (doseq [n [1 2 3 4 5 6 9 10 15]
+          [label f] [["y" sut/eval-bessel-y] ["theta" sut/eval-bessel-t]]]
+    (t/is (== ##Inf (f n ##Inf)) (str label " " n " at +Inf"))
+    (t/is (== (if (even? n) ##Inf ##-Inf) (f n ##-Inf)) (str label " " n " at -Inf"))
+    (t/is (m/nan? (f n ##NaN)) (str label " " n " at NaN")))
+  (doseq [f [sut/eval-bessel-y sut/eval-bessel-t] x [##NaN ##Inf ##-Inf 0.3]]
+    (t/is (== 1.0 (f 0 x))))
+  (t/is (== 1.5 (sut/eval-bessel-y 1 0.5)))
+  (t/is (== 1.5 (sut/eval-bessel-t 1 0.5)))
+  ;; huge arguments with a representable value: y_2 = 3 x^2 + 3 x + 1, theta_2 = x^2 + 3 x + 3
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-bessel-y 2 1.0e150) 3.0e300) 1.0e-14))
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-bessel-t 2 1.0e150) 1.0e300) 1.0e-14))
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-bessel-t 2 -1.0e150) 1.0e300) 1.0e-14)))
+
+(t/deftest bernstein-and-bessel-degree-limits
+  (doseq [n [-1 -2 -100 Integer/MAX_VALUE 4294967296 Long/MAX_VALUE]]
+    (doseq [[label f] {"eval-bernstein" #(sut/eval-bernstein % 0 0.3)
+                       "eval-bernstein, order outside the degree" #(sut/eval-bernstein % 5 0.3)
+                       "bernstein" #(sut/bernstein % 0)
+                       "eval-bessel-y" #(sut/eval-bessel-y % 0.3)
+                       "bessel-y-ratio" sut/bessel-y-ratio
+                       "bessel-y" sut/bessel-y
+                       "eval-bessel-t" #(sut/eval-bessel-t % 0.3)
+                       "bessel-t-ratio" sut/bessel-t-ratio
+                       "bessel-t" sut/bessel-t}]
+      (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))

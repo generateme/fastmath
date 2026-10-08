@@ -634,24 +634,93 @@
     (m/>= degree Integer/MAX_VALUE)
     (throw (IllegalArgumentException. (str "Degree must be below " Integer/MAX_VALUE ", got " degree)))))
 
-(defn eval-bernstein
-  ^double [^long degree ^long order ^double x]
-  (case (int degree)
-    0 1.0
-    1 (if (m/zero? order) (m/- 1.0 x) x)
-    (m/* (m/combinations degree order) (m/fpow x order) (m/fpow (m/- 1.0 x) (m/long-sub degree order)))))
+(def ^:private ^:const bernstein-direct-min-magnitude 1.0e-290)
 
+(defn- bernstein-by-logarithm
+  "The Bernstein basis polynomial for a finite `x` and `0 <= order <= degree`, through the logarithm of its
+  magnitude `log C(n, k) + k log|x| + (n-k) log|1-x|`, which neither overflows (the binomial coefficient) nor
+  underflows (the powers) where the product does; the sign is that of `x^k (1-x)^(n-k)`."
+  ^double [^long degree ^long order ^double x]
+  (let [rest-order (m/long-sub degree order)
+        log-magnitude (m/+ (m/log-combinations degree order)
+                           (if (m/zero? order) 0.0 (m/* order (m/ln (m/abs x))))
+                           (if (m/zero? rest-order)
+                             0.0
+                             (m/* rest-order (if (m/< (m/abs x) 0.5)
+                                               (m/log1p (m/- x))
+                                               (m/ln (m/abs (m/- 1.0 x)))))))
+        magnitude (m/exp log-magnitude)
+        negative? (not= (and (m/neg? x) (m/odd? order)) (and (m/> x 1.0) (m/odd? rest-order)))]
+    (if negative? (m/- magnitude) magnitude)))
+
+(defn eval-bernstein
+  "Evaluates the Bernstein basis polynomial `b_(k,n)` at `x`.
+
+  `b_(k,n)(x) = C(n, k) * x^k * (1 - x)^(n - k)` for `0 <= k <= n`. The `n + 1` polynomials of one degree sum to 1; on `[0, 1]` they are non-negative and `b_(k,n)(x)` is the probability of `k` successes in `n` trials of success probability `x`. `b_(k,n)(x) = b_(n-k,n)(1 - x)`. They are polynomials in `x` for every real `x`.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `order` (integer): the index `k`. For an order outside `0 .. degree` the basis function is the zero function: the result is `0.0` for every `x`, also `##NaN` and the infinities.
+  - `x` (double): the argument, any real number.
+
+  Returns a double. For degree 0 the result is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term (the sign follows the parity of `k` and `n - k`). The value is accurate to about `(n+1)` units of roundoff relative to the result (1e-13 at degree 500 to 1000). The binomial coefficient and the powers are not formed separately where one of them would overflow or underflow, so a degree of thousands is evaluated without `##NaN` or `##Inf` for a representable result; values below 1e-290 are less accurate.
+
+  See also [[bernstein]]."
+  ^double [^long degree ^long order ^double x]
+  (check-degree! degree)
+  (cond
+    ;; the basis function of an order outside 0 .. degree is the zero function
+    (or (m/neg? order) (m/> order degree)) 0.0
+    (m/zero? degree) 1.0
+    :else (let [direct (m/* (m/combinations degree order) (m/fpow x order) (m/fpow (m/- 1.0 x) (m/long-sub degree order)))]
+            ;; the product is accurate while no factor overflows or underflows
+            (if (or (m/inf? x)
+                    (and (m/valid-double? direct) (m/>= (m/abs direct) bernstein-direct-min-magnitude)))
+              direct
+              (bernstein-by-logarithm degree order x)))))
+
+(set! *unchecked-math* true)
+
+(defn- bernstein-coefficients
+  "The ascending coefficients, as doubles, of the Bernstein basis polynomial `C(n, k) x^k (1-x)^(n-k)`:
+  `(-1)^(l-k) C(n, l) C(l, k)` for the power `l`, from exact integers converted once. All zero for an order
+  outside 0 .. degree."
+  [^long degree ^long order]
+  (if (or (neg? order) (> order degree))
+    (vec (repeat (m/long-inc degree) 0.0))
+    (loop [l (long 0)
+           binomial-n-l 1N
+           binomial-l-k (if (zero? order) 1N 0N)
+           coefficients (transient [])]
+      (if (> l degree)
+        (persistent! coefficients)
+        (let [next-l (inc l)]
+          (recur next-l
+                 (quot (*' binomial-n-l (- degree l)) next-l)
+                 (cond (< next-l order) 0N
+                       (== next-l order) 1N
+                       :else (quot (*' binomial-l-k next-l) (- next-l order)))
+                 (conj! coefficients (double (*' binomial-n-l binomial-l-k (if (even? (- l order)) 1 -1))))))))))
+
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn bernstein
+  "Creates the Bernstein basis polynomial `b_(k,n)` as a polynomial object in the power basis.
+
+  See [[eval-bernstein]] for the definition. The coefficient of `x^l` is `(-1)^(l-k) * C(n, l) * C(l, k)`, computed with exact integers and converted to a double once.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `order` (integer): the index `k`. For an order outside `0 .. degree` the result is the zero polynomial of nominal degree `n` (all coefficients `0.0`).
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-bernstein]] for values at a high degree.
+
+  See also [[eval-bernstein]]."
   [^long degree ^long order]
-  (->> (range (m/inc degree))
-       (map (fn [^long l]
-              (if (m/< l order)
-                0.0
-                (m/* (if (m/even? (m/long-sub l order)) 1.0 -1.0)
-                     (m/combinations degree l)
-                     (m/combinations l order)))))
-       (polynomial)))
+  (check-degree! degree)
+  (polynomial (bernstein-coefficients degree order)))
 
 ;;
 
@@ -1677,54 +1746,139 @@
 
 ;;
 
+;; Bessel polynomials y_n(x) = sum_k c_k x^k and theta_n(x) = x^n y_n(1/x) = sum_k c_k x^(n-k), with
+;; c_k = (n+k)! / ((n-k)! k! 2^k). For x >= 0 all terms are positive and the three term recurrences are accurate;
+;; for x < 0 the terms of the recurrences have opposite signs and the cancellation grows exponentially with
+;; the degree (theta_50(-30) had the wrong sign). There the explicit sum is evaluated in decimal arithmetic of
+;; adaptive precision.
+
+(defn- bessel-decimal-sum
+  "The explicit sum of the Bessel polynomial `y_n` (`reverse?` false) or of the reverse Bessel polynomial
+  `theta_n` (`reverse?` true) for a finite `x`, evaluated with the precision `mc`."
+  ^BigDecimal [^long degree reverse? ^double x ^MathContext mc]
+  (let [powers (decimal-powers (BigDecimal. x) degree mc)]
+    (loop [k (long 0)
+           c BigDecimal/ONE
+           total BigDecimal/ZERO]
+      (if (m/> k degree)
+        total
+        (let [power ^BigDecimal (powers (if reverse? (m/long-sub degree k) k))
+              ;; c_(k+1) / c_k = (n+k+1) (n-k) / (2 (k+1))
+              factor (.multiply (BigDecimal. (m/long-add degree (m/long-inc k))) (BigDecimal. (m/long-sub degree k)) mc)]
+          (recur (m/inc k)
+                 (.divide (.multiply ^BigDecimal c factor mc) (BigDecimal. (m/long-mult 2 (m/long-inc k))) mc)
+                 (.add ^BigDecimal total (.multiply ^BigDecimal c power mc) mc)))))))
+
 (defn eval-bessel-y
+  "Evaluates the Bessel polynomial `y_n` at `x`.
+
+  `y_n(x) = sum over k of (n+k)! / ((n-k)! * k!) * (x/2)^k`, with `y_0 = 1`, `y_1 = 1 + x` and `y_n = (2n-1)*x*y_(n-1) + y_(n-2)`. It solves `x^2*y'' + (2x + 2)*y' - n*(n+1)*y = 0`, `y_n(0) = 1`, and for `x > 0` it is `sqrt(2/(pi*x)) * exp(1/x) * K_(n+1/2)(1/x)` with the modified Bessel function of the second kind `K`. The reverse polynomial `x^n * y_n(1/x)` is given by [[eval-bessel-t]].
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term `x^n`: `##Inf` for `##Inf`, and for `##-Inf` `##-Inf` for an odd degree and `##Inf` for an even one. For `x >= 0` all terms are positive and the three term recurrence is used, with an error of a few units of roundoff times `n` relative to the value. For `x < 0` the terms alternate in sign and the recurrence loses digits (up to the whole value), so the explicit sum is evaluated in decimal arithmetic whose precision is raised until the result settles: the result is the nearest double to about 2^-60, in a few milliseconds at degree 1000. Unlike evaluating the coefficients from [[bessel-y]] it stays accurate for any degree.
+
+  See also [[bessel-y]], [[bessel-y-ratio]], [[eval-bessel-t]]."
   ^double [^long degree ^double x]
+  (check-degree! degree)
   (case (int degree)
     0 1.0
     1 (m/inc x)
-    (loop [i (long 2)
-           pprev 1.0
-           prev (m/inc x)]
-      (if (> i degree)
-        prev
-        (recur (inc i) pprev
-               (m/+ (m/* (m/dec (m/* 2 i)) x prev)
-                    pprev))))))
+    (if (and (m/neg? x) (m/valid-double? x))
+      (adaptive-decimal-value (fn [mc] (bessel-decimal-sum degree false x mc)))
+      (loop [i (long 2)
+             pprev 1.0
+             prev (m/inc x)]
+        (if (m/> i degree)
+          prev
+          ;; y_i = (2i - 1) x y_(i-1) + y_(i-2): the next previous value is `prev`
+          (recur (m/inc i) prev
+                 (m/+ (m/* (m/long-dec (m/long-mult 2 i)) x prev)
+                      pprev)))))))
 
 
 (defn bessel-y-ratio
+  "Creates the Bessel polynomial `y_n` with exact integer coefficients.
+
+  `y_0 = 1`, `y_1 = 1 + x` and `y_n = (2n-1)*x*y_(n-1) + y_(n-2)`; the coefficient of `x^k` is `(n+k)! / ((n-k)! * k! * 2^k)`. See [[eval-bessel-y]] for the definition.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The coefficients are positive and grow like `(2n)! / (n! * 2^n)`.
+
+  See also [[bessel-y]] (double coefficients), [[eval-bessel-y]] (direct evaluation), [[bessel-t-ratio]]."
   [^long degree]
+  (check-degree! degree)
   (case (int degree)
     0 RONE
     1 (ratio-polynomial [1 1])
     (loop [i (long 2)
            pprev RONE
            prev (ratio-polynomial [1 1])]
-      (if (> i degree)
+      (if (m/> i degree)
         prev
-        (recur (inc i) prev
-               (add (mult prev (ratio-polynomial [0 (m/dec (m/* 2 i))])) pprev))))))
+        (recur (m/inc i) prev
+               (add (mult prev (ratio-polynomial [0 (m/long-dec (m/long-mult 2 i))])) pprev))))))
 
 (defn bessel-y
+  "Creates the Bessel polynomial `y_n` as a polynomial object with double coefficients.
+
+  See [[eval-bessel-y]] for the definition and [[bessel-y-ratio]] for the exact integer coefficients, which are converted to doubles.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (for a negative `x` the terms alternate in sign), so use [[eval-bessel-y]] for values at a high degree.
+
+  See also [[bessel-y-ratio]], [[eval-bessel-y]], [[bessel-t]]."
   [^long degree]
   (polynomial (coeffs (bessel-y-ratio degree))))
 
 (defn eval-bessel-t
+  "Evaluates the reverse Bessel polynomial `theta_n` at `x`.
+
+  `theta_n(x) = x^n * y_n(1/x) = sum over k of (n+k)! / ((n-k)! * k! * 2^k) * x^(n-k)`, with `theta_0 = 1`, `theta_1 = x + 1` and `theta_n = (2n-1)*theta_(n-1) + x^2*theta_(n-2)`. It is monic, `theta_n(0) = (2n-1)!!`, and it solves `x*theta'' - 2*(x + n)*theta' + 2*n*theta = 0`. The Bessel polynomial `y_n` is given by [[eval-bessel-y]].
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term `x^n`: `##Inf` for `##Inf`, and for `##-Inf` `##-Inf` for an odd degree and `##Inf` for an even one. For `x >= 0` all terms are positive and the three term recurrence is used, with an error of a few units of roundoff times `n` relative to the value. For `x < 0` the terms of the recurrence have opposite signs and it loses digits (up to the whole value), so the explicit sum is evaluated in decimal arithmetic whose precision is raised until the result settles: the result is the nearest double to about 2^-60, in a few milliseconds at degree 1000.
+
+  See also [[bessel-t]], [[bessel-t-ratio]], [[eval-bessel-y]]."
   ^double [^long degree ^double x]
+  (check-degree! degree)
   (case (int degree)
     0 1.0
     1 (m/inc x)
-    (loop [i (long 2)
-           pprev 1.0
-           prev (m/inc x)]
-      (if (> i degree)
-        prev
-        (recur (inc i) prev
-               (m/+ (m/* (m/dec (m/* 2 i)) prev)
-                    (m/* x x pprev)))))))
+    (cond
+      ;; the leading term is x^n (the recurrence would add x^2 to a term of the opposite sign)
+      (m/inf? x) (if (and (m/neg? x) (m/odd? degree)) ##-Inf ##Inf)
+      (m/neg? x) (adaptive-decimal-value (fn [mc] (bessel-decimal-sum degree true x mc)))
+      :else (loop [i (long 2)
+                   pprev 1.0
+                   prev (m/inc x)]
+              (if (m/> i degree)
+                prev
+                (recur (m/inc i) prev
+                       (m/+ (m/* (m/long-dec (m/long-mult 2 i)) prev)
+                            (m/* x x pprev))))))))
 
 (defn bessel-t-ratio
+  "Creates the reverse Bessel polynomial `theta_n` with exact integer coefficients.
+
+  `theta_0 = 1`, `theta_1 = x + 1` and `theta_n = (2n-1)*theta_(n-1) + x^2*theta_(n-2)`; the coefficient of `x^(n-k)` is `(n+k)! / ((n-k)! * k! * 2^k)`, the coefficients of [[bessel-y-ratio]] in the reverse order. See [[eval-bessel-t]] for the definition.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. The polynomial is monic.
+
+  See also [[bessel-t]] (double coefficients), [[eval-bessel-t]] (direct evaluation), [[bessel-y-ratio]]."
   [^long degree]
+  (check-degree! degree)
   (case (int degree)
     0 RONE
     1 (ratio-polynomial [1 1])
@@ -1732,13 +1886,22 @@
       (loop [i (long 2)
              pprev RONE
              prev (ratio-polynomial [1 1])]
-        (if (> i degree)
+        (if (m/> i degree)
           prev
-          (recur (inc i) prev
-                 (add (scale prev (m/dec (m/* 2 i)))
+          (recur (m/inc i) prev
+                 (add (scale prev (m/long-dec (m/long-mult 2 i)))
                       (mult pprev p001))))))))
 
 (defn bessel-t
+  "Creates the reverse Bessel polynomial `theta_n` as a polynomial object with double coefficients.
+
+  See [[eval-bessel-t]] for the definition and [[bessel-t-ratio]] for the exact integer coefficients, which are converted to doubles.
+
+  Parameters: `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (for a negative `x` the terms alternate in sign), so use [[eval-bessel-t]] for values at a high degree.
+
+  See also [[bessel-t-ratio]], [[eval-bessel-t]], [[bessel-y]]."
   [^long degree]
   (polynomial (coeffs (bessel-t-ratio degree))))
 
