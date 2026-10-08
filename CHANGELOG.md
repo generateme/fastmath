@@ -73,6 +73,8 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.polynomials/eval-chebyshev-V` and `eval-chebyshev-W` returned `NaN` or an infinity for `x <= -1` (and for `V` at `x = -1`), `eval-chebyshev-V` of degree 0 was not exactly 1.0 and both overflowed for huge `x`; now computed from `U` (`V = U(n) - U(n-1)`, `W = U(n) + U(n-1)`) and exact at the endpoints
 * `fastmath.polynomials/eval-chebyshev-U` had a relative error of up to 1e-12 next to `x = ±1` for degrees 5 to 50, returned an infinity above `|x|` of about 1e60 although the value is representable, and `NaN` at `##Inf` for degree 4
 * `fastmath.polynomials` Chebyshev functions of a negative degree returned the value of another polynomial (for example `T(-1) = x`); now `IllegalArgumentException`; `kernel/window` `dolph-chebyshev` of length 0 throws `IllegalArgumentException` (was `ArityException`)
+* `fastmath.polynomials` Legendre, Gegenbauer and Jacobi functions of a negative degree returned the value of another polynomial; now `IllegalArgumentException`. Their values at `##Inf`/`##-Inf` were `NaN` (now the limit of the leading term); `kernel/window` `legendre` of length 0 throws `IllegalArgumentException` (was `ArityException`); a degree of `Integer/MAX_VALUE` or more (which wrapped around, `(eval-legendre-P 4294967296 x)` was 1.0) throws `IllegalArgumentException` in all Chebyshev, Legendre, Gegenbauer and Jacobi functions
+* `fastmath.polynomials/gegenbauer-C-ratio` and `jacobi-P-ratio` had inexact coefficients for decimal parameters (`0.3`); now exact. `eval-jacobi-P`, `jacobi-P-ratio` returned `NaN`/threw for `alpha + beta` a negative integer of at most `-2` and lost digits close to it; now computed exactly (slow for a high degree)
 
 ### Changed
 

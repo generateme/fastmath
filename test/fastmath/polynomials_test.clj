@@ -763,3 +763,289 @@
     (t/is (thrown? IllegalArgumentException (eval n 0.3)) (str kind " eval " n))
     (t/is (thrown? IllegalArgumentException (ratio n)) (str kind " ratio " n))
     (t/is (thrown? IllegalArgumentException (object n)) (str kind " object " n))))
+
+;; Legendre, Gegenbauer (ultraspherical) and Jacobi polynomials.
+;;
+;; Reference values: `test/resources/polynomials/legendre_gegenbauer_jacobi_reference.edn`, exact
+;; rational arithmetic (`utils/fastmath/dev/generate_legendre_gegenbauer_jacobi_reference.py`) at the
+;; exact binary values of the parameters and arguments: 17 values of the Gegenbauer parameter
+;; (including 0, negative values and the neighbours 1 +- 2^-30, 0.5 +- 2^-30 of the two shortcuts) and 20
+;; Jacobi parameter pairs (including those for which the three term recurrence divides by zero or is
+;; close to doing so), 27 arguments around +-1, degrees up to 30 (Legendre up to 500); and the exact
+;; coefficients. Jacobi values come from the explicit sum, which holds for every real parameters.
+;; `scipy.special.eval_legendre/gegenbauer/jacobi` against the reference: largest difference 2.6e-11
+;; (Legendre, degree 500 outside [-1, 1]), 1.8e-14 (Gegenbauer) and 3.7e-9 (Jacobi next to a degenerate
+;; pair), relative to max(1, |value|); scipy returns NaN for 942 Gegenbauer and 2088 Jacobi rows of
+;; negative parameters, and 0 for degree 0 and parameter 0 where the polynomial is 1.
+
+(def ^:private lgj-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/legendre_gegenbauer_jacobi_reference.edn")))))
+
+;; Observed largest error over the grid (in the units of `eval-error-bound`): Legendre 0.7, Gegenbauer 1.4,
+;; Jacobi 1.1 apart from the pair below.
+(def ^:private lgj-eval-units {:legendre 4.0 :gegenbauer 4.0 :jacobi 4.0})
+
+;; Jacobi (-3, 0.5): the polynomials of degree 3 and more have a triple root at x = 1, so the values next to
+;; it (down to 1e-25 at 1 - 1e-9) are far below the rounding error of the recurrence relative to the size
+;; of the polynomial on the interval (1.5e-11 at degree 30; 4482 units of the bound).
+(def ^:private jacobi-units-by-parameters {[-3.0 0.5] 5000.0})
+
+(defn- grid-failures
+  "Rows `[n x value derivative]` for which `(f n x)` is outside the bound of `eval-error-bound`."
+  [f rows units]
+  (for [[n x v d] rows
+        :let [got (attempt f n x)]
+        :when (not (and (not (failed? got)) (<= (m/abs (- got v)) (eval-error-bound n x v d units))))]
+    [n x v got]))
+
+(defn- failures-message [label failures]
+  (str label ": " (count failures) " grid points outside the bound; first (n x expected got): "
+       (pr-str (take 4 failures))))
+
+(t/deftest legendre-eval-reference
+  (let [failures (grid-failures sut/eval-legendre-P (get-in @lgj-reference [:legendre :grid]) (:legendre lgj-eval-units))]
+    (t/is (empty? failures) (failures-message "Legendre" failures))))
+
+(t/deftest gegenbauer-eval-reference
+  (doseq [{:keys [alpha grid]} (:gegenbauer @lgj-reference)
+          :let [failures (grid-failures (fn [n x] (sut/eval-gegenbauer-C n alpha x)) grid (:gegenbauer lgj-eval-units))]]
+    (t/is (empty? failures) (failures-message (str "Gegenbauer alpha " alpha) failures))))
+
+(t/deftest jacobi-eval-reference
+  (doseq [{:keys [alpha beta grid]} (:jacobi @lgj-reference)
+          :let [failures (grid-failures (fn [n x] (sut/eval-jacobi-P n alpha beta x)) grid
+                                        (get jacobi-units-by-parameters [alpha beta] (:jacobi lgj-eval-units)))]]
+    (t/is (empty? failures) (failures-message (str "Jacobi alpha " alpha " beta " beta) failures))))
+
+(defn- exact-coefficients [pairs] (mapv ratio pairs))
+
+(t/deftest legendre-exact-coefficients
+  (doseq [[n exact] (map-indexed vector (get-in @lgj-reference [:legendre :coefficients]))
+          :let [r (attempt sut/legendre-P-ratio n)
+                o (attempt sut/legendre-P n)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str "ratio, degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o))) (str "object, degree " n))))
+
+(t/deftest gegenbauer-exact-coefficients
+  (doseq [{:keys [alpha decimal-exact? coefficients]} (:gegenbauer @lgj-reference)
+          :when decimal-exact?
+          [n exact] (map-indexed vector coefficients)
+          :let [r (attempt sut/gegenbauer-C-ratio n alpha)
+                o (attempt sut/gegenbauer-C n alpha)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
+          (str "ratio, alpha " alpha " degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str "object, alpha " alpha " degree " n))))
+
+(t/deftest jacobi-exact-coefficients
+  (doseq [{:keys [alpha beta decimal-exact? coefficients]} (:jacobi @lgj-reference)
+          :when decimal-exact?
+          [n exact] (map-indexed vector coefficients)
+          :let [r (attempt sut/jacobi-P-ratio n alpha beta)
+                o (attempt sut/jacobi-P n alpha beta)
+                expected (exact-coefficients exact)]]
+    (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
+          (str "ratio, alpha " alpha " beta " beta " degree " n))
+    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+          (str "object, alpha " alpha " beta " beta " degree " n))))
+
+(defn- pochhammer [a k] (reduce *' 1 (map #(+ a %) (range k))))
+
+(defn- factorial-exact [n] (reduce *' 1 (range 1 (inc n))))
+
+(defn- gegenbauer-explicit-coefficients
+  "Coefficients, ascending, of the Gegenbauer polynomial of a rational parameter from the explicit sum
+  `sum_k (-1)^k (alpha)_(n-k) / (k! (n-2k)!) (2x)^(n-2k)`."
+  [n alpha]
+  (reduce (fn [cs k]
+            (let [m (- n (* 2 k))]
+              (assoc cs m (* (if (even? k) 1 -1) (pochhammer alpha (- n k))
+                             (/ (reduce *' 1 (repeat m 2)) (* (factorial-exact k) (factorial-exact m)))))))
+          (vec (repeat (inc n) 0))
+          (range (inc (quot n 2)))))
+
+(defn- jacobi-explicit-ratio
+  "The Jacobi polynomial of rational parameters as the explicit sum
+  `sum_s C(n+a, n-s) C(n+b, s) ((x-1)/2)^s ((x+1)/2)^(n-s)`, built with the exact polynomial operations."
+  [n alpha beta]
+  (let [binomial (fn [top k] (/ (reduce *' 1 (map #(- top %) (range k))) (factorial-exact k)))
+        powers (fn [base] (vec (take (inc n) (iterate #(sut/mult % base) (sut/ratio-polynomial [1])))))
+        lower (powers (sut/ratio-polynomial [-1/2 1/2]))
+        upper (powers (sut/ratio-polynomial [1/2 1/2]))]
+    (reduce sut/add
+            (for [s (range (inc n))]
+              (sut/scale (sut/mult (lower s) (upper (- n s)))
+                         (* (binomial (+ n alpha) (- n s)) (binomial (+ n beta) s)))))))
+
+(t/deftest ratio-forms-are-exact-for-decimal-parameters
+  ;; the parameter is converted with rationalize (0.3 is 3/10): the coefficients are then exact
+  (doseq [alpha [0.1 0.3 1.7 0.123 -0.6] n (range 0 13)]
+    (t/is (= (gegenbauer-explicit-coefficients n (rationalize alpha)) (vec (sut/coeffs (sut/gegenbauer-C-ratio n alpha))))
+          (str "Gegenbauer alpha " alpha " degree " n)))
+  (doseq [[alpha beta] [[0.1 0.2] [1.7 -0.3] [-0.6 2.4] [0.3 0.3]] n (range 0 9)]
+    (t/is (= (vec (sut/coeffs (jacobi-explicit-ratio n (rationalize alpha) (rationalize beta))))
+             (vec (sut/coeffs (sut/jacobi-P-ratio n alpha beta))))
+          (str "Jacobi alpha " alpha " beta " beta " degree " n))))
+
+(t/deftest legendre-gegenbauer-jacobi-three-forms-agree
+  (let [xs [-3.0 -1.5 -1.0 -0.9 -0.5 0.0 0.5 0.9 1.0 1.5 3.0]
+        run (fn [eval-fn ratio-fn object-fn cases]
+              (three-forms-disagreements {:eval-fn eval-fn :ratio-fn ratio-fn :object-fn object-fn
+                                          :cases cases :xs xs}))
+        ns [0 1 2 3 4 5 6 8 10 15]]
+    (let [d (run (fn [[n] x] (sut/eval-legendre-P n x)) (fn [[n]] (sut/legendre-P-ratio n)) (fn [[n]] (sut/legendre-P n))
+                 (map vector ns))]
+      (t/is (empty? d) (str "Legendre: " (pr-str (take 2 d)))))
+    (let [d (run (fn [[n a] x] (sut/eval-gegenbauer-C n a x)) (fn [[n a]] (sut/gegenbauer-C-ratio n a))
+                 (fn [[n a]] (sut/gegenbauer-C n a))
+                 (for [n ns a [0.25 0.5 0.75 1.0 1.5 2.0 5.5 -0.25 -0.5 -1.5 0.3 1.7]] [n a]))]
+      (t/is (empty? d) (str "Gegenbauer: " (count d) " disagreements; first: " (pr-str (take 2 d)))))
+    (let [d (run (fn [[n a b] x] (sut/eval-jacobi-P n a b x)) (fn [[n a b]] (sut/jacobi-P-ratio n a b))
+                 (fn [[n a b]] (sut/jacobi-P n a b))
+                 (for [n (remove #{15} ns) [a b] [[0.0 0.0] [0.5 -0.5] [1.5 2.5] [-0.5 0.25] [0.1 0.2] [1.7 -0.3]
+                                                  [-1.0 -1.0] [-1.0 -2.0] [-2.0 0.0] [-0.5 -1.5] [-1.0 3.0]]]
+                   [n a b]))]
+      (t/is (empty? d) (str "Jacobi: " (count d) " disagreements; first: " (pr-str (take 2 d)))))))
+
+(t/deftest gegenbauer-parameter-conventions
+  ;; parameter 0: the polynomial of degree 0 is 1, those of higher degree are identically 0 (as in scipy
+  ;; and mpmath)
+  (doseq [x [-3.0 -0.5 0.0 0.3 1.0 2.0]]
+    (t/is (== 1.0 (sut/eval-gegenbauer-C 0 0.0 x)))
+    (doseq [n [1 2 3 4 7 20]]
+      (t/is (== 0.0 (sut/eval-gegenbauer-C n 0.0 x)) (str "degree " n " at " x))))
+  (doseq [n [1 2 5]]
+    (t/is (every? zero? (sut/coeffs (sut/gegenbauer-C-ratio n 0.0))) "zero coefficients"))
+  (t/is (= [1] (vec (sut/coeffs (sut/gegenbauer-C-ratio 0 0.0)))))
+  ;; the two shortcuts are the same polynomials as the Chebyshev U and the Legendre ones
+  (doseq [n [0 1 2 3 4 5 6 10 31] x [-2.0 -0.9 0.0 0.3 0.999999 1.0 2.5]]
+    (t/is (= (bits (sut/eval-chebyshev-U n x)) (bits (sut/eval-gegenbauer-C n 1.0 x)) (bits (sut/eval-gegenbauer-C n x))))
+    (t/is (= (bits (sut/eval-legendre-P n x)) (bits (sut/eval-gegenbauer-C n 0.5 x)))))
+  (t/is (= (sut/chebyshev-U-ratio 6) (sut/gegenbauer-C-ratio 6 1.0)))
+  (t/is (= (sut/legendre-P-ratio 6) (sut/gegenbauer-C-ratio 6 0.5)))
+  ;; a NaN parameter
+  (t/is (m/nan? (sut/eval-gegenbauer-C 3 ##NaN 0.3)))
+  (t/is (== 1.0 (sut/eval-gegenbauer-C 0 ##NaN 0.3)))
+  (t/is (thrown? IllegalArgumentException (sut/gegenbauer-C-ratio 3 ##NaN)))
+  (t/is (thrown? IllegalArgumentException (sut/gegenbauer-C-ratio 3 ##Inf))))
+
+(t/deftest jacobi-degenerate-parameters
+  ;; the three term recurrence divides by zero where alpha + beta is a negative integer of at most -2;
+  ;; the values are those of the explicit sum
+  (t/is (m/delta-eq -0.2275 (sut/eval-jacobi-P 2 -1.0 -1.0 0.3) 1.0e-15) "scipy: eval_jacobi(2, -1, -1, 0.3)")
+  (t/is (m/delta-eq -0.2275 (sut/evaluate (sut/jacobi-P 2 -1.0 -1.0) 0.3) 1.0e-15))
+  (t/is (= -91/400 ((sut/jacobi-P-ratio 2 -1.0 -1.0) 0.3)))
+  (t/is (== 0.0 (sut/eval-jacobi-P 5 -3.0 -4.0 0.3)) "the explicit sum has no non-zero term")
+  (t/is (every? zero? (sut/coeffs (sut/jacobi-P-ratio 5 -3.0 -4.0))))
+  (doseq [make [(fn [n] (sut/jacobi-P-ratio n -1.0 -1.0)) (fn [n] (sut/jacobi-P n -1.0 -1.0))]
+          n [2 3 4 7 12]]
+    (t/is (not-any? #(or (m/nan? %) (m/inf? %)) (map double (sut/coeffs (make n)))) (str "degree " n)))
+  ;; close to a degenerate pair the three term recurrence would lose digits (relative error about
+  ;; 3e-16 / delta); the grid contains alpha + beta = -2 + 2^-10, -2 + 2^-20 and -2 + 2^-30
+  (doseq [delta [1.0e-2 1.0e-4 1.0e-6 1.0e-9 1.0e-12]
+          :let [alpha (+ -1.0 (* 0.5 delta))]
+          n [2 3 4 6 8]
+          x [-0.5 0.3 0.9]]
+    (let [exact (double ((jacobi-explicit-ratio n (exact-ratio alpha) (exact-ratio alpha)) (exact-ratio x)))
+          got (sut/eval-jacobi-P n alpha alpha x)]
+      (t/is (<= (m/abs (- got exact)) (* 16.0 (inc n) EPS (max 1.0 (m/abs exact))))
+            (str "delta " delta " degree " n " at " x ": got " got " expected " exact))))
+  (t/is (m/nan? (sut/eval-jacobi-P 3 ##NaN 0.5 0.3)))
+  (t/is (m/nan? (sut/eval-jacobi-P 3 0.5 ##NaN 0.3)))
+  (t/is (m/nan? (sut/eval-jacobi-P 3 -1.0 -1.0 ##NaN)))
+  (t/is (thrown? IllegalArgumentException (sut/jacobi-P-ratio 3 ##NaN 0.5)))
+  (t/is (thrown? IllegalArgumentException (sut/jacobi-P-ratio 3 0.5 ##Inf))))
+
+(defn- value-at-infinity
+  "The value of the polynomial with the ascending exact coefficients `cs` at an infinite `x`: the limit of its
+  leading non-zero term (a finite constant for a constant polynomial, 0 for the zero polynomial)."
+  [cs x]
+  (let [k (last (keep-indexed (fn [i c] (when-not (zero? c) i)) cs))]
+    (cond (nil? k) 0.0
+          (zero? k) (double (cs 0))
+          :else (* (if (pos? (cs k)) 1.0 -1.0)
+                   (if (and (neg? x) (odd? k)) -1.0 1.0)
+                   ##Inf))))
+
+(t/deftest legendre-gegenbauer-jacobi-non-finite-arguments
+  (let [reference @lgj-reference]
+    ;; infinite argument: the limit of the leading non-zero term of the exact coefficients
+    (doseq [x [##Inf ##-Inf]
+            [n exact] (map-indexed vector (get-in reference [:legendre :coefficients]))
+            :when (<= n 12)]
+      (t/is (== (value-at-infinity (exact-coefficients exact) x) (sut/eval-legendre-P n x)) (str "Legendre " n " at " x)))
+    (doseq [x [##Inf ##-Inf]
+            {:keys [alpha decimal-exact? coefficients]} (:gegenbauer reference)
+            :when decimal-exact?
+            [n exact] (map-indexed vector coefficients)
+            :when (<= n 12)]
+      (t/is (== (value-at-infinity (exact-coefficients exact) x) (sut/eval-gegenbauer-C n alpha x))
+            (str "Gegenbauer alpha " alpha " degree " n " at " x)))
+    (doseq [x [##Inf ##-Inf]
+            {:keys [alpha beta decimal-exact? coefficients]} (:jacobi reference)
+            :when decimal-exact?
+            [n exact] (map-indexed vector coefficients)
+            :when (<= n 12)]
+      (t/is (== (value-at-infinity (exact-coefficients exact) x) (sut/eval-jacobi-P n alpha beta x))
+            (str "Jacobi alpha " alpha " beta " beta " degree " n " at " x))))
+  ;; NaN argument
+  (doseq [n [1 2 3 7]]
+    (t/is (m/nan? (sut/eval-legendre-P n ##NaN)))
+    (t/is (m/nan? (sut/eval-gegenbauer-C n 2.5 ##NaN)))
+    (t/is (m/nan? (sut/eval-jacobi-P n 0.5 1.5 ##NaN))))
+  ;; degree 0 is 1 for every argument, degree 1 is linear
+  (doseq [x [-2.0 0.3 ##Inf ##NaN]]
+    (t/is (== 1.0 (sut/eval-legendre-P 0 x) (sut/eval-gegenbauer-C 0 2.5 x) (sut/eval-jacobi-P 0 0.5 1.5 x))))
+  (t/is (== 0.3 (sut/eval-legendre-P 1 0.3)))
+  (t/is (== 1.5 (sut/eval-gegenbauer-C 1 2.5 0.3)))
+  (t/is (== 1.5 (sut/eval-jacobi-P 1 0.5 1.5 1.0)) "(alpha + 1) + (alpha + beta + 2)/2 (x - 1) at x = 1")
+  (t/is (== -0.5 (sut/eval-jacobi-P 1 0.5 1.5 0.0)))
+  ;; huge argument with a representable value
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-legendre-P 5 1.0e60) 7.875e300) 1.0e-14))
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-legendre-P 10 1.0e30) 1.8042578125e302) 1.0e-14)))
+
+(t/deftest legendre-gegenbauer-jacobi-negative-degree
+  (doseq [n [-1 -2 -100]]
+    (doseq [[label f] {"eval-legendre-P" #(sut/eval-legendre-P % 0.3)
+                       "legendre-P-ratio" sut/legendre-P-ratio
+                       "legendre-P" sut/legendre-P
+                       "eval-gegenbauer-C, default parameter" #(sut/eval-gegenbauer-C % 0.3)
+                       "eval-gegenbauer-C, parameter 1" #(sut/eval-gegenbauer-C % 1.0 0.3)
+                       "eval-gegenbauer-C, parameter 0.5" #(sut/eval-gegenbauer-C % 0.5 0.3)
+                       "eval-gegenbauer-C, parameter 2.5" #(sut/eval-gegenbauer-C % 2.5 0.3)
+                       "gegenbauer-C-ratio, parameter 1" #(sut/gegenbauer-C-ratio % 1.0)
+                       "gegenbauer-C-ratio, parameter 0.5" #(sut/gegenbauer-C-ratio % 0.5)
+                       "gegenbauer-C-ratio, parameter 2.5" #(sut/gegenbauer-C-ratio % 2.5)
+                       "gegenbauer-C, default parameter" sut/gegenbauer-C
+                       "gegenbauer-C, parameter 2.5" #(sut/gegenbauer-C % 2.5)
+                       "eval-jacobi-P" #(sut/eval-jacobi-P % 0.5 1.5 0.3)
+                       "jacobi-P-ratio" #(sut/jacobi-P-ratio % 0.5 1.5)
+                       "jacobi-P" #(sut/jacobi-P % 0.5 1.5)}]
+      (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))
+
+;; The evaluators dispatch on `(int degree)`: from 2^32 the degree wrapped around to a small one (degree
+;; 2^32 gave the value of degree 0). A degree not below `Integer/MAX_VALUE` is rejected.
+(t/deftest degree-must-be-below-int-max-value
+  (doseq [n [Integer/MAX_VALUE (inc Integer/MAX_VALUE) 4294967296 4294967297 Long/MAX_VALUE]]
+    (doseq [[kind {:keys [eval ratio object]}] chebyshev-forms]
+      (t/is (thrown? IllegalArgumentException (eval n 0.3)) (str kind " eval " n))
+      (t/is (thrown? IllegalArgumentException (ratio n)) (str kind " ratio " n))
+      (t/is (thrown? IllegalArgumentException (object n)) (str kind " object " n)))
+    (doseq [[label f] {"eval-legendre-P" #(sut/eval-legendre-P % 0.3)
+                       "legendre-P-ratio" sut/legendre-P-ratio
+                       "legendre-P" sut/legendre-P
+                       "eval-gegenbauer-C, default parameter" #(sut/eval-gegenbauer-C % 0.3)
+                       "eval-gegenbauer-C, parameter 2.5" #(sut/eval-gegenbauer-C % 2.5 0.3)
+                       "gegenbauer-C-ratio" #(sut/gegenbauer-C-ratio % 2.5)
+                       "gegenbauer-C" #(sut/gegenbauer-C % 2.5)
+                       "eval-jacobi-P" #(sut/eval-jacobi-P % 0.5 1.5 0.3)
+                       "jacobi-P-ratio" #(sut/jacobi-P-ratio % 0.5 1.5)
+                       "jacobi-P" #(sut/jacobi-P % 0.5 1.5)}]
+      (t/is (thrown? IllegalArgumentException (f n)) (str label " " n))))
+  ;; the message names the limit
+  (t/is (thrown-with-msg? IllegalArgumentException #"below 2147483647" (sut/eval-legendre-P 4294967296 0.3)))
+  ;; small degrees are unaffected (a degree just below the limit would need billions of steps)
+  (t/is (== 1.0 (sut/eval-legendre-P 0 0.3)))
+  (t/is (== 26.0 (sut/eval-chebyshev-T 3 2.0))))
