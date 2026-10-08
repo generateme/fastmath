@@ -56,7 +56,7 @@
 ;; univariate
 
 (t/deftest univariate-bounds
-  (doseq [n (keys univariate)
+  (doseq [n    (keys univariate)
           :let [bounds ((var-of "problem" (str n "-bounds")))]]
     (t/is (= 1 (count bounds)) n)
     (t/is (vector? bounds) n)

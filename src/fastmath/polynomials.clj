@@ -1,4 +1,28 @@
 (ns fastmath.polynomials
+  "Polynomials: fast evaluation of polynomials given by coefficients, polynomial objects with arithmetic, and the classical families of orthogonal polynomials.
+
+  Three kinds of tools live here: evaluators of polynomials given by coefficients, polynomial objects, and orthogonal polynomial families.
+
+  Evaluation of a polynomial given by its coefficients, in ascending order of power:
+
+  - real coefficients: [[evalpoly]], [[makepoly]] and the macro [[mevalpoly]] for coefficients written in the code,
+  - complex coefficients: [[evalpoly-complex]], [[makepoly-complex]], [[mevalpoly-complex]] for a complex `z` and complex coefficients, and [[evalpoly-scalar-complex]], [[makepoly-scalar-complex]], [[mevalpoly-scalar-complex]] for a complex `z` and real coefficients.
+
+  Polynomial objects:
+
+  - [[polynomial]] and [[coeffs->polynomial]] create a polynomial with double coefficients, [[ratio-polynomial]] and [[coeffs->ratio-polynomial]] one with exact rational coefficients,
+  - [[add]], [[sub]], [[scale]], [[mult]], [[derivative]] and [[evaluate]] operate on them, [[coeffs]] and [[degree]] describe them. The objects are also functions of `x`.
+  - The two kinds cannot be mixed in [[add]], [[sub]] and [[mult]]; this throws an `IllegalArgumentException`. The zero polynomial has degree 0.
+
+  Orthogonal polynomials. Chebyshev, Legendre, Gegenbauer, Jacobi, Laguerre, Hermite, Bessel and Meixner-Pollaczek come in three forms: a function `eval-*` for the value at a point, a function `*-ratio` for a [[ratio-polynomial]] with exact rational coefficients, and a function without a suffix for a [[polynomial]] object (for example [[eval-chebyshev-T]], [[chebyshev-T-ratio]], [[chebyshev-T]]). Bernstein has the value and the object only.
+
+  - Chebyshev of the first to fourth kind: [[eval-chebyshev-T]], [[eval-chebyshev-U]], [[eval-chebyshev-V]], [[eval-chebyshev-W]],
+  - [[eval-legendre-P]], [[eval-gegenbauer-C]], [[eval-jacobi-P]],
+  - [[eval-laguerre-L]], [[eval-hermite-H]] (physicists) and [[eval-hermite-He]] (probabilists),
+  - [[eval-bernstein]] and [[bernstein]] (Bernstein basis polynomials), [[eval-bessel-y]] and [[eval-bessel-t]] (Bessel polynomials and the reverse Bessel polynomials), [[eval-meixner-pollaczek-P]],
+  - Ince polynomials [[ince-C]], [[ince-S]] and their radial forms [[ince-C-radial]], [[ince-S-radial]], built from the coefficients [[ince-C-coeffs]], [[ince-S-coeffs]].
+
+  The accuracy of each function `eval-*` and its exceptions are stated in its own documentation. The degree must be a non-negative integer below `Integer/MAX_VALUE`, otherwise an `IllegalArgumentException` is thrown. Where a value is mathematically unique (for example at infinite `x`) it is returned, otherwise invalid arguments throw an `IllegalArgumentException`."
   (:require [fastmath.core :as m]
             [fastmath.vector :as v]
             [fastmath.complex :as cplx]
@@ -16,6 +40,13 @@
 (set! *unchecked-math* :warn-on-boxed)
 (set! *warn-on-reflection* true)
 
+(declare rational->double)
+
+(defn- as-double
+  "A number as a double; a ratio becomes the nearest double (`double` rounds a ratio to 16 decimal digits first)."
+  ^double [x]
+  (if (ratio? x) (rational->double x) (double x)))
+
 (defmacro mevalpoly
   "Evaluates a real polynomial at `x` for coefficients given explicitly in the code; the macro version of [[evalpoly]].
 
@@ -24,9 +55,9 @@
   Parameters:
 
   - `x` (number): the point of evaluation. It can be evaluated several times, so pass a symbol or a literal rather than an expensive expression.
-  - `coeffs` (numbers): the coefficients `c0`, `c1`, ... as separate arguments (literals or symbols), not as a collection. Any numeric type is accepted and converted to a double.
+  - `coeffs` (numbers): the coefficients `c0`, `c1`, ... as separate arguments (literals or symbols), not as a collection. Any numeric type is accepted and converted to a double. Expressions other than literals and symbols are evaluated in no particular order.
 
-  Returns a double. Without coefficients the result is `0.0`; with a single coefficient it is that coefficient as a double, whatever `x` is. An exactly zero result is always `+0.0`. For an infinite or NaN `x` the result follows floating point arithmetic, so `##NaN` gives `##NaN`.
+  Returns a double. Without coefficients the result is `0.0`; with a single coefficient it is that coefficient as a double, whatever `x` is. A result that cancels to exactly zero is `+0.0`, but negative zero coefficients can give `-0.0` (the sum of negative zeros is a negative zero). For an infinite or NaN `x` the result follows floating point arithmetic, so `##NaN` gives `##NaN`.
 
   The result is identical, bit for bit, to the one from [[evalpoly]] and [[makepoly]] for the same coefficients.
 
@@ -47,14 +78,17 @@
   Parameters:
 
   - `x` (number): the point of evaluation, converted to a double.
-  - `coeffs` (numbers): the coefficients `c0`, `c1`, ... as separate arguments; use `apply` for a collection. Any numeric type is accepted.
+  - `coeffs` (numbers): the coefficients `c0`, `c1`, ... as separate arguments; use `apply` for a collection. Any numeric type is accepted; a ratio is converted by `double`, which keeps about 16 significant digits (use [[ratio-polynomial]] with [[evaluate]] for exact coefficients).
 
-  Returns a double. Without coefficients the result is `0.0`; with a single coefficient it is that coefficient as a double, whatever `x` is. An exactly zero result is always `+0.0`. For an infinite or NaN `x` the result follows floating point arithmetic, so `##NaN` gives `##NaN` and a product of an infinity and a zero gives `##NaN`.
+  Returns a double. Without coefficients the result is `0.0`; with a single coefficient it is that coefficient as a double, whatever `x` is. A result that cancels to exactly zero is `+0.0`, but negative zero coefficients can give `-0.0` (the sum of negative zeros is a negative zero). For an infinite or NaN `x` the result follows floating point arithmetic, so `##NaN` gives `##NaN` and a product of an infinity and a zero gives `##NaN`.
 
   Calls with explicit coefficients give the same result as [[mevalpoly]] and as the function from [[makepoly]], bit for bit.
 
   See also [[mevalpoly]], [[makepoly]], [[evalpoly-complex]], [[evalpoly-scalar-complex]], [[polynomial]]."
-  {:inline (fn [x & coeffs] `(let [x# ~x] (mevalpoly x# ~@coeffs)))
+  {:inline (fn [x & coeffs]
+             ;; coefficient expressions are evaluated once, from left to right, as in a function call
+             (let [slots (map (fn [c] (if (number? c) {:arg c} (let [s (gensym "c")] {:arg s :binding [s c]}))) coeffs)]
+               `(let [x# ~x ~@(mapcat :binding slots)] (mevalpoly x# ~@(map :arg slots)))))
    :inline-arities (fn [^long a] (m/>= a 1))}
   [x & coeffs]
   (if-not (seq coeffs)
@@ -274,12 +308,28 @@
                            (.setNegativePrefix "-"))
         ;; a negative coefficient that rounds to zero is formatted as -0
         format-coefficient (fn [^double v] (let [s (.format f v)] (if (= s "-0") "+0" s)))
-        numbers+var (apply str (take 20 (interleave (map format-coefficient coeffs)
+        numbers+var (apply str (take 22 (interleave (map format-coefficient coeffs)
                                                     (degrees->vars degree))))
         res (str "#polynomial{" degree "}(x) = " (if (str/starts-with?  numbers+var "+")
                                                    (subs numbers+var 1) numbers+var))]
     (if (m/> degree 10) (str res "+...") res))  )
 
+
+(def ^:private ^:const factorial-scale-limit 3.273390607896142E150) ; 2^500
+
+(defn- scaled-factorial
+  "`n!` as `f * 2^e` for `f` below 2^500, returned as the array `[f e]`; it does not overflow for any `n`, while
+  the double `n!` does from 171."
+  ^doubles [^long n]
+  (loop [j (long 2)
+         f 1.0
+         e 0.0]
+    (if (m/> j n)
+      (double-array [f e])
+      (let [g (m/* f j)]
+        (if (m/> g factorial-scale-limit)
+          (recur (m/inc j) (Math/scalb g (int -500)) (m/+ e 500.0))
+          (recur (m/inc j) g e))))))
 
 (defn- throw-incompatible-polynomials
   [p1 p2]
@@ -339,16 +389,24 @@
         (m/zero? order) p
         (m/> order d) (Polynomial. (double-array 1) 0)
         :else (let [size (m/inc (m/- d order))
-                    ^doubles target (double-array size)]
+                    ^doubles target (double-array size)
+                    ^doubles start (scaled-factorial order)]
+                ;; the factor of the coefficient at `pos` is pos!/(pos-order)!, kept as `f * 2^e`: the double
+                ;; factorial overflows from order 171 and `0 * Inf` would be NaN for the zero coefficients
                 (loop [i (long 0)
                        pos order
-                       fact (m/factorial order)]
+                       f (Array/aget start 0)
+                       e (Array/aget start 1)]
                   (if (m/== i size)
                     (Polynomial. target (m/dec size))
                     (let [i+ (m/inc i)
-                          pos+ (m/inc pos)]
-                      (Array/aset target i (m/* fact (Array/aget cfs pos)))
-                      (recur i+ pos+ (m/* (m// fact i+) pos+)))))))))
+                          pos+ (m/inc pos)
+                          next-f (m/* (m// f i+) pos+)
+                          big? (m/> next-f factorial-scale-limit)]
+                      (Array/aset target i (Math/scalb (m/* f (Array/aget cfs pos)) (int (m/min e 4096.0))))
+                      (recur i+ pos+
+                             (if big? (Math/scalb next-f (int -500)) next-f)
+                             (if big? (m/+ e 500.0) e)))))))))
   (evaluate [_ x]
     (loop [i d
            ex (Array/aget cfs i)]
@@ -467,7 +525,7 @@
 
   Parameters:
 
-  - `coeffs` (sequence of numbers): the coefficients `c0`, `c1`, ... in ascending order of power. Any numeric type is accepted and converted to a double. An empty or `nil` sequence gives the zero polynomial (degree 0, the single coefficient `0.0`).
+  - `coeffs` (sequence of numbers): the coefficients `c0`, `c1`, ... in ascending order of power. Any numeric type is accepted and converted to a double (a ratio to the nearest double). An empty or `nil` sequence gives the zero polynomial (degree 0, the single coefficient `0.0`).
   - `xs`, `ys` (sequences of numbers): the abscissae and ordinates of the points. The result is the interpolating polynomial of degree `n-1` for `n` points.
 
   Returns a `Polynomial`. Its degree is nominal: the number of coefficients minus one, so trailing zero coefficients are kept and no operation removes them. Two polynomials are equal when their coefficient arrays are equal as doubles, compared bit by bit (so `0.0` and `-0.0` differ), and they have equal hashes. A `Polynomial` is never equal to a `PolynomialR`.
@@ -479,7 +537,7 @@
    (polynomial (PolInterp/getCoefficients (m/seq->double-array xs) (m/seq->double-array ys))))
   (^Polynomial [coeffs]
    (if (seq coeffs)
-     (Polynomial. (double-array coeffs) (m/dec (count coeffs)))
+     (Polynomial. (double-array (map as-double coeffs)) (m/dec (count coeffs)))
      (Polynomial. (double-array 1) 0))))
 
 (defn ratio-polynomial
@@ -620,7 +678,9 @@
 
   See also [[evalpoly]], [[derivative]]."
   ^double [poly ^double x]
-  (prot/evaluate poly x))
+  (let [v (prot/evaluate poly x)]
+    ;; the exact value of a `PolynomialR` is a ratio: round it once to the nearest double
+    (if (ratio? v) (rational->double v) v)))
 
 ;; Orthogonal polynomials
 
@@ -633,6 +693,65 @@
     (throw (IllegalArgumentException. (str "Degree must not be negative, got " degree)))
     (m/>= degree Integer/MAX_VALUE)
     (throw (IllegalArgumentException. (str "Degree must be below " Integer/MAX_VALUE ", got " degree)))))
+
+;; Three term recurrences of Laguerre, Hermite and Meixner-Pollaczek polynomials. A value beyond the range of a
+;; double must give the infinity with its sign, not NaN (`Inf - Inf` in the next step), and an intermediate
+;; value that overflows while the result is representable must not matter. The recurrence is linear, so both
+;; values are scaled by 2^-256 whenever one passes 2^256; the result is rescaled at the end.
+
+(def ^:private ^:const recurrence-scale-limit 1.157920892373162E77) ; 2^256
+
+(defn- recurrence-scale-count
+  "The number of scalings by 2^-256 that bring `first-term` below 2^256 (0 for an infinity or NaN)."
+  ^long [^double first-term]
+  (if (m/invalid-double? first-term)
+    0
+    (loop [v (m/abs first-term)
+           n (long 0)]
+      (if (m/> v recurrence-scale-limit)
+        (recur (Math/scalb v (int -256)) (m/long-inc n))
+        n))))
+
+(defn- scaled-recurrence-result
+  "`value * 2^(256 * shift)`: an infinity with the sign of `value` when that is beyond the double range."
+  ^double [^double value ^long shift]
+  (if (m/zero? shift)
+    value
+    (let [e (m/long-mult 256 shift)]
+      (Math/scalb value (int (if (m/> e 100000) 100000 e))))))
+
+(defn- overflowed-recurrence-value
+  "The value of a recurrence that left the range of a double: the infinity of the leading term, whose sign
+  is that of the first term to the power of the degree (the polynomial grows like `first-term^n`); NaN when
+  the first term is NaN."
+  ^double [^double first-term ^long degree]
+  (cond
+    (m/nan? first-term) ##NaN
+    (and (m/neg? first-term) (m/odd? degree)) ##-Inf
+    :else ##Inf))
+
+(defmacro ^:private scaled-recurrence
+  "The value at `degree` (at least 2) of the polynomials `P_0 = 1`, `P_1 = first-term` and `P_i = (step i
+  pprev prev)`, where `step-fn` is a literal `(fn [i pprev prev] expression)` (`pprev` is `P_(i-2)` and `prev`
+  is `P_(i-1)`). See the comment above."
+  [first-term degree step-fn]
+  (let [[_ [i pprev prev] step] step-fn]
+   `(let [first-term# ~first-term
+         degree# (long ~degree)
+         start-shift# (recurrence-scale-count first-term#)
+         start-exponent# (int (m/long-mult -256 start-shift#))]
+     (loop [~i (long 2)
+            ~pprev (Math/scalb 1.0 start-exponent#)
+            ~prev (Math/scalb first-term# start-exponent#)
+            shift# start-shift#]
+       (if (m/> ~i degree#)
+         (scaled-recurrence-result ~prev shift#)
+         (let [next# ~step]
+           (cond
+             (m/invalid-double? next#) (overflowed-recurrence-value first-term# degree#)
+             (m/> (m/abs next#) recurrence-scale-limit) (recur (m/inc ~i) (Math/scalb ~prev (int -256))
+                                                               (Math/scalb next# (int -256)) (m/long-inc shift#))
+             :else (recur (m/inc ~i) ~prev next# shift#))))))))
 
 (def ^:private ^:const bernstein-direct-min-magnitude 1.0e-290)
 
@@ -673,10 +792,16 @@
     ;; the basis function of an order outside 0 .. degree is the zero function
     (or (m/neg? order) (m/> order degree)) 0.0
     (m/zero? degree) 1.0
-    :else (let [direct (m/* (m/combinations degree order) (m/fpow x order) (m/fpow (m/- 1.0 x) (m/long-sub degree order)))]
-            ;; the product is accurate while no factor overflows or underflows
+    :else (let [x-power (m/fpow x order)
+                rest-power (m/fpow (m/- 1.0 x) (m/long-sub degree order))
+                direct (m/* (m/combinations degree order) x-power rest-power)]
+            ;; the product is accurate while no factor overflows or underflows, a subnormal power included
+            ;; (it has fewer than 53 significant bits, whatever the product is)
             (if (or (m/inf? x)
-                    (and (m/valid-double? direct) (m/>= (m/abs direct) bernstein-direct-min-magnitude)))
+                    (and (m/valid-double? direct)
+                         (m/>= (m/abs direct) bernstein-direct-min-magnitude)
+                         (m/>= (m/abs x-power) Double/MIN_NORMAL)
+                         (m/>= (m/abs rest-power) Double/MIN_NORMAL)))
               direct
               (bernstein-by-logarithm degree order x)))))
 
@@ -715,7 +840,7 @@
   - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `order` (integer): the index `k`. For an order outside `0 .. degree` the result is the zero polynomial of nominal degree `n` (all coefficients `0.0`).
 
-  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-bernstein]] for values at a high degree.
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-bernstein]] for values at a high degree. From a degree of about 600 some exact coefficients are beyond the range of a double and become infinite, and the object then evaluates to `##NaN`. The exact coefficients take time and memory growing like the square of the degree (about half a minute for degree 100000).
 
   See also [[eval-bernstein]]."
   [^long degree ^long order]
@@ -735,7 +860,7 @@
   - `order` (double): the order `a`, any real number, default 0.0 (the two-argument form). A negative order is allowed: the polynomials are then defined by the same sum and recurrence, but they are not orthogonal.
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever `order` and `x` are. `##NaN` as `x` or as `order` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term `(-1)^n*x^n/n!`: `##-Inf` for `##Inf` and an odd degree, `##Inf` otherwise, and `##NaN` for a NaN or infinite `order`. The error of the recurrence grows like the square of the degree: relative to the largest value of `L_0 ... L_n` at `x` it is about `(n+1)^2` times the roundoff (roughly 1e-13 at degree 100 close to `x = 0`, much smaller at a low degree), which is larger than for [[eval-chebyshev-T]]. For a negative order of at most -3 and a high degree the intermediate values are far larger than the result and the relative error of the result can be much larger. Unlike evaluating the coefficients from [[laguerre-L]] it does not suffer from the cancellation of the large alternating coefficients.
+  Returns a double. The result for degree 0 is `1.0` whatever `order` and `x` are. `##NaN` as `x` or as `order` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term `(-1)^n*x^n/n!`: `##-Inf` for `##Inf` and an odd degree, `##Inf` otherwise, and `##NaN` for a NaN or infinite `order`. The error of the recurrence grows like the square of the degree: relative to the largest value of `L_0 ... L_n` at `x` it is about `(n+1)^2` times the roundoff (roughly 1e-13 at degree 100 close to `x = 0`, much smaller at a low degree), which is larger than for [[eval-chebyshev-T]]. For a negative order of at most -3 and a high degree the intermediate values are far larger than the result and the relative error of the result can be much larger. Unlike evaluating the coefficients from [[laguerre-L]] it does not suffer from the cancellation of the large alternating coefficients. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
 
   See also [[laguerre-L]], [[laguerre-L-ratio]], [[eval-hermite-H]]."
   (^double [^long degree ^double x] (eval-laguerre-L degree 0.0 x))
@@ -748,14 +873,10 @@
                   ##NaN
                   (if (and (m/pos? x) (m/odd? degree)) ##-Inf ##Inf))
      (m/== degree 1) (m/- (m/inc order) x)
-     :else (loop [i (long 2)
-                  pprev 1.0
-                  prev (m/- (m/inc order) x)]
-             (if (m/> i degree)
-               prev
-               (recur (m/inc i) prev
-                      (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
-                                (m/* (m/+ order (m/dec i)) pprev)) i)))))))
+     :else (scaled-recurrence (m/- (m/inc order) x) degree
+                              (fn [i pprev prev]
+                                (m// (m/- (m/* (m/+ order (m/- (m/* 2.0 i) 1.0 x)) prev)
+                                          (m/* (m/+ order (m/dec i)) pprev)) i))))))
 
 (set! *unchecked-math* true)
 
@@ -1396,7 +1517,7 @@
   - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-H]].
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-H]]. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
 
   See also [[hermite-H]], [[hermite-H-ratio]], [[eval-hermite-He]], [[eval-laguerre-L]]."
   ^double [^long degree ^double x]
@@ -1407,14 +1528,10 @@
     (if (m/inf? x)
       ;; the leading term is 2^n x^n
       (if (and (m/neg? x) (m/odd? degree)) ##-Inf ##Inf)
-      (loop [i (long 2)
-             pprev 1.0
-             prev (m/* 2.0 x)]
-        (if (m/> i degree)
-          prev
-          (recur (m/inc i) prev
-                 (m/* 2.0 (m/- (m/* x prev)
-                               (m/* (m/dec i) pprev)))))))))
+      (scaled-recurrence (m/* 2.0 x) degree
+                         (fn [i pprev prev]
+                           (m/* 2.0 (m/- (m/* x prev)
+                                         (m/* (m/dec i) pprev))))))))
 
 (defn hermite-H-ratio
   "Creates the Hermite polynomial `H_n` (physicists' convention) with exact integer coefficients.
@@ -1463,7 +1580,7 @@
   - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-He]].
+  Returns a double. The result for degree 0 is `1.0` whatever `x` is. `##NaN` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term: `##-Inf` for `##-Inf` and an odd degree, `##Inf` otherwise. The error is a few units of roundoff times `n` relative to the value (absolute next to a zero), so this form stays accurate for any degree, unlike evaluating the coefficients from [[hermite-He]]. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
 
   See also [[hermite-He]], [[hermite-He-ratio]], [[eval-hermite-H]]."
   ^double [^long degree ^double x]
@@ -1474,14 +1591,10 @@
     (if (m/inf? x)
       ;; the leading term is x^n
       (if (and (m/neg? x) (m/odd? degree)) ##-Inf ##Inf)
-      (loop [i (long 2)
-             pprev 1.0
-             prev x]
-        (if (m/> i degree)
-          prev
-          (recur (m/inc i) prev
-                 (m/- (m/* x prev)
-                      (m/* (m/dec i) pprev))))))))
+      (scaled-recurrence x degree
+                         (fn [i pprev prev]
+                           (m/- (m/* x prev)
+                                (m/* (m/dec i) pprev)))))))
 
 (defn hermite-He-ratio
   "Creates the Hermite polynomial `He_n` (probabilists' convention) with exact integer coefficients.
@@ -1908,46 +2021,92 @@
 ;;
 
 (defn eval-meixner-pollaczek-P
+  "Evaluates the Meixner-Pollaczek polynomial `P_n^(l)(x; phi)` at `x`.
+
+  The polynomials have the generating function `(1 - exp(i*phi)*t)^(-l + i*x) * (1 - exp(-i*phi)*t)^(-l - i*x)` (`i` is the imaginary unit), that is `P_n = (2l)_n / n! * exp(i*n*phi) * 2F1(-n, l + i*x; 2l; 1 - exp(-2*i*phi))`, and satisfy `P_0 = 1`, `P_1 = 2*(l*cos(phi) + x*sin(phi))` and `n*P_n = 2*(x*sin(phi) + (n-1+l)*cos(phi))*P_(n-1) - (n-2+2*l)*P_(n-2)`. They are real polynomials of degree `n` in `x` with the leading coefficient `(2*sin(phi))^n / n!`. For `l > 0` and `0 < phi < pi` they are orthogonal on the real line with the weight `exp((2*phi - pi)*x) * |Gamma(l + i*x)|^2`.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `lambda` (double): the parameter `l`. The recurrence defines the polynomials for every real `l` (also 0 and negative), but they are orthogonal only for `l > 0`.
+  - `phi` (double): the angle. The polynomials are defined for every real `phi`, with the period `2*pi`, and `P_n(x; pi - phi) = (-1)^n * P_n(-x; phi)`; they are orthogonal only for `0 < phi < pi`. For `phi = 0` and `phi = pi` the polynomial does not depend on `x`.
+  - `x` (double): the argument, any real number.
+
+  Returns a double. The result for degree 0 is `1.0` whatever the other arguments are. `##NaN` as `x`, `lambda` or `phi` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term (its sign follows `sin(phi) * x` and the parity of the degree), the value of the constant when `sin(phi)` is 0, and `##NaN` for a NaN or infinite `lambda` or `phi`. The error of the recurrence grows like the square of the degree relative to the largest value of `P_0 ... P_n` at `x`: at most about 3 times `(n+1)^2` units of roundoff on the reference grid, so a few units at low degrees and about 1e-12 relative at degree 50 for a small `phi`. The sine and cosine of `phi` are `Math/sin` and `Math/cos`, accurate also next to their zeros. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
+
+  See also [[meixner-pollaczek-P]], [[meixner-pollaczek-P-ratio]], [[eval-hermite-H]]."
   ^double [^long degree ^double lambda ^double phi ^double x]
-  (case (int degree)
-    0 1.0
-    1 (m/* 2.0 (m/+ (m/* lambda (m/cos phi))
-                    (m/* x (m/sin phi))))
-    (let [cp (m/cos phi)
-          sp (m/sin phi)
-          l2 (m/* 2.0 lambda)]
-      (loop [i (long 2)
-             pprev 1.0
-             prev (m/* 2.0 (m/+ (m/* lambda cp)
-                                (m/* x sp)))]
-        (if (> i degree)
-          prev
-          (recur (inc i) prev
-                 (m// (m/- (m/* 2.0 (m/+ (m/* x sp)
-                                         (m/* (m/dec (m/+ i lambda)) cp)) prev)
-                           (m/* (m/+ i l2 -2) pprev)) i)))))))
+  (check-degree! degree)
+  ;; `Math/cos` and `Math/sin`: `m/cos` and `m/sin` (Jafama) have a relative error of up to 6e-11 next to their
+  ;; zeros (cos at pi/2, sin at pi), which is the whole value of the coefficient there
+  (let [cp (Math/cos phi)
+        sp (Math/sin phi)
+        ;; for sin(phi) = 0 the polynomial does not depend on x: avoid the product 0 * Inf
+        x (if (and (m/inf? x) (m/zero? sp)) 0.0 x)]
+    (cond
+      (m/zero? degree) 1.0
+      ;; the leading term is (2 sin(phi) x)^n / n!
+      (m/inf? x) (if (or (m/invalid-double? lambda) (m/nan? sp))
+                   ##NaN
+                   (if (and (m/neg? (m/* sp x)) (m/odd? degree)) ##-Inf ##Inf))
+      (m/== degree 1) (m/* 2.0 (m/+ (m/* lambda cp) (m/* x sp)))
+      :else (let [l2 (m/* 2.0 lambda)]
+              ;; the factors (lambda + i - 1) and (i - 2 + 2 lambda) from the small part first
+              (scaled-recurrence (m/* 2.0 (m/+ (m/* lambda cp) (m/* x sp))) degree
+                                 (fn [i pprev prev]
+                                   (m// (m/- (m/* 2.0 (m/+ (m/* x sp) (m/* (m/+ lambda (m/long-dec i)) cp)) prev)
+                                             (m/* (m/+ (m/long-sub i 2) l2) pprev)) i)))))))
+
+(set! *unchecked-math* true)
 
 (defn meixner-pollaczek-P-ratio
+  "Creates the Meixner-Pollaczek polynomial `P_n^(l)(x; phi)` with exact rational coefficients.
+
+  `P_0 = 1`, `P_1 = 2*(l*cos(phi) + x*sin(phi))` and `n*P_n = 2*(x*sin(phi) + (n-1+l)*cos(phi))*P_(n-1) - (n-2+2*l)*P_(n-2)`; see [[eval-meixner-pollaczek-P]] for the definition and the ranges of the parameters.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `lambda` (double): the parameter `l`, any real number.
+  - `phi` (double): the angle, any real number.
+
+  Returns a `PolynomialR` (see [[ratio-polynomial]]) of degree `n`: operations on it are exact, and it can be evaluated exactly at a rational argument. `lambda`, `cos(phi)` and `sin(phi)` are converted with `rationalize`, so a double becomes the exact decimal number it prints as; the coefficients are exact for those three numbers, which are not the real cosine and sine of `phi` (they differ by a rounding error). A NaN or infinite `lambda` or `phi` throws an `IllegalArgumentException` for a positive degree; degree 0 returns the constant 1.
+
+  See also [[meixner-pollaczek-P]] (double coefficients), [[eval-meixner-pollaczek-P]] (direct evaluation)."
   [^long degree ^double lambda ^double phi]
-  (case (int degree)
-    0 RONE
-    1 (scale (ratio-polynomial [(m/* lambda (m/cos phi))
-                                (m/sin phi)]) 2)
-    (let [cp (m/cos phi)
-          sp (m/sin phi)
-          l2 (m/* 2.0 lambda)]
+  (check-degree! degree)
+  (if (zero? degree)
+    RONE
+    (let [rational-lambda (rationalize lambda)
+          rational-cos (rationalize (Math/cos phi))
+          rational-sin (rationalize (Math/sin phi))]
       (loop [i (long 2)
              pprev RONE
-             prev (scale (ratio-polynomial [(m/* lambda (m/cos phi))
-                                            (m/sin phi)]) 2)]
+             prev (scale (ratio-polynomial [(*' rational-lambda rational-cos) rational-sin]) 2)]
         (if (> i degree)
           prev
           (recur (inc i) prev
-                 (scale (sub (scale (mult prev (ratio-polynomial [(m/* (m/dec (m/+ i lambda)) cp)
-                                                                  sp])) 2)
-                             (scale pprev (m/+ i l2 -2))) (/ 1 i))))))))
+                 (scale (sub (scale (mult prev (ratio-polynomial [(*' (+' rational-lambda (dec i)) rational-cos)
+                                                                  rational-sin])) 2)
+                             (scale pprev (+' (- i 2) (*' 2 rational-lambda))))
+                        (/ 1 i))))))))
+
+(set! *unchecked-math* :warn-on-boxed)
 
 (defn meixner-pollaczek-P
+  "Creates the Meixner-Pollaczek polynomial `P_n^(l)(x; phi)` as a polynomial object with double coefficients.
+
+  See [[eval-meixner-pollaczek-P]] for the definition and [[meixner-pollaczek-P-ratio]] for the exact rational coefficients, which are converted to doubles.
+
+  Parameters:
+
+  - `degree` (non-negative integer): the degree `n`. A degree that is negative or not below `Integer/MAX_VALUE` (2147483647) throws an `IllegalArgumentException`; a non-integer is truncated toward zero (so `##NaN` and `-0.5` give degree 0).
+  - `lambda` (double): the parameter `l`, any real number.
+  - `phi` (double): the angle, any real number. A NaN or infinite `lambda` or `phi` throws an `IllegalArgumentException` for a positive degree.
+
+  Returns a `Polynomial` (see [[polynomial]]) of degree `n`, which can be differentiated, multiplied and added. Evaluating the monomial form loses accuracy as the degree grows (the coefficients are large and alternate in sign), so use [[eval-meixner-pollaczek-P]] for values at a high degree.
+
+  See also [[meixner-pollaczek-P-ratio]], [[eval-meixner-pollaczek-P]]."
   [^long degree ^double lambda ^double phi]
   (polynomial (coeffs (meixner-pollaczek-P-ratio degree lambda phi))))
 
@@ -1957,121 +2116,245 @@
 ;; https://dlmf.nist.gov/28.31
 ;; Miguel A. Bandres and Julio C. Gutierrez-Vega Ince–Gaussian modes of the paraxial wave equation and stable resonators
 
-(defn- ince-ev
-  ^doubles [^RealMatrix m ^long order]
-  (let [ed (EigenDecomposition. m)
-        ;; be sure the order of eigenvalues is increasing
-        ro (long (nth (m/order (.getRealEigenvalues ed)) order))]
-    (-> (.getEigenvector ed ro)
-        (v/vec->array))))
+(defn- ince-eigenvector
+  "The eigenvector (not normalized) of the `order`-th smallest eigenvalue of a tridiagonal matrix `M` of the
+  Ince equation: the diagonal is `diagonal`, `M[i,i+1] = e * beta[i]` and `M[i+1,i] = e * gamma[i]`, with
+  `beta` and `gamma` positive.
 
-(defn- ince-pmv-gamma
-  [^long start ^long p]
-  (map (fn [^long mv]
-         (m/exp (m/* 0.5 (m/+ (Gamma/logGamma (m/inc (m/* 0.5 (m/+ p mv))))
-                              (Gamma/logGamma (m/inc (m/* 0.5 (m/- p mv)))))))) (range start (m/inc p) 2)))
+  The products `M[i,i+1] M[i+1,i]` are positive, so `M = D S D^-1` for a symmetric tridiagonal `S` with the
+  off-diagonal entries `e sqrt(beta[i] gamma[i])` and a diagonal `D` with `D[i+1]/D[i] = sqrt(gamma[i]/beta[i])`
+  (independent of `e`). `S` has real eigenvalues and orthonormal eigenvectors that a symmetric solver finds
+  accurately, whatever `e`; the eigenvector of `M` is `D` times that of `S`. A non-symmetric solver loses the
+  eigenvectors when `e` is large (the eigenvalues of the same class get close). For a huge `|e|` the matrix is
+  scaled by `1/|e|`, which does not change the eigenvectors or their order."
+  ^doubles [^doubles diagonal ^doubles beta ^doubles gamma e order]
+  (let [e (double e)
+        ;; the symmetric solver squares the off-diagonal entries: below about 1e-150 they underflow (NaN). The
+        ;; eigenvectors of such an `e` differ from those of `e = 1e-100` by less than 1e-100.
+        e (if (and (m/pos? (m/abs e)) (m/< (m/abs e) 1.0e-100)) (Math/copySign 1.0e-100 e) e)
+        order (long order)
+        n (alength diagonal)
+        s (if (m/> (m/abs e) 1.0e100) (m// 1.0 (m/abs e)) 1.0)
+        ^RealMatrix mat (MatrixUtils/createRealMatrix n n)
+        ^doubles scaling (double-array n)]
+    (Array/aset scaling 0 1.0)
+    (dotimes [i n]
+      (.setEntry mat i i (m/* s (Array/aget diagonal i))))
+    (dotimes [i (m/dec n)]
+      (let [i+ (m/inc i)
+            off-diagonal (m/* e s (m/sqrt (m/* (Array/aget beta i) (Array/aget gamma i))))]
+        (.setEntry mat i i+ off-diagonal)
+        (.setEntry mat i+ i off-diagonal)
+        (Array/aset scaling i+ (m/* (Array/aget scaling i) (m/sqrt (m// (Array/aget gamma i) (Array/aget beta i)))))))
+    (let [ed (EigenDecomposition. mat)
+          ;; eigenvalues in increasing order
+          ro (long (nth (m/order (.getRealEigenvalues ed)) order))]
+      (v/emult (v/vec->array (.getEigenvector ed ro)) scaling))))
+
+(defn- ince-log-weights
+  "The logarithms of the weights `sqrt(Gamma(1 + (p+mv)/2) Gamma(1 + (p-mv)/2))` of Miller's normalization for
+  `mv` = `start`, `start + 2`, ... up to `p`. They are formed in the logarithm: the weights themselves overflow
+  from `p` of about 340."
+  ^doubles [^long start ^long p]
+  (m/seq->double-array
+   (map (fn [^long mv]
+          (m/* 0.5 (m/+ (Gamma/logGamma (m/inc (m/* 0.5 (m/+ p mv))))
+                        (Gamma/logGamma (m/inc (m/* 0.5 (m/- p mv)))))))
+        (range start (m/inc p) 2))))
+
+(def ^:private ince-normalizations #{:none :trigonometric :millers})
+
+(defn- check-ince-arguments!
+  "Throws `IllegalArgumentException` unless the arguments of an Ince polynomial are valid.
+
+  `kind` is `:C` or `:S`. Valid: `p >= 0`; `m` from 0 (`:C`) or 1 (`:S`) to `p`, with the parity of `p`; a finite
+  `e`; a normalization from `ince-normalizations`."
+  [kind p m e normalization]
+  (let [p (long p)
+        m (long m)
+        e (double e)
+        lowest-m (if (= kind :C) 0 1)]
+    (cond
+      (m/neg? p)
+      (throw (IllegalArgumentException. (str "Order p must not be negative, got " p)))
+      (or (m/< m lowest-m) (m/> m p))
+      (throw (IllegalArgumentException. (str "Degree m of the " (name kind) " polynomial must be from " lowest-m " to p = " p ", got " m)))
+      (m/odd? (m/long-sub p m))
+      (throw (IllegalArgumentException. (str "p and m must have the same parity, got p = " p " and m = " m)))
+      (m/invalid-double? e)
+      (throw (IllegalArgumentException. (str "Parameter e must be finite, got " e)))
+      (not (contains? ince-normalizations normalization))
+      (throw (IllegalArgumentException. (str "Normalization must be one of :none, :trigonometric or :millers, got " (pr-str normalization)))))))
+
+(defn- ince-euclidean-norm
+  ^double [^doubles coefficients]
+  (m/sqrt (v/sum (v/sq coefficients))))
+
+(defn- ince-sign
+  "+1.0, or -1.0 for a negative `s`: the vector is not zeroed when the sum that decides the sign is exactly 0."
+  ^double [^double s]
+  (if (m/neg? s) -1.0 1.0))
+
+(defn- ince-millers-factor
+  "The factor that gives the coefficients `a` Miller's normalization: `1 / sqrt(sum_r (w_r a_r)^2)` for the
+  weights `w_r = exp(log-weights[r])`. The sum is formed in the logarithm, relative to its largest term, so
+  it does not overflow where the sum itself would; throws `IllegalArgumentException` when the normalized
+  coefficients are all below the double range (the weights grow like `sqrt(p!)`, from `p` of about 340)."
+  [^doubles a ^doubles log-weights p]
+  (let [n (alength a)
+        ^doubles logs (double-array n)]
+    (dotimes [r n]
+      (Array/aset logs r (m/+ (Array/aget log-weights r) (m/ln (m/abs (Array/aget a r))))))
+    (let [top (double (loop [r (long 0)
+                             top Double/NEGATIVE_INFINITY]
+                        (if (m/== r n) top (recur (m/inc r) (m/max top (Array/aget logs r))))))
+          total (double (loop [r (long 0)
+                               total 0.0]
+                          (if (m/== r n)
+                            total
+                            (recur (m/inc r) (m/+ total (m/exp (m/* 2.0 (m/- (Array/aget logs r) top))))))))
+          factor (m// (m/exp (m/- top)) (m/sqrt total))
+          largest (double (loop [r (long 0)
+                                 largest 0.0]
+                            (if (m/== r n) largest (recur (m/inc r) (m/max largest (m/abs (Array/aget a r)))))))]
+      (when (m/zero? (m/* factor largest))
+        (throw (IllegalArgumentException.
+                (str "Miller's normalization is below the range of a double for p = " p))))
+      factor)))
+
+(defn- ince-normalizing-factor
+  "The factor that multiplies the coefficients `a` (of Euclidean norm `euclidean-norm`) to give the
+  normalization: `:none` and `:trigonometric` by their norms, `:millers` from the logarithms of its weights."
+  [normalization a euclidean-norm trigonometric-norm log-weights p]
+  (case normalization
+    :none (m// 1.0 (double euclidean-norm))
+    :trigonometric (m// 1.0 (double trigonometric-norm))
+    :millers (ince-millers-factor a log-weights p)))
 
 (defn- ince-c-coeffs-even
   ([^long p ^long m ^double e normalization]
    (let [n (m// p 2)
          N (m/inc n)
-         order (m/long-div m 2)
-         ^RealMatrix mat (MatrixUtils/createRealMatrix N N)]
-     (doseq [^long i (range 1 N)]
-       (.setEntry mat i i (m/* 4.0 i i)))
-     (doseq [^long i (range 0 n)
-             :let [i+ (m/inc i)]]
-       (.setEntry mat i i+ (m/* e (m/+ n i+)))
-       (.setEntry mat i+ i (m/* e (m/- n i))))
-     (.setEntry mat 1 0 (m/* 2.0 (.getEntry mat 1 0)))
-     (let [^doubles a (ince-ev mat order)
-           sgn (m/sgn (v/sum a))
-           norm (case normalization
-                  :trigonometric (let [^doubles a2 (v/sq a)]
-                                   (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2))))
-                  :millers (m/sqrt (m/+ (m/* 2.0 (m/sq (Array/aget a 0)) (m/sq (Gamma/gamma N)))
-                                        (v/sum (map-indexed (fn [^long id ^double gs]
-                                                              (m/sq (m/* gs (Array/aget a (m/inc id)))))
-                                                            (ince-pmv-gamma 2 p)))))
-                  1.0)]
-       (v/mult (v/div a norm) sgn)))))
+         ^doubles diagonal (double-array N)
+         ^doubles beta (double-array n)
+         ^doubles gamma (double-array n)]
+     (dotimes [i N]
+       (Array/aset diagonal i (m/* 4.0 i i)))
+     (dotimes [i n]
+       (Array/aset beta i (double (m/+ n i 1)))
+       (Array/aset gamma i (double (m/- n i))))
+     ;; the first column is scaled by 2 (cos(0) = 1 has half the weight of the other terms); p = 0 has one term
+     (when (m/pos? n)
+       (Array/aset gamma 0 (m/* 2.0 (Array/aget gamma 0))))
+     (let [^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div m 2))
+           sgn (ince-sign (v/sum a))
+           ^doubles a2 (v/sq a)
+           ;; the weight of the first term is sqrt(2) Gamma(N) (cos(0) = 1 has half the weight)
+           log-weights (when (= normalization :millers)
+                         (double-array (cons (m/+ (m/* 0.5 (m/ln 2.0)) (Gamma/logGamma (double N)))
+                                             (seq (ince-log-weights 2 p)))))
+           factor (ince-normalizing-factor normalization a (ince-euclidean-norm a)
+                                           (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2))) log-weights p)]
+       (v/mult a (m/* (double factor) sgn))))))
 
 (defn- ince-s-coeffs-even
   [^long p ^long m ^double e normalization]
   (let [n (m// p 2)
-        order (m/long-dec (m/long-div m 2))
-        ^RealMatrix mat (MatrixUtils/createRealMatrix n n)]
-    (doseq [^long i (range 0 n)]
-      (.setEntry mat i i (m/* 4.0 (m/sq (m/inc i)))))
-    (doseq [^long i (range 0 (m/dec n))
-            :let [i+ (m/inc i)]]
-      (.setEntry mat i i+ (m/* e (m/+ n i 2.0)))
-      (.setEntry mat i+ i (m/* e (m/- n i+))))
+        ^doubles diagonal (double-array n)
+        ^doubles beta (double-array (m/dec n))
+        ^doubles gamma (double-array (m/dec n))]
+    (dotimes [i n]
+      (Array/aset diagonal i (m/* 4.0 (m/sq (m/inc i)))))
+    (dotimes [i (m/dec n)]
+      (Array/aset beta i (double (m/+ n i 2)))
+      (Array/aset gamma i (double (m/- n i 1))))
     (let [scaler (m/seq->double-array (range 1 (m/inc n)))
-          ^doubles a (ince-ev mat order)
-          sgn (m/sgn (v/sum (v/emult a scaler)))
-          norm (case normalization
-                 :trigonometric (m/sqrt (v/sum (v/sq a)))
-                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
-                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 2 p))))
-                 1.0)]
-      (v/mult (v/div a norm) sgn))))
+          ^doubles a (ince-eigenvector diagonal beta gamma e (m/long-dec (m/long-div m 2)))
+          sgn (ince-sign (v/sum (v/emult a scaler)))
+          norm (ince-euclidean-norm a)
+          factor (ince-normalizing-factor normalization a norm norm
+                                          (when (= normalization :millers) (ince-log-weights 2 p)) p)]
+      (v/mult a (m/* (double factor) sgn)))))
 
 (defn- ince-c-coeffs-odd
   [^long p ^long m ^double e normalization]
   (let [n (m// (m/dec p) 2)
         N (m/inc n)
-        order (m/long-div (m/long-dec m) 2)
-        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)
-        he (m/* 0.5 e)]
-    (doseq [^long i (range 1 N)]
-      (.setEntry mat i i (m/sq (m/inc (m/* 2.0 i)))))
-    (.setEntry mat 0 0 (m/+ he (m/* he p) 1.0))
-    (doseq [^long i (range 0 n)
-            :let [i+ (m/inc i)]]
-      (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
-      (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
-    (let [^doubles a (ince-ev mat order)
-          sgn (m/sgn (v/sum a))
-          norm (case normalization
-                 :trigonometric (m/sqrt (v/sum (v/sq a)))
-                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
-                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 1 p))))
-                 1.0)]
-      (v/mult (v/div a norm) sgn))))
+        ^doubles diagonal (double-array N)
+        ^doubles beta (double-array n)
+        ^doubles gamma (double-array n)]
+    (dotimes [i N]
+      (Array/aset diagonal i (m/sq (m/inc (m/* 2.0 i)))))
+    (Array/aset diagonal 0 (m/+ 1.0 (m/* 0.5 e (m/inc p))))
+    (dotimes [i n]
+      (Array/aset beta i (m/* 0.5 (m/+ p (m/* 2.0 i) 3.0)))
+      (Array/aset gamma i (m/* 0.5 (m/- p (m/* 2.0 i) 1.0))))
+    (let [^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div (m/long-dec m) 2))
+          sgn (ince-sign (v/sum a))
+          norm (ince-euclidean-norm a)
+          factor (ince-normalizing-factor normalization a norm norm
+                                          (when (= normalization :millers) (ince-log-weights 1 p)) p)]
+      (v/mult a (m/* (double factor) sgn)))))
 
 (defn- ince-s-coeffs-odd
   [^long p ^long m ^double e normalization]
   (let [n (m// (m/dec p) 2)
         N (m/inc n)
-        order (m/long-div (m/long-dec m) 2)
-        ^RealMatrix mat (MatrixUtils/createRealMatrix N N)
-        he (m/* 0.5 e)]
-    (doseq [^long i (range 1 N)]
-      (.setEntry mat i i (m/sq (m/inc (m/* 2.0 i)))))
-    (.setEntry mat 0 0 (m/- 1.0 he (m/* he p)))
-    (doseq [^long i (range 0 n)
-            :let [i+ (m/inc i)]]
-      (.setEntry mat i i+ (m/* he (m/+ p (m/* 2.0 i) 3.0)))
-      (.setEntry mat i+ i (m/* he (m/- p (m/* 2.0 i) 1.0))))
+        ^doubles diagonal (double-array N)
+        ^doubles beta (double-array n)
+        ^doubles gamma (double-array n)]
+    (dotimes [i N]
+      (Array/aset diagonal i (m/sq (m/inc (m/* 2.0 i)))))
+    (Array/aset diagonal 0 (m/- 1.0 (m/* 0.5 e (m/inc p))))
+    (dotimes [i n]
+      (Array/aset beta i (m/* 0.5 (m/+ p (m/* 2.0 i) 3.0)))
+      (Array/aset gamma i (m/* 0.5 (m/- p (m/* 2.0 i) 1.0))))
     (let [scaler (m/seq->double-array (map (fn [^long v] (m/inc (m/* 2.0 v))) (range N)))
-          ^doubles a (ince-ev mat order)
-          sgn (m/sgn (v/sum (v/emult a scaler)))
-          norm (case normalization
-                 :trigonometric (m/sqrt (v/sum (v/sq a)))
-                 :millers (m/sqrt (v/sum (map (fn [^double v ^double gs]
-                                                (m/sq (m/* v gs))) a (ince-pmv-gamma 1 p))))
-                 1.0)]
-      (v/mult (v/div a norm) sgn))))
+          ^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div (m/long-dec m) 2))
+          sgn (ince-sign (v/sum (v/emult a scaler)))
+          norm (ince-euclidean-norm a)
+          factor (ince-normalizing-factor normalization a norm norm
+                                          (when (= normalization :millers) (ince-log-weights 1 p)) p)]
+      (v/mult a (m/* (double factor) sgn)))))
 
 (defn ince-C-coeffs
+  "Returns the coefficients of the Ince polynomial `C_p^m` as a series of cosines.
+
+  The Ince polynomial `C_p^m(x; e)` is the even, periodic solution of Ince's equation `w'' + e*sin(2x)*w' + (a - p*e*cos(2x))*w = 0` that belongs to the `m`-th smallest value of `a` (counting from `m = 0` or `m = 1` as the parity allows). It is the finite series `sum over r of A_r * cos(k_r*x)` with `k_r = 2r` for an even `p` (`r` from 0 to `p/2`) and `k_r = 2r + 1` for an odd `p` (`r` from 0 to `(p-1)/2`); this function returns the vector `A`, the number of entries being `floor(p/2) + 1`. For `e = 0` the polynomial is `cos(m*x)`.
+
+  Parameters:
+
+  - `p` (non-negative integer): the order.
+  - `m` (integer): the degree, from 0 to `p` with the parity of `p`.
+  - `e` (double): the ellipticity parameter of the equation, any finite real number (negative values are allowed).
+  - `normalization` (keyword): `:none`, `:trigonometric` or `:millers`; see [[ince-C]].
+
+  Returns a `double` array. The sign is chosen so that `C_p^m(0) > 0`; it is decided by the sum of the coefficients, so it is reliable only where `|C_p^m(0)|` is above rounding (about 1e-15) and can be the opposite one where that value is almost zero (large `|e|`). An argument outside these ranges, a non-finite `e` or an unknown normalization throws an `IllegalArgumentException`. The coefficients come from the eigenproblem of a matrix of size `floor(p/2) + 1` (solved in a symmetric form), so the time grows like `p^3` and the memory like `p^2` (about 10 ms for `p = 120`); they agree with a 60 digit reference to 4e-15 for `p` up to 30 with `e` up to 2500 in modulus, and for `p` up to 9 with `e` up to 1e8. For `|e|` below 1e-100 the coefficients are those of `e = 1e-100` (they differ by less than 1e-100).
+
+  See also [[ince-C]], [[ince-S-coeffs]], [[ince-C-radial]]."
   [^long p ^long m ^double e normalization]
+  (check-ince-arguments! :C p m e normalization)
   (if (m/even? p)
     (ince-c-coeffs-even p m e normalization)
     (ince-c-coeffs-odd p m e normalization)))
 
 (defn ince-S-coeffs
+  "Returns the coefficients of the Ince polynomial `S_p^m` as a series of sines.
+
+  The Ince polynomial `S_p^m(x; e)` is the odd, periodic solution of Ince's equation `w'' + e*sin(2x)*w' + (a - p*e*cos(2x))*w = 0` that belongs to the `m`-th smallest value of `a` among the odd solutions of the parity of `p`. It is the finite series `sum over r of B_r * sin(k_r*x)` with `k_r = 2(r+1)` for an even `p` (`r` from 0 to `p/2 - 1`) and `k_r = 2r + 1` for an odd `p` (`r` from 0 to `(p-1)/2`); this function returns the vector `B`, with `floor((p+1)/2)` entries for an odd `p` and `p/2` for an even one. For `e = 0` the polynomial is `sin(m*x)`.
+
+  Parameters:
+
+  - `p` (non-negative integer): the order. There is no `S` polynomial of order 0.
+  - `m` (integer): the degree, from 1 to `p` with the parity of `p`.
+  - `e` (double): the ellipticity parameter of the equation, any finite real number (negative values are allowed).
+  - `normalization` (keyword): `:none`, `:trigonometric` or `:millers`; see [[ince-S]].
+
+  Returns a `double` array. The sign is chosen so that `S_p^m'(0) > 0`; it is decided by a sum of the coefficients, so it is reliable only where `|S_p^m'(0)|` is above rounding (about 1e-15). An argument outside these ranges, a non-finite `e` or an unknown normalization throws an `IllegalArgumentException`. The cost and the accuracy are those of [[ince-C-coeffs]].
+
+  See also [[ince-S]], [[ince-C-coeffs]], [[ince-S-radial]]."
   [^long p ^long m ^double e normalization]
+  (check-ince-arguments! :S p m e normalization)
   (if (m/even? p)
     (ince-s-coeffs-even p m e normalization)
     (ince-s-coeffs-odd p m e normalization)))
@@ -2088,12 +2371,26 @@
 (defn- ince-cos-odd ^double [^long r ^double x] (m/cos (m/* (m/inc (m/* 2.0 r)) x)))
 
 (defn ince-C
-  "Ince C polynomial of order p and degree m.
+  "Creates the Ince polynomial `C_p^m(x; e)` as a function of the angle `x`.
 
-  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  It is the even, periodic solution of Ince's equation `w'' + e*sin(2x)*w' + (a - p*e*cos(2x))*w = 0` that belongs to the `m`-th smallest value of `a`, the series `sum over r of A_r * cos(k_r*x)` of [[ince-C-coeffs]]. For `e = 0` it is `cos(m*x)`. The radial counterpart, with `cosh` instead of `cos`, is [[ince-C-radial]].
+
+  Parameters:
+
+  - `p` (non-negative integer): the order.
+  - `m` (integer): the degree, from 0 to `p` with the parity of `p`.
+  - `e` (double): the ellipticity parameter of the equation, any finite real number (negative values are allowed).
+  - `normalization` (keyword, default `:none`): the scale of the coefficients.
+    - `:none`: the coefficient vector has the Euclidean norm 1.
+    - `:trigonometric`: the integral of `C^2` over a period `[0, 2*pi]` divided by `pi` is 1; this equals `:none` for an odd `p`.
+    - `:millers`: Miller's normalization as used for the Ince-Gaussian modes (Bandres and Gutierrez-Vega, Ince-Gaussian modes of the paraxial wave equation and stable resonators); a positive multiple of `:none`. The multiple becomes very small with `p` (1e-65 at `p = 100`, 1e-300 near `p = 330`); beyond about `p = 340` it is below the range of a double and an `IllegalArgumentException` is thrown.
+    The sign is always such that `C_p^m(0) > 0`.
+
+  Returns a function of one double, `x`, that returns a double. An argument outside the ranges, a non-finite `e` or an unknown normalization throws an `IllegalArgumentException` when the function is created. The order 0 gives the constant polynomial. The coefficients come from an eigenproblem of size about `p/2`, solved once at creation (about 10 ms for `p = 120`).
+
+  See also [[ince-S]], [[ince-C-coeffs]], [[ince-C-radial]]."
   ([^long p ^long m ^double e] (ince-C p m e :none))
   ([^long p ^long m ^double e normalization]
-   (assert (m/even? (m/long-sub p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-C-coeffs p m e normalization)
          s (alength coeffs)]
      (if (m/even? p)
@@ -2104,46 +2401,109 @@
 (defn- ince-sin-odd ^double [^long r ^double x] (m/sin (m/* (m/inc (m/* 2.0 r)) x)))
 
 (defn ince-S
-  "Ince S polynomial of order p and degree m.
+  "Creates the Ince polynomial `S_p^m(x; e)` as a function of the angle `x`.
 
-  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  It is the odd, periodic solution of Ince's equation `w'' + e*sin(2x)*w' + (a - p*e*cos(2x))*w = 0` that belongs to the `m`-th smallest value of `a` among the odd solutions of the parity of `p`, the series `sum over r of B_r * sin(k_r*x)` of [[ince-S-coeffs]]. For `e = 0` it is `sin(m*x)`. The radial counterpart, with `sinh` instead of `sin`, is [[ince-S-radial]].
+
+  Parameters:
+
+  - `p` (positive integer): the order. There is no `S` polynomial of order 0.
+  - `m` (integer): the degree, from 1 to `p` with the parity of `p`.
+  - `e` (double): the ellipticity parameter of the equation, any finite real number (negative values are allowed).
+  - `normalization` (keyword, default `:none`): the scale of the coefficients.
+    - `:none`: the coefficient vector has the Euclidean norm 1; this equals `:trigonometric` for every `S`.
+    - `:trigonometric`: the integral of `S^2` over a period `[0, 2*pi]` divided by `pi` is 1.
+    - `:millers`: Miller's normalization as used for the Ince-Gaussian modes (Bandres and Gutierrez-Vega, Ince-Gaussian modes of the paraxial wave equation and stable resonators); a positive multiple of `:none`. The multiple becomes very small with `p` (1e-65 at `p = 100`, 1e-300 near `p = 330`); beyond about `p = 340` it is below the range of a double and an `IllegalArgumentException` is thrown.
+    The sign is always such that the slope `S_p^m'(0)` is positive.
+
+  Returns a function of one double, `x`, that returns a double. An argument outside the ranges, a non-finite `e` or an unknown normalization throws an `IllegalArgumentException` when the function is created. The cost is that of [[ince-C]].
+
+  See also [[ince-C]], [[ince-S-coeffs]], [[ince-S-radial]]."
   ([^long p ^long m ^double e] (ince-S p m e :none))
   ([^long p ^long m ^double e normalization]
-   (assert (m/even? (m/long-sub p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-S-coeffs p m e normalization)
          s (alength coeffs)]
      (if (m/even? p)
        (fn ^double [^double x] (ince-loop coeffs s x ince-sin-even))
        (fn ^double [^double x] (ince-loop coeffs s x ince-sin-odd))))))
 
+(def ^:private ^:const ince-radial-overflow-argument 700.0)
+
+(defn- ince-radial-infinity
+  "The radial Ince function at `x` where `k_max |x|` is beyond about 700 (`exp(k_max |x|)` overflows, also for an
+  infinite `x`): the infinity with the sign of the exact value. The series is dominated by its last term, so the
+  sign is that of `sum_r A_r exp((k_r - k_max) |x|)` (times the sign of `x` for the odd `sinh`). Adding the
+  large terms directly gives `Inf - Inf = NaN` when the coefficients have different signs."
+  ^double [^doubles coeffs odd-function? ^double x]
+  (let [last-index (m/dec (alength coeffs))
+        ax (m/abs x)
+        dominant (double
+                  (loop [r (long 0)
+                         sum 0.0]
+                    (if (m/> r last-index)
+                      sum
+                      (recur (m/inc r)
+                             (m/+ sum (m/* (Array/aget coeffs r)
+                                           ;; (k_r - k-max) = -2 (last - r): no 0 * Inf for the last term
+                                           (if (m/== r last-index) 1.0 (m/exp (m/* -2.0 (m/- last-index r) ax)))))))))
+        signed (if (and odd-function? (m/neg? x)) (m/- dominant) dominant)]
+    (cond
+      (m/zero? signed) ##NaN
+      (m/neg? signed) ##-Inf
+      :else ##Inf)))
+
 (defn- ince-cosh-even ^double [^long r ^double x] (m/cosh (m/* 2.0 r x)))
 (defn- ince-cosh-odd ^double [^long r ^double x] (m/cosh (m/* (m/inc (m/* 2.0 r)) x)))
 
 (defn ince-C-radial
-  "Ince C polynomial of order p and degree m.
+  "Creates the radial Ince function `C_p^m(xi; e)` as a function of the radial coordinate `xi`.
 
-  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  It is the series `sum over r of A_r * cosh(k_r*xi)` with the coefficients `A` of [[ince-C-coeffs]]: the solution of the radial equation `R'' - e*sinh(2*xi)*R' - (a - p*e*cosh(2*xi))*R = 0` with the same value of `a` as the angular function [[ince-C]] (the equation for `x = i*xi`). For `e = 0` it is `cosh(m*xi)`. The parameters, the normalization and the errors are those of [[ince-C]]; the normalization is that of the coefficients, not of the integral of the radial function over a period (there is none).
+
+  Returns a function of one double, `xi`, that returns a double. It grows like `exp(p*|xi|)`: where that is beyond the range of a double (`p*|xi|` above about 709) the result is `##Inf` or `##-Inf` with the sign of the exact value, also for an infinite `xi`; a NaN `xi` gives NaN.
+
+  See also [[ince-S-radial]], [[ince-C]], [[ince-C-coeffs]]."
   ([^long p ^long m ^double e] (ince-C-radial p m e :none))
   ([^long p ^long m ^double e normalization]
-   (assert (m/even? (m/long-sub p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-C-coeffs p m e normalization)
-         s (alength coeffs)]
-     (if (m/even? p)
-       (fn ^double [^double x] (ince-loop coeffs s x ince-cosh-even))
-       (fn ^double [^double x] (ince-loop coeffs s x ince-cosh-odd))))))
+         s (alength coeffs)
+         even? (m/even? p)
+         ;; k_r = 2 r (even p) or 2 r + 1 (odd p)
+         k-max (if even? (m/long-mult 2 (m/long-dec s)) (m/long-inc (m/long-mult 2 (m/long-dec s))))]
+     (if even?
+       (fn ^double [^double x]
+         (if (m/> (m/* k-max (m/abs x)) ince-radial-overflow-argument)
+           (ince-radial-infinity coeffs false x)
+           (ince-loop coeffs s x ince-cosh-even)))
+       (fn ^double [^double x]
+         (if (m/> (m/* k-max (m/abs x)) ince-radial-overflow-argument)
+           (ince-radial-infinity coeffs false x)
+           (ince-loop coeffs s x ince-cosh-odd)))))))
 
 (defn- ince-sinh-even ^double [^long r ^double x] (m/sinh (m/* 2.0 (m/inc r) x)))
 (defn- ince-sinh-odd ^double [^long r ^double x] (m/sinh (m/* (m/inc (m/* 2.0 r)) x)))
 
 (defn ince-S-radial
-  "Ince S polynomial of order p and degree m.
+  "Creates the radial Ince function `S_p^m(xi; e)` as a function of the radial coordinate `xi`.
 
-  `normalization` parameter can be `:none` (default), `:trigonometric` or `millers`."
+  It is the series `sum over r of B_r * sinh(k_r*xi)` with the coefficients `B` of [[ince-S-coeffs]]: the solution of the radial equation `R'' - e*sinh(2*xi)*R' - (a - p*e*cosh(2*xi))*R = 0` with the same value of `a` as the angular function [[ince-S]]. For `e = 0` it is `sinh(m*xi)`. The parameters, the normalization and the errors are those of [[ince-S]].
+
+  Returns a function of one double, `xi`, that returns a double. It grows like `exp(p*|xi|)`: where that is beyond the range of a double (`p*|xi|` above about 709) the result is `##Inf` or `##-Inf` with the sign of the exact value, also for an infinite `xi`; a NaN `xi` gives NaN.
+
+  See also [[ince-C-radial]], [[ince-S]], [[ince-S-coeffs]]."
   ([^long p ^long m ^double e] (ince-S-radial p m e :none))
   ([^long p ^long m ^double e normalization]
-   (assert (m/even? (m/long-sub p m)) "p and m must be the same parity!")
    (let [^doubles coeffs (ince-S-coeffs p m e normalization)
-         s (alength coeffs)]
-     (if (m/even? p)
-       (fn ^double [^double x] (ince-loop coeffs s x ince-sinh-even))
-       (fn ^double [^double x] (ince-loop coeffs s x ince-sinh-odd))))))
+         s (alength coeffs)
+         even? (m/even? p)
+         ;; k_r = 2 (r + 1) (even p) or 2 r + 1 (odd p)
+         k-max (if even? (m/long-mult 2 s) (m/long-inc (m/long-mult 2 (m/long-dec s))))]
+     (if even?
+       (fn ^double [^double x]
+         (if (m/> (m/* k-max (m/abs x)) ince-radial-overflow-argument)
+           (ince-radial-infinity coeffs true x)
+           (ince-loop coeffs s x ince-sinh-even)))
+       (fn ^double [^double x]
+         (if (m/> (m/* k-max (m/abs x)) ince-radial-overflow-argument)
+           (ince-radial-infinity coeffs true x)
+           (ince-loop coeffs s x ince-sinh-odd)))))))

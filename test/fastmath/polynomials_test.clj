@@ -37,6 +37,10 @@
 
 (def ^:private EPS (Math/pow 2.0 -53))
 
+(defn- exact->double
+  "The nearest double of an exact rational (`double` of a ratio keeps only 16 decimal digits)."
+  ^double [r] (@#'sut/rational->double r))
+
 (defn- error-scale
   "Sum of `|c_i| r^i`, the scale of Horner's forward error. `moduli` are `|c_i|`, `r` is `|x|`."
   ^double [moduli ^double r]
@@ -393,10 +397,10 @@
                   bound (* 4.0 (inc (count cs)) EPS (error-scale (abs-vec cs) (m/abs xx)))
                   p (sut/polynomial cs)
                   r (sut/ratio-polynomial cs)]]
-      (t/is (<= (m/abs (- (sut/evaluate p xx) (double exact))) bound) (str "Polynomial evaluate " cs " at " xx))
-      (t/is (<= (m/abs (- (double (p xx)) (double exact))) bound) (str "Polynomial call " cs " at " xx))
+      (t/is (<= (m/abs (- (sut/evaluate p xx) (exact->double exact))) bound) (str "Polynomial evaluate " cs " at " xx))
+      (t/is (<= (m/abs (- (double (p xx)) (exact->double exact))) bound) (str "Polynomial call " cs " at " xx))
       (t/is (= exact (r xx)) (str "PolynomialR call " cs " at " xx))
-      (t/is (== (double exact) (sut/evaluate r xx)) (str "PolynomialR evaluate " cs " at " xx)))))
+      (t/is (== (exact->double exact) (sut/evaluate r xx)) (str "PolynomialR evaluate " cs " at " xx)))))
 
 (t/deftest zero-polynomial
   ;; the zero polynomial has degree 0 and a single zero coefficient
@@ -754,7 +758,7 @@
                 o (attempt object n)]]
     (t/is (and (not (failed? r)) (= exact (vec (sut/coeffs r))) (= n (sut/degree r)))
           (str kind " ratio, degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double exact) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double exact) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str kind " object, degree " n))))
 
 (t/deftest chebyshev-negative-degree
@@ -820,7 +824,7 @@
                 o (attempt sut/legendre-P n)
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str "ratio, degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o))) (str "object, degree " n))))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o))) (str "object, degree " n))))
 
 (t/deftest gegenbauer-exact-coefficients
   (doseq [{:keys [alpha decimal-exact? coefficients]} (:gegenbauer @lgj-reference)
@@ -831,7 +835,7 @@
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
           (str "ratio, alpha " alpha " degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str "object, alpha " alpha " degree " n))))
 
 (t/deftest jacobi-exact-coefficients
@@ -843,7 +847,7 @@
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
           (str "ratio, alpha " alpha " beta " beta " degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str "object, alpha " alpha " beta " beta " degree " n))))
 
 (defn- pochhammer [a k] (reduce *' 1 (map #(+ a %) (range k))))
@@ -1028,8 +1032,6 @@
 ;; formula in decimal arithmetic of adaptive precision, so the result is the nearest double up to about 2^-60.
 
 (defn- horner-exact [cs rx] (reduce (fn [acc c] (+ (* acc rx) c)) 0 (reverse cs)))
-
-(defn- exact->double ^double [r] (@#'sut/rational->double r))
 
 (defn- random-x
   "A random argument: wide, inside [-1, 1], next to ±1 on both sides, or tiny."
@@ -1252,7 +1254,7 @@
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r)))
           (str "ratio, order " order " degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str "object, order " order " degree " n))))
 
 (t/deftest hermite-exact-coefficients
@@ -1263,7 +1265,7 @@
                 o (attempt object-fn n)
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str label " ratio, degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str label " object, degree " n))))
 
 (defn- generalized-binomial [top k]
@@ -1478,7 +1480,7 @@
                 o (attempt object-fn n)
                 expected (exact-coefficients exact)]]
     (t/is (and (not (failed? r)) (= expected (vec (sut/coeffs r))) (= n (sut/degree r))) (str label " ratio, degree " n))
-    (t/is (and (not (failed? o)) (= (mapv double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
+    (t/is (and (not (failed? o)) (= (mapv exact->double expected) (vec (sut/coeffs o))) (= n (sut/degree o)))
           (str label " object, degree " n))))
 
 (t/deftest bessel-three-forms-agree
@@ -1545,3 +1547,544 @@
                        "bessel-t-ratio" sut/bessel-t-ratio
                        "bessel-t" sut/bessel-t}]
       (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))
+
+;; Meixner-Pollaczek polynomials P_n^(lambda)(x; phi).
+;;
+;; Reference values: `test/resources/polynomials/meixner_pollaczek_reference.edn`, `mpmath` at 60 digits at the exact
+;; binary values of lambda, phi and x (`utils/fastmath/dev/generate_meixner_pollaczek_reference.py`): 8 values of
+;; lambda (0.25 to 7, and 0, -0.5, -1.5), 10 values of phi (including pi/2, pi, 0, negative and above pi), 21
+;; arguments of both signs, degrees up to 50. For lambda > 0 the values come from the hypergeometric definition
+;; `(2 lambda)_n / n! exp(i n phi) 2F1(-n, lambda + i x; 2 lambda; 1 - exp(-2 i phi))`; the generator asserts that
+;; it equals the three term recurrence (largest relative difference 3e-60), which is used for the other values of
+;; lambda.
+
+(def ^:private mp-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/meixner_pollaczek_reference.edn")))))
+
+(defn- meixner-pollaczek-failures
+  "Rows `[n x value derivative]` for which `eval-meixner-pollaczek-P` is outside
+  `units * eps * (n+1)^2 * max(1, max_i |P_i(x)|)`: the forward recurrence loses accuracy like the square of the
+  degree (as for the Laguerre polynomials), relative to the largest value of the degrees 0 to n."
+  [lambda phi rows units]
+  (for [[n x v] rows
+        :let [got (attempt sut/eval-meixner-pollaczek-P n lambda phi x)
+              envelope (reduce max 1.0 (map #(m/abs (sut/eval-meixner-pollaczek-P % lambda phi x)) (range (inc n))))]
+        :when (not (and (not (failed? got)) (<= (m/abs (- got v)) (* units EPS (m/sq (inc n)) envelope))))]
+    [n x v got]))
+
+;; Largest observed ratio to this bound: 2.6 (a value that is a difference of two terms of size 7); limit 6.
+(t/deftest meixner-pollaczek-eval-reference
+  (doseq [{:keys [lambda phi grid]} @mp-reference
+          :let [failures (meixner-pollaczek-failures lambda phi grid 6.0)]]
+    (t/is (empty? failures) (failures-message (str "Meixner-Pollaczek lambda " lambda " phi " phi) failures))))
+
+(defn- meixner-pollaczek-exact-value
+  "P_n at the rational `x` by the three term recurrence in exact arithmetic, for the rational `lam`, `c` = cos(phi)
+  and `s` = sin(phi)."
+  [n lam c s x]
+  (if (zero? n)
+    1
+    (loop [i 2 pprev 1 prev (* 2 (+ (* lam c) (* x s)))]
+      (if (> i n)
+        prev
+        (recur (inc i) prev (/ (- (* 2 (+ (* x s) (* (+ lam (dec i)) c)) prev) (* (+ (- i 2) (* 2 lam)) pprev)) i))))))
+
+(t/deftest meixner-pollaczek-ratio-form-is-exact
+  ;; lambda, cos(phi) and sin(phi) are converted with rationalize (the decimal numbers the doubles print as)
+  (doseq [lambda [0.5 2.5 0.3 0.0 -0.5 -1.5] phi [1.0 0.1 (/ Math/PI 2) 3.0 0.0 -1.0 7.0] n (range 0 11)
+          :let [lam (rationalize lambda) c (rationalize (Math/cos phi)) s (rationalize (Math/sin phi))
+                polynomial (sut/meixner-pollaczek-P-ratio n lambda phi)]]
+    (t/is (= n (sut/degree polynomial)))
+    (doseq [x [1/3 -2 7/5 0]]
+      (t/is (= (meixner-pollaczek-exact-value n lam c s x) (polynomial x))
+            (str "lambda " lambda " phi " phi " degree " n " at " x)))))
+
+(t/deftest meixner-pollaczek-three-forms-agree
+  (let [d (three-forms-disagreements
+           {:eval-fn (fn [[n l p] x] (sut/eval-meixner-pollaczek-P n l p x))
+            :ratio-fn (fn [[n l p]] (sut/meixner-pollaczek-P-ratio n l p))
+            :object-fn (fn [[n l p]] (sut/meixner-pollaczek-P n l p))
+            :cases (for [n [0 1 2 3 4 5 6 8 10] l [0.5 1.0 2.5 0.3 -0.5] p [0.5 (/ Math/PI 2) 2.0 3.0 -1.0]] [n l p])
+            :xs [-3.0 -1.5 -0.5 0.0 0.5 1.5 3.0]
+            ;; the error of the recurrence grows like (n+1)^2 units, not n: the default 8 units are for the linear family
+            :eval-units 40.0})]
+    (t/is (empty? d) (str (count d) " disagreements; first: " (pr-str (take 2 d))))))
+
+(t/deftest meixner-pollaczek-closed-forms-and-symmetry
+  ;; P_1 = 2 (lambda cos(phi) + x sin(phi)), and P_2 from the recurrence
+  (t/is (m/delta-eq (* 2.0 (+ (* 0.5 (Math/cos 1.0)) (* 0.3 (Math/sin 1.0)))) (sut/eval-meixner-pollaczek-P 1 0.5 1.0 0.3) 1.0e-15))
+  (let [lambda 2.5 phi 0.7 x -1.2
+        p1 (* 2.0 (+ (* lambda (Math/cos phi)) (* x (Math/sin phi))))
+        p2 (/ (- (* 2.0 (+ (* x (Math/sin phi)) (* (+ lambda 1.0) (Math/cos phi))) p1) (* 2.0 lambda)) 2.0)]
+    (t/is (m/delta-eq p2 (sut/eval-meixner-pollaczek-P 2 lambda phi x) 1.0e-13)))
+  ;; phi = 0: the polynomial does not depend on x, P_n = (2 lambda)_n / n!, for lambda = 1 it is n + 1, also at infinity
+  (doseq [n [0 1 2 5 12] x [-3.0 0.0 2.5 ##Inf ##-Inf]]
+    (t/is (== (inc n) (sut/eval-meixner-pollaczek-P n 1.0 0.0 x)) (str "degree " n " at " x)))
+  (t/is (== -4.0 (sut/eval-meixner-pollaczek-P 3 1.0 Math/PI 0.3)) "phi = pi: (-1)^n (n + 1)")
+  ;; P_n(x; pi - phi) = (-1)^n P_n(-x; phi)
+  (doseq [n [1 2 3 6 9] lambda [0.5 2.5] phi [0.4 1.0 2.0] x [-2.0 0.3 1.7]
+          :let [a (sut/eval-meixner-pollaczek-P n lambda (- Math/PI phi) x)
+                b (* (if (even? n) 1.0 -1.0) (sut/eval-meixner-pollaczek-P n lambda phi (- x)))]]
+    (t/is (<= (m/abs (- a b)) (* 1.0e-12 (max 1.0 (m/abs a)))) (str n " " lambda " " phi " " x)))
+  ;; phi = pi/2: cos(phi) is 6e-17, not 0 (the double next to pi/2): P_1(0) is lambda times 1.2e-16, with its full
+  ;; relative accuracy (`m/cos` had a relative error of 6e-11 there)
+  (t/is (== (* 2.0 0.5 (Math/cos (/ Math/PI 2))) (sut/eval-meixner-pollaczek-P 1 0.5 (/ Math/PI 2) 0.0))))
+
+(t/deftest meixner-pollaczek-non-finite-arguments
+  ;; infinite x: the leading term (2 sin(phi) x)^n / n!; the sign follows sin(phi) x and the parity of the degree
+  (doseq [n [1 2 3 4 7] lambda [0.5 2.5 -0.5 0.0] phi [0.5 2.0 3.0 -1.0 7.0]
+          :let [sp (Math/sin phi)]
+          x [##Inf ##-Inf]]
+    (t/is (== (if (or (pos? (* sp x)) (even? n)) ##Inf ##-Inf) (sut/eval-meixner-pollaczek-P n lambda phi x))
+          (str "degree " n " lambda " lambda " phi " phi " at " x)))
+  ;; NaN: degree 0 is 1 for any arguments
+  (t/is (== 1.0 (sut/eval-meixner-pollaczek-P 0 ##NaN ##NaN ##NaN) (sut/eval-meixner-pollaczek-P 0 0.5 1.0 ##Inf)))
+  (doseq [n [1 2 3 6]]
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n 0.5 1.0 ##NaN)))
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n ##NaN 1.0 0.3)))
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n 0.5 ##NaN 0.3)))
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n 0.5 ##Inf 0.3)))
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n ##NaN 1.0 ##Inf)))
+    (t/is (m/nan? (sut/eval-meixner-pollaczek-P n 0.5 ##NaN ##Inf)))
+    (t/is (thrown? IllegalArgumentException (sut/meixner-pollaczek-P-ratio n ##NaN 1.0)))
+    (t/is (thrown? IllegalArgumentException (sut/meixner-pollaczek-P-ratio n 0.5 ##Inf)))
+    (t/is (thrown? IllegalArgumentException (sut/meixner-pollaczek-P n 0.5 ##NaN))))
+  (t/is (= [1] (vec (sut/coeffs (sut/meixner-pollaczek-P-ratio 0 ##NaN ##NaN)))))
+  ;; huge finite x with a representable value: P_2 ~ (2 sin(phi) x)^2 / 2
+  (t/is (m/delta-eq 1.0 (/ (sut/eval-meixner-pollaczek-P 2 1.0 (/ Math/PI 2) 1.0e150) 2.0e300) 1.0e-14)))
+
+(t/deftest meixner-pollaczek-degree-limits
+  (doseq [n [-1 -2 -100 Integer/MAX_VALUE 4294967296 Long/MAX_VALUE]]
+    (doseq [[label f] {"eval-meixner-pollaczek-P" #(sut/eval-meixner-pollaczek-P % 1.0 1.0 0.3)
+                       "meixner-pollaczek-P-ratio" #(sut/meixner-pollaczek-P-ratio % 1.0 1.0)
+                       "meixner-pollaczek-P" #(sut/meixner-pollaczek-P % 1.0 1.0)}]
+      (t/is (thrown? IllegalArgumentException (f n)) (str label " " n)))))
+
+;; Ince polynomials C_p^m and S_p^m, angular and radial.
+;;
+;; Reference: `test/resources/polynomials/ince_reference.edn`, `mpmath` at 60 digits
+;; (`utils/fastmath/dev/generate_ince_reference.py`). The eigenproblem of Ince's equation
+;; `w'' + e sin(2x) w' + (a - p e cos(2x)) w = 0` is built from the equation itself (not from the DLMF 28.31
+;; coefficient recurrences the library uses) by projecting `L[b_r]` onto the Fourier basis; the eigenvalue of
+;; the polynomial of degree `m` is the `m/2`-th, `(m-1)/2`-th, ... in increasing order. 406 entries: p from 0 to
+;; 8 and 12, every valid m, e = 0, 0.3, 0.6, -0.6, 2, 5, 10. The generator asserts the equation at random points
+;; to 1e-45 and `a = m^2` for `e = 0`. Normalization of the reference: Euclidean norm 1 of the coefficients,
+;; C(0) > 0 and S'(0) > 0.
+
+(def ^:private ince-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/ince_reference.edn")))))
+
+(defn- ince-frequencies
+  "The frequencies k of the basis cos(k x) (kind :C) or sin(k x) (:S) of the Ince polynomial of order p."
+  [kind p]
+  (cond
+    (and (= kind :C) (even? p)) (map #(* 2 %) (range (inc (quot p 2))))
+    (= kind :C) (map #(inc (* 2 %)) (range (inc (quot (dec p) 2))))
+    (even? p) (map #(* 2 (inc %)) (range (quot p 2)))
+    :else (map #(inc (* 2 %)) (range (inc (quot (dec p) 2))))))
+
+(defn- ince-series
+  "[w w' w''] at `x` of the series with the `coefficients`; the trigonometric basis, or the hyperbolic one when
+  `radial?`."
+  [kind p coefficients x radial?]
+  (reduce (fn [[w w1 w2] [c k]]
+            (let [kx (* k x)
+                  [f df] (cond (and (= kind :C) (not radial?)) [(Math/cos kx) (- (Math/sin kx))]
+                               (= kind :C) [(Math/cosh kx) (Math/sinh kx)]
+                               (not radial?) [(Math/sin kx) (Math/cos kx)]
+                               :else [(Math/sinh kx) (Math/cosh kx)])
+                  second-sign (if radial? 1.0 -1.0)]
+              [(+ w (* c f)) (+ w1 (* c k df)) (+ w2 (* c k k second-sign f))]))
+          [0.0 0.0 0.0]
+          (map vector coefficients (ince-frequencies kind p))))
+
+(defn- ince-residual
+  "Left-hand side of Ince's equation (angular) or of the radial equation `R'' - e sinh(2x) R' - (a - p e cosh(2x)) R`
+  for the series at `x`."
+  [kind p e a coefficients x radial?]
+  (let [[w w1 w2] (ince-series kind p coefficients x radial?)]
+    (if radial?
+      (- w2 (* e (Math/sinh (* 2 x)) w1) (* (- a (* p e (Math/cosh (* 2 x)))) w))
+      (+ w2 (* e (Math/sin (* 2 x)) w1) (* (- a (* p e (Math/cos (* 2 x)))) w)))))
+
+(def ^:private ince-xs [0.0 0.13 0.31 0.62 0.83 1.05 1.5 2.4 3.0])
+
+;; Largest observed difference to the reference: 3.2e-15 (C 8 6 at e = 10); limit 1e-12.
+(t/deftest ince-coefficients-match-the-reference
+  (doseq [{:keys [kind p m e coefficients]} @ince-reference
+          :let [got (attempt (if (= kind :C) sut/ince-C-coeffs sut/ince-S-coeffs) p m e :none)]]
+    (t/is (and (not (failed? got))
+               (= (count coefficients) (count got))
+               (every? #(<= (m/abs %) 1.0e-12) (map - got coefficients)))
+          (str (name kind) " p " p " m " m " e " e ": " (if (failed? got) got (vec got))))))
+
+(t/deftest ince-coefficients-satisfy-the-equation-with-the-reference-eigenvalue
+  ;; independent of the reference coefficients: the library's own coefficients and the reference `a`
+  (doseq [{:keys [kind p m e a]} @ince-reference
+          :when (pos? p)
+          :let [coefficients (vec ((if (= kind :C) sut/ince-C-coeffs sut/ince-S-coeffs) p m e :none))]
+          x ince-xs]
+    ;; residual scaled by (1 + |a|)(p + 1): largest observed 3.5e-15; limit 1e-13
+    (t/is (<= (m/abs (ince-residual kind p e a coefficients x false)) (* 1.0e-13 (+ 1.0 (m/abs a)) (inc p)))
+          (str (name kind) " p " p " m " m " e " e " at " x))))
+
+(t/deftest ince-functions-evaluate-the-series
+  ;; the angular and the radial functions against the series of the reference coefficients
+  (doseq [{:keys [kind p m e coefficients]} @ince-reference
+          :let [angular ((if (= kind :C) sut/ince-C sut/ince-S) p m e)
+                radial ((if (= kind :C) sut/ince-C-radial sut/ince-S-radial) p m e)]
+          x [0.0 0.13 0.62 1.05]]
+    (let [[w] (ince-series kind p coefficients x false)
+          [r] (ince-series kind p coefficients x true)]
+      (t/is (<= (m/abs (- (angular x) w)) 1.0e-12) (str "angular " (name kind) " p " p " m " m " e " e " at " x))
+      (t/is (<= (m/abs (- (radial x) r)) (* 1.0e-12 (+ 1.0 (m/abs r))))
+            (str "radial " (name kind) " p " p " m " m " e " e " at " x)))))
+
+(t/deftest ince-radial-equation-with-the-same-eigenvalue
+  ;; R'' - e sinh(2x) R' - (a - p e cosh(2x)) R = 0 with the same `a` as the angular equation
+  (doseq [{:keys [kind p m e a coefficients]} @ince-reference
+          :when (and (pos? p) (<= p 8))
+          x [0.1 0.3 0.7 1.0]]
+    ;; scaled likewise and by 1 + |R|: largest observed 1.0e-14; limit 1e-12
+    (t/is (<= (m/abs (ince-residual kind p e a coefficients x true)) (* 1.0e-12 (+ 1.0 (m/abs a)) (inc p)
+                                                                       (+ 1.0 (m/abs (first (ince-series kind p coefficients x true))))))
+          (str "radial " (name kind) " p " p " m " m " e " e " at " x))))
+
+(t/deftest ince-reduces-to-trigonometric-functions-at-zero-e
+  (doseq [p (range 0 9) m (range 0 (inc p)) :when (even? (- p m))]
+    (let [x 0.7]
+      (t/is (m/delta-eq (Math/cos (* m x)) ((sut/ince-C p m 0.0) x) 1.0e-14) (str "C " p " " m))
+      (t/is (m/delta-eq (Math/cosh (* m x)) ((sut/ince-C-radial p m 0.0) x) 1.0e-13) (str "C radial " p " " m))
+      (when (pos? m)
+        (t/is (m/delta-eq (Math/sin (* m x)) ((sut/ince-S p m 0.0) x) 1.0e-14) (str "S " p " " m))
+        (t/is (m/delta-eq (Math/sinh (* m x)) ((sut/ince-S-radial p m 0.0) x) 1.0e-13) (str "S radial " p " " m))))))
+
+(t/deftest ince-normalizations
+  (doseq [{:keys [kind p m e]} @ince-reference
+          :when (and (pos? p) (<= p 8) (<= (m/abs e) 2.0))
+          :let [coeffs (if (= kind :C) sut/ince-C-coeffs sut/ince-S-coeffs)
+                none (vec (coeffs p m e :none))
+                trigonometric (vec (coeffs p m e :trigonometric))
+                millers (vec (coeffs p m e :millers))
+                function ((if (= kind :C) sut/ince-C sut/ince-S) p m e :trigonometric)
+                ;; (1/pi) integral of w^2 over a period, exact for equal steps of a trigonometric polynomial
+                steps 512
+                mean-square (/ (reduce + (map #(let [w (function (* % (/ (* 2.0 Math/PI) steps)))] (* w w)) (range steps))) steps)]]
+    ;; :none is the unit vector of the coefficients
+    (t/is (m/delta-eq 1.0 (reduce + (map * none none)) 1.0e-13) (str "none " (name kind) " " p " " m " " e))
+    ;; :trigonometric: (1/pi) integral over [0, 2 pi] of w^2 = 1
+    (t/is (m/delta-eq 1.0 (* 2.0 mean-square) 1.0e-12) (str "trigonometric " (name kind) " " p " " m " " e))
+    ;; the same as :none for S and for odd p
+    (when (or (= kind :S) (odd? p))
+      (t/is (every? #(<= (m/abs %) 1.0e-14) (map - none trigonometric)) (str "none = trigonometric " (name kind) " " p " " m)))
+    ;; :millers is a positive multiple of :none (same direction and sign)
+    (let [ratios (keep (fn [[a b]] (when (> (m/abs b) 1.0e-8) (/ a b))) (map vector millers none))]
+      (t/is (and (every? m/valid-double? ratios) (pos? (first ratios))
+                 (every? #(<= (m/abs (- % (first ratios))) (* 1.0e-10 (m/abs (first ratios)))) ratios))
+            (str "millers " (name kind) " " p " " m " " e))))
+  ;; the sign: C(0) > 0, S'(0) > 0
+  (doseq [{:keys [kind p m e]} @ince-reference :when (pos? p)]
+    (if (= kind :C)
+      (t/is (pos? ((sut/ince-C p m e) 0.0)) (str "C(0) > 0 " p " " m " " e))
+      (t/is (pos? ((sut/ince-S p m e) 1.0e-6)) (str "S'(0) > 0 " p " " m " " e)))))
+
+(t/deftest ince-order-zero
+  ;; C_0^0 is the constant: the single coefficient 1 (:none), 1/sqrt(2) (:trigonometric)
+  (doseq [e [0.0 0.6 -2.0 10.0]]
+    (t/is (= [1.0] (vec (sut/ince-C-coeffs 0 0 e :none))))
+    (t/is (m/delta-eq (/ 1.0 (Math/sqrt 2.0)) (first (sut/ince-C-coeffs 0 0 e :trigonometric)) 1.0e-15))
+    (t/is (== 1.0 ((sut/ince-C 0 0 e) 0.7) ((sut/ince-C 0 0 e) -3.0) ((sut/ince-C-radial 0 0 e) 1.5)))
+    (t/is (pos? (first (sut/ince-C-coeffs 0 0 e :millers))))))
+
+(t/deftest ince-invalid-arguments
+  (let [entry-points {"ince-C-coeffs" #(sut/ince-C-coeffs %1 %2 %3 %4)
+                      "ince-S-coeffs" #(sut/ince-S-coeffs %1 %2 %3 %4)
+                      "ince-C" #(sut/ince-C %1 %2 %3 %4)
+                      "ince-S" #(sut/ince-S %1 %2 %3 %4)
+                      "ince-C-radial" #(sut/ince-C-radial %1 %2 %3 %4)
+                      "ince-S-radial" #(sut/ince-S-radial %1 %2 %3 %4)}]
+    (doseq [[label f] entry-points
+            [p m e normalization why] [[4 6 0.6 :none "m above p"]
+                                       [4 -2 0.6 :none "negative m"]
+                                       [4 3 0.6 :none "parity"]
+                                       [3 2 0.6 :none "parity"]
+                                       [-2 0 0.6 :none "negative p"]
+                                       [-1 -1 0.6 :none "negative p"]
+                                       [4 2 ##NaN :none "NaN e"]
+                                       [4 2 ##Inf :none "infinite e"]
+                                       [4 2 ##-Inf :none "infinite e"]
+                                       [4 2 0.6 :bogus "unknown normalization"]
+                                       [4 2 0.6 "millers" "string instead of a keyword"]
+                                       [4 2 0.6 nil "no normalization"]]]
+      (t/is (thrown? IllegalArgumentException (f p m e normalization)) (str label ": " why)))
+    ;; S starts at m = 1
+    (doseq [f [(get entry-points "ince-S-coeffs") (get entry-points "ince-S") (get entry-points "ince-S-radial")]
+            [p m] [[0 0] [2 0] [4 0] [3 0]]]
+      (t/is (thrown? IllegalArgumentException (f p m 0.6 :none)) (str "S with m = " m " and p = " p)))
+    ;; the edges of the valid range work
+    (doseq [[label f] entry-points
+            [p m] [[1 1] [2 2] [4 4] [5 5] [6 0] [7 1]]
+            :when (or (pos? m) (#{"ince-C-coeffs" "ince-C" "ince-C-radial"} label))]
+      (t/is (not (failed? (attempt f p m 0.6 :none))) (str label " " p " " m)))
+    (t/is (not (failed? (attempt (get entry-points "ince-C") 0 0 0.6 :none))) "p = 0")))
+
+;; ---------------------------------------------------------------------------------------------
+;; Fixes after the #Test attack on groups 1-2 and 5-9 (vault: Test Review - Groups 1-2 and 5-9)
+
+(t/deftest ratio-to-double-is-the-nearest-double                           ; T-10
+  ;; `(double 1/6)` is 0.1666666666666667: Ratio.doubleValue keeps 16 decimal digits
+  (t/is (== 0.16666666666666666 (sut/evaluate (sut/ratio-polynomial [1/6]) 0.0)))
+  (t/is (== 0.16666666666666666 (first (sut/coeffs (sut/polynomial [1/6])))))
+  (t/is (== 0.16666666666666666 (first (sut/coeffs (sut/coeffs->polynomial 1/6)))))
+  (let [rng (java.util.Random. 3)]
+    (dotimes [_ 600]
+      (let [cs (repeatedly 4 #(- (.nextDouble rng) 0.5))
+            x (- (* 4.0 (.nextDouble rng)) 2.0)
+            ;; `evaluate` works at the decimal value of x
+            exact (reduce (fn [acc c] (+ (* acc (rationalize x)) (rationalize c))) 0 (reverse cs))]
+        (t/is (== (exact->double exact) (sut/evaluate (sut/ratio-polynomial cs) x)) (str cs " " x)))))
+  ;; the object forms hold the nearest doubles of their exact coefficients
+  (doseq [[label ratio-form object-form]
+          [["laguerre-L 20" (sut/laguerre-L-ratio 20 0.0) (sut/laguerre-L 20 0.0)]
+           ["laguerre-L 30 0.5" (sut/laguerre-L-ratio 30 0.5) (sut/laguerre-L 30 0.5)]
+           ["legendre-P 30" (sut/legendre-P-ratio 30) (sut/legendre-P 30)]
+           ["gegenbauer-C 25 0.75" (sut/gegenbauer-C-ratio 25 0.75) (sut/gegenbauer-C 25 0.75)]
+           ["jacobi-P 25 0.5 1.5" (sut/jacobi-P-ratio 25 0.5 1.5) (sut/jacobi-P 25 0.5 1.5)]
+           ["meixner-pollaczek-P 20" (sut/meixner-pollaczek-P-ratio 20 0.7 1.1) (sut/meixner-pollaczek-P 20 0.7 1.1)]
+           ["bessel-t 30" (sut/bessel-t-ratio 30) (sut/bessel-t 30)]]]
+    (t/is (= (map exact->double (sut/coeffs ratio-form)) (sut/coeffs object-form)) label)))
+
+(t/deftest polynomial-printing-keeps-every-term-up-to-degree-10            ; T-19
+  (let [s10 "#polynomial{10}(x) = 1+2x+3x^2+4x^3+5x^4+6x^5+7x^6+8x^7+9x^8+10x^9+11x^10"]
+    (t/is (= s10 (str (sut/polynomial (range 1 12)))))
+    (t/is (= s10 (str (sut/ratio-polynomial (range 1 12)))))
+    (t/is (= s10 (pr-str (sut/polynomial (range 1 12)))))
+    (t/is (= "#polynomial{11}(x) = 1+2x+3x^2+4x^3+5x^4+6x^5+7x^6+8x^7+9x^8+10x^9+11x^10+..."
+             (str (sut/polynomial (range 1 13)))))))
+
+(t/deftest derivative-of-a-high-order-keeps-the-factor-finite              ; T-20
+  (let [cs (concat (repeat 171 0.0) [1e-30 0.0 0.0 0.0 0.0])
+        got (vec (sut/coeffs (sut/derivative (sut/polynomial cs) 171)))
+        exact (mapv exact->double (sut/coeffs (sut/derivative (sut/ratio-polynomial cs) 171)))]
+    (t/is (== 5 (count got)))
+    (t/is (<= (m/abs (- (first got) (first exact))) (* 1e-12 (first exact))))
+    (t/is (every? #(== 0.0 %) (rest got)) "zero coefficients stay zero, not NaN"))
+  ;; the true result overflows: an infinity, and zeros elsewhere
+  (let [got (vec (sut/coeffs (sut/derivative (sut/polynomial (concat (repeat 200 0.0) [1.0 0.0 0.0])) 200)))]
+    (t/is (= [##Inf 0.0 0.0] got)))
+  ;; order 1000 of a degree 1200 polynomial: finite and equal to the exact value
+  (let [cs (concat (repeat 1000 0.0) [1e-300] (repeat 199 0.0))
+        got (vec (sut/coeffs (sut/derivative (sut/polynomial cs) 1000)))]
+    (t/is (= 200 (count got)))
+    (t/is (not-any? #(Double/isNaN %) got))))
+
+(t/deftest inline-evalpoly-evaluates-the-coefficients-in-order             ; T-21
+  (let [log (atom [])
+        note (fn [k v] (swap! log conj k) v)]
+    (t/is (== 6.0 (sut/evalpoly 1.0 (note :c0 1) (note :c1 2) (note :c2 3))))
+    (t/is (= [:c0 :c1 :c2] @log))
+    (reset! log [])
+    (t/is (== 7.0 (sut/evalpoly (note :x 2.0) (note :c0 1) (note :c1 3))))
+    (t/is (= [:x :c0 :c1] @log))
+    (reset! log [])
+    (t/is (== 5.0 (sut/evalpoly 1.0 (note :c0 5))))
+    (t/is (= [:c0] @log))))
+
+(t/deftest zero-sign-of-evalpoly                                           ; T-22
+  (let [bits #(Double/doubleToRawLongBits (double %))]
+    (t/is (= (bits -0.0) (bits (sut/evalpoly 1.0 -0.0 -0.0))))
+    (t/is (= (bits -0.0) (bits (sut/evalpoly 1.0 -0.0))))
+    (t/is (= (bits 0.0) (bits (sut/evalpoly 1.0 1.0 -1.0))) "an exact cancellation is +0.0")
+    (t/is (= (bits 0.0) (bits (sut/mevalpoly 1.0 1.0 -1.0))))))
+
+(t/deftest bernstein-with-a-subnormal-power                                ; T-14
+  ;; 0.3^616 and 0.5935642792213479^1402 are subnormal while the products are about 1e-168
+  (doseq [[n k x exact] [[794 616 0.3 2.321385782417405E-168]
+                         [1546 1402 0.5935642792213479 4.095317600262778E-168]]]
+    (let [v (sut/eval-bernstein n k x)]
+      (t/is (<= (m/abs (- 1.0 (/ v exact))) (* 8.0 (inc n) EPS)) (str n " " k " " x " " v))))
+  ;; exact values by BigDecimal for a range of cases next to the change of regime
+  (let [mc (java.math.MathContext. 120)
+        exact-value (fn [n k x]
+                      (let [binomial (java.math.BigDecimal. (str (reduce (fn [^BigInteger a ^long j] (.divide (.multiply a (BigInteger/valueOf (- (inc n) j))) (BigInteger/valueOf j)))
+                                                                         BigInteger/ONE (range 1 (inc k)))))
+                            bx (java.math.BigDecimal. (double x))]
+                        (.doubleValue (.multiply (.multiply binomial (.pow bx (int k) mc) mc)
+                                                 (.pow (.subtract java.math.BigDecimal/ONE bx) (int (- n k)) mc) mc))))]
+    (doseq [[n k x] [[700 560 0.3] [900 700 0.35] [1200 1000 0.4] [2000 1700 0.45] [1000 800 0.2] [800 780 0.7]]
+            :let [exact (exact-value n k x)]
+            :when (> (m/abs exact) 1e-290)]
+      (t/is (<= (m/abs (- 1.0 (/ (sut/eval-bernstein n k x) exact))) (* 8.0 (inc n) EPS)) (str n " " k " " x)))))
+
+;; T-15, T-16: a recurrence that leaves the double range gives the signed infinity, not NaN
+
+(defn- exact-hermite-value
+  "Exact value of `H_n` (kind :H) or `He_n` (kind :He) at the double `x`, by the recurrence in ratios."
+  [kind ^long n x]
+  (let [rx (exact-ratio x)
+        h1 (if (= kind :H) (* 2 rx) rx)
+        step (fn [i prev pprev] (let [t (- (* rx prev) (* (dec i) pprev))] (if (= kind :H) (* 2 t) t)))]
+    (cond (zero? n) 1
+          (== n 1) h1
+          :else (loop [i 2 pprev 1 prev h1]
+                  (if (> i n) prev (recur (inc i) prev (step i prev pprev)))))))
+
+(defn- exact-laguerre-value
+  "Exact value of the generalized Laguerre polynomial at the doubles `a` and `x`, by the recurrence in ratios."
+  [^long n a x]
+  (let [ra (exact-ratio a)
+        rx (exact-ratio x)
+        l1 (- (+ 1 ra) rx)]
+    (cond (zero? n) 1
+          (== n 1) l1
+          :else (loop [i 2 pprev 1 prev l1]
+                  (if (> i n)
+                    prev
+                    (recur (inc i) prev (/ (- (* (- (+ (dec (* 2 i)) ra) rx) prev) (* (+ (dec i) ra) pprev)) i)))))))
+
+(defn- same-as-exact?
+  "True when `got` is the nearest double of `exact` (compared with 1e-6 relative tolerance when finite; the
+  signed infinity when `exact` is out of range)."
+  [exact ^double got]
+  (let [expected (exact->double exact)]
+    (if (Double/isInfinite expected)
+      (== expected got)
+      (and (Double/isFinite got)
+           (<= (m/abs (- got expected)) (+ (* 1e-6 (m/abs expected)) 1e-300))))))
+
+(t/deftest overflow-gives-the-signed-infinity                              ; T-15
+  (doseq [[n x e] [[6 1e100 ##Inf] [6 -1e100 ##Inf] [5 1e154 ##Inf] [5 -1e154 ##-Inf] [7 1e308 ##Inf] [7 -1e308 ##-Inf] [300 0.3 ##Inf]]]
+    (t/is (= e (sut/eval-hermite-H n x)) (str "H " n " " x)))
+  (doseq [[n x e] [[6 1e100 ##Inf] [5 -1e154 ##-Inf] [400 0.3 ##Inf]]]
+    (t/is (= e (sut/eval-hermite-He n x)) (str "He " n " " x)))
+  (doseq [[n a x e] [[6 0.0 1e100 ##Inf] [5 0.0 1e154 ##-Inf] [100 0.0 1e5 ##Inf] [4 2.0 -1e300 ##Inf] [3 2.0 -1e300 ##Inf]]]
+    (t/is (= e (sut/eval-laguerre-L n a x)) (str "L " n " " a " " x)))
+  (doseq [[n l phi x e] [[3 1e154 1.0 0.5 ##Inf] [5 1.0 1.0 1e154 ##Inf] [5 1.0 -1.0 1e154 ##-Inf] [4 1.0 1.0 -1e200 ##Inf]]]
+    (t/is (= e (sut/eval-meixner-pollaczek-P n l phi x)) (str "MP " n " " l " " phi " " x)))
+  ;; a NaN input still gives NaN
+  (t/is (Double/isNaN (sut/eval-hermite-H 6 ##NaN)))
+  (t/is (Double/isNaN (sut/eval-laguerre-L 6 ##NaN 1e100)))
+  (t/is (Double/isNaN (sut/eval-laguerre-L 6 0.0 ##NaN)))
+  (t/is (Double/isNaN (sut/eval-meixner-pollaczek-P 6 ##NaN 1.0 1e100))))
+
+(t/deftest overflow-in-the-oscillatory-region-has-the-sign-of-the-exact-value  ; T-15
+  (let [rng (java.util.Random. 11)]
+    (dotimes [_ 40]
+      (let [n (+ 150 (.nextInt rng 600))
+            x (- (* 6.0 (.nextDouble rng)) 3.0)
+            a (- (* 8.0 (.nextDouble rng)) 2.0)
+            xl (* 40.0 (.nextDouble rng))]
+        (t/is (same-as-exact? (exact-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
+        (t/is (same-as-exact? (exact-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x))
+        (t/is (same-as-exact? (exact-laguerre-value n a xl) (sut/eval-laguerre-L n a xl)) (str "L " n " " a " " xl))))))
+
+(t/deftest recurrences-near-the-end-of-the-double-range                    ; T-16
+  ;; (a+1)(a+2)/2 = 1.125e308 is representable; the product in the recurrence is not
+  (t/is (same-as-exact? (exact-laguerre-value 2 1.5e154 0.0) (sut/eval-laguerre-L 2 1.5e154 0.0)))
+  (t/is (< 1.1e308 (sut/eval-laguerre-L 2 1.5e154 0.0) 1.2e308))
+  (doseq [x [2.7e102 2.8e102 2.9e102 6e153 6.7e153 6.8e153]
+          n [2 3]]
+    (t/is (same-as-exact? (exact-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
+    (t/is (same-as-exact? (exact-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x)))
+  (doseq [a [1.0e100 1.0e150 1.4e154 1.5e154 1.9e154]]
+    (t/is (same-as-exact? (exact-laguerre-value 2 a 0.0) (sut/eval-laguerre-L 2 a 0.0)) (str "L 2 " a))))
+
+;; T-11, T-13: Ince polynomials for large and extreme e. The eigenproblem is solved in a symmetric form.
+;; Reference: `ince_large_e_reference.edn` (`mpmath`, built from the differential equation; |e| up to 1e8,
+;; p up to 30).
+
+(def ^:private ince-large-e-reference
+  (delay (edn/read-string (slurp (io/resource "polynomials/ince_large_e_reference.edn")))))
+
+(defn- max-difference-up-to-sign
+  "Smallest over the two signs of the largest coefficient difference."
+  [as bs]
+  [(apply max (map #(m/abs (- (double %1) (double %2))) as bs))
+   (apply max (map #(m/abs (+ (double %1) (double %2))) as bs))])
+
+(t/deftest ince-coefficients-for-large-e
+  (let [entries @ince-large-e-reference
+        worst (atom 0.0)]
+    (t/is (== 560 (count entries)))
+    (doseq [{:keys [kind p m e zero-value coefficients]} entries
+            :let [got (vec (if (= kind :C) (sut/ince-C-coeffs p m e :none) (sut/ince-S-coeffs p m e :none)))
+                  [same flipped] (max-difference-up-to-sign got coefficients)
+                  ;; the sign follows C(0) > 0 or S'(0) > 0, which the sum of the coefficients decides: reliable
+                  ;; only above rounding
+                  difference (if (< (m/abs zero-value) 1e-10) (min same flipped) same)]]
+      (swap! worst max difference)
+      (t/is (< difference 1e-12) (str kind " p=" p " m=" m " e=" e " difference " difference)))
+    ;; observed at most 3.5e-15
+    (t/is (< @worst 1e-12))))
+
+(t/deftest ince-for-extreme-finite-e                                       ; T-13
+  (doseq [e [1e-100 1e-150 1e-200 1e-300 2.3e-308 1e-310 5e-324 -5e-324 -1e-300]
+          [kind p m] [[:C 6 2] [:C 4 4] [:C 5 3] [:S 5 3] [:S 6 4] [:C 2 2]]
+          :let [got (vec (if (= kind :C) (sut/ince-C-coeffs p m e :none) (sut/ince-S-coeffs p m e :none)))
+                ;; the limit e -> 0: the unit vector of cos(m x) / sin(m x)
+                index (case kind :C (if (even? p) (quot m 2) (quot (dec m) 2)) :S (if (even? p) (dec (quot m 2)) (quot (dec m) 2)))]]
+    (t/is (every? #(Double/isFinite %) got) (str kind " " p " " m " " e))
+    (t/is (< (m/abs (- 1.0 (m/abs (got index)))) 1e-12) (str kind " " p " " m " " e)))
+  ;; huge finite e: the vectors stay unit vectors with finite entries and no exception
+  (doseq [e [1e150 1e200 1e300 1.7e308 -1e300]
+          [kind p m] [[:C 4 2] [:S 5 3] [:C 8 8] [:S 6 2]]
+          :let [got (vec (if (= kind :C) (sut/ince-C-coeffs p m e :none) (sut/ince-S-coeffs p m e :none)))]]
+    (t/is (every? #(Double/isFinite %) got) (str kind " " p " " m " " e))
+    (t/is (< (m/abs (- 1.0 (Math/sqrt (reduce + (map #(* % %) got))))) 1e-12)))
+  ;; huge e is continuous: the limit vector is reached
+  (t/is (< (first (max-difference-up-to-sign (sut/ince-C-coeffs 4 2 1e50 :none) (sut/ince-C-coeffs 4 2 1e300 :none))) 1e-9)))
+
+;; T-12: Miller's normalization for large p
+
+(t/deftest ince-millers-normalization-for-large-p
+  ;; the multiple of :none is the inverse of sqrt(sum (w_r a_r)^2): checked against the weights in exact form
+  ;; for a p where the plain weights are still finite, and by continuity beyond
+  (doseq [kind [:C :S]
+          p [100 170 172 196 198 200 250 300 330]
+          :let [m (if (= kind :C) 0 (if (even? p) 2 1))
+                none (vec (if (= kind :C) (sut/ince-C-coeffs p m 0.5 :none) (sut/ince-S-coeffs p m 0.5 :none)))
+                millers (vec (if (= kind :C) (sut/ince-C-coeffs p m 0.5 :millers) (sut/ince-S-coeffs p m 0.5 :millers)))
+                ratios (keep (fn [[a b]] (when (and (not (zero? a)) (not (zero? b))) (/ b a))) (map vector none millers))]]
+    (t/is (every? #(Double/isFinite %) millers) (str kind " " p))
+    (t/is (pos? (first ratios)) (str kind " " p))
+    (t/is (some pos? millers) (str kind " " p " not all zero"))
+    ;; a positive multiple of :none (where the entries do not underflow)
+    (t/is (every? #(<= (m/abs (- 1.0 (/ % (first ratios)))) 1e-9) (filter #(not (Double/isNaN %)) (take 5 ratios))) (str kind " " p)))
+  ;; the multiple falls like 1/sqrt(p!): known values
+  (t/is (m/delta-eq 2.9278788877268646E-65 (/ (first (sut/ince-C-coeffs 100 0 0.5 :millers)) (first (sut/ince-C-coeffs 100 0 0.5 :none))) 1e-77))
+  (t/is (< 0.0 (first (sut/ince-C-coeffs 300 0 0.5 :millers)) 1e-260))
+  ;; below the range of a double: a clear error, not zeros or NaN
+  (doseq [p [400 500 1000]]
+    (t/is (thrown? IllegalArgumentException (sut/ince-C-coeffs p 0 0.5 :millers)) (str "C " p))
+    (t/is (thrown? IllegalArgumentException (sut/ince-S-coeffs (inc p) 1 0.5 :millers)) (str "S " (inc p))))
+  ;; the other normalizations have no such limit
+  (t/is (every? #(Double/isFinite %) (sut/ince-C-coeffs 1000 0 0.5 :trigonometric))))
+
+(t/deftest ince-sign-is-never-zero
+  ;; a coefficient sum of exactly 0 must not zero the vector
+  (t/is (== 1.0 (@#'sut/ince-sign 0.0)))
+  (t/is (== 1.0 (@#'sut/ince-sign -0.0)))
+  (t/is (== -1.0 (@#'sut/ince-sign -1e-300))))
+
+;; T-23: the radial functions return the signed infinity where the series is out of the double range
+
+(t/deftest ince-radial-overflow-is-an-infinity
+  (let [fns {"C 4 2" (sut/ince-C-radial 4 2 0.5) "S 4 2" (sut/ince-S-radial 4 2 0.5) "C 4 0" (sut/ince-C-radial 4 0 0.5)
+             "C 3 1" (sut/ince-C-radial 3 1 0.5) "S 3 3" (sut/ince-S-radial 3 3 0.5) "C 2 2" (sut/ince-C-radial 2 2 -0.5)}]
+    (doseq [[label f] fns
+            xi [400.0 710.0 1e5 1e300 ##Inf]]
+      (let [v (f xi)]
+        (t/is (and (not (Double/isNaN v)) (Double/isInfinite v)) (str label " at " xi " gave " v))))
+    ;; the sign: the leading cosh / sinh term decides; for sinh the sign of xi too
+    (let [coeffs (vec (sut/ince-S-coeffs 4 2 0.5 :none))
+          last-coefficient (peek coeffs)]
+      (t/is (= (Math/signum last-coefficient) (Math/signum ((fns "S 4 2") 400.0))))
+      (t/is (= (- (Math/signum last-coefficient)) (Math/signum ((fns "S 4 2") -400.0))))
+      (t/is (= (- (Math/signum last-coefficient)) (Math/signum ((fns "S 4 2") ##-Inf)))))
+    (let [coeffs (vec (sut/ince-C-coeffs 4 2 0.5 :none))]
+      (t/is (= (Math/signum (peek coeffs)) (Math/signum ((fns "C 4 2") 400.0))))
+      (t/is (= (Math/signum (peek coeffs)) (Math/signum ((fns "C 4 2") -400.0)))))
+    ;; before the range the value is finite and the series is unchanged
+    (t/is (Double/isFinite ((fns "C 4 2") 100.0)))
+    (t/is (Double/isNaN ((fns "C 4 2") ##NaN)))
+    (t/is (m/delta-eq (/ 1.0 (Math/sqrt 2.0)) ((sut/ince-C-radial 0 0 0.5 :trigonometric) 1e300) 1e-15) "p = 0: no growth")))
