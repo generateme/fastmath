@@ -94,7 +94,7 @@ Code adopted from Zach Tellmans' library.
 * Sign: sgn, signum, abs
 * Other: gcd, lcm
 
-Most of them backed by [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) or [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html)
+Most of them backed by `java.lang.Math`, [Jafama FastMath 2.3.2](https://github.com/jeffhain/jafama) or [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html)
 
 ### Vector operations protocol and implementations
 
@@ -211,7 +211,7 @@ Almost all functions optimized to work with `double` and `long` primitives
 
 * [Apache Commons Math 3.6.1](http://commons.apache.org/proper/commons-math/index.html) - Apache 2.0 Licence
 * [SMILE 2.5.0](http://haifengl.github.io/smile/) - Apache 2.0 Licence
-* [Jafama FastMath 2.3.1](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
+* [Jafama FastMath 2.3.2](https://github.com/jeffhain/jafama) - Apache 2.0 Licence
 * [PrimitiveMath](https://github.com/ztellman/primitive-math) - MIT Licence
 * [JWave](https://github.com/cscheiblich/JWave/) - MIT Licence
 * [SSJ](https://github.com/umontreal-simul/ssj) - Apache 2.0 Licence

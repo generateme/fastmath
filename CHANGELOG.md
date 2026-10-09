@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization` method `:sceua` (`fastmath.optimization.sceua/sceua`) - Shuffled Complex Evolution global optimizer with parallel evolution of complexes, complex reduction and optional PCA recovery of a collapsed population
 * `fastmath.random/ensure-rng`, `child-rngs`; the `rng` argument of `sequence-generator` and `jittered-sequence-generator`; the `:rng` option of `fastmath.calculus/vegas`, `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` and `bayesian-optimization`
 * log version of utility functions for `bayesian-optimization`: `:log-ei`, `:log-poi` and `:log-ucb`
+* `fastmath.core` `fsin`, `fcos`, `ftan`, `fatan2`, `flog1p`, `fasinh`, `facosh`, `fatanh` - the previous Jafama-backed (faster, less accurate) versions of `sin`, `cos`, `tan`, `atan2`, `log1p`, `asinh`, `acosh`, `atanh`
 
 ### Fixed
 
@@ -95,6 +96,9 @@ All notable changes to this project will be documented in this file. This change
 * [breaking] optimization: unknown methods, goals, relations, rules, line searches, formulas and utility function types throw `ex-info`, `linear-optimization` accepts only the relations `<=`, `>=`, `=` (or `:leq`, `:geq`, `:eq`) and its limit is `:max-iters`
 * [breaking] `fastmath.random/sequence-generator` and `jittered-sequence-generator` (so `vegas`, `scan-and-*`, `bayesian-optimization` and `->seq` with `:r2`/`:sobol`/`:halton`) no longer draw from the shared `default-rng`: without an `rng` they use a new `JDKRandomGenerator` for every call, so reproduce a result with `:rng`/the `rng` argument instead of `fastmath.random/set-seed!`
 * `:rng` given to `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` is no longer shared by the optimization runs: every run gets its own generator derived from it
+* [breaking] `fastmath.core` `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `log1p`, `cbrt`, `log`, `ln`, `log10`, `sqrt` (and the functions built on them) are backed by `java.lang.Math` instead of Jafama `FastMath`, which was off by up to 8e5 ulps (`acos`), 1e5 (`tan`) and 1e3 (`sin`, `cos`) in some ranges; results differ by a few ulps for typical arguments, the old versions of `sin`, `cos`, `tan`, `atan2`, `log1p` are `fsin`, `fcos`, `ftan`, `fatan2`, `flog1p`; `expm1` now keeps `-0.0`
+* [breaking] `fastmath.core` `asinh`, `acosh`, `atanh` use `java.lang.Math` on JDK 27+ (Jafama's `acosh` was off by up to 2.5e7 ulps close to 1; `Math` is also 20-40x slower for `asinh` and `acosh`, use `fasinh`, `facosh` when speed matters) and Jafama on older JDKs
+* [breaking] `fastmath.core/remainder` is the IEEE remainder (`Math/IEEEremainder`): an exact tie goes to the even quotient (`(remainder 1.5 1.0)` is `-0.5`, was `0.5`)
 
 ## [3.0.0 alpha9]
 

@@ -412,7 +412,9 @@
   (t/is (m/nan? (sut/digamma ##-Inf)))
   (t/is (m/pos-inf? (sut/digamma ##Inf)))
   (t/is (m/neg-inf? (sut/digamma 0.0)))
-  (t/is (m/neg-inf? (sut/digamma -0.0)))
+  ;; Julia SpecialFunctions: digamma(-0.0) = +Inf. (This test used to expect -Inf, a result of Jafama's
+  ;; `tan(-0.0) = +0.0`; `Math/tan` keeps the sign of zero.)
+  (t/is (m/pos-inf? (sut/digamma -0.0)))
   (t/testing "closed-form special values"
     (t/is (m/delta-eq (m/- m/GAMMA) (sut/digamma 1.0) 1.0e-14))
     (t/is (m/delta-eq (m/- 1.0 m/GAMMA) (sut/digamma 2.0) 1.0e-14))
@@ -713,10 +715,12 @@
     (t/is (m/nan? (sut/polygamma 3 ##NaN)))
     (t/is (m/zero? (sut/polygamma 3 ##Inf)))
     (t/is (m/nan? (sut/polygamma 3 ##-Inf))))
-  (t/testing "pole at x=0 (and -0.0): +-Inf, sign depending on order parity"
+  (t/testing "pole at x=0 (and -0.0): +-Inf, sign depending on order parity and on the sign of the zero"
     (t/is (m/neg-inf? (sut/polygamma 2 0.0)))
     (t/is (m/pos-inf? (sut/polygamma 3 0.0)))
-    (t/is (m/neg-inf? (sut/polygamma 2 -0.0)))
+    ;; Julia SpecialFunctions: polygamma(2, -0.0) = +Inf, polygamma(3, -0.0) = +Inf (the order 2 case used to
+    ;; expect -Inf, a result of Jafama's `tan(-0.0) = +0.0`)
+    (t/is (m/pos-inf? (sut/polygamma 2 -0.0)))
     (t/is (m/pos-inf? (sut/polygamma 3 -0.0))))
   (t/testing "poles at negative integers: large magnitude (a floating-point
               approximation of a true pole via `cotderiv`'s cot(pi*z),

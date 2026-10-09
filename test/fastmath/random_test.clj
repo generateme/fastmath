@@ -3838,11 +3838,11 @@
     0.8074659145799746
     0.642761706427969]
    :generalized-half-logistic
-   [0.6986724366718834
+   [0.6986724366718833
     1.7391167913653134
     2.217298652131714
-    0.8571313242364567
-    0.5273150689722524]
+    0.8571313242364563
+    0.5273150689722523]
    :generalized-hyperbolic
    [-0.24272025759956362
     -0.8282255176557877
@@ -3893,11 +3893,11 @@
     -0.20575065178854876
     -0.3902434520482083]
    :ghl
-   [0.6986724366718834
+   [0.6986724366718833
     1.7391167913653134
     2.217298652131714
-    0.8571313242364567
-    0.5273150689722524]
+    0.8571313242364563
+    0.5273150689722523]
    :gig
    [1.475617600429787
     3.219031336335554
@@ -3924,16 +3924,16 @@
     0.3910582885854782]
    :half-cauchy
    [0.5825001501544679
-    1.9714037868158543
-    3.1376863751383484
-    0.7364818674943616
+    1.9714037868158536
+    3.1376863751383497
+    0.7364818674943615
     0.42848076645177974]
    :half-logistic
-   [0.6986724366718834
+   [0.6986724366718833
     1.7391167913653134
     2.217298652131714
-    0.8571313242364567
-    0.5273150689722524]
+    0.8571313242364563
+    0.5273150689722523]
    :half-normal
    [0.43410352920398304
     1.0389020210141664
@@ -4220,12 +4220,23 @@
    :zip2 [8 2 6 2 6]
    :zipf [1 1 1 1 1]})
 
+(defn- golden=
+  "True when the golden sample sequences are equal; doubles may differ by 1e-14 relative.
+  The samplers use `java.lang.Math` functions (`log1p`, `tan`, ...), which are not bit-identical across JDK versions
+  (observed difference: 1-4 ulps between JDK 25/26 and 27)."
+  [expected actual]
+  (and (= (count expected) (count actual))
+       (every? true? (map (fn [e a] (if (and (double? e) (double? a))
+                                      (m/delta-eq e a 1.0e-300 1.0e-14)
+                                      (= e a)))
+                          expected actual))))
+
 (t/deftest custom-rng-golden-values
   (t/testing "every distribution key registered under `distribution` matches its pinned golden sample sequence (:isaac, seed=42)"
     (doseq [[k expected] golden-values-isaac-seed-42]
       (let [params (get distribution-overrides k)
             dist (sut/distribution k (assoc params :rng (sut/rng :isaac 42)))]
-        (t/is (= expected (vec (sut/->seq dist (count expected))))
+        (t/is (golden= expected (vec (sut/->seq dist (count expected))))
               (str "golden value mismatch for " k)))))
   (t/testing "every registered distribution key has a golden-value entry (and vice versa) - keeps this table honest as new distributions are added"
     (t/is (= (set all-distribution-keys) (set (keys golden-values-isaac-seed-42)))))

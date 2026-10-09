@@ -1,7 +1,7 @@
 (ns fastmath.core
   "Core, high-performance mathematical functions and constants, specialized for primitive `double` and `long` types.
 
-  Most functions here are inlined and operate directly on primitives to avoid boxing overhead, and are primarily backed by the FastMath (jafama) library, Apache Commons Math, and custom primitive implementations. Many mathematical constants (`PI`, `E`, roots, reciprocals, logarithms of common values, etc.) are also provided.
+  Most functions here are inlined and operate directly on primitives to avoid boxing overhead, and are primarily backed by `java.lang.Math` (elementary functions such as `sin`, `cos`, `tan`, `log`, `sqrt`), the FastMath (jafama) library (hyperbolic functions, `exp`, `hypot`, rounding, and the faster, less accurate `f`-prefixed twins such as `fsin`), Apache Commons Math, and custom primitive implementations. Many mathematical constants (`PI`, `E`, roots, reciprocals, logarithms of common values, etc.) are also provided.
 
   Functions and macros defined in this namespace cover:
 
@@ -1022,7 +1022,25 @@
 ;; trigonometry
 
 (defn sin
-  "sin(x)"
+  "sin(x)
+
+  See also [[fsin]]."
+  {:inline (fn [x] `(. Math (sin (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (sin x)))
+
+(defn fsin
+  "Computes `sin(x)` with Jafama `FastMath`, which is faster than [[sin]] but less accurate.
+
+  The error is small in absolute terms but can be large in relative terms, in particular for small `x` and next to the zeros of the sine (multiples of `π`). Use [[sin]] when relative accuracy matters.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `sin(x)` as a double. Returns `##NaN` when `x` is infinite or `##NaN`.
+
+  See also [[sin]], [[qsin]]."
   {:inline (fn [x] `(. FastMath (sin (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (sin x)))
@@ -1037,12 +1055,30 @@
   Returns `sin(π·x)` as a double, equivalent to `(sin (* PI x))`. Near-exact identity values (e.g. `x=0.5` giving `1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
 
   See also [[sin]], [[cospi]], [[tanpi]]."
-  {:inline (fn [x] `(. FastMath (sin (* PI (double ~x)))))
+  {:inline (fn [x] `(sin (* PI (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (sin (* PI x))))
+  ^double [^double x] (sin (* PI x)))
 
 (defn cos
-  "cos(x)"
+  "cos(x)
+
+  See also [[fcos]]."
+  {:inline (fn [x] `(. Math (cos (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (cos x)))
+
+(defn fcos
+  "Computes `cos(x)` with Jafama `FastMath`, which is faster than [[cos]] but less accurate.
+
+  The error is small in absolute terms but can be large in relative terms, in particular next to the zeros of the cosine (odd multiples of `π/2`). Use [[cos]] when relative accuracy matters.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `cos(x)` as a double. Returns `##NaN` when `x` is infinite or `##NaN`.
+
+  See also [[cos]], [[qcos]]."
   {:inline (fn [x] `(. FastMath (cos (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (cos x)))
@@ -1057,12 +1093,30 @@
   Returns `cos(π·x)` as a double, equivalent to `(cos (* PI x))`. Near-exact identity values (e.g. `x=1.0` giving `-1.0`) are not guaranteed to be bit-exact, since `π` is only finitely represented as a double.
 
   See also [[cos]], [[sinpi]], [[tanpi]]."
-  {:inline (fn [x] `(. FastMath (cos (* PI (double ~x)))))
+  {:inline (fn [x] `(cos (* PI (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (cos (* PI x))))
+  ^double [^double x] (cos (* PI x)))
 
 (defn tan
-  "tan(x)"
+  "tan(x)
+
+  See also [[ftan]]."
+  {:inline (fn [x] `(. Math (tan (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (tan x)))
+
+(defn ftan
+  "Computes `tan(x)` with Jafama `FastMath`, which is faster than [[tan]] but less accurate.
+
+  The error is small in absolute terms but can be very large in relative terms, in particular next to the zeros of the tangent (multiples of `π`) and next to its poles (odd multiples of `π/2`). Use [[tan]] when relative accuracy matters.
+
+  Parameters:
+
+  - `x` (double): angle in radians.
+
+  Returns `tan(x)` as a double. Returns `##NaN` when `x` is infinite or `##NaN`.
+
+  See also [[tan]]."
   {:inline (fn [x] `(. FastMath (tan (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (tan x)))
@@ -1077,27 +1131,27 @@
   Returns `tan(π·x)` as a double, equivalent to `(tan (* PI x))`. Diverges to very large magnitudes near `x = k+0.5` for integer `k` (where `cos(π·x)` is near zero), matching plain [[tan]]'s behavior at its own poles.
 
   See also [[tan]], [[sinpi]], [[cospi]]."
-  {:inline (fn [x] `(. FastMath (tan (* PI (double ~x)))))
+  {:inline (fn [x] `(tan (* PI (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (tan (* PI x))))
+  ^double [^double x] (tan (* PI x)))
 
 (defn asin
   "asin(x)"
-  {:inline (fn [x] `(. FastMath (asin (double ~x))))
+  {:inline (fn [x] `(. Math (asin (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (asin x)))
+  ^double [^double x] (. Math (asin x)))
 
 (defn acos
   "acos(x)"
-  {:inline (fn [x] `(. FastMath (acos (double ~x))))
+  {:inline (fn [x] `(. Math (acos (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (acos x)))
+  ^double [^double x] (. Math (acos x)))
 
 (defn atan
   "atan(x)"
-  {:inline (fn [x] `(. FastMath (atan (double ~x))))
+  {:inline (fn [x] `(. Math (atan (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (atan x)))
+  ^double [^double x] (. Math (atan x)))
 
 (defn sinh
   "sinh(x)"
@@ -1117,20 +1171,99 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (tanh x)))
 
+;; `Math/asinh`, `Math/acosh` and `Math/atanh` were added in JDK 27 (not in 25 and 26, checked with `javap`).
+;; Jafama's versions are fast but inaccurate (`acosh` near 1: up to 2.5e7 ulps, `asinh` near 0: 33 ulps, `atanh`: 19 ulps),
+;; so `Math` is used where it exists and Jafama on older JDKs.
+(def ^{:const true :tag 'long :private true} math-inverse-hyperbolic-jdk 27)
+
+(defn ^:private ->inverse-hyperbolic
+  "Builds an `:inline` template of `Math/f` (JDK 27+) or `FastMath/f` (older JDKs) for the symbol `f`."
+  [f]
+  (if (< jvm-version math-inverse-hyperbolic-jdk)
+    (fn [x] `(. FastMath (~f (double ~x))))
+    (fn [x] `(. Math (~f (double ~x))))))
+
+(defmacro ^:private inverse-hyperbolic-macro
+  "Expands to `Math/f` (JDK 27+) or `FastMath/f` (older JDKs) applied to `x`."
+  [f x]
+  (if (< jvm-version math-inverse-hyperbolic-jdk)
+    `(. FastMath (~f ~x))
+    `(. Math (~f ~x))))
+
 (defn asinh
-  "asinh(x)"
+  "asinh(x)
+
+  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (Jafama is much less accurate, see [[fasinh]]).
+
+  See also [[fasinh]]."
+  {:inline (->inverse-hyperbolic 'asinh)
+   :inline-arities #{1}}
+  ^double [^double x] (inverse-hyperbolic-macro asinh x))
+
+(defn fasinh
+  "Computes `asinh(x)` with Jafama `FastMath`, which is faster than [[asinh]] on JDK 27 and newer but less accurate.
+
+  The error is larger than that of [[asinh]]. Use [[asinh]] when accuracy matters.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse hyperbolic sine of.
+
+  Returns `asinh(x)` as a double.
+
+  See also [[asinh]]."
   {:inline (fn [x] `(. FastMath (asinh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (asinh x)))
 
 (defn acosh
-  "acosh(x)"
+  "acosh(x)
+
+  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (Jafama is very inaccurate for `x` close to 1, see [[facosh]]).
+
+  See also [[facosh]]."
+  {:inline (->inverse-hyperbolic 'acosh)
+   :inline-arities #{1}}
+  ^double [^double x] (inverse-hyperbolic-macro acosh x))
+
+(defn facosh
+  "Computes `acosh(x)` with Jafama `FastMath`, which is faster than [[acosh]] on JDK 27 and newer but less accurate.
+
+  The relative error is very large for `x` close to 1. Use [[acosh]] when accuracy matters.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse hyperbolic cosine of, `x >= 1`.
+
+  Returns `acosh(x)` as a double. Returns `##NaN` for `x < 1`.
+
+  See also [[acosh]]."
   {:inline (fn [x] `(. FastMath (acosh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (acosh x)))
 
 (defn atanh
-  "atanh(x)"
+  "atanh(x)
+
+  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (see [[fatanh]]).
+
+  See also [[fatanh]]."
+  {:inline (->inverse-hyperbolic 'atanh)
+   :inline-arities #{1}}
+  ^double [^double x] (inverse-hyperbolic-macro atanh x))
+
+(defn fatanh
+  "Computes `atanh(x)` with Jafama `FastMath`, which is faster than [[atanh]] on JDK 27 and newer but less accurate.
+
+  The error is larger than that of [[atanh]]. Use [[atanh]] when accuracy matters.
+
+  Parameters:
+
+  - `x` (double): value to take the inverse hyperbolic tangent of, `-1 <= x <= 1`.
+
+  Returns `atanh(x)` as a double. Returns `##NaN` for `|x| > 1` and `##Inf` or `##-Inf` for `x` equal to `1` or `-1`.
+
+  See also [[atanh]]."
   {:inline (fn [x] `(. FastMath (atanh (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (atanh x)))
@@ -1147,6 +1280,19 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (cosQuick x)))
 
+;; Roots (square and cubic)
+(defn sqrt
+  "square root, sqrt(x)"
+  {:inline (fn [x] `(. Math (sqrt (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (sqrt x)))
+
+(defn cbrt
+  "cubic root, cbrt(x)"
+  {:inline (fn [x] `(. Math (cbrt (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (cbrt x)))
+
 ;; Additional trigonometry functions
 
 (defn cot
@@ -1161,7 +1307,7 @@
   See also [[tan]], [[cotpi]], [[sec]], [[csc]]."
   {:inline (fn [x] `(/ (tan (double ~x))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/tan x))))
+  (^double [^double x] (/ (tan x))))
 
 (defn cotpi
   "Computes the cotangent of `x` expressed in half-turns (units of π), `cot(π·x) = 1/tan(π·x)`.
@@ -1175,7 +1321,7 @@
   See also [[cot]], [[tanpi]], [[secpi]], [[cscpi]]."
   {:inline (fn [x] `(/ (tan (* PI (double ~x)))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/tan (* PI x)))))
+  (^double [^double x] (/ (tan (* PI x)))))
 
 (defn sec
   "Computes the secant of `x`, `sec(x) = 1/cos(x)`.
@@ -1189,7 +1335,7 @@
   See also [[cos]], [[secpi]], [[cot]], [[csc]]."
   {:inline (fn [x] `(/ (cos (double ~x))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/cos x))))
+  (^double [^double x] (/ (cos x))))
 
 (defn secpi
   "Computes the secant of `x` expressed in half-turns (units of π), `sec(π·x) = 1/cos(π·x)`.
@@ -1203,7 +1349,7 @@
   See also [[sec]], [[cospi]], [[cotpi]], [[cscpi]]."
   {:inline (fn [x] `(/ (cos (* PI (double ~x)))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/cos (* PI x)))))
+  (^double [^double x] (/ (cos (* PI x)))))
 
 (defn csc
   "Computes the cosecant of `x`, `csc(x) = 1/sin(x)`.
@@ -1217,7 +1363,7 @@
   See also [[sin]], [[cscpi]], [[cot]], [[sec]]."
   {:inline (fn [x] `(/ (sin (double ~x))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/sin x))))
+  (^double [^double x] (/ (sin x))))
 
 (defn cscpi
   "Computes the cosecant of `x` expressed in half-turns (units of π), `csc(π·x) = 1/sin(π·x)`.
@@ -1231,7 +1377,7 @@
   See also [[csc]], [[sinpi]], [[cotpi]], [[secpi]]."
   {:inline (fn [x] `(/ (sin (* PI (double ~x)))))
    :inline-arities #{1}}
-  (^double [^double x] (/ (FastMath/sin (* PI x)))))
+  (^double [^double x] (/ (sin (* PI x)))))
 
 ;; Additional cyclometric functions
 
@@ -1247,7 +1393,7 @@
   See also [[atan]], [[asec]], [[acsc]]."
   {:inline (fn [x] `(- HALF_PI (atan (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (- HALF_PI (FastMath/atan x)))
+  ^double [^double x] (- HALF_PI (atan x)))
 
 (defn asec
   "Computes the inverse secant of `x`, `asec(x) = acos(1/x)`.
@@ -1261,7 +1407,7 @@
   See also [[acos]], [[acot]], [[acsc]]."
   {:inline (fn [x] `(acos (/ ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acos (/ 1.0 x)))
+  ^double [^double x] (acos (/ 1.0 x)))
 
 (defn acsc
   "Computes the inverse cosecant of `x`, `acsc(x) = asin(1/x)`.
@@ -1275,10 +1421,29 @@
   See also [[asin]], [[acot]], [[asec]]."
   {:inline (fn [x] `(asin (/ ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/asin (/ 1.0 x)))
+  ^double [^double x] (asin (/ 1.0 x)))
 
 (defn atan2
-  "atan2(x,y)"
+  "atan2(x,y)
+
+  See also [[fatan2]]."
+  {:inline (fn [x y] `(. Math (atan2 (double ~x) (double ~y))))
+   :inline-arities #{2}}
+  ^double [^double x ^double y] (Math/atan2 x y))
+
+(defn fatan2
+  "Computes `atan2` with Jafama `FastMath`, which is faster than [[atan2]] but less accurate.
+
+  The error is larger than that of [[atan2]]. Use [[atan2]] when accuracy matters.
+
+  Parameters:
+
+  - `x` (double): the first argument, as in [[atan2]] (the ordinate of the point, the `y` of `Math.atan2`).
+  - `y` (double): the second argument, as in [[atan2]] (the abscissa of the point, the `x` of `Math.atan2`).
+
+  Returns the angle in radians in the range `[-π, π]` as a double.
+
+  See also [[atan2]]."
   {:inline (fn [x y] `(. FastMath (atan2 (double ~x) (double ~y))))
    :inline-arities #{2}}
   ^double [^double x ^double y] (FastMath/atan2 x y))
@@ -1296,7 +1461,7 @@
   See also [[tanh]], [[sech]], [[csch]]."
   {:inline (fn [x] `(/ (tanh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (/ (FastMath/tanh x)))
+  ^double [^double x] (/ (tanh x)))
 
 (defn sech
   "Computes the hyperbolic secant of `x`, `sech(x) = 1/cosh(x)`.
@@ -1310,7 +1475,7 @@
   See also [[cosh]], [[coth]], [[csch]]."
   {:inline (fn [x] `(/ (cosh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (/ (FastMath/cosh x)))
+  ^double [^double x] (/ (cosh x)))
 
 (defn csch
   "Computes the hyperbolic cosecant of `x`, `csch(x) = 1/sinh(x)`.
@@ -1324,7 +1489,7 @@
   See also [[sinh]], [[coth]], [[sech]]."
   {:inline (fn [x] `(/ (sinh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (/ (FastMath/sinh x)))
+  ^double [^double x] (/ (sinh x)))
 
 ;; Additional inverse hyperbolic functions
 (defn acoth
@@ -1339,7 +1504,7 @@
   See also [[atanh]], [[asech]], [[acsch]]."
   {:inline (fn [x] `(atanh (/ ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/atanh (/ x)))
+  ^double [^double x] (atanh (/ x)))
 
 (defn asech
   "Computes the area (inverse) hyperbolic secant of `x`, `asech(x) = acosh(1/x)`.
@@ -1353,7 +1518,7 @@
   See also [[acosh]], [[acoth]], [[acsch]]."
   {:inline (fn [x] `(acosh (/ ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acosh (/ x)))
+  ^double [^double x] (acosh (/ x)))
 
 (defn acsch
   "Computes the area (inverse) hyperbolic cosecant of `x`, `acsch(x) = asinh(1/x)`.
@@ -1367,7 +1532,7 @@
   See also [[asinh]], [[acoth]], [[asech]]."
   {:inline (fn [x] `(asinh (/ ~x)))
    :inline-arities #{1}}
-  ^double [^double v] (FastMath/asinh (/ v)))
+  ^double [^double v] (asinh (/ v)))
 
 ;; historical
 
@@ -1383,7 +1548,7 @@
   See also [[acrd]], [[sin]]."
   {:inline (fn [x] `(* 2.0 (sin (* 0.5 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (* 2.0 (FastMath/sin (* 0.5 x))))
+  ^double [^double x] (* 2.0 (sin (* 0.5 x))))
 
 (defn acrd
   "Computes the inverse chord function, `acrd(x) = 2*asin(x/2)`.
@@ -1397,7 +1562,7 @@
   See also [[crd]], [[asin]]."
   {:inline (fn [x] `(* 2.0 (asin (* 0.5 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (* 2.0 (FastMath/asin (* 0.5 x))))
+  ^double [^double x] (* 2.0 (asin (* 0.5 x))))
 
 (defn versin
   "Computes the versine (versed sine) of `x`, `versin(x) = 1 - cos(x)`.
@@ -1411,7 +1576,7 @@
   See also [[aversin]], [[coversin]], [[vercos]], [[haversin]]."
   {:inline (fn [x] `(- 1.0 (cos (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (- 1.0 (FastMath/cos x)))
+  ^double [^double x] (- 1.0 (cos x)))
 
 (defn coversin
   "Computes the coversine (coversed sine) of `x`, `coversin(x) = 1 - sin(x)`.
@@ -1425,7 +1590,7 @@
   See also [[acoversin]], [[versin]], [[covercos]]."
   {:inline (fn [x] `(- 1.0 (sin (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (- 1.0 (FastMath/sin x)))
+  ^double [^double x] (- 1.0 (sin x)))
 
 (defn vercos
   "Computes the vercosine (versed cosine) of `x`, `vercos(x) = 1 + cos(x)`.
@@ -1439,7 +1604,7 @@
   See also [[avercos]], [[versin]], [[covercos]]."
   {:inline (fn [x] `(inc (cos (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (inc (FastMath/cos x)))
+  ^double [^double x] (inc (cos x)))
 
 (defn covercos
   "Computes the covercosine (coversed cosine) of `x`, `covercos(x) = 1 + sin(x)`.
@@ -1453,7 +1618,7 @@
   See also [[acovercos]], [[coversin]], [[vercos]]."
   {:inline (fn [x] `(inc (sin (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (inc (FastMath/sin x)))
+  ^double [^double x] (inc (sin x)))
 
 (defn aversin
   "Computes the arc (inverse) versine of `x`, `aversin(x) = acos(1 - x)`.
@@ -1467,7 +1632,7 @@
   See also [[versin]], [[acoversin]], [[avercos]]."
   {:inline (fn [x] `(acos (- 1.0 ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acos (- 1.0 x)))
+  ^double [^double x] (acos (- 1.0 x)))
 
 (defn acoversin
   "Computes the arc (inverse) coversine of `x`, `acoversin(x) = asin(1 - x)`.
@@ -1481,7 +1646,7 @@
   See also [[coversin]], [[aversin]], [[acovercos]]."
   {:inline (fn [x] `(asin (- 1.0 ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/asin (- 1.0 x)))
+  ^double [^double x] (asin (- 1.0 x)))
 
 (defn avercos
   "Computes the arc (inverse) vercosine of `x`, `avercos(x) = acos(x - 1)`.
@@ -1495,7 +1660,7 @@
   See also [[vercos]], [[aversin]], [[acovercos]]."
   {:inline (fn [x] `(acos (dec ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acos (dec x)))
+  ^double [^double x] (acos (dec x)))
 
 (defn acovercos
   "Computes the arc (inverse) covercosine of `x`, `acovercos(x) = asin(x - 1)`.
@@ -1509,7 +1674,7 @@
   See also [[covercos]], [[acoversin]], [[avercos]]."
   {:inline (fn [x] `(asin (dec ~x)))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/asin (dec x)))
+  ^double [^double x] (asin (dec x)))
 
 (defn haversin
   "Computes the haversine of `x`, `haversin(x) = (1 - cos(x))/2`, or the haversine-formula central angle between two latitude/longitude points (in radians).
@@ -1525,13 +1690,13 @@
   See also [[haversine]] (alias), [[haversine-dist]], [[versin]]."
   {:inline (fn [x] `(* 0.5 (- 1.0 (cos (double ~x)))))
    :inline-arities #{1}}
-  (^double [^double x] (* 0.5 (- 1.0 (FastMath/cos x))))
+  (^double [^double x] (* 0.5 (- 1.0 (cos x))))
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
    (haversin lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
    (+ (haversin (- lat2 lat1))
-      (* (FastMath/cos lat1)
-         (FastMath/cos lat2)
+      (* (cos lat1)
+         (cos lat2)
          (haversin (- lon2 lon1))))))
 
 (def ^{:doc "Haversine ([[haversin]] alias)"} haversine haversin)
@@ -1548,7 +1713,7 @@
   See also [[ahacoversin]], [[coversin]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (- 1.0 (sin (double ~x)))))
    :inline-arities #{1}}
-  ^double [^double x] (* 0.5 (- 1.0 (FastMath/sin x))))
+  ^double [^double x] (* 0.5 (- 1.0 (sin x))))
 
 (defn havercos
   "Computes the havercosine of `x`, `havercos(x) = (1 + cos(x))/2`.
@@ -1562,7 +1727,7 @@
   See also [[ahavercos]], [[vercos]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (inc (cos (double ~x)))))
    :inline-arities #{1}}
-  ^double [^double x] (* 0.5 (inc (FastMath/cos x))))
+  ^double [^double x] (* 0.5 (inc (cos x))))
 
 (defn hacovercos
   "Computes the hacovercosine of `x`, `hacovercos(x) = (1 + sin(x))/2`.
@@ -1576,7 +1741,7 @@
   See also [[ahacovercos]], [[covercos]], [[haversin]]."
   {:inline (fn [x] `(* 0.5 (inc (sin (double ~x)))))
    :inline-arities #{1}}
-  ^double [^double x] (* 0.5 (inc (FastMath/sin x))))
+  ^double [^double x] (* 0.5 (inc (sin x))))
 
 (defn ahaversin
   "Computes the arc (inverse) haversine of `x`, `ahaversin(x) = acos(1 - 2x)`.
@@ -1590,7 +1755,7 @@
   See also [[haversin]], [[ahacoversin]], [[ahavercos]]."
   {:inline (fn [x] `(acos (- 1.0 (* 2.0 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acos (- 1.0 (* 2.0 x))))
+  ^double [^double x] (acos (- 1.0 (* 2.0 x))))
 
 (defn ahacoversin
   "Computes the arc (inverse) hacoversine of `x`, `ahacoversin(x) = asin(1 - 2x)`.
@@ -1604,7 +1769,7 @@
   See also [[hacoversin]], [[ahaversin]], [[ahacovercos]]."
   {:inline (fn [x] `(asin (- 1.0 (* 2.0 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/asin (- 1.0 (* 2.0 x))))
+  ^double [^double x] (asin (- 1.0 (* 2.0 x))))
 
 (defn ahavercos
   "Computes the arc (inverse) havercosine of `x`, `ahavercos(x) = acos(2x - 1)`.
@@ -1618,7 +1783,7 @@
   See also [[havercos]], [[ahaversin]], [[ahacovercos]]."
   {:inline (fn [x] `(acos (dec (* 2.0 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/acos (dec (* 2.0 x))))
+  ^double [^double x] (acos (dec (* 2.0 x))))
 
 (defn ahacovercos
   "Computes the arc (inverse) hacovercosine of `x`, `ahacovercos(x) = asin(2x - 1)`.
@@ -1632,7 +1797,7 @@
   See also [[hacovercos]], [[ahacoversin]], [[ahavercos]]."
   {:inline (fn [x] `(asin (dec (* 2.0 ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/asin (dec (* 2.0 x))))
+  ^double [^double x] (asin (dec (* 2.0 x))))
 
 (defn exsec
   "Computes the exsecant of `x`, `exsec(x) = sec(x) - 1`.
@@ -1704,7 +1869,7 @@
   (^double [[^double lat1 ^double lon1] [^double lat2 ^double lon2]]
    (haversine-dist lat1 lon1 lat2 lon2))
   (^double [^double lat1 ^double lon1 ^double lat2 ^double lon2]
-   (* 2.0 (FastMath/asin (FastMath/sqrt (haversin lat1 lon1 lat2 lon2))))))
+   (* 2.0 (asin (sqrt (haversin lat1 lon1 lat2 lon2))))))
 
 ;; exp and log
 
@@ -1734,38 +1899,59 @@
   - `x` (double): value to take the logarithm of; must be positive for a real result.
   - `base`, `x` (doubles), 2-arity: computes `log(x)/log(base)` (change of base).
 
-  Returns the logarithm as a double. Returns `##NaN` for `x < 0`, and `##-Inf` for `x = 0`, matching `FastMath/log`'s IEEE 754 behavior.
+  Returns the logarithm as a double. Returns `##NaN` for `x < 0`, and `##-Inf` for `x = 0`, matching `Math/log`'s IEEE 754 behavior.
 
   See also [[ln]] (alias, 1-arity only), [[log10]], [[log2]], [[logb]], [[log1p]]."
-  {:inline (fn ([x] `(. FastMath (log (double ~x))))
-             ([base x] `(/ (. FastMath (log (double ~x))) (. FastMath (log (double ~base))))))
+  {:inline (fn ([x] `(. Math (log (double ~x))))
+             ([base x] `(/ (. Math (log (double ~x))) (. Math (log (double ~base))))))
    :inline-arities #{1 2}}
-  (^double [^double x] (. FastMath (log x)))
-  (^double [^double base ^double x] (/ (. FastMath (log x)) (. FastMath (log base)))))
+  (^double [^double x] (. Math (log x)))
+  (^double [^double base ^double x] (/ (. Math (log x)) (. Math (log base)))))
 
 (defn ln
   "log(x)=ln(x)"
-  {:inline (fn [x] `(. FastMath (log (double ~x))))
+  {:inline (fn [x] `(. Math (log (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (log x)))
+  ^double [^double x] (. Math (log x)))
 
 (defn log10
   "log_10(x)"
-  {:inline (fn [x] `(. FastMath (log10 (double ~x))))
+  {:inline (fn [x] `(. Math (log10 (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (log10 x)))
+  ^double [^double x] (. Math (log10 x)))
 
 (defn log1p
-  "log(1+x) for small x"
+  "log(1+x) for small x
+
+  See also [[flog1p]]."
+  {:inline (fn [x] `(. Math (log1p (double ~x))))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (log1p x)))
+
+(defn flog1p
+  "Computes `log(1+x)` with Jafama `FastMath`, which is faster than [[log1p]] but less accurate.
+
+  The error is larger than that of [[log1p]]. Use [[log1p]] when accuracy matters.
+
+  Parameters:
+
+  - `x` (double): value to evaluate, `x >= -1`.
+
+  Returns `log(1+x)` as a double. Returns `##NaN` for `x < -1` and `##-Inf` for `x = -1`.
+
+  See also [[log1p]], [[log]]."
   {:inline (fn [x] `(. FastMath (log1p (double ~x))))
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (log1p x)))
 
 (defn expm1
-  "exp(x)-1 for small x"
-  {:inline (fn [x] `(. FastMath (expm1 (double ~x))))
+  "exp(x)-1 for small x
+
+  Returns `x` itself for `x` equal to `0.0` or `-0.0`, so the sign of a zero is kept."
+  {:inline (fn [x] `(let [x# (double ~x)]
+                     (if (zero? x#) x# (. FastMath (expm1 x#)))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (expm1 x)))
+  ^double [^double x] (if (zero? x) x (. FastMath (expm1 x))))
 
 (defn exprel
   "Computes `(exp(x) - 1) / x`, the relative rate of change of `exp` -- numerically stable near `x=0`, where the naive formula suffers catastrophic cancellation.
@@ -1781,13 +1967,13 @@
                      (cond
                        (< (. FastMath abs x#) MACHINE-EPSILON10) 1.0
                        (> x# 717.0) ##Inf
-                       :else (/ (. FastMath (expm1 x#)) x#))))
+                       :else (/ (expm1 x#) x#))))
    :inline-arities #{1}}
   ^double [^double x]
   (cond
     (< (. FastMath abs x) MACHINE-EPSILON10) 1.0
     (> x 717.0) ##Inf
-    :else (/ (. FastMath (expm1 x)) x)))
+    :else (/ (expm1 x) x)))
 
 (def ^{:const true :tag 'double :doc "Value of $\\ln{2}$"} LN2 (log 2.0))
 (def ^{:const true :tag 'double :doc "Value of $\\frac{1}{\\ln{2}}$"} INV_LN2 (/ LN2))
@@ -1811,9 +1997,9 @@
   ^double [^double x]
   (cond
     (< x -745.1332191019412) 0.0
-    (< x -36.7368005696771) (FastMath/exp x)
-    (< x 18.021826694558577) (FastMath/log1p (FastMath/exp x))
-    (< x 33.23111882352963) (+ x (FastMath/exp (- x)))
+    (< x -36.7368005696771) (exp x)
+    (< x 18.021826694558577) (log1p (exp x))
+    (< x 33.23111882352963) (+ x (exp (- x)))
     :else x))
 
 (defn log1mexp
@@ -1828,8 +2014,8 @@
   See also [[log1pexp]], [[log2mexp]]."
   ^double [^double x]
   (if (< x LOG_HALF)
-    (FastMath/log1p (- (FastMath/exp x)))
-    (FastMath/log (- (FastMath/expm1 x)))))
+    (log1p (- (exp x)))
+    (log (- (expm1 x)))))
 
 (defn log2mexp
   "Computes `log(2-exp(x))`, equivalent to `log1p(-expm1(x))`.
@@ -1841,10 +2027,10 @@
   Returns the result as a double.
 
   See also [[log1mexp]], [[expm1]]."
-  {:inline (fn [x] `(FastMath/log1p (- (FastMath/expm1 (double ~x)))))
+  {:inline (fn [x] `(log1p (- (expm1 (double ~x)))))
    :inline-arities #{1}}
   ^double [^double x]
-  (FastMath/log1p (- (FastMath/expm1 x))))
+  (log1p (- (expm1 x))))
 
 (defn log1psq
   "Computes `log(1+x^2)`, switching to a direct formula for very large `x` to avoid unnecessary precision loss in `x*x`.
@@ -1858,7 +2044,7 @@
   See also [[log1p]]."
   ^double [^double x]
   (if (< x 9007199254740992)
-    (FastMath/log1p (* x x))
+    (log1p (* x x))
     (* 2.0 (log x))))
 
 (defn logexpm1
@@ -1873,7 +2059,7 @@
   See also [[log1pexp]], [[expm1]]."
   {:inline (fn [x] `(log (expm1 (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (FastMath/log (FastMath/expm1 x)))
+  ^double [^double x] (log (expm1 x)))
 
 ;; from julia
 (defn- log1pmx-ker
@@ -1896,7 +2082,7 @@
   See also [[logmxp1]], [[log1p]]."
   ^double [^double x]
   (cond
-    (not (< -0.7 x 0.9)) (- (FastMath/log1p x) x)
+    (not (< -0.7 x 0.9)) (- (log1p x) x)
     (> x 0.315) (let [u (/ (- x 0.5) 1.5)]
                   (- (log1pmx-ker u) 9.45348918918356180e-2 (* 0.5 u)))
     (> x -0.227) (log1pmx-ker x)
@@ -1919,7 +2105,7 @@
   See also [[log1pmx]]."
   ^double [^double x]
   (cond
-    (<= x 0.3) (- (inc (FastMath/log x)) x)
+    (<= x 0.3) (- (inc (log x)) x)
     (<= x 0.4) (let [u (/ (- x 0.375) 0.375)]
                  (+ (log1pmx-ker u) -3.55829253011726237e-1 (* 0.625 u)))
     (<= x 0.6) (let [u (* (- x 0.5) 2.0)]
@@ -1974,13 +2160,13 @@
     (let [x (double (first xs))
           rst (rest xs)]
       (if (<= x alpha)
-        (let [nr (+ r (FastMath/exp (- x alpha)))]
+        (let [nr (+ r (exp (- x alpha)))]
           (if-not (seq rst)
-            (+ (FastMath/log nr) alpha)
+            (+ (log nr) alpha)
             (recur rst nr alpha)))
-        (let [nr (inc (* r (FastMath/exp (- alpha x))))]
+        (let [nr (inc (* r (exp (- alpha x))))]
           (if-not (seq rst)
-            (+ (FastMath/log nr) x)
+            (+ (log nr) x)
             (recur rst nr x)))))))
 
 (defn xlogx
@@ -1994,7 +2180,7 @@
 
   See also [[xlogy]]."
   ^double [^double x]
-  (if (zero? x) 0.0 (* x (FastMath/log x))))
+  (if (zero? x) 0.0 (* x (log x))))
 
 (defn xlogy
   "Computes `x * log(y)`, with the convention `0 * log(y) = 0` (rather than `##NaN`) whenever `x` is zero and `y` is not `##NaN`.
@@ -2034,10 +2220,10 @@
   Returns the result as a double.
 
   See also [[loglog]]."
-  {:inline (fn [x] `(FastMath/log (- (FastMath/log1p (- (double ~x))))))
+  {:inline (fn [x] `(log (- (log1p (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
-  (FastMath/log (- (FastMath/log1p (- x)))))
+  (log (- (log1p (- x)))))
 
 (defn loglog
   "Computes the log-log function, `loglog(x) = -log(-log(x))`, used as a link function for binary/count models.
@@ -2049,10 +2235,10 @@
   Returns the result as a double.
 
   See also [[cloglog]]."
-  {:inline (fn [x] `(- (FastMath/log (- (FastMath/log ~x)))))
+  {:inline (fn [x] `(- (log (- (log ~x)))))
    :inline-arities #{1}}
   ^double [^double x]
-  (- (FastMath/log (- (FastMath/log x)))))
+  (- (log (- (log x)))))
 
 (defn xexpx
   "Computes `x * exp(x)`, with the convention that the result is `0.0` whenever `exp(x)` underflows to zero (rather than propagating a spurious `0.0 * x`).
@@ -2093,10 +2279,10 @@
   Returns the result as a double, always in `[0, 1]`.
 
   See also [[expexp]]."
-  {:inline (fn [x] `(- (FastMath/expm1 (- (FastMath/exp (double ~x))))))
+  {:inline (fn [x] `(- (expm1 (- (exp (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
-  (- (FastMath/expm1 (- (FastMath/exp x)))))
+  (- (expm1 (- (exp x)))))
 
 (defn expexp
   "Computes `exp(-exp(-x))`, the Gumbel CDF form.
@@ -2108,10 +2294,10 @@
   Returns the result as a double, always in `[0, 1]`.
 
   See also [[cexpexp]]."
-  {:inline (fn [x] `(FastMath/exp (- (FastMath/exp (- (double ~x))))))
+  {:inline (fn [x] `(exp (- (exp (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
-  (FastMath/exp (- (FastMath/exp (- x)))))
+  (exp (- (exp (- x)))))
 
 ;; Quick logarithm
 (defn qlog
@@ -2120,18 +2306,7 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (logQuick x)))
 
-;; Roots (square and cubic)
-(defn sqrt
-  "square root, sqrt(x)"
-  {:inline (fn [x] `(. FastMath (sqrt (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. FastMath (sqrt x)))
-
-(defn cbrt
-  "cubic root, cbrt(x)"
-  {:inline (fn [x] `(. FastMath (cbrt (double ~x))))
-   :inline-arities #{1}}
-  ^double [^double x] (. FastMath (cbrt x)))
+;; Roots (square and cubic) are defined before the trigonometry-derived functions (`haversine-dist` uses `sqrt`)
 
 ;; Quick version of exponential \\(e^x\\)
 (defn qexp
@@ -2186,7 +2361,7 @@
   ^double [^double v]
   (let [x (* PI (Math/abs v))]
     (if (< x 1.0e-8) 1.0
-        (/ (FastMath/sin x) x))))
+        (/ (sin x) x))))
 
 ;;
 (defn sigmoid
@@ -2199,10 +2374,10 @@
   Returns the result as a double, always in `(0, 1)`.
 
   See also [[logistic]] (alias), [[logit]] (inverse)."
-  {:inline (fn [x] `(/ (inc (FastMath/exp (- (double ~x))))))
+  {:inline (fn [x] `(/ (inc (exp (- (double ~x))))))
    :inline-arities #{1}}
   ^double [^double x]
-  (/ (inc (FastMath/exp (- x)))))
+  (/ (inc (exp (- x)))))
 
 (def ^{:doc "Alias for [[sigmoid]]"} logistic sigmoid)
 
@@ -2219,15 +2394,15 @@
   {:inline (fn [x] `(let [x# (double ~x)]
                      (if (< 0.3 x# 0.65)
                        (let [s# (* 2.0 (- x# 0.5))]
-                         (- (FastMath/log1p s#)
-                            (FastMath/log1p (- s#))))
-                       (FastMath/log (/ x# (- 1.0 x#))))))
+                         (- (log1p s#)
+                            (log1p (- s#))))
+                       (log (/ x# (- 1.0 x#))))))
    :inline-arities #{1}}
   ^double [^double x]
   (if (< 0.3 x 0.65)
     (let [s (* 2.0 (- x 0.5))]
-      (- (FastMath/log1p s) (FastMath/log1p (- s))))
-    (FastMath/log (/ x (- 1.0 x)))))
+      (- (log1p s) (log1p (- s))))
+    (log (/ x (- 1.0 x)))))
 
 (defn log2
   "Computes the base-2 logarithm of `x`.
@@ -2239,10 +2414,10 @@
   Returns the result as a double.
 
   See also [[log]], [[logb]], [[LOG2E]]."
-  {:inline (fn [x] `(* (FastMath/log (double ~x)) INV_LN2))
+  {:inline (fn [x] `(* (log (double ~x)) INV_LN2))
    :inline-arities #{1}}
   ^double [^double x]
-  (* (FastMath/log x) INV_LN2))
+  (* (log x) INV_LN2))
 
 ;; \\(\log_b x\\)
 (defn logb
@@ -2256,10 +2431,10 @@
   Returns the result as a double.
 
   See also [[log]] (2-arity form), [[log2]]."
-  {:inline (fn [b x] `(/ (FastMath/log (double ~x)) (FastMath/log (double ~b))))
+  {:inline (fn [b x] `(/ (log (double ~x)) (log (double ~b))))
    :inline-arities #{2}}
   ^double [^double b ^double x]
-  (/ (FastMath/log x) (FastMath/log b)))
+  (/ (log x) (log b)))
 
 (defn logcosh
   "Computes `log(cosh(x))`, using a numerically stable form (`|x| + log1pexp(-2|x|) - ln(2)`) to avoid overflow in `cosh(x)` for large `|x|`.
@@ -2715,7 +2890,7 @@
 
   See also [[sqrt]], [[qsqrt]]."
   ^double [^double value]
-  (if (neg? value) 0.0 (FastMath/sqrt value)))
+  (if (neg? value) 0.0 (sqrt value)))
 
 (defn qsqrt
   "Approximated [[sqrt]] using binary operations with error `1.0E-2`."
@@ -2747,13 +2922,13 @@
   "Calculates the Euclidean norm (distance from the origin) using a direct sqrt of sum of squares.
 
   Note: This method can be less numerically stable than [[hypot]] for inputs with vastly different magnitudes."
-  {:inline (fn ([x y] `(. FastMath (sqrt (+ (sq ~x) (sq ~y)))))
-             ([x y z] `(. FastMath (sqrt (+ (sq ~x) (sq ~y) (sq ~z))))))
+  {:inline (fn ([x y] `(sqrt (+ (sq ~x) (sq ~y))))
+             ([x y z] `(sqrt (+ (sq ~x) (sq ~y) (sq ~z)))))
    :inline-arities #{2 3}}
   (^double [^double x ^double y]
-   (FastMath/sqrt (+ (* x x) (* y y))))
+   (sqrt (+ (* x x) (* y y))))
   (^double [^double x ^double y ^double z]
-   (FastMath/sqrt (+ (* x x) (* y y) (* z z)))))
+   (sqrt (+ (* x x) (* y y) (* z z)))))
 
 ;; distance
 (defn dist
@@ -2771,7 +2946,7 @@
    :inline-arities #{4}}
   (^double [[^double x1 ^double y1] [^double x2 ^double y2]] (dist x1 y1 x2 y2))
   (^double [^double x1 ^double y1 ^double x2 ^double y2]
-   (FastMath/sqrt (+ (sq (- x2 x1)) (sq (- y2 y1))))))
+   (sqrt (+ (sq (- x2 x1)) (sq (- y2 y1))))))
 
 (defn qdist
   "Computes the Euclidean distance between two 2D points, using [[qsqrt]] instead of `sqrt` for a faster, less accurate result.
@@ -2873,12 +3048,12 @@
   ^long [^double x] (PrimitiveMath/fastRound x))
 
 (defn remainder
-  "From `FastMath` doc: returns dividend - divisor * n,
-  where n is the mathematical integer closest to dividend/divisor. Returned value in `[-|divisor|/2,|divisor|/2]`"
-  {:inline (fn [dividend divisor] `(. FastMath (remainder (double ~dividend) (double ~divisor))))
+  "IEEE 754 remainder (`Math/IEEEremainder`): returns dividend - divisor * n,
+  where n is the mathematical integer closest to dividend/divisor (when two integers are equally close, the even one). Returned value in `[-|divisor|/2,|divisor|/2]`"
+  {:inline (fn [dividend divisor] `(. Math (IEEEremainder (double ~dividend) (double ~divisor))))
    :inline-arities #{2}}
   ^double [^double dividend ^double divisor]
-  (. FastMath (remainder dividend divisor)))
+  (. Math (IEEEremainder dividend divisor)))
 
 (defn abs
   "Absolute value."
@@ -3577,7 +3752,7 @@
 
 (defn- smooth-max-boltzmann
   ^double [xs ^double alpha]
-  (let [eaxs (map (fn [^double x] (FastMath/exp (* alpha x))) xs)
+  (let [eaxs (map (fn [^double x] (exp (* alpha x))) xs)
         ^double den (reduce + eaxs)]
     (reduce + (map (fn [^double x ^double eax]
                      (/ (* x eax) den)) xs eaxs))))

@@ -2186,21 +2186,12 @@
       (not (contains? ince-normalizations normalization))
       (throw (IllegalArgumentException. (str "Normalization must be one of :none, :trigonometric or :millers, got " (pr-str normalization)))))))
 
-(defn- ince-euclidean-norm
-  ^double [^doubles coefficients]
-  (m/sqrt (v/sum (v/sq coefficients))))
-
-(defn- ince-sign
-  "+1.0, or -1.0 for a negative `s`: the vector is not zeroed when the sum that decides the sign is exactly 0."
-  ^double [^double s]
-  (if (m/neg? s) -1.0 1.0))
-
 (defn- ince-millers-factor
   "The factor that gives the coefficients `a` Miller's normalization: `1 / sqrt(sum_r (w_r a_r)^2)` for the
   weights `w_r = exp(log-weights[r])`. The sum is formed in the logarithm, relative to its largest term, so
   it does not overflow where the sum itself would; throws `IllegalArgumentException` when the normalized
   coefficients are all below the double range (the weights grow like `sqrt(p!)`, from `p` of about 340)."
-  [^doubles a ^doubles log-weights p]
+  ^double [^doubles a ^doubles log-weights p]
   (let [n (alength a)
         ^doubles logs (double-array n)]
     (dotimes [r n]
@@ -2222,15 +2213,6 @@
                 (str "Miller's normalization is below the range of a double for p = " p))))
       factor)))
 
-(defn- ince-normalizing-factor
-  "The factor that multiplies the coefficients `a` (of Euclidean norm `euclidean-norm`) to give the
-  normalization: `:none` and `:trigonometric` by their norms, `:millers` from the logarithms of its weights."
-  [normalization a euclidean-norm trigonometric-norm log-weights p]
-  (case normalization
-    :none (m// 1.0 (double euclidean-norm))
-    :trigonometric (m// 1.0 (double trigonometric-norm))
-    :millers (ince-millers-factor a log-weights p)))
-
 (defn- ince-c-coeffs-even
   ([^long p ^long m ^double e normalization]
    (let [n (m// p 2)
@@ -2247,15 +2229,17 @@
      (when (m/pos? n)
        (Array/aset gamma 0 (m/* 2.0 (Array/aget gamma 0))))
      (let [^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div m 2))
-           sgn (ince-sign (v/sum a))
-           ^doubles a2 (v/sq a)
-           ;; the weight of the first term is sqrt(2) Gamma(N) (cos(0) = 1 has half the weight)
-           log-weights (when (= normalization :millers)
-                         (double-array (cons (m/+ (m/* 0.5 (m/ln 2.0)) (Gamma/logGamma (double N)))
-                                             (seq (ince-log-weights 2 p)))))
-           factor (ince-normalizing-factor normalization a (ince-euclidean-norm a)
-                                           (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2))) log-weights p)]
-       (v/mult a (m/* (double factor) sgn))))))
+           sgn (m/sgn (v/sum a))
+           scale (case normalization
+                   :none (m// 1.0 (v/mag a))
+                   :trigonometric (let [^doubles a2 (v/sq a)]
+                                    (m// 1.0 (m/sqrt (m/+ (Array/aget a2 0) (v/sum a2)))))
+                   ;; the weight of the first term is sqrt(2) Gamma(N) (cos(0) = 1 has half the weight)
+                   :millers (ince-millers-factor
+                             a (double-array (cons (m/+ (m/* 0.5 (m/ln 2.0)) (Gamma/logGamma (double N)))
+                                                   (seq (ince-log-weights 2 p))))
+                             p))]
+       (v/mult a (m/* scale sgn))))))
 
 (defn- ince-s-coeffs-even
   [^long p ^long m ^double e normalization]
@@ -2270,11 +2254,11 @@
       (Array/aset gamma i (double (m/- n i 1))))
     (let [scaler (m/seq->double-array (range 1 (m/inc n)))
           ^doubles a (ince-eigenvector diagonal beta gamma e (m/long-dec (m/long-div m 2)))
-          sgn (ince-sign (v/sum (v/emult a scaler)))
-          norm (ince-euclidean-norm a)
-          factor (ince-normalizing-factor normalization a norm norm
-                                          (when (= normalization :millers) (ince-log-weights 2 p)) p)]
-      (v/mult a (m/* (double factor) sgn)))))
+          sgn (m/sgn (v/sum (v/emult a scaler)))
+          scale (case normalization
+                  (:none :trigonometric) (m// 1.0 (v/mag a))
+                  :millers (ince-millers-factor a (ince-log-weights 2 p) p))]
+      (v/mult a (m/* scale sgn)))))
 
 (defn- ince-c-coeffs-odd
   [^long p ^long m ^double e normalization]
@@ -2290,11 +2274,11 @@
       (Array/aset beta i (m/* 0.5 (m/+ p (m/* 2.0 i) 3.0)))
       (Array/aset gamma i (m/* 0.5 (m/- p (m/* 2.0 i) 1.0))))
     (let [^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div (m/long-dec m) 2))
-          sgn (ince-sign (v/sum a))
-          norm (ince-euclidean-norm a)
-          factor (ince-normalizing-factor normalization a norm norm
-                                          (when (= normalization :millers) (ince-log-weights 1 p)) p)]
-      (v/mult a (m/* (double factor) sgn)))))
+          sgn (m/sgn (v/sum a))
+          scale (case normalization
+                  (:none :trigonometric) (m// 1.0 (v/mag a))
+                  :millers (ince-millers-factor a (ince-log-weights 1 p) p))]
+      (v/mult a (m/* scale sgn)))))
 
 (defn- ince-s-coeffs-odd
   [^long p ^long m ^double e normalization]
@@ -2311,11 +2295,11 @@
       (Array/aset gamma i (m/* 0.5 (m/- p (m/* 2.0 i) 1.0))))
     (let [scaler (m/seq->double-array (map (fn [^long v] (m/inc (m/* 2.0 v))) (range N)))
           ^doubles a (ince-eigenvector diagonal beta gamma e (m/long-div (m/long-dec m) 2))
-          sgn (ince-sign (v/sum (v/emult a scaler)))
-          norm (ince-euclidean-norm a)
-          factor (ince-normalizing-factor normalization a norm norm
-                                          (when (= normalization :millers) (ince-log-weights 1 p)) p)]
-      (v/mult a (m/* (double factor) sgn)))))
+          sgn (m/sgn (v/sum (v/emult a scaler)))
+          scale (case normalization
+                  (:none :trigonometric) (m// 1.0 (v/mag a))
+                  :millers (ince-millers-factor a (ince-log-weights 1 p) p))]
+      (v/mult a (m/* scale sgn)))))
 
 (defn ince-C-coeffs
   "Returns the coefficients of the Ince polynomial `C_p^m` as a series of cosines.

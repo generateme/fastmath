@@ -1918,39 +1918,56 @@
 
 ;; T-15, T-16: a recurrence that leaves the double range gives the signed infinity, not NaN
 
-(defn- exact-hermite-value
-  "Exact value of `H_n` (kind :H) or `He_n` (kind :He) at the double `x`, by the recurrence in ratios."
+(def ^:private max-exact-recurrence-degree
+  "The exact ratio recurrences below are for small degrees only: the denominators (2^53 for a double) grow
+  with the degree, and a degree in the hundreds takes minutes. The decimal references serve those."
+  60)
+
+(defn- check-exact-degree!
+  [^long n]
+  (when (> n max-exact-recurrence-degree)
+    (throw (IllegalArgumentException.
+            (str "The exact ratio reference is too slow for degree " n " (limit " max-exact-recurrence-degree
+                 "): use the decimal reference")))))
+
+(defn- exact-hermite-double
+  "The nearest double of `H_n` (kind :H) or `He_n` (kind :He) at the double `x`, from the recurrence in ratios.
+  Degree up to `max-exact-recurrence-degree`."
   [kind ^long n x]
+  (check-exact-degree! n)
   (let [rx (exact-ratio x)
         h1 (if (= kind :H) (* 2 rx) rx)
         step (fn [i prev pprev] (let [t (- (* rx prev) (* (dec i) pprev))] (if (= kind :H) (* 2 t) t)))]
-    (cond (zero? n) 1
-          (== n 1) h1
-          :else (loop [i 2 pprev 1 prev h1]
-                  (if (> i n) prev (recur (inc i) prev (step i prev pprev)))))))
+    (exact->double
+     (cond (zero? n) 1
+           (== n 1) h1
+           :else (loop [i 2 pprev 1 prev h1]
+                   (if (> i n) prev (recur (inc i) prev (step i prev pprev))))))))
 
-(defn- exact-laguerre-value
-  "Exact value of the generalized Laguerre polynomial at the doubles `a` and `x`, by the recurrence in ratios."
+(defn- exact-laguerre-double
+  "The nearest double of the generalized Laguerre polynomial at the doubles `a` and `x`, from the recurrence in
+  ratios. Degree up to `max-exact-recurrence-degree`."
   [^long n a x]
+  (check-exact-degree! n)
   (let [ra (exact-ratio a)
         rx (exact-ratio x)
         l1 (- (+ 1 ra) rx)]
-    (cond (zero? n) 1
-          (== n 1) l1
-          :else (loop [i 2 pprev 1 prev l1]
-                  (if (> i n)
-                    prev
-                    (recur (inc i) prev (/ (- (* (- (+ (dec (* 2 i)) ra) rx) prev) (* (+ (dec i) ra) pprev)) i)))))))
+    (exact->double
+     (cond (zero? n) 1
+           (== n 1) l1
+           :else (loop [i 2 pprev 1 prev l1]
+                   (if (> i n)
+                     prev
+                     (recur (inc i) prev (/ (- (* (- (+ (dec (* 2 i)) ra) rx) prev) (* (+ (dec i) ra) pprev)) i))))))))
 
-(defn- same-as-exact?
-  "True when `got` is the nearest double of `exact` (compared with 1e-6 relative tolerance when finite; the
-  signed infinity when `exact` is out of range)."
-  [exact ^double got]
-  (let [expected (exact->double exact)]
-    (if (Double/isInfinite expected)
-      (== expected got)
-      (and (Double/isFinite got)
-           (<= (m/abs (- got expected)) (+ (* 1e-6 (m/abs expected)) 1e-300))))))
+(defn- agrees-with-expected?
+  "True when `got` is the infinity `expected`, or is finite and within 1e-6 relative (plus 1e-300) of the finite
+  `expected`."
+  [^double expected ^double got]
+  (if (Double/isInfinite expected)
+    (== expected got)
+    (and (Double/isFinite got)
+         (<= (m/abs (- got expected)) (+ (* 1e-6 (m/abs expected)) 1e-300)))))
 
 (t/deftest overflow-gives-the-signed-infinity                              ; T-15
   (doseq [[n x e] [[6 1e100 ##Inf] [6 -1e100 ##Inf] [5 1e154 ##Inf] [5 -1e154 ##-Inf] [7 1e308 ##Inf] [7 -1e308 ##-Inf] [300 0.3 ##Inf]]]
@@ -1967,8 +1984,7 @@
   (t/is (Double/isNaN (sut/eval-laguerre-L 6 0.0 ##NaN)))
   (t/is (Double/isNaN (sut/eval-meixner-pollaczek-P 6 ##NaN 1.0 1e100))))
 
-;; The references for degrees in the hundreds use 200 digit decimals: the exact ratio recurrence takes minutes
-;; there (denominators of 2^53 to the power of the degree).
+;; The references for degrees in the hundreds use 200 digit decimals (see `max-exact-recurrence-degree`).
 
 (def ^:private reference-digits (java.math.MathContext. 200))
 
@@ -1980,34 +1996,34 @@
         :else (loop [i 2 pprev java.math.BigDecimal/ONE prev first-term]
                 (if (> i n) prev (recur (inc i) prev (step i prev pprev))))))
 
-(defn- decimal-hermite-value [kind ^long n x]
+(defn- decimal-hermite-double
+  "The nearest double of `H_n` (kind :H) or `He_n` (kind :He) at the double `x`, from 200 digit decimals; any
+  degree."
+  [kind ^long n x]
   (let [bx (java.math.BigDecimal. (double x))
         mc reference-digits
+        two (java.math.BigDecimal. 2)
         t (fn [i ^java.math.BigDecimal prev ^java.math.BigDecimal pprev]
             (.subtract (.multiply bx prev mc) (.multiply (java.math.BigDecimal. (long (dec i))) pprev mc) mc))]
-    (if (= kind :H)
-      (decimal-recurrence n (.multiply (java.math.BigDecimal. 2) bx mc) (fn [i prev pprev] (.multiply (java.math.BigDecimal. 2) ^java.math.BigDecimal (t i prev pprev) mc)))
-      (decimal-recurrence n bx t))))
+    (.doubleValue ^java.math.BigDecimal
+     (if (= kind :H)
+       (decimal-recurrence n (.multiply two bx mc) (fn [i prev pprev] (.multiply two ^java.math.BigDecimal (t i prev pprev) mc)))
+       (decimal-recurrence n bx t)))))
 
-(defn- decimal-laguerre-value [^long n a x]
+(defn- decimal-laguerre-double
+  "The nearest double of the generalized Laguerre polynomial at the doubles `a` and `x`, from 200 digit
+  decimals; any degree."
+  [^long n a x]
   (let [ba (java.math.BigDecimal. (double a))
         bx (java.math.BigDecimal. (double x))
         mc reference-digits]
-    (decimal-recurrence n (.subtract (.add java.math.BigDecimal/ONE ba) bx)
-                        (fn [i ^java.math.BigDecimal prev ^java.math.BigDecimal pprev]
-                          (let [factor (.subtract (.add (java.math.BigDecimal. (long (dec (* 2 i)))) ba) bx)
-                                weight (.add (java.math.BigDecimal. (long (dec i))) ba)]
-                            (.divide (.subtract (.multiply factor prev mc) (.multiply weight pprev mc) mc)
-                                     (java.math.BigDecimal. (long i)) mc))))))
-
-(defn- same-as-decimal?
-  "The `same-as-exact?` check for a `BigDecimal` reference."
-  [^java.math.BigDecimal exact ^double got]
-  (let [expected (.doubleValue exact)]
-    (if (Double/isInfinite expected)
-      (== expected got)
-      (and (Double/isFinite got)
-           (<= (m/abs (- got expected)) (+ (* 1e-6 (m/abs expected)) 1e-300))))))
+    (.doubleValue ^java.math.BigDecimal
+     (decimal-recurrence n (.subtract (.add java.math.BigDecimal/ONE ba) bx)
+                         (fn [i ^java.math.BigDecimal prev ^java.math.BigDecimal pprev]
+                           (let [factor (.subtract (.add (java.math.BigDecimal. (long (dec (* 2 i)))) ba) bx)
+                                 weight (.add (java.math.BigDecimal. (long (dec i))) ba)]
+                             (.divide (.subtract (.multiply factor prev mc) (.multiply weight pprev mc) mc)
+                                      (java.math.BigDecimal. (long i)) mc)))))))
 
 (t/deftest overflow-in-the-oscillatory-region-has-the-sign-of-the-exact-value  ; T-15
   (let [rng (java.util.Random. 11)]
@@ -2016,26 +2032,33 @@
             x (- (* 6.0 (.nextDouble rng)) 3.0)
             a (- (* 8.0 (.nextDouble rng)) 2.0)
             xl (* 40.0 (.nextDouble rng))]
-        (t/is (same-as-decimal? (decimal-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
-        (t/is (same-as-decimal? (decimal-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x))
-        (t/is (same-as-decimal? (decimal-laguerre-value n a xl) (sut/eval-laguerre-L n a xl)) (str "L " n " " a " " xl))))))
+        (t/is (agrees-with-expected? (decimal-hermite-double :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
+        (t/is (agrees-with-expected? (decimal-hermite-double :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x))
+        (t/is (agrees-with-expected? (decimal-laguerre-double n a xl) (sut/eval-laguerre-L n a xl)) (str "L " n " " a " " xl))))))
 
 (t/deftest decimal-references-agree-with-the-exact-ones
-  (doseq [n [5 17 40] x [0.3 -1.7 2.5]]
-    (t/is (same-as-exact? (exact-hermite-value :H n x) (.doubleValue ^java.math.BigDecimal (decimal-hermite-value :H n x))))
-    (t/is (same-as-exact? (exact-hermite-value :He n x) (.doubleValue ^java.math.BigDecimal (decimal-hermite-value :He n x))))
-    (t/is (same-as-exact? (exact-laguerre-value n 1.5 x) (.doubleValue ^java.math.BigDecimal (decimal-laguerre-value n 1.5 x))))))
+  (doseq [n [5 17 40 60] x [0.3 -1.7 2.5]]
+    (t/is (agrees-with-expected? (exact-hermite-double :H n x) (decimal-hermite-double :H n x)) (str "H " n " " x))
+    (t/is (agrees-with-expected? (exact-hermite-double :He n x) (decimal-hermite-double :He n x)) (str "He " n " " x))
+    (t/is (agrees-with-expected? (exact-laguerre-double n 1.5 x) (decimal-laguerre-double n 1.5 x)) (str "L " n " " x))))
+
+(t/deftest exact-references-refuse-a-high-degree
+  ;; the exact ratio recurrence takes minutes there: a clear error instead
+  (t/is (thrown? IllegalArgumentException (exact-hermite-double :H 61 0.3)))
+  (t/is (thrown? IllegalArgumentException (exact-hermite-double :He 750 0.3)))
+  (t/is (thrown? IllegalArgumentException (exact-laguerre-double 600 0.5 2.5)))
+  (t/is (number? (exact-laguerre-double 60 0.5 2.5))))
 
 (t/deftest recurrences-near-the-end-of-the-double-range                    ; T-16
   ;; (a+1)(a+2)/2 = 1.125e308 is representable; the product in the recurrence is not
-  (t/is (same-as-exact? (exact-laguerre-value 2 1.5e154 0.0) (sut/eval-laguerre-L 2 1.5e154 0.0)))
+  (t/is (agrees-with-expected? (exact-laguerre-double 2 1.5e154 0.0) (sut/eval-laguerre-L 2 1.5e154 0.0)))
   (t/is (< 1.1e308 (sut/eval-laguerre-L 2 1.5e154 0.0) 1.2e308))
   (doseq [x [2.7e102 2.8e102 2.9e102 6e153 6.7e153 6.8e153]
           n [2 3]]
-    (t/is (same-as-exact? (exact-hermite-value :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
-    (t/is (same-as-exact? (exact-hermite-value :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x)))
+    (t/is (agrees-with-expected? (exact-hermite-double :H n x) (sut/eval-hermite-H n x)) (str "H " n " " x))
+    (t/is (agrees-with-expected? (exact-hermite-double :He n x) (sut/eval-hermite-He n x)) (str "He " n " " x)))
   (doseq [a [1.0e100 1.0e150 1.4e154 1.5e154 1.9e154]]
-    (t/is (same-as-exact? (exact-laguerre-value 2 a 0.0) (sut/eval-laguerre-L 2 a 0.0)) (str "L 2 " a))))
+    (t/is (agrees-with-expected? (exact-laguerre-double 2 a 0.0) (sut/eval-laguerre-L 2 a 0.0)) (str "L 2 " a))))
 
 ;; T-11, T-13: Ince polynomials for large and extreme e. The eigenproblem is solved in a symmetric form.
 ;; Reference: `ince_large_e_reference.edn` (`mpmath`, built from the differential equation; |e| up to 1e8,
@@ -2107,12 +2130,6 @@
     (t/is (thrown? IllegalArgumentException (sut/ince-S-coeffs (inc p) 1 0.5 :millers)) (str "S " (inc p))))
   ;; the other normalizations have no such limit
   (t/is (every? #(Double/isFinite %) (sut/ince-C-coeffs 1000 0 0.5 :trigonometric))))
-
-(t/deftest ince-sign-is-never-zero
-  ;; a coefficient sum of exactly 0 must not zero the vector
-  (t/is (== 1.0 (@#'sut/ince-sign 0.0)))
-  (t/is (== 1.0 (@#'sut/ince-sign -0.0)))
-  (t/is (== -1.0 (@#'sut/ince-sign -1e-300))))
 
 ;; T-23: the radial functions return the signed infinity where the series is out of the double range
 
