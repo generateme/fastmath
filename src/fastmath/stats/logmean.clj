@@ -134,7 +134,7 @@
          vs (v/shift us (m/- c)) ;; L(ax)=aL(x)
          s (v/mx (map m/abs vs))]
      (if (m/zero? s)
-       (Math/exp c)
+       (m/exp c)
        (let [ws (v/div vs s)] ;; scale to range [-1,1]
          (loop [m (long 1)
                 wpow  ws
@@ -156,7 +156,7 @@
                  tiny?  (m/<= (m/abs t) (m/* tol (m/abs nsum)))
                  ntinyterms (if tiny? (m/inc tinyterms) 0)]
              (if (or (m/> ntinyterms 2) (m/> m max-iters))
-               (m/* (Math/exp c) nsum)
+               (m/* (m/exp c) nsum)
                (let [nwpow (v/emult wpow ws)]
                  (recur (inc m)
                         nwpow

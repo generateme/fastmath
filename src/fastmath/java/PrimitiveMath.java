@@ -146,6 +146,12 @@ public final class PrimitiveMath {
 
     public static long fastFloor(double v) { long t = (long)v; return v < t ? t - 1L : t; }
     public static long fastCeil(double v) { return - fastFloor(-v); }
+
+    // Math.scalb for a long scale factor: it is clamped to the int range (scaling by 2^n for |n| >= 2^31 only
+    // overflows to infinity or underflows to zero, as for the largest int)
+    public static double scalb(double d, long scale) {
+        return Math.scalb(d, (int)Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, scale)));
+    }
     public static long fastRound(double v) { return v > 0.0 ? (long)(v + 0.5) : (long)(v - 0.5); }
 
     // Inverse hyperbolic functions: the fdlibm (and glibc) algorithms, the same as java.lang.FdLibm in JDK 27,

@@ -328,7 +328,7 @@
       (double-array [f e])
       (let [g (m/* f j)]
         (if (m/> g factorial-scale-limit)
-          (recur (m/inc j) (Math/scalb g (int -500)) (m/+ e 500.0))
+          (recur (m/inc j) (m/scalb g -500) (m/+ e 500.0))
           (recur (m/inc j) g e))))))
 
 (defn- throw-incompatible-polynomials
@@ -403,9 +403,9 @@
                           pos+ (m/inc pos)
                           next-f (m/* (m// f i+) pos+)
                           big? (m/> next-f factorial-scale-limit)]
-                      (Array/aset target i (Math/scalb (m/* f (Array/aget cfs pos)) (int (m/min e 4096.0))))
+                      (Array/aset target i (m/scalb (m/* f (Array/aget cfs pos)) (long (m/min e 4096.0))))
                       (recur i+ pos+
-                             (if big? (Math/scalb next-f (int -500)) next-f)
+                             (if big? (m/scalb next-f -500) next-f)
                              (if big? (m/+ e 500.0) e)))))))))
   (evaluate [_ x]
     (loop [i d
@@ -709,7 +709,7 @@
     (loop [v (m/abs first-term)
            n (long 0)]
       (if (m/> v recurrence-scale-limit)
-        (recur (Math/scalb v (int -256)) (m/long-inc n))
+        (recur (m/scalb v -256) (m/long-inc n))
         n))))
 
 (defn- scaled-recurrence-result
@@ -718,7 +718,7 @@
   (if (m/zero? shift)
     value
     (let [e (m/long-mult 256 shift)]
-      (Math/scalb value (int (if (m/> e 100000) 100000 e))))))
+      (m/scalb value (if (m/> e 100000) 100000 e)))))
 
 (defn- overflowed-recurrence-value
   "The value of a recurrence that left the range of a double: the infinity of the leading term, whose sign
@@ -739,18 +739,18 @@
    `(let [first-term# ~first-term
          degree# (long ~degree)
          start-shift# (recurrence-scale-count first-term#)
-         start-exponent# (int (m/long-mult -256 start-shift#))]
+         start-exponent# (m/long-mult -256 start-shift#)]
      (loop [~i (long 2)
-            ~pprev (Math/scalb 1.0 start-exponent#)
-            ~prev (Math/scalb first-term# start-exponent#)
+            ~pprev (m/scalb 1.0 start-exponent#)
+            ~prev (m/scalb first-term# start-exponent#)
             shift# start-shift#]
        (if (m/> ~i degree#)
          (scaled-recurrence-result ~prev shift#)
          (let [next# ~step]
            (cond
              (m/invalid-double? next#) (overflowed-recurrence-value first-term# degree#)
-             (m/> (m/abs next#) recurrence-scale-limit) (recur (m/inc ~i) (Math/scalb ~prev (int -256))
-                                                               (Math/scalb next# (int -256)) (m/long-inc shift#))
+             (m/> (m/abs next#) recurrence-scale-limit) (recur (m/inc ~i) (m/scalb ~prev -256)
+                                                               (m/scalb next# -256) (m/long-inc shift#))
              :else (recur (m/inc ~i) ~prev next# shift#))))))))
 
 (def ^:private ^:const bernstein-direct-min-magnitude 1.0e-290)
@@ -1009,10 +1009,9 @@
         near-one (m/* (m/- 1.0 x) (m/+ 1.0 x))]
     (if (m/< near-one (m// 1.0E-7 (m/* degree+ degree+)))
       (m/* degree+ (m/- 1.0 (m/* m/SIXTH degree (m/+ degree 2) near-one)))
-      ;; the angle from its sine and cosine: acos(x) has a small absolute, but a large relative error next to x = 1;
-      ;; java.lang.Math/sin, since m/sin has a small absolute, but not a small relative error for a small argument
+      ;; the angle from its sine and cosine: acos(x) has a small absolute, but a large relative error next to x = 1
       (let [sine (m/sqrt near-one)]
-        (m// (Math/sin (m/* degree+ (m/atan2 sine x))) sine)))))
+        (m// (m/sin (m/* degree+ (m/atan2 sine x))) sine)))))
 
 (defn eval-chebyshev-U
   "Evaluates the Chebyshev polynomial of the second kind `U_n` at `x`.
@@ -1232,7 +1231,7 @@
           ^BigInteger rounded (if (or (pos? order-to-half) (and (zero? order-to-half) (.testBit kept 0)))
                                 (.add kept BigInteger/ONE)
                                 kept)
-          magnitude (Math/scalb (.doubleValue rounded) (int quantum-exponent))]
+          magnitude (m/scalb (.doubleValue rounded) quantum-exponent)]
       (if (neg? (.signum n)) (- magnitude) magnitude))
     (double r)))
 
@@ -2032,15 +2031,15 @@
   - `phi` (double): the angle. The polynomials are defined for every real `phi`, with the period `2*pi`, and `P_n(x; pi - phi) = (-1)^n * P_n(-x; phi)`; they are orthogonal only for `0 < phi < pi`. For `phi = 0` and `phi = pi` the polynomial does not depend on `x`.
   - `x` (double): the argument, any real number.
 
-  Returns a double. The result for degree 0 is `1.0` whatever the other arguments are. `##NaN` as `x`, `lambda` or `phi` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term (its sign follows `sin(phi) * x` and the parity of the degree), the value of the constant when `sin(phi)` is 0, and `##NaN` for a NaN or infinite `lambda` or `phi`. The error of the recurrence grows like the square of the degree relative to the largest value of `P_0 ... P_n` at `x`: at most about 3 times `(n+1)^2` units of roundoff on the reference grid, so a few units at low degrees and about 1e-12 relative at degree 50 for a small `phi`. The sine and cosine of `phi` are `Math/sin` and `Math/cos`, accurate also next to their zeros. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
+  Returns a double. The result for degree 0 is `1.0` whatever the other arguments are. `##NaN` as `x`, `lambda` or `phi` gives `##NaN` for a positive degree. An infinite `x` gives the infinity of the leading term (its sign follows `sin(phi) * x` and the parity of the degree), the value of the constant when `sin(phi)` is 0, and `##NaN` for a NaN or infinite `lambda` or `phi`. The error of the recurrence grows like the square of the degree relative to the largest value of `P_0 ... P_n` at `x`: at most about 3 times `(n+1)^2` units of roundoff on the reference grid, so a few units at low degrees and about 1e-12 relative at degree 50 for a small `phi`. The sine and cosine of `phi` are accurate also next to their zeros. Where the true value is beyond the range of a double the result is the infinity with its sign, for a finite `x` as for an infinite one; an intermediate value that would overflow while the result is representable does not matter.
 
   See also [[meixner-pollaczek-P]], [[meixner-pollaczek-P-ratio]], [[eval-hermite-H]]."
   ^double [^long degree ^double lambda ^double phi ^double x]
   (check-degree! degree)
-  ;; `Math/cos` and `Math/sin`: `m/cos` and `m/sin` (Jafama) have a relative error of up to 6e-11 next to their
-  ;; zeros (cos at pi/2, sin at pi), which is the whole value of the coefficient there
-  (let [cp (Math/cos phi)
-        sp (Math/sin phi)
+  ;; `m/cos` and `m/sin` keep their relative accuracy next to their zeros (cos at pi/2, sin at pi), which is the
+  ;; whole value of the coefficient there
+  (let [cp (m/cos phi)
+        sp (m/sin phi)
         ;; for sin(phi) = 0 the polynomial does not depend on x: avoid the product 0 * Inf
         x (if (and (m/inf? x) (m/zero? sp)) 0.0 x)]
     (cond
@@ -2078,8 +2077,8 @@
   (if (zero? degree)
     RONE
     (let [rational-lambda (rationalize lambda)
-          rational-cos (rationalize (Math/cos phi))
-          rational-sin (rationalize (Math/sin phi))]
+          rational-cos (rationalize (m/cos phi))
+          rational-sin (rationalize (m/sin phi))]
       (loop [i (long 2)
              pprev RONE
              prev (scale (ratio-polynomial [(*' rational-lambda rational-cos) rational-sin]) 2)]
@@ -2131,7 +2130,7 @@
   (let [e (double e)
         ;; the symmetric solver squares the off-diagonal entries: below about 1e-150 they underflow (NaN). The
         ;; eigenvectors of such an `e` differ from those of `e = 1e-100` by less than 1e-100.
-        e (if (and (m/pos? (m/abs e)) (m/< (m/abs e) 1.0e-100)) (Math/copySign 1.0e-100 e) e)
+        e (if (and (m/pos? (m/abs e)) (m/< (m/abs e) 1.0e-100)) (m/copy-sign 1.0e-100 e) e)
         order (long order)
         n (alength diagonal)
         s (if (m/> (m/abs e) 1.0e100) (m// 1.0 (m/abs e)) 1.0)

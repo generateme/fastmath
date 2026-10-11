@@ -684,7 +684,7 @@
         t2 (m/* hx hx)]
     (loop [i (long 0)
            out 0.0
-           a (m// (Math/pow hx v) (gamma (m/inc v)))]
+           a (m// (m/pow hx v) (gamma (m/inc v)))]
       (let [nout (m/+ a out)]
         (if (or (m/> i 3000)
                 (m/< (m/abs a) (m/* (m/abs nout) m/MACHINE-EPSILON)))
@@ -1191,7 +1191,7 @@
   ^Vec2 [^double v ^double x]
   (let [z (m/* x 0.5)
         zz (m/* z z)
-        zv (Math/pow z v)
+        zv (m/pow z v)
         negv (m/- v)]
     (loop [k (long 1)
            fk (f0-local-expansion-v0 v x)
@@ -1231,7 +1231,7 @@
            t2 1.0]
       (if (or (m/> k 80)
               (m/< (m/abs t1) m/MACHINE-EPSILON))
-        (let [xpv (Math/pow (m/* 0.5 x) v)
+        (let [xpv (m/pow (m/* 0.5 x) v)
               s (m/+ (m/* gam s1)
                      (m/* xpv xpv ngam s2))]
           (m// s (m/* 2.0 xpv)))
@@ -1370,7 +1370,7 @@
       (let [new-s (m/+ s t)]
         (if (or (m/> i 3000)
                 (m/<= (m/abs t) (m/* s m/MACHINE-EPSILON)))
-          (m/* new-s (m// (Math/pow (m/* 0.5 x) v)
+          (m/* new-s (m// (m/pow (m/* 0.5 x) v)
                           (gamma (m/inc v))))
           (let [i+ (m/inc i)]
             (recur i+

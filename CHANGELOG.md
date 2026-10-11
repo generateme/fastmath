@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file. This change
 * `fastmath.optimization` method `:sceua` (`fastmath.optimization.sceua/sceua`) - Shuffled Complex Evolution global optimizer with parallel evolution of complexes, complex reduction and optional PCA recovery of a collapsed population
 * `fastmath.random/ensure-rng`, `child-rngs`; the `rng` argument of `sequence-generator` and `jittered-sequence-generator`; the `:rng` option of `fastmath.calculus/vegas`, `scan-and-minimize`/`scan-and-maximize`/`scan-and-optimize` and `bayesian-optimization`
 * log version of utility functions for `bayesian-optimization`: `:log-ei`, `:log-poi` and `:log-ucb`
+* `fastmath.core/scalb` - `x * 2^n` through `java.lang.Math/scalb` (the exponent is clamped to the `int` range); `fastmath.polynomials` and `fastmath.core` helpers call the `fastmath.core` functions instead of `java.lang.Math`
 * `fastmath.core` `fsin`, `fcos`, `ftan`, `fatan2`, `flog1p` - the previous Jafama-backed (less accurate) versions of `sin`, `cos`, `tan`, `atan2`, `log1p`
 
 ### Fixed

@@ -1512,3 +1512,49 @@
   (t/is (== 1.0 (m/exprel 0.0) (m/exprel -0.0) (m/exprel 1e-300)))
   (t/is (m/delta-eq 1.718281828459045 (m/exprel 1.0) 1.0e-15 1.0e-15))
   (t/is (== ##Inf (m/exprel 718.0))))
+
+(t/deftest scalb
+  (t/is (== 1024.0 (m/scalb 1.0 10)))
+  (t/is (== 1.5 (m/scalb 3.0 -1)))
+  (t/is (== -12.0 (m/scalb -3.0 2)))
+  (t/is (== 5.0 (m/scalb 5.0 0)) "zero exponent")
+  (t/is (== 8.0 (m/scalb 1 3)) "long argument")
+  (t/testing "overflow, underflow and subnormals"
+    (t/is (same-double? 8.98846567431158E307 (m/scalb 1.0 1023)) "2^1023, the largest power of two")
+    (t/is (same-double? ##Inf (m/scalb 1.0 1024)))
+    (t/is (same-double? ##-Inf (m/scalb -1.0 1024)))
+    (t/is (same-double? ##Inf (m/scalb Double/MAX_VALUE 1)))
+    (t/is (same-double? Double/MIN_NORMAL (m/scalb 1.0 -1022)))
+    (t/is (same-double? Double/MIN_VALUE (m/scalb 1.0 -1074)) "the smallest subnormal")
+    (t/is (same-double? 0.0 (m/scalb 1.0 -1075)) "an exact tie rounds to the even value, zero")
+    (t/is (same-double? -0.0 (m/scalb -1.0 -1075)))
+    (t/is (same-double? (* 2.0 Double/MIN_VALUE) (m/scalb 1.5 -1074)) "1.5 * 2^-1074 is a tie between 1 and 2 MIN_VALUE: the even one")
+    (t/is (same-double? 1.0 (m/scalb Double/MIN_VALUE 1074)))
+    (t/is (same-double? 1.0 (m/scalb Double/MIN_NORMAL 1022))))
+  (t/testing "zero, infinity and NaN"
+    (t/is (same-double? 0.0 (m/scalb 0.0 5)))
+    (t/is (same-double? -0.0 (m/scalb -0.0 5)) "the sign of a zero is kept")
+    (t/is (same-double? -0.0 (m/scalb -0.0 -5)))
+    (t/is (same-double? ##Inf (m/scalb ##Inf -1000)))
+    (t/is (same-double? ##-Inf (m/scalb ##-Inf 1000)))
+    (t/is (same-double? ##NaN (m/scalb ##NaN 3)))
+    (t/is (same-double? 0.0 (m/scalb 0.0 Long/MAX_VALUE))))
+  (t/testing "exponents outside the int range are clamped"
+    (t/is (same-double? ##Inf (m/scalb 1.0 Long/MAX_VALUE)))
+    (t/is (same-double? ##Inf (m/scalb 1.0 (inc (long Integer/MAX_VALUE)))))
+    (t/is (same-double? 0.0 (m/scalb 1.0 Long/MIN_VALUE)))
+    (t/is (same-double? -0.0 (m/scalb -1.0 (dec (long Integer/MIN_VALUE)))))
+    (t/is (same-double? ##Inf (m/scalb 1.0 Integer/MAX_VALUE)))
+    (t/is (same-double? 0.0 (m/scalb 1.0 Integer/MIN_VALUE))))
+  (t/testing "same bits as Math/scalb, inline and function value"
+    (let [r (java.util.Random. 3)
+          f (deref (var m/scalb))]
+      (dotimes [_ 3000]
+        (let [x (Double/longBitsToDouble (.nextLong r))
+              n (- (.nextInt r 4400) 2200)]
+          (t/is (same-double? (Math/scalb x (int n)) (m/scalb x n)) (str "inline " x " " n))
+          (t/is (same-double? (Math/scalb x (int n)) (f x n)) (str "function " x " " n))))))
+  (t/testing "scalb undoes double-exponent for normal numbers"
+    (doseq [x [1.0 1.5 3.0 0.1 123456.789 1e-300 1e300]]
+      (let [e (m/double-exponent x)]
+        (t/is (== x (m/scalb (m/scalb x (- e)) e)) (str x))))))

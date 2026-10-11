@@ -1019,6 +1019,14 @@
   ^double [^double magnitude ^double sign]
   (FastMath/copySign magnitude sign))
 
+;; abs (defined here, before the functions that use it)
+
+(defn abs
+  "Absolute value."
+  {:inline (fn [x] `(. Math (abs ~x)))
+   :inline-arities #{1}}
+  ^double [^double x] (. Math (abs x)))
+
 ;; trigonometry
 
 (defn sin
@@ -2086,7 +2094,7 @@
   ^double [^double x ^double y]
   (+ (PrimitiveMath/max x y)
      (log1mexp (- (if (and (== x y)
-                           (or (Double/isFinite x) (neg? x))) 0.0 (Math/abs (- x y)))))))
+                           (or (Double/isFinite x) (neg? x))) 0.0 (abs (- x y)))))))
 
 (defn logsumexp
   "Computes `log(exp(x1)+...+exp(xn))`, the numerically stable n-ary log-sum-exp, using an online (single-pass) running-maximum algorithm.
@@ -2304,7 +2312,7 @@
 
   See also [[sin]]."
   ^double [^double v]
-  (let [x (* PI (Math/abs v))]
+  (let [x (* PI (abs v))]
     (if (< x 1.0e-8) 1.0
         (/ (sin x) x))))
 
@@ -2391,11 +2399,11 @@
   Returns the result as a double, always non-negative.
 
   See also [[cosh]], [[log1pexp]]."
-  {:inline (fn [x] `(let [absx# (Math/abs (double ~x))]
+  {:inline (fn [x] `(let [absx# (abs (double ~x))]
                      (- (+ absx# (log1pexp (* -2.0 absx#))) LN2)))
    :inline-arities #{1}}
   ^double [^double x]
-  (let [absx (Math/abs x)]
+  (let [absx (abs x)]
     (- (+ absx (log1pexp (* -2.0 absx))) LN2)))
 
 ;; \\(\log_2 e\\)
@@ -2426,9 +2434,9 @@
 
   See also [[pow]], [[qpow]]."
   {:inline (fn [x exponent] `(let [v# (double ~x)]
-                              (* (sgn v#) (. Math (pow (abs v#) (double ~exponent))))))
+                              (* (sgn v#) (pow (abs v#) (double ~exponent)))))
    :inline-arities #{2}}
-  ^double [^double x ^double exponent] (* (sgn x) (. Math (pow (Math/abs x) exponent))))
+  ^double [^double x ^double exponent] (* (sgn x) (pow (abs x) exponent)))
 
 (defn qpow
   "Fast and less accurate version of [[pow]]."
@@ -2483,7 +2491,7 @@
   (^double [^double x ^double exponent] (tpow x exponent 0.0))
   (^double [^double x ^double exponent ^double shift]
    (let [diff (- x shift)]
-     (if (pos? diff) (Math/pow diff exponent) 0.0))))
+     (if (pos? diff) (pow diff exponent) 0.0))))
 
 ;;
 
@@ -3000,12 +3008,6 @@
   ^double [^double dividend ^double divisor]
   (. Math (IEEEremainder dividend divisor)))
 
-(defn abs
-  "Absolute value."
-  {:inline (fn [x] `(. Math (abs ~x)))
-   :inline-arities #{1}}
-  ^double [^double x] (Math/abs x))
-
 (defn iabs
   "Absolute value, `long` version. See [[abs]]."
   {:inline (fn [x] `(let [m# (>> ~x 63)] (bit-xor (+ m# ~x) m#)))
@@ -3096,9 +3098,9 @@
   This function is useful for comparing floating-point numbers where exact equality checks (`==`) may fail due to precision issues."
   ([^double a ^double b] (delta-eq a b 1.0e-6))
   ([^double a ^double b ^double accuracy]
-   (or (< (Math/abs (- a b)) accuracy) (== a b)))
+   (or (< (abs (- a b)) accuracy) (== a b)))
   ([^double a ^double b ^double abs-tol ^double rel-tol]
-   (or (< (Math/abs (- a b)) (max abs-tol (* rel-tol (max (Math/abs a) (Math/abs b))))) (== a b))))
+   (or (< (abs (- a b)) (max abs-tol (* rel-tol (max (abs a) (abs b))))) (== a b))))
 
 (def ^{:doc "Alias for [[approx-eq]]"} approx= approx-eq)
 (def ^{:doc "Alias for [[delta-eq]]"} delta= delta-eq)
@@ -3118,9 +3120,9 @@
 
   See also [[delta-eq]]."
   ([^double x] (near-zero? x 1.0e-6))
-  ([^double x ^double abs-tol] (< (Math/abs x) abs-tol))
+  ([^double x ^double abs-tol] (< (abs x) abs-tol))
   ([^double x ^double abs-tol ^double rel-tol]
-   (let [ax (Math/abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
+   (let [ax (abs x)] (< ax (max abs-tol (* rel-tol ax)) ))))
 
 (defn frac
   "Unsigned fractional part of `v`.
@@ -3132,7 +3134,7 @@
   Returns `(abs (- v (long v)))`, i.e. the magnitude of the part of `v` remaining after truncation towards zero. Always in the range `[0.0, 1.0)`.
 
   See also [[sfrac]] for the signed version."
-  ^double [^double v] (Math/abs (- v (unchecked-long v))))
+  ^double [^double v] (abs (- v (unchecked-long v))))
 
 (defn sfrac
   "Signed fractional part of `v`.
@@ -3165,7 +3167,7 @@
   Returns the exponent `n` as a long. Returns `-1023` for `x` equal to `0.0` or subnormal (matches the underlying `getExponent` convention; not a meaningful power-of-two bracket in that case).
 
   See also [[high-2-exp]], [[low-exp]]."
-  ^long [^double x] (FastMath/getExponent (Math/abs x)))
+  ^long [^double x] (FastMath/getExponent (abs x)))
 
 (defn high-2-exp
   "Finds the smallest integer `n` such that `2^n` is not smaller than the absolute value of `x`.
@@ -3182,7 +3184,7 @@
 
   See also [[low-2-exp]], [[high-exp]]."
   ^long [^double x]
-  (let [ax (Math/abs x)
+  (let [ax (abs x)
         low (FastMath/getExponent ax)]
     (if (zero? (bit-and (Double/doubleToRawLongBits ax) 4503599627370495)) low (inc low))))
 
@@ -3202,9 +3204,9 @@
 
   See also [[high-exp]], [[low-2-exp]]."
   ^long [^double b ^double x]
-  (let [ax (Math/abs x)
+  (let [ax (abs x)
         n (round (logb b ax))]
-    (if (<= (Math/pow b n) ax) n (dec n))))
+    (if (<= (pow b n) ax) n (dec n))))
 
 (defn high-exp
   "Finds the smallest integer `n` such that `b^n` is not smaller than the absolute value of `x`.
@@ -3222,9 +3224,9 @@
 
   See also [[low-exp]], [[high-2-exp]]."
   ^long [^double b ^double x]
-  (let [ax (Math/abs x)
+  (let [ax (abs x)
         n (round (logb b ax))]
-    (if (>= (Math/pow b n) ax) n (inc n))))
+    (if (>= (pow b n) ax) n (inc n))))
 
 (defn power-of-two?
   "Checks whether `v` is an exact power of two, i.e. `v = 2^p` for some non-negative integer `p`.
@@ -3424,6 +3426,24 @@
   {:inline (fn [x] `(. FastMath (ulp (double ~x))))
    :inline-arities #{1}}
   ^double [^double x]  (FastMath/ulp x))
+
+(defn scalb
+  "Scales `x` by a power of two, `x * 2^n`, without computing `2^n`.
+
+  The result is exact unless it is subnormal (then it is rounded as by a floating point multiplication) or out of the range of a double.
+
+  Parameters:
+
+  - `x` (double): value to scale.
+  - `n` (long): the exponent of the power of two. A value outside the range of an `int` is treated as the nearest `int` limit, which already gives an infinity or a zero for any finite non-zero `x`.
+
+  Returns `x * 2^n` as a double. Overflow gives `##Inf` or `##-Inf`, underflow gives `0.0` or `-0.0`. Zero, infinity and `##NaN` are returned unchanged (a zero keeps its sign).
+
+  See also [[ulp]], [[double-exponent]]."
+  {:inline (fn [x n] `(. PrimitiveMath (scalb (double ~x) (long ~n))))
+   :inline-arities #{2}}
+  ^double [^double x ^long n]
+  (. PrimitiveMath (scalb x n)))
 
 ;; More constants
 
@@ -3725,7 +3745,7 @@
     (> x 1.0) x
     (< x -1.0) 0.0
     :else (* SIXTH (inc (- (* 3.0 x (inc x))
-                           (Math/abs (* x x x)))))))
+                           (abs (* x x x)))))))
 
 (defn- sm-quartic ^double [^double x]
   (cond
@@ -3769,8 +3789,8 @@
      :mellowmax (/ (- (logsumexp (scale-xs xs alpha))
                       (log (count xs))) alpha)
      :p-norm (pow (reduce + (map (fn [^double x]
-                                   (pow (Math/abs x) alpha)) xs)) (/ alpha))
-     :smu (let [epsilon (Math/abs (/ alpha))]
+                                   (pow (abs x) alpha)) xs)) (/ alpha))
+     :smu (let [epsilon (abs (/ alpha))]
             (reduce (if (pos? alpha)
                       (fn [^double a ^double b]
                         (* 0.5 (+ a b (sqrt (+ (sq (- a b))
