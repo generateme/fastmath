@@ -147,4 +147,51 @@ public final class PrimitiveMath {
     public static long fastFloor(double v) { long t = (long)v; return v < t ? t - 1L : t; }
     public static long fastCeil(double v) { return - fastFloor(-v); }
     public static long fastRound(double v) { return v > 0.0 ? (long)(v + 0.5) : (long)(v - 0.5); }
+
+    // Inverse hyperbolic functions: the fdlibm (and glibc) algorithms, the same as java.lang.FdLibm in JDK 27,
+    // built on Math.log, Math.log1p and the intrinsic Math.sqrt. They avoid the cancellation near 1 (acosh) and
+    // near 0 (asinh) and the overflow of x*x for large |x|, and have the same results on every JDK.
+    // Math.asinh and Math.acosh (JDK 27+) are not used: they call a software sqrt and are 20-40 times slower;
+    // Jafama's versions are inaccurate (acosh next to 1: up to 2.5e7 ulps, asinh: 33 ulps, atanh: 19 ulps).
+    private static final double LN2 = 0.6931471805599453; // 6.93147180559945286227e-01
+
+    public static double acosh(double x) {
+        if (!(x >= 1.0)) return Double.NaN;                          // x < 1 or NaN
+        if (x >= 0x1p28) return Double.isInfinite(x) ? x : Math.log(x) + LN2;
+        if (x == 1.0) return 0.0;
+        if (x > 2.0) return Math.log(2.0 * x - 1.0 / (x + Math.sqrt(x * x - 1.0)));
+        final double t = x - 1.0;
+        return Math.log1p(t + Math.sqrt(2.0 * t + t * t));
+    }
+
+    public static double asinh(double x) {
+        final double a = Math.abs(x);
+        if (!(a <= Double.MAX_VALUE)) return x + x;                  // NaN or infinity
+        if (a < 0x1p-28) return x;                                   // also +-0.0
+        final double w;
+        if (a > 0x1p28) {
+            w = Math.log(a) + LN2;
+        } else if (a > 2.0) {
+            w = Math.log(2.0 * a + 1.0 / (Math.sqrt(x * x + 1.0) + a));
+        } else {
+            final double t = x * x;
+            w = Math.log1p(a + t / (1.0 + Math.sqrt(1.0 + t)));
+        }
+        return x < 0.0 ? -w : w;
+    }
+
+    public static double atanh(double x) {
+        final double a = Math.abs(x);
+        if (!(a <= 1.0)) return Double.NaN;                          // |x| > 1 or NaN
+        if (a == 1.0) return x / 0.0;                                // +-Infinity
+        if (a < 0x1p-28) return x;                                   // also +-0.0
+        final double w;
+        if (a < 0.5) {
+            final double t = a + a;
+            w = 0.5 * Math.log1p(t + t * a / (1.0 - a));
+        } else {
+            w = 0.5 * Math.log1p((a + a) / (1.0 - a));
+        }
+        return x < 0.0 ? -w : w;
+    }
 }

@@ -1226,7 +1226,7 @@
   (t/is (nil? (m/seq->double-double-array nil))))
 
 ;; Backend routing (backlog B-01): sin cos tan asin acos atan atan2 log1p cbrt log ln log10 sqrt
-;; are backed by java.lang.Math, asinh acosh atanh by java.lang.Math on JDK 27+ (Jafama before),
+;; are backed by java.lang.Math, asinh acosh atanh by PrimitiveMath (fdlibm algorithms on Math.log, log1p, sqrt),
 ;; the f* twins and sinh cosh tanh exp expm1 hypot by Jafama FastMath.
 ;; Reference values: mpmath (300 bits), rounded to the nearest double.
 
@@ -1294,32 +1294,85 @@
   (ulp-test m/sec 2.0 [[m/HALF_PI 1.633123935319537e+16]]))
 
 (t/deftest inverse-hyperbolic-accuracy
-  ;; java.lang.Math has asinh, acosh and atanh since JDK 27; before that the functions are backed by Jafama
-  ;; (acosh near 1: 2.5e7 ulps, asinh near 0: 33 ulps, atanh: 19 ulps) and these points are not checked.
-  ;; Tolerance 3 ulps: observed worst of Math on 20k random points per range is 1 (asinh) and 2 (acosh, atanh).
-  (if (>= m/jvm-version 27)
-    (do
-      (ulp-test m/asinh 3.0 [[1e-5 9.999999999833334e-06] [-1e-5 -9.999999999833334e-06]
-                             [0.3 0.29567304756342244] [0.5 0.48121182505960347] [3.0 1.8184464592320668]
-                             [1e10 23.7189981105004] [1e300 691.4686750787737] [-2.5 -1.6472311463710958]])
-      (ulp-test m/acosh 3.0 [[1.0000001 0.0004472135919037347] [1.0000000000000002 2.1073424255447014e-08]
-                             [1.00001 0.004472132228242651] [1.5 0.9624236501192069] [3.0 1.762747174039086]
-                             [1e10 23.7189981105004] [1e300 691.4686750787737]])
-      (ulp-test m/atanh 3.0 [[1e-5 1.0000000000333334e-05] [-1e-5 -1.0000000000333334e-05]
-                             [0.3 0.3095196042031117] [0.5 0.5493061443340549] [0.9999999 8.40562139102231]
-                             [-0.9999999999 -11.859499013855018] [0.5000001 0.549306277667397]]))
-    (doseq [x [0.3 1.5 -0.7]]
-      (t/is (same-double? (m/asinh x) (FastMath/asinh x)) "before JDK 27 the base function is the Jafama one")
-      (t/is (same-double? (m/atanh (/ x 2.0)) (FastMath/atanh (/ x 2.0)))))))
+  ;; Own implementation (PrimitiveMath), the same on every JDK. Jafama was off by 2.5e7 ulps (acosh next to 1),
+  ;; 33 (asinh) and 19 (atanh).
+  ;; Tolerance 3 ulps: observed worst on 20k random points per range is 1 (asinh) and 2 (acosh, atanh).
+  (ulp-test m/asinh 3.0 [[1e-5 9.999999999833334e-06] [-1e-5 -9.999999999833334e-06]
+                         [0.3 0.29567304756342244] [0.5 0.48121182505960347] [3.0 1.8184464592320668]
+                         [1e10 23.7189981105004] [1e300 691.4686750787737] [-2.5 -1.6472311463710958]
+                         ;; Jafama's worst points (33 ulps off) in 20k random arguments in 1e-8..1
+                         [-0.05676435444158133 -0.05673391428459] [-0.06068925261464595 -0.060652059265873554]])
+  (ulp-test m/acosh 3.0 [[1.0000001 0.0004472135919037347] [1.0000000000000002 2.1073424255447014e-08]
+                         [1.0000000000000004 2.9802322387695312e-08] [1.0000000000000007 3.650024149988857e-08]
+                         [1.0000000000000022 6.664001874625055e-08] [1.000000000000222 6.664001874624933e-07]
+                         [1.00001 0.004472132228242651] [1.5 0.9624236501192069] [3.0 1.762747174039086]
+                         [1e10 23.7189981105004] [1e300 691.4686750787737]])
+  (ulp-test m/atanh 3.0 [[1e-5 1.0000000000333334e-05] [-1e-5 -1.0000000000333334e-05]
+                         [0.3 0.3095196042031117] [0.5 0.5493061443340549] [0.9999999 8.40562139102231]
+                         [-0.9999999999 -11.859499013855018] [0.5000001 0.549306277667397]
+                         ;; Jafama's worst points (19 ulps off) in 20k random arguments in 1e-8..0.9
+                         [0.10508666663845995 0.10547608143504814] [-0.07861665144839375 -0.07877922018258748]]))
+
+(t/deftest inverse-hyperbolic-special-values
+  ;; reference values: mpmath
+  (t/is (same-double? ##NaN (m/acosh ##NaN)))
+  (t/is (same-double? ##NaN (m/acosh ##-Inf)))
+  (t/is (same-double? ##NaN (m/acosh -1.0)))
+  (t/is (same-double? ##NaN (m/acosh 0.0)))
+  (t/is (same-double? ##NaN (m/acosh -0.0)))
+  (t/is (same-double? ##NaN (m/acosh 0.9999999999999999)) "just below the domain")
+  (t/is (same-double? ##NaN (m/acosh Double/MIN_VALUE)))
+  (t/is (same-double? 0.0 (m/acosh 1.0)) "+0.0")
+  (t/is (same-double? ##Inf (m/acosh ##Inf)))
+  (ulp-test m/acosh 3.0 [[Double/MAX_VALUE 710.475860073944] [m/E 1.6574544541530771]])
+  (t/is (same-double? ##NaN (m/asinh ##NaN)))
+  (t/is (same-double? ##Inf (m/asinh ##Inf)))
+  (t/is (same-double? ##-Inf (m/asinh ##-Inf)))
+  (t/is (same-double? 0.0 (m/asinh 0.0)))
+  (t/is (same-double? -0.0 (m/asinh -0.0)) "the sign of a zero is kept")
+  (t/is (same-double? Double/MIN_VALUE (m/asinh Double/MIN_VALUE)) "subnormal: asinh(x) = x")
+  (t/is (same-double? (- Double/MIN_VALUE) (m/asinh (- Double/MIN_VALUE))))
+  (ulp-test m/asinh 3.0 [[Double/MAX_VALUE 710.475860073944] [(- Double/MAX_VALUE) -710.475860073944]])
+  (t/is (same-double? ##NaN (m/atanh ##NaN)))
+  (t/is (same-double? ##NaN (m/atanh ##Inf)))
+  (t/is (same-double? ##NaN (m/atanh ##-Inf)))
+  (t/is (same-double? ##NaN (m/atanh 1.0000000000000002)) "just above the domain")
+  (t/is (same-double? ##NaN (m/atanh -1.0000000000000002)))
+  (t/is (same-double? ##Inf (m/atanh 1.0)))
+  (t/is (same-double? ##-Inf (m/atanh -1.0)))
+  (t/is (same-double? 0.0 (m/atanh 0.0)))
+  (t/is (same-double? -0.0 (m/atanh -0.0)) "the sign of a zero is kept")
+  (t/is (same-double? Double/MIN_VALUE (m/atanh Double/MIN_VALUE)))
+  (ulp-test m/atanh 3.0 [[0.9999999999999999 18.714973875118524] [-0.9999999999999999 -18.714973875118524]]))
+
+(t/deftest inverse-hyperbolic-branch-boundaries
+  ;; each implementation switches formula at 2^-28, 0.5 (atanh), 2 and 2^28; the values next to a switch must follow the
+  ;; reference without a jump (reference: mpmath, the nearest double below, at and above the switch)
+  (ulp-test m/asinh 3.0 [[3.7252902984619136e-09 3.7252902984619136e-09] [3.725290298461914e-09 3.725290298461914e-09]
+                         [3.725290298461915e-09 3.725290298461915e-09]
+                         [1.9999999999999998 1.4436354751788103] [2.0 1.4436354751788103] [2.0000000000000004 1.4436354751788105]
+                         [268435455.99999997 20.101268236238415] [268435456.0 20.101268236238415]
+                         [268435456.00000006 20.101268236238415]])
+  (ulp-test m/acosh 3.0 [[1.9999999999999998 1.3169578969248166] [2.0 1.3169578969248168] [2.0000000000000004 1.316957896924817]
+                         [268435455.99999997 20.101268236238415] [268435456.0 20.101268236238415]
+                         [268435456.00000006 20.101268236238415]])
+  (ulp-test m/atanh 3.0 [[3.7252902984619136e-09 3.7252902984619136e-09] [3.725290298461914e-09 3.725290298461914e-09]
+                         [3.725290298461915e-09 3.725290298461915e-09]
+                         [0.49999999999999994 0.5493061443340548] [0.5 0.5493061443340549] [0.5000000000000001 0.549306144334055]]))
+
+(t/deftest inverse-hyperbolic-odd-symmetry
+  (doseq [x [1e-300 1e-10 3.7252902984619136e-09 1e-5 0.3 0.5 0.9 1.0 1.5 2.0 10.0 1e5 268435456.0 1e300]]
+    (t/is (same-double? (- (m/asinh x)) (m/asinh (- x))) (str "asinh " x)))
+  (doseq [x [1e-300 1e-10 3.7252902984619136e-09 1e-5 0.3 0.5 0.9 0.9999999999999999]]
+    (t/is (same-double? (- (m/atanh x)) (m/atanh (- x))) (str "atanh " x))))
 
 (defmacro ^:private same-as-math
   "Checks that `m/f` and `Math/f` return the same bits for every value of `xs`."
   [f xs]
-  (when-not (and (contains? '#{asinh acosh atanh} f) (< m/jvm-version 27)) ; no Math/asinh etc. before JDK 27
-    (let [x (gensym "x")]
-      `(doseq [~x ~xs]
-         (t/is (same-double? (~(symbol "m" (name f)) (double ~x)) (. Math (~f (double ~x))))
-               (str '~f " " ~x))))))
+  (let [x (gensym "x")]
+    `(doseq [~x ~xs]
+       (t/is (same-double? (~(symbol "m" (name f)) (double ~x)) (. Math (~f (double ~x))))
+             (str '~f " " ~x)))))
 
 (t/deftest math-backed-special-values
   (let [specials [##NaN ##Inf ##-Inf 0.0 -0.0 1.0 -1.0 0.5 -0.5 Double/MIN_VALUE (- Double/MIN_VALUE)
@@ -1340,9 +1393,6 @@
       (doseq [y specials]
         (t/is (same-double? (m/atan2 x y) (Math/atan2 x y)) (str "atan2 " x " " y))
         (t/is (same-double? (m/fatan2 x y) (FastMath/atan2 x y)) (str "fatan2 " x " " y))))
-    (same-as-math asinh specials)
-    (same-as-math acosh specials)
-    (same-as-math atanh specials)
     (t/is (== 2.0 (m/log 2.0 4.0)) "log base 2 of 4: log(4)/log(2)")
     (t/is (same-double? 0.6931471805599453 m/LN2) "LN2 keeps its bits")
     (t/is (same-double? 2.302585092994046 m/LN10) "LN10 keeps its bits")
@@ -1358,12 +1408,8 @@
         (t/is (same-double? (m/fcos x) (FastMath/cos x)) (str "fcos " x))
         (t/is (same-double? (m/ftan x) (FastMath/tan x)) (str "ftan " x))
         (t/is (same-double? (m/flog1p x) (FastMath/log1p x)) (str "flog1p " x))
-        (t/is (same-double? (m/fasinh x) (FastMath/asinh x)) (str "fasinh " x))
-        (t/is (same-double? (m/facosh x) (FastMath/acosh x)) (str "facosh " x))
-        (t/is (same-double? (m/fatanh x) (FastMath/atanh x)) (str "fatanh " x))
         ;; the function value and the inlined call agree
         (t/is (same-double? ((deref (var m/fsin)) x) (m/fsin x)) (str "fsin value " x))
-        (t/is (same-double? ((deref (var m/fatanh)) x) (m/fatanh x)) (str "fatanh value " x))
         (doseq [y xs]
           (t/is (same-double? (m/fatan2 x (double y)) (FastMath/atan2 x (double y))) (str "fatan2 " x " " y))))))
   ;; fatan2 keeps the argument order of atan2: the first argument is the ordinate
@@ -1374,10 +1420,7 @@
     (t/is (m/delta-eq (m/sin x) (m/fsin x) 1.0e-12 1.0e-12))
     (t/is (m/delta-eq (m/cos x) (m/fcos x) 1.0e-12 1.0e-12))
     (t/is (m/delta-eq (m/tan x) (m/ftan x) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (m/log1p x) (m/flog1p x) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (m/asinh x) (m/fasinh x) 1.0e-12 1.0e-12))
-    (t/is (m/delta-eq (m/atanh (/ x 4.0)) (m/fatanh (/ x 4.0)) 1.0e-12 1.0e-12)))
-  (t/is (m/delta-eq (m/acosh 1.5) (m/facosh 1.5) 1.0e-12 1.0e-12)))
+    (t/is (m/delta-eq (m/log1p x) (m/flog1p x) 1.0e-12 1.0e-12))))
 
 (t/deftest expm1-keeps-the-sign-of-zero
   ;; Jafama's expm1 returns +0.0 for -0.0 (java.lang.Math returns -0.0); the guard `x == 0 -> x` fixes it
@@ -1419,7 +1462,7 @@
   (inline-vs-function
    [m/sin m/cos m/tan m/asin m/acos m/atan m/sinh m/cosh m/tanh m/asinh m/acosh m/atanh
     m/exp m/expm1 m/log m/ln m/log10 m/log1p m/sqrt m/cbrt
-    m/fsin m/fcos m/ftan m/flog1p m/fasinh m/facosh m/fatanh
+    m/fsin m/fcos m/ftan m/flog1p
     m/sinpi m/cospi m/tanpi m/cot m/cotpi m/sec m/secpi m/csc m/cscpi m/acot m/asec m/acsc
     m/coth m/sech m/csch m/acoth m/asech m/acsch
     m/crd m/acrd m/versin m/coversin m/vercos m/covercos m/aversin m/acoversin m/avercos m/acovercos

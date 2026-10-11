@@ -1,7 +1,7 @@
 (ns fastmath.core
   "Core, high-performance mathematical functions and constants, specialized for primitive `double` and `long` types.
 
-  Most functions here are inlined and operate directly on primitives to avoid boxing overhead, and are primarily backed by `java.lang.Math` (elementary functions such as `sin`, `cos`, `tan`, `log`, `sqrt`), the FastMath (jafama) library (hyperbolic functions, `exp`, `hypot`, rounding, and the faster, less accurate `f`-prefixed twins such as `fsin`), Apache Commons Math, and custom primitive implementations. Many mathematical constants (`PI`, `E`, roots, reciprocals, logarithms of common values, etc.) are also provided.
+  Most functions here are inlined and operate directly on primitives to avoid boxing overhead, and are primarily backed by `java.lang.Math` (elementary functions such as `sin`, `cos`, `tan`, `log`, `sqrt`), the FastMath (jafama) library (`sinh`, `cosh`, `tanh`, `exp`, `hypot`, rounding, and the faster, less accurate `f`-prefixed twins such as `fsin`), custom implementations for `asinh`, `acosh` and `atanh`, Apache Commons Math, and custom primitive implementations. Many mathematical constants (`PI`, `E`, roots, reciprocals, logarithms of common values, etc.) are also provided.
 
   Functions and macros defined in this namespace cover:
 
@@ -1171,102 +1171,47 @@
    :inline-arities #{1}}
   ^double [^double x] (. FastMath (tanh x)))
 
-;; `Math/asinh`, `Math/acosh` and `Math/atanh` were added in JDK 27 (not in 25 and 26, checked with `javap`).
-;; Jafama's versions are fast but inaccurate (`acosh` near 1: up to 2.5e7 ulps, `asinh` near 0: 33 ulps, `atanh`: 19 ulps),
-;; so `Math` is used where it exists and Jafama on older JDKs.
-(def ^{:const true :tag 'long :private true} math-inverse-hyperbolic-jdk 27)
-
-(defn ^:private ->inverse-hyperbolic
-  "Builds an `:inline` template of `Math/f` (JDK 27+) or `FastMath/f` (older JDKs) for the symbol `f`."
-  [f]
-  (if (< jvm-version math-inverse-hyperbolic-jdk)
-    (fn [x] `(. FastMath (~f (double ~x))))
-    (fn [x] `(. Math (~f (double ~x))))))
-
-(defmacro ^:private inverse-hyperbolic-macro
-  "Expands to `Math/f` (JDK 27+) or `FastMath/f` (older JDKs) applied to `x`."
-  [f x]
-  (if (< jvm-version math-inverse-hyperbolic-jdk)
-    `(. FastMath (~f ~x))
-    `(. Math (~f ~x))))
-
 (defn asinh
-  "asinh(x)
-
-  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (Jafama is much less accurate, see [[fasinh]]).
-
-  See also [[fasinh]]."
-  {:inline (->inverse-hyperbolic 'asinh)
-   :inline-arities #{1}}
-  ^double [^double x] (inverse-hyperbolic-macro asinh x))
-
-(defn fasinh
-  "Computes `asinh(x)` with Jafama `FastMath`, which is faster than [[asinh]] on JDK 27 and newer but less accurate.
-
-  The error is larger than that of [[asinh]]. Use [[asinh]] when accuracy matters.
+  "Computes the inverse hyperbolic sine of `x`, `asinh(x) = log(x + sqrt(x^2 + 1))`.
 
   Parameters:
 
   - `x` (double): value to take the inverse hyperbolic sine of.
 
-  Returns `asinh(x)` as a double.
+  Returns `asinh(x)` as a double, accurate to about 2 ulps for every `x`, also for `x` close to zero and for large `|x|`, where the direct formula loses precision or overflows. It is an odd function: `asinh(-x) = -asinh(x)`. Returns `x` for `0.0` and `-0.0` (the sign of a zero is kept), `##Inf` or `##-Inf` for an infinite `x`, and `##NaN` for `##NaN`.
 
-  See also [[asinh]]."
-  {:inline (fn [x] `(. FastMath (asinh (double ~x))))
+  See also [[sinh]], [[acsch]]."
+  {:inline (fn [x] `(. PrimitiveMath (asinh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (asinh x)))
+  ^double [^double x] (. PrimitiveMath (asinh x)))
 
 (defn acosh
-  "acosh(x)
-
-  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (Jafama is very inaccurate for `x` close to 1, see [[facosh]]).
-
-  See also [[facosh]]."
-  {:inline (->inverse-hyperbolic 'acosh)
-   :inline-arities #{1}}
-  ^double [^double x] (inverse-hyperbolic-macro acosh x))
-
-(defn facosh
-  "Computes `acosh(x)` with Jafama `FastMath`, which is faster than [[acosh]] on JDK 27 and newer but less accurate.
-
-  The relative error is very large for `x` close to 1. Use [[acosh]] when accuracy matters.
+  "Computes the inverse hyperbolic cosine of `x`, `acosh(x) = log(x + sqrt(x^2 - 1))`.
 
   Parameters:
 
   - `x` (double): value to take the inverse hyperbolic cosine of, `x >= 1`.
 
-  Returns `acosh(x)` as a double. Returns `##NaN` for `x < 1`.
+  Returns `acosh(x)` as a double, accurate to about 2 ulps for every `x >= 1`, also for `x` close to 1 and for large `x`, where the direct formula loses precision or overflows. Returns `0.0` for `x = 1`, `##Inf` for `##Inf`, and `##NaN` for `x < 1` and for `##NaN`.
 
-  See also [[acosh]]."
-  {:inline (fn [x] `(. FastMath (acosh (double ~x))))
+  See also [[cosh]], [[asech]]."
+  {:inline (fn [x] `(. PrimitiveMath (acosh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (acosh x)))
+  ^double [^double x] (. PrimitiveMath (acosh x)))
 
 (defn atanh
-  "atanh(x)
-
-  Backed by `java.lang.Math` on JDK 27 and newer and by Jafama `FastMath` on older JDKs, so the accuracy may differ by JDK (see [[fatanh]]).
-
-  See also [[fatanh]]."
-  {:inline (->inverse-hyperbolic 'atanh)
-   :inline-arities #{1}}
-  ^double [^double x] (inverse-hyperbolic-macro atanh x))
-
-(defn fatanh
-  "Computes `atanh(x)` with Jafama `FastMath`, which is faster than [[atanh]] on JDK 27 and newer but less accurate.
-
-  The error is larger than that of [[atanh]]. Use [[atanh]] when accuracy matters.
+  "Computes the inverse hyperbolic tangent of `x`, `atanh(x) = 0.5 * log((1 + x) / (1 - x))`.
 
   Parameters:
 
   - `x` (double): value to take the inverse hyperbolic tangent of, `-1 <= x <= 1`.
 
-  Returns `atanh(x)` as a double. Returns `##NaN` for `|x| > 1` and `##Inf` or `##-Inf` for `x` equal to `1` or `-1`.
+  Returns `atanh(x)` as a double, accurate to about 2 ulps for every `x` in the domain, also for `x` close to zero and close to `1` or `-1`. It is an odd function: `atanh(-x) = -atanh(x)`. Returns `x` for `0.0` and `-0.0` (the sign of a zero is kept), `##Inf` for `x = 1`, `##-Inf` for `x = -1`, and `##NaN` for `|x| > 1` and for `##NaN`.
 
-  See also [[atanh]]."
-  {:inline (fn [x] `(. FastMath (atanh (double ~x))))
+  See also [[tanh]], [[acoth]]."
+  {:inline (fn [x] `(. PrimitiveMath (atanh (double ~x))))
    :inline-arities #{1}}
-  ^double [^double x] (. FastMath (atanh x)))
+  ^double [^double x] (. PrimitiveMath (atanh x)))
 
 (defn qsin
   "Fast and less accurate sin(x)"
