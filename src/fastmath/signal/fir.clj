@@ -1,7 +1,7 @@
 (ns fastmath.signal.fir
   "FIR (finite impulse response) filter design.
 
-  * [[firwin]] - window method for low pass, high pass, band pass and band stop filters, as `scipy.signal.firwin`
+  * [[firwin]] - window method for low pass, high pass, band pass and band stop filters, as `scipy.signal.firwin`, except that an even number of taps for a filter passing the Nyquist frequency is increased by one (scipy throws `ValueError`)
   * [[firgain]] - frequency sampling method for an arbitrary piecewise gain, as `scipy.signal.firwin2`
   * [[gammatone]] - gammatone filter of auditory models, as `scipy.signal.gammatone` with `ftype='fir'`
 
@@ -106,7 +106,7 @@
 
   Output:
 
-  Returns a vector of doubles representing the FIR filter coefficients (impulse response). Equals `scipy.signal.firwin(taps, cutoff, window, pass_zero, scale, fs)` for the same window.
+  Returns a vector of doubles representing the FIR filter coefficients (impulse response). Equals `scipy.signal.firwin(taps, cutoff, window, pass_zero, scale, fs)` for the same window, except for an even `taps` with a filter passing the Nyquist frequency: it is increased by one here, scipy throws `ValueError`.
 
   Throws `ex-info` for an empty or out of range cutoff, an unknown `kind`, or a window sequence of another length than `taps`."
   ([taps kind opts] (firwin (assoc opts :taps taps :kind kind)))
@@ -244,7 +244,7 @@
         bw (m/* 1.019 (m/+ 24.7 (m// cutoff 9.26449)))
         b (map (fn [^double t]
                  (if (m/zero? t)
-                   0.0
+                   (if (m/zero? order-) 1.0 0.0) ;; t^(order-1) at t = 0, 0^0 = 1
                    (let [tt (m/* m/TWO_PI t)]
                      (m/* (m/exp (m/- (m/* order- (m/log t))
                                       (m/* tt bw)))

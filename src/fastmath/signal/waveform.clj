@@ -246,11 +246,11 @@
   "Band-limited curve"
   ^double [^double t ^double dt]
   (cond
-    (m/< t dt) (let [t (m/sq (m/dec (m// t dt)))]
-                 (m/* -4.0 (m/- (m/sq t) t)))
+    (m/< t dt)           (let [t (m/sq (m/dec (m// t dt)))]
+                           (m/* -4.0 (m/- (m/sq t) t)))
     (m/> t (m/- 1.0 dt)) (let [t (m/sq (m/inc (m// (m/dec t) dt)))]
                            (m/* 4.0 (m/- (m/sq t) t)))
-    :else 0.0))
+    :else                0.0))
 
 ;;
 

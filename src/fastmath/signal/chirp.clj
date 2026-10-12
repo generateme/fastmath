@@ -62,7 +62,7 @@
   "Exponential (geometric) sweep, frequency `f0 (f1/f0)^(t/t1)`; constant `f0` when `f0 = f1`. Frequencies must be positive. Defaults: `:f0` 1e-10, `:f1` 5.0, `:time` 1.0."
   ([] (->logarithmic nil))
   ([{:keys [^double time ^double f0 ^double f1 ^double phase0]
-     :or {time 1.0 f0 m/EPSILON f1 5.0 phase0 0.0}}]
+     :or {time 1.0 f0 1.0e-10 f1 5.0 phase0 0.0}}]
    (positive! :time time)
    (positive! :f0 f0)
    (positive! :f1 f1)
@@ -77,7 +77,7 @@
   "Hyperbolic sweep, frequency `f0 f1 t1 / ((f0 - f1) t + f1 t1)`; constant `f0` when `f0 = f1`. Beyond the singularity `t = f1 t1 / (f1 - f0)` the phase uses the absolute value of the logarithm argument, as scipy. Frequencies must be positive. Defaults: `:f0` 1e-10, `:f1` 5.0, `:time` 1.0."
   ([] (->hyperbolic nil))
   ([{:keys [^double time ^double f0 ^double f1 ^double phase0]
-     :or {time 1.0 f0 m/EPSILON f1 5.0 phase0 0.0}}]
+     :or {time 1.0 f0 1.0e-10 f1 5.0 phase0 0.0}}]
    (positive! :time time)
    (positive! :f0 f0)
    (positive! :f1 f1)

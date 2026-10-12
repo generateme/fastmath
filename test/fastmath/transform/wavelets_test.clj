@@ -78,6 +78,10 @@
     (test/is (= 1 (sut/max-level 2 2)))
     (test/is (= 6 (sut/max-level 64 2)))
     (test/is (= 3 (sut/max-level 64 8)))
+    (test/is (= 0 (sut/max-level 10 1)) "filter shorter than 2, as pywt")
+    (test/is (= 0 (sut/max-level 10 0)))
+    (test/is (= 3 (sut/coeffs-length 5 2 :symmetric)))
+    (test/is (thrown? clojure.lang.ExceptionInfo (sut/coeffs-length 10 4 :foo)))
     (test/is (reconstructed? x (t/idwt (t/dwt x "db4" {:level 5}) "db4")) "beyond the maximum level, short filter")
     (test/is (close? [3.5] (t/idwt (t/dwt [3.5] "haar") "haar")) "one sample")))
 
@@ -122,6 +126,8 @@
           x (map #(Math/sin (* 0.4 %)) (range 30))]
       (test/is (= (t/dwt x "db4") (t/dwt x custom)) "wavelet object accepted"))
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/->wavelet "bad" [1 2] [1 2 3] [1 2] [1 2])))
+    (test/is (thrown? clojure.lang.ExceptionInfo (sut/->wavelet "one" [1.0])) "filters of length 1")
+    (test/is (thrown? clojure.lang.ExceptionInfo (sut/->wavelet "empty" [])))
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/phi w :both)))
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/psi w :both)))))
 
@@ -146,7 +152,23 @@
     (let [phi (sut/scaling-function "haar" 10)
           psi (sut/wavelet-function "haar" 10)]
       (test/is (close? [1.0 1.0 1.0 0.0 0.0] (map phi [0.1 0.4 0.9 -0.5 1.5])))
-      (test/is (close? [1.0 1.0 -1.0 -1.0] (map psi [0.1 0.4 0.6 0.9]))))))
+      (test/is (close? [1.0 1.0 -1.0 -1.0] (map psi [0.1 0.4 0.6 0.9])))))
+  (test/testing "grid end, as pywt.wavefun (haar: 1 + 1/2^level; db2: L-1; bior2.2: L-1-1/2^level)"
+    (test/is (zero? ((sut/scaling-function "haar" 1) 1.6)))
+    (test/is (not (zero? ((sut/scaling-function "haar" 1) 1.4))))
+    (test/is (zero? ((sut/scaling-function "haar" 3) 1.13)))
+    (test/is (zero? ((sut/wavelet-function "db2" 3) 3.01)))))
+
+(test/deftest names
+  (test/testing "names are read without loading the filters, every PyWavelets discrete wavelet is present"
+    (test/is (every? (set sut/wavelet-names) (map #(str "coif" %) (range 1 18))))
+    (test/is (= 237 (count sut/wavelet-names)) "165 filters + 72 aliases")
+    (test/is (every? #(sut/wavelet %) sut/wavelet-names)))
+  (test/testing "coif17 is orthonormal (copied from pywt)"
+    (let [h (vec (sut/phi (sut/wavelet "coif17") :rec))
+          shift-dot (fn [k] (reduce + (map * h (drop (* 2 k) h))))]
+      (test/is (< (Math/abs (- 1.0 (shift-dot 0))) 1.0e-12))
+      (test/is (every? #(< (Math/abs (double (shift-dot %))) 1.0e-12) (range 1 10))))))
 
 (test/deftest raw-wavelet-transformers
   (let [x (map #(Math/sin (* 0.3 % %)) (range 45))]
@@ -178,4 +200,21 @@
     (test/is (thrown? clojure.lang.ExceptionInfo (t/iwpt (vec (t/wpt x "haar" {:flat? true})) "haar")) "flat without :level")
     (test/is (thrown? clojure.lang.ExceptionInfo (t/iwpt (t/wpt x "haar" {:level 1}) "haar" {:n 9})) "node length does not match :n")
     (test/is (thrown? clojure.lang.ExceptionInfo (sut/idwt-level "haar" (double-array 2) (double-array 3) :symmetric)))
-    (test/is (thrown? clojure.lang.ExceptionInfo (sut/idwt-level "db4" (double-array 2) (double-array 2) :symmetric)) "too short")))
+    (test/is (thrown? clojure.lang.ExceptionInfo (sut/idwt-level "db4" (double-array 2) (double-array 2) :symmetric)) "too short")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/idwt [[]] "haar")) "empty band")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/idwt [[1.0] []] "haar")) "empty detail")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/iwpt [[]] "haar")) "empty node")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/dwt [1 2 3] (sut/->wavelet "one" [1.0]))) "one-tap filter")))
+
+(test/deftest inverse-wavelet-from-metadata
+  (let [x (mapv #(Math/sin (* 0.3 %)) (range 21))
+        bands (t/dwt x "db2")
+        nodes (t/wpt x "db2" {:level 2})]
+    (test/is (= (t/idwt bands "db2") (t/idwt bands) (t/idwt bands nil)) "wavelet from metadata")
+    (test/is (= (t/iwpt nodes "db2") (t/iwpt nodes)))
+    (test/is (= (t/idwt bands) (t/idwt (t/dwt x :daubechies-2) "db2")) "alias and name are the same filters")
+    (test/is (= (t/idwt bands) (t/idwt bands (sut/->wavelet "custom" (sut/phi (sut/wavelet "db2"))))) "same filters, other object")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/idwt bands "db3")) "other wavelet than the forward one")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/iwpt nodes "haar")))
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/idwt (with-meta bands nil))) "no wavelet at all")
+    (test/is (thrown? clojure.lang.ExceptionInfo (t/iwpt (with-meta nodes nil))))))

@@ -73,4 +73,22 @@
   (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:direct-form 3})))
   (t/is (thrown? clojure.lang.ExceptionInfo (sut/sos [[1 0 0 1 0 0]] 3)))
   (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:order 0})))
-  (t/is (thrown? clojure.lang.ExceptionInfo (sut/biquad {:kind :shelf}))))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/biquad {:kind :shelf})))
+  (doseq [design [sut/butterworth sut/bessel sut/chebyshev]
+          cutoff [0.5 0.7 0.0 -0.1]]
+    (t/is (thrown? clojure.lang.ExceptionInfo (design {:cutoff cutoff})) (str "cutoff " cutoff)))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:fs 0.0})))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:kind :bandpass :cutoff 0.45 :bandwidth 0.2})) "upper edge above fs/2")
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:kind :bandstop :cutoff 0.05 :bandwidth 0.2})) "lower edge below 0")
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/butterworth {:kind :bandpass :bandwidth 0.0})))
+  (t/is (some? (sut/butterworth {:cutoff 0.499})))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/sos [])))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/sos [[1 2 3]])))
+  (t/is (thrown? clojure.lang.ExceptionInfo (sut/sos [[1 0 0 0 0 0]])) "a0 = 0"))
+
+(t/deftest sos-coeffs-normalized
+  ;; scipy.signal.butter(2, 0.2, output='sos')
+  (t/is (<= (max-diff [[0.06745527388907194 0.13491054777814387 0.06745527388907194 1.0 -1.142980502539901 0.41280159809618866]]
+                      (sut/sos-coeffs (sut/butterworth {:order 2 :cutoff 0.1})))
+            1.0e-15))
+  (t/is (every? #(== 1.0 (% 3)) (sut/sos-coeffs (sut/biquad {:kind :lowshelf :gain 6.0}))) "a0 = 1 also for cookbook sections"))

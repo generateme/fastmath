@@ -7,7 +7,7 @@ Produces `test/resources/signal/fir_reference.edn` with scipy.signal results:
   fs 10 and 1000, numeric `scale` (normalized frequency),
 - `:firwin2` - `firwin2` with nfreqs = 1 + 2^ceil(log2(1.25 taps)) (the fastmath
   default) for the four filter types, windows hann / boxcar, fs 1 and 10,
-- `:gammatone` - `gammatone(1000, 'fir', fs=16000)` (defaults) and other orders.
+- `:gammatone` - `gammatone(1000, 'fir', fs=16000)` (defaults) and other orders (incl. order 1).
 
 Run from anywhere:
     cd /home/ts/penv && uv run python \
@@ -72,7 +72,7 @@ for fs in (1.0, 10.0):
                               f(fs), "nil" if window == "rectangular" else ":hann", vec(h)))
 
 gamma = []
-for cutoff, fs, order, taps in [(1000.0, 16000.0, 4, None), (200.0, 1000.0, 4, 30), (440.0, 8000.0, 2, 64)]:
+for cutoff, fs, order, taps in [(1000.0, 16000.0, 4, None), (200.0, 1000.0, 4, 30), (440.0, 8000.0, 2, 64), (1000.0, 16000.0, 1, 32)]:
     b, _ = ss.gammatone(cutoff, "fir", order=order, numtaps=taps, fs=fs)
     gamma.append("{:cutoff %s :fs %s :order %d :taps %s :result %s}"
                  % (f(cutoff), f(fs), order, str(taps) if taps else "nil", vec(b)))

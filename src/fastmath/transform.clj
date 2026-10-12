@@ -18,6 +18,8 @@
 
   For cosine and sine transforms `N` is the scipy normalization length (`2N`, `2(N-1)` or `2(N+1)` depending on the type), so the results equal `scipy.fft.dct` / `dst` with the same `type` and `norm`.
 
+  Differences from `scipy.fft`: [[dct]], [[dst]] and, without metadata, [[idct]], [[idst]] default to `:ortho` (scipy: `backward`); types IV of DCT and DST are not implemented.
+
   Low-level transform objects are created by [[transformer]] and used with [[forward-1d]], [[reverse-1d]], [[forward-2d]] and [[reverse-2d]]. They wrap JTransforms (FFT, DCT-II/III, DST-II/III, DHT, also 2d), Apache Commons Math (DCT-I/DST-I of power-of-two sizes, Hadamard) and the wavelet transforms.
 
   Fourier transforms are computed by JTransforms."
@@ -57,9 +59,12 @@
   xs)
 
 (defn- non-empty-2d!
+  "Throws when `xss` is empty or its rows have different lengths, returns `xss`."
   [xss]
   (when (or (nil? xss) (zero? (count xss)) (zero? (count (first xss))))
     (throw (ex-info "2d signal is empty." {:rows (count xss)})))
+  (when-not (apply == (map count xss))
+    (throw (ex-info "Rows of a 2d signal should have the same length." {:lengths (mapv count xss)})))
   xss)
 
 (defmulti
@@ -188,10 +193,10 @@
     out))
 
 (defn- ->interleaved-rows
-  "Rows of interleaved complex data, truncated to an even length."
+  "Rows of interleaved complex data, each of even length."
   ^"[[D" [xss]
-  (let [s2 (m/long-mult 2 (m/long-quot (count (first (non-empty-2d! xss))) 2))]
-    (into-array (map (fn [xs] (m/seq->double-array (take s2 xs))) xss))))
+  (even-length! (first (non-empty-2d! xss)))
+  (into-array (map m/seq->double-array xss)))
 
 (defn- jt-forward2-cfft [xss _]
   (let [out (->interleaved-rows xss)]
@@ -378,7 +383,10 @@
         n (count zs)
         arr (double-array (* 2 n))]
     (dotimes [id n]
-      (let [^Vec2 z (zs id)]
+      (let [z (zs id)
+            _ (when-not (instance? Vec2 z)
+                (throw (ex-info "Complex signal should contain only complex numbers (Vec2)." {:index id :value z})))
+            ^Vec2 z z]
         (Array/aset arr (* 2 id) (.x z))
         (Array/aset arr (inc (* 2 id)) (.y z))))
     arr))
@@ -413,7 +421,7 @@
 
   Returns a vector of `Vec2`. Metadata under `:fastmath.transform/fft` holds `{:kind :n :norm :real?}` used by [[ifft]]: `:kind` is `:real` for a single-sided spectrum and `:complex` otherwise, `:n` is the signal length, `:real?` is `true` for the double-sided spectrum of a real signal.
 
-  Throws `ex-info` for an empty signal or an unknown option value."
+  Throws `ex-info` for an empty signal, mixed numbers and complex numbers or an unknown option value."
   ([xs] (fft xs nil))
   ([xs {:keys [spectrum norm]
         :or {spectrum :single-sided norm :backward}}]
@@ -425,6 +433,8 @@
                          (with-meta (->complex-vec (scale! arr (norm-scale norm n false)))
                            {::fft {:kind :complex :n n :norm norm :real? false}}))
      (number? (first xs)) (let [n (count xs)]
+                            (when-not (every? number? xs)
+                              (throw (ex-info "Real signal should contain only numbers." {:value (first (remove number? xs))})))
                             (case spectrum
                               :single-sided (with-meta (real-fft xs norm)
                                               {::fft {:kind :real :n n :norm norm}})
@@ -461,7 +471,7 @@
   `xs` is a sequence of complex coefficients (`Vec2`). The way it is inverted is read from the metadata attached by [[fft]]; `options` override the metadata:
 
   * `:kind` - `:real` for a single-sided spectrum (`N/2+1` coefficients) of a real signal, `:complex` for a full spectrum.
-  * `:n` - length of the original signal, required for `:real` (`N` cannot be inferred from a single-sided spectrum). For `:complex` it is the number of coefficients.
+  * `:n` - length of the original signal, required for `:real` (`N` cannot be inferred from a single-sided spectrum). For `:complex` it must equal the number of coefficients (no padding or truncation).
   * `:real?` - for `:complex`, return only real parts (default `false`).
   * `:norm` - `:backward` (default, scaled by `1/N`), `:ortho` (scaled by `1/sqrt(N)`), `:forward` (not scaled).
 
@@ -477,6 +487,8 @@
                    (throw (ex-info "Signal length :n is required to invert a single-sided spectrum." {:options options})))
                  (vec (real-ifft xs (long n) norm)))
        :complex (let [cnt (count xs)
+                      _ (when (and n (not= (long n) cnt))
+                          (throw (ex-info "For a complex spectrum :n should equal the number of coefficients." {:n n :count cnt})))
                       res (scale! (jt-reverse-cfft (interleave-complex xs) true) (* cnt (norm-scale norm cnt true)))]
                   (if real?
                     (vec (take-nth 2 res))
@@ -770,6 +782,27 @@
     (> (alength arr) (long n)) (java.util.Arrays/copyOf arr (int n))
     :else (throw (ex-info "Reconstructed signal is shorter than the requested length." {:length (alength arr) :n n}))))
 
+(defn- filter-bank
+  [w]
+  (let [w (wv/wavelet w)]
+    (mapv seq [(wv/phi w) (wv/psi w) (wv/phi w :rec) (wv/psi w :rec)])))
+
+(defn- inverse-wavelet
+  "Wavelet of an inverse transform: the argument `wavelet` or `stored` (metadata of the forward transform). Throws when both are missing or have different filters."
+  [wavelet stored]
+  (cond
+    (and (nil? wavelet) (nil? stored)) (throw (ex-info "Wavelet is required: pass it or use coefficients with the metadata of the forward transform." {}))
+    (nil? wavelet) stored
+    (and (some? stored) (not= (filter-bank wavelet) (filter-bank stored)))
+    (throw (ex-info "Wavelet differs from the one used by the forward transform." {:wavelet wavelet :forward stored}))
+    :else wavelet))
+
+(defn- non-empty-bands!
+  [bands]
+  (when (some empty? bands)
+    (throw (ex-info "Bands should not be empty." {:lengths (mapv count bands)})))
+  bands)
+
 (defn dwt
   "Computes the multilevel discrete wavelet transform of a 1d signal, as `pywt.wavedec`.
 
@@ -782,7 +815,7 @@
 
   Returns a vector of bands `[cA_n cD_n cD_n-1 ... cD_1]` (approximation at the coarsest level followed by details from coarsest to finest), each a vector of doubles; with `:level 0` the only band is the signal. Metadata under `:fastmath.transform/dwt` holds `{:wavelet :mode :level :n}` (and `:lengths` of the bands for flat output), used by [[idwt]].
 
-  Throws `ex-info` for an empty signal, an unknown wavelet or mode, a negative level, or a one-sample signal with `:reflect` / `:antireflect`."
+  Throws `ex-info` for an empty signal, an unknown wavelet or mode, a negative level, or a one-sample signal with `:reflect` / `:antireflect` and `:level` at least 1 (the default level of a one-sample signal is 0, the result is `[[x]]`, as in PyWavelets)."
   ([xs wavelet] (dwt xs wavelet nil))
   ([xs wavelet {:keys [level mode flat?] :or {mode :symmetric}}]
    (let [[w l] (wavelet-options wavelet mode)
@@ -799,7 +832,7 @@
   "Reconstructs a signal from the [[dwt]] bands, as `pywt.waverec`.
 
   * `coeffs` - vector of bands `[cA_n cD_n ... cD_1]`, or a flat vector together with `:lengths`
-  * `wavelet` - the wavelet used by [[dwt]]
+  * `wavelet` - the wavelet used by [[dwt]]; default (`nil` or 1-arity): the `:wavelet` of the metadata
   * `options` (merged over the metadata attached by [[dwt]]):
       * `:mode` - boundary mode used by [[dwt]] (default `:symmetric`)
       * `:n` - length of the original signal; without it the result can be one sample longer, as in PyWavelets
@@ -807,17 +840,18 @@
 
   At every level an approximation one sample longer than the next detail band is trimmed (as in PyWavelets). Returns a vector of doubles.
 
-  Throws `ex-info` for empty input, an unknown wavelet or mode, flat coefficients without `:lengths`, or band lengths that do not fit together."
+  Throws `ex-info` for empty input or empty bands, a missing wavelet, a wavelet other than the one in the metadata, an unknown wavelet or mode, flat coefficients without `:lengths`, or band lengths that do not fit together."
+  ([coeffs] (idwt coeffs nil nil))
   ([coeffs wavelet] (idwt coeffs wavelet nil))
   ([coeffs wavelet options]
-   (let [{:keys [mode n lengths] :or {mode :symmetric}} (merge (::dwt (meta coeffs)) options)
-         [w _] (wavelet-options wavelet mode)
+   (let [{:keys [mode n lengths] :as info :or {mode :symmetric}} (merge (::dwt (meta coeffs)) options)
+         [w _] (wavelet-options (inverse-wavelet wavelet (:wavelet info)) mode)
          _ (when (empty? coeffs) (throw (ex-info "Coefficients are empty." {})))
-         bands (if (number? (first coeffs))
-                 (if lengths
-                   (split-flat coeffs lengths)
-                   (throw (ex-info "Flat coefficients need :lengths of the bands." {})))
-                 coeffs)
+         bands (non-empty-bands! (if (number? (first coeffs))
+                                   (if lengths
+                                     (split-flat coeffs lengths)
+                                     (throw (ex-info "Flat coefficients need :lengths of the bands." {})))
+                                   coeffs))
          res (reduce (fn [^doubles a d]
                        (let [^doubles d (m/seq->double-array d)
                              la (alength a)
@@ -865,17 +899,18 @@
   "Reconstructs a signal from the [[wpt]] nodes of one level.
 
   * `coeffs` - vector of `2^level` nodes in natural order, or a flat vector together with `:level`
-  * `wavelet` - the wavelet used by [[wpt]]
+  * `wavelet` - the wavelet used by [[wpt]]; default (`nil` or 1-arity): the `:wavelet` of the metadata
   * `options` (merged over the metadata attached by [[wpt]]):
       * `:mode` - boundary mode used by [[wpt]] (default `:symmetric`)
       * `:level` - required for flat coefficients
       * `:n` - length of the original signal; every reconstructed node is trimmed to its length in the tree (as PyWavelets does with a known data shape), without it nodes can be one sample longer
 
-  Returns a vector of doubles. Throws `ex-info` for empty input, an unknown wavelet or mode, a node count which is not a power of two, nodes of different lengths or lengths which do not match `:n`."
+  Returns a vector of doubles. Throws `ex-info` for empty input or empty nodes, a missing wavelet, a wavelet other than the one in the metadata, an unknown wavelet or mode, a node count which is not a power of two, nodes of different lengths or lengths which do not match `:n`."
+  ([coeffs] (iwpt coeffs nil nil))
   ([coeffs wavelet] (iwpt coeffs wavelet nil))
   ([coeffs wavelet options]
-   (let [{:keys [mode n level] :or {mode :symmetric}} (merge (::wpt (meta coeffs)) options)
-         [w l] (wavelet-options wavelet mode)
+   (let [{:keys [mode n level] :as info :or {mode :symmetric}} (merge (::wpt (meta coeffs)) options)
+         [w l] (wavelet-options (inverse-wavelet wavelet (:wavelet info)) mode)
          _ (when (empty? coeffs) (throw (ex-info "Coefficients are empty." {})))
          nodes (if (number? (first coeffs))
                  (if level
@@ -885,7 +920,7 @@
                      (mapv vec (partition (quot (count coeffs) parts) coeffs)))
                    (throw (ex-info "Flat coefficients need :level." {})))
                  coeffs)
-         cnt (count nodes)
+         cnt (count (non-empty-bands! nodes))
          lvl (m/log2int cnt)]
      (when-not (m/power-of-two? cnt)
        (throw (ex-info "Number of nodes should be a power of two." {:nodes cnt})))

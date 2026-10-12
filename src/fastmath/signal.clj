@@ -47,7 +47,7 @@
 
   Octave divider, swh `divider_1186`.
 
-  * `:denom` - divisor, long at least 1 (default 2, the original 1)
+  * `:denom` - divisor, an integer at least 1 (default 2, the original 1)
 
   #### :fm
 
@@ -100,7 +100,7 @@
 
   Audacity `Echo`.
 
-  * `:delay` - delay time in seconds, at least one sample (default 0.5)
+  * `:delay` - delay time in seconds, from one sample to `1e7` samples (default 0.5)
   * `:decay` - amount of echo in the signal (default 0.5)
   * `:rate` - sample rate (default 44100.0)
 
@@ -165,7 +165,7 @@
 
   * `:rate` - sample rate (default 44100.0)
   * `:cutoff` - cutoff frequency (default 1000.0)
-  * `:Q` - quality factor (default 0.5)
+  * `:Q` - quality factor, positive (default 0.5)
   * `:kind` - `:lowpass` (default), `:highpass`, `:bandpass`, `:bandpass-normalized` (bandpass divided by `Q`, unit gain at `cutoff`), `:notch` (lowpass + highpass)
   * `:tan` - `tan` approximation: `:exact` (default), `:dirty`, `:fast`, `:accurate`
 
@@ -175,7 +175,7 @@
 
   * `:rate` - sample rate (default 44100.0)
   * `:cutoff` - cutoff frequency (default 1000.0)
-  * `:Q` - quality factor (default 0.5)
+  * `:Q` - quality factor, positive (default 0.5)
   * `:kind` - `:lowpass` (default), `:bandpass`, `:highpass`, `:notch`, `:peak` (`high - low`, as Common-DSP), `:allpass`, `:bell`, `:lowshelf`, `:highshelf`
   * `:gaindb` - gain in dB for `:bell`, `:lowshelf`, `:highshelf` (default 0.0)
   * `:tan` - as in `:svf2`
@@ -256,7 +256,7 @@
                                                                           e2)))
 
 (defn compose-effects
-  "Compose effects."
+  "Compose effects: `(compose-effects e1 e2 ... en)` processes a sample by `en` first and `e1` last (as function composition `comp`)."
   [^EffectsList e & es]
   (reduce compose-two-effects e es))
 
@@ -452,9 +452,9 @@
   ([m] (effect m {}))
   ([m {:keys [denom]
        :or {denom 2}}]
+   (when-not (and (number? denom) (== (double denom) (m/floor (double denom))) (>= (double denom) 1.0))
+     (throw (ex-info "Divider denominator should be an integer at least 1." {:denom denom})))
    (let [denom (long denom)]
-     (when (< denom 1)
-       (throw (ex-info "Divider denominator should be at least 1." {:denom denom})))
      (effect-node m
                   (fn
                     ([^double sample ^StateDivider state]
@@ -629,9 +629,10 @@
   ([m] (effect m {}))
   ([m {:keys [^double delay ^double decay ^double rate]
        :or {delay 0.5 decay 0.5 rate 44100.0}}]
-   (let [buffer-len (long (min 1.0e7 (* delay rate)))]
-     (when (< buffer-len 1)
-       (throw (ex-info "Echo delay should be at least one sample long." {:delay delay :rate rate})))
+   (let [samples (* delay rate)
+         buffer-len (long samples)]
+     (when-not (<= 1.0 samples 1.0e7)
+       (throw (ex-info "Echo delay should be from one sample to 1e7 samples long." {:delay delay :rate rate})))
      (effect-node m (fn
                       ([^double sample ^StateEcho state]
                        (let [^doubles buffer (.buffer state)
@@ -778,6 +779,12 @@
 
 ;; ### State variable filters
 
+(defn- positive-Q!
+  [Q]
+  (when-not (and (number? Q) (pos? (double Q)))
+    (throw (ex-info "Q should be positive." {:Q Q})))
+  Q)
+
 (defn- svf-unknown
   [what v allowed]
   (throw (ex-info (str "Unknown " what ".") {what v :allowed allowed})))
@@ -895,7 +902,7 @@
   ([m {:keys [rate cutoff Q kind tan]
        :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact}}]
    (let [g (svf-g tan (/ (double cutoff) (double rate)))
-         r (/ (double Q))
+         r (/ (double (positive-Q! Q)))
          h (/ (+ 1.0 (* g (+ r g))))
          ^IFn$DDDD out (case kind
                :lowpass (fn ^double [^double lp ^double _bp ^double _hp] lp)
@@ -944,7 +951,7 @@
   ([m] (effect m {}))
   ([m {:keys [rate cutoff Q kind tan gaindb]
        :or {rate 44100.0 cutoff 1000.0 kind :lowpass Q 0.5 tan :exact gaindb 0.0}}]
-   (let [Q (double Q)
+   (let [Q (double (positive-Q! Q))
          A (m/exp10 (/ (double gaindb) 40.0))
          Asqrt (m/sqrt A)
          g (svf-g tan (/ (double cutoff) (double rate)))
@@ -1180,7 +1187,7 @@
 
   Returns filtering function. See also [[savgol-filter]]."
   ([] (moving-average-filter 5))
-  ([^long length] (savgol-filter length 1 0)))
+  ([^long length] (savgol-filter length 0 0)))
 
 (defn kernel-smoothing-filter
   "Creates Nadaraya-Watson kernel-weighted average.
@@ -1220,7 +1227,7 @@
   [txs options]
   (let [given (into {} (filter (comp some? val)) (select-keys options [:kind :n :nyquist? :norm]))
         {:keys [kind n nyquist? norm]
-         :or {kind :real nyquist? true norm :backward}} (merge (::trans/fft (meta txs)) given)
+         :or {kind :real norm :backward}} (merge (::trans/fft (meta txs)) given)
         cnt (count txs)
         one-sided? (case kind
                      :real true
@@ -1228,6 +1235,7 @@
                      (throw (ex-info "Unknown spectrum kind." {:kind kind :allowed [:real :complex]})))
         n (long (or n (cond
                         (not one-sided?) cnt
+                        (nil? nyquist?) (throw (ex-info "Signal length of a one-sided spectrum is unknown: provide fft metadata, :n or :nyquist?." {:count cnt}))
                         nyquist? (m/long-mult 2 (m/long-dec cnt))
                         :else (m/long-dec (m/long-mult 2 cnt)))))]
     (when (m/zero? cnt)
@@ -1286,11 +1294,11 @@
                                                             :phase :real :imag :complex]})))))
 
 (defn- ->db
-  "Decibels: `10 log10` for power quantities, `20 log10` for amplitude quantities (values floored at `EPSILON`), other methods unchanged."
+  "Decibels: `10 log10` for power quantities, `20 log10` for amplitude quantities (0 gives `-Infinity`), other methods unchanged."
   [method xs]
   (case method
-    (:energy :power :psd) (mapv (fn [^double x] (m/* 10.0 (m/log10 (m/max x m/EPSILON)))) xs)
-    (:magnitude :amplitude :asd) (mapv (fn [^double x] (m/* 20.0 (m/log10 (m/max x m/EPSILON)))) xs)
+    (:energy :power :psd) (mapv (fn [^double x] (m/* 10.0 (m/log10 x))) xs)
+    (:magnitude :amplitude :asd) (mapv (fn [^double x] (m/* 20.0 (m/log10 x))) xs)
     xs))
 
 (defn fft-energy
@@ -1302,7 +1310,7 @@
 
   * `:kind` - `:real` for a one-sided spectrum (`N/2+1` coefficients of a real signal), `:complex` for a two-sided spectrum (`N` coefficients)
   * `:n` - signal length `N`
-  * `:nyquist?` - without `:n` and metadata, `true` (default) when `N` is even (`N = 2(count-1)`), `false` for odd `N` (`N = 2 count - 1`)
+  * `:nyquist?` - without `:n` and metadata, `true` when `N` is even (`N = 2(count-1)`), `false` for odd `N` (`N = 2 count - 1`); a one-sided spectrum without metadata, `:n` and `:nyquist?` throws `ex-info`
   * `:norm` - normalization used by `fft`: `:backward` (default), `:ortho`, `:forward`; values are computed for the unnormalized DFT
 
   Returns a vector of doubles. Throws `ex-info` when `:n` does not match the number of coefficients."
@@ -1356,11 +1364,11 @@
 
   * `xs` - Input time-domain signal (sequence of doubles), not shorter than the window.
   * `options` - A map of configuration keys:
-    * `:window` - A sequence of window coefficients (e.g., from `fastmath.kernel/window`). Default: Gaussian window of length `max(5, round(0.05 N))`.
+    * `:window` - A sequence of window coefficients (e.g., from `fastmath.kernel/window`). Default: Gaussian window of length `min(N, 256)` (256 is the scipy default segment length).
     * `:overlap` - The fraction of overlap between adjacent segments, in `[0, 1)`. Default is `0.5`.
     * `:fs` - The sampling frequency. Default is `1.0`.
-    * `:method` - Values for each segment, as in [[spectrum]] with the window taken into account (`scipy.signal.spectrogram` scaling): `:magnitude`, `:amplitude` (magnitude / sum of window), `:energy`, `:power` (energy / (sum of window)^2, `scaling='spectrum'`), `:psd` (energy / (fs sum of squared window), `scaling='density'`), `:asd` (`sqrt(psd)`), `:phase`, `:real`, `:imag`, `:complex` (coefficients). Default is `:power`.
-    * `:db?` - convert values to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (values floored at `EPSILON`); other methods unchanged. Default `false`.
+    * `:method` - Values for each segment, as in [[spectrum]] with the window taken into account: `:power` (energy / (sum of window)^2, `scipy.signal.spectrogram` with `scaling='spectrum'`), `:psd` (energy / (fs sum of squared window), `scaling='density'`), `:asd` (`sqrt(psd)`), `:energy`, `:magnitude`, `:amplitude` (magnitude / sum of window), `:phase`, `:real`, `:imag`, `:complex` (coefficients). Default is `:power`. Like [[spectrum]], one-sided `:magnitude` and `:amplitude` are doubled on the bins standing for two coefficients (peak amplitude; scipy `mode='magnitude'` does not double), so there `amplitude^2 = 2 power` (peak versus mean square).
+    * `:db?` - convert values to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (0 gives `-Infinity`); other methods unchanged. Default `false`.
     * `:spectrum`, `:norm` - passed to `fastmath.transform/fft` (one-sided by default).
 
   Returns a map containing:
@@ -1370,14 +1378,18 @@
   * `:freqs` - Frequencies of the bins.
   * `:times` - Times of the segment centres, `(wlen/2 + i shift) / fs`.
 
-  Throws `ex-info` for an empty window, a signal shorter than the window or an unknown method."
+  Throws `ex-info` for an empty signal or window, a signal shorter than the window, `:overlap` outside `[0, 1)` or an unknown method."
   ([xs] (stft xs nil))
   ([xs {:keys [window overlap fs method db?]
         :or {overlap 0.5 fs 1.0 method :power}
         :as options}]
    (let [N (count xs)
          fs (double fs)
-         window (vec (or window (ker/window :gaussian (m/long-max 5 (m/round (m/* 0.05 N))))))
+         _ (when (m/zero? N)
+             (throw (ex-info "Signal is empty." {})))
+         _ (when-not (and (number? overlap) (m/<= 0.0 (double overlap)) (m/< (double overlap) 1.0))
+             (throw (ex-info "Overlap should be in [0, 1)." {:overlap overlap})))
+         window (vec (or window (ker/window :gaussian (m/long-min N 256))))
          wlen (count window)
          _ (when (m/zero? wlen)
              (throw (ex-info "Window is empty." {})))
@@ -1407,7 +1419,7 @@
   * `xs` - Input signal. Can be a sequence of doubles (time-domain) or a sequence of `Vec2` coefficients from `fastmath.transform/fft` (frequency-domain).
   * `options` - A map of configuration keys:
     * `:method` - `:magnitude` (`|X_k|`), `:amplitude` (default, magnitude / N), `:energy` (`|X_k|^2`), `:power` (energy / N^2, `scaling='spectrum'`), `:psd` (power spectral density, energy / (N fs), `scaling='density'`), `:asd` (amplitude spectral density, `sqrt(psd)`), `:phase` (angle in radians), `:real`, `:imag` or `:complex` (coefficients). For a one-sided spectrum magnitude and energy of the bins standing for two coefficients (all but DC and, for even `N`, Nyquist) are doubled.
-    * `:db?` - convert to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (values floored at `EPSILON`); other methods unchanged. Default `false`.
+    * `:db?` - convert to decibels: `10 log10` for `:energy`, `:power`, `:psd`, `20 log10` for `:magnitude`, `:amplitude`, `:asd` (0 gives `-Infinity`); other methods unchanged. Default `false`.
     * `:fs` - The sampling frequency. Default is `1.0`.
     * `:domain` - `:time` (default, `xs` is transformed with `fastmath.transform/fft`, `options` are passed to it, e.g. `:spectrum :double-sided`, `:norm`) or `:frequency` (`xs` are coefficients).
     * `:kind`, `:n`, `:nyquist?`, `:norm` - layout of coefficients for `:domain :frequency` when they have no `fft` metadata, see [[fft-energy]].
@@ -1578,7 +1590,7 @@
 (defn sample-waveform
   "Discretize a continuous waveform function into a sequence of samples.
 
-  Evaluates a time-dependent function at `t = i / fs` for `i = 0, ..., round(fs time) - 1` (the end point `time` is excluded).
+  Evaluates a time-dependent function at `t = i / fs` for every `i >= 0` with `t < time` (`ceil(fs time)` samples, as `numpy.arange(0, time, 1/fs)`; a product `fs time` within `1e-9` relative of an integer counts as that integer, so `fs 10, time 0.3` gives 3 samples).
 
   Input parameters:
   * `waveform-fn` - A function `(fn [t])` that accepts time as a double and returns the signal amplitude. Usually created via [[waveform]] or [[chirp]].
@@ -1590,8 +1602,11 @@
   ([waveform-fn ^double fs ^double time]
    (when-not (m/pos? fs)
      (throw (ex-info "Sampling frequency should be positive." {:fs fs})))
-   (mapv (fn [^long i] (double (waveform-fn (m// i fs))))
-         (range (m/long-max 0 (m/round (m/* fs time)))))))
+   (let [x (m/* fs time)
+         r (m/round x)
+         n (if (m/<= (m/abs (m/- x r)) (m/* 1.0e-9 (m/max 1.0 (m/abs x)))) r (long (m/ceil x)))]
+     (mapv (fn [^long i] (double (waveform-fn (m// i fs))))
+           (range (m/long-max 0 n))))))
 
 ;; padding
 

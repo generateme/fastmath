@@ -186,4 +186,14 @@
     (t/is (thrown? clojure.lang.ExceptionInfo (sut/hadamard [1 2 3])))
     (t/is (thrown? clojure.lang.ExceptionInfo (sut/forward-1d (sut/transformer :complex :fft) [1 2 3])) "odd interleaved length")
     (t/is (thrown? clojure.lang.ExceptionInfo (sut/fft [(v/vec3 1 2 3)])) "neither number nor Vec2")
-    (t/is (thrown? clojure.lang.ExceptionInfo (sut/forward-2d (sut/transformer :real :hadamard) [[1 2] [3 4]])) "no 2d")))
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/forward-2d (sut/transformer :real :hadamard) [[1 2] [3 4]])) "no 2d")
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/fft [(v/vec2 1 2) 3.0])) "complex then real")
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/fft [3.0 (v/vec2 1 2)])) "real then complex")
+    (t/is (thrown? clojure.lang.ExceptionInfo (sut/forward-2d (sut/transformer :complex :fft) [[1 2 3 4 5] [4 5 6 7 8]])) "odd interleaved rows")
+    (doseq [[family variant] [[:complex :fft] [:complex :fftr] [:real :fft] [:real :dct] [:real :dht]]]
+      (t/is (thrown? clojure.lang.ExceptionInfo (sut/forward-2d (sut/transformer family variant) [[1 2 3 4] [4 5]])) (str "ragged rows " variant))))
+  (t/testing "ifft of a full spectrum: :n equals the number of coefficients"
+    (let [X (sut/fft [1 2 3 4] {:spectrum :double-sided})]
+      (t/is (thrown? clojure.lang.ExceptionInfo (sut/ifft X {:n 8})))
+      (t/is (thrown? clojure.lang.ExceptionInfo (sut/ifft X {:n 3})))
+      (t/is (close? [1 2 3 4] (sut/ifft X {:n 4 :real? true}))))))

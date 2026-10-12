@@ -49,7 +49,7 @@
   * `[name dec-lo dec-hi]` - orthogonal wavelet, reconstruction filters are the reversed decomposition filters
   * `[name dec-lo dec-hi rec-lo rec-hi]` - general (biorthogonal) filter bank
 
-  All filters must have the same length."
+  All filters must have the same length, at least 2. Throws `ex-info` otherwise."
   ([nm dec-lo] (let [rec-lo (reverse dec-lo)
                      rec-hi (qmf rec-lo)]
                  (->wavelet nm dec-lo (reverse rec-hi) rec-lo rec-hi)))
@@ -58,6 +58,8 @@
    (let [lengths (map count [dec-lo dec-hi rec-lo rec-hi])]
      (when-not (apply = lengths)
        (throw (ex-info "All filters should have the same length." {:lengths lengths})))
+     (when (m/< (long (first lengths)) 2)
+       (throw (ex-info "Filters should have at least 2 coefficients." {:lengths lengths})))
      (->Wavelet nm (count dec-lo)
                 (m/seq->double-array dec-lo)
                 (m/seq->double-array dec-hi)
@@ -113,7 +115,7 @@
 
   Strings are the filter table, in PyWavelets / MATLAB naming:
 
-  * from PyWavelets (exact copy): `haar`, `db1`-`db38`, `sym2`-`sym20`, `coif1`-`coif5`, `bior1.1`-`bior6.8`, `rbio1.1`-`rbio6.8`, `dmey` (62 taps)
+  * from PyWavelets (exact copy): `haar`, `db1`-`db38`, `sym2`-`sym20`, `coif1`-`coif17`, `bior1.1`-`bior6.8`, `rbio1.1`-`rbio6.8`, `dmey` (62 taps)
   * computed by spectral factorisation (double precision): `db39`-`db45`, `sym21`-`sym45` (root choice as in MATLAB)
   * `la8`-`la20` - least asymmetric, equal to `sym4`-`sym10`
   * `battle3` - cubic Battle-Lemarie scaling filter truncated to 161 symmetric taps and one zero (162 taps)
@@ -122,7 +124,7 @@
   Perfect reconstruction (`idwt` of `dwt`, any mode, default level) holds to about `1e-14` for most filters. Measured maximum errors (signals of length 301 and 512) above `1e-10`: `dmey` 1.3e-1 (truncated filter, about 1e-2 except in `:smooth` mode; the same in PyWavelets), `mb14.3` 3.9e-4, `mb8.2` 7.5e-6, `mb8.4` 5.9e-6, `mb4.2` 4.1e-6, `mb16.3` 2.4e-6, `mb10.3` 2.2e-6, `mb12.3` 1.4e-6, `mb24.3` 9.1e-7, `mb8.3` 5.4e-7, `mb32.3` 5.2e-7, `mb18.3` 3.6e-7, `vaid` 3.6e-8, `fk8` 2.4e-8, `fk22` 1.4e-8, `bl10` 1.4e-8, `bl9` 5.1e-9, `bl7` 4.9e-10, `sym20` 1.6e-10 (PyWavelets table precision). Above the maximum useful level (filters long compared to the signal) reconstruction is not exact, as in PyWavelets.
 
   Keywords are former JWave names, aliases of the strings: `:haar`, `:daubechies-2`...`:daubechies-20` (`dbN`), `:symlet-2`...`:symlet-20` (`symN`), `:coiflet-1`...`:coiflet-5`, `:biorthogonal-11`...`:biorthogonal-68` (`biorX.Y`), `:discrete-mayer` (`dmey`), `:cdf-53` (`bior2.2`), `:cdf-97` (`bior4.4`), `:battle-23` (`battle3`), `:haar-orthogonal` and `:legendre-1` (`haar`)."}
-  wavelet-names (sort-by str (concat (keys @filter-table) (keys aliases))))
+  wavelet-names (sort-by str (concat (edn/read-string (slurp (io/resource "wavelets/names.edn"))) (keys aliases))))
 
 (defn wavelet
   "Returns a wavelet (filter bank) object for a name from [[wavelet-names]] (string or keyword); a wavelet object is returned as is.
@@ -151,15 +153,16 @@
 (defn coeffs-length
   "Length of the coefficient bands after one level of [[dwt-level]] for a signal of length `n`, filter length `filter-length` and `mode`."
   ^long [^long n ^long filter-length mode]
+  (check-mode! mode)
   (if (= mode :periodization)
     (m/long-quot (m/long-inc n) 2)
     (m/long-quot (m/long-add n (m/long-dec filter-length)) 2)))
 
 (defn max-level
-  "Maximum useful decomposition level, as `pywt.dwt_max_level`: the largest `k` with `(filter-length - 1) * 2^k <= n`, 0 when `n < filter-length - 1`."
+  "Maximum useful decomposition level, as `pywt.dwt_max_level`: the largest `k` with `(filter-length - 1) * 2^k <= n`, 0 when `n < filter-length - 1` or `filter-length < 2`."
   ^long [^long n ^long filter-length]
   (let [l- (m/long-dec filter-length)]
-    (if (m/< n l-)
+    (if (or (m/< l- 1) (m/< n l-))
       0
       (loop [k 0 v l-]
         (if (m/<= (m/long-mult v 2) n) (recur (m/long-inc k) (m/long-mult v 2)) k)))))
@@ -337,7 +340,7 @@
   * `level` - refinement level (default 8): phi is sampled at `2^level` points per unit by `level` reconstruction steps of a single coefficient `2^(level/2)` and linearly interpolated
   * `reconstruction?` - for biorthogonal wavelets the reconstruction (`true`) or decomposition (`false`, default) function; ignored for orthogonal wavelets
 
-  The function is 0 outside the PyWavelets grid `[0, (L-1) - 1/2^level]` for biorthogonal and `[0, L-1]` for orthogonal wavelets (`L` the filter length). Wavelets named `biorX.Y` / `rbioX.Y` are biorthogonal; another wavelet is orthogonal when its reconstruction filters are its reversed decomposition filters.
+  The function is 0 outside the PyWavelets grid `[0, (M-1)/2^level]`, `M = max((L-1) 2^level, K + 2)` for biorthogonal and `M = max((L-1) 2^level + 1, K + 2)` for orthogonal wavelets (`L` the filter length, `K` the length of the reconstructed part, `K_0 = 1`, `K_i = 2 K_(i-1) + L - 2`). For `L >= 4` (biorthogonal) or `L >= 3` (orthogonal) the first term wins: `[0, L-1-1/2^level]`, `[0, L-1]`; for shorter filters the grid is `[0, (K+1)/2^level]` (haar: `[0, 1 + 1/2^level]`). Wavelets named `biorX.Y` / `rbioX.Y` are biorthogonal; another wavelet is orthogonal when its reconstruction filters are its reversed decomposition filters.
 
   Throws `ex-info` for a level smaller than 1."
   ([wv] (scaling-function wv 8))

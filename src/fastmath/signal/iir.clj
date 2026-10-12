@@ -16,9 +16,9 @@
   * `:bandwidth` - width of band filters in frequency units: the pass or stop band is `cutoff ± bandwidth/2` (default 0.1)
   * `:direct-form` - realization of the sections, 1 or 2 (default 2)
 
-  Frequencies are in the units of `:fs` and must be below `fs/2`.
+  Frequencies are in the units of `:fs`: `0 < cutoff < fs/2` for low and high pass, `0 < cutoff - bandwidth/2` and `cutoff + bandwidth/2 < fs/2` for band filters.
 
-  Throws `ex-info` for an unknown `:kind`, `:type` or `:direct-form`."
+  Throws `ex-info` for an unknown `:kind`, `:type` or `:direct-form`, a non-positive order or `fs`, frequencies outside these ranges, or malformed sections in [[sos]]."
   (:require [fastmath.core :as m]
             [fastmath.complex :as cplx]
             [fastmath.signal.biquad :as biquad])
@@ -49,6 +49,20 @@
   (when-not (m/pos? order)
     (throw (ex-info "Filter order should be positive." {:order order}))))
 
+(defn- frequencies!
+  "Checks `fs`, `cutoff` and, for band filters, the band edges `cutoff ± bandwidth/2` against `(0, fs/2)`."
+  [kind ^double fs ^double cutoff ^double bandwidth]
+  (when-not (m/pos? fs)
+    (throw (ex-info "Sample rate should be positive." {:fs fs})))
+  (let [nyquist (m/* 0.5 fs)
+        [lo hi] (if (#{:bandpass :bandstop} kind)
+                  [(m/- cutoff (m/* 0.5 bandwidth)) (m/+ cutoff (m/* 0.5 bandwidth))]
+                  [cutoff cutoff])]
+    (when (and (#{:bandpass :bandstop} kind) (not (m/pos? bandwidth)))
+      (throw (ex-info "Bandwidth should be positive." {:bandwidth bandwidth})))
+    (when-not (and (m/pos? (double lo)) (m/< (double hi) nyquist))
+      (throw (ex-info "Frequencies should be in (0, fs/2)." {:kind kind :cutoff cutoff :bandwidth bandwidth :fs fs})))))
+
 (defn bessel
   "Bessel low pass, high pass, band pass or band stop filter, as `scipy.signal.bessel` with `norm='phase'`.
 
@@ -57,6 +71,7 @@
   (^Cascade [{:keys [kind ^long order ^double bandwidth ^double cutoff ^double fs direct-form]
               :or {kind :lowpass order 5 bandwidth 0.1 cutoff 0.1 fs 1.0 direct-form 2}}]
    (positive-order! order)
+   (frequencies! kind fs cutoff bandwidth)
    (let [df (direct-form-constant direct-form)]
      (case kind
        :lowpass  (doto (Bessel.) (.lowPass order fs cutoff (int df)))
@@ -73,6 +88,7 @@
   (^Cascade [{:keys [kind ^long order ^double bandwidth ^double cutoff ^double fs direct-form]
               :or {kind :lowpass order 5 bandwidth 0.1 cutoff 0.1 fs 1.0 direct-form 2}}]
    (positive-order! order)
+   (frequencies! kind fs cutoff bandwidth)
    (let [df (direct-form-constant direct-form)]
      (case kind
        :lowpass  (doto (Butterworth.) (.lowPass order fs cutoff (int df)))
@@ -94,6 +110,7 @@
   (^Cascade [{:keys [kind ^long order ripple type ^double bandwidth ^double cutoff ^double fs direct-form]
               :or {kind :lowpass order 5 type :type-I bandwidth 0.1 cutoff 0.1 fs 1.0 direct-form 2}}]
    (positive-order! order)
+   (frequencies! kind fs cutoff bandwidth)
    (let [df (direct-form-constant direct-form)]
      (case type
        :type-I (let [ripple (double (or ripple 0.5))]
@@ -115,9 +132,16 @@
 (defn sos
   "Creates an IIR filter (`Cascade`) from a sequence of second order sections `([b0 b1 b2 a0 a1 a2] ...)`, as rows of `scipy.signal` `sos` arrays.
 
-  `direct-form` is 1 or 2 (default)."
+  `direct-form` is 1 or 2 (default). Throws `ex-info` for no sections, a section without 6 numbers or `a0 = 0`."
   (^Cascade [seq-of-coeffs] (sos seq-of-coeffs 2))
   (^Cascade [seq-of-coeffs df]
+   (when (empty? seq-of-coeffs)
+     (throw (ex-info "At least one section is required." {})))
+   (doseq [row seq-of-coeffs]
+     (when-not (and (sequential? row) (== 6 (count row)) (every? number? row))
+       (throw (ex-info "A section should be 6 numbers [b0 b1 b2 a0 a1 a2]." {:section row})))
+     (when (zero? (double (nth row 3)))
+       (throw (ex-info "Section coefficient a0 should not be 0." {:section row}))))
    (doto (SOSCascade.) (.setup (m/seq->double-double-array seq-of-coeffs) (int (direct-form-constant df))))))
 
 ;; RBJ https://webaudio.github.io/Audio-EQ-Cookbook/Audio-EQ-Cookbook.txt
@@ -131,7 +155,7 @@
 
   * `:kind` - `:lowpass` (default), `:highpass`, `:bandpass`, `:notch`, `:allpass`, `:equalizer` (peaking), `:lowshelf`, `:highshelf`
   * `:cutoff` - corner or center frequency (default 0.1), `:fs` - sample rate (default 1.0)
-  * `:bandwidth` - in octaves (default 0.5), or `:Q` - quality factor (converted with the digital cookbook formula)
+  * `:bandwidth` - in octaves (default 0.5), or `:Q` - quality factor (converted with the digital cookbook formula); shelves take their `Q` from the bandwidth too (`biquad/bandwidth->Q`, Q ≈ 2.87 for the default 0.5 octave), not from a shelf slope, use `fastmath.signal.biquad/shelf-slope->Q` to pass a slope as `:Q`
   * `:gain` - in dB for `:equalizer` and shelves (default 1.0)
   * `:direct-form` - 1 or 2 (default)"
   (^Cascade [kind opts] (biquad (assoc opts :kind kind)))
@@ -166,10 +190,11 @@
             (cplx/ensure-complex (.response iir (m// n dN)))) (range (m/long-quot N 2)))))
 
 (defn sos-coeffs
-  "Returns the second order sections of a filter: `([b0 b1 b2 a0 a1 a2] ...)`, as rows of a `scipy.signal` `sos` array."
+  "Returns the second order sections of a filter: `[[b0 b1 b2 1.0 a1 a2] ...]`, normalized to `a0 = 1` as rows of a `scipy.signal` `sos` array."
   [^Cascade irr]
   (let [N (.getNumBiquads irr)]
     (vec (for [^int i (range N)
-               :let [^Biquad b (.getBiquad irr i)]]
-           [(.getB0 b) (.getB1 b) (.getB2 b)
-            (.getA0 b) (.getA1 b) (.getA2 b)]))))
+               :let [^Biquad b (.getBiquad irr i)
+                     a0 (.getA0 b)]]
+           [(m// (.getB0 b) a0) (m// (.getB1 b) a0) (m// (.getB2 b) a0)
+            1.0 (m// (.getA1 b) a0) (m// (.getA2 b) a0)]))))

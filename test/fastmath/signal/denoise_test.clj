@@ -71,7 +71,9 @@
       (let [tr (t/transformer :dwt "db2")
             r (sut/denoise tr x {:thr 0.4 :method :soft :level 3})]
         (test/is (= 100 (count r)))
-        (test/is (< (max-diff (t/idwt (sut/denoise (t/dwt x "db2" {:level 3 :flat? true}) {:thr 0.4 :method :soft}) "db2") r) 1e-12))))
+        ;; transform objects give flat coefficients without band lengths: the flat rule (all after :skip) applies
+        (let [flat (t/dwt x "db2" {:level 3 :flat? true})]
+          (test/is (< (max-diff (t/idwt (sut/denoise (with-meta flat nil) {:thr 0.4 :method :soft}) "db2" (dissoc (::t/dwt (meta flat)) :wavelet)) r) 1e-12)))))
     (test/testing "one band (level 0): nothing changes"
       (test/is (= [(vec x)] (sut/denoise (t/dwt x "db2" {:level 0})))))))
 
@@ -82,4 +84,21 @@
   (test/is (thrown? clojure.lang.ExceptionInfo (sut/denoise [])))
   (test/is (thrown? clojure.lang.ExceptionInfo (sut/denoise [1 2 3] {:thr 1 :method :unknown})))
   (test/is (thrown? clojure.lang.ExceptionInfo (sut/denoise "db2" [] {})))
-  (test/is (== 0.0 (sut/threshold [2.0 2.0 2.0] :sure)) "zero noise estimate"))
+  (test/is (== 0.0 (sut/threshold [2.0 2.0 2.0] :sure)) "zero noise estimate")
+  (test/is (== 0.0 (sut/threshold [0 0 0 1.0] :minfdr-robust)) "zero MAD, no NaN")
+  (test/is (== 0.0 (sut/threshold [1 1 1 1.0] :minfdr)) "zero standard deviation")
+  (test/is (thrown? clojure.lang.ExceptionInfo (sut/minfdr-threshold [] 0.25 false))))
+
+(test/deftest flat-dwt-coefficients-are-bands
+  (let [x [1 2 3 4 50 1 2 3 7 -2 5]
+        opts {:thr :visu :method :soft}
+        bands (t/dwt x "haar" {:level 2})
+        flat (t/dwt x "haar" {:level 2 :flat? true})
+        denoised-flat (sut/denoise flat opts)]
+    (test/is (= (vec (apply concat (sut/denoise bands opts))) denoised-flat) "same shrinkage as bands")
+    (test/is (= (meta flat) (meta denoised-flat)))
+    (test/is (= (first bands) (subvec denoised-flat 0 (count (first bands)))) "approximation unchanged")
+    (test/is (= (t/idwt (sut/denoise bands opts)) (t/idwt denoised-flat)))))
+
+(test/deftest transformer-result-is-a-vector
+  (test/is (vector? (sut/denoise (t/transformer :real :fft) (range 16) {:thr :visu}))))

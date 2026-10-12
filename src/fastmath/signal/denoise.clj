@@ -56,13 +56,17 @@
 (defn minfdr-threshold
   "Threshold from the `top-n` quantile of two-sided normal p-values of the coefficients: the value whose p-value equals that quantile.
 
-  The noise level is [[robust-stddev]] when `robust?` is `true`, the standard deviation otherwise."
+  The noise level is [[robust-stddev]] when `robust?` is `true`, the standard deviation otherwise; a zero noise level gives threshold 0.
+
+  Throws `ex-info` for empty input."
   ^double [xs ^double top-n robust?]
-  (let [sigma (if robust? (robust-stddev xs) (stats/stddev xs))
-        pm (-> (map (fn [^double x]
-                      (m/* 2.0 (r/ccdf r/default-normal (m// (m/abs x) sigma)))) xs)
-               (stats/quantile top-n))]
-    (m/* sigma (double (r/icdf r/default-normal (m/- 1.0 (m/* 0.5 pm)))))))
+  (let [sigma (if robust? (robust-stddev xs) (stats/stddev (non-empty! xs)))]
+    (if (m/zero? sigma)
+      0.0
+      (let [pm (-> (map (fn [^double x]
+                          (m/* 2.0 (r/ccdf r/default-normal (m// (m/abs x) sigma)))) xs)
+                   (stats/quantile top-n))]
+        (m/* sigma (double (r/icdf r/default-normal (m/- 1.0 (m/* 0.5 pm)))))))))
 
 (defn top-N-threshold
   "Threshold keeping the `top-n` fraction of the largest absolute coefficients: the `1 - top-n` quantile of absolute values."
@@ -138,6 +142,20 @@
   [coeffs]
   (sequential? (first coeffs)))
 
+(defn- flat-lengths
+  "Band lengths of flat `dwt` coefficients, from their metadata."
+  [coeffs]
+  (:lengths (:fastmath.transform/dwt (meta coeffs))))
+
+(defn- split-bands
+  [coeffs lengths]
+  (when-not (== (count coeffs) (long (reduce + lengths)))
+    (throw (ex-info "Flat coefficients do not match band lengths." {:length (count coeffs) :lengths lengths})))
+  (loop [cs (vec coeffs) ls lengths acc []]
+    (if-let [l (first ls)]
+      (recur (subvec cs l) (rest ls) (conj acc (subvec cs 0 l)))
+      acc)))
+
 (defn denoise
   "Applies wavelet shrinkage to the detail coefficients.
 
@@ -145,7 +163,7 @@
 
   * `[coeffs]`, `[coeffs options]` - `coeffs` are bands from `fastmath.transform/dwt` (`[cA cD_n ... cD_1]`) or flat coefficients
   * `[wavelet xs options]` - denoises signal `xs`: `fastmath.transform/dwt` with `wavelet` (a name or wavelet object) and `:level` / `:mode` from options, shrinkage of the bands, `fastmath.transform/idwt`; returns the signal of the original length
-  * `[transformer xs options]` - as above with a transform object from `fastmath.transform/transformer` and flat coefficients; options are passed to the transform, the reverse transform also gets `:n`
+  * `[transformer xs options]` - as above with a transform object from `fastmath.transform/transformer` and flat coefficients without band lengths (the flat rule below, `:skip` protects the approximation); options are passed to the transform, the reverse transform also gets `:n`
 
   Options:
 
@@ -155,15 +173,21 @@
   * `:high?` - estimate the threshold from the finest details only (default `true` for `:visu` and `:universal`, `false` otherwise); for bands the finest detail band `cD_1`, for flat coefficients the second half
   * `:skip` - flat coefficients only: number of leading coefficients left unchanged (default 0)
 
-  Bands: the approximation band is never changed; one threshold, estimated from the finest band or from all detail bands, is applied to every detail band. Flat coefficients: the threshold is estimated from the second half (`:high?`) or from all coefficients and applied to all coefficients after `:skip`.
+  Bands: the approximation band is never changed; one threshold, estimated from the finest band or from all detail bands, is applied to every detail band. Flat coefficients from `fastmath.transform/dwt` with `:flat? true` (metadata with band `:lengths`) are treated as bands. Other flat coefficients: the threshold is estimated from the second half (`:high?`) or from all coefficients and applied to all coefficients after `:skip`.
 
-  Returns bands, or a vector of flat coefficients, with the metadata of `coeffs` (so `fastmath.transform/idwt` still works). Throws `ex-info` for empty coefficients or an unknown method or threshold."
+  Returns bands, or a vector of flat coefficients, with the metadata of `coeffs` (so `fastmath.transform/idwt` still works); the signal arities return a vector of doubles. Throws `ex-info` for empty coefficients or an unknown method or threshold."
   ([coeffs] (denoise coeffs nil))
   ([coeffs {:keys [method thr skip high? top-n-ratio]
             :or {method :hard thr :sure skip 0 top-n-ratio 0.25}}]
    (non-empty! coeffs)
-   (let [high? (if (nil? high?) (boolean (#{:visu :universal} thr)) high?)]
-     (if (bands? coeffs)
+   (let [high? (if (nil? high?) (boolean (#{:visu :universal} thr)) high?)
+         lengths (when-not (bands? coeffs) (flat-lengths coeffs))]
+     (cond
+       lengths
+       (with-meta (vec (apply concat (denoise (split-bands coeffs lengths) {:method method :thr thr :high? high? :top-n-ratio top-n-ratio})))
+         (meta coeffs))
+
+       (bands? coeffs)
        (let [details (rest coeffs)
              estimate (if (or high? (empty? details))
                         (last coeffs)
@@ -171,6 +195,8 @@
              f (shrink-fn method (threshold estimate thr top-n-ratio))]
          (with-meta (into [(vec (first coeffs))] (map (fn [band] (mapv f band)) details))
            (meta coeffs)))
+
+       :else
        (let [n (count coeffs)
              cs (vec coeffs)
              skip (long skip)
@@ -182,7 +208,7 @@
    (let [n (count (non-empty! xs))]
      (if (satisfies? prot/TransformProto wavelet-or-transformer)
        (let [opts (assoc options :n n)]
-         (prot/reverse-1d wavelet-or-transformer
-                          (double-array (denoise (vec (prot/forward-1d wavelet-or-transformer xs options)) options))
-                          opts))
+         (vec (prot/reverse-1d wavelet-or-transformer
+                               (double-array (denoise (vec (prot/forward-1d wavelet-or-transformer xs options)) options))
+                               opts)))
        (t/idwt (denoise (t/dwt xs wavelet-or-transformer options) options) wavelet-or-transformer)))))

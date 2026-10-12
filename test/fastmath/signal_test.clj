@@ -76,8 +76,19 @@
     (t/is (throws? #(sut/effect :svf3 {:kind :band})))
     (t/is (throws? #(sut/effect :clipping {:method :cubic})))
     (t/is (throws? #(sut/effect :divider {:denom 0})))
+    (t/is (throws? #(sut/effect :divider {:denom 1.5})) "not an integer")
+    (t/is (sut/effect :divider {:denom 3.0}))
+    (t/is (throws? #(sut/effect :echo {:delay 1000.0})) "more than 1e7 samples")
+    (t/is (sut/effect :echo {:delay (/ 1.0e7 44100.0)}) "exactly 1e7 samples")
+    (doseq [e [:svf2 :svf3] q [0 0.0 -1.0]]
+      (t/is (throws? #(sut/effect e {:Q q})) (str e " Q " q)))
     (t/is (throws? #(sut/effect :biquad-hs {:gain 36.0})) "shelf slope 1.5 too large for 36 dB")
     (t/is (throws? #(sut/effect :biquad-lp {:fc 30000.0})))))
+
+(t/deftest compose-order
+  (t/testing "the last effect is applied first"
+    (let [e (sut/compose-effects (sut/effect :gain 10.0) (sut/effect :clipping))]
+      (t/is (= [10.0] (vec (sut/apply-effects-raw (double-array [1.5]) e)))))))
 
 (t/deftest effects-boundaries
   (let [x (double-array [0.3 -0.7 0.0 0.9 -0.2])]
@@ -142,6 +153,9 @@
   (t/testing "sine amplitude, one-sided"
     (let [xs (map (fn [^long i] (* 3.0 (m/sin (* m/TWO_PI 2.0 (/ i 16.0))))) (range 16))]
       (t/is (m/delta-eq 3.0 ((:spectrum (sut/spectrum xs)) 2) 1.0e-14))))
+  (t/testing "decibels are not floored: 10 log10 for power, 20 log10 for amplitude, -Infinity for 0"
+    (t/is (= [-120.0 ##-Inf] (:spectrum (sut/spectrum [1e-6 1e-6] {:method :power :db? true}))))
+    (t/is (= [-120.0 ##-Inf] (:spectrum (sut/spectrum [1e-6 1e-6] {:method :amplitude :db? true})))))
   (t/testing "decibels: 10 log10 for power, 20 log10 for amplitude"
     (t/is (m/delta-eq 20.0 (first (:spectrum (sut/spectrum [10 10] {:method :amplitude :db? true}))) 1.0e-14))
     (t/is (m/delta-eq 20.0 (first (:spectrum (sut/spectrum [10 10] {:method :power :db? true}))) 1.0e-14)))
@@ -151,7 +165,11 @@
     (t/is (throws? #(sut/spectrum [1 2 3] {:domain :time-domain})))
     (t/is (throws? #(sut/fft-energy (trans/fft [1 2 3 4]) {:n 7})))
     (t/is (throws? #(sut/fft-energy [] {:kind :complex})))
-    (t/is (throws? #(sut/fft-energy (trans/fft [1 2 3 4]) {:kind :half}))))
+    (t/is (throws? #(sut/fft-energy (trans/fft [1 2 3 4]) {:kind :half})))
+    (t/is (throws? #(sut/spectrum (map identity (trans/fft [1 2 3])) {:domain :frequency})) "one-sided without metadata, :n and :nyquist?")
+    (t/is (throws? #(sut/fft-power (vec (trans/fft [1 2 3 4])))))
+    (t/is (== 3 (:N (sut/spectrum (map identity (trans/fft [1 2 3])) {:domain :frequency :nyquist? false}))))
+    (t/is (== 3 (:N (sut/spectrum (map identity (trans/fft [1 2 3])) {:domain :frequency :n 3})))))
   (t/testing "fft-frequencies"
     (t/is (= [0.0 2.0 4.0 6.0] (sut/fft-frequencies 8.0 4)))
     (t/is (= [0.0] (sut/fft-frequencies 8.0 1)))))
@@ -210,7 +228,14 @@
   (t/testing "errors"
     (t/is (throws? #(sut/stft [1 2] {:window [1 1 1]})))
     (t/is (throws? #(sut/stft [1 2] {:window []})))
-    (t/is (throws? #(sut/stft [1 2 3] {:window [1 1] :method :db})))))
+    (t/is (throws? #(sut/stft [1 2 3] {:window [1 1] :method :db})))
+    (t/is (throws? #(sut/stft [])))
+    (doseq [o [1.0 1.5 -0.1 nil]]
+      (t/is (throws? #(sut/stft [1 2 3 4] {:window [1 1] :overlap o})) (str "overlap " o))))
+  (t/testing "default window: Gaussian of length min(N, 256)"
+    (t/is (= 3 (count (:freqs (sut/stft (range 4))))) "N=4, window 4")
+    (t/is (= 129 (count (:freqs (sut/stft (range 1000))))) "window 256")
+    (t/is (= [[2.0]] (:spectrum (sut/stft [2.0] {:method :amplitude}))) "one sample, window [1.0]")))
 
 ;; convolution and filtering
 
@@ -284,7 +309,9 @@
     (t/is (throws? #(sut/savgol-filter 5 5)))
     (t/is (throws? #(sut/savgol-filter 5 2 3)))
     (t/is (throws? #(sut/savgol-filter 5 2 -1)))
-    (t/is (throws? #(sut/savgol-filter 5 2 1 0.0)))))
+    (t/is (throws? #(sut/savgol-filter 5 2 1 0.0)))
+    (t/is (= [1.0 2.0 3.0] ((sut/moving-average-filter 1) [1 2 3])) "length 1 is identity")
+    (t/is (v/edelta-eq [2.0 3.0 2.0] ((sut/moving-average-filter 3) [3 3 3]) 1.0e-15))))
 
 (t/deftest kernel-smoothing
   (let [f (sut/kernel-smoothing-filter (k/kernel :gaussian) 5)
@@ -358,6 +385,9 @@
     (t/is (v/edelta-eq [0.0 1.0 0.0 -1.0] (sut/sample-waveform w 4.0) 1.0e-15))
     (t/is (= 10 (count (sut/sample-waveform w 4.0 2.5))))
     (t/is (= [] (sut/sample-waveform w 4.0 0.0)))
+    (t/is (= [0.0 1.0 2.0] (sut/sample-waveform identity 1.0 2.4)) "t < time")
+    (t/is (= 3 (count (sut/sample-waveform identity 10.0 0.3))) "fs time = 3.0000000000000004")
+    (t/is (= 1 (count (sut/sample-waveform identity 4.0 0.1))) "partial step")
     (t/is (throws? #(sut/sample-waveform w 0.0)))))
 
 (t/deftest file-roundtrip
