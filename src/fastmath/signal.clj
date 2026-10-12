@@ -1542,7 +1542,7 @@
                                         (m// (m/- nsize size) 2)
                                         (m// (m/inc (m/- nsize size)) 2)) cplx/ZERO)))
                 (map #(cplx/scale % ratio) X))]
-        (trans/ifft X {:nyquist? (m/even? nsize)})))))
+        (trans/ifft X {:kind :real :n nsize})))))
 
 
 

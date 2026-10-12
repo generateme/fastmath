@@ -175,7 +175,8 @@
            coeffs (t/ifft (map (fn [^double v z]
                                  (cplx/scale z v))
                                (map interpolator xs)
-                               (firgain-shift xs nyquist taps ftype)))
+                               (firgain-shift xs nyquist taps ftype))
+                          {:kind :real :n (m/long-mult 2 (m/long-dec (count xs)))})
            w (get-window window taps opts)
            res (mapv m/* coeffs w)]
        (if (m/== ftype 3)
